@@ -17,11 +17,15 @@ incomplete.
 |---|---|
 | `CLAUDE.md` | Operating rules for agents. Read before any work. |
 | `README.md` | Human entry point, setup instructions. |
-| `docker-compose.yml` | Local dev: Postgres, Redis, API, web, model service. |
-| `turbo.json`, `pnpm-workspace.yaml` | Monorepo wiring. |
+| `docker-compose.yml` *(planned)* | Local dev: Postgres, Redis, API, web, model service. |
+| `package.json` | Workspace root. Pins the pnpm version and the `build`/`lint`/`typecheck`/`test`/`format` entry points. |
+| `turbo.json`, `pnpm-workspace.yaml` | Monorepo wiring. Task graph and workspace globs. |
+| `tsconfig.json` | Root TypeScript config for editors. Compiles nothing itself. |
+| `prettier.config.mjs`, `.prettierignore` | Formatting. Re-exports `@fmip/config/prettier`; Markdown is excluded. |
+| `.npmrc`, `.nvmrc`, `.editorconfig` | Toolchain pinning: pnpm resolution, Node 22, editor defaults. |
 | `.env.example` | Every environment variable, documented. Keep in sync. |
 | `docs/` | All project documentation. See below. |
-| `apps/` | Deployable applications. |
+| `apps/` *(planned)* | Deployable applications. |
 | `packages/` | Shared libraries. |
 
 ## `docs/`
@@ -69,7 +73,21 @@ One directory per module from `02-architecture.md`. Each contains:
 | `packages/db` *(planned)* | Schema, migrations, seed data | `apps/api` |
 | `packages/db/training` *(planned)* | Historical datasets for model training only. **Never importable from `apps/api` or `apps/web`** (D-014) | `apps/model` |
 | `packages/ui` *(planned)* | Shared React components, design tokens, RTL-safe primitives | `apps/web` |
-| `packages/config` *(planned)* | Shared tsconfig, eslint, prettier | everything |
+| `packages/config` | Shared tsconfig, eslint, prettier. Published as `@fmip/config`. | everything |
+
+### `packages/config`
+
+Consumed by every other workspace. Nothing here imports from anywhere else.
+
+| Path | Purpose |
+|---|---|
+| `tsconfig/base.json` | Strictness baseline. Every other preset extends it. |
+| `tsconfig/library.json` | For `packages/*`: composite build, `src` → `dist`. |
+| `tsconfig/nestjs.json` | For `apps/api`: CommonJS + decorator metadata. |
+| `tsconfig/nextjs.json` | For `apps/web`: bundler resolution, JSX, `noEmit`. |
+| `eslint/base.js` | Flat config. App configs spread it and add their own layers. |
+| `prettier/index.js` | Formatting options. |
+| `tests/shared-config.spec.ts` | Guards the invariants above against silent drift. |
 
 ---
 

@@ -1,0 +1,8 @@
+{
+  "extends": "@fmip/config/tsconfig/base.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "files": [],
+  "exclude": ["node_modules", "apps", "packages"]
+}

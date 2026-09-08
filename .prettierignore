@@ -1,0 +1,13 @@
+node_modules/
+dist/
+build/
+.next/
+.turbo/
+coverage/
+pnpm-lock.yaml
+*.tsbuildinfo
+
+# Prose is written by hand and reviewed by hand. Reflowing it produces large
+# diffs with no reader benefit, and `docs/00-decisions.md` is append-only:
+# reformatting would rewrite entries that are declared immutable.
+*.md
