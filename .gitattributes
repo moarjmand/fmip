@@ -1,0 +1,17 @@
+# Normalise line endings. Prevents Windows CRLF from polluting diffs and
+# from breaking shell scripts inside Docker containers.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
+*.zip binary
+
+pnpm-lock.yaml -diff
+package-lock.json -diff
