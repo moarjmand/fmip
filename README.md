@@ -35,10 +35,18 @@ in `package.json`; `corepack enable` picks it up automatically.
 ```bash
 pnpm install
 cp .env.example .env
-docker compose up
+docker compose up -d
+bash scripts/check-dev-stack.sh   # proves Postgres and Redis answer
 ```
 
-Web at `http://localhost:3000/en`, API at `http://localhost:3001/health`.
+The stack is Postgres on `127.0.0.1:5432` and Redis on `127.0.0.1:6379`; both
+ports are bound to loopback so a development database is not exposed to the rest
+of your network. Data survives restarts in the `postgres-data` and `redis-data`
+volumes — `docker compose down -v` is what throws it away.
+
+`apps/api`, `apps/web` and `apps/model` are added to the compose file by T-004,
+T-005 and T-063. Once they are there: web at `http://localhost:3000/en`, API at
+`http://localhost:3001/health`.
 
 Workspace-wide commands, each fanned out over every package by Turborepo:
 

@@ -17,7 +17,8 @@ incomplete.
 |---|---|
 | `CLAUDE.md` | Operating rules for agents. Read before any work. |
 | `README.md` | Human entry point, setup instructions. |
-| `docker-compose.yml` *(planned)* | Local dev: Postgres, Redis, API, web, model service. |
+| `docker-compose.yml` | Local dev stack. Postgres + Redis today; API, web and model service join it in T-004, T-005, T-063. |
+| `scripts/` | Developer scripts. `check-dev-stack.sh` proves the stack is reachable. |
 | `package.json` | Workspace root. Pins the pnpm version and the `build`/`lint`/`typecheck`/`test`/`format` entry points. |
 | `turbo.json`, `pnpm-workspace.yaml` | Monorepo wiring. Task graph and workspace globs. |
 | `tsconfig.json` | Root TypeScript config for editors. Compiles nothing itself. |
@@ -88,6 +89,26 @@ Consumed by every other workspace. Nothing here imports from anywhere else.
 | `eslint/base.js` | Flat config. App configs spread it and add their own layers. |
 | `prettier/index.js` | Formatting options. |
 | `tests/shared-config.spec.ts` | Guards the invariants above against silent drift. |
+
+---
+
+## Environment variables
+
+Every variable in `.env.example`, and what reads it. Adding one means editing
+both files (`CLAUDE.md` §5). `.env` itself is never committed.
+
+| Variable | Read by | Notes |
+|---|---|---|
+| `NODE_ENV` | everything | |
+| `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | `docker-compose.yml` | Configure the container at first start. Changing them after the volume exists has no effect. |
+| `POSTGRES_PORT` | `docker-compose.yml` | Host port, bound to `127.0.0.1`. Default `5432`. |
+| `DATABASE_URL` | `apps/api`, `packages/db` *(planned)* | How the application reaches Postgres. Not read by compose — keep it in sync with the `POSTGRES_*` values by hand. |
+| `REDIS_PORT` | `docker-compose.yml` | Host port, bound to `127.0.0.1`. Default `6379`. |
+| `REDIS_URL` | `apps/api` *(planned)* | Cache, live state, BullMQ. |
+| `API_PORT`, `WEB_PORT` | `apps/api`, `apps/web` *(planned)* | |
+| `MODEL_SERVICE_URL` | `apps/api` *(planned)* | Internal only. Never reachable from the browser. |
+| `SESSION_SECRET` | `apps/api` *(planned)* | |
+| `API_FOOTBALL_KEY`, `FOOTBALL_DATA_ORG_KEY`, `HIGHLIGHTLY_KEY` | `packages/ingestion` *(planned)* | Free-tier keys for the bake-off (D-013). |
 
 ---
 
