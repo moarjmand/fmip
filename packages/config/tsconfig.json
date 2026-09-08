@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig/base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
+    "allowJs": true,
+    "checkJs": true
+  },
+  "include": ["tests/**/*.ts", "eslint/**/*.js", "prettier/**/*.js", "vitest.config.ts"]
+}

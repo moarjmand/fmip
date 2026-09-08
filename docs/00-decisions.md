@@ -242,3 +242,38 @@ free keyless CSV).
 training, long-term team strength — so only the first requires a paid feed.
 Bookmaker odds also give an objective calibration benchmark: a model that cannot
 beat the market's calibration is not ready to publish.
+
+---
+
+## D-017 — Pin TypeScript to 5.9 for now
+**Status:** Accepted · 2026-09-08
+
+**Decision.** The monorepo pins `typescript@^5.9.3`, not the current latest
+(7.0.2). Revisit once the lint and framework toolchain catches up.
+
+**Why.** `typescript-eslint@8` declares `typescript: >=4.8.4 <6.1.0`. Installing
+TypeScript 7 would either break linting or force `--strict-peer-dependencies`
+off for a genuine incompatibility. NestJS decorator emit and the Next.js
+compiler plugin are also not yet verified against the 7.x native compiler.
+
+**Alternatives.** Take TypeScript 7 now and drop typescript-eslint — rejected:
+type-aware lint rules are a load-bearing part of how an agent-written codebase
+stays honest, which is exactly the argument in D-008.
+
+**Consequences.** A single version, declared once in `packages/config` and at the
+workspace root. Upgrading is one place to change. Re-evaluate at T-003 (CI) and
+again before Phase 2.
+
+---
+
+## D-018 — Prettier does not format Markdown
+**Status:** Accepted · 2026-09-08
+
+**Decision.** `*.md` is listed in `.prettierignore`. Prose is formatted by hand.
+
+**Why.** Running Prettier over `docs/` reflows every table and inserts blank
+lines after every heading, producing ~500 lines of diff that no reviewer can
+read. More importantly `docs/00-decisions.md` is append-only — reformatting it
+edits entries that this file declares immutable.
+
+**Consequences.** Markdown style is a review concern, not a CI concern.

@@ -29,6 +29,9 @@ Rationale for each choice: `docs/00-decisions.md`.
 
 ## Local development
 
+Requires Node 22 (see `.nvmrc`) and pnpm 10. The pinned pnpm version is declared
+in `package.json`; `corepack enable` picks it up automatically.
+
 ```bash
 pnpm install
 cp .env.example .env
@@ -36,6 +39,16 @@ docker compose up
 ```
 
 Web at `http://localhost:3000/en`, API at `http://localhost:3001/health`.
+
+Workspace-wide commands, each fanned out over every package by Turborepo:
+
+```bash
+pnpm build       # build every package
+pnpm typecheck   # tsc across the workspace
+pnpm lint        # eslint across the workspace
+pnpm test        # vitest across the workspace
+pnpm format      # prettier --write
+```
 
 ## Ground rules
 
