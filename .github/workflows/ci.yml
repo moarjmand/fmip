@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A superseded pull request run is wasted compute. Runs on main are never
+# cancelled: main's history must keep a verdict for every commit.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v5
+
+      # Corepack takes the pnpm version from the `packageManager` field in
+      # package.json, so CI and a developer machine cannot drift apart.
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        id: install
+        run: pnpm install --frozen-lockfile
+
+      # Every check below runs even when an earlier one failed, so a single run
+      # reports everything that needs fixing rather than one thing at a time.
+      # They are skipped only if the install itself failed, where every result
+      # would be noise.
+      - name: Format
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm format:check
+
+      - name: Lint
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm lint
+
+      - name: Typecheck
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm typecheck
+
+      - name: Test
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm test
+
+      - name: Build
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm build

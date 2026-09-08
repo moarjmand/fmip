@@ -24,6 +24,7 @@ incomplete.
 | `prettier.config.mjs`, `.prettierignore` | Formatting. Re-exports `@fmip/config/prettier`; Markdown is excluded. |
 | `.npmrc`, `.nvmrc`, `.editorconfig` | Toolchain pinning: pnpm resolution, Node 22, editor defaults. |
 | `.env.example` | Every environment variable, documented. Keep in sync. |
+| `.github/workflows/ci.yml` | CI. Runs format, lint, typecheck, test and build on every PR and on `main`. |
 | `docs/` | All project documentation. See below. |
 | `apps/` *(planned)* | Deployable applications. |
 | `packages/` | Shared libraries. |
