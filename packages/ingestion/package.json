@@ -1,0 +1,31 @@
+{
+  "name": "@fmip/ingestion",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Provider adapters, the normalised model they produce, and the recorded-fixture contract harness that verifies them.",
+  "license": "UNLICENSED",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@fmip/config": "workspace:*",
+    "@types/node": "^22.19.0",
+    "eslint": "^9.39.5",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.0"
+  }
+}

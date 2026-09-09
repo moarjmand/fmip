@@ -126,7 +126,7 @@ argument for having the pseudo-locale.
 | Path | Purpose | Consumed by |
 |---|---|---|
 | `packages/contracts` | API request/response types, shared enums, coverage states. **The single source of truth for the API shape.** | `apps/web`, `apps/api` |
-| `packages/ingestion` *(planned)* | Provider adapters, normalisation, entity resolution | `apps/api` |
+| `packages/ingestion` | The normalised model adapters produce, the adapter contract, and the recorded-fixture harness that verifies an adapter. Adapters themselves arrive with T-021 to T-023. | `apps/api` |
 | `packages/db` | Schema, migrations, seed data. Plain SQL, applied by node-pg-migrate (D-022). | `apps/api` |
 | `packages/db/training` *(planned)* | Historical datasets for model training only. **Never importable from `apps/api` or `apps/web`** (D-014) | `apps/model` |
 | `packages/ui` *(planned)* | Shared React components, design tokens, RTL-safe primitives | `apps/web` |
@@ -161,6 +161,29 @@ coverage state next to it.
 
 Changing a type here breaks `apps/api` and `apps/web` in the same build, which
 is the point of the package (D-006).
+
+### `packages/ingestion`
+
+| Path | Purpose |
+|---|---|
+| `src/normalised.ts` | The provider-neutral shapes every adapter returns: fixture, incident, lineup, standing, statistic, period, and the closed value lists they share with the schema. Entities carry the provider's id plus a name; unsupplied fields are `null`, never zero or a guess. |
+| `src/adapters/_contract.ts` | `ProviderAdapter` (five calls: fixtures, live, lineup, standings, detail), `AdapterManifest` (licence, tier, quota, critical-path flag), `Transport` (the only way to the network, injected), `AdapterResult` (failure is a value, with the request count). |
+| `src/adapters/_fixtures/` | Recorded provider responses, one directory per provider, one JSON scenario per call. Recorded with `RecordingTransport`, never hand-written. Empty until T-021. |
+| `src/adapters/<provider>/` *(planned)* | One directory per adapter: `api-football`, `football-data-org`, `highlightly`. |
+| `src/harness/contract-check.ts` | `checkAdapterContract(factory, scenarios)`: replays each scenario through `ReplayTransport`, checks the manifest (D-014), that failure is returned not thrown, that no unrecorded URL was requested, that the request count is honest, and that success validates as the normalised shape. Returns problems; empty means pass. `loadScenarios(dir)` reads a provider's recordings. |
+| `src/harness/replay-transport.ts` | `ReplayTransport` answers only from recordings and lists what it could not answer; `RecordingTransport` performs real requests and remembers them, for producing recordings. |
+| `src/harness/validate.ts` | Hand-written validators for each normalised shape and the manifest, restating the schema's rules at the boundary (statuses, ranges, uniqueness, "finished needs a full-time score", one captain, D-014). |
+| `src/harness/contract-check.spec.ts` | The harness's own proof: a conforming fake adapter passes; deliberately broken ones (leaked provider status, faked coverage, unrecorded URL, thrown error, misreported requests, scraped critical path, success where failure was recorded) each fail by name. |
+
+**An adapter is verified by its recordings, not by its author.** `checkAdapterContract`
+on an adapter with no scenarios reports it as unverified rather than passing it.
+The adapter never reaches for `fetch`: it is constructed with a `Transport`, so
+the same code runs against the recording in tests and against the provider in
+the bake-off, and the request count it reports is checked against the transport.
+
+`apps/api` will import `PROVIDERS` and the entity-type list from this package
+once an adapter exists (T-021); until then the resolver in
+`apps/api/src/modules/ingestion/` carries its own copy of both lists.
 
 ### `packages/db`
 
