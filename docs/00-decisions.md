@@ -388,3 +388,30 @@ transactions and the ledger, and writing it is not a good use of the budget.
 **Consequences.** `packages/db` owns migrations and nothing else for now. The
 application's query layer is a separate, later decision. A migration missing its
 down section is a test failure, not a discovery made during a rollback.
+
+## D-023 — The repository is public
+**Status:** Accepted · 2026-09-09
+
+**Decision.** `moarjmand/fmip` is a public GitHub repository. The branch
+ruleset `main-required-checks` on the default branch requires the `Verify` and
+`E2E` status checks from `.github/workflows/ci.yml` to pass before a merge.
+
+**Why.** T-003's acceptance criterion is that a PR with a type error is
+*blocked*, not merely reported. GitHub enforces that through rulesets or branch
+protection, and on the Free plan both return HTTP 403 for a private repository:
+"Upgrade to GitHub Pro or make this repository public to enable this feature."
+The maintainer chose visibility over a paid plan. The code contains no secrets
+(`.env` is never committed, see `03-project-map.md`), and the product blueprint
+describes behaviour, not a competitive edge that hiding would protect.
+
+**Alternatives.** GitHub Pro — keeps the repository private for a monthly fee;
+rejected for now as an avoidable recurring cost at Phase 1. Leave `main`
+unprotected and rely on discipline — rejected: the whole point of T-003 is that
+the gate does not depend on anyone remembering to look at CI.
+
+**Consequences.** Anything committed is public from the moment it is pushed,
+including branches and PR discussion. Provider keys, session secrets and any
+licensed dataset (D-014) must never enter the tree, which was already the rule
+and is now load-bearing. If the repository later returns to private under a
+paid plan, the ruleset stays in place. Free public repositories also get
+unlimited GitHub Actions minutes, so CI cost stops being a budget concern.

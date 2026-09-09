@@ -93,9 +93,10 @@ pnpm format      # prettier --write
 `build` on every pull request and on every push to `main`. All five run even
 when an earlier one fails, so one run reports everything that needs fixing.
 
-The job is named **Verify**. For a failing check to actually block a merge, that
-job must be listed as a required status check on `main` in the repository's
-branch protection settings — the workflow alone reports, it does not enforce.
+Two jobs report: **Verify** (the five steps above) and **E2E** (the Playwright
+RTL check). Both are required status checks on `main` through the repository
+ruleset `main-required-checks` (D-023), so a failing job blocks the merge
+instead of only reporting it. The workflow alone reports; the ruleset enforces.
 
 ## Ground rules
 
