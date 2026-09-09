@@ -85,9 +85,17 @@ docker run --rm node:22-alpine npm view pnpm version
 12.3.4
 ```
 
-**Consequence.** `pnpm install` cannot run on the Windows host, but it runs
-inside an image build, which is where `docker compose build` performs it. The
-container path is the maintainer's working path, not a workaround.
+**Consequence.** Unproxied, `pnpm install` cannot run on the Windows host, but
+it runs inside an image build, which is where `docker compose build` performs
+it. Since 2026-09-10 the host path works too: `bash scripts/dev-proxy.sh` runs
+a squid forward proxy in a container, published on `127.0.0.1:3128`, and the
+user `~/.npmrc` on the maintainer's machine routes pnpm through it
+(`proxy=` and `https-proxy=`). With that in place `pnpm install`, `pnpm lint`,
+`pnpm typecheck`, `pnpm test` and `pnpm format:check` all run natively on the
+host, which is how an agent verifies the definition of done locally instead of
+waiting for CI. The proxy container restarts with Docker; check it with
+`bash scripts/dev-proxy.sh status`. Corepack and Playwright's browser download
+honour the same `HTTPS_PROXY=http://127.0.0.1:3128` if they are ever needed.
 
 It is not perfectly reliable, though. `registry.npmjs.org` resolves to several
 Cloudflare addresses and, from inside a container on that host, some of them

@@ -19,3 +19,7 @@ next-env.d.ts
 # Playwright run artifacts. Gitignored, but Prettier walks them anyway.
 test-results/
 playwright-report/
+
+# Claude Code keeps a per-machine permissions file here. It is ignored by the
+# user's global git excludes, which Prettier does not read, so name it here too.
+.claude/

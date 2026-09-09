@@ -18,7 +18,7 @@ incomplete.
 | `CLAUDE.md` | Operating rules for agents. Read before any work. |
 | `README.md` | Human entry point, setup instructions. |
 | `docker-compose.yml` | Local dev stack. Postgres, Redis, the API and the web app. The model service joins in T-063. |
-| `scripts/` | Developer scripts. `check-dev-stack.sh` proves Postgres, Redis, `/health` and `/en` all answer. |
+| `scripts/` | Developer scripts. `check-dev-stack.sh` proves Postgres, Redis, `/health` and `/en` all answer. `dev-proxy.sh` (config in `dev-proxy/squid.conf`) runs a loopback-only forward proxy in Docker for a host that cannot reach the npm registry directly; see `06-session-handoff.md`, constraint 2. |
 | `.dockerignore` | Keeps `node_modules`, build output and `.env` out of every image build context. |
 | `package.json` | Workspace root. Pins the pnpm version and the `build`/`lint`/`typecheck`/`test`/`format` entry points. Checks run with `--continue`, so one run reports every broken workspace. |
 | `turbo.json`, `pnpm-workspace.yaml` | Monorepo wiring. Task graph and workspace globs. |
