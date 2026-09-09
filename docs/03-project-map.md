@@ -164,8 +164,8 @@ is the point of the package (D-006).
 
 | Path | Purpose |
 |---|---|
-| `migrations/*.sql` | One file per change, `<timestamp>_<slug>.sql`, each with an up and a down section. Never edit a shipped one. `..._bootstrap.sql` is the version gate and the `set_updated_at()` trigger function; `..._catalog.sql` is T-010: `country`, `competition`, `season`, `stage`, `venue`, `team`, `person`, `player_spell`. `..._fixtures.sql` is T-011: `fixture`, `fixture_participant`, `fixture_score`, `fixture_period`, `incident`, `lineup`, `fixture_stat`. |
-| `seed/*.sql` | Development fixtures, `<nnn>_<slug>.sql`, applied in prefix order. Fixed UUIDs and `ON CONFLICT (id) DO UPDATE`, so re-running converges. `001` is the catalog slice, `002` one finished fixture. Never product data: the runner refuses `NODE_ENV=production`. |
+| `migrations/*.sql` | One file per change, `<timestamp>_<slug>.sql`, each with an up and a down section. Never edit a shipped one. `..._bootstrap.sql` is the version gate and the `set_updated_at()` trigger function; `..._catalog.sql` is T-010: `country`, `competition`, `season`, `stage`, `venue`, `team`, `person`, `player_spell`. `..._fixtures.sql` is T-011: `fixture`, `fixture_participant`, `fixture_score`, `fixture_period`, `incident`, `lineup`, `fixture_stat`. `..._ingestion.sql` is T-012: `provider_mapping`, `coverage_profile`, `ingest_run`. |
+| `seed/*.sql` | Development fixtures, `<nnn>_<slug>.sql`, applied in prefix order. Fixed UUIDs and `ON CONFLICT (id) DO UPDATE`, so re-running converges. `001` is the catalog slice, `002` one finished fixture, `003` three API-Football ids and an honest coverage profile for the seeded season. Never product data: the runner refuses `NODE_ENV=production`. |
 | `src/index.ts` | Locates and orders the migration files. |
 | `src/seed.ts` | Locates and orders the seed files, and the `pnpm seed` runner: one transaction per file, rolled back whole on failure. |
 | `src/migrations.spec.ts` | Enforces the naming, the unique ordering, and that every migration has a non-empty down section. |
@@ -199,6 +199,22 @@ real start and end times. `fixture_stat` is `(metric, value)` under a closed
 metric list; an absent row means *not supplied* and is never stored as zero
 (rule 3). Children of a fixture cascade on delete; references into the
 catalog (`team`, `person`, `season`) are `RESTRICT`.
+
+**Ingestion conventions (T-012).** `provider_mapping(provider, external_id,
+entity_type)` is unique and is the only place a provider id lives (rule 2);
+`internal_id` is not a foreign key because it points at one of eight tables by
+`entity_type`, so the entity resolver (T-013) checks existence on write. One
+internal entity may carry several ids from one provider (upstream duplicates)
+and one id per provider is the norm. `coverage_profile` is one row per
+`(season, module)` in the four `CoverageState` values from
+`packages/contracts`; a missing row means unknown and is read as
+`not_supplied`, and a state other than `not_supplied` must name its provider.
+`ingest_run` is `running` exactly while `finished_at` is null, a failed run
+must carry its error, and a partial unique index allows one running row per
+`(provider, job)`, which is the lock that makes a duplicate scheduler tick
+harmless. Provider identifiers (`api_football`, `football_data_org`,
+`highlightly`) are the D-013 bake-off set; T-025 changes them with a
+constraint swap.
 
 ---
 
