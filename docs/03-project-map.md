@@ -58,6 +58,7 @@ incomplete.
 | Path | Purpose |
 |---|---|
 | `src/main.ts` | Bootstrap: Fastify adapter, port resolution, shutdown hooks. |
+| — | `pnpm dev` watches and compiles; `pnpm dev:serve` runs the output. Two scripts, not one backgrounded pipeline, because `&` backgrounds in bash and sequences in cmd. |
 | `src/app.module.ts` | Root module. Each boundary is registered here as it is built. |
 | `src/modules/health/` | `GET /health`. Liveness only — see the note below. Returns `HealthReport` from `@fmip/contracts`. |
 | `src/modules/<boundary>/` | The eleven boundaries from `02-architecture.md`. Empty until built. |
@@ -190,7 +191,7 @@ both files (`CLAUDE.md` §5). `.env` itself is never committed.
 | `REDIS_PORT` | `docker-compose.yml` | Host port, bound to `127.0.0.1`. Default `6379`. |
 | `REDIS_URL` | `apps/api` *(planned)* | Cache, live state, BullMQ. Same host caveat as `DATABASE_URL`. |
 | `API_PORT` | `apps/api`, `docker-compose.yml` | Host port for the API. Rejected at boot if it is not a valid port number. |
-| `WEB_PORT` | `apps/web` | Port for `next dev` / `next start`. Default `3000`. |
+| `WEB_PORT` | `docker-compose.yml` | Host port for the web app, bound to `127.0.0.1`. Default `3000`. The container itself always listens on 3000; compose sets Next's own `PORT` for it. |
 | `API_BASE_URL` | `apps/web` | Where the web app reaches the API server-side. Default `http://127.0.0.1:3001`. |
 | `MODEL_SERVICE_URL` | `apps/api` *(planned)* | Internal only. Never reachable from the browser. |
 | `SESSION_SECRET` | `apps/api` *(planned)* | |

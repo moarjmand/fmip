@@ -6,8 +6,8 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "next build",
-    "dev": "next dev --port ${WEB_PORT:-3000}",
-    "start": "next start --port ${WEB_PORT:-3000}",
+    "dev": "next dev",
+    "start": "next start",
     "lint": "eslint . && stylelint \"src/**/*.css\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
