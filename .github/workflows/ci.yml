@@ -20,6 +20,27 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
+    # A real Postgres, so the store tests in apps/api run here instead of being
+    # skipped (D-025). Same image as docker-compose.yml; throwaway credentials
+    # because the database lives exactly as long as the job.
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: fmip
+          POSTGRES_PASSWORD: fmip
+          POSTGRES_DB: fmip
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fmip -d fmip"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    env:
+      DATABASE_URL: postgresql://fmip:fmip@localhost:5432/fmip
+
     steps:
       - name: Check out
         uses: actions/checkout@v5
@@ -55,8 +76,20 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm typecheck
 
-      - name: Test
+      # The schema the tests run against is the one the migrations produce, and
+      # the seed is what the resolver's integration tests resolve against. Both
+      # run through the real package scripts, so a migration that node-pg-migrate
+      # cannot apply fails CI here, not on a developer's machine.
+      - name: Migrate and seed
+        id: database
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: |
+          pnpm --filter @fmip/db build
+          pnpm --filter @fmip/db migrate:up
+          pnpm --filter @fmip/db seed
+
+      - name: Test
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.database.outcome == 'success' }}
         run: pnpm test
 
       - name: Build
