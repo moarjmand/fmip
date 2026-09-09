@@ -355,3 +355,36 @@ this is exactly the class of mistake that survives review.
 **Consequences.** `stylelint` is a devDependency of `apps/web`. The class-name
 rule matches text, so a genuinely non-Tailwind string containing `ml-` in a
 `className` would need an inline disable; no such case exists today.
+
+---
+
+## D-022 — node-pg-migrate for schema migrations, no ORM
+**Status:** Accepted · 2026-09-09
+
+**Decision.** Schema changes are plain SQL files applied by `node-pg-migrate`,
+in `packages/db/migrations/`. Each file carries an `Up Migration` and a
+`Down Migration` section. No ORM owns the schema.
+
+**Why.** D-004 makes portability the priority and forbids provider-proprietary
+features; the stack table in `CLAUDE.md` names PostgreSQL and no ORM, so the
+schema was already going to be SQL. A migration tool that reads SQL keeps the
+schema reviewable as the thing that actually runs, rather than as a generated
+artefact of a model definition. `node-pg-migrate` adds a runner and a ledger
+table and nothing else.
+
+Rule 5 in `CLAUDE.md` says database changes happen only via migrations and a
+shipped migration is never edited. That is only enforceable if a migration is a
+file with a name that fixes its order, which is what this tool's timestamp
+prefix gives us.
+
+**Alternatives.** Prisma — owns the schema in its own DSL and generates SQL,
+which puts a translation layer between review and what runs; its migration
+engine is also a heavier dependency than the problem needs. Drizzle Kit — closer
+to SQL, but still schema-in-TypeScript, and adopting its query builder would be
+a second decision smuggled in with the first. Plain SQL files plus a hand-written
+runner — the runner is the part that has to be correct about ordering,
+transactions and the ledger, and writing it is not a good use of the budget.
+
+**Consequences.** `packages/db` owns migrations and nothing else for now. The
+application's query layer is a separate, later decision. A migration missing its
+down section is a test failure, not a discovery made during a rollback.

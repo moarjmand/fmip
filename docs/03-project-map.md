@@ -124,7 +124,7 @@ argument for having the pseudo-locale.
 |---|---|---|
 | `packages/contracts` | API request/response types, shared enums, coverage states. **The single source of truth for the API shape.** | `apps/web`, `apps/api` |
 | `packages/ingestion` *(planned)* | Provider adapters, normalisation, entity resolution | `apps/api` |
-| `packages/db` *(planned)* | Schema, migrations, seed data | `apps/api` |
+| `packages/db` | Schema, migrations, seed data. Plain SQL, applied by node-pg-migrate (D-022). | `apps/api` |
 | `packages/db/training` *(planned)* | Historical datasets for model training only. **Never importable from `apps/api` or `apps/web`** (D-014) | `apps/model` |
 | `packages/ui` *(planned)* | Shared React components, design tokens, RTL-safe primitives | `apps/web` |
 | `packages/config` | Shared tsconfig, eslint, prettier. Published as `@fmip/config`. | everything |
@@ -158,6 +158,21 @@ coverage state next to it.
 
 Changing a type here breaks `apps/api` and `apps/web` in the same build, which
 is the point of the package (D-006).
+
+### `packages/db`
+
+| Path | Purpose |
+|---|---|
+| `migrations/*.sql` | One file per change, `<timestamp>_<slug>.sql`, each with an up and a down section. Never edit a shipped one. |
+| `src/index.ts` | Locates and orders the migration files. |
+| `src/migrations.spec.ts` | Enforces the naming, the unique ordering, and that every migration has a non-empty down section. |
+
+Applying them needs `DATABASE_URL` and a running Postgres:
+
+```bash
+DATABASE_URL=... pnpm --filter @fmip/db migrate:up
+DATABASE_URL=... pnpm --filter @fmip/db migrate:down
+```
 
 ---
 

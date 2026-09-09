@@ -1,0 +1,41 @@
+{
+  "name": "@fmip/db",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Database schema, migrations and seed data.",
+  "license": "UNLICENSED",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "migrations"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "migrate": "node-pg-migrate --migrations-dir migrations --migrations-table schema_migration",
+    "migrate:up": "pnpm migrate up",
+    "migrate:down": "pnpm migrate down",
+    "migrate:redo": "pnpm migrate redo"
+  },
+  "dependencies": {
+    "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "@fmip/config": "workspace:*",
+    "@types/node": "^22.19.0",
+    "@types/pg": "^8.23.1",
+    "eslint": "^9.39.5",
+    "node-pg-migrate": "^9.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.0"
+  }
+}
