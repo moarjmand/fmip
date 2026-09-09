@@ -45,5 +45,14 @@ status="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${api_port}/h
 curl -s "http://127.0.0.1:${api_port}/health"
 echo
 
+echo "==> Web /en"
+web_port="${WEB_PORT:-3000}"
+web_status="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${web_port}/en")"
+[ "$web_status" = "200" ] || {
+  echo "ERROR: GET /en returned HTTP ${web_status}, expected 200" >&2
+  exit 1
+}
+echo "HTTP 200"
+
 echo
-echo "Postgres, Redis and the API are all reachable."
+echo "Postgres, Redis, the API and the web app are all reachable."

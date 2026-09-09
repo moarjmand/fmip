@@ -17,8 +17,8 @@ incomplete.
 |---|---|
 | `CLAUDE.md` | Operating rules for agents. Read before any work. |
 | `README.md` | Human entry point, setup instructions. |
-| `docker-compose.yml` | Local dev stack. Postgres, Redis and the API. `apps/web` is not in it yet — it is run from the host with `pnpm --filter @fmip/web dev`. |
-| `scripts/` | Developer scripts. `check-dev-stack.sh` proves Postgres, Redis and `/health` all answer. |
+| `docker-compose.yml` | Local dev stack. Postgres, Redis, the API and the web app. The model service joins in T-063. |
+| `scripts/` | Developer scripts. `check-dev-stack.sh` proves Postgres, Redis, `/health` and `/en` all answer. |
 | `.dockerignore` | Keeps `node_modules`, build output and `.env` out of every image build context. |
 | `package.json` | Workspace root. Pins the pnpm version and the `build`/`lint`/`typecheck`/`test`/`format` entry points. Checks run with `--continue`, so one run reports every broken workspace. |
 | `turbo.json`, `pnpm-workspace.yaml` | Monorepo wiring. Task graph and workspace globs. |
@@ -92,6 +92,7 @@ One directory per module from `02-architecture.md`. Each will contain:
 | `src/lib/api.ts` | Calls `apps/api`, typed by `@fmip/contracts`. Returns an unreachable state rather than throwing. |
 | `tests/e2e/rtl.spec.ts` | The RTL check. Asserts computed layout, never screenshots. |
 | `playwright.config.ts` | Runs the E2E suite against a production build. |
+| `Dockerfile` | Multi-stage build on Next's standalone output. Built from the repository root. |
 | `src/proxy.ts` | Redirects any path without a locale segment to the default locale. |
 | `stylelint.config.mjs` | Bans physical CSS properties (rule 7). |
 | `eslint.config.mjs` | Bans physical Tailwind utilities in `className`, plus Next's rules. |
