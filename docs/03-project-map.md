@@ -26,7 +26,7 @@ incomplete.
 | `prettier.config.mjs`, `.prettierignore` | Formatting. Re-exports `@fmip/config/prettier`; Markdown is excluded. |
 | `.npmrc`, `.nvmrc`, `.editorconfig` | Toolchain pinning: pnpm resolution, Node 22, editor defaults. |
 | `.env.example` | Every environment variable, documented. Keep in sync. |
-| `.github/workflows/ci.yml` | CI. `Verify` runs format, lint, typecheck, test and build; `E2E` runs the Playwright RTL check. Both on every PR and on `main`. |
+| `.github/workflows/ci.yml` | CI. `Verify` runs format, lint, typecheck, test and build against a real Postgres service: the migrations are applied and the seed loaded with the package scripts first, so the API's store tests run rather than skip. `E2E` runs the Playwright RTL check. Both on every PR and on `main`. |
 | `docs/` | All project documentation. See below. |
 | `apps/` | Deployable applications. |
 | `packages/` | Shared libraries. |
