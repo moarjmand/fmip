@@ -164,8 +164,8 @@ is the point of the package (D-006).
 
 | Path | Purpose |
 |---|---|
-| `migrations/*.sql` | One file per change, `<timestamp>_<slug>.sql`, each with an up and a down section. Never edit a shipped one. `..._bootstrap.sql` is the version gate and the `set_updated_at()` trigger function; `..._catalog.sql` is T-010: `country`, `competition`, `season`, `stage`, `venue`, `team`, `person`, `player_spell`. |
-| `seed/*.sql` | Development fixtures, `<nnn>_<slug>.sql`, applied in prefix order. Fixed UUIDs and `ON CONFLICT (id) DO UPDATE`, so re-running converges. Never product data: the runner refuses `NODE_ENV=production`. |
+| `migrations/*.sql` | One file per change, `<timestamp>_<slug>.sql`, each with an up and a down section. Never edit a shipped one. `..._bootstrap.sql` is the version gate and the `set_updated_at()` trigger function; `..._catalog.sql` is T-010: `country`, `competition`, `season`, `stage`, `venue`, `team`, `person`, `player_spell`. `..._fixtures.sql` is T-011: `fixture`, `fixture_participant`, `fixture_score`, `fixture_period`, `incident`, `lineup`, `fixture_stat`. |
+| `seed/*.sql` | Development fixtures, `<nnn>_<slug>.sql`, applied in prefix order. Fixed UUIDs and `ON CONFLICT (id) DO UPDATE`, so re-running converges. `001` is the catalog slice, `002` one finished fixture. Never product data: the runner refuses `NODE_ENV=production`. |
 | `src/index.ts` | Locates and orders the migration files. |
 | `src/seed.ts` | Locates and orders the seed files, and the `pnpm seed` runner: one transaction per file, rolled back whole on failure. |
 | `src/migrations.spec.ts` | Enforces the naming, the unique ordering, and that every migration has a non-empty down section. |
@@ -188,6 +188,17 @@ keys are standardised codes (`country.code`, the FIFA trigram) and structural
 pairs (`season(competition_id, label)`, `stage(season_id, sort_order)`). Two
 partial unique indexes carry business rules: one current season per
 competition, one open `player_spell` per (person, team).
+
+**Fixture conventions (T-011).** A team's involvement in a fixture is a row in
+`fixture_participant` (one `home`, one `away`, a team at most once), and
+`lineup`, `incident` and `fixture_stat` reference that row, not `team`: a
+lineup for a team that is not playing cannot be written. Scores are one row
+per kind in `fixture_score` (`current`, `half_time`, `full_time`,
+`extra_time`, `penalties`, `aggregate`); the clock is `fixture_period` with
+real start and end times. `fixture_stat` is `(metric, value)` under a closed
+metric list; an absent row means *not supplied* and is never stored as zero
+(rule 3). Children of a fixture cascade on delete; references into the
+catalog (`team`, `person`, `season`) are `RESTRICT`.
 
 ---
 

@@ -44,7 +44,7 @@ or T-082 (PWA) would have let E0 close over a gap.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-010 | Schema: country, competition, season, stage, team, venue, person, player_spell | T-008 | Migration applies; seed data loads |
-| `[ ]` T-011 | Schema: fixture, participant, score, period, incident, lineup, fixture_stat | T-010 | Foreign keys enforced; no name-based keys anywhere |
+| `[x]` T-011 | Schema: fixture, participant, score, period, incident, lineup, fixture_stat | T-010 | Foreign keys enforced; no name-based keys anywhere |
 | `[ ]` T-012 | Schema: provider_mapping, coverage_profile, ingest_run | T-010 | Unique constraint on (provider, external_id, entity_type) |
 | `[ ]` T-013 | Entity resolver service: external id → internal uuid, with unresolved queue | T-012 | Unknown entity is queued, never silently created twice |
 
@@ -61,6 +61,18 @@ install packages (`scripts/dev-proxy.sh`, see `06-session-handoff.md`):
 ran again. `format:check`, `lint`, `typecheck` and `test` passed on the host
 as well as in CI. Seed rows are development fixtures with fixed UUIDs; the
 runner refuses `NODE_ENV=production`.
+
+**T-011 verified on 2026-09-10** with the real runner against the compose
+Postgres: `migrate:up` added `1757600000000_fixtures` to the ledger, the seed
+(now with `002_fixtures.sql`, one finished match) loaded twice unchanged, and
+eleven invalid rows were rejected by name: a second home side, a live minute on
+a finished fixture, a negative score, a duplicate score kind, a substitution
+without the incoming player, a card without a player, an unmodelled statistic
+metric, a percentage over 100, a lineup pointing at a participant that does
+not exist, a malformed formation, and a second captain on one side. Deleting
+the fixture cascaded to every child table; `migrate:down` removed the seven
+tables; up plus seed ran again. Every key is a UUID; no table is keyed by a
+name.
 
 ---
 
