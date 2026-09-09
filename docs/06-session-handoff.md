@@ -84,14 +84,15 @@ Node 22 requires `nodejs.org`.
 
 ### What this means for writing scripts
 
-Every package script must run on Windows as well as macOS and Linux. No
-`${VAR:-default}`, no `&` backgrounding — pnpm runs scripts through `cmd.exe`
-there, where both are silently wrong. `scripts/*.sh` are the exception and are
-run from Git Bash, which ships with Git for Windows.
+The rule itself is in `README.md` under Local development: package scripts use
+no shell-specific syntax. Here is why it is there.
 
-This is not hypothetical: both mistakes shipped once and had to be fixed. The
+pnpm runs package scripts through `cmd.exe` on Windows, where `${VAR:-default}`
+is a literal string and `&` sequences instead of backgrounding. Both are
+silently wrong rather than loudly broken, and both shipped once. The
 `${WEB_PORT:-3000}` one made the RTL check from T-007 impossible to run on the
-only machine that could run it.
+only machine that could run it — a check nobody could execute is worse than no
+check, because it looks like coverage.
 
 ---
 
