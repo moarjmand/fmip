@@ -10,7 +10,8 @@
     "start": "next start --port ${WEB_PORT:-3000}",
     "lint": "eslint . && stylelint \"src/**/*.css\"",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "next": "^16.3.4",
@@ -19,6 +20,7 @@
   },
   "devDependencies": {
     "@fmip/config": "workspace:*",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^22.19.0",
     "@types/react": "^19.2.18",

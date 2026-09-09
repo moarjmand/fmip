@@ -59,7 +59,12 @@ pnpm --filter @fmip/api build && pnpm --filter @fmip/api start
 
 Every page lives under a locale segment; `/` redirects to `/en`. Layout must use
 logical properties — `pnpm lint` fails on `margin-left` in CSS and on `ml-*` in a
-`className` (D-021).
+`className` (D-021), and `/x-rtl` serves the same pages right-to-left so a
+mirroring regression fails CI:
+
+```bash
+pnpm --filter @fmip/web e2e
+```
 
 Workspace-wide commands, each fanned out over every package by Turborepo:
 
