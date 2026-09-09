@@ -13,9 +13,11 @@ if [ ! -f .env ]; then
   exit 1
 fi
 
+# Carriage returns are stripped first: a `.env` saved by a Windows editor would
+# otherwise hand pg_isready a user named "fmip\r" and curl a port "3001\r".
 set -a
-# shellcheck disable=SC1091
-. ./.env
+# shellcheck disable=SC1090
+. <(tr -d '\r' < ./.env)
 set +a
 
 echo "==> Starting the stack (waiting for healthchecks)"

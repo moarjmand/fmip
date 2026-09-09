@@ -8,17 +8,24 @@ WORKDIR /app
 # Dependencies are installed from the manifests alone, so editing source does
 # not invalidate the install layer.
 FROM base AS deps
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc turbo.json ./
 COPY packages/config/package.json ./packages/config/
+COPY packages/contracts/package.json ./packages/contracts/
 COPY apps/api/package.json ./apps/api/
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile
 
 FROM deps AS build
 COPY . .
-RUN pnpm --filter @fmip/api build
+# Through Turbo, so @fmip/contracts is built first. Building apps/api alone
+# bypasses the dependency graph and fails to type check.
+RUN pnpm exec turbo run build --filter=@fmip/api
+# `--legacy` because pnpm 10 refuses to deploy from a workspace that does not
+# inject its packages, and injecting (hard copies instead of symlinks) would
+# change how every workspace links locally for the sake of one image. The
+# legacy deploy still copies the built @fmip/contracts into the output.
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm --filter @fmip/api --prod deploy /tmp/api
+    pnpm --filter @fmip/api --prod deploy --legacy /tmp/api
 
 FROM base AS runtime
 ENV NODE_ENV=production

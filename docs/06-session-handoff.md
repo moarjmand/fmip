@@ -59,6 +59,16 @@ A native PostgreSQL can be installed with `apt-get install postgresql`, which is
 how T-008's migrations were actually verified. Prefer that over declaring a
 database task unverifiable.
 
+**Emulating an image build.** A Dockerfile's stages can be run without a
+daemon: copy exactly the files each `COPY` names into a scratch directory, run
+the same `RUN` commands there, and start the result the way its `CMD` would.
+The `deps` stage deserves the most care — copy only the manifests it lists, so
+that a workspace package the Dockerfile forgot is missing there too. This is
+what caught the `apps/api` Dockerfile that T-006 had silently broken: it was
+written before `apps/api` depended on `@fmip/contracts`, and nothing built the
+image afterwards. A Dockerfile is the one build that CI never runs, so re-run
+the emulation whenever a workspace dependency is added to an app.
+
 ### 2. The maintainer's machine cannot reach the npm registry
 
 Development is on **Windows**. From that host, `registry.npmjs.org` and

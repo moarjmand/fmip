@@ -38,15 +38,21 @@ maintainer has deferred it. Tick the box once it is on.
 **T-004 remaining.** `GET /health` returns 200 with a live report, verified by
 running the built server and by an in-process HTTP test. It has *not* been seen
 inside the compose stack: building the image needs `node:22-alpine`, and the
-agent sandbox blocks Docker Hub's layer CDN. One `docker compose up -d --wait`
+agent sandbox blocks Docker Hub's layer CDN. The image's stages *have* been
+emulated outside Docker (`06-session-handoff.md`, "Emulating an image build"),
+which is how a defect T-006 introduced was found: the Dockerfile compiled
+`apps/api` alone, from before `@fmip/contracts` existed, and pnpm 10 refused
+its `deploy` step. Both are fixed; the emulated build, deploy and
+`node dist/main.js` answer `/health` with 200. One `docker compose up -d --wait`
 on a machine that can pull images closes both this and T-002.
 
 **T-009 remaining.** The Dockerfile and compose service are written, and the
 standalone server was run directly to prove the image's assembly is right —
 `/en` returns 200, `/x-rtl` is still mirrored, and the CSS the runtime stage
 copies is served. The image itself was never built: the agent sandbox blocks
-Docker Hub's layer CDN. `bash scripts/check-dev-stack.sh` closes this along with
-T-002 and T-004.
+Docker Hub's layer CDN. Its `deps`, `build` and `runtime` stages have since been
+emulated outside Docker as well, and pass. `bash scripts/check-dev-stack.sh`
+closes this along with T-002 and T-004.
 
 **T-009 was added, not inherited.** Containerising the web app belonged to no
 task, but the E0 exit criterion below requires it. Folding it into T-039 (SEO)
