@@ -44,15 +44,22 @@ on `127.0.0.1:3001`; every port is bound to loopback so a development database i
 not exposed to the rest of your network. Data survives restarts in the `postgres-data` and `redis-data`
 volumes — `docker compose down -v` is what throws it away.
 
-`apps/web` and `apps/model` are added to the compose file by T-005 and T-063.
-The API is already there: `http://localhost:3001/health`. Web will be at
-`http://localhost:3000/en`.
+`apps/model` joins the compose file in T-063. `apps/web` is not containerised
+yet and runs from the host:
+
+```bash
+pnpm --filter @fmip/web dev      # http://localhost:3000/en
+```
 
 To run the API without Docker:
 
 ```bash
 pnpm --filter @fmip/api build && pnpm --filter @fmip/api start
 ```
+
+Every page lives under a locale segment; `/` redirects to `/en`. Layout must use
+logical properties — `pnpm lint` fails on `margin-left` in CSS and on `ml-*` in a
+`className` (D-021).
 
 Workspace-wide commands, each fanned out over every package by Turborepo:
 

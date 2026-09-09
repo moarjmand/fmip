@@ -1,0 +1,33 @@
+{
+  "name": "@fmip/web",
+  "version": "0.0.0",
+  "private": true,
+  "description": "FMIP web application. Next.js App Router.",
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev --port ${WEB_PORT:-3000}",
+    "start": "next start --port ${WEB_PORT:-3000}",
+    "lint": "eslint . && stylelint \"src/**/*.css\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "next": "^16.3.4",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@fmip/config": "workspace:*",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^22.19.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.3.4",
+    "stylelint": "^17.15.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.0"
+  }
+}

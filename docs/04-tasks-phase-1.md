@@ -18,7 +18,7 @@ one PR. Check the box when the acceptance criteria pass in CI.
 | `[~]` T-002 | `docker-compose.yml` with Postgres + Redis; `.env.example` | T-001 | `docker compose up` gives a reachable DB and Redis |
 | `[~]` T-003 | CI: typecheck, lint, unit tests, build, on every PR | T-001 | A PR with a type error is blocked |
 | `[~]` T-004 | `apps/api` NestJS skeleton with Fastify adapter, health endpoint, empty module folders | T-002 | `/health` returns 200 in the compose stack |
-| `[ ]` T-005 | `apps/web` Next.js skeleton, Tailwind, `[locale]` routing, logical-properties lint rule | T-001 | `/en` renders; a `margin-left` in layout CSS fails lint |
+| `[x]` T-005 | `apps/web` Next.js skeleton, Tailwind, `[locale]` routing, logical-properties lint rule | T-001 | `/en` renders; a `margin-left` in layout CSS fails lint |
 | `[ ]` T-006 | `packages/contracts` with a first shared type; wired into web and api | T-004, T-005 | Changing a contract type breaks the build in both apps |
 | `[ ]` T-007 | RTL pseudo-locale + Playwright visual check | T-005 | `/x-rtl` renders mirrored; CI fails if layout breaks |
 | `[ ]` T-008 | `packages/db` with migration tooling and the first migration | T-002 | Migrations run up and down cleanly |
@@ -39,6 +39,11 @@ running the built server and by an in-process HTTP test. It has *not* been seen
 inside the compose stack: building the image needs `node:22-alpine`, and the
 agent sandbox blocks Docker Hub's layer CDN. One `docker compose up -d --wait`
 on a machine that can pull images closes both this and T-002.
+
+**Not yet assigned to a task.** `apps/web` has no Dockerfile and no
+`docker-compose.yml` service; it is run from the host. The E0 exit criterion
+below expects `docker compose up` to give a working local stack, so this needs
+picking up before E0 closes.
 
 **E0 exit:** clean clone → `docker compose up` → working local stack, green CI.
 

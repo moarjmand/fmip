@@ -303,3 +303,55 @@ test tool dictate the shape of the application.
 `apps/api`. Two toolchains now compile the same TypeScript, so a difference
 between them would show up as tests disagreeing with production; the compilers
 agree on decorator metadata today, which is the only behaviour this depends on.
+
+---
+
+## D-020 — ESLint pinned to 9 while the Next lint stack catches up
+**Status:** Accepted · 2026-09-09
+
+**Decision.** The workspace pins `eslint@^9.39.5`. Revisit when
+`eslint-config-next` and the plugins it pulls in support ESLint 10.
+
+**Why.** T-001 installed ESLint 10, which was then the latest. Adding
+`apps/web` exposed that `eslint-config-next@16` does not run on it: its bundled
+parser produces a scope manager without `addGlobals`, and every lint run dies
+before reporting a single rule. `eslint-plugin-react` and several siblings still
+declare a peer range ending at ESLint 9.
+
+**Alternatives.** Drop `eslint-config-next` and lint the web app with the shared
+base only — rejected: `next/core-web-vitals` catches SEO and performance
+regressions by hand-review otherwise, and D-007 chose Next specifically for an
+SEO-dependent product. Keep ESLint 10 and skip linting `apps/web` — rejected for
+obvious reasons.
+
+**Consequences.** One version, declared in `packages/config` and echoed by each
+app. Same shape as D-017: the ecosystem, not the changelog, decides when we
+upgrade.
+
+---
+
+## D-021 — Logical-property enforcement is a lint error in two tools
+**Status:** Accepted · 2026-09-09
+
+**Decision.** Stylelint bans physical CSS properties; ESLint bans physical
+Tailwind utilities inside `className`. Both are errors, in CI.
+
+**Why.** Rule 7 in `CLAUDE.md` says layout uses logical properties. `margin-left`
+is correct in English and wrong in Arabic, and nothing reveals the mistake until
+someone reads the site right-to-left — long after the code was written. Review
+cannot be relied on to catch a class name.
+
+Two tools rather than one because layout lives in two places. In a Tailwind
+codebase nearly all layout is class names, so a CSS-only rule would police
+almost nothing; and CSS-only rules cannot see JSX. Stylelint is used with no
+preset — only these rules — so it reports what it is here to report and nothing
+else.
+
+**Alternatives.** A Tailwind ESLint plugin — none tracks Tailwind 4 closely
+enough to depend on yet, and a `no-restricted-syntax` selector on `className`
+literals costs one rule and no dependency. Review discipline alone — rejected:
+this is exactly the class of mistake that survives review.
+
+**Consequences.** `stylelint` is a devDependency of `apps/web`. The class-name
+rule matches text, so a genuinely non-Tailwind string containing `ml-` in a
+`className` would need an inline disable; no such case exists today.
