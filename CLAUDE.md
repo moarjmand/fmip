@@ -75,6 +75,9 @@ real cost to this project.
 ## 5. Conventions
 
 - Language of code, comments, commits, and docs: **English**.
+- Language of chat with the maintainer: **Persian (Farsi)**, in every session,
+  without being asked. Only the conversation is Persian: code, comments,
+  commits, PR titles and bodies, and docs stay in English.
 - Commits: Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `test:`).
 - One task = one branch = one PR. Branch name: `t-<task-id>-<slug>`.
 - Every module lives under `apps/api/src/modules/<module>/` and exposes only its
