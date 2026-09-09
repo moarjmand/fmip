@@ -23,6 +23,5 @@
     "declarationMap": true,
     "sourceMap": true,
     "pretty": true
-  },
-  "exclude": ["node_modules", "dist", ".next", ".turbo", "coverage"]
+  }
 }

@@ -17,8 +17,9 @@ incomplete.
 |---|---|
 | `CLAUDE.md` | Operating rules for agents. Read before any work. |
 | `README.md` | Human entry point, setup instructions. |
-| `docker-compose.yml` | Local dev stack. Postgres + Redis today; API, web and model service join it in T-004, T-005, T-063. |
-| `scripts/` | Developer scripts. `check-dev-stack.sh` proves the stack is reachable. |
+| `docker-compose.yml` | Local dev stack. Postgres, Redis and the API; web and model service join it in T-005, T-063. |
+| `scripts/` | Developer scripts. `check-dev-stack.sh` proves Postgres, Redis and `/health` all answer. |
+| `.dockerignore` | Keeps `node_modules`, build output and `.env` out of every image build context. |
 | `package.json` | Workspace root. Pins the pnpm version and the `build`/`lint`/`typecheck`/`test`/`format` entry points. |
 | `turbo.json`, `pnpm-workspace.yaml` | Monorepo wiring. Task graph and workspace globs. |
 | `tsconfig.json` | Root TypeScript config for editors. Compiles nothing itself. |
@@ -27,7 +28,7 @@ incomplete.
 | `.env.example` | Every environment variable, documented. Keep in sync. |
 | `.github/workflows/ci.yml` | CI. Runs format, lint, typecheck, test and build on every PR and on `main`. |
 | `docs/` | All project documentation. See below. |
-| `apps/` *(planned)* | Deployable applications. |
+| `apps/` | Deployable applications. |
 | `packages/` | Shared libraries. |
 
 ## `docs/`
@@ -49,12 +50,26 @@ incomplete.
 | Path | Purpose | Talks to |
 |---|---|---|
 | `apps/web` *(planned)* | Next.js application. SSR pages, PWA, i18n routing. | `apps/api` over HTTP + SSE; `packages/contracts` for types |
-| `apps/api` *(planned)* | NestJS backend. All eleven modules. | Postgres, Redis, `apps/model` |
+| `apps/api` | NestJS backend on the Fastify adapter. One module per boundary. | Postgres, Redis, `apps/model` |
 | `apps/model` *(planned)* | FastAPI forecast service. | Called by `apps/api` only. Reads training store. |
 
-### `apps/api/src/modules/` *(planned)*
+### `apps/api`
 
-One directory per module from `02-architecture.md`. Each contains:
+| Path | Purpose |
+|---|---|
+| `src/main.ts` | Bootstrap: Fastify adapter, port resolution, shutdown hooks. |
+| `src/app.module.ts` | Root module. Each boundary is registered here as it is built. |
+| `src/modules/health/` | `GET /health`. Liveness only — see the note below. |
+| `src/modules/<boundary>/` | The eleven boundaries from `02-architecture.md`. Empty until built. |
+| `Dockerfile` | Multi-stage build. Built from the repository root, not from `apps/api`. |
+| `vitest.config.mts` | Vitest transformed by SWC rather than esbuild (D-019). |
+
+**`/health` is liveness, not readiness.** It reports that the process is serving
+HTTP and nothing else. It deliberately says nothing about Postgres or Redis: no
+client for either exists yet, and claiming a dependency check that never runs is
+the failure rule 3 exists to prevent. Readiness arrives with T-008.
+
+One directory per module from `02-architecture.md`. Each will contain:
 
 ```
 <module>/
@@ -84,7 +99,7 @@ Consumed by every other workspace. Nothing here imports from anywhere else.
 | Path | Purpose |
 |---|---|
 | `tsconfig/base.json` | Strictness baseline. Every other preset extends it. |
-| `tsconfig/library.json` | For `packages/*`: composite build, `src` → `dist`. |
+| `tsconfig/library.json` | For `packages/*`: composite build. Each project sets its own `rootDir`/`outDir`. |
 | `tsconfig/nestjs.json` | For `apps/api`: CommonJS + decorator metadata. |
 | `tsconfig/nextjs.json` | For `apps/web`: bundler resolution, JSX, `noEmit`. |
 | `eslint/base.js` | Flat config. App configs spread it and add their own layers. |
@@ -103,10 +118,11 @@ both files (`CLAUDE.md` §5). `.env` itself is never committed.
 | `NODE_ENV` | everything | |
 | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | `docker-compose.yml` | Configure the container at first start. Changing them after the volume exists has no effect. |
 | `POSTGRES_PORT` | `docker-compose.yml` | Host port, bound to `127.0.0.1`. Default `5432`. |
-| `DATABASE_URL` | `apps/api`, `packages/db` *(planned)* | How the application reaches Postgres. Not read by compose — keep it in sync with the `POSTGRES_*` values by hand. |
+| `DATABASE_URL` | `apps/api`, `packages/db` *(planned)* | For processes run on the host. The `api` container does not use it: compose derives its own from the `POSTGRES_*` values and the `postgres` service name, because `localhost` inside a container is that container. |
 | `REDIS_PORT` | `docker-compose.yml` | Host port, bound to `127.0.0.1`. Default `6379`. |
-| `REDIS_URL` | `apps/api` *(planned)* | Cache, live state, BullMQ. |
-| `API_PORT`, `WEB_PORT` | `apps/api`, `apps/web` *(planned)* | |
+| `REDIS_URL` | `apps/api` *(planned)* | Cache, live state, BullMQ. Same host caveat as `DATABASE_URL`. |
+| `API_PORT` | `apps/api`, `docker-compose.yml` | Host port for the API. Rejected at boot if it is not a valid port number. |
+| `WEB_PORT` | `apps/web` *(planned)* | |
 | `MODEL_SERVICE_URL` | `apps/api` *(planned)* | Internal only. Never reachable from the browser. |
 | `SESSION_SECRET` | `apps/api` *(planned)* | |
 | `API_FOOTBALL_KEY`, `FOOTBALL_DATA_ORG_KEY`, `HIGHLIGHTLY_KEY` | `packages/ingestion` *(planned)* | Free-tier keys for the bake-off (D-013). |

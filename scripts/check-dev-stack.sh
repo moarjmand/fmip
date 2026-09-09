@@ -35,5 +35,15 @@ echo "==> Redis"
 }
 echo "PONG"
 
+echo "==> API /health"
+api_port="${API_PORT:-3001}"
+status="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${api_port}/health")"
+[ "$status" = "200" ] || {
+  echo "ERROR: GET /health returned HTTP ${status}, expected 200" >&2
+  exit 1
+}
+curl -s "http://127.0.0.1:${api_port}/health"
 echo
-echo "Both services are reachable."
+
+echo
+echo "Postgres, Redis and the API are all reachable."

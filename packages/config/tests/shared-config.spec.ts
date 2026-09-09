@@ -51,6 +51,26 @@ describe('tsconfig presets', () => {
     }
   });
 
+  it('declares no path-relative option', () => {
+    // A relative path in an extended tsconfig resolves against the file that
+    // declares it, not the project extending it. A preset that sets `rootDir`
+    // or `include` therefore points every consumer at packages/config, which
+    // fails with TS6059 the first time a project tries to emit.
+    const pathRelative = ['rootDir', 'outDir', 'baseUrl', 'paths', 'tsBuildInfoFile'] as const;
+
+    for (const preset of presets) {
+      const config = readJson<TsConfig>(`tsconfig/${preset}.json`);
+
+      for (const option of pathRelative) {
+        expect(config.compilerOptions?.[option], `${preset}.compilerOptions.${option}`).toBe(
+          undefined,
+        );
+      }
+      expect(config.include, `${preset}.include`).toBeUndefined();
+      expect(config.exclude, `${preset}.exclude`).toBeUndefined();
+    }
+  });
+
   it('enables decorator metadata for NestJS only', () => {
     const nestjs = readJson<TsConfig>('tsconfig/nestjs.json');
     const nextjs = readJson<TsConfig>('tsconfig/nextjs.json');

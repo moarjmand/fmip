@@ -12,7 +12,10 @@
     "declaration": false,
     "declarationMap": false,
     "incremental": true,
-    "plugins": [{ "name": "next" }]
-  },
-  "exclude": ["node_modules", ".next", "dist", ".turbo", "coverage"]
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
+  }
 }
