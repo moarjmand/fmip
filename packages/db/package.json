@@ -14,7 +14,8 @@
   },
   "files": [
     "dist",
-    "migrations"
+    "migrations",
+    "seed"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
@@ -24,7 +25,8 @@
     "migrate": "node-pg-migrate --migrations-dir migrations --migrations-table schema_migration",
     "migrate:up": "pnpm migrate up",
     "migrate:down": "pnpm migrate down",
-    "migrate:redo": "pnpm migrate redo"
+    "migrate:redo": "pnpm migrate redo",
+    "seed": "node dist/seed.js"
   },
   "dependencies": {
     "pg": "^8.23.0"

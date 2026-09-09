@@ -43,10 +43,21 @@ or T-082 (PWA) would have let E0 close over a gap.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-010 | Schema: country, competition, season, stage, team, venue, person, player_spell | T-008 | Migration applies; seed data loads |
+| `[x]` T-010 | Schema: country, competition, season, stage, team, venue, person, player_spell | T-008 | Migration applies; seed data loads |
 | `[ ]` T-011 | Schema: fixture, participant, score, period, incident, lineup, fixture_stat | T-010 | Foreign keys enforced; no name-based keys anywhere |
 | `[ ]` T-012 | Schema: provider_mapping, coverage_profile, ingest_run | T-010 | Unique constraint on (provider, external_id, entity_type) |
 | `[ ]` T-013 | Entity resolver service: external id → internal uuid, with unresolved queue | T-012 | Unknown entity is queued, never silently created twice |
+
+**T-010 verified on 2026-09-10** against the compose Postgres on the
+maintainer's machine, through `psql` in the container: the up section applied
+on top of the bootstrap migration, the seed loaded twice without change
+(idempotent), nine deliberately invalid rows were each rejected by the named
+constraint, the down section left `public` with no tables, and up plus seed ran
+again cleanly. `node-pg-migrate` itself was not the runner in that check; the
+host cannot install packages (see `06-session-handoff.md`), so the up/down
+split was emulated by hand and the runner is exercised by CI's `Verify` job.
+Seed rows are development fixtures with fixed UUIDs; the runner refuses
+`NODE_ENV=production`.
 
 ---
 
