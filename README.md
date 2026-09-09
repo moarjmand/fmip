@@ -59,6 +59,15 @@ To run the API without Docker:
 pnpm --filter @fmip/api build && pnpm --filter @fmip/api start
 ```
 
+For an API watch loop, run the compiler and the server in two terminals —
+`pnpm --filter @fmip/api dev` and `pnpm --filter @fmip/api dev:serve`. They are
+separate scripts because a single backgrounded pipeline (`tsc --watch & node`)
+means different things in bash and in cmd.
+
+Every script in this repository must run on Windows as well as macOS and Linux,
+so no package script uses shell-specific syntax: no `${VAR:-default}`, no `&`
+backgrounding. `scripts/*.sh` are the exception and are run from Git Bash.
+
 Every page lives under a locale segment; `/` redirects to `/en`. Layout must use
 logical properties — `pnpm lint` fails on `margin-left` in CSS and on `ml-*` in a
 `className` (D-021), and `/x-rtl` serves the same pages right-to-left so a
