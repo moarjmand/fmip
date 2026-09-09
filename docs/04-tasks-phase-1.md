@@ -49,15 +49,18 @@ or T-082 (PWA) would have let E0 close over a gap.
 | `[ ]` T-013 | Entity resolver service: external id → internal uuid, with unresolved queue | T-012 | Unknown entity is queued, never silently created twice |
 
 **T-010 verified on 2026-09-10** against the compose Postgres on the
-maintainer's machine, through `psql` in the container: the up section applied
-on top of the bootstrap migration, the seed loaded twice without change
-(idempotent), nine deliberately invalid rows were each rejected by the named
-constraint, the down section left `public` with no tables, and up plus seed ran
-again cleanly. `node-pg-migrate` itself was not the runner in that check; the
-host cannot install packages (see `06-session-handoff.md`), so the up/down
-split was emulated by hand and the runner is exercised by CI's `Verify` job.
-Seed rows are development fixtures with fixed UUIDs; the runner refuses
-`NODE_ENV=production`.
+maintainer's machine, twice over. First through `psql` in the container: the up
+section applied on top of the bootstrap migration, the seed loaded twice
+without change (idempotent), nine deliberately invalid rows were each rejected
+by the named constraint, the down section left `public` with no tables, and up
+plus seed ran again cleanly. Then with the real runner once the host could
+install packages (`scripts/dev-proxy.sh`, see `06-session-handoff.md`):
+`pnpm --filter @fmip/db migrate:up` recorded both migrations in
+`schema_migration`, `pnpm --filter @fmip/db seed` loaded the fixtures,
+`migrate:down` removed the eight tables and the ledger row, and up plus seed
+ran again. `format:check`, `lint`, `typecheck` and `test` passed on the host
+as well as in CI. Seed rows are development fixtures with fixed UUIDs; the
+runner refuses `NODE_ENV=production`.
 
 ---
 
