@@ -3,7 +3,6 @@
   "display": "FMIP library (packages/*)",
   "extends": "./base.json",
   "compilerOptions": {
-    "composite": true,
     "incremental": true
   }
 }

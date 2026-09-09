@@ -20,7 +20,7 @@ incomplete.
 | `docker-compose.yml` | Local dev stack. Postgres, Redis and the API. `apps/web` is not in it yet — it is run from the host with `pnpm --filter @fmip/web dev`. |
 | `scripts/` | Developer scripts. `check-dev-stack.sh` proves Postgres, Redis and `/health` all answer. |
 | `.dockerignore` | Keeps `node_modules`, build output and `.env` out of every image build context. |
-| `package.json` | Workspace root. Pins the pnpm version and the `build`/`lint`/`typecheck`/`test`/`format` entry points. |
+| `package.json` | Workspace root. Pins the pnpm version and the `build`/`lint`/`typecheck`/`test`/`format` entry points. Checks run with `--continue`, so one run reports every broken workspace. |
 | `turbo.json`, `pnpm-workspace.yaml` | Monorepo wiring. Task graph and workspace globs. |
 | `tsconfig.json` | Root TypeScript config for editors. Compiles nothing itself. |
 | `prettier.config.mjs`, `.prettierignore` | Formatting. Re-exports `@fmip/config/prettier`; Markdown is excluded. |
@@ -59,7 +59,7 @@ incomplete.
 |---|---|
 | `src/main.ts` | Bootstrap: Fastify adapter, port resolution, shutdown hooks. |
 | `src/app.module.ts` | Root module. Each boundary is registered here as it is built. |
-| `src/modules/health/` | `GET /health`. Liveness only — see the note below. |
+| `src/modules/health/` | `GET /health`. Liveness only — see the note below. Returns `HealthReport` from `@fmip/contracts`. |
 | `src/modules/<boundary>/` | The eleven boundaries from `02-architecture.md`. Empty until built. |
 | `Dockerfile` | Multi-stage build. Built from the repository root, not from `apps/api`. |
 | `vitest.config.mts` | Vitest transformed by SWC rather than esbuild (D-019). |
@@ -89,6 +89,7 @@ One directory per module from `02-architecture.md`. Each will contain:
 | `src/app/[locale]/page.tsx` | Placeholder home page. The scores page replaces it in T-031. |
 | `src/app/globals.css` | Tailwind entry point and global styles. |
 | `src/i18n/locales.ts` | Which locales ship, and the writing direction of each. |
+| `src/lib/api.ts` | Calls `apps/api`, typed by `@fmip/contracts`. Returns an unreachable state rather than throwing. |
 | `src/proxy.ts` | Redirects any path without a locale segment to the default locale. |
 | `stylelint.config.mjs` | Bans physical CSS properties (rule 7). |
 | `eslint.config.mjs` | Bans physical Tailwind utilities in `className`, plus Next's rules. |
@@ -107,7 +108,7 @@ always says which language it is in.
 
 | Path | Purpose | Consumed by |
 |---|---|---|
-| `packages/contracts` *(planned)* | API request/response types, shared enums, coverage states. **The single source of truth for the API shape.** | `apps/web`, `apps/api` |
+| `packages/contracts` | API request/response types, shared enums, coverage states. **The single source of truth for the API shape.** | `apps/web`, `apps/api` |
 | `packages/ingestion` *(planned)* | Provider adapters, normalisation, entity resolution | `apps/api` |
 | `packages/db` *(planned)* | Schema, migrations, seed data | `apps/api` |
 | `packages/db/training` *(planned)* | Historical datasets for model training only. **Never importable from `apps/api` or `apps/web`** (D-014) | `apps/model` |
@@ -128,6 +129,22 @@ Consumed by every other workspace. Nothing here imports from anywhere else.
 | `prettier/index.js` | Formatting options. |
 | `tests/shared-config.spec.ts` | Guards the invariants above against silent drift. |
 
+### `packages/contracts`
+
+| Path | Purpose |
+|---|---|
+| `src/coverage.ts` | `CoverageState`, the `Covered<T>` envelope, and `hasData`. |
+| `src/health.ts` | The `GET /health` response shape. |
+| `src/index.ts` | The package's whole public surface. |
+
+**Every module payload the API returns is a `Covered<T>`**, carrying a coverage
+state and a `last_updated_at`. That is rules 3 and 4 expressed as a type rather
+than a convention: a caller cannot read the data without having been handed the
+coverage state next to it.
+
+Changing a type here breaks `apps/api` and `apps/web` in the same build, which
+is the point of the package (D-006).
+
 ---
 
 ## Environment variables
@@ -145,6 +162,7 @@ both files (`CLAUDE.md` §5). `.env` itself is never committed.
 | `REDIS_URL` | `apps/api` *(planned)* | Cache, live state, BullMQ. Same host caveat as `DATABASE_URL`. |
 | `API_PORT` | `apps/api`, `docker-compose.yml` | Host port for the API. Rejected at boot if it is not a valid port number. |
 | `WEB_PORT` | `apps/web` | Port for `next dev` / `next start`. Default `3000`. |
+| `API_BASE_URL` | `apps/web` | Where the web app reaches the API server-side. Default `http://127.0.0.1:3001`. |
 | `MODEL_SERVICE_URL` | `apps/api` *(planned)* | Internal only. Never reachable from the browser. |
 | `SESSION_SECRET` | `apps/api` *(planned)* | |
 | `API_FOOTBALL_KEY`, `FOOTBALL_DATA_ORG_KEY`, `HIGHLIGHTLY_KEY` | `packages/ingestion` *(planned)* | Free-tier keys for the bake-off (D-013). |
