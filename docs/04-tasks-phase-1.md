@@ -15,44 +15,26 @@ one PR. Check the box when the acceptance criteria pass in CI.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-001 | Create GitHub repo; monorepo skeleton (pnpm workspaces, Turborepo, shared tsconfig/eslint/prettier) | — | `pnpm install && pnpm build` succeeds on a clean clone |
-| `[~]` T-002 | `docker-compose.yml` with Postgres + Redis; `.env.example` | T-001 | `docker compose up` gives a reachable DB and Redis |
+| `[x]` T-002 | `docker-compose.yml` with Postgres + Redis; `.env.example` | T-001 | `docker compose up` gives a reachable DB and Redis |
 | `[~]` T-003 | CI: typecheck, lint, unit tests, build, on every PR | T-001 | A PR with a type error is blocked |
-| `[~]` T-004 | `apps/api` NestJS skeleton with Fastify adapter, health endpoint, empty module folders | T-002 | `/health` returns 200 in the compose stack |
+| `[x]` T-004 | `apps/api` NestJS skeleton with Fastify adapter, health endpoint, empty module folders | T-002 | `/health` returns 200 in the compose stack |
 | `[x]` T-005 | `apps/web` Next.js skeleton, Tailwind, `[locale]` routing, logical-properties lint rule | T-001 | `/en` renders; a `margin-left` in layout CSS fails lint |
 | `[x]` T-006 | `packages/contracts` with a first shared type; wired into web and api | T-004, T-005 | Changing a contract type breaks the build in both apps |
 | `[x]` T-007 | RTL pseudo-locale + Playwright visual check | T-005 | `/x-rtl` renders mirrored; CI fails if layout breaks |
 | `[x]` T-008 | `packages/db` with migration tooling and the first migration | T-002 | Migrations run up and down cleanly |
-| `[~]` T-009 | Containerise `apps/web`: Dockerfile + compose service | T-005 | `docker compose up` serves `/en` from the stack |
+| `[x]` T-009 | Containerise `apps/web`: Dockerfile + compose service | T-005 | `docker compose up` serves `/en` from the stack |
 
-**T-002 remaining.** The compose file is written and `docker compose config`
-validates it, but the agent sandbox this was built in blocks Docker Hub's layer
-CDN, so the images could not be pulled and the stack was never actually started
-there. The criterion needs one run of `bash scripts/check-dev-stack.sh` on a
-machine that can pull images. Tick the box when it passes.
+**T-002, T-004 and T-009 closed together.** The stack was verified on the
+maintainer's Windows machine on 2026-09-09 with `bash scripts/check-dev-stack.sh`:
+Postgres, Redis, `GET /health` and `/en` all answered from the compose stack,
+`/x-rtl` was served with `dir="rtl"`, and `docker compose ps` showed all four
+services healthy. The Dockerfile emulation described in `06-session-handoff.md`
+matched the real build.
 
 **T-003 remaining.** The workflow is in place and a type error fails it, but
 nothing yet *blocks* a merge: that needs the `Verify` job listed as a required
 status check on `main` in branch protection. Repository setting, not code. The
 maintainer has deferred it. Tick the box once it is on.
-
-**T-004 remaining.** `GET /health` returns 200 with a live report, verified by
-running the built server and by an in-process HTTP test. It has *not* been seen
-inside the compose stack: building the image needs `node:22-alpine`, and the
-agent sandbox blocks Docker Hub's layer CDN. The image's stages *have* been
-emulated outside Docker (`06-session-handoff.md`, "Emulating an image build"),
-which is how a defect T-006 introduced was found: the Dockerfile compiled
-`apps/api` alone, from before `@fmip/contracts` existed, and pnpm 10 refused
-its `deploy` step. Both are fixed; the emulated build, deploy and
-`node dist/main.js` answer `/health` with 200. One `docker compose up -d --wait`
-on a machine that can pull images closes both this and T-002.
-
-**T-009 remaining.** The Dockerfile and compose service are written, and the
-standalone server was run directly to prove the image's assembly is right —
-`/en` returns 200, `/x-rtl` is still mirrored, and the CSS the runtime stage
-copies is served. The image itself was never built: the agent sandbox blocks
-Docker Hub's layer CDN. Its `deps`, `build` and `runtime` stages have since been
-emulated outside Docker as well, and pass. `bash scripts/check-dev-stack.sh`
-closes this along with T-002 and T-004.
 
 **T-009 was added, not inherited.** Containerising the web app belonged to no
 task, but the E0 exit criterion below requires it. Folding it into T-039 (SEO)
