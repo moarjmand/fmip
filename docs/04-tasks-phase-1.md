@@ -16,7 +16,7 @@ one PR. Check the box when the acceptance criteria pass in CI.
 |---|---|---|---|
 | `[x]` T-001 | Create GitHub repo; monorepo skeleton (pnpm workspaces, Turborepo, shared tsconfig/eslint/prettier) | — | `pnpm install && pnpm build` succeeds on a clean clone |
 | `[x]` T-002 | `docker-compose.yml` with Postgres + Redis; `.env.example` | T-001 | `docker compose up` gives a reachable DB and Redis |
-| `[~]` T-003 | CI: typecheck, lint, unit tests, build, on every PR | T-001 | A PR with a type error is blocked |
+| `[x]` T-003 | CI: typecheck, lint, unit tests, build, on every PR | T-001 | A PR with a type error is blocked |
 | `[x]` T-004 | `apps/api` NestJS skeleton with Fastify adapter, health endpoint, empty module folders | T-002 | `/health` returns 200 in the compose stack |
 | `[x]` T-005 | `apps/web` Next.js skeleton, Tailwind, `[locale]` routing, logical-properties lint rule | T-001 | `/en` renders; a `margin-left` in layout CSS fails lint |
 | `[x]` T-006 | `packages/contracts` with a first shared type; wired into web and api | T-004, T-005 | Changing a contract type breaks the build in both apps |
@@ -30,11 +30,6 @@ Postgres, Redis, `GET /health` and `/en` all answered from the compose stack,
 `/x-rtl` was served with `dir="rtl"`, and `docker compose ps` showed all four
 services healthy. The Dockerfile emulation described in `06-session-handoff.md`
 matched the real build.
-
-**T-003 remaining.** The workflow is in place and a type error fails it, but
-nothing yet *blocks* a merge: that needs the `Verify` job listed as a required
-status check on `main` in branch protection. Repository setting, not code. The
-maintainer has deferred it. Tick the box once it is on.
 
 **T-009 was added, not inherited.** Containerising the web app belonged to no
 task, but the E0 exit criterion below requires it. Folding it into T-039 (SEO)
