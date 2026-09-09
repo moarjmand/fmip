@@ -45,7 +45,7 @@ or T-082 (PWA) would have let E0 close over a gap.
 |---|---|---|---|
 | `[x]` T-010 | Schema: country, competition, season, stage, team, venue, person, player_spell | T-008 | Migration applies; seed data loads |
 | `[x]` T-011 | Schema: fixture, participant, score, period, incident, lineup, fixture_stat | T-010 | Foreign keys enforced; no name-based keys anywhere |
-| `[ ]` T-012 | Schema: provider_mapping, coverage_profile, ingest_run | T-010 | Unique constraint on (provider, external_id, entity_type) |
+| `[x]` T-012 | Schema: provider_mapping, coverage_profile, ingest_run | T-010 | Unique constraint on (provider, external_id, entity_type) |
 | `[ ]` T-013 | Entity resolver service: external id → internal uuid, with unresolved queue | T-012 | Unknown entity is queued, never silently created twice |
 
 **T-010 verified on 2026-09-10** against the compose Postgres on the
@@ -73,6 +73,18 @@ not exist, a malformed formation, and a second captain on one side. Deleting
 the fixture cascaded to every child table; `migrate:down` removed the seven
 tables; up plus seed ran again. Every key is a UUID; no table is keyed by a
 name.
+
+**T-012 verified on 2026-09-10** with the real runner: `migrate:up` added
+`1757700000000_ingestion`, seed `003` loaded twice unchanged. The acceptance
+constraint held: a second `('api_football', '40', 'team')` row was rejected by
+`provider_mapping_unique`, while the same id under another provider and a
+second id for the same team under one provider were both accepted. Also
+rejected by name: a blank external id, an unknown provider, entity type,
+coverage state or job, a supplied coverage state with no provider, a second
+coverage row for one module, a run marked running with a finish time, a failed
+run with no error, and a second running run for one `(provider, job)`;
+finishing the first run then allowed a new one. `migrate:down` removed the
+three tables; up plus seed ran again.
 
 ---
 
