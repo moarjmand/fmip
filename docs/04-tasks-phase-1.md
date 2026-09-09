@@ -20,7 +20,7 @@ one PR. Check the box when the acceptance criteria pass in CI.
 | `[~]` T-004 | `apps/api` NestJS skeleton with Fastify adapter, health endpoint, empty module folders | T-002 | `/health` returns 200 in the compose stack |
 | `[x]` T-005 | `apps/web` Next.js skeleton, Tailwind, `[locale]` routing, logical-properties lint rule | T-001 | `/en` renders; a `margin-left` in layout CSS fails lint |
 | `[x]` T-006 | `packages/contracts` with a first shared type; wired into web and api | T-004, T-005 | Changing a contract type breaks the build in both apps |
-| `[ ]` T-007 | RTL pseudo-locale + Playwright visual check | T-005 | `/x-rtl` renders mirrored; CI fails if layout breaks |
+| `[x]` T-007 | RTL pseudo-locale + Playwright visual check | T-005 | `/x-rtl` renders mirrored; CI fails if layout breaks |
 | `[ ]` T-008 | `packages/db` with migration tooling and the first migration | T-002 | Migrations run up and down cleanly |
 
 **T-002 remaining.** The compose file is written and `docker compose config`

@@ -26,7 +26,7 @@ incomplete.
 | `prettier.config.mjs`, `.prettierignore` | Formatting. Re-exports `@fmip/config/prettier`; Markdown is excluded. |
 | `.npmrc`, `.nvmrc`, `.editorconfig` | Toolchain pinning: pnpm resolution, Node 22, editor defaults. |
 | `.env.example` | Every environment variable, documented. Keep in sync. |
-| `.github/workflows/ci.yml` | CI. Runs format, lint, typecheck, test and build on every PR and on `main`. |
+| `.github/workflows/ci.yml` | CI. `Verify` runs format, lint, typecheck, test and build; `E2E` runs the Playwright RTL check. Both on every PR and on `main`. |
 | `docs/` | All project documentation. See below. |
 | `apps/` | Deployable applications. |
 | `packages/` | Shared libraries. |
@@ -88,8 +88,10 @@ One directory per module from `02-architecture.md`. Each will contain:
 | `src/app/[locale]/layout.tsx` | Root layout. Owns `<html lang dir>`; 404s an unshipped locale. |
 | `src/app/[locale]/page.tsx` | Placeholder home page. The scores page replaces it in T-031. |
 | `src/app/globals.css` | Tailwind entry point and global styles. |
-| `src/i18n/locales.ts` | Which locales ship, and the writing direction of each. |
+| `src/i18n/locales.ts` | Which locales ship, the pseudo-locales, and the writing direction of each. |
 | `src/lib/api.ts` | Calls `apps/api`, typed by `@fmip/contracts`. Returns an unreachable state rather than throwing. |
+| `tests/e2e/rtl.spec.ts` | The RTL check. Asserts computed layout, never screenshots. |
+| `playwright.config.ts` | Runs the E2E suite against a production build. |
 | `src/proxy.ts` | Redirects any path without a locale segment to the default locale. |
 | `stylelint.config.mjs` | Bans physical CSS properties (rule 7). |
 | `eslint.config.mjs` | Bans physical Tailwind utilities in `className`, plus Next's rules. |
@@ -103,6 +105,17 @@ almost nothing. Both fail the build, not just review.
 The locale segment is the only routing rule: every page lives under one, and
 `src/proxy.ts` redirects anything that arrives without it. A URL therefore
 always says which language it is in.
+
+**`x-rtl` is a pseudo-locale, not a language.** It serves the same English text
+in a right-to-left document, so a physical-property regression becomes visible
+before anyone ships Arabic. It is routable in every environment — the check runs
+against a production build — and carries `noindex`, because duplicate English
+under a second URL is an SEO problem on a product that depends on search.
+
+The `<h1>` accent bar is the canary: `border-s-4 ps-4` must render on the left
+in `en` and on the right in `x-rtl`. Written as `border-l-4 pl-4` instead, `/en`
+still looks perfect and only the `x-rtl` assertion fails — which is the whole
+argument for having the pseudo-locale.
 
 ## `packages/`
 
@@ -166,6 +179,7 @@ both files (`CLAUDE.md` §5). `.env` itself is never committed.
 | `MODEL_SERVICE_URL` | `apps/api` *(planned)* | Internal only. Never reachable from the browser. |
 | `SESSION_SECRET` | `apps/api` *(planned)* | |
 | `API_FOOTBALL_KEY`, `FOOTBALL_DATA_ORG_KEY`, `HIGHLIGHTLY_KEY` | `packages/ingestion` *(planned)* | Free-tier keys for the bake-off (D-013). |
+| `PLAYWRIGHT_CHROMIUM_EXECUTABLE` | `apps/web/playwright.config.ts` | Tooling only, not application config, so it is deliberately **not** in `.env.example`. Points the E2E run at an already-installed browser, for an environment that cannot download one. Unset in CI. |
 
 ---
 

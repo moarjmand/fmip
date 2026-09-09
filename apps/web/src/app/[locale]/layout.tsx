@@ -1,12 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { LOCALES, directionOf, isLocale } from '@/i18n/locales';
+import { LOCALES, directionOf, isLocale, isPseudoLocale } from '@/i18n/locales';
 import '../globals.css';
-
-export const metadata: Metadata = {
-  title: 'FMIP',
-  description: 'Football match intelligence: live scores, match centre, forecasts and predictions.',
-};
 
 /**
  * Every shipped locale is known at build time, so each one is rendered
@@ -14,6 +9,23 @@ export const metadata: Metadata = {
  */
 export function generateStaticParams(): { locale: string }[] {
   return LOCALES.map((locale) => ({ locale }));
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+
+  return {
+    title: 'FMIP',
+    description:
+      'Football match intelligence: live scores, match centre, forecasts and predictions.',
+    // A pseudo-locale is a QA surface, not content. Indexing it would put
+    // duplicate English text under a second URL on an SEO-dependent product.
+    ...(isPseudoLocale(locale) ? { robots: { index: false, follow: false } } : {}),
+  };
 }
 
 export default async function LocaleLayout({
