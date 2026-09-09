@@ -109,7 +109,7 @@ split into two commits, wiring then resolver, in one PR.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-020 | Adapter contract interface + recorded-fixture contract test harness | T-011 | A non-conforming adapter fails tests |
+| `[x]` T-020 | Adapter contract interface + recorded-fixture contract test harness | T-011 | A non-conforming adapter fails tests |
 | `[ ]` T-021 | API-Football adapter (free tier) | T-020 | Contract tests pass against recorded responses |
 | `[ ]` T-022 | football-data.org adapter (free tier) | T-020 | Same |
 | `[ ]` T-023 | Highlightly adapter (free tier) | T-020 | Same |
@@ -117,6 +117,25 @@ split into two commits, wiring then resolver, in one PR.
 | `[ ]` T-025 | **Decision gate:** review bake-off, pick provider, subscribe to paid tier | T-024 | New entry in `00-decisions.md` |
 | `[ ]` T-026 | Scheduled ingestion jobs (BullMQ): fixtures, live, lineups, standings, post-match | T-025 | Jobs are idempotent; a replay changes nothing |
 | `[ ]` T-027 | Coverage profile computation + freshness tracking | T-026 | Every module payload carries a coverage state |
+
+**T-020 verified on 2026-09-10.** `packages/ingestion` holds the normalised
+model, the `ProviderAdapter` contract and `checkAdapterContract`. The
+acceptance criterion is proved by the harness's own tests: a conforming fake
+adapter returns no problems, and seven deliberately broken adapters each fail
+with a named problem: a provider status leaking through with a clock on a
+finished match and a negative score; a finished fixture without a full-time
+score (faked coverage); a request to a URL absent from the recording; a thrown
+error instead of a returned result; a misreported request count; a manifest
+declaring a scraped source on the critical path (D-014); and success where the
+recording says the call must fail. An adapter with no recordings is reported
+as unverified, not passed. 14 tests; `typecheck` and `lint` pass.
+
+**T-021 to T-023 are blocked on credentials.** Recordings must come from real
+responses, and `API_FOOTBALL_KEY`, `FOOTBALL_DATA_ORG_KEY` and
+`HIGHLIGHTLY_KEY` are empty in the maintainer's `.env`. Free-tier accounts are
+the maintainer's to create (third-party terms); once the keys exist, each
+adapter is one directory plus its recordings. T-025 is likewise the
+maintainer's decision and payment. E3 and E5 wait behind T-026.
 
 ---
 
