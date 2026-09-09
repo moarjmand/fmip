@@ -62,7 +62,7 @@ incomplete.
 | `src/app.module.ts` | Root module. Each boundary is registered here as it is built. |
 | `src/modules/health/` | `GET /health`. Liveness only — see the note below. Returns `HealthReport` from `@fmip/contracts`. |
 | `src/modules/<boundary>/` | The eleven boundaries from `02-architecture.md`. Empty until built. |
-| `Dockerfile` | Multi-stage build. Built from the repository root, not from `apps/api`. |
+| `Dockerfile` | Multi-stage build. Built from the repository root, not from `apps/api`. Compiles through Turbo so `@fmip/contracts` is built first, and deploys with `pnpm deploy --legacy`, because pnpm 10 refuses to deploy a workspace that does not inject its packages. |
 | `vitest.config.mts` | Vitest transformed by SWC rather than esbuild (D-019). |
 
 **`/health` is liveness, not readiness.** It reports that the process is serving
