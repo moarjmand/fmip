@@ -415,3 +415,38 @@ licensed dataset (D-014) must never enter the tree, which was already the rule
 and is now load-bearing. If the repository later returns to private under a
 paid plan, the ruleset stays in place. Free public repositories also get
 unlimited GitHub Actions minutes, so CI cost stops being a budget concern.
+
+## D-024 — Enumerations are CHECK constraints, not Postgres enum types
+**Status:** Accepted · 2026-09-10
+
+**Decision.** A column with a closed set of values (`competition.kind`,
+`team.kind`, `stage.kind`, `player_spell.position`, `person.preferred_foot`,
+gender, age group, scope) is `text NOT NULL` under a named `CHECK (col IN
+(...))` constraint. No `CREATE TYPE ... AS ENUM` in the schema.
+
+**Why.** The catalog will grow values as coverage grows: a new stage kind, a
+new competition kind. With a CHECK constraint that is `ALTER TABLE ... DROP
+CONSTRAINT, ADD CONSTRAINT` in an ordinary transaction, in a migration that has
+a plain down section. `ALTER TYPE ... ADD VALUE` cannot run inside a
+transaction block on the versions we support without caveats, has no `DROP
+VALUE`, and makes the down migration a table rewrite. Rule 5 in `CLAUDE.md`
+(migrations only, shipped migrations never edited) is much easier to honour
+when every change is a reversible constraint swap.
+
+The values are also visible in `\d table` next to the column, and in the
+constraint name when a bad row is rejected, which is what the T-010 check
+relied on.
+
+**Alternatives.** Postgres enum types — compact storage and ordering, neither
+of which the catalog needs; rejected for the migration ergonomics above. A
+lookup table per enumeration — correct but eight more tables and joins for
+sets that have fewer than ten values and change rarely; rejected as weight
+without benefit at this stage. Application-level validation only — rejected:
+the constraint has to hold for rows written by a migration, a backfill or
+`psql`, not just by the API.
+
+**Consequences.** `packages/contracts` mirrors each set as a string-literal
+union; when a value is added, the constraint and the union change in the same
+PR. A CHECK constraint is per table, so `team.gender` and `competition.gender`
+are two constraints that must be kept identical by review, not by the type
+system.

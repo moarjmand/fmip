@@ -164,16 +164,30 @@ is the point of the package (D-006).
 
 | Path | Purpose |
 |---|---|
-| `migrations/*.sql` | One file per change, `<timestamp>_<slug>.sql`, each with an up and a down section. Never edit a shipped one. |
+| `migrations/*.sql` | One file per change, `<timestamp>_<slug>.sql`, each with an up and a down section. Never edit a shipped one. `..._bootstrap.sql` is the version gate and the `set_updated_at()` trigger function; `..._catalog.sql` is T-010: `country`, `competition`, `season`, `stage`, `venue`, `team`, `person`, `player_spell`. |
+| `seed/*.sql` | Development fixtures, `<nnn>_<slug>.sql`, applied in prefix order. Fixed UUIDs and `ON CONFLICT (id) DO UPDATE`, so re-running converges. Never product data: the runner refuses `NODE_ENV=production`. |
 | `src/index.ts` | Locates and orders the migration files. |
+| `src/seed.ts` | Locates and orders the seed files, and the `pnpm seed` runner: one transaction per file, rolled back whole on failure. |
 | `src/migrations.spec.ts` | Enforces the naming, the unique ordering, and that every migration has a non-empty down section. |
+| `src/seed.spec.ts` | Enforces seed naming and ordering, that every `INSERT` carries its `ON CONFLICT`, the production refusal, and the per-file transaction. |
 
 Applying them needs `DATABASE_URL` and a running Postgres:
 
 ```bash
 DATABASE_URL=... pnpm --filter @fmip/db migrate:up
 DATABASE_URL=... pnpm --filter @fmip/db migrate:down
+DATABASE_URL=... pnpm --filter @fmip/db build seed   # seed runs from dist
 ```
+
+**Catalog conventions (T-010).** Every table has a `uuid` primary key that we
+generate, `created_at`/`updated_at` maintained by trigger, and named
+constraints. Enumerations (`competition.kind`, `team.kind`, `stage.kind`,
+`player_spell.position`, …) are `text` columns under `CHECK` constraints, not
+Postgres enum types (D-024). Names are never unique; the only unique natural
+keys are standardised codes (`country.code`, the FIFA trigram) and structural
+pairs (`season(competition_id, label)`, `stage(season_id, sort_order)`). Two
+partial unique indexes carry business rules: one current season per
+competition, one open `player_spell` per (person, team).
 
 ---
 
