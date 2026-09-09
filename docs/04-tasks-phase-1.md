@@ -16,7 +16,7 @@ one PR. Check the box when the acceptance criteria pass in CI.
 |---|---|---|---|
 | `[x]` T-001 | Create GitHub repo; monorepo skeleton (pnpm workspaces, Turborepo, shared tsconfig/eslint/prettier) | — | `pnpm install && pnpm build` succeeds on a clean clone |
 | `[~]` T-002 | `docker-compose.yml` with Postgres + Redis; `.env.example` | T-001 | `docker compose up` gives a reachable DB and Redis |
-| `[ ]` T-003 | CI: typecheck, lint, unit tests, build, on every PR | T-001 | A PR with a type error is blocked |
+| `[~]` T-003 | CI: typecheck, lint, unit tests, build, on every PR | T-001 | A PR with a type error is blocked |
 | `[ ]` T-004 | `apps/api` NestJS skeleton with Fastify adapter, health endpoint, empty module folders | T-002 | `/health` returns 200 in the compose stack |
 | `[ ]` T-005 | `apps/web` Next.js skeleton, Tailwind, `[locale]` routing, logical-properties lint rule | T-001 | `/en` renders; a `margin-left` in layout CSS fails lint |
 | `[ ]` T-006 | `packages/contracts` with a first shared type; wired into web and api | T-004, T-005 | Changing a contract type breaks the build in both apps |
@@ -28,6 +28,11 @@ validates it, but the agent sandbox this was built in blocks Docker Hub's layer
 CDN, so the images could not be pulled and the stack was never actually started
 there. The criterion needs one run of `bash scripts/check-dev-stack.sh` on a
 machine that can pull images. Tick the box when it passes.
+
+**T-003 remaining.** The workflow is in place and a type error fails it, but
+nothing yet *blocks* a merge: that needs the `Verify` job listed as a required
+status check on `main` in branch protection. Repository setting, not code. The
+maintainer has deferred it. Tick the box once it is on.
 
 **E0 exit:** clean clone → `docker compose up` → working local stack, green CI.
 
