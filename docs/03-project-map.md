@@ -17,7 +17,7 @@ incomplete.
 |---|---|
 | `CLAUDE.md` | Operating rules for agents. Read before any work. |
 | `README.md` | Human entry point, setup instructions. |
-| `docker-compose.yml` | Local dev stack. Postgres, Redis and the API; web and model service join it in T-005, T-063. |
+| `docker-compose.yml` | Local dev stack. Postgres, Redis and the API. `apps/web` is not in it yet — it is run from the host with `pnpm --filter @fmip/web dev`. |
 | `scripts/` | Developer scripts. `check-dev-stack.sh` proves Postgres, Redis and `/health` all answer. |
 | `.dockerignore` | Keeps `node_modules`, build output and `.env` out of every image build context. |
 | `package.json` | Workspace root. Pins the pnpm version and the `build`/`lint`/`typecheck`/`test`/`format` entry points. |
@@ -49,7 +49,7 @@ incomplete.
 
 | Path | Purpose | Talks to |
 |---|---|---|
-| `apps/web` *(planned)* | Next.js application. SSR pages, PWA, i18n routing. | `apps/api` over HTTP + SSE; `packages/contracts` for types |
+| `apps/web` | Next.js App Router application. Locale routing, Tailwind, RTL-safe by lint. | `apps/api` over HTTP + SSE; `packages/contracts` for types |
 | `apps/api` | NestJS backend on the Fastify adapter. One module per boundary. | Postgres, Redis, `apps/model` |
 | `apps/model` *(planned)* | FastAPI forecast service. | Called by `apps/api` only. Reads training store. |
 
@@ -80,6 +80,28 @@ One directory per module from `02-architecture.md`. Each will contain:
   dto/                      # request/response shapes
   <module>.spec.ts          # unit tests
 ```
+
+### `apps/web`
+
+| Path | Purpose |
+|---|---|
+| `src/app/[locale]/layout.tsx` | Root layout. Owns `<html lang dir>`; 404s an unshipped locale. |
+| `src/app/[locale]/page.tsx` | Placeholder home page. The scores page replaces it in T-031. |
+| `src/app/globals.css` | Tailwind entry point and global styles. |
+| `src/i18n/locales.ts` | Which locales ship, and the writing direction of each. |
+| `src/proxy.ts` | Redirects any path without a locale segment to the default locale. |
+| `stylelint.config.mjs` | Bans physical CSS properties (rule 7). |
+| `eslint.config.mjs` | Bans physical Tailwind utilities in `className`, plus Next's rules. |
+
+**RTL safety is enforced in two places, because layout lives in two places.**
+Stylelint rejects `margin-left` and friends in CSS; ESLint rejects `ml-*`,
+`text-left`, `border-l-*` and friends inside a `className`. In a Tailwind
+codebase almost all layout is class names, so a CSS-only rule would cover
+almost nothing. Both fail the build, not just review.
+
+The locale segment is the only routing rule: every page lives under one, and
+`src/proxy.ts` redirects anything that arrives without it. A URL therefore
+always says which language it is in.
 
 ## `packages/`
 
@@ -122,7 +144,7 @@ both files (`CLAUDE.md` §5). `.env` itself is never committed.
 | `REDIS_PORT` | `docker-compose.yml` | Host port, bound to `127.0.0.1`. Default `6379`. |
 | `REDIS_URL` | `apps/api` *(planned)* | Cache, live state, BullMQ. Same host caveat as `DATABASE_URL`. |
 | `API_PORT` | `apps/api`, `docker-compose.yml` | Host port for the API. Rejected at boot if it is not a valid port number. |
-| `WEB_PORT` | `apps/web` *(planned)* | |
+| `WEB_PORT` | `apps/web` | Port for `next dev` / `next start`. Default `3000`. |
 | `MODEL_SERVICE_URL` | `apps/api` *(planned)* | Internal only. Never reachable from the browser. |
 | `SESSION_SECRET` | `apps/api` *(planned)* | |
 | `API_FOOTBALL_KEY`, `FOOTBALL_DATA_ORG_KEY`, `HIGHLIGHTLY_KEY` | `packages/ingestion` *(planned)* | Free-tier keys for the bake-off (D-013). |

@@ -1,0 +1,15 @@
+@import 'tailwindcss';
+
+/*
+ * Layout CSS uses logical properties only — `margin-inline-start`, never
+ * `margin-left` (CLAUDE.md rule 7). Stylelint enforces this; see
+ * stylelint.config.mjs.
+ */
+
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  min-block-size: 100dvh;
+}
