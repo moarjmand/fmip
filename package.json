@@ -2,7 +2,7 @@
   "name": "fmip",
   "version": "0.0.0",
   "private": true,
-  "description": "Football Match Intelligence Platform — monorepo root",
+  "description": "Football Match Intelligence Platform \u2014 monorepo root",
   "license": "UNLICENSED",
   "packageManager": "pnpm@10.33.0",
   "engines": {
@@ -12,9 +12,9 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "lint": "turbo run lint",
-    "typecheck": "turbo run typecheck",
-    "test": "turbo run test",
+    "lint": "turbo run lint --continue",
+    "typecheck": "turbo run typecheck --continue",
+    "test": "turbo run test --continue",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
