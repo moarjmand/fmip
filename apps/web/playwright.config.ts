@@ -33,7 +33,13 @@ export default defineConfig({
   webServer: {
     // Against a production build, not the dev server: the dev server applies
     // CSS differently enough that a passing check would not prove much.
-    command: `pnpm build && pnpm start --port ${PORT}`,
+    //
+    // Built through Turbo from the workspace root rather than `pnpm build`
+    // here, so the `^build` edge pulls in @fmip/contracts first. Building
+    // apps/web alone bypasses the dependency graph and fails to type check on
+    // any checkout where the contracts package has not already been built —
+    // which is every CI run.
+    command: `pnpm --dir ../.. exec turbo run build --filter=@fmip/web && pnpm start --port ${PORT}`,
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
