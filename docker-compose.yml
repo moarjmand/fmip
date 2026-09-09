@@ -1,0 +1,61 @@
+# Local development stack.
+#
+#   cp .env.example .env
+#   docker compose up -d
+#
+# Postgres and Redis only. `apps/api`, `apps/web` and `apps/model` join this file
+# as they are built (T-004, T-005, T-063).
+#
+# Published ports are bound to 127.0.0.1 on purpose: a development database
+# should not be reachable from the rest of the network.
+
+name: fmip
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?missing in .env — copy .env.example first}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?missing in .env — copy .env.example first}
+      POSTGRES_DB: ${POSTGRES_DB:?missing in .env — copy .env.example first}
+      # Explicit PGDATA under the mount point. The official image has moved its
+      # default data directory between major versions; pinning it here means a
+      # major upgrade cannot silently start writing outside the volume.
+      PGDATA: /var/lib/postgresql/data/pgdata
+      # Checksums must be enabled at initdb time. They cannot be turned on later
+      # without a dump and reload.
+      POSTGRES_INITDB_ARGS: --data-checksums
+    ports:
+      - '127.0.0.1:${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    # Redis holds live match state and the BullMQ queues (D-010, and the job
+    # runner in T-026). Losing a queue on restart means losing scheduled
+    # ingestion work, so persistence is on: an append-only log, plus an RDB
+    # snapshot after 60s if at least one key changed.
+    command: ['redis-server', '--appendonly', 'yes', '--save', '60', '1']
+    ports:
+      - '127.0.0.1:${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+volumes:
+  postgres-data:
+  redis-data:
