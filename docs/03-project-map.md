@@ -60,8 +60,10 @@ incomplete.
 | `src/main.ts` | Bootstrap: Fastify adapter, port resolution, shutdown hooks. |
 | — | `pnpm dev` watches and compiles; `pnpm dev:serve` runs the output. Two scripts, not one backgrounded pipeline, because `&` backgrounds in bash and sequences in cmd. |
 | `src/app.module.ts` | Root module. Each boundary is registered here as it is built. |
+| `src/database/database.module.ts` | The shared `pg.Pool`, injected as `PG_POOL` (D-025). Global, so boundary modules do not import it. Refuses to boot without `DATABASE_URL`; drains the pool on shutdown. |
 | `src/modules/health/` | `GET /health`. Liveness only — see the note below. Returns `HealthReport` from `@fmip/contracts`. |
-| `src/modules/<boundary>/` | The eleven boundaries from `02-architecture.md`. Empty until built. |
+| `src/modules/ingestion/` | The ingestion boundary. Today: `EntityResolverService` (public, in `ingestion.service.ts`), which resolves a provider id to an internal UUID or queues it. `internal/resolver.ts` is the pure logic over a `MappingStore` port; `internal/postgres-mapping-store.ts` is the SQL. Adapters and jobs arrive with E2. |
+| `src/modules/<boundary>/` | The remaining boundaries from `02-architecture.md`. Empty until built. |
 | `Dockerfile` | Multi-stage build. Built from the repository root, not from `apps/api`. Compiles through Turbo so `@fmip/contracts` is built first, and deploys with `pnpm deploy --legacy`, because pnpm 10 refuses to deploy a workspace that does not inject its packages. |
 | `vitest.config.mts` | Vitest transformed by SWC rather than esbuild (D-019). |
 
@@ -164,7 +166,7 @@ is the point of the package (D-006).
 
 | Path | Purpose |
 |---|---|
-| `migrations/*.sql` | One file per change, `<timestamp>_<slug>.sql`, each with an up and a down section. Never edit a shipped one. `..._bootstrap.sql` is the version gate and the `set_updated_at()` trigger function; `..._catalog.sql` is T-010: `country`, `competition`, `season`, `stage`, `venue`, `team`, `person`, `player_spell`. `..._fixtures.sql` is T-011: `fixture`, `fixture_participant`, `fixture_score`, `fixture_period`, `incident`, `lineup`, `fixture_stat`. `..._ingestion.sql` is T-012: `provider_mapping`, `coverage_profile`, `ingest_run`. |
+| `migrations/*.sql` | One file per change, `<timestamp>_<slug>.sql`, each with an up and a down section. Never edit a shipped one. `..._bootstrap.sql` is the version gate and the `set_updated_at()` trigger function; `..._catalog.sql` is T-010: `country`, `competition`, `season`, `stage`, `venue`, `team`, `person`, `player_spell`. `..._fixtures.sql` is T-011: `fixture`, `fixture_participant`, `fixture_score`, `fixture_period`, `incident`, `lineup`, `fixture_stat`. `..._ingestion.sql` is T-012: `provider_mapping`, `coverage_profile`, `ingest_run`. `..._unresolved-entity.sql` is T-013: the review queue for provider ids that do not resolve. |
 | `seed/*.sql` | Development fixtures, `<nnn>_<slug>.sql`, applied in prefix order. Fixed UUIDs and `ON CONFLICT (id) DO UPDATE`, so re-running converges. `001` is the catalog slice, `002` one finished fixture, `003` three API-Football ids and an honest coverage profile for the seeded season. Never product data: the runner refuses `NODE_ENV=production`. |
 | `src/index.ts` | Locates and orders the migration files. |
 | `src/seed.ts` | Locates and orders the seed files, and the `pnpm seed` runner: one transaction per file, rolled back whole on failure. |
@@ -216,6 +218,18 @@ harmless. Provider identifiers (`api_football`, `football_data_org`,
 `highlightly`) are the D-013 bake-off set; T-025 changes them with a
 constraint swap.
 
+**Entity resolution (T-013).** `EntityResolverService.resolve(ref)` returns
+`resolved` with the internal UUID, or `queued` after upserting one row in
+`unresolved_entity` per `(provider, entity_type, external_id)`; a second
+sighting bumps `seen_count`, never adds a row (the UNIQUE constraint, not
+discipline). It never creates a catalog row. `link(ref, internalId, actor,
+note)` is the only way a mapping comes to exist: it checks the target row
+exists in the entity's table, inserts into `provider_mapping` with
+`ON CONFLICT DO NOTHING`, and reports `conflict` if the id already points
+elsewhere. The queue row is closed with actor, time, target and note (rule
+10). The API-side test runs against the real schema when `DATABASE_URL` is
+set and is skipped, visibly, when it is not.
+
 ---
 
 ## Environment variables
@@ -228,7 +242,7 @@ both files (`CLAUDE.md` §5). `.env` itself is never committed.
 | `NODE_ENV` | everything | |
 | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | `docker-compose.yml` | Configure the container at first start. Changing them after the volume exists has no effect. |
 | `POSTGRES_PORT` | `docker-compose.yml` | Host port, bound to `127.0.0.1`. Default `5432`. |
-| `DATABASE_URL` | `apps/api`, `packages/db` *(planned)* | For processes run on the host. The `api` container does not use it: compose derives its own from the `POSTGRES_*` values and the `postgres` service name, because `localhost` inside a container is that container. |
+| `DATABASE_URL` | `apps/api`, `packages/db` | Required by the API at boot since T-013 (`src/database/database.module.ts` refuses to guess). For processes run on the host. The `api` container does not use the `.env` value: compose derives its own from the `POSTGRES_*` values and the `postgres` service name, because `localhost` inside a container is that container. |
 | `REDIS_PORT` | `docker-compose.yml` | Host port, bound to `127.0.0.1`. Default `6379`. |
 | `REDIS_URL` | `apps/api` *(planned)* | Cache, live state, BullMQ. Same host caveat as `DATABASE_URL`. |
 | `API_PORT` | `apps/api`, `docker-compose.yml` | Host port for the API. Rejected at boot if it is not a valid port number. |

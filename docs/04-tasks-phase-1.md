@@ -46,7 +46,7 @@ or T-082 (PWA) would have let E0 close over a gap.
 | `[x]` T-010 | Schema: country, competition, season, stage, team, venue, person, player_spell | T-008 | Migration applies; seed data loads |
 | `[x]` T-011 | Schema: fixture, participant, score, period, incident, lineup, fixture_stat | T-010 | Foreign keys enforced; no name-based keys anywhere |
 | `[x]` T-012 | Schema: provider_mapping, coverage_profile, ingest_run | T-010 | Unique constraint on (provider, external_id, entity_type) |
-| `[ ]` T-013 | Entity resolver service: external id → internal uuid, with unresolved queue | T-012 | Unknown entity is queued, never silently created twice |
+| `[x]` T-013 | Entity resolver service: external id → internal uuid, with unresolved queue | T-012 | Unknown entity is queued, never silently created twice |
 
 **T-010 verified on 2026-09-10** against the compose Postgres on the
 maintainer's machine, twice over. First through `psql` in the container: the up
@@ -85,6 +85,23 @@ coverage row for one module, a run marked running with a finish time, a failed
 run with no error, and a second running run for one `(provider, job)`;
 finishing the first run then allowed a new one. `migrate:down` removed the
 three tables; up plus seed ran again.
+
+**T-013 verified on 2026-09-10.** The resolver lives in
+`apps/api/src/modules/ingestion/` as pure logic over a store port, with the
+SQL in a Postgres store and the shared `pg` pool from
+`src/database/database.module.ts` (D-025). Unit tests with an in-memory store
+prove the acceptance criterion: the same unknown id resolved three times is one
+queue row with `seen_count` 3, nothing is created, and the store has no way to
+create an entity at all. Integration tests against the compose Postgres
+(`DATABASE_URL` set) resolved the seeded API-Football id 40 to Liverpool,
+queued an unknown id once across two sightings, refused to link to a UUID that
+is not a team, linked, resolved, audited the queue row with actor and target,
+and refused a second link to another team. In the schema, a resolved row
+without actor, time and target, a pending row carrying a target, an ignored
+row without an actor, and a duplicate `(provider, entity_type, external_id)`
+were all rejected by name. `typecheck`, `lint` and `test` pass on the host.
+**Bigger than a schema task:** it touches the API's database wiring, so it is
+split into two commits, wiring then resolver, in one PR.
 
 ---
 
