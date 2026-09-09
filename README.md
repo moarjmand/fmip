@@ -36,16 +36,18 @@ in `package.json`; `corepack enable` picks it up automatically.
 pnpm install
 cp .env.example .env
 docker compose up -d
-bash scripts/check-dev-stack.sh   # proves Postgres, Redis and /health answer
+bash scripts/check-dev-stack.sh   # proves Postgres, Redis, /health and /en answer
 ```
 
-The stack is Postgres on `127.0.0.1:5432`, Redis on `127.0.0.1:6379` and the API
-on `127.0.0.1:3001`; every port is bound to loopback so a development database is
+The stack is Postgres on `127.0.0.1:5432`, Redis on `127.0.0.1:6379`, the API on
+`127.0.0.1:3001` and the web app on `127.0.0.1:3000`; every port is bound to loopback so a development database is
 not exposed to the rest of your network. Data survives restarts in the `postgres-data` and `redis-data`
 volumes — `docker compose down -v` is what throws it away.
 
-`apps/model` joins the compose file in T-063. `apps/web` is not containerised
-yet and runs from the host:
+`apps/model` joins the compose file in T-063. Web is at
+`http://localhost:3000/en`, API at `http://localhost:3001/health`.
+
+To run the web app from the host instead:
 
 ```bash
 pnpm --filter @fmip/web dev      # http://localhost:3000/en

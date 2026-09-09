@@ -22,6 +22,7 @@ one PR. Check the box when the acceptance criteria pass in CI.
 | `[x]` T-006 | `packages/contracts` with a first shared type; wired into web and api | T-004, T-005 | Changing a contract type breaks the build in both apps |
 | `[x]` T-007 | RTL pseudo-locale + Playwright visual check | T-005 | `/x-rtl` renders mirrored; CI fails if layout breaks |
 | `[x]` T-008 | `packages/db` with migration tooling and the first migration | T-002 | Migrations run up and down cleanly |
+| `[~]` T-009 | Containerise `apps/web`: Dockerfile + compose service | T-005 | `docker compose up` serves `/en` from the stack |
 
 **T-002 remaining.** The compose file is written and `docker compose config`
 validates it, but the agent sandbox this was built in blocks Docker Hub's layer
@@ -40,10 +41,16 @@ inside the compose stack: building the image needs `node:22-alpine`, and the
 agent sandbox blocks Docker Hub's layer CDN. One `docker compose up -d --wait`
 on a machine that can pull images closes both this and T-002.
 
-**Not yet assigned to a task.** `apps/web` has no Dockerfile and no
-`docker-compose.yml` service; it is run from the host. The E0 exit criterion
-below expects `docker compose up` to give a working local stack, so this needs
-picking up before E0 closes.
+**T-009 remaining.** The Dockerfile and compose service are written, and the
+standalone server was run directly to prove the image's assembly is right —
+`/en` returns 200, `/x-rtl` is still mirrored, and the CSS the runtime stage
+copies is served. The image itself was never built: the agent sandbox blocks
+Docker Hub's layer CDN. `bash scripts/check-dev-stack.sh` closes this along with
+T-002 and T-004.
+
+**T-009 was added, not inherited.** Containerising the web app belonged to no
+task, but the E0 exit criterion below requires it. Folding it into T-039 (SEO)
+or T-082 (PWA) would have let E0 close over a gap.
 
 **E0 exit:** clean clone → `docker compose up` → working local stack, green CI.
 
