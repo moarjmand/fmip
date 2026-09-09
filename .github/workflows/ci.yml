@@ -84,6 +84,14 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      # The runner image ships an apt source for Google Chrome that nothing here
+      # uses. `--with-deps` below runs `apt-get update` across every source, and
+      # that one has failed with "Hash Sum mismatch" on consecutive runs, killing
+      # the job before a test ran. Dropping it keeps the update to Ubuntu's own
+      # archives, which is all the Chromium dependencies need.
+      - name: Drop the runner's Google Chrome apt source
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome*
+
       # Only Chromium: these are layout assertions about writing direction, and
       # direction is not a place browsers disagree. A second engine would double
       # the job for no new signal.
