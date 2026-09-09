@@ -39,6 +39,13 @@ docker compose up -d
 bash scripts/check-dev-stack.sh   # proves Postgres, Redis, /health and /en answer
 ```
 
+If `pnpm install` times out on your machine while Docker can pull images, the
+registry is unreachable from the host but reachable from inside a container.
+`bash scripts/dev-proxy.sh` runs a loopback-only forward proxy in Docker that
+lends the container's network path to the host; the script's header says which
+two lines to add to your user `~/.npmrc` so pnpm uses it. Afterwards every
+command in this section runs on the host as written.
+
 The stack is Postgres on `127.0.0.1:5432`, Redis on `127.0.0.1:6379`, the API on
 `127.0.0.1:3001` and the web app on `127.0.0.1:3000`; every port is bound to loopback so a development database is
 not exposed to the rest of your network. Data survives restarts in the `postgres-data` and `redis-data`
