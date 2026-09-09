@@ -450,3 +450,41 @@ union; when a value is added, the constraint and the union change in the same
 PR. A CHECK constraint is per table, so `team.gender` and `competition.gender`
 are two constraints that must be kept identical by review, not by the type
 system.
+
+## D-025 — Data access is plain `pg` with hand-written SQL
+**Status:** Accepted · 2026-09-10
+
+**Decision.** `apps/api` talks to PostgreSQL through one `pg.Pool`, provided as
+`PG_POOL` by a global `DatabaseModule`. Each boundary module writes its own
+parameterised SQL in a store class under its `internal/` directory, behind a
+small interface (a "port") that the module's logic depends on. No ORM, no query
+builder, no shared repository base class.
+
+**Why.** D-022 settled that the schema is SQL applied by node-pg-migrate and
+deferred the application's query layer. The first consumer, the entity
+resolver (T-013), showed what the layer has to do: a handful of statements
+whose correctness rests on constraints already in the schema (`ON CONFLICT`
+against a named unique constraint, `RETURNING`, a partial unique index as a
+lock). An ORM would restate those constraints in a second language and hide
+which statement actually ran; the value of a hand-written statement is that the
+review reads the same text the database executes.
+
+The port makes the logic testable without a database and keeps `pg` out of
+every file but the store. The store is then tested against the real schema,
+where the SQL is the thing under test.
+
+**Alternatives.** Prisma or Drizzle as a query layer — rejected for the same
+reasons as in D-022, and because both want to own the schema they query.
+Kysely (type-safe query builder over SQL) — the closest fit; deferred rather
+than rejected: if hand-written SQL starts producing column-name typos that
+tests miss, it is the first thing to try, and the port boundary means the swap
+is per module. A shared generic repository — rejected: it turns every module's
+data access into the same shape, which is exactly the coupling the module rule
+in `02-architecture.md` forbids.
+
+**Consequences.** `DATABASE_URL` is required for the API to boot; the module
+refuses to guess (pg would otherwise fall back to `PG*` defaults silently).
+Integration tests run where a database is reachable and are skipped visibly
+elsewhere; CI has no Postgres service yet, and adding one is the next step if
+a store bug ever slips through. Table names in SQL come from allow-lists in
+code, never from input.
