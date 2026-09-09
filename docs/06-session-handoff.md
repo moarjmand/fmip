@@ -49,8 +49,9 @@ pulled and therefore none can be built.
 
 **Consequence.** An agent can never run `docker compose up`. Anything whose
 acceptance criterion needs a running container is verified by the maintainer,
-not by the agent. T-002, T-004 and T-009 all sit at `[~]` for exactly this
-reason. An agent picking up such a task should write the configuration, verify
+not by the agent. T-002, T-004 and T-009 were closed by exactly one such run on
+the maintainer's machine, and any future container-dependent task needs the
+same. An agent picking up such a task should write the configuration, verify
 everything reachable without a container — `docker compose config`, running the
 built server directly — and say plainly what it could not check, rather than
 implying the stack was seen working.
@@ -84,9 +85,18 @@ docker run --rm node:22-alpine npm view pnpm version
 12.3.4
 ```
 
-**Consequence.** `pnpm install` cannot run on the Windows host, but it runs fine
+**Consequence.** `pnpm install` cannot run on the Windows host, but it runs
 inside an image build, which is where `docker compose build` performs it. The
 container path is the maintainer's working path, not a workaround.
+
+It is not perfectly reliable, though. `registry.npmjs.org` resolves to several
+Cloudflare addresses and, from inside a container on that host, some of them
+connect and some time out (`104.16.2.34` failed with `UND_ERR_CONNECT_TIMEOUT`
+in Corepack's pnpm download; `104.16.5.34` and `104.16.8.34` answered minutes
+later, from the same build environment and the same DNS). Requests that do get
+through can take 10–25 s. When a build dies on a connect timeout to the
+registry, the remedy is to run `docker compose build` again, not to change a
+Dockerfile: the pnpm store is a cache mount and survives the retry.
 
 Node 24 is installed there and satisfies `engines` (`>=22.0.0`); CI runs Node 22
 per `.nvmrc`. The difference is accepted rather than fixed, because installing
