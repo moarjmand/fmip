@@ -1,0 +1,9 @@
+{
+  "extends": "@fmip/config/tsconfig/nestjs.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": ["src/**/*.ts"]
+}

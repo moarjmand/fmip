@@ -3,8 +3,8 @@
 #   cp .env.example .env
 #   docker compose up -d
 #
-# Postgres and Redis only. `apps/api`, `apps/web` and `apps/model` join this file
-# as they are built (T-004, T-005, T-063).
+# Postgres, Redis and the API. `apps/web` and `apps/model` join this file as they
+# are built (T-005, T-063).
 #
 # Published ports are bound to 127.0.0.1 on purpose: a development database
 # should not be reachable from the rest of the network.
@@ -55,6 +55,46 @@ services:
       timeout: 3s
       retries: 12
       start_period: 5s
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      API_PORT: 3001
+      # Built from the service names, NOT from DATABASE_URL/REDIS_URL in .env:
+      # those point at localhost, which inside this container is this container.
+      # Deriving them here also means there is one less pair of values to keep
+      # in sync by hand.
+      #
+      # Nothing reads either variable yet — the database and Redis clients
+      # arrive in T-008. They are wired now because this is the point where the
+      # localhost trap is easy to get wrong and hard to notice later.
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379
+    ports:
+      - '127.0.0.1:${API_PORT:-3001}:3001'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      # No curl or wget in the node:alpine runtime image, and adding one to a
+      # production image only for a healthcheck is not worth it.
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3001/health').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
 
 volumes:
   postgres-data:

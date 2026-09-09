@@ -1,0 +1,33 @@
+{
+  "name": "@fmip/api",
+  "version": "0.0.0",
+  "private": true,
+  "description": "FMIP backend. NestJS on the Fastify adapter.",
+  "license": "UNLICENSED",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput & node --watch dist/main.js",
+    "start": "node dist/main.js",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@nestjs/common": "^12.0.1",
+    "@nestjs/core": "^12.0.1",
+    "@nestjs/platform-fastify": "^12.0.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@fmip/config": "workspace:*",
+    "@nestjs/testing": "^12.0.1",
+    "@swc/core": "^1.16.2",
+    "@types/node": "^22.19.0",
+    "eslint": "^10.10.0",
+    "typescript": "^5.9.3",
+    "unplugin-swc": "^1.6.0",
+    "vitest": "^5.0.0"
+  }
+}

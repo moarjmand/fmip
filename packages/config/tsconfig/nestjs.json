@@ -8,10 +8,6 @@
     "verbatimModuleSyntax": false,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "rootDir": "src",
-    "outDir": "dist",
     "incremental": true
-  },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", ".turbo", "coverage"]
+  }
 }

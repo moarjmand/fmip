@@ -277,3 +277,29 @@ read. More importantly `docs/00-decisions.md` is append-only — reformatting it
 edits entries that this file declares immutable.
 
 **Consequences.** Markdown style is a review concern, not a CI concern.
+
+---
+
+## D-019 — SWC transforms the API's tests, not esbuild
+**Status:** Accepted · 2026-09-09
+
+**Decision.** `apps/api` runs Vitest through `unplugin-swc`. Production code is
+still compiled by `tsc`; this applies to the test transform only.
+
+**Why.** NestJS resolves constructor dependencies from `design:paramtypes`
+metadata, which TypeScript emits under `emitDecoratorMetadata`. Vitest transforms
+with esbuild, and esbuild supports `experimentalDecorators` but has never emitted
+that metadata. Without it, any test that builds a real Nest module fails to
+resolve its providers — while the same code works in production, which is the
+worst shape a test failure can take.
+
+**Alternatives.** Jest with `ts-jest`, which is what Nest ships by default —
+rejected because `docs/00-decisions.md` already fixes Vitest as the test runner
+and running two runners in one repository costs more than one plugin. Avoiding
+constructor injection in anything covered by tests — rejected: it would let the
+test tool dictate the shape of the application.
+
+**Consequences.** `@swc/core` and `unplugin-swc` are devDependencies of
+`apps/api`. Two toolchains now compile the same TypeScript, so a difference
+between them would show up as tests disagreeing with production; the compilers
+agree on decorator metadata today, which is the only behaviour this depends on.
