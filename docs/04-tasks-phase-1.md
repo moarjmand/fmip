@@ -247,7 +247,7 @@ section on settings (pin, unpin, unfollow, and pickers over `GET /teams` and
 | `[x]` T-061 | Baseline model: time-weighted goal model + Elo prior | T-060 | Produces a score matrix and 1X2 probabilities |
 | `[x]` T-062 | Backtesting and calibration harness (log loss, Brier, reliability curve, vs market odds) | T-061 | Report generated per model version |
 | `[x]` T-063 | `apps/model` FastAPI service with the internal contract | T-061 | Contract test from `apps/api` passes |
-| `[ ]` T-064 | Forecast versioning + input snapshots | T-063 | Probabilities total 100% after rounding; forecasts immutable |
+| `[x]` T-064 | Forecast versioning + input snapshots | T-063 | Probabilities total 100% after rounding; forecasts immutable |
 | `[ ]` T-065 | Match centre forecast panel with leading factors and computation time | T-064, T-034 | Explains, never asserts certainty |
 | `[ ]` T-066 | Post-match evaluation records | T-064 | Model performance queryable per competition |
 
@@ -335,6 +335,32 @@ seed 004 maps the two seeded English clubs. The service fits once per
 compose `model` service (no published port; the api reaches `http://model:8000`)
 were built and run against the compose Postgres. 51 Python tests, 81 API
 tests (78 + 3 live), ruff, strict mypy.
+
+**T-064 verified on 2026-09-10.** Migration `..._forecast.sql` adds
+`competition.football_data_division`, `model_version`, `input_snapshot` and
+`forecast`; seed 005 maps the two seeded leagues to `E0` and `SP1`. The
+`ForecastService` in `apps/api` builds the model request from the fixture
+(participants, kick-off, the competition's division), asks the model through
+`ModelClient`, and stores the answer as the next version in one transaction:
+request and reported inputs in the snapshot, probabilities re-rounded to total
+exactly 1, expected goals, most likely scorelines, leading factors, data
+completeness — or `unavailable` with a reason (D-030). `GET
+/fixtures/:id/forecasts` serves every version oldest first with `coverage`
+and `last_updated_at` from the latest; `POST` computes a version and needs an
+admin session (`IdentityService.hasRole`, the first use of `user_role`).
+**Probabilities total 100% after rounding:** `roundToTotalOne` is unit-tested
+(1/3, 1/3, 1/3 → 0.3334 / 0.3333 / 0.3333), the stored row's
+`p_home + p_draw + p_away` reads `1.0000`, and a direct INSERT of 0.5 / 0.3 /
+0.3 is refused by the CHECK (`23514`). **Forecasts immutable:** the HTTP test
+proves a second computation is version N+1 while version N is returned
+byte-for-byte unchanged, and that UPDATE and DELETE on `forecast` and
+`input_snapshot` are refused by the trigger (`23001 restrict_violation`); the
+down/up cycle of the migration ran on the real database. Against the **live
+model** the seeded Liverpool v Manchester United fixture was stored as an
+`available` version: 73.38% / 18.66% / 7.96%, expected goals 2.56 / 0.81,
+`dixon-coles-elo@0.1.0` fitted on 196 E0 matches to 4 January 2025 without
+Elo, `data_completeness: limited`, so `coverage: limited`. 104 API tests
+(35 in the forecast module, 2 of them live), typecheck, lint.
 
 ---
 

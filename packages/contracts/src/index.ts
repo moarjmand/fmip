@@ -51,3 +51,9 @@ export type {
   ModelScorelineProbability,
   ModelUnavailableReason,
 } from './forecast';
+export type {
+  ForecastKind,
+  ForecastUnavailableReason,
+  ForecastVersion,
+  ForecastVersionsResponse,
+} from './forecast';

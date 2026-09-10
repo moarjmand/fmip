@@ -8,6 +8,8 @@
  * its own shapes.
  */
 
+import type { CoverageState } from './coverage';
+
 export interface ModelForecastRequest {
   /** Catalog fixture UUID; echoed back, never interpreted by the model. */
   fixture_id: string;
@@ -86,4 +88,52 @@ export interface ModelHealth {
   service: 'model';
   model_version: string;
   checked_at: string;
+}
+
+// ---------------------------------------------------------------------------
+// The forecast boundary's own shapes (T-064): what apps/api serves about
+// stored forecast versions. Immutable rows, so a version is never edited;
+// the list is how the match centre shows what changed between versions.
+// ---------------------------------------------------------------------------
+
+/** Why a version was computed (blueprint 6.4). */
+export type ForecastKind = 'early' | 'lineups_predicted' | 'lineups_confirmed' | 'manual';
+
+export type ForecastUnavailableReason =
+  | ModelUnavailableReason
+  | 'competition_not_mapped'
+  | 'model_unreachable'
+  | 'contract_violation';
+
+export interface ForecastVersion {
+  id: string;
+  fixture_id: string;
+  /** 1 for the first version of a fixture, then counting up. */
+  version_number: number;
+  kind: ForecastKind;
+  /** name@semver, as the model reported it. */
+  model_version: string;
+  /** ISO 8601, when the model computed it. */
+  computed_at: string;
+  status: 'available' | 'unavailable';
+  /** Present when available. The three total exactly 1 at four decimals. */
+  probabilities: ModelProbabilities | null;
+  expected_goals: ModelExpectedGoals | null;
+  most_likely_scorelines: ModelScorelineProbability[] | null;
+  leading_factors: ModelLeadingFactor[] | null;
+  data_completeness: 'available' | 'limited' | null;
+  /** Present when unavailable. */
+  unavailable_reason: ForecastUnavailableReason | null;
+  unavailable_detail: string | null;
+}
+
+/** `GET /fixtures/:id/forecasts`. */
+export interface ForecastVersionsResponse {
+  fixture_id: string;
+  coverage: CoverageState;
+  /** ISO 8601 of the latest version, or null when none exists (rule 4). */
+  last_updated_at: string | null;
+  latest: ForecastVersion | null;
+  /** Oldest first. */
+  versions: ForecastVersion[];
 }
