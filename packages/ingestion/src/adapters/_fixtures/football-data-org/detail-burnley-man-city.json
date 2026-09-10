@@ -2,9 +2,7 @@
   "name": "detail-burnley-man-city",
   "recordedAt": "2026-09-10T19:16:07.805Z",
   "call": "getFixtureDetail",
-  "args": [
-    "435943"
-  ],
+  "args": ["435943"],
   "expect": {
     "ok": true
   },

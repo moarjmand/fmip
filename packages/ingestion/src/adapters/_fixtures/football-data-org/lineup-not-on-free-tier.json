@@ -2,9 +2,7 @@
   "name": "lineup-not-on-free-tier",
   "recordedAt": "2026-09-10T19:16:00.353Z",
   "call": "getLineup",
-  "args": [
-    "435943"
-  ],
+  "args": ["435943"],
   "expect": {
     "ok": false,
     "errorKind": "unsupported"
