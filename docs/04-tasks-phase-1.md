@@ -249,7 +249,7 @@ section on settings (pin, unpin, unfollow, and pickers over `GET /teams` and
 | `[x]` T-063 | `apps/model` FastAPI service with the internal contract | T-061 | Contract test from `apps/api` passes |
 | `[x]` T-064 | Forecast versioning + input snapshots | T-063 | Probabilities total 100% after rounding; forecasts immutable |
 | `[ ]` T-065 | Match centre forecast panel with leading factors and computation time | T-064, T-034 | Explains, never asserts certainty |
-| `[ ]` T-066 | Post-match evaluation records | T-064 | Model performance queryable per competition |
+| `[x]` T-066 | Post-match evaluation records | T-064 | Model performance queryable per competition |
 
 **T-060 verified on 2026-09-10.** `apps/model` (Python) gains the loaders and
 the `training` schema arrives by migration (D-028). **Repeatable:** the real
@@ -361,6 +361,31 @@ model** the seeded Liverpool v Manchester United fixture was stored as an
 `dixon-coles-elo@0.1.0` fitted on 196 E0 matches to 4 January 2025 without
 Elo, `data_completeness: limited`, so `coverage: limited`. 104 API tests
 (35 in the forecast module, 2 of them live), typecheck, lint.
+
+**T-066 verified on 2026-09-10.** Migration `..._evaluation.sql` adds
+`evaluation`: one row per forecast version once the fixture has a full-time
+score — the score, the outcome, whether the version was computed before
+kick-off, the probability it gave what happened, log loss, Brier, and whether
+its most probable outcome and most likely scoreline were right. The
+definitions are those of the Python `metrics.py` and are unit-tested to the
+sixth decimal (a 26.22% draw: log loss 1.338648, Brier 0.834497; the uniform
+forecast scores ln 3 and 2/3). `EvaluationService.evaluateFixture` refuses a
+fixture that is not `finished` or has no full-time score (409 over HTTP),
+scores every `available` version exactly once (the unique `forecast_id` makes
+a second run a no-op), skips `unavailable` versions, and stores each row
+immutably (`refuse_change()`, UPDATE and DELETE refused with `23001`). **Model
+performance queryable per competition:** `GET
+/competitions/:id/model-performance[?season=]` aggregates pre-kick-off
+evaluations per model version and forecast kind — versions and fixtures
+evaluated, mean log loss and Brier, accuracy, scoreline accuracy — beside the
+uniform reference values, and states the gaps: finished fixtures, fixtures
+evaluated, `unavailable` versions, and versions computed after kick-off (stored
+and evaluated, never counted — D-031); `coverage` is `limited` while finished
+fixtures exist that no pre-kick-off version covers. The HTTP suite creates its
+own Premier League fixture, computes three versions (before kick-off,
+unavailable, after the result), finishes it 2-2, and checks each of these
+against the real schema. Down/up cycle of the migration ran on the real
+database. 116 API tests (47 in the forecast module), typecheck, lint.
 
 ---
 

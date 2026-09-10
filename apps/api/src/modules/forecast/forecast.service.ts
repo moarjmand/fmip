@@ -13,6 +13,8 @@ import { roundToTotalOne } from './internal/rounding';
 // The module's public surface. Other modules import from this file only.
 export { ModelClient, contractProblems } from './internal/model-client';
 export { roundToTotalOne } from './internal/rounding';
+export { EvaluationService, type EvaluateOutcome } from './evaluation.service';
+export { UNIFORM_BRIER, UNIFORM_LOG_LOSS, outcomeOf, score } from './internal/scoring';
 
 export const MODEL_CLIENT = Symbol('MODEL_CLIENT');
 
