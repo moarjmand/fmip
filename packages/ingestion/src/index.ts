@@ -45,3 +45,7 @@ export {
 
 // Adapters. One directory each; verified by their recordings, not their authors.
 export { API_FOOTBALL_MANIFEST, createApiFootballAdapter } from './adapters/api-football';
+export {
+  FOOTBALL_DATA_ORG_MANIFEST,
+  createFootballDataOrgAdapter,
+} from './adapters/football-data-org';

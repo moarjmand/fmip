@@ -111,7 +111,7 @@ split into two commits, wiring then resolver, in one PR.
 |---|---|---|---|
 | `[x]` T-020 | Adapter contract interface + recorded-fixture contract test harness | T-011 | A non-conforming adapter fails tests |
 | `[x]` T-021 | API-Football adapter (free tier) | T-020 | Contract tests pass against recorded responses |
-| `[ ]` T-022 | football-data.org adapter (free tier) | T-020 | Same |
+| `[x]` T-022 | football-data.org adapter (free tier) | T-020 | Same |
 | `[ ]` T-023 | Highlightly adapter (free tier) | T-020 | Same |
 | `[ ]` T-024 | Bake-off harness: run all three over the same fixtures, log latency/completeness/errors | T-021, T-022, T-023 | Produces `docs/05-data-providers.md` results table automatically |
 | `[ ]` T-025 | **Decision gate:** review bake-off, pick provider, subscribe to paid tier | T-024 | New entry in `00-decisions.md` |
@@ -152,6 +152,28 @@ stage kinds, statistic parsing, no clock on a finished match, no invented
 full-time score, incidents). 22 tests in the package; typecheck, lint, build.
 The key never appears in a recording: it travels in `x-apisports-key` and the
 recorder scans its output. T-022 and T-023 follow the same shape.
+
+**T-022 verified on 2026-09-10.** `packages/ingestion/src/adapters/football-data-org/`
+follows the API-Football shape (one request per call, `Transport` injected,
+failure as a value) against v4 on the free tier, and is verified by six
+recordings of the same Premier League 2023/24 fixtures as the API-Football
+set, so the bake-off compares like with like: the opening weekend (10
+`finished` fixtures with half- and full-time scores, `Matchday 1`, referee
+by id, `lastUpdated` as the freshness), the final table (20 rows from the
+`TOTAL` table only), Burnley v Manchester City's lineup (`unsupported`: the
+free tier's match resource carries no lineups, bookings or substitutions at
+all), its detail (the fixture, empty incident and statistic lists, null
+lineup — nothing invented), the same two matches through `/matches?ids=`
+(works on this tier, unlike API-Football's), and a competition the tier
+refuses (Europa League → 403 → `unsupported`; the Championship turned out to
+be served). Two provider facts were learned live and written into `map.ts`
+as rules with tests: `form` is newest first (`W,D,W,D,L` for Liverpool,
+whose last five were L D W D W by their own match list), so it is reversed;
+and the ninety-minute score comes from `regularTime` when a match went to
+extra time, or is `null` when the provider did not split it. **Contract tests
+pass against recorded responses:** no problems over all six scenarios; 6
+mapping-rule tests. 28 tests in the package; typecheck, lint, build. The key
+travels in `X-Auth-Token` and never appears in a recording.
 
 ---
 
