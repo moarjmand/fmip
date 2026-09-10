@@ -161,7 +161,7 @@ maintainer's decision and payment. E3 and E5 wait behind T-026.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-040 | Registration, email verification, login, sessions, password reset | T-004 | Security tests cover auth and session fixation |
-| `[ ]` T-041 | Profile page + privacy settings | T-040 | Public / friends-only / private all enforced server-side |
+| `[x]` T-041 | Profile page + privacy settings | T-040 | Public / friends-only / private all enforced server-side |
 | `[ ]` T-042 | Favourites and following (teams, competitions, players) | T-041 | Favourites affect the scores page ordering |
 
 **T-040 verified on 2026-09-10.** API only: the web forms belong with the
@@ -182,6 +182,26 @@ old password and spends the token; the database holds scrypt hashes and HMACs,
 never a password or a cookie value. Unit tests cover scrypt, tokens, cookie
 attributes, and validation. 43 API tests pass on the host; the same suite runs
 in CI against the Postgres service.
+
+**T-041 verified on 2026-09-10**, API and web. Server-side enforcement is
+proved through HTTP with real sessions (`profile.http.spec.ts`): a fresh
+member is public and empty; the owner edits bio, avatar and display name and a
+stranger sees the result; edits without a session are 401 and a
+`javascript:` avatar URL is a 400 naming the field; **private** returns only
+username and display name to a signed-out viewer and to another member, while
+the owner still sees everything, and the restricted body provably does not
+contain the bio; **friends-only** behaves as private for everyone but the
+owner, because friendships are Phase 2 and the oracle says no; prediction
+history visibility is stored independently; unknown levels are 400. Also
+`GET /countries` for the form. Web: register, login, forgot/reset password,
+verify e-mail, profile and settings pages plus the header, all server-rendered
+through server actions (D-027). Smoke-tested through the running web app:
+register via API, then the profile page rendered the display name, the header
+switched from Sign in / Register to Sign out with the session cookie, settings
+redirected to login without one and rendered with one, the verification link
+succeeded once and was spent on the second visit, and after setting the
+profile private the page showed "This profile is private." 58 API and 15 web
+tests pass; web `build` lists the new routes.
 
 ---
 

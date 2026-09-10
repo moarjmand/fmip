@@ -528,3 +528,36 @@ Rate-limiting login and forgot-password is not in this decision: it needs
 Redis and belongs with T-071's operational work; until then the constant-time
 decoy verification is the only brute-force friction. A production mailer is a
 deployment decision and will be a new entry.
+
+## D-027 — The browser talks only to the web app; the web app talks to the API
+**Status:** Accepted · 2026-09-10
+
+**Decision.** `apps/web` is the API's only browser-facing client. Pages and
+server actions call `apps/api` server-side (`src/lib/api.ts`), forwarding the
+visitor's session cookie; when the API sets or clears the session cookie, the
+web app mirrors it onto its own origin with the same attributes (D-026). No
+JavaScript in the browser calls the API directly, and no CORS is configured.
+Live updates (SSE, T-032) will be proxied through the web origin the same way.
+
+**Why.** A cookie session only works first-party. With the web app on one
+origin and the API on another, a browser call to the API would need
+`SameSite=None` cookies and a CORS allow-list with credentials, which is the
+posture that makes cross-site request forgery a live concern. Keeping the
+browser on one origin keeps `SameSite=Lax` sufficient, keeps the API
+unreachable from the public internet in production if we want it so, and
+means the API's shape can change without a browser cache serving stale
+JavaScript against it. It also matches rule 2 in spirit: the page depends on
+the web app's contracts, never on a network detail of the API.
+
+**Alternatives.** CORS + credentialed fetch from the browser — rejected for
+the reasons above. A Next route handler proxying `/api/*` — the same idea
+generalised; not needed while every interaction is a page render or a server
+action, and it is the natural addition for SSE. Cookies scoped to a shared
+parent domain — ties development to DNS and breaks on `localhost`.
+
+**Consequences.** `API_BASE_URL` is a server-side variable of the web app;
+the browser never sees it. Server actions must not wrap `redirect()` in a
+`try`; the pattern in `auth-actions.ts` is the one to copy. Every page that
+reads the session is dynamically rendered; the layout's header makes that
+every page, which is the right default for a signed-in product. A page that
+needs live data will go through a proxy on the web origin, not to the API.

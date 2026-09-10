@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { SiteHeader } from '@/components/site-header';
 import { LOCALES, directionOf, isLocale, isPseudoLocale } from '@/i18n/locales';
 import '../globals.css';
 
@@ -45,7 +46,10 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} dir={directionOf(locale)}>
-      <body>{children}</body>
+      <body>
+        <SiteHeader locale={locale} />
+        {children}
+      </body>
     </html>
   );
 }
