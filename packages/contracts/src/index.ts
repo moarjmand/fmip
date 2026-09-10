@@ -21,4 +21,19 @@ export type {
   UpdatePrivacyRequest,
   UpdateProfileRequest,
 } from './profile';
-export type { CountriesResponse, CountrySummary } from './catalog';
+export type {
+  CompetitionSummary,
+  CompetitionsResponse,
+  CountriesResponse,
+  CountrySummary,
+  TeamSummary,
+  TeamsResponse,
+} from './catalog';
+export { FOLLOWED_ENTITY_TYPES } from './following';
+export type {
+  FavouriteIds,
+  FollowRequest,
+  FollowedEntity,
+  FollowedEntityType,
+  FollowingResponse,
+} from './following';

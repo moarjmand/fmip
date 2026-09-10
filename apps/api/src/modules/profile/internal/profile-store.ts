@@ -16,7 +16,7 @@ export interface ProfileRow {
   prediction_history_visibility: PrivacyVisibility;
 }
 
-export function toPublicProfile(row: ProfileRow): PublicProfile {
+export function toPublicProfile(row: ProfileRow, favouriteTeams: string[]): PublicProfile {
   return {
     username: row.username,
     display_name: row.display_name,
@@ -24,6 +24,7 @@ export function toPublicProfile(row: ProfileRow): PublicProfile {
     avatar_url: row.avatar_url,
     country_id: row.country_id,
     member_since: row.created_at.toISOString().slice(0, 10),
+    favourite_teams: favouriteTeams,
   };
 }
 

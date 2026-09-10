@@ -6,7 +6,7 @@ import { CatalogModule } from './catalog.module';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
-describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /countries', () => {
+describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('catalog reads', () => {
   let app: NestFastifyApplication;
 
   beforeAll(async () => {
@@ -37,5 +37,28 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /countri
       ]),
     );
     expect(Object.keys(countries[0] ?? {}).sort()).toEqual(['code', 'id', 'iso2', 'name']);
+  });
+
+  it('lists active teams and competitions by name for the follow controls', async () => {
+    const teams = await app.inject({ method: 'GET', url: '/teams' });
+    const competitions = await app.inject({ method: 'GET', url: '/competitions' });
+
+    expect(teams.statusCode).toBe(200);
+    expect(teams.json().teams).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'Liverpool', code: 'LIV', kind: 'club' }),
+        expect.objectContaining({ name: 'Iran', kind: 'national' }),
+      ]),
+    );
+    expect(competitions.json().competitions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'Premier League', short_name: 'PL', scope: 'domestic' }),
+        expect.objectContaining({
+          name: 'UEFA Champions League',
+          scope: 'continental',
+          country_id: null,
+        }),
+      ]),
+    );
   });
 });

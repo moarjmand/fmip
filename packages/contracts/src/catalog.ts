@@ -1,7 +1,7 @@
 /**
  * Read endpoints over the catalog (T-010 tables). Only what a page needs so
- * far: the country list for registration. Competition, team and player
- * shapes arrive with E3.
+ * far: the country list for registration, and the team and competition lists
+ * for following. Full competition, team and player shapes arrive with E3.
  */
 
 export interface CountrySummary {
@@ -16,4 +16,31 @@ export interface CountrySummary {
 /** `GET /countries`, sorted by name. */
 export interface CountriesResponse {
   countries: CountrySummary[];
+}
+
+export interface TeamSummary {
+  id: string;
+  name: string;
+  short_name: string | null;
+  code: string | null;
+  kind: 'club' | 'national';
+  country_id: string | null;
+}
+
+/** `GET /teams`, sorted by name. */
+export interface TeamsResponse {
+  teams: TeamSummary[];
+}
+
+export interface CompetitionSummary {
+  id: string;
+  name: string;
+  short_name: string | null;
+  scope: 'domestic' | 'continental' | 'international';
+  country_id: string | null;
+}
+
+/** `GET /competitions`, sorted by name. */
+export interface CompetitionsResponse {
+  competitions: CompetitionSummary[];
 }

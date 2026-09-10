@@ -1,4 +1,5 @@
 import {
+  type FollowRequest,
   PRIVACY_VISIBILITIES,
   type PrivacyVisibility,
   type UpdatePrivacyRequest,
@@ -82,4 +83,19 @@ export function validateUpdatePrivacy(body: unknown): Validated<UpdatePrivacyReq
   if (Object.keys(fields).length > 0) return { ok: false, fields };
   if (Object.keys(value).length === 0) return { ok: false, fields: { body: 'nothing to update' } };
   return { ok: true, value };
+}
+
+/** `PUT /me/following/:type/:id` body: an optional favourite flag, nothing else. */
+export function validateFollow(body: unknown): Validated<FollowRequest> {
+  if (body === undefined || body === null || body === '') return { ok: true, value: {} };
+  if (!isRecord(body)) return { ok: false, fields: { body: 'must be a JSON object' } };
+
+  if ('favourite' in body && typeof body.favourite !== 'boolean') {
+    return { ok: false, fields: { favourite: 'must be true or false' } };
+  }
+
+  return {
+    ok: true,
+    value: typeof body.favourite === 'boolean' ? { favourite: body.favourite } : {},
+  };
 }
