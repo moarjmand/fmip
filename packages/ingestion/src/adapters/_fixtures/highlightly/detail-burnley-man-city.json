@@ -1,0 +1,399 @@
+{
+  "name": "detail-burnley-man-city",
+  "recordedAt": "2026-09-10T19:24:35.599Z",
+  "call": "getFixtureDetail",
+  "args": ["880817271"],
+  "expect": {
+    "ok": true
+  },
+  "requests": [
+    {
+      "method": "GET",
+      "url": "https://sports.highlightly.net/football/matches/880817271",
+      "status": 200,
+      "body": [
+        {
+          "venue": null,
+          "referee": null,
+          "forecast": null,
+          "events": [
+            {
+              "team": {
+                "id": 43334,
+                "logo": "https://highlightly.net/soccer/images/teams/43334.png",
+                "name": "Manchester City"
+              },
+              "time": "4",
+              "type": "Goal",
+              "assist": "Rodri",
+              "player": "E. Haaland",
+              "playerId": 177254,
+              "substituted": null,
+              "assistingPlayerId": 7238
+            },
+            {
+              "team": {
+                "id": 43334,
+                "logo": "https://highlightly.net/soccer/images/teams/43334.png",
+                "name": "Manchester City"
+              },
+              "time": "23",
+              "type": "Substitution",
+              "assist": null,
+              "player": "K. De Bruyne",
+              "playerId": 101423,
+              "substituted": "M. Kovačić",
+              "assistingPlayerId": 369005
+            },
+            {
+              "team": {
+                "id": 43334,
+                "logo": "https://highlightly.net/soccer/images/teams/43334.png",
+                "name": "Manchester City"
+              },
+              "time": "36",
+              "type": "Goal",
+              "assist": "J. Álvarez",
+              "player": "E. Haaland",
+              "playerId": 177254,
+              "substituted": null,
+              "assistingPlayerId": 967603
+            },
+            {
+              "team": {
+                "id": 38228,
+                "logo": "https://highlightly.net/soccer/images/teams/38228.png",
+                "name": "Burnley"
+              },
+              "time": "61",
+              "type": "Substitution",
+              "assist": null,
+              "player": "L. Koleosho",
+              "playerId": 57896237,
+              "substituted": "J. Bruun Larsen",
+              "assistingPlayerId": 3696
+            },
+            {
+              "team": {
+                "id": 38228,
+                "logo": "https://highlightly.net/soccer/images/teams/38228.png",
+                "name": "Burnley"
+              },
+              "time": "61",
+              "type": "Substitution",
+              "assist": null,
+              "player": "Z. Amdouni",
+              "playerId": 19878663,
+              "substituted": "A. Zaroury",
+              "assistingPlayerId": 20796363
+            },
+            {
+              "team": {
+                "id": 38228,
+                "logo": "https://highlightly.net/soccer/images/teams/38228.png",
+                "name": "Burnley"
+              },
+              "time": "74",
+              "type": "Substitution",
+              "assist": null,
+              "player": "J. Beyer",
+              "playerId": 4126262,
+              "substituted": "B. Manuel",
+              "assistingPlayerId": 1382983
+            },
+            {
+              "team": {
+                "id": 43334,
+                "logo": "https://highlightly.net/soccer/images/teams/43334.png",
+                "name": "Manchester City"
+              },
+              "time": "75",
+              "type": "Goal",
+              "assist": null,
+              "player": "Rodri",
+              "playerId": 7238,
+              "substituted": null,
+              "assistingPlayerId": null
+            },
+            {
+              "team": {
+                "id": 43334,
+                "logo": "https://highlightly.net/soccer/images/teams/43334.png",
+                "name": "Manchester City"
+              },
+              "time": "79",
+              "type": "Substitution",
+              "assist": null,
+              "player": "N. Aké",
+              "playerId": 3036775,
+              "substituted": "Aymeric Laporte",
+              "assistingPlayerId": 100296
+            },
+            {
+              "team": {
+                "id": 43334,
+                "logo": "https://highlightly.net/soccer/images/teams/43334.png",
+                "name": "Manchester City"
+              },
+              "time": "79",
+              "type": "Substitution",
+              "assist": null,
+              "player": "R. Lewis",
+              "playerId": 45761184,
+              "substituted": "J. Gvardiol",
+              "assistingPlayerId": 20774467
+            },
+            {
+              "team": {
+                "id": 43334,
+                "logo": "https://highlightly.net/soccer/images/teams/43334.png",
+                "name": "Manchester City"
+              },
+              "time": "80",
+              "type": "Substitution",
+              "assist": null,
+              "player": "E. Haaland",
+              "playerId": 177254,
+              "substituted": "C. Palmer",
+              "assistingPlayerId": 24630256
+            },
+            {
+              "team": {
+                "id": 38228,
+                "logo": "https://highlightly.net/soccer/images/teams/38228.png",
+                "name": "Burnley"
+              },
+              "time": "90+4",
+              "type": "Red Card",
+              "assist": null,
+              "player": "Anass Zaroury",
+              "playerId": 20796363,
+              "substituted": null,
+              "assistingPlayerId": null
+            },
+            {
+              "team": {
+                "id": 38228,
+                "logo": "https://highlightly.net/soccer/images/teams/38228.png",
+                "name": "Burnley"
+              },
+              "time": "90+1",
+              "type": "Substitution",
+              "assist": null,
+              "player": "L. Foster",
+              "playerId": 15928850,
+              "substituted": "N. Redmond",
+              "assistingPlayerId": 3050782
+            },
+            {
+              "team": {
+                "id": 38228,
+                "logo": "https://highlightly.net/soccer/images/teams/38228.png",
+                "name": "Burnley"
+              },
+              "time": "90+1",
+              "type": "Substitution",
+              "assist": null,
+              "player": "S. Berge",
+              "playerId": 311528,
+              "substituted": "J. Brownhill",
+              "assistingPlayerId": 3102302
+            },
+            {
+              "team": {
+                "id": 43334,
+                "logo": "https://highlightly.net/soccer/images/teams/43334.png",
+                "name": "Manchester City"
+              },
+              "time": "90+5",
+              "type": "Substitution",
+              "assist": null,
+              "player": "K. Walker",
+              "playerId": 101101,
+              "substituted": "J. McAtee",
+              "assistingPlayerId": 25550371
+            }
+          ],
+          "predictions": null,
+          "statistics": [
+            {
+              "team": {
+                "id": 38228,
+                "logo": "https://highlightly.net/soccer/images/teams/38228.png",
+                "name": "Burnley"
+              },
+              "statistics": [
+                {
+                  "value": 0.17,
+                  "displayName": "Shots accuracy"
+                },
+                {
+                  "value": 1,
+                  "displayName": "Shots on target"
+                },
+                {
+                  "value": 3,
+                  "displayName": "Shots off target"
+                },
+                {
+                  "value": 2,
+                  "displayName": "Blocked shots"
+                },
+                {
+                  "value": 5,
+                  "displayName": "Shots within penalty area"
+                },
+                {
+                  "value": 1,
+                  "displayName": "Shots outside penalty area"
+                },
+                {
+                  "value": 11,
+                  "displayName": "Fouls"
+                },
+                {
+                  "value": 6,
+                  "displayName": "Corners"
+                },
+                {
+                  "value": 0,
+                  "displayName": "Offsides"
+                },
+                {
+                  "value": 0.34,
+                  "displayName": "Possession"
+                },
+                {
+                  "value": 1,
+                  "displayName": "Red cards"
+                },
+                {
+                  "value": 5,
+                  "displayName": "Goalkeeper saves"
+                },
+                {
+                  "value": 365,
+                  "displayName": "Total passes"
+                },
+                {
+                  "value": 290,
+                  "displayName": "Successful passes"
+                },
+                {
+                  "value": 75,
+                  "displayName": "Failed passes"
+                }
+              ]
+            },
+            {
+              "team": {
+                "id": 43334,
+                "logo": "https://highlightly.net/soccer/images/teams/43334.png",
+                "name": "Manchester City"
+              },
+              "statistics": [
+                {
+                  "value": 0.47,
+                  "displayName": "Shots accuracy"
+                },
+                {
+                  "value": 8,
+                  "displayName": "Shots on target"
+                },
+                {
+                  "value": 4,
+                  "displayName": "Shots off target"
+                },
+                {
+                  "value": 5,
+                  "displayName": "Blocked shots"
+                },
+                {
+                  "value": 14,
+                  "displayName": "Shots within penalty area"
+                },
+                {
+                  "value": 3,
+                  "displayName": "Shots outside penalty area"
+                },
+                {
+                  "value": 8,
+                  "displayName": "Fouls"
+                },
+                {
+                  "value": 5,
+                  "displayName": "Corners"
+                },
+                {
+                  "value": 1,
+                  "displayName": "Offsides"
+                },
+                {
+                  "value": 0.66,
+                  "displayName": "Possession"
+                },
+                {
+                  "value": 0,
+                  "displayName": "Red cards"
+                },
+                {
+                  "value": 1,
+                  "displayName": "Goalkeeper saves"
+                },
+                {
+                  "value": 706,
+                  "displayName": "Total passes"
+                },
+                {
+                  "value": 634,
+                  "displayName": "Successful passes"
+                },
+                {
+                  "value": 72,
+                  "displayName": "Failed passes"
+                }
+              ]
+            }
+          ],
+          "id": 880817271,
+          "round": "Regular Season - 1",
+          "date": "2023-08-11T19:00:00.000Z",
+          "country": {
+            "code": "GB-ENG",
+            "name": "England",
+            "logo": "https://highlightly.net/soccer/images/countries/GB-ENG.svg"
+          },
+          "state": {
+            "clock": 90,
+            "score": {
+              "current": "0 - 3",
+              "penalties": null
+            },
+            "description": "Finished"
+          },
+          "awayTeam": {
+            "id": 43334,
+            "logo": "https://highlightly.net/soccer/images/teams/43334.png",
+            "name": "Manchester City",
+            "topPlayers": [],
+            "shots": []
+          },
+          "homeTeam": {
+            "id": 38228,
+            "logo": "https://highlightly.net/soccer/images/teams/38228.png",
+            "name": "Burnley",
+            "topPlayers": [],
+            "shots": []
+          },
+          "league": {
+            "id": 33973,
+            "logo": "https://highlightly.net/soccer/images/leagues/33973.png",
+            "name": "Premier League",
+            "season": 2023
+          },
+          "news": []
+        }
+      ]
+    }
+  ]
+}

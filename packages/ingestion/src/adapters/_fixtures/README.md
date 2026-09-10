@@ -30,6 +30,6 @@ them through `ReplayTransport`; an adapter that requests a URL absent from the
 recording fails the check.
 
 Recordings are made with `scripts/record.mjs` (see the plan files under
-`scripts/plans/`). `api-football/` (T-021) and `football-data-org/` (T-022) hold the first sets. `loadScenarios`
+`scripts/plans/`). `api-football/` (T-021), `football-data-org/` (T-022) and `highlightly/` (T-023) each hold six. `loadScenarios`
 on an empty directory yields no scenarios, and the check reports the adapter as
 unverified rather than passing it.

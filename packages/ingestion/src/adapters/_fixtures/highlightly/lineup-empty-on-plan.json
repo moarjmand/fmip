@@ -1,0 +1,35 @@
+{
+  "name": "lineup-empty-on-plan",
+  "recordedAt": "2026-09-10T19:24:33.267Z",
+  "call": "getLineup",
+  "args": ["880817271"],
+  "expect": {
+    "ok": false,
+    "errorKind": "unsupported"
+  },
+  "requests": [
+    {
+      "method": "GET",
+      "url": "https://sports.highlightly.net/football/lineups/880817271",
+      "status": 200,
+      "body": {
+        "homeTeam": {
+          "formation": "Unknown",
+          "substitutes": [],
+          "initialLineup": [],
+          "id": 38228,
+          "logo": "https://highlightly.net/soccer/images/teams/38228.png",
+          "name": "Burnley"
+        },
+        "awayTeam": {
+          "formation": "Unknown",
+          "substitutes": [],
+          "initialLineup": [],
+          "id": 43334,
+          "logo": "https://highlightly.net/soccer/images/teams/43334.png",
+          "name": "Manchester City"
+        }
+      }
+    }
+  ]
+}
