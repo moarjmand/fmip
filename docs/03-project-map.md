@@ -104,7 +104,10 @@ venv (CI). On the maintainer's host, pip needs the proxy:
 | `fmip_model/training/clubelo.py` | Parses Club Elo CSV (`Rank,Club,Country,Level,Elo,From,To`). |
 | `fmip_model/training/store.py` | Writes to the `training` schema: opens a `source_load` row, upserts on natural keys, closes the load as succeeded (hash, row count) or failed (error). |
 | `fmip_model/training/load.py` | The CLI: `python -m fmip_model.training.load football-data --seasons 2425 --divisions E0 SP1` and `clubelo --days 2025-08-01`. One load row per (source, scope); a failure writes no rows and is recorded. |
-| `tests/` | Parser tests on a real football-data file head (`fixtures/`), store tests against the database when `DATABASE_URL` is set. |
+| `fmip_model/model/poisson.py` | Expected goals → scoreline matrix (0–10 each side, Dixon-Coles low-score correction, renormalised) → `Outcome`: home/draw/away, expected goals, most likely scorelines, and `rounded()` so the three displayed probabilities total exactly 1. |
+| `fmip_model/model/dixon_coles.py` | The fit (T-061): time-weighted penalised maximum likelihood over attack, defence, home advantage and `rho`, with a ridge and an Elo prior on net strength. `FittedModel.predict(home, away)` reads everything off the matrix; an unknown team is an error, not a guess. |
+| `fmip_model/model/data.py` | Reads matches and Elo from the `training` schema into model inputs, with the fit date as a hard boundary against leaks. |
+| `tests/` | Parser tests on a real football-data file head (`fixtures/`); store and real-season fit tests against the database when `DATABASE_URL` is set; model tests on simulated seasons with known strengths. |
 
 **The training store is a schema, not a package.** `training.source_load`,
 `training.match` and `training.elo` live in the same Postgres as everything
