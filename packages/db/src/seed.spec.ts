@@ -24,7 +24,8 @@ describe('seed files', () => {
     // second run; a bare INSERT would duplicate or, with fixed ids, fail.
     const sql = readFileSync(join(SEED_DIR, filename), 'utf8');
     const inserts = sql.match(/^INSERT INTO/gm) ?? [];
-    const upserts = sql.match(/^ON CONFLICT \(id\) DO UPDATE SET/gm) ?? [];
+    // Any natural or surrogate key will do, as long as a second run updates.
+    const upserts = sql.match(/^ON CONFLICT \([^)]+\) DO UPDATE SET/gm) ?? [];
 
     expect(inserts.length).toBeGreaterThan(0);
     expect(upserts.length).toBe(inserts.length);

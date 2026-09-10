@@ -37,3 +37,17 @@ export type {
   FollowedEntityType,
   FollowingResponse,
 } from './following';
+export type {
+  ModelExpectedGoals,
+  ModelForecastAvailable,
+  ModelForecastRequest,
+  ModelForecastResponse,
+  ModelForecastUnavailable,
+  ModelHealth,
+  ModelInputs,
+  ModelLeadingFactor,
+  ModelLeadingFactorKind,
+  ModelProbabilities,
+  ModelScorelineProbability,
+  ModelUnavailableReason,
+} from './forecast';

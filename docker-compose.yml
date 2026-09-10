@@ -78,12 +78,16 @@ services:
       # would otherwise make every session token forgeable.
       SESSION_SECRET: ${SESSION_SECRET:?missing in .env — see .env.example}
       WEB_BASE_URL: ${WEB_BASE_URL:-http://localhost:${WEB_PORT:-3000}}
+      # The model service by its compose name (D-009, D-011): internal only.
+      MODEL_SERVICE_URL: http://model:8000
     ports:
       - '127.0.0.1:${API_PORT:-3001}:3001'
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      model:
         condition: service_healthy
     healthcheck:
       # No curl or wget in the node:alpine runtime image, and adding one to a
@@ -132,6 +136,23 @@ services:
       timeout: 5s
       retries: 6
       start_period: 20s
+
+  model:
+    build:
+      context: .
+      dockerfile: apps/model/Dockerfile
+    restart: unless-stopped
+    environment:
+      # Same derivation as the api service: the training store is in the same
+      # Postgres, reached by service name (D-028).
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      MODEL_PORT: 8000
+    # No `ports`: the model service is internal (D-009). The api reaches it as
+    # http://model:8000 over the compose network and nothing else does.
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # The image declares its own HEALTHCHECK (python, no curl in the slim image).
 
 volumes:
   postgres-data:

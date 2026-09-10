@@ -40,6 +40,9 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://fmip:fmip@localhost:5432/fmip
+      # The model service is started below, so apps/api's live contract test
+      # runs here instead of skipping.
+      MODEL_SERVICE_URL: http://127.0.0.1:8000
 
     steps:
       - name: Check out
@@ -101,6 +104,22 @@ jobs:
           pnpm --filter @fmip/db build
           pnpm --filter @fmip/db migrate:up
           pnpm --filter @fmip/db seed
+
+      # The internal contract (T-063) is tested against the real service: it
+      # runs in the background against the migrated database, and the API's
+      # test suite calls it over HTTP. No season is loaded here, so the seeded
+      # fixture answers "unavailable" with a reason; that is a contract-valid
+      # response and the test accepts it.
+      - name: Start the model service
+        id: model_service
+        if: ${{ !cancelled() && steps.database.outcome == 'success' }}
+        run: |
+          (cd apps/model && MODEL_PORT=8000 nohup python -m fmip_model.service > model-service.log 2>&1 &)
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8000/health && exit 0
+            sleep 1
+          done
+          echo "model service did not come up"; cat apps/model/model-service.log; exit 1
 
       - name: Test
         if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.database.outcome == 'success' }}
