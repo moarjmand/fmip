@@ -10,7 +10,14 @@ adapter must make of them:
   "name": "list-fixtures-premier-league-week",
   "recordedAt": "2026-09-12T10:00:00Z",
   "call": "listFixtures",
-  "args": [{ "competitionExternalId": "39", "seasonLabel": "2025/26", "from": "2025-08-15", "to": "2025-08-18" }],
+  "args": [
+    {
+      "competitionExternalId": "39",
+      "seasonLabel": "2025/26",
+      "from": "2025-08-15",
+      "to": "2025-08-18"
+    }
+  ],
   "expect": { "ok": true, "minItems": 10 },
   "requests": [{ "method": "GET", "url": "https://...", "status": 200, "body": {} }]
 }
@@ -22,6 +29,7 @@ a scenario that was not recorded does not exist. `checkAdapterContract` replays
 them through `ReplayTransport`; an adapter that requests a URL absent from the
 recording fails the check.
 
-This directory is empty until T-021 records the first provider. `loadScenarios`
+Recordings are made with `scripts/record.mjs` (see the plan files under
+`scripts/plans/`). `api-football/` holds the first set (T-021). `loadScenarios`
 on an empty directory yields no scenarios, and the check reports the adapter as
 unverified rather than passing it.
