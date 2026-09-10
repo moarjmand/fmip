@@ -1,0 +1,18 @@
+{
+  "name": "detail-unknown-match",
+  "recordedAt": "2026-09-10T19:24:40.280Z",
+  "call": "getFixtureDetail",
+  "args": ["1"],
+  "expect": {
+    "ok": false,
+    "errorKind": "malformed"
+  },
+  "requests": [
+    {
+      "method": "GET",
+      "url": "https://sports.highlightly.net/football/matches/1",
+      "status": 200,
+      "body": []
+    }
+  ]
+}

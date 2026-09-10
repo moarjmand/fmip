@@ -1,0 +1,431 @@
+{
+  "name": "list-fixtures-opening-weekend",
+  "recordedAt": "2026-09-10T19:24:27.267Z",
+  "call": "listFixtures",
+  "args": [
+    {
+      "competitionExternalId": "33973",
+      "seasonLabel": "2023/24",
+      "from": "2023-08-11",
+      "to": "2023-08-14"
+    }
+  ],
+  "expect": {
+    "ok": true,
+    "minItems": 10
+  },
+  "requests": [
+    {
+      "method": "GET",
+      "url": "https://sports.highlightly.net/football/matches?leagueId=33973&season=2023&date=2023-08-11&limit=100",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": 880817271,
+            "round": "Regular Season - 1",
+            "date": "2023-08-11T19:00:00.000Z",
+            "country": {
+              "code": "GB-ENG",
+              "name": "England",
+              "logo": "https://highlightly.net/soccer/images/countries/GB-ENG.svg"
+            },
+            "state": {
+              "clock": 90,
+              "score": {
+                "current": "0 - 3",
+                "penalties": null
+              },
+              "description": "Finished"
+            },
+            "awayTeam": {
+              "id": 43334,
+              "logo": "https://highlightly.net/soccer/images/teams/43334.png",
+              "name": "Manchester City"
+            },
+            "homeTeam": {
+              "id": 38228,
+              "logo": "https://highlightly.net/soccer/images/teams/38228.png",
+              "name": "Burnley"
+            },
+            "league": {
+              "id": 33973,
+              "logo": "https://highlightly.net/soccer/images/leagues/33973.png",
+              "name": "Premier League",
+              "season": 2023
+            }
+          }
+        ],
+        "plan": {
+          "tier": "BASIC",
+          "message": "All data available with current plan."
+        },
+        "pagination": {
+          "totalCount": 1,
+          "offset": 0,
+          "limit": 100
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "url": "https://sports.highlightly.net/football/matches?leagueId=33973&season=2023&date=2023-08-12&limit=100",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": 880822377,
+            "round": "Regular Season - 1",
+            "date": "2023-08-12T16:30:00.000Z",
+            "country": {
+              "code": "GB-ENG",
+              "name": "England",
+              "logo": "https://highlightly.net/soccer/images/countries/GB-ENG.svg"
+            },
+            "state": {
+              "clock": 90,
+              "score": {
+                "current": "5 - 1",
+                "penalties": null
+              },
+              "description": "Finished"
+            },
+            "awayTeam": {
+              "id": 56950,
+              "logo": "https://highlightly.net/soccer/images/teams/56950.png",
+              "name": "Aston Villa"
+            },
+            "homeTeam": {
+              "id": 29718,
+              "logo": "https://highlightly.net/soccer/images/teams/29718.png",
+              "name": "Newcastle United"
+            },
+            "league": {
+              "id": 33973,
+              "logo": "https://highlightly.net/soccer/images/leagues/33973.png",
+              "name": "Premier League",
+              "season": 2023
+            }
+          },
+          {
+            "id": 880819824,
+            "round": "Regular Season - 1",
+            "date": "2023-08-12T14:00:00.000Z",
+            "country": {
+              "code": "GB-ENG",
+              "name": "England",
+              "logo": "https://highlightly.net/soccer/images/countries/GB-ENG.svg"
+            },
+            "state": {
+              "clock": 90,
+              "score": {
+                "current": "4 - 1",
+                "penalties": null
+              },
+              "description": "Finished"
+            },
+            "awayTeam": {
+              "id": 1157293,
+              "logo": "https://highlightly.net/soccer/images/teams/1157293.png",
+              "name": "Luton"
+            },
+            "homeTeam": {
+              "id": 44185,
+              "logo": "https://highlightly.net/soccer/images/teams/44185.png",
+              "name": "Brighton"
+            },
+            "league": {
+              "id": 33973,
+              "logo": "https://highlightly.net/soccer/images/leagues/33973.png",
+              "name": "Premier League",
+              "season": 2023
+            }
+          },
+          {
+            "id": 880821526,
+            "round": "Regular Season - 1",
+            "date": "2023-08-12T14:00:00.000Z",
+            "country": {
+              "code": "GB-ENG",
+              "name": "England",
+              "logo": "https://highlightly.net/soccer/images/countries/GB-ENG.svg"
+            },
+            "state": {
+              "clock": 90,
+              "score": {
+                "current": "0 - 1",
+                "penalties": null
+              },
+              "description": "Finished"
+            },
+            "awayTeam": {
+              "id": 45036,
+              "logo": "https://highlightly.net/soccer/images/teams/45036.png",
+              "name": "Crystal Palace"
+            },
+            "homeTeam": {
+              "id": 53546,
+              "logo": "https://highlightly.net/soccer/images/teams/53546.png",
+              "name": "Sheffield United"
+            },
+            "league": {
+              "id": 33973,
+              "logo": "https://highlightly.net/soccer/images/leagues/33973.png",
+              "name": "Premier League",
+              "season": 2023
+            }
+          },
+          {
+            "id": 880818973,
+            "round": "Regular Season - 1",
+            "date": "2023-08-12T14:00:00.000Z",
+            "country": {
+              "code": "GB-ENG",
+              "name": "England",
+              "logo": "https://highlightly.net/soccer/images/countries/GB-ENG.svg"
+            },
+            "state": {
+              "clock": 90,
+              "score": {
+                "current": "1 - 1",
+                "penalties": null
+              },
+              "description": "Finished"
+            },
+            "awayTeam": {
+              "id": 41632,
+              "logo": "https://highlightly.net/soccer/images/teams/41632.png",
+              "name": "West Ham"
+            },
+            "homeTeam": {
+              "id": 30569,
+              "logo": "https://highlightly.net/soccer/images/teams/30569.png",
+              "name": "Bournemouth"
+            },
+            "league": {
+              "id": 33973,
+              "logo": "https://highlightly.net/soccer/images/leagues/33973.png",
+              "name": "Premier League",
+              "season": 2023
+            }
+          },
+          {
+            "id": 880820675,
+            "round": "Regular Season - 1",
+            "date": "2023-08-12T14:00:00.000Z",
+            "country": {
+              "code": "GB-ENG",
+              "name": "England",
+              "logo": "https://highlightly.net/soccer/images/countries/GB-ENG.svg"
+            },
+            "state": {
+              "clock": 90,
+              "score": {
+                "current": "0 - 1",
+                "penalties": null
+              },
+              "description": "Finished"
+            },
+            "awayTeam": {
+              "id": 31420,
+              "logo": "https://highlightly.net/soccer/images/teams/31420.png",
+              "name": "Fulham"
+            },
+            "homeTeam": {
+              "id": 39079,
+              "logo": "https://highlightly.net/soccer/images/teams/39079.png",
+              "name": "Everton"
+            },
+            "league": {
+              "id": 33973,
+              "logo": "https://highlightly.net/soccer/images/leagues/33973.png",
+              "name": "Premier League",
+              "season": 2023
+            }
+          },
+          {
+            "id": 880818122,
+            "round": "Regular Season - 1",
+            "date": "2023-08-12T11:30:00.000Z",
+            "country": {
+              "code": "GB-ENG",
+              "name": "England",
+              "logo": "https://highlightly.net/soccer/images/countries/GB-ENG.svg"
+            },
+            "state": {
+              "clock": 90,
+              "score": {
+                "current": "2 - 1",
+                "penalties": null
+              },
+              "description": "Finished"
+            },
+            "awayTeam": {
+              "id": 56099,
+              "logo": "https://highlightly.net/soccer/images/teams/56099.png",
+              "name": "Nottingham Forest"
+            },
+            "homeTeam": {
+              "id": 36526,
+              "logo": "https://highlightly.net/soccer/images/teams/36526.png",
+              "name": "Arsenal"
+            },
+            "league": {
+              "id": 33973,
+              "logo": "https://highlightly.net/soccer/images/leagues/33973.png",
+              "name": "Premier League",
+              "season": 2023
+            }
+          }
+        ],
+        "plan": {
+          "tier": "BASIC",
+          "message": "All data available with current plan."
+        },
+        "pagination": {
+          "totalCount": 6,
+          "offset": 0,
+          "limit": 100
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "url": "https://sports.highlightly.net/football/matches?leagueId=33973&season=2023&date=2023-08-13&limit=100",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": 880824079,
+            "round": "Regular Season - 1",
+            "date": "2023-08-13T15:30:00.000Z",
+            "country": {
+              "code": "GB-ENG",
+              "name": "England",
+              "logo": "https://highlightly.net/soccer/images/countries/GB-ENG.svg"
+            },
+            "state": {
+              "clock": 90,
+              "score": {
+                "current": "1 - 1",
+                "penalties": null
+              },
+              "description": "Finished"
+            },
+            "awayTeam": {
+              "id": 34824,
+              "logo": "https://highlightly.net/soccer/images/teams/34824.png",
+              "name": "Liverpool"
+            },
+            "homeTeam": {
+              "id": 42483,
+              "logo": "https://highlightly.net/soccer/images/teams/42483.png",
+              "name": "Chelsea"
+            },
+            "league": {
+              "id": 33973,
+              "logo": "https://highlightly.net/soccer/images/leagues/33973.png",
+              "name": "Premier League",
+              "season": 2023
+            }
+          },
+          {
+            "id": 880823228,
+            "round": "Regular Season - 1",
+            "date": "2023-08-13T13:00:00.000Z",
+            "country": {
+              "code": "GB-ENG",
+              "name": "England",
+              "logo": "https://highlightly.net/soccer/images/countries/GB-ENG.svg"
+            },
+            "state": {
+              "clock": 90,
+              "score": {
+                "current": "2 - 2",
+                "penalties": null
+              },
+              "description": "Finished"
+            },
+            "awayTeam": {
+              "id": 40781,
+              "logo": "https://highlightly.net/soccer/images/teams/40781.png",
+              "name": "Tottenham"
+            },
+            "homeTeam": {
+              "id": 47589,
+              "logo": "https://highlightly.net/soccer/images/teams/47589.png",
+              "name": "Brentford"
+            },
+            "league": {
+              "id": 33973,
+              "logo": "https://highlightly.net/soccer/images/leagues/33973.png",
+              "name": "Premier League",
+              "season": 2023
+            }
+          }
+        ],
+        "plan": {
+          "tier": "BASIC",
+          "message": "All data available with current plan."
+        },
+        "pagination": {
+          "totalCount": 2,
+          "offset": 0,
+          "limit": 100
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "url": "https://sports.highlightly.net/football/matches?leagueId=33973&season=2023&date=2023-08-14&limit=100",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": 880824930,
+            "round": "Regular Season - 1",
+            "date": "2023-08-14T19:00:00.000Z",
+            "country": {
+              "code": "GB-ENG",
+              "name": "England",
+              "logo": "https://highlightly.net/soccer/images/countries/GB-ENG.svg"
+            },
+            "state": {
+              "clock": 90,
+              "score": {
+                "current": "1 - 0",
+                "penalties": null
+              },
+              "description": "Finished"
+            },
+            "awayTeam": {
+              "id": 33973,
+              "logo": "https://highlightly.net/soccer/images/teams/33973.png",
+              "name": "Wolves"
+            },
+            "homeTeam": {
+              "id": 28867,
+              "logo": "https://highlightly.net/soccer/images/teams/28867.png",
+              "name": "Manchester United"
+            },
+            "league": {
+              "id": 33973,
+              "logo": "https://highlightly.net/soccer/images/leagues/33973.png",
+              "name": "Premier League",
+              "season": 2023
+            }
+          }
+        ],
+        "plan": {
+          "tier": "BASIC",
+          "message": "All data available with current plan."
+        },
+        "pagination": {
+          "totalCount": 1,
+          "offset": 0,
+          "limit": 100
+        }
+      }
+    }
+  ]
+}

@@ -49,3 +49,4 @@ export {
   FOOTBALL_DATA_ORG_MANIFEST,
   createFootballDataOrgAdapter,
 } from './adapters/football-data-org';
+export { HIGHLIGHTLY_MANIFEST, createHighlightlyAdapter } from './adapters/highlightly';

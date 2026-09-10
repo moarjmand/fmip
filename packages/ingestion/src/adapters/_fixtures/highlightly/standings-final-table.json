@@ -1,0 +1,697 @@
+{
+  "name": "standings-final-table",
+  "recordedAt": "2026-09-10T19:24:31.045Z",
+  "call": "getStandings",
+  "args": [
+    {
+      "competitionExternalId": "33973",
+      "seasonLabel": "2023/24"
+    }
+  ],
+  "expect": {
+    "ok": true,
+    "minItems": 1
+  },
+  "requests": [
+    {
+      "method": "GET",
+      "url": "https://sports.highlightly.net/football/standings?leagueId=33973&season=2023",
+      "status": 200,
+      "body": {
+        "groups": [
+          {
+            "name": "Premier League",
+            "standings": [
+              {
+                "away": {
+                  "wins": 14,
+                  "draws": 2,
+                  "games": 19,
+                  "loses": 3,
+                  "scoredGoals": 45,
+                  "receivedGoals": 18
+                },
+                "home": {
+                  "wins": 14,
+                  "draws": 5,
+                  "games": 19,
+                  "loses": 0,
+                  "scoredGoals": 51,
+                  "receivedGoals": 16
+                },
+                "team": {
+                  "id": 43334,
+                  "logo": "https://highlightly.net/soccer/images/teams/43334.png",
+                  "name": "Manchester City"
+                },
+                "total": {
+                  "wins": 28,
+                  "draws": 7,
+                  "games": 38,
+                  "loses": 3,
+                  "scoredGoals": 96,
+                  "receivedGoals": 34
+                },
+                "points": 91,
+                "position": 1
+              },
+              {
+                "away": {
+                  "wins": 13,
+                  "draws": 3,
+                  "games": 19,
+                  "loses": 3,
+                  "scoredGoals": 43,
+                  "receivedGoals": 13
+                },
+                "home": {
+                  "wins": 15,
+                  "draws": 2,
+                  "games": 19,
+                  "loses": 2,
+                  "scoredGoals": 48,
+                  "receivedGoals": 16
+                },
+                "team": {
+                  "id": 36526,
+                  "logo": "https://highlightly.net/soccer/images/teams/36526.png",
+                  "name": "Arsenal"
+                },
+                "total": {
+                  "wins": 28,
+                  "draws": 5,
+                  "games": 38,
+                  "loses": 5,
+                  "scoredGoals": 91,
+                  "receivedGoals": 29
+                },
+                "points": 89,
+                "position": 2
+              },
+              {
+                "away": {
+                  "wins": 9,
+                  "draws": 7,
+                  "games": 19,
+                  "loses": 3,
+                  "scoredGoals": 37,
+                  "receivedGoals": 24
+                },
+                "home": {
+                  "wins": 15,
+                  "draws": 3,
+                  "games": 19,
+                  "loses": 1,
+                  "scoredGoals": 49,
+                  "receivedGoals": 17
+                },
+                "team": {
+                  "id": 34824,
+                  "logo": "https://highlightly.net/soccer/images/teams/34824.png",
+                  "name": "Liverpool"
+                },
+                "total": {
+                  "wins": 24,
+                  "draws": 10,
+                  "games": 38,
+                  "loses": 4,
+                  "scoredGoals": 86,
+                  "receivedGoals": 41
+                },
+                "points": 82,
+                "position": 3
+              },
+              {
+                "away": {
+                  "wins": 8,
+                  "draws": 4,
+                  "games": 19,
+                  "loses": 7,
+                  "scoredGoals": 28,
+                  "receivedGoals": 33
+                },
+                "home": {
+                  "wins": 12,
+                  "draws": 4,
+                  "games": 19,
+                  "loses": 3,
+                  "scoredGoals": 48,
+                  "receivedGoals": 28
+                },
+                "team": {
+                  "id": 56950,
+                  "logo": "https://highlightly.net/soccer/images/teams/56950.png",
+                  "name": "Aston Villa"
+                },
+                "total": {
+                  "wins": 20,
+                  "draws": 8,
+                  "games": 38,
+                  "loses": 10,
+                  "scoredGoals": 76,
+                  "receivedGoals": 61
+                },
+                "points": 68,
+                "position": 4
+              },
+              {
+                "away": {
+                  "wins": 7,
+                  "draws": 6,
+                  "games": 19,
+                  "loses": 6,
+                  "scoredGoals": 36,
+                  "receivedGoals": 34
+                },
+                "home": {
+                  "wins": 13,
+                  "draws": 0,
+                  "games": 19,
+                  "loses": 6,
+                  "scoredGoals": 38,
+                  "receivedGoals": 27
+                },
+                "team": {
+                  "id": 40781,
+                  "logo": "https://highlightly.net/soccer/images/teams/40781.png",
+                  "name": "Tottenham"
+                },
+                "total": {
+                  "wins": 20,
+                  "draws": 6,
+                  "games": 38,
+                  "loses": 12,
+                  "scoredGoals": 74,
+                  "receivedGoals": 61
+                },
+                "points": 66,
+                "position": 5
+              },
+              {
+                "away": {
+                  "wins": 7,
+                  "draws": 5,
+                  "games": 19,
+                  "loses": 7,
+                  "scoredGoals": 33,
+                  "receivedGoals": 37
+                },
+                "home": {
+                  "wins": 11,
+                  "draws": 4,
+                  "games": 19,
+                  "loses": 4,
+                  "scoredGoals": 44,
+                  "receivedGoals": 26
+                },
+                "team": {
+                  "id": 42483,
+                  "logo": "https://highlightly.net/soccer/images/teams/42483.png",
+                  "name": "Chelsea"
+                },
+                "total": {
+                  "wins": 18,
+                  "draws": 9,
+                  "games": 38,
+                  "loses": 11,
+                  "scoredGoals": 77,
+                  "receivedGoals": 63
+                },
+                "points": 63,
+                "position": 6
+              },
+              {
+                "away": {
+                  "wins": 6,
+                  "draws": 2,
+                  "games": 19,
+                  "loses": 11,
+                  "scoredGoals": 36,
+                  "receivedGoals": 40
+                },
+                "home": {
+                  "wins": 12,
+                  "draws": 4,
+                  "games": 19,
+                  "loses": 3,
+                  "scoredGoals": 49,
+                  "receivedGoals": 22
+                },
+                "team": {
+                  "id": 29718,
+                  "logo": "https://highlightly.net/soccer/images/teams/29718.png",
+                  "name": "Newcastle"
+                },
+                "total": {
+                  "wins": 18,
+                  "draws": 6,
+                  "games": 38,
+                  "loses": 14,
+                  "scoredGoals": 85,
+                  "receivedGoals": 62
+                },
+                "points": 60,
+                "position": 7
+              },
+              {
+                "away": {
+                  "wins": 8,
+                  "draws": 3,
+                  "games": 19,
+                  "loses": 8,
+                  "scoredGoals": 26,
+                  "receivedGoals": 30
+                },
+                "home": {
+                  "wins": 10,
+                  "draws": 3,
+                  "games": 19,
+                  "loses": 6,
+                  "scoredGoals": 31,
+                  "receivedGoals": 28
+                },
+                "team": {
+                  "id": 28867,
+                  "logo": "https://highlightly.net/soccer/images/teams/28867.png",
+                  "name": "Manchester United"
+                },
+                "total": {
+                  "wins": 18,
+                  "draws": 6,
+                  "games": 38,
+                  "loses": 14,
+                  "scoredGoals": 57,
+                  "receivedGoals": 58
+                },
+                "points": 60,
+                "position": 8
+              },
+              {
+                "away": {
+                  "wins": 7,
+                  "draws": 2,
+                  "games": 19,
+                  "loses": 10,
+                  "scoredGoals": 29,
+                  "receivedGoals": 46
+                },
+                "home": {
+                  "wins": 7,
+                  "draws": 8,
+                  "games": 19,
+                  "loses": 4,
+                  "scoredGoals": 31,
+                  "receivedGoals": 28
+                },
+                "team": {
+                  "id": 41632,
+                  "logo": "https://highlightly.net/soccer/images/teams/41632.png",
+                  "name": "West Ham"
+                },
+                "total": {
+                  "wins": 14,
+                  "draws": 10,
+                  "games": 38,
+                  "loses": 14,
+                  "scoredGoals": 60,
+                  "receivedGoals": 74
+                },
+                "points": 52,
+                "position": 9
+              },
+              {
+                "away": {
+                  "wins": 5,
+                  "draws": 6,
+                  "games": 19,
+                  "loses": 8,
+                  "scoredGoals": 20,
+                  "receivedGoals": 32
+                },
+                "home": {
+                  "wins": 8,
+                  "draws": 4,
+                  "games": 19,
+                  "loses": 7,
+                  "scoredGoals": 37,
+                  "receivedGoals": 26
+                },
+                "team": {
+                  "id": 45036,
+                  "logo": "https://highlightly.net/soccer/images/teams/45036.png",
+                  "name": "Crystal Palace"
+                },
+                "total": {
+                  "wins": 13,
+                  "draws": 10,
+                  "games": 38,
+                  "loses": 15,
+                  "scoredGoals": 57,
+                  "receivedGoals": 58
+                },
+                "points": 49,
+                "position": 10
+              },
+              {
+                "away": {
+                  "wins": 4,
+                  "draws": 6,
+                  "games": 19,
+                  "loses": 9,
+                  "scoredGoals": 25,
+                  "receivedGoals": 35
+                },
+                "home": {
+                  "wins": 8,
+                  "draws": 6,
+                  "games": 19,
+                  "loses": 5,
+                  "scoredGoals": 30,
+                  "receivedGoals": 27
+                },
+                "team": {
+                  "id": 44185,
+                  "logo": "https://highlightly.net/soccer/images/teams/44185.png",
+                  "name": "Brighton"
+                },
+                "total": {
+                  "wins": 12,
+                  "draws": 12,
+                  "games": 38,
+                  "loses": 14,
+                  "scoredGoals": 55,
+                  "receivedGoals": 62
+                },
+                "points": 48,
+                "position": 11
+              },
+              {
+                "away": {
+                  "wins": 6,
+                  "draws": 3,
+                  "games": 19,
+                  "loses": 10,
+                  "scoredGoals": 27,
+                  "receivedGoals": 39
+                },
+                "home": {
+                  "wins": 7,
+                  "draws": 6,
+                  "games": 19,
+                  "loses": 6,
+                  "scoredGoals": 27,
+                  "receivedGoals": 28
+                },
+                "team": {
+                  "id": 30569,
+                  "logo": "https://highlightly.net/soccer/images/teams/30569.png",
+                  "name": "Bournemouth"
+                },
+                "total": {
+                  "wins": 13,
+                  "draws": 9,
+                  "games": 38,
+                  "loses": 16,
+                  "scoredGoals": 54,
+                  "receivedGoals": 67
+                },
+                "points": 48,
+                "position": 12
+              },
+              {
+                "away": {
+                  "wins": 4,
+                  "draws": 6,
+                  "games": 19,
+                  "loses": 9,
+                  "scoredGoals": 24,
+                  "receivedGoals": 37
+                },
+                "home": {
+                  "wins": 9,
+                  "draws": 2,
+                  "games": 19,
+                  "loses": 8,
+                  "scoredGoals": 31,
+                  "receivedGoals": 24
+                },
+                "team": {
+                  "id": 31420,
+                  "logo": "https://highlightly.net/soccer/images/teams/31420.png",
+                  "name": "Fulham"
+                },
+                "total": {
+                  "wins": 13,
+                  "draws": 8,
+                  "games": 38,
+                  "loses": 17,
+                  "scoredGoals": 55,
+                  "receivedGoals": 61
+                },
+                "points": 47,
+                "position": 13
+              },
+              {
+                "away": {
+                  "wins": 5,
+                  "draws": 4,
+                  "games": 19,
+                  "loses": 10,
+                  "scoredGoals": 24,
+                  "receivedGoals": 35
+                },
+                "home": {
+                  "wins": 8,
+                  "draws": 3,
+                  "games": 19,
+                  "loses": 8,
+                  "scoredGoals": 26,
+                  "receivedGoals": 30
+                },
+                "team": {
+                  "id": 33973,
+                  "logo": "https://highlightly.net/soccer/images/teams/33973.png",
+                  "name": "Wolves"
+                },
+                "total": {
+                  "wins": 13,
+                  "draws": 7,
+                  "games": 38,
+                  "loses": 18,
+                  "scoredGoals": 50,
+                  "receivedGoals": 65
+                },
+                "points": 46,
+                "position": 14
+              },
+              {
+                "away": {
+                  "wins": 5,
+                  "draws": 5,
+                  "games": 19,
+                  "loses": 9,
+                  "scoredGoals": 18,
+                  "receivedGoals": 33
+                },
+                "home": {
+                  "wins": 8,
+                  "draws": 4,
+                  "games": 19,
+                  "loses": 7,
+                  "scoredGoals": 22,
+                  "receivedGoals": 18
+                },
+                "team": {
+                  "id": 39079,
+                  "logo": "https://highlightly.net/soccer/images/teams/39079.png",
+                  "name": "Everton"
+                },
+                "total": {
+                  "wins": 13,
+                  "draws": 9,
+                  "games": 38,
+                  "loses": 16,
+                  "scoredGoals": 40,
+                  "receivedGoals": 51
+                },
+                "points": 40,
+                "position": 15
+              },
+              {
+                "away": {
+                  "wins": 5,
+                  "draws": 2,
+                  "games": 19,
+                  "loses": 12,
+                  "scoredGoals": 27,
+                  "receivedGoals": 31
+                },
+                "home": {
+                  "wins": 5,
+                  "draws": 7,
+                  "games": 19,
+                  "loses": 7,
+                  "scoredGoals": 29,
+                  "receivedGoals": 34
+                },
+                "team": {
+                  "id": 47589,
+                  "logo": "https://highlightly.net/soccer/images/teams/47589.png",
+                  "name": "Brentford"
+                },
+                "total": {
+                  "wins": 10,
+                  "draws": 9,
+                  "games": 38,
+                  "loses": 19,
+                  "scoredGoals": 56,
+                  "receivedGoals": 65
+                },
+                "points": 39,
+                "position": 16
+              },
+              {
+                "away": {
+                  "wins": 4,
+                  "draws": 4,
+                  "games": 19,
+                  "loses": 11,
+                  "scoredGoals": 22,
+                  "receivedGoals": 37
+                },
+                "home": {
+                  "wins": 5,
+                  "draws": 5,
+                  "games": 19,
+                  "loses": 9,
+                  "scoredGoals": 27,
+                  "receivedGoals": 30
+                },
+                "team": {
+                  "id": 56099,
+                  "logo": "https://highlightly.net/soccer/images/teams/56099.png",
+                  "name": "Nottingham Forest"
+                },
+                "total": {
+                  "wins": 9,
+                  "draws": 9,
+                  "games": 38,
+                  "loses": 20,
+                  "scoredGoals": 49,
+                  "receivedGoals": 67
+                },
+                "points": 32,
+                "position": 17
+              },
+              {
+                "away": {
+                  "wins": 2,
+                  "draws": 4,
+                  "games": 19,
+                  "loses": 13,
+                  "scoredGoals": 24,
+                  "receivedGoals": 48
+                },
+                "home": {
+                  "wins": 4,
+                  "draws": 4,
+                  "games": 19,
+                  "loses": 11,
+                  "scoredGoals": 28,
+                  "receivedGoals": 37
+                },
+                "team": {
+                  "id": 1157293,
+                  "logo": "https://highlightly.net/soccer/images/teams/1157293.png",
+                  "name": "Luton"
+                },
+                "total": {
+                  "wins": 6,
+                  "draws": 8,
+                  "games": 38,
+                  "loses": 24,
+                  "scoredGoals": 52,
+                  "receivedGoals": 85
+                },
+                "points": 26,
+                "position": 18
+              },
+              {
+                "away": {
+                  "wins": 3,
+                  "draws": 5,
+                  "games": 19,
+                  "loses": 11,
+                  "scoredGoals": 22,
+                  "receivedGoals": 35
+                },
+                "home": {
+                  "wins": 2,
+                  "draws": 4,
+                  "games": 19,
+                  "loses": 13,
+                  "scoredGoals": 19,
+                  "receivedGoals": 43
+                },
+                "team": {
+                  "id": 38228,
+                  "logo": "https://highlightly.net/soccer/images/teams/38228.png",
+                  "name": "Burnley"
+                },
+                "total": {
+                  "wins": 5,
+                  "draws": 9,
+                  "games": 38,
+                  "loses": 24,
+                  "scoredGoals": 41,
+                  "receivedGoals": 78
+                },
+                "points": 24,
+                "position": 19
+              },
+              {
+                "away": {
+                  "wins": 1,
+                  "draws": 3,
+                  "games": 19,
+                  "loses": 15,
+                  "scoredGoals": 16,
+                  "receivedGoals": 47
+                },
+                "home": {
+                  "wins": 2,
+                  "draws": 4,
+                  "games": 19,
+                  "loses": 13,
+                  "scoredGoals": 19,
+                  "receivedGoals": 57
+                },
+                "team": {
+                  "id": 53546,
+                  "logo": "https://highlightly.net/soccer/images/teams/53546.png",
+                  "name": "Sheffield Utd"
+                },
+                "total": {
+                  "wins": 3,
+                  "draws": 7,
+                  "games": 38,
+                  "loses": 28,
+                  "scoredGoals": 35,
+                  "receivedGoals": 104
+                },
+                "points": 16,
+                "position": 20
+              }
+            ]
+          }
+        ],
+        "league": {
+          "id": 33973,
+          "logo": "https://highlightly.net/soccer/images/leagues/33973.png",
+          "name": "Premier League",
+          "season": 2023
+        }
+      }
+    }
+  ]
+}

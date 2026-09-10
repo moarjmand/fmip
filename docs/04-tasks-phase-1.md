@@ -112,7 +112,7 @@ split into two commits, wiring then resolver, in one PR.
 | `[x]` T-020 | Adapter contract interface + recorded-fixture contract test harness | T-011 | A non-conforming adapter fails tests |
 | `[x]` T-021 | API-Football adapter (free tier) | T-020 | Contract tests pass against recorded responses |
 | `[x]` T-022 | football-data.org adapter (free tier) | T-020 | Same |
-| `[ ]` T-023 | Highlightly adapter (free tier) | T-020 | Same |
+| `[x]` T-023 | Highlightly adapter (free tier) | T-020 | Same |
 | `[ ]` T-024 | Bake-off harness: run all three over the same fixtures, log latency/completeness/errors | T-021, T-022, T-023 | Produces `docs/05-data-providers.md` results table automatically |
 | `[ ]` T-025 | **Decision gate:** review bake-off, pick provider, subscribe to paid tier | T-024 | New entry in `00-decisions.md` |
 | `[ ]` T-026 | Scheduled ingestion jobs (BullMQ): fixtures, live, lineups, standings, post-match | T-025 | Jobs are idempotent; a replay changes nothing |
@@ -174,6 +174,26 @@ extra time, or is `null` when the provider did not split it. **Contract tests
 pass against recorded responses:** no problems over all six scenarios; 6
 mapping-rule tests. 28 tests in the package; typecheck, lint, build. The key
 travels in `X-Auth-Token` and never appears in a recording.
+
+**T-023 verified on 2026-09-10.** `packages/ingestion/src/adapters/highlightly/`
+completes the set, against `sports.highlightly.net/football` on the BASIC
+plan, which insists on the RapidAPI-style headers even off RapidAPI. Six
+recordings of the same Premier League 2023/24 fixtures (league 33973): the
+opening weekend (10 fixtures, **four requests** — one per day of the range,
+reported as such; ranges beyond 14 days are refused), the final table (20
+rows, no form: the provider has none), Burnley v Manchester City's lineup
+(`unsupported`: empty `initialLineup` and formation "Unknown" on this plan),
+its detail (14 incidents — goals, substitutions with the player coming on as
+the related player, a red card at 90+4 — and 22 statistics with possession
+`0.34` read as 34%), the live call for two ids of which one is unknown (two
+requests, one fixture; the API has no batch lookup), and a detail of an
+unknown id (an empty array with 200 → `malformed`). Half-time scores do not
+exist on this provider and are `null`, never derived. **Contract tests pass
+against recorded responses:** no problems over all six scenarios; 6
+mapping-rule tests (free-text states, string scores, `90+4`, day counting,
+no invented half-time score, substitutes, possession). 36 tests in the
+package; typecheck, lint, build. All three adapters now answer the same five
+calls over the same fixtures, which is what T-024 needs.
 
 ---
 
