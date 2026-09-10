@@ -11,3 +11,14 @@ export type {
   SessionResponse,
   VerifyEmailRequest,
 } from './identity';
+export { PRIVACY_VISIBILITIES } from './profile';
+export type {
+  OwnProfile,
+  PrivacySettings,
+  PrivacyVisibility,
+  ProfileView,
+  PublicProfile,
+  UpdatePrivacyRequest,
+  UpdateProfileRequest,
+} from './profile';
+export type { CountriesResponse, CountrySummary } from './catalog';
