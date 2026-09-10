@@ -107,6 +107,9 @@ venv (CI). On the maintainer's host, pip needs the proxy:
 | `fmip_model/model/poisson.py` | Expected goals → scoreline matrix (0–10 each side, Dixon-Coles low-score correction, renormalised) → `Outcome`: home/draw/away, expected goals, most likely scorelines, and `rounded()` so the three displayed probabilities total exactly 1. |
 | `fmip_model/model/dixon_coles.py` | The fit (T-061): time-weighted penalised maximum likelihood over attack, defence, home advantage and `rho`, with a ridge and an Elo prior on net strength. `FittedModel.predict(home, away)` reads everything off the matrix; an unknown team is an error, not a guess. |
 | `fmip_model/model/data.py` | Reads matches and Elo from the `training` schema into model inputs, with the fit date as a hard boundary against leaks. |
+| `fmip_model/model/version.py` | `ModelVersion`: name, version and the frozen constants (`xi`, ridge, Elo weight, scale, max goals). `BASELINE` is `dixon-coles-elo@0.1.0`. A changed constant is a new version. |
+| `fmip_model/backtest/` | T-062. `metrics.py`: log loss, Brier, reliability bins, calibration error. `market.py`: de-margined implied probabilities from closing odds. `walk_forward.py`: fit on the past, forecast the day, refit weekly, never see the future; scores the model, the market and uniform on the same matches. `report.py`: Markdown + JSON per model version and scope, with the D-016 verdict. `__main__.py`: `python -m fmip_model.backtest --divisions E0 --from … --to … --history-from …`. |
+| `reports/<model-version>/` | Committed backtest reports: the evidence behind a model version. Never edited by hand. |
 | `tests/` | Parser tests on a real football-data file head (`fixtures/`); store and real-season fit tests against the database when `DATABASE_URL` is set; model tests on simulated seasons with known strengths. |
 
 **The training store is a schema, not a package.** `training.source_load`,

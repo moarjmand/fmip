@@ -245,7 +245,7 @@ section on settings (pin, unpin, unfollow, and pickers over `GET /teams` and
 |---|---|---|---|
 | `[x]` T-060 | Historical loader: football-data.co.uk + Club Elo into the training store | T-008 | Repeatable, versioned, documented licence per source |
 | `[x]` T-061 | Baseline model: time-weighted goal model + Elo prior | T-060 | Produces a score matrix and 1X2 probabilities |
-| `[ ]` T-062 | Backtesting and calibration harness (log loss, Brier, reliability curve, vs market odds) | T-061 | Report generated per model version |
+| `[x]` T-062 | Backtesting and calibration harness (log loss, Brier, reliability curve, vs market odds) | T-061 | Report generated per model version |
 | `[ ]` T-063 | `apps/model` FastAPI service with the internal contract | T-061 | Contract test from `apps/api` passes |
 | `[ ]` T-064 | Forecast versioning + input snapshots | T-063 | Probabilities total 100% after rounding; forecasts immutable |
 | `[ ]` T-065 | Match centre forecast panel with leading factors and computation time | T-064, T-034 | Explains, never asserts certainty |
@@ -291,6 +291,27 @@ of results; an unknown team is an error. On the real 2024/25 Premier League
 (380 matches in the training store): converges, positive home advantage,
 twenty teams, in-sample log loss below uniform. 32 tests, ruff, strict mypy
 (with `scipy-stubs`).
+
+**T-062 verified on 2026-09-10.** `fmip_model/backtest/`: walk-forward
+evaluation (fit on everything before the match day, refit weekly, forecast the
+day; a match after the fit date is refused), scored by log loss, Brier and a
+ten-bin reliability table per outcome, with the de-margined closing odds and
+a uniform forecast scored on the same matches. `python -m fmip_model.backtest`
+writes a Markdown and a JSON report under `reports/<model-version>/<scope>`,
+which is the acceptance criterion. The first real report is committed:
+**`dixon-coles-elo@0.1.0` on the 2024/25 Premier League, 1 Oct 2024 to 31
+May 2025, 320 forecasts, 28 refits, all 320 with closing odds: log loss model
+1.0170, market 0.9811, uniform 1.0986; Brier 0.6094 / 0.5861 / 0.6667.** The
+model beats uniform clearly and is 0.036 behind the market, so the report's
+verdict is "not ready to publish (D-016)", which is the honest state of a
+first baseline fitted without its Elo prior (the Club Elo API was down all
+day, so `training.elo` is empty and the prior was inactive). Tests: textbook
+values for uniform, a perfect and a confidently wrong forecaster, the
+distribution guard, reliability binning and calibration error on constructed
+cases, de-margining; and on simulated seasons the walk-forward never sees the
+future, beats uniform on log loss and Brier, refuses a window without enough
+history, tolerates missing odds, and writes the report per model version with
+the expected tables. 42 tests, ruff, strict mypy.
 
 ---
 
