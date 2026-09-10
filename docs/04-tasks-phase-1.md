@@ -244,7 +244,7 @@ section on settings (pin, unpin, unfollow, and pickers over `GET /teams` and
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-060 | Historical loader: football-data.co.uk + Club Elo into the training store | T-008 | Repeatable, versioned, documented licence per source |
-| `[ ]` T-061 | Baseline model: time-weighted goal model + Elo prior | T-060 | Produces a score matrix and 1X2 probabilities |
+| `[x]` T-061 | Baseline model: time-weighted goal model + Elo prior | T-060 | Produces a score matrix and 1X2 probabilities |
 | `[ ]` T-062 | Backtesting and calibration harness (log loss, Brier, reliability curve, vs market odds) | T-061 | Report generated per model version |
 | `[ ]` T-063 | `apps/model` FastAPI service with the internal contract | T-061 | Contract test from `apps/api` passes |
 | `[ ]` T-064 | Forecast versioning + input snapshots | T-063 | Probabilities total 100% after rounding; forecasts immutable |
@@ -274,6 +274,23 @@ stripping `DATABASE_URL`, so the API's database-backed tests had been
 **skipping under `pnpm test`, in CI too**, since PR #23 (now in `globalEnv`,
 and 69 API tests run); and psycopg takes two minutes to connect to
 `localhost` on Windows (IPv6 first), so `.env.example` now says `127.0.0.1`.
+
+**T-061 verified on 2026-09-10.** `fmip_model/model/`: a time-weighted
+Dixon-Coles score model (attack, defence, home advantage, low-score `rho`,
+exponential decay with a ~107-day half-life) fitted by penalised maximum
+likelihood, with Club Elo as a prior on net strength (D-029). The acceptance
+criterion is the `Outcome` read off the scoreline matrix: home / draw / away
+probabilities that sum to one, expected goals, most likely scorelines, and a
+`rounded()` that makes the three displayed figures total exactly 100%
+(blueprint 6.2). Tests on simulated seasons with known strengths: the fit
+recovers the strength order and a positive home advantage; the stronger side
+is favoured home and away; the time weight halves at the half-life; a match
+after the fit date is refused as a leak; a team with no matches but an Elo is
+rated where its Elo puts it, and an absurd Elo cannot overturn twelve seasons
+of results; an unknown team is an error. On the real 2024/25 Premier League
+(380 matches in the training store): converges, positive home advantage,
+twenty teams, in-sample log loss below uniform. 32 tests, ruff, strict mypy
+(with `scipy-stubs`).
 
 ---
 

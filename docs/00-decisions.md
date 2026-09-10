@@ -598,3 +598,43 @@ connection string; it reads the same `DATABASE_URL`. The loader records every
 attempt, including failures, so a source outage is visible in the store rather
 than inferred from a gap. Before any redistribution of derived data, the
 terms recorded on the loads must be re-verified (docs/05-data-providers.md).
+
+## D-029 — Baseline forecast: time-weighted Dixon-Coles with a Club Elo prior
+**Status:** Accepted · 2026-09-10
+
+**Decision.** The first published model is a Dixon-Coles score model: per-team
+attack and defence on the log scale, a home advantage, a low-score correction
+`rho`, matches weighted by `exp(-xi · days)` with `xi = 0.0065` (half-life
+about 107 days), fitted by penalised maximum likelihood (L-BFGS-B) with a
+small ridge and an Elo prior that pulls each team's net strength toward
+`(elo − mean) / 400`. Every published number is read off the scoreline
+matrix, and the three outcome probabilities are rounded so they total exactly
+100%.
+
+**Why.** Blueprint 6.2 asks for "a time-weighted football score model based on
+team attack strength, defence strength, home effect" producing a scoreline
+matrix; Dixon-Coles is the canonical form of exactly that, is transparent
+enough to explain on a match page ("leading factors"), fits a season in
+under a second, and has decades of published calibration behaviour to compare
+against in T-062. The Elo prior answers the cold-start problem the blueprint
+raises (long-term strength): a promoted or newly loaded team is rated where
+its Elo puts it until results say otherwise, and the pull is a penalty, not a
+dictate, so results always win in the end. The remaining blueprint inputs
+(line-ups, injuries, rest and travel, competition context, manager stability)
+are additive terms on the same expected goals once their data exists; they do
+not change the model family.
+
+**Alternatives.** Elo alone — no scorelines, no expected goals, no draw
+modelling. Bivariate Poisson — a better draw model on paper, materially more
+parameters and no evidence it beats Dixon-Coles out of sample at club level.
+Gradient-boosted classifiers over engineered features — stronger with rich
+inputs, opaque on a match page, and premature without line-up and xG data;
+the backtest harness (T-062) is where such a model would have to earn its
+place.
+
+**Consequences.** The model is a pure function of the training store and a
+fit date, which makes T-062 (backtesting) a loop over fit dates with no leak
+by construction. Team identity in the model is the training store's text
+name; the mapping to catalog UUIDs is the forecast boundary's job (T-064).
+`xi`, the ridge and the Elo weight are constants to be tuned by backtest,
+then frozen per model version.
