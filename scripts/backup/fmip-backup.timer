@@ -1,0 +1,13 @@
+# Runs fmip-backup.service daily at 03:30 UTC, the quietest hour for European
+# football, and catches up after a reboot (Persistent). See docs/07-backups.md.
+
+[Unit]
+Description=Daily FMIP database backup
+
+[Timer]
+OnCalendar=*-*-* 03:30:00 UTC
+Persistent=true
+RandomizedDelaySec=10m
+
+[Install]
+WantedBy=timers.target

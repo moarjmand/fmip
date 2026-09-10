@@ -395,9 +395,33 @@ database. 116 API tests (47 in the forecast module), typecheck, lint.
 |---|---|---|---|
 | `[ ]` T-070 | Minimal admin: coverage status, freshness, ingest failures, user search, rating config | T-027, T-053 | High-impact actions write an audit record |
 | `[ ]` T-071 | Structured logging, error tracking, tracing on ingestion and live path | T-026 | An ingest failure is visible without SSH |
-| `[ ]` T-072 | Automated off-provider database backups + tested restore | T-008 | A restore drill is documented and passes |
+| `[x]` T-072 | Automated off-provider database backups + tested restore | T-008 | A restore drill is documented and passes |
 | `[ ]` T-073 | Load test at expected peak (many concurrent SSE clients) | T-032 | Documented pass at an agreed threshold |
 | `[ ]` T-074 | Production deploy: VPS, Docker Compose, Cloudflare, TLS, domain | T-073 | Zero-downtime redeploy verified |
+
+**T-072 verified on 2026-09-10.** `scripts/backup/backup.sh` dumps the
+database from inside the postgres container (`pg_dump` custom format,
+`--no-owner --no-privileges`), writes a manifest beside it — applied
+migrations, the exact `COUNT(*)` of every table in `public` and `training`,
+size, SHA-256 — copies dump and manifest to the off-provider rclone remote
+through the official `rclone` image, re-reads the size from the remote and
+fails the run if it differs, then prunes local (7 days) and remote (90 days)
+copies. `restore-drill.sh` restores a dump into a throwaway
+`postgres:18-alpine` container it removes on exit, and passes only if the
+checksum, the migration list, every table's row count, the forecast
+probability CHECK and the immutability trigger all match. **A restore drill
+is documented and passes:** run on the development database — 36 tables, 458
+rows, 12 migrations, 144,462 bytes — the drill printed `DRILL PASSED`
+(checksum ok, 12 migrations ending in `1758600000000_evaluation`, 36 tables
+and 458 rows equal, both constraints present). The off-provider path was
+rehearsed with an rclone `local` remote: copy, remote size verification and
+prune all ran through the real rclone binary. `fmip-backup.service` and
+`.timer` schedule it daily at 03:30 UTC on the VPS. The runbook is
+`docs/07-backups.md` (what, where, schedule, the drill, the monthly
+checklist, restoring for real). What remains for the maintainer: create the
+bucket at a provider other than the VPS host, write `rclone.conf` with a
+`crypt` remote, set `BACKUP_RCLONE_REMOTE`, and run the first real backup
+and drill from the remote (D-032).
 
 ---
 

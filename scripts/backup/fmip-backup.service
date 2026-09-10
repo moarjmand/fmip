@@ -1,0 +1,23 @@
+# systemd unit for the VPS (T-072). Install with fmip-backup.timer:
+#
+#     sudo cp scripts/backup/fmip-backup.{service,timer} /etc/systemd/system/
+#     sudo systemctl daemon-reload
+#     sudo systemctl enable --now fmip-backup.timer
+#     systemctl list-timers fmip-backup.timer
+#
+# WorkingDirectory is the checkout the compose stack runs from; adjust if the
+# VPS layout differs (docs/07-backups.md).
+
+[Unit]
+Description=FMIP database backup (pg_dump + off-provider copy)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/fmip
+ExecStart=/usr/bin/bash scripts/backup/backup.sh
+# The script reads .env itself; nothing secret lives in this unit.
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
