@@ -144,6 +144,14 @@ export class PostgresIdentityStore {
     return rows[0] ?? null;
   }
 
+  async hasRole(userId: string, role: string): Promise<boolean> {
+    const { rowCount } = await this.pool.query(
+      'SELECT 1 FROM user_role WHERE user_id = $1 AND role = $2',
+      [userId, role],
+    );
+    return (rowCount ?? 0) > 0;
+  }
+
   async updateDisplayName(userId: string, displayName: string): Promise<void> {
     await this.pool.query(`UPDATE user_account SET display_name = $2 WHERE id = $1`, [
       userId,

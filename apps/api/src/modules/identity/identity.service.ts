@@ -42,6 +42,9 @@ export interface Login {
   sessionToken: string;
 }
 
+/** The roles user_role can grant (migration 1758000000000_identity). */
+export type UserRole = 'admin' | 'founder' | 'moderator';
+
 /**
  * Registration, sessions, e-mail verification and password reset (T-040).
  *
@@ -163,6 +166,11 @@ export class IdentityService {
   async userById(userId: string): Promise<AuthUser | null> {
     const row = await this.store.findById(userId);
     return row === null ? null : toAuthUser(row);
+  }
+
+  /** Granted roles only (user_role); ordinary members have none. */
+  async hasRole(userId: string, role: UserRole): Promise<boolean> {
+    return this.store.hasRole(userId, role);
   }
 
   /** display_name lives on the account; the profile boundary changes it through here. */

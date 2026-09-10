@@ -23,7 +23,12 @@ describe('seed files', () => {
     // more than once. Every INSERT therefore has to say what happens on a
     // second run; a bare INSERT would duplicate or, with fixed ids, fail.
     const sql = readFileSync(join(SEED_DIR, filename), 'utf8');
+    // A seed file may also be pure UPDATE ... WHERE ... IS DISTINCT FROM (idempotent by construction).
     const inserts = sql.match(/^INSERT INTO/gm) ?? [];
+    if (inserts.length === 0) {
+      expect(sql).toMatch(/IS DISTINCT FROM/);
+      return;
+    }
     // Any natural or surrogate key will do, as long as a second run updates.
     const upserts = sql.match(/^ON CONFLICT \([^)]+\) DO UPDATE SET/gm) ?? [];
 

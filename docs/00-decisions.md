@@ -638,3 +638,41 @@ by construction. Team identity in the model is the training store's text
 name; the mapping to catalog UUIDs is the forecast boundary's job (T-064).
 `xi`, the ridge and the Elo weight are constants to be tuned by backtest,
 then frozen per model version.
+
+## D-030 — Every model answer is a forecast version, including "unavailable"
+**Status:** Accepted · 2026-09-10
+
+**Decision.** The forecast boundary (`apps/api/src/modules/forecast/`) writes
+one immutable version per computation: a `model_version` row (`name@semver`),
+an `input_snapshot` holding the exact request sent and the inputs the model
+reported using, and a `forecast` row numbered `MAX(version_number) + 1` for
+the fixture inside the same transaction. When the model answers
+`unavailable`, cannot be reached, breaks the contract, or is never asked
+because the competition has no football-data division, that outcome is
+stored as a version too, with `status = 'unavailable'`, a reason from a closed
+list, and model id `none@0.0.0`. UPDATE and DELETE on `forecast` and
+`input_snapshot` are refused by a trigger (`restrict_violation`), and a CHECK
+requires `p_home + p_draw + p_away = 1.0000`. Computing over HTTP needs an
+admin session; reading is public.
+
+**Why.** Rule 5 says forecasts are immutable and rule 3 says never fake
+coverage. "The model could not say" at 14:00 on match day is a fact about
+that fixture at that time, and the match centre must be able to show it
+(T-065) rather than an empty panel or the last good number. Storing it as a
+version also makes the evaluation records (T-066) and any model comparison
+honest about gaps. Putting the numbering and the immutability in the
+database, not the service, means no code path — a job, a script, an operator
+— can bypass them.
+
+**Alternatives considered.** Store only successful forecasts and log the
+rest: loses the coverage history and lets a stale version look current.
+Enforce immutability in the service only: one `UPDATE` in a migration script
+away from breaking rule 5. Version numbers from a sequence: not per fixture,
+and gaps would look like missing versions.
+
+**Consequences.** Recomputing is always additive; storage grows with every
+computation, which the ingestion jobs (E2) must pace (early, on predicted
+line-ups, on confirmed line-ups). Test cleanup has to disable the trigger
+explicitly, which is deliberate friction. `competition.football_data_division`
+is the one place a catalog competition maps to the training store; a
+competition without it gets `competition_not_mapped` versions until seeded.
