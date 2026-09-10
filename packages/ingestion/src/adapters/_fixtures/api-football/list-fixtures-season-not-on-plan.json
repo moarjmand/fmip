@@ -1,0 +1,42 @@
+{
+  "name": "list-fixtures-season-not-on-plan",
+  "recordedAt": "2026-09-10T19:05:49.002Z",
+  "call": "listFixtures",
+  "args": [
+    {
+      "competitionExternalId": "39",
+      "seasonLabel": "2025/26",
+      "from": "2025-08-15",
+      "to": "2025-08-18"
+    }
+  ],
+  "expect": {
+    "ok": false,
+    "errorKind": "unsupported"
+  },
+  "requests": [
+    {
+      "method": "GET",
+      "url": "https://v3.football.api-sports.io/fixtures?league=39&season=2025&from=2025-08-15&to=2025-08-18",
+      "status": 200,
+      "body": {
+        "get": "fixtures",
+        "parameters": {
+          "league": "39",
+          "season": "2025",
+          "from": "2025-08-15",
+          "to": "2025-08-18"
+        },
+        "errors": {
+          "plan": "Free plans do not have access to this season, try from 2022 to 2024."
+        },
+        "results": 0,
+        "paging": {
+          "current": 1,
+          "total": 1
+        },
+        "response": []
+      }
+    }
+  ]
+}

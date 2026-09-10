@@ -176,7 +176,7 @@ argument for having the pseudo-locale.
 | Path | Purpose | Consumed by |
 |---|---|---|
 | `packages/contracts` | API request/response types, shared enums, coverage states. **The single source of truth for the API shape.** | `apps/web`, `apps/api` |
-| `packages/ingestion` | The normalised model adapters produce, the adapter contract, and the recorded-fixture harness that verifies an adapter. Adapters themselves arrive with T-021 to T-023. | `apps/api` |
+| `packages/ingestion` | The normalised model adapters produce, the adapter contract, and the recorded-fixture harness that verifies an adapter, and the adapters: `api-football` (T-021); `football-data-org` and `highlightly` arrive with T-022/T-023. | `apps/api` |
 | `packages/db` | Schema, migrations, seed data. Plain SQL, applied by node-pg-migrate (D-022). | `apps/api` |
 | schema `training` (was `packages/db/training`) | Historical datasets for model training only, as a Postgres schema created by the T-060 migration (D-028). **Never read by `apps/api` or `apps/web`** (D-014) | `apps/model` |
 | `packages/ui` *(planned)* | Shared React components, design tokens, RTL-safe primitives | `apps/web` |
@@ -218,8 +218,10 @@ is the point of the package (D-006).
 |---|---|
 | `src/normalised.ts` | The provider-neutral shapes every adapter returns: fixture, incident, lineup, standing, statistic, period, and the closed value lists they share with the schema. Entities carry the provider's id plus a name; unsupplied fields are `null`, never zero or a guess. |
 | `src/adapters/_contract.ts` | `ProviderAdapter` (five calls: fixtures, live, lineup, standings, detail), `AdapterManifest` (licence, tier, quota, critical-path flag), `Transport` (the only way to the network, injected), `AdapterResult` (failure is a value, with the request count). |
-| `src/adapters/_fixtures/` | Recorded provider responses, one directory per provider, one JSON scenario per call. Recorded with `RecordingTransport`, never hand-written. Empty until T-021. |
-| `src/adapters/<provider>/` *(planned)* | One directory per adapter: `api-football`, `football-data-org`, `highlightly`. |
+| `src/adapters/_fixtures/` | Recorded provider responses, one directory per provider, one JSON scenario per call. Recorded with `RecordingTransport` through `scripts/record.mjs`, never hand-written. `api-football/`: six scenarios from 2026-09-10 (T-021). |
+| `src/adapters/api-football/` | T-021. `index.ts`: `createApiFootballAdapter` and `API_FOOTBALL_MANIFEST` (licensed API, free tier, 100/day, 10/min); one request per call; the v3 envelope's `errors` object becomes `quota` / `unsupported` / `http` / `malformed`. `map.ts`: the only file that knows API-Football's field names — statuses, rounds → stage kinds, events → incidents (side by team id, substitute as the related player, unattributed events dropped), lineups matched to home/away by team id with captains from the per-player block, statistics by name (`55%` → 55), standings per group. Live state is `fixtures?live=all` filtered to the requested ids: the free plan refuses `ids=`. `api-football.spec.ts`: the contract check over the recordings plus mapping-rule tests. |
+| `src/adapters/<provider>/` *(planned)* | `football-data-org` (T-022), `highlightly` (T-023). |
+| `scripts/record.mjs`, `scripts/plans/<provider>.mjs` | Records a provider's scenarios from the live API (`node scripts/record.mjs api-football [--only=name]` after `pnpm build`): the plan lists calls and arguments, the expectation is derived from the adapter's own result, the key is read from the environment and the output is scanned for it. |
 | `src/harness/contract-check.ts` | `checkAdapterContract(factory, scenarios)`: replays each scenario through `ReplayTransport`, checks the manifest (D-014), that failure is returned not thrown, that no unrecorded URL was requested, that the request count is honest, and that success validates as the normalised shape. Returns problems; empty means pass. `loadScenarios(dir)` reads a provider's recordings. |
 | `src/harness/replay-transport.ts` | `ReplayTransport` answers only from recordings and lists what it could not answer; `RecordingTransport` performs real requests and remembers them, for producing recordings. |
 | `src/harness/validate.ts` | Hand-written validators for each normalised shape and the manifest, restating the schema's rules at the boundary (statuses, ranges, uniqueness, "finished needs a full-time score", one captain, D-014). |
@@ -340,7 +342,7 @@ both files (`CLAUDE.md` §5). `.env` itself is never committed.
 | `MODEL_PORT` | `apps/model` | The port the model service listens on. Default `8000`. |
 | `SESSION_SECRET` | `apps/api` | Required at boot, at least 32 characters. Keys the HMAC of session and e-mail tokens (D-026); rotating it signs everyone out and voids every unused e-mail link. |
 | `WEB_BASE_URL` | `apps/api` | Where the links in verification and password-reset e-mails point. Default `http://localhost:3000`. |
-| `API_FOOTBALL_KEY`, `FOOTBALL_DATA_ORG_KEY`, `HIGHLIGHTLY_KEY` | `packages/ingestion` *(planned)* | Free-tier keys for the bake-off (D-013). |
+| `API_FOOTBALL_KEY`, `FOOTBALL_DATA_ORG_KEY`, `HIGHLIGHTLY_KEY` | `packages/ingestion` (recording script), the bake-off (T-024) | Free-tier keys, verified 2026-09-10 (`05-data-providers.md`). Sent in headers, never in URLs; recordings are scanned for them. |
 | `PLAYWRIGHT_CHROMIUM_EXECUTABLE` | `apps/web/playwright.config.ts` | Tooling only, not application config, so it is deliberately **not** in `.env.example`. Points the E2E run at an already-installed browser, for an environment that cannot download one. Unset in CI. |
 
 ---

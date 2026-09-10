@@ -42,3 +42,6 @@ export {
   validateManifest,
   validateStanding,
 } from './harness/validate';
+
+// Adapters. One directory each; verified by their recordings, not their authors.
+export { API_FOOTBALL_MANIFEST, createApiFootballAdapter } from './adapters/api-football';

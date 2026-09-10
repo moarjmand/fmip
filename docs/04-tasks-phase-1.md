@@ -110,7 +110,7 @@ split into two commits, wiring then resolver, in one PR.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-020 | Adapter contract interface + recorded-fixture contract test harness | T-011 | A non-conforming adapter fails tests |
-| `[ ]` T-021 | API-Football adapter (free tier) | T-020 | Contract tests pass against recorded responses |
+| `[x]` T-021 | API-Football adapter (free tier) | T-020 | Contract tests pass against recorded responses |
 | `[ ]` T-022 | football-data.org adapter (free tier) | T-020 | Same |
 | `[ ]` T-023 | Highlightly adapter (free tier) | T-020 | Same |
 | `[ ]` T-024 | Bake-off harness: run all three over the same fixtures, log latency/completeness/errors | T-021, T-022, T-023 | Produces `docs/05-data-providers.md` results table automatically |
@@ -130,12 +130,28 @@ declaring a scraped source on the critical path (D-014); and success where the
 recording says the call must fail. An adapter with no recordings is reported
 as unverified, not passed. 14 tests; `typecheck` and `lint` pass.
 
-**T-021 to T-023 are blocked on credentials.** Recordings must come from real
-responses, and `API_FOOTBALL_KEY`, `FOOTBALL_DATA_ORG_KEY` and
-`HIGHLIGHTLY_KEY` are empty in the maintainer's `.env`. Free-tier accounts are
-the maintainer's to create (third-party terms); once the keys exist, each
-adapter is one directory plus its recordings. T-025 is likewise the
-maintainer's decision and payment. E3 and E5 wait behind T-026.
+**T-021 verified on 2026-09-10.** `packages/ingestion/src/adapters/api-football/`
+is the first adapter, written against the free plan and verified by six
+recordings made with the maintainer's key through `scripts/record.mjs`
+(Premier League 2023/24, the newest season the plan serves): the opening
+weekend (10 fixtures, all `finished` with half- and full-time scores, venue,
+referee, `Regular Season` stage), the final table (20 rows, form strings,
+`won + drawn + lost = played`), Burnley v Manchester City's lineup (20 + 20
+players, formations, coaches, captains J. Cullen and K. De Bruyne read from
+the per-player block, matched to home/away by team id), its detail (15
+incidents across goal, substitution, red card and VAR with the side by team
+id; 28 statistics including expected goals, with `55%` parsed to 55 and null
+metrics absent; two periods), everything in play at recording time through
+`fixtures?live=all` (25 matches), and a season the plan refuses (`2025/26` →
+`unsupported`, "try from 2022 to 2024"). The first attempt at live-by-ids was
+also recorded honestly — "Free plans do not have access to the Ids parameter"
+— and the adapter was redesigned around `live=all` filtered to the requested
+ids. **Contract tests pass against recorded responses:** `checkAdapterContract`
+returns no problems over all six scenarios; 8 mapping-rule tests (statuses,
+stage kinds, statistic parsing, no clock on a finished match, no invented
+full-time score, incidents). 22 tests in the package; typecheck, lint, build.
+The key never appears in a recording: it travels in `x-apisports-key` and the
+recorder scans its output. T-022 and T-023 follow the same shape.
 
 ---
 
