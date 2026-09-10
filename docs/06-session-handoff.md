@@ -214,3 +214,4 @@ The monthly checklist in `07-backups.md` ends by noting the drill here.
 | Date | Dump | Copy drilled | Result |
 | --- | --- | --- | --- |
 | 2026-09-10 | `fmip-20260910T115417Z.dump` (development database, 36 tables, 458 rows) | local + rclone `local` rehearsal | `DRILL PASSED` |
+| 2026-09-10 | `fmip-20260910T184440Z.dump` (development database, 36 tables, 458 rows, 144,439 bytes) | **off-provider**: written to Backblaze B2 through the `offsite:` crypt remote, size verified on the remote, fetched back from B2, drilled on the fetched copy | `DRILL PASSED` |
