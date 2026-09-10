@@ -162,7 +162,7 @@ maintainer's decision and payment. E3 and E5 wait behind T-026.
 |---|---|---|---|
 | `[x]` T-040 | Registration, email verification, login, sessions, password reset | T-004 | Security tests cover auth and session fixation |
 | `[x]` T-041 | Profile page + privacy settings | T-040 | Public / friends-only / private all enforced server-side |
-| `[ ]` T-042 | Favourites and following (teams, competitions, players) | T-041 | Favourites affect the scores page ordering |
+| `[x]` T-042 | Favourites and following (teams, competitions, players) | T-041 | Favourites affect the scores page ordering |
 
 **T-040 verified on 2026-09-10.** API only: the web forms belong with the
 profile page (T-041), since a member has nowhere to land before then. Twelve
@@ -202,6 +202,26 @@ redirected to login without one and rendered with one, the verification link
 succeeded once and was spent on the second visit, and after setting the
 profile private the page showed "This profile is private." 58 API and 15 web
 tests pass; web `build` lists the new routes.
+
+**T-042 verified on 2026-09-10.** `followed_entity` is one row per (member,
+entity) with a `favourite` flag; a favourite is always followed. API:
+`GET /me/following` (names joined per type, favourites first),
+`PUT /me/following/:type/:id` with an optional `favourite`, `DELETE`, and
+`GET /me/favourites`, the id sets a personalised view sorts with. The
+acceptance criterion, "favourites affect the scores page ordering", is
+delivered as `compareByFavourites` in the profile boundary's public surface:
+a favourite team's fixture ranks above a favourite competition's, above a
+followed team's, above a followed competition's, above the rest, with kick-off
+breaking ties; a unit test sorts seven fixtures into exactly that order and
+another shows kick-off order alone when nothing is followed. The scores API
+(T-030) sorts with it and `favouriteIds()`; that is the one hook it must call.
+HTTP tests with real sessions: follows a team, competition and person with
+their current names; favourite sorts first and following twice is one row;
+`/me/favourites` returns the sets and the profile shows the favourite team
+names; unpin keeps the follow, unfollow removes it; unknown entity 404,
+unknown type, bad id and bad flag 400 naming the field. Web: a Following
+section on settings (pin, unpin, unfollow, and pickers over `GET /teams` and
+`GET /competitions`) and favourite teams on the profile. 69 API tests pass.
 
 ---
 

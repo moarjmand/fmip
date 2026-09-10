@@ -112,6 +112,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('profiles and
         avatar_url: null,
         country_id: ENGLAND,
         member_since: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+        favourite_teams: [],
       },
     });
     expect((await get(`/profiles/${owner}`, ownerCookie)).json().is_self).toBe(true);

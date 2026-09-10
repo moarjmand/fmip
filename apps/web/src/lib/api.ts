@@ -1,10 +1,14 @@
 import type {
   ApiError,
+  CompetitionsResponse,
   CountriesResponse,
+  FollowedEntity,
+  FollowingResponse,
   HealthReport,
   OwnProfile,
   ProfileView,
   SessionResponse,
+  TeamsResponse,
 } from '@fmip/contracts';
 
 const API_BASE_URL = process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
@@ -35,7 +39,7 @@ export type ApiResult<T> =
   | { ok: false; status: number; error: ApiError | null; setCookie: string | null };
 
 export interface ApiRequestInit {
-  method?: 'GET' | 'POST' | 'PATCH';
+  method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
   body?: unknown;
   /** The `Cookie` header to forward, e.g. from `sessionCookieHeader()`. */
   cookie?: string;
@@ -105,4 +109,20 @@ export function fetchOwnProfile(cookie: string | undefined): Promise<ApiResult<O
 export async function fetchCountries(): Promise<CountriesResponse['countries'] | null> {
   const result = await apiRequest<CountriesResponse>('/countries');
   return result.ok ? result.data.countries : null;
+}
+
+export async function fetchFollowing(cookie: string | undefined): Promise<FollowedEntity[] | null> {
+  if (cookie === undefined) return null;
+  const result = await apiRequest<FollowingResponse>('/me/following', { cookie });
+  return result.ok ? result.data.items : null;
+}
+
+export async function fetchTeams(): Promise<TeamsResponse['teams'] | null> {
+  const result = await apiRequest<TeamsResponse>('/teams');
+  return result.ok ? result.data.teams : null;
+}
+
+export async function fetchCompetitions(): Promise<CompetitionsResponse['competitions'] | null> {
+  const result = await apiRequest<CompetitionsResponse>('/competitions');
+  return result.ok ? result.data.competitions : null;
 }

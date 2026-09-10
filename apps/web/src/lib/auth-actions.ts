@@ -1,6 +1,8 @@
 'use server';
 
 import type {
+  FollowRequest,
+  FollowingResponse,
   LoginRequest,
   OwnProfile,
   RegisterRequest,
@@ -173,4 +175,34 @@ export async function updatePrivacyAction(
 
   revalidatePath(`/${locale}/settings`);
   return { ok: true, message: 'Privacy settings saved.' };
+}
+
+// --- following (T-042) -------------------------------------------------------
+
+/** Follow (or set the favourite flag on) one entity, from a button or a picker form. */
+export async function followAction(locale: string, formData: FormData): Promise<void> {
+  const type = text(formData, 'entity_type');
+  const id = text(formData, 'entity_id');
+  const favouriteField = formData.get('favourite');
+  const body: FollowRequest =
+    favouriteField === null ? {} : { favourite: favouriteField === 'true' };
+
+  if (id !== '') {
+    await apiRequest<FollowingResponse>(
+      `/me/following/${encodeURIComponent(type)}/${encodeURIComponent(id)}`,
+      { method: 'PUT', body, cookie: await sessionCookieHeader() },
+    );
+  }
+  revalidatePath(`/${locale}/settings`);
+}
+
+export async function unfollowAction(locale: string, formData: FormData): Promise<void> {
+  const type = text(formData, 'entity_type');
+  const id = text(formData, 'entity_id');
+
+  await apiRequest<FollowingResponse>(
+    `/me/following/${encodeURIComponent(type)}/${encodeURIComponent(id)}`,
+    { method: 'DELETE', cookie: await sessionCookieHeader() },
+  );
+  revalidatePath(`/${locale}/settings`);
 }

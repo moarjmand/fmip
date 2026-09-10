@@ -25,6 +25,8 @@ export interface PublicProfile {
   country_id: string;
   /** ISO 8601 date of registration. */
   member_since: string;
+  /** Names of the teams the member has pinned as favourites (blueprint 7.2). */
+  favourite_teams: string[];
 }
 
 /** `GET /profiles/:username`. */

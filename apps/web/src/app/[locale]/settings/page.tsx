@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { PRIVACY_VISIBILITIES } from '@fmip/contracts';
 import { ActionForm, type FieldOption } from '@/components/action-form';
-import { fetchOwnProfile } from '@/lib/api';
+import { FollowingSection } from '@/components/following-section';
+import { fetchCompetitions, fetchFollowing, fetchOwnProfile, fetchTeams } from '@/lib/api';
 import { updatePrivacyAction, updateProfileAction } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
 
@@ -22,7 +23,8 @@ const visibilityOptions: FieldOption[] = PRIVACY_VISIBILITIES.map((value) => ({
 
 export default async function SettingsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
-  const result = await fetchOwnProfile(await sessionCookieHeader());
+  const cookie = await sessionCookieHeader();
+  const result = await fetchOwnProfile(cookie);
 
   if (!result.ok) {
     if (result.status === 401) redirect(`/${locale}/login`);
@@ -35,6 +37,11 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
   }
 
   const { profile, account, privacy } = result.data;
+  const [following, teams, competitions] = await Promise.all([
+    fetchFollowing(cookie),
+    fetchTeams(),
+    fetchCompetitions(),
+  ]);
 
   return (
     <main className="mx-auto flex max-w-md flex-col gap-10 p-8">
@@ -102,6 +109,17 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
           testId="privacy-form"
         />
       </section>
+
+      {following === null || teams === null || competitions === null ? (
+        <p role="alert">Following could not be loaded right now.</p>
+      ) : (
+        <FollowingSection
+          locale={locale}
+          following={following}
+          teams={teams}
+          competitions={competitions}
+        />
+      )}
     </main>
   );
 }

@@ -98,6 +98,21 @@ export default async function ProfilePage({
       )}
 
       <section className="flex flex-col gap-2">
+        <h2 className="text-lg font-semibold">Favourite teams</h2>
+        {profile.favourite_teams.length === 0 ? (
+          <p className="text-sm opacity-70">No favourite teams yet.</p>
+        ) : (
+          <ul className="flex flex-wrap gap-2" data-testid="favourite-teams">
+            {profile.favourite_teams.map((team) => (
+              <li key={team} className="rounded border border-current/30 px-2 py-1 text-sm">
+                {team}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="flex flex-col gap-2">
         <h2 className="text-lg font-semibold">Predictions</h2>
         {/* Rule 3: the prediction record does not exist yet; say so instead of an empty table. */}
         <p className="text-sm opacity-70">

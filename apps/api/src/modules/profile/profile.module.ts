@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { IdentityModule } from '../identity/identity.module';
+import { PostgresFollowingStore } from './internal/following-store';
 import { PostgresProfileStore } from './internal/profile-store';
 import { FRIENDSHIP_ORACLE, NoFriendshipsYet } from './internal/visibility';
 import { ProfileController } from './profile.controller';
@@ -16,6 +17,7 @@ import { ProfileService } from './profile.service';
   providers: [
     ProfileService,
     PostgresProfileStore,
+    PostgresFollowingStore,
     { provide: FRIENDSHIP_ORACLE, useClass: NoFriendshipsYet },
   ],
   exports: [ProfileService],
