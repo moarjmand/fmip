@@ -63,6 +63,7 @@ incomplete.
 | `src/database/database.module.ts` | The shared `pg.Pool`, injected as `PG_POOL` (D-025). Global, so boundary modules do not import it. Refuses to boot without `DATABASE_URL`; drains the pool on shutdown. |
 | `src/modules/health/` | `GET /health`. Liveness only — see the note below. Returns `HealthReport` from `@fmip/contracts`. |
 | `src/modules/ingestion/` | The ingestion boundary. Today: `EntityResolverService` (public, in `ingestion.service.ts`), which resolves a provider id to an internal UUID or queues it. `internal/resolver.ts` is the pure logic over a `MappingStore` port; `internal/postgres-mapping-store.ts` is the SQL. Adapters and jobs arrive with E2. |
+| `src/modules/identity/` | The identity boundary: `/auth/*`. `identity.service.ts` is public (`IdentityService`: register, login, authenticate, logout, verify e-mail, password reset; cookie helpers). `identity.controller.ts` validates bodies into the `@fmip/contracts` shapes. `internal/`: `password.ts` (scrypt), `tokens.ts` (random tokens, HMAC), `cookies.ts` (the session cookie, by hand), `validation.ts`, `identity-store.ts` (SQL), `mailer.ts` (the `MAILER` port; `LogMailer` prints). `identity.spec.ts` is unit; `identity.http.spec.ts` is the security suite against the real schema. |
 | `src/modules/<boundary>/` | The remaining boundaries from `02-architecture.md`. Empty until built. |
 | `Dockerfile` | Multi-stage build. Built from the repository root, not from `apps/api`. Compiles through Turbo so `@fmip/contracts` is built first, and deploys with `pnpm deploy --legacy`, because pnpm 10 refuses to deploy a workspace that does not inject its packages. |
 | `vitest.config.mts` | Vitest transformed by SWC rather than esbuild (D-019). |
@@ -189,7 +190,7 @@ once an adapter exists (T-021); until then the resolver in
 
 | Path | Purpose |
 |---|---|
-| `migrations/*.sql` | One file per change, `<timestamp>_<slug>.sql`, each with an up and a down section. Never edit a shipped one. `..._bootstrap.sql` is the version gate and the `set_updated_at()` trigger function; `..._catalog.sql` is T-010: `country`, `competition`, `season`, `stage`, `venue`, `team`, `person`, `player_spell`. `..._fixtures.sql` is T-011: `fixture`, `fixture_participant`, `fixture_score`, `fixture_period`, `incident`, `lineup`, `fixture_stat`. `..._ingestion.sql` is T-012: `provider_mapping`, `coverage_profile`, `ingest_run`. `..._unresolved-entity.sql` is T-013: the review queue for provider ids that do not resolve. |
+| `migrations/*.sql` | One file per change, `<timestamp>_<slug>.sql`, each with an up and a down section. Never edit a shipped one. `..._bootstrap.sql` is the version gate and the `set_updated_at()` trigger function; `..._catalog.sql` is T-010: `country`, `competition`, `season`, `stage`, `venue`, `team`, `person`, `player_spell`. `..._fixtures.sql` is T-011: `fixture`, `fixture_participant`, `fixture_score`, `fixture_period`, `incident`, `lineup`, `fixture_stat`. `..._ingestion.sql` is T-012: `provider_mapping`, `coverage_profile`, `ingest_run`. `..._unresolved-entity.sql` is T-013: the review queue for provider ids that do not resolve. `..._identity.sql` is T-040: `user_account`, `credential`, `session`, `email_token`, `user_role`. |
 | `seed/*.sql` | Development fixtures, `<nnn>_<slug>.sql`, applied in prefix order. Fixed UUIDs and `ON CONFLICT (id) DO UPDATE`, so re-running converges. `001` is the catalog slice, `002` one finished fixture, `003` three API-Football ids and an honest coverage profile for the seeded season. Never product data: the runner refuses `NODE_ENV=production`. |
 | `src/index.ts` | Locates and orders the migration files. |
 | `src/seed.ts` | Locates and orders the seed files, and the `pnpm seed` runner: one transaction per file, rolled back whole on failure. |
@@ -253,6 +254,19 @@ elsewhere. The queue row is closed with actor, time, target and note (rule
 10). The API-side test runs against the real schema when `DATABASE_URL` is
 set and is skipped, visibly, when it is not.
 
+**Accounts (T-040).** No secret is stored: passwords are scrypt hashes with
+their parameters in the string, sessions and e-mailed tokens are HMACs of the
+random value the client holds (D-026). The session is an HttpOnly, SameSite=Lax
+cookie named `fmip_session`; a login always mints a new one and never promotes
+a cookie the client already had, which is the session-fixation defence. Wrong
+password and unknown account are the same 401 in the same time (a decoy hash
+is verified when the account is unknown); forgotten-password requests always
+answer 202. A password reset revokes every session. E-mail tokens are single
+use, decided by one `UPDATE ... WHERE used_at IS NULL`. `username` and `email`
+are unique and lower-cased. Outbound mail goes through the `MAILER` port; the
+provider is chosen at deployment (T-074), so `LogMailer` prints the link,
+which is what local development wants anyway.
+
 ---
 
 ## Environment variables
@@ -272,7 +286,8 @@ both files (`CLAUDE.md` §5). `.env` itself is never committed.
 | `WEB_PORT` | `docker-compose.yml` | Host port for the web app, bound to `127.0.0.1`. Default `3000`. The container itself always listens on 3000; compose sets Next's own `PORT` for it. |
 | `API_BASE_URL` | `apps/web` | Where the web app reaches the API server-side. Default `http://127.0.0.1:3001`. |
 | `MODEL_SERVICE_URL` | `apps/api` *(planned)* | Internal only. Never reachable from the browser. |
-| `SESSION_SECRET` | `apps/api` *(planned)* | |
+| `SESSION_SECRET` | `apps/api` | Required at boot, at least 32 characters. Keys the HMAC of session and e-mail tokens (D-026); rotating it signs everyone out and voids every unused e-mail link. |
+| `WEB_BASE_URL` | `apps/api` | Where the links in verification and password-reset e-mails point. Default `http://localhost:3000`. |
 | `API_FOOTBALL_KEY`, `FOOTBALL_DATA_ORG_KEY`, `HIGHLIGHTLY_KEY` | `packages/ingestion` *(planned)* | Free-tier keys for the bake-off (D-013). |
 | `PLAYWRIGHT_CHROMIUM_EXECUTABLE` | `apps/web/playwright.config.ts` | Tooling only, not application config, so it is deliberately **not** in `.env.example`. Points the E2E run at an already-installed browser, for an environment that cannot download one. Unset in CI. |
 

@@ -488,3 +488,43 @@ Integration tests run where a database is reachable and are skipped visibly
 elsewhere; CI has no Postgres service yet, and adding one is the next step if
 a store bug ever slips through. Table names in SQL come from allow-lists in
 code, never from input.
+
+## D-026 — Passwords, sessions and e-mail tokens: built-in scrypt, opaque tokens, HMAC at rest
+**Status:** Accepted · 2026-09-10
+
+**Decision.** Passwords are hashed with Node's built-in `scrypt` (N=2^14, r=8,
+p=1, 16-byte salt, 32-byte key), stored as `scrypt$N$r$p$salt$hash` so the
+parameters can be raised without a migration. Sessions and e-mailed one-time
+tokens are 256-bit random values held by the client; the database stores only
+their HMAC-SHA256 keyed with `SESSION_SECRET`. Sessions are rows in Postgres
+(`session`), not signed cookies; the cookie is HttpOnly, SameSite=Lax, Path=/,
+Secure in production. Outbound e-mail goes through a `Mailer` port; the
+provider is chosen with the production deployment (T-074), and until then
+`LogMailer` prints the message.
+
+**Why.** No new dependency: scrypt, HMAC and random bytes are in `node:crypto`,
+and a dozen lines of RFC 6265 replace a cookie plugin. Rows rather than signed
+cookies because the product needs revocation (logout everywhere on password
+reset, an administrator ending a session, "your sessions" later), and a signed
+cookie cannot be revoked without a row anyway. HMAC at rest because a copy of
+the database must not log anyone in, and a keyed hash, unlike a plain one,
+also survives the token alphabet being small. The blueprint names Redis for
+sessions; that is an optimisation for a later phase when session reads are the
+hot path, and the row is the source of truth either way.
+
+**Alternatives.** argon2id — the better algorithm on paper, but a native
+dependency to build on every platform we ship to, for a difference that does
+not matter at our scale; revisit if the threat model changes. bcrypt — older,
+72-byte input limit, no memory hardness; rejected. JWT sessions — stateless
+but not revocable, and every claim in them is a copy of a row that can go
+stale; rejected. `@fastify/cookie` and Passport — fine libraries, but each
+attribute of the session cookie and each step of the login is a security
+decision that should be readable in this repository, not in a default.
+
+**Consequences.** `SESSION_SECRET` (≥ 32 characters) is required at boot;
+rotating it signs everyone out and voids unused e-mail links, which is the
+intended emergency lever. `WEB_BASE_URL` is required for e-mail links.
+Rate-limiting login and forgot-password is not in this decision: it needs
+Redis and belongs with T-071's operational work; until then the constant-time
+decoy verification is the only brute-force friction. A production mailer is a
+deployment decision and will be a new entry.
