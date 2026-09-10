@@ -712,3 +712,42 @@ score after evaluation is an operator decision, not a rewrite: the existing
 rows stand and the correction has to be visible as such. Performance rows for
 a competition are empty (`not_supplied`) until at least one pre-kick-off
 version has been evaluated there.
+
+## D-032 — Daily pg_dump to another provider, and a restore drill that has to pass
+**Status:** Accepted · 2026-09-10
+
+**Decision.** The database is backed up once a day by `pg_dump` in custom
+format from inside the postgres container, with a manifest (migrations, exact
+row count per table, size, SHA-256) written beside it. Both files are copied
+with rclone to storage at a company other than the VPS provider, through an
+rclone `crypt` remote so they are encrypted before leaving the machine, and
+the run fails unless the remote reports the same size as the local dump.
+Retention is 7 days locally, 90 days off-provider. `restore-drill.sh`
+restores a dump into a throwaway Postgres and passes only if checksum,
+migrations, every row count and two named constraints match; it runs from the
+off-provider copy on the first Monday of each month, and the result is noted
+in the handoff document. Redis is not backed up.
+
+**Why.** A backup on the same provider as the database disappears with the
+account, the region or the invoice. Logical dumps are the simplest thing that
+restores across Postgres minor versions and onto a different machine, they are
+inspectable (`pg_restore --list`), and at Phase 1 size they take seconds. The
+manifest turns "the file exists" into "the file contains what the database
+contained", and the drill turns that into a recurring fact rather than a
+belief. Nothing is installed on the host beyond Docker, so the VPS stays as
+reproducible as the compose file says it is.
+
+**Alternatives considered.** WAL archiving / point-in-time recovery (pgBackRest,
+WAL-G): the right answer once user predictions and reputation carry weight
+(Phase 2); today it adds a component to run and understand for a recovery
+point nobody needs yet. Provider snapshots of the VPS disk: same-provider,
+opaque, and not restorable anywhere else. Managed Postgres with built-in
+backups: rules out the single-VPS cost model of D-011.
+
+**Consequences.** Recovery point up to 24 hours; forecasts and evaluations
+are recomputable from the training store and results, so the loss is bounded
+to a day of user activity. The maintainer owns the off-provider account and
+`rclone.conf`, and keeps both in the password manager; without the crypt keys
+the off-provider copies are unreadable by design. A failed drill is the
+week's first task. Moving to PITR later changes `docker-compose.yml` and this
+decision, not the drill's contract.

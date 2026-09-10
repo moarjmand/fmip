@@ -18,7 +18,7 @@ incomplete.
 | `CLAUDE.md` | Operating rules for agents. Read before any work. |
 | `README.md` | Human entry point, setup instructions. |
 | `docker-compose.yml` | Local dev stack. Postgres, Redis, the API, the web app and the model service (internal, no published port). |
-| `scripts/` | Developer scripts. `check-dev-stack.sh` proves Postgres, Redis, `/health` and `/en` all answer. `dev-proxy.sh` (config in `dev-proxy/squid.conf`) runs a loopback-only forward proxy in Docker for a host that cannot reach the npm registry directly; see `06-session-handoff.md`, constraint 2. |
+| `scripts/` | Developer scripts. `check-dev-stack.sh` proves Postgres, Redis, `/health` and `/en` all answer. `dev-proxy.sh` (config in `dev-proxy/squid.conf`) runs a loopback-only forward proxy in Docker for a host that cannot reach the npm registry directly; see `06-session-handoff.md`, constraint 2. `backup/` is T-072: `backup.sh` (pg_dump in the container + manifest + off-provider copy through rclone + pruning), `restore-drill.sh` (restores into a throwaway Postgres and checks checksum, migrations, every row count, constraints), `fmip-backup.service`/`.timer` for the VPS. Runbook: `07-backups.md`. |
 | `.dockerignore` | Keeps `node_modules`, build output and `.env` out of every image build context. |
 | `package.json` | Workspace root. Pins the pnpm version and the `build`/`lint`/`typecheck`/`test`/`format` entry points. Checks run with `--continue`, so one run reports every broken workspace. |
 | `turbo.json`, `pnpm-workspace.yaml` | Monorepo wiring. Task graph and workspace globs. |
@@ -335,6 +335,8 @@ both files (`CLAUDE.md` §5). `.env` itself is never committed.
 | `WEB_PORT` | `docker-compose.yml` | Host port for the web app, bound to `127.0.0.1`. Default `3000`. The container itself always listens on 3000; compose sets Next's own `PORT` for it. |
 | `API_BASE_URL` | `apps/web` | Where the web app reaches the API server-side. Default `http://127.0.0.1:3001`. |
 | `MODEL_SERVICE_URL` | `apps/api` | Where the model service answers, e.g. `http://model:8000` in compose. Internal only, never reachable from the browser. When set, the API's live contract test runs against it. |
+| `BACKUP_DIR`, `BACKUP_KEEP_LOCAL_DAYS` | `scripts/backup` | Where `backup.sh` writes dumps and manifests (git-ignored, default `./backups`) and how many days of local copies it keeps (default 7). |
+| `BACKUP_RCLONE_REMOTE`, `BACKUP_KEEP_REMOTE_DAYS`, `BACKUP_RCLONE_CONFIG` | `scripts/backup` | The off-provider rclone destination (a `crypt` remote, see `07-backups.md`), its retention (default 90 days) and the `rclone.conf` holding it. Unset remote = local copies only, and the script warns (D-032). |
 | `MODEL_PORT` | `apps/model` | The port the model service listens on. Default `8000`. |
 | `SESSION_SECRET` | `apps/api` | Required at boot, at least 32 characters. Keys the HMAC of session and e-mail tokens (D-026); rotating it signs everyone out and voids every unused e-mail link. |
 | `WEB_BASE_URL` | `apps/api` | Where the links in verification and password-reset e-mails point. Default `http://localhost:3000`. |

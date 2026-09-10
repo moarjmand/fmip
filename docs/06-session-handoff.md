@@ -206,3 +206,11 @@ Practices that matter most, in order of impact:
 3. Write tests, so failures are caught by CI rather than by a human round-trip.
 4. Keep tasks small enough that one PR is one coherent change.
 5. Never paste large files into chat when a path will do.
+
+## Last restore drill
+
+The monthly checklist in `07-backups.md` ends by noting the drill here.
+
+| Date | Dump | Copy drilled | Result |
+| --- | --- | --- | --- |
+| 2026-09-10 | `fmip-20260910T115417Z.dump` (development database, 36 tables, 458 rows) | local + rclone `local` rehearsal | `DRILL PASSED` |
