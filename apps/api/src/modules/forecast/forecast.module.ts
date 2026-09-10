@@ -1,7 +1,10 @@
 import { Module } from '@nestjs/common';
 import { IdentityModule } from '../identity/identity.module';
+import { EvaluationController } from './evaluation.controller';
+import { EvaluationService } from './evaluation.service';
 import { ForecastController } from './forecast.controller';
 import { MODEL_CLIENT, ForecastService, ModelClient } from './forecast.service';
+import { PostgresEvaluationStore } from './internal/evaluation-store';
 import { PostgresForecastStore } from './internal/forecast-store';
 
 /** Reads MODEL_SERVICE_URL; refuses to guess. */
@@ -15,16 +18,18 @@ export function modelClientFromEnv(env: NodeJS.ProcessEnv = process.env): ModelC
 
 /**
  * The forecast boundary (02-architecture.md): the contract with the model
- * service and the immutable forecast versions.
+ * service, the immutable forecast versions, and their post-match evaluation.
  */
 @Module({
   imports: [IdentityModule],
-  controllers: [ForecastController],
+  controllers: [ForecastController, EvaluationController],
   providers: [
     ForecastService,
     PostgresForecastStore,
+    EvaluationService,
+    PostgresEvaluationStore,
     { provide: MODEL_CLIENT, useFactory: (): ModelClient => modelClientFromEnv() },
   ],
-  exports: [ForecastService],
+  exports: [ForecastService, EvaluationService],
 })
 export class ForecastModule {}

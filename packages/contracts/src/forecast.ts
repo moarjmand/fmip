@@ -134,3 +134,71 @@ export interface ForecastVersionsResponse {
   /** Oldest first. */
   versions: ForecastVersion[];
 }
+
+// ---------------------------------------------------------------------------
+// Post-match evaluation (T-066): one forecast version scored against the
+// full-time score, and model performance per competition as a query over
+// those records. Immutable rows; pre-kick-off versions only in the aggregates.
+// ---------------------------------------------------------------------------
+
+export type MatchOutcome = 'home' | 'draw' | 'away';
+
+export interface ForecastEvaluation {
+  id: string;
+  forecast_id: string;
+  fixture_id: string;
+  version_number: number;
+  kind: ForecastKind;
+  model_version: string;
+  computed_at: string;
+  evaluated_at: string;
+  /** The version was computed before kick-off. Only such versions count in aggregates. */
+  pre_kickoff: boolean;
+  actual: { home: number; away: number };
+  outcome: MatchOutcome;
+  /** Probability the version gave the outcome that happened. */
+  p_outcome: number;
+  /** -ln(p_outcome). Uniform is ln 3 ≈ 1.098612; lower is better. */
+  log_loss: number;
+  /** Squared error over the three outcome indicators. Uniform is 2/3; lower is better. */
+  brier: number;
+  correct: boolean;
+  scoreline_hit: boolean;
+}
+
+export interface FixtureEvaluationsResponse {
+  fixture_id: string;
+  coverage: CoverageState;
+  last_updated_at: string | null;
+  /** Oldest version first. */
+  evaluations: ForecastEvaluation[];
+}
+
+export interface ModelPerformanceRow {
+  model_version: string;
+  kind: ForecastKind;
+  versions_evaluated: number;
+  fixtures_evaluated: number;
+  log_loss: number;
+  brier: number;
+  /** Share of versions whose most probable outcome happened. */
+  accuracy: number;
+  /** Share of versions whose most likely scoreline was the final score. */
+  scoreline_accuracy: number;
+}
+
+export interface ModelPerformanceResponse {
+  competition_id: string;
+  season_id: string | null;
+  /** `limited` when finished fixtures exist that no pre-kick-off version covers. */
+  coverage: CoverageState;
+  last_updated_at: string | null;
+  finished_fixtures: number;
+  fixtures_evaluated: number;
+  /** Versions that answered `unavailable`: gaps, never scored. */
+  unavailable_versions: number;
+  /** Versions computed after kick-off: evaluated, but excluded from `rows`. */
+  post_kickoff_versions: number;
+  reference: { uniform_log_loss: number; uniform_brier: number };
+  rows: ModelPerformanceRow[];
+}

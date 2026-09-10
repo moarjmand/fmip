@@ -676,3 +676,39 @@ line-ups, on confirmed line-ups). Test cleanup has to disable the trigger
 explicitly, which is deliberate friction. `competition.football_data_division`
 is the one place a catalog competition maps to the training store; a
 competition without it gets `competition_not_mapped` versions until seeded.
+
+## D-031 — Model performance counts only forecasts made before kick-off
+**Status:** Accepted · 2026-09-10
+
+**Decision.** Every `available` forecast version of a finished fixture is
+evaluated against the full-time score and stored immutably in `evaluation`
+(T-066), including versions computed after kick-off. The performance figures
+served per competition (`GET /competitions/:id/model-performance`) aggregate
+only versions with `pre_kickoff = true`, grouped by model version and forecast
+kind, and state beside them how many finished fixtures have no such version,
+how many versions were `unavailable`, and how many were computed after
+kick-off. Log loss and Brier use the definitions of the backtest harness
+(`apps/model/fmip_model/backtest/metrics.py`), so the two sets of numbers are
+comparable.
+
+**Why.** A forecast computed once the result is known proves nothing about
+the model, and a `manual` recomputation after the match is a legitimate
+operator action (debugging, a corrected line-up) that must not flatter the
+published record. Excluding rather than refusing keeps the evaluation table a
+complete history (rule 5) while the published figure stays honest (rule 3).
+Publishing the gaps beside the averages is what makes a good number
+believable: "0.98 log loss over 12 of 380 fixtures" is a different claim from
+"0.98 over 380".
+
+**Alternatives considered.** Refuse to store post-kick-off forecasts: loses a
+real record of what the model said when. Aggregate the latest version per
+fixture only: hides how early forecasts compare with line-up-time ones, which
+the blueprint's versioned forecast exists to show. Compute performance in the
+model service: the API already holds the truth of what was shown to users.
+
+**Consequences.** Evaluation is a job to run when a full-time score lands
+(E2 wires it); until then it is an admin action over HTTP. A corrected final
+score after evaluation is an operator decision, not a rewrite: the existing
+rows stand and the correction has to be visible as such. Performance rows for
+a competition are empty (`not_supplied`) until at least one pre-kick-off
+version has been evaluated there.

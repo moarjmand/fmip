@@ -57,3 +57,10 @@ export type {
   ForecastVersion,
   ForecastVersionsResponse,
 } from './forecast';
+export type {
+  FixtureEvaluationsResponse,
+  ForecastEvaluation,
+  MatchOutcome,
+  ModelPerformanceResponse,
+  ModelPerformanceRow,
+} from './forecast';
