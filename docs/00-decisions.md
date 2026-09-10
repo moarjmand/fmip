@@ -561,3 +561,40 @@ the browser never sees it. Server actions must not wrap `redirect()` in a
 reads the session is dynamically rendered; the layout's header makes that
 every page, which is the right default for a signed-in product. A page that
 needs live data will go through a proxy on the web origin, not to the API.
+
+## D-028 — The training store is a Postgres schema, loaded by the model service
+**Status:** Accepted · 2026-09-10
+
+**Decision.** Historical training data (D-016) lives in schema `training` of
+the same PostgreSQL as the product, created by an ordinary migration
+(`1758300000000_training-store.sql`). Tables: `source_load` (one row per
+download: source, scope, URL, terms, content hash, row count, outcome),
+`match` (football-data.co.uk results and closing odds) and `elo` (Club Elo).
+The only writer is the loader in `apps/model`; the only reader is the model
+service. `apps/api` and `apps/web` never query it. Team names in the schema
+are text, not catalog UUIDs.
+
+**Why.** The project map had pencilled in `packages/db/training` as a
+directory of datasets. A directory is not queryable, not versioned per row,
+and not something a backtest can join across seasons; a schema is all three,
+and it rides the existing migration, backup (T-072) and restore machinery
+instead of inventing a second data lifecycle. One database with a hard
+boundary (a schema nothing in `public` references, and a rule that the API
+does not touch it) is the same isolation as a second database for a fraction
+of the operational cost at this scale. Text team names are deliberate: the
+sources speak in names, the data is offline research (D-014 tier 3), and
+mapping decades of historical names onto the catalog is a training-time
+concern for the model, not a schema rule that would put a `team_id` foreign
+key between research data and the product's identity tables.
+
+**Alternatives.** A separate database — cleaner in theory, a second set of
+credentials, backups and compose services in practice; revisit if the store
+grows past what one instance should carry. Files (CSV or Parquet) on disk —
+fine for a notebook, wrong for a service that must answer "which load
+produced this row". A `packages/db/training` directory — see above.
+
+**Consequences.** `apps/model` is the second workspace with a database
+connection string; it reads the same `DATABASE_URL`. The loader records every
+attempt, including failures, so a source outage is visible in the store rather
+than inferred from a gap. Before any redistribution of derived data, the
+terms recorded on the loads must be re-verified (docs/05-data-providers.md).

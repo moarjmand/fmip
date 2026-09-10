@@ -243,13 +243,37 @@ section on settings (pin, unpin, unfollow, and pickers over `GET /teams` and
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-060 | Historical loader: football-data.co.uk + Club Elo into the training store | T-008 | Repeatable, versioned, documented licence per source |
+| `[x]` T-060 | Historical loader: football-data.co.uk + Club Elo into the training store | T-008 | Repeatable, versioned, documented licence per source |
 | `[ ]` T-061 | Baseline model: time-weighted goal model + Elo prior | T-060 | Produces a score matrix and 1X2 probabilities |
 | `[ ]` T-062 | Backtesting and calibration harness (log loss, Brier, reliability curve, vs market odds) | T-061 | Report generated per model version |
 | `[ ]` T-063 | `apps/model` FastAPI service with the internal contract | T-061 | Contract test from `apps/api` passes |
 | `[ ]` T-064 | Forecast versioning + input snapshots | T-063 | Probabilities total 100% after rounding; forecasts immutable |
 | `[ ]` T-065 | Match centre forecast panel with leading factors and computation time | T-064, T-034 | Explains, never asserts certainty |
 | `[ ]` T-066 | Post-match evaluation records | T-064 | Model performance queryable per competition |
+
+**T-060 verified on 2026-09-10.** `apps/model` (Python) gains the loaders and
+the `training` schema arrives by migration (D-028). **Repeatable:** the real
+2024/25 Premier League file was loaded twice through the CLI; both loads
+report 380 rows with the same SHA-256 (`d0c8ce4a96d8…`), the table holds 380
+rows, not 760, all 380 carry closing odds (`B365`), and the first row reads
+Man United 1-0 Fulham at 1.60/4.20/5.25. **Versioned:** each run is a
+`source_load` row with source, scope, URL, terms URL, terms note, content
+hash, row count and outcome; rows point at the load that last wrote them.
+**Documented licence per source:** `sources.py` carries the terms URL and
+note for football-data.co.uk and Club Elo, and every load copies them.
+Failure is honest: the Club Elo API answered `502 Bad Gateway` throughout the
+session, and the attempted load is recorded as `failed` with that error and
+wrote no rows; the Elo parser is tested on synthetic rows in the documented
+layout until the API is back. 18 pytest tests (parsers on a real file head;
+store tests for repeatability, the failed-download path, a malformed file, and
+Elo) pass in under a second; ruff and strict mypy pass; Turbo runs all four
+through `pnpm lint/typecheck/test/build`, and CI installs the package.
+
+Two things found on the way and fixed here: Turbo's strict env mode was
+stripping `DATABASE_URL`, so the API's database-backed tests had been
+**skipping under `pnpm test`, in CI too**, since PR #23 (now in `globalEnv`,
+and 69 API tests run); and psycopg takes two minutes to connect to
+`localhost` on Windows (IPv6 first), so `.env.example` now says `127.0.0.1`.
 
 ---
 

@@ -60,20 +60,34 @@ jobs:
         id: install
         run: pnpm install --frozen-lockfile
 
+      # The model service is Python (D-009). Its Turbo scripts run `python`
+      # from PATH when there is no venv, so installing the package into the
+      # runner's interpreter is all `pnpm lint/typecheck/test` need.
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: apps/model/pyproject.toml
+
+      - name: Install the model service
+        id: model
+        run: python -m pip install --quiet -e 'apps/model[dev]'
+
       # Every check below runs even when an earlier one failed, so a single run
       # reports everything that needs fixing rather than one thing at a time.
       # They are skipped only if the install itself failed, where every result
       # would be noise.
       - name: Format
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.model.outcome == 'success' }}
         run: pnpm format:check
 
       - name: Lint
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.model.outcome == 'success' }}
         run: pnpm lint
 
       - name: Typecheck
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.model.outcome == 'success' }}
         run: pnpm typecheck
 
       # The schema the tests run against is the one the migrations produce, and
@@ -82,7 +96,7 @@ jobs:
       # cannot apply fails CI here, not on a developer's machine.
       - name: Migrate and seed
         id: database
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.model.outcome == 'success' }}
         run: |
           pnpm --filter @fmip/db build
           pnpm --filter @fmip/db migrate:up
@@ -93,7 +107,7 @@ jobs:
         run: pnpm test
 
       - name: Build
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.model.outcome == 'success' }}
         run: pnpm build
 
   e2e:

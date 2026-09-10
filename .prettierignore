@@ -23,3 +23,11 @@ playwright-report/
 # Claude Code keeps a per-machine permissions file here. It is ignored by the
 # user's global git excludes, which Prettier does not read, so name it here too.
 .claude/
+
+# Python tooling (apps/model); Prettier has no parser for .py and must not walk the venv.
+.venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/

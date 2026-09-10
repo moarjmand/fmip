@@ -51,7 +51,7 @@ incomplete.
 |---|---|---|
 | `apps/web` | Next.js App Router application. Locale routing, Tailwind, RTL-safe by lint. | `apps/api` over HTTP + SSE; `packages/contracts` for types |
 | `apps/api` | NestJS backend on the Fastify adapter. One module per boundary. | Postgres, Redis, `apps/model` |
-| `apps/model` *(planned)* | FastAPI forecast service. | Called by `apps/api` only. Reads training store. |
+| `apps/model` | Python forecast model service (D-009). Today: the training-store loaders (T-060). The FastAPI contract arrives with T-063. | Reads and writes the `training` schema; will be called by `apps/api` only. |
 
 ### `apps/api`
 
@@ -86,6 +86,33 @@ One directory per module from `02-architecture.md`. Each will contain:
   dto/                      # request/response shapes
   <module>.spec.ts          # unit tests
 ```
+
+### `apps/model`
+
+Python 3.12+, managed with a plain venv. `pnpm --filter @fmip/model setup` creates
+`.venv` and installs the package with its dev tools; the Turbo scripts run that
+interpreter through `scripts/py.mjs`, or `python` from PATH when there is no
+venv (CI). On the maintainer's host, pip needs the proxy:
+`python -m pip install --proxy http://127.0.0.1:3128 ...`.
+
+| Path | Purpose |
+|---|---|
+| `pyproject.toml` | Package `fmip-model`: runtime deps `httpx`, `psycopg`; dev `pytest`, `ruff`, `mypy` (strict). Ruff and mypy configuration. |
+| `package.json`, `scripts/py.mjs` | Turbo hooks: `lint` (ruff check + format), `typecheck` (mypy), `test` (pytest), `build` (import check). |
+| `fmip_model/training/sources.py` | The two sources (D-016) with their terms URL and note, and the URL builders. Every load records these. |
+| `fmip_model/training/football_data.py` | Parses a football-data.co.uk CSV into match rows: results, half-time, shots, and closing 1X2 odds from the first bookmaker set present (`B365`, then `Avg`, `PS`, `WH`), naming the source. Unsupplied is `None`, never a guess. |
+| `fmip_model/training/clubelo.py` | Parses Club Elo CSV (`Rank,Club,Country,Level,Elo,From,To`). |
+| `fmip_model/training/store.py` | Writes to the `training` schema: opens a `source_load` row, upserts on natural keys, closes the load as succeeded (hash, row count) or failed (error). |
+| `fmip_model/training/load.py` | The CLI: `python -m fmip_model.training.load football-data --seasons 2425 --divisions E0 SP1` and `clubelo --days 2025-08-01`. One load row per (source, scope); a failure writes no rows and is recorded. |
+| `tests/` | Parser tests on a real football-data file head (`fixtures/`), store tests against the database when `DATABASE_URL` is set. |
+
+**The training store is a schema, not a package.** `training.source_load`,
+`training.match` and `training.elo` live in the same Postgres as everything
+else (D-028), and nothing in `public` references them. `apps/api` never
+queries the schema; the model service is its only reader. Team names are
+text there, by design: the sources identify teams by name and the data is
+offline research (D-014), so mapping historical names onto the catalog is the
+model's job at training time, not a reason to bend rule 1.
 
 ### `apps/web`
 
@@ -139,7 +166,7 @@ argument for having the pseudo-locale.
 | `packages/contracts` | API request/response types, shared enums, coverage states. **The single source of truth for the API shape.** | `apps/web`, `apps/api` |
 | `packages/ingestion` | The normalised model adapters produce, the adapter contract, and the recorded-fixture harness that verifies an adapter. Adapters themselves arrive with T-021 to T-023. | `apps/api` |
 | `packages/db` | Schema, migrations, seed data. Plain SQL, applied by node-pg-migrate (D-022). | `apps/api` |
-| `packages/db/training` *(planned)* | Historical datasets for model training only. **Never importable from `apps/api` or `apps/web`** (D-014) | `apps/model` |
+| schema `training` (was `packages/db/training`) | Historical datasets for model training only, as a Postgres schema created by the T-060 migration (D-028). **Never read by `apps/api` or `apps/web`** (D-014) | `apps/model` |
 | `packages/ui` *(planned)* | Shared React components, design tokens, RTL-safe primitives | `apps/web` |
 | `packages/config` | Shared tsconfig, eslint, prettier. Published as `@fmip/config`. | everything |
 
@@ -200,7 +227,7 @@ once an adapter exists (T-021); until then the resolver in
 
 | Path | Purpose |
 |---|---|
-| `migrations/*.sql` | One file per change, `<timestamp>_<slug>.sql`, each with an up and a down section. Never edit a shipped one. `..._bootstrap.sql` is the version gate and the `set_updated_at()` trigger function; `..._catalog.sql` is T-010: `country`, `competition`, `season`, `stage`, `venue`, `team`, `person`, `player_spell`. `..._fixtures.sql` is T-011: `fixture`, `fixture_participant`, `fixture_score`, `fixture_period`, `incident`, `lineup`, `fixture_stat`. `..._ingestion.sql` is T-012: `provider_mapping`, `coverage_profile`, `ingest_run`. `..._unresolved-entity.sql` is T-013: the review queue for provider ids that do not resolve. `..._identity.sql` is T-040: `user_account`, `credential`, `session`, `email_token`, `user_role`. `..._profile.sql` is T-041: `profile`, `privacy_setting`. `..._followed-entity.sql` is T-042: `followed_entity`. |
+| `migrations/*.sql` | One file per change, `<timestamp>_<slug>.sql`, each with an up and a down section. Never edit a shipped one. `..._bootstrap.sql` is the version gate and the `set_updated_at()` trigger function; `..._catalog.sql` is T-010: `country`, `competition`, `season`, `stage`, `venue`, `team`, `person`, `player_spell`. `..._fixtures.sql` is T-011: `fixture`, `fixture_participant`, `fixture_score`, `fixture_period`, `incident`, `lineup`, `fixture_stat`. `..._ingestion.sql` is T-012: `provider_mapping`, `coverage_profile`, `ingest_run`. `..._unresolved-entity.sql` is T-013: the review queue for provider ids that do not resolve. `..._identity.sql` is T-040: `user_account`, `credential`, `session`, `email_token`, `user_role`. `..._profile.sql` is T-041: `profile`, `privacy_setting`. `..._followed-entity.sql` is T-042: `followed_entity`. `..._training-store.sql` is T-060: schema `training` with `source_load`, `match`, `elo`. |
 | `seed/*.sql` | Development fixtures, `<nnn>_<slug>.sql`, applied in prefix order. Fixed UUIDs and `ON CONFLICT (id) DO UPDATE`, so re-running converges. `001` is the catalog slice, `002` one finished fixture, `003` three API-Football ids and an honest coverage profile for the seeded season. Never product data: the runner refuses `NODE_ENV=production`. |
 | `src/index.ts` | Locates and orders the migration files. |
 | `src/seed.ts` | Locates and orders the seed files, and the `pnpm seed` runner: one transaction per file, rolled back whole on failure. |
@@ -289,7 +316,7 @@ both files (`CLAUDE.md` §5). `.env` itself is never committed.
 | `NODE_ENV` | everything | |
 | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | `docker-compose.yml` | Configure the container at first start. Changing them after the volume exists has no effect. |
 | `POSTGRES_PORT` | `docker-compose.yml` | Host port, bound to `127.0.0.1`. Default `5432`. |
-| `DATABASE_URL` | `apps/api`, `packages/db` | Required by the API at boot since T-013 (`src/database/database.module.ts` refuses to guess). For processes run on the host. The `api` container does not use the `.env` value: compose derives its own from the `POSTGRES_*` values and the `postgres` service name, because `localhost` inside a container is that container. |
+| `DATABASE_URL` | `apps/api`, `packages/db`, `apps/model` | Required by the API at boot since T-013 (`src/database/database.module.ts` refuses to guess). For processes run on the host; use `127.0.0.1`, not `localhost` (psycopg on Windows tries `::1` first and waits two minutes). The `api` container does not use the `.env` value: compose derives its own from the `POSTGRES_*` values and the `postgres` service name, because `localhost` inside a container is that container. Turbo passes it through (`globalEnv`), so `pnpm test` reaches the database-backed tests. |
 | `REDIS_PORT` | `docker-compose.yml` | Host port, bound to `127.0.0.1`. Default `6379`. |
 | `REDIS_URL` | `apps/api` *(planned)* | Cache, live state, BullMQ. Same host caveat as `DATABASE_URL`. |
 | `API_PORT` | `apps/api`, `docker-compose.yml` | Host port for the API. Rejected at boot if it is not a valid port number. |
