@@ -160,9 +160,28 @@ maintainer's decision and payment. E3 and E5 wait behind T-026.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-040 | Registration, email verification, login, sessions, password reset | T-004 | Security tests cover auth and session fixation |
+| `[x]` T-040 | Registration, email verification, login, sessions, password reset | T-004 | Security tests cover auth and session fixation |
 | `[ ]` T-041 | Profile page + privacy settings | T-040 | Public / friends-only / private all enforced server-side |
 | `[ ]` T-042 | Favourites and following (teams, competitions, players) | T-041 | Favourites affect the scores page ordering |
+
+**T-040 verified on 2026-09-10.** API only: the web forms belong with the
+profile page (T-041), since a member has nowhere to land before then. Twelve
+security tests run against the real schema through the Nest application
+(`identity.http.spec.ts`): register issues a 43-character HttpOnly SameSite=Lax
+cookie and mails a link; duplicate username and e-mail are 409s naming the
+field; an invalid body and an unknown country are 400s naming the field; a
+garbage cookie is 401; wrong password and unknown account are byte-identical
+401s with no cookie; login by username or e-mail mints a fresh session each
+time; **session fixation**: a planted unknown cookie is never promoted, and an
+attacker's own valid cookie sent with the victim's login stays the attacker's
+while the victim gets a different one; logout revokes server-side and clears
+the cookie; the verification link works once and is then spent; forgot-password
+answers 202 identically for known and unknown addresses; reset rejects a weak
+password, then changes the password, revokes every session, invalidates the
+old password and spends the token; the database holds scrypt hashes and HMACs,
+never a password or a cookie value. Unit tests cover scrypt, tokens, cookie
+attributes, and validation. 43 API tests pass on the host; the same suite runs
+in CI against the Postgres service.
 
 ---
 

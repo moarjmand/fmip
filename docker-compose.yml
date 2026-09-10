@@ -74,6 +74,10 @@ services:
       # localhost trap is easy to get wrong and hard to notice later.
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379
+      # The API refuses to boot without these (T-040, D-026): a missing secret
+      # would otherwise make every session token forgeable.
+      SESSION_SECRET: ${SESSION_SECRET:?missing in .env — see .env.example}
+      WEB_BASE_URL: ${WEB_BASE_URL:-http://localhost:${WEB_PORT:-3000}}
     ports:
       - '127.0.0.1:${API_PORT:-3001}:3001'
     depends_on:
