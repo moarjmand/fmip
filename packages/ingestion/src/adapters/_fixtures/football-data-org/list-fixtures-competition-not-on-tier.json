@@ -1,0 +1,28 @@
+{
+  "name": "list-fixtures-competition-not-on-tier",
+  "recordedAt": "2026-09-10T19:17:02.077Z",
+  "call": "listFixtures",
+  "args": [
+    {
+      "competitionExternalId": "2146",
+      "seasonLabel": "2023/24",
+      "from": "2023-08-11",
+      "to": "2023-08-14"
+    }
+  ],
+  "expect": {
+    "ok": false,
+    "errorKind": "unsupported"
+  },
+  "requests": [
+    {
+      "method": "GET",
+      "url": "https://api.football-data.org/v4/competitions/2146/matches?season=2023&dateFrom=2023-08-11&dateTo=2023-08-14",
+      "status": 403,
+      "body": {
+        "message": "The resource you are looking for is restricted and apparently not within your permissions. Please check your subscription.",
+        "errorCode": 403
+      }
+    }
+  ]
+}
