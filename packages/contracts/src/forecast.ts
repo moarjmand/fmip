@@ -100,10 +100,7 @@ export interface ModelHealth {
 export type ForecastKind = 'early' | 'lineups_predicted' | 'lineups_confirmed' | 'manual';
 
 export type ForecastUnavailableReason =
-  | ModelUnavailableReason
-  | 'competition_not_mapped'
-  | 'model_unreachable'
-  | 'contract_violation';
+  ModelUnavailableReason | 'competition_not_mapped' | 'model_unreachable' | 'contract_violation';
 
 export interface ForecastVersion {
   id: string;
