@@ -136,6 +136,21 @@ export class PostgresIdentityStore {
     return { user, passwordHash };
   }
 
+  async findById(userId: string): Promise<UserRow | null> {
+    const { rows } = await this.pool.query<UserRow>(
+      `SELECT ${USER_COLUMNS} FROM user_account u WHERE u.id = $1 AND u.status = 'active'`,
+      [userId],
+    );
+    return rows[0] ?? null;
+  }
+
+  async updateDisplayName(userId: string, displayName: string): Promise<void> {
+    await this.pool.query(`UPDATE user_account SET display_name = $2 WHERE id = $1`, [
+      userId,
+      displayName,
+    ]);
+  }
+
   async findByEmail(email: string): Promise<UserRow | null> {
     const { rows } = await this.pool.query<UserRow>(
       `SELECT ${USER_COLUMNS} FROM user_account u WHERE u.email = $1 AND u.status = 'active'`,

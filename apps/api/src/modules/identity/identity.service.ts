@@ -159,6 +159,17 @@ export class IdentityService {
     return true;
   }
 
+  /** For other boundaries that hold a user id and need the account as the API describes it. */
+  async userById(userId: string): Promise<AuthUser | null> {
+    const row = await this.store.findById(userId);
+    return row === null ? null : toAuthUser(row);
+  }
+
+  /** display_name lives on the account; the profile boundary changes it through here. */
+  async updateDisplayName(userId: string, displayName: string): Promise<void> {
+    await this.store.updateDisplayName(userId, displayName);
+  }
+
   sessionCookie(sessionToken: string): string {
     return serializeSessionCookie(sessionToken, {
       maxAge: this.options.sessionTtlSeconds,

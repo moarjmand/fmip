@@ -1,4 +1,11 @@
-import type { HealthReport } from '@fmip/contracts';
+import type {
+  ApiError,
+  CountriesResponse,
+  HealthReport,
+  OwnProfile,
+  ProfileView,
+  SessionResponse,
+} from '@fmip/contracts';
 
 const API_BASE_URL = process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
 
@@ -11,17 +18,91 @@ const API_BASE_URL = process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
 export type ApiHealth = { reachable: true; report: HealthReport } | { reachable: false };
 
 export async function fetchApiHealth(): Promise<ApiHealth> {
+  const result = await apiRequest<HealthReport>('/health');
+  return result.ok ? { reachable: true, report: result.data } : { reachable: false };
+}
+
+/**
+ * Every call to `apps/api` goes through here, server-side only (D-027). The
+ * browser never talks to the API: the web app forwards the member's session
+ * cookie on their behalf and mirrors the API's `Set-Cookie` onto its own
+ * origin, so the cookie stays first-party.
+ *
+ * Failure is a value. `status` 0 means the API could not be reached at all.
+ */
+export type ApiResult<T> =
+  | { ok: true; status: number; data: T; setCookie: string | null }
+  | { ok: false; status: number; error: ApiError | null; setCookie: string | null };
+
+export interface ApiRequestInit {
+  method?: 'GET' | 'POST' | 'PATCH';
+  body?: unknown;
+  /** The `Cookie` header to forward, e.g. from `sessionCookieHeader()`. */
+  cookie?: string;
+}
+
+export async function apiRequest<T>(
+  path: string,
+  init: ApiRequestInit = {},
+): Promise<ApiResult<T>> {
+  const headers: Record<string, string> = { accept: 'application/json' };
+  if (init.body !== undefined) headers['content-type'] = 'application/json';
+  if (init.cookie !== undefined) headers.cookie = init.cookie;
+
+  let response: Response;
   try {
-    const response = await fetch(`${API_BASE_URL}/health`, { cache: 'no-store' });
-
-    if (!response.ok) {
-      return { reachable: false };
-    }
-
-    return { reachable: true, report: (await response.json()) as HealthReport };
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      method: init.method ?? 'GET',
+      headers,
+      body: init.body === undefined ? undefined : JSON.stringify(init.body),
+      cache: 'no-store',
+    });
   } catch {
     // The API being down is an expected state during development, not an
-    // exception the page should crash on.
-    return { reachable: false };
+    // exception a page should crash on.
+    return { ok: false, status: 0, error: null, setCookie: null };
   }
+
+  const setCookie = response.headers.get('set-cookie');
+  const text = await response.text();
+  let json: unknown = null;
+  try {
+    json = text === '' ? null : (JSON.parse(text) as unknown);
+  } catch {
+    json = null;
+  }
+
+  if (response.ok) {
+    return { ok: true, status: response.status, data: json as T, setCookie };
+  }
+
+  const error =
+    typeof json === 'object' && json !== null && 'error' in json ? (json as ApiError) : null;
+  return { ok: false, status: response.status, error, setCookie };
+}
+
+// Typed readers for the pages. Each returns `null` where "not there" is a
+// normal outcome the page renders, and lets everything else through as the
+// result so the page can say "unreachable" rather than guess.
+
+export async function fetchMe(cookie: string | undefined): Promise<SessionResponse['user'] | null> {
+  if (cookie === undefined) return null;
+  const result = await apiRequest<SessionResponse>('/auth/me', { cookie });
+  return result.ok ? result.data.user : null;
+}
+
+export function fetchProfile(
+  username: string,
+  cookie: string | undefined,
+): Promise<ApiResult<ProfileView>> {
+  return apiRequest<ProfileView>(`/profiles/${encodeURIComponent(username)}`, { cookie });
+}
+
+export function fetchOwnProfile(cookie: string | undefined): Promise<ApiResult<OwnProfile>> {
+  return apiRequest<OwnProfile>('/me/profile', { cookie });
+}
+
+export async function fetchCountries(): Promise<CountriesResponse['countries'] | null> {
+  const result = await apiRequest<CountriesResponse>('/countries');
+  return result.ok ? result.data.countries : null;
 }

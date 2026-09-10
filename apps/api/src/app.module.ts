@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from './database/database.module';
+import { CatalogModule } from './modules/catalog/catalog.module';
 import { HealthModule } from './modules/health/health.module';
 import { IdentityModule } from './modules/identity/identity.module';
 import { IngestionModule } from './modules/ingestion/ingestion.module';
+import { ProfileModule } from './modules/profile/profile.module';
 
 /**
  * The remaining modules from `docs/02-architecture.md` are registered here as
@@ -11,6 +13,13 @@ import { IngestionModule } from './modules/ingestion/ingestion.module';
  * a boundary: it is the shared `pg` pool every boundary injects.
  */
 @Module({
-  imports: [DatabaseModule, HealthModule, IngestionModule, IdentityModule],
+  imports: [
+    DatabaseModule,
+    HealthModule,
+    CatalogModule,
+    IngestionModule,
+    IdentityModule,
+    ProfileModule,
+  ],
 })
 export class AppModule {}
