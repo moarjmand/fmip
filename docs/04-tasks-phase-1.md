@@ -246,7 +246,7 @@ section on settings (pin, unpin, unfollow, and pickers over `GET /teams` and
 | `[x]` T-060 | Historical loader: football-data.co.uk + Club Elo into the training store | T-008 | Repeatable, versioned, documented licence per source |
 | `[x]` T-061 | Baseline model: time-weighted goal model + Elo prior | T-060 | Produces a score matrix and 1X2 probabilities |
 | `[x]` T-062 | Backtesting and calibration harness (log loss, Brier, reliability curve, vs market odds) | T-061 | Report generated per model version |
-| `[ ]` T-063 | `apps/model` FastAPI service with the internal contract | T-061 | Contract test from `apps/api` passes |
+| `[x]` T-063 | `apps/model` FastAPI service with the internal contract | T-061 | Contract test from `apps/api` passes |
 | `[ ]` T-064 | Forecast versioning + input snapshots | T-063 | Probabilities total 100% after rounding; forecasts immutable |
 | `[ ]` T-065 | Match centre forecast panel with leading factors and computation time | T-064, T-034 | Explains, never asserts certainty |
 | `[ ]` T-066 | Post-match evaluation records | T-064 | Model performance queryable per competition |
@@ -312,6 +312,29 @@ cases, de-margining; and on simulated seasons the walk-forward never sees the
 future, beats uniform on log loss and Brier, refuses a window without enough
 history, tolerates missing odds, and writes the report per model version with
 the expected tables. 42 tests, ruff, strict mypy.
+
+**T-063 verified on 2026-09-10.** The FastAPI service (`fmip_model/service/`)
+answers `GET /health` and `POST /forecast`. The contract is written twice, in
+Pydantic and in `packages/contracts/src/forecast.ts`, and held together by the
+acceptance test in `apps/api` (`model-client.spec.ts`): the golden request
+and response examples the service's own tests write are validated rule by rule
+(probabilities total one, expected goals positive, scorelines well-formed,
+leading factors from the closed list, `inputs` with a `name@semver` model
+version, an `unavailable` body with a reason and no probabilities); the client
+refuses a drifted response, and reports HTTP errors and an unreachable service
+as values; and against the **live service** it checks `/health`, the seeded
+Liverpool v Manchester United fixture (fit date the day before kick-off, a
+valid `available` or `unavailable` body), and an unmapped team → `unavailable`
+/ `team_not_mapped`. Locally the live test ran against the real training
+store: Liverpool 73.4% / 18.7% / 8.0%, expected goals 2.56 / 0.81, fitted on
+E0 up to 4 January 2025 without Elo, `data_completeness: limited`. CI starts
+the service after migrating and seeding, so the live test runs there too.
+`training.team_alias` (migration) bridges catalog UUIDs to training names;
+seed 004 maps the two seeded English clubs. The service fits once per
+(division, day) and caches; it never fits past today. `Dockerfile` and the
+compose `model` service (no published port; the api reaches `http://model:8000`)
+were built and run against the compose Postgres. 51 Python tests, 81 API
+tests (78 + 3 live), ruff, strict mypy.
 
 ---
 
