@@ -27,6 +27,22 @@ vendors ranking themselves; treat all of the below as leads, not conclusions.
 | TheStatsAPI | none | ~$50/mo | 150 competitions, xG and odds included, 10 years history. Vendor authored much of the comparison landscape. |
 | Sportradar / Opta | none | enterprise contract | Only if officially licensed league data becomes a requirement. |
 
+### Verified with live keys (2026-09-10)
+
+The maintainer holds one free key per candidate (`API_FOOTBALL_KEY`,
+`FOOTBALL_DATA_ORG_KEY`, `HIGHLIGHTLY_KEY` in `.env`, never in the tree). One
+request each, to confirm the tier and learn the authentication each direct API
+really wants:
+
+| Provider | Base URL | Auth header(s) | What the first request said |
+|---|---|---|---|
+| API-Football | `https://v3.football.api-sports.io` | `x-apisports-key` | `/status`: plan `Free`, active, `limit_day: 100`, no errors. |
+| football-data.org | `https://api.football-data.org/v4` | `X-Auth-Token` | `/competitions` and `/competitions/PL`: 200; `x-requests-available-minute: 9` after one call, so the 10/min figure holds. |
+| Highlightly | `https://sports.highlightly.net/football` (`soccer.highlightly.net` also answers) | `x-rapidapi-key` **and** `x-rapidapi-host: sports.highlightly.net` | `/leagues?limit=1`: 200, `plan.tier: BASIC`. `x-api-key` or `Authorization: Bearer` alone → 403 "Missing mandatory HTTP Headers", even off RapidAPI. |
+
+The adapters (T-021..T-023) must send exactly these headers; the harness
+records real responses with the key redacted.
+
 ### Why no free tier can serve production
 
 ```
