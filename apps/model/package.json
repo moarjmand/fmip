@@ -1,0 +1,14 @@
+{
+  "name": "@fmip/model",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Turbo hooks for the Python model service. The code is Python; these scripts run the venv's interpreter so pnpm lint/typecheck/test cover it too.",
+  "license": "UNLICENSED",
+  "scripts": {
+    "setup": "python -m venv .venv && node scripts/py.mjs -m pip install -e .[dev]",
+    "lint": "node scripts/py.mjs -m ruff check . && node scripts/py.mjs -m ruff format --check .",
+    "typecheck": "node scripts/py.mjs -m mypy",
+    "test": "node scripts/py.mjs -m pytest",
+    "build": "node scripts/py.mjs -c \"import fmip_model; print('fmip_model', fmip_model.__version__)\""
+  }
+}

@@ -110,6 +110,26 @@ Node 24 is installed there and satisfies `engines` (`>=22.0.0`); CI runs Node 22
 per `.nvmrc`. The difference is accepted rather than fixed, because installing
 Node 22 requires `nodejs.org`.
 
+### 3. Python on the maintainer's machine
+
+Python 3.12 and 3.14 are installed; `python` on PATH is 3.14. `apps/model` uses
+a plain venv: `pnpm --filter @fmip/model setup` creates `.venv` and installs the
+package with its dev tools. pip needs the same proxy as pnpm:
+`python -m pip install --proxy http://127.0.0.1:3128 -e "apps/model[dev]"`.
+The Turbo scripts find the venv through `scripts/py.mjs`, so `pnpm test` from
+the root covers the Python tests without activating anything.
+
+Two traps. **psycopg and `localhost`:** on this host a connection string with
+`localhost` takes about 130 seconds to connect (IPv6 `::1` is tried first and
+times out); `127.0.0.1` connects in 30 ms. `.env.example` says `127.0.0.1` for
+that reason; keep it. **`python -` with a heredoc through the Bash tool
+hangs:** write a temporary file and run it instead.
+
+Club Elo's API (`api.clubelo.com`) answered `502 Bad Gateway` for the whole of
+2026-09-10, directly and through the proxy, while the site itself was up. The
+loader records such an attempt as a failed load; re-run it when the API is
+back. football-data.co.uk is reachable directly.
+
 ### What this means for writing scripts
 
 The rule itself is in `README.md` under Local development: package scripts use
