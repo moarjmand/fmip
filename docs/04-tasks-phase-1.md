@@ -113,7 +113,7 @@ split into two commits, wiring then resolver, in one PR.
 | `[x]` T-021 | API-Football adapter (free tier) | T-020 | Contract tests pass against recorded responses |
 | `[x]` T-022 | football-data.org adapter (free tier) | T-020 | Same |
 | `[x]` T-023 | Highlightly adapter (free tier) | T-020 | Same |
-| `[ ]` T-024 | Bake-off harness: run all three over the same fixtures, log latency/completeness/errors | T-021, T-022, T-023 | Produces `docs/05-data-providers.md` results table automatically |
+| `[x]` T-024 | Bake-off harness: run all three over the same fixtures, log latency/completeness/errors | T-021, T-022, T-023 | Produces `docs/05-data-providers.md` results table automatically |
 | `[ ]` T-025 | **Decision gate:** review bake-off, pick provider, subscribe to paid tier | T-024 | New entry in `00-decisions.md` |
 | `[ ]` T-026 | Scheduled ingestion jobs (BullMQ): fixtures, live, lineups, standings, post-match | T-025 | Jobs are idempotent; a replay changes nothing |
 | `[ ]` T-027 | Coverage profile computation + freshness tracking | T-026 | Every module payload carries a coverage state |
@@ -194,6 +194,31 @@ mapping-rule tests (free-text states, string scores, `90+4`, day counting,
 no invented half-time score, substitutes, possession). 36 tests in the
 package; typecheck, lint, build. All three adapters now answer the same five
 calls over the same fixtures, which is what T-024 needs.
+
+**T-024 verified on 2026-09-10.** `packages/ingestion/src/bakeoff/` runs the
+three adapters over the same competitions and dates and measures them:
+calls that succeeded, error kinds, requests consumed (quota efficiency),
+response time per request, field completeness per module (optional
+normalised fields filled over fields that could have been filled), and
+disagreements (the same match, matched across providers by kick-off minute and
+normalised team name, described with a different status or score). Goal
+latency, lineup lead time and lineup accuracy need the polling job of T-026
+against a current season and are listed as **not measured** rather than
+estimated. **Produces the results table automatically:** `node
+scripts/bakeoff.mjs --live` writes the table between two markers in
+`docs/05-data-providers.md` and the full result to
+`packages/ingestion/bakeoff/<timestamp>-live.json`; `--recorded` runs the
+same harness over the committed recordings without a network, which is what
+the package tests do (41 tests, typecheck, lint). The first live run
+(2026-09-10 19:40 UTC, 2023/24 opening weekends of the five target leagues,
+paced to each plan's per-minute quota): API-Football 35/35 calls ok, fixture
+fields 90%, lineup 99%, detail 95%, mean 1,140 ms; football-data.org 25/35 ok
+(10 `unsupported`: lineups and match detail are paid on TIER_ONE), fixture
+70%, detail 25%, 753 ms; Highlightly 5/7 ok (2 `unsupported`), fixture 40%,
+detail 57%, 388 ms — Highlightly ran on the Premier League only because its
+league ids for the other four are not yet in the plan. No disagreements among
+the matched fixtures. One run is one day's snapshot; the protocol's seven days
+are seven runs, and T-025 reads them together.
 
 ---
 

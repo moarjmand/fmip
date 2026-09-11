@@ -50,3 +50,25 @@ export {
   createFootballDataOrgAdapter,
 } from './adapters/football-data-org';
 export { HIGHLIGHTLY_MANIFEST, createHighlightlyAdapter } from './adapters/highlightly';
+
+// The bake-off (T-024).
+export {
+  disagreements,
+  fixtureCompleteness,
+  matchKey,
+  normaliseTeamName,
+  type Completeness,
+  type Disagreement,
+} from './bakeoff/metrics';
+export {
+  NOT_MEASURED,
+  TimedTransport,
+  runLive,
+  runRecorded,
+  type BakeoffResult,
+  type CallRecord,
+  type CompetitionPlan,
+  type LivePlan,
+  type ProviderSummary,
+} from './bakeoff/run';
+export { END_MARKER, START_MARKER, insertResults, renderMarkdown } from './bakeoff/report';
