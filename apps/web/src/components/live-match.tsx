@@ -14,10 +14,12 @@ import { INITIAL_CLOCK, type LiveClock, liveLabel, liveState } from '@/lib/live'
 export function LiveMatch({
   initial,
   timeZone,
+  locale,
   panels,
 }: {
   initial: MatchCentre;
   timeZone: string;
+  locale: string;
   /** Server-rendered panels below the live modules: prediction (T-050), forecast (T-065). */
   panels: React.ReactNode;
 }) {
@@ -60,7 +62,7 @@ export function LiveMatch({
       >
         {liveLabel(state, clock, timeZone)}
       </p>
-      <MatchCentreView centre={centre} timeZone={timeZone} />
+      <MatchCentreView centre={centre} timeZone={timeZone} locale={locale} />
       {panels}
     </>
   );

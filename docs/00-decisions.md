@@ -930,3 +930,33 @@ later, labelled as activity.
 **Consequences.** Changing the floor is a version bump of the leaderboard
 rules; the admin surface (T-070) edits the rules object. Ranks are dense
 across pages and reproducible from the snapshots.
+
+## D-038 — Tables and leaders are computed from stored results, not ingested as numbers
+**Status:** Accepted · 2026-09-12
+
+**Decision.** The standings boundary computes the league table from the
+finished league-stage fixtures and their full-time scores (three points for a
+win, ranked by points, goal difference, goals scored, name; last five results
+as form) and the goalscorer list from recorded goal incidents. Nothing is
+ingested as a ready-made table row; `table_row` in 02-architecture.md is not
+created. Every answer is a `Covered` module under the season's declared
+`standings` / `incidents` coverage: rows we can compute from a season that
+declares nothing are `limited`; no rows is `not_supplied` (or `delayed` when
+the profile says so). Competition-specific tie-breakers (head-to-head, fair
+play, deductions) are a rule per competition to add when a covered competition
+needs one, with the row carrying which rule produced it.
+
+**Why.** A computed table is explainable line by line and always agrees with
+the results the match centre shows; an ingested one can drift from them and
+adds a provider shape to keep in step (rule 2). It is also available before
+any provider is bought (D-033). Coverage stays honest: a table built from two
+stored results is not "available" just because it exists.
+
+**Alternatives considered.** Ingesting provider standings: authoritative for
+deductions and official tie-breakers, but a second source of truth. Storing
+the computed table: a cache, not a decision; can come later if the query is
+slow.
+
+**Consequences.** Group tables and knockout brackets are additions to the
+standings boundary, not a new shape. Point deductions need a table of
+adjustments before a covered competition applies one.

@@ -1,6 +1,25 @@
-import { Controller, Get } from '@nestjs/common';
-import type { CompetitionsResponse, CountriesResponse, TeamsResponse } from '@fmip/contracts';
+import { Controller, Get, NotFoundException, Param, Query } from '@nestjs/common';
+import type {
+  ApiError,
+  CompetitionPage,
+  CompetitionsResponse,
+  CountriesResponse,
+  TeamsResponse,
+} from '@fmip/contracts';
 import { CatalogService } from './catalog.service';
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const NO_COMPETITION: ApiError = { error: 'not_found', message: 'No such competition.' };
+const NO_SEASON: ApiError = {
+  error: 'not_found',
+  message: 'No such season of this competition.',
+};
+
+/** Fastify hands a repeated parameter over as an array; the first one counts. */
+function first(value: unknown): string | undefined {
+  const v = Array.isArray(value) ? value[0] : value;
+  return typeof v === 'string' && v.trim() !== '' ? v.trim() : undefined;
+}
 
 @Controller()
 export class CatalogController {
@@ -19,5 +38,26 @@ export class CatalogController {
   @Get('competitions')
   async competitions(): Promise<CompetitionsResponse> {
     return { competitions: await this.catalog.competitions() };
+  }
+
+  /** The competition page (blueprint 5.1, T-035). Public. `?season=` selects a season. */
+  @Get('competitions/:id')
+  async competition(
+    @Param('id') id: string,
+    @Query('season') season: unknown,
+  ): Promise<CompetitionPage> {
+    if (!UUID.test(id)) throw new NotFoundException(NO_COMPETITION);
+    const wanted = first(season);
+    if (wanted !== undefined && !UUID.test(wanted)) throw new NotFoundException(NO_SEASON);
+    const outcome = await this.catalog.competition(id.toLowerCase(), wanted?.toLowerCase() ?? null);
+    switch (outcome.kind) {
+      case 'ok':
+        return outcome.page;
+      case 'unknown_competition':
+        throw new NotFoundException(NO_COMPETITION);
+      case 'unknown_season':
+      case 'no_seasons':
+        throw new NotFoundException(NO_SEASON);
+    }
   }
 }

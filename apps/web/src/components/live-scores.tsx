@@ -1,6 +1,7 @@
 'use client';
 
 import type { ScoresResponse } from '@fmip/contracts';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ScoreCard } from '@/components/score-card';
 import { INITIAL_CLOCK, type LiveClock, liveLabel, liveState } from '@/lib/live';
@@ -91,7 +92,13 @@ export function LiveScores({
                     {group.country.name}
                   </span>
                 )}
-                {group.competition.name}
+                <Link
+                  href={`/${locale}/competition/${group.competition.id}`}
+                  className="underline"
+                  data-testid="competition-link"
+                >
+                  {group.competition.name}
+                </Link>
               </h2>
               <ul className="flex flex-col gap-2">
                 {group.fixtures.map((card) => (

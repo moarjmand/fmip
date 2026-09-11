@@ -93,6 +93,7 @@ export default async function MatchPage({
         <LiveMatch
           initial={result.data}
           timeZone={timeZone}
+          locale={locale}
           panels={
             <>
               <PredictionSection

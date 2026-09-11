@@ -22,10 +22,17 @@ export type {
   UpdateProfileRequest,
 } from './profile';
 export type {
+  CompetitionPage,
   CompetitionSummary,
   CompetitionsResponse,
   CountriesResponse,
   CountrySummary,
+  FormResult,
+  Leader,
+  SeasonFixture,
+  SeasonSummary,
+  StageSummary,
+  TableRow,
   TeamSummary,
   TeamsResponse,
 } from './catalog';

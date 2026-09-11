@@ -71,7 +71,6 @@ export const NOT_YET = [
   ['Community forecast', 'unsupported'],
   ['Availability', 'unsupported'],
   ['Key players', 'unsupported'],
-  ['Competition context', 'arrives with T-035'],
   ['Discussion', 'unsupported'],
   ['Watch and highlights', 'unsupported'],
   ['Related news', 'unsupported'],

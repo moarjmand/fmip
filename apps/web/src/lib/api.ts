@@ -1,5 +1,6 @@
 import type {
   ApiError,
+  CompetitionPage,
   CompetitionsResponse,
   CountriesResponse,
   FixtureEvaluationsResponse,
@@ -141,6 +142,11 @@ export function fetchScores(
   cookie: string | undefined,
 ): Promise<ApiResult<ScoresResponse>> {
   return apiRequest<ScoresResponse>(`/scores?${query}`, cookie === undefined ? {} : { cookie });
+}
+
+/** `GET /competitions/:id${query}` (T-035): the competition page for one season. Public. */
+export function fetchCompetition(id: string, query: string): Promise<ApiResult<CompetitionPage>> {
+  return apiRequest<CompetitionPage>(`/competitions/${encodeURIComponent(id)}${query}`);
 }
 
 /** `GET /users/:username/predictions?${query}` (T-056): the history as this viewer may see it. */

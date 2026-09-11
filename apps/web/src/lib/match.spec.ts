@@ -31,7 +31,6 @@ describe('match centre labels', () => {
       'Community forecast',
       'Availability',
       'Key players',
-      'Competition context',
       'Discussion',
       'Watch and highlights',
       'Related news',
