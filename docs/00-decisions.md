@@ -786,3 +786,44 @@ test. Every verification note written under this decision names the data it
 ran on (seed, test rows), so nobody reads "verified" as "verified against a
 provider". The task table keeps the original dependency in parentheses for the
 record.
+
+## D-034 — Live updates ride on Postgres NOTIFY and server-sent events, full snapshots every time
+**Status:** Accepted · 2026-09-11
+
+**Decision.** Every write to a fixture or to what hangs off it (participants,
+scores, periods, incidents, line-ups, statistics) raises `NOTIFY
+fixture_change` from a trigger (migration `1758700000000`). The API holds one
+`LISTEN` connection and pushes to browsers over server-sent events: `GET
+/scores/stream` (the day's list) and `GET /fixtures/:id/stream` (one match
+centre). The first event on every connection, and every change thereafter, is a
+**full snapshot** of the same shape the plain endpoint returns; changes are
+debounced (300 ms) so a goal's three writes make one push; a `heartbeat`
+every 15 s carries the server time; a broken feed sends `stale` instead of
+going quiet. The browser subscribes through the web app's own route
+(`/api/scores/stream`), never to the API (D-027). The page calls itself
+`stale` after 45 s without a heartbeat and `unavailable` when it never got a
+picture.
+
+**Why.** Blueprint 4.1 and rule 4: score changes appear without refresh, and
+staleness is visible. Postgres already decides what a score is; making it also
+say "something changed" needs no second system to keep in step, works for
+every API instance alike, and is exercised by the same writes the ingestion
+jobs will make. Snapshots rather than deltas because a reconnecting client
+must never keep an old card: EventSource reconnects on its own, and the first
+thing it receives is the whole truth again. SSE rather than WebSockets for a
+one-way feed (D-010 keeps WebSockets for chat, Phase 3).
+
+**Alternatives considered.** Redis pub/sub: right when a separate job runner
+publishes at scale, and still available later; today it would be a second
+source of "changed" beside the database. Deltas per fixture: fewer bytes,
+more client state, and exactly the class of bug rule 4 exists to prevent.
+Polling from the browser: simple, but each client would poll the API through
+the web app; the load test (T-073) decides whether SSE fan-out or polling wins
+at peak, on evidence.
+
+**Consequences.** One pooled connection per API process is permanently
+`LISTEN`ing. A dead notification (the LISTEN connection lost) is surfaced as
+`stale` on every open stream, never swallowed. Cloudflare and nginx must not
+buffer `text/event-stream` (`X-Accel-Buffering: no` is sent; T-074 configures
+the edge). The change feed is the hook T-026's jobs get for free: writing the
+tables is enough.

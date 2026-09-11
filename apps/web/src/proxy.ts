@@ -22,7 +22,8 @@ export function proxy(request: NextRequest): NextResponse {
 }
 
 export const config = {
-  // Everything except Next's own assets and files that already have an
+  // Everything except Next's own assets, the web app's own API routes (the SSE
+  // proxy of T-032 has no locale) and files that already have an
   // extension — redirecting those would break them.
-  matcher: ['/((?!_next/|favicon\\.ico|.*\\.[^/]+$).*)'],
+  matcher: ['/((?!_next/|api/|favicon\\.ico|.*\\.[^/]+$).*)'],
 };
