@@ -421,7 +421,7 @@ section on settings (pin, unpin, unfollow, and pickers over `GET /teams` and
 |---|---|---|---|
 | `[x]` T-050 | Prediction submission: outcome, optional score, confidence, reason tags | T-040, T-033 | Guests are blocked; versions are retained |
 | `[x]` T-051 | Kick-off lock | T-050 | No write succeeds after kick-off, verified by clock skew test |
-| `[ ]` T-052 | Settlement job incl. void rules for postponed/abandoned | T-051 | Re-running settlement is idempotent |
+| `[x]` T-052 | Settlement job incl. void rules for postponed/abandoned | T-051 | Re-running settlement is idempotent |
 | `[ ]` T-053 | Performance Rating engine, formula in versioned config | T-052 | Rating recomputable from stored records alone |
 | `[ ]` T-054 | Career Points | T-052 | Cannot by itself unlock privileges |
 | `[ ]` T-055 | Leaderboards with minimum-sample filters | T-053 | A one-prediction account cannot top the board |
@@ -468,6 +468,32 @@ honest clock is accepted; (d) inserts a version directly into the table for a
 match a day old — refused with `PL001`. Data: test rows (D-033). 15 API tests
 in the predictions module; typecheck, lint, Prettier; migration down/up cycled
 on the real database.
+
+**T-052 verified on 2026-09-11.** Migration `..._settlement.sql` adds
+`settlement_run` (one row per execution with what it wrote: settled, voided,
+unchanged) and `settlement` (per prediction: the version that stood at
+kick-off, `settled` with the full-time score, whether the outcome and the
+exact score were right and whether a score was predicted at all, or `void`
+with the reason), both immutable by trigger; one `settled` row per prediction
+is enforced by a partial unique index, void rows may be superseded. The rules
+are one pure module (`internal/settle.ts`): finished + full-time score →
+settle; postponed, abandoned, cancelled, awarded → void with that reason
+(blueprint 6.6: "void until a valid settlement rule is applied"); anything
+else, including finished without a score, → nothing is written yet.
+`SettlementService.settleFixture` writes the run and its rows in one
+transaction; `settleDue` is the job's pass over every final fixture that still
+owes a settlement (`POST /settlements/run`, admin, until T-026 wires it);
+`GET /fixtures/:id/settlements` is the public aggregate and the member's own
+prediction now carries `settlement`. **Re-running settlement is idempotent:**
+the HTTP suite settles a 2–1 with two predictions (one exact, one changed
+before kick-off so version 2 is judged) — run one writes 2, run two writes 0
+and reports 2 unchanged, the table holds exactly two rows; a postponed match
+is voided once (a second run writes nothing), and when the rearranged match is
+finished 0–0 a `settled` row supersedes the void one with both rows kept;
+UPDATE and DELETE on settlements and runs are refused (`23001`); guests and
+members get 401/403, a live match 409. Data: test rows on Real Madrid v
+Persepolis (D-033). 24 API tests in the predictions module (9 new), 6 unit
+tests on the rules; typecheck, lint, Prettier; migration down/up cycled.
 
 ---
 
