@@ -4,6 +4,7 @@ import type {
   CompetitionSummary,
   CountrySummary,
   Covered,
+  PlayerPage,
   SeasonSummary,
   TableContext,
   TableRow,
@@ -15,6 +16,7 @@ import { PG_POOL } from '../../database/database.module';
 import { derived } from '../fixtures/fixtures.service';
 import { StandingsService } from '../standings/standings.service';
 import { PostgresCompetitionStore } from './internal/competition-store';
+import { PostgresPlayerStore } from './internal/player-store';
 import { PostgresTeamStore } from './internal/team-store';
 
 export type CompetitionOutcome =
@@ -24,6 +26,10 @@ export type CompetitionOutcome =
   | { kind: 'no_seasons' };
 
 export type TeamOutcome = { kind: 'ok'; page: TeamPage } | { kind: 'unknown_team' };
+export type PlayerOutcome = { kind: 'ok'; page: PlayerPage } | { kind: 'unknown_player' };
+
+/** How many matches the player page's recent log holds. */
+export const RECENT_MATCHES = 10;
 
 /** How many rows either side of the team the table context shows. */
 export const CONTEXT_RADIUS = 2;
@@ -39,8 +45,31 @@ export class CatalogService {
     @Inject(PG_POOL) private readonly pool: Pool,
     private readonly competitions_: PostgresCompetitionStore,
     private readonly teams_: PostgresTeamStore,
+    private readonly players_: PostgresPlayerStore,
     private readonly standings: StandingsService,
   ) {}
+
+  /** The player page (blueprint 5.3): identity, spells, the record our line-ups support, recent matches. */
+  async player(id: string): Promise<PlayerOutcome> {
+    const person = await this.players_.person(id);
+    if (person === null) return { kind: 'unknown_player' };
+    const [spells, record, recent] = await Promise.all([
+      this.players_.spells(id),
+      this.players_.record(id),
+      this.players_.recent(id, RECENT_MATCHES),
+    ]);
+    return {
+      kind: 'ok',
+      page: {
+        person,
+        current_spell: spells.find((s) => s.end_date === null) ?? null,
+        spells,
+        record: derived(record, 1, recent.lastUpdatedAt),
+        recent_matches: derived(recent.matches, 1, recent.lastUpdatedAt),
+        last_updated_at: recent.lastUpdatedAt,
+      },
+    };
+  }
 
   async countries(): Promise<CountrySummary[]> {
     const { rows } = await this.pool.query<CountrySummary>(

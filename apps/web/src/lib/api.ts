@@ -11,6 +11,7 @@ import type {
   LeaderboardResponse,
   MatchCentre,
   OwnProfile,
+  PlayerPage,
   PredictionHistoryResponse,
   PredictionResponse,
   ProfileView,
@@ -143,6 +144,11 @@ export function fetchScores(
   cookie: string | undefined,
 ): Promise<ApiResult<ScoresResponse>> {
   return apiRequest<ScoresResponse>(`/scores?${query}`, cookie === undefined ? {} : { cookie });
+}
+
+/** `GET /players/:id` (T-037): the player page. Public. */
+export function fetchPlayer(id: string): Promise<ApiResult<PlayerPage>> {
+  return apiRequest<PlayerPage>(`/players/${encodeURIComponent(id)}`);
 }
 
 /** `GET /teams/:id` (T-036): the team page. Public. */

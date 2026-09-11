@@ -204,3 +204,67 @@ export interface TeamPage {
   followers: number;
   last_updated_at: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// Player page (blueprint 5.3, T-037): identity, current team, career spells,
+// a record per season and competition from line-ups and incidents, and the
+// recent-match log. Every lineup, squad and scorer name links here.
+// ---------------------------------------------------------------------------
+
+export interface PlayerSpell {
+  team: { id: string; name: string; short_name: string | null };
+  /** ISO 8601 dates; `end_date` null while the spell is open. */
+  start_date: string;
+  end_date: string | null;
+  shirt_number: number | null;
+  position: SquadPosition | null;
+  on_loan: boolean;
+}
+
+/** What our line-ups and incidents say about one season with one team in one competition. */
+export interface PlayerSeasonRecord {
+  season: { id: string; label: string };
+  competition: { id: string; name: string; short_name: string | null };
+  team: { id: string; name: string };
+  starts: number;
+  /** Named on the bench and brought on. */
+  sub_appearances: number;
+  goals: number;
+  assists: number;
+  yellow_cards: number;
+  red_cards: number;
+}
+
+export interface PlayerMatch {
+  fixture: TeamFixture;
+  team: { id: string; name: string };
+  role: 'starter' | 'bench';
+  /** For a bench role: whether a substitution brought the player on. */
+  came_on: boolean;
+  goals: number;
+  assists: number;
+  yellow_cards: number;
+  red_cards: number;
+}
+
+/** `GET /players/:id`. */
+export interface PlayerPage {
+  person: {
+    id: string;
+    full_name: string;
+    known_as: string | null;
+    /** ISO 8601 date, when recorded. */
+    date_of_birth: string | null;
+    nationality: { id: string; name: string; code: string } | null;
+    height_cm: number | null;
+    preferred_foot: 'left' | 'right' | 'both' | null;
+  };
+  current_spell: PlayerSpell | null;
+  /** Newest first. */
+  spells: PlayerSpell[];
+  /** Newest season first. Derived from line-ups: `not_supplied` when the player is in none. */
+  record: Covered<PlayerSeasonRecord[]>;
+  /** The last matches the player was named for, newest first. */
+  recent_matches: Covered<PlayerMatch[]>;
+  last_updated_at: string | null;
+}

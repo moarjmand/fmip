@@ -187,7 +187,9 @@ export default async function CompetitionPage({
               <li key={leader.person.id} className="flex gap-3">
                 <span className="w-6 tabular-nums opacity-60">{index + 1}</span>
                 <span className="grow">
-                  {leader.person.name}
+                  <Link href={`/${locale}/player/${leader.person.id}`} className="underline">
+                    {leader.person.name}
+                  </Link>
                   {leader.team !== null && (
                     <span className="ms-2 text-xs opacity-70">{leader.team.name}</span>
                   )}
