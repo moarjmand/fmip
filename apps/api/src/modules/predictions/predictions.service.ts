@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { Prediction } from '@fmip/contracts';
-import { PostgresPredictionStore } from './internal/prediction-store';
+import { PostgresPredictionStore, PredictionLockedError } from './internal/prediction-store';
 import { validateSubmission } from './internal/validation';
 
 // The module's public surface. Other modules import from this file only.
@@ -21,9 +21,10 @@ export type SubmitOutcome =
 /**
  * The predictions boundary (T-050): a member's stance on a fixture as a
  * series of immutable versions. Blueprint 6.6: only verified members
- * submit; predictions lock at kick-off (the database-level lock and the
- * clock-skew proof are T-051); the final version, its time and its
- * settlement (T-052) remain visible.
+ * submit; predictions lock at kick-off, checked here against this clock and
+ * again in the database against its own (T-051), so a skewed server cannot
+ * let a late write through; the final version, its time and its settlement
+ * (T-052) remain visible.
  */
 @Injectable()
 export class PredictionsService {
@@ -41,8 +42,17 @@ export class PredictionsService {
     }
     const validated = validateSubmission(body);
     if (!validated.ok) return { kind: 'invalid', fields: validated.fields };
-    const prediction = await this.store.submit(who.id, fixtureId, validated.value);
-    return { kind: 'submitted', prediction };
+    try {
+      const prediction = await this.store.submit(who.id, fixtureId, validated.value);
+      return { kind: 'submitted', prediction };
+    } catch (error: unknown) {
+      // The database clock is the authority (T-051): a request that crossed
+      // the kick-off instant, or an API clock running behind, ends here.
+      if (error instanceof PredictionLockedError) {
+        return { kind: 'locked', locksAt: fixture.kickoffAt.toISOString() };
+      }
+      throw error;
+    }
   }
 
   own(userId: string, fixtureId: string): Promise<Prediction | null> {

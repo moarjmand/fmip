@@ -41,6 +41,16 @@ const toVersion = (row: VersionRow): PredictionVersion => ({
   submitted_at: row.submitted_at.toISOString(),
 });
 
+/** SQLSTATE raised by refuse_prediction_after_kickoff() (migration 1758900000000). */
+export const LOCKED_SQLSTATE = 'PL001';
+
+export class PredictionLockedError extends Error {
+  constructor() {
+    super('predictions are locked at kick-off');
+    this.name = 'PredictionLockedError';
+  }
+}
+
 /** SQL for the predictions boundary (D-025). Versions are only ever inserted. */
 @Injectable()
 export class PostgresPredictionStore {
@@ -92,6 +102,7 @@ export class PostgresPredictionStore {
       await client.query('COMMIT');
     } catch (error: unknown) {
       await client.query('ROLLBACK');
+      if ((error as { code?: string }).code === LOCKED_SQLSTATE) throw new PredictionLockedError();
       throw error;
     } finally {
       client.release();
@@ -102,8 +113,8 @@ export class PostgresPredictionStore {
   }
 
   async find(userId: string, fixtureId: string): Promise<Prediction | null> {
-    const { rows } = await this.pool.query<{ id: string; kickoff_at: Date }>(
-      `SELECT p.id, f.kickoff_at
+    const { rows } = await this.pool.query<{ id: string; kickoff_at: Date; locked: boolean }>(
+      `SELECT p.id, f.kickoff_at, (f.kickoff_at <= now()) AS locked
          FROM user_prediction p JOIN fixture f ON f.id = p.fixture_id
         WHERE p.user_id = $1 AND p.fixture_id = $2`,
       [userId, fixtureId],
@@ -123,7 +134,7 @@ export class PostgresPredictionStore {
       id: head.id,
       fixture_id: fixtureId,
       locks_at: head.kickoff_at.toISOString(),
-      locked: head.kickoff_at.getTime() <= Date.now(),
+      locked: head.locked,
       latest,
       versions: list,
     };
