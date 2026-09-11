@@ -9,10 +9,27 @@ import {
   readSearchTerm,
   resultHref,
 } from '@/lib/search';
+import { pageMetadata } from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = { title: 'Search · FMIP' };
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}): Promise<Metadata> {
+  const [{ locale }, query] = await Promise.all([params, searchParams]);
+  // The empty form is a page; a result list is not, so it is never indexed.
+  return pageMetadata({
+    locale,
+    path: '/search',
+    title: 'Search · FMIP',
+    description: 'Find teams, competitions and players by name, alias or another spelling.',
+    index: readSearchTerm(query) === '',
+  });
+}
 
 /**
  * Entity search (T-038): teams, competitions and players by name or alias,

@@ -3,11 +3,24 @@ import Link from 'next/link';
 import { LiveScores } from '@/components/live-scores';
 import { fetchMe, fetchScores } from '@/lib/api';
 import { apiQuery, dayStrip, pageHref, readScoresQuery } from '@/lib/scores';
+import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = { title: 'Scores · FMIP' };
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return pageMetadata({
+    locale,
+    path: '/scores',
+    title: 'Scores · FMIP',
+    description: 'Live scores and fixtures, one day at a time in your time zone.',
+  });
+}
 
 /**
  * The scores page (blueprint 4.1, T-031): one day at a time, in the viewer's

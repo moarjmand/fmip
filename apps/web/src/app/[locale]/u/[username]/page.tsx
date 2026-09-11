@@ -5,6 +5,7 @@ import { PredictionHistory } from '@/components/prediction-history';
 import { fetchMe, fetchPredictionHistory, fetchProfile, fetchRating } from '@/lib/api';
 import { ratingLabel, statusLabel, tierLabel } from '@/lib/leaderboard';
 import { historyQuery, readHistoryPage } from '@/lib/prediction-history';
+import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
@@ -12,10 +13,15 @@ export const dynamic = 'force-dynamic';
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ username: string }>;
+  params: Promise<{ locale: string; username: string }>;
 }): Promise<Metadata> {
-  const { username } = await params;
-  return { title: `@${decodeURIComponent(username)} · FMIP` };
+  const { locale, username } = await params;
+  const name = decodeURIComponent(username);
+  return pageMetadata({
+    locale,
+    path: `/u/${encodeURIComponent(name)}`,
+    title: `@${name} · FMIP`,
+  });
 }
 
 /**

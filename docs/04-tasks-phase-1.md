@@ -235,7 +235,7 @@ are seven runs, and T-025 reads them together. The second run (2026-09-11 05:04 
 | `[x]` T-036 | Team page | T-035 | Squad, fixtures, form, competition context |
 | `[x]` T-037 | Player page | T-036 | Every lineup/squad name links here correctly |
 | `[x]` T-038 | Basic entity search | T-037 | Aliases and common spellings match |
-| `[ ]` T-039 | SEO surface: metadata, canonical URLs, sitemap, structured data | T-034 | Rendered HTML contains full content without JS |
+| `[x]` T-039 | SEO surface: metadata, canonical URLs, sitemap, structured data | T-034 | Rendered HTML contains full content without JS |
 
 **T-030 verified on 2026-09-11.** `GET /scores` (the `fixtures` boundary,
 `apps/api/src/modules/fixtures/`) takes `from`, `to`, `tz`, `live`,
@@ -456,6 +456,33 @@ prefix, the type filter and the limit hold, an unrelated term gives an empty
 list and a one-letter term is a 400. 5 unit tests on parsing, 4 on the page
 helpers (web), 4 HTTP tests; typecheck, lint, Prettier; migration down/up
 cycled; full API suite twice, web unit suite.
+
+**T-039 verified on 2026-09-12.** The SEO surface (D-040) lives in
+`src/lib/seo.ts`: `pageMetadata` gives every page one canonical URL under its
+locale (`SITE_URL` + `/<locale><path>`), language alternates for the shipped
+locales with `x-default` on the default one, a robots rule (the pseudo-locale,
+a member's own pages, a search result list and a malformed id are never
+indexed) and Open Graph; `robots.ts` and `sitemap.ts` serve `/robots.txt`
+(pseudo-locale, the web app's API routes, settings, sign-in and registration
+disallowed; the sitemap named) and `/sitemap.xml` (the static pages plus every
+active competition and team per indexable locale, built per request from the
+catalog, the static pages still listed when the API is down); schema.org
+structured data is rendered server-side as `application/ld+json` by
+`JsonLd`: `WebSite` with a `SearchAction` on the home page, `SportsEvent`
+(teams linked, kick-off, venue, status, the full-time score once played) on
+the match centre, `SportsOrganization` on the competition page (the current
+season canonical, an older season its own URL), `SportsTeam` on the team
+page, `Person` on the player page. **Rendered HTML contains full content
+without JS:** the Playwright suite `seo.spec.ts` runs with JavaScript
+disabled against the production build (and, in CI, without an API) and reads
+the scores page's title, navigation, search box and honest "unreachable"
+alert straight from the HTML, the canonical link and the `x-default`
+alternate ending in `/en/scores`, no `x-rtl` alternate, the `og:url`, an
+`index` robots rule there and `noindex` on `/x-rtl/scores` and on a search
+result list, the `WebSite` JSON-LD on the home page with its search
+template, and `/robots.txt` and `/sitemap.xml` served with the expected
+lines. 8 unit tests on URLs, metadata and the JSON-LD shapes; 4 E2E tests;
+typecheck, lint, Prettier; web unit suite.
 
 ---
 
