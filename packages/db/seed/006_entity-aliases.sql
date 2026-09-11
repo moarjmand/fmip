@@ -44,10 +44,10 @@ INSERT INTO entity_alias (id, entity_type, entity_id, alias, language, kind, sou
   ('00000000-0000-4000-8000-000000000e20', 'person', '00000000-0000-4000-8000-000000000702', 'برونو فرناندز', 'fa', 'transliteration', 'seed'),
   ('00000000-0000-4000-8000-000000000e21', 'person', '00000000-0000-4000-8000-000000000703', 'VVD', NULL, 'abbreviation', 'seed'),
   ('00000000-0000-4000-8000-000000000e22', 'person', '00000000-0000-4000-8000-000000000703', 'فان دایک', 'fa', 'transliteration', 'seed')
-ON CONFLICT (id) DO UPDATE
-  SET entity_type = EXCLUDED.entity_type,
-      entity_id = EXCLUDED.entity_id,
-      alias = EXCLUDED.alias,
-      language = EXCLUDED.language,
-      kind = EXCLUDED.kind,
-      source = EXCLUDED.source;
+ON CONFLICT (id) DO UPDATE SET
+  entity_type = EXCLUDED.entity_type,
+  entity_id = EXCLUDED.entity_id,
+  alias = EXCLUDED.alias,
+  language = EXCLUDED.language,
+  kind = EXCLUDED.kind,
+  source = EXCLUDED.source;
