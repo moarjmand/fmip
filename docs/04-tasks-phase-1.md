@@ -230,7 +230,7 @@ are seven runs, and T-025 reads them together. The second run (2026-09-11 05:04 
 | `[x]` T-031 | Scores page | T-030 | Matches blueprint 4.1 card fields, or labels them unsupported |
 | `[x]` T-032 | SSE gateway + client subscription with snapshot-on-reconnect | T-011 (was T-026, D-033/D-034) | Score changes appear without refresh; staleness is visible |
 | `[x]` T-033 | Match centre API | T-011, T-012 (was T-027, D-033) | Header, timeline, stats, form, H2H, coverage states |
-| `[ ]` T-034 | Match centre page | T-033, T-032 | Works before, during and after a match |
+| `[x]` T-034 | Match centre page | T-033, T-032 | Works before, during and after a match |
 | `[ ]` T-035 | Competition page (table, fixtures, results, leaders) | T-030 | Season selector works; links resolve |
 | `[ ]` T-036 | Team page | T-035 | Squad, fixtures, form, competition context |
 | `[ ]` T-037 | Player page | T-036 | Every lineup/squad name links here correctly |
@@ -319,6 +319,30 @@ no picture ever arrived; the proxy answers 503 with a JSON error when the API
 is unreachable, which Playwright checks along with the page. Data: test rows
 (D-033). 3 gateway tests on the wire, 5 SSE unit tests, 6 freshness unit
 tests; typecheck, lint, Prettier.
+
+**T-034 verified on 2026-09-11.** `/[locale]/match/[id]` renders `GET
+/fixtures/:id` through `MatchCentreView`: header with teams, score, status or
+live clock, competition, season, stage, round, group, leg, half-time,
+aggregate and penalty scores, kick-off and venue in the viewer's zone,
+referee, attendance and the last data update; then timeline, statistics,
+line-ups, recent form, head-to-head, the season's coverage per module, and
+"Not on this page yet" naming the nine blueprint 4.2 modules that are not
+built (forecast arrives with T-065, competition context with T-035, the rest
+unsupported). Every module carries its coverage state beside its name and
+says "Not supplied for this match" or "Data for this module is delayed"
+instead of an empty box. **Works before, during and after a match:** the
+page renders whatever the payload holds — a scheduled match is header, form
+and head-to-head; a live one adds the clock and timeline and stays current
+through `LiveMatch` over `/api/fixtures/:id/stream` (T-032, full snapshot
+replaced on every change, freshness line connecting / live / stale /
+unavailable); a finished one is the full record. Smoke test against the
+running API and the seeded database: the seeded Liverpool 2–2 Manchester
+United rendered as `FT` with every module labelled `not supplied` (the seed
+holds no incidents, line-ups or statistics for it), an unknown id answered
+404, and the stream proxy delivered a first `snapshot` with an `id`. Scores
+cards now link to the match page. Playwright: a malformed id is a 404 page;
+without an API the page names the unreachable service and the proxy answers
+503 JSON. 29 web unit tests, typecheck, lint, stylelint.
 
 ---
 

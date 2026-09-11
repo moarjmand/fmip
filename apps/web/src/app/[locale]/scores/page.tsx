@@ -82,7 +82,12 @@ export default async function ScoresPage({
         </p>
       ) : (
         // The snapshot renders now; the client keeps it current over SSE (T-032).
-        <LiveScores initial={result.data} streamQuery={apiQuery(q)} timeZone={q.timezone} />
+        <LiveScores
+          initial={result.data}
+          streamQuery={apiQuery(q)}
+          timeZone={q.timezone}
+          locale={locale}
+        />
       )}
     </main>
   );

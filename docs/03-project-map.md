@@ -135,11 +135,16 @@ model's job at training time, not a reason to bend rule 1.
 | `src/app/[locale]/page.tsx` | Placeholder home page. The scores page replaces it in T-031. |
 | `src/app/[locale]/register`, `login`, `forgot-password`, `reset-password`, `verify-email` | The account pages (T-040/T-041). Forms are `ActionForm` over a server action; `verify-email` spends the token on render. |
 | `src/app/[locale]/scores/page.tsx` | The scores page (blueprint 4.1, T-031): one day in the viewer's zone (`?tz=`, else the member's, else UTC), the yesterday / today / next-five-days strip, All / Live / Favourites-only filters, favourites pinned, the rest grouped by competition under its country. An unreachable API is said out loud, never shown as a quiet day. |
-| `src/components/score-card.tsx` | One match on the list: status or clock, teams with red-card marks, score, competition / stage / round / leg / aggregate, kick-off and venue, goals / red cards / VAR, then the labels: the scores coverage state and, for what the platform does not have yet, "Forecast: not on this page yet", "Community: unsupported", "Watch: unsupported". |
+| `src/components/score-card.tsx` | One match on the list, linking to its match centre: status or clock, teams with red-card marks, score, competition / stage / round / leg / aggregate, kick-off and venue, goals / red cards / VAR, then the labels: the scores coverage state and, for what the platform does not have yet, "Forecast: not on this page yet", "Community: unsupported", "Watch: unsupported". |
 | `src/components/live-scores.tsx` | Client component (T-032): renders the server's snapshot, subscribes to `/api/scores/stream`, replaces the whole picture on every `snapshot`, and shows the freshness line — connecting, live (with the last update time), stale after 45 s without a heartbeat, unavailable when no picture ever arrived. |
 | `src/app/api/scores/stream/route.ts` | The browser's end of the stream (D-027): holds the matching connection to the API's `/scores/stream`, forwards the session cookie, passes the bytes through; 503 with a JSON error when the API is unreachable. |
 | `src/lib/live.ts` | The freshness rules and labels, pure (`live.spec.ts`). |
 | `src/lib/scores.ts` | The page's pure helpers: reading the query (zone precedence, bad date → today), the API query and page links that keep state, the day strip, status / score / kick-off labels. `scores.spec.ts` covers them. |
+| `src/app/[locale]/match/[id]/page.tsx` | The match centre page (blueprint 4.2, T-034): fetches `GET /fixtures/:id`, renders it through `LiveMatch`, 404 for an unknown or malformed id, an unreachable API named out loud. Zone from `?tz=`, else the member's, else UTC. |
+| `src/components/match-centre-view.tsx` | The layout of blueprint 4.2 from one `MatchCentre` payload: header (teams, score, status or clock, competition, stage, round, leg, aggregate, kick-off, venue, referee, attendance, last data update), timeline, statistics (an unsupplied side is "–"), line-ups with formation, coach and captain, recent form, head-to-head, the season's coverage per module, and the list of modules not built yet with why. Every module shows its coverage state beside its name. |
+| `src/components/live-match.tsx` | Client component: the server snapshot first, then `/api/fixtures/:id/stream`, whole payload replaced on every `snapshot`; the same freshness line as the scores page. |
+| `src/app/api/fixtures/[id]/stream/route.ts` | The browser's end of one match centre's stream (D-027); 404 for a malformed id, 503 JSON when the API is unreachable. |
+| `src/lib/match.ts` | Labels for incidents, statistics and coverage states, minute formatting, and the blueprint 4.2 modules the page does not have yet (`match.spec.ts`). |
 | `src/app/[locale]/u/[username]/page.tsx` | A member's profile as the API allows this viewer to see it: full, or name-only when restricted. |
 | `src/app/[locale]/settings/page.tsx` | Profile and privacy forms for the signed-in member; redirects to login otherwise. |
 | `src/components/site-header.tsx` | The navigation bar. Reads the session server-side; shows the visitor as signed out when the API cannot be reached. |
@@ -151,6 +156,7 @@ model's job at training time, not a reason to bend rule 1.
 | `src/i18n/locales.ts` | Which locales ship, the pseudo-locales, and the writing direction of each. |
 | `src/lib/api.ts` | Every call to `apps/api`, server-side only, typed by `@fmip/contracts`. Failure is a value (`status` 0 = unreachable), never a throw. |
 | `tests/e2e/rtl.spec.ts` | The RTL check. Asserts computed layout, never screenshots. |
+| `tests/e2e/match.spec.ts` | The match centre page without an API: a malformed id is a 404 page, the unreachable notice, the stream proxy's 503 and 404. |
 | `tests/e2e/scores.spec.ts` | The scores page without an API: the strip, the filters, state kept in links, the unreachable notice, the RTL mirror. |
 | `playwright.config.ts` | Runs the E2E suite against a production build. |
 | `Dockerfile` | Multi-stage build on Next's standalone output. Built from the repository root. |
