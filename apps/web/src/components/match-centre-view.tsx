@@ -1,4 +1,5 @@
 import type { Covered, FormEntry, MatchCentre, MatchLineupPlayer } from '@fmip/contracts';
+import Link from 'next/link';
 import {
   INCIDENT_LABEL,
   NOT_YET,
@@ -16,7 +17,15 @@ import { formatKickoff } from '@/lib/scores';
  * named at the end rather than left as empty boxes (rule 3). Pure rendering:
  * the server page and the live client component both use it.
  */
-export function MatchCentreView({ centre, timeZone }: { centre: MatchCentre; timeZone: string }) {
+export function MatchCentreView({
+  centre,
+  timeZone,
+  locale,
+}: {
+  centre: MatchCentre;
+  timeZone: string;
+  locale: string;
+}) {
   const f = centre.fixture;
   const headline =
     f.status === 'finished' ? (f.scores.full_time ?? f.scores.current) : f.scores.current;
@@ -39,7 +48,14 @@ export function MatchCentreView({ centre, timeZone }: { centre: MatchCentre; tim
     <div className="flex flex-col gap-8">
       <header className="flex flex-col gap-2" data-testid="match-header">
         <p className="text-sm opacity-70">
-          {f.competition.name} · {f.season.label}
+          <Link
+            href={`/${locale}/competition/${f.competition.id}?season=${f.season.id}`}
+            className="underline"
+            data-testid="competition-link"
+          >
+            {f.competition.name}
+          </Link>{' '}
+          · {f.season.label}
           {f.stage !== null ? ` · ${f.stage.name}` : ''}
           {f.round !== null ? ` · ${f.round}` : ''}
           {f.group_name !== null ? ` · Group ${f.group_name}` : ''}

@@ -6,7 +6,7 @@ import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 // Kick-offs are made to pass for real (3 s), so the suite needs more than the default 5 s.
-vi.setConfig({ testTimeout: 20_000 });
+vi.setConfig({ testTimeout: 40_000, hookTimeout: 40_000 });
 import { DatabaseModule } from '../../database/database.module';
 import { MODEL_CLIENT, ModelClient } from '../forecast/forecast.service';
 import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
@@ -87,7 +87,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Performance 
     const id = randomUUID();
     fixtures.push(id);
     await pool.query(
-      `INSERT INTO fixture (id, season_id, kickoff_at, status) VALUES ($1, $2, now() + interval '6 seconds', 'scheduled')`,
+      `INSERT INTO fixture (id, season_id, kickoff_at, status) VALUES ($1, $2, now() + interval '10 seconds', 'scheduled')`,
       [id, PL_2025],
     );
     await pool.query(
@@ -262,7 +262,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Performance 
       ).toBe(200);
     }
     // Let every kick-off pass by the database clock, then play the matches.
-    await new Promise((resolve) => setTimeout(resolve, 7_000));
+    // Ten seconds of room: under the full suite's load, six submissions took most of six.
+    await new Promise((resolve) => setTimeout(resolve, 11_000));
     for (const [index, [home, away]] of results.entries()) {
       const id = ids[index]!;
       await finish(id, home, away);

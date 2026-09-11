@@ -11,7 +11,7 @@ import { PredictionsModule } from './predictions.module';
 // A member's prediction history: the version that stands, its time, how it
 // settled, and who may see it. Needs the real schema (CI has it).
 const DATABASE_URL = process.env.DATABASE_URL;
-vi.setConfig({ testTimeout: 30_000 });
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 40_000 });
 
 const ENGLAND = '00000000-0000-4000-8000-000000000101';
 const PL_2025 = '00000000-0000-4000-8000-000000000302';
@@ -108,7 +108,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Prediction h
     );
 
     // One match kicks off in six seconds and gets settled; one is next week and stays open.
-    settledFixture = await fixture('6 seconds');
+    settledFixture = await fixture('10 seconds');
     openFixture = await fixture('7 days');
     expect(
       (
@@ -137,7 +137,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Prediction h
         })
       ).statusCode,
     ).toBe(200);
-    await new Promise((resolve) => setTimeout(resolve, 7_000));
+    // Ten seconds of room: under the full suite's load, the submissions took most of six.
+    await new Promise((resolve) => setTimeout(resolve, 11_000));
     await pool.query(`UPDATE fixture SET status = 'finished' WHERE id = $1`, [settledFixture]);
     await pool.query(
       `INSERT INTO fixture_score (fixture_id, kind, home, away) VALUES ($1, 'full_time', 2, 1)`,

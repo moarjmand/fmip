@@ -231,7 +231,7 @@ are seven runs, and T-025 reads them together. The second run (2026-09-11 05:04 
 | `[x]` T-032 | SSE gateway + client subscription with snapshot-on-reconnect | T-011 (was T-026, D-033/D-034) | Score changes appear without refresh; staleness is visible |
 | `[x]` T-033 | Match centre API | T-011, T-012 (was T-027, D-033) | Header, timeline, stats, form, H2H, coverage states |
 | `[x]` T-034 | Match centre page | T-033, T-032 | Works before, during and after a match |
-| `[ ]` T-035 | Competition page (table, fixtures, results, leaders) | T-030 | Season selector works; links resolve |
+| `[x]` T-035 | Competition page (table, fixtures, results, leaders) | T-030 | Season selector works; links resolve |
 | `[ ]` T-036 | Team page | T-035 | Squad, fixtures, form, competition context |
 | `[ ]` T-037 | Player page | T-036 | Every lineup/squad name links here correctly |
 | `[ ]` T-038 | Basic entity search | T-037 | Aliases and common spellings match |
@@ -343,6 +343,33 @@ holds no incidents, line-ups or statistics for it), an unknown id answered
 cards now link to the match page. Playwright: a malformed id is a 404 page;
 without an API the page names the unreachable service and the proxy answers
 503 JSON. 29 web unit tests, typecheck, lint, stylelint.
+
+**T-035 verified on 2026-09-12.** `GET /competitions/:id?season=` (catalog) is the
+competition page: overview with country, kind and tier; every season newest
+first; the selected season (`?season=`, else the current one, else the
+newest) with its stages; the league table, results (newest first), fixtures
+(soonest first), top scorers, the season's declared coverage and the newest
+change to any of its fixtures. The table and the leaders come from the new
+standings boundary (D-038): `StandingsService.table` ranks finished
+league-stage results (points, goal difference, goals scored, name; last five
+as form; a club with no result yet still gets a row) and `.leaders` counts
+recorded goals per person; each is a `Covered` module under the season's
+declared `standings` / `incidents` coverage, so a season that declares nothing
+shows `limited` for a table it can compute and `not_supplied` for goals it
+has none of — never a blank grid. The web page `/[locale]/competition/[id]`
+renders it with the season strip, the table, results and fixtures linking to
+the match centre, top scorers and the coverage line; the scores page's
+competition headings and the match centre's competition line now link here
+(with the match's season). **Season selector works; links resolve:** the HTTP
+suite builds a league with two seasons, three clubs, two results, one
+scheduled match and three goals; the default answer is the current season
+with the computed table (Alpha 4 pts, Gamma 1, Beta 0 with form `D W`), the
+scheduled match under fixtures, the scorer on 2 and the other on 1;
+`?season=<old>` switches to the older season, whose single result gives a
+`limited` table and `not_supplied` leaders; a season of another competition
+and an unknown competition are 404. 4 unit tests on the ranking, 4 on the
+page helpers (web), 4 HTTP tests; typecheck, lint, Prettier; full API suite
+twice, web unit suite.
 
 ---
 
