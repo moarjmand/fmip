@@ -751,3 +751,38 @@ to a day of user activity. The maintainer owns the off-provider account and
 the off-provider copies are unreadable by design. A failed drill is the
 week's first task. Moving to PITR later changes `docker-compose.yml` and this
 decision, not the drill's contract.
+
+## D-033 — The read and prediction slices are built against the schema, not against live ingestion
+**Status:** Accepted · 2026-09-11
+
+**Decision.** E3 (public read experience), E5 (predictions and reputation) and
+the remaining E6 and E7 tasks proceed now, against the canonical schema
+(T-010 to T-013) and seeded or test data, while T-025 (the provider decision
+and payment) is deferred by the maintainer. Where `04-tasks-phase-1.md` listed
+T-026 or T-027 as a dependency only because they would *populate* the tables,
+the dependency is relaxed to the schema task that *defines* them, and the row
+says so. Dependencies that are about behaviour stay: the SSE gateway (T-032)
+needs a source of change events and gets an internal one; nothing that needs
+a provider's live feed to be *proved* (goal latency, T-083's outage
+behaviour under a real feed) is ticked on seed data.
+
+**Why.** The maintainer chose to build everything that does not need the paid
+plan first. The tables, constraints and coverage profiles exist and are the
+contract the ingestion jobs will write to; a scores API tested against rows
+inserted by hand exercises the same SQL and the same shapes as one fed by a
+job. D-001 asks for vertical slices, and a slice that reaches the page is more
+informative than a finished pipeline with no page. The risk is rework if
+ingestion turns out to need different shapes; the adapters (T-021..T-023)
+already produce the normalised model those shapes were designed from, which
+bounds it.
+
+**Alternatives considered.** Wait for T-025: idle weeks and a page built last
+against everything at once. Fake a provider: forbidden by rule 3 in spirit and
+pointless in practice, the schema is the fake's only output anyway.
+
+**Consequences.** When T-026 lands, its acceptance ("a replay changes nothing")
+is checked against pages that already render the tables, which is a stronger
+test. Every verification note written under this decision names the data it
+ran on (seed, test rows), so nobody reads "verified" as "verified against a
+provider". The task table keeps the original dependency in parentheses for the
+record.

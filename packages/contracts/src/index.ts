@@ -64,3 +64,15 @@ export type {
   ModelPerformanceResponse,
   ModelPerformanceRow,
 } from './forecast';
+export type {
+  FixtureStatus,
+  ScoreCard,
+  ScoreCardIncident,
+  ScoreCardIncidentKind,
+  ScoreCardTeam,
+  ScoreLine,
+  ScoresAgeFilter,
+  ScoresFilters,
+  ScoresGroup,
+  ScoresResponse,
+} from './scores';
