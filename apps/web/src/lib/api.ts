@@ -2,7 +2,9 @@ import type {
   ApiError,
   CompetitionsResponse,
   CountriesResponse,
+  FixtureEvaluationsResponse,
   FollowedEntity,
+  ForecastVersionsResponse,
   FollowingResponse,
   HealthReport,
   MatchCentre,
@@ -140,4 +142,20 @@ export function fetchScores(
 /** `GET /fixtures/:id`: the match centre payload (T-033). Public. */
 export function fetchMatchCentre(fixtureId: string): Promise<ApiResult<MatchCentre>> {
   return apiRequest<MatchCentre>(`/fixtures/${encodeURIComponent(fixtureId)}`);
+}
+
+/** `GET /fixtures/:id/forecasts` (T-064): every version, oldest first, with coverage. Public. */
+export function fetchForecasts(fixtureId: string): Promise<ApiResult<ForecastVersionsResponse>> {
+  return apiRequest<ForecastVersionsResponse>(
+    `/fixtures/${encodeURIComponent(fixtureId)}/forecasts`,
+  );
+}
+
+/** `GET /fixtures/:id/evaluations` (T-066): how each version did after the match. Public. */
+export function fetchEvaluations(
+  fixtureId: string,
+): Promise<ApiResult<FixtureEvaluationsResponse>> {
+  return apiRequest<FixtureEvaluationsResponse>(
+    `/fixtures/${encodeURIComponent(fixtureId)}/evaluations`,
+  );
 }

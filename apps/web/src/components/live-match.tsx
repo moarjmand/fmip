@@ -11,7 +11,16 @@ import { INITIAL_CLOCK, type LiveClock, liveLabel, liveState } from '@/lib/live'
  * replaces the whole payload on every `snapshot`. The freshness line is the
  * same one the scores page uses.
  */
-export function LiveMatch({ initial, timeZone }: { initial: MatchCentre; timeZone: string }) {
+export function LiveMatch({
+  initial,
+  timeZone,
+  forecast,
+}: {
+  initial: MatchCentre;
+  timeZone: string;
+  /** The forecast panel, rendered by the server (T-065); forecasts change rarely. */
+  forecast: React.ReactNode;
+}) {
   const [centre, setCentre] = useState(initial);
   const [clock, setClock] = useState<LiveClock>(INITIAL_CLOCK);
   const [now, setNow] = useState(() => Date.now());
@@ -52,6 +61,7 @@ export function LiveMatch({ initial, timeZone }: { initial: MatchCentre; timeZon
         {liveLabel(state, clock, timeZone)}
       </p>
       <MatchCentreView centre={centre} timeZone={timeZone} />
+      {forecast}
     </>
   );
 }

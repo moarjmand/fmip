@@ -27,7 +27,6 @@ describe('match centre labels', () => {
 
   it('lists every blueprint 4.2 module the page does not have yet', () => {
     expect(NOT_YET.map(([name]) => name)).toEqual([
-      'Model forecast',
       "Founder's analysis",
       'Community forecast',
       'Availability',

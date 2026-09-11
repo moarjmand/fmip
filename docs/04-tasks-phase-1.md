@@ -438,7 +438,7 @@ section on settings (pin, unpin, unfollow, and pickers over `GET /teams` and
 | `[x]` T-062 | Backtesting and calibration harness (log loss, Brier, reliability curve, vs market odds) | T-061 | Report generated per model version |
 | `[x]` T-063 | `apps/model` FastAPI service with the internal contract | T-061 | Contract test from `apps/api` passes |
 | `[x]` T-064 | Forecast versioning + input snapshots | T-063 | Probabilities total 100% after rounding; forecasts immutable |
-| `[ ]` T-065 | Match centre forecast panel with leading factors and computation time | T-064, T-034 | Explains, never asserts certainty |
+| `[x]` T-065 | Match centre forecast panel with leading factors and computation time | T-064, T-034 | Explains, never asserts certainty |
 | `[x]` T-066 | Post-match evaluation records | T-064 | Model performance queryable per competition |
 
 **T-060 verified on 2026-09-10.** `apps/model` (Python) gains the loaders and
@@ -576,6 +576,29 @@ own Premier League fixture, computes three versions (before kick-off,
 unavailable, after the result), finishes it 2-2, and checks each of these
 against the real schema. Down/up cycle of the migration ran on the real
 database. 116 API tests (47 in the forecast module), typecheck, lint.
+
+**T-065 verified on 2026-09-11.** The match centre gains the model forecast
+panel (`forecast-panel.tsx`) fed by `GET /fixtures/:id/forecasts` and, once
+the match is finished, `GET /fixtures/:id/evaluations`. **Explains, never
+asserts certainty:** the three probabilities are shown as percentages that
+total exactly 100.0, under them one sentence names the outcome the model
+gives the most probability and by how many points, ending "these are
+probabilities, not a prediction of the result" (or "the model sees this as
+close" under five points); the leading factors say what they are, whom they
+favour and the model's note; version number, kind, computation time, model id
+and data completeness are always on screen; "What changed between versions"
+gives each version's shift in points against the previous available one
+(blueprint 6.4); an `unavailable` version shows its reason in plain words; no
+forecast says "No forecast has been computed for this match yet". After the
+match the panel shows the result, the probability the version gave it, whether
+that was its most probable outcome, log loss and Brier beside the
+knowing-nothing reference, and whether it was computed after kick-off. Smoke
+test with the real model service, API and web app on the seeded Liverpool v
+Manchester United: a new version (73.4% / 18.7% / 8.0%, `data limited`,
+`dixon-coles-elo@0.1.0`) rendered with the framing "gives Liverpool the most
+probability, 54.7 points ahead … not a prediction of the result", and the
+post-match evaluation block appeared for the finished match. 32 web unit
+tests (7 new on percentages, framing, deltas), typecheck, lint, stylelint.
 
 ---
 
