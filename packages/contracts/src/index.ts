@@ -93,10 +93,14 @@ export type {
 } from './match-centre';
 export { MAX_EXPLANATION_LENGTH, MAX_REASON_TAGS, PREDICTION_REASON_TAGS } from './predictions';
 export type {
+  FixtureSettlementsResponse,
   Prediction,
   PredictionOutcome,
   PredictionReasonTag,
   PredictionResponse,
   PredictionVersion,
+  Settlement,
+  SettlementRunResponse,
+  SettlementVoidReason,
   SubmitPredictionRequest,
 } from './predictions';

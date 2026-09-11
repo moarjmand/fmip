@@ -4,6 +4,8 @@ import type {
   PredictionOutcome,
   PredictionReasonTag,
   PredictionVersion,
+  Settlement,
+  SettlementVoidReason,
 } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
@@ -130,6 +132,7 @@ export class PostgresPredictionStore {
     const list = versions.rows.map(toVersion);
     const latest = list.at(-1);
     if (latest === undefined) return null;
+    const settlement = await this.currentSettlement(head.id);
     return {
       id: head.id,
       fixture_id: fixtureId,
@@ -137,6 +140,47 @@ export class PostgresPredictionStore {
       locked: head.locked,
       latest,
       versions: list,
+      settlement,
+    };
+  }
+
+  /** The newest settlement row of a prediction (T-052), or null. */
+  private async currentSettlement(predictionId: string): Promise<Settlement | null> {
+    const { rows } = await this.pool.query<{
+      id: string;
+      status: 'settled' | 'void';
+      void_reason: SettlementVoidReason | null;
+      actual_home: number | null;
+      actual_away: number | null;
+      outcome_correct: boolean | null;
+      score_predicted: boolean;
+      score_correct: boolean | null;
+      confidence: number;
+      settled_at: Date;
+      version_number: number;
+    }>(
+      `SELECT s.id, s.status, s.void_reason, s.actual_home, s.actual_away, s.outcome_correct,
+              s.score_predicted, s.score_correct, s.confidence, s.settled_at, v.version_number
+         FROM settlement s JOIN prediction_version v ON v.id = s.version_id
+        WHERE s.prediction_id = $1 ORDER BY s.settled_at DESC, s.id DESC LIMIT 1`,
+      [predictionId],
+    );
+    const r = rows[0];
+    if (r === undefined) return null;
+    return {
+      id: r.id,
+      status: r.status,
+      void_reason: r.void_reason,
+      actual:
+        r.actual_home !== null && r.actual_away !== null
+          ? { home: r.actual_home, away: r.actual_away }
+          : null,
+      outcome_correct: r.outcome_correct,
+      score_predicted: r.score_predicted,
+      score_correct: r.score_correct,
+      confidence: r.confidence,
+      settled_at: r.settled_at.toISOString(),
+      version_number: r.version_number,
     };
   }
 }
