@@ -420,7 +420,7 @@ section on settings (pin, unpin, unfollow, and pickers over `GET /teams` and
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-050 | Prediction submission: outcome, optional score, confidence, reason tags | T-040, T-033 | Guests are blocked; versions are retained |
-| `[ ]` T-051 | Kick-off lock | T-050 | No write succeeds after kick-off, verified by clock skew test |
+| `[x]` T-051 | Kick-off lock | T-050 | No write succeeds after kick-off, verified by clock skew test |
 | `[ ]` T-052 | Settlement job incl. void rules for postponed/abandoned | T-051 | Re-running settlement is idempotent |
 | `[ ]` T-053 | Performance Rating engine, formula in versioned config | T-052 | Rating recomputable from stored records alone |
 | `[ ]` T-054 | Career Points | T-052 | Cannot by itself unlock privileges |
@@ -449,6 +449,25 @@ version read-only once locked, and a sign-in prompt to guests; the community
 distribution and settlement are named as arriving with E5's later tasks,
 never blended with the model forecast (rule 6). Data: test rows (D-033). 11
 API tests, 4 web unit tests; typecheck, lint, stylelint, Prettier.
+
+**T-051 verified on 2026-09-11.** Migration `..._prediction-lock.sql` adds
+`refuse_prediction_after_kickoff()`, a `BEFORE INSERT` trigger on
+`prediction_version` that reads the fixture's kick-off and raises SQLSTATE
+`PL001` once `now()` — the database clock — has reached it. The API still
+checks its own clock first (409 `locked`), and maps `PL001` to the same
+answer, so a request that crosses the kick-off instant or a skewed server gets
+the same 409 rather than a 500; the transaction rolls back whole, leaving no
+`user_prediction` row behind. `locked` in the response now comes from the
+database clock too. **No write succeeds after kick-off, verified by clock skew
+test:** the HTTP suite (a) predicts a fixture 1.5 s before its kick-off, waits
+past it and is refused on the next write with the first version intact; (b)
+sets the API clock 70 s behind on a fixture that kicked off 10 s ago by the
+database clock — the database refuses (409, nothing written); (c) sets the API
+clock two hours ahead on a match still an hour away — the API refuses, and an
+honest clock is accepted; (d) inserts a version directly into the table for a
+match a day old — refused with `PL001`. Data: test rows (D-033). 15 API tests
+in the predictions module; typecheck, lint, Prettier; migration down/up cycled
+on the real database.
 
 ---
 
