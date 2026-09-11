@@ -91,3 +91,12 @@ export type {
   MatchStatRow,
   MatchTeam,
 } from './match-centre';
+export { MAX_EXPLANATION_LENGTH, MAX_REASON_TAGS, PREDICTION_REASON_TAGS } from './predictions';
+export type {
+  Prediction,
+  PredictionOutcome,
+  PredictionReasonTag,
+  PredictionResponse,
+  PredictionVersion,
+  SubmitPredictionRequest,
+} from './predictions';

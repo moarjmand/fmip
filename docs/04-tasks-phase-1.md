@@ -419,13 +419,36 @@ section on settings (pin, unpin, unfollow, and pickers over `GET /teams` and
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-050 | Prediction submission: outcome, optional score, confidence, reason tags | T-040, T-033 | Guests are blocked; versions are retained |
+| `[x]` T-050 | Prediction submission: outcome, optional score, confidence, reason tags | T-040, T-033 | Guests are blocked; versions are retained |
 | `[ ]` T-051 | Kick-off lock | T-050 | No write succeeds after kick-off, verified by clock skew test |
 | `[ ]` T-052 | Settlement job incl. void rules for postponed/abandoned | T-051 | Re-running settlement is idempotent |
 | `[ ]` T-053 | Performance Rating engine, formula in versioned config | T-052 | Rating recomputable from stored records alone |
 | `[ ]` T-054 | Career Points | T-052 | Cannot by itself unlock privileges |
 | `[ ]` T-055 | Leaderboards with minimum-sample filters | T-053 | A one-prediction account cannot top the board |
 | `[ ]` T-056 | Prediction history UI | T-050 | Shows submitted version, timestamp, settlement |
+
+**T-050 verified on 2026-09-11.** Migration `..._predictions.sql` adds
+`user_prediction` (one per member per fixture) and `prediction_version`
+(outcome, optional exact score that must agree with the outcome, confidence
+1–5, up to three reason tags from a closed list, explanation up to 280
+characters, `submitted_at`), immutable by the same `refuse_change()` trigger
+as forecasts. `PUT /fixtures/:id/prediction` writes the next version inside
+one transaction; `GET` returns the member's own prediction with every version,
+`locks_at` and `locked`. **Guests are blocked:** both verbs answer 401 without
+a session, and a member whose e-mail is not verified gets 403
+`email_unverified` (blueprint 6.6: a verified account is mandatory). **Versions
+are retained:** the HTTP suite submits a home 2–1 at confidence 4, then a
+draw at confidence 2 with two tags and an explanation, and reads back both
+versions in order under the same prediction id; UPDATE and DELETE on a version
+are refused by the database (`23001`). Every invalid field is named at once
+(400), an unknown fixture is 404, and a fixture that has kicked off is 409
+`locked` (the database-level lock and the clock-skew proof are T-051). On
+the match centre, "Your prediction" shows the form to a signed-in member of an
+open match (with the version number after the first submission), the final
+version read-only once locked, and a sign-in prompt to guests; the community
+distribution and settlement are named as arriving with E5's later tasks,
+never blended with the model forecast (rule 6). Data: test rows (D-033). 11
+API tests, 4 web unit tests; typecheck, lint, stylelint, Prettier.
 
 ---
 

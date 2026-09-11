@@ -3,7 +3,14 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ForecastPanel } from '@/components/forecast-panel';
 import { LiveMatch } from '@/components/live-match';
-import { fetchEvaluations, fetchForecasts, fetchMatchCentre, fetchMe } from '@/lib/api';
+import { PredictionSection } from '@/components/prediction-section';
+import {
+  fetchEvaluations,
+  fetchForecasts,
+  fetchMatchCentre,
+  fetchMe,
+  fetchOwnPrediction,
+} from '@/lib/api';
 import { isTimeZone } from '@/lib/scores';
 import { sessionCookieHeader } from '@/lib/session';
 
@@ -55,12 +62,13 @@ export default async function MatchPage({
   const result = await fetchMatchCentre(id);
   if (!result.ok && result.status === 404) notFound();
   // The forecast (T-065) and, once the match is over, its evaluation (T-066).
-  const [forecasts, evaluations] = result.ok
+  const [forecasts, evaluations, prediction] = result.ok
     ? await Promise.all([
         fetchForecasts(id),
         result.data.fixture.status === 'finished' ? fetchEvaluations(id) : Promise.resolve(null),
+        fetchOwnPrediction(id, cookie),
       ])
-    : [null, null];
+    : [null, null, null];
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
@@ -85,14 +93,22 @@ export default async function MatchPage({
         <LiveMatch
           initial={result.data}
           timeZone={timeZone}
-          forecast={
-            <ForecastPanel
-              forecasts={forecasts !== null && forecasts.ok ? forecasts.data : null}
-              evaluations={evaluations !== null && evaluations.ok ? evaluations.data : null}
-              home={result.data.fixture.home.name}
-              away={result.data.fixture.away.name}
-              timeZone={timeZone}
-            />
+          panels={
+            <>
+              <PredictionSection
+                locale={locale}
+                fixture={result.data.fixture}
+                me={me}
+                current={prediction}
+              />
+              <ForecastPanel
+                forecasts={forecasts !== null && forecasts.ok ? forecasts.data : null}
+                evaluations={evaluations !== null && evaluations.ok ? evaluations.data : null}
+                home={result.data.fixture.home.name}
+                away={result.data.fixture.away.name}
+                timeZone={timeZone}
+              />
+            </>
           }
         />
       )}

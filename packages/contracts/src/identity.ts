@@ -69,7 +69,14 @@ export interface ResetPasswordRequest {
  * request fields for validation and conflict errors.
  */
 export interface ApiError {
-  error: 'validation' | 'conflict' | 'unauthenticated' | 'invalid_token' | 'not_found';
+  error:
+    | 'validation'
+    | 'conflict'
+    | 'unauthenticated'
+    | 'invalid_token'
+    | 'not_found'
+    | 'email_unverified'
+    | 'locked';
   message: string;
   fields?: Record<string, string>;
 }

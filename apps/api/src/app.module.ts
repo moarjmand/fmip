@@ -6,6 +6,7 @@ import { ForecastModule } from './modules/forecast/forecast.module';
 import { HealthModule } from './modules/health/health.module';
 import { IdentityModule } from './modules/identity/identity.module';
 import { IngestionModule } from './modules/ingestion/ingestion.module';
+import { PredictionsModule } from './modules/predictions/predictions.module';
 import { ProfileModule } from './modules/profile/profile.module';
 
 /**
@@ -24,6 +25,7 @@ import { ProfileModule } from './modules/profile/profile.module';
     ProfileModule,
     ForecastModule,
     FixturesModule,
+    PredictionsModule,
   ],
 })
 export class AppModule {}

@@ -9,6 +9,7 @@ import type {
   HealthReport,
   MatchCentre,
   OwnProfile,
+  PredictionResponse,
   ProfileView,
   ScoresResponse,
   SessionResponse,
@@ -158,4 +159,17 @@ export function fetchEvaluations(
   return apiRequest<FixtureEvaluationsResponse>(
     `/fixtures/${encodeURIComponent(fixtureId)}/evaluations`,
   );
+}
+
+/** `GET /fixtures/:id/prediction`: the member's own prediction, or null when there is none. */
+export async function fetchOwnPrediction(
+  fixtureId: string,
+  cookie: string | undefined,
+): Promise<PredictionResponse['prediction'] | null> {
+  if (cookie === undefined) return null;
+  const result = await apiRequest<PredictionResponse>(
+    `/fixtures/${encodeURIComponent(fixtureId)}/prediction`,
+    { cookie },
+  );
+  return result.ok ? result.data.prediction : null;
 }
