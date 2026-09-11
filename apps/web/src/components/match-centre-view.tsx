@@ -122,12 +122,20 @@ export function MatchCentreView({
                 </span>
                 <span className="w-24 shrink-0">{INCIDENT_LABEL[i.kind]}</span>
                 <span>
-                  {i.player !== null ? i.player.name : ''}
-                  {i.kind === 'substitution' && i.related_player !== null
-                    ? ` ↔ ${i.related_player.name}`
-                    : i.related_player !== null
-                      ? ` (assist ${i.related_player.name})`
-                      : ''}
+                  {i.player !== null && (
+                    <Link href={`/${locale}/player/${i.player.id}`} className="underline">
+                      {i.player.name}
+                    </Link>
+                  )}
+                  {i.related_player !== null && (
+                    <>
+                      {i.kind === 'substitution' ? ' ↔ ' : ' (assist '}
+                      <Link href={`/${locale}/player/${i.related_player.id}`} className="underline">
+                        {i.related_player.name}
+                      </Link>
+                      {i.kind === 'substitution' ? '' : ')'}
+                    </>
+                  )}
                   {i.side !== null ? ` · ${i.side === 'home' ? f.home.name : f.away.name}` : ''}
                   {i.detail !== null ? ` · ${i.detail}` : ''}
                 </span>
@@ -163,12 +171,14 @@ export function MatchCentreView({
               formation={f.home.formation}
               coach={f.home.coach?.name ?? null}
               players={lineups.home}
+              locale={locale}
             />
             <Side
               name={f.away.name}
               formation={f.away.formation}
               coach={f.away.coach?.name ?? null}
               players={lineups.away}
+              locale={locale}
             />
           </div>
         )}
@@ -264,16 +274,26 @@ function Side({
   formation,
   coach,
   players,
+  locale,
 }: {
   name: string;
   formation: string | null;
   coach: string | null;
   players: MatchLineupPlayer[];
+  locale: string;
 }) {
   const starters = players.filter((p) => p.role === 'starter');
   const bench = players.filter((p) => p.role === 'bench');
-  const line = (p: MatchLineupPlayer): string =>
-    `${p.shirt_number !== null ? `${p.shirt_number} ` : ''}${p.name}${p.is_captain ? ' (c)' : ''}`;
+  // Every line-up name links to the player page (blueprint 5.3, T-037).
+  const line = (p: MatchLineupPlayer): React.ReactNode => (
+    <>
+      {p.shirt_number !== null ? `${p.shirt_number} ` : ''}
+      <Link href={`/${locale}/player/${p.id}`} className="underline">
+        {p.name}
+      </Link>
+      {p.is_captain ? ' (c)' : ''}
+    </>
+  );
   return (
     <div className="flex flex-col gap-1">
       <h3 className="font-medium">

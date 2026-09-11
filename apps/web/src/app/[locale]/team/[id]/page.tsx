@@ -225,7 +225,9 @@ export default async function TeamPage({
                       {player.shirt_number ?? '–'}
                     </span>
                     <span>
-                      {player.person.name}
+                      <Link href={`/${locale}/player/${player.person.id}`} className="underline">
+                        {player.person.name}
+                      </Link>
                       {player.on_loan && <span className="ms-2 text-xs opacity-70">on loan</span>}
                     </span>
                   </li>

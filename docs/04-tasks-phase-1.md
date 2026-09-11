@@ -233,7 +233,7 @@ are seven runs, and T-025 reads them together. The second run (2026-09-11 05:04 
 | `[x]` T-034 | Match centre page | T-033, T-032 | Works before, during and after a match |
 | `[x]` T-035 | Competition page (table, fixtures, results, leaders) | T-030 | Season selector works; links resolve |
 | `[x]` T-036 | Team page | T-035 | Squad, fixtures, form, competition context |
-| `[ ]` T-037 | Player page | T-036 | Every lineup/squad name links here correctly |
+| `[x]` T-037 | Player page | T-036 | Every lineup/squad name links here correctly |
 | `[ ]` T-038 | Basic entity search | T-037 | Aliases and common spellings match |
 | `[ ]` T-039 | SEO surface: metadata, canonical URLs, sitemap, structured data | T-034 | Rendered HTML contains full content without JS |
 
@@ -398,6 +398,35 @@ absent; a club with no spells gets `not_supplied`; an unknown id is 404.
 3 unit tests on the selector and the context, 3 on the page helpers (web),
 3 HTTP tests; typecheck, lint, Prettier; full API suite twice, web unit
 suite.
+
+**T-037 verified on 2026-09-12.** `GET /players/:id` (catalog) is the player
+page: identity (full name and known-as, nationality, date of birth, height,
+preferred foot, each absent when not recorded); the current spell and every
+spell newest first (team, period, shirt, position, loan); a record per
+season, competition and team built from our own line-ups and incidents —
+starts, bench appearances that became a substitution on, goals (open play and
+penalties), assists, yellow and red cards, each counted only against the
+team of the line-up so a mid-season move gives two honest rows; the last ten
+matches the player was named for with role (started / came on / unused),
+goals, assists and cards; the newest change to any of it. Record and log are
+`derived` modules: `not_supplied` for a person in no line-up, never a row of
+zeros. The web page `/[locale]/player/[id]` renders it with a season
+selector (`?season=`) over the record and the log, and says which statistics
+(minutes, advanced, availability) are not held rather than showing them
+empty. **Every lineup/squad name links here correctly:** the match centre's
+line-ups and incident names (scorer, assist, both sides of a substitution),
+the team page's squad and the competition page's top scorers now link to
+`/player/<person id>`, the id being the canonical person id the API already
+carried (rule 1). The HTTP suite builds a league with two clubs and a player
+with a closed spell and an open one, named in two line-ups (a start with a
+goal from a team-mate's assist and a booking; a bench place that became a
+substitution on): the answer gives the identity in full, the open spell as
+current, the spells newest first, one record row (1 start, 1 sub appearance,
+1 goal, 0 assists, 1 yellow), the two matches with their roles, and the
+assist provider's own page shows 2 starts and 1 assist; a person in no
+line-up gets `not_supplied` for both modules; an unknown id is 404. 5 unit
+tests on the page helpers (web), 3 HTTP tests; typecheck, lint, Prettier;
+full API suite twice, web unit suite.
 
 ---
 
