@@ -1,10 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import type { Prediction } from '@fmip/contracts';
+import type { Prediction, PredictionHistoryItem } from '@fmip/contracts';
+import type { HistoryQuery } from './internal/history-query';
 import { PostgresPredictionStore, PredictionLockedError } from './internal/prediction-store';
 import { validateSubmission } from './internal/validation';
 
 // The module's public surface. Other modules import from this file only.
 export { validateSubmission, type PredictionInput, type Validated } from './internal/validation';
+export {
+  HISTORY_DEFAULT_LIMIT,
+  HISTORY_MAX_LIMIT,
+  parseHistoryQuery,
+  type HistoryQuery,
+} from './internal/history-query';
 export { SettlementService, type SettleOutcome, type SettledRecord } from './settlement.service';
 export { outcomeOf, settleOne, verdictFor, type Verdict } from './internal/settle';
 
@@ -34,6 +41,14 @@ export class PredictionsService {
   clock: () => Date = () => new Date();
 
   constructor(private readonly store: PostgresPredictionStore) {}
+
+  /** A member's predictions, newest kick-off first, with versions and settlement (T-056). */
+  history(
+    userId: string,
+    query: HistoryQuery,
+  ): Promise<{ total: number; items: PredictionHistoryItem[] }> {
+    return this.store.history(userId, query.limit, query.offset);
+  }
 
   async submit(who: Submitter, fixtureId: string, body: unknown): Promise<SubmitOutcome> {
     if (!who.emailVerified) return { kind: 'email_unverified' };

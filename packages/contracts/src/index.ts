@@ -103,6 +103,9 @@ export type {
   SettlementRunResponse,
   SettlementVoidReason,
   SubmitPredictionRequest,
+  PredictionHistoryFixture,
+  PredictionHistoryItem,
+  PredictionHistoryResponse,
 } from './predictions';
 export type {
   CareerPoints,

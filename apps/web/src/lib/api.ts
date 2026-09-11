@@ -10,8 +10,10 @@ import type {
   LeaderboardResponse,
   MatchCentre,
   OwnProfile,
+  PredictionHistoryResponse,
   PredictionResponse,
   ProfileView,
+  RatingResponse,
   ScoresResponse,
   SessionResponse,
   TeamsResponse,
@@ -139,6 +141,23 @@ export function fetchScores(
   cookie: string | undefined,
 ): Promise<ApiResult<ScoresResponse>> {
   return apiRequest<ScoresResponse>(`/scores?${query}`, cookie === undefined ? {} : { cookie });
+}
+
+/** `GET /users/:username/predictions?${query}` (T-056): the history as this viewer may see it. */
+export function fetchPredictionHistory(
+  username: string,
+  query: string,
+  cookie: string | undefined,
+): Promise<ApiResult<PredictionHistoryResponse>> {
+  return apiRequest<PredictionHistoryResponse>(
+    `/users/${encodeURIComponent(username)}/predictions?${query}`,
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/** `GET /users/:username/rating` (T-053): the current rating, null before the first settlement. Public. */
+export function fetchRating(username: string): Promise<ApiResult<RatingResponse>> {
+  return apiRequest<RatingResponse>(`/users/${encodeURIComponent(username)}/rating`);
 }
 
 /** `GET /leaderboard?${query}` (T-055): ranked current ratings behind the minimum-sample filter. Public. */

@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type {
   Prediction,
+  PredictionHistoryItem,
   PredictionOutcome,
   PredictionReasonTag,
   PredictionVersion,
@@ -142,6 +143,109 @@ export class PostgresPredictionStore {
       versions: list,
       settlement,
     };
+  }
+
+  /**
+   * A member's predictions, newest kick-off first (T-056), with the fixture
+   * as the match centre names it, every version and the current settlement.
+   * `total` counts the whole history; the page is `limit` from `offset`.
+   */
+  async history(
+    userId: string,
+    limit: number,
+    offset: number,
+  ): Promise<{ total: number; items: PredictionHistoryItem[] }> {
+    const counted = await this.pool.query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM user_prediction WHERE user_id = $1`,
+      [userId],
+    );
+    const total = Number(counted.rows[0]?.n ?? 0);
+    if (total === 0) return { total, items: [] };
+
+    const { rows } = await this.pool.query<{
+      id: string;
+      fixture_id: string;
+      kickoff_at: Date;
+      locked: boolean;
+      status: string;
+      competition_id: string;
+      competition_name: string;
+      home_id: string;
+      home_name: string;
+      home_short_name: string | null;
+      away_id: string;
+      away_name: string;
+      away_short_name: string | null;
+      score_home: number | null;
+      score_away: number | null;
+    }>(
+      `SELECT p.id, p.fixture_id, f.kickoff_at, (f.kickoff_at <= now()) AS locked, f.status,
+              c.id AS competition_id, c.name AS competition_name,
+              h.team_id AS home_id, th.name AS home_name, th.short_name AS home_short_name,
+              a.team_id AS away_id, ta.name AS away_name, ta.short_name AS away_short_name,
+              COALESCE(ft.home, cur.home) AS score_home, COALESCE(ft.away, cur.away) AS score_away
+         FROM user_prediction p
+         JOIN fixture f ON f.id = p.fixture_id
+         JOIN season se ON se.id = f.season_id
+         JOIN competition c ON c.id = se.competition_id
+         JOIN fixture_participant h ON h.fixture_id = f.id AND h.side = 'home'
+         JOIN team th ON th.id = h.team_id
+         JOIN fixture_participant a ON a.fixture_id = f.id AND a.side = 'away'
+         JOIN team ta ON ta.id = a.team_id
+         LEFT JOIN fixture_score ft ON ft.fixture_id = f.id AND ft.kind = 'full_time'
+         LEFT JOIN fixture_score cur ON cur.fixture_id = f.id AND cur.kind = 'current'
+        WHERE p.user_id = $1
+        ORDER BY f.kickoff_at DESC, p.id
+        LIMIT $2 OFFSET $3`,
+      [userId, limit, offset],
+    );
+    if (rows.length === 0) return { total, items: [] };
+
+    const ids = rows.map((r) => r.id);
+    const versions = await this.pool.query<VersionRow & { prediction_id: string }>(
+      `SELECT prediction_id, id, version_number, outcome, home_goals, away_goals, confidence,
+              reason_tags, explanation, submitted_at
+         FROM prediction_version WHERE prediction_id = ANY($1::uuid[])
+        ORDER BY prediction_id, version_number`,
+      [ids],
+    );
+    const byPrediction = new Map<string, PredictionVersion[]>();
+    for (const row of versions.rows) {
+      const list = byPrediction.get(row.prediction_id) ?? [];
+      list.push(toVersion(row));
+      byPrediction.set(row.prediction_id, list);
+    }
+
+    const items: PredictionHistoryItem[] = [];
+    for (const r of rows) {
+      const list = byPrediction.get(r.id) ?? [];
+      const latest = list.at(-1);
+      if (latest === undefined) continue;
+      items.push({
+        fixture: {
+          id: r.fixture_id,
+          kickoff_at: r.kickoff_at.toISOString(),
+          status: r.status,
+          competition: { id: r.competition_id, name: r.competition_name },
+          home: { id: r.home_id, name: r.home_name, short_name: r.home_short_name },
+          away: { id: r.away_id, name: r.away_name, short_name: r.away_short_name },
+          score:
+            r.score_home !== null && r.score_away !== null
+              ? { home: r.score_home, away: r.score_away }
+              : null,
+        },
+        prediction: {
+          id: r.id,
+          fixture_id: r.fixture_id,
+          locks_at: r.kickoff_at.toISOString(),
+          locked: r.locked,
+          latest,
+          versions: list,
+          settlement: await this.currentSettlement(r.id),
+        },
+      });
+    }
+    return { total, items };
   }
 
   /** The newest settlement row of a prediction (T-052), or null. */

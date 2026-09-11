@@ -110,3 +110,43 @@ export interface SettlementRunResponse {
   void: number;
   unchanged: number;
 }
+
+// ---------------------------------------------------------------------------
+// Prediction history (blueprint 7.2, T-056): every prediction a member made,
+// newest kick-off first, with the version that stands and how it settled.
+// Visibility follows the member's `prediction_history_visibility`.
+// ---------------------------------------------------------------------------
+
+export interface PredictionHistoryFixture {
+  id: string;
+  kickoff_at: string;
+  status: string;
+  competition: { id: string; name: string };
+  home: { id: string; name: string; short_name: string | null };
+  away: { id: string; name: string; short_name: string | null };
+  /** Full time when known, else the current score, else null. */
+  score: { home: number; away: number } | null;
+}
+
+export interface PredictionHistoryItem {
+  fixture: PredictionHistoryFixture;
+  prediction: Prediction;
+}
+
+/** `GET /users/:username/predictions?limit=&offset=`, `GET /me/predictions`. */
+export type PredictionHistoryResponse =
+  | {
+      kind: 'visible';
+      username: string;
+      is_self: boolean;
+      /** Predictions in the whole history, before paging. */
+      total: number;
+      limit: number;
+      offset: number;
+      items: PredictionHistoryItem[];
+    }
+  | {
+      kind: 'restricted';
+      username: string;
+      visibility: Exclude<'public' | 'friends' | 'private', 'public'>;
+    };
