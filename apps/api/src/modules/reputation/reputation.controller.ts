@@ -9,9 +9,16 @@ import {
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
-import type { ApiError, RatingResponse } from '@fmip/contracts';
+import type {
+  ApiError,
+  CareerPointsResponse,
+  EligibilityResponse,
+  RatingResponse,
+} from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
+import { CareerPointsService } from './career-points.service';
+import { eligibilityFor } from './internal/eligibility';
 import { ReputationService } from './reputation.service';
 
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
@@ -26,6 +33,7 @@ const NO_USER: ApiError = { error: 'not_found', message: 'No such member.' };
 export class ReputationController {
   constructor(
     private readonly reputation: ReputationService,
+    private readonly points: CareerPointsService,
     private readonly identity: IdentityService,
   ) {}
 
@@ -51,6 +59,42 @@ export class ReputationController {
     const user = await this.identity.userByUsername(username.toLowerCase());
     if (user === null) throw new NotFoundException(NO_USER);
     return { username: user.username, rating: await this.reputation.current(user.id) };
+  }
+
+  @Get('me/points')
+  async myPoints(@Req() request: FastifyRequest): Promise<CareerPointsResponse> {
+    const user = await this.viewer(request);
+    const points = await this.points.summary(user.id);
+    if (points === null) throw new NotFoundException(NO_USER);
+    return { username: user.username, points };
+  }
+
+  /** Writes whatever the member's settlements have earned and are not yet in the ledger. */
+  @Post('me/points/award')
+  @HttpCode(200)
+  async awardMine(@Req() request: FastifyRequest): Promise<CareerPointsResponse> {
+    const user = await this.viewer(request);
+    const { added } = await this.points.award(user.id);
+    const points = await this.points.summary(user.id);
+    if (points === null) throw new NotFoundException(NO_USER);
+    return { username: user.username, points, added };
+  }
+
+  @Get('users/:username/points')
+  async theirPoints(@Param('username') username: string): Promise<CareerPointsResponse> {
+    const user = await this.identity.userByUsername(username.toLowerCase());
+    if (user === null) throw new NotFoundException(NO_USER);
+    const points = await this.points.summary(user.id);
+    if (points === null) throw new NotFoundException(NO_USER);
+    return { username: user.username, points };
+  }
+
+  /** Blueprint 9.4: rating, sample and verified contact; never Career Points. */
+  @Get('me/eligibility')
+  async myEligibility(@Req() request: FastifyRequest): Promise<EligibilityResponse> {
+    const user = await this.viewer(request);
+    const rating = await this.reputation.current(user.id);
+    return { username: user.username, eligibility: eligibilityFor(rating, user.email_verified) };
   }
 
   @Post('ratings/recompute')

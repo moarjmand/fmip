@@ -141,6 +141,16 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('settlement',
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
+      await client.query(
+        'ALTER TABLE points_transaction DISABLE TRIGGER points_transaction_immutable',
+      );
+      await client.query(
+        `DELETE FROM points_transaction WHERE user_id IN (SELECT id FROM user_account WHERE username LIKE $1)`,
+        [`st_${RUN}%`],
+      );
+      await client.query(
+        'ALTER TABLE points_transaction ENABLE TRIGGER points_transaction_immutable',
+      );
       await client.query('ALTER TABLE rating_snapshot DISABLE TRIGGER rating_snapshot_immutable');
       await client.query(
         `DELETE FROM rating_snapshot WHERE user_id IN (SELECT id FROM user_account WHERE username LIKE $1)`,

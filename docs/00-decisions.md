@@ -867,3 +867,34 @@ confidence are the least grounded components and are the first candidates for
 tuning once real members exist; the admin surface for thresholds (T-070) edits
 this config, not code paths. Career Points (T-054) are a separate measure and
 never feed this number.
+
+## D-036 — Career Points are a ledger over settlements; privileges never read them
+**Status:** Accepted · 2026-09-11
+
+**Decision.** Career Points (blueprint 9.2) are immutable `points_transaction`
+rows, one per settlement and reason, under `career-points@1.0.0`: 1 for a
+settled prediction, 3 for a correct outcome, 5 for an exact score, 5 for five
+correct outcomes in a row and 15 for ten, once per run. The ledger is a pure
+function of the settlements: awarding writes only the rows that are missing,
+so it can run after every settlement and on demand. Eligibility for
+high-rating privileges (blueprint 9.4) is `privilege-eligibility@1.0.0`: rating
+≥ 70, ≥ 50 settled predictions, verified e-mail — a function whose inputs
+cannot include points. Approved-analysis points wait for the community
+features.
+
+**Why.** The blueprint separates activity from skill so "activity is not
+confused with skill"; the cleanest guarantee is structural: the eligibility
+function has no parameter for points, and the test writes a million points
+into the ledger and shows the answer unchanged. A ledger rather than a running
+total means the number is always explainable line by line and rebuildable
+from settlements (rule 8 in spirit). One row per settlement and reason gives
+idempotency for free.
+
+**Alternatives considered.** A `career_points` column on the account: fast to
+read, impossible to explain or rebuild. Awarding streaks by wall-clock
+windows: not reproducible from stored rows.
+
+**Consequences.** Point values are a version bump away from change; old rows
+keep their version. Points for approved analysis and achievements are new
+reasons under a new version when those features exist (Phase 2). The admin
+surface (T-070) edits `points.ts` and `eligibility.ts`, not code paths.
