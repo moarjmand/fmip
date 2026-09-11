@@ -1,5 +1,6 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { notFound } from 'next/navigation';
+import { ServiceWorker } from '@/components/service-worker';
 import { SiteHeader } from '@/components/site-header';
 import { LOCALES, directionOf, isLocale } from '@/i18n/locales';
 import { pageMetadata, siteUrl } from '@/lib/seo';
@@ -32,8 +33,18 @@ export async function generateMetadata({
       description:
         'Football match intelligence: live scores, match centre, forecasts and predictions.',
     }),
+    // Installability (T-082): the manifest, the icons and the iOS home-screen title.
+    manifest: '/manifest.webmanifest',
+    icons: { icon: '/icons/icon-192.png', apple: '/icons/apple-touch-icon.png' },
+    appleWebApp: { capable: true, title: 'FMIP', statusBarStyle: 'default' },
   };
 }
+
+export const viewport: Viewport = {
+  themeColor: '#0b6b3a',
+  width: 'device-width',
+  initialScale: 1,
+};
 
 export default async function LocaleLayout({
   children,
@@ -65,6 +76,7 @@ export default async function LocaleLayout({
         <div id="content" tabIndex={-1} className="outline-none">
           {children}
         </div>
+        <ServiceWorker />
       </body>
     </html>
   );

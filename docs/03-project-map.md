@@ -136,6 +136,10 @@ model's job at training time, not a reason to bend rule 1.
 | Path | Purpose |
 |---|---|
 | `src/app/[locale]/layout.tsx` | Root layout. Owns `<html lang dir>`; 404s an unshipped locale; sets `metadataBase` and the default canonical, alternates and robots rule through `pageMetadata` (T-039); renders the skip link and the `#content` target the keyboard lands on (T-081). |
+| `src/app/manifest.ts` | `/manifest.webmanifest` (T-082, D-042): name, start page, `standalone`, colours, the 192/512 icons and a maskable one. |
+| `public/sw.js`, `src/components/service-worker.tsx` | The service worker and its registration (T-082): caches the shell only (offline page, manifest, icons, immutable build assets), network first for pages, the offline page without a network; never caches live data or `/api/`. |
+| `public/icons/`, `scripts/make-icons.mjs` | The PWA icons and the script that draws them (no image library). |
+| `src/app/[locale]/offline/page.tsx` | The offline shell: says the app is offline and that nothing cached is shown as current. |
 | `src/app/robots.ts`, `src/app/sitemap.ts` | `/robots.txt` (pseudo-locale, the web app's API routes and member pages disallowed; the sitemap named) and `/sitemap.xml` (static pages plus every active competition and team per indexable locale, from the catalog per request) — T-039, D-040. |
 | `src/lib/announce.ts` | Live-score announcements in words (T-081, D-041): `describeChange`, `scoresAnnouncements`, `matchAnnouncements` — goal, kick-off, full time, correction, red card — for the polite live regions of the scores page and the match centre. `announce.spec.ts` covers the wording. |
 | `src/lib/seo.ts` | The SEO surface (T-039): `siteUrl` (`SITE_URL`), `canonicalUrl`, `pageMetadata` (canonical, language alternates with `x-default`, robots, Open Graph) and the schema.org JSON-LD builders (`WebSite`, `SportsEvent`, `SportsOrganization`, `SportsTeam`, `Person`, breadcrumbs). `seo.spec.ts` covers them. |
@@ -180,6 +184,7 @@ model's job at training time, not a reason to bend rule 1.
 | `src/i18n/locales.ts` | Which locales ship, the pseudo-locales, and the writing direction of each. |
 | `src/lib/api.ts` | Every call to `apps/api`, server-side only, typed by `@fmip/contracts`. Failure is a value (`status` 0 = unreachable), never a throw. |
 | `tests/e2e/a11y.spec.ts` | The accessibility pass (T-081, D-041): axe-core WCAG 2.2 AA on every kind of page, the keyboard path through the skip link, the live region. |
+| `tests/e2e/pwa.spec.ts` | Installability (T-082): the manifest and its icons, the page links, the service worker registering and serving the offline page with the network off. |
 | `tests/e2e/seo.spec.ts` | The SEO surface with JavaScript disabled (T-039): content, canonical, alternates, robots rules, JSON-LD, `/robots.txt` and `/sitemap.xml` straight from the rendered HTML. |
 | `tests/e2e/rtl.spec.ts` | The RTL check. Asserts computed layout, never screenshots. |
 | `tests/e2e/match.spec.ts` | The match centre page without an API: a malformed id is a 404 page, the unreachable notice, the stream proxy's 503 and 404. |

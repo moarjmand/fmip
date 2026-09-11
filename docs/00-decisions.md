@@ -1053,3 +1053,30 @@ contrast rules would forbid the muted secondary text the design relies on.
 **Consequences.** `@axe-core/playwright` is a dev dependency of the web app.
 A new page joins the list in `tests/e2e/a11y.spec.ts`. Persian and Arabic
 locales, when they ship, get the same checks under their own paths.
+
+## D-042 — The PWA is an installable shell with an honest offline page, not an offline cache of scores
+**Status:** Accepted · 2026-09-12
+
+**Decision.** The web app ships a manifest, icons and a service worker that
+make it installable (T-082). The worker caches only the shell: the offline
+page, the manifest, the icons and Next's immutable build assets. Pages are
+fetched from the network; when there is none, the offline page is shown and
+says so. Live data — scores, the match centre, the stream and every route
+under `/api/` — is never cached and never replayed. The manifest's start
+page is the scores page under the default locale.
+
+**Why.** Rule 4: never show stale data as current. A cached scores page
+shown offline would be exactly that, with no way to know how old it is. An
+installed app that says "you are offline" is honest; one that shows
+yesterday's score with a live badge is not. Caching the shell is enough for
+installability and for a fast return visit.
+
+**Alternatives considered.** Stale-while-revalidate for pages: fast but
+shows old numbers first. Background sync of favourites: Phase 2, with a
+"last updated" line per fixture when it comes.
+
+**Consequences.** `scripts/make-icons.mjs` is the source of the icons; a
+brand mark replaces the placeholder there. The worker's cache name is
+versioned; a change to the shell bumps it. Lighthouse 12 dropped its PWA
+audit, so installability is checked in `tests/e2e/pwa.spec.ts`; the tap on
+"Install" on a real Android device stays a manual check.
