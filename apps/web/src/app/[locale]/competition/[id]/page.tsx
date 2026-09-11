@@ -134,7 +134,11 @@ export default async function CompetitionPage({
                     data-testid="table-row"
                   >
                     <td className="py-1 pe-2 tabular-nums">{row.position}</td>
-                    <td className="py-1 pe-2">{row.team.name}</td>
+                    <td className="py-1 pe-2">
+                      <Link href={`/${locale}/team/${row.team.id}`} className="underline">
+                        {row.team.name}
+                      </Link>
+                    </td>
                     {[
                       row.played,
                       row.won,

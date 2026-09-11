@@ -4,12 +4,14 @@ import type {
   CompetitionPage,
   CompetitionsResponse,
   CountriesResponse,
+  TeamPage,
   TeamsResponse,
 } from '@fmip/contracts';
 import { CatalogService } from './catalog.service';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NO_COMPETITION: ApiError = { error: 'not_found', message: 'No such competition.' };
+const NO_TEAM: ApiError = { error: 'not_found', message: 'No such team.' };
 const NO_SEASON: ApiError = {
   error: 'not_found',
   message: 'No such season of this competition.',
@@ -38,6 +40,15 @@ export class CatalogController {
   @Get('competitions')
   async competitions(): Promise<CompetitionsResponse> {
     return { competitions: await this.catalog.competitions() };
+  }
+
+  /** The team page (blueprint 5.2, T-036). Public. */
+  @Get('teams/:id')
+  async team(@Param('id') id: string): Promise<TeamPage> {
+    if (!UUID.test(id)) throw new NotFoundException(NO_TEAM);
+    const outcome = await this.catalog.team(id.toLowerCase());
+    if (outcome.kind === 'unknown_team') throw new NotFoundException(NO_TEAM);
+    return outcome.page;
   }
 
   /** The competition page (blueprint 5.1, T-035). Public. `?season=` selects a season. */

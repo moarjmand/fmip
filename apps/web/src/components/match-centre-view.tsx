@@ -63,7 +63,7 @@ export function MatchCentreView({
         </p>
         <div className="flex items-center gap-4">
           <h1 className="flex-1 text-end text-2xl font-semibold" data-testid="home-team">
-            {f.home.name}
+            <Link href={`/${locale}/team/${f.home.id}`}>{f.home.name}</Link>
           </h1>
           <div className="flex flex-col items-center">
             <span className="text-3xl font-semibold tabular-nums" data-testid="score">
@@ -74,7 +74,7 @@ export function MatchCentreView({
             </span>
           </div>
           <h1 className="flex-1 text-2xl font-semibold" data-testid="away-team">
-            {f.away.name}
+            <Link href={`/${locale}/team/${f.away.id}`}>{f.away.name}</Link>
           </h1>
         </div>
         <dl className="flex flex-wrap gap-x-4 text-xs opacity-70">

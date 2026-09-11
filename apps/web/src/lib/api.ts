@@ -17,6 +17,7 @@ import type {
   RatingResponse,
   ScoresResponse,
   SessionResponse,
+  TeamPage,
   TeamsResponse,
 } from '@fmip/contracts';
 
@@ -142,6 +143,11 @@ export function fetchScores(
   cookie: string | undefined,
 ): Promise<ApiResult<ScoresResponse>> {
   return apiRequest<ScoresResponse>(`/scores?${query}`, cookie === undefined ? {} : { cookie });
+}
+
+/** `GET /teams/:id` (T-036): the team page. Public. */
+export function fetchTeam(id: string): Promise<ApiResult<TeamPage>> {
+  return apiRequest<TeamPage>(`/teams/${encodeURIComponent(id)}`);
 }
 
 /** `GET /competitions/:id${query}` (T-035): the competition page for one season. Public. */
