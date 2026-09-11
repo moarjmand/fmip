@@ -1021,3 +1021,35 @@ link them. Client-side structured data: invisible to a crawler without JS.
 **Consequences.** `SITE_URL` is a required production setting (it defaults to
 localhost). Adding a locale adds it to the alternates and the sitemap
 automatically. The PWA (T-082) adds its manifest beside these files.
+
+## D-041 — The accessibility standard is WCAG 2.2 AA, checked by axe-core in CI
+**Status:** Accepted · 2026-09-12
+
+**Decision.** "The agreed accessibility standard" (blueprint, Language and
+accessibility; T-081) is WCAG 2.2 level AA. It is checked on every push by
+`@axe-core/playwright` over every kind of page the platform has (home,
+scores, leaderboard, search with and without a term, sign-in, registration,
+match centre, competition, team, player, the pseudo-locale), with zero
+violations under the `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa` and
+`wcag22aa` rule sets. What a rule engine cannot judge is fixed in the code
+and tested by hand in Playwright: a skip link is the first thing in the tab
+order and moves focus into the content; `:focus-visible` always draws a
+ring; reduced motion is honoured; live pages carry a polite, atomic live
+region into which every score change, kick-off, full time, correction and
+red card is put into words (`lib/announce.ts`); icons that carry meaning are
+named.
+
+**Why.** The blueprint lists keyboard navigation, focus order, contrast,
+screen-reader labels and live-score announcements without naming a
+standard; WCAG 2.2 AA is the level regulators and procurement ask for and
+the one axe-core can enforce mechanically. Running it in CI keeps the
+standard from decaying one component at a time. Live announcements are the
+one football-specific need: a score is a number that changes while nobody is
+looking, and a screen reader has to be told.
+
+**Alternatives considered.** Manual audits only: not repeatable. AAA: the
+contrast rules would forbid the muted secondary text the design relies on.
+
+**Consequences.** `@axe-core/playwright` is a dev dependency of the web app.
+A new page joins the list in `tests/e2e/a11y.spec.ts`. Persian and Arabic
+locales, when they ship, get the same checks under their own paths.

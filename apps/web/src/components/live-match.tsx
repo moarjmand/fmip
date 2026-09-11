@@ -3,6 +3,7 @@
 import type { MatchCentre } from '@fmip/contracts';
 import { useEffect, useState } from 'react';
 import { MatchCentreView } from '@/components/match-centre-view';
+import { matchAnnouncements } from '@/lib/announce';
 import { INITIAL_CLOCK, type LiveClock, liveLabel, liveState } from '@/lib/live';
 
 /**
@@ -26,6 +27,8 @@ export function LiveMatch({
   const [centre, setCentre] = useState(initial);
   const [clock, setClock] = useState<LiveClock>(INITIAL_CLOCK);
   const [now, setNow] = useState(() => Date.now());
+  // What the last snapshot changed, in words, for the polite live region (T-081).
+  const [announcement, setAnnouncement] = useState('');
   const id = initial.fixture.id;
 
   useEffect(() => {
@@ -37,7 +40,12 @@ export function LiveMatch({
         broken: false,
       }));
     source.addEventListener('snapshot', (event) => {
-      setCentre(JSON.parse((event as MessageEvent<string>).data) as MatchCentre);
+      const next = JSON.parse((event as MessageEvent<string>).data) as MatchCentre;
+      setCentre((previous) => {
+        const said = matchAnnouncements(previous, next);
+        if (said.length > 0) setAnnouncement(said.join(' '));
+        return next;
+      });
       stamp(true);
     });
     source.addEventListener('heartbeat', () => stamp(false));
@@ -62,6 +70,14 @@ export function LiveMatch({
       >
         {liveLabel(state, clock, timeZone)}
       </p>
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+        data-testid="live-announcements"
+      >
+        {announcement}
+      </div>
       <MatchCentreView centre={centre} timeZone={timeZone} locale={locale} />
       {panels}
     </>

@@ -135,8 +135,9 @@ model's job at training time, not a reason to bend rule 1.
 
 | Path | Purpose |
 |---|---|
-| `src/app/[locale]/layout.tsx` | Root layout. Owns `<html lang dir>`; 404s an unshipped locale; sets `metadataBase` and the default canonical, alternates and robots rule through `pageMetadata` (T-039). |
+| `src/app/[locale]/layout.tsx` | Root layout. Owns `<html lang dir>`; 404s an unshipped locale; sets `metadataBase` and the default canonical, alternates and robots rule through `pageMetadata` (T-039); renders the skip link and the `#content` target the keyboard lands on (T-081). |
 | `src/app/robots.ts`, `src/app/sitemap.ts` | `/robots.txt` (pseudo-locale, the web app's API routes and member pages disallowed; the sitemap named) and `/sitemap.xml` (static pages plus every active competition and team per indexable locale, from the catalog per request) — T-039, D-040. |
+| `src/lib/announce.ts` | Live-score announcements in words (T-081, D-041): `describeChange`, `scoresAnnouncements`, `matchAnnouncements` — goal, kick-off, full time, correction, red card — for the polite live regions of the scores page and the match centre. `announce.spec.ts` covers the wording. |
 | `src/lib/seo.ts` | The SEO surface (T-039): `siteUrl` (`SITE_URL`), `canonicalUrl`, `pageMetadata` (canonical, language alternates with `x-default`, robots, Open Graph) and the schema.org JSON-LD builders (`WebSite`, `SportsEvent`, `SportsOrganization`, `SportsTeam`, `Person`, breadcrumbs). `seo.spec.ts` covers them. |
 | `src/components/json-ld.tsx` | Renders structured data as `<script type="application/ld+json">` on the server, `<` escaped. |
 | `src/app/[locale]/page.tsx` | Placeholder home page. The scores page replaces it in T-031. |
@@ -153,7 +154,7 @@ model's job at training time, not a reason to bend rule 1.
 | `src/lib/search.ts` | The search page's pure helpers: the term from the URL, the API query, where a result leads, the alias note. `search.spec.ts` covers them. |
 | `src/app/[locale]/scores/page.tsx` | The scores page (blueprint 4.1, T-031): one day in the viewer's zone (`?tz=`, else the member's, else UTC), the yesterday / today / next-five-days strip, All / Live / Favourites-only filters, favourites pinned, the rest grouped by competition under its country. An unreachable API is said out loud, never shown as a quiet day. |
 | `src/components/score-card.tsx` | One match on the list, linking to its match centre: status or clock, teams with red-card marks, score, competition / stage / round / leg / aggregate, kick-off and venue, goals / red cards / VAR, then the labels: the scores coverage state and, for what the platform does not have yet, "Forecast: not on this page yet", "Community: unsupported", "Watch: unsupported". |
-| `src/components/live-scores.tsx` | Client component (T-032): renders the server's snapshot (competition headings link to the competition page since T-035), subscribes to `/api/scores/stream`, replaces the whole picture on every `snapshot`, and shows the freshness line — connecting, live (with the last update time), stale after 45 s without a heartbeat, unavailable when no picture ever arrived. |
+| `src/components/live-scores.tsx` | Client component (T-032): renders the server's snapshot (competition headings link to the competition page since T-035; a polite live region says every change in words since T-081), subscribes to `/api/scores/stream`, replaces the whole picture on every `snapshot`, and shows the freshness line — connecting, live (with the last update time), stale after 45 s without a heartbeat, unavailable when no picture ever arrived. |
 | `src/app/api/scores/stream/route.ts` | The browser's end of the stream (D-027): holds the matching connection to the API's `/scores/stream`, forwards the session cookie, passes the bytes through; 503 with a JSON error when the API is unreachable. |
 | `src/lib/live.ts` | The freshness rules and labels, pure (`live.spec.ts`). |
 | `src/lib/scores.ts` | The page's pure helpers: reading the query (zone precedence, bad date → today), the API query and page links that keep state, the day strip, status / score / kick-off labels. `scores.spec.ts` covers them. |
@@ -178,6 +179,7 @@ model's job at training time, not a reason to bend rule 1.
 | `src/app/globals.css` | Tailwind entry point and global styles. |
 | `src/i18n/locales.ts` | Which locales ship, the pseudo-locales, and the writing direction of each. |
 | `src/lib/api.ts` | Every call to `apps/api`, server-side only, typed by `@fmip/contracts`. Failure is a value (`status` 0 = unreachable), never a throw. |
+| `tests/e2e/a11y.spec.ts` | The accessibility pass (T-081, D-041): axe-core WCAG 2.2 AA on every kind of page, the keyboard path through the skip link, the live region. |
 | `tests/e2e/seo.spec.ts` | The SEO surface with JavaScript disabled (T-039): content, canonical, alternates, robots rules, JSON-LD, `/robots.txt` and `/sitemap.xml` straight from the rendered HTML. |
 | `tests/e2e/rtl.spec.ts` | The RTL check. Asserts computed layout, never screenshots. |
 | `tests/e2e/match.spec.ts` | The match centre page without an API: a malformed id is a 404 page, the unreachable notice, the stream proxy's 503 and 404. |
