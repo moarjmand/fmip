@@ -24,9 +24,23 @@ export async function SiteHeader({ locale }: { locale: string }) {
         <Link href={href('/scores')} data-testid="nav-scores">
           Scores
         </Link>
-        <Link href={href('/leaderboard')} className="me-auto" data-testid="nav-leaderboard">
+        <Link href={href('/leaderboard')} data-testid="nav-leaderboard">
           Leaderboard
         </Link>
+        <form action={href('/search')} method="get" role="search" className="me-auto">
+          <label htmlFor="header-search" className="sr-only">
+            Search teams, competitions and players
+          </label>
+          <input
+            id="header-search"
+            name="q"
+            type="search"
+            placeholder="Search"
+            autoComplete="off"
+            className="w-32 rounded border border-current/30 bg-transparent px-2 py-1 text-sm sm:w-48"
+            data-testid="nav-search"
+          />
+        </form>
 
         {me === null ? (
           <>

@@ -234,7 +234,7 @@ are seven runs, and T-025 reads them together. The second run (2026-09-11 05:04 
 | `[x]` T-035 | Competition page (table, fixtures, results, leaders) | T-030 | Season selector works; links resolve |
 | `[x]` T-036 | Team page | T-035 | Squad, fixtures, form, competition context |
 | `[x]` T-037 | Player page | T-036 | Every lineup/squad name links here correctly |
-| `[ ]` T-038 | Basic entity search | T-037 | Aliases and common spellings match |
+| `[x]` T-038 | Basic entity search | T-037 | Aliases and common spellings match |
 | `[ ]` T-039 | SEO surface: metadata, canonical URLs, sitemap, structured data | T-034 | Rendered HTML contains full content without JS |
 
 **T-030 verified on 2026-09-11.** `GET /scores` (the `fixtures` boundary,
@@ -427,6 +427,35 @@ assist provider's own page shows 2 starts and 1 assist; a person in no
 line-up gets `not_supplied` for both modules; an unknown id is 404. 5 unit
 tests on the page helpers (web), 3 HTTP tests; typecheck, lint, Prettier;
 full API suite twice, web unit suite.
+
+**T-038 verified on 2026-09-12.** `GET /search?q=&types=&limit=` (the search
+boundary, D-039) finds teams, competitions and people by name and by alias.
+Migration `..._search.sql` enables `pg_trgm` and `unaccent`, adds
+`search_key(text)` (lower-cased, accent-folded, the one form search compares
+and indexes), the `entity_alias` table (one row per other spelling of an
+entity: alias, transliteration, abbreviation, former name, misspelling, with
+an optional language and a source) and trigram indexes on names and aliases.
+The query folds the term the same way and takes the best of trigram word
+similarity, a prefix match, and an exact short name or code, keeps one row
+per entity with its best match, and says whether the name or an alias
+matched — and which alias — while always returning the canonical name
+(rule 1). Seed `006` gives the seeded catalog its common spellings (`Man
+Utd`, `Perspolis`, `Piroozi`, `EPL`, `Champions League`, `Mo Salah`, `VVD`)
+and Persian transliterations (`پرسپولیس`, `لیگ برتر انگلیس`, `محمد صلاح`, …).
+The web page `/[locale]/search?q=` is a plain GET form (the URL is the
+state) listing each hit with its kind, secondary line and "also known as"
+when an alias matched, linking to the competition, team or player page; the
+navigation bar carries the search box. **Aliases and common spellings match:**
+the HTTP suite inserts a club with an English alias, a misspelling and a
+Persian transliteration, a competition with an abbreviation and a player
+with an accented surname; `the zebras`, `zebrafisch` and `گورخرماهی` each
+return the club first under its canonical name with the alias named,
+`testovic` finds `Testović` with accents folded, a name prefix scores 1, the
+short name and the code match, one row per entity comes back for a shared
+prefix, the type filter and the limit hold, an unrelated term gives an empty
+list and a one-letter term is a 400. 5 unit tests on parsing, 4 on the page
+helpers (web), 4 HTTP tests; typecheck, lint, Prettier; migration down/up
+cycled; full API suite twice, web unit suite.
 
 ---
 

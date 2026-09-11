@@ -17,6 +17,7 @@ import type {
   ProfileView,
   RatingResponse,
   ScoresResponse,
+  SearchResponse,
   SessionResponse,
   TeamPage,
   TeamsResponse,
@@ -144,6 +145,11 @@ export function fetchScores(
   cookie: string | undefined,
 ): Promise<ApiResult<ScoresResponse>> {
   return apiRequest<ScoresResponse>(`/scores?${query}`, cookie === undefined ? {} : { cookie });
+}
+
+/** `GET /search?${query}` (T-038): teams, competitions and people by name or alias. Public. */
+export function fetchSearch(query: string): Promise<ApiResult<SearchResponse>> {
+  return apiRequest<SearchResponse>(`/search?${query}`);
 }
 
 /** `GET /players/:id` (T-037): the player page. Public. */
