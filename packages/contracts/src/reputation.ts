@@ -79,6 +79,45 @@ export interface CareerPointsResponse {
   added?: number;
 }
 
+// ---------------------------------------------------------------------------
+// Leaderboards (blueprint 9.3, T-055): members ranked by their current
+// rating, behind a minimum-sample filter so one lucky result cannot rank
+// above established performers.
+// ---------------------------------------------------------------------------
+
+export interface LeaderboardEntry {
+  /** 1-based; members with the same rating, sample and name share none. */
+  rank: number;
+  username: string;
+  rating: number;
+  tier: RatingTier;
+  settled_count: number;
+  provisional: boolean;
+  established: boolean;
+  formula_version: string;
+  /** ISO 8601, when this member's current snapshot was computed. */
+  computed_at: string;
+}
+
+/** `GET /leaderboard?min_settled=&limit=&offset=`. */
+export interface LeaderboardResponse {
+  /** name@semver of the leaderboard rules (floor, presets, page sizes). */
+  rules_version: string;
+  /** The filter applied: at least this many settled predictions to be ranked. */
+  min_settled: number;
+  /** The lowest `min_settled` the board accepts; the rating is provisional below it. */
+  floor: number;
+  /** Suggested filter values for the UI. */
+  presets: number[];
+  /** Members ranked under this filter, before paging. */
+  total: number;
+  limit: number;
+  offset: number;
+  /** ISO 8601, when this page was assembled. */
+  generated_at: string;
+  entries: LeaderboardEntry[];
+}
+
 /** Blueprint 9.4: eligibility for high-rating privileges. Career Points are not an input. */
 export interface PrivilegeEligibility {
   eligible: boolean;

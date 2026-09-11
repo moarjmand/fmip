@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { Rating } from '@fmip/contracts';
+import type { LeaderboardResponse, Rating } from '@fmip/contracts';
 import { ForecastService } from '../forecast/forecast.service';
 import { IdentityService } from '../identity/identity.service';
 import { SettlementService, type SettledRecord } from '../predictions/predictions.service';
@@ -8,8 +8,14 @@ import {
   type RatingFormula,
   type RatingInput,
   computeRating,
+  tierOf,
 } from './internal/formula';
 import { CareerPointsService } from './career-points.service';
+import {
+  LEADERBOARD_RULES_V1,
+  type LeaderboardQuery,
+  type LeaderboardRules,
+} from './internal/leaderboard';
 import { PostgresRatingStore, type SnapshotRow } from './internal/rating-store';
 
 // The module's public surface. Other modules import from this file only.
@@ -23,6 +29,12 @@ export {
 export { CareerPointsService } from './career-points.service';
 export { ELIGIBILITY_V1, eligibilityFor, type EligibilityRules } from './internal/eligibility';
 export { POINTS_RULES_V1, awardsFor, currentStreak, type PointsRules } from './internal/points';
+export {
+  LEADERBOARD_RULES_V1,
+  parseLeaderboardQuery,
+  type LeaderboardQuery,
+  type LeaderboardRules,
+} from './internal/leaderboard';
 
 export type RecomputeOutcome =
   | { kind: 'unchanged'; rating: Rating }
@@ -41,6 +53,7 @@ export type RecomputeOutcome =
 export class ReputationService {
   /** Replaceable so a test can rate under a different version. */
   formula: RatingFormula = RATING_FORMULA_V1;
+  leaderboardRules: LeaderboardRules = LEADERBOARD_RULES_V1;
 
   constructor(
     private readonly store: PostgresRatingStore,
@@ -49,6 +62,36 @@ export class ReputationService {
     private readonly identity: IdentityService,
     private readonly points: CareerPointsService,
   ) {}
+
+  /**
+   * The board (blueprint 9.3, T-055): current ratings, ranked, behind the
+   * minimum-sample filter. Reads snapshots only, so it is as reproducible as
+   * they are; the tier is derived from the rating under the formula.
+   */
+  async leaderboard(query: LeaderboardQuery): Promise<LeaderboardResponse> {
+    const page = await this.store.board(query.minSettled, query.limit, query.offset);
+    return {
+      rules_version: this.leaderboardRules.version,
+      min_settled: query.minSettled,
+      floor: this.leaderboardRules.floor,
+      presets: [...this.leaderboardRules.presets],
+      total: page.total,
+      limit: query.limit,
+      offset: query.offset,
+      generated_at: new Date().toISOString(),
+      entries: page.rows.map((r) => ({
+        rank: r.rank,
+        username: r.username,
+        rating: r.rating,
+        tier: tierOf(r.rating, this.formula),
+        settled_count: r.settledCount,
+        provisional: r.provisional,
+        established: r.established,
+        formula_version: r.formulaVersion,
+        computed_at: r.computedAt,
+      })),
+    };
+  }
 
   /** The current rating, or null before the first settled prediction. Never computes. */
   async current(userId: string): Promise<Rating | null> {

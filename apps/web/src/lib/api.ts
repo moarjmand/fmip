@@ -7,6 +7,7 @@ import type {
   ForecastVersionsResponse,
   FollowingResponse,
   HealthReport,
+  LeaderboardResponse,
   MatchCentre,
   OwnProfile,
   PredictionResponse,
@@ -138,6 +139,11 @@ export function fetchScores(
   cookie: string | undefined,
 ): Promise<ApiResult<ScoresResponse>> {
   return apiRequest<ScoresResponse>(`/scores?${query}`, cookie === undefined ? {} : { cookie });
+}
+
+/** `GET /leaderboard?${query}` (T-055): ranked current ratings behind the minimum-sample filter. Public. */
+export function fetchLeaderboard(query: string): Promise<ApiResult<LeaderboardResponse>> {
+  return apiRequest<LeaderboardResponse>(`/leaderboard?${query}`);
 }
 
 /** `GET /fixtures/:id`: the match centre payload (T-033). Public. */

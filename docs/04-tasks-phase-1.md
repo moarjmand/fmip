@@ -424,7 +424,7 @@ section on settings (pin, unpin, unfollow, and pickers over `GET /teams` and
 | `[x]` T-052 | Settlement job incl. void rules for postponed/abandoned | T-051 | Re-running settlement is idempotent |
 | `[x]` T-053 | Performance Rating engine, formula in versioned config | T-052 | Rating recomputable from stored records alone |
 | `[x]` T-054 | Career Points | T-052 | Cannot by itself unlock privileges |
-| `[ ]` T-055 | Leaderboards with minimum-sample filters | T-053 | A one-prediction account cannot top the board |
+| `[x]` T-055 | Leaderboards with minimum-sample filters | T-053 | A one-prediction account cannot top the board |
 | `[ ]` T-056 | Prediction history UI | T-050 | Shows submitted version, timestamp, settlement |
 
 **T-050 verified on 2026-09-11.** Migration `..._predictions.sql` adds
@@ -546,6 +546,25 @@ the eligibility answer is byte-for-byte the same, while the points total
 shows the million; an edit to a ledger row is refused (`23001`). 6 unit tests
 on the rules and eligibility, 3 HTTP tests; typecheck, lint, Prettier;
 migration down/up cycled.
+
+**T-055 verified on 2026-09-11.** `GET /leaderboard?min_settled=&limit=&offset=`
+ranks active members by their current rating snapshot (newest per member;
+ties by sample, then name), with `rank()` computed before paging so page two
+continues where page one ended, and `total` for the whole board under the
+filter. `leaderboard@1.0.0` (`internal/leaderboard.ts`, D-037): the
+minimum-sample filter has a floor equal to the formula's provisional
+threshold (30) and presets 30 / 50 / 100; a request under the floor is a 400
+naming the rule, never a bigger board. The web page `/[locale]/leaderboard`
+(`?min=&page=`) shows rank, member, rating, tier, sample and status, with the
+presets and the floor taken from the API, not hard-coded; an unreachable API
+is said out loud. **A one-prediction account cannot top the board:** the HTTP
+suite stores a snapshot with one settled prediction and the highest rating in
+the database (99.5) next to established members, and that account is nowhere
+on the board while the established members rank in rating order; a suspended
+account with a high rating is not shown; `min_settled=50` narrows to the
+established member and `min_settled=1` is refused. 6 unit tests on the rules
+and parsing (API), 9 on the page helpers (web), 3 HTTP tests; typecheck,
+lint, Prettier; full API suite twice, web unit suite.
 
 ---
 
