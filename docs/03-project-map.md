@@ -134,6 +134,9 @@ model's job at training time, not a reason to bend rule 1.
 | `src/app/[locale]/layout.tsx` | Root layout. Owns `<html lang dir>`; 404s an unshipped locale. |
 | `src/app/[locale]/page.tsx` | Placeholder home page. The scores page replaces it in T-031. |
 | `src/app/[locale]/register`, `login`, `forgot-password`, `reset-password`, `verify-email` | The account pages (T-040/T-041). Forms are `ActionForm` over a server action; `verify-email` spends the token on render. |
+| `src/app/[locale]/scores/page.tsx` | The scores page (blueprint 4.1, T-031): one day in the viewer's zone (`?tz=`, else the member's, else UTC), the yesterday / today / next-five-days strip, All / Live / Favourites-only filters, favourites pinned, the rest grouped by competition under its country. An unreachable API is said out loud, never shown as a quiet day. |
+| `src/components/score-card.tsx` | One match on the list: status or clock, teams with red-card marks, score, competition / stage / round / leg / aggregate, kick-off and venue, goals / red cards / VAR, then the labels: the scores coverage state and, for what the platform does not have yet, "Forecast: not on this page yet", "Community: unsupported", "Watch: unsupported". |
+| `src/lib/scores.ts` | The page's pure helpers: reading the query (zone precedence, bad date → today), the API query and page links that keep state, the day strip, status / score / kick-off labels. `scores.spec.ts` covers them. |
 | `src/app/[locale]/u/[username]/page.tsx` | A member's profile as the API allows this viewer to see it: full, or name-only when restricted. |
 | `src/app/[locale]/settings/page.tsx` | Profile and privacy forms for the signed-in member; redirects to login otherwise. |
 | `src/components/site-header.tsx` | The navigation bar. Reads the session server-side; shows the visitor as signed out when the API cannot be reached. |
@@ -145,6 +148,7 @@ model's job at training time, not a reason to bend rule 1.
 | `src/i18n/locales.ts` | Which locales ship, the pseudo-locales, and the writing direction of each. |
 | `src/lib/api.ts` | Every call to `apps/api`, server-side only, typed by `@fmip/contracts`. Failure is a value (`status` 0 = unreachable), never a throw. |
 | `tests/e2e/rtl.spec.ts` | The RTL check. Asserts computed layout, never screenshots. |
+| `tests/e2e/scores.spec.ts` | The scores page without an API: the strip, the filters, state kept in links, the unreachable notice, the RTL mirror. |
 | `playwright.config.ts` | Runs the E2E suite against a production build. |
 | `Dockerfile` | Multi-stage build on Next's standalone output. Built from the repository root. |
 | `src/proxy.ts` | Redirects any path without a locale segment to the default locale. |

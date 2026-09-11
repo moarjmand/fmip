@@ -227,7 +227,7 @@ are seven runs, and T-025 reads them together. The second run (2026-09-11 05:04 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-030 | Scores API: date range, filters, grouping, favourites | T-011, T-042 (was T-026, D-033) | Yesterday / today / next five days all correct in user timezone |
-| `[ ]` T-031 | Scores page | T-030 | Matches blueprint 4.1 card fields, or labels them unsupported |
+| `[x]` T-031 | Scores page | T-030 | Matches blueprint 4.1 card fields, or labels them unsupported |
 | `[ ]` T-032 | SSE gateway + client subscription with snapshot-on-reconnect | T-026 | Score changes appear without refresh; staleness is visible |
 | `[ ]` T-033 | Match centre API | T-027 | Header, timeline, stats, form, H2H, coverage states |
 | `[ ]` T-034 | Match centre page | T-033, T-032 | Works before, during and after a match |
@@ -256,6 +256,23 @@ by the profile boundary's `compareByFavourites`), followed ones lift their
 group, and `favourites=1` narrows to follows; without a session it is 401.
 Filters by live, country and competition proved on the same data. Data: rows
 inserted by the test (D-033), not a provider. 125 API tests, typecheck, lint.
+
+**T-031 verified on 2026-09-11.** `/[locale]/scores` renders `GET /scores` for
+one day: the strip is yesterday, today and the next five days in the viewer's
+zone (`?tz=`, else the signed-in member's `timezone`, else UTC), and the day,
+zone and filters survive every link. **Matches blueprint 4.1 card fields, or
+labels them unsupported:** each card shows teams, score, status and live
+clock; competition, stage, round, leg and aggregate; red-card marks and the
+goal / red-card / VAR incidents; venue and kick-off in the viewer's zone; the
+scores coverage state as a label. The three fields the platform does not have
+yet are labelled on every card ("Forecast: not on this page yet", "Community:
+unsupported", "Watch: unsupported") rather than left blank. Smoke test against
+the running API and the seeded database: `/en/scores?date=2025-01-05` rendered
+the seeded Liverpool 2–2 Manchester United as `FT`, one card, "Times in UTC".
+With the API stopped the page shows the unreachable notice and no cards; the
+Playwright suite (`tests/e2e/scores.spec.ts`) asserts that, the seven-link
+strip with "Today" current, state carried in links, and the RTL mirror, and
+runs in CI's E2E job. 22 web unit tests, typecheck, lint, stylelint.
 
 ---
 
