@@ -21,8 +21,11 @@ export async function SiteHeader({ locale }: { locale: string }) {
         <Link href={href('')} className="font-semibold">
           FMIP
         </Link>
-        <Link href={href('/scores')} className="me-auto" data-testid="nav-scores">
+        <Link href={href('/scores')} data-testid="nav-scores">
           Scores
+        </Link>
+        <Link href={href('/leaderboard')} className="me-auto" data-testid="nav-leaderboard">
+          Leaderboard
         </Link>
 
         {me === null ? (

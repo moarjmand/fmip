@@ -108,6 +108,8 @@ export type {
   CareerPoints,
   CareerPointsResponse,
   EligibilityResponse,
+  LeaderboardEntry,
+  LeaderboardResponse,
   PointsReason,
   PointsTransaction,
   PrivilegeEligibility,

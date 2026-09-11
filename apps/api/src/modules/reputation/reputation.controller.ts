@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   ForbiddenException,
   Get,
@@ -6,6 +7,7 @@ import {
   NotFoundException,
   Param,
   Post,
+  Query,
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -13,13 +15,18 @@ import type {
   ApiError,
   CareerPointsResponse,
   EligibilityResponse,
+  LeaderboardResponse,
   RatingResponse,
 } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { CareerPointsService } from './career-points.service';
 import { eligibilityFor } from './internal/eligibility';
+import { parseLeaderboardQuery } from './internal/leaderboard';
 import { ReputationService } from './reputation.service';
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
 const NO_USER: ApiError = { error: 'not_found', message: 'No such member.' };
@@ -59,6 +66,24 @@ export class ReputationController {
     const user = await this.identity.userByUsername(username.toLowerCase());
     if (user === null) throw new NotFoundException(NO_USER);
     return { username: user.username, rating: await this.reputation.current(user.id) };
+  }
+
+  /** Public (blueprint 9.3). The minimum-sample filter has a floor; below it is a 400, not a bigger board. */
+  @Get('leaderboard')
+  async leaderboard(@Query() query: unknown): Promise<LeaderboardResponse> {
+    const parsed = parseLeaderboardQuery(
+      isRecord(query) ? query : {},
+      this.reputation.leaderboardRules,
+    );
+    if (!parsed.ok) {
+      const error: ApiError = {
+        error: 'validation',
+        message: 'The request is not valid.',
+        fields: parsed.fields,
+      };
+      throw new BadRequestException(error);
+    }
+    return this.reputation.leaderboard(parsed.query);
   }
 
   @Get('me/points')

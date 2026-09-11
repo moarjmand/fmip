@@ -26,6 +26,22 @@ export interface NewSnapshot {
   inputsHash: string;
 }
 
+export interface BoardRow {
+  rank: number;
+  username: string;
+  rating: number;
+  settledCount: number;
+  provisional: boolean;
+  established: boolean;
+  formulaVersion: string;
+  computedAt: string;
+}
+
+export interface BoardPage {
+  total: number;
+  rows: BoardRow[];
+}
+
 /** SQL for rating snapshots (D-025). Insert-only; the newest per user is current. */
 @Injectable()
 export class PostgresRatingStore {
@@ -93,6 +109,74 @@ export class PostgresRatingStore {
       established: snapshot.established,
       inputsHash: snapshot.inputsHash,
       computedAt: r.computed_at.toISOString(),
+    };
+  }
+
+  /**
+   * The current snapshot of every active member with at least `minSettled`
+   * settled predictions, ranked by rating, then sample, then name. `total`
+   * counts the whole board under the filter; the page is `limit` from
+   * `offset`. Ranks are computed before paging, so page two starts where page
+   * one ended.
+   */
+  async board(minSettled: number, limit: number, offset: number): Promise<BoardPage> {
+    const { rows } = await this.pool.query<{
+      rank: string;
+      username: string;
+      rating: string;
+      settled_count: number;
+      provisional: boolean;
+      established: boolean;
+      formula_version: string;
+      computed_at: Date;
+      total: string;
+    }>(
+      `WITH latest AS (
+         SELECT DISTINCT ON (s.user_id)
+                s.user_id, s.rating, s.settled_count, s.provisional, s.established,
+                s.formula_version, s.computed_at
+           FROM rating_snapshot s
+          ORDER BY s.user_id, s.computed_at DESC, s.id DESC
+       ), ranked AS (
+         SELECT l.rating, l.settled_count, l.provisional, l.established, l.formula_version,
+                l.computed_at, u.username,
+                rank() OVER (ORDER BY l.rating DESC, l.settled_count DESC, u.username ASC) AS rank
+           FROM latest l
+           JOIN user_account u ON u.id = l.user_id
+          WHERE l.settled_count >= $1 AND u.status = 'active'
+       )
+       SELECT rank::text, username, rating, settled_count, provisional, established,
+              formula_version, computed_at, count(*) OVER ()::text AS total
+         FROM ranked
+        ORDER BY rank
+        LIMIT $2 OFFSET $3`,
+      [minSettled, limit, offset],
+    );
+    let total = Number(rows[0]?.total ?? 0);
+    if (rows.length === 0 && offset > 0) {
+      // Past the end: the window count is gone with the rows, so count again.
+      const counted = await this.pool.query<{ n: string }>(
+        `SELECT count(*)::text AS n FROM (
+           SELECT DISTINCT ON (s.user_id) s.user_id, s.settled_count
+             FROM rating_snapshot s ORDER BY s.user_id, s.computed_at DESC, s.id DESC
+         ) l JOIN user_account u ON u.id = l.user_id
+         WHERE l.settled_count >= $1 AND u.status = 'active'`,
+        [minSettled],
+      );
+      total = Number(counted.rows[0]?.n ?? 0);
+    }
+    return {
+      total,
+      rows: rows.map((r) => ({
+        rank: Number(r.rank),
+        username: r.username,
+        rating: Number(r.rating),
+        settledCount: r.settled_count,
+        provisional: r.provisional,
+        established: r.established,
+        formulaVersion: r.formula_version,
+        computedAt: r.computed_at.toISOString(),
+      })),
     };
   }
 

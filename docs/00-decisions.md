@@ -898,3 +898,35 @@ windows: not reproducible from stored rows.
 keep their version. Points for approved analysis and achievements are new
 reasons under a new version when those features exist (Phase 2). The admin
 surface (T-070) edits `points.ts` and `eligibility.ts`, not code paths.
+
+## D-037 — The leaderboard's minimum-sample filter has a floor, and the floor is the provisional threshold
+**Status:** Accepted · 2026-09-11
+
+**Decision.** `GET /leaderboard` ranks members by their current rating
+snapshot and accepts a `min_settled` filter that can be raised but never
+lowered below the formula's provisional threshold (30 settled predictions in
+`performance-rating@1.0.0`). A request under the floor is refused with a 400
+that names the rule; it is not clamped. Presets (30 / 50 / 100), the floor and
+page limits are `leaderboard@1.0.0` in `internal/leaderboard.ts` and are sent
+with every response, so the page shows what the API enforces. The board reads
+snapshots only and derives nothing else; suspended and deleted accounts are
+left out. Period, competition, friends and group boards wait for their data
+(Phase 2 and the competition pages).
+
+**Why.** Blueprint 9.3: "minimum-prediction filters prevent a member with one
+lucky result from ranking above established performers." A filter the client
+can set to 1 is not a guarantee; a floor is. Refusing rather than clamping
+keeps the contract honest: the caller learns the rule instead of receiving a
+board that silently differs from what it asked for. Tying the floor to the
+provisional threshold means "ranked" and "not provisional" are the same
+statement.
+
+**Alternatives considered.** No floor, presets only in the UI: a URL edit
+would defeat it. A floor at the established threshold (50): too strict for a
+young platform; 50 is a preset instead. Ranking by Career Points as an
+alternative board: activity is not skill (D-036); a points board can come
+later, labelled as activity.
+
+**Consequences.** Changing the floor is a version bump of the leaderboard
+rules; the admin surface (T-070) edits the rules object. Ranks are dense
+across pages and reproducible from the snapshots.
