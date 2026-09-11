@@ -16,10 +16,12 @@ export function LiveScores({
   initial,
   streamQuery,
   timeZone,
+  locale,
 }: {
   initial: ScoresResponse;
   streamQuery: string;
   timeZone: string;
+  locale: string;
 }) {
   const [scores, setScores] = useState(initial);
   const [clock, setClock] = useState<LiveClock>(INITIAL_CLOCK);
@@ -72,7 +74,7 @@ export function LiveScores({
               <h2 className="text-lg font-semibold">Your favourites</h2>
               <ul className="flex flex-col gap-2">
                 {scores.pinned.map((card) => (
-                  <ScoreCard key={card.id} card={card} timeZone={timeZone} />
+                  <ScoreCard key={card.id} card={card} timeZone={timeZone} locale={locale} />
                 ))}
               </ul>
             </section>
@@ -93,7 +95,7 @@ export function LiveScores({
               </h2>
               <ul className="flex flex-col gap-2">
                 {group.fixtures.map((card) => (
-                  <ScoreCard key={card.id} card={card} timeZone={timeZone} />
+                  <ScoreCard key={card.id} card={card} timeZone={timeZone} locale={locale} />
                 ))}
               </ul>
             </section>

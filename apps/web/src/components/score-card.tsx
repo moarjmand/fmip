@@ -1,4 +1,5 @@
 import type { ScoreCard as ScoreCardData, ScoreCardIncident } from '@fmip/contracts';
+import Link from 'next/link';
 import { COVERAGE_LABEL, formatKickoff, scoreLabel, statusLabel } from '@/lib/scores';
 
 const INCIDENT_LABEL: Record<ScoreCardIncident['kind'], string> = {
@@ -17,7 +18,15 @@ const INCIDENT_LABEL: Record<ScoreCardIncident['kind'], string> = {
  * rather than left as an empty slot (rule 3): the forecast summary arrives
  * with T-065, community totals with E5, viewing availability with Phase 2.
  */
-export function ScoreCard({ card, timeZone }: { card: ScoreCardData; timeZone: string }) {
+export function ScoreCard({
+  card,
+  timeZone,
+  locale,
+}: {
+  card: ScoreCardData;
+  timeZone: string;
+  locale: string;
+}) {
   const sentOff = (n: number): string => (n === 0 ? '' : n === 1 ? ' 🟥' : ` 🟥×${n}`);
   const stageBits = [
     card.stage?.name,
@@ -35,7 +44,11 @@ export function ScoreCard({ card, timeZone }: { card: ScoreCardData; timeZone: s
       data-fixture-id={card.id}
       data-status={card.status}
     >
-      <div className="flex items-center gap-3">
+      <Link
+        href={`/${locale}/match/${card.id}`}
+        className="flex items-center gap-3"
+        data-testid="match-link"
+      >
         <span
           className={`w-16 shrink-0 text-sm ${card.status === 'live' ? 'font-semibold' : 'opacity-70'}`}
           data-testid="score-status"
@@ -56,7 +69,7 @@ export function ScoreCard({ card, timeZone }: { card: ScoreCardData; timeZone: s
           {sentOff(card.red_cards.away)}
           {card.away.name}
         </span>
-      </div>
+      </Link>
 
       <div className="flex flex-wrap gap-x-3 text-xs opacity-70">
         <span>{card.competition.name}</span>

@@ -5,6 +5,7 @@ import type {
   FollowedEntity,
   FollowingResponse,
   HealthReport,
+  MatchCentre,
   OwnProfile,
   ProfileView,
   ScoresResponse,
@@ -134,4 +135,9 @@ export function fetchScores(
   cookie: string | undefined,
 ): Promise<ApiResult<ScoresResponse>> {
   return apiRequest<ScoresResponse>(`/scores?${query}`, cookie === undefined ? {} : { cookie });
+}
+
+/** `GET /fixtures/:id`: the match centre payload (T-033). Public. */
+export function fetchMatchCentre(fixtureId: string): Promise<ApiResult<MatchCentre>> {
+  return apiRequest<MatchCentre>(`/fixtures/${encodeURIComponent(fixtureId)}`);
 }
