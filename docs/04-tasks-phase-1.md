@@ -425,7 +425,7 @@ section on settings (pin, unpin, unfollow, and pickers over `GET /teams` and
 | `[x]` T-053 | Performance Rating engine, formula in versioned config | T-052 | Rating recomputable from stored records alone |
 | `[x]` T-054 | Career Points | T-052 | Cannot by itself unlock privileges |
 | `[x]` T-055 | Leaderboards with minimum-sample filters | T-053 | A one-prediction account cannot top the board |
-| `[ ]` T-056 | Prediction history UI | T-050 | Shows submitted version, timestamp, settlement |
+| `[x]` T-056 | Prediction history UI | T-050 | Shows submitted version, timestamp, settlement |
 
 **T-050 verified on 2026-09-11.** Migration `..._predictions.sql` adds
 `user_prediction` (one per member per fixture) and `prediction_version`
@@ -565,6 +565,32 @@ account with a high rating is not shown; `min_settled=50` narrows to the
 established member and `min_settled=1` is refused. 6 unit tests on the rules
 and parsing (API), 9 on the page helpers (web), 3 HTTP tests; typecheck,
 lint, Prettier; full API suite twice, web unit suite.
+
+**T-056 verified on 2026-09-11.** `GET /users/:username/predictions?limit=&offset=`
+and `GET /me/predictions` (`history.controller.ts`) list a member's
+predictions newest kick-off first, each with the fixture as the match centre
+names it (teams, competition, kick-off, status, full-time or current score),
+every version oldest first, the version that stands and the current
+settlement. Visibility is the member's `prediction_history_visibility`,
+decided by the profile boundary (`ProfileService.predictionHistoryAccess`,
+the same `canView` rule as the profile) before anything is serialised: a
+viewer who may not see it receives the restricted shape, the owner always
+sees their own. The profile page shows the Performance Rating (rating, tier,
+status, sample, formula version) and the history: per match the fixture with
+its score, "v2 · Home win 2–1 · confidence 4/5", the submission time in the
+viewer's zone, how it stands (exact score / correct outcome / wrong outcome /
+void with reason / awaiting result / open until kick-off), earlier versions
+one disclosure away, twenty per page. **Shows submitted version, timestamp,
+settlement:** the HTTP suite submits two versions before a six-second
+kick-off and one on a match next week, settles the first match 2–1, and
+reads back version 2 as the one that stands with its submission time before
+kick-off, the settlement (correct outcome, exact score, actual 2–1), the open
+match with no settlement, paging, a 400 for a page outside the limits, a 404
+for an unknown member, and the visibility switch: private hides the list from
+guests and other members but not the owner; friends-only likewise while no
+friendships exist. 3 unit tests on paging (API), 7 on the labels and paging
+(web), 3 HTTP tests; typecheck, lint, Prettier; full API suite twice, web
+unit suite.
 
 ---
 

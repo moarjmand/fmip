@@ -23,6 +23,12 @@ export {
 
 export type FollowOutcome = 'followed' | 'unknown_entity';
 
+/** What the predictions boundary asks before serialising a member's history (T-056). */
+export type HistoryAccess =
+  | { kind: 'unknown' }
+  | { kind: 'restricted'; username: string; visibility: 'friends' | 'private' }
+  | { kind: 'visible'; userId: string; username: string; isSelf: boolean };
+
 /**
  * The profile boundary: what a member shows, to whom, and what they follow
  * (T-041, T-042). Privacy is decided here, server-side, before anything is
@@ -60,6 +66,35 @@ export class ProfileService {
       kind: 'visible',
       profile: toPublicProfile(row, await this.following.favouriteTeamNames(row.user_id)),
       is_self: viewerId === row.user_id,
+    };
+  }
+
+  /**
+   * Whether `viewerId` may read `username`'s prediction history (blueprint
+   * 7.2: the history has its own visibility setting). The same `canView`
+   * rule as the profile, applied to `prediction_history_visibility`.
+   */
+  async predictionHistoryAccess(username: string, viewerId: string | null): Promise<HistoryAccess> {
+    const row = await this.store.findByUsername(username.toLowerCase());
+    if (row === null) return { kind: 'unknown' };
+
+    const areFriends =
+      viewerId !== null && viewerId !== row.user_id
+        ? await this.friendships.areFriends(viewerId, row.user_id)
+        : false;
+
+    if (!canView(row.prediction_history_visibility, row.user_id, viewerId, areFriends)) {
+      return {
+        kind: 'restricted',
+        username: row.username,
+        visibility: row.prediction_history_visibility === 'friends' ? 'friends' : 'private',
+      };
+    }
+    return {
+      kind: 'visible',
+      userId: row.user_id,
+      username: row.username,
+      isSelf: viewerId === row.user_id,
     };
   }
 
