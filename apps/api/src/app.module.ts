@@ -9,6 +9,7 @@ import { IngestionModule } from './modules/ingestion/ingestion.module';
 import { PredictionsModule } from './modules/predictions/predictions.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { ReputationModule } from './modules/reputation/reputation.module';
+import { SearchModule } from './modules/search/search.module';
 
 /**
  * The remaining modules from `docs/02-architecture.md` are registered here as
@@ -28,6 +29,7 @@ import { ReputationModule } from './modules/reputation/reputation.module';
     FixturesModule,
     PredictionsModule,
     ReputationModule,
+    SearchModule,
   ],
 })
 export class AppModule {}

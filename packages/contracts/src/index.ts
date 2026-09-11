@@ -138,3 +138,5 @@ export type {
   RatingResponse,
   RatingTier,
 } from './reputation';
+export { SEARCH_ENTITY_TYPES } from './search';
+export type { SearchEntityType, SearchResponse, SearchResult } from './search';

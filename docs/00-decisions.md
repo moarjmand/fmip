@@ -960,3 +960,33 @@ slow.
 **Consequences.** Group tables and knockout brackets are additions to the
 standings boundary, not a new shape. Point deductions need a table of
 adjustments before a covered competition applies one.
+
+## D-039 — Entity search is Postgres trigrams over the catalog plus an alias table
+**Status:** Accepted · 2026-09-12
+
+**Decision.** Phase 1 search (blueprint 5, "common local spellings,
+transliterations and aliases") runs inside PostgreSQL: `pg_trgm` word
+similarity and prefix matching over `search_key(name)` — lower-cased and
+accent-folded through `unaccent` — for teams, competitions and people, plus
+`entity_alias`, one row per other spelling of an entity (alias,
+transliteration, abbreviation, former name, misspelling; optional language;
+a source). Results always carry the canonical name and say whether the name
+or an alias matched. No separate search index or service is introduced.
+
+**Why.** The catalog is small and the ask is entity lookup, not full-text
+search over articles. Trigrams handle typos and partial words; `unaccent`
+handles diacritics; everything else (Persian spellings, nicknames, former
+names) is data that belongs in a table an admin can edit, not in code. One
+store, one transaction, no second system to keep in step (rule 2 keeps
+provider names out of it: aliases are ours).
+
+**Alternatives considered.** An external index (Meilisearch, OpenSearch):
+better ranking and typo tolerance across languages, but a new dependency and
+a sync problem for a catalog of hundreds of rows. Full-text `tsvector`: built
+for prose, poor at partial names.
+
+**Consequences.** `search_key` is declared immutable over the shipped
+`unaccent` dictionary; changing the dictionary means reindexing. Articles,
+groups and user search (blueprint 5, Phase 2) will need either `tsvector` or
+the external index revisited; nothing here blocks that. Alias entry becomes
+an admin surface (T-070).
