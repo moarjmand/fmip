@@ -122,17 +122,30 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
 
     afterAll(async () => {
       // Forecasts refuse DELETE by trigger (that is the point), so test rows are
-      // removed with the trigger disabled, and only the rows this run wrote.
+      // removed with the trigger disabled, inside one transaction: the ALTER
+      // TABLE lock serialises this with any other suite doing the same, so no
+      // suite ever deletes while another has re-enabled the trigger.
       if (createdIds.length > 0) {
-        await pool.query('ALTER TABLE forecast DISABLE TRIGGER forecast_immutable');
-        await pool.query('ALTER TABLE input_snapshot DISABLE TRIGGER input_snapshot_immutable');
-        await pool.query(`DELETE FROM forecast WHERE id = ANY($1::uuid[])`, [createdIds]);
-        await pool.query(
-          `DELETE FROM input_snapshot s WHERE NOT EXISTS
-           (SELECT 1 FROM forecast f WHERE f.input_snapshot_id = s.id)`,
-        );
-        await pool.query('ALTER TABLE input_snapshot ENABLE TRIGGER input_snapshot_immutable');
-        await pool.query('ALTER TABLE forecast ENABLE TRIGGER forecast_immutable');
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+          await client.query('ALTER TABLE forecast DISABLE TRIGGER forecast_immutable');
+          await client.query('ALTER TABLE input_snapshot DISABLE TRIGGER input_snapshot_immutable');
+          await client.query(`DELETE FROM forecast WHERE id = ANY($1::uuid[])`, [createdIds]);
+          await client.query(
+            `DELETE FROM input_snapshot s WHERE s.fixture_id = $1 AND NOT EXISTS
+               (SELECT 1 FROM forecast f WHERE f.input_snapshot_id = s.id)`,
+            [FIXTURE],
+          );
+          await client.query('ALTER TABLE input_snapshot ENABLE TRIGGER input_snapshot_immutable');
+          await client.query('ALTER TABLE forecast ENABLE TRIGGER forecast_immutable');
+          await client.query('COMMIT');
+        } catch (error: unknown) {
+          await client.query('ROLLBACK');
+          throw error;
+        } finally {
+          client.release();
+        }
       }
       await pool.query(`DELETE FROM user_account WHERE username LIKE $1`, [`fc_${RUN}%`]);
       await pool.end();

@@ -228,7 +228,7 @@ are seven runs, and T-025 reads them together. The second run (2026-09-11 05:04 
 |---|---|---|---|
 | `[x]` T-030 | Scores API: date range, filters, grouping, favourites | T-011, T-042 (was T-026, D-033) | Yesterday / today / next five days all correct in user timezone |
 | `[x]` T-031 | Scores page | T-030 | Matches blueprint 4.1 card fields, or labels them unsupported |
-| `[ ]` T-032 | SSE gateway + client subscription with snapshot-on-reconnect | T-026 | Score changes appear without refresh; staleness is visible |
+| `[x]` T-032 | SSE gateway + client subscription with snapshot-on-reconnect | T-011 (was T-026, D-033/D-034) | Score changes appear without refresh; staleness is visible |
 | `[x]` T-033 | Match centre API | T-011, T-012 (was T-027, D-033) | Header, timeline, stats, form, H2H, coverage states |
 | `[ ]` T-034 | Match centre page | T-033, T-032 | Works before, during and after a match |
 | `[ ]` T-035 | Competition page (table, fixtures, results, leaders) | T-030 | Season selector works; links resolve |
@@ -296,6 +296,29 @@ our own history (`available` at five, `limited` below, `not_supplied` at
 none). The HTTP suite builds a five-fixture cluster on the seeded catalog and
 checks each module, plus 404 for unknown and malformed ids. Data: test rows
 (D-033). 6 unit tests for the coverage rules. 134 API tests, typecheck, lint.
+
+**T-032 verified on 2026-09-11.** The gateway is `GET /scores/stream` and
+`GET /fixtures/:id/stream` in the `fixtures` boundary, server-sent events
+(D-034). The change source is Postgres itself: migration
+`..._fixture-change-notify.sql` raises `NOTIFY fixture_change` after any write
+to a fixture, its participants, scores, periods, incidents, line-ups or
+statistics, and the API's one `LISTEN` connection fans the notifications out to
+every open stream. **Score changes appear without refresh:** the HTTP suite
+listens on a real port, reads a first `snapshot` off the wire, updates a score
+and the live minute in the database, and reads the next `snapshot` carrying
+1–0 and minute 23 — no poll, no refresh; a burst of writes is debounced into
+one push. **Staleness is visible:** every event carries `id` = the time it was
+true, a `heartbeat` goes out every 15 s, a broken feed sends `stale` instead of
+silence, and the first event on every (re)connection is a full snapshot, so a
+reconnecting client can never keep an old card (snapshot-on-reconnect). On the
+web side the page renders the server snapshot, then `live-scores.tsx`
+subscribes through the web app's own `/api/scores/stream` (D-027) and shows
+one freshness line: connecting, "Live · updated hh:mm:ss", "Stale · last
+update …" after 45 s without a heartbeat, or "Live updates unavailable" when
+no picture ever arrived; the proxy answers 503 with a JSON error when the API
+is unreachable, which Playwright checks along with the page. Data: test rows
+(D-033). 3 gateway tests on the wire, 5 SSE unit tests, 6 freshness unit
+tests; typecheck, lint, Prettier.
 
 ---
 

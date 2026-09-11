@@ -21,6 +21,15 @@ test.describe('scores page', () => {
 
     await expect(page.getByTestId('scores-unreachable')).toBeVisible();
     await expect(page.getByTestId('score-card')).toHaveCount(0);
+    // No live indicator either: nothing is being kept current.
+    await expect(page.getByTestId('live-state')).toHaveCount(0);
+
+    // The stream proxy answers honestly for an unreachable API.
+    const stream = await page.request.get(
+      '/api/scores/stream?from=2087-01-05&to=2087-01-05&tz=UTC',
+    );
+    expect(stream.status()).toBe(503);
+    expect(await stream.json()).toMatchObject({ error: 'unavailable' });
   });
 
   test('keeps the chosen day and zone in the strip links', async ({ page }) => {

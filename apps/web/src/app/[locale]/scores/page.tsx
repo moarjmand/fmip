@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ScoreCard } from '@/components/score-card';
+import { LiveScores } from '@/components/live-scores';
 import { fetchMe, fetchScores } from '@/lib/api';
 import { apiQuery, dayStrip, pageHref, readScoresQuery } from '@/lib/scores';
 import { sessionCookieHeader } from '@/lib/session';
@@ -13,8 +13,9 @@ export const metadata: Metadata = { title: 'Scores · FMIP' };
  * The scores page (blueprint 4.1, T-031): one day at a time, in the viewer's
  * zone, with the yesterday / today / next-five-days strip, live and
  * favourites filters, favourites pinned, the rest grouped by competition.
- * Data comes from `GET /scores`; when the API cannot be reached the page says
- * so instead of rendering an empty list that looks like a quiet day.
+ * Data comes from `GET /scores`, then stays current over the web app's own
+ * SSE proxy (T-032); when the API cannot be reached the page says so instead
+ * of rendering an empty list that looks like a quiet day.
  */
 export default async function ScoresPage({
   params,
@@ -79,47 +80,9 @@ export default async function ScoresPage({
             ? 'Sign in to filter by your favourites.'
             : 'The scores service is unreachable right now, so nothing can be shown for this day.'}
         </p>
-      ) : result.data.total === 0 ? (
-        <p className="opacity-70" data-testid="scores-empty">
-          No fixtures {q.live ? 'live' : ''} on this day{q.favourites ? ' among your follows' : ''}.
-        </p>
       ) : (
-        <>
-          {result.data.pinned.length > 0 && (
-            <section className="flex flex-col gap-2" data-testid="pinned">
-              <h2 className="text-lg font-semibold">Your favourites</h2>
-              <ul className="flex flex-col gap-2">
-                {result.data.pinned.map((card) => (
-                  <ScoreCard key={card.id} card={card} timeZone={q.timezone} />
-                ))}
-              </ul>
-            </section>
-          )}
-          {result.data.groups.map((group) => (
-            <section
-              key={group.competition.id}
-              className="flex flex-col gap-2"
-              data-testid="competition-group"
-            >
-              <h2 className="text-lg font-semibold">
-                {group.country !== null && (
-                  <span className="me-2 text-sm font-normal uppercase opacity-60">
-                    {group.country.name}
-                  </span>
-                )}
-                {group.competition.name}
-              </h2>
-              <ul className="flex flex-col gap-2">
-                {group.fixtures.map((card) => (
-                  <ScoreCard key={card.id} card={card} timeZone={q.timezone} />
-                ))}
-              </ul>
-            </section>
-          ))}
-          <p className="text-xs opacity-60">
-            Generated <time dateTime={result.data.generated_at}>{result.data.generated_at}</time>.
-          </p>
-        </>
+        // The snapshot renders now; the client keeps it current over SSE (T-032).
+        <LiveScores initial={result.data} streamQuery={apiQuery(q)} timeZone={q.timezone} />
       )}
     </main>
   );
