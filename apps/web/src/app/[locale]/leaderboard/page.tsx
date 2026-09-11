@@ -10,10 +10,23 @@ import {
   statusLabel,
   tierLabel,
 } from '@/lib/leaderboard';
+import { pageMetadata } from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = { title: 'Leaderboard · FMIP' };
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return pageMetadata({
+    locale,
+    path: '/leaderboard',
+    title: 'Leaderboard · FMIP',
+    description: 'Members ranked by Performance Rating, behind a minimum-sample filter.',
+  });
+}
 
 /**
  * The leaderboard (blueprint 9.3, T-055): members ranked by their current

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ForecastPanel } from '@/components/forecast-panel';
+import { JsonLd } from '@/components/json-ld';
 import { LiveMatch } from '@/components/live-match';
 import { PredictionSection } from '@/components/prediction-section';
 import {
@@ -12,6 +13,7 @@ import {
   fetchOwnPrediction,
 } from '@/lib/api';
 import { isTimeZone } from '@/lib/scores';
+import { matchJsonLd, pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
@@ -21,14 +23,19 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ locale: string; id: string }>;
 }): Promise<Metadata> {
-  const { id } = await params;
-  if (!UUID.test(id)) return { title: 'Match · FMIP' };
+  const { locale, id } = await params;
+  if (!UUID.test(id)) return { title: 'Match · FMIP', robots: { index: false, follow: false } };
   const result = await fetchMatchCentre(id);
-  if (!result.ok) return { title: 'Match · FMIP' };
+  if (!result.ok) return pageMetadata({ locale, path: `/match/${id}`, title: 'Match · FMIP' });
   const f = result.data.fixture;
-  return { title: `${f.home.name} v ${f.away.name} · FMIP` };
+  return pageMetadata({
+    locale,
+    path: `/match/${f.id}`,
+    title: `${f.home.name} v ${f.away.name} · FMIP`,
+    description: `${f.home.name} v ${f.away.name}: ${f.competition.name} ${f.season.label}, kick-off ${f.kickoff_at}. Line-ups, timeline, statistics, form, forecast and predictions.`,
+  });
 }
 
 /**
@@ -90,28 +97,31 @@ export default async function MatchPage({
           </p>
         </>
       ) : (
-        <LiveMatch
-          initial={result.data}
-          timeZone={timeZone}
-          locale={locale}
-          panels={
-            <>
-              <PredictionSection
-                locale={locale}
-                fixture={result.data.fixture}
-                me={me}
-                current={prediction}
-              />
-              <ForecastPanel
-                forecasts={forecasts !== null && forecasts.ok ? forecasts.data : null}
-                evaluations={evaluations !== null && evaluations.ok ? evaluations.data : null}
-                home={result.data.fixture.home.name}
-                away={result.data.fixture.away.name}
-                timeZone={timeZone}
-              />
-            </>
-          }
-        />
+        <>
+          <JsonLd data={matchJsonLd(locale, result.data.fixture)} />
+          <LiveMatch
+            initial={result.data}
+            timeZone={timeZone}
+            locale={locale}
+            panels={
+              <>
+                <PredictionSection
+                  locale={locale}
+                  fixture={result.data.fixture}
+                  me={me}
+                  current={prediction}
+                />
+                <ForecastPanel
+                  forecasts={forecasts !== null && forecasts.ok ? forecasts.data : null}
+                  evaluations={evaluations !== null && evaluations.ok ? evaluations.data : null}
+                  home={result.data.fixture.home.name}
+                  away={result.data.fixture.away.name}
+                  timeZone={timeZone}
+                />
+              </>
+            }
+          />
+        </>
       )}
     </main>
   );

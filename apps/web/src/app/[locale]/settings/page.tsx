@@ -7,7 +7,11 @@ import { fetchCompetitions, fetchFollowing, fetchOwnProfile, fetchTeams } from '
 import { updatePrivacyAction, updateProfileAction } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
 
-export const metadata: Metadata = { title: 'Settings · FMIP' };
+// A member's own page: never indexed.
+export const metadata: Metadata = {
+  title: 'Settings · FMIP',
+  robots: { index: false, follow: false },
+};
 export const dynamic = 'force-dynamic';
 
 const VISIBILITY_LABELS: Record<(typeof PRIVACY_VISIBILITIES)[number], string> = {

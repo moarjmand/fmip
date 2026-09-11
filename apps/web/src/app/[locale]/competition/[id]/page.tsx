@@ -13,7 +13,9 @@ import {
   seasonHref,
 } from '@/lib/competition';
 import { moduleState } from '@/lib/match';
+import { competitionJsonLd, pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { JsonLd } from '@/components/json-ld';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,17 +25,27 @@ export async function generateMetadata({
   params,
   searchParams,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ locale: string; id: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }): Promise<Metadata> {
-  const [{ id }, query] = await Promise.all([params, searchParams]);
-  if (!UUID.test(id)) return { title: 'Competition · FMIP' };
-  const result = await fetchCompetition(id, competitionQuery(readSeasonParam(query)));
-  return {
-    title: result.ok
-      ? `${result.data.competition.name} ${result.data.season.label} · FMIP`
-      : 'Competition · FMIP',
-  };
+  const [{ locale, id }, query] = await Promise.all([params, searchParams]);
+  if (!UUID.test(id))
+    return { title: 'Competition · FMIP', robots: { index: false, follow: false } };
+  const season = readSeasonParam(query);
+  const result = await fetchCompetition(id, competitionQuery(season));
+  if (!result.ok)
+    return pageMetadata({ locale, path: `/competition/${id}`, title: 'Competition · FMIP' });
+  const c = result.data.competition;
+  // The current season is the canonical page; an older season is its own URL.
+  const path = result.data.season.is_current
+    ? `/competition/${c.id}`
+    : `/competition/${c.id}?season=${result.data.season.id}`;
+  return pageMetadata({
+    locale,
+    path,
+    title: `${c.name} ${result.data.season.label} · FMIP`,
+    description: `${c.name} ${result.data.season.label}: table, results, fixtures and top scorers.`,
+  });
 }
 
 /**
@@ -73,6 +85,7 @@ export default async function CompetitionPage({
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-8 p-8">
+      <JsonLd data={competitionJsonLd(locale, page)} />
       <header className="flex flex-col gap-1" data-testid="competition-header">
         <p className="text-sm opacity-70">
           {c.country !== null ? `${c.country.name} · ` : ''}

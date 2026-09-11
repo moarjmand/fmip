@@ -135,7 +135,10 @@ model's job at training time, not a reason to bend rule 1.
 
 | Path | Purpose |
 |---|---|
-| `src/app/[locale]/layout.tsx` | Root layout. Owns `<html lang dir>`; 404s an unshipped locale. |
+| `src/app/[locale]/layout.tsx` | Root layout. Owns `<html lang dir>`; 404s an unshipped locale; sets `metadataBase` and the default canonical, alternates and robots rule through `pageMetadata` (T-039). |
+| `src/app/robots.ts`, `src/app/sitemap.ts` | `/robots.txt` (pseudo-locale, the web app's API routes and member pages disallowed; the sitemap named) and `/sitemap.xml` (static pages plus every active competition and team per indexable locale, from the catalog per request) — T-039, D-040. |
+| `src/lib/seo.ts` | The SEO surface (T-039): `siteUrl` (`SITE_URL`), `canonicalUrl`, `pageMetadata` (canonical, language alternates with `x-default`, robots, Open Graph) and the schema.org JSON-LD builders (`WebSite`, `SportsEvent`, `SportsOrganization`, `SportsTeam`, `Person`, breadcrumbs). `seo.spec.ts` covers them. |
+| `src/components/json-ld.tsx` | Renders structured data as `<script type="application/ld+json">` on the server, `<` escaped. |
 | `src/app/[locale]/page.tsx` | Placeholder home page. The scores page replaces it in T-031. |
 | `src/app/[locale]/register`, `login`, `forgot-password`, `reset-password`, `verify-email` | The account pages (T-040/T-041). Forms are `ActionForm` over a server action; `verify-email` spends the token on render. |
 | `src/app/[locale]/leaderboard/page.tsx` | The leaderboard (blueprint 9.3, T-055): members ranked by current rating behind the minimum-sample filter (`?min=`, `?page=`), presets and floor from the API, a 400 for a filter under the floor said out loud, an unreachable API likewise. |
@@ -175,6 +178,7 @@ model's job at training time, not a reason to bend rule 1.
 | `src/app/globals.css` | Tailwind entry point and global styles. |
 | `src/i18n/locales.ts` | Which locales ship, the pseudo-locales, and the writing direction of each. |
 | `src/lib/api.ts` | Every call to `apps/api`, server-side only, typed by `@fmip/contracts`. Failure is a value (`status` 0 = unreachable), never a throw. |
+| `tests/e2e/seo.spec.ts` | The SEO surface with JavaScript disabled (T-039): content, canonical, alternates, robots rules, JSON-LD, `/robots.txt` and `/sitemap.xml` straight from the rendered HTML. |
 | `tests/e2e/rtl.spec.ts` | The RTL check. Asserts computed layout, never screenshots. |
 | `tests/e2e/match.spec.ts` | The match centre page without an API: a malformed id is a 404 page, the unreachable notice, the stream proxy's 503 and 404. |
 | `tests/e2e/scores.spec.ts` | The scores page without an API: the strip, the filters, state kept in links, the unreachable notice, the RTL mirror. |
@@ -373,6 +377,7 @@ both files (`CLAUDE.md` §5). `.env` itself is never committed.
 | `API_PORT` | `apps/api`, `docker-compose.yml` | Host port for the API. Rejected at boot if it is not a valid port number. |
 | `WEB_PORT` | `docker-compose.yml` | Host port for the web app, bound to `127.0.0.1`. Default `3000`. The container itself always listens on 3000; compose sets Next's own `PORT` for it. |
 | `API_BASE_URL` | `apps/web` | Where the web app reaches the API server-side. Default `http://127.0.0.1:3001`. |
+| `SITE_URL` | `apps/web` | The public origin of the web app: canonical URLs, language alternates, the sitemap and structured data (T-039). Default `http://localhost:3000`; set to the real origin in production. |
 | `MODEL_SERVICE_URL` | `apps/api` | Where the model service answers, e.g. `http://model:8000` in compose. Internal only, never reachable from the browser. When set, the API's live contract test runs against it. |
 | `BACKUP_DIR`, `BACKUP_KEEP_LOCAL_DAYS` | `scripts/backup` | Where `backup.sh` writes dumps and manifests (git-ignored, default `./backups`) and how many days of local copies it keeps (default 7). |
 | `BACKUP_RCLONE_REMOTE`, `BACKUP_KEEP_REMOTE_DAYS`, `BACKUP_RCLONE_CONFIG` | `scripts/backup` | The off-provider rclone destination (a `crypt` remote, see `07-backups.md`), its retention (default 90 days) and the `rclone.conf` holding it. Unset remote = local copies only, and the script warns (D-032). |

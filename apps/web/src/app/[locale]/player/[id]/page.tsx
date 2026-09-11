@@ -16,7 +16,9 @@ import {
   seasonsOf,
   spellPeriod,
 } from '@/lib/player';
+import { pageMetadata, playerJsonLd } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { JsonLd } from '@/components/json-ld';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,16 +27,19 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ locale: string; id: string }>;
 }): Promise<Metadata> {
-  const { id } = await params;
-  if (!UUID.test(id)) return { title: 'Player · FMIP' };
+  const { locale, id } = await params;
+  if (!UUID.test(id)) return { title: 'Player · FMIP', robots: { index: false, follow: false } };
   const result = await fetchPlayer(id);
-  return {
-    title: result.ok
-      ? `${result.data.person.known_as ?? result.data.person.full_name} · FMIP`
-      : 'Player · FMIP',
-  };
+  if (!result.ok) return pageMetadata({ locale, path: `/player/${id}`, title: 'Player · FMIP' });
+  const name = result.data.person.known_as ?? result.data.person.full_name;
+  return pageMetadata({
+    locale,
+    path: `/player/${result.data.person.id}`,
+    title: `${name} · FMIP`,
+    description: `${name}: career, record by season and recent matches.`,
+  });
 }
 
 /**
@@ -79,6 +84,7 @@ export default async function PlayerPage({
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-8 p-8">
+      <JsonLd data={playerJsonLd(locale, page)} />
       <header className="flex flex-col gap-1" data-testid="player-header">
         <h1 className="border-s-4 border-s-current ps-4 text-2xl font-semibold" data-testid="title">
           {p.known_as ?? p.full_name}

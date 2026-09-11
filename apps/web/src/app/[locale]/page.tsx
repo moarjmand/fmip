@@ -1,8 +1,26 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
+import { JsonLd } from '@/components/json-ld';
 import { fetchApiHealth } from '@/lib/api';
+import { pageMetadata, websiteJsonLd } from '@/lib/seo';
 
 // The API is queried per request, so a build never depends on it being up.
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return pageMetadata({
+    locale,
+    path: '',
+    title: 'FMIP',
+    description:
+      'Football match intelligence: live scores, match centre, forecasts and predictions.',
+  });
+}
 
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -10,6 +28,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-4 p-8">
+      <JsonLd data={websiteJsonLd(locale)} />
       {/*
         The accent bar is deliberately asymmetric and deliberately logical:
         `border-s` and `ps` sit on the inline start, so they move to the right

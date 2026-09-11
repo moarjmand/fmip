@@ -5,8 +5,10 @@ import type { TeamFixture } from '@fmip/contracts';
 import { fetchMe, fetchTeam } from '@/lib/api';
 import { formatFixtureDate } from '@/lib/competition';
 import { moduleState } from '@/lib/match';
+import { pageMetadata, teamJsonLd } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { contextLine, fromTeamSide, groupSquad } from '@/lib/team';
+import { JsonLd } from '@/components/json-ld';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,12 +17,19 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ locale: string; id: string }>;
 }): Promise<Metadata> {
-  const { id } = await params;
-  if (!UUID.test(id)) return { title: 'Team · FMIP' };
+  const { locale, id } = await params;
+  if (!UUID.test(id)) return { title: 'Team · FMIP', robots: { index: false, follow: false } };
   const result = await fetchTeam(id);
-  return { title: result.ok ? `${result.data.team.name} · FMIP` : 'Team · FMIP' };
+  if (!result.ok) return pageMetadata({ locale, path: `/team/${id}`, title: 'Team · FMIP' });
+  const t = result.data.team;
+  return pageMetadata({
+    locale,
+    path: `/team/${t.id}`,
+    title: `${t.name} · FMIP`,
+    description: `${t.name}: fixtures, results, squad and where they stand.`,
+  });
 }
 
 /**
@@ -57,6 +66,7 @@ export default async function TeamPage({
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-8 p-8">
+      <JsonLd data={teamJsonLd(locale, t)} />
       <header className="flex flex-col gap-1" data-testid="team-header">
         <p className="text-sm opacity-70">
           {t.country !== null ? `${t.country.name} · ` : ''}
