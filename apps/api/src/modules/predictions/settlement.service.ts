@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import type { FixtureSettlementsResponse } from '@fmip/contracts';
 import { settleOne, verdictFor } from './internal/settle';
-import { PostgresSettlementStore } from './internal/settlement-store';
+import { PostgresSettlementStore, type SettledRecord } from './internal/settlement-store';
+
+export type { SettledRecord } from './internal/settlement-store';
 
 export type SettleOutcome =
   | { kind: 'settled'; runId: string; settled: number; voided: number; unchanged: number }
@@ -54,6 +56,19 @@ export class SettlementService {
       }
     }
     return totals;
+  }
+
+  /** For the reputation boundary (T-053): a member's settled rows, oldest first. */
+  settledHistory(userId: string): Promise<SettledRecord[]> {
+    return this.store.settledHistory(userId);
+  }
+
+  predictors(fixtureId: string): Promise<string[]> {
+    return this.store.predictors(fixtureId);
+  }
+
+  recentlySettledUsers(limit: number): Promise<string[]> {
+    return this.store.recentlySettledUsers(limit);
   }
 
   async forFixture(fixtureId: string): Promise<FixtureSettlementsResponse | null> {

@@ -422,7 +422,7 @@ section on settings (pin, unpin, unfollow, and pickers over `GET /teams` and
 | `[x]` T-050 | Prediction submission: outcome, optional score, confidence, reason tags | T-040, T-033 | Guests are blocked; versions are retained |
 | `[x]` T-051 | Kick-off lock | T-050 | No write succeeds after kick-off, verified by clock skew test |
 | `[x]` T-052 | Settlement job incl. void rules for postponed/abandoned | T-051 | Re-running settlement is idempotent |
-| `[ ]` T-053 | Performance Rating engine, formula in versioned config | T-052 | Rating recomputable from stored records alone |
+| `[x]` T-053 | Performance Rating engine, formula in versioned config | T-052 | Rating recomputable from stored records alone |
 | `[ ]` T-054 | Career Points | T-052 | Cannot by itself unlock privileges |
 | `[ ]` T-055 | Leaderboards with minimum-sample filters | T-053 | A one-prediction account cannot top the board |
 | `[ ]` T-056 | Prediction history UI | T-050 | Shows submitted version, timestamp, settlement |
@@ -494,6 +494,35 @@ UPDATE and DELETE on settlements and runs are refused (`23001`); guests and
 members get 401/403, a live match 409. Data: test rows on Real Madrid v
 Persepolis (D-033). 24 API tests in the predictions module (9 new), 6 unit
 tests on the rules; typecheck, lint, Prettier; migration down/up cycled.
+
+**T-053 verified on 2026-09-11.** The reputation boundary
+(`apps/api/src/modules/reputation/`) computes the Performance Rating of
+blueprint 9.1 under `performance-rating@1.0.0`, a versioned config in one file
+(`internal/formula.ts`, D-035): 60% result performance adjusted for
+difficulty, 20% exact scores, 15% consistency across the most recent settled
+predictions, 5% appropriate use of confidence; provisional below 30 settled
+predictions, established at 50; tiers bronze / silver / gold / platinum /
+elite on configured bounds. Difficulty is the model's latest forecast version
+computed before kick-off (immutable, T-064): a correct pick earns `1 −
+p(outcome)`, neutral 1/3 without a forecast, so the result component is plain
+accuracy when the model said nothing and "always pick the favourite" earns
+0.2 per correct pick at 80% — twenty such picks rate 35.5 against 77.5 for
+twenty correct picks the model did not expect. Migration `..._rating.sql`
+adds immutable `rating_snapshot` rows (formula version, settled count, total,
+components, provisional/established, an `inputs_hash` over the settlement ids
+and the formula version). **Rating recomputable from stored records alone:**
+`ReputationService.recompute` reads settlements through the predictions
+boundary and forecasts through the forecast boundary, computes, and writes a
+snapshot only when the inputs differ from the newest one; the HTTP suite
+stores forecasts and predictions before kick-offs that really pass, settles
+four matches, rates a favourite-picker (result 0.225) below an upset-picker
+(0.345), recomputes twice from the same rows with the same number and one
+snapshot in the table, then changes the formula version and gets a second
+snapshot with the first kept; UPDATE on a snapshot is refused (`23001`).
+`GET /me/rating`, `GET /users/:username/rating` (public, blueprint 9.3),
+`POST /me/rating/recompute` (member), `POST /ratings/recompute` (admin pass
+over recently settled members). 7 formula unit tests, 5 HTTP tests; 176 API
+tests; typecheck, lint, Prettier; migration down/up cycled.
 
 ---
 

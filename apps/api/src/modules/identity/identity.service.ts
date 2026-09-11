@@ -168,6 +168,12 @@ export class IdentityService {
     return row === null ? null : toAuthUser(row);
   }
 
+  /** The public account behind a username (profiles, ratings), or null. */
+  async userByUsername(username: string): Promise<AuthUser | null> {
+    const row = await this.store.findByUsername(username);
+    return row === null ? null : toAuthUser(row);
+  }
+
   /** Granted roles only (user_role); ordinary members have none. */
   async hasRole(userId: string, role: UserRole): Promise<boolean> {
     return this.store.hasRole(userId, role);

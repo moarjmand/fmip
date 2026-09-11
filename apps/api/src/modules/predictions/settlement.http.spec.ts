@@ -18,8 +18,9 @@ const DATABASE_URL = process.env.DATABASE_URL;
 
 const ENGLAND = '00000000-0000-4000-8000-000000000101';
 const PL_2025 = '00000000-0000-4000-8000-000000000302';
-const REAL_MADRID = '00000000-0000-4000-8000-000000000603';
-const PERSEPOLIS = '00000000-0000-4000-8000-000000000604';
+// Two clubs that exist only for this run: nothing else can add results to them.
+const HOME_TEAM = randomUUID();
+const AWAY_TEAM = randomUUID();
 const RUN = `${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
 
 function cookieValue(setCookie: string | string[] | undefined): string {
@@ -55,7 +56,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('settlement',
       headers: { cookie: `fmip_session=${cookie}` },
     });
 
-  /** A Real Madrid v Persepolis fixture; predictions are placed while it is open, then it is moved into the past. */
+  /** A two throwaway clubs fixture; predictions are placed while it is open, then it is moved into the past. */
   async function openFixture(): Promise<string> {
     const id = randomUUID();
     fixtures.push(id);
@@ -65,7 +66,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('settlement',
     );
     await pool.query(
       `INSERT INTO fixture_participant (fixture_id, team_id, side) VALUES ($1, $2, 'home'), ($1, $3, 'away')`,
-      [id, REAL_MADRID, PERSEPOLIS],
+      [id, HOME_TEAM, AWAY_TEAM],
     );
     return id;
   }
@@ -105,6 +106,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('settlement',
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
     pool = new Pool({ connectionString: DATABASE_URL });
+    await pool.query(
+      `INSERT INTO team (id, name, kind, gender) VALUES ($1, $3, 'club', 'men'), ($2, $4, 'club', 'men')`,
+      [HOME_TEAM, AWAY_TEAM, `Test Home ${RUN}`, `Test Away ${RUN}`],
+    );
 
     for (const suffix of ['a', 'b', 'c']) {
       const registered = await app.inject({
@@ -136,6 +141,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('settlement',
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
+      await client.query('ALTER TABLE rating_snapshot DISABLE TRIGGER rating_snapshot_immutable');
+      await client.query(
+        `DELETE FROM rating_snapshot WHERE user_id IN (SELECT id FROM user_account WHERE username LIKE $1)`,
+        [`st_${RUN}%`],
+      );
+      await client.query('ALTER TABLE rating_snapshot ENABLE TRIGGER rating_snapshot_immutable');
       await client.query('ALTER TABLE settlement DISABLE TRIGGER settlement_immutable');
       await client.query('ALTER TABLE settlement_run DISABLE TRIGGER settlement_run_immutable');
       await client.query(
@@ -157,6 +168,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('settlement',
       await client.query('ALTER TABLE settlement ENABLE TRIGGER settlement_immutable');
       await client.query(`DELETE FROM user_account WHERE username LIKE $1`, [`st_${RUN}%`]);
       await client.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [fixtures]);
+      await client.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [[HOME_TEAM, AWAY_TEAM]]);
       await client.query('COMMIT');
     } catch (error: unknown) {
       await client.query('ROLLBACK');

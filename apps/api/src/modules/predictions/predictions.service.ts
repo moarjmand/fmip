@@ -5,7 +5,7 @@ import { validateSubmission } from './internal/validation';
 
 // The module's public surface. Other modules import from this file only.
 export { validateSubmission, type PredictionInput, type Validated } from './internal/validation';
-export { SettlementService, type SettleOutcome } from './settlement.service';
+export { SettlementService, type SettleOutcome, type SettledRecord } from './settlement.service';
 export { outcomeOf, settleOne, verdictFor, type Verdict } from './internal/settle';
 
 export interface Submitter {
