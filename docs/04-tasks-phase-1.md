@@ -232,7 +232,7 @@ are seven runs, and T-025 reads them together. The second run (2026-09-11 05:04 
 | `[x]` T-033 | Match centre API | T-011, T-012 (was T-027, D-033) | Header, timeline, stats, form, H2H, coverage states |
 | `[x]` T-034 | Match centre page | T-033, T-032 | Works before, during and after a match |
 | `[x]` T-035 | Competition page (table, fixtures, results, leaders) | T-030 | Season selector works; links resolve |
-| `[ ]` T-036 | Team page | T-035 | Squad, fixtures, form, competition context |
+| `[x]` T-036 | Team page | T-035 | Squad, fixtures, form, competition context |
 | `[ ]` T-037 | Player page | T-036 | Every lineup/squad name links here correctly |
 | `[ ]` T-038 | Basic entity search | T-037 | Aliases and common spellings match |
 | `[ ]` T-039 | SEO surface: metadata, canonical URLs, sitemap, structured data | T-034 | Rendered HTML contains full content without JS |
@@ -370,6 +370,34 @@ scheduled match under fixtures, the scorer on 2 and the other on 1;
 and an unknown competition are 404. 4 unit tests on the ranking, 4 on the
 page helpers (web), 4 HTTP tests; typecheck, lint, Prettier; full API suite
 twice, web unit suite.
+
+**T-036 verified on 2026-09-12.** `GET /teams/:id` (catalog) is the team page:
+the team with country, home ground (name, city, capacity) and founding year;
+the competitions it is active in (the current season of every competition it
+has a fixture in, plus any season it still has an unfinished match in), each
+with the table context — the team's row and up to two neighbours either side,
+position, points and the table size, under the table's own coverage
+(`tableContext`, pure, `catalog.spec.ts`); the next and previous match;
+fixtures (soonest first) and results (newest first) across those seasons,
+each naming its competition and season; the squad from open player spells
+(`derived`: `not_supplied` when we hold none); the follower count from
+`followed_entity`; the newest fixture change. The web page
+`/[locale]/team/[id]` renders it with the context table (other clubs linked
+to their pages), next/previous, fixtures and results from the team's side
+(`v` / `at`, result letter, opponent linked, match centre linked, competition
+linked with the season), and the squad by position with shirt numbers and
+loans; the competition table's club names and the match centre's team names
+now link here. **Squad, fixtures, form, competition context:** the HTTP suite
+builds a league with three clubs, a ground, two open spells (one a loan) and
+one closed spell elsewhere, a follower, two results and a scheduled match;
+the answer names the ground and one follower, ranks the club first of three
+with form `D W` under `limited` coverage (the season declares no standings
+coverage), lists both results and the scheduled match as next, and gives the
+squad in position order (keeper 1, striker 9 on loan) with the closed spell
+absent; a club with no spells gets `not_supplied`; an unknown id is 404.
+3 unit tests on the selector and the context, 3 on the page helpers (web),
+3 HTTP tests; typecheck, lint, Prettier; full API suite twice, web unit
+suite.
 
 ---
 
