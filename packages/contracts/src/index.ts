@@ -76,3 +76,18 @@ export type {
   ScoresGroup,
   ScoresResponse,
 } from './scores';
+export type {
+  CoverageModule,
+  FormEntry,
+  HeadToHeadEntry,
+  MatchCentre,
+  MatchHeader,
+  MatchIncident,
+  MatchIncidentKind,
+  MatchLineupPlayer,
+  MatchLineups,
+  MatchPeriod,
+  MatchStatMetric,
+  MatchStatRow,
+  MatchTeam,
+} from './match-centre';
