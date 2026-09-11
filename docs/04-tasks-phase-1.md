@@ -423,7 +423,7 @@ section on settings (pin, unpin, unfollow, and pickers over `GET /teams` and
 | `[x]` T-051 | Kick-off lock | T-050 | No write succeeds after kick-off, verified by clock skew test |
 | `[x]` T-052 | Settlement job incl. void rules for postponed/abandoned | T-051 | Re-running settlement is idempotent |
 | `[x]` T-053 | Performance Rating engine, formula in versioned config | T-052 | Rating recomputable from stored records alone |
-| `[ ]` T-054 | Career Points | T-052 | Cannot by itself unlock privileges |
+| `[x]` T-054 | Career Points | T-052 | Cannot by itself unlock privileges |
 | `[ ]` T-055 | Leaderboards with minimum-sample filters | T-053 | A one-prediction account cannot top the board |
 | `[ ]` T-056 | Prediction history UI | T-050 | Shows submitted version, timestamp, settlement |
 
@@ -523,6 +523,29 @@ snapshot with the first kept; UPDATE on a snapshot is refused (`23001`).
 `POST /me/rating/recompute` (member), `POST /ratings/recompute` (admin pass
 over recently settled members). 7 formula unit tests, 5 HTTP tests; 176 API
 tests; typecheck, lint, Prettier; migration down/up cycled.
+
+**T-054 verified on 2026-09-11.** Migration `..._career-points.sql` adds
+`points_transaction`, an immutable ledger with one row per settlement and
+reason (`settled`, `correct_outcome`, `exact_score`, `streak_5`,
+`streak_10`) under a rule version. `career-points@1.0.0`
+(`internal/points.ts`, D-036) pays 1 for taking part, 3 for the right
+outcome, 5 for the exact score, 5 and 15 for runs of five and ten correct
+outcomes, once per run; the ledger is a pure function of the settlements, so
+`CareerPointsService.award` writes only what is missing and a second pass
+writes nothing (`ON CONFLICT DO NOTHING` on `(settlement_id, reason)`). The
+rating pass awards points too, so one job call keeps both current.
+`GET /me/points`, `GET /users/:username/points` (total, counts, current
+streak, recent ledger lines), `POST /me/points/award`. **Cannot by itself
+unlock privileges:** eligibility for high-rating privileges (blueprint 9.4,
+`internal/eligibility.ts`, `GET /me/eligibility`) is a function of the
+rating, the settled sample and a verified address only — it has no parameter
+through which points could arrive — and the HTTP suite proves it: a member
+with three settled predictions is told to settle at least 50 and to reach a
+rating of 70, then a million points are written straight into the ledger and
+the eligibility answer is byte-for-byte the same, while the points total
+shows the million; an edit to a ledger row is refused (`23001`). 6 unit tests
+on the rules and eligibility, 3 HTTP tests; typecheck, lint, Prettier;
+migration down/up cycled.
 
 ---
 

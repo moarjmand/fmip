@@ -9,6 +9,7 @@ import {
   type RatingInput,
   computeRating,
 } from './internal/formula';
+import { CareerPointsService } from './career-points.service';
 import { PostgresRatingStore, type SnapshotRow } from './internal/rating-store';
 
 // The module's public surface. Other modules import from this file only.
@@ -19,6 +20,9 @@ export {
   type RatingFormula,
   type RatingInput,
 } from './internal/formula';
+export { CareerPointsService } from './career-points.service';
+export { ELIGIBILITY_V1, eligibilityFor, type EligibilityRules } from './internal/eligibility';
+export { POINTS_RULES_V1, awardsFor, currentStreak, type PointsRules } from './internal/points';
 
 export type RecomputeOutcome =
   | { kind: 'unchanged'; rating: Rating }
@@ -43,6 +47,7 @@ export class ReputationService {
     private readonly settlements: SettlementService,
     private readonly forecasts: ForecastService,
     private readonly identity: IdentityService,
+    private readonly points: CareerPointsService,
   ) {}
 
   /** The current rating, or null before the first settled prediction. Never computes. */
@@ -60,6 +65,8 @@ export class ReputationService {
   async recompute(userId: string): Promise<RecomputeOutcome> {
     const user = await this.identity.userById(userId);
     if (user === null) return { kind: 'unknown_user' };
+    // Points ride along: the same settlements feed both, and the ledger is idempotent.
+    await this.points.award(userId);
     const history = await this.settlements.settledHistory(userId);
     const inputs = await this.withDifficulty(history);
     const result = computeRating(inputs, this.formula);

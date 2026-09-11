@@ -41,3 +41,54 @@ export interface RatingResponse {
   username: string;
   rating: Rating | null;
 }
+
+// ---------------------------------------------------------------------------
+// Career Points (blueprint 9.2, T-054): participation and achievement as a
+// ledger, kept apart from the rating and never an input to privileges.
+// ---------------------------------------------------------------------------
+
+export type PointsReason = 'settled' | 'correct_outcome' | 'exact_score' | 'streak_5' | 'streak_10';
+
+export interface PointsTransaction {
+  id: string;
+  settlement_id: string;
+  reason: PointsReason;
+  points: number;
+  rule_version: string;
+  awarded_at: string;
+}
+
+export interface CareerPoints {
+  username: string;
+  total: number;
+  settled_predictions: number;
+  correct_outcomes: number;
+  exact_scores: number;
+  /** Consecutive correct outcomes at the end of the settled history. */
+  current_streak: number;
+  rules_version: string;
+  /** Newest first. */
+  recent: PointsTransaction[];
+}
+
+/** `GET /me/points`, `GET /users/:username/points`, `POST /me/points/award` (adds `added`). */
+export interface CareerPointsResponse {
+  username: string;
+  points: CareerPoints;
+  /** Only on the award call: how many ledger rows the pass wrote. */
+  added?: number;
+}
+
+/** Blueprint 9.4: eligibility for high-rating privileges. Career Points are not an input. */
+export interface PrivilegeEligibility {
+  eligible: boolean;
+  /** What is missing; empty when eligible. */
+  reasons: string[];
+  rules_version: string;
+}
+
+/** `GET /me/eligibility`. */
+export interface EligibilityResponse {
+  username: string;
+  eligibility: PrivilegeEligibility;
+}

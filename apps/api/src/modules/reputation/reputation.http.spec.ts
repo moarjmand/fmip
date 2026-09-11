@@ -161,6 +161,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Performance 
     try {
       await client.query('BEGIN');
       for (const [table, trigger] of [
+        ['points_transaction', 'points_transaction_immutable'],
         ['rating_snapshot', 'rating_snapshot_immutable'],
         ['settlement', 'settlement_immutable'],
         ['settlement_run', 'settlement_run_immutable'],
@@ -170,6 +171,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Performance 
       ]) {
         await client.query(`ALTER TABLE ${table} DISABLE TRIGGER ${trigger}`);
       }
+      await client.query(`DELETE FROM points_transaction WHERE user_id = ANY($1::uuid[])`, [
+        users.map((u) => u.id),
+      ]);
       await client.query(`DELETE FROM rating_snapshot WHERE user_id = ANY($1::uuid[])`, [
         users.map((u) => u.id),
       ]);
@@ -193,6 +197,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Performance 
         ['settlement_run', 'settlement_run_immutable'],
         ['settlement', 'settlement_immutable'],
         ['rating_snapshot', 'rating_snapshot_immutable'],
+        ['points_transaction', 'points_transaction_immutable'],
       ]) {
         await client.query(`ALTER TABLE ${table} ENABLE TRIGGER ${trigger}`);
       }
