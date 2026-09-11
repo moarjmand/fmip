@@ -13,3 +13,23 @@
 body {
   min-block-size: 100dvh;
 }
+
+/*
+ * Keyboard focus is always visible (T-081, D-041): a two-pixel ring in the
+ * current text colour, offset so it never merges with a border. Mouse clicks
+ * do not show it (:focus-visible), keyboards and switch devices do.
+ */
+:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -53,8 +53,18 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} dir={directionOf(locale)}>
       <body>
+        {/* First in the tab order (T-081): one key past the navigation to the content. */}
+        <a
+          href="#content"
+          className="sr-only focus:not-sr-only focus:fixed focus:start-2 focus:top-2 focus:z-50 focus:rounded focus:bg-current/10 focus:px-3 focus:py-2"
+          data-testid="skip-link"
+        >
+          Skip to content
+        </a>
         <SiteHeader locale={locale} />
-        {children}
+        <div id="content" tabIndex={-1} className="outline-none">
+          {children}
+        </div>
       </body>
     </html>
   );

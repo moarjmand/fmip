@@ -20,6 +20,7 @@
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@fmip/config": "workspace:*",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4.3.3",

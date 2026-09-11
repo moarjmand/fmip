@@ -4,6 +4,7 @@ import type { ScoresResponse } from '@fmip/contracts';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ScoreCard } from '@/components/score-card';
+import { scoresAnnouncements } from '@/lib/announce';
 import { INITIAL_CLOCK, type LiveClock, liveLabel, liveState } from '@/lib/live';
 
 /**
@@ -27,6 +28,8 @@ export function LiveScores({
   const [scores, setScores] = useState(initial);
   const [clock, setClock] = useState<LiveClock>(INITIAL_CLOCK);
   const [now, setNow] = useState(() => Date.now());
+  // What the last snapshot changed, in words, for the polite live region (T-081).
+  const [announcement, setAnnouncement] = useState('');
 
   useEffect(() => {
     const source = new EventSource(`/api/scores/stream?${streamQuery}`);
@@ -37,7 +40,12 @@ export function LiveScores({
         broken: false,
       }));
     source.addEventListener('snapshot', (event) => {
-      setScores(JSON.parse((event as MessageEvent<string>).data) as ScoresResponse);
+      const next = JSON.parse((event as MessageEvent<string>).data) as ScoresResponse;
+      setScores((previous) => {
+        const said = scoresAnnouncements(previous, next);
+        if (said.length > 0) setAnnouncement(said.join(' '));
+        return next;
+      });
       stamp(true);
     });
     source.addEventListener('heartbeat', () => stamp(false));
@@ -63,6 +71,14 @@ export function LiveScores({
       >
         {liveLabel(state, clock, timeZone)}
       </p>
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+        data-testid="live-announcements"
+      >
+        {announcement}
+      </div>
 
       {scores.total === 0 ? (
         <p className="opacity-70" data-testid="scores-empty">

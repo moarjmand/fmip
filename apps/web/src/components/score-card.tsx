@@ -27,7 +27,16 @@ export function ScoreCard({
   timeZone: string;
   locale: string;
 }) {
-  const sentOff = (n: number): string => (n === 0 ? '' : n === 1 ? ' 🟥' : ` 🟥×${n}`);
+  // The red-card mark is an image to a screen reader, named in words (T-081).
+  const sentOff = (n: number): React.ReactNode =>
+    n === 0 ? null : (
+      <>
+        {' '}
+        <span role="img" aria-label={n === 1 ? 'one red card' : `${n} red cards`}>
+          {n === 1 ? '🟥' : `🟥×${n}`}
+        </span>
+      </>
+    );
   const stageBits = [
     card.stage?.name,
     card.round,

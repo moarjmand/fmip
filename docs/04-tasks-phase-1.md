@@ -484,6 +484,34 @@ template, and `/robots.txt` and `/sitemap.xml` served with the expected
 lines. 8 unit tests on URLs, metadata and the JSON-LD shapes; 4 E2E tests;
 typecheck, lint, Prettier; web unit suite.
 
+**T-081 verified on 2026-09-12.** The agreed standard is WCAG 2.2 AA
+(D-041), checked mechanically and by hand. **Keyboard and focus order:** a
+"Skip to content" link is the first thing in the tab order (visible only
+when focused) and moves focus to the `#content` wrapper so the next Tab
+lands in the page, not back in the navigation; `:focus-visible` draws a
+two-pixel ring in the current colour on every focusable element;
+`prefers-reduced-motion` is honoured globally. **Contrast and labels:** axe
+finds no violation on the home, scores, leaderboard, search (empty and with
+a term), sign-in, registration, match centre, competition, team and player
+pages, nor on the pseudo-locale (its private-use `lang` tag excepted from
+the language rule); the red-card mark on a score card is an image named "one
+red card" / "n red cards"; the header search box and the search form have
+labels; every table header has a scope. **Live-score announcements:** the
+scores page and the match centre carry a polite, atomic live region
+(`lib/announce.ts`) into which each snapshot's changes are put into words —
+"Goal for Alpha: Alpha 1, Beta 0.", "Kick-off: …", "Full time: …",
+"Score corrected: …", "Red card for Beta." — matched per fixture across
+snapshots, so a screen-reader user hears what a sighted one sees change.
+**Meets the agreed standard:** `tests/e2e/a11y.spec.ts` runs
+`@axe-core/playwright` with the `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`
+and `wcag22aa` rule sets over twelve pages and expects an empty violation
+list, then drives the keyboard path (Tab → skip link focused and visible
+with an outline → Enter → `#content` focused → Tab lands inside the
+content) and checks the live region's attributes when the live list is
+rendered. 6 unit tests on the announcement wording; 14 E2E tests (12 axe
+pages, keyboard, live region — the last skipped where the API is absent);
+typecheck, lint, Prettier; web unit suite.
+
 ---
 
 ## E4 — Accounts
@@ -948,7 +976,7 @@ and drill from the remote (D-032).
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[ ]` T-080 | Playwright E2E for the four blueprint user journeys in scope | T-056, T-065 | Green in CI |
-| `[ ]` T-081 | Accessibility pass: keyboard, focus order, contrast, live-score announcements | T-034 | Meets the agreed standard |
+| `[x]` T-081 | Accessibility pass: keyboard, focus order, contrast, live-score announcements | T-034 | Meets the agreed standard |
 | `[ ]` T-082 | PWA: manifest, offline shell, installability | T-039 | Installs on Android; audited |
 | `[ ]` T-083 | Feed-failure resilience: provider outage degrades gracefully | T-027 | Stale data is labelled, never presented as live |
 | `[ ]` T-084 | Launch acceptance review against `01-roadmap.md` exit criteria | all | Signed off in `00-decisions.md` |
