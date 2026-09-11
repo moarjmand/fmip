@@ -229,7 +229,7 @@ are seven runs, and T-025 reads them together. The second run (2026-09-11 05:04 
 | `[x]` T-030 | Scores API: date range, filters, grouping, favourites | T-011, T-042 (was T-026, D-033) | Yesterday / today / next five days all correct in user timezone |
 | `[x]` T-031 | Scores page | T-030 | Matches blueprint 4.1 card fields, or labels them unsupported |
 | `[ ]` T-032 | SSE gateway + client subscription with snapshot-on-reconnect | T-026 | Score changes appear without refresh; staleness is visible |
-| `[ ]` T-033 | Match centre API | T-027 | Header, timeline, stats, form, H2H, coverage states |
+| `[x]` T-033 | Match centre API | T-011, T-012 (was T-027, D-033) | Header, timeline, stats, form, H2H, coverage states |
 | `[ ]` T-034 | Match centre page | T-033, T-032 | Works before, during and after a match |
 | `[ ]` T-035 | Competition page (table, fixtures, results, leaders) | T-030 | Season selector works; links resolve |
 | `[ ]` T-036 | Team page | T-035 | Squad, fixtures, form, competition context |
@@ -273,6 +273,29 @@ With the API stopped the page shows the unreachable notice and no cards; the
 Playwright suite (`tests/e2e/scores.spec.ts`) asserts that, the seven-link
 strip with "Today" current, state carried in links, and the RTL mirror, and
 runs in CI's E2E job. 22 web unit tests, typecheck, lint, stylelint.
+
+**T-033 verified on 2026-09-11.** `GET /fixtures/:id` (the `fixtures` boundary)
+serves the match centre as far as our own tables reach, each module wrapped
+in `Covered` (blueprint 4.3). **Header:** teams with formation and coach,
+score by kind, status and live minute, competition, season, stage, round,
+group, leg, venue and neutral flag, referee, attendance, the playing periods
+with real start and end times, and `last_updated_at` as the newest change
+across fixture, participants, scores, periods, incidents, line-ups and
+statistics. **Timeline:** every incident in sequence, its side decided by the
+credited participant, player and related player (assist or substitute)
+named. **Stats:** one row per metric with both sides; a side the provider left
+out is `null`, never zero. **Line-ups:** both sides with role, shirt, position
+and captain; half a line-up is `not_supplied`. **Form:** each team's last five
+competitive finished matches before this one (friendlies excluded), newest
+first, with W/D/L and venue side; **H2H:** their recent finished meetings.
+**Coverage states:** the season's declared profile per module is returned as
+is, and each module's own state is decided with it: rows present take the
+declared state, or `limited` when the profile denied them; rows absent are
+`not_supplied` (or `delayed` when declared so); form and head-to-head grade
+our own history (`available` at five, `limited` below, `not_supplied` at
+none). The HTTP suite builds a five-fixture cluster on the seeded catalog and
+checks each module, plus 404 for unknown and malformed ids. Data: test rows
+(D-033). 6 unit tests for the coverage rules. 134 API tests, typecheck, lint.
 
 ---
 
