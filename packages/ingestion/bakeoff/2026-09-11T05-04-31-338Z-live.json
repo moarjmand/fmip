@@ -1,0 +1,1117 @@
+{
+  "ranAt": "2026-09-11T05:04:31.338Z",
+  "mode": "live",
+  "fixtureSet": "2023/24 opening weekends: Premier League, La Liga, Bundesliga, Serie A, Ligue 1",
+  "summaries": [
+    {
+      "provider": "api_football",
+      "displayName": "API-Football (api-sports.io)",
+      "tier": "free",
+      "calls": 35,
+      "ok": 35,
+      "errors": {},
+      "requests": 35,
+      "meanLatencyMs": 546,
+      "completeness": {
+        "fixture": 90,
+        "lineup": 99,
+        "detail": 95,
+        "standing": 50
+      }
+    },
+    {
+      "provider": "football_data_org",
+      "displayName": "football-data.org",
+      "tier": "free (TIER_ONE)",
+      "calls": 35,
+      "ok": 25,
+      "errors": {
+        "unsupported": 10
+      },
+      "requests": 35,
+      "meanLatencyMs": 627,
+      "completeness": {
+        "fixture": 70,
+        "lineup": null,
+        "detail": 25,
+        "standing": 100
+      }
+    },
+    {
+      "provider": "highlightly",
+      "displayName": "Highlightly",
+      "tier": "BASIC (free)",
+      "calls": 35,
+      "ok": 25,
+      "errors": {
+        "unsupported": 10
+      },
+      "requests": 50,
+      "meanLatencyMs": 233,
+      "completeness": {
+        "fixture": 40,
+        "lineup": null,
+        "detail": 57,
+        "standing": 0
+      }
+    }
+  ],
+  "calls": [
+    {
+      "provider": "api_football",
+      "call": "listFixtures",
+      "label": "Premier League",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 9,
+      "latencyMs": 763
+    },
+    {
+      "provider": "api_football",
+      "call": "getStandings",
+      "label": "Premier League",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 478
+    },
+    {
+      "provider": "api_football",
+      "call": "getFixtureDetail",
+      "label": "Premier League: Burnley v Manchester City",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 448
+    },
+    {
+      "provider": "api_football",
+      "call": "getLineup",
+      "label": "Premier League: Burnley v Manchester City",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 457
+    },
+    {
+      "provider": "api_football",
+      "call": "getFixtureDetail",
+      "label": "Premier League: Arsenal v Nottingham Forest",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 443
+    },
+    {
+      "provider": "api_football",
+      "call": "getLineup",
+      "label": "Premier League: Arsenal v Nottingham Forest",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 416
+    },
+    {
+      "provider": "api_football",
+      "call": "getLive",
+      "label": "Premier League",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 0,
+      "latencyMs": 409
+    },
+    {
+      "provider": "api_football",
+      "call": "listFixtures",
+      "label": "La Liga",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 8,
+      "latencyMs": 428
+    },
+    {
+      "provider": "api_football",
+      "call": "getStandings",
+      "label": "La Liga",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 486
+    },
+    {
+      "provider": "api_football",
+      "call": "getFixtureDetail",
+      "label": "La Liga: Almeria v Rayo Vallecano",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 3211
+    },
+    {
+      "provider": "api_football",
+      "call": "getLineup",
+      "label": "La Liga: Almeria v Rayo Vallecano",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 422
+    },
+    {
+      "provider": "api_football",
+      "call": "getFixtureDetail",
+      "label": "La Liga: Sevilla v Valencia",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 433
+    },
+    {
+      "provider": "api_football",
+      "call": "getLineup",
+      "label": "La Liga: Sevilla v Valencia",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 431
+    },
+    {
+      "provider": "api_football",
+      "call": "getLive",
+      "label": "La Liga",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 0,
+      "latencyMs": 445
+    },
+    {
+      "provider": "api_football",
+      "call": "listFixtures",
+      "label": "Bundesliga",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 9,
+      "latencyMs": 433
+    },
+    {
+      "provider": "api_football",
+      "call": "getStandings",
+      "label": "Bundesliga",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 382
+    },
+    {
+      "provider": "api_football",
+      "call": "getFixtureDetail",
+      "label": "Bundesliga: Werder Bremen v Bayern Munich",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 450
+    },
+    {
+      "provider": "api_football",
+      "call": "getLineup",
+      "label": "Bundesliga: Werder Bremen v Bayern Munich",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 424
+    },
+    {
+      "provider": "api_football",
+      "call": "getFixtureDetail",
+      "label": "Bundesliga: VfL Wolfsburg v FC Heidenheim",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 430
+    },
+    {
+      "provider": "api_football",
+      "call": "getLineup",
+      "label": "Bundesliga: VfL Wolfsburg v FC Heidenheim",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 433
+    },
+    {
+      "provider": "api_football",
+      "call": "getLive",
+      "label": "Bundesliga",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 0,
+      "latencyMs": 410
+    },
+    {
+      "provider": "api_football",
+      "call": "listFixtures",
+      "label": "Serie A",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 10,
+      "latencyMs": 419
+    },
+    {
+      "provider": "api_football",
+      "call": "getStandings",
+      "label": "Serie A",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 400
+    },
+    {
+      "provider": "api_football",
+      "call": "getFixtureDetail",
+      "label": "Serie A: Empoli v Hellas Verona",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 1016
+    },
+    {
+      "provider": "api_football",
+      "call": "getLineup",
+      "label": "Serie A: Empoli v Hellas Verona",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 402
+    },
+    {
+      "provider": "api_football",
+      "call": "getFixtureDetail",
+      "label": "Serie A: Frosinone v Napoli",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 809
+    },
+    {
+      "provider": "api_football",
+      "call": "getLineup",
+      "label": "Serie A: Frosinone v Napoli",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 453
+    },
+    {
+      "provider": "api_football",
+      "call": "getLive",
+      "label": "Serie A",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 0,
+      "latencyMs": 523
+    },
+    {
+      "provider": "api_football",
+      "call": "listFixtures",
+      "label": "Ligue 1",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 9,
+      "latencyMs": 297
+    },
+    {
+      "provider": "api_football",
+      "call": "getStandings",
+      "label": "Ligue 1",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 317
+    },
+    {
+      "provider": "api_football",
+      "call": "getFixtureDetail",
+      "label": "Ligue 1: Nice v Lille",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 312
+    },
+    {
+      "provider": "api_football",
+      "call": "getLineup",
+      "label": "Ligue 1: Nice v Lille",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 332
+    },
+    {
+      "provider": "api_football",
+      "call": "getFixtureDetail",
+      "label": "Ligue 1: Marseille v Reims",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 524
+    },
+    {
+      "provider": "api_football",
+      "call": "getLineup",
+      "label": "Ligue 1: Marseille v Reims",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 377
+    },
+    {
+      "provider": "api_football",
+      "call": "getLive",
+      "label": "Ligue 1",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 0,
+      "latencyMs": 685
+    },
+    {
+      "provider": "football_data_org",
+      "call": "listFixtures",
+      "label": "Premier League",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 9,
+      "latencyMs": 806
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getStandings",
+      "label": "Premier League",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 392
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getFixtureDetail",
+      "label": "Premier League: Burnley FC v Manchester City FC",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 416
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getLineup",
+      "label": "Premier League: Burnley FC v Manchester City FC",
+      "ok": false,
+      "errorKind": "unsupported",
+      "requests": 1,
+      "items": 0,
+      "latencyMs": 442
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getFixtureDetail",
+      "label": "Premier League: Arsenal FC v Nottingham Forest FC",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 424
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getLineup",
+      "label": "Premier League: Arsenal FC v Nottingham Forest FC",
+      "ok": false,
+      "errorKind": "unsupported",
+      "requests": 1,
+      "items": 0,
+      "latencyMs": 421
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getLive",
+      "label": "Premier League",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 2,
+      "latencyMs": 384
+    },
+    {
+      "provider": "football_data_org",
+      "call": "listFixtures",
+      "label": "La Liga",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 8,
+      "latencyMs": 564
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getStandings",
+      "label": "La Liga",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 418
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getFixtureDetail",
+      "label": "La Liga: UD Almería v Rayo Vallecano de Madrid",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 414
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getLineup",
+      "label": "La Liga: UD Almería v Rayo Vallecano de Madrid",
+      "ok": false,
+      "errorKind": "unsupported",
+      "requests": 1,
+      "items": 0,
+      "latencyMs": 396
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getFixtureDetail",
+      "label": "La Liga: Sevilla FC v Valencia CF",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 386
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getLineup",
+      "label": "La Liga: Sevilla FC v Valencia CF",
+      "ok": false,
+      "errorKind": "unsupported",
+      "requests": 1,
+      "items": 0,
+      "latencyMs": 381
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getLive",
+      "label": "La Liga",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 2,
+      "latencyMs": 407
+    },
+    {
+      "provider": "football_data_org",
+      "call": "listFixtures",
+      "label": "Bundesliga",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 9,
+      "latencyMs": 455
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getStandings",
+      "label": "Bundesliga",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 411
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getFixtureDetail",
+      "label": "Bundesliga: SV Werder Bremen v FC Bayern München",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 397
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getLineup",
+      "label": "Bundesliga: SV Werder Bremen v FC Bayern München",
+      "ok": false,
+      "errorKind": "unsupported",
+      "requests": 1,
+      "items": 0,
+      "latencyMs": 1691
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getFixtureDetail",
+      "label": "Bundesliga: Bayer 04 Leverkusen v RB Leipzig",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 506
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getLineup",
+      "label": "Bundesliga: Bayer 04 Leverkusen v RB Leipzig",
+      "ok": false,
+      "errorKind": "unsupported",
+      "requests": 1,
+      "items": 0,
+      "latencyMs": 589
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getLive",
+      "label": "Bundesliga",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 2,
+      "latencyMs": 371
+    },
+    {
+      "provider": "football_data_org",
+      "call": "listFixtures",
+      "label": "Serie A",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 10,
+      "latencyMs": 415
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getStandings",
+      "label": "Serie A",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 402
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getFixtureDetail",
+      "label": "Serie A: Empoli FC v Hellas Verona FC",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 386
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getLineup",
+      "label": "Serie A: Empoli FC v Hellas Verona FC",
+      "ok": false,
+      "errorKind": "unsupported",
+      "requests": 1,
+      "items": 0,
+      "latencyMs": 468
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getFixtureDetail",
+      "label": "Serie A: Frosinone Calcio v SSC Napoli",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 1702
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getLineup",
+      "label": "Serie A: Frosinone Calcio v SSC Napoli",
+      "ok": false,
+      "errorKind": "unsupported",
+      "requests": 1,
+      "items": 0,
+      "latencyMs": 1915
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getLive",
+      "label": "Serie A",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 2,
+      "latencyMs": 1855
+    },
+    {
+      "provider": "football_data_org",
+      "call": "listFixtures",
+      "label": "Ligue 1",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 9,
+      "latencyMs": 1510
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getStandings",
+      "label": "Ligue 1",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 536
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getFixtureDetail",
+      "label": "Ligue 1: OGC Nice v Lille OSC",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 433
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getLineup",
+      "label": "Ligue 1: OGC Nice v Lille OSC",
+      "ok": false,
+      "errorKind": "unsupported",
+      "requests": 1,
+      "items": 0,
+      "latencyMs": 402
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getFixtureDetail",
+      "label": "Ligue 1: Olympique de Marseille v Stade de Reims",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 421
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getLineup",
+      "label": "Ligue 1: Olympique de Marseille v Stade de Reims",
+      "ok": false,
+      "errorKind": "unsupported",
+      "requests": 1,
+      "items": 0,
+      "latencyMs": 404
+    },
+    {
+      "provider": "football_data_org",
+      "call": "getLive",
+      "label": "Ligue 1",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 2,
+      "latencyMs": 427
+    },
+    {
+      "provider": "highlightly",
+      "call": "listFixtures",
+      "label": "Premier League",
+      "ok": true,
+      "errorKind": null,
+      "requests": 3,
+      "items": 9,
+      "latencyMs": 1187
+    },
+    {
+      "provider": "highlightly",
+      "call": "getStandings",
+      "label": "Premier League",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 206
+    },
+    {
+      "provider": "highlightly",
+      "call": "getFixtureDetail",
+      "label": "Premier League: Burnley v Manchester City",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 308
+    },
+    {
+      "provider": "highlightly",
+      "call": "getLineup",
+      "label": "Premier League: Burnley v Manchester City",
+      "ok": false,
+      "errorKind": "unsupported",
+      "requests": 1,
+      "items": 0,
+      "latencyMs": 191
+    },
+    {
+      "provider": "highlightly",
+      "call": "getFixtureDetail",
+      "label": "Premier League: Newcastle United v Aston Villa",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 321
+    },
+    {
+      "provider": "highlightly",
+      "call": "getLineup",
+      "label": "Premier League: Newcastle United v Aston Villa",
+      "ok": false,
+      "errorKind": "unsupported",
+      "requests": 1,
+      "items": 0,
+      "latencyMs": 216
+    },
+    {
+      "provider": "highlightly",
+      "call": "getLive",
+      "label": "Premier League",
+      "ok": true,
+      "errorKind": null,
+      "requests": 2,
+      "items": 2,
+      "latencyMs": 467
+    },
+    {
+      "provider": "highlightly",
+      "call": "listFixtures",
+      "label": "La Liga",
+      "ok": true,
+      "errorKind": null,
+      "requests": 3,
+      "items": 8,
+      "latencyMs": 639
+    },
+    {
+      "provider": "highlightly",
+      "call": "getStandings",
+      "label": "La Liga",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 180
+    },
+    {
+      "provider": "highlightly",
+      "call": "getFixtureDetail",
+      "label": "La Liga: Sevilla FC v Valencia",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 317
+    },
+    {
+      "provider": "highlightly",
+      "call": "getLineup",
+      "label": "La Liga: Sevilla FC v Valencia",
+      "ok": false,
+      "errorKind": "unsupported",
+      "requests": 1,
+      "items": 0,
+      "latencyMs": 217
+    },
+    {
+      "provider": "highlightly",
+      "call": "getFixtureDetail",
+      "label": "La Liga: Almería v Rayo Vallecano",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 411
+    },
+    {
+      "provider": "highlightly",
+      "call": "getLineup",
+      "label": "La Liga: Almería v Rayo Vallecano",
+      "ok": false,
+      "errorKind": "unsupported",
+      "requests": 1,
+      "items": 0,
+      "latencyMs": 211
+    },
+    {
+      "provider": "highlightly",
+      "call": "getLive",
+      "label": "La Liga",
+      "ok": true,
+      "errorKind": null,
+      "requests": 2,
+      "items": 2,
+      "latencyMs": 400
+    },
+    {
+      "provider": "highlightly",
+      "call": "listFixtures",
+      "label": "Bundesliga",
+      "ok": true,
+      "errorKind": null,
+      "requests": 3,
+      "items": 9,
+      "latencyMs": 570
+    },
+    {
+      "provider": "highlightly",
+      "call": "getStandings",
+      "label": "Bundesliga",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 195
+    },
+    {
+      "provider": "highlightly",
+      "call": "getFixtureDetail",
+      "label": "Bundesliga: Werder Bremen v Bayern Munich",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 326
+    },
+    {
+      "provider": "highlightly",
+      "call": "getLineup",
+      "label": "Bundesliga: Werder Bremen v Bayern Munich",
+      "ok": false,
+      "errorKind": "unsupported",
+      "requests": 1,
+      "items": 0,
+      "latencyMs": 195
+    },
+    {
+      "provider": "highlightly",
+      "call": "getFixtureDetail",
+      "label": "Bundesliga: Borussia Dortmund v FC Koln",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 260
+    },
+    {
+      "provider": "highlightly",
+      "call": "getLineup",
+      "label": "Bundesliga: Borussia Dortmund v FC Koln",
+      "ok": false,
+      "errorKind": "unsupported",
+      "requests": 1,
+      "items": 0,
+      "latencyMs": 169
+    },
+    {
+      "provider": "highlightly",
+      "call": "getLive",
+      "label": "Bundesliga",
+      "ok": true,
+      "errorKind": null,
+      "requests": 2,
+      "items": 2,
+      "latencyMs": 387
+    },
+    {
+      "provider": "highlightly",
+      "call": "listFixtures",
+      "label": "Serie A",
+      "ok": true,
+      "errorKind": null,
+      "requests": 3,
+      "items": 10,
+      "latencyMs": 568
+    },
+    {
+      "provider": "highlightly",
+      "call": "getStandings",
+      "label": "Serie A",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 177
+    },
+    {
+      "provider": "highlightly",
+      "call": "getFixtureDetail",
+      "label": "Serie A: Genoa v Fiorentina",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 264
+    },
+    {
+      "provider": "highlightly",
+      "call": "getLineup",
+      "label": "Serie A: Genoa v Fiorentina",
+      "ok": false,
+      "errorKind": "unsupported",
+      "requests": 1,
+      "items": 0,
+      "latencyMs": 185
+    },
+    {
+      "provider": "highlightly",
+      "call": "getFixtureDetail",
+      "label": "Serie A: Inter v Monza",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 258
+    },
+    {
+      "provider": "highlightly",
+      "call": "getLineup",
+      "label": "Serie A: Inter v Monza",
+      "ok": false,
+      "errorKind": "unsupported",
+      "requests": 1,
+      "items": 0,
+      "latencyMs": 191
+    },
+    {
+      "provider": "highlightly",
+      "call": "getLive",
+      "label": "Serie A",
+      "ok": true,
+      "errorKind": null,
+      "requests": 2,
+      "items": 2,
+      "latencyMs": 373
+    },
+    {
+      "provider": "highlightly",
+      "call": "listFixtures",
+      "label": "Ligue 1",
+      "ok": true,
+      "errorKind": null,
+      "requests": 3,
+      "items": 9,
+      "latencyMs": 587
+    },
+    {
+      "provider": "highlightly",
+      "call": "getStandings",
+      "label": "Ligue 1",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 331
+    },
+    {
+      "provider": "highlightly",
+      "call": "getFixtureDetail",
+      "label": "Ligue 1: Nice v Lille",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 271
+    },
+    {
+      "provider": "highlightly",
+      "call": "getLineup",
+      "label": "Ligue 1: Nice v Lille",
+      "ok": false,
+      "errorKind": "unsupported",
+      "requests": 1,
+      "items": 0,
+      "latencyMs": 181
+    },
+    {
+      "provider": "highlightly",
+      "call": "getFixtureDetail",
+      "label": "Ligue 1: Paris Saint Germain v Lorient",
+      "ok": true,
+      "errorKind": null,
+      "requests": 1,
+      "items": 1,
+      "latencyMs": 331
+    },
+    {
+      "provider": "highlightly",
+      "call": "getLineup",
+      "label": "Ligue 1: Paris Saint Germain v Lorient",
+      "ok": false,
+      "errorKind": "unsupported",
+      "requests": 1,
+      "items": 0,
+      "latencyMs": 169
+    },
+    {
+      "provider": "highlightly",
+      "call": "getLive",
+      "label": "Ligue 1",
+      "ok": true,
+      "errorKind": null,
+      "requests": 2,
+      "items": 2,
+      "latencyMs": 406
+    }
+  ],
+  "disagreements": [],
+  "notMeasured": [
+    "goal latency (needs the live polling job, T-026)",
+    "lineup lead time (needs polling across match days)",
+    "lineup accuracy (needs an official post-match record to diff against)"
+  ]
+}
