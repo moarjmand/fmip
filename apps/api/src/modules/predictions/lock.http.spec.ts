@@ -16,8 +16,9 @@ const DATABASE_URL = process.env.DATABASE_URL;
 
 const ENGLAND = '00000000-0000-4000-8000-000000000101';
 const PL_2025 = '00000000-0000-4000-8000-000000000302';
-const REAL_MADRID = '00000000-0000-4000-8000-000000000603';
-const PERSEPOLIS = '00000000-0000-4000-8000-000000000604';
+// Two clubs that exist only for this run: nothing else can add results to them.
+const HOME_TEAM = randomUUID();
+const AWAY_TEAM = randomUUID();
 const RUN = `${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
@@ -44,7 +45,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('kick-off loc
       headers: { cookie: `fmip_session=${cookie}` },
     });
 
-  /** A Real Madrid v Persepolis fixture kicking off at `kickoff` (SQL expression, DB clock). */
+  /** A two throwaway clubs fixture kicking off at `kickoff` (SQL expression, DB clock). */
   async function fixtureAt(kickoff: string): Promise<string> {
     const id = randomUUID();
     fixtures.push(id);
@@ -54,7 +55,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('kick-off loc
     );
     await pool.query(
       `INSERT INTO fixture_participant (fixture_id, team_id, side) VALUES ($1, $2, 'home'), ($1, $3, 'away')`,
-      [id, REAL_MADRID, PERSEPOLIS],
+      [id, HOME_TEAM, AWAY_TEAM],
     );
     return id;
   }
@@ -76,6 +77,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('kick-off loc
     await app.getHttpAdapter().getInstance().ready();
     service = moduleRef.get(PredictionsService);
     pool = new Pool({ connectionString: DATABASE_URL });
+    await pool.query(
+      `INSERT INTO team (id, name, kind, gender) VALUES ($1, $3, 'club', 'men'), ($2, $4, 'club', 'men')`,
+      [HOME_TEAM, AWAY_TEAM, `Test Home ${RUN}`, `Test Away ${RUN}`],
+    );
 
     const registered = await app.inject({
       method: 'POST',
@@ -114,6 +119,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('kick-off loc
       );
       await client.query(`DELETE FROM user_account WHERE id = $1`, [userId]);
       await client.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [fixtures]);
+      await client.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [[HOME_TEAM, AWAY_TEAM]]);
       await client.query('COMMIT');
     } catch (error: unknown) {
       await client.query('ROLLBACK');
@@ -128,12 +134,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('kick-off loc
   const call = { outcome: 'home', confidence: 3 };
 
   it('accepts a prediction right up to kick-off and refuses the next write after it', async () => {
-    const id = await fixtureAt(`now() + interval '1500 milliseconds'`);
+    // Wide enough that a loaded machine still gets the first write in before kick-off.
+    const id = await fixtureAt(`now() + interval '4 seconds'`);
     const before = await put(id, call);
     expect(before.statusCode).toBe(200);
     expect((before.json() as PredictionResponse).prediction.locked).toBe(false);
 
-    await sleep(1_700);
+    await sleep(4_500);
     const after = await put(id, { outcome: 'draw', confidence: 3 });
     expect(after.statusCode).toBe(409);
     expect(after.json()).toMatchObject({ error: 'locked' });

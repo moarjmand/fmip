@@ -104,3 +104,4 @@ export type {
   SettlementVoidReason,
   SubmitPredictionRequest,
 } from './predictions';
+export type { Rating, RatingComponents, RatingResponse, RatingTier } from './reputation';

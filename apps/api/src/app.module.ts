@@ -8,6 +8,7 @@ import { IdentityModule } from './modules/identity/identity.module';
 import { IngestionModule } from './modules/ingestion/ingestion.module';
 import { PredictionsModule } from './modules/predictions/predictions.module';
 import { ProfileModule } from './modules/profile/profile.module';
+import { ReputationModule } from './modules/reputation/reputation.module';
 
 /**
  * The remaining modules from `docs/02-architecture.md` are registered here as
@@ -26,6 +27,7 @@ import { ProfileModule } from './modules/profile/profile.module';
     ForecastModule,
     FixturesModule,
     PredictionsModule,
+    ReputationModule,
   ],
 })
 export class AppModule {}

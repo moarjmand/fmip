@@ -144,6 +144,14 @@ export class PostgresIdentityStore {
     return rows[0] ?? null;
   }
 
+  async findByUsername(username: string): Promise<UserRow | null> {
+    const { rows } = await this.pool.query<UserRow>(
+      `SELECT ${USER_COLUMNS} FROM user_account u WHERE u.username = $1 AND u.status = 'active'`,
+      [username],
+    );
+    return rows[0] ?? null;
+  }
+
   async hasRole(userId: string, role: string): Promise<boolean> {
     const { rowCount } = await this.pool.query(
       'SELECT 1 FROM user_role WHERE user_id = $1 AND role = $2',

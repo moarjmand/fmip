@@ -827,3 +827,43 @@ at peak, on evidence.
 buffer `text/event-stream` (`X-Accel-Buffering: no` is sent; T-074 configures
 the edge). The change feed is the hook T-026's jobs get for free: writing the
 tables is enough.
+
+## D-035 — Performance Rating formula v1: difficulty from stored forecasts, snapshots only on change
+**Status:** Accepted · 2026-09-11
+
+**Decision.** `performance-rating@1.0.0` (`apps/api/src/modules/reputation/internal/formula.ts`)
+implements blueprint 9.1 as: result 60% (each correct pick earns `1 − d`, where
+`d` is the model's pre-kick-off probability of the outcome that happened, read
+from the immutable forecast versions of T-064, or 1/3 when no forecast was
+computed in time; the sum is normalised against the neutral case and capped at
+1), exact score 20% (hit rate × 4, capped), consistency 15% (1 minus the spread
+of accuracy across blocks of five within the last twenty; neutral 0.5 below
+ten), confidence 5% (reward when right, cost when wrong); window 100;
+provisional below 30, established at 50; tiers at 40 / 55 / 70 / 85. Every
+change to any number is a new version string. A rating is stored as an
+immutable `rating_snapshot` that records the version, the components and a
+hash of the settlement ids it was computed from; recomputing over unchanged
+inputs writes nothing.
+
+**Why.** Rule 8 and the architecture's "reputation reproducibility": an admin
+must be able to answer "why is my rating this number" from stored rows and
+one config. Using the model's own probability as difficulty is what makes "a
+difficult correct prediction receives more credit than an obvious one"
+computable without a human, and reading it from stored forecast versions keeps
+the inputs immutable. Neutral 1/3 without a forecast means the rating does not
+punish members for the model's gaps. Snapshots only on change turn the table
+into a history of real movements, which the profile's "rating change over
+time" (blueprint 9.3) can show as is.
+
+**Alternatives considered.** Storing difficulty on the settlement row: simpler
+reads, but the settlement table is immutable and shipped, and the forecast
+versions already hold the number. Elo-style pairwise ratings: not what the
+blueprint describes and harder to explain on a page. Computing on read with no
+snapshots: no history and no "which version produced this".
+
+**Consequences.** Changing the formula is a version bump plus a recomputation
+pass; old snapshots stay and say which version they came from. Consistency and
+confidence are the least grounded components and are the first candidates for
+tuning once real members exist; the admin surface for thresholds (T-070) edits
+this config, not code paths. Career Points (T-054) are a separate measure and
+never feed this number.

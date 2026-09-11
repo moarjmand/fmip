@@ -3,6 +3,19 @@ import type { Settlement, SettlementVoidReason } from '@fmip/contracts';
 import { Pool, type PoolClient } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 
+/** One settled prediction as the rating engine reads it (T-053). */
+export interface SettledRecord {
+  settlementId: string;
+  fixtureId: string;
+  kickoffAt: string;
+  settledAt: string;
+  outcomeCorrect: boolean;
+  scorePredicted: boolean;
+  scoreCorrect: boolean | null;
+  confidence: number;
+  actualOutcome: 'home' | 'draw' | 'away';
+}
+
 export interface FixtureFinal {
   id: string;
   status: string;
@@ -211,6 +224,69 @@ export class PostgresSettlementStore {
       [fixtureId],
     );
     return rows.map((row) => ({ ...toSettlement(row), prediction_id: row.prediction_id }));
+  }
+
+  /**
+   * A member's current `settled` rows (the newest row per prediction, when
+   * it is a settlement and not a void), oldest first.
+   */
+  async settledHistory(userId: string): Promise<SettledRecord[]> {
+    const { rows } = await this.pool.query<{
+      id: string;
+      fixture_id: string;
+      kickoff_at: Date;
+      settled_at: Date;
+      outcome_correct: boolean;
+      score_predicted: boolean;
+      score_correct: boolean | null;
+      confidence: number;
+      actual_home: number;
+      actual_away: number;
+    }>(
+      `SELECT s.id, s.fixture_id, f.kickoff_at, s.settled_at, s.outcome_correct, s.score_predicted,
+              s.score_correct, s.confidence, s.actual_home, s.actual_away
+         FROM user_prediction p
+         JOIN LATERAL (
+           SELECT * FROM settlement st
+            WHERE st.prediction_id = p.id ORDER BY st.settled_at DESC, st.id DESC LIMIT 1
+         ) s ON true
+         JOIN fixture f ON f.id = s.fixture_id
+        WHERE p.user_id = $1 AND s.status = 'settled'
+        ORDER BY s.settled_at, s.id`,
+      [userId],
+    );
+    return rows.map((r) => ({
+      settlementId: r.id,
+      fixtureId: r.fixture_id,
+      kickoffAt: r.kickoff_at.toISOString(),
+      settledAt: r.settled_at.toISOString(),
+      outcomeCorrect: r.outcome_correct,
+      scorePredicted: r.score_predicted,
+      scoreCorrect: r.score_correct,
+      confidence: r.confidence,
+      actualOutcome:
+        r.actual_home > r.actual_away ? 'home' : r.actual_home < r.actual_away ? 'away' : 'draw',
+    }));
+  }
+
+  /** Members with a prediction on the fixture. */
+  async predictors(fixtureId: string): Promise<string[]> {
+    const { rows } = await this.pool.query<{ user_id: string }>(
+      `SELECT DISTINCT user_id FROM user_prediction WHERE fixture_id = $1 ORDER BY user_id`,
+      [fixtureId],
+    );
+    return rows.map((r) => r.user_id);
+  }
+
+  /** Members whose predictions were settled most recently. */
+  async recentlySettledUsers(limit: number): Promise<string[]> {
+    const { rows } = await this.pool.query<{ user_id: string }>(
+      `SELECT p.user_id
+         FROM settlement s JOIN user_prediction p ON p.id = s.prediction_id
+        GROUP BY p.user_id ORDER BY max(s.settled_at) DESC LIMIT $1`,
+      [limit],
+    );
+    return rows.map((r) => r.user_id);
   }
 
   /** Fixtures that are final and have at least one prediction without a current settlement matching their state. */
