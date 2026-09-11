@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from './database/database.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
+import { FixturesModule } from './modules/fixtures/fixtures.module';
 import { ForecastModule } from './modules/forecast/forecast.module';
 import { HealthModule } from './modules/health/health.module';
 import { IdentityModule } from './modules/identity/identity.module';
@@ -22,6 +23,7 @@ import { ProfileModule } from './modules/profile/profile.module';
     IdentityModule,
     ProfileModule,
     ForecastModule,
+    FixturesModule,
   ],
 })
 export class AppModule {}

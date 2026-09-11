@@ -226,7 +226,7 @@ are seven runs, and T-025 reads them together. The second run (2026-09-11 05:04 
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-030 | Scores API: date range, filters, grouping, favourites | T-026 | Yesterday / today / next five days all correct in user timezone |
+| `[x]` T-030 | Scores API: date range, filters, grouping, favourites | T-011, T-042 (was T-026, D-033) | Yesterday / today / next five days all correct in user timezone |
 | `[ ]` T-031 | Scores page | T-030 | Matches blueprint 4.1 card fields, or labels them unsupported |
 | `[ ]` T-032 | SSE gateway + client subscription with snapshot-on-reconnect | T-026 | Score changes appear without refresh; staleness is visible |
 | `[ ]` T-033 | Match centre API | T-027 | Header, timeline, stats, form, H2H, coverage states |
@@ -236,6 +236,26 @@ are seven runs, and T-025 reads them together. The second run (2026-09-11 05:04 
 | `[ ]` T-037 | Player page | T-036 | Every lineup/squad name links here correctly |
 | `[ ]` T-038 | Basic entity search | T-037 | Aliases and common spellings match |
 | `[ ]` T-039 | SEO surface: metadata, canonical URLs, sitemap, structured data | T-034 | Rendered HTML contains full content without JS |
+
+**T-030 verified on 2026-09-11.** `GET /scores` (the `fixtures` boundary,
+`apps/api/src/modules/fixtures/`) takes `from`, `to`, `tz`, `live`,
+`favourites`, `country`, `competition`, `stage`, `gender` and `age`, defaults to
+today in the given zone, caps the range at 14 days, and names every invalid
+parameter at once (400). **Yesterday / today / next five days all correct in
+user timezone:** the range is converted to instants by Postgres in the user's
+zone, and the HTTP suite proves the boundary with a 23:30 UTC kick-off that is
+5 January for London and 6 January for Tehran, then serves a seven-day window
+grouped by country and competition. Each card carries teams, score by kind,
+status and live minute, competition, stage, round and leg, red-card counts,
+the goals, red cards and VAR decisions, venue, the season's scores-module
+coverage state (`limited` when none is recorded) and `last_updated_at` (rules
+3 and 4). Forecast summary, community totals and viewing availability are
+absent from the shape, not empty; the page (T-031) labels them. With a
+session, favourite teams and competitions are pinned above the list (ordered
+by the profile boundary's `compareByFavourites`), followed ones lift their
+group, and `favourites=1` narrows to follows; without a session it is 401.
+Filters by live, country and competition proved on the same data. Data: rows
+inserted by the test (D-033), not a provider. 125 API tests, typecheck, lint.
 
 ---
 
