@@ -213,12 +213,12 @@ the package tests do (41 tests, typecheck, lint). The first live run
 (2026-09-10 19:40 UTC, 2023/24 opening weekends of the five target leagues,
 paced to each plan's per-minute quota): API-Football 35/35 calls ok, fixture
 fields 90%, lineup 99%, detail 95%, mean 1,140 ms; football-data.org 25/35 ok
-(10 `unsupported`: lineups and match detail are paid on TIER_ONE), fixture
+(10 `unsupported`, all `getLineup`: lineups are paid on TIER_ONE), fixture
 70%, detail 25%, 753 ms; Highlightly 5/7 ok (2 `unsupported`), fixture 40%,
 detail 57%, 388 ms — Highlightly ran on the Premier League only because its
 league ids for the other four are not yet in the plan. No disagreements among
 the matched fixtures. One run is one day's snapshot; the protocol's seven days
-are seven runs, and T-025 reads them together.
+are seven runs, and T-025 reads them together. The second run (2026-09-11 05:04 UTC) added the Highlightly ids of the other four leagues: Highlightly 25/35 ok with 50 requests (its fixture list costs one request per day; every `getLineup` `unsupported` on BASIC), fixture 40%, detail 57%; API-Football and football-data.org repeated day one exactly; again no disagreements.
 
 ---
 

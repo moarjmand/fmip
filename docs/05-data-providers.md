@@ -92,15 +92,15 @@ completeness, error rate, quota efficiency and disagreement are measured now.
 network, which is what the package tests do.
 
 <!-- bakeoff:start -->
-### Results — live run, 2026-09-10 19:40 UTC
+### Results — live run, 2026-09-11 05:04 UTC
 
 Fixture set: 2023/24 opening weekends: Premier League, La Liga, Bundesliga, Serie A, Ligue 1. Written by `scripts/bakeoff.mjs`; do not edit by hand.
 
 | Provider | Tier | Calls ok | Errors | Requests | Mean latency | Fixture fields | Lineup fields | Detail fields | Table fields |
 |---|---|---|---|---|---|---|---|---|---|
-| API-Football (api-sports.io) | free | 35/35 | 0 | 35 | 1140 ms | 90% | 99% | 95% | 50% |
-| football-data.org | free (TIER_ONE) | 25/35 | 10 unsupported | 35 | 753 ms | 70% | — | 25% | 100% |
-| Highlightly | BASIC (free) | 5/7 | 2 unsupported | 10 | 388 ms | 40% | — | 57% | 0% |
+| API-Football (api-sports.io) | free | 35/35 | 0 | 35 | 546 ms | 90% | 99% | 95% | 50% |
+| football-data.org | free (TIER_ONE) | 25/35 | 10 unsupported | 35 | 627 ms | 70% | — | 25% | 100% |
+| Highlightly | BASIC (free) | 25/35 | 10 unsupported | 50 | 233 ms | 40% | — | 57% | 0% |
 
 Field completeness is the share of optional normalised fields a provider filled, per module; "—" means the module never came back. Requests are what the adapters reported consuming, so quota efficiency is requests against calls ok.
 
@@ -118,83 +118,111 @@ None among the matched fixtures.
 
 | Provider | Call | Label | Result | Requests | Items | Latency |
 |---|---|---|---|---|---|---|
-| api_football | listFixtures | Premier League | ok | 1 | 9 | 1064 ms |
-| api_football | getStandings | Premier League | ok | 1 | 1 | 558 ms |
-| api_football | getFixtureDetail | Premier League: Burnley v Manchester City | ok | 1 | 1 | 1746 ms |
-| api_football | getLineup | Premier League: Burnley v Manchester City | ok | 1 | 1 | 1209 ms |
-| api_football | getFixtureDetail | Premier League: Arsenal v Nottingham Forest | ok | 1 | 1 | 1127 ms |
-| api_football | getLineup | Premier League: Arsenal v Nottingham Forest | ok | 1 | 1 | 461 ms |
-| api_football | getLive | Premier League | ok | 1 | 0 | 1352 ms |
-| api_football | listFixtures | La Liga | ok | 1 | 8 | 4135 ms |
-| api_football | getStandings | La Liga | ok | 1 | 1 | 1607 ms |
-| api_football | getFixtureDetail | La Liga: Almeria v Rayo Vallecano | ok | 1 | 1 | 6051 ms |
-| api_football | getLineup | La Liga: Almeria v Rayo Vallecano | ok | 1 | 1 | 1477 ms |
-| api_football | getFixtureDetail | La Liga: Sevilla v Valencia | ok | 1 | 1 | 597 ms |
-| api_football | getLineup | La Liga: Sevilla v Valencia | ok | 1 | 1 | 1032 ms |
-| api_football | getLive | La Liga | ok | 1 | 0 | 787 ms |
-| api_football | listFixtures | Bundesliga | ok | 1 | 9 | 613 ms |
-| api_football | getStandings | Bundesliga | ok | 1 | 1 | 456 ms |
-| api_football | getFixtureDetail | Bundesliga: Werder Bremen v Bayern Munich | ok | 1 | 1 | 481 ms |
-| api_football | getLineup | Bundesliga: Werder Bremen v Bayern Munich | ok | 1 | 1 | 809 ms |
-| api_football | getFixtureDetail | Bundesliga: VfL Wolfsburg v FC Heidenheim | ok | 1 | 1 | 640 ms |
-| api_football | getLineup | Bundesliga: VfL Wolfsburg v FC Heidenheim | ok | 1 | 1 | 580 ms |
-| api_football | getLive | Bundesliga | ok | 1 | 0 | 1462 ms |
-| api_football | listFixtures | Serie A | ok | 1 | 10 | 458 ms |
-| api_football | getStandings | Serie A | ok | 1 | 1 | 597 ms |
-| api_football | getFixtureDetail | Serie A: Empoli v Hellas Verona | ok | 1 | 1 | 1358 ms |
-| api_football | getLineup | Serie A: Empoli v Hellas Verona | ok | 1 | 1 | 550 ms |
-| api_football | getFixtureDetail | Serie A: Frosinone v Napoli | ok | 1 | 1 | 457 ms |
-| api_football | getLineup | Serie A: Frosinone v Napoli | ok | 1 | 1 | 489 ms |
-| api_football | getLive | Serie A | ok | 1 | 0 | 435 ms |
-| api_football | listFixtures | Ligue 1 | ok | 1 | 9 | 444 ms |
-| api_football | getStandings | Ligue 1 | ok | 1 | 1 | 477 ms |
-| api_football | getFixtureDetail | Ligue 1: Nice v Lille | ok | 1 | 1 | 2947 ms |
-| api_football | getLineup | Ligue 1: Nice v Lille | ok | 1 | 1 | 463 ms |
-| api_football | getFixtureDetail | Ligue 1: Marseille v Reims | ok | 1 | 1 | 742 ms |
-| api_football | getLineup | Ligue 1: Marseille v Reims | ok | 1 | 1 | 1796 ms |
-| api_football | getLive | Ligue 1 | ok | 1 | 0 | 427 ms |
-| football_data_org | listFixtures | Premier League | ok | 1 | 9 | 648 ms |
-| football_data_org | getStandings | Premier League | ok | 1 | 1 | 1334 ms |
-| football_data_org | getFixtureDetail | Premier League: Burnley FC v Manchester City FC | ok | 1 | 1 | 392 ms |
-| football_data_org | getLineup | Premier League: Burnley FC v Manchester City FC | error: unsupported | 1 | 0 | 412 ms |
-| football_data_org | getFixtureDetail | Premier League: Arsenal FC v Nottingham Forest FC | ok | 1 | 1 | 392 ms |
-| football_data_org | getLineup | Premier League: Arsenal FC v Nottingham Forest FC | error: unsupported | 1 | 0 | 408 ms |
-| football_data_org | getLive | Premier League | ok | 1 | 2 | 422 ms |
-| football_data_org | listFixtures | La Liga | ok | 1 | 8 | 466 ms |
-| football_data_org | getStandings | La Liga | ok | 1 | 1 | 909 ms |
-| football_data_org | getFixtureDetail | La Liga: UD Almería v Rayo Vallecano de Madrid | ok | 1 | 1 | 443 ms |
-| football_data_org | getLineup | La Liga: UD Almería v Rayo Vallecano de Madrid | error: unsupported | 1 | 0 | 460 ms |
-| football_data_org | getFixtureDetail | La Liga: Sevilla FC v Valencia CF | ok | 1 | 1 | 2681 ms |
-| football_data_org | getLineup | La Liga: Sevilla FC v Valencia CF | error: unsupported | 1 | 0 | 418 ms |
-| football_data_org | getLive | La Liga | ok | 1 | 2 | 472 ms |
-| football_data_org | listFixtures | Bundesliga | ok | 1 | 9 | 2163 ms |
-| football_data_org | getStandings | Bundesliga | ok | 1 | 1 | 3303 ms |
-| football_data_org | getFixtureDetail | Bundesliga: SV Werder Bremen v FC Bayern München | ok | 1 | 1 | 556 ms |
-| football_data_org | getLineup | Bundesliga: SV Werder Bremen v FC Bayern München | error: unsupported | 1 | 0 | 397 ms |
-| football_data_org | getFixtureDetail | Bundesliga: Bayer 04 Leverkusen v RB Leipzig | ok | 1 | 1 | 1312 ms |
-| football_data_org | getLineup | Bundesliga: Bayer 04 Leverkusen v RB Leipzig | error: unsupported | 1 | 0 | 438 ms |
-| football_data_org | getLive | Bundesliga | ok | 1 | 2 | 731 ms |
-| football_data_org | listFixtures | Serie A | ok | 1 | 10 | 515 ms |
-| football_data_org | getStandings | Serie A | ok | 1 | 1 | 493 ms |
-| football_data_org | getFixtureDetail | Serie A: Empoli FC v Hellas Verona FC | ok | 1 | 1 | 437 ms |
-| football_data_org | getLineup | Serie A: Empoli FC v Hellas Verona FC | error: unsupported | 1 | 0 | 456 ms |
-| football_data_org | getFixtureDetail | Serie A: Frosinone Calcio v SSC Napoli | ok | 1 | 1 | 649 ms |
-| football_data_org | getLineup | Serie A: Frosinone Calcio v SSC Napoli | error: unsupported | 1 | 0 | 621 ms |
-| football_data_org | getLive | Serie A | ok | 1 | 2 | 443 ms |
-| football_data_org | listFixtures | Ligue 1 | ok | 1 | 9 | 478 ms |
-| football_data_org | getStandings | Ligue 1 | ok | 1 | 1 | 474 ms |
-| football_data_org | getFixtureDetail | Ligue 1: OGC Nice v Lille OSC | ok | 1 | 1 | 1103 ms |
-| football_data_org | getLineup | Ligue 1: OGC Nice v Lille OSC | error: unsupported | 1 | 0 | 573 ms |
-| football_data_org | getFixtureDetail | Ligue 1: Olympique de Marseille v Stade de Reims | ok | 1 | 1 | 406 ms |
-| football_data_org | getLineup | Ligue 1: Olympique de Marseille v Stade de Reims | error: unsupported | 1 | 0 | 425 ms |
-| football_data_org | getLive | Ligue 1 | ok | 1 | 2 | 537 ms |
-| highlightly | listFixtures | Premier League | ok | 3 | 9 | 1102 ms |
-| highlightly | getStandings | Premier League | ok | 1 | 1 | 231 ms |
-| highlightly | getFixtureDetail | Premier League: Burnley v Manchester City | ok | 1 | 1 | 286 ms |
-| highlightly | getLineup | Premier League: Burnley v Manchester City | error: unsupported | 1 | 0 | 210 ms |
-| highlightly | getFixtureDetail | Premier League: Newcastle United v Aston Villa | ok | 1 | 1 | 480 ms |
-| highlightly | getLineup | Premier League: Newcastle United v Aston Villa | error: unsupported | 1 | 0 | 523 ms |
-| highlightly | getLive | Premier League | ok | 2 | 2 | 1046 ms |
+| api_football | listFixtures | Premier League | ok | 1 | 9 | 763 ms |
+| api_football | getStandings | Premier League | ok | 1 | 1 | 478 ms |
+| api_football | getFixtureDetail | Premier League: Burnley v Manchester City | ok | 1 | 1 | 448 ms |
+| api_football | getLineup | Premier League: Burnley v Manchester City | ok | 1 | 1 | 457 ms |
+| api_football | getFixtureDetail | Premier League: Arsenal v Nottingham Forest | ok | 1 | 1 | 443 ms |
+| api_football | getLineup | Premier League: Arsenal v Nottingham Forest | ok | 1 | 1 | 416 ms |
+| api_football | getLive | Premier League | ok | 1 | 0 | 409 ms |
+| api_football | listFixtures | La Liga | ok | 1 | 8 | 428 ms |
+| api_football | getStandings | La Liga | ok | 1 | 1 | 486 ms |
+| api_football | getFixtureDetail | La Liga: Almeria v Rayo Vallecano | ok | 1 | 1 | 3211 ms |
+| api_football | getLineup | La Liga: Almeria v Rayo Vallecano | ok | 1 | 1 | 422 ms |
+| api_football | getFixtureDetail | La Liga: Sevilla v Valencia | ok | 1 | 1 | 433 ms |
+| api_football | getLineup | La Liga: Sevilla v Valencia | ok | 1 | 1 | 431 ms |
+| api_football | getLive | La Liga | ok | 1 | 0 | 445 ms |
+| api_football | listFixtures | Bundesliga | ok | 1 | 9 | 433 ms |
+| api_football | getStandings | Bundesliga | ok | 1 | 1 | 382 ms |
+| api_football | getFixtureDetail | Bundesliga: Werder Bremen v Bayern Munich | ok | 1 | 1 | 450 ms |
+| api_football | getLineup | Bundesliga: Werder Bremen v Bayern Munich | ok | 1 | 1 | 424 ms |
+| api_football | getFixtureDetail | Bundesliga: VfL Wolfsburg v FC Heidenheim | ok | 1 | 1 | 430 ms |
+| api_football | getLineup | Bundesliga: VfL Wolfsburg v FC Heidenheim | ok | 1 | 1 | 433 ms |
+| api_football | getLive | Bundesliga | ok | 1 | 0 | 410 ms |
+| api_football | listFixtures | Serie A | ok | 1 | 10 | 419 ms |
+| api_football | getStandings | Serie A | ok | 1 | 1 | 400 ms |
+| api_football | getFixtureDetail | Serie A: Empoli v Hellas Verona | ok | 1 | 1 | 1016 ms |
+| api_football | getLineup | Serie A: Empoli v Hellas Verona | ok | 1 | 1 | 402 ms |
+| api_football | getFixtureDetail | Serie A: Frosinone v Napoli | ok | 1 | 1 | 809 ms |
+| api_football | getLineup | Serie A: Frosinone v Napoli | ok | 1 | 1 | 453 ms |
+| api_football | getLive | Serie A | ok | 1 | 0 | 523 ms |
+| api_football | listFixtures | Ligue 1 | ok | 1 | 9 | 297 ms |
+| api_football | getStandings | Ligue 1 | ok | 1 | 1 | 317 ms |
+| api_football | getFixtureDetail | Ligue 1: Nice v Lille | ok | 1 | 1 | 312 ms |
+| api_football | getLineup | Ligue 1: Nice v Lille | ok | 1 | 1 | 332 ms |
+| api_football | getFixtureDetail | Ligue 1: Marseille v Reims | ok | 1 | 1 | 524 ms |
+| api_football | getLineup | Ligue 1: Marseille v Reims | ok | 1 | 1 | 377 ms |
+| api_football | getLive | Ligue 1 | ok | 1 | 0 | 685 ms |
+| football_data_org | listFixtures | Premier League | ok | 1 | 9 | 806 ms |
+| football_data_org | getStandings | Premier League | ok | 1 | 1 | 392 ms |
+| football_data_org | getFixtureDetail | Premier League: Burnley FC v Manchester City FC | ok | 1 | 1 | 416 ms |
+| football_data_org | getLineup | Premier League: Burnley FC v Manchester City FC | error: unsupported | 1 | 0 | 442 ms |
+| football_data_org | getFixtureDetail | Premier League: Arsenal FC v Nottingham Forest FC | ok | 1 | 1 | 424 ms |
+| football_data_org | getLineup | Premier League: Arsenal FC v Nottingham Forest FC | error: unsupported | 1 | 0 | 421 ms |
+| football_data_org | getLive | Premier League | ok | 1 | 2 | 384 ms |
+| football_data_org | listFixtures | La Liga | ok | 1 | 8 | 564 ms |
+| football_data_org | getStandings | La Liga | ok | 1 | 1 | 418 ms |
+| football_data_org | getFixtureDetail | La Liga: UD Almería v Rayo Vallecano de Madrid | ok | 1 | 1 | 414 ms |
+| football_data_org | getLineup | La Liga: UD Almería v Rayo Vallecano de Madrid | error: unsupported | 1 | 0 | 396 ms |
+| football_data_org | getFixtureDetail | La Liga: Sevilla FC v Valencia CF | ok | 1 | 1 | 386 ms |
+| football_data_org | getLineup | La Liga: Sevilla FC v Valencia CF | error: unsupported | 1 | 0 | 381 ms |
+| football_data_org | getLive | La Liga | ok | 1 | 2 | 407 ms |
+| football_data_org | listFixtures | Bundesliga | ok | 1 | 9 | 455 ms |
+| football_data_org | getStandings | Bundesliga | ok | 1 | 1 | 411 ms |
+| football_data_org | getFixtureDetail | Bundesliga: SV Werder Bremen v FC Bayern München | ok | 1 | 1 | 397 ms |
+| football_data_org | getLineup | Bundesliga: SV Werder Bremen v FC Bayern München | error: unsupported | 1 | 0 | 1691 ms |
+| football_data_org | getFixtureDetail | Bundesliga: Bayer 04 Leverkusen v RB Leipzig | ok | 1 | 1 | 506 ms |
+| football_data_org | getLineup | Bundesliga: Bayer 04 Leverkusen v RB Leipzig | error: unsupported | 1 | 0 | 589 ms |
+| football_data_org | getLive | Bundesliga | ok | 1 | 2 | 371 ms |
+| football_data_org | listFixtures | Serie A | ok | 1 | 10 | 415 ms |
+| football_data_org | getStandings | Serie A | ok | 1 | 1 | 402 ms |
+| football_data_org | getFixtureDetail | Serie A: Empoli FC v Hellas Verona FC | ok | 1 | 1 | 386 ms |
+| football_data_org | getLineup | Serie A: Empoli FC v Hellas Verona FC | error: unsupported | 1 | 0 | 468 ms |
+| football_data_org | getFixtureDetail | Serie A: Frosinone Calcio v SSC Napoli | ok | 1 | 1 | 1702 ms |
+| football_data_org | getLineup | Serie A: Frosinone Calcio v SSC Napoli | error: unsupported | 1 | 0 | 1915 ms |
+| football_data_org | getLive | Serie A | ok | 1 | 2 | 1855 ms |
+| football_data_org | listFixtures | Ligue 1 | ok | 1 | 9 | 1510 ms |
+| football_data_org | getStandings | Ligue 1 | ok | 1 | 1 | 536 ms |
+| football_data_org | getFixtureDetail | Ligue 1: OGC Nice v Lille OSC | ok | 1 | 1 | 433 ms |
+| football_data_org | getLineup | Ligue 1: OGC Nice v Lille OSC | error: unsupported | 1 | 0 | 402 ms |
+| football_data_org | getFixtureDetail | Ligue 1: Olympique de Marseille v Stade de Reims | ok | 1 | 1 | 421 ms |
+| football_data_org | getLineup | Ligue 1: Olympique de Marseille v Stade de Reims | error: unsupported | 1 | 0 | 404 ms |
+| football_data_org | getLive | Ligue 1 | ok | 1 | 2 | 427 ms |
+| highlightly | listFixtures | Premier League | ok | 3 | 9 | 1187 ms |
+| highlightly | getStandings | Premier League | ok | 1 | 1 | 206 ms |
+| highlightly | getFixtureDetail | Premier League: Burnley v Manchester City | ok | 1 | 1 | 308 ms |
+| highlightly | getLineup | Premier League: Burnley v Manchester City | error: unsupported | 1 | 0 | 191 ms |
+| highlightly | getFixtureDetail | Premier League: Newcastle United v Aston Villa | ok | 1 | 1 | 321 ms |
+| highlightly | getLineup | Premier League: Newcastle United v Aston Villa | error: unsupported | 1 | 0 | 216 ms |
+| highlightly | getLive | Premier League | ok | 2 | 2 | 467 ms |
+| highlightly | listFixtures | La Liga | ok | 3 | 8 | 639 ms |
+| highlightly | getStandings | La Liga | ok | 1 | 1 | 180 ms |
+| highlightly | getFixtureDetail | La Liga: Sevilla FC v Valencia | ok | 1 | 1 | 317 ms |
+| highlightly | getLineup | La Liga: Sevilla FC v Valencia | error: unsupported | 1 | 0 | 217 ms |
+| highlightly | getFixtureDetail | La Liga: Almería v Rayo Vallecano | ok | 1 | 1 | 411 ms |
+| highlightly | getLineup | La Liga: Almería v Rayo Vallecano | error: unsupported | 1 | 0 | 211 ms |
+| highlightly | getLive | La Liga | ok | 2 | 2 | 400 ms |
+| highlightly | listFixtures | Bundesliga | ok | 3 | 9 | 570 ms |
+| highlightly | getStandings | Bundesliga | ok | 1 | 1 | 195 ms |
+| highlightly | getFixtureDetail | Bundesliga: Werder Bremen v Bayern Munich | ok | 1 | 1 | 326 ms |
+| highlightly | getLineup | Bundesliga: Werder Bremen v Bayern Munich | error: unsupported | 1 | 0 | 195 ms |
+| highlightly | getFixtureDetail | Bundesliga: Borussia Dortmund v FC Koln | ok | 1 | 1 | 260 ms |
+| highlightly | getLineup | Bundesliga: Borussia Dortmund v FC Koln | error: unsupported | 1 | 0 | 169 ms |
+| highlightly | getLive | Bundesliga | ok | 2 | 2 | 387 ms |
+| highlightly | listFixtures | Serie A | ok | 3 | 10 | 568 ms |
+| highlightly | getStandings | Serie A | ok | 1 | 1 | 177 ms |
+| highlightly | getFixtureDetail | Serie A: Genoa v Fiorentina | ok | 1 | 1 | 264 ms |
+| highlightly | getLineup | Serie A: Genoa v Fiorentina | error: unsupported | 1 | 0 | 185 ms |
+| highlightly | getFixtureDetail | Serie A: Inter v Monza | ok | 1 | 1 | 258 ms |
+| highlightly | getLineup | Serie A: Inter v Monza | error: unsupported | 1 | 0 | 191 ms |
+| highlightly | getLive | Serie A | ok | 2 | 2 | 373 ms |
+| highlightly | listFixtures | Ligue 1 | ok | 3 | 9 | 587 ms |
+| highlightly | getStandings | Ligue 1 | ok | 1 | 1 | 331 ms |
+| highlightly | getFixtureDetail | Ligue 1: Nice v Lille | ok | 1 | 1 | 271 ms |
+| highlightly | getLineup | Ligue 1: Nice v Lille | error: unsupported | 1 | 0 | 181 ms |
+| highlightly | getFixtureDetail | Ligue 1: Paris Saint Germain v Lorient | ok | 1 | 1 | 331 ms |
+| highlightly | getLineup | Ligue 1: Paris Saint Germain v Lorient | error: unsupported | 1 | 0 | 169 ms |
+| highlightly | getLive | Ligue 1 | ok | 2 | 2 | 406 ms |
 
 </details>
 <!-- bakeoff:end -->
