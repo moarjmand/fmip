@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { fetchApiHealth } from '@/lib/api';
 
 // The API is queried per request, so a build never depends on it being up.
@@ -20,8 +21,11 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         FMIP
       </h1>
       <p>
-        Football Match Intelligence Platform. Nothing is built here yet — the scores page arrives in
-        T-031.
+        Football Match Intelligence Platform. Start with the{' '}
+        <Link href={`/${locale}/scores`} className="underline">
+          scores
+        </Link>
+        .
       </p>
       <p className="text-sm opacity-70">
         Locale: <code>{locale}</code>

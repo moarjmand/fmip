@@ -7,6 +7,7 @@ import type {
   HealthReport,
   OwnProfile,
   ProfileView,
+  ScoresResponse,
   SessionResponse,
   TeamsResponse,
 } from '@fmip/contracts';
@@ -125,4 +126,12 @@ export async function fetchTeams(): Promise<TeamsResponse['teams'] | null> {
 export async function fetchCompetitions(): Promise<CompetitionsResponse['competitions'] | null> {
   const result = await apiRequest<CompetitionsResponse>('/competitions');
   return result.ok ? result.data.competitions : null;
+}
+
+/** `GET /scores?${query}`; the session (if any) pins favourites and enables the filter. */
+export function fetchScores(
+  query: string,
+  cookie: string | undefined,
+): Promise<ApiResult<ScoresResponse>> {
+  return apiRequest<ScoresResponse>(`/scores?${query}`, cookie === undefined ? {} : { cookie });
 }

@@ -18,8 +18,11 @@ export async function SiteHeader({ locale }: { locale: string }) {
         aria-label="Primary"
         className="mx-auto flex max-w-3xl flex-wrap items-center gap-4 px-8 py-3 text-sm"
       >
-        <Link href={href('')} className="me-auto font-semibold">
+        <Link href={href('')} className="font-semibold">
           FMIP
+        </Link>
+        <Link href={href('/scores')} className="me-auto" data-testid="nav-scores">
+          Scores
         </Link>
 
         {me === null ? (
