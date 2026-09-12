@@ -119,6 +119,10 @@ services:
       # in .env points at localhost, which inside this container is this
       # container.
       API_BASE_URL: http://api:3001
+      # The public origin the pages name for themselves: canonical links, the
+      # sitemap, the manifest. Localhost unless a preview tunnel set it
+      # (`scripts/public-preview.sh`, `docs/10-public-preview.md`).
+      SITE_URL: ${SITE_URL:-http://localhost:${WEB_PORT:-3000}}
     ports:
       - '127.0.0.1:${WEB_PORT:-3000}:3000'
     depends_on:
@@ -153,6 +157,26 @@ services:
       postgres:
         condition: service_healthy
     # The image declares its own HEALTHCHECK (python, no curl in the slim image).
+
+  # A Cloudflare quick tunnel, so the development stack has a public HTTPS
+  # address without a domain, an account or a port forward (T-085, D-050).
+  # Behind a profile, so `docker compose up` never starts it by accident:
+  # `scripts/public-preview.sh` is the way in, and it is the only thing here
+  # that reaches the public internet. Reads the web container over the compose
+  # network, so no port has to be published to the host.
+  #
+  # Testing and development only. Cloudflare states no uptime guarantee, a hard
+  # limit of 200 concurrent requests, and — the one that matters here — no
+  # server-sent events, so the live scores stream does not survive the tunnel.
+  # `docs/10-public-preview.md` says what that leaves working.
+  tunnel:
+    profiles: ['preview']
+    image: cloudflare/cloudflared:2026.9.1
+    restart: 'no'
+    command: tunnel --no-autoupdate --url http://web:3000
+    depends_on:
+      web:
+        condition: service_healthy
 
 volumes:
   postgres-data:

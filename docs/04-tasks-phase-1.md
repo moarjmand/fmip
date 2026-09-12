@@ -1026,6 +1026,7 @@ tests (7 new on percentages, framing, deltas), typecheck, lint, stylelint.
 | `[x]` T-072 | Automated off-provider database backups + tested restore | T-008 | A restore drill is documented and passes |
 | `[x]` T-073 | Load test at expected peak (many concurrent SSE clients) | T-032 | Documented pass at an agreed threshold |
 | `[ ]` T-074 | Production deploy: VPS, Docker Compose, Cloudflare, TLS, domain | T-073 | Zero-downtime redeploy verified |
+| `[x]` T-085 | A free public address for testing, before the deploy exists | T-002 | The running stack answers on public HTTPS, and what the tunnel drops is named |
 
 **T-072 verified on 2026-09-10.** `scripts/backup/backup.sh` dumps the
 database from inside the postgres container (`pg_dump` custom format,
@@ -1160,6 +1161,34 @@ else well under a second. What remains is the runbook's steps 1–5 on the
 server (VPS, domain, Cloudflare, origin certificate, first start), the
 load-test rerun there, and one `verify-rollout.sh` on the real host; the row
 is ticked when those are done.
+
+**T-085 verified on 2026-09-12.** `bash scripts/public-preview.sh start` puts
+the development stack on a public HTTPS address with no account, no domain and
+no port forward: a Cloudflare quick tunnel (`cloudflare/cloudflared:2026.9.1`,
+behind the `preview` profile so `docker compose up` never starts it) reads the
+`web` container over the compose network and returns a random
+`*.trycloudflare.com` name. The name is only known once the tunnel is up, so the
+script waits for it, recreates `api` and `web` with `SITE_URL` and
+`WEB_BASE_URL` set to it — otherwise the canonical links, the sitemap, the
+manifest and the links in e-mails would all still say localhost — and then
+checks that `/en` really answers 200 through the tunnel before printing the
+address. `status` prints the current one, `stop` closes it and puts the app back
+on localhost.
+
+**What the tunnel drops is named, not hidden.** Cloudflare states that quick
+tunnels carry no server-sent events, so the live path (T-032, D-034) does not
+update through one; the scores page shows its connecting and stale states, which
+is rule 4 working rather than a fault. `docs/10-public-preview.md` says so at the
+top, lists what does work — every page, both locales, sign-in, the admin area,
+and the Android install prompt, which needs real HTTPS and is the reason this
+exists — and ranks the options that would give a stable address instead. Those
+all need an account, which an agent session does not create, so each is recorded
+as a candidate with the page to check and nothing asserted about its terms.
+D-050 records the choice. Verified by `bash -n`, by `docker compose config`
+(the tunnel is absent from the default profile and present under `preview`), and
+by the `curl` check the script performs on itself; the public tunnel has not been
+opened from this session — the sandbox refuses to expose a local port to the
+internet, so the first `start` is the maintainer's.
 
 ---
 
