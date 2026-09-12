@@ -3,6 +3,7 @@ import { Pool } from 'pg';
 import type { AdapterResult, NormalisedStanding, Provider, ProviderAdapter } from '@fmip/ingestion';
 import { PG_POOL } from '../../database/database.module';
 import { StandingsService } from '../standings/standings.service';
+import { CoverageService } from './coverage.service';
 import { IngestRunsService } from './ingest-runs.service';
 import { EntityResolverService } from './ingestion.service';
 import { IngestStore, type PollTarget, type WriteResult } from './internal/ingest-store';
@@ -73,6 +74,7 @@ export class IngestionJobsService {
     @Inject(INGESTION_SOURCES) private readonly sources: IngestionSources,
     private readonly runs: IngestRunsService,
     private readonly standings: StandingsService,
+    private readonly coverage: CoverageService,
     resolver: EntityResolverService,
   ) {
     this.store = new IngestStore(pool, resolver);
@@ -108,6 +110,7 @@ export class IngestionJobsService {
       let written = 0;
       const refused: string[] = [];
       const unresolved = new Set<string>();
+      const seasons = new Set<string>();
 
       for (const target of targets) {
         const result = await source.adapter.listFixtures({
@@ -124,9 +127,12 @@ export class IngestionJobsService {
         for (const fixture of result.data) {
           const write = await this.store.saveFixture(source.provider, target, fixture, 'fixtures');
           written += write.changed;
+          if (write.seasonId !== undefined) seasons.add(write.seasonId);
           for (const id of write.unresolved) unresolved.add(id);
         }
       }
+      // What arrived decides what the season's modules may claim (T-027).
+      written += await this.coverage.recomputeMany([...seasons]);
       return this.report('fixtures', source.provider, seen, written, refused, unresolved);
     });
   }
@@ -144,6 +150,7 @@ export class IngestionJobsService {
       let written = 0;
       const refused: string[] = [];
       const unresolved = new Set<string>();
+      const seasons = new Set<string>();
 
       for (const target of targets) {
         const known = await this.store.fixtureExternalIds(
@@ -165,9 +172,11 @@ export class IngestionJobsService {
         for (const fixture of result.data) {
           const write = await this.store.saveFixture(source.provider, target, fixture, 'live');
           written += write.changed;
+          if (write.seasonId !== undefined) seasons.add(write.seasonId);
           for (const id of write.unresolved) unresolved.add(id);
         }
       }
+      written += await this.coverage.recomputeMany([...seasons]);
       return this.report('live', source.provider, seen, written, refused, unresolved);
     });
   }
@@ -199,6 +208,9 @@ export class IngestionJobsService {
         written += write.changed;
         for (const id of write.unresolved) unresolved.add(id);
       }
+      written += await this.coverage.recomputeMany(
+        await this.coverage.seasonsOf(candidates.map((c) => c.fixtureId)),
+      );
       return this.report('lineups', source.provider, seen, written, refused, unresolved);
     });
   }
@@ -247,6 +259,9 @@ export class IngestionJobsService {
           for (const id of write.unresolved) unresolved.add(id);
         }
       }
+      written += await this.coverage.recomputeMany(
+        await this.coverage.seasonsOf(candidates.map((c) => c.fixtureId)),
+      );
       return this.report('post_match', source.provider, seen, written, refused, unresolved);
     });
   }

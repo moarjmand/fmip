@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
+import { CoverageService } from './coverage.service';
 import { IngestionJobsService } from './ingestion-jobs.service';
 import { IngestionModule } from './ingestion.module';
 
@@ -44,6 +45,7 @@ const PERSON_IDS: [string, string][] = [
 describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jobs', () => {
   let pool: Pool;
   let jobs: IngestionJobsService;
+  let coverage: CoverageService;
   let close: () => Promise<void>;
   let competitionId: string;
   const mappings: string[] = [];
@@ -111,11 +113,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
     }).compile();
     await moduleRef.init();
     jobs = moduleRef.get(IngestionJobsService);
+    coverage = moduleRef.get(CoverageService);
     close = () => moduleRef.close();
   });
 
   afterAll(async () => {
     if (pool === undefined) return;
+    await pool.query(`DELETE FROM coverage_profile WHERE season_id = $1`, [SEASON]);
     await pool.query(`DELETE FROM fixture WHERE season_id = $1`, [SEASON]);
     await pool.query(
       `DELETE FROM provider_mapping WHERE id = ANY($1::uuid[])
@@ -260,6 +264,58 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
     const second = await jobs.postMatch(AFTER_KICKOFF);
     expect(second.itemsSeen).toBe(1);
     expect(second.itemsWritten).toBe(0);
+  });
+
+  it('records a coverage state for every module, computed from what arrived (T-027)', async () => {
+    const { rows } = await pool.query<{ module: string; state: string; provider: string | null }>(
+      `SELECT module, state, provider FROM coverage_profile WHERE season_id = $1 ORDER BY module`,
+      [SEASON],
+    );
+    // Every module the contract names has a row: a module with no row is
+    // unknown coverage, and unknown is what rule 3 will not have.
+    expect(rows.map((r) => r.module)).toEqual([
+      'advanced_statistics',
+      'availability',
+      'incidents',
+      'lineups',
+      'scores',
+      'standings',
+      'statistics',
+    ]);
+
+    const state = new Map(rows.map((r) => [r.module, r.state]));
+    // One finished fixture, and the post-match job filled it, so the modules it
+    // covers are complete for this season.
+    expect(state.get('scores')).toBe('available');
+    expect(state.get('incidents')).toBe('available');
+    expect(state.get('lineups')).toBe('available');
+    expect(state.get('statistics')).toBe('available');
+    expect(state.get('standings')).toBe('available');
+    // Nothing supplies where to watch, and the profile says so rather than
+    // leaving an empty module to look populated.
+    expect(state.get('availability')).toBe('not_supplied');
+
+    // Supplied data names where it came from; an absence names nobody.
+    const byModule = new Map(rows.map((r) => [r.module, r.provider]));
+    expect(byModule.get('scores')).toBe('api_football');
+    expect(byModule.get('availability')).toBeNull();
+
+    const notes = await pool.query<{ note: string }>(
+      `SELECT note FROM coverage_profile WHERE season_id = $1 AND module = 'scores'`,
+      [SEASON],
+    );
+    expect(notes.rows[0]?.note).toContain('fixtures');
+
+    // Freshness comes from the rows themselves, not from a job's clock, so a
+    // poll that found nothing cannot make a match look fresh.
+    const freshness = await coverage.freshness(SEASON);
+    expect(freshness.scores).toBeTypeOf('string');
+    expect(freshness.lineups).toBeTypeOf('string');
+    expect(freshness.standings).toBe(freshness.scores);
+    expect(freshness.availability).toBeUndefined();
+
+    // And recomputing changes nothing, like every other writer here.
+    expect((await coverage.recompute(SEASON)).changed).toBe(0);
   });
 
   it('asks about live matches by id, so a match nobody follows costs nothing', async () => {

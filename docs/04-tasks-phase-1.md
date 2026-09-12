@@ -116,7 +116,7 @@ split into two commits, wiring then resolver, in one PR.
 | `[x]` T-024 | Bake-off harness: run all three over the same fixtures, log latency/completeness/errors | T-021, T-022, T-023 | Produces `docs/05-data-providers.md` results table automatically |
 | `[ ]` T-025 | **Decision gate:** review bake-off, pick provider, subscribe to paid tier | T-024 | New entry in `00-decisions.md` |
 | `[x]` T-026 | Scheduled ingestion jobs (BullMQ): fixtures, live, lineups, standings, post-match | T-020..T-024 (was T-025, D-049) | Jobs are idempotent; a replay changes nothing |
-| `[ ]` T-027 | Coverage profile computation + freshness tracking | T-026 | Every module payload carries a coverage state |
+| `[x]` T-027 | Coverage profile computation + freshness tracking | T-026 | Every module payload carries a coverage state |
 
 **T-020 verified on 2026-09-10.** `packages/ingestion` holds the normalised
 model, the `ProviderAdapter` contract and `checkAdapterContract`. The
@@ -260,6 +260,49 @@ sources and the budget, 5 database tests on the jobs, 4 on the replay adapter;
 typecheck, lint and Prettier pass, and the whole suite is green apart from
 `model-client.spec.ts`, which needs the Python service running and fails the
 same way on a clean tree.
+
+**T-027 verified on 2026-09-12.** The read side has wrapped every module in
+`Covered` since T-030, but the state it read came from `coverage_profile` rows
+written by hand — a promise, not a fact, and a season promised `available` whose
+line-ups never arrived is exactly the empty-module-that-looks-populated rule 3
+forbids. `CoverageService` now computes each row from the rows that exist.
+
+**The rule is one question asked seven times:** of the fixtures that should
+carry this module by now, how many do. `internal/coverage-rules.ts` is that
+question as a pure function — all present is `available`, some is `limited` with
+the counts in the note, none is `not_supplied` naming how many were owed, and a
+season with nothing far enough along says so in words rather than reading as "the
+provider does not serve this". `internal/coverage-store.ts` is what "should" means
+per module, one query each: a finished match owes a score, its events and its
+statistics; a line-up is owed once the match has started, not while it is still
+unannounced; the table owes exactly what the results it is derived from owe
+(D-038); where-to-watch is owed by every upcoming match and supplied by nothing,
+so it reports `not_supplied` and the query is written to start reporting the day
+something does. A declared state never outranks the evidence. The one exception
+is `delayed`, which describes a provider's behaviour rather than our rows: an
+admin's `delayed` survives a run that found nothing and is replaced the moment
+data arrives.
+
+**Freshness comes from the data, not from the job.** `freshness(seasonId)` reads
+the newest `updated_at` of the scores, incidents, line-ups and statistics
+themselves, so a poll that ran and found nothing cannot make a match look fresh
+(rule 4); the table's freshness is the results' freshness, because that is what
+it is made of.
+
+**Every module payload carries a coverage state:** after the replay jobs of
+T-026 run against a real database, `coverage_profile` holds a row for all seven
+modules of the season — `scores`, `incidents`, `lineups`, `statistics` and
+`standings` `available` from the one finished match the recordings cover,
+`availability` `not_supplied` — each naming the provider that supplied it, or
+naming nobody where nothing did, and each with a note giving the counts it was
+computed from. A module with no row is unknown coverage, and unknown is what this
+prevents. Recomputation is a writer like every other one here: the second run
+changes nothing, so it is counted in the run that triggers it without breaking
+T-026's replay guarantee. It is deliberately not a sixth ingest job — nothing
+here talks to a provider; it reads what the five jobs wrote and runs at the end
+of the four that can change an answer. 6 unit tests on the rules, 6 database
+tests on the jobs including the coverage assertions; typecheck, lint and Prettier
+pass.
 
 ---
 
