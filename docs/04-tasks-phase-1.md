@@ -531,10 +531,18 @@ fields and both icon sizes plus a maskable one, every icon answers 200 as
 PNG, the page links the manifest, the theme colour and the apple icon, the
 service worker registers at scope `/`, caches the shell, and with the
 network switched off a navigation to the scores page renders the offline
-page. The offline page also passes the WCAG 2.2 AA check (T-081). Tapping
-"Install" on an Android phone is the one step no test can take: to be
-confirmed by the maintainer on a device. 3 E2E tests; typecheck, lint,
-Prettier; web unit suite.
+page. The offline page also passes the WCAG 2.2 AA check (T-081). Added
+2026-09-12: the spec also asks the real browser for its decision — Google
+Chrome (Playwright channel `chrome`, the full browser rather than the
+headless shell, in a persistent context because incognito never offers an
+install, with `--bypass-app-banner-engagement-checks` so the visit-count
+heuristic does not apply) on a Pixel 7 emulation fires `beforeinstallprompt`
+for `/en` and `Page.getInstallabilityErrors` returns an empty list; while
+writing it, a blocked manifest produced `no-manifest` and
+`manifest-parsing-or-network-error`, so the empty list is a verdict, not a
+default. The test skips where Chrome is not installed (it is on the CI
+runner). That leaves only the tap itself for a phone. 4 E2E tests;
+typecheck, lint, Prettier; web unit suite.
 
 **T-080 verified on 2026-09-12.** `tests/e2e/journeys/journeys.spec.ts`
 walks the blueprint's essential journeys (section 18) as far as Phase 1
