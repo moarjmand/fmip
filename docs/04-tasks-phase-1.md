@@ -1013,7 +1013,7 @@ tests (7 new on percentages, framing, deltas), typecheck, lint, stylelint.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-070 | Minimal admin: coverage status, freshness, ingest failures, user search, rating config | T-027, T-053 | High-impact actions write an audit record |
+| `[x]` T-070 | Minimal admin: coverage status, freshness, ingest failures, user search, rating config | (T-027), T-053 | High-impact actions write an audit record |
 | `[x]` T-071 | Structured logging, error tracking, tracing on ingestion and live path | (T-026) | An ingest failure is visible without SSH |
 | `[x]` T-072 | Automated off-provider database backups + tested restore | T-008 | A restore drill is documented and passes |
 | `[ ]` T-073 | Load test at expected peak (many concurrent SSE clients) | T-032 | Documented pass at an agreed threshold |
@@ -1071,6 +1071,38 @@ and logged, a 404 keeps its body, and an unhandled error is a 500 carrying
 the id with the stack kept out of the body. 5 unit tests on the logger,
 3 HTTP tests on request ids and errors, 2 on ingest runs; typecheck, lint,
 Prettier; full API suite twice, web unit suite.
+
+**T-070 verified on 2026-09-12 (sequenced under D-033: the operator's view is
+built against the schema before the provider jobs fill it).** Migration
+`..._audit-log.sql` adds `audit_log` — actor, action (`noun.verb`), target
+type and id, reason, previous and next as JSON, time — immutable by the
+`refuse_change()` trigger (rule 10). The administration boundary
+(`src/modules/admin/`, D-046) is gated by the `admin` role in `user_role`:
+`GET /admin/overview` gives the declared coverage per current season, the
+live-data freshness per current season (fixtures, live, live behind the
+T-083 threshold, newest change), the ingestion health of T-071 and the
+rating configuration in force (formula, points, eligibility and leaderboard
+rules by version and value — read-only, since a change is a versioned code
+change under D-035 and D-036); `GET /admin/users?q=` searches members by
+username, e-mail or display name with their roles and status; `POST
+/admin/users/:id/status` suspends or reinstates an account and `PUT
+/admin/coverage/:seasonId/:module` sets a season's declared coverage, each
+requiring a reason and each writing its audit row in the same transaction
+as the change; `GET /admin/audit` lists the records newest first. The web
+page `/[locale]/admin` renders all of it (401 → sign-in, 403 → not found, so
+members are not told the area exists) with a member search and the two
+audited forms. **High-impact actions write an audit record:** the HTTP suite
+suspends and reinstates a member and reads back two records with the
+actor's username, `user.status`, the reason given, `previous`
+`{status: 'active'}` → `next` `{status: 'suspended'}` and the reverse;
+declares line-ups coverage for a season and changes its scores coverage,
+and reads back `coverage.set` records with the previous row (or null for a
+new one) and the next state; a status change without a reason is a 400, an
+administrator cannot change their own status, coverage that is available,
+limited or delayed without a provider is refused; guests get 401 and
+members without the role 403; an audit row cannot be updated or deleted
+(`23001`). 6 HTTP tests; typecheck, lint, Prettier; migration down/up
+cycled; full API suite green.
 
 ---
 

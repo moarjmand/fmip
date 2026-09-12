@@ -1178,3 +1178,36 @@ the scores page follows automatically. `STALE_LIVE_AFTER_MS` is one
 constant shared by API and web. The client "connecting / live / stale" line
 (T-032) is about the stream; this rule is about the data — a page can be
 connected and behind at the same time, and says both.
+
+## D-046 — Administration is a role-gated boundary; every high-impact write carries its audit row in the same transaction
+**Status:** Accepted · 2026-09-12
+
+**Decision.** The administration area (blueprint 16) is its own boundary,
+`/admin/...`, open only to accounts with the `admin` role in `user_role`;
+the web page renders what the API allowed and shows a member without the
+role nothing (404). High-impact writes — in Phase 1 an account's status and
+a season's declared coverage — require a reason and insert their `audit_log`
+row (actor, action, target, reason, previous, next) in the same database
+transaction as the change, so a change without its record cannot exist;
+the log is immutable. The rating configuration is shown by version and
+value and is not editable from the page: changing a rule is a new version
+in code (D-035, D-036), which is what keeps every stored rating
+reproducible (rule 8). Reads (coverage, freshness, ingestion, member search)
+cross the other boundaries' tables directly: the operator's view is the
+whole platform, and a read has no invariant to protect.
+
+**Why.** Rule 10 asks for actor, timestamp, reason and previous value; a
+row written after the fact, or by a separate call, can be missing when the
+second write fails — the transaction is the guarantee. Editable rating
+rules in a table would let a stored rating disagree with the rule that
+produced it. Hiding the area from members without the role avoids
+advertising it.
+
+**Alternatives considered.** A generic audit trigger on every table: records
+what changed but not who or why. Editable rating rules with their own
+versioning: possible later, if the founder needs to change thresholds
+without a deploy; the audit shape already fits.
+
+**Consequences.** New high-impact actions (moderation, contributor access,
+changing a settled prediction) follow the same pattern: reason in, audit
+row in the transaction. `audit_log` grows forever by design.

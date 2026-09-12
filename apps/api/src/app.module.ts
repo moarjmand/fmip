@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from './database/database.module';
+import { AdminModule } from './modules/admin/admin.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { FixturesModule } from './modules/fixtures/fixtures.module';
 import { ForecastModule } from './modules/forecast/forecast.module';
@@ -30,6 +31,7 @@ import { SearchModule } from './modules/search/search.module';
     PredictionsModule,
     ReputationModule,
     SearchModule,
+    AdminModule,
   ],
 })
 export class AppModule {}

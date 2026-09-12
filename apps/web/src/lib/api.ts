@@ -1,5 +1,8 @@
 import type {
+  AdminOverview,
+  AdminUsersResponse,
   ApiError,
+  AuditResponse,
   CompetitionPage,
   CompetitionsResponse,
   CountriesResponse,
@@ -33,6 +36,27 @@ const API_BASE_URL = process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
  * answer is labelled, never faked. The caller renders the difference.
  */
 export type ApiHealth = { reachable: true; report: HealthReport } | { reachable: false };
+
+/** `GET /admin/overview` (T-070): the operator's view; 401/403 come back as results. */
+export function fetchAdminOverview(cookie: string | undefined): Promise<ApiResult<AdminOverview>> {
+  return apiRequest<AdminOverview>('/admin/overview', cookie === undefined ? {} : { cookie });
+}
+
+/** `GET /admin/users?q=` (T-070). */
+export function fetchAdminUsers(
+  query: string,
+  cookie: string | undefined,
+): Promise<ApiResult<AdminUsersResponse>> {
+  return apiRequest<AdminUsersResponse>(
+    `/admin/users?q=${encodeURIComponent(query)}`,
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/** `GET /admin/audit` (T-070), newest first. */
+export function fetchAudit(cookie: string | undefined): Promise<ApiResult<AuditResponse>> {
+  return apiRequest<AuditResponse>('/admin/audit', cookie === undefined ? {} : { cookie });
+}
 
 /** `GET /health/ingestion` (T-071): the feed's recent runs; null when unreachable. */
 export async function fetchIngestionHealth(): Promise<IngestionHealth | null> {
