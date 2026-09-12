@@ -1,0 +1,425 @@
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Pool } from 'pg';
+import type { AdapterResult, NormalisedStanding, Provider, ProviderAdapter } from '@fmip/ingestion';
+import { PG_POOL } from '../../database/database.module';
+import { StandingsService } from '../standings/standings.service';
+import { IngestRunsService } from './ingest-runs.service';
+import { EntityResolverService } from './ingestion.service';
+import { IngestStore, type PollTarget, type WriteResult } from './internal/ingest-store';
+import {
+  INGESTION_SOURCES,
+  REPLAY_QUERY,
+  type IngestJob,
+  type IngestionSources,
+} from './internal/sources';
+
+/** How far back and forward the fixtures job looks, in days. */
+export const FIXTURE_WINDOW_BACK_DAYS = 2;
+export const FIXTURE_WINDOW_FORWARD_DAYS = 7;
+/** How close to kick-off a match has to be before the live job asks about it. */
+export const LIVE_WINDOW_BEFORE_MINUTES = 30;
+export const LIVE_WINDOW_AFTER_MINUTES = 210;
+/** How many fixtures one lineups or post-match run will spend requests on. */
+export const DETAIL_BATCH = 10;
+
+/** What one job run did. Returned so a caller (a test, the scheduler) can assert on it. */
+export interface JobReport {
+  job: IngestJob;
+  provider: Provider | null;
+  /** Items the provider supplied. */
+  itemsSeen: number;
+  /** Rows that really changed. Zero on a replay of the same data. */
+  itemsWritten: number;
+  /** Set when the run was partial: the reason, in words. */
+  partial?: string;
+}
+
+function dayIso(now: Date, offsetDays: number): string {
+  const day = new Date(now.getTime() + offsetDays * 24 * 60 * 60 * 1000);
+  return day.toISOString().slice(0, 10);
+}
+
+/** Postgres unique violation: the "already running" lock on `ingest_run`. */
+const UNIQUE_VIOLATION = '23505';
+
+function describe(error: { kind: string; message: string }): string {
+  return `${error.kind}: ${error.message}`;
+}
+
+/**
+ * The scheduled ingestion jobs (T-026).
+ *
+ * Five jobs, one method each, every one of them run inside
+ * `IngestRunsService.track` so that its outcome is a row in `ingest_run` and a
+ * failure is visible on `GET /health/ingestion` without SSH (T-071). Each job
+ * is a fetch, a resolve and an upsert; the writers in `internal/ingest-store.ts`
+ * only write rows that changed, so running any job twice over the same provider
+ * state writes nothing the second time. That is the acceptance criterion, and
+ * `ingestion-jobs.http.spec.ts` asserts it against a real database.
+ *
+ * A job never throws for a provider that said no. A refusal — a quota, a plan
+ * that does not serve this season, a competition off the tier — is a `partial`
+ * run naming what happened, because the data is missing for a reason we can
+ * state, which is what the coverage state (T-027) is for. Only something we did
+ * not anticipate is allowed to fail the run.
+ */
+@Injectable()
+export class IngestionJobsService {
+  private readonly log = new Logger('Ingestion');
+  private readonly store: IngestStore;
+
+  constructor(
+    @Inject(PG_POOL) pool: Pool,
+    @Inject(INGESTION_SOURCES) private readonly sources: IngestionSources,
+    private readonly runs: IngestRunsService,
+    private readonly standings: StandingsService,
+    resolver: EntityResolverService,
+  ) {
+    this.store = new IngestStore(pool, resolver);
+  }
+
+  /** Runs one job by name. The scheduler and the tests both come through here. */
+  run(job: IngestJob, now: Date = new Date()): Promise<JobReport> {
+    switch (job) {
+      case 'fixtures':
+        return this.fixtures(now);
+      case 'live':
+        return this.live(now);
+      case 'lineups':
+        return this.lineups(now);
+      case 'standings':
+        return this.standingsCheck(now);
+      case 'post_match':
+        return this.postMatch(now);
+    }
+  }
+
+  /**
+   * The schedule of a fixture and everything the list carries: teams, kick-off,
+   * status, scores. The window is a few days either side of now, so a
+   * postponement or a rearranged kick-off is picked up, not only new matches.
+   */
+  fixtures(now: Date = new Date()): Promise<JobReport> {
+    return this.track('fixtures', async (source, targets) => {
+      const replay = this.sources.kind === 'replay';
+      const from = replay ? REPLAY_QUERY.from : dayIso(now, -FIXTURE_WINDOW_BACK_DAYS);
+      const to = replay ? REPLAY_QUERY.to : dayIso(now, FIXTURE_WINDOW_FORWARD_DAYS);
+      let seen = 0;
+      let written = 0;
+      const refused: string[] = [];
+      const unresolved = new Set<string>();
+
+      for (const target of targets) {
+        const result = await source.adapter.listFixtures({
+          competitionExternalId: target.competitionExternalId,
+          seasonLabel: replay ? REPLAY_QUERY.seasonLabel : target.seasonLabel,
+          from,
+          to,
+        });
+        if (!result.ok) {
+          refused.push(`${target.seasonLabel}: ${describe(result.error)}`);
+          continue;
+        }
+        seen += result.data.length;
+        for (const fixture of result.data) {
+          const write = await this.store.saveFixture(source.provider, target, fixture, 'fixtures');
+          written += write.changed;
+          for (const id of write.unresolved) unresolved.add(id);
+        }
+      }
+      return this.report('fixtures', source.provider, seen, written, refused, unresolved);
+    });
+  }
+
+  /**
+   * The state of matches that should be under way. Asked for by id, so a
+   * provider that answers "everything live right now" is filtered to ours and a
+   * match nobody here follows costs nothing.
+   */
+  live(now: Date = new Date()): Promise<JobReport> {
+    return this.track('live', async (source, targets) => {
+      const from = new Date(now.getTime() - LIVE_WINDOW_AFTER_MINUTES * 60 * 1000).toISOString();
+      const to = new Date(now.getTime() + LIVE_WINDOW_BEFORE_MINUTES * 60 * 1000).toISOString();
+      let seen = 0;
+      let written = 0;
+      const refused: string[] = [];
+      const unresolved = new Set<string>();
+
+      for (const target of targets) {
+        const known = await this.store.fixtureExternalIds(
+          source.provider,
+          target.competitionId,
+          from,
+          to,
+        );
+        if (known.length === 0) continue;
+
+        const result = await source.adapter.getLive({
+          fixtureExternalIds: known.map((k) => k.externalId),
+        });
+        if (!result.ok) {
+          refused.push(`${target.seasonLabel}: ${describe(result.error)}`);
+          continue;
+        }
+        seen += result.data.length;
+        for (const fixture of result.data) {
+          const write = await this.store.saveFixture(source.provider, target, fixture, 'live');
+          written += write.changed;
+          for (const id of write.unresolved) unresolved.add(id);
+        }
+      }
+      return this.report('live', source.provider, seen, written, refused, unresolved);
+    });
+  }
+
+  /** Announced line-ups for matches about to start, or just started. */
+  lineups(now: Date = new Date()): Promise<JobReport> {
+    return this.track('lineups', async (source, targets) => {
+      const candidates = await this.detailCandidates(source.provider, targets, now, [
+        'scheduled',
+        'live',
+      ]);
+      let seen = 0;
+      let written = 0;
+      const refused: string[] = [];
+      const unresolved = new Set<string>();
+
+      for (const candidate of candidates) {
+        const result = await source.adapter.getLineup(candidate.externalId);
+        if (!result.ok) {
+          refused.push(`${candidate.externalId}: ${describe(result.error)}`);
+          continue;
+        }
+        seen += 1;
+        const write = await this.store.saveLineup(
+          source.provider,
+          candidate.fixtureId,
+          result.data,
+        );
+        written += write.changed;
+        for (const id of write.unresolved) unresolved.add(id);
+      }
+      return this.report('lineups', source.provider, seen, written, refused, unresolved);
+    });
+  }
+
+  /**
+   * Everything after the whistle: incidents, team statistics, the periods and
+   * the closing scores. Runs against matches that have finished recently.
+   */
+  postMatch(now: Date = new Date()): Promise<JobReport> {
+    return this.track('post_match', async (source, targets) => {
+      const candidates = await this.detailCandidates(source.provider, targets, now, [
+        'finished',
+        'live',
+      ]);
+      let seen = 0;
+      let written = 0;
+      const refused: string[] = [];
+      const unresolved = new Set<string>();
+
+      for (const candidate of candidates) {
+        const result = await source.adapter.getFixtureDetail(candidate.externalId);
+        if (!result.ok) {
+          refused.push(`${candidate.externalId}: ${describe(result.error)}`);
+          continue;
+        }
+        seen += 1;
+        const detail = result.data;
+        const writes: WriteResult[] = [
+          await this.store.saveFixture(
+            source.provider,
+            candidate.target,
+            detail.fixture,
+            'post_match',
+          ),
+          await this.store.savePeriods(candidate.fixtureId, detail.periods),
+          await this.store.saveIncidents(source.provider, candidate.fixtureId, detail.incidents),
+          await this.store.saveStatistics(candidate.fixtureId, detail.statistics),
+        ];
+        if (detail.lineup !== null) {
+          writes.push(
+            await this.store.saveLineup(source.provider, candidate.fixtureId, detail.lineup),
+          );
+        }
+        for (const write of writes) {
+          written += write.changed;
+          for (const id of write.unresolved) unresolved.add(id);
+        }
+      }
+      return this.report('post_match', source.provider, seen, written, refused, unresolved);
+    });
+  }
+
+  /**
+   * The provider's table, read as a check on ours.
+   *
+   * Nothing is written: the table is derived from results (D-038), so there is
+   * no standings table to fill. What the provider's table is good for is
+   * catching a hole — a team whose played count here is behind the provider's
+   * has a fixture we have not ingested. Disagreements make the run `partial`
+   * and name the teams, which is how a silent gap becomes a visible one.
+   */
+  private standingsCheck(now: Date = new Date()): Promise<JobReport> {
+    void now;
+    return this.track('standings', async (source, targets) => {
+      let seen = 0;
+      const refused: string[] = [];
+      const behind: string[] = [];
+
+      for (const target of targets) {
+        const result: AdapterResult<NormalisedStanding[]> = await source.adapter.getStandings({
+          competitionExternalId: target.competitionExternalId,
+          seasonLabel:
+            this.sources.kind === 'replay' ? REPLAY_QUERY.seasonLabel : target.seasonLabel,
+        });
+        if (!result.ok) {
+          refused.push(`${target.seasonLabel}: ${describe(result.error)}`);
+          continue;
+        }
+        const ours = await this.standings.table(target.seasonId);
+        const byName = new Map((ours.data ?? []).map((row) => [row.team.name.toLowerCase(), row]));
+        for (const table of result.data) {
+          seen += table.rows.length;
+          for (const row of table.rows) {
+            const mine = byName.get(row.team.name.toLowerCase());
+            if (mine === undefined) continue;
+            if (mine.played !== row.played) {
+              behind.push(
+                `${row.team.name}: provider ${row.played} played, we have ${mine.played}`,
+              );
+            }
+          }
+        }
+      }
+      const partial = [...refused, ...behind].join('; ');
+      return {
+        job: 'standings' as const,
+        provider: source.provider,
+        itemsSeen: seen,
+        itemsWritten: 0,
+        ...(partial === '' ? {} : { partial }),
+      };
+    });
+  }
+
+  /** The fixtures a detail job should spend requests on, newest kick-off first. */
+  private async detailCandidates(
+    provider: Provider,
+    targets: PollTarget[],
+    now: Date,
+    statuses: string[],
+  ): Promise<{ externalId: string; fixtureId: string; target: PollTarget }[]> {
+    const from = new Date(now.getTime() - LIVE_WINDOW_AFTER_MINUTES * 60 * 1000).toISOString();
+    const to = new Date(now.getTime() + LIVE_WINDOW_BEFORE_MINUTES * 60 * 1000).toISOString();
+    const out: { externalId: string; fixtureId: string; target: PollTarget }[] = [];
+
+    for (const target of targets) {
+      const known = await this.store.fixtureExternalIds(provider, target.competitionId, from, to);
+      for (const fixture of known) {
+        if (!statuses.includes(fixture.status)) continue;
+        out.push({ externalId: fixture.externalId, fixtureId: fixture.fixtureId, target });
+      }
+    }
+    return out.slice(0, DETAIL_BATCH);
+  }
+
+  private report(
+    job: IngestJob,
+    provider: Provider,
+    seen: number,
+    written: number,
+    refused: string[],
+    unresolved: Set<string>,
+  ): JobReport {
+    const notes = [...refused];
+    if (unresolved.size > 0) {
+      notes.push(`${unresolved.size} provider ids have no mapping and are queued for review`);
+    }
+    const partial = notes.join('; ');
+    return {
+      job,
+      provider,
+      itemsSeen: seen,
+      itemsWritten: written,
+      ...(partial === '' ? {} : { partial }),
+    };
+  }
+
+  /**
+   * Opens the run record, finds what this provider can be polled for, and hands
+   * both to the job body. A job with no configured source, or with nothing
+   * mapped to poll, still records a run: "it did not run" is information.
+   */
+  private async track(
+    job: IngestJob,
+    work: (
+      source: { provider: Provider; adapter: ProviderAdapter },
+      targets: PollTarget[],
+    ) => Promise<JobReport>,
+  ): Promise<JobReport> {
+    const source = this.sources.forJob(job);
+    if (source === null) {
+      // No run row: `ingest_run.provider` is one of the three real providers,
+      // and a run that never happened must not be recorded. The log is where a
+      // skipped job is visible.
+      const reason = this.sources.reason ?? `no source serves ${job}`;
+      this.log.warn(`ingestion job skipped: ${job}`, { event: 'ingest.no_source', job, reason });
+      return { job, provider: null, itemsSeen: 0, itemsWritten: 0, partial: reason };
+    }
+
+    try {
+      return await this.runOne(job, source, work);
+    } catch (error: unknown) {
+      // `ingest_run` has a partial unique index on (provider, job) while a run
+      // is open, so a second tick of the same job cannot start. That is the
+      // lock working; the tick is skipped, not failed.
+      if ((error as { code?: string }).code === UNIQUE_VIOLATION) {
+        this.log.warn(`ingestion tick skipped, already running: ${job}`, {
+          event: 'ingest.already_running',
+          job,
+          provider: source.provider,
+        });
+        return {
+          job,
+          provider: source.provider,
+          itemsSeen: 0,
+          itemsWritten: 0,
+          partial: 'a run of this job was already open',
+        };
+      }
+      throw error;
+    }
+  }
+
+  private runOne(
+    job: IngestJob,
+    source: { provider: Provider; adapter: ProviderAdapter },
+    work: (
+      source: { provider: Provider; adapter: ProviderAdapter },
+      targets: PollTarget[],
+    ) => Promise<JobReport>,
+  ): Promise<JobReport> {
+    return this.runs.track(source.provider, job, null, async () => {
+      const targets = await this.store.pollTargets(source.provider);
+      if (targets.length === 0) {
+        const reason = `no competition is mapped to ${source.provider} with a current season`;
+        const report: JobReport = {
+          job,
+          provider: source.provider,
+          itemsSeen: 0,
+          itemsWritten: 0,
+          partial: reason,
+        };
+        return { result: report, itemsSeen: 0, itemsWritten: 0, partial: reason };
+      }
+      const report = await work(source, targets);
+      return {
+        result: report,
+        itemsSeen: report.itemsSeen,
+        itemsWritten: report.itemsWritten,
+        ...(report.partial === undefined ? {} : { partial: report.partial }),
+      };
+    });
+  }
+}
