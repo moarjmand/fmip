@@ -7,6 +7,12 @@ import type { ExternalRef, LinkOutcome, Resolution } from './internal/resolver';
 
 // The module's public surface. Other modules import from this file only.
 export { ENTITY_TYPES, PROVIDERS } from './internal/resolver';
+export {
+  FAILURE_WINDOW_MS,
+  IngestRunsService,
+  RECENT_RUNS,
+  type RunOutcome,
+} from './ingest-runs.service';
 export type {
   EntityType,
   ExternalRef,

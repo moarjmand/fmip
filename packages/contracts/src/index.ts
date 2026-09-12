@@ -1,6 +1,12 @@
 export { COVERAGE_STATES, hasData, isCoverageState } from './coverage';
 export type { CoverageState, Covered } from './coverage';
-export type { HealthReport } from './health';
+export type {
+  HealthReport,
+  IngestRun,
+  IngestRunStatus,
+  IngestionHealth,
+  LiveHealth,
+} from './health';
 export type {
   ApiError,
   AuthUser,

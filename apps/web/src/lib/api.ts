@@ -61,7 +61,12 @@ export async function apiRequest<T>(
   path: string,
   init: ApiRequestInit = {},
 ): Promise<ApiResult<T>> {
-  const headers: Record<string, string> = { accept: 'application/json' };
+  const headers: Record<string, string> = {
+    accept: 'application/json',
+    // Tracing (T-071): the API echoes the id and puts it in every log line
+    // about this call, so a page's failure can be found in the API's log.
+    'x-request-id': `web-${crypto.randomUUID()}`,
+  };
   if (init.body !== undefined) headers['content-type'] = 'application/json';
   if (init.cookie !== undefined) headers.cookie = init.cookie;
 

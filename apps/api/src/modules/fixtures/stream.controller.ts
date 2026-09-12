@@ -9,7 +9,7 @@ import {
   Res,
   UnauthorizedException,
 } from '@nestjs/common';
-import type { ApiError } from '@fmip/contracts';
+import type { ApiError, LiveHealth } from '@fmip/contracts';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { FixturesService, parseScoresQuery } from './fixtures.service';
@@ -48,6 +48,12 @@ export class StreamController {
     private readonly feed: FixtureChangeFeed,
     @Inject(STREAM_OPTIONS) private readonly options: StreamOptions,
   ) {}
+
+  /** `GET /health/live` (T-071): the live path's gateway in numbers. Public and read-only. */
+  @Get('health/live')
+  live(): LiveHealth {
+    return { checked_at: new Date().toISOString(), stream_subscribers: this.feed.subscribers };
+  }
 
   @Get('scores/stream')
   async scores(

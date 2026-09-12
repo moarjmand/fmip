@@ -76,7 +76,10 @@ export interface ApiError {
     | 'invalid_token'
     | 'not_found'
     | 'email_unverified'
-    | 'locked';
+    | 'locked'
+    | 'internal';
   message: string;
+  /** On an `internal` error: the request id to quote when reporting it (T-071). */
+  request_id?: string;
   fields?: Record<string, string>;
 }

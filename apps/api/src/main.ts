@@ -2,6 +2,12 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module';
+import {
+  AllExceptionsFilter,
+  registerAccessLog,
+  requestIdFrom,
+} from './observability/http-observability';
+import { JsonLogger } from './observability/json-logger';
 
 const DEFAULT_PORT = 3001;
 
@@ -21,7 +27,18 @@ export function resolvePort(raw: string | undefined): number {
 }
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter());
+  // Structured logs, request ids and one error filter (T-071, D-044).
+  const logger = new JsonLogger();
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    new FastifyAdapter({
+      genReqId: (request: { headers: Record<string, string | string[] | undefined> }) =>
+        requestIdFrom(request.headers['x-request-id']),
+    }),
+    { logger },
+  );
+  registerAccessLog(app.getHttpAdapter().getInstance(), logger);
+  app.useGlobalFilters(new AllExceptionsFilter(logger));
 
   // Lets Nest run its shutdown hooks on SIGTERM, which is how Docker stops a
   // container. Without this, in-flight requests are cut off.

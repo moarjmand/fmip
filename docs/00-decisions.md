@@ -1111,3 +1111,36 @@ failures as skips.
 **Consequences.** The branch ruleset lists `Verify` and `E2E`; adding
 `E2E journeys` to the required checks is a repository setting for the
 maintainer. A new journey slice joins `tests/e2e/journeys/`.
+
+## D-044 — Observability is structured stdout, request ids and honest health views; no tracing vendor yet
+**Status:** Accepted · 2026-09-12
+
+**Decision.** The API logs one JSON object per line to stdout (pretty in
+development, `LOG_FORMAT` decides), with a `context`, a `message` and named
+fields; deliberate events carry an `event` name (`http.request`,
+`http.error`, `ingest.failed`, `ingest.succeeded`). Every request has an id
+(the caller's `x-request-id` when sane, else a UUID) that is echoed, logged
+and returned in the body of any unhandled error; the web app sends one per
+API call. Unhandled errors become a 500 `ApiError` of kind `internal`; the
+stack goes to the log only. Ingest runs are recorded in `ingest_run` through
+`IngestRunsService`, failures are logged as events, and `GET
+/health/ingestion` and `GET /health/live` expose the ingestion and live
+paths over HTTP while `GET /health` stays liveness-only. No error-tracking
+or tracing SaaS and no log shipper are introduced.
+
+**Why.** The acceptance is that an ingest failure is visible without SSH:
+a row in a table read by a public endpoint and a line in a log a platform
+collects both satisfy it, and neither needs an account with a vendor. JSON
+lines are what every collector (Docker, journald, Loki, Datadog) ingests;
+picking one now would be a decision without a deployment (T-074) to inform
+it. Request ids give tracing's first and most valuable property — one
+identifier from the page to the API log — at no cost.
+
+**Alternatives considered.** `nestjs-pino` and OpenTelemetry: better
+performance and spans, but dependencies whose configuration belongs with the
+deployment. A separate error tracker (Sentry): later, with T-074; the filter
+here is where its hook goes.
+
+**Consequences.** T-070's admin surface reads `/health/ingestion` rather
+than the table. The E2 jobs wrap their work in `IngestRunsService.track`.
+`LOG_FORMAT` is documented in `.env.example`.
