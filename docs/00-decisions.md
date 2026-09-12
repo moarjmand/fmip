@@ -1244,3 +1244,50 @@ process, both recorded in the runbook as the next steps.
 1.98 s), knee between 1,000 and 2,000 on the maintainer's machine. When the
 peak grows, the first change is one snapshot per distinct query per change;
 the second is more processes.
+
+## D-048 — One VPS, Caddy behind Cloudflare with an origin certificate, containers rolled one at a time by a script in the repository
+**Status:** Accepted · 2026-09-12
+
+**Decision.** Production (T-074) is the compose stack in
+`deploy/docker-compose.prod.yml` on one VPS, selected by
+`COMPOSE_FILE=deploy/docker-compose.prod.yml` in the server's `.env` so every
+plain `docker compose` there means production. Caddy is the only listener:
+TLS on 443 with the Cloudflare origin certificate (Cloudflare SSL mode "Full
+(strict)"), 80 redirecting; it proxies only `web`, resolved through Docker's
+DNS every second. The API, the model service, Postgres and Redis publish
+nothing to the network (Postgres and Redis keep `127.0.0.1` ports for the
+backup scripts and an SSH tunnel). Migrations run from a tool image
+(`packages/db/Dockerfile`), so the VPS needs Docker and nothing else.
+Redeploys go through `deploy/rollout.sh`: build, migrate, then for each of
+`model`, `api`, `web` start one new container beside the old one, wait for its
+healthcheck, stop the old one with 30 s of grace; `deploy/verify-rollout.sh`
+proves a rollout dropped nothing by probing the site every 200 ms throughout.
+Migrations therefore must stay compatible with the release still serving
+(expand first, contract later). Runbook: `docs/09-deploy.md`.
+
+**Why.** The blueprint fixes Docker Compose on a VPS behind Cloudflare; the
+open choices were the edge, TLS and how a redeploy avoids downtime. Caddy
+holds a config of thirty lines and needs no plugin because the certificate
+comes from Cloudflare rather than ACME; an origin certificate is a one-time
+paste with a 15-year validity, and "Full (strict)" means the edge verifies
+it. Proxying only the web app keeps the API off the public network without a
+second host name or a second certificate, and matches how the browser already
+reaches the streams (through the web app's `/api/*` routes). The rollout is
+sixty lines of `docker compose` because the alternatives (Swarm, Kubernetes, a
+third-party rollout plugin) each add a moving part to a single-server
+deployment, and the acceptance criterion — no dropped request — is checked by a
+probe rather than assumed.
+
+**Alternatives considered.** nginx or Traefik: both fine; Caddy's dynamic
+DNS upstreams and retry-on-dial-failure are what make the rollout trivial.
+ACME with a Cloudflare DNS plugin: a custom Caddy build for a certificate the
+edge already provides. `docker compose up -d` alone: recreates each container
+in place, several seconds of 502 per release. A managed platform: not the
+blueprint's stack, and a second monthly bill before the first user.
+
+**Consequences.** The load test (T-073) reruns on the VPS from inside the API
+image before launch. Cloudflare's 100 s idle timeout on proxied connections is
+covered by the 15 s SSE heartbeat. Client IPs reach the API as
+`CF-Connecting-IP`; if a feature needs them, Caddy's `trusted_proxies` is where
+Cloudflare's ranges go. `SITE_URL` and `WEB_BASE_URL` are derived from
+`SITE_HOST` in production; only development sets them directly.

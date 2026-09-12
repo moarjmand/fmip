@@ -1,0 +1,179 @@
+# Production stack (T-074, D-048).
+#
+# Used through COMPOSE_FILE=deploy/docker-compose.prod.yml in the VPS's .env,
+# so that every plain `docker compose ...` on the server — including the backup
+# scripts of T-072 — means this file. Build contexts are the repository root,
+# one level up from this file.
+#
+# What differs from the development file:
+#   - `caddy` is the only thing listening on the network: TLS with the
+#     Cloudflare origin certificate on 443, a redirect on 80.
+#   - `web`, `api` and `model` publish no port at all; Caddy reaches `web` by
+#     its service name, and the browser never talks to the API directly (the
+#     web app proxies the streams under /api/*).
+#   - `postgres` and `redis` stay on 127.0.0.1 so the backup scripts, psql and
+#     the load test over an SSH tunnel keep working; nothing else can reach them.
+#   - `migrate` is a tool image (`packages/db/Dockerfile`) run on demand:
+#     `docker compose run --rm migrate`. It is not part of `up`.
+#   - No `container_name` and no published port on the rolled services, so
+#     `deploy/rollout.sh` can run two copies of one service side by side.
+
+name: fmip
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      SITE_HOST: ${SITE_HOST:?set SITE_HOST in .env — the public host name, e.g. fmip.example}
+    ports:
+      - '${HTTP_PORT:-80}:80'
+      - '${HTTPS_PORT:-443}:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # origin.pem / origin.key: the Cloudflare origin certificate (runbook
+      # step 4), or the self-signed pair `verify-rollout.sh` makes locally.
+      - ./certs:/certs:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+    healthcheck:
+      # Caddy's own binary can validate the config it is running with.
+      test: ['CMD', 'caddy', 'validate', '--config', '/etc/caddy/Caddyfile']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?missing in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?missing in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?missing in .env}
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_INITDB_ARGS: --data-checksums
+    ports:
+      - '127.0.0.1:${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes', '--save', '60', '1']
+    ports:
+      - '127.0.0.1:${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+  migrate:
+    build:
+      context: ..
+      dockerfile: packages/db/Dockerfile
+    profiles: ['tools']
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  model:
+    build:
+      context: ..
+      dockerfile: apps/model/Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      MODEL_PORT: 8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # HEALTHCHECK comes from the image.
+
+  api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      LOG_FORMAT: ${LOG_FORMAT:-json}
+      API_PORT: 3001
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379
+      SESSION_SECRET: ${SESSION_SECRET:?missing in .env — see .env.example}
+      # Links in e-mails point at the public origin; derived from SITE_HOST so
+      # there is one place to change the host name.
+      WEB_BASE_URL: https://${SITE_HOST}
+      MODEL_SERVICE_URL: http://model:8000
+      API_FOOTBALL_KEY: ${API_FOOTBALL_KEY:-}
+      FOOTBALL_DATA_ORG_KEY: ${FOOTBALL_DATA_ORG_KEY:-}
+      HIGHLIGHTLY_KEY: ${HIGHLIGHTLY_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      model:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3001/health').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      API_BASE_URL: http://api:3001
+      # Canonical URLs, sitemap, structured data (T-039).
+      SITE_URL: https://${SITE_HOST}
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/en').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+volumes:
+  postgres-data:
+  redis-data:
+  caddy-data:
+  caddy-config:

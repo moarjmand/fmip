@@ -1,0 +1,43 @@
+# The edge inside the VPS (T-074, D-048). Cloudflare terminates the public
+# TLS; this is the origin it talks to, over TLS with the Cloudflare origin
+# certificate (SSL mode "Full (strict)"). Plain HTTP on :80 is redirected by
+# Caddy automatically.
+#
+# Only `web` is proxied: the browser never reaches the API directly — the web
+# app renders on the server over the compose network and proxies the two
+# server-sent-event streams under /api/*.
+{
+	admin off
+}
+
+{$SITE_HOST} {
+	tls /certs/origin.pem /certs/origin.key
+
+	# No `encode` here on purpose: the streams under /api/* are
+	# text/event-stream and must reach the browser as they are written
+	# (D-034). Next compresses HTML and JSON itself and Cloudflare compresses
+	# at the edge, so nothing is lost.
+	reverse_proxy {
+		# Upstreams are whatever `web` resolves to in Docker's DNS, refreshed
+		# every second. During a rollout that is two containers; after it,
+		# the new one. This is what makes `deploy/rollout.sh` zero-downtime.
+		dynamic a {
+			name web
+			port 3000
+			refresh 1s
+		}
+		# A dial that fails (the old container just stopped, the new one is
+		# still binding) is retried against another upstream for up to 10 s
+		# rather than answered with 502.
+		lb_try_duration 10s
+		lb_try_interval 250ms
+		fail_duration 10s
+		# Write every chunk through immediately: SSE, and streamed HTML.
+		flush_interval -1
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}
