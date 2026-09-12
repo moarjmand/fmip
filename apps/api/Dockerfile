@@ -11,6 +11,11 @@ FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc turbo.json ./
 COPY packages/config/package.json ./packages/config/
 COPY packages/contracts/package.json ./packages/contracts/
+# `@fmip/ingestion` became a dependency of the API in T-026. A workspace package
+# missing here installs nothing and the build fails two stages later, which is
+# why `06-session-handoff.md` says to re-run the image emulation whenever a
+# workspace dependency is added.
+COPY packages/ingestion/package.json ./packages/ingestion/
 COPY apps/api/package.json ./apps/api/
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile
