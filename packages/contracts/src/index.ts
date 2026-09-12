@@ -146,5 +146,18 @@ export type {
   RatingResponse,
   RatingTier,
 } from './reputation';
+export type {
+  AccountStatus,
+  AdminOverview,
+  AdminUser,
+  AdminUsersResponse,
+  AuditRecord,
+  AuditResponse,
+  CoverageStatusRow,
+  FreshnessRow,
+  RatingConfig,
+  SetCoverageRequest,
+  SetUserStatusRequest,
+} from './admin';
 export { SEARCH_ENTITY_TYPES } from './search';
 export type { SearchEntityType, SearchResponse, SearchResult } from './search';
