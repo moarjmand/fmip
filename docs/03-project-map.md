@@ -18,6 +18,7 @@ incomplete.
 | `CLAUDE.md` | Operating rules for agents. Read before any work. |
 | `README.md` | Human entry point, setup instructions. |
 | `docker-compose.yml` | Local dev stack. Postgres, Redis, the API, the web app and the model service (internal, no published port). |
+| `deploy/` | Production (T-074, D-048). `docker-compose.prod.yml` (selected on the VPS by `COMPOSE_FILE` in `.env`): Caddy as the only listener, `web`/`api`/`model` unpublished, Postgres and Redis on `127.0.0.1`, a `migrate` tool service under the `tools` profile. `Caddyfile`: TLS with the Cloudflare origin certificate, `web` resolved through Docker DNS every second, dial retries, no buffering. `rollout.sh`: build, migrate, then roll `model` → `api` → `web` one container at a time behind healthchecks. `verify-rollout.sh`: probes the site every 200 ms during a rollout and fails on any non-200 (the acceptance check). `certs/`: the origin certificate, git-ignored. Runbook: `docs/09-deploy.md`. |
 | `scripts/` | Developer scripts. `check-dev-stack.sh` proves Postgres, Redis, `/health` and `/en` all answer. `dev-proxy.sh` (config in `dev-proxy/squid.conf`) runs a loopback-only forward proxy in Docker for a host that cannot reach the npm registry directly; see `06-session-handoff.md`, constraint 2. `backup/` is T-072: `backup.sh` (pg_dump in the container + manifest + off-provider copy through rclone + pruning), `restore-drill.sh` (restores into a throwaway Postgres and checks checksum, migrations, every row count, constraints), `fmip-backup.service`/`.timer` for the VPS. Runbook: `07-backups.md`. |
 | `.dockerignore` | Keeps `node_modules`, build output and `.env` out of every image build context. |
 | `package.json` | Workspace root. Pins the pnpm version and the `build`/`lint`/`typecheck`/`test`/`format` entry points. Checks run with `--continue`, so one run reports every broken workspace. |
@@ -44,6 +45,7 @@ incomplete.
 | `06-session-handoff.md` | How to resume in a fresh chat | Starting a new session |
 | `07-backups.md` | Backups and the restore drill (T-072, D-032) | Touching the database host or the backup scripts |
 | `08-load-test.md` | The live-path load test: threshold, tool, record of every run, what limits it, when to rerun (T-073, D-047) | Touching the stream, or before a big match or a deploy |
+| `09-deploy.md` | The production runbook: server, Cloudflare, origin certificate, first start, zero-downtime redeploy, laptop rehearsal, record (T-074, D-048) | Deploying, redeploying, or touching `deploy/` |
 | `product-blueprint.md` | The original product definition, converted from `m1.docx`. Authoritative on behaviour, **not** on engineering | Questions about intended behaviour |
 | `adr/` *(planned)* | Long-form decision records when a log entry is not enough | — |
 
@@ -230,7 +232,7 @@ argument for having the pseudo-locale.
 |---|---|---|
 | `packages/contracts` | API request/response types, shared enums, coverage states. **The single source of truth for the API shape.** | `apps/web`, `apps/api` |
 | `packages/ingestion` | The normalised model adapters produce, the adapter contract, and the recorded-fixture harness that verifies an adapter, and the three adapters: `api-football` (T-021), `football-data-org` (T-022), `highlightly` (T-023). | `apps/api` |
-| `packages/db` | Schema, migrations, seed data. Plain SQL, applied by node-pg-migrate (D-022). | `apps/api` |
+| `packages/db` | Schema, migrations, seed data. Plain SQL, applied by node-pg-migrate (D-022). `Dockerfile` builds the production `migrate` tool image (T-074). | `apps/api` |
 | schema `training` (was `packages/db/training`) | Historical datasets for model training only, as a Postgres schema created by the T-060 migration (D-028). **Never read by `apps/api` or `apps/web`** (D-014) | `apps/model` |
 | `packages/ui` *(planned)* | Shared React components, design tokens, RTL-safe primitives | `apps/web` |
 | `packages/config` | Shared tsconfig, eslint, prettier. Published as `@fmip/config`. | everything |
@@ -390,6 +392,9 @@ both files (`CLAUDE.md` §5). `.env` itself is never committed.
 | `REDIS_PORT` | `docker-compose.yml` | Host port, bound to `127.0.0.1`. Default `6379`. |
 | `REDIS_URL` | `apps/api` *(planned)* | Cache, live state, BullMQ. Same host caveat as `DATABASE_URL`. |
 | `API_PORT` | `apps/api`, `docker-compose.yml` | Host port for the API. Rejected at boot if it is not a valid port number. |
+| `COMPOSE_FILE` | `.env` on the VPS only | `deploy/docker-compose.prod.yml`, so every plain `docker compose` on the server means the production stack (T-074). Unset in development. |
+| `SITE_HOST` | `deploy/docker-compose.prod.yml`, `deploy/Caddyfile` | The public host name Caddy serves and Cloudflare proxies; production derives `SITE_URL` and `WEB_BASE_URL` from it (T-074). |
+| `HTTP_PORT`, `HTTPS_PORT` | `deploy/docker-compose.prod.yml` | Caddy’s published ports. Default 80 and 443; the laptop rehearsal uses 8080 and 8443. |
 | `WEB_PORT` | `docker-compose.yml` | Host port for the web app, bound to `127.0.0.1`. Default `3000`. The container itself always listens on 3000; compose sets Next's own `PORT` for it. |
 | `API_BASE_URL` | `apps/web` | Where the web app reaches the API server-side. Default `http://127.0.0.1:3001`. |
 | `LOG_FORMAT` | `apps/api` | `json` (one object per line; the default when `NODE_ENV=production`) or `pretty` (the development default) — T-071. |

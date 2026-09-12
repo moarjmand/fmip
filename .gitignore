@@ -29,3 +29,7 @@ tmp/
 .mypy_cache/
 *.egg-info/
 backups/
+
+# Certificates for the production edge (deploy/Caddyfile); only the note is tracked.
+deploy/certs/*
+!deploy/certs/README.md

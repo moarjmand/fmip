@@ -1127,6 +1127,32 @@ per change; more processes), and when to rerun (before T-074 on the VPS,
 after any live-path change, before a known big match). Lint clean (Node
 globals declared for `scripts/`).
 
+**T-074 prepared and rehearsed on 2026-09-12; open until run on the VPS.**
+Everything that does not need the server exists and was exercised: the
+production stack `deploy/docker-compose.prod.yml` (D-048: Caddy the only
+listener, TLS with the Cloudflare origin certificate, `web`/`api`/`model`
+unpublished, Postgres and Redis on `127.0.0.1`, a `migrate` tool image from
+`packages/db/Dockerfile` so the VPS needs only Docker), `deploy/Caddyfile`
+(`web` resolved through Docker DNS every second, dial retries, no buffering),
+`deploy/rollout.sh` (build → migrate → roll `model`, `api`, `web` one
+container at a time behind healthchecks, rollback of one that never becomes
+healthy), `deploy/verify-rollout.sh` (probes the site every 200 ms during a
+rollout and fails on any non-200), a tighter `.dockerignore` (the build
+context shrank from ~900 MB to ~45 MB), and the runbook `docs/09-deploy.md`.
+**Zero-downtime redeploy verified** on the maintainer's laptop with the
+production files unchanged (`COMPOSE_PROJECT_NAME=fmip-rehearsal`,
+`SITE_HOST=localhost`, self-signed certificate, ports 8443/8080): the four
+images built from this tree, `docker compose run --rm migrate` applied all 20
+migrations to an empty database, the stack came up healthy behind Caddy, and
+`bash deploy/verify-rollout.sh` rolled `api` then `web` — 36 probes of
+`https://localhost:8443/en` during the rollout, **36 answered 200, 0 did
+not**; the slowest answer took 3.4 s (a request that arrived as the old
+container stopped and was retried by Caddy against the new one), everything
+else well under a second. What remains is the runbook's steps 1–5 on the
+server (VPS, domain, Cloudflare, origin certificate, first start), the
+load-test rerun there, and one `verify-rollout.sh` on the real host; the row
+is ticked when those are done.
+
 ---
 
 ## E8 — Quality gate before launch
