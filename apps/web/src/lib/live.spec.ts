@@ -1,5 +1,59 @@
 import { describe, expect, it } from 'vitest';
-import { INITIAL_CLOCK, STALE_AFTER_MS, liveLabel, liveState } from './live';
+import { STALE_LIVE_AFTER_MS } from '@fmip/contracts';
+import { INITIAL_CLOCK, STALE_AFTER_MS, feedNotice, isBehind, liveLabel, liveState } from './live';
+
+describe('isBehind', () => {
+  const now = Date.parse('2026-09-12T20:00:00.000Z');
+  const ago = (ms: number) => new Date(now - ms).toISOString();
+
+  it('flags a live match whose data stopped changing, on the client clock or the API word', () => {
+    expect(isBehind({ status: 'live', last_updated_at: ago(0) }, now)).toBe(false);
+    expect(isBehind({ status: 'live', last_updated_at: ago(STALE_LIVE_AFTER_MS + 1) }, now)).toBe(
+      true,
+    );
+    expect(isBehind({ status: 'live', last_updated_at: ago(0), freshness: 'stale' }, now)).toBe(
+      true,
+    );
+    expect(isBehind({ status: 'suspended', last_updated_at: ago(600_000) }, now)).toBe(true);
+  });
+
+  it('never applies before kick-off or after the end', () => {
+    expect(isBehind({ status: 'scheduled', last_updated_at: ago(3_600_000) }, now)).toBe(false);
+    expect(isBehind({ status: 'finished', last_updated_at: ago(3_600_000) }, now)).toBe(false);
+  });
+});
+
+describe('feedNotice', () => {
+  const run = (status: 'succeeded' | 'failed' | 'partial') => ({
+    checked_at: '2026-09-12T20:00:00.000Z',
+    last_run: {
+      id: 'r',
+      provider: 'api_football',
+      job: 'live',
+      scope: null,
+      status,
+      started_at: '2026-09-12T19:58:00.000Z',
+      finished_at: '2026-09-12T19:59:30.000Z',
+      items_seen: 0,
+      items_written: 0,
+      error: status === 'succeeded' ? null : 'boom',
+    },
+    last_failure: null,
+    failed_last_24h: 0,
+    running: 0,
+    recent: [],
+  });
+
+  it('names a failed or partial latest run with its time, and says nothing otherwise', () => {
+    expect(feedNotice(run('failed'), 'Asia/Tehran')).toBe(
+      'The live data feed reported a failure at 23:29. Scores may be behind; every card shows when its data last changed.',
+    );
+    expect(feedNotice(run('partial'), 'UTC')).toContain('partial update at 19:59');
+    expect(feedNotice(run('succeeded'), 'UTC')).toBeNull();
+    expect(feedNotice(null, 'UTC')).toBeNull();
+    expect(feedNotice({ ...run('failed'), last_run: null }, 'UTC')).toBeNull();
+  });
+});
 
 const T0 = Date.parse('2026-09-11T20:31:07Z');
 

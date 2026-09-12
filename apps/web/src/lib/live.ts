@@ -1,3 +1,5 @@
+import { type Freshness, type IngestionHealth, STALE_LIVE_AFTER_MS } from '@fmip/contracts';
+
 /**
  * Freshness for live surfaces (rule 4, T-032). Pure, so the thresholds are
  * unit-tested; the client component only feeds it clock readings.
@@ -9,6 +11,39 @@
  */
 
 export type LiveState = 'connecting' | 'live' | 'stale' | 'unavailable';
+
+/**
+ * Whether a fixture's own data is behind (T-083, D-045): live or suspended,
+ * and unchanged for longer than `STALE_LIVE_AFTER_MS`. The API says the same
+ * in `freshness` at snapshot time; the client re-asks as the clock moves, so
+ * a feed that stops after the last snapshot is caught here too.
+ */
+export function isBehind(
+  fixture: { status: string; last_updated_at: string; freshness?: Freshness | null },
+  now: number,
+): boolean {
+  if (fixture.freshness === 'stale') return true;
+  if (fixture.status !== 'live' && fixture.status !== 'suspended') return false;
+  return now - Date.parse(fixture.last_updated_at) > STALE_LIVE_AFTER_MS;
+}
+
+/**
+ * What the scores page says when the ingestion feed's latest run failed
+ * (from `GET /health/ingestion`): the outage is named with its time, and the
+ * page keeps showing what it has, labelled, rather than nothing.
+ */
+export function feedNotice(health: IngestionHealth | null, timeZone: string): string | null {
+  if (health === null) return null;
+  const last = health.last_run;
+  if (last === null || (last.status !== 'failed' && last.status !== 'partial')) return null;
+  const at = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(new Date(last.finished_at ?? last.started_at));
+  return `The live data feed reported a ${last.status === 'failed' ? 'failure' : 'partial update'} at ${at}. Scores may be behind; every card shows when its data last changed.`;
+}
 
 /** Milliseconds without a heartbeat after which the picture is called stale. */
 export const STALE_AFTER_MS = 45_000;

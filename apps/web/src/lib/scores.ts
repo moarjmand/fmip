@@ -1,4 +1,5 @@
 import type { ScoreCard } from '@fmip/contracts';
+import { isBehind } from './live';
 
 /**
  * The scores page's pure helpers (T-031): which day the page shows, the
@@ -155,10 +156,15 @@ export function formatKickoff(iso: string, timeZone: string): string {
   }).format(new Date(iso));
 }
 
-/** The status cell: the clock while live, an abbreviation after, the time before. */
-export function statusLabel(card: ScoreCard, timeZone: string): string {
+/**
+ * The status cell: the clock while live, an abbreviation after, the time
+ * before. A live match whose data is behind (T-083) shows "Behind" instead of
+ * a minute that is no longer the current one.
+ */
+export function statusLabel(card: ScoreCard, timeZone: string, now?: number): string {
   switch (card.status) {
     case 'live':
+      if (now !== undefined && isBehind(card, now)) return 'Behind';
       return card.minute === null ? 'Live' : `${card.minute}′`;
     case 'finished':
       return card.scores.penalties !== null

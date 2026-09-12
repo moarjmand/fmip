@@ -10,7 +10,7 @@
  */
 
 import type { CoverageState, Covered } from './coverage';
-import type { FixtureStatus, ScoreCardTeam, ScoreLine } from './scores';
+import type { FixtureStatus, Freshness, ScoreCardTeam, ScoreLine } from './scores';
 
 export interface MatchTeam extends ScoreCardTeam {
   /** From `fixture_participant`; the confirmed formation when known. */
@@ -47,6 +47,8 @@ export interface MatchHeader {
   periods: MatchPeriod[];
   /** When anything on this fixture last changed (rule 4). */
   last_updated_at: string;
+  /** `stale` when live and unchanged for `STALE_LIVE_AFTER_MS` (T-083); `null` when not live. */
+  freshness: Freshness | null;
 }
 
 export interface MatchPeriod {

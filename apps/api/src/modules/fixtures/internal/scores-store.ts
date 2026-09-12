@@ -9,6 +9,7 @@ import type {
 } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
+import { freshnessOf } from './freshness';
 
 /** A card plus the country its competition belongs to, for grouping. */
 export interface ScoredRow {
@@ -112,6 +113,7 @@ function toRow(row: Row): ScoredRow {
       // unknown, which is what `limited` says. Never `available` by default.
       coverage: row.scores_coverage ?? 'limited',
       last_updated_at: row.last_updated_at.toISOString(),
+      freshness: freshnessOf(row.status, row.last_updated_at, new Date()),
       pinned: false,
     },
     country:

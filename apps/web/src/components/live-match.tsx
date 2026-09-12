@@ -78,7 +78,7 @@ export function LiveMatch({
       >
         {announcement}
       </div>
-      <MatchCentreView centre={centre} timeZone={timeZone} locale={locale} />
+      <MatchCentreView centre={centre} timeZone={timeZone} locale={locale} now={now} />
       {panels}
     </>
   );

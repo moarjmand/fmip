@@ -38,6 +38,7 @@ const card = (over: Partial<ScoreCard>): ScoreCard => ({
   venue: null,
   coverage: 'limited',
   last_updated_at: '2025-01-05T10:00:00.000Z',
+  freshness: null,
   pinned: false,
   ...over,
 });
@@ -108,6 +109,16 @@ describe('card labels', () => {
   it('shows the clock, the abbreviation or the local kick-off', () => {
     expect(statusLabel(card({ status: 'live', minute: 67 }), 'UTC')).toBe('67′');
     expect(statusLabel(card({ status: 'live' }), 'UTC')).toBe('Live');
+    // A live match whose data is behind never shows a minute as current (T-083).
+    const behind = card({
+      status: 'live',
+      minute: 67,
+      last_updated_at: new Date(NOW.getTime() - 10 * 60_000).toISOString(),
+    });
+    expect(statusLabel(behind, 'UTC', NOW.getTime())).toBe('Behind');
+    expect(statusLabel(card({ status: 'live', minute: 67, freshness: 'stale' }), 'UTC', 0)).toBe(
+      'Behind',
+    );
     expect(statusLabel(card({ status: 'finished' }), 'UTC')).toBe('FT');
     expect(
       statusLabel(
