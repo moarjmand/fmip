@@ -378,14 +378,22 @@ of a live provider. The pieces already exist: `packages/ingestion/src/testing/`
 holds the recorded-fixture harness (T-020) and `packages/ingestion/recordings/`
 holds real responses captured through `scripts/record.mjs`.
 
-The replay source is a fourth entry in the source registry that reads a recorded
-match day and plays it back on a **compressed clock**: a 90-minute match becomes
-90 seconds, each poll returning the state the provider actually reported at that
-point - an empty lineup before the announcement, then the lineup, then the first
-goal, then the second. It exercises the same adapter, job, resolver and coverage
-code as a live provider, and because the recordings are ours and carry no key, it
-runs in CI. It is what the T-026 and T-027 tests use, and it is how the polling
-behaviour of the jobs is proved without waiting for a real Saturday.
+The replay source is a fourth entry in the source registry. It wraps an existing
+adapter in the `ReplayTransport` that already backs the contract check, pointed
+at that provider's committed recordings, so the jobs run the real adapter, the
+real mapping, the real resolver and the real writers with no key and no network.
+The recordings to use are API-Football's: they are the only set with lineups,
+incidents and statistics in them, and the seed already maps API-Football's
+Premier League and team ids to catalog rows.
+
+Because a recording is one snapshot per URL, a replay is deterministic: run the
+same job twice and the second run must write nothing. That is exactly T-026's
+acceptance criterion, and it is what the tests assert. What a snapshot cannot
+show is a match *changing* - a lineup appearing, then a goal, then another.
+Recording a sequence of snapshots through a real match and replaying them on a
+compressed clock is the natural next step, and it is what goal latency and
+lineup lead time (still "not measured" in the bake-off above) need; it is not
+required for T-026 and is not built yet.
 
 ---
 
