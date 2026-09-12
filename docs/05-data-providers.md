@@ -229,6 +229,174 @@ None among the matched fixtures.
 
 ---
 
+## Running the pipeline on a free source (2026-09-12)
+
+T-025 is deferred (D-033), so the ingestion jobs of T-026 need a source that is
+free **today** and serves the **current** season of the five target leagues.
+Every figure below was measured against the live endpoint on **2026-09-12,
+19:35-19:45 UTC**, not taken from a vendor page. Where a vendor page is the only
+source, the row says so.
+
+### What each free option actually served
+
+| Option | Key needed | Current season | Fixtures + scores | Standings | Lineups | Incidents | Quota measured | Verdict |
+|---|---|---|---|---|---|---|---|---|
+| football-data.org (TIER_ONE) | yes, held | **yes** | yes, in-play | yes | **no** | **no** | 10/min, no daily cap seen | **primary** |
+| Highlightly (BASIC) | yes, held | **yes** | yes, with clock | yes | **yes** | **yes** | **100/day** | **secondary** |
+| API-Football (Free) | yes, held | **no - 2022-2024 only** | past seasons | past | past | past | 100/day | replay only |
+| TheSportsDB (free key `123`) | test key | yes | yes | yes | truncated | truncated | 30/min | rejected |
+| OpenLigaDB | none | yes (German only) | yes | yes | no | goals only | none seen | cross-check only |
+| ESPN site API | none | yes | yes | yes | yes | yes | none seen | **forbidden** |
+| Big Balls Data | yes, **not held** | claimed | claimed | claimed | claimed | claimed | claimed 1,000/day | candidate, unverified |
+| Sportmonks free / GOAL API / TheStatsAPI | yes, not held | - | - | - | - | - | - | not evaluated |
+
+### The evidence, one option at a time
+
+**football-data.org - free tier, the key we already hold.** `GET /v4/competitions`
+returned **13** competitions, all on their current season: `PL`, `PD`, `SA`,
+`BL1`, `FL1` and `CL` - the whole target set - plus `ELC`, `DED`, `PPL`, `BSA`,
+`CLI`, `EC`, `WC`. `x-requests-available-minute` was `9` after one call, so the
+documented 10/min holds; no daily cap appeared. The pricing page says the free
+tier has no livescores, and that is not what the wire showed: `GET
+/v4/matches?date=2026-09-12` returned 9 `IN_PLAY` and 3 `PAUSED` matches whose
+`lastUpdated` was 25-90 seconds behind the request, and the scores agreed
+**exactly** with two independent sources probed in the same minute (see the
+three-way check below). What the free tier genuinely withholds is detail: the
+`minute` field was `null` on every in-play match, and a finished Serie A match
+fetched by id came back with `score`, `status`, `referees`, `venue` and `odds`
+and **no** `goals`, `bookings`, `substitutions` or `lineup` - those arrays were
+empty, which is a paid gate, not sparse data.
+
+**Highlightly - BASIC (free), the key we already hold.**
+`x-ratelimit-requests-limit: 100` per day. On the **current** season it served
+what the bake-off could not get out of it on 2023/24:
+`/football/matches?leagueId=33973&date=...` carried a live clock (`clock: 37`,
+`"First half"`) with the score; `/football/lineups/{id}` returned a formation
+(`4-2-3-1`) with named starters and substitutes **for a match in progress**;
+`/football/matches/{id}` returned venue, referee and an `events` array (a yellow
+card at 28' with the player's name); `/football/standings` returned the table
+with home and away splits. The bake-off's `unsupported` lineups were a **season**
+gate, not an endpoint gate - free gets the current season, not the archive.
+
+**API-Football - free tier, the key we already hold.** `/status` confirmed plan
+`Free`, `limit_day: 100`. `fixtures?league=39&season=2026` answered 200 with
+`errors: {plan: "Free plans do not have access to this season, try from 2022 to
+2024."}`. Unchanged from 2026-09-10 and fatal for this purpose: the richest free
+adapter we have cannot see a match that is happening now. It stays useful for
+replaying 2022-2024.
+
+**TheSportsDB - free test key `123`, 30 req/min.** The schedule endpoints are
+honest and keyless enough to be tempting: `eventsround.php?id=4328&r=3&s=2026-2027`
+returned the current Premier League round with scores, and `livescore.php?s=Soccer`
+answered on the free key. The detail endpoints are not. For one finished Premier
+League match, `lookuplineup.php`, `lookuptimeline.php` and `lookupeventstats.php`
+each returned **exactly 5 rows** - five players for a 22-player lineup, five
+timeline entries, five statistics. A truncated list that does not say it is
+truncated is precisely the failure rule 3 exists to prevent, and we would have to
+mark every such module `limited` while paying full price in requests for it. v2
+(`/api/v2/json/livescore/soccer`) returns `400 "Missing API key"`; it is the
+premium version and the only one being developed. Terms: apps may be built on it,
+free-tier apps may **not** be published to an app store, the API may not be
+resold, and the source must be credited.
+
+**OpenLigaDB - keyless, no terms friction.** `getmatchdata/bl1` returned the
+current 1. Bundesliga matchday, `getbltable/bl1/2026` the table, and each match
+carried a `goals` array with scorer name and id, minute, and `isPenalty` /
+`isOwnGoal` flags - better incident detail than football-data.org gives us for
+free. There are no lineups, and `getavailableleagues` returns 831 entries of
+which only the German competitions are maintained; the rest (`'Premier League'`,
+`-Serie A-`, `.Champions League.`) are user-created and of unknown quality.
+Useful as a free second opinion on Bundesliga scores, not as a source.
+
+**ESPN's undocumented JSON - technically the best, and not usable.**
+`site.api.espn.com` needs no key, answered 200 for `eng.1`, `esp.1`, `ger.1`,
+`ita.1`, `fra.1` and `uefa.champions`, and `summary?event=...` returned two
+rosters with formation, 20 players each, starter / `subbedIn` / `subbedOut` flags
+and 14 per-player statistics, 39 key events, full team statistics and standings -
+in one request. The Disney Terms of Use that cover ESPN prohibit "access,
+monitor, copy or extract ... using a robot, spider, script, or other automated
+means" and any "commercial or business-related use". That is not a grey area, it
+is the opposite of D-014's critical-path rule, and "it is only for testing" does
+not change what the product would be built on. **Not used, at any stage.**
+
+**Big Balls Data - a real service we have not signed up for.**
+`api.bigballsdata.com/v1/leagues` answers `401` with a structured error naming
+`Authorization: Bearer bbs_live_...`, so the API exists. Everything else - 1,000
+requests/day free (2,000 after linking GitHub), 100/min, top-five leagues plus
+the Champions League, lineups, events, statistics and standings on the free tier,
+no credit card - comes from the vendor's own page and is **unverified**; creating
+accounts is out of scope for an agent session. If the 100/day Highlightly ceiling
+starts to bite, this is the first thing to try. Sign-up:
+<https://bigballsdata.com/football-api>, then `BIG_BALLS_DATA_KEY` in `.env`.
+GOAL API, Sportmonks' free plan (2 leagues, neither of them a target league) and
+TheStatsAPI are vendor claims with no free key in hand and were not evaluated.
+
+### The three-way live check
+
+At **19:40:13 UTC** on 2026-09-12 the same Premier League matchday was read from
+football-data.org, Highlightly and ESPN within the same fifteen seconds:
+
+| Match | football-data.org | Highlightly | ESPN |
+|---|---|---|---|
+| Sunderland v Arsenal (in play) | 0-0, `lastUpdated` 19:39:33Z | 0-0, clock 40, First half | 0-0, 40' |
+| Chelsea v Hull City | 2-2 | 2-2 | 2-2 |
+| Crystal Palace v Ipswich | 2-3 | 2-3 | 2-3 |
+| Aston Villa v Nottingham Forest | 1-2 | 1-2 | 1-2 |
+| Bournemouth v Brentford | 2-2 | 2-2 | 2-2 |
+| Liverpool v Fulham | 0-0 | 0-0 | 0-0 |
+| Tottenham v Everton | 0-0 | 0-0 | 0-0 |
+
+No disagreement, and the free football-data.org score for the in-play match was
+forty seconds old. One snapshot is not a latency measurement - goal latency still
+needs the polling job running across a match - but it is enough to say the free
+tier is not serving a stale feed.
+
+### Recommendation
+
+1. **football-data.org for the spine** - fixtures, kick-off times, statuses,
+   scores and standings for the five leagues and the Champions League, polled
+   inside 10 requests/minute. It is the only free option that covers the whole
+   target set on the current season with no daily cap.
+2. **Highlightly for what the spine lacks** - lineups, incidents and the live
+   clock, rationed against 100 requests/day. That budget buys roughly one lineup
+   fetch and a dozen detail polls for a handful of matches a day: enough to
+   exercise the code paths, nowhere near enough for coverage, so every module it
+   does not reach stays `not_supplied` rather than being quietly skipped.
+3. **The replay source for CI and for anything that must not touch a network**
+   (below). No key, no quota, no terms.
+
+Both keys are already in `.env` and both adapters already exist (T-022, T-023),
+so this needs no purchase, no sign-up and no new adapter. What it does need is
+honesty about the split: two providers, each `limited` or `not_supplied` where it
+does not reach, never one stitched together out of both to look complete. D-049
+records it.
+
+### The offline replay source - no terms, no key, no network
+
+The zero-risk way to run the real pipeline is to give it recorded truth instead
+of a live provider. The pieces already exist: `packages/ingestion/src/testing/`
+holds the recorded-fixture harness (T-020) and `packages/ingestion/recordings/`
+holds real responses captured through `scripts/record.mjs`.
+
+The replay source is a fourth entry in the source registry. It wraps an existing
+adapter in the `ReplayTransport` that already backs the contract check, pointed
+at that provider's committed recordings, so the jobs run the real adapter, the
+real mapping, the real resolver and the real writers with no key and no network.
+The recordings to use are API-Football's: they are the only set with lineups,
+incidents and statistics in them, and the seed already maps API-Football's
+Premier League and team ids to catalog rows.
+
+Because a recording is one snapshot per URL, a replay is deterministic: run the
+same job twice and the second run must write nothing. That is exactly T-026's
+acceptance criterion, and it is what the tests assert. What a snapshot cannot
+show is a match *changing* - a lineup appearing, then a goal, then another.
+Recording a sequence of snapshots through a real match and replaying them on a
+compressed clock is the natural next step, and it is what goal latency and
+lineup lead time (still "not measured" in the bake-off above) need; it is not
+required for T-026 and is not built yet.
+
+---
+
 ## Historical training data (free)
 
 | Source | Contents | Licence posture |
