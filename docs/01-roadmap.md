@@ -46,6 +46,10 @@ public deployment with real fixtures.
 - News feeds and story clustering.
 - Arabic added — the first real use of the RTL work from Phase 0.
 
+Planned in detail in `docs/04-tasks-phase-2.md`, which orders the epics so that
+the two things nobody but the maintainer can unblock — a purchase and a
+licensing decision — sit in front of the smallest possible amount of work.
+
 ## Phase 3 — Community
 
 - Friends, private groups, direct and group chat over WebSockets.
