@@ -1111,6 +1111,7 @@ tests (7 new on percentages, framing, deltas), typecheck, lint, stylelint.
 | `[x]` T-073 | Load test at expected peak (many concurrent SSE clients) | T-032 | Documented pass at an agreed threshold |
 | `[ ]` T-074 | Production deploy: VPS, Docker Compose, Cloudflare, TLS, domain | T-073 | Zero-downtime redeploy verified |
 | `[x]` T-085 | A free public address for testing, before the deploy exists | T-002 | The running stack answers on public HTTPS, and what the tunnel drops is named |
+| `[~]` T-086 | A stable free preview that carries the live stream (Koyeb) | T-085 | One image serves the site and the stream; what is absent is declared |
 
 **T-072 verified on 2026-09-10.** `scripts/backup/backup.sh` dumps the
 database from inside the postgres container (`pg_dump` custom format,
@@ -1273,6 +1274,37 @@ D-050 records the choice. Verified by `bash -n`, by `docker compose config`
 by the `curl` check the script performs on itself; the public tunnel has not been
 opened from this session — the sandbox refuses to expose a local port to the
 internet, so the first `start` is the maintainer's.
+
+**T-086 prepared and verified locally on 2026-09-13; open until it runs on
+Koyeb.** D-050 left one gap: a quick tunnel does not carry server-sent events, so
+the live path could not be tested in public. Koyeb was chosen (D-051) and the
+whole deployment is one container, because a free organisation gets one Free
+Instance: `deploy/koyeb/Dockerfile` builds the web app and the API together,
+`deploy/koyeb/start.mjs` migrates, starts the API, waits for `/health`, starts
+the web app, and takes the container down with the exit code if either process
+dies — a half-running service answering requests it cannot serve is worse than a
+restart.
+
+**One image serves the site and the stream:** built locally and run against the
+development Postgres, `GET /en` and `GET /en/scores` answer 200 and
+`/api/scores/stream` delivers its `snapshot` event and heartbeats **through the
+single published port** — nothing in the browser talks to the API directly, so
+one route carries the whole product. **What is absent is declared:** a new
+explicit `MODEL_SERVICE_URL=off` means "this deployment has no model service", so
+every forecast is recorded as `model_unreachable` with that reason instead of a
+page waiting for something that is not coming, while a *missing* variable still
+refuses to boot (3 unit tests). The scheduler is off because a container that
+scales to zero cannot poll, and Redis is absent with it.
+
+Fixed on the way: `apps/api/Dockerfile` had been missing the `@fmip/ingestion`
+manifest since T-026, which would have broken that image the next time anyone
+built it — exactly the trap `06-session-handoff.md` says to re-run the emulation
+for.
+
+**What remains is the maintainer's and only that:** a Koyeb account, a Postgres
+database, and the two secrets. `docs/11-koyeb.md` is the runbook, `deploy.sh` is
+the rest. The task stays `[~]` until the service is created, because nothing here
+has been seen running on Koyeb itself.
 
 ---
 

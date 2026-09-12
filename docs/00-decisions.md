@@ -1402,3 +1402,55 @@ set. The address is different every run, which is acceptable for a session of
 testing and is why nothing is documented as pointing at it. When a stable
 address is wanted, the choice is in `docs/10-public-preview.md` and needs one
 decision from the maintainer, not more research.
+
+---
+
+## D-051 — The stable free preview is one Koyeb container holding the web app and the API, and it declares what it does not have
+**Status:** Accepted · 2026-09-13
+
+**Decision.** Koyeb is the platform for a stable public preview (T-086), chosen
+over Render and Oracle Cloud from the shortlist in `docs/10-public-preview.md`.
+A free organisation gets one Free Instance, so the deployment is **one
+container** built from `deploy/koyeb/Dockerfile`: the Next.js web app on the
+published port and the NestJS API on `127.0.0.1:3001` beside it, supervised by
+`deploy/koyeb/start.mjs`, which migrates, waits for `/health`, starts the web
+app and takes the container down if either process dies.
+
+One port is enough because nothing in the browser talks to the API directly —
+the Next.js route handlers proxy `/api/scores/stream` and
+`/api/fixtures/:id/stream` server-side — so the live path works through a single
+ordinary HTTPS route. That is the whole reason for preferring a platform to the
+quick tunnel of T-085, which does not carry server-sent events.
+
+What is not deployed is declared rather than hidden. `MODEL_SERVICE_URL=off` is
+a new, explicit value meaning "this deployment has no model service": every
+forecast is recorded as `model_unreachable` with that reason, which the pages
+already know how to show. A missing variable still refuses to boot. The
+ingestion scheduler is off because a container that scales to zero cannot poll,
+and Redis is therefore absent too.
+
+**Why Koyeb.** The shortlist wanted one thing the quick tunnel could not give:
+server-sent events over a stable address. Koyeb's free Instance carries them,
+needs no card in the normal case, and builds from the repository so nothing has
+to be pushed anywhere. Render's free web services were the alternative and are
+equivalent in kind; Oracle Cloud's always-free machine is better in every way
+except that it needs card verification and scarce ARM capacity, and it would
+close out T-074 rather than preview it.
+
+**Alternatives considered.** *Two services, one for the API and one for the web
+app*: a free organisation gets one Instance, so this is not available, and it
+would also publish the API for no benefit. *Adding the Python model service to
+the image*: it does not fit in 512 MB beside two Node processes, and it needs the
+training store. *Keeping only the quick tunnel*: it cannot test the live path at
+all, which is the one thing a public preview is for. *Pointing
+`MODEL_SERVICE_URL` at a dead port to force the unreachable path*: the effect
+would be right and the statement would be false.
+
+**Consequences.** A Koyeb free Instance sleeps after an hour without traffic and
+its database has five compute-hours a month, so the first request after a quiet
+period is slow and a heavily used month runs out — both are in
+`docs/11-koyeb.md` rather than left to be discovered. `apps/api/Dockerfile`
+gained the `@fmip/ingestion` manifest it had been missing since T-026, which the
+image emulation in `06-session-handoff.md` exists to catch. The preview's
+database is migrated at every start and seeded only on `PREVIEW_SEED=on`, which
+logs that it is loading development fixture data.
