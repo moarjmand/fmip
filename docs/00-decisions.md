@@ -1080,3 +1080,34 @@ brand mark replaces the placeholder there. The worker's cache name is
 versioned; a change to the shell bumps it. Lighthouse 12 dropped its PWA
 audit, so installability is checked in `tests/e2e/pwa.spec.ts`; the tap on
 "Install" on a real Android device stays a manual check.
+
+## D-043 — Two E2E modes: the web app alone for its honest states, the whole stack for the journeys
+**Status:** Accepted · 2026-09-12
+
+**Decision.** Playwright runs in two projects. `chromium` drives the
+production build of the web app with no API behind it and proves every
+page's honest state (unreachable named, nothing faked, 404s, RTL, SEO,
+accessibility, installability); it runs in CI's `E2E` job and locally with
+nothing else up. `journeys` drives the web app in front of the real API,
+the migrated and seeded database and the API's mail log, and walks the
+blueprint's essential user journeys (section 18) as far as Phase 1 ships
+them; it exists only when `E2E_API_URL` is set and runs in CI's
+`E2E journeys` job, which starts Postgres, migrates, seeds, builds and
+starts the API (no model service: forecasts read what is stored). Seed
+`007` adds one scheduled match in 2099 so the prediction journey always
+has an open match.
+
+**Why.** The no-API tests are the guarantee of rule 3 and rule 4 under
+failure; the journeys are the guarantee that the product works. Mixing them
+in one run would make each assertion conditional on the environment. A
+project that does not exist without the API keeps a local run from being a
+wall of red. Reading the verification link from the mail log exercises the
+real verification path (D-026) instead of a test-only back door.
+
+**Alternatives considered.** Mocking the API in Playwright: proves the web
+app against a fiction. A shared `test.skip` inside each test: hides
+failures as skips.
+
+**Consequences.** The branch ruleset lists `Verify` and `E2E`; adding
+`E2E journeys` to the required checks is a repository setting for the
+maintainer. A new journey slice joins `tests/e2e/journeys/`.

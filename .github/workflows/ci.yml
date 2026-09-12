@@ -174,3 +174,95 @@ jobs:
           name: playwright-report
           path: apps/web/playwright-report/
           retention-days: 7
+
+  # The blueprint journeys (T-080, D-043) run through the whole stack: the web
+  # app in front of the real API, the migrated and seeded database, and the
+  # API's mail log for the verification link. The plain E2E job above keeps
+  # proving the web app's honest states without an API; this one proves the
+  # product works with one.
+  e2e-journeys:
+    name: E2E journeys
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: fmip
+          POSTGRES_PASSWORD: fmip
+          POSTGRES_DB: fmip
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fmip -d fmip"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    env:
+      DATABASE_URL: postgresql://fmip:fmip@localhost:5432/fmip
+      # Throwaway: the API lives exactly as long as the job.
+      SESSION_SECRET: e2e-only-session-secret-0123456789abcdef
+      API_PORT: '3001'
+      API_BASE_URL: http://127.0.0.1:3001
+      E2E_API_URL: http://127.0.0.1:3001
+      WEB_PORT: '3100'
+      # Verification links must point at the web app Playwright drives.
+      WEB_BASE_URL: http://127.0.0.1:3100
+      # No model service here: forecasts read stored versions and say "unavailable".
+      MODEL_SERVICE_URL: http://127.0.0.1:8000
+      API_LOG: ${{ github.workspace }}/apps/api/api.log
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v5
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Drop the runner's Google Chrome apt source
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome*
+
+      - name: Install Chromium for Playwright
+        run: pnpm --filter @fmip/web exec playwright install --with-deps chromium
+
+      - name: Migrate and seed
+        run: |
+          pnpm --filter @fmip/db build
+          pnpm --filter @fmip/db migrate:up
+          pnpm --filter @fmip/db seed
+
+      - name: Build and start the API
+        run: |
+          pnpm exec turbo run build --filter=@fmip/api
+          (nohup pnpm --filter @fmip/api start > apps/api/api.log 2>&1 &)
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:3001/health && exit 0
+            sleep 1
+          done
+          echo "API did not come up"; cat apps/api/api.log; exit 1
+
+      - name: Run the journeys
+        run: pnpm --filter @fmip/web e2e -- --project=journeys
+
+      - name: Show the API log on failure
+        if: failure()
+        run: tail -n 200 apps/api/api.log
+
+      - name: Upload report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-journeys
+          path: apps/web/playwright-report/
+          retention-days: 7
