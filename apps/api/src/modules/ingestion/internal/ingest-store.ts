@@ -47,6 +47,8 @@ export interface PollTarget {
 export interface WriteResult {
   changed: number;
   unresolved: string[];
+  /** The season the fixture landed in, so the caller can recompute its coverage (T-027). */
+  seasonId?: string;
 }
 
 export const NOTHING: WriteResult = { changed: 0, unresolved: [] };
@@ -277,7 +279,7 @@ export class IngestStore {
           `created from ${provider} ${fixture.home.name} v ${fixture.away.name}`,
         );
       }
-      return { changed, unresolved };
+      return { changed, unresolved, seasonId };
     } catch (error: unknown) {
       await client.query('ROLLBACK');
       throw error;
