@@ -1016,7 +1016,7 @@ tests (7 new on percentages, framing, deltas), typecheck, lint, stylelint.
 | `[x]` T-070 | Minimal admin: coverage status, freshness, ingest failures, user search, rating config | (T-027), T-053 | High-impact actions write an audit record |
 | `[x]` T-071 | Structured logging, error tracking, tracing on ingestion and live path | (T-026) | An ingest failure is visible without SSH |
 | `[x]` T-072 | Automated off-provider database backups + tested restore | T-008 | A restore drill is documented and passes |
-| `[ ]` T-073 | Load test at expected peak (many concurrent SSE clients) | T-032 | Documented pass at an agreed threshold |
+| `[x]` T-073 | Load test at expected peak (many concurrent SSE clients) | T-032 | Documented pass at an agreed threshold |
 | `[ ]` T-074 | Production deploy: VPS, Docker Compose, Cloudflare, TLS, domain | T-073 | Zero-downtime redeploy verified |
 
 **T-072 verified on 2026-09-10.** `scripts/backup/backup.sh` dumps the
@@ -1103,6 +1103,29 @@ limited or delayed without a provider is refused; guests get 401 and
 members without the role 403; an audit row cannot be updated or deleted
 (`23001`). 6 HTTP tests; typecheck, lint, Prettier; migration down/up
 cycled; full API suite green.
+
+**T-073 verified on 2026-09-12.** `apps/api/scripts/load-sse.mjs` (D-047)
+opens N server-sent-event clients on `GET /scores/stream` for a day nothing
+else uses, inserts a temporary live fixture there, changes its score three
+times through the database — so the real `NOTIFY` → change-feed → debounce →
+snapshot path is what is timed — and reports, per client, connect + first
+snapshot, the time from each `UPDATE` to the new snapshot, heartbeat gaps,
+refused and dropped connections, with `GET /health/live` confirming the
+subscriber count at each change; it deletes its fixture afterwards.
+**Documented pass at an agreed threshold:** the threshold is 1,000
+concurrent clients on one API process with no refused or dropped
+connections, first snapshot under 1.5 s (p95), change propagation under
+2.5 s (p95) and steady heartbeats; the record in `docs/08-load-test.md`
+(2026-09-12, the maintainer's 8-core machine, API and Postgres on the same
+host) shows 500 clients at 776 / 1,398 ms, **1,000 clients at 725 / 1,981 ms
+— pass** (0 refused, 0 dropped, 189 MB RSS), and 2,000 clients at 1,485 /
+3,406 ms — every client served, nothing dropped, propagation outside the
+threshold, which places the knee between 1,000 and 2,000 per process. The
+runbook names the limit (one snapshot read and serialisation per subscriber
+per change) and the two remedies in order (one snapshot per distinct query
+per change; more processes), and when to rerun (before T-074 on the VPS,
+after any live-path change, before a known big match). Lint clean (Node
+globals declared for `scripts/`).
 
 ---
 

@@ -1211,3 +1211,36 @@ without a deploy; the audit shape already fits.
 **Consequences.** New high-impact actions (moderation, contributor access,
 changing a settled prediction) follow the same pattern: reason in, audit
 row in the transaction. `audit_log` grows forever by design.
+
+## D-047 — The agreed peak is 1,000 concurrent stream clients per API process, measured through the real trigger path
+**Status:** Accepted · 2026-09-12
+
+**Decision.** The load test for the live path (T-073) is `apps/api/scripts/load-sse.mjs`:
+N server-sent-event clients on the scores stream, a temporary live fixture
+changed through the database so the real `NOTIFY` → fan-out path is
+measured, one JSON report. The agreed threshold is 1,000 concurrent clients
+on one API process with no refused or dropped connections, connect + first
+snapshot under 1.5 s at p95, a change reaching every client under 2.5 s at
+p95, and steady heartbeats. The record of every run lives in
+`docs/08-load-test.md`; it is rerun before the deploy (T-074, on the VPS,
+with the tool on another machine), after any change to the live path, and
+before a known big match with the expected peak as the client count.
+
+**Why.** The blueprint asks that "major-match traffic tests pass at the
+agreed peak load" without naming the peak; 1,000 per process is the
+launch-stage figure (a handful of covered leagues, one VPS) and the first
+number at which the current design's linear cost — one snapshot read and
+serialisation per subscriber per change — is measured rather than guessed.
+Measuring through the database trigger rather than a mocked event proves
+the whole path, including the debounce.
+
+**Alternatives considered.** A generic HTTP load tool (k6, autocannon):
+none holds thousands of SSE streams and times a database-side change
+against each of them; the script is 200 lines and has no new dependency. A
+higher threshold: honest only after the shared-snapshot remedy or a second
+process, both recorded in the runbook as the next steps.
+
+**Consequences.** The 2026-09-12 record: pass at 1,000 (p95 propagation
+1.98 s), knee between 1,000 and 2,000 on the maintainer's machine. When the
+peak grows, the first change is one snapshot per distinct query per change;
+the second is more processes.
