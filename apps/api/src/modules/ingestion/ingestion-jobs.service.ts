@@ -277,19 +277,41 @@ export class IngestionJobsService {
           refused.push(`${target.seasonLabel}: ${describe(result.error)}`);
           continue;
         }
-        const ours = await this.standings.table(target.seasonId);
-        const byName = new Map((ours.data ?? []).map((row) => [row.team.name.toLowerCase(), row]));
+        let unmapped = 0;
+
         for (const table of result.data) {
           seen += table.rows.length;
+          // Compare the edition the provider's table is for, not the one the
+          // poll started from — the same rule `saveFixture` follows.
+          const seasonId = await this.store.seasonId(target, table.seasonLabel);
+          if (seasonId === null) {
+            behind.push(`${table.seasonLabel}: the provider has a table for a season we do not`);
+            continue;
+          }
+          const ours = await this.standings.table(seasonId);
+          // Matched through `provider_mapping`, never by the provider's spelling
+          // of a club (rule 1). A team nobody has identified is counted, not
+          // silently dropped — it is the same gap seen from the other end.
+          const mine = new Map((ours.data ?? []).map((row) => [row.team.id, row]));
+
           for (const row of table.rows) {
-            const mine = byName.get(row.team.name.toLowerCase());
-            if (mine === undefined) continue;
-            if (mine.played !== row.played) {
+            const teamId = await this.store.resolveTeam(source.provider, row.team);
+            if (teamId === null) {
+              unmapped += 1;
+              continue;
+            }
+            const held = mine.get(teamId);
+            if (held === undefined) {
+              behind.push(`${row.team.name}: provider ${row.played} played, we hold no table row`);
+            } else if (held.played !== row.played) {
               behind.push(
-                `${row.team.name}: provider ${row.played} played, we have ${mine.played}`,
+                `${row.team.name}: provider ${row.played} played, we have ${held.played}`,
               );
             }
           }
+        }
+        if (unmapped > 0) {
+          behind.push(`${unmapped} teams in the provider's table have no mapping`);
         }
       }
       const partial = [...refused, ...behind].join('; ');

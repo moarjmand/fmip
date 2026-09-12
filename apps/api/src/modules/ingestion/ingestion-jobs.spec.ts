@@ -47,6 +47,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
   let close: () => Promise<void>;
   let competitionId: string;
   const mappings: string[] = [];
+  const startedAt = new Date();
 
   beforeAll(async () => {
     process.env.INGESTION_SOURCE = 'replay';
@@ -121,7 +122,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
           OR (provider = 'api_football' AND entity_type = 'fixture')`,
       [mappings],
     );
-    await pool.query(`DELETE FROM unresolved_entity WHERE provider = 'api_football'`);
+    // Everything this run queued, and nothing else: `ingestion.spec.ts` runs in
+    // another worker against the same database and owns the id 9999.
+    await pool.query(
+      `DELETE FROM unresolved_entity
+        WHERE provider = 'api_football' AND external_id <> '9999' AND first_seen_at >= $1`,
+      [startedAt],
+    );
     await pool.query(`DELETE FROM ingest_run WHERE provider = 'api_football'`);
     await pool.query(`DELETE FROM stage WHERE id = $1`, [STAGE]);
     await pool.query(`DELETE FROM season WHERE id = $1`, [SEASON]);
@@ -267,9 +274,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
     const report = await jobs.run('standings');
     expect(report.itemsWritten).toBe(0);
     expect(report.itemsSeen).toBeGreaterThan(0);
-    // We hold one match of a 38-match season, so the provider's played counts
-    // disagree with ours. A silent gap is exactly what this job exists to name.
-    expect(report.partial).toContain('played');
+    // We hold one match of a 38-match season, so every count disagrees, and the
+    // two clubs we have identified are the ones it can say it about by name.
+    // Teams nobody has mapped are counted rather than dropped — the same gap
+    // from the other end. A silent gap is what this job exists to prevent.
+    expect(report.partial).toContain('Manchester City: provider 38 played');
+    expect(report.partial).toContain("teams in the provider's table have no mapping");
   });
 
   it('records every run in ingest_run, so a failure is visible without SSH', async () => {

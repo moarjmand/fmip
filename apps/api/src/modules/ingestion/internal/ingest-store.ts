@@ -150,6 +150,18 @@ export class IngestStore {
     return outcome.kind === 'resolved' ? (outcome as { internalId: string }).internalId : null;
   }
 
+  /**
+   * The team a provider id names, or `null` if nobody has identified it. Used
+   * by the standings check, which has to compare like with like: a provider's
+   * spelling of a club is not a key (rule 1).
+   */
+  resolveTeam(
+    provider: Provider,
+    ref: { externalId: string; name: string },
+  ): Promise<string | null> {
+    return this.resolveId(provider, 'team', ref.externalId, ref);
+  }
+
   /** The fixture's internal id if it is known, or `null`. */
   async findFixture(provider: Provider, externalId: string): Promise<string | null> {
     const { rows } = await this.pool.query<{ internal_id: string }>(
@@ -320,7 +332,7 @@ export class IngestStore {
   }
 
   /** The competition's season with that label, or `null`. Seasons are never created here. */
-  private async seasonId(target: PollTarget, label: string): Promise<string | null> {
+  async seasonId(target: PollTarget, label: string): Promise<string | null> {
     if (label === target.seasonLabel) return target.seasonId;
     const { rows } = await this.pool.query<{ id: string }>(
       `SELECT id FROM season WHERE competition_id = $1 AND label = $2`,

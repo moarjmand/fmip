@@ -246,9 +246,13 @@ it would have had to invent as queued for review; run twice, `items_written` is
 team statistics, three line-up rows for the three people we identified) and
 writes 0 on the replay. The live job asks by id, so a recording of "everything
 live that day" filters to nothing of ours and costs nothing. The standings job
-writes nothing at all — the table is derived (D-038) — and reports the
-disagreement it found: the provider says 38 played where we hold 0, which is how
-a silent gap becomes a visible one. Every run is a row in `ingest_run` and none
+writes nothing at all — the table is derived (D-038) — and reports what it found:
+each provider row matched to ours **through `provider_mapping`, never by the
+provider's spelling of a club** (rule 1), the provider's 38 played against the 1
+we hold, a season the provider has a table for and we do not, and a count of the
+teams nobody has identified. An earlier version compared by name and matched
+nothing on a freshly seeded database, so the biggest gap of all — we derive no
+table at all — was the one it stayed silent about; CI caught it. Every run is a row in `ingest_run` and none
 is left open. Every write is an upsert with `WHERE ... IS DISTINCT FROM`, which
 is what makes the zero real and also keeps the `fixture_change` trigger quiet:
 re-polling an unchanged match wakes no stream client. 7 unit tests on the

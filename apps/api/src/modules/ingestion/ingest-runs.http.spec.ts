@@ -39,7 +39,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingest runs'
     const errorLog = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
     const logLog = vi.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
 
-    const ok = await runs.track('api_football', 'fixtures', 'season:test', async () => ({
+    // `highlightly` and `football_data_org`, never `api_football`: the running
+    // lock is a partial unique index on `(provider, job)`, and the jobs spec
+    // opens real runs for `api_football` at the same time in another worker.
+    const ok = await runs.track('highlightly', 'fixtures', 'season:test', async () => ({
       result: 'done',
       itemsSeen: 3,
       itemsWritten: 3,
@@ -47,7 +50,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingest runs'
     expect(ok).toBe('done');
 
     await expect(
-      runs.track('api_football', 'live', 'fixture:test', async () => {
+      runs.track('highlightly', 'live', 'fixture:test', async () => {
         throw new Error('provider answered 502');
       }),
     ).rejects.toThrow('provider answered 502');
