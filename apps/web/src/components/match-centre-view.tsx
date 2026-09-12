@@ -77,39 +77,39 @@ export function MatchCentreView({
             <Link href={`/${locale}/team/${f.away.id}`}>{f.away.name}</Link>
           </h1>
         </div>
-        <dl className="flex flex-wrap gap-x-4 text-xs opacity-70">
+        <ul className="flex flex-wrap gap-x-4 text-xs opacity-70">
           {f.scores.half_time !== null && (
-            <div>
+            <li>
               HT {f.scores.half_time.home}–{f.scores.half_time.away}
-            </div>
+            </li>
           )}
           {f.scores.aggregate !== null && (
-            <div>
+            <li>
               Agg {f.scores.aggregate.home}–{f.scores.aggregate.away}
-            </div>
+            </li>
           )}
           {f.scores.penalties !== null && (
-            <div>
+            <li>
               Pens {f.scores.penalties.home}–{f.scores.penalties.away}
-            </div>
+            </li>
           )}
-          <div>
+          <li>
             Kick-off <time dateTime={f.kickoff_at}>{formatKickoff(f.kickoff_at, timeZone)}</time>
-          </div>
+          </li>
           {f.venue !== null && (
-            <div>
+            <li>
               {f.venue.name}
               {f.venue.city !== null ? `, ${f.venue.city}` : ''}
               {f.is_neutral_venue ? ' (neutral)' : ''}
-            </div>
+            </li>
           )}
-          <div>Referee: {f.referee === null ? 'not supplied' : f.referee.name}</div>
-          {f.attendance !== null && <div>Attendance {f.attendance.toLocaleString('en-GB')}</div>}
-          <div>
+          <li>Referee: {f.referee === null ? 'not supplied' : f.referee.name}</li>
+          {f.attendance !== null && <li>Attendance {f.attendance.toLocaleString('en-GB')}</li>}
+          <li>
             Last data update{' '}
             <time dateTime={f.last_updated_at}>{formatKickoff(f.last_updated_at, timeZone)}</time>
-          </div>
-        </dl>
+          </li>
+        </ul>
       </header>
 
       <Module title="Live timeline" module={centre.timeline} testId="timeline">

@@ -138,23 +138,23 @@ function Latest({
         {framing(p, home, away)}
       </p>
 
-      <dl className="flex flex-wrap gap-x-4 text-xs opacity-80">
+      <ul className="flex flex-wrap gap-x-4 text-xs opacity-80">
         {version.expected_goals !== null && (
-          <div>
+          <li>
             Expected goals {version.expected_goals.home.toFixed(2)} –{' '}
             {version.expected_goals.away.toFixed(2)}
-          </div>
+          </li>
         )}
         {version.most_likely_scorelines !== null && version.most_likely_scorelines.length > 0 && (
-          <div>
+          <li>
             Most likely scorelines:{' '}
             {version.most_likely_scorelines
               .slice(0, 3)
               .map((s) => `${s.home}–${s.away} (${(s.probability * 100).toFixed(1)}%)`)
               .join(', ')}
-          </div>
+          </li>
         )}
-      </dl>
+      </ul>
 
       {version.leading_factors !== null && version.leading_factors.length > 0 && (
         <div className="flex flex-col gap-1" data-testid="leading-factors">

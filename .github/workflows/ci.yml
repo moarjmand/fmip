@@ -253,7 +253,7 @@ jobs:
           echo "API did not come up"; cat apps/api/api.log; exit 1
 
       - name: Run the journeys
-        run: pnpm --filter @fmip/web e2e -- --project=journeys
+        run: pnpm --filter @fmip/web exec playwright test --project=journeys
 
       - name: Show the API log on failure
         if: failure()
