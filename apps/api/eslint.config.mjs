@@ -3,6 +3,18 @@ import base from '@fmip/config/eslint';
 export default [
   ...base,
   {
+    // Operational scripts run under plain Node (T-073): the runtime globals are real there.
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        performance: 'readonly',
+        setTimeout: 'readonly',
+        fetch: 'readonly',
+      },
+    },
+  },
+  {
     files: ['**/*.ts'],
     rules: {
       // NestJS resolves constructor dependencies from `design:paramtypes`

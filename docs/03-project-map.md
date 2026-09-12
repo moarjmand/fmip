@@ -42,6 +42,8 @@ incomplete.
 | `04-tasks-phase-1.md` | Task backlog with acceptance criteria | Picking up work |
 | `05-data-providers.md` | Provider research and bake-off protocol | Touching ingestion |
 | `06-session-handoff.md` | How to resume in a fresh chat | Starting a new session |
+| `07-backups.md` | Backups and the restore drill (T-072, D-032) | Touching the database host or the backup scripts |
+| `08-load-test.md` | The live-path load test: threshold, tool, record of every run, what limits it, when to rerun (T-073, D-047) | Touching the stream, or before a big match or a deploy |
 | `product-blueprint.md` | The original product definition, converted from `m1.docx`. Authoritative on behaviour, **not** on engineering | Questions about intended behaviour |
 | `adr/` *(planned)* | Long-form decision records when a log entry is not enough | — |
 
@@ -57,6 +59,7 @@ incomplete.
 
 | Path | Purpose |
 |---|---|
+| `scripts/load-sse.mjs` | The live-path load test (T-073, D-047): N stream clients, a temporary live fixture changed through the database, one JSON report of connect, propagation, heartbeats and drops. Runbook and record: `docs/08-load-test.md`. |
 | `src/main.ts` | Bootstrap: Fastify adapter with request ids, the JSON logger, the access log and the exception filter (T-071), port resolution, shutdown hooks. |
 | `src/observability/` | Structured logging, request ids and error tracking (T-071, D-044): `json-logger.ts` (one JSON object per line, pretty in development, `LOG_FORMAT`; `json-logger.spec.ts`), `http-observability.ts` (`requestIdFrom`, the access log hook, `AllExceptionsFilter` — a 500 carries the request id, the stack stays in the log; `http-observability.http.spec.ts`). |
 | — | `pnpm dev` watches and compiles; `pnpm dev:serve` runs the output. Two scripts, not one backgrounded pipeline, because `&` backgrounds in bash and sequences in cmd. |
