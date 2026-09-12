@@ -1,12 +1,61 @@
-import { expect, test } from '@playwright/test';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { chromium, devices, expect, test, type BrowserContext } from '@playwright/test';
 
 /**
  * Installability (T-082, D-042): the manifest with the fields Android needs,
  * the icons it points at, the service worker registering and serving the
- * honest offline page when the network is gone. What cannot be automated —
- * tapping "Install" on a phone — is a device check for the maintainer.
+ * honest offline page when the network is gone — and Chrome's own decision to
+ * offer "Install", taken by the real browser on a phone-sized viewport. What
+ * that leaves for a real phone is the tap itself.
  */
 test.describe('progressive web app', () => {
+  test('Chrome itself would offer to install it on a phone', async () => {
+    // Google Chrome (channel "chrome"), not Playwright's headless shell: only
+    // the full browser runs the install-banner machinery that decides this,
+    // and only outside incognito, hence a persistent context. The flag skips
+    // Chrome's "has the user visited enough" heuristic, nothing else. Checked
+    // against a blocked manifest while writing this: the errors then read
+    // `no-manifest` and `manifest-parsing-or-network-error`, so an empty list
+    // is a verdict, not a default.
+    let context: BrowserContext;
+    try {
+      context = await chromium.launchPersistentContext(mkdtempSync(join(tmpdir(), 'fmip-pwa-')), {
+        channel: 'chrome',
+        args: ['--bypass-app-banner-engagement-checks'],
+        ...devices['Pixel 7'],
+        baseURL: test.info().project.use.baseURL,
+      });
+    } catch (error) {
+      test.skip(true, `Google Chrome is not installed here: ${String(error).split('\n')[0]}`);
+      return;
+    }
+    try {
+      const page = context.pages()[0] ?? (await context.newPage());
+      await page.addInitScript(() => {
+        window.addEventListener('beforeinstallprompt', () => {
+          document.documentElement.dataset['installPrompt'] = 'offered';
+        });
+      });
+      await page.goto('/en');
+      // The decision needs a service worker in control of the page.
+      await page.evaluate(async () => {
+        await navigator.serviceWorker.ready;
+      });
+      await page.reload();
+      // Chrome fires beforeinstallprompt once every criterion is met.
+      await expect(page.locator('html')).toHaveAttribute('data-install-prompt', 'offered', {
+        timeout: 15_000,
+      });
+      const cdp = await context.newCDPSession(page);
+      const { installabilityErrors } = await cdp.send('Page.getInstallabilityErrors');
+      expect(installabilityErrors).toEqual([]);
+    } finally {
+      await context.close();
+    }
+  });
+
   test('the manifest has what an install needs and its icons are served', async ({ request }) => {
     const response = await request.get('/manifest.webmanifest');
     expect(response.status()).toBe(200);
