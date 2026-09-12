@@ -990,7 +990,7 @@ tests (7 new on percentages, framing, deltas), typecheck, lint, stylelint.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[ ]` T-070 | Minimal admin: coverage status, freshness, ingest failures, user search, rating config | T-027, T-053 | High-impact actions write an audit record |
-| `[ ]` T-071 | Structured logging, error tracking, tracing on ingestion and live path | T-026 | An ingest failure is visible without SSH |
+| `[x]` T-071 | Structured logging, error tracking, tracing on ingestion and live path | (T-026) | An ingest failure is visible without SSH |
 | `[x]` T-072 | Automated off-provider database backups + tested restore | T-008 | A restore drill is documented and passes |
 | `[ ]` T-073 | Load test at expected peak (many concurrent SSE clients) | T-032 | Documented pass at an agreed threshold |
 | `[ ]` T-074 | Production deploy: VPS, Docker Compose, Cloudflare, TLS, domain | T-073 | Zero-downtime redeploy verified |
@@ -1018,6 +1018,35 @@ checklist, restoring for real). What remains for the maintainer: create the
 bucket at a provider other than the VPS host, write `rclone.conf` with a
 `crypt` remote, set `BACKUP_RCLONE_REMOTE`, and run the first real backup
 and drill from the remote (D-032).
+
+**T-071 verified on 2026-09-12 (sequenced under D-033: the run recorder is
+built before the E2 jobs that will call it).** `src/observability/` (D-044):
+`json-logger.ts` replaces Nest's logger with one JSON object per line
+(`time`, `level`, `context`, `message`, any fields; an `Error` becomes
+`err` with its stack), pretty in development and JSON in production
+(`LOG_FORMAT`); `http-observability.ts` gives every request an id — the
+caller's `x-request-id` when sane, else a UUID — echoed on the response,
+written in an `http.request` access record with method, route, status and
+duration, and in every error record; the one exception filter lets a
+boundary's `ApiError` through and turns an unhandled error into a 500
+`{ error: 'internal', request_id }` with the stack in the log and never in
+the body. The web app sends a `web-<uuid>` request id with every API call.
+The ingestion boundary gains `IngestRunsService` (`start`, `finish`,
+`track`): every provider job run is an `ingest_run` row, a failed or partial
+run is logged as an `ingest.failed` event with provider, job, scope, counts
+and error, and `GET /health/ingestion` answers the newest runs, the last
+failure, the failure count of the last day and how many are running; `GET
+/health/live` answers the stream gateway's subscriber count. `GET /health`
+itself stays liveness-only. **An ingest failure is visible without SSH:**
+the HTTP suite tracks a succeeded run, a run whose work throws "provider
+answered 502" and a partial run, then reads `/health/ingestion` and finds
+the failed run with its error, the partial run as the last failure, the
+failure count, and the structured `ingest.failed` / `ingest.succeeded`
+events in the log; the observability suite proves the request id is echoed
+and logged, a 404 keeps its body, and an unhandled error is a 500 carrying
+the id with the stack kept out of the body. 5 unit tests on the logger,
+3 HTTP tests on request ids and errors, 2 on ingest runs; typecheck, lint,
+Prettier; full API suite twice, web unit suite.
 
 ---
 
