@@ -91,7 +91,13 @@ export function LiveScores({
               <h2 className="text-lg font-semibold">Your favourites</h2>
               <ul className="flex flex-col gap-2">
                 {scores.pinned.map((card) => (
-                  <ScoreCard key={card.id} card={card} timeZone={timeZone} locale={locale} />
+                  <ScoreCard
+                    key={card.id}
+                    card={card}
+                    timeZone={timeZone}
+                    locale={locale}
+                    now={now}
+                  />
                 ))}
               </ul>
             </section>
@@ -118,7 +124,13 @@ export function LiveScores({
               </h2>
               <ul className="flex flex-col gap-2">
                 {group.fixtures.map((card) => (
-                  <ScoreCard key={card.id} card={card} timeZone={timeZone} locale={locale} />
+                  <ScoreCard
+                    key={card.id}
+                    card={card}
+                    timeZone={timeZone}
+                    locale={locale}
+                    now={now}
+                  />
                 ))}
               </ul>
             </section>

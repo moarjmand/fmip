@@ -1144,3 +1144,37 @@ here is where its hook goes.
 **Consequences.** T-070's admin surface reads `/health/ingestion` rather
 than the table. The E2 jobs wrap their work in `IngestRunsService.track`.
 `LOG_FORMAT` is documented in `.env.example`.
+
+## D-045 — A live match whose data stops changing is "behind", on the server and on the client
+**Status:** Accepted · 2026-09-12
+
+**Decision.** A fixture in progress (`live` or `suspended`) whose data has
+not changed for `STALE_LIVE_AFTER_MS` (two minutes, in `@fmip/contracts`) is
+`stale`. The API says so in `freshness` on every score card and match header
+at snapshot time; the web app re-asks the same rule against its own clock
+every few seconds, so a feed that stops after the last snapshot is caught
+without a round trip. A behind match shows "Behind" where the minute was,
+with the time of its last change and the words "the last known, not the
+current"; the score stays visible. When the ingestion feed's latest run
+failed or was partial (`GET /health/ingestion`, T-071), the scores page says
+so at the top with the time, and keeps showing what it has. Nothing is
+hidden; nothing is called current that is not.
+
+**Why.** Rule 4: never show stale data as current. A provider outage looks,
+from the outside, exactly like a quiet match; the only honest signal is
+time since the last change, and both ends of the pipe have to check it —
+the server for the first paint, the client for the minutes after. Two
+minutes is longer than any normal gap between provider polls and shorter
+than a half.
+
+**Alternatives considered.** Hiding a stale card: loses the last known
+score, which is still information. Server-only freshness: a stopped feed
+means no new snapshots, so the client would keep showing "current".
+A per-provider expected-poll interval: needs the providers (E2); the
+threshold can become per-provider then.
+
+**Consequences.** The E2 jobs record their runs (T-071) and the notice on
+the scores page follows automatically. `STALE_LIVE_AFTER_MS` is one
+constant shared by API and web. The client "connecting / live / stale" line
+(T-032) is about the stream; this rule is about the data — a page can be
+connected and behind at the same time, and says both.

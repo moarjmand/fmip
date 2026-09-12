@@ -562,6 +562,30 @@ tests green locally against the production build and the local API; the
 job is in the workflow of this change's PR. Adding `E2E journeys` to the
 branch ruleset's required checks is a repository setting for the maintainer.
 
+**T-083 verified on 2026-09-12 (sequenced under D-033: the rule is in place
+before the provider jobs whose outages it labels).** `STALE_LIVE_AFTER_MS`
+(two minutes) and `Freshness` live in `@fmip/contracts` (D-045);
+`fixtures/internal/freshness.ts` is the pure rule: a `live` or `suspended`
+fixture unchanged for longer is `stale`, anything before kick-off or after
+the end is `null`; every score card and match header carries `freshness`
+from the store at snapshot time. The web app re-asks the same rule against
+its own clock (`isBehind` in `lib/live.ts`, every five seconds with the
+live components' tick), so a feed that stops after the last snapshot is
+caught: a behind card shows "Behind" where the minute was and a status line
+with the time of the last change and the words "the last known, not the
+current"; the match centre shows the same in its header. When the ingestion
+feed's latest run failed or was partial (`GET /health/ingestion`, T-071),
+`feedNotice` puts a notice with the time at the top of the scores page
+while the cards stay, each with its own last-change time. **Stale data is
+labelled, never presented as live:** unit tests prove the rule on both sides
+(current at the threshold, stale one millisecond past it, suspended counts,
+scheduled and finished never; the client honours the API's `stale` and its
+own clock), that `statusLabel` says "Behind" rather than a minute for a
+behind match, and that the feed notice names a failure or a partial update
+with its time and stays silent after a success or with no run at all.
+3 API unit tests, 5 web unit tests; typecheck, lint, Prettier; fixtures
+suites and the web unit suite green.
+
 ---
 
 ## E4 — Accounts
@@ -1057,7 +1081,7 @@ Prettier; full API suite twice, web unit suite.
 | `[x]` T-080 | Playwright E2E for the four blueprint user journeys in scope | T-056, T-065 | Green in CI |
 | `[x]` T-081 | Accessibility pass: keyboard, focus order, contrast, live-score announcements | T-034 | Meets the agreed standard |
 | `[x]` T-082 | PWA: manifest, offline shell, installability | T-039 | Installs on Android; audited |
-| `[ ]` T-083 | Feed-failure resilience: provider outage degrades gracefully | T-027 | Stale data is labelled, never presented as live |
+| `[x]` T-083 | Feed-failure resilience: provider outage degrades gracefully | (T-027) | Stale data is labelled, never presented as live |
 | `[ ]` T-084 | Launch acceptance review against `01-roadmap.md` exit criteria | all | Signed off in `00-decisions.md` |
 
 ---

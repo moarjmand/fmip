@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { freshnessOf } from './freshness';
 import type {
   CoverageModule,
   CoverageState,
@@ -205,6 +206,7 @@ export class PostgresMatchCentreStore {
           added_minutes: p.added_minutes,
         })),
         last_updated_at: r.last_updated_at.toISOString(),
+        freshness: freshnessOf(r.status, r.last_updated_at, new Date()),
       },
     };
   }

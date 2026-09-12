@@ -8,6 +8,7 @@ import {
   moduleState,
   statValue,
 } from '@/lib/match';
+import { isBehind } from '@/lib/live';
 import { formatKickoff } from '@/lib/scores';
 
 /**
@@ -21,19 +22,25 @@ export function MatchCentreView({
   centre,
   timeZone,
   locale,
+  now,
 }: {
   centre: MatchCentre;
   timeZone: string;
   locale: string;
+  /** The client clock, ms since epoch, so a feed that stops is caught (T-083). */
+  now?: number;
 }) {
   const f = centre.fixture;
   const headline =
     f.status === 'finished' ? (f.scores.full_time ?? f.scores.current) : f.scores.current;
+  const behind = now !== undefined && isBehind(f, now);
   const status =
     f.status === 'live'
-      ? f.minute === null
-        ? 'Live'
-        : `${f.minute}′`
+      ? behind
+        ? 'Behind'
+        : f.minute === null
+          ? 'Live'
+          : `${f.minute}′`
       : f.status === 'finished'
         ? f.scores.penalties !== null
           ? 'Pens'
@@ -77,6 +84,13 @@ export function MatchCentreView({
             <Link href={`/${locale}/team/${f.away.id}`}>{f.away.name}</Link>
           </h1>
         </div>
+        {behind && (
+          <p role="status" className="text-sm font-medium" data-testid="feed-behind">
+            The data for this match is behind: nothing has changed since{' '}
+            <time dateTime={f.last_updated_at}>{formatKickoff(f.last_updated_at, timeZone)}</time>.
+            The score and minute shown are the last known, not the current ones.
+          </p>
+        )}
         <ul className="flex flex-wrap gap-x-4 text-xs opacity-70">
           {f.scores.half_time !== null && (
             <li>

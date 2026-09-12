@@ -56,6 +56,7 @@ const header = (over: Partial<MatchHeader> = {}): MatchHeader => ({
   attendance: null,
   periods: [],
   last_updated_at: '2025-09-01T15:00:00.000Z',
+  freshness: null,
   ...over,
 });
 

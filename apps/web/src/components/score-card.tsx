@@ -1,5 +1,6 @@
 import type { ScoreCard as ScoreCardData, ScoreCardIncident } from '@fmip/contracts';
 import Link from 'next/link';
+import { isBehind } from '@/lib/live';
 import { COVERAGE_LABEL, formatKickoff, scoreLabel, statusLabel } from '@/lib/scores';
 
 const INCIDENT_LABEL: Record<ScoreCardIncident['kind'], string> = {
@@ -22,11 +23,15 @@ export function ScoreCard({
   card,
   timeZone,
   locale,
+  now,
 }: {
   card: ScoreCardData;
   timeZone: string;
   locale: string;
+  /** The client clock, ms since epoch, so a feed that stops is caught (T-083). */
+  now?: number;
 }) {
+  const behind = now !== undefined && isBehind(card, now);
   // The red-card mark is an image to a screen reader, named in words (T-081).
   const sentOff = (n: number): React.ReactNode =>
     n === 0 ? null : (
@@ -62,7 +67,7 @@ export function ScoreCard({
           className={`w-16 shrink-0 text-sm ${card.status === 'live' ? 'font-semibold' : 'opacity-70'}`}
           data-testid="score-status"
         >
-          {statusLabel(card, timeZone)}
+          {statusLabel(card, timeZone, now)}
         </span>
         <span className="flex-1 truncate text-end" data-testid="home-team">
           {card.home.name}
@@ -80,6 +85,15 @@ export function ScoreCard({
         </span>
       </Link>
 
+      {behind && (
+        <p role="status" className="text-xs font-medium" data-testid="behind">
+          Data behind: nothing has changed since{' '}
+          <time dateTime={card.last_updated_at}>
+            {formatKickoff(card.last_updated_at, timeZone)}
+          </time>
+          . The score shown is the last known, not the current one.
+        </p>
+      )}
       <div className="flex flex-wrap gap-x-3 text-xs opacity-70">
         <span>{card.competition.name}</span>
         {stageBits.map((bit) => (

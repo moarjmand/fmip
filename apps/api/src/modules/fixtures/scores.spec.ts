@@ -120,6 +120,7 @@ const card = (over: Partial<ScoreCard> & { id: string }): ScoreCard => ({
   venue: null,
   coverage: 'limited',
   last_updated_at: '2025-01-05T10:00:00.000Z',
+  freshness: null,
   pinned: false,
   ...over,
 });

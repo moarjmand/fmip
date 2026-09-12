@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { LiveScores } from '@/components/live-scores';
-import { fetchMe, fetchScores } from '@/lib/api';
+import { fetchIngestionHealth, fetchMe, fetchScores } from '@/lib/api';
+import { feedNotice } from '@/lib/live';
 import { apiQuery, dayStrip, pageHref, readScoresQuery } from '@/lib/scores';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
@@ -41,7 +42,12 @@ export default async function ScoresPage({
   const cookie = await sessionCookieHeader();
   const me = await fetchMe(cookie);
   const q = readScoresQuery(query, me?.timezone ?? null);
-  const result = await fetchScores(apiQuery(q), cookie);
+  const [result, ingestion] = await Promise.all([
+    fetchScores(apiQuery(q), cookie),
+    fetchIngestionHealth(),
+  ]);
+  // A provider outage is named on the page (T-083), never hidden behind old numbers.
+  const notice = feedNotice(ingestion, q.timezone);
   const strip = dayStrip(q);
   const linkClass = (active: boolean): string =>
     `rounded px-2 py-1 ${active ? 'bg-current/10 font-semibold' : 'underline'}`;
@@ -94,13 +100,20 @@ export default async function ScoresPage({
             : 'The scores service is unreachable right now, so nothing can be shown for this day.'}
         </p>
       ) : (
-        // The snapshot renders now; the client keeps it current over SSE (T-032).
-        <LiveScores
-          initial={result.data}
-          streamQuery={apiQuery(q)}
-          timeZone={q.timezone}
-          locale={locale}
-        />
+        <>
+          {notice !== null && (
+            <p role="status" className="text-sm font-medium" data-testid="feed-notice">
+              {notice}
+            </p>
+          )}
+          {/* The snapshot renders now; the client keeps it current over SSE (T-032). */}
+          <LiveScores
+            initial={result.data}
+            streamQuery={apiQuery(q)}
+            timeZone={q.timezone}
+            locale={locale}
+          />
+        </>
       )}
     </main>
   );

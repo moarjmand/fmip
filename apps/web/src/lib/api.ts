@@ -8,6 +8,7 @@ import type {
   ForecastVersionsResponse,
   FollowingResponse,
   HealthReport,
+  IngestionHealth,
   LeaderboardResponse,
   MatchCentre,
   OwnProfile,
@@ -32,6 +33,12 @@ const API_BASE_URL = process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
  * answer is labelled, never faked. The caller renders the difference.
  */
 export type ApiHealth = { reachable: true; report: HealthReport } | { reachable: false };
+
+/** `GET /health/ingestion` (T-071): the feed's recent runs; null when unreachable. */
+export async function fetchIngestionHealth(): Promise<IngestionHealth | null> {
+  const result = await apiRequest<IngestionHealth>('/health/ingestion');
+  return result.ok ? result.data : null;
+}
 
 export async function fetchApiHealth(): Promise<ApiHealth> {
   const result = await apiRequest<HealthReport>('/health');

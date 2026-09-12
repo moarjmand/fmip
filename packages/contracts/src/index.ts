@@ -87,8 +87,10 @@ export type {
   ModelPerformanceResponse,
   ModelPerformanceRow,
 } from './forecast';
+export { STALE_LIVE_AFTER_MS } from './scores';
 export type {
   FixtureStatus,
+  Freshness,
   ScoreCard,
   ScoreCardIncident,
   ScoreCardIncidentKind,

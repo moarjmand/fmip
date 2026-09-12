@@ -26,6 +26,15 @@ export interface ScoreLine {
   away: number;
 }
 
+/**
+ * Freshness of a live fixture's data (rule 4, T-083, D-045). A match in
+ * progress whose data has not changed for this long is `stale`: the feed
+ * is behind, and the page must say so instead of showing the last minute as
+ * the current one. Not applicable (`null`) before kick-off or after the end.
+ */
+export const STALE_LIVE_AFTER_MS = 120_000;
+export type Freshness = 'current' | 'stale';
+
 export interface ScoreCardTeam {
   id: string;
   name: string;
@@ -84,6 +93,8 @@ export interface ScoreCard {
   coverage: CoverageState;
   /** When the fixture, its scores or its incidents last changed. */
   last_updated_at: string;
+  /** `stale` when live and unchanged for `STALE_LIVE_AFTER_MS`; `null` when not live. */
+  freshness: Freshness | null;
   /** Ranked above the standard list because of the viewer's favourites. */
   pinned: boolean;
 }
