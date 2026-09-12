@@ -1,5 +1,14 @@
 export { COVERAGE_STATES, hasData, isCoverageState } from './coverage';
 export type { CoverageState, Covered } from './coverage';
+
+// The Power Index (blueprint 6.1, T-110).
+export { POWER_INDEX_COMPONENTS, POWER_INDEX_LABELS, POWER_INDEX_WEIGHTS } from './power-index';
+export type {
+  PowerIndex,
+  PowerIndexComponent,
+  PowerIndexComponentValue,
+  PowerIndexPair,
+} from './power-index';
 export type {
   HealthReport,
   IngestRun,

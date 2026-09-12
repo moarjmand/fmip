@@ -77,7 +77,7 @@ calculation.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-110 | Schema and contracts: `power_index` version, components, completeness | T-064 | A stored index is immutable and recomputable from its inputs |
+| `[x]` T-110 | Schema and contracts: `power_index` version, components, completeness | T-064 | A stored index is immutable and recomputable from its inputs |
 | `[ ]` T-111 | Component computation: strength, form, venue, rest, competition context | T-110 | Each component is a number in `[0,1]` with its own coverage state |
 | `[ ]` T-112 | Line-up quality and managerial stability components | T-110, T-101 | Present when the data is, `not_supplied` when it is not — never zero |
 | `[ ]` T-113 | Weight validation against history | T-111, T-062 | The published weights beat the blueprint's defaults on a backtest, or the defaults are kept and the test says so |
@@ -97,6 +97,43 @@ by adding fixed points. Every component is a position in a distribution — a
 percentile against the competition's own teams that season — so "80" means
 "stronger than 80% of this league", which is a statement that can be checked,
 not a number that can be argued with.
+
+**T-110 verified on 2026-09-13.** The first Phase 2 task, and the sequencing rule
+says schema and contracts first. `..._power-index.sql` adds `power_index`: one
+row per team per fixture per formula version per moment, carrying the value, the
+components with the weights they were given, the completeness, and an inputs
+hash. It hangs off `fixture_participant` rather than `team`, because a Power
+Index is about a team *in this fixture* — which is what makes the venue and
+congestion components mean anything — and because that makes an index for a team
+that is not playing impossible to write.
+
+`packages/contracts/src/power-index.ts` publishes the blueprint's seven
+components and their weights, and
+`apps/api/src/modules/forecast/internal/power-index.ts` is the arithmetic as a
+versioned config in one file, the same shape as the Performance Rating formula
+(D-035).
+
+**The decision the whole thing turns on.** A component nothing supplied is
+`not_supplied` and its weight is **redistributed across the components that did
+arrive**, with the resulting completeness published beside the number.
+Substituting a neutral 0.5 would be inventing a value (rule 3) and would drag
+every index towards the middle by an amount nobody could see; the test asserts
+the two differ. On the free data of D-049 nothing supplies line-up quality or
+managerial stability, so a working index there is 75% complete and says so. An
+index with no component at all is not a weak index but the absence of one:
+`combine` returns null and the database refuses `completeness = 0`.
+
+**A stored index is immutable and recomputable from its inputs:** the database
+refuses UPDATE and DELETE (`refuse_change`, rule 5), refuses a value outside
+0–100, an empty component list and a second index for the same side, formula and
+instant; and the stored components reproduce the stored value with no access to
+whatever measured them — the test recomputes it from the row alone. 11 unit tests
+on the arithmetic and the leading factors, 4 against the real schema; the
+migration was cycled down and up.
+
+**What is not here.** Nothing measures the components yet — that is T-111, and
+T-112 for the two the free data cannot reach. Nothing writes the table outside
+the test, and no endpoint serves it (T-114).
 
 ---
 
