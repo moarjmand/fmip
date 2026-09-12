@@ -51,6 +51,16 @@ export {
 } from './adapters/football-data-org';
 export { HIGHLIGHTLY_MANIFEST, createHighlightlyAdapter } from './adapters/highlightly';
 
+// The replay source (T-026, D-049): a real adapter over committed recordings.
+export {
+  REPLAY_FIXTURE,
+  REPLAY_QUERY,
+  createReplayAdapter,
+  recordingsDir,
+  replayAvailable,
+  replayTransport,
+} from './adapters/replay';
+
 // The bake-off (T-024).
 export {
   disagreements,

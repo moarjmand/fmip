@@ -115,7 +115,7 @@ split into two commits, wiring then resolver, in one PR.
 | `[x]` T-023 | Highlightly adapter (free tier) | T-020 | Same |
 | `[x]` T-024 | Bake-off harness: run all three over the same fixtures, log latency/completeness/errors | T-021, T-022, T-023 | Produces `docs/05-data-providers.md` results table automatically |
 | `[ ]` T-025 | **Decision gate:** review bake-off, pick provider, subscribe to paid tier | T-024 | New entry in `00-decisions.md` |
-| `[ ]` T-026 | Scheduled ingestion jobs (BullMQ): fixtures, live, lineups, standings, post-match | T-025 | Jobs are idempotent; a replay changes nothing |
+| `[x]` T-026 | Scheduled ingestion jobs (BullMQ): fixtures, live, lineups, standings, post-match | T-020..T-024 (was T-025, D-049) | Jobs are idempotent; a replay changes nothing |
 | `[ ]` T-027 | Coverage profile computation + freshness tracking | T-026 | Every module payload carries a coverage state |
 
 **T-020 verified on 2026-09-10.** `packages/ingestion` holds the normalised
@@ -219,6 +219,47 @@ detail 57%, 388 ms — Highlightly ran on the Premier League only because its
 league ids for the other four are not yet in the plan. No disagreements among
 the matched fixtures. One run is one day's snapshot; the protocol's seven days
 are seven runs, and T-025 reads them together. The second run (2026-09-11 05:04 UTC) added the Highlightly ids of the other four leagues: Highlightly 25/35 ok with 50 requests (its fixture list costs one request per day; every `getLineup` `unsupported` on BASIC), fixture 40%, detail 57%; API-Football and football-data.org repeated day one exactly; again no disagreements.
+
+**T-026 verified on 2026-09-12.** T-025 stays deferred, so the jobs run on the
+free sources D-049 chose: football-data.org for the spine, Highlightly for the
+detail, and a keyless `replay` source for tests and CI. `internal/sources.ts`
+resolves them from `INGESTION_SOURCE`, splits the live profile by module so the
+two providers are never blended, and wraps Highlightly in a `BudgetedTransport`
+that answers 429 once the day's hundred requests are spent — proved by a unit
+test that counts the inner transport's calls and by one that rolls the UTC day.
+`ingestion-jobs.service.ts` is the five jobs, each inside
+`IngestRunsService.track`, and a provider refusal is a `partial` run naming what
+happened rather than an exception. `ingestion-scheduler.service.ts` registers
+five BullMQ job schedulers and is off unless `INGESTION_SCHEDULE=on`, because a
+second poller on a free plan is the day's quota gone by lunchtime; overlapping
+ticks are already impossible, since `ingest_run` has a partial unique index on
+an open `(provider, job)` and the violation is caught as a skipped tick.
+
+**Jobs are idempotent; a replay changes nothing:** `ingestion-jobs.spec.ts` runs
+all five against a real Postgres on the replay source — the real API-Football
+adapter over its committed 2023/24 recordings. The fixtures job sees 10 matches
+and writes 6 rows for the one whose teams are mapped (fixture, two participants,
+three scores), records the fixture's own mapping, and reports the 16 provider ids
+it would have had to invent as queued for review; run twice, `items_written` is
+0 and the fixture count is unchanged. The post-match job writes 39 rows
+(incidents with Haaland's goal and Rodri's assist, both formations, two periods,
+team statistics, three line-up rows for the three people we identified) and
+writes 0 on the replay. The live job asks by id, so a recording of "everything
+live that day" filters to nothing of ours and costs nothing. The standings job
+writes nothing at all — the table is derived (D-038) — and reports what it found:
+each provider row matched to ours **through `provider_mapping`, never by the
+provider's spelling of a club** (rule 1), the provider's 38 played against the 1
+we hold, a season the provider has a table for and we do not, and a count of the
+teams nobody has identified. An earlier version compared by name and matched
+nothing on a freshly seeded database, so the biggest gap of all — we derive no
+table at all — was the one it stayed silent about; CI caught it. Every run is a row in `ingest_run` and none
+is left open. Every write is an upsert with `WHERE ... IS DISTINCT FROM`, which
+is what makes the zero real and also keeps the `fixture_change` trigger quiet:
+re-polling an unchanged match wakes no stream client. 7 unit tests on the
+sources and the budget, 5 database tests on the jobs, 4 on the replay adapter;
+typecheck, lint and Prettier pass, and the whole suite is green apart from
+`model-client.spec.ts`, which needs the Python service running and fails the
+same way on a clean tree.
 
 ---
 
