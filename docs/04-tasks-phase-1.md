@@ -536,6 +536,32 @@ page. The offline page also passes the WCAG 2.2 AA check (T-081). Tapping
 confirmed by the maintainer on a device. 3 E2E tests; typecheck, lint,
 Prettier; web unit suite.
 
+**T-080 verified on 2026-09-12.** `tests/e2e/journeys/journeys.spec.ts`
+walks the blueprint's essential journeys (section 18) as far as Phase 1
+ships them, through the real web app, API, database and seed (D-043):
+**18.1** a visitor opens the open match (seed `007`, Liverpool v Manchester
+United in 2099), is sent to sign in, registers through the form, lands on
+their profile, is told on the match page to verify their e-mail, follows the
+verification link taken from the API's real mail log (D-026), submits
+Liverpool 2–1 at confidence 4, sees version 1 recorded and the section
+marked open until kick-off, and finds the prediction in their history with
+no rating yet; **18.2** the match centre and the scores list reach the
+`live` state over the stream; **18.3** `GET /me/eligibility` answers
+not-eligible with reasons and a rules version while `GET /me/points` is 0,
+and the leaderboard page shows its floor of 30; **18.4** the member follows
+Liverpool in settings, makes it a favourite, sees it pinned on the scores
+page for the played day, opens the match centre from the card, the team page
+from the team name (with a follower count), Mohamed Salah's page from the
+squad (current team Liverpool), and finds Manchester United by searching
+`Man Utd`. **Green in CI:** the journeys are a second Playwright project that
+exists only when `E2E_API_URL` is set, so the existing `E2E` job keeps
+proving the honest no-API states; the new `E2E journeys` job in `ci.yml`
+starts Postgres, migrates, seeds, builds and starts the API (mail logged to
+`api.log`), builds the web app against it and runs the project. 3 journey
+tests green locally against the production build and the local API; the
+job is in the workflow of this change's PR. Adding `E2E journeys` to the
+branch ruleset's required checks is a repository setting for the maintainer.
+
 ---
 
 ## E4 — Accounts
@@ -999,7 +1025,7 @@ and drill from the remote (D-032).
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-080 | Playwright E2E for the four blueprint user journeys in scope | T-056, T-065 | Green in CI |
+| `[x]` T-080 | Playwright E2E for the four blueprint user journeys in scope | T-056, T-065 | Green in CI |
 | `[x]` T-081 | Accessibility pass: keyboard, focus order, contrast, live-score announcements | T-034 | Meets the agreed standard |
 | `[x]` T-082 | PWA: manifest, offline shell, installability | T-039 | Installs on Android; audited |
 | `[ ]` T-083 | Feed-failure resilience: provider outage degrades gracefully | T-027 | Stale data is labelled, never presented as live |
