@@ -1291,3 +1291,67 @@ covered by the 15 s SSE heartbeat. Client IPs reach the API as
 `CF-Connecting-IP`; if a feature needs them, Caddy's `trusted_proxies` is where
 Cloudflare's ranges go. `SITE_URL` and `WEB_BASE_URL` are derived from
 `SITE_HOST` in production; only development sets them directly.
+
+---
+
+## D-049 — Until a paid plan exists, ingestion runs on two free sources plus an offline replay, and says where each one stops
+**Status:** Accepted · 2026-09-12
+
+**Decision.** T-025 stays deferred (D-033), and the ingestion jobs run on three
+sources instead of one:
+
+- **football-data.org** (free TIER_ONE key, already held) is the **spine**:
+  fixtures, kick-off times, statuses, scores and standings for the five target
+  leagues and the Champions League, on the current season, inside 10
+  requests/minute.
+- **Highlightly** (free BASIC key, already held) is the **detail**: lineups,
+  incidents and the live clock, rationed against a hard 100 requests/day.
+- **`replay`** is a keyless offline source that plays committed recordings back
+  on a compressed clock. It is what CI and the tests use.
+
+Each source declares what it supplies per module. A module no source reached is
+`not_supplied`; a module a source reached partially is `limited`. The two live
+sources are never merged into one module to make it look complete: the spine
+owns scores and tables, the detail source owns lineups and incidents, and the
+coverage profile (T-027) records which source supplied each one.
+
+Rejected for this purpose: **API-Football** free (verified again on 2026-09-12 -
+"Free plans do not have access to this season, try from 2022 to 2024"; it cannot
+see a match happening now, so it is a replay source only); **TheSportsDB** free
+(`lookuplineup`, `lookuptimeline` and `lookupeventstats` each return exactly five
+rows - truncated lists that do not declare themselves truncated are the failure
+rule 3 exists to prevent); **OpenLigaDB** (German competitions only, no lineups -
+kept as a free cross-check on Bundesliga scores, nothing more); **ESPN's
+undocumented JSON** (richest free payload of all and explicitly forbidden: the
+Disney Terms of Use covering ESPN prohibit automated extraction and any
+commercial use). **Big Balls Data** is the first thing to try if the 100/day
+ceiling binds, but it needs a sign-up nobody has done, so nothing is built on its
+claims.
+
+**Why.** The pipeline has never been run against a real current season - the
+bake-off (T-024) could only reach 2023/24, because the one adapter with full
+field coverage is season-locked on its free plan. Everything T-026 and T-027
+exist to prove - that a poll loop is idempotent, that a coverage state is
+computed from what actually arrived, that freshness degrades visibly - needs a
+season that moves. Two free keys we already hold cover that between them: one has
+the breadth and no daily cap, the other has the depth and a small budget.
+Splitting by module rather than blending keeps rule 6's spirit at the data layer
+and makes each gap nameable instead of invisible.
+
+**Alternatives considered.** *Buy the paid plan now* - the decision to defer is
+D-033 and unchanged; nothing here needs money. *One source only* -
+football-data.org alone never produces a lineup or an incident, so half the
+match-centre code would stay unexercised; Highlightly alone burns its 100 daily
+requests on fixture lists before reaching any detail. *Scrape ESPN* - the payload
+is superb and the terms forbid it, which ends the discussion. *Wait for a real
+provider* - the replay source removes the reason to wait.
+
+**Consequences.** `INGESTION_SOURCE` selects the profile (`live` or `replay`);
+`replay` is the default everywhere except a deployment that has both keys, so no
+test and no CI job needs a key. The Highlightly budget is enforced in code, not
+in hope: the job that spends it stops at a configured daily ceiling and records
+the run as `partial` with the reason, which surfaces on `GET /health/ingestion`
+and in the admin area. When a paid plan is bought (T-025), it replaces both live
+sources and the coverage profile stops reporting `not_supplied` for lineups and
+incidents - no other code changes, which is the switching-cost claim in
+`05-data-providers.md` being cashed in.

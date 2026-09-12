@@ -41,7 +41,7 @@ incomplete.
 | `02-architecture.md` | Module boundaries, data flow, adapters | Starting work in a new module |
 | `03-project-map.md` | This file | Always, first |
 | `04-tasks-phase-1.md` | Task backlog with acceptance criteria | Picking up work |
-| `05-data-providers.md` | Provider research and bake-off protocol | Touching ingestion |
+| `05-data-providers.md` | Provider research, the bake-off protocol, and which free source the pipeline runs on until T-025 (D-049) | Touching ingestion |
 | `06-session-handoff.md` | How to resume in a fresh chat | Starting a new session |
 | `07-backups.md` | Backups and the restore drill (T-072, D-032) | Touching the database host or the backup scripts |
 | `08-load-test.md` | The live-path load test: threshold, tool, record of every run, what limits it, when to rerun (T-073, D-047) | Touching the stream, or before a big match or a deploy |
