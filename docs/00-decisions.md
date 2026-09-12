@@ -1355,3 +1355,50 @@ and in the admin area. When a paid plan is bought (T-025), it replaces both live
 sources and the coverage profile stops reporting `not_supplied` for lineups and
 incidents - no other code changes, which is the switching-cost claim in
 `05-data-providers.md` being cashed in.
+
+---
+
+## D-050 — A Cloudflare quick tunnel is the free public address for testing, and its missing server-sent events are stated, not worked around
+**Status:** Accepted · 2026-09-12
+
+**Decision.** Until a server exists (T-074), the way to put the running stack on
+the public internet is `bash scripts/public-preview.sh`, which opens a
+Cloudflare quick tunnel against the `web` container and tells the app the
+`*.trycloudflare.com` name it was given. It needs no account, no domain, no
+port forward and nothing installed on the host; the tunnel is a container behind
+a compose profile, so it never starts unless it is asked for.
+
+Its limits are documented at the point of use rather than discovered: no uptime
+guarantee, 200 concurrent requests, and no server-sent events — so the live
+scores path does not update through it and the page shows its connecting and
+stale states. Testing the live path in public needs one of the options in
+`docs/10-public-preview.md`, all of which require an account that an agent
+session does not create.
+
+**Why.** Three things cannot be checked on localhost and all three block work
+that is otherwise ready: whether Android offers to install the progressive web
+app (the prompt needs real HTTPS, and T-084's install tap is waiting on it),
+whether the site behaves on a phone on a real network, and whether a link opens
+for somebody else. Every other free route — a free subdomain pointing at this
+machine, a free container platform, a free virtual machine — needs either an
+account or a public IP with ports 80 and 443 open, and a home connection behind
+carrier-grade NAT has neither. A quick tunnel needs none of it and is up in
+about twenty seconds.
+
+**Alternatives considered.** *A free subdomain (DuckDNS, `nip.io`, `sslip.io`)
+pointing here*: `nip.io` resolves without an account, confirmed, but all of them
+still need the router to forward 80 and 443, which is the problem the tunnel
+exists to avoid. *A free container platform (Koyeb, Render)*: a genuinely better
+answer for a stable address, and it carries server-sent events, but it needs a
+sign-up, so it is recorded as the next step rather than taken. *Oracle Cloud's
+always-free machine*: the best free option of all, since it runs `deploy/`
+unchanged and would close out T-074 — same blocker, plus card verification and
+scarce capacity. *A free top-level domain*: there is no longer such a thing;
+saying so is more useful than hunting for one.
+
+**Consequences.** `SITE_URL` now reaches the `web` service in the development
+compose file, defaulting to localhost, so the preview script has something to
+set. The address is different every run, which is acceptable for a session of
+testing and is why nothing is documented as pointing at it. When a stable
+address is wanted, the choice is in `docs/10-public-preview.md` and needs one
+decision from the maintainer, not more research.
