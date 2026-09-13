@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { TeamFixture } from '@fmip/contracts';
-import { fetchMe, fetchTeam } from '@/lib/api';
+import { FounderAnalysisFeed } from '@/components/founder-analysis';
+import { fetchFounderFeed, fetchMe, fetchTeam } from '@/lib/api';
 import { formatFixtureDate } from '@/lib/competition';
 import { moduleState } from '@/lib/match';
 import { pageMetadata, teamJsonLd } from '@/lib/seo';
@@ -45,7 +46,11 @@ export default async function TeamPage({
 }) {
   const { locale, id } = await params;
   if (!UUID.test(id)) notFound();
-  const [result, me] = await Promise.all([fetchTeam(id), fetchMe(await sessionCookieHeader())]);
+  const [result, me, founder] = await Promise.all([
+    fetchTeam(id),
+    fetchMe(await sessionCookieHeader()),
+    fetchFounderFeed({ team: id, limit: 3 }),
+  ]);
   if (!result.ok) {
     if (result.status === 404) notFound();
     return (
@@ -89,6 +94,14 @@ export default async function TeamPage({
           </span>
         </p>
       </header>
+      {founder.ok && (
+        <FounderAnalysisFeed
+          analyses={founder.data.analyses}
+          locale={locale}
+          timeZone={timeZone}
+          heading={`Founder's analysis of ${t.name}`}
+        />
+      )}
 
       <section className="flex flex-col gap-3" data-testid="competitions">
         <h2 className="text-lg font-semibold">Competitions</h2>

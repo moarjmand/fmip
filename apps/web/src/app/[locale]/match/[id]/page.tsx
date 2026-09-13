@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ForecastPanel } from '@/components/forecast-panel';
+import { FounderAnalysisPanel } from '@/components/founder-analysis';
 import { JsonLd } from '@/components/json-ld';
 import { LiveMatch } from '@/components/live-match';
 import { PowerIndexPanel } from '@/components/power-index-panel';
@@ -11,6 +12,7 @@ import {
   fetchForecasts,
   fetchMatchCentre,
   fetchMe,
+  fetchFounderAnalysis,
   fetchOwnPrediction,
   fetchPowerIndex,
 } from '@/lib/api';
@@ -72,14 +74,15 @@ export default async function MatchPage({
   if (!result.ok && result.status === 404) notFound();
   // The forecast (T-065), the Power Index (T-114) and, once the match is over,
   // its evaluation (T-066).
-  const [forecasts, evaluations, prediction, power] = result.ok
+  const [forecasts, evaluations, prediction, power, founder] = result.ok
     ? await Promise.all([
         fetchForecasts(id),
         result.data.fixture.status === 'finished' ? fetchEvaluations(id) : Promise.resolve(null),
         fetchOwnPrediction(id, cookie),
         fetchPowerIndex(id),
+        fetchFounderAnalysis(id),
       ])
-    : [null, null, null, null];
+    : [null, null, null, null, null];
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
@@ -114,6 +117,12 @@ export default async function MatchPage({
                   fixture={result.data.fixture}
                   me={me}
                   current={prediction}
+                />
+                <FounderAnalysisPanel
+                  analysis={founder !== null && founder.ok ? founder.data : null}
+                  home={result.data.fixture.home.name}
+                  away={result.data.fixture.away.name}
+                  timeZone={timeZone}
                 />
                 <PowerIndexPanel
                   power={power !== null && power.ok ? power.data : null}

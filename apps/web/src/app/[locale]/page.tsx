@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { JsonLd } from '@/components/json-ld';
-import { fetchApiHealth } from '@/lib/api';
+import { FounderAnalysisFeed } from '@/components/founder-analysis';
+import { fetchApiHealth, fetchFounderFeed } from '@/lib/api';
 import { pageMetadata, websiteJsonLd } from '@/lib/seo';
 
 // The API is queried per request, so a build never depends on it being up.
@@ -24,7 +25,13 @@ export async function generateMetadata({
 
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
-  const health = await fetchApiHealth();
+  const [health, founder] = await Promise.all([
+    fetchApiHealth(),
+    // The blueprint puts the founder's analysis on the homepage "for selected
+    // matches"; the feed is upcoming matches only, so there is nothing to
+    // select — what exists is what is coming (T-132).
+    fetchFounderFeed({ limit: 3 }),
+  ]);
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-4 p-8">
@@ -46,6 +53,14 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         </Link>
         .
       </p>
+      {founder.ok && (
+        <FounderAnalysisFeed
+          analyses={founder.data.analyses}
+          locale={locale}
+          timeZone="UTC"
+          heading="Founder's analysis of what is coming"
+        />
+      )}
       <p className="text-sm opacity-70">
         Locale: <code>{locale}</code>
       </p>

@@ -1,6 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Pool } from 'pg';
-import type { FounderAnalysisResponse, FounderAnalysisVersion } from '@fmip/contracts';
+import type {
+  FounderAnalysesResponse,
+  FounderAnalysisResponse,
+  FounderAnalysisVersion,
+} from '@fmip/contracts';
 import { PG_POOL } from '../../database/database.module';
 import { FounderStore, type NewVersion } from './internal/founder-store';
 
@@ -41,6 +45,15 @@ export class FounderAnalysisService {
   async forFixture(fixtureId: string): Promise<FounderAnalysisResponse | null> {
     if (!(await this.store.fixtureExists(fixtureId))) return null;
     return { fixture_id: fixtureId, analysis: await this.store.forFixture(fixtureId) };
+  }
+
+  /** The feed behind the homepage and the team and competition pages. */
+  async feed(options: {
+    limit: number;
+    teamId?: string;
+    competitionId?: string;
+  }): Promise<FounderAnalysesResponse> {
+    return { analyses: await this.store.feed(options) };
   }
 
   async publish(input: NewVersion): Promise<PublishOutcome> {

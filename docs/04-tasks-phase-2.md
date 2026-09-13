@@ -369,8 +369,8 @@ Independent of every data question: nothing here needs a provider.
 |---|---|---|---|
 | `[x]` T-130 | Schema: analysis, its versions, its publication state | T-040 | An edit after publication is a new version with a visible time |
 | `[x]` T-131 | Authoring API and editor, `founder` role, audited | T-130, T-070 | Only the founder writes; every publish and edit is in the audit log |
-| `[ ]` T-132 | Surfaces: predictions page, match centre, homepage, team and competition feeds | T-131 | Appears in all five, always attributed and signed |
-| `[~]` T-133 | The separation guard | T-132 | A test fails if a founder analysis is ever merged into the model or the consensus payload |
+| `[~]` T-132 | Surfaces: match centre, homepage, team and competition feeds (the predictions page does not exist) | T-131 | Appears in all five, always attributed and signed |
+| `[x]` T-133 | The separation guard | T-132 | A test fails if a founder analysis is ever merged into the model or the consensus payload |
 
 **T-133 exists because rule 6 is easy to break by accident.** The three
 prediction products — the statistical model, the founder's analysis and the
@@ -443,6 +443,50 @@ the blueprint's list of sections, no client state, works without JavaScript. It
 re-implements nothing: the field errors are the API's, and a match that has
 started shows the wall instead of a form. Published versions are listed under
 it, newest first. 7 validation tests, 6 over HTTP.
+
+**T-132 verified on 2026-09-13; open on one of the five surfaces.** The
+blueprint names five places a founder analysis appears. **Four of them exist**
+and now carry it:
+
+| Surface | What it shows |
+|---|---|
+| Match centre | the full analysis, every section, all its versions |
+| Homepage | the three nearest, as excerpts |
+| Team page | the three nearest involving that team |
+| Competition page | the three nearest in that competition |
+
+**The fifth does not exist.** There is no predictions page — the blueprint's
+section 6 describes one, but nothing in Phase 1 built it, and predictions live
+on the match centre and in a member's history instead. So the task stays `[~]`:
+the work is done everywhere it can be done, and claiming five out of five would
+be the kind of quiet rounding-up rule 3 is about. A predictions page is a task
+nobody has written yet.
+
+**Always attributed and signed.** Every rendering carries the author's name and
+the publication time — the panel, the feed entry, and each older version in the
+panel's history. The blueprint asks that each entry be written and signed
+personally, and on a page showing three prediction products the signature is
+also what separates this one from the other two.
+
+One endpoint, `GET /founder-analyses?limit=&team=&competition=`, feeds all three
+feeds. Upcoming matches only: a feed of what to read next must not carry a call
+whose result is already known. Feed entries are excerpts with a link, because a
+feed that reprinted the analysis would make the match centre pointless and would
+put a signed opinion in front of readers who did not choose to read it. A bad
+filter is ignored rather than rejected — this decorates a page that has its own
+subject, and a stray query string must not take down a team page over a
+decoration.
+
+**T-133 is finished.** The guard now covers both places the three products could
+blend: `packages/contracts/src/three-products.spec.ts` on the shapes, and
+`apps/web/src/components/three-products.spec.ts` on the surfaces — each product
+rendered by a component that can only render that one, no `source` prop, no
+union of the three as a kind, the founder panel labelled as one person's view,
+and the match centre rendering them as separate sections. Both guards were
+checked by breaking them on purpose: three of the four contract tests fail the
+moment a `ForecastVersion` appears in the founder contract, and the surface
+guard fails on the same import in the panel. E13 is complete apart from the one
+surface that has no page.
 
 ---
 

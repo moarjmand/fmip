@@ -45,6 +45,40 @@ export interface FounderAnalysis {
 }
 
 /**
+ * One analysis as a feed shows it: enough to decide whether to read it, and
+ * never enough to be mistaken for the model's forecast or the crowd's view.
+ */
+export interface FounderAnalysisSummary {
+  fixture: {
+    id: string;
+    kickoff_at: string;
+    status: string;
+    home: { id: string; name: string };
+    away: { id: string; name: string };
+    competition: { id: string; name: string };
+  };
+  author: { id: string; display_name: string };
+  predicted_outcome: FounderOutcome;
+  predicted_score: { home: number; away: number } | null;
+  confidence: FounderConfidence;
+  /** The opening of the reasoning, for a feed. The full text is on the match page. */
+  excerpt: string;
+  published_at: string;
+  version_number: number;
+}
+
+/**
+ * `GET /founder-analyses?limit=&team=&competition=`.
+ *
+ * The feed behind the homepage and the team and competition pages. Upcoming
+ * matches only: an analysis of a match that has finished belongs in the record,
+ * not in a feed of what to read next.
+ */
+export interface FounderAnalysesResponse {
+  analyses: FounderAnalysisSummary[];
+}
+
+/**
  * `GET /fixtures/:id/founder-analysis`.
  *
  * `analysis` is null when the founder has not written one — which is the normal

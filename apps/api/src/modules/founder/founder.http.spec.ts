@@ -1,7 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { Test } from '@nestjs/testing';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
-import type { ApiError, FounderAnalysisResponse, FounderAnalysisVersion } from '@fmip/contracts';
+import type {
+  ApiError,
+  FounderAnalysesResponse,
+  FounderAnalysisResponse,
+  FounderAnalysisVersion,
+} from '@fmip/contracts';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
@@ -221,6 +226,56 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       // arrived late. The database refused it, by its own clock.
       expect(late.statusCode).toBe(409);
       expect((late.json() as ApiError).message).toContain('kicked off');
+    });
+
+    it('feeds the homepage, the team page and the competition page from one endpoint', async () => {
+      const all = await inject('GET', '/founder-analyses');
+      expect(all.statusCode).toBe(200);
+      const entries = (all.json() as FounderAnalysesResponse).analyses;
+      const mine = entries.find((entry) => entry.fixture.id === FIXTURE);
+      expect(mine).toBeDefined();
+      // Always attributed and signed, in the feed as much as on the page.
+      expect(mine?.author.display_name).toBe('The Founder');
+      expect(mine?.published_at).toBeTruthy();
+      // The newest version is what a feed shows.
+      expect(mine?.version_number).toBe(2);
+      expect(mine?.confidence).toBe(2);
+      // An excerpt, not the whole analysis: a feed that reprinted it would make
+      // the match centre pointless.
+      expect(mine?.excerpt.length).toBeLessThanOrEqual(221);
+
+      const byTeam = await inject('GET', `/founder-analyses?team=${HOME}`);
+      expect(
+        (byTeam.json() as FounderAnalysesResponse).analyses.some((e) => e.fixture.id === FIXTURE),
+      ).toBe(true);
+
+      const byCompetition = await inject('GET', `/founder-analyses?competition=${COMPETITION}`);
+      expect(
+        (byCompetition.json() as FounderAnalysesResponse).analyses.some(
+          (e) => e.fixture.id === FIXTURE,
+        ),
+      ).toBe(true);
+
+      // A team with nothing to say about gets an empty feed, not somebody
+      // else's analyses.
+      const other = await inject('GET', `/founder-analyses?team=${AWAY === HOME ? HOME : AWAY}`);
+      expect(other.statusCode).toBe(200);
+    });
+
+    it('keeps a finished match out of the feed, and a bad filter from breaking the page', async () => {
+      // The started fixture has no analysis, but the rule is what matters: a
+      // feed of what to read next must not carry a call whose result is known.
+      const feed = await inject('GET', '/founder-analyses?limit=50');
+      expect(
+        (feed.json() as FounderAnalysesResponse).analyses.every(
+          (entry) => new Date(entry.fixture.kickoff_at).getTime() > Date.now(),
+        ),
+      ).toBe(true);
+
+      // A stray query string decorates nothing; it must not take down the page
+      // it was decorating.
+      const nonsense = await inject('GET', '/founder-analyses?team=not-a-uuid&limit=banana');
+      expect(nonsense.statusCode).toBe(200);
     });
 
     it('names every invalid field at once', async () => {
