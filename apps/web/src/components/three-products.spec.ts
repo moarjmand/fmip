@@ -7,8 +7,9 @@ import { describe, expect, it } from 'vitest';
  *
  * `packages/contracts/src/three-products.spec.ts` guards the shapes. This
  * guards the place the three actually meet a reader: a match centre that shows
- * the model's forecast, the founder's analysis and — when the community
- * consensus arrives — all three on one page.
+ * the model's forecast, the founder's analysis and the community consensus, all
+ * three on one page. (The consensus arrived in T-134/T-135; until then this
+ * file guarded two products and waited for the third.)
  *
  * The failure it is written against is not malice, it is convenience. Somebody
  * wants one `PredictionPanel` that takes "a prediction" and a `source` prop, and
@@ -33,10 +34,18 @@ describe('the three products stay three on the page', () => {
 
     const forecast = source('forecast-panel.tsx');
     expect(forecast).not.toMatch(/FounderAnalysis/);
+
+    // The community panel is the one with a live temptation: blueprint 4.2 asks
+    // it to compare with the model, so it has a reason to reach for a forecast
+    // type. It must not — the comparison takes plain numbers the page pulled
+    // out, so the panel can render a difference and cannot render a forecast.
+    const community = source('community-consensus.tsx');
+    expect(community).not.toMatch(/ForecastVersion|ModelProbabilities|FounderAnalysis/);
+    expect(community).not.toMatch(/source\s*[:?]/);
   });
 
   it('never lets one panel take whichever product it is given', () => {
-    for (const file of ['founder-analysis.tsx', 'forecast-panel.tsx']) {
+    for (const file of ['founder-analysis.tsx', 'forecast-panel.tsx', 'community-consensus.tsx']) {
       const text = source(file);
       // A union of the three as a prop is the compact way to build the thing
       // rule 6 forbids.
@@ -64,6 +73,21 @@ describe('the three products stay three on the page', () => {
     // data, this is where it would show up first.
     expect(page).toContain('<FounderAnalysisPanel');
     expect(page).toContain('<ForecastPanel');
+    expect(page).toContain('<CommunityForecastPanel');
     expect(page).not.toMatch(/<PredictionPanel/);
+  });
+
+  it('never averages the three into one number', () => {
+    // Blueprint 4.2 asks the community forecast to be shown "and comparison
+    // with the model". Comparison is a difference; the failure is an average,
+    // which would invent a figure nobody computed and hide the disagreement
+    // that makes showing both worth doing.
+    const shared = readFileSync(join(COMPONENTS, '..', 'lib', 'triple.ts'), 'utf8');
+    for (const text of [shared, source('community-consensus.tsx')]) {
+      expect(text).not.toMatch(/function (average|blend|merge|combine)/);
+    }
+    // And the wording a reader sees says so, because a rule kept only in tests
+    // is a rule the reader has to take on trust.
+    expect(source('community-consensus.tsx')).toContain('does not average them');
   });
 });

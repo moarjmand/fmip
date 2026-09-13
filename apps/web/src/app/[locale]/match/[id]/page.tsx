@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ForecastPanel } from '@/components/forecast-panel';
+import { CommunityForecastPanel } from '@/components/community-consensus';
 import { FounderAnalysisPanel } from '@/components/founder-analysis';
 import { JsonLd } from '@/components/json-ld';
 import { LiveMatch } from '@/components/live-match';
@@ -12,6 +13,7 @@ import {
   fetchForecasts,
   fetchMatchCentre,
   fetchMe,
+  fetchConsensus,
   fetchFounderAnalysis,
   fetchOwnPrediction,
   fetchPowerIndex,
@@ -74,15 +76,16 @@ export default async function MatchPage({
   if (!result.ok && result.status === 404) notFound();
   // The forecast (T-065), the Power Index (T-114) and, once the match is over,
   // its evaluation (T-066).
-  const [forecasts, evaluations, prediction, power, founder] = result.ok
+  const [forecasts, evaluations, prediction, power, founder, consensus] = result.ok
     ? await Promise.all([
         fetchForecasts(id),
         result.data.fixture.status === 'finished' ? fetchEvaluations(id) : Promise.resolve(null),
         fetchOwnPrediction(id, cookie),
         fetchPowerIndex(id),
         fetchFounderAnalysis(id),
+        fetchConsensus(id),
       ])
-    : [null, null, null, null, null];
+    : [null, null, null, null, null, null];
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
@@ -123,6 +126,21 @@ export default async function MatchPage({
                   home={result.data.fixture.home.name}
                   away={result.data.fixture.away.name}
                   timeZone={timeZone}
+                />
+                <CommunityForecastPanel
+                  consensus={consensus !== null && consensus.ok ? consensus.data : null}
+                  home={result.data.fixture.home.name}
+                  away={result.data.fixture.away.name}
+                  timeZone={timeZone}
+                  // Three numbers, pulled out here so the community panel never
+                  // holds a forecast (rule 6). The comparison blueprint 4.2 asks
+                  // for is a difference between two labelled answers, never a
+                  // blend of them.
+                  model={
+                    forecasts !== null && forecasts.ok
+                      ? (forecasts.data.latest?.probabilities ?? null)
+                      : null
+                  }
                 />
                 <PowerIndexPanel
                   power={power !== null && power.ok ? power.data : null}

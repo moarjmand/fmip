@@ -5,6 +5,7 @@ import type {
   ModelLeadingFactorKind,
   ModelProbabilities,
 } from '@fmip/contracts';
+import { sharesToPercentages } from './triple';
 
 /**
  * Pure helpers for the forecast panel (T-065, blueprint 6.1–6.4). The panel
@@ -22,15 +23,11 @@ export const toPercent = (p: number): number => Math.round(p * 1000) / 10;
  * rounding gap, as the API does at four decimals.
  */
 export function percentages(p: ModelProbabilities): ModelProbabilities {
-  const values = [p.home, p.draw, p.away].map((v) => Math.round(v * 1000));
-  const gap = 1000 - values.reduce((a, b) => a + b, 0);
-  const largest = values.indexOf(Math.max(...values));
-  values[largest] = (values[largest] ?? 0) + gap;
-  return {
-    home: (values[0] ?? 0) / 10,
-    draw: (values[1] ?? 0) / 10,
-    away: (values[2] ?? 0) / 10,
-  };
+  // The arithmetic itself lives in `lib/triple.ts` since T-135, because it
+  // belongs to neither product: the community consensus needs the same
+  // rounding, and calling a function typed to `ModelProbabilities` from that
+  // panel would put a model type on the community surface (rule 6).
+  return sharesToPercentages(p);
 }
 
 export const KIND_LABEL: Record<ForecastKind, string> = {
