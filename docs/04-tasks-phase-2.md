@@ -516,7 +516,7 @@ first test of whether the translation architecture of blueprint 13 is real.
 |---|---|---|---|
 | `[~]` T-150 | The `ar` locale: routing, formatting, plurals, football glossary | T-007 | `/ar` renders every Phase 1 page |
 | `[x]` T-151 | Translation workflow: source of truth, review state, missing-string policy | T-150 | An untranslated string is visibly untranslated, never machine output presented as a translation |
-| `[ ]` T-152 | Search across transliterations and aliases | T-038, T-150 | Arabic and Latin spellings of the same player both find them |
+| `[x]` T-152 | Search across transliterations and aliases | T-038, T-150 | Arabic and Latin spellings of the same player both find them |
 | `[ ]` T-153 | Right-to-left audit on real content | T-150 | Scores, timelines, icons and numerals behave; the pseudo-locale test is no longer the only proof |
 
 **What an agent cannot do here.** Translate. Producing Arabic strings by machine
@@ -561,6 +561,38 @@ them in marked English: the acceptance criterion is met in routing and direction
 and not in language. What remains is the rest of the strings moving into the
 catalogue — a mechanical conversion, one surface at a time — and then the Arabic
 itself, which is the maintainer's to source. 24 i18n tests.
+
+**T-152 verified on 2026-09-13.** T-038 already searched aliases, and
+`entity_alias` already held right-to-left spellings — the seed has Persian
+transliterations for six teams. So the question was not whether the mechanism
+existed but whether it worked, and measuring it found a gap.
+
+**The gap, measured.** The seeded Persian alias for Manchester United is
+`منچستر یونایتد`. Typed with the Arabic letter forms — `منچستر يونايتد`, which
+differ only in characters that look nearly identical on screen — it scored
+**0.467** against that alias, against a 0.45 threshold. That is a near-miss, and
+a near-miss is worse than a clean failure: it works for one name and not the
+next, and nobody can tell why.
+
+**The fix** is what `unaccent` already does for Latin, applied to Arabic script:
+`search_key` now folds the yeh, kaf, alef, heh and waw variants, the Arabic-Indic
+and Persian digits, and drops tatweel and the harakat — marks that are optional
+in writing and almost never typed into a search box. `..._arabic-search-key.sql`
+replaces the function and rebuilds the six indexes built on it, because
+replacing the function makes every stored entry wrong. Rebuilding the unique
+index can fail, and that failure is information: two aliases of one entity that
+differ only in letter forms are the same alias twice.
+
+**What is deliberately not claimed.** Folding is not transliteration. `ليفربول`
+still does not find `Liverpool`; that needs an alias, which is what
+`entity_alias` is for. A rule that guessed across scripts would produce matches
+nobody could justify, and the test asserts that an unrelated Arabic word finds
+nothing.
+
+One test caught itself being wrong: the first version of the negative case
+included the run suffix, so it matched on a shared token rather than on the
+Arabic, and passed for the wrong reason. 4 tests on the script handling, 13 in
+the search module.
 
 ---
 
