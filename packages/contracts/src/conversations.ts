@@ -140,6 +140,26 @@ export interface ConversationPage {
   has_earlier: boolean;
 }
 
+/** The shortest term worth running: one letter matches most of a conversation. */
+export const MIN_SEARCH_TERM = 2;
+export const SEARCH_RESULT_LIMIT = 50;
+
+/**
+ * `GET /me/conversations/:id/search?q=` (blueprint 8.3, T-223).
+ *
+ * Newest first, because somebody searching a conversation is usually looking for
+ * the last time something was said rather than the first. Each hit carries its
+ * `seq`, so opening it is `?before=<seq + 1>` on the page endpoint — the same
+ * sequence the whole surface is built on.
+ */
+export interface ConversationSearchResponse {
+  /** The term as it was run, after trimming. */
+  term: string;
+  messages: Message[];
+  /** True when more matched than `SEARCH_RESULT_LIMIT` returned. */
+  more: boolean;
+}
+
 export interface SendMessageRequest {
   /** Optional when a card is shared: a match with no comment is a real thing to send. */
   body?: string;
