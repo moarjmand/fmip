@@ -80,7 +80,7 @@ calculation.
 | `[x]` T-110 | Schema and contracts: `power_index` version, components, completeness | T-064 | A stored index is immutable and recomputable from its inputs |
 | `[x]` T-111 | Component computation: strength, form, venue, rest | T-110 | Each component is a number in `[0,1]` with its own coverage state |
 | `[ ]` T-112 | Line-up quality and managerial stability components | T-110, T-101 | Present when the data is, `not_supplied` when it is not — never zero |
-| `[ ]` T-113 | Weight validation against history | T-111, T-062 | The published weights beat the blueprint's defaults on a backtest, or the defaults are kept and the test says so |
+| `[x]` T-113 | Weight validation against history | T-111, T-062 | The published weights beat the blueprint's defaults on a backtest, or the defaults are kept and the test says so |
 | `[x]` T-114 | `GET /fixtures/:id/power-index` and the match-centre panel | T-111 | Shows leading factors, completeness and computed-at; missing components are visible |
 
 **The rule that shapes all of it.** A component nothing supplies is
@@ -233,6 +233,44 @@ earlier fixture produces, because rest is then unmeasurable as well.
 
 **What is not here.** Nothing calls `POST` on a schedule, so a match has no index
 until an operator asks for one; deciding when to compute is T-120.
+
+**T-113 verified on 2026-09-13.** The blueprint says the calculation "should use
+historical performance to validate or adjust these weights". `docs/12-power-index.md`
+is the method and the record; `internal/power-index-backtest.ts` is the pure
+arithmetic and `apps/api/scripts/power-index-backtest.mjs` drives it.
+
+**The method.** Walk a division's season in order; measure both teams from only
+the matches played before that day; combine under each candidate weight set;
+record the index gap against what happened. Fit an ordered logistic on the first
+half of those observations and score the weights by log-loss on the second half,
+which the fit never saw. The baseline is the season's own outcome frequencies —
+a weight set that does not beat *that* has found nothing.
+
+**The result (E0, 2024/25, 320 matches after a 60-match warm-up).** Every
+candidate beats the base rate of 1.0667, so the index does carry information;
+the blueprint's weights and an equal split tie at **1.0064** held out, and the
+blueprint's are the most accurate on decisive matches (65.4%). **Verdict: keep
+the published weights** — the best alternative improves held-out log-loss by
+0.0000, far below the 0.01 that would be a finding rather than noise at this
+sample size. The acceptance criterion allows exactly this outcome, and it is the
+one that happened.
+
+**The bug worth remembering.** The first version of the fit used raw index
+differences, which run to tens of points, with one step size for both the slope
+and the thresholds. It diverged, and reported a held-out log-loss of 5.4 against
+a base rate of 1.07 — a number that reads as "the Power Index carries no
+information" and is in fact "the gradient descent walked away". It was caught
+because 5.4 is *too bad to be true* next to a 65% accuracy, not because anything
+flagged it. Two things now stop it: differences are standardised so every
+parameter lives on the same scale, and `fitConverged` disqualifies any candidate
+whose fit cannot beat the outcome frequencies **on its own training data**, so a
+failed fit produces "no verdict" instead of a finding. The test suite fits data
+whose answer is known and asserts the guard against the exact shape of that
+failure.
+
+9 unit tests; the script is run by hand because it needs a loaded training store,
+and each run rewrites the table in `docs/12-power-index.md` and keeps the whole
+result under `apps/api/backtest/`.
 
 ---
 

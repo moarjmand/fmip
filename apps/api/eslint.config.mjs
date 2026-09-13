@@ -3,7 +3,9 @@ import base from '@fmip/config/eslint';
 export default [
   ...base,
   {
-    // Operational scripts run under plain Node (T-073): the runtime globals are real there.
+    // Operational scripts run under plain Node (T-073, T-113): the runtime
+    // globals are real there, and a script whose whole output is a report has
+    // nowhere but the console to put it.
     files: ['scripts/**/*.mjs'],
     languageOptions: {
       globals: {
@@ -11,7 +13,11 @@ export default [
         performance: 'readonly',
         setTimeout: 'readonly',
         fetch: 'readonly',
+        console: 'readonly',
       },
+    },
+    rules: {
+      'no-console': 'off',
     },
   },
   {
