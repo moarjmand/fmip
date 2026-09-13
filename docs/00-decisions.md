@@ -1454,3 +1454,48 @@ gained the `@fmip/ingestion` manifest it had been missing since T-026, which the
 image emulation in `06-session-handoff.md` exists to catch. The preview's
 database is migrated at every start and seeded only on `PREVIEW_SEED=on`, which
 logs that it is loading development fixture data.
+
+---
+
+## D-052 — The community consensus is weighted only by established ratings, and is not published below five predictors
+
+**Date:** 2026-09-13 · **Task:** T-134 · **Status:** accepted
+
+Blueprint 6.6 asks for two distributions: "the simple crowd distribution and a
+rating-weighted distribution", and adds in the same breath that "the website
+must not disguise community opinion as the statistical model". Building that
+needed two judgements the blueprint does not make, and both of them decide what
+the product is willing to claim.
+
+**Only established raters carry weight.** A Performance Rating is `provisional`
+until enough settlements stand behind it (T-053) — the system's own way of
+saying it does not yet know how good a member is. Weighting by a provisional
+number turns "unknown" into a coefficient, and the resulting bar would look
+exactly like the one built from forty settled predictions. So a provisional
+rating contributes nothing, and the payload carries `raters`, the count that
+actually stands behind the weighted distribution, so a page can say how much
+judgement is in it.
+
+The consequence is accepted deliberately: on most fixtures, early on, there will
+be no weighted distribution at all. It is then `null`, and the module is
+`limited`. What it must never be is the crowd distribution returned a second
+time under the other label — one answer shown twice is the disguise the
+blueprint forbids, and it would be undetectable from outside.
+
+**Nothing is published below five predictors.** Two reasons, either sufficient.
+A distribution over three people reads as a finding and is one vote; "67% home"
+carries a precision the sample cannot support, which is rule 3 applied to a
+crowd. And a very small aggregate stops being an aggregate: with one predictor
+it *is* that member's prediction, which they may have chosen to keep off their
+profile (T-056). Below the floor the module is `not_supplied` — accurate, since
+there is genuinely no consensus to supply — while `last_updated_at` still
+reports when the last of those predictions arrived, so nothing is hidden.
+
+Five is a floor, not a claim that five is enough for confidence. It is the point
+below which publishing is indefensible rather than the point above which the
+number is good. A page that shows the sample lets a reader judge the rest.
+
+**Rejected:** weighting every rating and flagging provisional ones in the
+payload. It moves the judgement to whoever writes the next page, and the first
+page that forgets the flag presents guesswork as the community's considered
+view, with nothing failing.

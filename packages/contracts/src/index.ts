@@ -13,6 +13,18 @@ export type {
   FounderOutcome,
 } from './founder-analysis';
 
+// Community consensus (blueprint 6.6, T-134). The third of the three
+// prediction products, sharing no type with the other two (rule 6).
+export { MIN_CONSENSUS_SAMPLE } from './consensus';
+export type {
+  CommunityConsensus,
+  CommunityConsensusResponse,
+  ConsensusOutcome,
+  ConsensusShares,
+  CrowdDistribution,
+  WeightedDistribution,
+} from './consensus';
+
 // The Power Index (blueprint 6.1, T-110).
 export { POWER_INDEX_COMPONENTS, POWER_INDEX_LABELS, POWER_INDEX_WEIGHTS } from './power-index';
 export type {
