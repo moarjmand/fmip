@@ -249,10 +249,13 @@ export {
   CONVERSATION_KINDS,
   MAX_MESSAGE_LENGTH,
   MESSAGE_PAGE_SIZE,
+  MIN_SEARCH_TERM,
+  SEARCH_RESULT_LIMIT,
 } from './conversations';
 export type {
   CardKind,
   ConversationKind,
+  ConversationSearchResponse,
   ConversationMember,
   ConversationPage,
   ConversationSummary,

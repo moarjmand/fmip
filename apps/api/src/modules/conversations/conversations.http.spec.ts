@@ -426,6 +426,54 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('conversation
     });
   });
 
+  describe('searching inside a conversation', () => {
+    it('finds what was said, newest first, and says where each hit is', async () => {
+      await post(`/me/conversations/${room}/messages`, { body: 'the penalty was soft' }, ada);
+      await post(`/me/conversations/${room}/messages`, { body: 'a clear penalty' }, bo);
+
+      const found = (await get(`/me/conversations/${room}/search?q=penalty`, ada)).json();
+
+      expect(found.term).toBe('penalty');
+      expect(found.messages.map((m: { body: string }) => m.body)).toEqual([
+        'a clear penalty',
+        'the penalty was soft',
+      ]);
+      // Each hit carries its sequence, so opening it is `?before=seq+1` on the
+      // page endpoint: the same sequence the whole surface is built on.
+      expect(found.messages[0].seq).toBeGreaterThan(found.messages[1].seq);
+      expect(found.more).toBe(false);
+    });
+
+    it('folds case and accents the way the rest of the product does', async () => {
+      await post(`/me/conversations/${room}/messages`, { body: 'Kylian Mbappe scored' }, ada);
+
+      // `search_key` (T-038, T-152) rather than a language-specific text-search
+      // configuration: stemming needs a language, and picking one would search
+      // well in English and badly in seven other languages, silently.
+      const found = (await get(`/me/conversations/${room}/search?q=MBAPPE`, bo)).json();
+      expect(found.messages.some((m: { body: string }) => m.body.includes('Mbappe'))).toBe(true);
+    });
+
+    it('does not return a removed message, and refuses a one-letter term', async () => {
+      const sent = await post(`/me/conversations/${room}/messages`, { body: 'unrepeatable' }, ada);
+      await del(`/me/conversations/${room}/messages/${sent.json().message.id}`, ada);
+
+      const gone = (await get(`/me/conversations/${room}/search?q=unrepeatable`, ada)).json();
+      // A tombstone has no body to find, and returning one would be a result
+      // that says nothing.
+      expect(gone.messages).toEqual([]);
+
+      const tooShort = (await get(`/me/conversations/${room}/search?q=a`, ada)).json();
+      expect(tooShort.messages).toEqual([]);
+    });
+
+    it('is closed to somebody who is not in the conversation', async () => {
+      expect((await get(`/me/conversations/${room}/search?q=penalty`, stranger)).statusCode).toBe(
+        404,
+      );
+    });
+  });
+
   it('mutes and unmutes', async () => {
     expect((await post(`/me/conversations/${room}/mute`, null, bo)).statusCode).toBe(204);
     expect((await get('/me/conversations', bo)).json().conversations[0].muted).toBe(true);

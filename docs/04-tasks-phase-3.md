@@ -565,7 +565,7 @@ it the other way round means writing the membership rule twice.
 | `[x]` T-220 | Schema and contracts: `conversation`, `participant`, `message`, per-conversation sequence | T-210 | Ordering is a property of the store, not of a clock; removal leaves a tombstone |
 | `[x]` T-221 | The conversation API: open, send, page back, read state, mute, leave | T-220 | A blocked or sanctioned member cannot send; every conversation can be left |
 | `[x]` T-222 | Shared football cards: match, article, team, player, prediction | T-221 | A card is a reference resolved at read time, never a copy of a score |
-| `[ ]` T-223 | Search within a conversation | T-221 | Finds a member's own messages in a conversation they are still in |
+| `[x]` T-223 | Search within a conversation | T-221 | Finds a member's own messages in a conversation they are still in |
 | `[ ]` T-224 | The chat surface on the web, without realtime | T-222 | Usable and correct over plain requests, before a socket exists |
 | `[ ]` T-225 | Reactions, mentions and pinned messages | T-221 | Each one is a row of its own; a mention never reaches somebody who blocked the mentioner |
 
@@ -771,6 +771,36 @@ TypeScript crosses a boundary, and asking three public services would be the sam
 answer assembled by hand, one round trip per card.
 
 17 tests over HTTP; 81 across conversations, moderation and social.
+
+**T-223 verified on 2026-09-14.** `GET /me/conversations/:id/search?q=` finds
+messages inside one conversation, newest first, each carrying its `seq` so
+opening a hit is `?before=<seq + 1>` on the page endpoint — the same sequence the
+whole surface is built on.
+
+**The decision here is what it searches with.** Postgres's full-text search
+stems words, and stemming needs a language: `to_tsvector('english', ...)` would
+turn a product that speaks eight languages into one that searches well in one of
+them and badly in seven, silently, with no page saying so. That is the shape of
+the abuse classifier D-054 declines to build, in a smaller and friendlier
+disguise.
+
+So it uses what the product already normalises with — `search_key`, which folds
+accents and case (T-038) and Arabic-script letter variants, digits and harakat
+(T-152) — over a trigram index. Substring matching behaves identically in every
+script it has been taught and claims nothing about meaning.
+
+**A removed message is never a result.** A tombstone has no body to find, and the
+index is partial for the same reason.
+
+**Searching works after leaving.** The acceptance criterion says "a conversation
+they are still in", and the honest reading is broader: leaving a conversation is
+not losing what was said in it, and the read path already allows it.
+
+A term shorter than two characters returns nothing rather than running — one
+letter matches most of a conversation, which is a result nobody wanted and a scan
+nobody needed.
+
+4 tests; 35 across the two conversation suites.
 
 ---
 

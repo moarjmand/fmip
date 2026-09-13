@@ -19,6 +19,7 @@ import type {
   ApiError,
   AuthUser,
   ConversationPage,
+  ConversationSearchResponse,
   ConversationsResponse,
   SendMessageRequest,
   SendMessageResponse,
@@ -94,6 +95,18 @@ export class ConversationsController {
     // "forbidden": a 403 would confirm that this id names a real conversation.
     if (page === null) throw new NotFoundException(NOT_FOUND);
     return page;
+  }
+
+  @Get(':id/search')
+  async search(
+    @Param('id') id: string,
+    @Req() request: FastifyRequest,
+    @Query('q') q?: string,
+  ): Promise<ConversationSearchResponse> {
+    const viewer = await this.requireViewer(request);
+    const found = await this.conversations.search(viewer.id, id, q ?? '');
+    if (found === null) throw new NotFoundException(NOT_FOUND);
+    return found;
   }
 
   @Post(':id/messages')

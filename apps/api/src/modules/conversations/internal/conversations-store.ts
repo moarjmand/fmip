@@ -238,6 +238,33 @@ export class ConversationsStore {
     return { messages: rows.slice(0, limit).reverse(), hasEarlier };
   }
 
+  /**
+   * Messages in one conversation whose text contains the term, newest first.
+   *
+   * `search_key` on both sides, so the comparison is the one the rest of the
+   * product already makes (T-038, T-152) and behaves the same in every script it
+   * has been taught. Removed messages are skipped: a tombstone has no body to
+   * find, and returning one would be a search result that says nothing.
+   */
+  async search(
+    conversationId: string,
+    term: string,
+    limit: number,
+  ): Promise<{ messages: MessageRow[]; more: boolean }> {
+    const { rows } = await this.pool.query<MessageRow>(
+      `SELECT ${MESSAGE_COLUMNS}
+         FROM message m
+         JOIN user_account u ON u.id = m.author_id
+        WHERE m.conversation_id = $1
+          AND m.removed_at IS NULL
+          AND search_key(m.body) LIKE '%' || search_key($2) || '%'
+        ORDER BY m.seq DESC
+        LIMIT $3`,
+      [conversationId, term, limit + 1],
+    );
+    return { messages: rows.slice(0, limit), more: rows.length > limit };
+  }
+
   async latest(conversationIds: string[]): Promise<Map<string, MessageRow>> {
     if (conversationIds.length === 0) return new Map();
     const { rows } = await this.pool.query<MessageRow & { conversation_id: string }>(

@@ -8,6 +8,9 @@ import {
   type ConversationSummary,
   MAX_MESSAGE_LENGTH,
   MESSAGE_PAGE_SIZE,
+  MIN_SEARCH_TERM,
+  SEARCH_RESULT_LIMIT,
+  type ConversationSearchResponse,
   type Message,
   type MessageRemoval,
   type SendMessageRequest,
@@ -245,6 +248,29 @@ export class ConversationsService {
       latest_seq: Number(row.latest_seq),
       has_earlier: hasEarlier,
     };
+  }
+
+  /**
+   * Search inside one conversation.
+   *
+   * Only a conversation the viewer is in, and it works after they have left —
+   * leaving is not losing what was said. A term shorter than two characters is
+   * refused rather than run: one letter matches most of a conversation, which is
+   * a result nobody wanted and a scan nobody needed.
+   */
+  async search(
+    viewerId: string,
+    conversationId: string,
+    rawTerm: string,
+  ): Promise<ConversationSearchResponse | null> {
+    const term = rawTerm.trim();
+    const row = await this.store.participation(conversationId, viewerId);
+    if (row === null) return null;
+    if (term.length < MIN_SEARCH_TERM) return { term, messages: [], more: false };
+
+    const { messages, more } = await this.store.search(conversationId, term, SEARCH_RESULT_LIMIT);
+    const cards = await this.resolveCards(messages);
+    return { term, messages: messages.map((m) => message(m, cards)), more };
   }
 
   async send(
