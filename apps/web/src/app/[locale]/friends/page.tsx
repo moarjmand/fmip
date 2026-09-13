@@ -152,7 +152,19 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
                     : ''}
                 </span>
               </p>
-              <FriendControls locale={locale} username={friend.member.username} status="friends" />
+              <div className="flex flex-wrap items-start gap-4">
+                <FriendControls
+                  locale={locale}
+                  username={friend.member.username}
+                  status="friends"
+                />
+                <Link
+                  href={`/${locale}/u/${encodeURIComponent(friend.member.username)}/compare`}
+                  className="text-sm underline"
+                >
+                  Compare records
+                </Link>
+              </div>
             </div>
           ))
         )}
