@@ -3,7 +3,6 @@ import { Test } from '@nestjs/testing';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
-import { ForecastModule } from './forecast.module';
 import { PowerIndexService } from './power-index.service';
 
 // The Power Index against the real training store (T-111): the development
@@ -28,7 +27,6 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the power in
   let close: () => Promise<void>;
 
   beforeAll(async () => {
-    process.env.MODEL_SERVICE_URL ??= 'off';
     pool = new Pool({ connectionString: DATABASE_URL });
 
     await pool.query(
@@ -57,8 +55,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the power in
       [FIXTURE, MAN_UNITED, LIVERPOOL],
     );
 
+    // The service alone, not the whole forecast boundary: the Power Index needs
+    // the pool and nothing else, and pulling in the identity and model-client
+    // wiring would make this test depend on their environment as well.
     const moduleRef = await Test.createTestingModule({
-      imports: [DatabaseModule, ForecastModule],
+      imports: [DatabaseModule],
+      providers: [PowerIndexService],
     }).compile();
     await moduleRef.init();
     service = moduleRef.get(PowerIndexService);
