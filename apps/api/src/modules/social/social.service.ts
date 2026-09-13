@@ -2,10 +2,13 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { Pool } from 'pg';
 import type { BlockedMember, Friend, FriendRequest, FriendStatus } from '@fmip/contracts';
 import { PG_POOL } from '../../database/database.module';
+import { ModerationService } from '../moderation/moderation.service';
 import { SocialStore } from './internal/social-store';
 
 /** SQLSTATE raised by the T-200 triggers when a block stands between two members. */
 const BLOCKED = 'PL003';
+/** SQLSTATE raised by the T-210 trigger when the writer is under a contact sanction. */
+const SANCTIONED = 'PL004';
 
 /**
  * What a caller is allowed to do, or the reason they are not.
@@ -16,7 +19,10 @@ const BLOCKED = 'PL003';
  */
 export type SocialOutcome =
   | { ok: true; changed: boolean }
-  | { ok: false; reason: 'unknown_member' | 'self' | 'unavailable' | 'email_unverified' };
+  | {
+      ok: false;
+      reason: 'unknown_member' | 'self' | 'unavailable' | 'email_unverified' | 'restricted';
+    };
 
 /**
  * The social graph boundary (blueprint 8.1, T-201).
@@ -40,7 +46,10 @@ export type SocialOutcome =
 export class SocialService {
   private readonly store: SocialStore;
 
-  constructor(@Inject(PG_POOL) pool: Pool) {
+  constructor(
+    @Inject(PG_POOL) pool: Pool,
+    private readonly moderation: ModerationService,
+  ) {
     this.store = new SocialStore(pool);
   }
 
@@ -117,6 +126,7 @@ export class SocialService {
       return { ok: true, changed: await this.store.request(viewer.id, other.id) };
     } catch (error) {
       if (isBlocked(error)) return { ok: false, reason: 'unavailable' };
+      if (isSanctioned(error)) return { ok: false, reason: 'restricted' };
       throw error;
     }
   }
@@ -139,6 +149,7 @@ export class SocialService {
       return { ok: true, changed: await this.store.accept(viewer.id, other.id) };
     } catch (error) {
       if (isBlocked(error)) return { ok: false, reason: 'unavailable' };
+      if (isSanctioned(error)) return { ok: false, reason: 'restricted' };
       throw error;
     }
   }
@@ -190,6 +201,18 @@ export class SocialService {
     return { id: other.id };
   }
 
+  /**
+   * The contact sanction that just stopped this member, if there is one.
+   *
+   * Asked **after** the database has refused (PL004), never before. Checking
+   * first and then writing would be a check a sanction expiring in between
+   * could make wrong, and it would put a second copy of the rule in TypeScript.
+   * This is the explanation, not the gate.
+   */
+  restriction(userId: string) {
+    return this.moderation.activeSanction(userId, 'contact');
+  }
+
   /** What the profile boundary's `FriendshipOracle` asks. */
   areFriends(a: string, b: string): Promise<boolean> {
     return this.store.areFriends(a, b);
@@ -202,4 +225,8 @@ interface Codeful {
 
 function isBlocked(error: unknown): boolean {
   return (error as Codeful).code === BLOCKED;
+}
+
+function isSanctioned(error: unknown): boolean {
+  return (error as Codeful).code === SANCTIONED;
 }
