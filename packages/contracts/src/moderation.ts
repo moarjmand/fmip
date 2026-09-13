@@ -40,10 +40,14 @@ export const MODERATION_OUTCOMES = [
 export type ModerationOutcome = (typeof MODERATION_OUTCOMES)[number];
 
 /**
- * What a sanction restricts. `contact` — friend requests — is the only thing
- * one member can currently aim at another, so it is the only scope that exists.
+ * What a sanction restricts.
+ *
+ * `contact` is friend requests; `messaging` arrived with the conversations of
+ * T-220, in the same change that built the surface it restricts. The list grows
+ * that way and only that way: a scope a moderator can choose and no code
+ * applies would tell the moderation team a restriction was in force.
  */
-export const SANCTION_SCOPES = ['contact'] as const;
+export const SANCTION_SCOPES = ['contact', 'messaging'] as const;
 export type SanctionScope = (typeof SANCTION_SCOPES)[number];
 
 /** `POST /reports`. */

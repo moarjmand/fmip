@@ -563,7 +563,7 @@ it the other way round means writing the membership rule twice.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-220 | Schema and contracts: `conversation`, `participant`, `message`, per-conversation sequence | T-210 | Ordering is a property of the store, not of a clock; removal leaves a tombstone |
-| `[ ]` T-221 | The conversation API: open, send, page back, read state, mute, leave | T-220 | A blocked or sanctioned member cannot send; every conversation can be left |
+| `[x]` T-221 | The conversation API: open, send, page back, read state, mute, leave | T-220 | A blocked or sanctioned member cannot send; every conversation can be left |
 | `[ ]` T-222 | Shared football cards: match, article, team, player, prediction | T-221 | A card is a reference resolved at read time, never a copy of a score |
 | `[ ]` T-223 | Search within a conversation | T-221 | Finds a member's own messages in a conversation they are still in |
 | `[ ]` T-224 | The chat surface on the web, without realtime | T-222 | Usable and correct over plain requests, before a socket exists |
@@ -673,6 +673,55 @@ migration was cycled down and up.
 
 **What is not here.** No endpoint: opening a conversation, sending, paging back,
 read state, mute and leave are T-221, and the football cards are T-222.
+
+**T-221 verified on 2026-09-14.** `apps/api/src/modules/conversations/` is the
+boundary: `conversations.service.ts` the public surface,
+`internal/conversations-store.ts` every statement, and
+`conversations.controller.ts` the routes — all under `/me`, because a
+conversation is only ever answered *to a participant* and a route shaped like
+`/conversations/:id` would invite a public reading of one.
+
+**The judgement this task turns on: who may open a direct conversation.**
+Blueprint 8.1 lists "start a direct conversation" among the things **friends**
+can do, and taking that literally removes the whole direct-message spam surface —
+there is no way to put words in front of somebody who has not agreed to hear
+from you. The alternative, letting anyone message anyone and relying on blocking
+afterwards, puts the burden on the person being messaged and only after the
+first message has already arrived.
+
+**But an existing conversation stays writable after a friendship ends**, and
+that is the other half of the same judgement. Removing a friend and blocking
+somebody are different acts — the friends page says so in as many words — and
+making the first silently stop messages would collapse them into one while
+leaving a conversation that looks open and is not. A member who wants the
+messages to stop blocks, and the database refuses the next one.
+
+**Correct before it is fast.** Nothing here needs a socket: opening, sending,
+paging back, read state, mute and leave all work over ordinary requests. That is
+what T-224 builds a page on, and it is why the transport of T-230 can be added to
+something already right instead of becoming the source of truth by accident.
+
+**`before` is a sequence, not an offset**, so a message arriving mid-scroll
+cannot shift the page under somebody's thumb — the reason the ordering was a
+sequence in the first place, arriving where a reader would feel it.
+
+**Three answers are deliberately the same.** A conversation the viewer is not in
+is **404, not 403**: a 403 would confirm that the id names a real conversation.
+Removing a message that is not yours, already removed, or not there at all is one
+404, because three answers would say which. And a reply pointing at another
+conversation is a 400 rather than a silent null, because accepting it would be a
+way to learn that a message id exists somewhere else.
+
+**Every refusal that matters is still the database's.** The service catches
+`PL003`, `PL004`, `PL005` and `PL006` and turns them into sentences; it never
+checks first. The test proves the three that matter on this surface: a sanctioned
+member is refused and told where to appeal, a block refuses **both** members, and
+a member who has left can still read every word and write none.
+
+11 tests over HTTP; 75 across conversations, moderation and social together.
+
+**What is not here.** The football cards (T-222), search within a conversation
+(T-223), the web surface (T-224) and reactions, mentions and pins (T-225).
 
 ---
 
