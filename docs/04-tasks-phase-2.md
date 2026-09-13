@@ -367,15 +367,49 @@ Independent of every data question: nothing here needs a provider.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-130 | Schema: analysis, its versions, its publication state | T-040 | An edit after publication is a new version with a visible time |
+| `[x]` T-130 | Schema: analysis, its versions, its publication state | T-040 | An edit after publication is a new version with a visible time |
 | `[ ]` T-131 | Authoring API and editor, `founder` role, audited | T-130, T-070 | Only the founder writes; every publish and edit is in the audit log |
 | `[ ]` T-132 | Surfaces: predictions page, match centre, homepage, team and competition feeds | T-131 | Appears in all five, always attributed and signed |
-| `[ ]` T-133 | The separation guard | T-132 | A test fails if a founder analysis is ever merged into the model or the consensus payload |
+| `[~]` T-133 | The separation guard | T-132 | A test fails if a founder analysis is ever merged into the model or the consensus payload |
 
 **T-133 exists because rule 6 is easy to break by accident.** The three
 prediction products — the statistical model, the founder's analysis and the
 community consensus — are never blended or relabelled, and the cheapest way to
 keep that true a year from now is a test that fails when it stops being true.
+
+**T-130 verified on 2026-09-13.** `..._founder-analysis.sql` adds
+`founder_analysis` (one per fixture, with the author, because the blueprint asks
+that each entry be "written and signed personally" — the signature is a row, not
+a byline someone typed) and the immutable `founder_analysis_version`.
+
+**An edit after publication is a new version with a visible time.** Every stored
+version is published: a draft is not something the product shows, and making it
+a row would mean an editable row, which is the one thing this table must not
+have. The blueprint asks for "publication time and any clearly recorded update
+before kick-off", and that is exactly what a version is.
+
+**And nothing after kick-off.** The same wall predictions meet (T-051,
+SQLSTATE `PL002` here), for a stronger reason: an analysis edited once the
+result is known is not an analysis, and a public record of calls is worth
+nothing if it can be revised in hindsight. The database clock decides, not the
+API's, so a script or a skewed server meets the same wall.
+
+The database also refuses a predicted score that contradicts the predicted
+outcome — two different calls in one row, and a page would have to choose which
+to believe — half a score, a confidence outside 1–5, blank reasoning, and an
+optional section that is present but empty (a section that looks written and
+says nothing, rule 3). 7 tests against the real schema; migration cycled down
+and up.
+
+**T-133 is started, not finished.** `packages/contracts/src/three-products.spec.ts`
+already guards rule 6 where the shapes live: the three products keep separate
+files, none imports another, neither payload may carry the other's types, the
+word "prediction" stays out of the founder contract (relabelling is the other
+half of rule 6), and the three may not be enumerated as interchangeable kinds.
+The guard was checked by breaking it on purpose — three of its four tests fail
+the moment a `ForecastVersion` appears in the founder contract. It stays `[~]`
+until T-132 exists, because the rendered payloads are the other place the three
+could blend.
 
 ---
 
