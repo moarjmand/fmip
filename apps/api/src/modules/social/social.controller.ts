@@ -76,7 +76,8 @@ export class SocialController {
   @HttpCode(204)
   async send(@Param('username') username: string, @Req() request: FastifyRequest): Promise<void> {
     const viewer = await this.requireViewer(request);
-    settle(
+    await this.settleContact(
+      viewer.id,
       await this.social.request({ id: viewer.id, emailVerified: viewer.email_verified }, username),
     );
   }
@@ -85,7 +86,8 @@ export class SocialController {
   @HttpCode(204)
   async accept(@Param('username') username: string, @Req() request: FastifyRequest): Promise<void> {
     const viewer = await this.requireViewer(request);
-    settle(
+    await this.settleContact(
+      viewer.id,
       await this.social.accept({ id: viewer.id, emailVerified: viewer.email_verified }, username),
     );
   }
@@ -128,6 +130,29 @@ export class SocialController {
     settle(await this.social.unblock(viewer.id, username));
   }
 
+  /**
+   * The two routes that can meet a moderation sanction (T-211).
+   *
+   * A restricted member is told at the moment they try to write, rather than
+   * having the request quietly dropped — that is the whole point of enforcing
+   * it at the write path. The message names the restriction and points at the
+   * member's own standing, which carries the end date and the appeal; the API
+   * does not format a date for somebody's locale.
+   */
+  private async settleContact(viewerId: string, outcome: SocialOutcome): Promise<void> {
+    if (!outcome.ok && outcome.reason === 'restricted') {
+      const sanction = await this.social.restriction(viewerId);
+      throw new ForbiddenException({
+        error: 'validation',
+        message:
+          sanction !== null && !sanction.permanent
+            ? 'A moderation restriction stops you sending friend requests. Your account standing says until when, and how to appeal.'
+            : 'A moderation restriction stops you sending friend requests. Your account standing says why, and how to appeal.',
+      } satisfies ApiError);
+    }
+    settle(outcome);
+  }
+
   /** What a profile page needs to decide which control to render. */
   @Get('me/friend-status/:username')
   async status(
@@ -163,6 +188,13 @@ function settle(outcome: SocialOutcome): void {
       throw new ForbiddenException({
         error: 'email_unverified',
         message: 'Verify your e-mail address before adding friends.',
+      } satisfies ApiError);
+    case 'restricted':
+      // Handled by `settleContact`, which can look the sanction up. Reaching
+      // here would mean a route that can be sanctioned forgot to use it.
+      throw new ForbiddenException({
+        error: 'validation',
+        message: 'A moderation restriction stops you doing that.',
       } satisfies ApiError);
     case 'unavailable':
       // Deliberately does not say that the other member has blocked the viewer.

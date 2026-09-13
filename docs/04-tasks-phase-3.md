@@ -317,7 +317,7 @@ anything another member will read.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-210 | Schema and contracts: `report`, `moderation_decision`, `sanction`, `appeal_note` | T-070 | A decision is immutable and names its actor; a sanction has a scope and an end |
-| `[ ]` T-211 | The reporting API, and sanctions enforced at the write path | T-210 | A restricted member is refused where they would have written, not hidden afterwards |
+| `[x]` T-211 | The reporting API, and sanctions enforced at the write path | T-210 | A restricted member is refused where they would have written, not hidden afterwards |
 | `[ ]` T-212 | The moderation queue in the admin area | T-211 | Every action records actor, time, reason and previous value (rule 10) |
 | `[ ]` T-213 | Rate limits, and the honest limit of automated filtering | T-211 | A flood is refused by a rule about volume; nothing claims to detect abusive language |
 
@@ -410,6 +410,55 @@ one dedicated connection and sets `session_replication_role = 'replica'`, which
 is scoped to that session. Sixteen older specs still use the global form.
 
 10 tests against the real schema; the migration was cycled down and up.
+
+**T-211 verified on 2026-09-13.** `apps/api/src/modules/moderation/` is the
+boundary: the member's half of it. A moderator's queue is T-212 and sits behind
+the admin gate; what is here is what a member can do — report somebody
+(`POST /reports`), read what has been done to them (`GET /me/standing`), and
+appeal it.
+
+**A restricted member is refused where they would have written.** A friend
+request from a member under an active `contact` sanction is refused by the
+database (PL004, T-210) and the API turns that into a 403 that names the
+restriction and points at the member's own standing, which carries the end date
+and the appeal. Not hidden afterwards, not silently dropped: a member who
+believes they are being heard does not change their behaviour, and the queue
+keeps refilling.
+
+**The explanation is read after the refusal, never before it.** `SocialService`
+catches PL004 and only then asks the moderation boundary which sanction it was.
+Checking first and writing second would be a second copy of the rule in
+TypeScript and a check a sanction expiring in between could make wrong.
+
+**The gate points one way, and this is the half that matters most.** Filing a
+report needs a session and nothing else — not a verified e-mail, and
+emphatically not an unsanctioned account. A member restricted for something
+unrelated must still be able to report the person harassing them; a product that
+got this backwards would silence exactly the people who most need to be heard.
+The suite asserts it directly: the sanctioned member's friend request is refused
+and their report is accepted in the same test file.
+
+**Two answers are deliberately the "wrong" ones.** A second identical report is
+a 204, not a 409 — the member has reported them, which is what they wanted, and
+a second identical complaint is not a second complaint (the partial unique index
+of T-210 decides, not a lookup-then-insert two taps could both pass). And
+appealing somebody else's sanction is a **404, not a 403**: a 403 would confirm
+that the id exists and belongs to a member the caller is not.
+
+A report naming a subject kind that does not exist yet — `message`, say — is a
+400. Storing it would put a row in the queue pointing at a table nothing can
+open.
+
+**A test that passed for the wrong reason, found by adding a second suite.**
+This is where the session-scoped cleanup note in T-210 came from. Adding a second
+moderation suite put two cleanups in parallel, and one of them switched off
+`moderation_decision_immutable` globally while the other was asserting it — the
+immutability tests passed without testing anything. Both suites now take a
+dedicated connection and `SET session_replication_role = 'replica'`. Sixteen
+older specs still use the global form; that is its own change rather than a
+detour here.
+
+19 tests: the 10 against the schema and 9 over HTTP with real sessions.
 
 ---
 
