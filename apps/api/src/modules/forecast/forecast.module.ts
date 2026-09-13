@@ -5,6 +5,7 @@ import { EvaluationService } from './evaluation.service';
 import { ForecastController } from './forecast.controller';
 import { MODEL_CLIENT, ForecastService, ModelClient } from './forecast.service';
 import { PostgresEvaluationStore } from './internal/evaluation-store';
+import { ForecastTriggersService } from './forecast-triggers.service';
 import { PostgresForecastStore } from './internal/forecast-store';
 import { PowerIndexController } from './power-index.controller';
 import { PowerIndexService } from './power-index.service';
@@ -51,8 +52,9 @@ export function modelClientFromEnv(env: NodeJS.ProcessEnv = process.env): ModelC
     EvaluationService,
     PostgresEvaluationStore,
     PowerIndexService,
+    ForecastTriggersService,
     { provide: MODEL_CLIENT, useFactory: (): ModelClient => modelClientFromEnv() },
   ],
-  exports: [ForecastService, EvaluationService, PowerIndexService],
+  exports: [ForecastService, EvaluationService, PowerIndexService, ForecastTriggersService],
 })
 export class ForecastModule {}

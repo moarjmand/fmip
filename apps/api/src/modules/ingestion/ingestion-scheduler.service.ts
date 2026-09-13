@@ -1,9 +1,22 @@
 import { Injectable, Logger, type OnApplicationShutdown, type OnModuleInit } from '@nestjs/common';
 import { Queue, Worker, type ConnectionOptions, type JobSchedulerTemplateOptions } from 'bullmq';
+import { ForecastTriggersService } from '../forecast/forecast-triggers.service';
 import { IngestionJobsService } from './ingestion-jobs.service';
 import { INGEST_JOBS, type IngestJob } from './internal/sources';
 
 export const INGESTION_QUEUE = 'ingestion';
+
+/**
+ * Producing the forecast versions that are due (T-120).
+ *
+ * Its own tick rather than a sixth ingestion job, because producing a forecast
+ * is not ingestion: it asks the model about what we already hold, and it must
+ * not appear in `ingest_run`, which records what a provider was asked for.
+ * Every five minutes, because the thing it waits for — a confirmed line-up —
+ * arrives about an hour before kick-off and is worth having promptly.
+ */
+export const FORECAST_JOB = 'forecast-versions';
+export const FORECAST_SCHEDULE = '*/5 * * * *';
 
 /**
  * How often each job runs, as a cron expression in UTC.
@@ -56,7 +69,10 @@ export class IngestionSchedulerService implements OnModuleInit, OnApplicationShu
   private queue: Queue | null = null;
   private worker: Worker | null = null;
 
-  constructor(private readonly jobs: IngestionJobsService) {}
+  constructor(
+    private readonly jobs: IngestionJobsService,
+    private readonly forecasts: ForecastTriggersService,
+  ) {}
 
   /** Whether this process schedules. Read once; changing it needs a restart. */
   static enabled(env: NodeJS.ProcessEnv = process.env): boolean {
@@ -102,9 +118,14 @@ export class IngestionSchedulerService implements OnModuleInit, OnApplicationShu
         { name, opts: TEMPLATE_OPTIONS },
       );
     }
+    await this.queue.upsertJobScheduler(
+      FORECAST_JOB,
+      { pattern: FORECAST_SCHEDULE, tz: 'UTC' },
+      { name: FORECAST_JOB, opts: TEMPLATE_OPTIONS },
+    );
     this.log.log('ingestion schedule on', {
       event: 'ingest.schedule_on',
-      jobs: INGEST_JOBS.length,
+      jobs: INGEST_JOBS.length + 1,
     });
   }
 

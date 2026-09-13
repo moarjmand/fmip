@@ -43,6 +43,11 @@ jobs:
       # The model service is started below, so apps/api's live contract test
       # runs here instead of skipping.
       MODEL_SERVICE_URL: http://127.0.0.1:8000
+      # Throwaway, and it lives exactly as long as the job. Any test that builds
+      # a Nest module reaching the identity boundary needs one to boot, and
+      # since T-120 that includes the ingestion module, which now imports the
+      # forecast boundary for its version triggers.
+      SESSION_SECRET: verify-only-session-secret-0123456789abcdef
 
     steps:
       - name: Check out
