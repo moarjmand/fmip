@@ -92,7 +92,7 @@ page makes and the product does not keep.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-200 | Schema and contracts: `friend_request`, `friendship`, `block` | T-040 | A friendship is one row, not two; a block cancels what it must, in the database |
+| `[x]` T-200 | Schema and contracts: `friend_request`, `friendship`, `block` | T-040 | A friendship is one row, not two; a block cancels what it must, in the database |
 | `[ ]` T-201 | The friends API and the real `FriendshipOracle` | T-200 | Request, cancel, accept, decline, remove, block, unblock; a friends-only profile is visible to a friend |
 | `[ ]` T-202 | Friends on the web: requests inbox, friend list, profile controls | T-201 | Pending requests and mutual friends, both under the viewer's privacy |
 | `[ ]` T-203 | Comparing records: two members' predictions and ratings side by side | T-202, T-056 | Only what the other member's privacy permits, and the comparison names both |
@@ -123,6 +123,54 @@ profile is a real choice: hiding it makes a block into a partial account deletio
 and is trivially detectable by signing out, while leaving it visible means a
 block is about contact rather than about reading. The plan's position is the
 second, and the argument belongs in the log where it can be disagreed with.
+
+**T-200 verified on 2026-09-13.** `..._social-graph.sql` is the first Phase 3
+migration, and `packages/contracts/src/social.ts` the contract. Nothing in the
+API writes these tables yet — that is T-201 — so `social.schema.spec.ts` writes
+what the service will write and checks the half of the rules that belong to the
+database.
+
+**A friendship is one row, not two**, and the database is what makes that true:
+`low_id < high_id` is a CHECK, so a row in the wrong order cannot exist, and the
+same pair arriving from the other member — both of them accepting at once, which
+is the realistic race — is refused by the primary key rather than by a lock the
+service has to remember to take. Callers write `LEAST($1, $2), GREATEST($1, $2)`
+and the invariant stops being anybody's discipline.
+
+**A block cancels what it must, in the database.** A request or a friendship
+across a block is refused with SQLSTATE `PL003`, and creating a block ends the
+friendship and withdraws the open requests in both directions by trigger. The
+second guard is not symmetry: a request that predates the block is already a row,
+so accepting it is the realistic way a friendship would otherwise be created
+across one. `users_blocked(a, b)` is the single definition of "these two must not
+reach each other", written once here so that conversations (T-221), invitations
+(T-241) and notifications (T-271) cannot each grow a slightly different version
+of it.
+
+**The guard was checked by breaking it**, as T-133's and T-135's were: dropping
+the two block triggers fails exactly three of the twelve tests and no others.
+
+**A friend request has no `status` column, and that is the judgement in this
+task.** Accepting, declining, cancelling and blocking all delete the row, so the
+table means one thing: an open offer. A `status` column would build a permanent
+record of one member having turned another down — something neither of them asked
+the product to remember, and which would have to be readable by somebody for it
+to be worth storing. Repeated re-requesting is what blocking and the rate limits
+of T-213 answer.
+
+**And one thing the contract states rather than hides.** `FriendStatus` returns
+`unavailable` — not `blocked_by` — when the *other* member has blocked the
+viewer. It says a request cannot be sent and not why, because naming it would
+turn every profile page into a detector for a block, and stopping the blocked
+member from acting is the entire job. It is the one place in this contract where
+the product knows more than it says, it is there for the blocked-from member's
+safety, and it is written down in the file rather than left to be discovered.
+
+12 tests against the real schema; the migration was cycled down and up.
+
+**What is not here.** No endpoint, no service, and `FriendshipOracle` still
+answers no — so a friends-only profile is still visible to its owner alone. That
+is T-201.
 
 ---
 
