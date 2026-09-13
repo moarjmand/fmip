@@ -284,7 +284,7 @@ difference between two of them, and why.
 |---|---|---|---|
 | `[x]` T-120 | Version triggers: early, confirmed line-up (post-match is T-066) | T-026, T-064 | Each kind is produced once per fixture and named |
 | `[x]` T-121 | Version diff: probability deltas attributed to input changes | T-120 | A diff names the inputs that moved and by how much |
-| `[ ]` T-122 | "What changed" on the match centre | T-121 | A reader sees the change in words, not two tables to compare by eye |
+| `[x]` T-122 | "What changed" on the match centre | T-121 | A reader sees the change in words, not two tables to compare by eye |
 
 **The honest limit of attribution.** A change in a probability cannot always be
 traced to one input, and a panel that claims it can is a fiction. T-121 attributes
@@ -348,6 +348,16 @@ constant could separate them and we did not do that. **Nothing moved:** say that
 too, rather than inventing a reason (rule 3). 9 unit tests, one of them
 asserting that a confirmed-line-up version can never be described as though the
 model had read it.
+
+**T-122 verified on 2026-09-13.** The forecast panel's "What changed between
+versions" list already gave each version's probability movement in points
+(T-065); it now carries the attribution underneath it, so **a reader sees the
+change in words**: what moved, and what — if anything — may be blamed for it.
+
+For a confirmed-line-up version that is always accompanied by the caveat that
+the model does not read line-ups yet, because the alternative is letting a
+reader draw the conclusion the blueprint's example draws and that our model
+cannot support. E12 is complete.
 
 ---
 
