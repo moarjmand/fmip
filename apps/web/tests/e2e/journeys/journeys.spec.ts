@@ -15,6 +15,10 @@ import { type Page, expect, test } from '@playwright/test';
  *   18.4 the member follows a team, sees it pinned, and moves team → match →
  *        player → search without a dead end.
  *
+ * With one addition from Phase 2 (T-135): blueprint 6.6's community consensus,
+ * checked at the point it is most dangerous — one member has predicted, and the
+ * page must not turn that into what "the community" thinks.
+ *
  * Runs only in the `journeys` project (E2E_API_URL set). The tests share one
  * member and run in order.
  */
@@ -100,6 +104,24 @@ test.describe('blueprint journeys', () => {
     await expect(item).toContainText('Home win 2–1 · confidence 4/5');
     await expect(item).toContainText('Open until kick-off');
     await expect(page.getByTestId('rating-none')).toBeVisible();
+  });
+
+  test('6.6 one member predicting does not become a community consensus', async () => {
+    // The member from 18.1 has just predicted this match, and is the only one
+    // who has. A page that answered with "100% home" would be reporting one
+    // person's opinion as what the community thinks — and, because the sample
+    // is one, it would also publish that member's prediction to anyone, which
+    // they may have set their history to hide (T-056, D-052).
+    await page.goto(`/en/match/${OPEN_MATCH}`);
+
+    const consensus = page.getByTestId('consensus');
+    await expect(consensus).toBeVisible();
+    await expect(consensus).toHaveAttribute('data-state', 'not_supplied');
+    await expect(consensus).toContainText('no consensus to show yet');
+
+    // And the state it must never be in: a distribution on the page.
+    await expect(page.getByTestId('consensus-crowd')).toHaveCount(0);
+    await expect(page.getByTestId('consensus-weighted')).toHaveCount(0);
   });
 
   test('18.3 privileges follow rating and sample, never points', async ({ request }) => {

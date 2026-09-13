@@ -3,6 +3,7 @@ import type {
   AdminUsersResponse,
   ApiError,
   AuditResponse,
+  CommunityConsensusResponse,
   CompetitionPage,
   CompetitionsResponse,
   CountriesResponse,
@@ -264,6 +265,16 @@ export function fetchFounderFeed(
 }
 
 /** `GET /fixtures/:id/power-index` (T-114): the latest index for both sides. Public. */
+/**
+ * `GET /fixtures/:id/consensus` (T-134): what the community predicted, as the
+ * crowd distribution and the rating-weighted one. Public.
+ */
+export function fetchConsensus(fixtureId: string): Promise<ApiResult<CommunityConsensusResponse>> {
+  return apiRequest<CommunityConsensusResponse>(
+    `/fixtures/${encodeURIComponent(fixtureId)}/consensus`,
+  );
+}
+
 export function fetchPowerIndex(fixtureId: string): Promise<ApiResult<PowerIndexResponse>> {
   return apiRequest<PowerIndexResponse>(`/fixtures/${encodeURIComponent(fixtureId)}/power-index`);
 }

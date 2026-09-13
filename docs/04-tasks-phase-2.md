@@ -372,7 +372,8 @@ Independent of every data question: nothing here needs a provider.
 | `[~]` T-132 | Surfaces: match centre, homepage, team and competition feeds (the predictions page does not exist) | T-131 | Appears in all five, always attributed and signed |
 | `[x]` T-133 | The separation guard | T-132 | A test fails if a founder analysis is ever merged into the model or the consensus payload |
 | `[x]` T-134 | Community consensus: the crowd distribution and the rating-weighted one | T-053, T-133 | Both distributions, or an explicit coverage state; never one of them twice |
-| `[ ]` T-135 | The Predictions page, and the community forecast on the match centre | T-134 | All four of blueprint 2.1 on one page, each attributed; nothing averaged across the three products |
+| `[~]` T-135 | The community forecast on the match centre (the Predictions page is T-136) | T-134 | Both distributions and the comparison blueprint 4.2 asks for, with nothing averaged |
+| `[ ]` T-136 | The Predictions page | T-134, T-135 | All four of blueprint 2.1 on one page, each attributed |
 
 **T-133 exists because rule 6 is easy to break by accident.** The three
 prediction products — the statistical model, the founder's analysis and the
@@ -516,9 +517,43 @@ and the module is `limited` — never the crowd distribution returned again unde
 the other label, which is precisely the disguise 6.6 forbids and would be
 invisible from outside. 13 tests, 6 of them against the real schema.
 
-E13 now has one surface left rather than being complete: T-135 puts the
-consensus and the founder's analysis on a Predictions page, which is the page
-blueprint 2.1 names and the product does not yet have.
+**T-135 verified on 2026-09-13 — the match-centre half of it.** Blueprint 4.2's
+"Community forecast" bullet asks for three things: registered-user predictions,
+the rating-weighted consensus, and *comparison with the model*. All three are on
+the match centre now, and the comparison is where the care went.
+
+**A comparison is a difference, not a blend.** The panel receives the model's
+three probabilities as plain numbers the page pulled out — `Triple` in
+`lib/triple.ts` is three anonymous values belonging to neither product — and
+renders the gap outcome by outcome with both sides named. There is no average
+and the guard now fails on a function called one. Two products that disagree are
+information; a combined number would destroy that while inventing a figure
+nobody computed.
+
+**The arithmetic moved rather than being copied.** Rounding three shares to
+total exactly 100 is the same operation for a crowd as for the model, but
+`percentages(p: ModelProbabilities)` is typed to one product, and calling it
+from the community panel would have put a model type on the community surface.
+Duplicating it would have been worse. It lives in `lib/triple.ts` now and
+`lib/forecast.ts` delegates.
+
+**The guard was checked by breaking it**, as T-133's was: giving the panel a
+`ModelProbabilities` prop fails `three-products.spec.ts` immediately.
+
+**The end-to-end check is at the dangerous point.** Journey 18.1 registers a
+member and has them predict; the new assertion goes straight to that match and
+proves the page says there is *no consensus yet*. One member is not a community,
+and with a sample of one a published distribution would also be that member's
+prediction on display (T-056).
+
+**T-135 stays `[~]`.** The match centre has it; the Predictions page blueprint
+2.1 names still does not exist, and it is now **T-136** with its own row rather
+than a parenthesis on someone else's task. T-136 needs something this PR does
+not build: the model forecast and the consensus are per-fixture endpoints, so a
+page listing several matches would fetch them one at a time. Doing it honestly
+means a list endpoint first — which is a task, not a detail, and pretending
+otherwise is how a page ends up making N requests or showing less than it
+claims.
 
 ---
 
@@ -679,7 +714,7 @@ the production build.
 |---|---|---|
 | T-110, T-111, T-113, T-114 | nothing | agent |
 | T-120, T-121, T-122 | nothing | agent |
-| T-130, T-131, T-132, T-133, T-134, T-135 | nothing | agent |
+| T-130, T-131, T-132, T-133, T-134, T-135, T-136 | nothing | agent |
 | T-150, T-151, T-152, T-153 | Arabic strings for T-151 | agent, then maintainer |
 | T-100 | a purchase | **maintainer** |
 | T-101, T-102, T-103, T-112 | T-100 | after the purchase |
