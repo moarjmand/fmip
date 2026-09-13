@@ -28,20 +28,17 @@ export function canView(
 }
 
 /**
- * Whether two members are friends. Friendships are Phase 3 (blueprint 8;
- * T-200 is the schema and T-201 the real implementation of this port), so the
- * only implementation today answers no, and a friends-only profile is
- * therefore visible to its owner alone. When friendships arrive, this port
- * gets a real implementation and nothing in `canView` changes.
+ * Whether two members are friends.
+ *
+ * A port rather than a query, because the answer belongs to the social
+ * boundary (blueprint 8.1) and `canView` belongs to this one. `ProfileModule`
+ * binds it to `SocialService.areFriends` (T-201); before friendships existed
+ * the only implementation answered no, and a friends-only profile was
+ * therefore visible to its owner alone. Nothing in `canView` changed when the
+ * real one arrived, which is what the port was for.
  */
 export interface FriendshipOracle {
   areFriends(a: string, b: string): Promise<boolean>;
 }
 
 export const FRIENDSHIP_ORACLE = Symbol('FRIENDSHIP_ORACLE');
-
-export class NoFriendshipsYet implements FriendshipOracle {
-  async areFriends(): Promise<boolean> {
-    return false;
-  }
-}

@@ -11,6 +11,7 @@ import { IdentityModule } from './modules/identity/identity.module';
 import { IngestionModule } from './modules/ingestion/ingestion.module';
 import { PredictionsModule } from './modules/predictions/predictions.module';
 import { ProfileModule } from './modules/profile/profile.module';
+import { SocialModule } from './modules/social/social.module';
 import { ReputationModule } from './modules/reputation/reputation.module';
 import { SearchModule } from './modules/search/search.module';
 
@@ -28,6 +29,7 @@ import { SearchModule } from './modules/search/search.module';
     IngestionModule,
     IdentityModule,
     ProfileModule,
+    SocialModule,
     ForecastModule,
     ConsensusModule,
     FounderModule,

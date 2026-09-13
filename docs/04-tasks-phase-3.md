@@ -93,7 +93,7 @@ page makes and the product does not keep.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-200 | Schema and contracts: `friend_request`, `friendship`, `block` | T-040 | A friendship is one row, not two; a block cancels what it must, in the database |
-| `[ ]` T-201 | The friends API and the real `FriendshipOracle` | T-200 | Request, cancel, accept, decline, remove, block, unblock; a friends-only profile is visible to a friend |
+| `[x]` T-201 | The friends API and the real `FriendshipOracle` | T-200 | Request, cancel, accept, decline, remove, block, unblock; a friends-only profile is visible to a friend |
 | `[ ]` T-202 | Friends on the web: requests inbox, friend list, profile controls | T-201 | Pending requests and mutual friends, both under the viewer's privacy |
 | `[ ]` T-203 | Comparing records: two members' predictions and ratings side by side | T-202, T-056 | Only what the other member's privacy permits, and the comparison names both |
 
@@ -171,6 +171,54 @@ safety, and it is written down in the file rather than left to be discovered.
 **What is not here.** No endpoint, no service, and `FriendshipOracle` still
 answers no — so a friends-only profile is still visible to its owner alone. That
 is T-201.
+
+**T-201 verified on 2026-09-13, and it closed a promise Phase 1 had been making.**
+`apps/api/src/modules/social/` is the boundary: `social.service.ts` is the whole
+public surface, `internal/social-store.ts` is every statement, and the routes all
+sit under `/me`, because each of these answers is about the signed-in member's
+own relationships and there is no public version of one. Blueprint 7.2 puts a
+friends *count* on a profile; who they are is the member's to show.
+
+**A friends-only profile is now visible to a friend.** `privacy_setting` has had
+the `friends` value since T-041 and `FriendshipOracle` has had one implementation
+that answered no, so a member who chose "friends only" had chosen nobody. It
+failed closed, which is the right way to be wrong, but the settings page was
+making a promise the product did not keep. `ProfileModule` now binds the port to
+`SocialService.areFriends` in one line — and nothing in `canView` changed, which
+is what the port was for. The adapter lives on the profile side because
+`FriendshipOracle` is that module's internal; the dependency runs profile →
+social, and the placeholder implementation is gone rather than left where
+somebody could wire it back.
+
+**The gate points one way, deliberately.** Sending a friend request needs a
+verified e-mail, for the reason submitting a prediction does (T-050): an
+unverified account is free to create, and a request is contact. **Blocking,
+unblocking, declining and unfriending need nothing beyond a session.** A product
+that made somebody verify an e-mail before they could stop another member
+contacting them would have built the gate backwards, and the test asserts exactly
+that pair — the same unverified account is refused a request and allowed a block.
+
+**Declining and cancelling are one route.** `DELETE /me/friend-requests/:username`
+withdraws whatever is open between the two members, because the two acts differ
+only in who started it and leave the same thing behind. Every write is
+idempotent: asking twice is one open offer, and a second tap on block is a 204,
+not an alarming error about something that already happened.
+
+**A bug of mine, and the leniency that hid it.** A test had a member withdraw a
+request between themselves and themselves — the wrong username in a template
+string — and it passed, because the endpoint treated "nothing to do" and "you
+asked the wrong question" as the same thing and answered 204. Every verb now
+refuses the viewer's own username, including the ones where operating on yourself
+would simply do nothing, and the suite asserts all six.
+
+21 tests: 12 against the schema from T-200 and 9 over HTTP with real sessions,
+including a guest refused on every route, the crossing-request case, the
+mutual-friend count, a block ending a friendship while leaving an unrelated
+request alone, and a lifted block that does not restore what it ended.
+
+**What is not here.** Nothing on the web: the requests inbox, the friend list and
+the profile controls are T-202, and the record comparison blueprint 8.1 asks for
+is T-203.
 
 ---
 
