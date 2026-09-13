@@ -47,7 +47,7 @@ describe('the way out is always there', () => {
     expect(needsAnExit.length).toBeGreaterThan(0);
 
     for (const status of needsAnExit) {
-      const branch = new RegExp(`status === '${status}' && \\(([\\s\\S]*?)\\n      \\)\\}`).exec(
+      const branch = new RegExp(`status === '${status}' && \\(([\\s\\S]*?)\\n\\s*\\)\\}`).exec(
         CONTROLS,
       )?.[1];
       expect(branch, `no branch renders the ${status} state`).toBeDefined();
@@ -62,7 +62,7 @@ describe('the way out is always there', () => {
     // `unavailable` means the other member has blocked the viewer. Taking the
     // viewer's own block away because of that would let one member decide what
     // controls the other one has.
-    const branch = /status === 'unavailable' && \(([\s\S]*?)\n      \)\}/.exec(CONTROLS)?.[1];
+    const branch = /status === 'unavailable' && \(([\s\S]*?)\n\s*\)\}/.exec(CONTROLS)?.[1];
     expect(branch).toMatch(/\{block\}/);
   });
 });
