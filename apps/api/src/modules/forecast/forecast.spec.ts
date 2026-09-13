@@ -69,6 +69,7 @@ class FakeStore {
       most_likely_scorelines: w.available?.mostLikely ?? null,
       leading_factors: w.available?.leadingFactors ?? null,
       data_completeness: w.available?.inputs.data_completeness ?? null,
+      inputs: w.available?.inputs ?? null,
       unavailable_reason: w.unavailable?.reason ?? null,
       unavailable_detail: w.unavailable?.detail ?? null,
     };
@@ -128,6 +129,14 @@ describe('coverageOf', () => {
     most_likely_scorelines: [],
     leading_factors: [],
     data_completeness: 'available',
+    inputs: {
+      model_version: 'dixon-coles-elo@0.1.0',
+      fit_date: '2025-01-01',
+      matches_used: 380,
+      elo_used: true,
+      history_from: '2024-08-01',
+      data_completeness: 'available',
+    },
     unavailable_reason: null,
     unavailable_detail: null,
   };

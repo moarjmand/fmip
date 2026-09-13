@@ -119,6 +119,14 @@ export interface ForecastVersion {
   most_likely_scorelines: ModelScorelineProbability[] | null;
   leading_factors: ModelLeadingFactor[] | null;
   data_completeness: 'available' | 'limited' | null;
+  /**
+   * What the model was working from, verbatim, as it reported it (T-121).
+   *
+   * Stored with every version so that the difference between two versions can
+   * be attributed to something rather than asserted. `null` when the model
+   * could not answer and so reported no inputs.
+   */
+  inputs: ModelInputs | null;
   /** Present when unavailable. */
   unavailable_reason: ForecastUnavailableReason | null;
   unavailable_detail: string | null;

@@ -56,6 +56,7 @@ interface ForecastRow {
   most_likely: ModelScorelineProbability[] | null;
   leading_factors: ModelLeadingFactor[] | null;
   data_completeness: 'available' | 'limited' | null;
+  model_inputs: ModelInputs | null;
   unavailable_reason: ForecastUnavailableReason | null;
   unavailable_detail: string | null;
 }
@@ -81,6 +82,7 @@ function toVersion(row: ForecastRow): ForecastVersion {
     most_likely_scorelines: available ? row.most_likely : null,
     leading_factors: available ? row.leading_factors : null,
     data_completeness: available ? row.data_completeness : null,
+    inputs: row.model_inputs,
     unavailable_reason: available ? null : row.unavailable_reason,
     unavailable_detail: available ? null : row.unavailable_detail,
   };
@@ -89,7 +91,7 @@ function toVersion(row: ForecastRow): ForecastVersion {
 const SELECT = `
   SELECT f.id, f.fixture_id, f.version_number, s.kind, m.model_id, f.computed_at, f.status,
          f.p_home, f.p_draw, f.p_away, f.expected_home_goals, f.expected_away_goals,
-         f.most_likely, f.leading_factors, f.data_completeness,
+         f.most_likely, f.leading_factors, f.data_completeness, s.model_inputs,
          f.unavailable_reason, f.unavailable_detail
     FROM forecast f
     JOIN input_snapshot s ON s.id = f.input_snapshot_id

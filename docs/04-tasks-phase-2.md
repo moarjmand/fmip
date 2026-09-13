@@ -283,7 +283,7 @@ difference between two of them, and why.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-120 | Version triggers: early, confirmed line-up (post-match is T-066) | T-026, T-064 | Each kind is produced once per fixture and named |
-| `[ ]` T-121 | Version diff: probability deltas attributed to input changes | T-120 | A diff names the inputs that moved and by how much |
+| `[x]` T-121 | Version diff: probability deltas attributed to input changes | T-120 | A diff names the inputs that moved and by how much |
 | `[ ]` T-122 | "What changed" on the match centre | T-121 | A reader sees the change in words, not two tables to compare by eye |
 
 **The honest limit of attribution.** A change in a probability cannot always be
@@ -326,6 +326,28 @@ writes nothing, a line-up arriving produces exactly one more version, and a
 kick-off that has passed produces none. The model is deliberately unreachable
 in that test: an unavailable forecast is still a version, which makes the test a
 statement about the triggers rather than about the model service being up.
+
+**T-121 verified on 2026-09-13.** A forecast version now carries `inputs` — what
+the model was working from, verbatim, as it reported it — so the difference
+between two versions can be *attributed* to something rather than asserted.
+`apps/web/src/lib/forecast-diff.ts` lists every input that moved with its before
+and after, and turns it into a sentence.
+
+**The honest limit, which is the whole point.** The blueprint's example is "a
+team's win probability fell after a key starter was excluded from the confirmed
+line-up". **We cannot say that.** The model is fitted on historical results
+(D-009) and does not take a line-up as an input at all, so a `lineups_confirmed`
+version is a forecast *computed when the line-up was confirmed*, not one
+*computed from the line-up* — and the panel says exactly that whenever it shows
+one. Saying it plainly is worth more than a plausible sentence nobody can check,
+and it becomes the real thing the day line-ups reach the model (T-101, T-112).
+
+Three cases, and the third matters most. One input moved: name it, with its
+before and after. Several moved: say so, because only a re-run with one held
+constant could separate them and we did not do that. **Nothing moved:** say that
+too, rather than inventing a reason (rule 3). 9 unit tests, one of them
+asserting that a confirmed-line-up version can never be described as though the
+model had read it.
 
 ---
 
