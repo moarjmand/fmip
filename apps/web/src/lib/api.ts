@@ -3,6 +3,7 @@ import type {
   AdminUsersResponse,
   ApiError,
   AuditResponse,
+  BlocksResponse,
   CommunityConsensusResponse,
   ConsensusListResponse,
   CompetitionPage,
@@ -12,6 +13,9 @@ import type {
   ForecastListResponse,
   FollowedEntity,
   ForecastVersionsResponse,
+  FriendRequestsResponse,
+  FriendStatusResponse,
+  FriendsResponse,
   FounderAnalysesResponse,
   FounderAnalysisResponse,
   PowerIndexResponse,
@@ -319,4 +323,40 @@ export async function fetchOwnPrediction(
     { cookie },
   );
   return result.ok ? result.data.prediction : null;
+}
+
+// The social graph (blueprint 8.1, T-202). Each of these needs the session: the
+// answer is about the viewer's own relationships and there is no public form of
+// one.
+
+export function fetchFriends(cookie: string | undefined): Promise<ApiResult<FriendsResponse>> {
+  return apiRequest<FriendsResponse>('/me/friends', { cookie });
+}
+
+export function fetchFriendRequests(
+  cookie: string | undefined,
+): Promise<ApiResult<FriendRequestsResponse>> {
+  return apiRequest<FriendRequestsResponse>('/me/friend-requests', { cookie });
+}
+
+export function fetchBlocks(cookie: string | undefined): Promise<ApiResult<BlocksResponse>> {
+  return apiRequest<BlocksResponse>('/me/blocks', { cookie });
+}
+
+/**
+ * Where the viewer stands with one member, or `null` when nobody is signed in.
+ *
+ * A guest has no standing with anybody, and asking would be a 401 the profile
+ * page would then have to explain away.
+ */
+export async function fetchFriendStatus(
+  username: string,
+  cookie: string | undefined,
+): Promise<FriendStatusResponse['status'] | null> {
+  if (cookie === undefined) return null;
+  const result = await apiRequest<FriendStatusResponse>(
+    `/me/friend-status/${encodeURIComponent(username)}`,
+    { cookie },
+  );
+  return result.ok ? result.data.status : null;
 }

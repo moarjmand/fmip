@@ -62,6 +62,9 @@ export async function SiteHeader({ locale }: { locale: string }) {
           </>
         ) : (
           <>
+            <Link href={href('/friends')} data-testid="nav-friends">
+              <Translated locale={locale} message="nav.friends" />
+            </Link>
             <Link href={href(`/u/${encodeURIComponent(me.username)}`)} data-testid="nav-me">
               @{me.username}
             </Link>

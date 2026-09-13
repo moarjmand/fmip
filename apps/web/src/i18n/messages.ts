@@ -29,6 +29,7 @@ export const EN = {
   'nav.search': 'Search',
   'nav.predictions': 'Predictions',
   'nav.leaderboard': 'Leaderboard',
+  'nav.friends': 'Friends',
   'nav.signIn': 'Sign in',
   'nav.signOut': 'Sign out',
   'nav.settings': 'Settings',
