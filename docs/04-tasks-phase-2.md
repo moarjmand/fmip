@@ -517,7 +517,7 @@ first test of whether the translation architecture of blueprint 13 is real.
 | `[~]` T-150 | The `ar` locale: routing, formatting, plurals, football glossary | T-007 | `/ar` renders every Phase 1 page |
 | `[x]` T-151 | Translation workflow: source of truth, review state, missing-string policy | T-150 | An untranslated string is visibly untranslated, never machine output presented as a translation |
 | `[x]` T-152 | Search across transliterations and aliases | T-038, T-150 | Arabic and Latin spellings of the same player both find them |
-| `[ ]` T-153 | Right-to-left audit on real content | T-150 | Scores, timelines, icons and numerals behave; the pseudo-locale test is no longer the only proof |
+| `[x]` T-153 | Right-to-left audit on real content | T-150 | Scores, timelines, icons and numerals behave; the pseudo-locale test is no longer the only proof |
 
 **What an agent cannot do here.** Translate. Producing Arabic strings by machine
 and shipping them as the product's Arabic is exactly the kind of invented content
@@ -593,6 +593,51 @@ One test caught itself being wrong: the first version of the negative case
 included the run suffix, so it matched on a shared token rather than on the
 Arabic, and passed for the wrong reason. 4 tests on the script handling, 13 in
 the search module.
+
+**T-153 verified on 2026-09-13, and it found a real bug.** The pseudo-locale
+check proved one accent bar on a page with no data. That was the right first
+canary and it was not enough: the things that break under right-to-left are the
+things with real content in them.
+
+`tests/e2e/journeys/rtl-content.spec.ts` runs against **`/ar`** with the API,
+the database and the seed behind it, and asserts *geometry* — where things
+actually landed — rather than screenshots, which fail on a font hint and teach
+everyone to ignore them.
+
+**What it found.** On the match centre, the score rendered **backwards**. `2 – 1`
+is two numbers with a neutral character between them; inside a right-to-left
+paragraph the bidirectional algorithm resolves that neutral to the paragraph's
+direction, splits the run and lays the two halves out right to left. The first
+digit measured 48 pixels to the *right* of the last. It is invisible in review,
+it passes every unit test, and it would have told every Arabic reader the wrong
+result.
+
+**The fix is one component, not an attribute to remember.** `components/score.tsx`
+renders a score inside `dir="ltr"`, and `ltrIsolate()` does the same with Unicode
+isolates for the places a score is built as a string inside a larger label. A
+score is a number pair and reads left to right in every script, for the same
+reason a date or a phone number does. Every score on the product now goes
+through one of the two: the match centre header, half-time, aggregate and
+penalties, the head-to-head lines, the scores list and its aggregate, the team
+and player pages, the forecast panel's scorelines and result, the prediction
+history, and both founder-analysis surfaces.
+
+**Also asserted:** `/ar` is an Arabic right-to-left document and is not indexed
+while it is untranslated; the match header mirrors, so the home side moves to the
+right; the status stays inside its header; and the scores page does not overflow
+horizontally, which is how a stray physical margin usually shows up.
+
+The score test was checked against the unfixed code and fails there — the bug is
+what it was written from, not a guess. 5 journey tests; the 6 pseudo-locale tests
+still pass.
+
+**One verification limit, stated plainly.** The production web build does not
+complete on this machine (a pre-existing failure on `main`, unrelated to this
+work — `/_global-error` fails to prerender), so the audit was run against the
+development server rather than the production build the CI job uses. The geometry
+it measures is layout, not the CSS-pipeline difference that motivated the
+production-build note in `playwright.config.ts`; CI runs the same spec against
+the production build.
 
 ---
 

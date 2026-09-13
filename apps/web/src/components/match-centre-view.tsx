@@ -10,6 +10,7 @@ import {
 } from '@/lib/match';
 import { isBehind } from '@/lib/live';
 import { formatKickoff } from '@/lib/scores';
+import { Score } from '@/components/score';
 
 /**
  * The match centre as blueprint 4.2 lays it out, from one `MatchCentre`
@@ -73,9 +74,19 @@ export function MatchCentreView({
             <Link href={`/${locale}/team/${f.home.id}`}>{f.home.name}</Link>
           </h1>
           <div className="flex flex-col items-center">
-            <span className="text-3xl font-semibold tabular-nums" data-testid="score">
-              {headline === null ? '–' : `${headline.home} – ${headline.away}`}
-            </span>
+            {headline === null ? (
+              <span className="text-3xl font-semibold tabular-nums" data-testid="score">
+                –
+              </span>
+            ) : (
+              <Score
+                home={headline.home}
+                away={headline.away}
+                separator=" – "
+                className="text-3xl font-semibold tabular-nums"
+                testId="score"
+              />
+            )}
             <span className="text-sm" data-testid="match-status">
               {status}
             </span>
@@ -94,17 +105,17 @@ export function MatchCentreView({
         <ul className="flex flex-wrap gap-x-4 text-xs opacity-70">
           {f.scores.half_time !== null && (
             <li>
-              HT {f.scores.half_time.home}–{f.scores.half_time.away}
+              HT <Score home={f.scores.half_time.home} away={f.scores.half_time.away} />
             </li>
           )}
           {f.scores.aggregate !== null && (
             <li>
-              Agg {f.scores.aggregate.home}–{f.scores.aggregate.away}
+              Agg <Score home={f.scores.aggregate.home} away={f.scores.aggregate.away} />
             </li>
           )}
           {f.scores.penalties !== null && (
             <li>
-              Pens {f.scores.penalties.home}–{f.scores.penalties.away}
+              Pens <Score home={f.scores.penalties.home} away={f.scores.penalties.away} />
             </li>
           )}
           <li>
@@ -215,7 +226,8 @@ export function MatchCentreView({
                   {m.kickoff_at.slice(0, 10)}
                 </time>
                 <span>
-                  {m.home.name} {m.full_time.home}–{m.full_time.away} {m.away.name}
+                  {m.home.name} <Score home={m.full_time.home} away={m.full_time.away} />{' '}
+                  {m.away.name}
                 </span>
                 <span className="opacity-70">
                   {m.competition.name}

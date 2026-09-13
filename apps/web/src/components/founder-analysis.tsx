@@ -5,6 +5,7 @@ import type {
   FounderOutcome,
 } from '@fmip/contracts';
 import { formatKickoff } from '@/lib/scores';
+import { Score } from '@/components/score';
 
 /**
  * The founder's analysis on the pages a reader meets it (blueprint 6.5, T-132).
@@ -85,9 +86,12 @@ export function FounderAnalysisPanel({
 
       <p className="text-sm">
         <strong>{outcomeLabel(current.predicted_outcome, home, away)}</strong>
-        {current.predicted_score !== null
-          ? ` — ${current.predicted_score.home}–${current.predicted_score.away}`
-          : ''}{' '}
+        {current.predicted_score !== null ? (
+          <>
+            {' — '}
+            <Score home={current.predicted_score.home} away={current.predicted_score.away} />
+          </>
+        ) : null}{' '}
         <span className="opacity-70">· confidence {current.confidence}/5</span>
       </p>
 
@@ -176,9 +180,12 @@ export function FounderAnalysisFeed({
                   entry.fixture.away.name,
                 )}
               </strong>
-              {entry.predicted_score !== null
-                ? ` — ${entry.predicted_score.home}–${entry.predicted_score.away}`
-                : ''}{' '}
+              {entry.predicted_score !== null ? (
+                <>
+                  {' — '}
+                  <Score home={entry.predicted_score.home} away={entry.predicted_score.away} />
+                </>
+              ) : null}{' '}
               <span className="opacity-70">· confidence {entry.confidence}/5</span>
             </p>
             <p className="text-sm opacity-90">{entry.excerpt}</p>

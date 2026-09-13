@@ -1,5 +1,6 @@
 import type { PredictionHistoryItem } from '@fmip/contracts';
 import Link from 'next/link';
+import { Score } from '@/components/score';
 import {
   type SettlementTone,
   fixtureLabel,
@@ -81,8 +82,11 @@ export function PredictionHistory({
                 {stands.text}
                 {prediction.settlement?.actual != null && (
                   <span className="ms-2 text-xs opacity-70">
-                    full time {prediction.settlement.actual.home}–
-                    {prediction.settlement.actual.away}
+                    full time{' '}
+                    <Score
+                      home={prediction.settlement.actual.home}
+                      away={prediction.settlement.actual.away}
+                    />
                   </span>
                 )}
               </p>
