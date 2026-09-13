@@ -282,7 +282,7 @@ difference between two of them, and why.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-120 | Version triggers: early, predicted line-up, confirmed line-up, post-match | T-026, T-064 | Each kind is produced once per fixture and named |
+| `[x]` T-120 | Version triggers: early, confirmed line-up (post-match is T-066) | T-026, T-064 | Each kind is produced once per fixture and named |
 | `[ ]` T-121 | Version diff: probability deltas attributed to input changes | T-120 | A diff names the inputs that moved and by how much |
 | `[ ]` T-122 | "What changed" on the match centre | T-121 | A reader sees the change in words, not two tables to compare by eye |
 
@@ -290,6 +290,42 @@ difference between two of them, and why.
 traced to one input, and a panel that claims it can is a fiction. T-121 attributes
 what a re-run with one input held constant can attribute, and says "several
 inputs changed together" when that is the truth.
+
+**T-120 verified on 2026-09-13.** `internal/forecast-triggers.ts` decides which
+version is due and is pure, so "each kind is produced once per fixture" is a
+property of a function rather than a hope about a cron;
+`forecast-triggers.service.ts` finds the fixtures and carries it out.
+
+Two rules do the work. **Once each:** a kind already recorded is never
+recomputed, because a version is a statement about the moment it was made and a
+second one would either duplicate it or quietly contradict it. **Never after
+kick-off:** the blueprint's versions are pre-match by definition, and what
+happens afterwards is the evaluation (T-066), not another forecast. A confirmed
+line-up takes priority over an early version that has not been written yet,
+because it is the most informative thing that happens before kick-off.
+
+**`lineups_predicted` is deliberately never produced automatically.** Nothing we
+have supplies *predicted* line-ups — only confirmed ones, and only from the
+detail source of D-049 — so triggering that kind would mean labelling a
+confirmed line-up as a predicted one. It stays available to an operator over
+HTTP, which is the honest place for a judgement nobody's data can make. The plan
+above listed four triggers; there are two, and this is why.
+
+**Where it runs.** Its own tick in the scheduler (`forecast-versions`, every
+five minutes), not a sixth ingestion job: producing a forecast is not ingestion,
+it asks the model about what we already hold, and it must not appear in
+`ingest_run`, which records what a provider was asked for. The Power Index is
+computed on the same pass, because the index and the forecast are one statement
+about one moment and computing them apart would leave a match centre showing an
+index from one hour beside a forecast from another.
+
+Every skip carries a reason, so "nothing happened" is explicable rather than
+silent. 6 unit tests on the rules; 3 against the real database, which run the
+triggers repeatedly and count rows — a second pass over an unchanged fixture
+writes nothing, a line-up arriving produces exactly one more version, and a
+kick-off that has passed produces none. The model is deliberately unreachable
+in that test: an unavailable forecast is still a version, which makes the test a
+statement about the triggers rather than about the model service being up.
 
 ---
 

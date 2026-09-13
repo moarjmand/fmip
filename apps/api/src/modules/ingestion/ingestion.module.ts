@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ForecastModule } from '../forecast/forecast.module';
 import { StandingsModule } from '../standings/standings.module';
 import { CoverageService } from './coverage.service';
 import { IngestRunsService } from './ingest-runs.service';
@@ -20,11 +21,14 @@ import { INGESTION_SOURCES, resolveSources } from './internal/sources';
  * `INGESTION_SOURCE` picks the profile and `INGESTION_SCHEDULE` decides whether
  * this process polls. The standings boundary is imported for its public
  * service alone: the standings job compares the provider's table against the
- * one we derive (D-038), and writes nothing. `PG_POOL` comes from the global
+ * one we derive (D-038), and writes nothing. The forecast boundary is imported
+ * for the same reason: the scheduler gives its version triggers (T-120) a tick
+ * of their own, because producing a forecast is not ingestion and must not
+ * appear in `ingest_run`. `PG_POOL` comes from the global
  * `DatabaseModule`.
  */
 @Module({
-  imports: [StandingsModule],
+  imports: [StandingsModule, ForecastModule],
   controllers: [IngestionController],
   providers: [
     EntityResolverService,
