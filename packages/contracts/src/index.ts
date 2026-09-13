@@ -1,6 +1,16 @@
 export { COVERAGE_STATES, hasData, isCoverageState } from './coverage';
 export type { CoverageState, Covered } from './coverage';
 
+// The founder's analysis (blueprint 6.5, T-130). One of three prediction
+// products, and deliberately sharing no type with the other two (rule 6).
+export type {
+  FounderAnalysis,
+  FounderAnalysisResponse,
+  FounderAnalysisVersion,
+  FounderConfidence,
+  FounderOutcome,
+} from './founder-analysis';
+
 // The Power Index (blueprint 6.1, T-110).
 export { POWER_INDEX_COMPONENTS, POWER_INDEX_LABELS, POWER_INDEX_WEIGHTS } from './power-index';
 export type {
