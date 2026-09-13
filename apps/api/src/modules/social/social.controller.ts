@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
   Controller,
   Delete,
   ForbiddenException,
@@ -189,6 +190,17 @@ function settle(outcome: SocialOutcome): void {
         error: 'email_unverified',
         message: 'Verify your e-mail address before adding friends.',
       } satisfies ApiError);
+    case 'rate_limited':
+      // 429 rather than 400: the request was well formed and the answer is
+      // "wait", not "fix it". A ceiling on volume is the only automation in
+      // this product's moderation (D-054); nothing here reads what was written.
+      throw new HttpException(
+        {
+          error: 'rate_limited',
+          message: 'You have sent a lot of friend requests in the last hour. Try again later.',
+        } satisfies ApiError,
+        429,
+      );
     case 'restricted':
       // Handled by `settleContact`, which can look the sanction up. Reaching
       // here would mean a route that can be sanctioned forgot to use it.
