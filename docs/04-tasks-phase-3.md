@@ -562,11 +562,12 @@ it the other way round means writing the membership rule twice.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-220 | Schema and contracts: `conversation`, `participant`, `message`, per-conversation sequence | T-210 | Ordering is a property of the store, not of a clock; removal leaves a tombstone |
+| `[x]` T-220 | Schema and contracts: `conversation`, `participant`, `message`, per-conversation sequence | T-210 | Ordering is a property of the store, not of a clock; removal leaves a tombstone |
 | `[ ]` T-221 | The conversation API: open, send, page back, read state, mute, leave | T-220 | A blocked or sanctioned member cannot send; every conversation can be left |
 | `[ ]` T-222 | Shared football cards: match, article, team, player, prediction | T-221 | A card is a reference resolved at read time, never a copy of a score |
 | `[ ]` T-223 | Search within a conversation | T-221 | Finds a member's own messages in a conversation they are still in |
 | `[ ]` T-224 | The chat surface on the web, without realtime | T-222 | Usable and correct over plain requests, before a socket exists |
+| `[ ]` T-225 | Reactions, mentions and pinned messages | T-221 | Each one is a row of its own; a mention never reaches somebody who blocked the mentioner |
 
 **Order is a sequence, not a timestamp.** Blueprint 19 asks that messages
 "arrive in real time and retain ordering", and `created_at` cannot carry that: two
@@ -609,6 +610,69 @@ optional in the same sentence it names it. Accepting uploads means storage,
 scanning, a binary moderation queue, and a legal exposure that is different in
 kind from text. Declining it is a scope decision made once, in the open, rather
 than an unbuilt corner somebody assumes is coming.
+
+**T-225 was added on 2026-09-14, while T-220 was being built.** Blueprint 8.3
+lists "replies, reactions, mentions and pinned messages" and this epic's plan had
+a place for exactly one of them: `reply_to_id` is a column, and the other three
+had nowhere to live. Rather than let them become a sentence in a review, they are
+a row. The same thing happened to E13 in Phase 2, which began as four tasks and
+ended as eight.
+
+**T-220 verified on 2026-09-14.** `..._conversations.sql` is `conversation`,
+`conversation_participant` and `message`;
+`packages/contracts/src/conversations.ts` is the contract. Nothing in the API
+writes them yet — that is T-221 — so `conversations.schema.spec.ts` writes what
+the service will write and checks the half that belongs to the database, which
+here is most of the interesting half.
+
+**Ordering is a property of the store, and the test says so four ways.** Messages
+are numbered from one within their conversation; two conversations count
+separately (a global counter would leak how much the whole product is being used,
+and would make "everything after 41" a question about the platform rather than
+about this conversation); **a sequence a caller supplies is overwritten**, because
+a number a client can choose is a number two clients will choose; and a refused
+message does not spend one. That last is why the allocation trigger is named
+`message_write_sequence` — Postgres fires BEFORE triggers alphabetically, so
+`access` < `block` < `sanction` < `volume` < `write_sequence`, and every refusal
+happens before a number is taken.
+
+**This is the surface D-053 put the whole moderation epic in front of, and
+nothing new was needed for it.** A block, a sanction and a ceiling already
+existed; this migration wires the same three into a new write path and widens
+their lists to cover it — `sanction.scope` gains `messaging`,
+`report.subject_type` and `moderation_decision.subject_type` gain `message`, and
+`rate_limit` gains a row — which is exactly what T-210 promised each later epic
+would do rather than declaring the scopes up front. A message across a block
+meets the same `PL003` a friend request meets, and a sanctioned member the same
+`PL004`.
+
+**A message is never rewritten, and that is a reading of the blueprint rather
+than a shortcut.** Blueprint 8.3 lists replies, reactions, mentions and pins and
+does **not** list editing — so there is no version table and no edit path. The
+only permitted UPDATE is the tombstone; `PL007` refuses everything else,
+including a DELETE, including a second removal (which would let a moderator
+overwrite who took it down). The row stays with its number, so the conversation
+around it still reads and the moderation record stays verifiable.
+
+**A member who leaves keeps the history.** `left_at` stops them writing (`PL006`)
+and the participant row stays, so what they were part of is still theirs to read.
+
+**Read state is a column and a judgement.** `last_read_seq` is what an unread
+count is built from; the contract only *shows* the other member's position in a
+**direct** conversation, because in a two-hundred-person group a read receipt is
+a surveillance feature nobody reads and everybody is subject to.
+
+**One direct conversation per pair**, stored as the ordered pair the same way a
+friendship is (T-200): two rows would be two histories for one pair. And
+`conversation.kind` allows only `direct` until T-240 builds groups — a kind
+nothing can create is a kind nothing should offer.
+
+Checked by breaking it: dropping the access, block and rewrite triggers fails six
+of the fourteen tests and no others. 14 tests against the real schema; the
+migration was cycled down and up.
+
+**What is not here.** No endpoint: opening a conversation, sending, paging back,
+read state, mute and leave are T-221, and the football cards are T-222.
 
 ---
 
