@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Translated } from '@/components/translated';
 import { fetchMe } from '@/lib/api';
 import { logoutAction } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
@@ -7,6 +8,11 @@ import { sessionCookieHeader } from '@/lib/session';
  * The one navigation bar. Reads the session server-side; when the API is
  * unreachable the visitor is shown as signed out, which is the honest state:
  * nothing could be verified.
+ *
+ * Every label goes through `Translated` (T-151), which is what makes this the
+ * worked example of the missing-string policy: on an unfinished locale the
+ * English stands in and is marked `lang="en"`, rather than being shown as
+ * though somebody had translated it.
  */
 export async function SiteHeader({ locale }: { locale: string }) {
   const me = await fetchMe(await sessionCookieHeader());
@@ -22,10 +28,10 @@ export async function SiteHeader({ locale }: { locale: string }) {
           FMIP
         </Link>
         <Link href={href('/scores')} data-testid="nav-scores">
-          Scores
+          <Translated locale={locale} message="nav.scores" />
         </Link>
         <Link href={href('/leaderboard')} data-testid="nav-leaderboard">
-          Leaderboard
+          <Translated locale={locale} message="nav.leaderboard" />
         </Link>
         <form action={href('/search')} method="get" role="search" className="me-auto">
           <label htmlFor="header-search" className="sr-only">
@@ -44,7 +50,9 @@ export async function SiteHeader({ locale }: { locale: string }) {
 
         {me === null ? (
           <>
-            <Link href={href('/login')}>Sign in</Link>
+            <Link href={href('/login')}>
+              <Translated locale={locale} message="nav.signIn" />
+            </Link>
             <Link href={href('/register')} className="font-medium">
               Register
             </Link>
@@ -54,10 +62,12 @@ export async function SiteHeader({ locale }: { locale: string }) {
             <Link href={href(`/u/${encodeURIComponent(me.username)}`)} data-testid="nav-me">
               @{me.username}
             </Link>
-            <Link href={href('/settings')}>Settings</Link>
+            <Link href={href('/settings')}>
+              <Translated locale={locale} message="nav.settings" />
+            </Link>
             <form action={logoutAction.bind(null, locale)}>
               <button type="submit" className="underline">
-                Sign out
+                <Translated locale={locale} message="nav.signOut" />
               </button>
             </form>
           </>

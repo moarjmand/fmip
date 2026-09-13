@@ -1,9 +1,16 @@
 /**
  * Locale registry.
  *
- * English only at launch (D-003), but every layout decision that depends on
- * writing direction reads `directionOf` rather than assuming left-to-right, so
- * adding a locale is a change to this file and nothing else.
+ * English is the source language (D-003). Arabic joined in T-150 and is the
+ * first real right-to-left locale — it routes and renders, and every string it
+ * has no translation for falls back to English *and says so* (`i18n/messages.ts`).
+ * It is deliberately not indexable and not offered as a finished language until
+ * its catalogue is filled, because a page that looks translated and is not is
+ * the language version of faking coverage.
+ *
+ * Every layout decision that depends on writing direction reads `directionOf`
+ * rather than assuming left-to-right, so adding a locale stays a change to this
+ * file and a catalogue.
  */
 
 /**
@@ -14,7 +21,14 @@
  */
 export const PSEUDO_LOCALES = ['x-rtl'] as const;
 
-export const LOCALES = ['en', ...PSEUDO_LOCALES] as const;
+/**
+ * Locales whose catalogue is not finished. They route and render so that a
+ * translator can see their work in place, and they are kept out of the index
+ * and out of any "choose your language" list until they are done.
+ */
+export const UNFINISHED_LOCALES = ['ar'] as const;
+
+export const LOCALES = ['en', ...UNFINISHED_LOCALES, ...PSEUDO_LOCALES] as const;
 
 export type Locale = (typeof LOCALES)[number];
 
@@ -39,6 +53,11 @@ export function isLocale(value: string): value is Locale {
 
 export function isPseudoLocale(value: string): value is PseudoLocale {
   return (PSEUDO_LOCALES as readonly string[]).includes(value);
+}
+
+/** Whether this locale's catalogue is still being written (T-150, T-151). */
+export function isUnfinishedLocale(value: string): boolean {
+  return (UNFINISHED_LOCALES as readonly string[]).includes(value);
 }
 
 /**

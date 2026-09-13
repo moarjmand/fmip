@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import type { CompetitionPage, MatchHeader, PlayerPage, TeamPage } from '@fmip/contracts';
-import { DEFAULT_LOCALE, LOCALES, isPseudoLocale } from '../i18n/locales';
+import { DEFAULT_LOCALE, LOCALES, isPseudoLocale, isUnfinishedLocale } from '../i18n/locales';
 
 /**
  * The SEO surface (T-039, D-040): one canonical URL per page under its
@@ -19,7 +19,12 @@ export function siteUrl(env: Record<string, string | undefined> = process.env): 
 }
 
 /** The shipped locales that are languages, not QA surfaces. */
-export const INDEXABLE_LOCALES: readonly string[] = LOCALES.filter((l) => !isPseudoLocale(l));
+export const INDEXABLE_LOCALES: readonly string[] = LOCALES.filter(
+  // An unfinished locale renders in English with every string marked as such.
+  // Offering that to a search engine as an Arabic page would be a lie told at
+  // scale (T-150).
+  (l) => !isPseudoLocale(l) && !isUnfinishedLocale(l),
+);
 
 /** `https://site/en/scores`; `path` starts with `/` or is empty for the locale root. */
 export function canonicalUrl(locale: string, path: string, origin = siteUrl()): string {
@@ -43,7 +48,8 @@ export function pageMetadata(meta: PageMeta, origin = siteUrl()): Metadata {
   for (const locale of INDEXABLE_LOCALES)
     languages[locale] = canonicalUrl(locale, meta.path, origin);
   languages['x-default'] = canonicalUrl(DEFAULT_LOCALE, meta.path, origin);
-  const index = meta.index !== false && !isPseudoLocale(meta.locale);
+  const index =
+    meta.index !== false && !isPseudoLocale(meta.locale) && !isUnfinishedLocale(meta.locale);
   return {
     title: meta.title,
     ...(meta.description !== undefined ? { description: meta.description } : {}),
