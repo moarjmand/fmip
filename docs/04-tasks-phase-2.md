@@ -369,12 +369,12 @@ Independent of every data question: nothing here needs a provider.
 |---|---|---|---|
 | `[x]` T-130 | Schema: analysis, its versions, its publication state | T-040 | An edit after publication is a new version with a visible time |
 | `[x]` T-131 | Authoring API and editor, `founder` role, audited | T-130, T-070 | Only the founder writes; every publish and edit is in the audit log |
-| `[~]` T-132 | Surfaces: match centre, homepage, team and competition feeds (the predictions page does not exist) | T-131 | Appears in all five, always attributed and signed |
+| `[x]` T-132 | Surfaces: match centre, homepage, team and competition feeds, the Predictions page | T-131 | Appears in all five, always attributed and signed |
 | `[x]` T-133 | The separation guard | T-132 | A test fails if a founder analysis is ever merged into the model or the consensus payload |
 | `[x]` T-134 | Community consensus: the crowd distribution and the rating-weighted one | T-053, T-133 | Both distributions, or an explicit coverage state; never one of them twice |
-| `[~]` T-135 | The community forecast on the match centre (the Predictions page is T-136) | T-134 | Both distributions and the comparison blueprint 4.2 asks for, with nothing averaged |
+| `[x]` T-135 | The community forecast on the match centre | T-134 | Both distributions and the comparison blueprint 4.2 asks for, with nothing averaged |
 | `[x]` T-136 | Listing each product across fixtures: the data the Predictions page needs | T-134 | Each product answers for a set of fixtures from its own endpoint; no payload carries two of them |
-| `[ ]` T-137 | The Predictions page | T-136 | All four of blueprint 2.1 on one page, each attributed |
+| `[x]` T-137 | The Predictions page | T-136 | All four of blueprint 2.1 on one page, each attributed |
 
 **T-133 exists because rule 6 is easy to break by accident.** The three
 prediction products — the statistical model, the founder's analysis and the
@@ -546,6 +546,33 @@ member and has them predict; the new assertion goes straight to that match and
 proves the page says there is *no consensus yet*. One member is not a community,
 and with a sample of one a published distribution would also be that member's
 prediction on display (T-056).
+
+**T-137 verified on 2026-09-13, and with it T-132 and T-135.** `/[locale]/predictions`
+is the page blueprint 2.1 names, and the fifth founder surface — so T-132, which
+had been `[~]` since the founder's analysis shipped for want of this page, is now
+honestly `[x]`.
+
+**Four sections, not one feed.** This is the one page where all three prediction
+products appear together, which makes "today's predictions, ranked, each tagged
+with where it came from" the obvious design — more compact, better reading, and
+exactly what rule 6 forbids. Each product is rendered by a component in its own
+product's file, from an endpoint that serves only that product; the guard checks
+the page for the three components and against a `PredictionRow` or a `source`
+field.
+
+**A section that disappears is not an honest empty state.** The founder feed
+renders nothing when it has nothing, which is right on the homepage and wrong
+here: the page promises four things, and a vanishing section leaves a reader
+unable to tell whether the founder has written nothing or the site forgot to ask.
+Caught by rendering the page rather than by a test — the heading was simply
+missing from the output. Every section now states its own absence: the model has
+no forecast for these matches, no match has five predictions yet, the founder
+writes for selected fixtures.
+
+**Checked against a running stack**, not only in types: the API rebuilt on 3002
+and `next dev` on 3100, `/en/predictions?date=2025-01-05` rendering all four
+sections and `/ar/predictions` rendering right-to-left with the new `nav.predictions`
+key correctly marked `untranslated` (T-151). 121 web tests.
 
 **T-136 verified on 2026-09-13.** `GET /forecasts?fixtures=` and
 `GET /consensus?fixtures=` answer for a set of fixtures in one query each.

@@ -27,6 +27,7 @@ import { DEFAULT_LOCALE, type Locale } from './locales';
 export const EN = {
   'nav.scores': 'Scores',
   'nav.search': 'Search',
+  'nav.predictions': 'Predictions',
   'nav.leaderboard': 'Leaderboard',
   'nav.signIn': 'Sign in',
   'nav.signOut': 'Sign out',
