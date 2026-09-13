@@ -242,3 +242,17 @@ export type {
   SanctionScope,
   SubmitReportRequest,
 } from './moderation';
+
+// Conversations (blueprint 8.3, T-220). Ordered by sequence, never by clock.
+export { CONVERSATION_KINDS, MAX_MESSAGE_LENGTH, MESSAGE_PAGE_SIZE } from './conversations';
+export type {
+  ConversationKind,
+  ConversationMember,
+  ConversationPage,
+  ConversationSummary,
+  ConversationsResponse,
+  Message,
+  MessageRemoval,
+  SendMessageRequest,
+  SendMessageResponse,
+} from './conversations';
