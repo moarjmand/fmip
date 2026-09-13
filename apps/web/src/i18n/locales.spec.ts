@@ -6,6 +6,7 @@ import {
   directionOf,
   isLocale,
   isPseudoLocale,
+  isUnfinishedLocale,
   localeFromPathname,
 } from './locales';
 
@@ -76,5 +77,29 @@ describe('localeFromPathname', () => {
     expect(localeFromPathname('/')).toBeUndefined();
     expect(localeFromPathname('/match/123')).toBeUndefined();
     expect(localeFromPathname('/fr/match')).toBeUndefined();
+  });
+});
+
+describe('Arabic, the first real right-to-left locale (T-150)', () => {
+  it('is a locale, and a right-to-left one', () => {
+    expect(isLocale('ar')).toBe(true);
+    expect(directionOf('ar')).toBe('rtl');
+    // Regional variants resolve the same way, so `ar-EG` is not a silent bug.
+    expect(directionOf('ar-EG')).toBe('rtl');
+  });
+
+  it('is unfinished, and is not a pseudo-locale', () => {
+    // The pseudo-locale renders English in a right-to-left document to catch a
+    // physical-property regression. Arabic is a language whose catalogue is not
+    // written yet. The two are kept apart because they need different answers
+    // about indexing, about language lists, and about when they are done.
+    expect(isUnfinishedLocale('ar')).toBe(true);
+    expect(isPseudoLocale('ar')).toBe(false);
+    expect(isUnfinishedLocale('en')).toBe(false);
+  });
+
+  it('is routable, so a translator can see the work in place', () => {
+    expect(LOCALES).toContain('ar');
+    expect(localeFromPathname('/ar/scores')).toBe('ar');
   });
 });

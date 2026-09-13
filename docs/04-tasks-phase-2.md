@@ -514,8 +514,8 @@ first test of whether the translation architecture of blueprint 13 is real.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-150 | The `ar` locale: routing, formatting, plurals, football glossary | T-007 | `/ar` renders every Phase 1 page |
-| `[ ]` T-151 | Translation workflow: source of truth, review state, missing-string policy | T-150 | An untranslated string is visibly untranslated, never machine output presented as a translation |
+| `[~]` T-150 | The `ar` locale: routing, formatting, plurals, football glossary | T-007 | `/ar` renders every Phase 1 page |
+| `[x]` T-151 | Translation workflow: source of truth, review state, missing-string policy | T-150 | An untranslated string is visibly untranslated, never machine output presented as a translation |
 | `[ ]` T-152 | Search across transliterations and aliases | T-038, T-150 | Arabic and Latin spellings of the same player both find them |
 | `[ ]` T-153 | Right-to-left audit on real content | T-150 | Scores, timelines, icons and numerals behave; the pseudo-locale test is no longer the only proof |
 
@@ -524,6 +524,43 @@ and shipping them as the product's Arabic is exactly the kind of invented conten
 rule 3 forbids, and a football glossary is a judgement a fluent speaker makes.
 The architecture, the workflow, the fallback behaviour and the right-to-left
 correctness are all buildable now; the strings are the maintainer's to source.
+
+**T-151 verified on 2026-09-13, and T-150 started.** The order in the plan was
+the wrong way round: adding a locale before the missing-string policy exists
+means either shipping blanks or shipping English pretending to be Arabic. So the
+policy came first, and the locale followed it.
+
+**An untranslated string is visibly untranslated.** `i18n/messages.ts` is the
+catalogue and the lookup; `message()` returns the text *and* where it came from
+— `source`, `translated`, or `untranslated`. The `<Translated>` component
+renders the English fallback wrapped in `lang="en"`, which is not decoration:
+it is what HTML already provides for, so a screen reader switches pronunciation
+instead of reading English with Arabic phonetics, a browser's translation offer
+knows what it is looking at, and anyone inspecting the page can see that nobody
+has translated it yet. The site header is converted as the worked example.
+
+**Never machine output presented as a translation.** The Arabic catalogue
+contains two entries, and both are the kind of thing that is not translation: a
+language's own name. Everything else waits for a fluent speaker — producing
+Arabic by machine and shipping it as the product's Arabic would be inventing
+content, and a football glossary is a judgement blueprint 13.1 gives to a person.
+
+**The source of truth** is the English catalogue: a key that is not in it does
+not exist, and asking for one is a type error rather than a blank on a page.
+
+**`ar` routes and renders right-to-left**, so a translator can see their work in
+place. It is deliberately **not indexable** and not offered as a language the
+product speaks until its catalogue reaches 95%: a page that looks translated and
+is not is the language version of faking coverage, and offering it to a search
+engine would be that lie told at scale. `UNFINISHED_LOCALES` is what carries
+that, separate from the pseudo-locale, because the two need different answers
+about indexing and about when they are done.
+
+**T-150 stays `[~]`,** and honestly so. `/ar` renders every page, but it renders
+them in marked English: the acceptance criterion is met in routing and direction
+and not in language. What remains is the rest of the strings moving into the
+catalogue — a mechanical conversion, one surface at a time — and then the Arabic
+itself, which is the maintainer's to source. 24 i18n tests.
 
 ---
 
