@@ -4,6 +4,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { FixturesModule } from './modules/fixtures/fixtures.module';
 import { ForecastModule } from './modules/forecast/forecast.module';
+import { FounderModule } from './modules/founder/founder.module';
 import { HealthModule } from './modules/health/health.module';
 import { IdentityModule } from './modules/identity/identity.module';
 import { IngestionModule } from './modules/ingestion/ingestion.module';
@@ -27,6 +28,7 @@ import { SearchModule } from './modules/search/search.module';
     IdentityModule,
     ProfileModule,
     ForecastModule,
+    FounderModule,
     FixturesModule,
     PredictionsModule,
     ReputationModule,

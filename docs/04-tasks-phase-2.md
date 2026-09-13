@@ -368,7 +368,7 @@ Independent of every data question: nothing here needs a provider.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-130 | Schema: analysis, its versions, its publication state | T-040 | An edit after publication is a new version with a visible time |
-| `[ ]` T-131 | Authoring API and editor, `founder` role, audited | T-130, T-070 | Only the founder writes; every publish and edit is in the audit log |
+| `[x]` T-131 | Authoring API and editor, `founder` role, audited | T-130, T-070 | Only the founder writes; every publish and edit is in the audit log |
 | `[ ]` T-132 | Surfaces: predictions page, match centre, homepage, team and competition feeds | T-131 | Appears in all five, always attributed and signed |
 | `[~]` T-133 | The separation guard | T-132 | A test fails if a founder analysis is ever merged into the model or the consensus payload |
 
@@ -410,6 +410,39 @@ The guard was checked by breaking it on purpose — three of its four tests fail
 the moment a `ForecastVersion` appears in the founder contract. It stays `[~]`
 until T-132 exists, because the rendered payloads are the other place the three
 could blend.
+
+**T-131 verified on 2026-09-13.** `apps/api/src/modules/founder/` is its own
+boundary rather than a corner of the forecast one, and that *is* the point: two
+of the three prediction products living in separate boundaries is what makes
+blending them a deliberate act rather than an accident (rule 6).
+
+**Only the founder writes.** `GET` is public — it is one of the three things a
+reader comes for — and `POST` needs the **`founder`** role, deliberately not
+`admin`. An administrator can change coverage and suspend accounts, and none of
+that should carry the right to publish under the founder's name; the role list
+has had `founder` in it since T-040 for exactly this. A guest gets 401, a member
+403.
+
+**Every publish and edit is in the audit log**, written in the *same
+transaction* as the version (D-046): an editorial act visible in the product but
+absent from the log is the gap the rule exists to close, and two statements
+outside a transaction leave it open on any error between them. `founder.publish`
+for the first version, `founder.update` for each one after, with the previous
+version as `previous`.
+
+The service is thin on purpose. The rules that matter — versions rather than
+edits, nothing after kick-off, a score that cannot contradict its outcome — are
+in the schema, where no future caller can route around them; what is left here
+is turning the database's refusal into a **409**, because the request was well
+formed and simply arrived late. Validation names every bad field at once, with
+one substantive rule of its own: reasoning of at least 40 characters, because an
+analysis is the reasoning and a fragment beside a score is a prediction.
+
+The editor at `/[locale]/founder/[fixtureId]` is a plain server-action form —
+the blueprint's list of sections, no client state, works without JavaScript. It
+re-implements nothing: the field errors are the API's, and a match that has
+started shows the wall instead of a form. Published versions are listed under
+it, newest first. 7 validation tests, 6 over HTTP.
 
 ---
 
