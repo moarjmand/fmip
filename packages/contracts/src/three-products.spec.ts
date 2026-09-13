@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
- * The separation guard (T-133, CLAUDE.md rule 6).
+ * The separation guard (T-133, extended in T-134; CLAUDE.md rule 6).
  *
  * The three prediction products — the statistical model, the founder's analysis
  * and the community consensus — are never blended or relabelled. That is easy
@@ -14,6 +14,11 @@ import { join } from 'node:path';
  *
  * So this is a test rather than a paragraph. It fails when the contracts start
  * to merge, which is the moment the mistake is cheap to undo.
+ *
+ * **Worth recording:** for its first weeks this guarded a consensus payload
+ * that did not exist. The model and the founder's analysis were built; the
+ * third product was named in the rule, named in this test, and never written.
+ * T-134 built it, and these assertions now cover all three.
  */
 
 const CONTRACTS = join(__dirname);
@@ -35,6 +40,15 @@ describe('the three prediction products stay three', () => {
     const forecast = source('forecast.ts');
     expect(forecast).not.toMatch(/from '\.\/founder-analysis'/);
     expect(forecast).not.toMatch(/from '\.\/predictions'/);
+
+    // The consensus (T-134) is the third product, and it is the one most at
+    // risk of quietly merging: it is built out of member predictions, so
+    // reaching for `PredictionOutcome` feels harmless. It is not — that is the
+    // first shared type, and the second is a shared shape.
+    const consensus = source('consensus.ts');
+    expect(consensus).not.toMatch(/from '\.\/forecast'/);
+    expect(consensus).not.toMatch(/from '\.\/founder-analysis'/);
+    expect(consensus).not.toMatch(/from '\.\/predictions'/);
   });
 
   it('never puts a founder analysis inside a forecast payload, or the reverse', () => {
@@ -43,6 +57,13 @@ describe('the three prediction products stay three', () => {
     // came from.
     expect(source('forecast.ts')).not.toMatch(/FounderAnalysis/);
     expect(source('founder-analysis.ts')).not.toMatch(/ForecastVersion|ModelProbabilities/);
+
+    // And the specific failure blueprint 6.6 names in a sentence of its own:
+    // "The website must not disguise community opinion as the statistical
+    // model." A model probability appearing on the consensus payload is how
+    // that would start.
+    const consensus = source('consensus.ts').replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(consensus).not.toMatch(/ModelProbabilities|ForecastVersion|FounderAnalysis/);
   });
 
   it('keeps the word "prediction" out of the founder analysis contract', () => {
@@ -61,7 +82,7 @@ describe('the three prediction products stay three', () => {
     // A union like `type PredictionSource = 'model' | 'founder' | 'community'`
     // is the compact way to say the three are the same shape with a label —
     // which is precisely what rule 6 forbids.
-    for (const file of ['forecast.ts', 'founder-analysis.ts']) {
+    for (const file of ['forecast.ts', 'founder-analysis.ts', 'consensus.ts']) {
       const text = source(file);
       expect(text).not.toMatch(/'model'\s*\|\s*'founder'/);
       expect(text).not.toMatch(/'founder'\s*\|\s*'community'/);

@@ -371,6 +371,8 @@ Independent of every data question: nothing here needs a provider.
 | `[x]` T-131 | Authoring API and editor, `founder` role, audited | T-130, T-070 | Only the founder writes; every publish and edit is in the audit log |
 | `[~]` T-132 | Surfaces: match centre, homepage, team and competition feeds (the predictions page does not exist) | T-131 | Appears in all five, always attributed and signed |
 | `[x]` T-133 | The separation guard | T-132 | A test fails if a founder analysis is ever merged into the model or the consensus payload |
+| `[x]` T-134 | Community consensus: the crowd distribution and the rating-weighted one | T-053, T-133 | Both distributions, or an explicit coverage state; never one of them twice |
+| `[ ]` T-135 | The Predictions page, and the community forecast on the match centre | T-134 | All four of blueprint 2.1 on one page, each attributed; nothing averaged across the three products |
 
 **T-133 exists because rule 6 is easy to break by accident.** The three
 prediction products — the statistical model, the founder's analysis and the
@@ -485,8 +487,38 @@ union of the three as a kind, the founder panel labelled as one person's view,
 and the match centre rendering them as separate sections. Both guards were
 checked by breaking them on purpose: three of the four contract tests fail the
 moment a `ForecastVersion` appears in the founder contract, and the surface
-guard fails on the same import in the panel. E13 is complete apart from the one
-surface that has no page.
+guard fails on the same import in the panel.
+
+**And then the guard turned up what it was guarding.** Writing T-133 meant
+reading rule 6 closely enough to test it, and rule 6 names three products. Two
+of them were built. The third — the community consensus — existed in the rule,
+in the blueprint (2.1, 4.2 and 6.6), and in the assertions of this very test,
+and nowhere in the code: no endpoint, no contract, no table it read. The guard
+had been protecting the boundary of a payload nobody had written. **T-134 and
+T-135 are that gap**, added to the plan on 2026-09-13 rather than left as a
+sentence in a review.
+
+**T-134 verified on 2026-09-13.** `GET /fixtures/:id/consensus` returns the two
+distributions blueprint 6.6 asks for, out of the standing version of each
+member's prediction — the same version settlement judges, so a member who
+resubmits counts once rather than twice. `packages/contracts/src/consensus.ts`
+is its own contract and imports neither of the other two products; the guard in
+`three-products.spec.ts` now covers all three.
+
+**The two judgements are in D-052**, because neither is in the blueprint and
+both decide what the product claims. Only *established* raters weight the second
+distribution, so a rating that means "not known yet" never becomes a
+coefficient; and nothing is published below five predictors, because a
+percentage over three people reads as a finding and because an aggregate that
+small is a way to read one member's prediction they may have chosen to hide
+(T-056). Where the weighted distribution cannot honestly be built it is `null`
+and the module is `limited` — never the crowd distribution returned again under
+the other label, which is precisely the disguise 6.6 forbids and would be
+invisible from outside. 13 tests, 6 of them against the real schema.
+
+E13 now has one surface left rather than being complete: T-135 puts the
+consensus and the founder's analysis on a Predictions page, which is the page
+blueprint 2.1 names and the product does not yet have.
 
 ---
 
@@ -647,7 +679,7 @@ the production build.
 |---|---|---|
 | T-110, T-111, T-113, T-114 | nothing | agent |
 | T-120, T-121, T-122 | nothing | agent |
-| T-130, T-131, T-132, T-133 | nothing | agent |
+| T-130, T-131, T-132, T-133, T-134, T-135 | nothing | agent |
 | T-150, T-151, T-152, T-153 | Arabic strings for T-151 | agent, then maintainer |
 | T-100 | a purchase | **maintainer** |
 | T-101, T-102, T-103, T-112 | T-100 | after the purchase |
