@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Test } from '@nestjs/testing';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
-import type { CommunityConsensusResponse } from '@fmip/contracts';
+import type { CommunityConsensusResponse, ConsensusListResponse } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
@@ -229,6 +229,64 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       const serialised = JSON.stringify(await consensus(FULL));
 
       expect(serialised).not.toMatch(/model_version|probabilit|founder|analysis/i);
+    });
+
+    it('answers for several fixtures in one request, in the order asked', async () => {
+      // T-136. A page showing a day's matches asks once; asking once per match
+      // is how a list endpoint ends up slower than what it replaced.
+      const response = await app.inject({
+        method: 'GET',
+        url: `/consensus?fixtures=${UNRATED},${FULL},${THIN}`,
+      });
+      expect(response.statusCode).toBe(200);
+      const body = response.json() as ConsensusListResponse;
+
+      expect(body.fixtures.map((entry) => entry.fixture_id)).toEqual([UNRATED, FULL, THIN]);
+      // And each carries its own honest answer, which differs per fixture.
+      expect(body.fixtures.map((entry) => entry.consensus.coverage)).toEqual([
+        'limited',
+        'available',
+        'not_supplied',
+      ]);
+    });
+
+    it('gives the same answer in a list as it does one at a time', async () => {
+      // Two code paths that can drift are two answers to one question. The
+      // payload is built in one place; this is what says so.
+      const [single, list] = await Promise.all([
+        consensus(FULL),
+        app
+          .inject({ method: 'GET', url: `/consensus?fixtures=${FULL}` })
+          .then((r) => (r.json() as ConsensusListResponse).fixtures[0]?.consensus),
+      ]);
+
+      expect(list?.coverage).toBe(single.coverage);
+      expect(list?.data?.crowd).toEqual(single.data?.crowd);
+      expect(list?.data?.weighted).toEqual(single.data?.weighted);
+    });
+
+    it('leaves out a fixture that does not exist rather than inventing a row for it', async () => {
+      const missing = randomUUID();
+      const response = await app.inject({
+        method: 'GET',
+        url: `/consensus?fixtures=${FULL},${missing}`,
+      });
+      const body = response.json() as ConsensusListResponse;
+
+      // A list that answers for an unknown id teaches its caller that every id
+      // is valid.
+      expect(body.fixtures.map((entry) => entry.fixture_id)).toEqual([FULL]);
+    });
+
+    it('rejects a malformed id rather than quietly dropping it', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/consensus?fixtures=${FULL},not-a-uuid`,
+      });
+
+      // Skipping it would give a caller with one typo a shorter list and no
+      // indication which match is missing.
+      expect(response.statusCode).toBe(400);
     });
 
     it('is 404 for a fixture that does not exist', async () => {

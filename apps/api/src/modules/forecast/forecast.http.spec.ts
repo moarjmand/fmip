@@ -2,7 +2,11 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Test } from '@nestjs/testing';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
-import type { ForecastVersion, ForecastVersionsResponse } from '@fmip/contracts';
+import type {
+  ForecastListResponse,
+  ForecastVersion,
+  ForecastVersionsResponse,
+} from '@fmip/contracts';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
@@ -20,6 +24,8 @@ const MODEL_SERVICE_URL = process.env.MODEL_SERVICE_URL;
 
 // Seeded Liverpool v Man United, Premier League 2024/25 (packages/db/seed/002_fixtures.sql).
 const FIXTURE = '00000000-0000-4000-8000-000000000901';
+/** A seeded fixture the model has never been asked about. */
+const NO_FORECAST = '00000000-0000-4000-8000-000000000902';
 const ENGLAND = '00000000-0000-4000-8000-000000000101';
 const RUN = `${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
 
@@ -185,6 +191,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
     });
 
     let first: ForecastVersion;
+    let second: ForecastVersion;
 
     it('stores what the model answered as version N+1 with probabilities that total 1', async () => {
       const before = ((await get(FIXTURE)).json() as ForecastVersionsResponse).versions.length;
@@ -221,7 +228,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       };
       const response = await post(FIXTURE, { kind: 'lineups_confirmed' }, adminCookie);
       expect(response.statusCode).toBe(201);
-      const second = response.json() as ForecastVersion;
+      second = response.json() as ForecastVersion;
       createdIds.push(second.id);
 
       expect(second.version_number).toBe(first.version_number + 1);
@@ -234,6 +241,36 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect(list.latest?.id).toBe(second.id);
       expect(list.coverage).toBe('not_supplied');
       expect(list.last_updated_at).toBe('2025-01-04T18:00:00.000Z');
+    });
+
+    it('lists the latest version for several fixtures, never the first (T-136)', async () => {
+      // This fixture now has two versions, and the second is the one that
+      // counts. `versions` is oldest first, so a list that reached for
+      // `versions[0]` would answer with the forecast the model has already
+      // replaced — wrong in a way nothing else would catch.
+      const response = await app.inject({
+        method: 'GET',
+        url: `/forecasts?fixtures=${FIXTURE}`,
+      });
+      expect(response.statusCode).toBe(200);
+      const body = response.json() as ForecastListResponse;
+
+      expect(body.fixtures).toHaveLength(1);
+      expect(body.fixtures[0]?.latest?.id).toBe(second.id);
+      expect(body.fixtures[0]?.latest?.version_number).toBe(first.version_number + 1);
+    });
+
+    it('says the model has no answer rather than leaving a fixture out', async () => {
+      // A fixture with no forecast comes back with `latest` null. Omitting it
+      // would make "the model has nothing" indistinguishable from "you asked
+      // about a match that does not exist".
+      const response = await app.inject({
+        method: 'GET',
+        url: `/forecasts?fixtures=${NO_FORECAST}`,
+      });
+      const body = response.json() as ForecastListResponse;
+
+      expect(body.fixtures).toEqual([{ fixture_id: NO_FORECAST, latest: null }]);
     });
 
     it('is refused by the database on UPDATE and DELETE of a forecast or its snapshot', async () => {

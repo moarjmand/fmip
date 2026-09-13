@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { parseFixtures } from './consensus-list.controller';
 import { type Vote, crowd, weighted } from './internal/distribution';
 
 /**
@@ -81,5 +82,34 @@ describe('the rating-weighted distribution', () => {
 
     expect(result?.raters).toBe(2);
     expect(result?.shares).toEqual({ home: 0.5, draw: 0, away: 0.5 });
+  });
+});
+
+describe('the fixtures parameter of the list endpoint', () => {
+  const A = '00000000-0000-4000-8000-000000000001';
+  const B = '00000000-0000-4000-8000-000000000002';
+
+  it('collapses a fixture asked about twice into one question', () => {
+    expect(parseFixtures(`${A},${B},${A}`)).toEqual([A, B]);
+  });
+
+  it('rejects a malformed id rather than skipping it', () => {
+    // Skipping would answer a question nobody asked: a caller with one typo
+    // gets a shorter list and no way to tell which match fell out of it.
+    expect(() => parseFixtures(`${A},nonsense`)).toThrow();
+  });
+
+  it('refuses a list long enough to be a different question', () => {
+    const many = Array.from(
+      { length: 51 },
+      (_, index) => `00000000-0000-4000-8000-${index.toString().padStart(12, '0')}`,
+    ).join(',');
+
+    expect(() => parseFixtures(many)).toThrow();
+  });
+
+  it('treats an absent parameter as asking about nothing', () => {
+    expect(parseFixtures(undefined)).toEqual([]);
+    expect(parseFixtures('')).toEqual([]);
   });
 });

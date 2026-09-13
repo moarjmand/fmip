@@ -15,6 +15,7 @@ import type { Pool } from 'pg';
 import type { Vote } from './distribution';
 
 interface VoteRow {
+  fixture_id: string;
   outcome: 'home' | 'draw' | 'away';
   submitted_at: Date;
   /** `numeric` arrives as a string; `null` unless the rating is established. */
@@ -38,6 +39,15 @@ export class ConsensusStore {
     return result.rowCount === 1;
   }
 
+  /** Which of these fixtures exist, so a list can leave out the ones that do not. */
+  async existing(fixtureIds: string[]): Promise<Set<string>> {
+    const result = await this.pool.query<{ id: string }>(
+      `SELECT id FROM fixture WHERE id = ANY($1)`,
+      [fixtureIds],
+    );
+    return new Set(result.rows.map((row) => row.id));
+  }
+
   /**
    * Every member's standing prediction on a fixture, with the rating that
    * weights it.
@@ -53,14 +63,25 @@ export class ConsensusStore {
    * known yet" (D-052).
    */
   async standing(fixtureId: string): Promise<Standing> {
+    return (await this.standingFor([fixtureId])).get(fixtureId) ?? EMPTY;
+  }
+
+  /**
+   * The same, for several fixtures in one query (T-136).
+   *
+   * One query rather than one per fixture: a Predictions page asks about a
+   * day's matches at once, and twenty round trips to answer one page is how a
+   * list endpoint ends up slower than the per-fixture calls it replaced.
+   */
+  async standingFor(fixtureIds: string[]): Promise<Map<string, Standing>> {
     const result = await this.pool.query<VoteRow>(
       `WITH standing AS (
-         SELECT DISTINCT ON (up.user_id)
-                up.user_id, pv.outcome, pv.submitted_at
+         SELECT DISTINCT ON (up.fixture_id, up.user_id)
+                up.fixture_id, up.user_id, pv.outcome, pv.submitted_at
            FROM user_prediction up
            JOIN prediction_version pv ON pv.prediction_id = up.id
-          WHERE up.fixture_id = $1
-          ORDER BY up.user_id, pv.version_number DESC
+          WHERE up.fixture_id = ANY($1)
+          ORDER BY up.fixture_id, up.user_id, pv.version_number DESC
        ),
        newest_rating AS (
          SELECT DISTINCT ON (rs.user_id) rs.user_id, rs.rating, rs.established
@@ -68,22 +89,29 @@ export class ConsensusStore {
           WHERE rs.user_id IN (SELECT user_id FROM standing)
           ORDER BY rs.user_id, rs.computed_at DESC
        )
-       SELECT s.outcome,
+       SELECT s.fixture_id,
+              s.outcome,
               s.submitted_at,
               CASE WHEN r.established THEN r.rating END AS rating
          FROM standing s
          LEFT JOIN newest_rating r ON r.user_id = s.user_id`,
-      [fixtureId],
+      [fixtureIds],
     );
 
-    const votes: Vote[] = result.rows.map((row) => ({
-      outcome: row.outcome,
-      rating: row.rating === null ? null : Number(row.rating),
-    }));
-    const times = result.rows.map((row) => row.submitted_at.getTime());
-    return {
-      votes,
-      lastSubmittedAt: times.length === 0 ? null : new Date(Math.max(...times)),
-    };
+    const byFixture = new Map<string, Standing>();
+    for (const row of result.rows) {
+      const current = byFixture.get(row.fixture_id) ?? { votes: [], lastSubmittedAt: null };
+      current.votes.push({
+        outcome: row.outcome,
+        rating: row.rating === null ? null : Number(row.rating),
+      });
+      if (current.lastSubmittedAt === null || row.submitted_at > current.lastSubmittedAt) {
+        current.lastSubmittedAt = row.submitted_at;
+      }
+      byFixture.set(row.fixture_id, current);
+    }
+    return byFixture;
   }
 }
+
+const EMPTY: Standing = { votes: [], lastSubmittedAt: null };

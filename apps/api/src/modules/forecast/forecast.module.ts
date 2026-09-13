@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { IdentityModule } from '../identity/identity.module';
 import { EvaluationController } from './evaluation.controller';
 import { EvaluationService } from './evaluation.service';
+import { ForecastListController } from './forecast-list.controller';
 import { ForecastController } from './forecast.controller';
 import { MODEL_CLIENT, ForecastService, ModelClient } from './forecast.service';
 import { PostgresEvaluationStore } from './internal/evaluation-store';
@@ -45,7 +46,12 @@ export function modelClientFromEnv(env: NodeJS.ProcessEnv = process.env): ModelC
  */
 @Module({
   imports: [IdentityModule],
-  controllers: [ForecastController, EvaluationController, PowerIndexController],
+  controllers: [
+    ForecastController,
+    EvaluationController,
+    PowerIndexController,
+    ForecastListController,
+  ],
   providers: [
     ForecastService,
     PostgresForecastStore,

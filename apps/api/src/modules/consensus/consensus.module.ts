@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConsensusListController } from './consensus-list.controller';
 import { ConsensusController } from './consensus.controller';
 import { ConsensusService } from './consensus.service';
 
@@ -12,7 +13,7 @@ import { ConsensusService } from './consensus.service';
  * whose ratings weight it — and reads what it needs from the shared schema.
  */
 @Module({
-  controllers: [ConsensusController],
+  controllers: [ConsensusController, ConsensusListController],
   providers: [ConsensusService],
   exports: [ConsensusService],
 })

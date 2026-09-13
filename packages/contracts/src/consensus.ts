@@ -90,3 +90,33 @@ export const MIN_CONSENSUS_SAMPLE = 5;
 
 /** `GET /fixtures/:id/consensus`. */
 export type CommunityConsensusResponse = Covered<CommunityConsensus>;
+
+/**
+ * `GET /consensus?fixtures=<id>,<id>` — the same product for several fixtures
+ * at once (T-136).
+ *
+ * A list rather than a map so the order the caller asked in is the order it
+ * gets back, and a fixture that does not exist is simply absent rather than a
+ * key holding null.
+ *
+ * Each entry carries a full `Covered` payload of its own, because the honest
+ * answer differs per fixture: one match can have a consensus while the next has
+ * five predictions between them and none.
+ */
+export interface ConsensusListEntry {
+  fixture_id: string;
+  consensus: CommunityConsensusResponse;
+}
+
+export interface ConsensusListResponse {
+  fixtures: ConsensusListEntry[];
+}
+
+/**
+ * How many fixtures one request may ask about.
+ *
+ * A page shows a day of matches; anything past this is a different question
+ * being asked the wrong way, and an uncapped list is one query away from
+ * scanning every prediction ever made.
+ */
+export const MAX_CONSENSUS_FIXTURES = 50;

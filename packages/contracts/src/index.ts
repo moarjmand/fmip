@@ -15,10 +15,12 @@ export type {
 
 // Community consensus (blueprint 6.6, T-134). The third of the three
 // prediction products, sharing no type with the other two (rule 6).
-export { MIN_CONSENSUS_SAMPLE } from './consensus';
+export { MAX_CONSENSUS_FIXTURES, MIN_CONSENSUS_SAMPLE } from './consensus';
 export type {
   CommunityConsensus,
   CommunityConsensusResponse,
+  ConsensusListEntry,
+  ConsensusListResponse,
   ConsensusOutcome,
   ConsensusShares,
   CrowdDistribution,
@@ -108,8 +110,11 @@ export type {
   ModelScorelineProbability,
   ModelUnavailableReason,
 } from './forecast';
+export { MAX_FORECAST_FIXTURES } from './forecast';
 export type {
   ForecastKind,
+  ForecastListEntry,
+  ForecastListResponse,
   ForecastUnavailableReason,
   ForecastVersion,
   ForecastVersionsResponse,
