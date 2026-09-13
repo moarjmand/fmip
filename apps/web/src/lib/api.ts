@@ -9,6 +9,7 @@ import type {
   FixtureEvaluationsResponse,
   FollowedEntity,
   ForecastVersionsResponse,
+  FounderAnalysisResponse,
   PowerIndexResponse,
   FollowingResponse,
   HealthReport,
@@ -235,6 +236,15 @@ export function fetchMatchCentre(fixtureId: string): Promise<ApiResult<MatchCent
 export function fetchForecasts(fixtureId: string): Promise<ApiResult<ForecastVersionsResponse>> {
   return apiRequest<ForecastVersionsResponse>(
     `/fixtures/${encodeURIComponent(fixtureId)}/forecasts`,
+  );
+}
+
+/** `GET /fixtures/:id/founder-analysis` (T-131): the analysis and its versions. Public. */
+export function fetchFounderAnalysis(
+  fixtureId: string,
+): Promise<ApiResult<FounderAnalysisResponse>> {
+  return apiRequest<FounderAnalysisResponse>(
+    `/fixtures/${encodeURIComponent(fixtureId)}/founder-analysis`,
   );
 }
 
