@@ -172,6 +172,9 @@ importers:
       '@fmip/config':
         specifier: workspace:*
         version: link:../config
+      '@types/node':
+        specifier: ^22.20.1
+        version: 22.20.1
       eslint:
         specifier: ^9.39.5
         version: 9.39.5(jiti@2.7.0)
