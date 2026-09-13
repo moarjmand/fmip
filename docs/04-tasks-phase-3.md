@@ -564,7 +564,7 @@ it the other way round means writing the membership rule twice.
 |---|---|---|---|
 | `[x]` T-220 | Schema and contracts: `conversation`, `participant`, `message`, per-conversation sequence | T-210 | Ordering is a property of the store, not of a clock; removal leaves a tombstone |
 | `[x]` T-221 | The conversation API: open, send, page back, read state, mute, leave | T-220 | A blocked or sanctioned member cannot send; every conversation can be left |
-| `[ ]` T-222 | Shared football cards: match, article, team, player, prediction | T-221 | A card is a reference resolved at read time, never a copy of a score |
+| `[x]` T-222 | Shared football cards: match, article, team, player, prediction | T-221 | A card is a reference resolved at read time, never a copy of a score |
 | `[ ]` T-223 | Search within a conversation | T-221 | Finds a member's own messages in a conversation they are still in |
 | `[ ]` T-224 | The chat surface on the web, without realtime | T-222 | Usable and correct over plain requests, before a socket exists |
 | `[ ]` T-225 | Reactions, mentions and pinned messages | T-221 | Each one is a row of its own; a mention never reaches somebody who blocked the mentioner |
@@ -720,8 +720,57 @@ a member who has left can still read every word and write none.
 
 11 tests over HTTP; 75 across conversations, moderation and social together.
 
-**What is not here.** The football cards (T-222), search within a conversation
-(T-223), the web surface (T-224) and reactions, mentions and pins (T-225).
+**What is not here.** Search within a conversation (T-223), the web surface
+(T-224) and reactions, mentions and pins (T-225).
+
+**T-222 verified on 2026-09-14.** A message may now carry one football card, and
+**a card is a reference rather than a copy.** The message stores a kind and a
+UUID — no team name, no score, no kick-off time (rule 1) — and the card is
+resolved when the conversation is read, carrying its own `last_updated_at`
+(rule 4).
+
+**That is the whole task, and blueprint 8.3 says why:** "Match cards shared in
+chat remain live. The score and status update without replacing the original
+discussion context." A score copied into a message at send time would be a stale
+number displayed as a current one **permanently**, in a place nobody would ever
+think to go and fix. The test is written at exactly that point: a fixture is
+shared with no score, the score changes underneath it, and the same message — the
+same sequence number, the same words, in the same place — comes back carrying
+2–1.
+
+**A card with no words is a message; nothing at all is not.** Sharing a match
+without a comment is a real thing to do, so the body became optional when a card
+is present and the CHECK now asks for one or the other.
+
+**A removed message keeps no card.** A tombstone that held on to the reference
+would leave a fragment of what was said surviving the decision to take it down,
+and the rewrite guard was taught the two new columns — otherwise they would have
+been the one part of a message anybody could change afterwards.
+
+**Four kinds, and `article` is not one of them.** Blueprint 8.3 lists "a match,
+article, team, player or prediction"; news does not exist until E14, so `article`
+joins the CHECK in the migration that builds it. The same rule as every other
+list in this phase.
+
+**A member shares their own prediction and nobody else's.** A prediction history
+may be private (T-056) and a card must not be the way around it, so the card is
+refused unless the prediction belongs to the sender. It is always attributed when
+it resolves.
+
+**And an entity that no longer resolves is `gone`, not absent.** The message
+still says somebody shared something; the product does not invent what.
+
+**No foreign key on `card_id`, on purpose.** It names one of four tables by
+`card_kind`, exactly as `audit_log.target_id` and `report.subject_id` do, so the
+API checks the row exists on write — and a conversation full of cards does not
+make deleting a fixture impossible.
+
+The resolution is one query per kind rather than one per card, read straight from
+the shared schema. That is the same call `consensus-store.ts` made in T-134: no
+TypeScript crosses a boundary, and asking three public services would be the same
+answer assembled by hand, one round trip per card.
+
+17 tests over HTTP; 81 across conversations, moderation and social.
 
 ---
 

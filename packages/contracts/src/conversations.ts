@@ -35,6 +35,55 @@ export interface ConversationMember {
  */
 export type MessageRemoval = 'author' | 'moderator';
 
+/**
+ * What a message can carry besides words (blueprint 8.3, T-222).
+ *
+ * `article` joins the list when E14 builds news. Nothing here is stored on the
+ * message: the message holds a kind and a UUID, and the card below is resolved
+ * when the conversation is read.
+ */
+export const CARD_KINDS = ['fixture', 'team', 'person', 'prediction'] as const;
+export type CardKind = (typeof CARD_KINDS)[number];
+
+/**
+ * A shared card, resolved now rather than copied when it was sent.
+ *
+ * Blueprint 8.3: "Match cards shared in chat remain live. The score and status
+ * update without replacing the original discussion context." So a fixture card
+ * carries the score it has *now* and its own `last_updated_at` (rule 4) — a
+ * number copied at send time would be a stale score displayed as a current one,
+ * permanently, in a place nobody would think to go and fix.
+ *
+ * `gone` is the honest answer when the entity no longer resolves: the message
+ * still says somebody shared something, and the product does not invent what.
+ */
+export type SharedCard =
+  | {
+      kind: 'fixture';
+      id: string;
+      home: string;
+      away: string;
+      score: { home: number; away: number } | null;
+      status: string;
+      kickoff_at: string;
+      /** ISO 8601 (rule 4). */
+      last_updated_at: string;
+    }
+  | { kind: 'team'; id: string; name: string; short_name: string | null }
+  | { kind: 'person'; id: string; name: string }
+  | {
+      kind: 'prediction';
+      id: string;
+      fixture_id: string;
+      home: string;
+      away: string;
+      outcome: string;
+      confidence: number;
+      /** The member who made it. A shared prediction is always attributed. */
+      by: string;
+    }
+  | { kind: 'gone'; shared: CardKind };
+
 export interface Message {
   id: string;
   /** Unique and increasing within the conversation. What ordering means here. */
@@ -47,6 +96,8 @@ export interface Message {
   /** ISO 8601. For display, never for ordering. */
   created_at: string;
   removed: { at: string; by: MessageRemoval } | null;
+  /** `null` when the message is only words, and always null once removed. */
+  card: SharedCard | null;
 }
 
 export interface ConversationSummary {
@@ -90,8 +141,11 @@ export interface ConversationPage {
 }
 
 export interface SendMessageRequest {
-  body: string;
+  /** Optional when a card is shared: a match with no comment is a real thing to send. */
+  body?: string;
   reply_to_id?: string | null;
+  /** The entity to share, by kind and internal UUID (rule 1). */
+  card?: { kind: CardKind; id: string } | null;
 }
 
 /** What `POST` answers with, so a sender knows where their message landed. */

@@ -1,6 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Pool } from 'pg';
 import {
+  CARD_KINDS,
+  type CardKind,
   type ConversationKind,
   type ConversationPage,
   type ConversationSummary,
@@ -9,10 +11,12 @@ import {
   type Message,
   type MessageRemoval,
   type SendMessageRequest,
+  type SharedCard,
 } from '@fmip/contracts';
 import { PG_POOL } from '../../database/database.module';
 import { ModerationService } from '../moderation/moderation.service';
 import {
+  CardStore,
   type ConversationRow,
   ConversationsStore,
   type MessageRow,
@@ -42,7 +46,9 @@ export type ConversationOutcome<T> =
       fields?: Record<string, string>;
     };
 
-function message(row: MessageRow): Message {
+type CardLookup = Map<string, SharedCard>;
+
+function message(row: MessageRow, cards: CardLookup = new Map()): Message {
   return {
     id: row.id,
     seq: Number(row.seq),
@@ -57,6 +63,16 @@ function message(row: MessageRow): Message {
             at: row.removed_at.toISOString(),
             by: (row.removed_kind ?? 'author') as MessageRemoval,
           },
+    card:
+      row.card_kind === null || row.card_id === null
+        ? null
+        : // An entity that no longer resolves is `gone` rather than absent: the
+          // message still says somebody shared something, and the product does
+          // not invent what.
+          (cards.get(`${row.card_kind}:${row.card_id}`) ?? {
+            kind: 'gone',
+            shared: row.card_kind as CardKind,
+          }),
   };
 }
 
@@ -83,12 +99,79 @@ function message(row: MessageRow): Message {
 @Injectable()
 export class ConversationsService {
   private readonly store: ConversationsStore;
+  private readonly cards: CardStore;
 
   constructor(
     @Inject(PG_POOL) pool: Pool,
     private readonly moderation: ModerationService,
   ) {
     this.store = new ConversationsStore(pool);
+    this.cards = new CardStore(pool);
+  }
+
+  /**
+   * Resolve every card in a set of messages, now (T-222).
+   *
+   * One query per kind rather than one per card, and always at read time: a
+   * score copied into a message when it was sent would be a stale number shown
+   * as a current one, permanently, in a place nobody would think to go and fix
+   * (rules 1 and 4).
+   */
+  private async resolveCards(rows: MessageRow[]): Promise<CardLookup> {
+    const wanted = new Map<string, string[]>();
+    for (const row of rows) {
+      if (row.card_kind === null || row.card_id === null) continue;
+      wanted.set(row.card_kind, [...(wanted.get(row.card_kind) ?? []), row.card_id]);
+    }
+    if (wanted.size === 0) return new Map();
+
+    const [fixtures, teams, people, predictions] = await Promise.all([
+      this.cards.fixtures(wanted.get('fixture') ?? []),
+      this.cards.teams(wanted.get('team') ?? []),
+      this.cards.people(wanted.get('person') ?? []),
+      this.cards.predictions(wanted.get('prediction') ?? []),
+    ]);
+
+    const lookup: CardLookup = new Map();
+    for (const [id, row] of fixtures) {
+      lookup.set(`fixture:${id}`, {
+        kind: 'fixture',
+        id,
+        home: row.home,
+        away: row.away,
+        score:
+          row.home_goals === null || row.away_goals === null
+            ? null
+            : { home: row.home_goals, away: row.away_goals },
+        status: row.status,
+        kickoff_at: row.kickoff_at.toISOString(),
+        last_updated_at: row.last_updated_at.toISOString(),
+      });
+    }
+    for (const [id, row] of teams) {
+      lookup.set(`team:${id}`, {
+        kind: 'team',
+        id,
+        name: row.name,
+        short_name: row.short_name,
+      });
+    }
+    for (const [id, row] of people) {
+      lookup.set(`person:${id}`, { kind: 'person', id, name: row.name });
+    }
+    for (const [id, row] of predictions) {
+      lookup.set(`prediction:${id}`, {
+        kind: 'prediction',
+        id,
+        fixture_id: row.fixture_id,
+        home: row.home,
+        away: row.away,
+        outcome: row.outcome,
+        confidence: row.confidence,
+        by: row.by,
+      });
+    }
+    return lookup;
   }
 
   async list(viewerId: string): Promise<ConversationSummary[]> {
@@ -106,7 +189,10 @@ export class ConversationsService {
       members.set(row.conversation_id, list);
     }
 
-    return rows.map((row) => summary(row, members.get(row.id) ?? [], latest.get(row.id) ?? null));
+    const cards = await this.resolveCards([...latest.values()]);
+    return rows.map((row) =>
+      summary(row, members.get(row.id) ?? [], latest.get(row.id) ?? null, cards),
+    );
   }
 
   /**
@@ -146,14 +232,16 @@ export class ConversationsService {
       this.store.participantsOf([conversationId]),
       this.store.latest([conversationId]),
     ]);
+    const cards = await this.resolveCards([...messages, ...latest.values()]);
 
     return {
       conversation: summary(
         row,
         participants.map((p) => ({ username: p.username, display_name: p.display_name })),
         latest.get(conversationId) ?? null,
+        cards,
       ),
-      messages: messages.map(message),
+      messages: messages.map((m) => message(m, cards)),
       latest_seq: Number(row.latest_seq),
       has_earlier: hasEarlier,
     };
@@ -165,7 +253,9 @@ export class ConversationsService {
     body: SendMessageRequest,
   ): Promise<ConversationOutcome<Message>> {
     const text = typeof body?.body === 'string' ? body.body.trim() : '';
-    if (text === '') {
+    const card = body?.card ?? null;
+    if (text === '' && card === null) {
+      // A card with no comment is a real thing to send; nothing at all is not.
       return { ok: false, reason: 'invalid', fields: { body: 'A message needs something in it.' } };
     }
     if (text.length > MAX_MESSAGE_LENGTH) {
@@ -191,11 +281,42 @@ export class ConversationsService {
       };
     }
 
+    if (card !== null) {
+      if (!(CARD_KINDS as readonly string[]).includes(card.kind)) {
+        return {
+          ok: false,
+          reason: 'invalid',
+          fields: { card: `Must be one of ${CARD_KINDS.join(', ')}.` },
+        };
+      }
+      // The entity is checked to exist on write, because `card_id` names one of
+      // four tables by `card_kind` and no foreign key can do it (the same shape
+      // as `provider_mapping` in T-013 and `report.subject_id`).
+      if (typeof card.id !== 'string' || !(await this.cards.exists(card.kind, card.id))) {
+        return { ok: false, reason: 'invalid', fields: { card: 'No such thing to share.' } };
+      }
+      // A member shares their own prediction and nobody else's: somebody's
+      // prediction history may be private (T-056), and this must not be the way
+      // around it.
+      if (card.kind === 'prediction' && !(await this.cards.ownsPrediction(viewerId, card.id))) {
+        return {
+          ok: false,
+          reason: 'invalid',
+          fields: { card: 'You can share your own prediction.' },
+        };
+      }
+    }
+
     try {
-      return {
-        ok: true,
-        value: message(await this.store.send(conversationId, viewerId, text, replyTo)),
-      };
+      const written = await this.store.send(
+        conversationId,
+        viewerId,
+        text === '' ? null : text,
+        replyTo,
+        card?.kind ?? null,
+        card?.id ?? null,
+      );
+      return { ok: true, value: message(written, await this.resolveCards([written])) };
     } catch (error) {
       return this.refusal(error);
     }
@@ -257,12 +378,13 @@ function summary(
   row: ConversationRow,
   members: ConversationSummary['members'],
   latest: MessageRow | null,
+  cards: CardLookup,
 ): ConversationSummary {
   return {
     id: row.id,
     kind: row.kind as ConversationKind,
     members,
-    last_message: latest === null ? null : message(latest),
+    last_message: latest === null ? null : message(latest, cards),
     unread: Number(row.unread),
     muted: row.muted,
     left: row.left,
