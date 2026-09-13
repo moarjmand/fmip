@@ -52,10 +52,23 @@ licensing decision — sit in front of the smallest possible amount of work.
 
 ## Phase 3 — Community
 
-- Friends, private groups, direct and group chat over WebSockets.
+- The social graph: friends, requests, blocks.
+- Moderation: reports, sanctions, the queue and its audit history.
+- Conversations: direct and group chat, persisted and ordered, then delivered
+  over WebSockets.
+- User-created and exclusive groups, with their own leaderboards.
 - Public match discussion with approved contributors.
 - Community-written analysis workflow.
-- Moderation, reports, sanctions, audit history.
+- In-product notifications (push and email delivery are Phase 4).
+
+Planned in detail in `docs/04-tasks-phase-3.md`. **Moderation moved from last to
+second (D-053):** every earlier phase talked to a reader, and this one carries
+one member's words to another, so the exits — block, report, mute, leave — are
+built before the first surface that needs them rather than in a closing epic.
+Nothing in the phase needs a purchase or a licence; what it needs from the
+maintainer is policy (the platform rules, the conduct categories, the
+contributor thresholds and the approvals themselves). D-054 records the three
+things it deliberately does not build.
 
 ## Phase 4 — Reach
 

@@ -28,11 +28,11 @@ export function canView(
 }
 
 /**
- * Whether two members are friends. Friendships are Phase 2 (blueprint 8,
- * "Not in Phase 1"), so the only implementation today answers no, and a
- * friends-only profile is therefore visible to its owner alone. When
- * friendships arrive, this port gets a real implementation and nothing in
- * `canView` changes.
+ * Whether two members are friends. Friendships are Phase 3 (blueprint 8;
+ * T-200 is the schema and T-201 the real implementation of this port), so the
+ * only implementation today answers no, and a friends-only profile is
+ * therefore visible to its owner alone. When friendships arrive, this port
+ * gets a real implementation and nothing in `canView` changes.
  */
 export interface FriendshipOracle {
   areFriends(a: string, b: string): Promise<boolean>;
