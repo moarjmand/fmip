@@ -8,6 +8,7 @@ import {
   percentages,
   versionChanges,
 } from '@/lib/forecast';
+import { attribute } from '@/lib/forecast-diff';
 import { COVERAGE_LABEL } from '@/lib/match';
 import { formatKickoff } from '@/lib/scores';
 
@@ -15,7 +16,8 @@ import { formatKickoff } from '@/lib/scores';
  * The model forecast on the match centre (T-065, blueprint 6.1–6.4): the
  * latest version's probabilities, expected goals and most likely scorelines,
  * its leading factors, data completeness and computation time; what changed
- * between versions; and, after the match, how the forecast did. It explains
+ * between versions and what may be blamed for it (T-121, T-122); and, after the
+ * match, how the forecast did. It explains
  * and never asserts certainty: the wording is probabilities, and the version
  * and time are always on screen. An `unavailable` version is shown with its
  * reason, never as an empty panel (rule 3).
@@ -84,26 +86,39 @@ export function ForecastPanel({
         <div className="flex flex-col gap-1" data-testid="forecast-versions">
           <h3 className="text-sm font-medium">What changed between versions</h3>
           <ol className="flex flex-col gap-1 text-xs">
-            {versionChanges(forecasts.versions).map((change) => (
-              <li key={change.version.id} className="flex flex-wrap gap-x-2">
-                <span className="opacity-70">
-                  v{change.version.version_number} ·{' '}
-                  <time dateTime={change.version.computed_at}>
-                    {stamp(change.version.computed_at)}
-                  </time>
-                </span>
-                <span>
-                  {change.version.probabilities === null
-                    ? `${KIND_LABEL[change.version.kind]}: ${
-                        change.version.unavailable_reason !== null
-                          ? UNAVAILABLE_LABEL[change.version.unavailable_reason]
-                          : 'unavailable'
-                      }`
-                    : (describeChange(change, home, away) ??
-                      `${KIND_LABEL[change.version.kind]}: first available version.`)}
-                </span>
-              </li>
-            ))}
+            {versionChanges(forecasts.versions).map((change, index) => {
+              // The version before this one, for the attribution (T-121). The
+              // probabilities say *what* moved; only the inputs say why, and
+              // only as far as they honestly can.
+              const previous = index === 0 ? null : (forecasts.versions[index - 1] ?? null);
+              return (
+                <li key={change.version.id} className="flex flex-col gap-0.5">
+                  <div className="flex flex-wrap gap-x-2">
+                    <span className="opacity-70">
+                      v{change.version.version_number} ·{' '}
+                      <time dateTime={change.version.computed_at}>
+                        {stamp(change.version.computed_at)}
+                      </time>
+                    </span>
+                    <span>
+                      {change.version.probabilities === null
+                        ? `${KIND_LABEL[change.version.kind]}: ${
+                            change.version.unavailable_reason !== null
+                              ? UNAVAILABLE_LABEL[change.version.unavailable_reason]
+                              : 'unavailable'
+                          }`
+                        : (describeChange(change, home, away) ??
+                          `${KIND_LABEL[change.version.kind]}: first available version.`)}
+                    </span>
+                  </div>
+                  {previous !== null && (
+                    <span className="opacity-60" data-testid="forecast-attribution">
+                      {attribute(previous, change.version)}
+                    </span>
+                  )}
+                </li>
+              );
+            })}
           </ol>
         </div>
       )}
