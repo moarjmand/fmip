@@ -1499,3 +1499,98 @@ number is good. A page that shows the sample lets a reader judge the rest.
 payload. It moves the judgement to whoever writes the next page, and the first
 page that forgets the flag presents guesswork as the community's considered
 view, with nothing failing.
+
+---
+
+## D-053 — Moderation is built before the first member can message another, not after
+
+**Date:** 2026-09-13 · **Task:** Phase 3 planning · **Status:** accepted
+
+`01-roadmap.md` lists Phase 3 as "friends, private groups, direct and group chat
+over WebSockets; public match discussion; community-written analysis; moderation,
+reports, sanctions, audit history" — moderation last, after three epics of
+surfaces that carry one member's words to another.
+
+**Decision.** Reorder it. The social graph comes first (it is where blocking
+lives), the moderation spine second, and **no messaging surface ships before
+both**. Every conversational surface after that ships with block, mute, leave and
+report in its own acceptance criteria rather than in a later epic.
+
+**Why.** A moderation backlog is not a technical debt that accrues interest
+quietly; it accrues on a person. The first unwanted message arrives the day the
+surface opens, and if reporting is two epics away, the member who received it has
+no block, no report and no recourse — and the only honest response is to take the
+feature down again. Building the exits first costs one epic of ordering. Building
+them afterwards costs whatever happened in between, to somebody who did not
+choose to be the test case.
+
+The blueprint agrees with this reading more than the roadmap did: blocking is
+named in 8.1 as part of friendship itself, not in the moderation section, and 1.6
+says abuse "must be reportable and manageable" as a property of social features
+rather than as a later stage.
+
+**Alternatives rejected.** *Shipping chat to a closed group of trusted testers
+first and adding moderation before opening it* — reasonable in a funded team with
+someone watching the room, and here it means the maintainer is the moderation
+queue, at every hour, for as long as the gap lasts. *Relying on the existing
+admin account-suspension (T-070)* — suspending an account is the largest
+available action and the only one; a product whose only response to a rude
+message is deleting a member has no proportionate answer and will therefore not
+answer at all.
+
+**Consequences.** `docs/04-tasks-phase-3.md` orders the epics E20 social graph,
+E21 moderation, E22 conversations, E23 realtime, E24 groups, E25 public
+discussion, E26 community analysis, E27 notifications. Sanctions are enforced at
+the write path rather than by hiding output, so a restricted member is told; and
+every sanction carries a scope and an end, because an unbounded restriction is
+one nobody remembers to lift.
+
+---
+
+## D-054 — What Phase 3 deliberately does not build: uploads, an abuse classifier, and push delivery
+
+**Date:** 2026-09-13 · **Task:** Phase 3 planning · **Status:** accepted
+
+Three things a community phase is expected to contain are left out on purpose.
+Recording them here is the point: an unbuilt corner that nobody wrote down is
+indistinguishable from an oversight, and somebody eventually builds it in a
+hurry.
+
+**No user-uploaded images or files.** Blueprint 8.3 lists it and marks it
+optional in the same sentence: "only if the platform deliberately enables and
+manages it; it is not required by this blueprint". Accepting uploads means object
+storage, scanning, a moderation queue for binary content nobody can skim, and a
+legal exposure that is different in kind from text. Chat is text and structured
+football cards (T-222). If uploads are wanted later they are a
+project, with their own decision entry.
+
+**No automated abuse-language classifier.** Blueprint 10.4 allows that automated
+filters "can assist with spam and abusive language". The two halves of that
+sentence are not alike. A **rate** limit is a rule about volume, works identically
+in every language, and is built (T-213). A **classifier** for abusive language is
+not: anything buildable here is an English keyword list with some regular
+expressions, it would ship on a product that speaks eight languages, and it would
+under-moderate seven of them while the administration page reported that
+filtering was on. That is rule 3 — never fake coverage — wearing a safety label,
+and it is worse than the honest absence because it invites the moderation team to
+trust it. Reports and human decisions are the mechanism; the admin surface says
+which of the two caught what.
+
+**No push or email notification delivery.** Blueprint 12.2's *controls* — types,
+quiet hours, frequency limits, deep links — are Phase 3 (E27) because the
+features of this phase are useless if a friend request is never noticed. The
+*delivery channels* are Phase 4: push needs a service worker subscription flow
+and a signing key, email needs the mail provider that T-074 leaves to the
+maintainer, and both are campaigns-and-deliverability work rather than community
+work.
+
+**Alternatives rejected.** *A word list behind an "experimental" label* — nobody
+reads the label, and the queue it does not fill looks like a queue that is under
+control. *Images via a third-party embed only (paste a link, we render it)* —
+that is uploads with the storage problem outsourced and the moderation problem
+retained, plus a request from our servers to an arbitrary host.
+
+**Consequences.** Messages are text plus football cards resolved by UUID.
+Moderation is reports, human decisions and rate limits, and the product does not
+claim otherwise anywhere a reader can see. Notification preferences are built
+with no channel behind them but the inbox, which is exactly what Phase 4 extends.
