@@ -9,6 +9,7 @@ import type {
   FixtureEvaluationsResponse,
   FollowedEntity,
   ForecastVersionsResponse,
+  FounderAnalysesResponse,
   FounderAnalysisResponse,
   PowerIndexResponse,
   FollowingResponse,
@@ -245,6 +246,20 @@ export function fetchFounderAnalysis(
 ): Promise<ApiResult<FounderAnalysisResponse>> {
   return apiRequest<FounderAnalysisResponse>(
     `/fixtures/${encodeURIComponent(fixtureId)}/founder-analysis`,
+  );
+}
+
+/** `GET /founder-analyses` (T-132): the feed for the homepage, team and competition pages. */
+export function fetchFounderFeed(
+  query: { limit?: number; team?: string; competition?: string } = {},
+): Promise<ApiResult<FounderAnalysesResponse>> {
+  const params = new URLSearchParams();
+  if (query.limit !== undefined) params.set('limit', String(query.limit));
+  if (query.team !== undefined) params.set('team', query.team);
+  if (query.competition !== undefined) params.set('competition', query.competition);
+  const suffix = params.toString();
+  return apiRequest<FounderAnalysesResponse>(
+    `/founder-analyses${suffix === '' ? '' : `?${suffix}`}`,
   );
 }
 

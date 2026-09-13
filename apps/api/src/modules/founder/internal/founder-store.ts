@@ -9,7 +9,14 @@
  */
 
 import type { Pool, PoolClient } from 'pg';
-import type { FounderAnalysis, FounderAnalysisVersion } from '@fmip/contracts';
+import type {
+  FounderAnalysis,
+  FounderAnalysisSummary,
+  FounderAnalysisVersion,
+} from '@fmip/contracts';
+
+/** How much of the reasoning a feed shows. The full text is on the match page. */
+export const EXCERPT_LENGTH = 220;
 
 export interface NewVersion {
   fixtureId: string;
@@ -55,6 +62,51 @@ function toVersion(row: VersionRow): FounderAnalysisVersion {
   };
 }
 
+interface FeedRow extends VersionRow {
+  fixture_id: string;
+  kickoff_at: Date;
+  status: string;
+  home_id: string;
+  home_name: string;
+  away_id: string;
+  away_name: string;
+  competition_id: string;
+  competition_name: string;
+  author_id: string;
+  display_name: string;
+}
+
+/** Cut at a word boundary, with an ellipsis, so no sentence is chopped mid-word. */
+function excerpt(reasoning: string): string {
+  if (reasoning.length <= EXCERPT_LENGTH) return reasoning;
+  const cut = reasoning.slice(0, EXCERPT_LENGTH);
+  const lastSpace = cut.lastIndexOf(' ');
+  return `${(lastSpace > 0 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`;
+}
+
+function toSummary(row: FeedRow): FounderAnalysisSummary {
+  return {
+    fixture: {
+      id: row.fixture_id,
+      kickoff_at: row.kickoff_at.toISOString(),
+      status: row.status,
+      home: { id: row.home_id, name: row.home_name },
+      away: { id: row.away_id, name: row.away_name },
+      competition: { id: row.competition_id, name: row.competition_name },
+    },
+    author: { id: row.author_id, display_name: row.display_name },
+    predicted_outcome: row.predicted_outcome,
+    predicted_score:
+      row.predicted_home === null || row.predicted_away === null
+        ? null
+        : { home: row.predicted_home, away: row.predicted_away },
+    confidence: row.confidence as FounderAnalysisSummary['confidence'],
+    excerpt: excerpt(row.reasoning),
+    published_at: row.published_at.toISOString(),
+    version_number: row.version_number,
+  };
+}
+
 export class FounderStore {
   constructor(private readonly pool: Pool) {}
 
@@ -89,6 +141,52 @@ export class FounderStore {
       author: { id: head.author_id, display_name: head.display_name },
       versions: versions.rows.map(toVersion),
     };
+  }
+
+  /**
+   * The feed: analyses of matches that have not kicked off, soonest first.
+   *
+   * Upcoming only, because an analysis of a finished match belongs in the
+   * record rather than in a list of what to read next — and because a feed that
+   * mixes the two invites reading a call made before the result as though it
+   * were made after it.
+   */
+  async feed(options: {
+    limit: number;
+    teamId?: string;
+    competitionId?: string;
+  }): Promise<FounderAnalysisSummary[]> {
+    const { rows } = await this.pool.query<FeedRow>(
+      `SELECT f.id AS fixture_id, f.kickoff_at, f.status,
+              ht.id AS home_id, ht.name AS home_name,
+              at.id AS away_id, at.name AS away_name,
+              c.id AS competition_id, c.name AS competition_name,
+              u.id AS author_id, u.display_name,
+              v.predicted_outcome, v.predicted_home, v.predicted_away,
+              v.confidence, v.reasoning, v.published_at, v.version_number
+         FROM founder_analysis a
+         JOIN fixture f ON f.id = a.fixture_id
+         JOIN season se ON se.id = f.season_id
+         JOIN competition c ON c.id = se.competition_id
+         JOIN user_account u ON u.id = a.author_id
+         JOIN fixture_participant hp ON hp.fixture_id = f.id AND hp.side = 'home'
+         JOIN fixture_participant ap ON ap.fixture_id = f.id AND ap.side = 'away'
+         JOIN team ht ON ht.id = hp.team_id
+         JOIN team at ON at.id = ap.team_id
+         JOIN LATERAL (
+           SELECT * FROM founder_analysis_version fv
+            WHERE fv.analysis_id = a.id
+            ORDER BY fv.version_number DESC
+            LIMIT 1
+         ) v ON true
+        WHERE f.kickoff_at > now()
+          AND ($2::uuid IS NULL OR hp.team_id = $2 OR ap.team_id = $2)
+          AND ($3::uuid IS NULL OR c.id = $3)
+        ORDER BY f.kickoff_at
+        LIMIT $1`,
+      [options.limit, options.teamId ?? null, options.competitionId ?? null],
+    );
+    return rows.map(toSummary);
   }
 
   /** Whether the fixture exists at all, so "no analysis" and "no match" differ. */

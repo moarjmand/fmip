@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Covered, SeasonFixture } from '@fmip/contracts';
-import { fetchCompetition, fetchMe } from '@/lib/api';
+import { FounderAnalysisFeed } from '@/components/founder-analysis';
+import { fetchCompetition, fetchFounderFeed, fetchMe } from '@/lib/api';
 import {
   KIND_LABEL,
   competitionQuery,
@@ -64,9 +65,10 @@ export default async function CompetitionPage({
   const [{ locale, id }, query] = await Promise.all([params, searchParams]);
   if (!UUID.test(id)) notFound();
   const seasonParam = readSeasonParam(query);
-  const [result, me] = await Promise.all([
+  const [result, me, founder] = await Promise.all([
     fetchCompetition(id, competitionQuery(seasonParam)),
     fetchMe(await sessionCookieHeader()),
+    fetchFounderFeed({ competition: id, limit: 3 }),
   ]);
   if (!result.ok) {
     if (result.status === 404) notFound();
@@ -116,6 +118,14 @@ export default async function CompetitionPage({
           ))}
         </nav>
       </header>
+      {founder.ok && (
+        <FounderAnalysisFeed
+          analyses={founder.data.analyses}
+          locale={locale}
+          timeZone={timeZone}
+          heading={`Founder's analysis in ${c.name}`}
+        />
+      )}
 
       <Module title="Table" module={page.table} testId="table">
         {(rows) => (

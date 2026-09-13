@@ -4,8 +4,10 @@ export type { CoverageState, Covered } from './coverage';
 // The founder's analysis (blueprint 6.5, T-130). One of three prediction
 // products, and deliberately sharing no type with the other two (rule 6).
 export type {
+  FounderAnalysesResponse,
   FounderAnalysis,
   FounderAnalysisResponse,
+  FounderAnalysisSummary,
   FounderAnalysisVersion,
   FounderConfidence,
   FounderOutcome,

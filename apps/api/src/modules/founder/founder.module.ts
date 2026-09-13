@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { IdentityModule } from '../identity/identity.module';
+import { FounderFeedController } from './founder-feed.controller';
 import { FounderAnalysisController } from './founder.controller';
 import { FounderAnalysisService } from './founder.service';
 
@@ -14,7 +15,7 @@ import { FounderAnalysisService } from './founder.service';
  */
 @Module({
   imports: [IdentityModule],
-  controllers: [FounderAnalysisController],
+  controllers: [FounderAnalysisController, FounderFeedController],
   providers: [FounderAnalysisService],
   exports: [FounderAnalysisService],
 })
