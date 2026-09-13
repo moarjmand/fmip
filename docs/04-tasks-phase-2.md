@@ -78,7 +78,7 @@ calculation.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-110 | Schema and contracts: `power_index` version, components, completeness | T-064 | A stored index is immutable and recomputable from its inputs |
-| `[ ]` T-111 | Component computation: strength, form, venue, rest, competition context | T-110 | Each component is a number in `[0,1]` with its own coverage state |
+| `[x]` T-111 | Component computation: strength, form, venue, rest | T-110 | Each component is a number in `[0,1]` with its own coverage state |
 | `[ ]` T-112 | Line-up quality and managerial stability components | T-110, T-101 | Present when the data is, `not_supplied` when it is not — never zero |
 | `[ ]` T-113 | Weight validation against history | T-111, T-062 | The published weights beat the blueprint's defaults on a backtest, or the defaults are kept and the test says so |
 | `[ ]` T-114 | `GET /fixtures/:id/power-index` and the match-centre panel | T-111 | Shows leading factors, completeness and computed-at; missing components are visible |
@@ -118,10 +118,11 @@ versioned config in one file, the same shape as the Performance Rating formula
 arrive**, with the resulting completeness published beside the number.
 Substituting a neutral 0.5 would be inventing a value (rule 3) and would drag
 every index towards the middle by an amount nobody could see; the test asserts
-the two differ. On the free data of D-049 nothing supplies line-up quality or
-managerial stability, so a working index there is 75% complete and says so. An
-index with no component at all is not a weak index but the absence of one:
-`combine` returns null and the database refuses `completeness = 0`.
+the two differ. An index with no component at all is not a weak index but the
+absence of one: `combine` returns null and the database refuses
+`completeness = 0`. (This note first estimated 75% completeness on free data;
+T-111 measured it and it is 70% — competition context turned out to be
+unmeasurable too, for the reason recorded there.)
 
 **A stored index is immutable and recomputable from its inputs:** the database
 refuses UPDATE and DELETE (`refuse_change`, rule 5), refuses a value outside
@@ -134,6 +135,70 @@ migration was cycled down and up.
 **What is not here.** Nothing measures the components yet — that is T-111, and
 T-112 for the two the free data cannot reach. Nothing writes the table outside
 the test, and no endpoint serves it (T-114).
+
+**T-111 verified on 2026-09-13.** Five of the seven components are measured, and
+the measuring is separated from the arithmetic on purpose:
+`internal/power-index-measure.ts` is pure and takes a division's match history
+and a team's schedule; `internal/power-index-store.ts` is the SQL;
+`power-index.service.ts` joins them and stores the row.
+
+**Each component is a number in `[0,1]` with its own coverage state**, and every
+one of them is a *position in a distribution* rather than a score, because the
+blueprint forbids arbitrary fixed points:
+
+| Component | Measured as | Ranked against |
+|---|---|---|
+| `underlying_strength` | goal difference per match over the last 38 | the division's teams |
+| `recent_form` | last 6 matches' points, each scaled by the opponent's strength percentile | the division's teams |
+| `venue` | points per match **at this fixture's venue** — home record for the home side, away record for the away side | the division's teams on the same measure |
+| `rest_and_congestion` | days since the previous fixture and matches in the last fortnight, the **binding** constraint of the two | a published curve, not a population |
+
+Rest is the one component with no meaningful population to rank against (every
+team in a free midweek is equally rested), so its curve is written out as named
+constants — 2 days is the hardest turnaround, 7 a clear week, 4 matches in a
+fortnight fully congested — and it takes the *minimum* of rest and congestion
+rather than their average, because a clear week behind four matches is not a
+rested team and a mean would quietly say it was. It is never `available`: travel
+is the third thing the blueprint names here and we hold no venue coordinates,
+so it is `limited` with that as the note.
+
+**The two the free data cannot reach are named, not omitted** — line-up quality
+and managerial stability (T-112) — and so is a third the estimate had missed:
+**competition context**. Modelling it honestly needs the stakes of this stage and
+the team's other commitments, and mapping "knockout" to a fixed number would be
+exactly the arbitrary points the blueprint rules out. So a working index on this
+data is **70% complete**, and says so, rather than 75%.
+
+**Measured against a real season, not a fabricated one.** The development
+training store holds the whole 2024/25 Premier League, and the seed already maps
+Manchester United and Liverpool to the names it uses. Computing their index for a
+fixture the following August gives:
+
+| | Index | Strength | Form | Venue | Rest |
+|---|---|---|---|---|---|
+| Manchester United (home) | **25.2** | 0.275 | 0.175 | 0.350 | 0.200 |
+| Liverpool (away) | **77.7** | 0.975 | 0.475 | 0.975 | 0.200 |
+
+Liverpool won that title and Manchester United finished fifteenth, so the
+separation is the least a strength measure has to get right. The more telling
+number is Liverpool's form at 0.475 against a strength of 0.975: they spent the
+end of that season with the title already won, and the form component is
+measuring something the strength component is not — which is the whole reason
+the blueprint asks for both.
+
+**When it declines to answer at all:** a competition with no football-data
+division, a division we hold no history for, a team with no training alias. Each
+returns `not_measurable` with the reason and writes nothing. An index for one
+side and a blank for the other is refused too, because a panel showing that
+invites a comparison it cannot support.
+
+Recomputation is a new immutable row (`computed_at` is part of the key), and
+recomputing at the same instant is the same computation, not a second one — the
+insert is a no-op on conflict. 15 unit tests on the measurement rules, 6 against
+the real database; typecheck, lint and Prettier pass.
+
+**What is not here.** No endpoint and no panel yet (T-114), and nothing calls
+`compute` on a schedule — the version triggers are T-120.
 
 ---
 

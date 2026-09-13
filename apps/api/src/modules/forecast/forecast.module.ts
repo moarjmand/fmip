@@ -6,6 +6,7 @@ import { ForecastController } from './forecast.controller';
 import { MODEL_CLIENT, ForecastService, ModelClient } from './forecast.service';
 import { PostgresEvaluationStore } from './internal/evaluation-store';
 import { PostgresForecastStore } from './internal/forecast-store';
+import { PowerIndexService } from './power-index.service';
 
 /** `MODEL_SERVICE_URL=off`: this deployment has no model service, and says so. */
 export const NO_MODEL_SERVICE = 'off';
@@ -48,8 +49,9 @@ export function modelClientFromEnv(env: NodeJS.ProcessEnv = process.env): ModelC
     PostgresForecastStore,
     EvaluationService,
     PostgresEvaluationStore,
+    PowerIndexService,
     { provide: MODEL_CLIENT, useFactory: (): ModelClient => modelClientFromEnv() },
   ],
-  exports: [ForecastService, EvaluationService],
+  exports: [ForecastService, EvaluationService, PowerIndexService],
 })
 export class ForecastModule {}
