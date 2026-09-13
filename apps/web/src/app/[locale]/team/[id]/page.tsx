@@ -10,6 +10,7 @@ import { pageMetadata, teamJsonLd } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { contextLine, fromTeamSide, groupSquad } from '@/lib/team';
 import { JsonLd } from '@/components/json-ld';
+import { Score } from '@/components/score';
 
 export const dynamic = 'force-dynamic';
 
@@ -299,7 +300,11 @@ function MatchLine({
         {side.opponent}
       </Link>
       <Link href={`/${locale}/match/${fixture.id}`} className="font-medium underline">
-        {fixture.score === null ? 'Match centre' : `${fixture.score.home}–${fixture.score.away}`}
+        {fixture.score === null ? (
+          'Match centre'
+        ) : (
+          <Score home={fixture.score.home} away={fixture.score.away} />
+        )}
       </Link>
       <span className="text-xs opacity-70">
         <time dateTime={fixture.kickoff_at}>{formatFixtureDate(fixture.kickoff_at, timeZone)}</time>

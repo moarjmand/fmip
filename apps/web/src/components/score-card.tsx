@@ -2,6 +2,7 @@ import type { ScoreCard as ScoreCardData, ScoreCardIncident } from '@fmip/contra
 import Link from 'next/link';
 import { isBehind } from '@/lib/live';
 import { COVERAGE_LABEL, formatKickoff, scoreLabel, statusLabel } from '@/lib/scores';
+import { LtrNumeric, ltrIsolate } from '@/components/score';
 
 const INCIDENT_LABEL: Record<ScoreCardIncident['kind'], string> = {
   goal: 'Goal',
@@ -48,7 +49,7 @@ export function ScoreCard({
     card.leg === null ? null : `Leg ${card.leg}`,
     card.scores.aggregate === null
       ? null
-      : `Agg ${card.scores.aggregate.home}–${card.scores.aggregate.away}`,
+      : `Agg ${ltrIsolate(`${card.scores.aggregate.home}–${card.scores.aggregate.away}`)}`,
   ].filter((bit): bit is string => typeof bit === 'string' && bit !== '');
 
   return (
@@ -73,12 +74,12 @@ export function ScoreCard({
           {card.home.name}
           {sentOff(card.red_cards.home)}
         </span>
-        <span
+        <LtrNumeric
           className="w-16 shrink-0 text-center text-lg font-semibold tabular-nums"
-          data-testid="score"
+          testId="score"
         >
           {scoreLabel(card)}
-        </span>
+        </LtrNumeric>
         <span className="flex-1 truncate" data-testid="away-team">
           {sentOff(card.red_cards.away)}
           {card.away.name}

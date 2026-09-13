@@ -19,6 +19,7 @@ import {
 import { pageMetadata, playerJsonLd } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { JsonLd } from '@/components/json-ld';
+import { ltrIsolate } from '@/components/score';
 
 export const dynamic = 'force-dynamic';
 
@@ -289,7 +290,7 @@ export default async function PlayerPage({
                   {m.fixture.home.short_name ?? m.fixture.home.name}
                   {m.fixture.score === null
                     ? ' v '
-                    : ` ${m.fixture.score.home}–${m.fixture.score.away} `}
+                    : ` ${ltrIsolate(`${m.fixture.score.home}–${m.fixture.score.away}`)} `}
                   {m.fixture.away.short_name ?? m.fixture.away.name}
                 </Link>
                 <span className="opacity-80">{roleLabel(m)}</span>

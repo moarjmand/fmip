@@ -11,6 +11,7 @@ import {
 import { attribute } from '@/lib/forecast-diff';
 import { COVERAGE_LABEL } from '@/lib/match';
 import { formatKickoff } from '@/lib/scores';
+import { Score, ltrIsolate } from '@/components/score';
 
 /**
  * The model forecast on the match centre (T-065, blueprint 6.1–6.4): the
@@ -165,7 +166,10 @@ function Latest({
             Most likely scorelines:{' '}
             {version.most_likely_scorelines
               .slice(0, 3)
-              .map((s) => `${s.home}–${s.away} (${(s.probability * 100).toFixed(1)}%)`)
+              .map(
+                (s) =>
+                  `${ltrIsolate(`${s.home}–${s.away}`)} (${(s.probability * 100).toFixed(1)}%)`,
+              )
               .join(', ')}
           </li>
         )}
@@ -230,8 +234,9 @@ function Evaluation({
     <div className="flex flex-col gap-1 text-xs" data-testid="forecast-evaluation">
       <h3 className="text-sm font-medium">Post-match evaluation</h3>
       <p>
-        Result {last.actual.home}–{last.actual.away}: {outcome}. Version {last.version_number} (
-        {KIND_LABEL[last.kind]}) gave that outcome {(last.p_outcome * 100).toFixed(1)}%
+        Result <Score home={last.actual.home} away={last.actual.away} />: {outcome}. Version{' '}
+        {last.version_number} ({KIND_LABEL[last.kind]}) gave that outcome{' '}
+        {(last.p_outcome * 100).toFixed(1)}%
         {last.correct ? ', its most probable outcome' : ', not its most probable outcome'}. Log loss{' '}
         {last.log_loss.toFixed(3)}, Brier {last.brier.toFixed(3)} (lower is better; knowing nothing
         scores 1.099 and 0.667).
