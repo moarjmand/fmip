@@ -319,7 +319,7 @@ anything another member will read.
 | `[x]` T-210 | Schema and contracts: `report`, `moderation_decision`, `sanction`, `appeal_note` | T-070 | A decision is immutable and names its actor; a sanction has a scope and an end |
 | `[x]` T-211 | The reporting API, and sanctions enforced at the write path | T-210 | A restricted member is refused where they would have written, not hidden afterwards |
 | `[x]` T-212 | The moderation queue in the admin area | T-211 | Every action records actor, time, reason and previous value (rule 10) |
-| `[ ]` T-213 | Rate limits, and the honest limit of automated filtering | T-211 | A flood is refused by a rule about volume; nothing claims to detect abusive language |
+| `[x]` T-213 | Rate limits, and the honest limit of automated filtering | T-211 | A flood is refused by a rule about volume; nothing claims to detect abusive language |
 
 **A sanction is enforced at the write path.** A restriction that merely hides
 what a member wrote is not a restriction: the member still believes they are
@@ -502,7 +502,55 @@ suite with it, in CI, with an error about a unique constraint that had nothing t
 do with what was being tested. Reports are now deleted before the decisions they
 name.
 
-31 tests across the three moderation suites. **E21 is complete bar T-213.**
+31 tests across the three moderation suites.
+
+**T-213 verified on 2026-09-13, and E21 is complete.** `..._rate-limit.sql` is
+`rate_limit` (the ceilings, as rows) and `rate_window` (one row per member per
+action per hour), with a trigger that refuses the request past the ceiling —
+SQLSTATE `PL005`, turned into a **429** rather than a 400, because the request
+was well formed and the answer is "wait" rather than "fix it". `ApiError` gains
+`rate_limited` for that: a kind earns its place when the client has to do
+something different, and here it does.
+
+**In the database rather than in Redis.** Redis is in the stack and a counter
+with a TTL is the textbook tool. But Redis is only reached here when
+`INGESTION_SCHEDULE=on`, and **a safety rule that stops working when an optional
+dependency is missing is not a safety rule.** The same argument as the block and
+the sanction: enforced where no caller and no deployment can route around it.
+
+**Reaching people is limited; reporting them is not.** There is no clock-based
+limit on reporting, deliberately. The one-open-report-per-subject index (T-210)
+already limits it, and it limits by *target* rather than by time, which is the
+right shape: a member genuinely harassed by twenty accounts must be able to
+report twenty accounts. A ceiling there would be the exit gated, which is the one
+thing this phase does not do.
+
+**The trigger names decide which refusal speaks.** Postgres fires BEFORE triggers
+in alphabetical order, so the new one is `friend_request_volume_guard` —
+`block` < `sanction` < `volume`. A member who is both restricted and over the
+ceiling is told about the **restriction**, because that is the one with an appeal
+behind it. There is a test for exactly that, and it would pass silently under any
+other name, which is why the name carries a comment.
+
+**Two costs stated rather than hidden.** The window is fixed, not sliding:
+somebody who spends their allowance at the end of one hour and again at the start
+of the next gets twice the ceiling across that boundary — a sliding window needs
+every event kept, and twice a ceiling for one minute is still a ceiling. And the
+ceiling is a row, so blueprint 16's "configurable thresholds" is an UPDATE rather
+than a migration; a test changes it and watches the behaviour change.
+
+**And what is deliberately absent.** No classifier. D-054 carries the argument:
+anything buildable here is an English keyword list shipping on a product that
+speaks eight languages, under-moderating seven of them while the administration
+page reports that filtering is on. A limit on volume works in every language;
+that is the whole of the automation, and the tests read nothing anybody wrote.
+
+Checked by breaking it: dropping the one trigger fails exactly the two tests
+about counting and refusing. 4 tests; 50 across moderation and social together.
+
+**E21 is complete.** No message can be sent in this product yet, and when the
+first one can be, the report, the sanction, the queue, the audit trail and the
+ceiling are already there (D-053).
 
 ---
 

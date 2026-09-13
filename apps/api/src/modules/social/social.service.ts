@@ -9,6 +9,8 @@ import { SocialStore } from './internal/social-store';
 const BLOCKED = 'PL003';
 /** SQLSTATE raised by the T-210 trigger when the writer is under a contact sanction. */
 const SANCTIONED = 'PL004';
+/** SQLSTATE raised by the T-213 trigger when the writer is over the hourly ceiling. */
+const OVER_RATE = 'PL005';
 
 /**
  * What a caller is allowed to do, or the reason they are not.
@@ -21,7 +23,13 @@ export type SocialOutcome =
   | { ok: true; changed: boolean }
   | {
       ok: false;
-      reason: 'unknown_member' | 'self' | 'unavailable' | 'email_unverified' | 'restricted';
+      reason:
+        | 'unknown_member'
+        | 'self'
+        | 'unavailable'
+        | 'email_unverified'
+        | 'restricted'
+        | 'rate_limited';
     };
 
 /**
@@ -127,6 +135,7 @@ export class SocialService {
     } catch (error) {
       if (isBlocked(error)) return { ok: false, reason: 'unavailable' };
       if (isSanctioned(error)) return { ok: false, reason: 'restricted' };
+      if (isOverRate(error)) return { ok: false, reason: 'rate_limited' };
       throw error;
     }
   }
@@ -229,4 +238,8 @@ function isBlocked(error: unknown): boolean {
 
 function isSanctioned(error: unknown): boolean {
   return (error as Codeful).code === SANCTIONED;
+}
+
+function isOverRate(error: unknown): boolean {
+  return (error as Codeful).code === OVER_RATE;
 }

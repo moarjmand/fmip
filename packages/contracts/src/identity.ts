@@ -77,6 +77,10 @@ export interface ApiError {
     | 'not_found'
     | 'email_unverified'
     | 'locked'
+    // T-213: the request was well formed and the caller has simply done this
+    // too often. Its own kind rather than a `validation` error because the
+    // answer is different: wait, rather than fix the input.
+    | 'rate_limited'
     | 'internal';
   message: string;
   /** On an `internal` error: the request id to quote when reporting it (T-071). */
