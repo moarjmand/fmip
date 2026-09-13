@@ -1,0 +1,70 @@
+{
+  "division": "E0",
+  "matches": 320,
+  "trainSize": 160,
+  "testSize": 160,
+  "baseRateLogLoss": 1.0666550698747517,
+  "candidates": [
+    {
+      "name": "blueprint",
+      "trainLogLoss": 5.453230933295773,
+      "testLogLoss": 5.376491904828341,
+      "decisiveAccuracy": 0.6535433070866141,
+      "fit": {
+        "beta": 0.630596845753042,
+        "lower": -2.5718384343483276,
+        "upper": -0.9128541146433138
+      }
+    },
+    {
+      "name": "strength-heavy",
+      "trainLogLoss": 6.0843911405540165,
+      "testLogLoss": 5.987909229734206,
+      "decisiveAccuracy": 0.6377952755905512,
+      "fit": {
+        "beta": 0.9638282289145894,
+        "lower": -2.3096181345956808,
+        "upper": -0.7968231717914724
+      }
+    },
+    {
+      "name": "form-heavy",
+      "trainLogLoss": 5.818855152764362,
+      "testLogLoss": 5.777363715184448,
+      "decisiveAccuracy": 0.6377952755905512,
+      "fit": {
+        "beta": 0.9294194574909009,
+        "lower": -1.9728637456181692,
+        "upper": -0.4008008765971631
+      }
+    },
+    {
+      "name": "venue-heavy",
+      "trainLogLoss": 5.306427060649827,
+      "testLogLoss": 5.2681674366087945,
+      "decisiveAccuracy": 0.6456692913385826,
+      "fit": {
+        "beta": 0.5815935491498636,
+        "lower": -2.492638995996443,
+        "upper": -0.9366076738776545
+      }
+    },
+    {
+      "name": "equal",
+      "trainLogLoss": 1.7747076259455146,
+      "testLogLoss": 1.8043085625711335,
+      "decisiveAccuracy": 0.6377952755905512,
+      "fit": {
+        "beta": -0.0350126012661689,
+        "lower": -2.5478939783279415,
+        "upper": -0.9379881597088584
+      }
+    }
+  ],
+  "best": "equal",
+  "margin": 3.5721833422572074,
+  "verdict": "The index carries no information this history can detect: the blueprint's weights score 5.3765 against 1.0667 for the season's own outcome frequencies. Keep the published weights and do not claim predictive value.",
+  "generatedAt": "2026-09-13T04:16:55.420Z",
+  "season": "2024-08-15 to 2025-05-24",
+  "warmupMatches": 60
+}

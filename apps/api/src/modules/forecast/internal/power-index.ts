@@ -74,22 +74,32 @@ function round(value: number, places: number): number {
  * component is not a weak index, it is the absence of one, and publishing 50
  * there would be the most misleading number on the page.
  */
-export function combine(measured: Measurements): Combined | null {
+export function combine(
+  measured: Measurements,
+  /**
+   * The weights to use. Defaults to the published ones; T-113's backtest passes
+   * candidates here so alternatives are scored through exactly this code rather
+   * than through a second copy of it that might drift.
+   */
+  weights: Partial<Record<PowerIndexComponent, number>> = POWER_INDEX_WEIGHTS,
+): Combined | null {
   const components: PowerIndexComponentValue[] = [];
   let suppliedWeight = 0;
 
   for (const key of POWER_INDEX_COMPONENTS) {
-    const weight = POWER_INDEX_WEIGHTS[key];
+    const weight = weights[key] ?? 0;
     const measurement = measured[key];
     const value =
       measurement === undefined || measurement.value === null ? null : clamp01(measurement.value);
 
-    if (value === null) {
+    // A candidate weight set that leaves a component out gives it weight 0, and
+    // a component carrying no weight is not part of that index at all.
+    if (value === null || weight === 0) {
       components.push({
         key,
         weight,
-        value: null,
-        state: 'not_supplied',
+        value: weight === 0 ? value : null,
+        state: value === null ? 'not_supplied' : (measurement?.state ?? 'available'),
         note: measurement?.note ?? null,
       });
       continue;

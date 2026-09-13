@@ -1,0 +1,80 @@
+{
+  "division": "E0",
+  "matches": 320,
+  "trainSize": 160,
+  "testSize": 160,
+  "baseRateLogLoss": 1.0666550698747517,
+  "candidates": [
+    {
+      "name": "blueprint",
+      "trainLogLoss": 1.0227999849808946,
+      "testLogLoss": 1.0064440498980418,
+      "decisiveAccuracy": 0.6535433070866141,
+      "converged": true,
+      "fit": {
+        "scale": 37.915815720633084,
+        "beta": 0.6674587902145142,
+        "lower": -0.8063126798823369,
+        "upper": 0.389754512097484
+      }
+    },
+    {
+      "name": "strength-heavy",
+      "trainLogLoss": 1.0220696810564651,
+      "testLogLoss": 1.007610588714117,
+      "decisiveAccuracy": 0.6377952755905512,
+      "converged": true,
+      "fit": {
+        "scale": 37.833836973346834,
+        "beta": 0.670125450830394,
+        "lower": -0.8086205643334395,
+        "upper": 0.3890299431828389
+      }
+    },
+    {
+      "name": "form-heavy",
+      "trainLogLoss": 1.0266392131223383,
+      "testLogLoss": 1.0073842271372127,
+      "decisiveAccuracy": 0.6377952755905512,
+      "converged": true,
+      "fit": {
+        "scale": 38.03499108422046,
+        "beta": 0.6462825675146995,
+        "lower": -0.8020006151939093,
+        "upper": 0.38586236923880934
+      }
+    },
+    {
+      "name": "venue-heavy",
+      "trainLogLoss": 1.0229020360593495,
+      "testLogLoss": 1.0077259675413366,
+      "decisiveAccuracy": 0.6456692913385826,
+      "converged": true,
+      "fit": {
+        "scale": 37.323732143665325,
+        "beta": 0.6657181420919862,
+        "lower": -0.8118834112123438,
+        "upper": 0.3837941063289826
+      }
+    },
+    {
+      "name": "equal",
+      "trainLogLoss": 1.0234371585570516,
+      "testLogLoss": 1.0064311356118167,
+      "decisiveAccuracy": 0.6377952755905512,
+      "converged": true,
+      "fit": {
+        "scale": 37.33966136600161,
+        "beta": 0.6646168579183538,
+        "lower": -0.8093326590530744,
+        "upper": 0.38512544000206506
+      }
+    }
+  ],
+  "best": "equal",
+  "margin": 0.000012914286225074179,
+  "verdict": "Keep the published weights. The best alternative (equal) improves held-out log-loss by 0.0000, below the 0.01 that would be a finding rather than noise at this sample size.",
+  "generatedAt": "2026-09-13T04:20:19.462Z",
+  "season": "2024-08-15 to 2025-05-24",
+  "warmupMatches": 60
+}
