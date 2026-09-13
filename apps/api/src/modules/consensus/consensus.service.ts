@@ -2,11 +2,12 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Pool } from 'pg';
 import {
   type CommunityConsensusResponse,
-  MIN_CONSENSUS_SAMPLE,
+  type ConsensusListEntry,
   type CoverageState,
+  MIN_CONSENSUS_SAMPLE,
 } from '@fmip/contracts';
 import { PG_POOL } from '../../database/database.module';
-import { ConsensusStore } from './internal/consensus-store';
+import { ConsensusStore, type Standing } from './internal/consensus-store';
 import { crowd, weighted } from './internal/distribution';
 
 /**
@@ -50,29 +51,57 @@ export class ConsensusService {
    */
   async forFixture(fixtureId: string): Promise<CommunityConsensusResponse | null> {
     if (!(await this.store.fixtureExists(fixtureId))) return null;
-
-    const { votes, lastSubmittedAt } = await this.store.standing(fixtureId);
-    const lastUpdatedAt = lastSubmittedAt === null ? null : lastSubmittedAt.toISOString();
-
-    if (votes.length < MIN_CONSENSUS_SAMPLE) {
-      return { coverage: 'not_supplied', last_updated_at: lastUpdatedAt, data: null };
-    }
-
-    const byRating = weighted(votes);
-    const coverage: CoverageState = byRating === null ? 'limited' : 'available';
-
-    return {
-      coverage,
-      last_updated_at: lastUpdatedAt,
-      data: {
-        fixture_id: fixtureId,
-        sample: votes.length,
-        crowd: crowd(votes),
-        weighted: byRating,
-        // Non-null: a sample this size has at least one submission behind it.
-        last_submitted_at: lastUpdatedAt ?? new Date(0).toISOString(),
-        computed_at: new Date().toISOString(),
-      },
-    };
+    return payload(fixtureId, await this.store.standing(fixtureId));
   }
+
+  /**
+   * The same answer for several fixtures, in the order asked (T-136).
+   *
+   * A fixture that does not exist is left out rather than returned as an empty
+   * consensus: a list that invents a row for an unknown id teaches its caller
+   * that every id is valid.
+   */
+  async forFixtures(fixtureIds: string[]): Promise<ConsensusListEntry[]> {
+    if (fixtureIds.length === 0) return [];
+
+    const [existing, standing] = await Promise.all([
+      this.store.existing(fixtureIds),
+      this.store.standingFor(fixtureIds),
+    ]);
+
+    return fixtureIds
+      .filter((id) => existing.has(id))
+      .map((id) => ({
+        fixture_id: id,
+        consensus: payload(id, standing.get(id) ?? { votes: [], lastSubmittedAt: null }),
+      }));
+  }
+}
+
+/** The one place a consensus payload is built, so the list and the single
+ *  fixture cannot drift into answering differently. */
+function payload(fixtureId: string, standing: Standing): CommunityConsensusResponse {
+  const { votes, lastSubmittedAt } = standing;
+  const lastUpdatedAt = lastSubmittedAt === null ? null : lastSubmittedAt.toISOString();
+
+  if (votes.length < MIN_CONSENSUS_SAMPLE) {
+    return { coverage: 'not_supplied', last_updated_at: lastUpdatedAt, data: null };
+  }
+
+  const byRating = weighted(votes);
+  const coverage: CoverageState = byRating === null ? 'limited' : 'available';
+
+  return {
+    coverage,
+    last_updated_at: lastUpdatedAt,
+    data: {
+      fixture_id: fixtureId,
+      sample: votes.length,
+      crowd: crowd(votes),
+      weighted: byRating,
+      // Non-null: a sample this size has at least one submission behind it.
+      last_submitted_at: lastUpdatedAt ?? new Date(0).toISOString(),
+      computed_at: new Date().toISOString(),
+    },
+  };
 }

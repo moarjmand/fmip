@@ -210,3 +210,24 @@ export interface ModelPerformanceResponse {
   reference: { uniform_log_loss: number; uniform_brier: number };
   rows: ModelPerformanceRow[];
 }
+
+/**
+ * `GET /forecasts?fixtures=<id>,<id>` — the latest model forecast for several
+ * fixtures at once (T-136).
+ *
+ * Only the latest version: a list is for scanning, and the version history that
+ * makes `GET /fixtures/:id/forecasts` worth reading belongs on the match centre
+ * where there is room to explain it. `latest` is null when the model has no
+ * answer for that fixture, which is a normal state and not an error.
+ */
+export interface ForecastListEntry {
+  fixture_id: string;
+  latest: ForecastVersion | null;
+}
+
+export interface ForecastListResponse {
+  fixtures: ForecastListEntry[];
+}
+
+/** How many fixtures one request may ask about. */
+export const MAX_FORECAST_FIXTURES = 50;

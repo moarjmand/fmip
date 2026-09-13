@@ -373,7 +373,8 @@ Independent of every data question: nothing here needs a provider.
 | `[x]` T-133 | The separation guard | T-132 | A test fails if a founder analysis is ever merged into the model or the consensus payload |
 | `[x]` T-134 | Community consensus: the crowd distribution and the rating-weighted one | T-053, T-133 | Both distributions, or an explicit coverage state; never one of them twice |
 | `[~]` T-135 | The community forecast on the match centre (the Predictions page is T-136) | T-134 | Both distributions and the comparison blueprint 4.2 asks for, with nothing averaged |
-| `[ ]` T-136 | The Predictions page | T-134, T-135 | All four of blueprint 2.1 on one page, each attributed |
+| `[x]` T-136 | Listing each product across fixtures: the data the Predictions page needs | T-134 | Each product answers for a set of fixtures from its own endpoint; no payload carries two of them |
+| `[ ]` T-137 | The Predictions page | T-136 | All four of blueprint 2.1 on one page, each attributed |
 
 **T-133 exists because rule 6 is easy to break by accident.** The three
 prediction products — the statistical model, the founder's analysis and the
@@ -546,14 +547,42 @@ proves the page says there is *no consensus yet*. One member is not a community,
 and with a sample of one a published distribution would also be that member's
 prediction on display (T-056).
 
+**T-136 verified on 2026-09-13.** `GET /forecasts?fixtures=` and
+`GET /consensus?fixtures=` answer for a set of fixtures in one query each.
+
+**Two endpoints rather than one, deliberately.** A single "predictions
+overview" returning the model's forecast and the community consensus together
+would have been shorter to write and shorter to call, and it is exactly the
+shortcut rule 6 exists to prevent: one payload holding two products is one
+refactor from one payload with a `source` field, and then nobody can tell a
+reader which of the three they are looking at. Each product answers for itself
+from its own module; composing them is the page's job.
+
+**The bug the test was written for.** `versions` is ordered oldest first, so a
+list reaching for `versions[0]` would serve the forecast the model has already
+replaced — correct-looking, wrong, and invisible unless something checks. The
+same mistake was made and caught in T-135's match-centre wiring, which is why
+the spec asserts the second version's id specifically rather than that a
+forecast came back.
+
+**What each endpoint refuses.** A malformed id is a 400 rather than a silent
+omission — dropping it would give a caller with one typo a shorter list and no
+way to see which match fell out. A fixture that does not exist is left out of
+the consensus list (answering for an unknown id teaches a caller that every id
+is valid), while a fixture the model has no answer for comes back with `latest`
+null (omitting it would make "the model has nothing" indistinguishable from "no
+such match"). Both cap at 50 fixtures: past that it is a different question
+being asked the wrong way, and an uncapped list is one query from scanning every
+prediction ever made. 21 consensus tests, 11 forecast tests.
+
 **T-135 stays `[~]`.** The match centre has it; the Predictions page blueprint
 2.1 names still does not exist, and it is now **T-136** with its own row rather
-than a parenthesis on someone else's task. T-136 needs something this PR does
+than a parenthesis on someone else's task. The page needs something this PR does
 not build: the model forecast and the consensus are per-fixture endpoints, so a
 page listing several matches would fetch them one at a time. Doing it honestly
-means a list endpoint first — which is a task, not a detail, and pretending
-otherwise is how a page ends up making N requests or showing less than it
-claims.
+means list endpoints first — **T-136**, with the page itself now **T-137**.
+Pretending otherwise is how a page ends up making N requests or quietly showing
+less than it claims.
 
 ---
 
@@ -714,7 +743,7 @@ the production build.
 |---|---|---|
 | T-110, T-111, T-113, T-114 | nothing | agent |
 | T-120, T-121, T-122 | nothing | agent |
-| T-130, T-131, T-132, T-133, T-134, T-135, T-136 | nothing | agent |
+| T-130..T-137 | nothing | agent |
 | T-150, T-151, T-152, T-153 | Arabic strings for T-151 | agent, then maintainer |
 | T-100 | a purchase | **maintainer** |
 | T-101, T-102, T-103, T-112 | T-100 | after the purchase |

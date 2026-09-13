@@ -146,6 +146,28 @@ export class PostgresForecastStore {
     return rows.map(toVersion);
   }
 
+  /**
+   * The latest version of each of these fixtures, in one query (T-136).
+   *
+   * `version_number = MAX(...)` rather than `DISTINCT ON` so the shared
+   * `SELECT` above stays untouched: one list of columns, used by both reads,
+   * is one place for a column to be added rather than two that can disagree.
+   *
+   * A fixture with no forecast is simply absent from the result.
+   */
+  async latestForFixtures(fixtureIds: string[]): Promise<Map<string, ForecastVersion>> {
+    const { rows } = await this.pool.query<ForecastRow>(
+      `${SELECT}
+        WHERE f.fixture_id = ANY($1)
+          AND f.version_number = (
+            SELECT MAX(later.version_number) FROM forecast later
+             WHERE later.fixture_id = f.fixture_id
+          )`,
+      [fixtureIds],
+    );
+    return new Map(rows.map((row) => [row.fixture_id, toVersion(row)]));
+  }
+
   /** Writes one version. Returns it as the API serves it. */
   async record(input: NewForecast): Promise<ForecastVersion> {
     const client: PoolClient = await this.pool.connect();

@@ -3,6 +3,7 @@ import type {
   CoverageState,
   ForecastKind,
   ForecastVersion,
+  ForecastListEntry,
   ForecastVersionsResponse,
   ModelForecastRequest,
 } from '@fmip/contracts';
@@ -128,6 +129,20 @@ export class ForecastService {
       latest,
       versions,
     };
+  }
+
+  /**
+   * The latest forecast for several fixtures, in the order asked (T-136).
+   *
+   * Only the latest: a list is for scanning, and the version history that makes
+   * the per-fixture endpoint worth reading belongs where there is room to
+   * explain it. A fixture the model has no answer for comes back with `latest`
+   * null, which is a normal state and not an omission.
+   */
+  async latestFor(fixtureIds: string[]): Promise<ForecastListEntry[]> {
+    if (fixtureIds.length === 0) return [];
+    const latest = await this.store.latestForFixtures(fixtureIds);
+    return fixtureIds.map((id) => ({ fixture_id: id, latest: latest.get(id) ?? null }));
   }
 }
 
