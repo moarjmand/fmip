@@ -25,6 +25,36 @@ export interface MessageRow {
   created_at: Date;
   removed_at: Date | null;
   removed_kind: string | null;
+  card_kind: string | null;
+  card_id: string | null;
+}
+
+/** What a card resolves to. One row per shared entity, read now, never stored. */
+export interface FixtureCardRow {
+  id: string;
+  home: string;
+  away: string;
+  home_goals: number | null;
+  away_goals: number | null;
+  status: string;
+  kickoff_at: Date;
+  last_updated_at: Date;
+}
+
+export interface NamedCardRow {
+  id: string;
+  name: string;
+  short_name: string | null;
+}
+
+export interface PredictionCardRow {
+  id: string;
+  fixture_id: string;
+  home: string;
+  away: string;
+  outcome: string;
+  confidence: number;
+  by: string;
 }
 
 export interface ConversationRow {
@@ -45,7 +75,7 @@ export interface ParticipantRow {
 }
 
 const MESSAGE_COLUMNS = `m.id, m.seq, u.username AS author, m.body, m.reply_to_id,
-                         m.created_at, m.removed_at, m.removed_kind`;
+                         m.created_at, m.removed_at, m.removed_kind, m.card_kind, m.card_id`;
 
 export class ConversationsStore {
   constructor(private readonly pool: Pool) {}
@@ -224,19 +254,22 @@ export class ConversationsStore {
   async send(
     conversationId: string,
     authorId: string,
-    body: string,
+    body: string | null,
     replyTo: string | null,
+    cardKind: string | null,
+    cardId: string | null,
   ): Promise<MessageRow> {
     const { rows } = await this.pool.query<MessageRow>(
       `WITH written AS (
-         INSERT INTO message (conversation_id, author_id, body, reply_to_id)
-         VALUES ($1, $2, $3, $4)
-         RETURNING id, seq, author_id, body, reply_to_id, created_at, removed_at, removed_kind
+         INSERT INTO message (conversation_id, author_id, body, reply_to_id, card_kind, card_id)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id, seq, author_id, body, reply_to_id, created_at, removed_at, removed_kind,
+                   card_kind, card_id
        )
        SELECT m.id, m.seq, u.username AS author, m.body, m.reply_to_id, m.created_at,
-              m.removed_at, m.removed_kind
+              m.removed_at, m.removed_kind, m.card_kind, m.card_id
          FROM written m JOIN user_account u ON u.id = m.author_id`,
-      [conversationId, authorId, body, replyTo],
+      [conversationId, authorId, body, replyTo, cardKind, cardId],
     );
     return rows[0] as MessageRow;
   }
@@ -258,7 +291,8 @@ export class ConversationsStore {
   async removeOwn(conversationId: string, messageId: string, authorId: string): Promise<boolean> {
     const { rowCount } = await this.pool.query(
       `UPDATE message
-          SET body = NULL, removed_at = now(), removed_by = $3, removed_kind = 'author'
+          SET body = NULL, card_kind = NULL, card_id = NULL,
+              removed_at = now(), removed_by = $3, removed_kind = 'author'
         WHERE id = $1 AND conversation_id = $2 AND author_id = $3 AND removed_at IS NULL`,
       [messageId, conversationId, authorId],
     );
@@ -289,5 +323,120 @@ export class ConversationsStore {
         WHERE conversation_id = $1 AND user_id = $2 AND left_at IS NULL`,
       [conversationId, viewerId],
     );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Resolving a card (T-222)
+// ---------------------------------------------------------------------------
+
+/**
+ * The reads behind a shared card.
+ *
+ * They are `SELECT`s against the shared schema rather than calls into the
+ * fixtures, catalog and predictions services, and that is the same call the
+ * consensus store made (T-134): what this needs is one row per shared entity in
+ * one query per kind, and asking three public services would be the same answer
+ * assembled by hand, one round trip per card. No TypeScript crosses a boundary
+ * here; the tables are the shared schema every store reads.
+ */
+export class CardStore {
+  constructor(private readonly pool: Pool) {}
+
+  /** Whether the entity exists, asked once before a card is stored (rule 1). */
+  async exists(kind: string, id: string): Promise<boolean> {
+    const table = {
+      fixture: 'fixture',
+      team: 'team',
+      person: 'person',
+      prediction: 'user_prediction',
+    }[kind];
+    if (table === undefined) return false;
+
+    // The table name is chosen from a closed map above, never from the request.
+    const { rowCount } = await this.pool.query(`SELECT 1 FROM ${table} WHERE id = $1`, [id]);
+    return rowCount === 1;
+  }
+
+  /** A member may share their own prediction, and nobody else's (T-056). */
+  async ownsPrediction(userId: string, predictionId: string): Promise<boolean> {
+    const { rowCount } = await this.pool.query(
+      `SELECT 1 FROM user_prediction WHERE id = $1 AND user_id = $2`,
+      [predictionId, userId],
+    );
+    return rowCount === 1;
+  }
+
+  async fixtures(ids: string[]): Promise<Map<string, FixtureCardRow>> {
+    if (ids.length === 0) return new Map();
+    const { rows } = await this.pool.query<FixtureCardRow>(
+      `SELECT f.id,
+              home_team.name AS home,
+              away_team.name AS away,
+              s.home AS home_goals,
+              s.away AS away_goals,
+              f.status,
+              f.kickoff_at,
+              GREATEST(f.updated_at, coalesce(s.updated_at, f.updated_at)) AS last_updated_at
+         FROM fixture f
+         JOIN fixture_participant hp ON hp.fixture_id = f.id AND hp.side = 'home'
+         JOIN team home_team ON home_team.id = hp.team_id
+         JOIN fixture_participant ap ON ap.fixture_id = f.id AND ap.side = 'away'
+         JOIN team away_team ON away_team.id = ap.team_id
+         LEFT JOIN LATERAL (
+           SELECT home, away, updated_at FROM fixture_score
+            WHERE fixture_id = f.id AND kind IN ('current', 'full_time')
+            ORDER BY CASE kind WHEN 'full_time' THEN 0 ELSE 1 END
+            LIMIT 1
+         ) s ON true
+        WHERE f.id = ANY($1::uuid[])`,
+      [ids],
+    );
+    return new Map(rows.map((row) => [row.id, row]));
+  }
+
+  async teams(ids: string[]): Promise<Map<string, NamedCardRow>> {
+    if (ids.length === 0) return new Map();
+    const { rows } = await this.pool.query<NamedCardRow>(
+      `SELECT id, name, short_name FROM team WHERE id = ANY($1::uuid[])`,
+      [ids],
+    );
+    return new Map(rows.map((row) => [row.id, row]));
+  }
+
+  async people(ids: string[]): Promise<Map<string, NamedCardRow>> {
+    if (ids.length === 0) return new Map();
+    const { rows } = await this.pool.query<NamedCardRow>(
+      `SELECT id, coalesce(known_as, full_name) AS name, NULL::text AS short_name
+         FROM person WHERE id = ANY($1::uuid[])`,
+      [ids],
+    );
+    return new Map(rows.map((row) => [row.id, row]));
+  }
+
+  async predictions(ids: string[]): Promise<Map<string, PredictionCardRow>> {
+    if (ids.length === 0) return new Map();
+    const { rows } = await this.pool.query<PredictionCardRow>(
+      `SELECT up.id,
+              up.fixture_id,
+              home_team.name AS home,
+              away_team.name AS away,
+              v.outcome,
+              v.confidence,
+              u.username AS by
+         FROM user_prediction up
+         JOIN user_account u ON u.id = up.user_id
+         JOIN fixture_participant hp ON hp.fixture_id = up.fixture_id AND hp.side = 'home'
+         JOIN team home_team ON home_team.id = hp.team_id
+         JOIN fixture_participant ap ON ap.fixture_id = up.fixture_id AND ap.side = 'away'
+         JOIN team away_team ON away_team.id = ap.team_id
+         JOIN LATERAL (
+           SELECT outcome, confidence FROM prediction_version
+            WHERE prediction_id = up.id ORDER BY version_number DESC LIMIT 1
+         ) v ON true
+        WHERE up.id = ANY($1::uuid[])`,
+      [ids],
+    );
+    return new Map(rows.map((row) => [row.id, row]));
   }
 }

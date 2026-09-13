@@ -24,6 +24,9 @@ import { ConversationsModule } from './conversations.module';
  */
 const DATABASE_URL = process.env.DATABASE_URL;
 const ENGLAND = '00000000-0000-4000-8000-000000000101';
+const LIVERPOOL = '00000000-0000-4000-8000-000000000602';
+const ESTEGHLAL = '00000000-0000-4000-8000-000000000605';
+const SALAH = '00000000-0000-4000-8000-000000000701';
 const RUN = `${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
 
 const options: IdentityOptions = {
@@ -49,6 +52,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('conversation
   const cookies = new Map<string, string>();
   const ids = new Map<string, string>();
   let room = '';
+  // A fixture of this suite's own, so the score can be changed underneath a
+  // shared card without touching anything another suite is reading.
+  let competition = '';
+  let season = '';
+  let fixture = '';
 
   const register = async (username: string) => {
     const response = await app.inject({
@@ -109,6 +117,34 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('conversation
 
     for (const username of [ada, bo, stranger, moderator]) await register(username);
     await befriend(ada, bo);
+
+    const { rows: competitions } = await pool.query<{ id: string }>(
+      `INSERT INTO competition (country_id, name, kind, scope, gender)
+       VALUES ($1, $2, 'league', 'domestic', 'men') RETURNING id`,
+      [ENGLAND, `Card League ${RUN}`],
+    );
+    competition = competitions[0]?.id ?? '';
+    const { rows: seasons } = await pool.query<{ id: string }>(
+      `INSERT INTO season (competition_id, label, start_date, end_date, is_current)
+       VALUES ($1, '2025/26', DATE '2025-08-01', DATE '2026-05-31', false) RETURNING id`,
+      [competition],
+    );
+    season = seasons[0]?.id ?? '';
+    const { rows: fixtures } = await pool.query<{ id: string }>(
+      `INSERT INTO fixture (season_id, kickoff_at, status)
+       VALUES ($1, TIMESTAMPTZ '2099-03-01T15:00:00Z', 'scheduled') RETURNING id`,
+      [season],
+    );
+    fixture = fixtures[0]?.id ?? '';
+    for (const [side, team] of [
+      ['home', LIVERPOOL],
+      ['away', ESTEGHLAL],
+    ] as const) {
+      await pool.query(
+        `INSERT INTO fixture_participant (fixture_id, team_id, side) VALUES ($1, $2, $3)`,
+        [fixture, team, side],
+      );
+    }
   });
 
   afterAll(async () => {
@@ -123,10 +159,21 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('conversation
         everyone,
       ]);
     } finally {
+      await client.query(
+        `DELETE FROM prediction_version WHERE prediction_id IN
+           (SELECT id FROM user_prediction WHERE user_id = ANY($1::uuid[]))`,
+        [everyone],
+      );
+      await client.query(`DELETE FROM user_prediction WHERE user_id = ANY($1::uuid[])`, [everyone]);
       await client.query(`SET session_replication_role = 'origin'`);
       client.release();
     }
     await pool.query(`DELETE FROM user_account WHERE username LIKE $1`, [`ct_${RUN}%`]);
+    if (season !== '') await pool.query(`DELETE FROM fixture WHERE season_id = $1`, [season]);
+    if (competition !== '') {
+      await pool.query(`DELETE FROM season WHERE competition_id = $1`, [competition]);
+      await pool.query(`DELETE FROM competition WHERE id = $1`, [competition]);
+    }
     await pool.end();
     await app.close();
   });
@@ -240,6 +287,143 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('conversation
     // The row stays with its number, so the conversation around it still reads.
     expect(tombstone).toMatchObject({ body: null, removed: { by: 'author' } });
     expect(tombstone.seq).toBe(4);
+  });
+
+  describe('a shared football card', () => {
+    it('is a reference, and a match with no comment is a real thing to send', async () => {
+      const sent = await post(
+        `/me/conversations/${room}/messages`,
+        { card: { kind: 'fixture', id: fixture } },
+        ada,
+      );
+
+      expect(sent.statusCode).toBe(201);
+      expect(sent.json().message.body).toBeNull();
+      expect(sent.json().message.card).toMatchObject({
+        kind: 'fixture',
+        id: fixture,
+        home: 'Liverpool',
+        away: 'Esteghlal',
+        score: null,
+        status: 'scheduled',
+      });
+      // Rule 4: a live surface says when it last changed.
+      expect(sent.json().message.card.last_updated_at).toBeTruthy();
+    });
+
+    it('stays live: the score changes without the conversation moving', async () => {
+      // Blueprint 8.3: "Match cards shared in chat remain live. The score and
+      // status update without replacing the original discussion context."
+      const before = (await get(`/me/conversations/${room}`, bo)).json();
+      const shared = before.messages.find(
+        (m: { card: { kind: string } | null }) => m.card?.kind === 'fixture',
+      );
+      expect(shared.card.score).toBeNull();
+
+      await pool.query(
+        `INSERT INTO fixture_score (fixture_id, kind, home, away) VALUES ($1, 'current', 2, 1)`,
+        [fixture],
+      );
+      await pool.query(`UPDATE fixture SET status = 'live' WHERE id = $1`, [fixture]);
+
+      const after = (await get(`/me/conversations/${room}`, bo)).json();
+      const now = after.messages.find((m: { id: string }) => m.id === shared.id);
+
+      expect(now.card).toMatchObject({ score: { home: 2, away: 1 }, status: 'live' });
+      // The same message, in the same place, with the same words: the card was
+      // resolved again rather than replaced.
+      expect(now.seq).toBe(shared.seq);
+      expect(now.body).toBe(shared.body);
+      expect(after.messages.length).toBe(before.messages.length);
+    });
+
+    it('shares a team and a person by id, and refuses a kind nothing can produce', async () => {
+      const team = await post(
+        `/me/conversations/${room}/messages`,
+        { body: 'still the best', card: { kind: 'team', id: LIVERPOOL } },
+        ada,
+      );
+      expect(team.json().message.card).toMatchObject({ kind: 'team', name: 'Liverpool' });
+
+      const person = await post(
+        `/me/conversations/${room}/messages`,
+        { card: { kind: 'person', id: SALAH } },
+        ada,
+      );
+      expect(person.json().message.card).toMatchObject({ kind: 'person', name: 'Mohamed Salah' });
+
+      // `article` joins the list when E14 builds news.
+      const unbuilt = await post(
+        `/me/conversations/${room}/messages`,
+        { card: { kind: 'article', id: SALAH } },
+        ada,
+      );
+      expect(unbuilt.statusCode).toBe(400);
+    });
+
+    it('refuses a card that names nothing, and a message that is neither words nor card', async () => {
+      const nothing = await post(
+        `/me/conversations/${room}/messages`,
+        { card: { kind: 'fixture', id: '00000000-0000-4000-8000-0000000009fe' } },
+        ada,
+      );
+      expect(nothing.statusCode).toBe(400);
+      expect(nothing.json().fields.card).toBeTruthy();
+
+      const empty = await post(`/me/conversations/${room}/messages`, {}, ada);
+      expect(empty.statusCode).toBe(400);
+    });
+
+    it('shares your own prediction and nobody else’s', async () => {
+      const { rows } = await pool.query<{ id: string }>(
+        `INSERT INTO user_prediction (user_id, fixture_id) VALUES ($1, $2) RETURNING id`,
+        [ids.get(bo), fixture],
+      );
+      const theirs = rows[0]?.id ?? '';
+      await pool.query(
+        `INSERT INTO prediction_version (prediction_id, version_number, outcome, confidence)
+         VALUES ($1, 1, 'home', 4)`,
+        [theirs],
+      );
+
+      // Somebody's prediction history may be private (T-056), and a card must
+      // not be the way around it.
+      const borrowed = await post(
+        `/me/conversations/${room}/messages`,
+        { card: { kind: 'prediction', id: theirs } },
+        ada,
+      );
+      expect(borrowed.statusCode).toBe(400);
+      expect(borrowed.json().fields.card).toMatch(/your own/i);
+
+      const own = await post(
+        `/me/conversations/${room}/messages`,
+        { body: 'my call', card: { kind: 'prediction', id: theirs } },
+        bo,
+      );
+      expect(own.json().message.card).toMatchObject({
+        kind: 'prediction',
+        outcome: 'home',
+        by: bo,
+      });
+    });
+
+    it('drops the card when the message is removed', async () => {
+      const sent = await post(
+        `/me/conversations/${room}/messages`,
+        { body: 'look at this', card: { kind: 'team', id: ESTEGHLAL } },
+        ada,
+      );
+      const id = sent.json().message.id;
+
+      expect((await del(`/me/conversations/${room}/messages/${id}`, ada)).statusCode).toBe(204);
+
+      const page = (await get(`/me/conversations/${room}`, ada)).json();
+      const tombstone = page.messages.find((m: { id: string }) => m.id === id);
+      // A removed message keeping its card would leave a fragment of what was
+      // said surviving the decision to take it down.
+      expect(tombstone).toMatchObject({ body: null, card: null, removed: { by: 'author' } });
+    });
   });
 
   it('mutes and unmutes', async () => {

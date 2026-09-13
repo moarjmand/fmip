@@ -244,8 +244,14 @@ export type {
 } from './moderation';
 
 // Conversations (blueprint 8.3, T-220). Ordered by sequence, never by clock.
-export { CONVERSATION_KINDS, MAX_MESSAGE_LENGTH, MESSAGE_PAGE_SIZE } from './conversations';
+export {
+  CARD_KINDS,
+  CONVERSATION_KINDS,
+  MAX_MESSAGE_LENGTH,
+  MESSAGE_PAGE_SIZE,
+} from './conversations';
 export type {
+  CardKind,
   ConversationKind,
   ConversationMember,
   ConversationPage,
@@ -255,4 +261,5 @@ export type {
   MessageRemoval,
   SendMessageRequest,
   SendMessageResponse,
+  SharedCard,
 } from './conversations';
