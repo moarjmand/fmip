@@ -200,3 +200,17 @@ export type {
 } from './admin';
 export { SEARCH_ENTITY_TYPES } from './search';
 export type { SearchEntityType, SearchResponse, SearchResult } from './search';
+
+// The social graph (blueprint 8.1, T-200). Contact only: nothing here imports a
+// prediction, a forecast or an analysis.
+export type {
+  BlockedMember,
+  BlocksResponse,
+  Friend,
+  FriendRequest,
+  FriendRequestsResponse,
+  FriendStatus,
+  FriendStatusResponse,
+  FriendsResponse,
+  SocialMember,
+} from './social';
