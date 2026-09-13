@@ -547,6 +547,12 @@ proves the page says there is *no consensus yet*. One member is not a community,
 and with a sample of one a published distribution would also be that member's
 prediction on display (T-056).
 
+**E13 is complete**, and it grew while it was being built: the epic began as four
+tasks about the founder's analysis and ends as eight, because writing the rule-6
+guard (T-133) meant reading the rule closely enough to test it, and the rule
+names three prediction products of which only two existed. T-134 to T-137 are
+that gap — the community consensus and the page where all three meet.
+
 **T-137 verified on 2026-09-13, and with it T-132 and T-135.** `/[locale]/predictions`
 is the page blueprint 2.1 names, and the fifth founder surface — so T-132, which
 had been `[~]` since the founder's analysis shipped for want of this page, is now
@@ -771,7 +777,7 @@ the production build.
 | T-110, T-111, T-113, T-114 | nothing | agent |
 | T-120, T-121, T-122 | nothing | agent |
 | T-130..T-137 | nothing | agent |
-| T-150, T-151, T-152, T-153 | Arabic strings for T-151 | agent, then maintainer |
+| T-150, T-151, T-152, T-153 | the Arabic strings themselves | agent, then **maintainer** |
 | T-100 | a purchase | **maintainer** |
 | T-101, T-102, T-103, T-112 | T-100 | after the purchase |
 | T-140 | a licensing decision | **maintainer** |
