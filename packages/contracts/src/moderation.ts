@@ -120,3 +120,77 @@ export interface AppealNote {
 export interface OwnStandingResponse {
   sanctions: Sanction[];
 }
+
+// ---------------------------------------------------------------------------
+// The moderator's queue (blueprint 16, T-212)
+// ---------------------------------------------------------------------------
+
+/** One open report as a moderator sees it: with who filed it. */
+export interface QueuedReport extends Report {
+  reporter: string;
+}
+
+/**
+ * Everything open about one subject, together.
+ *
+ * The queue groups rather than lists, because three members reporting one
+ * person is three reports and **one** judgement — and a moderator who is shown
+ * them one at a time either decides three times or decides once and leaves two
+ * in a queue nobody will look at again.
+ */
+export interface QueueSubject {
+  subject_type: ReportSubject;
+  subject_id: string;
+  /** The member's username, when the subject is a member. */
+  username: string;
+  display_name: string;
+  reports: QueuedReport[];
+  /** ISO 8601 of the oldest open report: what the queue is ordered by. */
+  waiting_since: string;
+  /** Sanctions already in force on them, so a moderator is not deciding blind. */
+  active_sanctions: number;
+}
+
+export interface ModerationQueueResponse {
+  subjects: QueueSubject[];
+  /** Open reports in total, so a page showing one screen can say what it is not showing. */
+  open_total: number;
+}
+
+/** What a moderator asks for when a decision carries a restriction. */
+export interface SanctionRequest {
+  scope: SanctionScope;
+  /** Whole days from now. Exactly one of `days` and `permanent`. */
+  days?: number;
+  permanent?: boolean;
+}
+
+/**
+ * `POST /admin/moderation/decisions`.
+ *
+ * One decision answers the reports it names. `sanction` is required when the
+ * outcome is `sanctioned` and refused otherwise: an outcome that says a
+ * restriction was applied and applies none is a record of something that did
+ * not happen.
+ */
+export interface DecideRequest {
+  /** The member the decision is about. */
+  subject: string;
+  /** The open reports it answers. May be empty for a decision nobody reported. */
+  report_ids?: string[];
+  outcome: ModerationOutcome;
+  reason: string;
+  sanction?: SanctionRequest;
+}
+
+export interface LiftSanctionRequest {
+  reason: string;
+}
+
+/** Everything a moderator needs about one member before deciding. */
+export interface MemberModerationHistory {
+  username: string;
+  reports_about_them: QueuedReport[];
+  decisions: ModerationDecision[];
+  sanctions: Sanction[];
+}

@@ -2,19 +2,36 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { Pool } from 'pg';
 import {
   type AppealNote,
+  type DecideRequest,
+  MODERATION_OUTCOMES,
+  type MemberModerationHistory,
+  type ModerationDecision,
+  type ModerationOutcome,
+  type ModerationQueueResponse,
   REPORT_REASONS,
   type Report,
   type ReportReason,
+  SANCTION_SCOPES,
   type Sanction,
   type SanctionScope,
   type SubmitReportRequest,
 } from '@fmip/contracts';
 import { PG_POOL } from '../../database/database.module';
-import { ModerationStore, type SanctionRow } from './internal/moderation-store';
+import {
+  type DecisionRow,
+  ModerationQueueStore,
+  ModerationStore,
+  type QueueRow,
+  type SanctionRow,
+} from './internal/moderation-store';
 
 export type ModerationOutcomeResult =
   | { ok: true; filed: boolean }
   | { ok: false; reason: 'unknown_subject' | 'self' | 'invalid'; fields?: Record<string, string> };
+
+export type DecideResult =
+  | { ok: true; decision_id: string; answered: number }
+  | { ok: false; reason: 'unknown_subject' | 'invalid'; fields?: Record<string, string> };
 
 export type AppealResult =
   | { ok: true }
@@ -26,6 +43,31 @@ export type AppealResult =
 
 const MAX_DETAIL = 2_000;
 const MAX_APPEAL = 4_000;
+
+function queued(row: QueueRow) {
+  return {
+    id: row.report_id,
+    reporter: row.reporter,
+    subject_type: 'member' as const,
+    subject_id: row.subject_id,
+    reason: row.reason as ReportReason,
+    detail: row.detail,
+    created_at: row.created_at.toISOString(),
+    decision_id: null,
+  };
+}
+
+function decisionShape(row: DecisionRow): ModerationDecision {
+  return {
+    id: row.id,
+    moderator: row.moderator,
+    subject_type: 'member',
+    subject_id: row.subject_id,
+    outcome: row.outcome as ModerationOutcome,
+    reason: row.reason,
+    created_at: row.created_at.toISOString(),
+  };
+}
 
 function shape(row: SanctionRow): Sanction {
   return {
@@ -61,9 +103,11 @@ function shape(row: SanctionRow): Sanction {
 @Injectable()
 export class ModerationService {
   private readonly store: ModerationStore;
+  private readonly queueStore: ModerationQueueStore;
 
   constructor(@Inject(PG_POOL) pool: Pool) {
     this.store = new ModerationStore(pool);
+    this.queueStore = new ModerationQueueStore(pool);
   }
 
   async report(reporterId: string, body: SubmitReportRequest): Promise<ModerationOutcomeResult> {
@@ -155,6 +199,134 @@ export class ModerationService {
 
     await this.store.appeal(sanctionId, userId, text);
     return { ok: true };
+  }
+
+  // -------------------------------------------------------------------------
+  // The moderator's half (T-212)
+  // -------------------------------------------------------------------------
+
+  /**
+   * The queue, grouped by subject.
+   *
+   * Grouped rather than listed because three members reporting one person is
+   * three reports and one judgement. A moderator shown them one at a time
+   * either decides three times or decides once and leaves two behind in a queue
+   * nobody looks at again.
+   */
+  async queue(limit: number): Promise<ModerationQueueResponse> {
+    const { rows, total } = await this.queueStore.queue(limit);
+    const bySubject = new Map<string, ModerationQueueResponse['subjects'][number]>();
+
+    for (const row of rows) {
+      const existing = bySubject.get(row.subject_id);
+      const report = queued(row);
+      if (existing === undefined) {
+        bySubject.set(row.subject_id, {
+          subject_type: 'member',
+          subject_id: row.subject_id,
+          username: row.username,
+          display_name: row.display_name,
+          reports: [report],
+          waiting_since: report.created_at,
+          active_sanctions: Number(row.active_sanctions),
+        });
+      } else {
+        existing.reports.push(report);
+      }
+    }
+
+    // The rows arrive oldest first, so each group's first report is its oldest
+    // and the insertion order is already "who has waited longest".
+    return { subjects: [...bySubject.values()], open_total: total };
+  }
+
+  async history(username: string): Promise<MemberModerationHistory | null> {
+    const member = await this.store.memberByUsername(username);
+    if (member === null) return null;
+
+    const [reports, decisions, sanctions] = await Promise.all([
+      this.queueStore.reportsAbout(member.id),
+      this.queueStore.decisionsAbout(member.id),
+      this.store.sanctionsOn(member.id),
+    ]);
+    return {
+      username: member.username,
+      reports_about_them: reports.map(queued),
+      decisions: decisions.map(decisionShape),
+      sanctions: sanctions.map(shape),
+    };
+  }
+
+  /**
+   * Record a decision, answer the reports it names, apply any sanction and
+   * write the audit row: one transaction (D-046).
+   *
+   * The outcome and the sanction must agree. An outcome of `sanctioned` with no
+   * restriction is a record of something that did not happen, and a restriction
+   * under any other outcome is one nobody decided.
+   */
+  async decide(moderatorId: string, body: DecideRequest): Promise<DecideResult> {
+    const fields: Record<string, string> = {};
+
+    if (!(MODERATION_OUTCOMES as readonly string[]).includes(body?.outcome)) {
+      fields.outcome = `Must be one of ${MODERATION_OUTCOMES.join(', ')}.`;
+    }
+    const reason = typeof body?.reason === 'string' ? body.reason.trim() : '';
+    if (reason === '') fields.reason = 'Say why. A decision with no reason cannot be reviewed.';
+
+    const wantsSanction = body?.sanction !== undefined && body.sanction !== null;
+    if (body?.outcome === 'sanctioned' && !wantsSanction) {
+      fields.sanction = 'An outcome of "sanctioned" has to carry the restriction it applied.';
+    }
+    if (body?.outcome !== 'sanctioned' && wantsSanction) {
+      fields.sanction = 'Only an outcome of "sanctioned" carries a restriction.';
+    }
+
+    let endsAt: string | null = null;
+    let permanent = false;
+    if (wantsSanction) {
+      const request = body.sanction as NonNullable<DecideRequest['sanction']>;
+      if (!(SANCTION_SCOPES as readonly string[]).includes(request.scope)) {
+        fields.scope = `Must be one of ${SANCTION_SCOPES.join(', ')}.`;
+      }
+      permanent = request.permanent === true;
+      const days = typeof request.days === 'number' ? request.days : null;
+      if (permanent && days !== null) {
+        fields.days = 'A permanent restriction has no end date.';
+      } else if (!permanent) {
+        if (days === null || !Number.isInteger(days) || days < 1 || days > 3650) {
+          fields.days = 'Whole days from 1 to 3650, or mark it permanent.';
+        } else {
+          endsAt = new Date(Date.now() + days * 86_400_000).toISOString();
+        }
+      }
+    }
+
+    if (Object.keys(fields).length > 0) return { ok: false, reason: 'invalid', fields };
+
+    const subject = await this.store.memberByUsername(String(body.subject ?? ''));
+    if (subject === null) return { ok: false, reason: 'unknown_subject' };
+
+    const { decisionId, answered } = await this.queueStore.decide({
+      moderatorId,
+      subjectId: subject.id,
+      reportIds: Array.isArray(body.report_ids) ? body.report_ids : [],
+      outcome: body.outcome as ModerationOutcome,
+      reason,
+      sanction: wantsSanction
+        ? {
+            scope: (body.sanction as NonNullable<DecideRequest['sanction']>).scope,
+            endsAt,
+            permanent,
+          }
+        : null,
+    });
+    return { ok: true, decision_id: decisionId, answered };
+  }
+
+  /** `false` when no sanction of that id was still in force. */
+  lift(moderatorId: string, sanctionId: string, reason: string): Promise<boolean> {
+    return this.queueStore.lift(moderatorId, sanctionId, reason.trim());
   }
 
   async appealNotes(sanctionId: string): Promise<AppealNote[]> {

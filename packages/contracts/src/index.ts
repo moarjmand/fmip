@@ -225,13 +225,20 @@ export {
 } from './moderation';
 export type {
   AppealNote,
+  DecideRequest,
+  LiftSanctionRequest,
+  MemberModerationHistory,
   ModerationDecision,
+  ModerationQueueResponse,
   ModerationOutcome,
   OwnStandingResponse,
   Report,
   ReportReason,
   ReportSubject,
+  QueueSubject,
+  QueuedReport,
   Sanction,
+  SanctionRequest,
   SanctionScope,
   SubmitReportRequest,
 } from './moderation';

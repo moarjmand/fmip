@@ -318,7 +318,7 @@ anything another member will read.
 |---|---|---|---|
 | `[x]` T-210 | Schema and contracts: `report`, `moderation_decision`, `sanction`, `appeal_note` | T-070 | A decision is immutable and names its actor; a sanction has a scope and an end |
 | `[x]` T-211 | The reporting API, and sanctions enforced at the write path | T-210 | A restricted member is refused where they would have written, not hidden afterwards |
-| `[ ]` T-212 | The moderation queue in the admin area | T-211 | Every action records actor, time, reason and previous value (rule 10) |
+| `[x]` T-212 | The moderation queue in the admin area | T-211 | Every action records actor, time, reason and previous value (rule 10) |
 | `[ ]` T-213 | Rate limits, and the honest limit of automated filtering | T-211 | A flood is refused by a rule about volume; nothing claims to detect abusive language |
 
 **A sanction is enforced at the write path.** A restriction that merely hides
@@ -459,6 +459,50 @@ older specs still use the global form; that is its own change rather than a
 detour here.
 
 19 tests: the 10 against the schema and 9 over HTTP with real sessions.
+
+**T-212 verified on 2026-09-13.** `moderation-admin.controller.ts` is
+`/admin/moderation/*`, open to the **`moderator` or `admin`** role — the role
+list has had `moderator` in it since T-040 for exactly this, and blueprint 7.3
+gives a moderator the reports queue without the rest of the administration area.
+
+**Its own controller rather than a corner of the admin one.** The admin boundary
+owns coverage, accounts and the audit log; moderation owns reports, decisions and
+sanctions, and putting its SQL in `admin-store.ts` would leave two modules
+writing the same tables. The `/admin` prefix says who may call it, not which
+boundary owns it.
+
+**The queue groups by subject**, which is the shape T-210's corrected foreign key
+made possible. Two members reporting the same person arrive as one row carrying
+both reports, ordered by who has waited longest, with the count of sanctions
+already in force so nobody decides blind. A moderator shown them separately
+either decides twice or decides once and leaves one behind in a queue nobody
+looks at again.
+
+**The outcome and the restriction have to agree.** An outcome of `sanctioned`
+with no restriction is a record of something that did not happen; a restriction
+under any other outcome is one nobody decided. Both are 400s, and so is a
+decision with a blank reason — rule 10 needs a reason that can be reviewed.
+
+**Every action records actor, time, reason and what changed, in the same
+transaction as the change (D-046).** The decision, the reports it answers, the
+sanction it applies and the `audit_log` row are one transaction; so are the lift
+and its row. The tests do not stop at the status code — they read `audit_log`
+afterwards, because a decision visible in the product and absent from the log is
+the gap rule 10 exists to close.
+
+**A lift is a row with a reason too**, and lifting a sanction that is already
+lifted, expired, or never existed is the same 404: all three mean there is
+nothing of that id still in force.
+
+**One cleanup bug worth the note.** The suites' cleanup first tried to unlink
+reports by setting `decision_id` to null before deleting the decisions. That
+makes two reports from one reporter about one subject open at the same time,
+which the one-open-report index refuses — so the cleanup failed and took a whole
+suite with it, in CI, with an error about a unique constraint that had nothing to
+do with what was being tested. Reports are now deleted before the decisions they
+name.
+
+31 tests across the three moderation suites. **E21 is complete bar T-213.**
 
 ---
 
