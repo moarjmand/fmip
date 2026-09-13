@@ -316,7 +316,7 @@ anything another member will read.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-210 | Schema and contracts: `report`, `moderation_decision`, `sanction`, `appeal_note` | T-070 | A decision is immutable and names its actor; a sanction has a scope and an end |
+| `[x]` T-210 | Schema and contracts: `report`, `moderation_decision`, `sanction`, `appeal_note` | T-070 | A decision is immutable and names its actor; a sanction has a scope and an end |
 | `[ ]` T-211 | The reporting API, and sanctions enforced at the write path | T-210 | A restricted member is refused where they would have written, not hidden afterwards |
 | `[ ]` T-212 | The moderation queue in the admin area | T-211 | Every action records actor, time, reason and previous value (rule 10) |
 | `[ ]` T-213 | Rate limits, and the honest limit of automated filtering | T-211 | A flood is refused by a rule about volume; nothing claims to detect abusive language |
@@ -350,6 +350,66 @@ sanction whose appeal lives in somebody's email has no audit history.
 what conduct earns which sanction, and the text a member accepts at registration
 — are editorial and legal judgements (`CLAUDE.md` §7). T-210 builds the machinery
 with the categories as configuration; the words are the maintainer's.
+
+**T-210 verified on 2026-09-13.** `..._moderation.sql` is `report`,
+`moderation_decision`, `sanction` and `appeal_note`;
+`packages/contracts/src/moderation.ts` is the contract. Nothing in the API writes
+them yet — that is T-211 — so `moderation.schema.spec.ts` writes what the service
+will write and checks what the database guarantees.
+
+**A decision is immutable and names its actor.** `refuse_change()`, the same
+trigger the audit log and every forecast version use (rule 5, rule 10). A
+moderation record that can be edited afterwards is not a record, and the first
+time that matters is the first time somebody disputes it. A blank reason is
+refused too.
+
+**Every sanction ends, or says out loud that it does not.** `permanent` is a
+column with a CHECK against `ends_at`, not a null nobody noticed: a moderator
+choosing "permanent" and a moderator forgetting to set an end must not produce
+the same row. Lifting one early is whole or absent — actor, time and reason
+together, or none of them.
+
+**And it is enforced where the member would have written.** `member_sanctioned`
+is the single definition of "currently restricted from this", and a trigger on
+`friend_request` refuses a request from a member under an active `contact`
+sanction with SQLSTATE `PL004`. A restriction that merely hid what a member wrote
+would leave them believing they were being heard, the queue refilling, and
+nobody's behaviour changed. Checked by breaking it: dropping that one trigger
+fails exactly that test.
+
+**Nothing is listed that nothing can enforce, and that is the judgement in this
+task.** `report.subject_type` allows one value, `member`; `sanction.scope` allows
+one, `contact` — friend requests being the only thing one member can currently
+aim at another. A scope a moderator can choose and no code applies is rule 3
+pointed at an operator instead of a reader: the moderation team would believe a
+restriction was in force. Each later epic widens its own CHECK in the same
+migration that builds the surface it protects — messages in T-220, groups in
+T-240, public posting in T-251, analysis in T-260.
+
+**One open report per reporter per subject**, by a partial unique index. Filing
+the same complaint fifty times is not fifty complaints, and a queue full of them
+is a queue nobody reads; once it has been answered, a fresh complaint is a fresh
+one.
+
+**And the link between a report and a decision points from the report.** The
+first draft of this table had `moderation_decision.report_id`, which says a
+decision answers one report. Building the queue on it (T-212) showed it the
+wrong way round: three members reporting one person is three reports and **one
+judgement**, and a moderator who read all three and issued one sanction should
+not have to write the decision out three times. So `report.decision_id` points
+at the decision, several reports may name the same one, and it replaces the
+`resolved_at` the first draft had beside it — "open" is a fact about whether an
+answer exists, and two columns for one fact is one column too many. Corrected
+before the migration merged rather than left for a second one to undo.
+
+**The cleanup is session-scoped, which is not a detail.** Deleting immutable
+rows needs the trigger out of the way, and `ALTER TABLE ... DISABLE TRIGGER` does
+that **globally** — while it is off, any suite running in parallel that asserts
+the same table is immutable passes without testing anything. So the cleanup takes
+one dedicated connection and sets `session_replication_role = 'replica'`, which
+is scoped to that session. Sixteen older specs still use the global form.
+
+10 tests against the real schema; the migration was cycled down and up.
 
 ---
 

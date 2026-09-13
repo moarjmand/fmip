@@ -214,3 +214,24 @@ export type {
   FriendsResponse,
   SocialMember,
 } from './social';
+
+// Moderation (blueprint 10.4 and 16, T-210, D-053). Every list is short on
+// purpose and grows only when something enforces the next entry.
+export {
+  MODERATION_OUTCOMES,
+  REPORT_REASONS,
+  REPORT_SUBJECTS,
+  SANCTION_SCOPES,
+} from './moderation';
+export type {
+  AppealNote,
+  ModerationDecision,
+  ModerationOutcome,
+  OwnStandingResponse,
+  Report,
+  ReportReason,
+  ReportSubject,
+  Sanction,
+  SanctionScope,
+  SubmitReportRequest,
+} from './moderation';
