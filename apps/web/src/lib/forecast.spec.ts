@@ -16,6 +16,17 @@ const version = (n: number, p: [number, number, number] | null, kind: ForecastVe
     most_likely_scorelines: p === null ? null : [{ home: 1, away: 1, probability: 0.12 }],
     leading_factors: p === null ? null : [],
     data_completeness: p === null ? null : 'limited',
+    inputs:
+      p === null
+        ? null
+        : {
+            model_version: 'dixon-coles-elo@0.1.0',
+            fit_date: '2025-01-01',
+            matches_used: 380,
+            elo_used: true,
+            history_from: '2024-08-01',
+            data_completeness: 'limited',
+          },
     unavailable_reason: p === null ? 'no_history' : null,
     unavailable_detail: p === null ? 'scripted' : null,
   }) satisfies ForecastVersion;
