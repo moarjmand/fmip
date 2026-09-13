@@ -1,4 +1,9 @@
-import type { FixtureEvaluationsResponse, ForecastVersionsResponse } from '@fmip/contracts';
+import type {
+  FixtureEvaluationsResponse,
+  ForecastListEntry,
+  ForecastVersionsResponse,
+} from '@fmip/contracts';
+import Link from 'next/link';
 import {
   FACTOR_LABEL,
   KIND_LABEL,
@@ -246,5 +251,73 @@ function Evaluation({
         Evaluated <time dateTime={last.evaluated_at}>{stamp(last.evaluated_at)}</time>
       </p>
     </div>
+  );
+}
+
+/**
+ * The model's forecasts across several matches, for the Predictions page
+ * (T-137, blueprint 2.1).
+ *
+ * In this file rather than a shared list component, for the same reason the
+ * community's list is in its own: one file per product means nothing in the
+ * codebase renders "a prediction", and there is nowhere for a `source` prop to
+ * appear (rule 6).
+ *
+ * A fixture the model has no answer for is left out of the list rather than
+ * shown as a row of blanks — but the count of those is stated, because a
+ * shorter list with no explanation is how missing coverage starts looking like
+ * coverage that does not exist (rule 3).
+ */
+export function ForecastList({
+  entries,
+  fixtures,
+  locale,
+}: {
+  entries: ForecastListEntry[];
+  /** Names for the fixtures, by id, so a row can say who is playing. */
+  fixtures: Map<string, { home: string; away: string }>;
+  locale: string;
+}) {
+  const withForecast = entries.filter(
+    (entry) => entry.latest !== null && entry.latest.probabilities !== null,
+  );
+  const without = entries.length - withForecast.length;
+
+  return (
+    <section className="flex flex-col gap-2" data-testid="predictions-model">
+      <h2 className="text-lg font-semibold">Model forecasts</h2>
+      <p className="text-xs opacity-60">
+        The statistical model. Not the founder&rsquo;s view, and not the community&rsquo;s.
+      </p>
+      {withForecast.length === 0 ? (
+        <p className="text-sm opacity-70">The model has no forecast for these matches.</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {withForecast.map((entry) => {
+            const probabilities = entry.latest?.probabilities;
+            if (probabilities === undefined || probabilities === null) return null;
+            const teams = fixtures.get(entry.fixture_id);
+            const pct = percentages(probabilities);
+            return (
+              <li key={entry.fixture_id} className="flex flex-col gap-1">
+                <Link href={`/${locale}/match/${entry.fixture_id}`} className="text-sm underline">
+                  {teams === undefined ? 'Match' : `${teams.home} v ${teams.away}`}
+                </Link>
+                <p className="text-sm">
+                  {teams?.home ?? 'Home'} {pct.home.toFixed(1)}%, draw {pct.draw.toFixed(1)}%,{' '}
+                  {teams?.away ?? 'Away'} {pct.away.toFixed(1)}%
+                </p>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {without > 0 && (
+        <p className="text-xs opacity-60" data-testid="model-missing">
+          {without} of these {entries.length} matches {without === 1 ? 'has' : 'have'} no model
+          forecast.
+        </p>
+      )}
+    </section>
   );
 }

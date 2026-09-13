@@ -15,9 +15,11 @@ import { type Page, expect, test } from '@playwright/test';
  *   18.4 the member follows a team, sees it pinned, and moves team → match →
  *        player → search without a dead end.
  *
- * With one addition from Phase 2 (T-135): blueprint 6.6's community consensus,
+ * With two additions from Phase 2. T-135: blueprint 6.6's community consensus,
  * checked at the point it is most dangerous — one member has predicted, and the
- * page must not turn that into what "the community" thinks.
+ * page must not turn that into what "the community" thinks. T-137: the
+ * Predictions page keeps the three products in three sections rather than one
+ * ranked feed with a source tag.
  *
  * Runs only in the `journeys` project (E2E_API_URL set). The tests share one
  * member and run in order.
@@ -122,6 +124,27 @@ test.describe('blueprint journeys', () => {
     // And the state it must never be in: a distribution on the page.
     await expect(page.getByTestId('consensus-crowd')).toHaveCount(0);
     await expect(page.getByTestId('consensus-weighted')).toHaveCount(0);
+  });
+
+  test('2.1 the Predictions page keeps the three products in three sections', async () => {
+    // The page blueprint 2.1 names, and the page rule 6 was written for: it is
+    // the one place all three prediction products appear together, which makes
+    // "today's predictions, ranked, tagged with where each came from" the
+    // obvious design and the forbidden one.
+    await page.goto(`/en/predictions?date=${PLAYED_DAY}&tz=UTC`);
+
+    await expect(page.getByTestId('title')).toHaveText('Predictions');
+    // All four of them, each under its own heading. A section that vanishes
+    // when it is empty would leave a reader unable to tell whether there is
+    // nothing to show or whether the site forgot to ask.
+    await expect(page.getByRole('heading', { name: 'Model forecasts' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Founder.s analysis/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Community consensus' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Prediction leaderboard' })).toBeVisible();
+
+    // And each product's own section, from its own endpoint.
+    await expect(page.getByTestId('predictions-model')).toBeVisible();
+    await expect(page.getByTestId('predictions-consensus')).toBeVisible();
   });
 
   test('18.3 privileges follow rating and sample, never points', async ({ request }) => {

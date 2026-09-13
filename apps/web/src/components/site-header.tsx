@@ -30,6 +30,9 @@ export async function SiteHeader({ locale }: { locale: string }) {
         <Link href={href('/scores')} data-testid="nav-scores">
           <Translated locale={locale} message="nav.scores" />
         </Link>
+        <Link href={href('/predictions')} data-testid="nav-predictions">
+          <Translated locale={locale} message="nav.predictions" />
+        </Link>
         <Link href={href('/leaderboard')} data-testid="nav-leaderboard">
           <Translated locale={locale} message="nav.leaderboard" />
         </Link>

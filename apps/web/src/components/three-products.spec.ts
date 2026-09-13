@@ -77,6 +77,26 @@ describe('the three products stay three on the page', () => {
     expect(page).not.toMatch(/<PredictionPanel/);
   });
 
+  it('keeps the Predictions page four sections rather than one feed', () => {
+    // This is the page rule 6 was written for: blueprint 2.1 puts all three
+    // products and the leaderboard under one heading, which makes "today's
+    // predictions, ranked, with a little tag saying where each came from" the
+    // obvious design. It is more compact, it reads better, and it is exactly
+    // what the rule forbids.
+    const page = readFileSync(
+      join(COMPONENTS, '..', 'app', '[locale]', 'predictions', 'page.tsx'),
+      'utf8',
+    );
+
+    // Each product rendered by its own component, from its own endpoint.
+    expect(page).toContain('<ForecastList');
+    expect(page).toContain('<FounderAnalysisFeed');
+    expect(page).toContain('<CommunityConsensusList');
+    // And nothing that takes whichever it is handed.
+    expect(page).not.toMatch(/<PredictionList|<ProductList|<PredictionRow/);
+    expect(page).not.toMatch(/source:\s*'(model|founder|community)'/);
+  });
+
   it('never averages the three into one number', () => {
     // Blueprint 4.2 asks the community forecast to be shown "and comparison
     // with the model". Comparison is a difference; the failure is an average,

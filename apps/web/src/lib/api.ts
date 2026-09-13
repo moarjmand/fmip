@@ -4,10 +4,12 @@ import type {
   ApiError,
   AuditResponse,
   CommunityConsensusResponse,
+  ConsensusListResponse,
   CompetitionPage,
   CompetitionsResponse,
   CountriesResponse,
   FixtureEvaluationsResponse,
+  ForecastListResponse,
   FollowedEntity,
   ForecastVersionsResponse,
   FounderAnalysesResponse,
@@ -262,6 +264,24 @@ export function fetchFounderFeed(
   return apiRequest<FounderAnalysesResponse>(
     `/founder-analyses${suffix === '' ? '' : `?${suffix}`}`,
   );
+}
+
+/**
+ * `GET /forecasts?fixtures=` and `GET /consensus?fixtures=` (T-136): each
+ * product for a set of fixtures, one request each.
+ *
+ * Two calls rather than one combined endpoint, because they are two of the
+ * three prediction products and nothing should make it easy to hand one where
+ * the other was promised (rule 6).
+ */
+export function fetchForecastList(fixtureIds: string[]): Promise<ApiResult<ForecastListResponse>> {
+  return apiRequest<ForecastListResponse>(`/forecasts?fixtures=${fixtureIds.join(',')}`);
+}
+
+export function fetchConsensusList(
+  fixtureIds: string[],
+): Promise<ApiResult<ConsensusListResponse>> {
+  return apiRequest<ConsensusListResponse>(`/consensus?fixtures=${fixtureIds.join(',')}`);
 }
 
 /** `GET /fixtures/:id/power-index` (T-114): the latest index for both sides. Public. */

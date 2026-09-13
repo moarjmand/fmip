@@ -1,4 +1,9 @@
-import { type CommunityConsensusResponse, MIN_CONSENSUS_SAMPLE } from '@fmip/contracts';
+import {
+  type CommunityConsensusResponse,
+  type ConsensusListEntry,
+  MIN_CONSENSUS_SAMPLE,
+} from '@fmip/contracts';
+import Link from 'next/link';
 import { formatKickoff } from '@/lib/scores';
 import { LtrNumeric } from '@/components/score';
 import { type Triple, difference, sharesToPercentages, signed } from '@/lib/triple';
@@ -178,6 +183,71 @@ export function CommunityForecastPanel({
           </time>
           . Members may keep predicting until kick-off.
         </p>
+      )}
+    </section>
+  );
+}
+
+/**
+ * The community consensus across several matches, for the Predictions page
+ * (T-137, blueprint 2.1).
+ *
+ * It lives in this file rather than in a shared "product list" component, and
+ * that is the point: one file per product means there is no component in the
+ * codebase that renders "a prediction" and no place for a `source` prop to
+ * appear (rule 6).
+ *
+ * Only matches that actually have a consensus are listed. A match where four
+ * people have predicted is not a small consensus, it is none (D-052), and
+ * padding the list with rows saying so would drown the ones that mean
+ * something — while suggesting the site has more community activity than it
+ * does.
+ */
+export function CommunityConsensusList({
+  entries,
+  fixtures,
+  locale,
+}: {
+  entries: ConsensusListEntry[];
+  /** Names for the fixtures, by id, so a row can say who is playing. */
+  fixtures: Map<string, { home: string; away: string }>;
+  locale: string;
+}) {
+  const withConsensus = entries.filter((entry) => entry.consensus.data !== null);
+
+  return (
+    <section className="flex flex-col gap-2" data-testid="predictions-consensus">
+      <h2 className="text-lg font-semibold">Community consensus</h2>
+      <p className="text-xs opacity-60">
+        What registered members predicted. Not the statistical model, and not the founder.
+      </p>
+      {withConsensus.length === 0 ? (
+        <p className="text-sm opacity-70">
+          No match here has {MIN_CONSENSUS_SAMPLE} predictions yet, so there is no consensus to
+          show.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {withConsensus.map((entry) => {
+            const data = entry.consensus.data;
+            if (data === null) return null;
+            const teams = fixtures.get(entry.fixture_id);
+            const percentages = sharesToPercentages(data.crowd.shares);
+            return (
+              <li key={entry.fixture_id} className="flex flex-col gap-1">
+                <Link href={`/${locale}/match/${entry.fixture_id}`} className="text-sm underline">
+                  {teams === undefined ? 'Match' : `${teams.home} v ${teams.away}`}
+                </Link>
+                <p className="text-sm">
+                  {teams?.home ?? 'Home'} {percentages.home.toFixed(1)}%, draw{' '}
+                  {percentages.draw.toFixed(1)}%, {teams?.away ?? 'Away'}{' '}
+                  {percentages.away.toFixed(1)}%{' '}
+                  <span className="opacity-70">· {data.sample} predictions</span>
+                </p>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </section>
   );
