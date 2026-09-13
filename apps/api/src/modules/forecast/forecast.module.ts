@@ -46,7 +46,12 @@ export function modelClientFromEnv(env: NodeJS.ProcessEnv = process.env): ModelC
  */
 @Module({
   imports: [IdentityModule],
-  controllers: [ForecastController, EvaluationController, PowerIndexController, ForecastListController],
+  controllers: [
+    ForecastController,
+    EvaluationController,
+    PowerIndexController,
+    ForecastListController,
+  ],
   providers: [
     ForecastService,
     PostgresForecastStore,
