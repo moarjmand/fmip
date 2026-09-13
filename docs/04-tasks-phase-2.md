@@ -81,7 +81,7 @@ calculation.
 | `[x]` T-111 | Component computation: strength, form, venue, rest | T-110 | Each component is a number in `[0,1]` with its own coverage state |
 | `[ ]` T-112 | Line-up quality and managerial stability components | T-110, T-101 | Present when the data is, `not_supplied` when it is not — never zero |
 | `[ ]` T-113 | Weight validation against history | T-111, T-062 | The published weights beat the blueprint's defaults on a backtest, or the defaults are kept and the test says so |
-| `[ ]` T-114 | `GET /fixtures/:id/power-index` and the match-centre panel | T-111 | Shows leading factors, completeness and computed-at; missing components are visible |
+| `[x]` T-114 | `GET /fixtures/:id/power-index` and the match-centre panel | T-111 | Shows leading factors, completeness and computed-at; missing components are visible |
 
 **The rule that shapes all of it.** A component nothing supplies is
 `not_supplied` and its weight is **redistributed across the components that did
@@ -199,6 +199,40 @@ the real database; typecheck, lint and Prettier pass.
 
 **What is not here.** No endpoint and no panel yet (T-114), and nothing calls
 `compute` on a schedule — the version triggers are T-120.
+
+**T-114 verified on 2026-09-13.** `GET /fixtures/:id/power-index` is public,
+because the index is a product surface; `POST` computes and needs the admin
+role — the same split the forecast uses (T-065). **A `GET` never computes.** An
+index is a statement about a moment, and one created as a side effect of
+somebody loading a page would be a statement about when they happened to look.
+
+The response carries an index for both sides or none. An index for one team
+beside a blank for the other invites the comparison it cannot support, so the
+absence is stated for the pair, with a reason.
+
+**Shows leading factors, completeness and computed-at** — the three things
+blueprint 6.1 asks the public display to explain — and the panel says them in
+words rather than decimals, because a decimal explains nothing:
+
+- *"Driven mostly by underlying team strength and venue effect."*
+- *"70% of the index was measurable. Not included: expected or confirmed
+  line-up quality, managerial and team stability and competition context."*
+- *"Ahead of 62% of this competition"* for each component, rather than `0.62`.
+
+**Missing components are visible**, and visible as missing: each absent
+component keeps its row, its weight and its reason, and gets **no bar at all**
+rather than a bar of width zero — a zero-width bar reads as "measured, and it is
+bad", which is the opposite of the truth. The footer says the number is a
+standing in its competition, not a probability, because 0–100 beside three
+percentages that are probabilities would otherwise invite exactly that reading.
+
+8 unit tests on the wording, 4 on the endpoint. The endpoint tests build their
+own division too, under a different code from T-111's, so the two cannot collide
+in a parallel run — and one of them checks the honest 65% a fixture with no
+earlier fixture produces, because rest is then unmeasurable as well.
+
+**What is not here.** Nothing calls `POST` on a schedule, so a match has no index
+until an operator asks for one; deciding when to compute is T-120.
 
 ---
 

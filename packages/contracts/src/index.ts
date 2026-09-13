@@ -8,6 +8,7 @@ export type {
   PowerIndexComponent,
   PowerIndexComponentValue,
   PowerIndexPair,
+  PowerIndexResponse,
 } from './power-index';
 export type {
   HealthReport,

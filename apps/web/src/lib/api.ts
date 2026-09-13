@@ -9,6 +9,7 @@ import type {
   FixtureEvaluationsResponse,
   FollowedEntity,
   ForecastVersionsResponse,
+  PowerIndexResponse,
   FollowingResponse,
   HealthReport,
   IngestionHealth,
@@ -235,6 +236,11 @@ export function fetchForecasts(fixtureId: string): Promise<ApiResult<ForecastVer
   return apiRequest<ForecastVersionsResponse>(
     `/fixtures/${encodeURIComponent(fixtureId)}/forecasts`,
   );
+}
+
+/** `GET /fixtures/:id/power-index` (T-114): the latest index for both sides. Public. */
+export function fetchPowerIndex(fixtureId: string): Promise<ApiResult<PowerIndexResponse>> {
+  return apiRequest<PowerIndexResponse>(`/fixtures/${encodeURIComponent(fixtureId)}/power-index`);
 }
 
 /** `GET /fixtures/:id/evaluations` (T-066): how each version did after the match. Public. */

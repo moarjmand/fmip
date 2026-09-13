@@ -93,3 +93,16 @@ export interface PowerIndexPair {
   home: PowerIndex;
   away: PowerIndex;
 }
+
+/**
+ * `GET /fixtures/:id/power-index`.
+ *
+ * One of the two fields is always null. There is an index for both sides or
+ * there is none: an index for one team beside a blank for the other invites a
+ * comparison it cannot support, so the absence is stated for the pair, with the
+ * reason a reader can act on.
+ */
+export interface PowerIndexResponse {
+  index: PowerIndexPair | null;
+  unavailable_reason: string | null;
+}
