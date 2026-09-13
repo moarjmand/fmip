@@ -138,11 +138,17 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the rate lim
       await client.query(`DELETE FROM moderation_decision WHERE moderator_id = ANY($1::uuid[])`, [
         everyone,
       ]);
-      await client.query(`DELETE FROM user_account WHERE username LIKE $1`, [`rl_${RUN}%`]);
     } finally {
       await client.query(`SET session_replication_role = 'origin'`);
       client.release();
     }
+    // The account delete is outside the replica block on purpose:
+    // `session_replication_role = 'replica'` turns off **foreign-key**
+    // triggers too, so a cascade does not run while it is set and the
+    // account's credentials, sessions and tokens would be left behind. The
+    // setting is only for the rows a cascade cannot reach -- the immutable
+    // ones -- and it is put back before the account goes.
+    await pool.query(`DELETE FROM user_account WHERE username LIKE $1`, [`rl_${RUN}%`]);
     await pool.end();
     await app.close();
   });

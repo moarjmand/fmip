@@ -95,6 +95,16 @@ incomplete.
 | `Dockerfile` | Multi-stage build. Built from the repository root, not from `apps/api`. Compiles through Turbo so `@fmip/contracts` is built first, and deploys with `pnpm deploy --legacy`, because pnpm 10 refuses to deploy a workspace that does not inject its packages. |
 | `vitest.config.mts` | Vitest transformed by SWC rather than esbuild (D-019). |
 
+**Cleaning up after a database spec.** Rows a cascade cannot reach -- the
+immutable ones, guarded by `refuse_change()` -- are deleted on one dedicated
+connection with `SET session_replication_role = 'replica'`, which is scoped to
+that session. Never `ALTER TABLE ... DISABLE TRIGGER`: that is global, and while
+it is off a suite running in parallel that asserts the same table is immutable
+passes without testing anything. Put the setting back **before** deleting the
+`user_account` rows, because `replica` turns off foreign-key triggers too and a
+cascade does not run while it is set -- the credentials, sessions and tokens
+would be left behind. The moderation specs are the worked example.
+
 **`/health` is liveness, not readiness.** It reports that the process is serving
 HTTP and nothing else. It deliberately says nothing about Postgres or Redis: no
 client for either exists yet, and claiming a dependency check that never runs is
