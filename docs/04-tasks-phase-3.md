@@ -95,7 +95,7 @@ page makes and the product does not keep.
 | `[x]` T-200 | Schema and contracts: `friend_request`, `friendship`, `block` | T-040 | A friendship is one row, not two; a block cancels what it must, in the database |
 | `[x]` T-201 | The friends API and the real `FriendshipOracle` | T-200 | Request, cancel, accept, decline, remove, block, unblock; a friends-only profile is visible to a friend |
 | `[x]` T-202 | Friends on the web: requests inbox, friend list, profile controls | T-201 | Pending requests and mutual friends, both under the viewer's privacy |
-| `[ ]` T-203 | Comparing records: two members' predictions and ratings side by side | T-202, T-056 | Only what the other member's privacy permits, and the comparison names both |
+| `[x]` T-203 | Comparing records: two members' predictions and ratings side by side | T-202, T-056 | Only what the other member's privacy permits, and the comparison names both |
 
 **A friendship is one row, not two.** Two directed rows can disagree — one
 deleted, one not — and then "are A and B friends?" has two answers depending on
@@ -270,8 +270,42 @@ right-to-left with the new `nav.friends` key correctly marked `untranslated`
 
 127 web tests.
 
-**What is not here.** Comparing two members' records side by side (blueprint 8.1)
-is T-203.
+**T-203 verified on 2026-09-13, and E20 is complete.** `/[locale]/u/:username/compare`
+puts two members' ratings and prediction records side by side;
+`lib/compare.ts` is the arithmetic, pure, so the counting rules are argued with
+in a test rather than inspected on a page.
+
+**It adds no access.** The history comes from the endpoint the profile already
+uses (T-056), so a member whose history is friends-only or private is restricted
+here too and the page says which. A comparison that read the predictions a
+different way would be a privacy setting with a hole in it — and this is exactly
+the sort of feature where that hole gets drilled, because the comparison "needs"
+both sides. It does not: it says it cannot see one.
+
+**It compares a window and admits it.** One request per member reaches 50
+predictions (`HISTORY_MAX_LIMIT`), so where either has made more the page says
+this is the recent record and not the career. Presenting fifty of four hundred as
+a head-to-head is rule 3 with a scoreboard on it.
+
+**Three exclusions from the tally, each of which would otherwise blame somebody
+for nothing they did.** An unsettled match is not a wrong prediction, and
+counting it would penalise the member who predicts earlier. A void settlement —
+an abandoned match — has no result, so nobody was wrong. And a match is counted
+only when *both* settlements stand: a tally where one side is judged and the
+other is not is not a comparison of two members.
+
+**Checked against a running stack:** two members predicting the same fixture show
+"1 match in common, none of them settled yet" with both calls named; the moment
+one of them sets their history to private, the same page says so instead. The
+demo accounts were removed afterwards — around `prediction_version_immutable` and
+`rating_snapshot_immutable`, which a cascade from `user_account` otherwise runs
+straight into, and both re-enabled after.
+
+7 unit tests on the counting; 134 web tests.
+
+**E20 is complete.** The social graph exists, the `friends` visibility means what
+the settings page has been saying since T-041, and every surface it added carries
+the member's way out.
 
 ---
 

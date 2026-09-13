@@ -125,7 +125,18 @@ export default async function ProfilePage({
         )}
       </header>
 
-      <FriendControls locale={locale} username={profile.username} status={friendStatus} />
+      <div className="flex flex-wrap items-start gap-4">
+        <FriendControls locale={locale} username={profile.username} status={friendStatus} />
+        {friendStatus !== null && friendStatus !== 'self' && (
+          <Link
+            href={`/${locale}/u/${encodeURIComponent(profile.username)}/compare`}
+            className="text-sm underline"
+            data-testid="compare-link"
+          >
+            Compare records
+          </Link>
+        )}
+      </div>
 
       {profile.bio !== null ? (
         <p className="whitespace-pre-line" data-testid="profile-bio">
