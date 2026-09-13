@@ -94,7 +94,7 @@ page makes and the product does not keep.
 |---|---|---|---|
 | `[x]` T-200 | Schema and contracts: `friend_request`, `friendship`, `block` | T-040 | A friendship is one row, not two; a block cancels what it must, in the database |
 | `[x]` T-201 | The friends API and the real `FriendshipOracle` | T-200 | Request, cancel, accept, decline, remove, block, unblock; a friends-only profile is visible to a friend |
-| `[ ]` T-202 | Friends on the web: requests inbox, friend list, profile controls | T-201 | Pending requests and mutual friends, both under the viewer's privacy |
+| `[x]` T-202 | Friends on the web: requests inbox, friend list, profile controls | T-201 | Pending requests and mutual friends, both under the viewer's privacy |
 | `[ ]` T-203 | Comparing records: two members' predictions and ratings side by side | T-202, T-056 | Only what the other member's privacy permits, and the comparison names both |
 
 **A friendship is one row, not two.** Two directed rows can disagree — one
@@ -218,6 +218,59 @@ request alone, and a lifted block that does not restore what it ended.
 
 **What is not here.** Nothing on the web: the requests inbox, the friend list and
 the profile controls are T-202, and the record comparison blueprint 8.1 asks for
+is T-203.
+
+**T-202 verified on 2026-09-13.** `/[locale]/friends` is the page — requests,
+friends and blocks — and `components/friend-controls.tsx` is the control set,
+rendered on a member's profile and beside every row of that page.
+
+**Pending requests and mutual friends, both under the viewer's privacy.** The
+mutual count is computed over *the viewer's own* friends intersected with the
+other member's, which is the only form of it that is not a window into somebody
+else's list: every name it could be built from is already the viewer's.
+
+**The block list is on the friends page, not buried in settings.** A block a
+member cannot find is a block they cannot lift, and the page says the surprising
+half out loud — lifting one makes contact possible again and does not restore the
+friendship the block ended.
+
+**Every section states its own absence**, which is the T-137 lesson applied where
+it matters more. A vanishing "Requests" section is not just untidy: an empty
+requests list is a claim about whether another member did something, and a reader
+must be able to tell "nobody has asked" from "the page did not ask".
+
+**The judgement that took the longest, and it is about `unavailable`.** When the
+other member has blocked the viewer, the profile says *"You cannot send @x a
+friend request"* and does not say why. Three options were on the table and two of
+them are worse. Showing "Add friend" and letting it fail leads a member into a
+dead end for the same inference one click later. Accepting the request and never
+delivering it tells the sender something untrue about their own action — the
+failure rule 3 exists for — and it is the option most products pick. Saying
+plainly that a request cannot be sent, without the reason, is the only one that
+lies to nobody. Today a block is the only thing that produces it, so somebody
+determined can infer it; that is the residual cost, and it is smaller than either
+alternative.
+
+**The exit is never taken away.** The block control is present in every state
+including `unavailable`, so one member cannot decide what controls another member
+has. `friend-controls.spec.ts` is the first check of D-053's promise that every
+surface ships with its exits: it reads `FriendStatus` **out of the contract** and
+fails if any state renders without a block or an unblock — so adding a state to
+the union and forgetting the component is a failing test rather than a state that
+quietly offers nothing. Checked by breaking it: removing one `{block}` fails two
+of the six.
+
+**Checked against a running stack**, not only in types. API on 3002, `next dev` on
+3100, two members registered: the request appears in the recipient's inbox with
+Accept, Decline and Block; the sender's profile view says "Friend request sent";
+and — the acceptance criterion — **Ada's friends-only profile is `restricted` to a
+guest and opens to Bo the moment the request is accepted**. `/ar/friends` renders
+right-to-left with the new `nav.friends` key correctly marked `untranslated`
+(T-151). The demo accounts were deleted afterwards.
+
+127 web tests.
+
+**What is not here.** Comparing two members' records side by side (blueprint 8.1)
 is T-203.
 
 ---

@@ -1,8 +1,15 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { FriendControls } from '@/components/friend-controls';
 import { PredictionHistory } from '@/components/prediction-history';
-import { fetchMe, fetchPredictionHistory, fetchProfile, fetchRating } from '@/lib/api';
+import {
+  fetchFriendStatus,
+  fetchMe,
+  fetchPredictionHistory,
+  fetchProfile,
+  fetchRating,
+} from '@/lib/api';
 import { ratingLabel, statusLabel, tierLabel } from '@/lib/leaderboard';
 import { historyQuery, readHistoryPage } from '@/lib/prediction-history';
 import { pageMetadata } from '@/lib/seo';
@@ -40,7 +47,12 @@ export default async function ProfilePage({
   const [{ locale, username }, query] = await Promise.all([params, searchParams]);
   const cookie = await sessionCookieHeader();
   const name = decodeURIComponent(username);
-  const result = await fetchProfile(name, cookie);
+  const [result, friendStatus] = await Promise.all([
+    fetchProfile(name, cookie),
+    // The controls belong on both branches below: a friends-only profile the
+    // viewer cannot see is exactly the profile they may want to ask about.
+    fetchFriendStatus(name, cookie),
+  ]);
 
   if (!result.ok) {
     if (result.status === 404) notFound();
@@ -66,6 +78,7 @@ export default async function ProfilePage({
             ? 'This profile is visible to friends only.'
             : 'This profile is private.'}
         </p>
+        <FriendControls locale={locale} username={view.username} status={friendStatus} />
       </main>
     );
   }
@@ -111,6 +124,8 @@ export default async function ProfilePage({
           </Link>
         )}
       </header>
+
+      <FriendControls locale={locale} username={profile.username} status={friendStatus} />
 
       {profile.bio !== null ? (
         <p className="whitespace-pre-line" data-testid="profile-bio">
