@@ -33,3 +33,12 @@ backups/
 # Certificates for the production edge (deploy/Caddyfile); only the note is tracked.
 deploy/certs/*
 !deploy/certs/README.md
+
+# Written by `next dev` on every run (Next.js generates agent instruction files
+# beside the app). They are machine output, they change with the Next.js
+# version, and `apps/web/CLAUDE.md` would silently add rules to every agent
+# session working in that directory — which is the maintainer's choice to make
+# in the root CLAUDE.md, not a dev server's. Ignored, not committed; `next dev`
+# recreates them locally whenever it wants them.
+apps/web/AGENTS.md
+apps/web/CLAUDE.md
