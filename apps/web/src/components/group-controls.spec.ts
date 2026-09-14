@@ -98,6 +98,38 @@ describe('what the surfaces say about what they were not given', () => {
   });
 });
 
+describe('the group board is the global board, scoped (T-243)', () => {
+  it('borrows the leaderboard labels rather than writing a second set', () => {
+    // A second `toFixed`, a second tier table or a second status word here is
+    // how "the same rating rules" stops being true on the surface, months after
+    // it is still true in the API.
+    expect(PAGE).toContain("from '@/lib/leaderboard'");
+    expect(PAGE).toContain('ratingLabel(entry)');
+    expect(PAGE).toContain('tierLabel(entry.tier)');
+    expect(PAGE).not.toMatch(/toFixed\(/);
+  });
+
+  it('asks for the board only where the membership is already visible', () => {
+    // The board is the membership with numbers beside it, so it is the same
+    // question; fetching it anyway and rendering the 403 would ask twice and
+    // answer worse.
+    expect(PAGE).toContain('group.members === null ? null : await fetchGroupLeaderboard');
+  });
+
+  it('states an empty board with the filter that emptied it', () => {
+    // The floor does not bend for a small group (D-037). An empty list would
+    // read as "nobody is in this group", which is never true of a group.
+    expect(PAGE).toContain('data-testid="group-board-none"');
+    expect(PAGE).toContain('board.data.min_settled');
+    expect(PAGE).toContain('data-testid="group-board-unreachable"');
+  });
+
+  it('says what the rank is measured against', () => {
+    expect(PAGE).toContain('data-testid="group-board-note"');
+    expect(PAGE).toMatch(/same rating as the/);
+  });
+});
+
 describe('correct before fast', () => {
   it('renders both surfaces on the server', () => {
     expect(DIRECTORY.startsWith("'use client'")).toBe(false);

@@ -19,6 +19,7 @@ import type {
   RatingResponse,
 } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
+import { GroupsService } from '../groups/groups.service';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { CareerPointsService } from './career-points.service';
 import { eligibilityFor } from './internal/eligibility';
@@ -30,6 +31,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
 const NO_USER: ApiError = { error: 'not_found', message: 'No such member.' };
+const NO_GROUP: ApiError = { error: 'not_found', message: 'No such group.' };
 
 /**
  * Ratings over HTTP (T-053). A rating is public (blueprint 9.3: profiles and
@@ -42,6 +44,7 @@ export class ReputationController {
     private readonly reputation: ReputationService,
     private readonly points: CareerPointsService,
     private readonly identity: IdentityService,
+    private readonly groups: GroupsService,
   ) {}
 
   @Get('me/rating')
@@ -84,6 +87,51 @@ export class ReputationController {
       throw new BadRequestException(error);
     }
     return this.reputation.leaderboard(parsed.query);
+  }
+
+  /**
+   * A group's board (blueprint 8.2, T-243).
+   *
+   * **The same rating rules as the global board, scoped.** It is the method
+   * above with one argument added, which is the whole design: same rules
+   * version, same floor, same formula, same tiers, and the population narrowed
+   * to the group's members. The minimum-prediction floor of D-037 applies
+   * unchanged -- so a small group can have an empty board, and saying so is the
+   * honest answer. Lowering the floor because a group is small is the second
+   * formula this route exists to refuse.
+   *
+   * **It lives here rather than in the groups controller** because the ranking
+   * is this boundary's and so is every rule behind it; groups answers only the
+   * one question this boundary cannot -- who is in it, and may you ask.
+   */
+  @Get('groups/:slug/leaderboard')
+  async groupLeaderboard(
+    @Param('slug') slug: string,
+    @Query() query: unknown,
+    @Req() request: FastifyRequest,
+  ): Promise<LeaderboardResponse> {
+    const viewer = await this.viewer(request);
+    const parsed = parseLeaderboardQuery(
+      isRecord(query) ? query : {},
+      this.reputation.leaderboardRules,
+    );
+    if (!parsed.ok) {
+      throw new BadRequestException({
+        error: 'validation',
+        message: 'The request is not valid.',
+        fields: parsed.fields,
+      } satisfies ApiError);
+    }
+
+    const audience = await this.groups.audience(viewer.id, slug);
+    if (!audience.ok) {
+      if (audience.reason === 'not_found') throw new NotFoundException(NO_GROUP);
+      throw new ForbiddenException({
+        error: 'validation',
+        message: 'Who is in this group is shown to its members.',
+      } satisfies ApiError);
+    }
+    return this.reputation.leaderboard(parsed.query, audience.members);
   }
 
   @Get('me/points')

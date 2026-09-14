@@ -68,8 +68,17 @@ export class ReputationService {
    * minimum-sample filter. Reads snapshots only, so it is as reproducible as
    * they are; the tier is derived from the rating under the formula.
    */
-  async leaderboard(query: LeaderboardQuery): Promise<LeaderboardResponse> {
-    const page = await this.store.board(query.minSettled, query.limit, query.offset);
+  /**
+   * The board. `among` scopes it to a set of members -- a group (T-243) -- and
+   * scopes nothing else: same rules version, same floor, same formula, same
+   * tier. There is no second leaderboard here and there is deliberately no
+   * second method, because a second method is where a second formula begins.
+   */
+  async leaderboard(
+    query: LeaderboardQuery,
+    among: string[] | null = null,
+  ): Promise<LeaderboardResponse> {
+    const page = await this.store.board(query.minSettled, query.limit, query.offset, among);
     return {
       rules_version: this.leaderboardRules.version,
       min_settled: query.minSettled,

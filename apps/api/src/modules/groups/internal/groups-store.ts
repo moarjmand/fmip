@@ -106,6 +106,18 @@ export class GroupsStore {
     return rows;
   }
 
+  /**
+   * Just the ids, for the leaderboard (T-243): the reputation boundary is
+   * handed a set of members and ranks them, and never learns what a group is.
+   */
+  async memberIds(groupId: string): Promise<string[]> {
+    const { rows } = await this.pool.query<{ user_id: string }>(
+      `SELECT user_id FROM group_member WHERE group_id = $1`,
+      [groupId],
+    );
+    return rows.map((row) => row.user_id);
+  }
+
   /** What is waiting for whoever decides. */
   async pending(groupId: string): Promise<{ invites: number; requests: number }> {
     const { rows } = await this.pool.query<{ invites: string; requests: string }>(

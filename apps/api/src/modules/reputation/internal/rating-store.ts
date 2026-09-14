@@ -118,8 +118,24 @@ export class PostgresRatingStore {
    * counts the whole board under the filter; the page is `limit` from
    * `offset`. Ranks are computed before paging, so page two starts where page
    * one ended.
+   *
+   * `among`, when it is not null, is the set of members the board is drawn
+   * from -- a group (T-243), and the friends-only board blueprint 9.3 also
+   * lists, the same way when it is built. **Nothing else changes.** The filter,
+   * the ordering, the tie-breaks and the floor are the ones above; the rating
+   * is the same number it is everywhere. What is scoped is the population, and
+   * therefore the rank, which is computed inside the scope because a board
+   * showing rank 4,891 of 12,300 would not be a board.
+   *
+   * A set of ids rather than a join, so this module never learns what a group
+   * is: it is handed the members and ranks them.
    */
-  async board(minSettled: number, limit: number, offset: number): Promise<BoardPage> {
+  async board(
+    minSettled: number,
+    limit: number,
+    offset: number,
+    among: string[] | null = null,
+  ): Promise<BoardPage> {
     const { rows } = await this.pool.query<{
       rank: string;
       username: string;
@@ -144,13 +160,14 @@ export class PostgresRatingStore {
            FROM latest l
            JOIN user_account u ON u.id = l.user_id
           WHERE l.settled_count >= $1 AND u.status = 'active'
+            AND ($4::uuid[] IS NULL OR l.user_id = ANY($4::uuid[]))
        )
        SELECT rank::text, username, rating, settled_count, provisional, established,
               formula_version, computed_at, count(*) OVER ()::text AS total
          FROM ranked
         ORDER BY rank
         LIMIT $2 OFFSET $3`,
-      [minSettled, limit, offset],
+      [minSettled, limit, offset, among],
     );
     let total = Number(rows[0]?.total ?? 0);
     if (rows.length === 0 && offset > 0) {
@@ -160,8 +177,9 @@ export class PostgresRatingStore {
            SELECT DISTINCT ON (s.user_id) s.user_id, s.settled_count
              FROM rating_snapshot s ORDER BY s.user_id, s.computed_at DESC, s.id DESC
          ) l JOIN user_account u ON u.id = l.user_id
-         WHERE l.settled_count >= $1 AND u.status = 'active'`,
-        [minSettled],
+         WHERE l.settled_count >= $1 AND u.status = 'active'
+           AND ($2::uuid[] IS NULL OR l.user_id = ANY($2::uuid[]))`,
+        [minSettled, among],
       );
       total = Number(counted.rows[0]?.n ?? 0);
     }

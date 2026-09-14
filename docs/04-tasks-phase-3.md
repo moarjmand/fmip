@@ -1314,8 +1314,16 @@ a different visibility and an invitation rule, not a second feature.
 | `[x]` T-241 | The group API: membership, roles, invitations, join requests | T-240 | Every refusal the schema makes is explained rather than returned as a 500, and a group nobody may see is 404 rather than 403 |
 | `[x]` T-245 | The group conversation | T-241, T-221 | Membership changes take effect on the conversation immediately |
 | `[x]` T-242 | Group surfaces: directory, page, membership controls | T-241 | A private group is not discoverable; an invite-only one is not joinable |
-| `[ ]` T-243 | The group leaderboard and prediction comparison | T-241, T-055 | The same rating rules as the global board, scoped — never a second formula |
+| `[x]` T-243 | The group leaderboard | T-241, T-055 | The same rating rules as the global board, scoped — never a second formula |
 | `[ ]` T-244 | Match threads inside a group | T-241 | A thread is a conversation about a fixture, and says which |
+| `[ ]` T-246 | Prediction comparison inside a group | T-243, T-044 | Who called a fixture which way, in one place; never a second settlement |
+
+**T-243 was split on 2026-09-15.** It read "the group leaderboard and prediction
+comparison" and those are two features that share a sentence and nothing else:
+the board ranks members by a rating that already exists, and a comparison reads
+predictions for one fixture. Together they crossed eleven files, which is the
+point `CLAUDE.md` §3 says to stop at. The comparison is **T-246** and keeps the
+dependency it actually has.
 
 **Three visibilities, and the middle one is the point.** Public,
 discoverable-private and invite-only are not a spectrum of the same thing:
@@ -1535,8 +1543,46 @@ Demo accounts and groups were deleted afterwards.
 
 9 guards; 165 across the web app.
 
-**What is not here.** The group leaderboard (T-243) and match threads inside a
-group (T-244).
+**What is not here.** Match threads inside a group (T-244).
+
+**T-243 verified on 2026-09-15.** `GET /groups/:slug/leaderboard`, a board on the
+group page, and one argument added to the method that already existed.
+
+**There is no second board, and the code is arranged so there cannot be one.**
+`ReputationService.leaderboard` takes an optional set of members and changes
+nothing else -- same rules version, same floor, same formula, same tiers, same
+parser for `min_settled`, `limit` and `offset`. A second *method* is where a
+second formula begins, so there is not one. The test does not compare numbers: it
+asks both boards for their rules and fails if they differ.
+
+**The rating is global; the rank is scoped.** A member's rating is the same
+number on both boards -- it is computed from their settlements, not from their
+company -- and what the group board narrows is the population, and therefore the
+position. A board showing rank 4,891 of 12,300 would not be a board.
+
+**The floor does not bend for a small group**, which is the temptation this task
+existed to refuse. A group whose members have all settled fewer than the floor
+gets an empty board and a sentence saying which filter emptied it. Rendering that
+as an empty list would have said "nobody is in this group", which of a group is
+never true (rule 3).
+
+**The dependency points from reputation to groups, not the other way.** Groups
+needs one answer from reputation and reputation needs one answer from groups;
+whichever imports the other inherits its dependencies. Importing reputation into
+groups made every group test require `MODEL_SERVICE_URL` -- reputation reads
+match difficulty from forecast -- to list members. So `GroupsService.audience()`
+answers "who is in this group, and may you ask", the route lives with the rules
+it obeys, and groups stays as light as it was.
+
+**Who may see the board is who may see the membership**, because a board is the
+membership with numbers beside it. The page does not ask twice: `members === null`
+is already the API's answer, and the board is fetched only when it is not.
+
+**`members_only` is not `forbidden`.** One says this is for the people who *run*
+the group; the other that it is for the people who are *in* it. A discoverable
+group's board is refused for the second reason and says so.
+
+7 cases against the real schema.
 
 ---
 
