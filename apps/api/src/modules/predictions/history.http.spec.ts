@@ -107,8 +107,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Prediction h
       [adm.id],
     );
 
-    // One match kicks off in six seconds and gets settled; one is next week and stays open.
-    settledFixture = await fixture('10 seconds');
+    // One match kicks off and gets settled; one is next week and stays open.
+    settledFixture = await fixture('1 day');
     openFixture = await fixture('7 days');
     expect(
       (
@@ -137,9 +137,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Prediction h
         })
       ).statusCode,
     ).toBe(200);
-    // Ten seconds of room: under the full suite's load, the submissions took most of six.
-    await new Promise((resolve) => setTimeout(resolve, 11_000));
-    await pool.query(`UPDATE fixture SET status = 'finished' WHERE id = $1`, [settledFixture]);
+    // Kick-off moves back to the database's own `now()` once both versions are
+    // in: they were written before this statement, so they stay earlier than
+    // the lock, and every later read sees a match that has started. Sleeping
+    // out a real kick-off instead raced the host clock against the database's,
+    // which is not the thing under test -- and loses whenever the two drift.
+    await pool.query(`UPDATE fixture SET status = 'finished', kickoff_at = now() WHERE id = $1`, [
+      settledFixture,
+    ]);
     await pool.query(
       `INSERT INTO fixture_score (fixture_id, kind, home, away) VALUES ($1, 'full_time', 2, 1)`,
       [settledFixture],
@@ -150,44 +155,56 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Prediction h
   });
 
   afterAll(async () => {
-    const client = await pool.connect();
+    // Everything that references this run's accounts goes, whether or not the
+    // tests passed, and no step undoes an earlier one. `rating_snapshot` and
+    // `points_transaction` reference `user_account` with ON DELETE RESTRICT, so
+    // leaving one behind makes the account delete fail for good: the run after
+    // it inherits the account and fails too, until somebody clears the database
+    // by hand. Neither table is written by anything in this file -- whoever
+    // recomputes a recently settled member writes them, and `POST
+    // /ratings/recompute` covers every such member, not only its own fixtures.
+    const accounts = `ph_${RUN}%`;
     try {
-      await client.query('BEGIN');
-      for (const [table, trigger] of [
-        ['settlement', 'settlement_immutable'],
-        ['settlement_run', 'settlement_run_immutable'],
-        ['prediction_version', 'prediction_version_immutable'],
-      ]) {
-        await client.query(`ALTER TABLE ${table} DISABLE TRIGGER ${trigger}`);
+      // One dedicated connection with `session_replication_role = 'replica'`,
+      // which is scoped to this session: the rows a cascade cannot reach are
+      // the immutable ones, and `ALTER TABLE ... DISABLE TRIGGER` would turn
+      // their guard off for every suite running in parallel (03-project-map.md).
+      const client = await pool.connect();
+      try {
+        await client.query(`SET session_replication_role = 'replica'`);
+        await client.query(
+          `DELETE FROM points_transaction WHERE user_id IN
+             (SELECT id FROM user_account WHERE username LIKE $1)`,
+          [accounts],
+        );
+        await client.query(
+          `DELETE FROM rating_snapshot WHERE user_id IN
+             (SELECT id FROM user_account WHERE username LIKE $1)`,
+          [accounts],
+        );
+        await client.query(`DELETE FROM settlement WHERE fixture_id = ANY($1::uuid[])`, [fixtures]);
+        await client.query(`DELETE FROM settlement_run WHERE fixture_id = ANY($1::uuid[])`, [
+          fixtures,
+        ]);
+        await client.query(
+          `DELETE FROM prediction_version WHERE prediction_id IN
+             (SELECT id FROM user_prediction WHERE fixture_id = ANY($1::uuid[]))`,
+          [fixtures],
+        );
+      } finally {
+        // Back to 'origin' before the accounts go: `replica` turns off
+        // foreign-key triggers too, so the cascade that takes the credentials,
+        // sessions, roles and predictions with them would not run.
+        await client.query(`SET session_replication_role = 'origin'`);
+        client.release();
       }
-      await client.query(`DELETE FROM settlement WHERE fixture_id = ANY($1::uuid[])`, [fixtures]);
-      await client.query(`DELETE FROM settlement_run WHERE fixture_id = ANY($1::uuid[])`, [
-        fixtures,
-      ]);
-      await client.query(
-        `DELETE FROM prediction_version WHERE prediction_id IN
-           (SELECT id FROM user_prediction WHERE fixture_id = ANY($1::uuid[]))`,
-        [fixtures],
-      );
-      for (const [table, trigger] of [
-        ['prediction_version', 'prediction_version_immutable'],
-        ['settlement_run', 'settlement_run_immutable'],
-        ['settlement', 'settlement_immutable'],
-      ]) {
-        await client.query(`ALTER TABLE ${table} ENABLE TRIGGER ${trigger}`);
-      }
-      await client.query(`DELETE FROM user_account WHERE username LIKE $1`, [`ph_${RUN}%`]);
-      await client.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [fixtures]);
-      await client.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [[HOME_TEAM, AWAY_TEAM]]);
-      await client.query('COMMIT');
-    } catch (error: unknown) {
-      await client.query('ROLLBACK');
-      throw error;
+      await pool.query(`DELETE FROM user_account WHERE username LIKE $1`, [accounts]);
+      await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [fixtures]);
+      await pool.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [[HOME_TEAM, AWAY_TEAM]]);
     } finally {
-      client.release();
+      await pool.end();
+      await app.close();
     }
-    await pool.end();
-    await app.close();
   });
 
   it('shows the version that stands, its time and the settlement, newest kick-off first', async () => {
