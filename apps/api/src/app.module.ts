@@ -13,6 +13,7 @@ import { PredictionsModule } from './modules/predictions/predictions.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { ConversationsModule } from './modules/conversations/conversations.module';
 import { ModerationModule } from './modules/moderation/moderation.module';
+import { GroupsModule } from './modules/groups/groups.module';
 import { SocialModule } from './modules/social/social.module';
 import { ReputationModule } from './modules/reputation/reputation.module';
 import { SearchModule } from './modules/search/search.module';
@@ -34,6 +35,7 @@ import { SearchModule } from './modules/search/search.module';
     SocialModule,
     ModerationModule,
     ConversationsModule,
+    GroupsModule,
     ForecastModule,
     ConsensusModule,
     FounderModule,
