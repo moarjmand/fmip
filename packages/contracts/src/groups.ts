@@ -86,6 +86,13 @@ export interface GroupMember {
 export interface Group extends GroupSummary {
   standing: GroupStanding;
   /**
+   * The group's conversation, or `null` when the viewer may not open it.
+   *
+   * Every group has one. What varies is whether this viewer is in the group,
+   * and a conversation id they cannot use would be an invitation to a 404.
+   */
+  conversation_id: string | null;
+  /**
    * The membership, or `null` when the viewer may not see it — a
    * discoverable-private group is found, not read.
    *

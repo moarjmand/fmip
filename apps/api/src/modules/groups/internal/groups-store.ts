@@ -144,6 +144,11 @@ export class GroupsStore {
         `INSERT INTO group_member (group_id, user_id, role) VALUES ($1, $2, 'owner')`,
         [id, owner],
       );
+      // A group is a place to talk, so it has its conversation from the moment
+      // it exists (T-245). Made here, in the same transaction, because a group
+      // without one would be a group whose chat page 404s until somebody
+      // noticed.
+      await client.query(`INSERT INTO conversation (kind, group_id) VALUES ('group', $1)`, [id]);
       const { rows: made } = await client.query<GroupRow>(
         `SELECT ${GROUP_COLUMNS} FROM user_group g WHERE g.id = $1`,
         [id],
@@ -328,6 +333,15 @@ export class GroupsStore {
   }
 
   // -------------------------------------------------------------------------
+
+  /** A group's conversation. Every group has exactly one, by unique index. */
+  async conversationFor(groupId: string): Promise<string | null> {
+    const { rows } = await this.pool.query<{ id: string }>(
+      `SELECT id FROM conversation WHERE group_id = $1`,
+      [groupId],
+    );
+    return rows[0]?.id ?? null;
+  }
 
   /** A member by username, for every verb that names one. */
   async memberIdByUsername(username: string): Promise<string | null> {

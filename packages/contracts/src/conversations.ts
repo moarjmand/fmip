@@ -15,7 +15,14 @@
  */
 
 /** `group` joins this list with the groups of T-240. */
-export const CONVERSATION_KINDS = ['direct'] as const;
+/**
+ * A conversation is between two people or inside a group (T-220, T-245).
+ *
+ * The two differ in where their membership lives, which is the only difference
+ * that matters: a direct conversation's is `conversation_participant`, a
+ * group's is the group.
+ */
+export const CONVERSATION_KINDS = ['direct', 'group'] as const;
 export type ConversationKind = (typeof CONVERSATION_KINDS)[number];
 
 export const MAX_MESSAGE_LENGTH = 4_000;
@@ -133,6 +140,14 @@ export interface Message {
 export interface ConversationSummary {
   id: string;
   kind: ConversationKind;
+  /**
+   * The group this conversation belongs to, or `null` for a direct one.
+   *
+   * Non-null is exactly when `members` is empty, so the pair is never
+   * ambiguous: a group conversation is not a conversation *with* particular
+   * people, and its membership is read from the group rather than copied here.
+   */
+  group: { slug: string; name: string } | null;
   /** Everyone in it, the viewer included. */
   members: ConversationMember[];
   last_message: Message | null;

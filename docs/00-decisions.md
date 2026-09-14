@@ -1783,3 +1783,62 @@ and `moderation_decision.subject_type` gain `group` — in this migration, becau
 a group is now a thing that can be reported. Deleting an account that owns a
 group is refused until the group is handed on or deleted, which is the deferred
 constraint doing exactly what it says.
+
+---
+
+## D-058 — A group conversation's membership is the group's, not a copy of it
+
+**Date:** 2026-09-14 · **Task:** T-245 · **Status:** accepted
+
+The acceptance criterion was "membership changes take effect on the conversation
+immediately", and there were two ways to get it.
+
+**Decision.** `group_member` **is** the membership of a group conversation.
+`conversation_participant` keeps what it is actually for -- the read position and
+the mute -- and carries no authority at all. `refuse_non_participant()` branches
+on the conversation's kind: a direct conversation asks
+`conversation_participant`, because there is nowhere else its membership lives; a
+group asks `group_member`. On the read side, `ConversationsStore.participation()`
+does the same, and it is the single place the conversations module asks "is this
+viewer in this conversation" -- the page, the search, the catch-up, the socket's
+subscribe and the socket's delivery re-check all come through it, so teaching one
+query about groups made a membership change immediate on all of them at once.
+
+The participant row for a group is written the first time somebody reads or
+mutes, not the moment they join. Its absence means "has read nothing", never "is
+not here", and every column taken from it is coalesced accordingly.
+
+**Why.** The alternative was to mirror `group_member` into
+`conversation_participant` with triggers: join writes a row, leaving sets
+`left_at`, a removed member gets the same. Two records of who is in the room,
+kept in step by code that has to be right every time, and "immediately" true only
+for as long as the mirror is. Every bug in that shape is invisible at the moment
+it happens and looks like a permissions failure a week later. With one record
+there is nothing to synchronise, so there is nothing that can drift, and the
+criterion holds by construction rather than by vigilance.
+
+**Consequences.**
+
+*Leaving means two different things, deliberately.* A direct conversation can be
+left and still read (T-221, T-223): half of it is yours, and the other person's
+copy is unaffected. A group is a place, and leaving it means you are not in it --
+the history goes with the membership. `POST /me/conversations/:id/leave` on a
+group conversation is therefore refused with "leave the group instead" rather
+than setting a `left_at` that would change nothing and report success. A silent
+no-op is the failure rule 3 exists to prevent, wearing the shape of a result.
+
+*A group conversation's summary carries its group and no members.* `group`
+non-null is exactly when `members` is empty, so the pair is never ambiguous: it
+is not a conversation *with* particular people.
+
+*Two members who have blocked each other share the room.* The message block
+guard was written direct-only in T-220 and stays that way. A block stops them
+reaching *each other* -- which is why the mention guard of T-225 exists, and this
+is the migration that finally made it reachable.
+
+**Alternatives considered.** *Mirroring with triggers*, above. *Dropping
+`conversation_participant` for groups entirely*: the read position and the mute
+have to live somewhere, and a second table for them would be the same duplication
+one layer down. *Letting a group conversation be left like a direct one*: two
+ways out of one place that mean different things, and the one that does nothing
+reports success.

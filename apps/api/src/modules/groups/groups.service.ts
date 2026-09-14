@@ -8,6 +8,7 @@ import {
   type Group,
   type GroupInvite,
   type GroupJoinRequest,
+  type GroupMember,
   type GroupRole,
   type GroupStanding,
   type GroupSummary,
@@ -19,7 +20,12 @@ import {
   type UpdateGroupRequest,
 } from '@fmip/contracts';
 import { PG_POOL } from '../../database/database.module';
-import { type GroupRow, GroupsStore, type InviteRow } from './internal/groups-store';
+import {
+  type GroupRow,
+  GroupsStore,
+  type InviteRow,
+  type MemberRow,
+} from './internal/groups-store';
 
 /** How many groups a directory page shows. */
 export const DIRECTORY_LIMIT = 50;
@@ -69,6 +75,16 @@ function summary(row: GroupRow): GroupSummary {
     visibility: row.visibility as GroupVisibility,
     member_count: Number(row.member_count),
     created_at: row.created_at.toISOString(),
+  };
+}
+
+/** One member, with the role narrowed to what the contract allows. */
+function membership(row: MemberRow): GroupMember {
+  return {
+    username: row.username,
+    display_name: row.display_name,
+    role: row.role as GroupRole,
+    joined_at: row.joined_at.toISOString(),
   };
 }
 
@@ -135,11 +151,17 @@ export class GroupsService {
     return {
       ...summary(row),
       standing: await this.standing(row, viewerId, role),
+      // A conversation id somebody cannot open would be an invitation to a 404.
+      // Every group has one; what varies is whether this viewer is in it.
+      conversation_id: inside ? await this.store.conversationFor(row.id) : null,
       // A discoverable group is found, not read: its membership is exactly what
       // it does not show.
-      members: inside || row.visibility === 'public' ? await this.store.members(row.id) : null,
+      members:
+        inside || row.visibility === 'public'
+          ? (await this.store.members(row.id)).map(membership)
+          : null,
       pending: decides ? await this.store.pending(row.id) : null,
-    } as Group;
+    };
   }
 
   async invites(viewerId: string): Promise<GroupInvite[]> {
