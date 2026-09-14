@@ -25,6 +25,9 @@ import { DEFAULT_STREAM_OPTIONS, STREAM_OPTIONS, StreamController } from './stre
     // Provided here so a test can override the timings.
     { provide: STREAM_OPTIONS, useValue: DEFAULT_STREAM_OPTIONS },
   ],
-  exports: [FixturesService],
+  // `FixtureChangeFeed` is exported because "a fixture moved" is a fact this
+  // boundary owns and others legitimately need: the chat gateway refreshes a
+  // shared card from it (T-232), through a port of its own.
+  exports: [FixturesService, FixtureChangeFeed],
 })
 export class FixturesModule {}

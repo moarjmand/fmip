@@ -61,6 +61,9 @@ export type ConversationOutcome<T> =
 
 type CardLookup = Map<string, SharedCard>;
 
+/** How many messages one card change may refresh at once (T-232). */
+const CARD_PUSH_LIMIT = 50;
+
 /** Reactions, mentions and pins for a page, keyed by message (T-225). */
 interface Marks {
   reactions: Map<string, ReactionCount[]>;
@@ -165,7 +168,9 @@ export class ConversationsService {
    * as a current one, permanently, in a place nobody would think to go and fix
    * (rules 1 and 4).
    */
-  private async resolveCards(rows: MessageRow[]): Promise<CardLookup> {
+  private async resolveCards(
+    rows: Pick<MessageRow, 'card_kind' | 'card_id'>[],
+  ): Promise<CardLookup> {
     const wanted = new Map<string, string[]>();
     for (const row of rows) {
       if (row.card_kind === null || row.card_id === null) continue;
@@ -314,6 +319,41 @@ export class ConversationsService {
       // nobody can find once the conversation has scrolled past it is not a pin.
       pinned: pins.map((m) => message(m, cards, marks)),
     };
+  }
+
+  /**
+   * The card these conversations share, resolved now, for every message it
+   * still hangs on (T-232).
+   *
+   * Resolved rather than remembered, which is the same rule `message()` follows:
+   * a score copied at send time would be a stale number shown as a current one
+   * (rules 1 and 4). The caller supplies the conversations, because the only
+   * ones worth asking about are those a socket is watching.
+   *
+   * Capped. A conversation that shared one fixture fifty times is not a case to
+   * serve fifty frames for, and the cards that miss an update still carry their
+   * own `last_updated_at`, which is what a reader judges freshness by.
+   */
+  async sharedCardUpdates(
+    conversationIds: string[],
+    kind: CardKind,
+    cardId: string,
+  ): Promise<{ conversation_id: string; message_id: string; card: SharedCard }[]> {
+    const rows = await this.store.messagesSharing(conversationIds, kind, cardId, CARD_PUSH_LIMIT);
+    if (rows.length === 0) return [];
+
+    const cards = await this.resolveCards([{ card_kind: kind, card_id: cardId }]);
+    const card = cards.get(`${kind}:${cardId}`);
+    // The entity stopped resolving between the change and this query. Saying
+    // nothing is right: the card a reader already has is what it was, and a
+    // `gone` card pushed at them would be this surface inventing a story.
+    if (card === undefined) return [];
+
+    return rows.map((row) => ({
+      conversation_id: row.conversation_id,
+      message_id: row.id,
+      card,
+    }));
   }
 
   /**

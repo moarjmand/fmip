@@ -25,6 +25,21 @@ import { ConversationsService } from './conversations.service';
 import { CHAT_BUS, type ChatBus } from './internal/chat-bus';
 import { ConversationsStore } from './internal/conversations-store';
 
+/**
+ * "A fixture moved" (T-232), as the gateway needs it.
+ *
+ * A port of its own rather than an import of the fixtures boundary's feed: this
+ * module needs one sentence from over there, and a port is how it takes that
+ * sentence without taking the rest. `conversations.module.ts` is the single
+ * line that knows which feed answers it.
+ */
+export const FIXTURE_CHANGES = Symbol('FIXTURE_CHANGES');
+
+export interface FixtureChanges {
+  /** Returns the function that stops listening. */
+  subscribe(listener: (fixtureId: string) => void): Promise<() => void>;
+}
+
 /** Tunables the tests shorten; production takes the defaults. */
 export const CHAT_GATEWAY_OPTIONS = Symbol('CHAT_GATEWAY_OPTIONS');
 
@@ -43,11 +58,18 @@ export interface ChatGatewayOptions {
   heartbeatMs: number;
   /** How many conversations one socket may hold at once. */
   maxSubscriptions: number;
+  /**
+   * How long a burst of writes about one fixture is collapsed before the card
+   * goes out. A goal is three writes -- score, incident, minute -- inside a few
+   * milliseconds, and a reader wants one updated card, not three.
+   */
+  cardDebounceMs: number;
 }
 
 export const DEFAULT_CHAT_GATEWAY_OPTIONS: Omit<ChatGatewayOptions, 'allowedOrigins'> = {
   heartbeatMs: 30_000,
   maxSubscriptions: 100,
+  cardDebounceMs: 300,
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -96,6 +118,12 @@ interface Connection {
  * which is the acceptance criterion of this task: *a socket can only ever carry
  * conversations its member participates in*.
  *
+ * **A card can change without anybody saying anything (T-232).** When a shared
+ * fixture moves, the card is sent again naming the message it hangs on, so the
+ * client replaces it in place. The conversation does not move: nobody said a new
+ * thing, and a chat that scrolled because a goal was scored would be reporting
+ * the goal as if somebody had.
+ *
  * **A client that comes back asks for what it missed (T-235).** `subscribe`
  * carries the last sequence it holds, and the answer is a `catch_up` frame sent
  * after the subscription is already live -- so the seam between history and
@@ -116,6 +144,8 @@ export class ChatGateway implements OnApplicationBootstrap, OnModuleDestroy {
   private heartbeat: ReturnType<typeof setInterval> | null = null;
   private attachedTo: Server | null = null;
   private unsubscribe: (() => void) | null = null;
+  private unwatchFixtures: (() => void) | null = null;
+  private readonly pendingCards = new Map<string, ReturnType<typeof setTimeout>>();
   private closing = false;
   /** Counters since boot, for `GET /health/chat` (T-233). */
   private readonly counts = { delivered: 0, dropped: 0, unauthenticated: 0, origin: 0 };
@@ -129,6 +159,7 @@ export class ChatGateway implements OnApplicationBootstrap, OnModuleDestroy {
     private readonly conversations: ConversationsService,
     private readonly adapters: HttpAdapterHost,
     @Inject(CHAT_BUS) private readonly bus: ChatBus,
+    @Inject(FIXTURE_CHANGES) private readonly fixtures: FixtureChanges,
     @Inject(CHAT_GATEWAY_OPTIONS) private readonly options: ChatGatewayOptions,
   ) {
     this.store = new ConversationsStore(pool);
@@ -249,6 +280,59 @@ export class ChatGateway implements OnApplicationBootstrap, OnModuleDestroy {
         });
       });
     });
+
+    // **Not through Redis.** A fixture change is announced to every instance by
+    // Postgres already (T-032, D-034); publishing it on the chat bus as well
+    // would deliver every card update once per instance.
+    this.unwatchFixtures = await this.fixtures.subscribe((fixtureId) => {
+      this.refreshCardsSoon(fixtureId);
+    });
+  }
+
+  /**
+   * Collapse a burst about one fixture into one refresh (T-232).
+   *
+   * Per fixture rather than globally: two matches kicking off together should
+   * not wait for each other.
+   */
+  private refreshCardsSoon(fixtureId: string): void {
+    const pending = this.pendingCards.get(fixtureId);
+    if (pending !== undefined) clearTimeout(pending);
+    this.pendingCards.set(
+      fixtureId,
+      setTimeout(() => {
+        this.pendingCards.delete(fixtureId);
+        void this.refreshCards(fixtureId).catch((error: unknown) => {
+          this.log.error('card refresh failed', {
+            fixture: fixtureId,
+            detail: error instanceof Error ? error.message : String(error),
+          });
+        });
+      }, this.options.cardDebounceMs),
+    );
+  }
+
+  /**
+   * Send the fixture's card again to the conversations watching it.
+   *
+   * Only conversations some socket on this instance is subscribed to: a
+   * fixture change with nobody listening costs one `Set` walk and no query.
+   */
+  private async refreshCards(fixtureId: string): Promise<void> {
+    const watched = new Set<string>();
+    for (const connection of this.connections) {
+      for (const id of connection.subscriptions) watched.add(id);
+    }
+    if (watched.size === 0) return;
+
+    const updates = await this.conversations.sharedCardUpdates([...watched], 'fixture', fixtureId);
+    for (const update of updates) {
+      await this.deliver(update.conversation_id, {
+        kind: 'card',
+        message_id: update.message_id,
+        card: update.card,
+      });
+    }
   }
 
   async onModuleDestroy(): Promise<void> {
@@ -259,6 +343,10 @@ export class ChatGateway implements OnApplicationBootstrap, OnModuleDestroy {
     this.attachedTo = null;
     this.unsubscribe?.();
     this.unsubscribe = null;
+    this.unwatchFixtures?.();
+    this.unwatchFixtures = null;
+    for (const timer of this.pendingCards.values()) clearTimeout(timer);
+    this.pendingCards.clear();
     for (const connection of [...this.connections]) {
       connection.socket.close(CHAT_CLOSE.GOING_AWAY, 'server shutting down');
     }

@@ -1,4 +1,6 @@
 import { Inject, Module, type OnModuleDestroy } from '@nestjs/common';
+import { FixturesModule } from '../fixtures/fixtures.module';
+import { FixtureChangeFeed } from '../fixtures/internal/change-feed';
 import { IdentityModule } from '../identity/identity.module';
 import { ModerationModule } from '../moderation/moderation.module';
 import {
@@ -6,6 +8,8 @@ import {
   ChatGateway,
   type ChatGatewayOptions,
   DEFAULT_CHAT_GATEWAY_OPTIONS,
+  FIXTURE_CHANGES,
+  type FixtureChanges,
 } from './chat.gateway';
 import { ChatHealthController } from './chat-health.controller';
 import { ConversationsController } from './conversations.controller';
@@ -46,14 +50,27 @@ export function chatOriginsFromEnv(env: NodeJS.ProcessEnv = process.env): string
  * delivery only: every write stays on the controller above it. `CHAT_BUS`
  * (T-231) is how one instance's write reaches another instance's socket; with
  * no `REDIS_URL` it is the absent bus, which says so rather than pretending.
+ * `FIXTURE_CHANGES` (T-232) is one sentence taken from the fixtures boundary --
+ * that a match moved -- so a shared card can be refreshed without anybody
+ * having said anything.
  */
 @Module({
-  imports: [IdentityModule, ModerationModule],
+  imports: [IdentityModule, ModerationModule, FixturesModule],
   controllers: [ConversationsController, ChatHealthController],
   providers: [
     ConversationsService,
     ChatGateway,
     { provide: CHAT_BUS, useFactory: (): ChatBus => chatBusFromEnv() },
+    // The one line that knows which feed answers "a fixture moved" (T-232).
+    // Everything else in this module depends on the port, not on the fixtures
+    // boundary -- the same shape as `FRIENDSHIP_ORACLE` in the profile module.
+    {
+      provide: FIXTURE_CHANGES,
+      inject: [FixtureChangeFeed],
+      useFactory: (feed: FixtureChangeFeed): FixtureChanges => ({
+        subscribe: (listener) => feed.subscribe((change) => listener(change.fixtureId)),
+      }),
+    },
     {
       provide: CHAT_GATEWAY_OPTIONS,
       useFactory: (): ChatGatewayOptions => ({
