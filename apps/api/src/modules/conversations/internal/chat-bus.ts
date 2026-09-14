@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import type { ChatEvent } from '@fmip/contracts';
+import type { ChatBusState, ChatEvent } from '@fmip/contracts';
 import Redis from 'ioredis';
 
 /**
@@ -8,6 +8,14 @@ import Redis from 'ioredis';
 export interface ChatBroadcast {
   conversation_id: string;
   event: ChatEvent;
+  /**
+   * Epoch milliseconds on the *publishing* instance, so the receiving one can
+   * say how long delivery took (T-233).
+   *
+   * Set by `publish`, not by the caller: a caller that forgot would make the
+   * number quietly wrong rather than absent.
+   */
+  at?: number;
 }
 
 export type ChatBusListener = (broadcast: ChatBroadcast) => void;
@@ -28,8 +36,13 @@ export interface ChatBus {
   publish(broadcast: ChatBroadcast): Promise<void>;
   /** Returns the function that stops listening. */
   subscribe(listener: ChatBusListener): Promise<() => void>;
-  /** Whether the bus can actually carry anything. T-233 reports it. */
-  readonly healthy: boolean;
+  /**
+   * Whether the bus can carry anything, and if not, which kind of not: `absent`
+   * is a deployment with no `REDIS_URL`, `down` is one that had a connection
+   * and lost it. T-233 publishes this, and keeping them apart is the point --
+   * "never configured" and "broken" call for different people.
+   */
+  readonly state: ChatBusState;
   close(): Promise<void>;
 }
 
@@ -76,13 +89,13 @@ export class RedisChatBus implements ChatBus {
     }
   }
 
-  get healthy(): boolean {
-    return this.connected;
+  get state(): ChatBusState {
+    return this.connected ? 'connected' : 'down';
   }
 
   async publish(broadcast: ChatBroadcast): Promise<void> {
     if (this.publisher.status === 'wait') await this.publisher.connect();
-    await this.publisher.publish(CHAT_CHANNEL, JSON.stringify(broadcast));
+    await this.publisher.publish(CHAT_CHANNEL, JSON.stringify({ ...broadcast, at: Date.now() }));
   }
 
   async subscribe(listener: ChatBusListener): Promise<() => void> {
@@ -134,7 +147,7 @@ export class AbsentChatBus implements ChatBus {
   private readonly log = new Logger('Chat');
   private warned = false;
 
-  readonly healthy = false;
+  readonly state: ChatBusState = 'absent';
 
   async publish(): Promise<void> {
     if (!this.warned) {

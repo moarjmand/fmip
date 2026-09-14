@@ -3,6 +3,7 @@ import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fa
 import {
   CHAT_CLOSE,
   CHAT_SOCKET_PATH,
+  type ChatHealth,
   type ChatServerFrame,
   MESSAGE_PAGE_SIZE,
   type Message,
@@ -487,6 +488,73 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('chat gateway
       expect(frame.messages).toHaveLength(MESSAGE_PAGE_SIZE);
       expect(frame.messages[0]?.seq).toBe(before + 1);
       expect(frame.more).toBe(true);
+    });
+  });
+
+  describe('what an operator can see', () => {
+    const health = async (): Promise<ChatHealth> => {
+      const response = await app.inject({ method: 'GET', url: '/health/chat' });
+      expect(response.statusCode).toBe(200);
+      return response.json() as ChatHealth;
+    };
+
+    it('answers without a session, because an operator is not a member', async () => {
+      const report = await health();
+      expect(report.instance).toMatch(/^[0-9a-f]{8}$/);
+      expect(report.checked_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+      expect(['connected', 'down', 'absent']).toContain(report.bus);
+    });
+
+    it('counts the sockets and the conversations they hold', async () => {
+      expect((await health()).connections).toBe(0);
+      const client = await connect(ada);
+      client.send({ type: 'subscribe', conversation_id: room });
+      await client.next('subscribed');
+
+      const report = await health();
+      expect(report.connections).toBe(1);
+      expect(report.subscriptions).toBe(1);
+    });
+
+    it('counts what it delivered, and how long it took', async () => {
+      const before = await health();
+      const client = await connect(ada);
+      client.send({ type: 'subscribe', conversation_id: room });
+      await client.next('subscribed');
+
+      // The publish time the bus would have stamped (T-231), so the latency
+      // window has something real in it.
+      expect(await gateway.deliver(room, anEvent('counted'), Date.now() - 7)).toBe(1);
+      await client.next('event');
+
+      const after = await health();
+      expect(after.delivered).toBe(before.delivered + 1);
+      // One more sample than before is what proves *this* delivery was timed;
+      // the window also holds the ones the catch-up tests above produced, so
+      // the value itself belongs to the fleet's history rather than to this
+      // assertion.
+      expect(after.latency_ms?.samples).toBe((before.latency_ms?.samples ?? 0) + 1);
+      expect(after.latency_ms?.p95).toBeGreaterThanOrEqual(after.latency_ms?.p50 ?? 0);
+    });
+
+    it('counts a refused handshake, which is the one nobody else would notice', async () => {
+      const before = await health();
+      await expect(connect(ada, 'http://evil.test')).rejects.toThrow(/403/);
+      await expect(connect(undefined)).rejects.toThrow(/401/);
+
+      const after = await health();
+      expect(after.refused.origin).toBe(before.refused.origin + 1);
+      expect(after.refused.unauthenticated).toBe(before.refused.unauthenticated + 1);
+    });
+
+    it('names nobody: an operational number that identifies who is talking is not one', async () => {
+      const client = await connect(ada);
+      client.send({ type: 'subscribe', conversation_id: room });
+      await client.next('subscribed');
+
+      const body = JSON.stringify(await health());
+      expect(body).not.toContain(ada);
+      expect(body).not.toContain(room);
     });
   });
 

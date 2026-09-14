@@ -944,7 +944,8 @@ without one; this epic makes it immediate.
 | `[x]` T-231 | Fan-out across instances | T-230 | A message written on one instance reaches a socket held by another |
 | `[x]` T-235 | Gap recovery by sequence | T-231 | A reconnecting client asks for everything after N and misses nothing |
 | `[ ]` T-232 | Live match cards: the card updates, the conversation does not move | T-222, T-032 | A score change updates a shared card without a new message |
-| `[ ]` T-233 | Observability: connections, delivery latency, `GET /health/chat` | T-231 | A silent socket layer is visible from the admin area, not from a complaint |
+| `[x]` T-233 | Observability: connections, delivery latency, `GET /health/chat` | T-231 | A silent socket layer is visible from the admin area, not from a complaint |
+| `[ ]` T-236 | One health surface in the admin area, for all three endpoints | T-233, T-071 | An operator sees the live path, ingestion and chat without a terminal |
 | `[ ]` T-234 | The socket at one origin: the edge route, and the page that connects | T-231 | The browser opens the socket on the web origin, and the page falls back to the requests that already work |
 
 **Authorisation happens at subscribe time and again at send time.** A socket is a
@@ -1111,8 +1112,49 @@ nobody reads twice.
 
 6 tests; 19 in the gateway suite, 65 across the four conversation suites.
 
-**E23 has one task left.** T-232 (live match cards) and T-233 (observability)
-still stand, and T-234 is the browser's end of it.
+**T-232 (live match cards) and T-233 (observability) still stand, and T-234 is
+the browser's end of it.**
+
+**T-233 verified on 2026-09-14.** `GET /health/chat` answers with this
+instance's socket layer in numbers: bus state, open connections, held
+subscriptions, events delivered, subscriptions dropped at delivery, handshakes
+refused by reason, and delivery latency as p50/p95 over the last hundred
+events.
+
+**Every number belongs to one instance, and it says which.** Sockets live on the
+process that accepted them, so a fleet has as many of these answers as it has
+instances; `instance` is a short id generated at boot, and two different values
+are two processes. A total across the fleet is a question for whatever scrapes
+this, not a number an endpoint that can see one process may invent (rule 3).
+
+**Three states for the bus, not two.** `absent` is a deployment with no
+`REDIS_URL`; `down` is one that had a connection and lost it. Merging them into
+"unhealthy" would put "we never configured it" and "it broke at 02:00" on the
+same dashboard line, and they are problems for different people.
+
+**Latency is measured against the publishing instance's clock**, which is honest
+about skew rather than hiding it: two instances whose clocks disagree show the
+disagreement here. A hundred samples rather than an average since boot, because
+an average over a whole uptime hides the ten minutes it was slow, which is the
+only part anybody asks about. `null` until something has been delivered --
+because no deliveries is not zero latency and must not be reported as it.
+
+**It names nobody.** No username, no conversation id, no message. There is a
+test that asserts exactly that: an operational number which identifies who is
+talking to whom is not an operational number. That is also why the endpoint is
+public and read-only, like `/health/live` beside it.
+
+**The acceptance criterion says "the admin area", and there is no health surface
+in it.** `/health/live` (T-071) and `/health/ingestion` are both endpoints;
+ingestion health reaches a member only as the freshness banner on the scores
+page. Bolting a chat panel onto a surface that does not exist would mean
+building the surface, so this task ships the endpoint on the same pattern as its
+two siblings and **T-236** is the surface -- for all three at once, which is the
+only version worth building.
+
+6 tests; 25 in the gateway suite, 71 across the four conversation suites. One of
+them measures a real cross-instance delivery end to end: publish on alpha,
+deliver on beta, read the number from beta's `/health/chat`.
 
 ---
 
