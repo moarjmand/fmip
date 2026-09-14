@@ -1306,7 +1306,7 @@ a different visibility and an invitation rule, not a second feature.
 | `[x]` T-240 | Schema and contracts: `group`, `member` with roles, `invite`, `join_request` | T-220 | Visibility, roles and the one-owner rule live in the schema |
 | `[x]` T-241 | The group API: membership, roles, invitations, join requests | T-240 | Every refusal the schema makes is explained rather than returned as a 500, and a group nobody may see is 404 rather than 403 |
 | `[x]` T-245 | The group conversation | T-241, T-221 | Membership changes take effect on the conversation immediately |
-| `[ ]` T-242 | Group surfaces: directory, page, membership controls | T-241 | A private group is not discoverable; an invite-only one is not joinable |
+| `[x]` T-242 | Group surfaces: directory, page, membership controls | T-241 | A private group is not discoverable; an invite-only one is not joinable |
 | `[ ]` T-243 | The group leaderboard and prediction comparison | T-241, T-055 | The same rating rules as the global board, scoped — never a second formula |
 | `[ ]` T-244 | Match threads inside a group | T-241 | A thread is a conversation about a fixture, and says which |
 
@@ -1477,6 +1477,59 @@ and the mention does not.
 
 **What is not here.** The surfaces (T-242): there is still no page for a group
 or for its conversation.
+
+**T-242 verified on 2026-09-14, in a browser.** A directory at `/groups` and a
+page at `/groups/:slug`, with `group-controls.tsx` for everything a member can
+do about a group.
+
+**Neither half of the acceptance criterion is enforced on the page, and that is
+the point.** An invite-only group is absent from the directory because it is
+absent from the *answer* and from the partial index behind it (T-240) -- not
+because a filter here remembers to drop it. A discoverable group arrives with
+`members: null`, so there is nothing to render and no filter to forget. What the
+surfaces decide is only what to *say* about what they were given, and the guards
+check exactly that.
+
+**A control for every standing, and no fall-through.** The guard reads
+`GROUP_STANDINGS` from the contract, which caught one immediately: `unavailable`
+had no branch of its own and fell out of the last `return`. It has one now, and
+below it an honest unknown fallback -- the same shape of defect as the card kinds
+in T-226 and the bus states in T-236, caught the same way, for the third time.
+
+**An invite-only group offers nothing to press.** No button, one sentence. A
+control that would always be refused is a worse answer than saying how the group
+is joined.
+
+**`members: null` is a sentence, not an empty list.** "Who is in this group is
+shown to its members" -- because `[]` would say nobody is in it, which of a group
+is never true (rule 3).
+
+**Every control is a form over a server action**, one per control, with no
+script: joining, leaving and taking back a request are what a member reaches for
+when they want into or out of something, and none of them may wait for
+JavaScript.
+
+**Checked by looking.** API on 3002, `next dev` on 3100, one owner and one
+asker, three groups:
+
+- the directory listed **The Open Terrace** and **The Quiet Room** and not
+  **The Inner Circle**, above the line that says invitation-only groups are not
+  listed
+- `/groups/open-...` offered *Join group* and showed the owner
+- `/groups/quiet-...` said *"Anyone can find this group. Joining it is by
+  request"*, showed the asker their own request with *Take it back*, and said
+  *"Who is in this group is shown to its members"*
+- `/groups/inner-...` was **404**
+- the owner's view of the same discoverable group carried the queue -- the
+  asker, their note, *Let them in* and *No* -- and the link to the group
+  conversation (T-245)
+
+Demo accounts and groups were deleted afterwards.
+
+9 guards; 165 across the web app.
+
+**What is not here.** The group leaderboard (T-243) and match threads inside a
+group (T-244).
 
 ---
 
