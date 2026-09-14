@@ -4,6 +4,9 @@ import type {
   ApiError,
   AuditResponse,
   BlocksResponse,
+  ConversationPage,
+  ConversationSearchResponse,
+  ConversationsResponse,
   CommunityConsensusResponse,
   ConsensusListResponse,
   CompetitionPage,
@@ -359,4 +362,35 @@ export async function fetchFriendStatus(
     { cookie },
   );
   return result.ok ? result.data.status : null;
+}
+
+// Conversations (blueprint 8.3, T-224). Every one of these needs the session:
+// a conversation is only ever answered to a participant.
+
+export function fetchConversations(
+  cookie: string | undefined,
+): Promise<ApiResult<ConversationsResponse>> {
+  return apiRequest<ConversationsResponse>('/me/conversations', { cookie });
+}
+
+export function fetchConversation(
+  id: string,
+  query: string,
+  cookie: string | undefined,
+): Promise<ApiResult<ConversationPage>> {
+  return apiRequest<ConversationPage>(
+    `/me/conversations/${encodeURIComponent(id)}${query === '' ? '' : `?${query}`}`,
+    { cookie },
+  );
+}
+
+export function fetchConversationSearch(
+  id: string,
+  term: string,
+  cookie: string | undefined,
+): Promise<ApiResult<ConversationSearchResponse>> {
+  return apiRequest<ConversationSearchResponse>(
+    `/me/conversations/${encodeURIComponent(id)}/search?q=${encodeURIComponent(term)}`,
+    { cookie },
+  );
 }
