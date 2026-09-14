@@ -9,6 +9,7 @@ import {
   Reactions,
   RemoveMessage,
 } from '@/components/conversation-controls';
+import { LiveConversation } from '@/components/live-conversation';
 import { fetchConversation, fetchConversationSearch, fetchMe } from '@/lib/api';
 import { markReadAction } from '@/lib/conversation-actions';
 import { pageMetadata } from '@/lib/seo';
@@ -32,10 +33,13 @@ function first(value: string | string[] | undefined): string {
 /**
  * One conversation (blueprint 8.3, T-224).
  *
- * **Correct without a socket.** Sending re-renders the page from the store,
- * which is exactly what a reconnecting client will do when T-230 adds the
- * transport — the page asks for a range of sequence numbers, and the sequence
- * is the store's (T-220).
+ * **Correct without a socket, and still correct with one.** Everything here
+ * happens over ordinary requests. `LiveConversation` (T-237) opens the socket
+ * and, when something happens, asks this page to render itself again — it
+ * renders no message of its own, so there is never a second way a message can
+ * look. With no JavaScript, a closed socket, or a deployment that has no Redis,
+ * this page is exactly what it was, and the line under the composer says which
+ * of the two is true rather than looking live while it is not.
  *
  * Reading the page is what moves the read position. That means "read" here
  * means "opened", and the product does not claim more than that: a script
@@ -190,6 +194,10 @@ export default async function ConversationPage({
             </div>
           ))}
         </ul>
+      )}
+
+      {term === '' && !page.conversation.left && (
+        <LiveConversation conversationId={id} latestSeq={page.latest_seq} />
       )}
 
       <Composer

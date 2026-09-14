@@ -947,7 +947,7 @@ without one; this epic makes it immediate.
 | `[x]` T-233 | Observability: connections, delivery latency, `GET /health/chat` | T-231 | A silent socket layer is visible from the admin area, not from a complaint |
 | `[ ]` T-236 | One health surface in the admin area, for all three endpoints | T-233, T-071 | An operator sees the live path, ingestion and chat without a terminal |
 | `[x]` T-234 | The socket at one origin: the edge route | T-231 | The browser can reach the socket on the web origin, with no CORS and no second host |
-| `[ ]` T-237 | The chat page listens | T-234 | A message appears without a refresh, and the page falls back to the requests that already work |
+| `[x]` T-237 | The chat page listens | T-234 | A message appears without a refresh, and the page falls back to the requests that already work |
 
 **Authorisation happens at subscribe time and again at send time.** A socket is a
 long-lived connection and membership is not: a member removed from a group
@@ -1113,7 +1113,7 @@ nobody reads twice.
 
 6 tests; 19 in the gateway suite, 65 across the four conversation suites.
 
-**T-237 is the browser's end of this epic, and T-236 the operator's.**
+**T-236 is the operator's end of this epic. E23 is otherwise complete.**
 
 **T-234 verified on 2026-09-14.** `deploy/Caddyfile` routes the exact path
 `/me/conversations/socket` to `api`; everything else still goes to `web`. Two
@@ -1146,6 +1146,45 @@ is held by Next.js. Conversations work there in full — every one of them works
 over ordinary requests — and what is missing is immediacy. Which is also why the
 instance sleeping after an hour, and dropping every socket with it, costs that
 preview nothing.
+
+**T-237 verified on 2026-09-14, in a browser.** `live-conversation.tsx` opens
+the socket, subscribes with the page's `latest_seq`, and when something happens
+asks the page to render itself again.
+
+**It renders no message.** That is the whole design. The server already resolves
+the cards, the reactions, the mentions and the pins and lays a message out once;
+a client that rendered arriving messages itself would be a second way a message
+can look, and the two would disagree the first time either changed. Nothing here
+holds a copy of the conversation, so there is no client-side state to fall out of
+step with the store — which is the same reason E22 was built before E23 at all.
+
+**It adds and takes nothing away.** With no JavaScript, a closed socket, or a
+deployment with no Redis, the page is exactly what it was. And it says which:
+"New messages appear here as they are sent" or "Not live right now. Reload to
+see anything new." A socket that quietly stopped delivering while the page
+looked live would be rule 4 broken on a surface with no timestamp to break.
+
+**A hidden tab waits.** Opening the page is what marks it read (T-224), so
+refreshing a tab nobody is looking at would have the product claim a message was
+read by an empty room. The refresh is held until the tab is visible again.
+
+**Checked by watching it.** API on 3002, `next dev` on 3100, two demo members
+and a real browser:
+
+- a message sent by the other member appeared with nothing touched
+- the API was stopped: the line became *"Not live right now"* and the three
+  messages already on the page stayed exactly where they were
+- a message was sent while the socket was down; the API came back, the socket
+  reconnected, `after_seq` brought back what had been missed (T-235), and it
+  appeared — the gap closed without a reload
+- the same on `/ar`, `dir="rtl"`, socket live
+
+Demo accounts were deleted afterwards; the local database is back to zero.
+
+4 guards; 151 across the web app. The guards are about the promise rather than
+the markup: the live component contains no message rendering, the page is still
+a server component that renders the conversation itself, the offline state is
+stated, and the subscription carries a sequence.
 
 **T-233 verified on 2026-09-14.** `GET /health/chat` answers with this
 instance's socket layer in numbers: bus state, open connections, held

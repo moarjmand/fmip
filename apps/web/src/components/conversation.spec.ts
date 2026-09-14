@@ -13,8 +13,8 @@ import { describe, expect, it } from 'vitest';
  *
  * **E22's ordering promise: correct before fast.** The page is a server
  * component and the composer is a form over a server action, so the whole thing
- * works without JavaScript and without a socket. T-230 adds a transport *beside*
- * this; if it ever replaces it, these two assertions are what fail.
+ * works without JavaScript and without a socket. The socket of T-237 sits
+ * *beside* this; if it ever replaces it, these assertions are what fail.
  */
 
 const HERE = __dirname;
@@ -25,6 +25,7 @@ function source(...parts: string[]): string {
 
 const CARD = source('conversation.tsx');
 const CONTROLS = source('conversation-controls.tsx');
+const LIVE = source('live-conversation.tsx');
 const PAGE = source('..', 'app', '[locale]', 'messages', '[id]', 'page.tsx');
 const LIST = source('..', 'app', '[locale]', 'messages', 'page.tsx');
 
@@ -99,6 +100,43 @@ describe('correct before fast', () => {
   it('sends through a form over a server action', () => {
     expect(CONTROLS).toContain('<form action={formAction}');
     expect(CONTROLS).toContain('sendMessageAction');
+  });
+});
+
+describe('the socket adds, and takes nothing away (T-237)', () => {
+  it('renders no message of its own', () => {
+    // The server resolves cards, reactions, mentions and pins and lays a
+    // message out once. A client that rendered arriving messages itself would
+    // be a second way a message can look, and the two would disagree the first
+    // time either changed.
+    expect(LIVE).toContain('router.refresh()');
+    expect(LIVE).not.toContain('MessageRow');
+    expect(LIVE).not.toMatch(/message\.body|message\.card|message\.reactions/);
+  });
+
+  it('keeps the page a server component that renders the conversation itself', () => {
+    // The socket is mounted by a page that already rendered everything. If this
+    // ever inverts -- the page waiting for the socket -- the transport has
+    // become the source of truth by accident.
+    expect(LIVE.startsWith("'use client'")).toBe(true);
+    expect(PAGE.startsWith("'use client'")).toBe(false);
+    expect(PAGE).toContain('<LiveConversation');
+    expect(PAGE).toContain('data-testid="conversation-messages"');
+  });
+
+  it('says when it is not live instead of looking live', () => {
+    // Rule 4 on a surface with no timestamp of its own: what it must not do is
+    // sit there silently while nothing is arriving.
+    expect(LIVE).toContain('data-testid="conversation-live"');
+    expect(LIVE).toMatch(/Not live right now/);
+    expect(LIVE).toContain("setState('offline')");
+  });
+
+  it('asks for what it missed rather than assuming it missed nothing', () => {
+    // A reconnect that subscribed without a sequence would silently lose every
+    // message sent while the socket was down (T-235).
+    expect(LIVE).toContain('after_seq');
+    expect(LIVE).toContain("frame.type === 'catch_up'");
   });
 });
 
