@@ -84,6 +84,25 @@ export type SharedCard =
     }
   | { kind: 'gone'; shared: CardKind };
 
+/**
+ * The reactions a message can carry (blueprint 8.3, T-225).
+ *
+ * A closed set rather than an open emoji field. An arbitrary string attached to
+ * somebody else's words is a small free-text box, and a small free-text box is
+ * where abuse goes once the big one is moderated. Six covers what a football
+ * conversation actually does: agree, disagree, laugh, be surprised, commiserate,
+ * celebrate.
+ */
+export const REACTIONS = ['agree', 'disagree', 'laugh', 'surprise', 'sad', 'celebrate'] as const;
+export type Reaction = (typeof REACTIONS)[number];
+
+/** How many members reacted this way, and whether the viewer is one of them. */
+export interface ReactionCount {
+  reaction: Reaction;
+  count: number;
+  mine: boolean;
+}
+
 export interface Message {
   id: string;
   /** Unique and increasing within the conversation. What ordering means here. */
@@ -98,6 +117,17 @@ export interface Message {
   removed: { at: string; by: MessageRemoval } | null;
   /** `null` when the message is only words, and always null once removed. */
   card: SharedCard | null;
+  /** Empty once removed: a tombstone leaves no applauded outline. */
+  reactions: ReactionCount[];
+  /**
+   * The usernames this message named, resolved when it was written.
+   *
+   * Stored rather than parsed at read time, because who was mentioned is a fact
+   * about the moment: resolving `@name` again later would change who a
+   * two-year-old message mentioned every time somebody renamed themselves.
+   */
+  mentions: string[];
+  pinned: boolean;
 }
 
 export interface ConversationSummary {
@@ -138,6 +168,12 @@ export interface ConversationPage {
   latest_seq: number;
   /** Whether anything stands before `messages[0]`. */
   has_earlier: boolean;
+  /**
+   * Pinned messages, newest pin first — and always present, whether or not they
+   * fall inside the page being read. A pin nobody can find once the
+   * conversation has scrolled past it is not a pin.
+   */
+  pinned: Message[];
 }
 
 /** The shortest term worth running: one letter matches most of a conversation. */

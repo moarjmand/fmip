@@ -11,6 +11,7 @@ import {
   NotFoundException,
   Param,
   Post,
+  Put,
   Query,
   Req,
   UnauthorizedException,
@@ -135,6 +136,52 @@ export class ConversationsController {
     this.unwrap(await this.conversations.removeOwn(viewer.id, id, messageId));
   }
 
+  @Put(':id/messages/:messageId/reactions/:reaction')
+  @HttpCode(204)
+  async react(
+    @Param('id') id: string,
+    @Param('messageId') messageId: string,
+    @Param('reaction') reaction: string,
+    @Req() request: FastifyRequest,
+  ): Promise<void> {
+    const viewer = await this.requireViewer(request);
+    this.unwrap(await this.conversations.react(viewer.id, id, messageId, reaction));
+  }
+
+  @Delete(':id/messages/:messageId/reactions/:reaction')
+  @HttpCode(204)
+  async unreact(
+    @Param('id') id: string,
+    @Param('messageId') messageId: string,
+    @Param('reaction') reaction: string,
+    @Req() request: FastifyRequest,
+  ): Promise<void> {
+    const viewer = await this.requireViewer(request);
+    this.unwrap(await this.conversations.unreact(viewer.id, id, messageId, reaction));
+  }
+
+  @Post(':id/messages/:messageId/pin')
+  @HttpCode(204)
+  async pin(
+    @Param('id') id: string,
+    @Param('messageId') messageId: string,
+    @Req() request: FastifyRequest,
+  ): Promise<void> {
+    const viewer = await this.requireViewer(request);
+    this.unwrap(await this.conversations.setPinned(viewer.id, id, messageId, true));
+  }
+
+  @Delete(':id/messages/:messageId/pin')
+  @HttpCode(204)
+  async unpin(
+    @Param('id') id: string,
+    @Param('messageId') messageId: string,
+    @Req() request: FastifyRequest,
+  ): Promise<void> {
+    const viewer = await this.requireViewer(request);
+    this.unwrap(await this.conversations.setPinned(viewer.id, id, messageId, false));
+  }
+
   @Post(':id/read')
   @HttpCode(204)
   async markRead(
@@ -224,6 +271,11 @@ export class ConversationsController {
         throw new ConflictException({
           error: 'conflict',
           message: 'You have left this conversation.',
+        } satisfies ApiError);
+      case 'removed':
+        throw new ConflictException({
+          error: 'conflict',
+          message: 'That message has been removed.',
         } satisfies ApiError);
       case 'restricted':
         throw new ForbiddenException({

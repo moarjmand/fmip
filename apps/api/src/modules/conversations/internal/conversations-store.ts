@@ -68,6 +68,18 @@ export interface ConversationRow {
   latest_seq: string;
 }
 
+export interface ReactionRow {
+  message_id: string;
+  reaction: string;
+  count: string;
+  mine: boolean;
+}
+
+export interface MentionRow {
+  message_id: string;
+  username: string;
+}
+
 export interface ParticipantRow {
   conversation_id: string;
   username: string;
@@ -276,6 +288,129 @@ export class ConversationsStore {
       [conversationIds],
     );
     return new Map(rows.map((row) => [row.conversation_id, row]));
+  }
+
+  /**
+   * The reactions, mentions and pins on a set of messages.
+   *
+   * Three queries for a page rather than three per message, and all three keyed
+   * by message id so the caller stitches without another round trip.
+   */
+  async marks(
+    messageIds: string[],
+    viewerId: string,
+  ): Promise<{ reactions: ReactionRow[]; mentions: MentionRow[]; pinned: Set<string> }> {
+    if (messageIds.length === 0) {
+      return { reactions: [], mentions: [], pinned: new Set() };
+    }
+
+    const [reactions, mentions, pins] = await Promise.all([
+      this.pool.query<ReactionRow>(
+        `SELECT message_id,
+                reaction,
+                count(*) AS count,
+                bool_or(user_id = $2) AS mine
+           FROM message_reaction
+          WHERE message_id = ANY($1::uuid[])
+          GROUP BY message_id, reaction
+          ORDER BY reaction`,
+        [messageIds, viewerId],
+      ),
+      this.pool.query<MentionRow>(
+        `SELECT mm.message_id, u.username
+           FROM message_mention mm
+           JOIN user_account u ON u.id = mm.user_id
+          WHERE mm.message_id = ANY($1::uuid[])
+          ORDER BY u.username`,
+        [messageIds],
+      ),
+      this.pool.query<{ message_id: string }>(
+        `SELECT message_id FROM conversation_pin WHERE message_id = ANY($1::uuid[])`,
+        [messageIds],
+      ),
+    ]);
+
+    return {
+      reactions: reactions.rows,
+      mentions: mentions.rows,
+      pinned: new Set(pins.rows.map((row) => row.message_id)),
+    };
+  }
+
+  /** Every pinned message in a conversation, newest pin first. */
+  async pins(conversationId: string): Promise<MessageRow[]> {
+    const { rows } = await this.pool.query<MessageRow>(
+      `SELECT ${MESSAGE_COLUMNS}
+         FROM conversation_pin p
+         JOIN message m ON m.id = p.message_id
+         JOIN user_account u ON u.id = m.author_id
+        WHERE p.conversation_id = $1
+        ORDER BY p.pinned_at DESC
+        LIMIT 20`,
+      [conversationId],
+    );
+    return rows;
+  }
+
+  /** The members of a conversation, by username, for resolving a mention. */
+  async participantIdsByUsername(conversationId: string): Promise<Map<string, string>> {
+    const { rows } = await this.pool.query<{ username: string; user_id: string }>(
+      `SELECT u.username, p.user_id
+         FROM conversation_participant p
+         JOIN user_account u ON u.id = p.user_id
+        WHERE p.conversation_id = $1 AND p.left_at IS NULL`,
+      [conversationId],
+    );
+    return new Map(rows.map((row) => [row.username, row.user_id]));
+  }
+
+  async mention(messageId: string, userIds: string[]): Promise<void> {
+    if (userIds.length === 0) return;
+    await this.pool.query(
+      `INSERT INTO message_mention (message_id, user_id)
+       SELECT $1, unnest($2::uuid[]) ON CONFLICT DO NOTHING`,
+      [messageId, userIds],
+    );
+  }
+
+  /** `true` when the reaction was added, `false` when it was already there. */
+  async react(messageId: string, userId: string, reaction: string): Promise<boolean> {
+    const { rowCount } = await this.pool.query(
+      `INSERT INTO message_reaction (message_id, user_id, reaction) VALUES ($1, $2, $3)
+       ON CONFLICT DO NOTHING`,
+      [messageId, userId, reaction],
+    );
+    return rowCount === 1;
+  }
+
+  async unreact(messageId: string, userId: string, reaction: string): Promise<void> {
+    await this.pool.query(
+      `DELETE FROM message_reaction WHERE message_id = $1 AND user_id = $2 AND reaction = $3`,
+      [messageId, userId, reaction],
+    );
+  }
+
+  async pin(conversationId: string, messageId: string, userId: string): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO conversation_pin (conversation_id, message_id, pinned_by)
+       VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
+      [conversationId, messageId, userId],
+    );
+  }
+
+  async unpin(conversationId: string, messageId: string): Promise<void> {
+    await this.pool.query(
+      `DELETE FROM conversation_pin WHERE conversation_id = $1 AND message_id = $2`,
+      [conversationId, messageId],
+    );
+  }
+
+  async messageInConversation(conversationId: string, messageId: string): Promise<boolean> {
+    const { rowCount } = await this.pool.query(
+      `SELECT 1 FROM message WHERE id = $1 AND conversation_id = $2`,
+      [messageId, conversationId],
+    );
+    return rowCount === 1;
   }
 
   async send(

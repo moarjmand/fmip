@@ -567,7 +567,8 @@ it the other way round means writing the membership rule twice.
 | `[x]` T-222 | Shared football cards: match, article, team, player, prediction | T-221 | A card is a reference resolved at read time, never a copy of a score |
 | `[x]` T-223 | Search within a conversation | T-221 | Finds a member's own messages in a conversation they are still in |
 | `[x]` T-224 | The chat surface on the web, without realtime | T-222 | Usable and correct over plain requests, before a socket exists |
-| `[ ]` T-225 | Reactions, mentions and pinned messages | T-221 | Each one is a row of its own; a mention never reaches somebody who blocked the mentioner |
+| `[x]` T-225 | Reactions, mentions and pinned messages | T-221 | Each one is a row of its own; a mention never reaches somebody who blocked the mentioner |
+| `[ ]` T-226 | Reactions, mentions and pins on the chat page | T-225, T-224 | Reacting works without JavaScript; a pin is reachable from anywhere in the conversation |
 
 **Order is a sequence, not a timestamp.** Blueprint 19 asks that messages
 "arrive in real time and retain ordering", and `created_at` cannot carry that: two
@@ -844,6 +845,58 @@ page actually knows.
 states its own absence rather than vanishing — the T-137 lesson, applied again.
 
 9 guard tests; 143 across the web app.
+
+**T-225 verified on 2026-09-14 — the API half.** `..._reactions-mentions-pins.sql`
+adds `message_reaction`, `message_mention` and `conversation_pin`, and the
+endpoints are `PUT`/`DELETE .../reactions/:reaction` and `POST`/`DELETE
+.../pin`. Rendering them on the chat page is **T-226**, added here rather than
+squeezed in: this task already spans six files and `CLAUDE.md` §3 says to split
+at that point rather than past it.
+
+**Each one is a row of its own**, which is the acceptance criterion and also the
+only shape that works: a message takes exactly one UPDATE — the tombstone
+(T-220, `PL007`) — and all three of these change after it was sent. A `pinned_at`
+column would have meant relaxing that rule for the second time in one epic.
+
+**A closed set of six reactions.** An open `emoji text` field is a small
+free-text box attached to somebody else's words, and a small free-text box is
+where abuse goes once the big one is moderated. Agree, disagree, laugh, surprise,
+sad, celebrate is what a football conversation actually does.
+
+**A mention is resolved once, on write, against the people already in the
+room.** Two judgements in one sentence. Resolving `@name` again at read time
+would change who a two-year-old message mentioned every time somebody renamed
+themselves. And mentioning somebody who is **not** in the conversation would put
+a notification in front of a stranger — the direct-message spam surface arriving
+through a side door, after T-221 closed the front one.
+
+**A mention never reaches somebody who blocked the mentioner**, by trigger
+(`PL003`). Today it cannot be triggered at all: in a direct conversation the
+block already refuses the message. It is here for the groups of T-240, where two
+members who have blocked each other can share a room and one of them must not be
+able to put the other's name in front of them. A refused mention is **dropped
+rather than failing the message** — the words were already said and already
+stored, and taking the whole message down because one name in it could not be
+delivered is a worse answer than delivering the rest.
+
+**A removed message leaves no applauded outline.** The tombstone already dropped
+the body and the card (T-220, T-222); it now drops the reactions and the pin too,
+by trigger. A highlighted, applauded outline of something that was taken down is
+most of what was taken down. Checked by breaking it: dropping that one trigger
+fails exactly that test.
+
+**A pin is sent back whatever page is being read.** A pin nobody can find once
+the conversation has scrolled past it is not a pin, so `ConversationPage.pinned`
+is always there, independent of the window the reader is in.
+
+**The test found a real gap.** `PL007` — something attempted on a removed
+message — had no mapping in the service, so reacting to a tombstone was a **500**
+rather than "that message has been removed". It is a 409 now. The test was
+written from the rule rather than from the behaviour, which is why it caught it.
+
+5 tests; 40 across the two conversation suites, 90 with social and moderation.
+
+**What is not here.** The chat page still shows none of this: that is T-226.
 
 ---
 
