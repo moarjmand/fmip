@@ -946,7 +946,8 @@ without one; this epic makes it immediate.
 | `[x]` T-232 | Live match cards: the card updates, the conversation does not move | T-222, T-032 | A score change updates a shared card without a new message |
 | `[x]` T-233 | Observability: connections, delivery latency, `GET /health/chat` | T-231 | A silent socket layer is visible from the admin area, not from a complaint |
 | `[ ]` T-236 | One health surface in the admin area, for all three endpoints | T-233, T-071 | An operator sees the live path, ingestion and chat without a terminal |
-| `[ ]` T-234 | The socket at one origin: the edge route, and the page that connects | T-231 | The browser opens the socket on the web origin, and the page falls back to the requests that already work |
+| `[x]` T-234 | The socket at one origin: the edge route | T-231 | The browser can reach the socket on the web origin, with no CORS and no second host |
+| `[ ]` T-237 | The chat page listens | T-234 | A message appears without a refresh, and the page falls back to the requests that already work |
 
 **Authorisation happens at subscribe time and again at send time.** A socket is a
 long-lived connection and membership is not: a member removed from a group
@@ -1112,7 +1113,39 @@ nobody reads twice.
 
 6 tests; 19 in the gateway suite, 65 across the four conversation suites.
 
-**T-234 is the browser's end of this epic, and T-236 the operator's.**
+**T-237 is the browser's end of this epic, and T-236 the operator's.**
+
+**T-234 verified on 2026-09-14.** `deploy/Caddyfile` routes the exact path
+`/me/conversations/socket` to `api`; everything else still goes to `web`. Two
+`handle` blocks, so they are mutually exclusive and the socket can never also be
+handed to the web app. Validated with the real Caddy (`caddy validate` in
+`caddy:2-alpine`): the config adapts, and the only complaint is a TLS
+certificate that exists on the server and not on this laptop.
+
+**An exact path, not a prefix.** This is the only upgrade the API answers, and a
+prefix would quietly hand the API any path added underneath it later.
+
+**One origin is the point, not a detail.** D-027 says the browser talks to the
+web app and never to the API. A socket cannot honour that literally — App Router
+route handlers answer requests, not upgrades, so there is no way for Next.js to
+proxy one. Routing it at the edge keeps what D-027 is *for*: the browser sees a
+single origin, the session cookie is sent, and no CORS is configured anywhere.
+A second public host for the API would have meant CORS, a second cookie domain,
+and the origin allow-list of D-055 doing real work in production rather than
+standing as a guard.
+
+**The task was two things and is now two rows.** "The edge route, and the page
+that connects" put a deployment decision and a client component in one
+acceptance criterion. The page is **T-237**, and it is the larger half: the E22
+surfaces are deliberately script-free, so a socket has to arrive as an
+enhancement that adds nothing the page depends on.
+
+**The free preview does not get this, and says so** (`docs/11-koyeb.md`). It has
+no Redis, so the bus is `absent`; and it has no edge, because one published port
+is held by Next.js. Conversations work there in full — every one of them works
+over ordinary requests — and what is missing is immediacy. Which is also why the
+instance sleeping after an hour, and dropping every socket with it, costs that
+preview nothing.
 
 **T-233 verified on 2026-09-14.** `GET /health/chat` answers with this
 instance's socket layer in numbers: bus state, open connections, held
