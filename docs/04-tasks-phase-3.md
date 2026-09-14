@@ -945,7 +945,7 @@ without one; this epic makes it immediate.
 | `[x]` T-235 | Gap recovery by sequence | T-231 | A reconnecting client asks for everything after N and misses nothing |
 | `[x]` T-232 | Live match cards: the card updates, the conversation does not move | T-222, T-032 | A score change updates a shared card without a new message |
 | `[x]` T-233 | Observability: connections, delivery latency, `GET /health/chat` | T-231 | A silent socket layer is visible from the admin area, not from a complaint |
-| `[ ]` T-236 | One health surface in the admin area, for all three endpoints | T-233, T-071 | An operator sees the live path, ingestion and chat without a terminal |
+| `[x]` T-236 | The live paths on the operator's page | T-233, T-071 | An operator sees the score stream and the chat layer without a terminal, and is told when they could not be asked |
 | `[x]` T-234 | The socket at one origin: the edge route | T-231 | The browser can reach the socket on the web origin, with no CORS and no second host |
 | `[x]` T-237 | The chat page listens | T-234 | A message appears without a refresh, and the page falls back to the requests that already work |
 
@@ -1186,6 +1186,31 @@ the markup: the live component contains no message rendering, the page is still
 a server component that renders the conversation itself, the offline state is
 stated, and the subscription carries a sequence.
 
+**T-236 verified on 2026-09-14. E23 is complete.** `health-panel.tsx` puts the
+score stream and the chat layer on the administration page, beside the ingestion
+block that has been there since T-070.
+
+**Unreachable is stated, never rendered as zero.** "No connections" and "we
+could not ask" are different facts, and the second shown as the first is rule 3
+on an operational surface -- a module that looks populated and is not. Each of
+the two has its own stated absence.
+
+**Every chat number says whose it is.** Sockets live on the instance that
+accepted them, and this page asked one of them. A count presented without that
+would be read as the fleet's, and nobody measured that one.
+
+**"Nothing delivered yet" is not zero milliseconds**, which would be the most
+flattering possible lie about a channel that has carried nothing at all.
+
+**The guard caught a fall-through, again.** `busWords` handled `connected` and
+`absent` explicitly and let `down` fall out of the last line -- so a fourth
+state would have been reported as "down". The guard reads the states from the
+contract, which is what made that a failing test rather than a plausible
+sentence. The same shape of defect as the card kinds in T-226, caught the same
+way.
+
+5 guards; 156 across the web app.
+
 **T-233 verified on 2026-09-14.** `GET /health/chat` answers with this
 instance's socket layer in numbers: bus state, open connections, held
 subscriptions, events delivered, subscriptions dropped at delivery, handshakes
@@ -1215,13 +1240,15 @@ test that asserts exactly that: an operational number which identifies who is
 talking to whom is not an operational number. That is also why the endpoint is
 public and read-only, like `/health/live` beside it.
 
-**The acceptance criterion says "the admin area", and there is no health surface
-in it.** `/health/live` (T-071) and `/health/ingestion` are both endpoints;
-ingestion health reaches a member only as the freshness banner on the scores
-page. Bolting a chat panel onto a surface that does not exist would mean
-building the surface, so this task ships the endpoint on the same pattern as its
-two siblings and **T-236** is the surface -- for all three at once, which is the
-only version worth building.
+**The acceptance criterion says "the admin area", and this task ships an
+endpoint.** The surface is **T-236**, because a chat panel alone would have been
+a third place operational numbers live.
+
+*(Corrected while building T-236: this note first said there was no health
+surface in the admin area at all. That was wrong. The administration page has
+had an **Ingestion** section since T-070 -- it reads the same numbers from the
+administration overview rather than from `/health/ingestion`. What was missing
+was the live path and chat, which is what T-236 adds beside it.)*
 
 6 tests; 25 in the gateway suite, 71 across the four conversation suites. One of
 them measures a real cross-instance delivery end to end: publish on alpha,

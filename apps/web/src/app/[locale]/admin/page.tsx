@@ -2,8 +2,15 @@ import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { COVERAGE_STATES } from '@fmip/contracts';
 import { ActionForm, type Field } from '@/components/action-form';
+import { HealthPanel } from '@/components/health-panel';
 import { setCoverageAction, setUserStatusAction } from '@/lib/admin-actions';
-import { fetchAdminOverview, fetchAdminUsers, fetchAudit } from '@/lib/api';
+import {
+  fetchAdminOverview,
+  fetchAdminUsers,
+  fetchAudit,
+  fetchChatHealth,
+  fetchLiveHealth,
+} from '@/lib/api';
 import { moduleState } from '@/lib/match';
 import { sessionCookieHeader } from '@/lib/session';
 
@@ -27,11 +34,12 @@ const MODULES = [
 const PROVIDERS = ['api_football', 'football_data_org', 'highlightly'];
 
 /**
- * The minimal administration area (blueprint 16, T-070, D-046): coverage per
- * current season, live-data freshness, ingest failures, the rating rules in
- * force, member search, and the two audited actions — an account's status
- * and a season's declared coverage — each with a reason. The API decides who
- * is an administrator; this page only renders what it was allowed to fetch.
+ * The minimal administration area (blueprint 16, T-070, D-046): the live paths
+ * (T-236), coverage per current season, live-data freshness, ingest failures,
+ * the rating rules in force, member search, and the two audited actions — an
+ * account's status and a season's declared coverage — each with a reason. The
+ * API decides who is an administrator; this page only renders what it was
+ * allowed to fetch.
  */
 export default async function AdminPage({
   params,
@@ -56,9 +64,13 @@ export default async function AdminPage({
   }
   const rawQ = Array.isArray(query.q) ? query.q[0] : query.q;
   const q = (rawQ ?? '').trim();
-  const [users, audit] = await Promise.all([
+  const [users, audit, live, chat] = await Promise.all([
     q.length >= 2 ? fetchAdminUsers(q, cookie) : Promise.resolve(null),
     fetchAudit(cookie),
+    // Public endpoints, fetched here so an operator sees the live paths beside
+    // the ingestion block rather than from a terminal (T-236).
+    fetchLiveHealth(),
+    fetchChatHealth(),
   ]);
   const data = overview.data;
   const seasons = new Map<string, string>();
@@ -114,6 +126,8 @@ export default async function AdminPage({
       <h1 className="border-s-4 border-s-current ps-4 text-2xl font-semibold" data-testid="title">
         Administration
       </h1>
+
+      <HealthPanel live={live} chat={chat} />
 
       <section className="flex flex-col gap-2" data-testid="admin-ingestion">
         <h2 className="text-lg font-semibold">Ingestion</h2>

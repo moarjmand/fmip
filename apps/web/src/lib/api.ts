@@ -23,9 +23,11 @@ import type {
   FounderAnalysisResponse,
   PowerIndexResponse,
   FollowingResponse,
+  ChatHealth,
   HealthReport,
   IngestionHealth,
   LeaderboardResponse,
+  LiveHealth,
   MatchCentre,
   OwnProfile,
   PlayerPage,
@@ -74,6 +76,21 @@ export function fetchAudit(cookie: string | undefined): Promise<ApiResult<AuditR
 /** `GET /health/ingestion` (T-071): the feed's recent runs; null when unreachable. */
 export async function fetchIngestionHealth(): Promise<IngestionHealth | null> {
   const result = await apiRequest<IngestionHealth>('/health/ingestion');
+  return result.ok ? result.data : null;
+}
+
+/**
+ * `GET /health/live` and `GET /health/chat` (T-071, T-233), for the operator's
+ * page. `null` when the API cannot be reached, which the panel states rather
+ * than rendering as zeros.
+ */
+export async function fetchLiveHealth(): Promise<LiveHealth | null> {
+  const result = await apiRequest<LiveHealth>('/health/live');
+  return result.ok ? result.data : null;
+}
+
+export async function fetchChatHealth(): Promise<ChatHealth | null> {
+  const result = await apiRequest<ChatHealth>('/health/chat');
   return result.ok ? result.data : null;
 }
 
