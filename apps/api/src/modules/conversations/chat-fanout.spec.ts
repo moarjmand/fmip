@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
-import { CHAT_SOCKET_PATH, type ChatServerFrame } from '@fmip/contracts';
+import { CHAT_SOCKET_PATH, type ChatHealth, type ChatServerFrame } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { WebSocket } from 'ws';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -57,7 +57,9 @@ function cookieValue(setCookie: string | string[] | undefined): string {
 describe('the absent bus', () => {
   it('says it is not healthy rather than swallowing a broadcast quietly', async () => {
     const bus: ChatBus = new AbsentChatBus();
-    expect(bus.healthy).toBe(false);
+    // `absent` rather than `down`: "never configured" and "broke" are different
+    // problems for different people, and a dashboard must not merge them.
+    expect(bus.state).toBe('absent');
     // It must not throw: a send is already stored and answered for, and a
     // missing transport is not a reason to fail it.
     await expect(
@@ -242,11 +244,29 @@ describe.skipIf(missing)('chat fan-out across instances', () => {
     expect(frame.event.message.reactions).toEqual([]);
   });
 
-  it('has a bus that reports itself healthy', async () => {
+  it('measures how long a delivery took, across the two instances', async () => {
+    const onBeta = await listenOn(beta, bo);
+    expect(
+      (await post(alpha, `/me/conversations/${room}/messages`, { body: 'timed' }, ada)).statusCode,
+    ).toBe(201);
+    await onBeta();
+
+    const response = await beta.inject({ method: 'GET', url: '/health/chat' });
+    expect(response.statusCode).toBe(200);
+    const report = response.json() as ChatHealth;
+    expect(report.bus).toBe('connected');
+    expect(report.delivered).toBeGreaterThan(0);
+    // Publish to delivery, measured against alpha's clock -- the number an
+    // operator would look at, produced the way it is produced in production.
+    expect(report.latency_ms).not.toBeNull();
+    expect(report.latency_ms?.p95).toBeLessThan(5_000);
+  });
+
+  it('has a bus that reports itself connected', async () => {
     const bus = alpha.get<ChatBus>(CHAT_BUS);
     // Publishing is what opens the lazy connection, and by now both instances
     // have published and received.
-    expect(bus.healthy).toBe(true);
+    expect(bus.state).toBe('connected');
     await Promise.resolve();
   });
 });

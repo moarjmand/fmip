@@ -8,10 +8,12 @@ import {
   type OnModuleDestroy,
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
+import { randomBytes } from 'node:crypto';
 import {
   CHAT_CLOSE,
   CHAT_SOCKET_PATH,
   type ChatEvent,
+  type ChatHealth,
   type ChatRefusal,
   type ChatServerFrame,
 } from '@fmip/contracts';
@@ -49,6 +51,14 @@ export const DEFAULT_CHAT_GATEWAY_OPTIONS: Omit<ChatGatewayOptions, 'allowedOrig
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * How many delivery latencies to keep (T-233).
+ *
+ * A fixed window rather than a running average: an average over a whole uptime
+ * hides the ten minutes it was slow, which is the only part anybody asks about.
+ */
+const LATENCY_SAMPLES = 100;
 
 interface Connection {
   socket: WebSocket;
@@ -107,6 +117,11 @@ export class ChatGateway implements OnApplicationBootstrap, OnModuleDestroy {
   private attachedTo: Server | null = null;
   private unsubscribe: (() => void) | null = null;
   private closing = false;
+  /** Counters since boot, for `GET /health/chat` (T-233). */
+  private readonly counts = { delivered: 0, dropped: 0, unauthenticated: 0, origin: 0 };
+  private readonly latencies: number[] = [];
+  /** Two different values are two processes; that is all it has to be. */
+  private readonly instance = randomBytes(4).toString('hex');
 
   constructor(
     @Inject(PG_POOL) pool: Pool,
@@ -136,6 +151,31 @@ export class ChatGateway implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   /**
+   * This instance's socket layer in numbers (T-233).
+   *
+   * Everything here is *this process*: sockets live on the instance that
+   * accepted them, so a fleet has as many of these answers as it has instances
+   * and `instance` is how they are told apart. Summing them is the job of
+   * whatever scrapes this, not of an endpoint that can only see one.
+   */
+  health(): ChatHealth {
+    return {
+      checked_at: new Date().toISOString(),
+      instance: this.instance,
+      bus: this.bus.state,
+      connections: this.connectionCount,
+      subscriptions: this.subscriptionCount,
+      delivered: this.counts.delivered,
+      dropped: this.counts.dropped,
+      refused: {
+        unauthenticated: this.counts.unauthenticated,
+        origin: this.counts.origin,
+      },
+      latency_ms: percentiles(this.latencies),
+    };
+  }
+
+  /**
    * Send an event to every socket on this instance that is subscribed to the
    * conversation *and still a participant in it*, and return how many got it.
    *
@@ -147,10 +187,16 @@ export class ChatGateway implements OnApplicationBootstrap, OnModuleDestroy {
    * two. T-231, which will call this for every message, is where batching earns
    * its complexity — not here, where the cost is hypothetical.
    */
-  async deliver(conversationId: string, event: ChatEvent): Promise<number> {
+  async deliver(conversationId: string, event: ChatEvent, publishedAt?: number): Promise<number> {
     const interested = [...this.connections].filter((connection) =>
       connection.subscriptions.has(conversationId),
     );
+    if (publishedAt !== undefined && interested.length > 0) {
+      // Against the publisher's clock, which is honest about skew rather than
+      // hiding it: two instances that disagree show the disagreement here.
+      this.latencies.push(Math.max(0, Date.now() - publishedAt));
+      if (this.latencies.length > LATENCY_SAMPLES) this.latencies.shift();
+    }
     let delivered = 0;
     for (const connection of interested) {
       const row = await this.store.participation(conversationId, connection.userId);
@@ -159,6 +205,7 @@ export class ChatGateway implements OnApplicationBootstrap, OnModuleDestroy {
       // this is where it has to be asked separately.
       if (row === null || row.left) {
         connection.subscriptions.delete(conversationId);
+        this.counts.dropped += 1;
         this.send(connection, {
           type: 'dropped',
           conversation_id: conversationId,
@@ -167,6 +214,7 @@ export class ChatGateway implements OnApplicationBootstrap, OnModuleDestroy {
         continue;
       }
       this.send(connection, { type: 'event', conversation_id: conversationId, event });
+      this.counts.delivered += 1;
       delivered += 1;
     }
     return delivered;
@@ -193,8 +241,8 @@ export class ChatGateway implements OnApplicationBootstrap, OnModuleDestroy {
     // Every instance hears every broadcast and delivers the ones its own
     // sockets asked for (T-231). The message may have been sent through a
     // different instance entirely; that is the whole point.
-    this.unsubscribe = await this.bus.subscribe(({ conversation_id, event }) => {
-      void this.deliver(conversation_id, event).catch((error: unknown) => {
+    this.unsubscribe = await this.bus.subscribe(({ conversation_id, event, at }) => {
+      void this.deliver(conversation_id, event, at).catch((error: unknown) => {
         this.log.error('chat delivery failed', {
           conversation: conversation_id,
           detail: error instanceof Error ? error.message : String(error),
@@ -250,6 +298,7 @@ export class ChatGateway implements OnApplicationBootstrap, OnModuleDestroy {
     // client in that position had to obtain the session token by other means.
     const origin = request.headers.origin;
     if (typeof origin === 'string' && !this.options.allowedOrigins.includes(origin)) {
+      this.counts.origin += 1;
       this.log.warn('chat socket refused: origin', { origin });
       refuse(socket, 403, 'Forbidden');
       return;
@@ -260,6 +309,7 @@ export class ChatGateway implements OnApplicationBootstrap, OnModuleDestroy {
     if (user === null || token === undefined) {
       // Refused as HTTP rather than accepted and closed: a connection that was
       // never authenticated should not become a WebSocket in the first place.
+      this.counts.unauthenticated += 1;
       refuse(socket, 401, 'Unauthorized');
       return;
     }
@@ -430,6 +480,19 @@ export class ChatGateway implements OnApplicationBootstrap, OnModuleDestroy {
       }
     }
   }
+}
+
+/**
+ * The middle and the slow end of a sample window, or `null` when nothing has
+ * been delivered yet -- which is not the same as zero latency and must not be
+ * reported as it.
+ */
+function percentiles(samples: number[]): ChatHealth['latency_ms'] {
+  if (samples.length === 0) return null;
+  const sorted = [...samples].sort((a, b) => a - b);
+  const at = (fraction: number): number =>
+    sorted[Math.min(sorted.length - 1, Math.floor(fraction * sorted.length))] ?? 0;
+  return { p50: at(0.5), p95: at(0.95), samples: sorted.length };
 }
 
 /** Answer an upgrade with a plain HTTP response and hang up. */

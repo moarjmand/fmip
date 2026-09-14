@@ -37,6 +37,8 @@ export type {
   PowerIndexResponse,
 } from './power-index';
 export type {
+  ChatBusState,
+  ChatHealth,
   HealthReport,
   IngestRun,
   IngestRunStatus,
