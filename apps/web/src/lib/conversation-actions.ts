@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import type { CardKind, SendMessageResponse } from '@fmip/contracts';
+import type { CardKind, Reaction, SendMessageResponse } from '@fmip/contracts';
 import { type ApiResult, apiRequest } from '@/lib/api';
 import type { ActionState } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
@@ -169,4 +169,50 @@ export async function openConversationAction(
 
   revalidatePath(`/${locale}/messages`);
   redirect(`/${locale}/messages/${result.data.id}`);
+}
+
+/**
+ * React to a message, or take the reaction back (T-226).
+ *
+ * A form button each, over a server action, so reacting works with no
+ * JavaScript at all. That is the acceptance criterion and it is also what keeps
+ * this surface honest: the socket of T-230 is still not here, and nothing on
+ * this page depends on one.
+ */
+export async function reactAction(
+  locale: string,
+  conversationId: string,
+  messageId: string,
+  reaction: Reaction,
+  mine: boolean,
+  _previous: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  const result = await apiRequest<null>(
+    `/me/conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(messageId)}/reactions/${encodeURIComponent(reaction)}`,
+    { method: mine ? 'DELETE' : 'PUT', cookie: await sessionCookieHeader() },
+  );
+  if (!result.ok) return failure(result);
+
+  revalidatePath(`/${locale}/messages/${conversationId}`);
+  return { ok: true };
+}
+
+/** Pin a message in its conversation, or unpin it. */
+export async function setPinnedAction(
+  locale: string,
+  conversationId: string,
+  messageId: string,
+  pinned: boolean,
+  _previous: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  const result = await apiRequest<null>(
+    `/me/conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(messageId)}/pin`,
+    { method: pinned ? 'POST' : 'DELETE', cookie: await sessionCookieHeader() },
+  );
+  if (!result.ok) return failure(result);
+
+  revalidatePath(`/${locale}/messages/${conversationId}`);
+  return { ok: true, message: pinned ? 'Pinned.' : 'Unpinned.' };
 }

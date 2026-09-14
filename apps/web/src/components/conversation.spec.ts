@@ -28,6 +28,16 @@ const CONTROLS = source('conversation-controls.tsx');
 const PAGE = source('..', 'app', '[locale]', 'messages', '[id]', 'page.tsx');
 const LIST = source('..', 'app', '[locale]', 'messages', 'page.tsx');
 
+/** Read from the contract rather than typed out here. */
+function reactions(): string[] {
+  const contract = readFileSync(
+    join(HERE, '..', '..', '..', '..', 'packages', 'contracts', 'src', 'conversations.ts'),
+    'utf8',
+  );
+  const list = /export const REACTIONS = \[([^\]]*)\]/.exec(contract)?.[1] ?? '';
+  return [...list.matchAll(/'([a-z_]+)'/g)].map((match) => match[1] ?? '');
+}
+
 /** The card kinds, read from the contract rather than typed out here. */
 function cardKinds(): string[] {
   const contract = readFileSync(
@@ -89,6 +99,39 @@ describe('correct before fast', () => {
   it('sends through a form over a server action', () => {
     expect(CONTROLS).toContain('<form action={formAction}');
     expect(CONTROLS).toContain('sendMessageAction');
+  });
+});
+
+describe('reactions, mentions and pins (T-226)', () => {
+  it('gives every reaction in the contract a label a reader can see', () => {
+    // Adding one to the union and forgetting the label would render an empty
+    // button; reading the list from the contract makes that a failing test.
+    for (const reaction of reactions()) {
+      expect(CONTROLS, `no label for ${reaction}`).toContain(`${reaction}:`);
+    }
+    expect(reactions().length).toBeGreaterThan(0);
+  });
+
+  it('reacts without JavaScript: a form each, and `details` for the rest', () => {
+    // The acceptance criterion. A popover would have needed a script and would
+    // have made this the first control on the surface that did -- on a page
+    // whose whole point is being correct before the socket of T-230 exists.
+    expect(CONTROLS).toMatch(/<form action=\{formAction\} className="inline">/);
+    expect(CONTROLS).toContain('<details');
+    expect(CONTROLS).not.toMatch(/onClick|useEffect|addEventListener/);
+  });
+
+  it('shows the pinned messages whatever page is being read', () => {
+    expect(PAGE).toContain('data-testid="conversation-pinned"');
+    expect(PAGE).toContain('page.pinned');
+  });
+
+  it('says who was mentioned beside the message, not inside it', () => {
+    // Highlighting `@name` inside the body would mean parsing text the API has
+    // already parsed once, and the two could disagree about who was named.
+    expect(CARD).toContain('data-testid="message-mentions"');
+    expect(CARD).toContain('message.mentions');
+    expect(CARD).not.toMatch(/body.*replace\(.*@/);
   });
 });
 

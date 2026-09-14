@@ -568,7 +568,7 @@ it the other way round means writing the membership rule twice.
 | `[x]` T-223 | Search within a conversation | T-221 | Finds a member's own messages in a conversation they are still in |
 | `[x]` T-224 | The chat surface on the web, without realtime | T-222 | Usable and correct over plain requests, before a socket exists |
 | `[x]` T-225 | Reactions, mentions and pinned messages | T-221 | Each one is a row of its own; a mention never reaches somebody who blocked the mentioner |
-| `[ ]` T-226 | Reactions, mentions and pins on the chat page | T-225, T-224 | Reacting works without JavaScript; a pin is reachable from anywhere in the conversation |
+| `[x]` T-226 | Reactions, mentions and pins on the chat page | T-225, T-224 | Reacting works without JavaScript; a pin is reachable from anywhere in the conversation |
 
 **Order is a sequence, not a timestamp.** Blueprint 19 asks that messages
 "arrive in real time and retain ordering", and `created_at` cannot carry that: two
@@ -896,7 +896,40 @@ written from the rule rather than from the behaviour, which is why it caught it.
 
 5 tests; 40 across the two conversation suites, 90 with social and moderation.
 
-**What is not here.** The chat page still shows none of this: that is T-226.
+**T-226 verified on 2026-09-14, and E22 is complete.** The chat page now shows
+the three: reaction buttons under every message, who was mentioned, and a
+**Pinned** section at the top.
+
+**Reacting works with no JavaScript**, which is the acceptance criterion and also
+the point. Each reaction is its own form over a server action, and the ones
+nobody has used yet sit behind a `<details>` — the one disclosure widget the
+browser gives for free. A popover would have needed a script and would have made
+this the first control on a surface whose whole purpose is being correct before
+the socket of T-230 exists.
+
+**Who was mentioned is said beside the message, not woven into it.**
+Highlighting `@name` inside the body would mean parsing text the API already
+parsed once, and the two could disagree about who was named — especially after
+somebody renames themselves, which is the exact thing storing the mention was
+meant to survive.
+
+**The pinned section is there whatever page is being read**, because that is what
+the contract sends and what a pin is for.
+
+**Checked live, not only in types.** API on 3002, `next dev` on 3100, two members
+with a mention, a reaction, a pin and a shared fixture: the page renders "Agree 1",
+"Mentioned @demo_bo", "Pinned in this conversation", the `React` disclosure with
+the five unused reactions, and the live card reading "Liverpool v Manchester
+United 2 – 2 · finished · Updated …". And on `/ar` the same card's score is
+inside `dir="ltr"` — the T-153 bug does **not** come back on a brand-new surface,
+confirmed by looking rather than by trusting the guard. The demo accounts were
+removed afterwards.
+
+13 guard tests; 147 across the web app.
+
+**E22 is complete.** A conversation can be opened, read, written to, searched,
+reacted to, pinned, muted and left, and every one of those works over ordinary
+requests. T-230 now has something correct to add a transport to.
 
 ---
 
