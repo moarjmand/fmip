@@ -1594,3 +1594,64 @@ retained, plus a request from our servers to an arbitrary host.
 Moderation is reports, human decisions and rate limits, and the product does not
 claim otherwise anywhere a reader can see. Notification preferences are built
 with no channel behind them but the inbox, which is exactly what Phase 4 extends.
+
+---
+
+## D-055 — The chat socket is plain `ws` on the server already running, and the `Origin` header is a security control
+
+**Date:** 2026-09-14 · **Task:** T-230 · **Status:** accepted
+
+D-010 reserved WebSockets for chat. Building one raised three questions the
+decision did not answer: which library, what the socket is allowed to do, and how
+a browser reaches it when D-027 says the browser never talks to the API.
+
+**Decision.**
+
+**One dependency: `ws`, attached by hand.** The gateway takes the Node server
+Fastify already listens on, handles `upgrade` itself with
+`WebSocketServer({ noServer: true })`, and does authentication before the
+handshake completes rather than after. This is the same choice the SSE gateway
+made for the same reason (D-034): the interesting part is the handshake, and a
+wrapper hides exactly that. `@nestjs/websockets` was rejected because it adds an
+adapter and a second lifecycle to own a `ws` server we would still configure;
+`socket.io` because it is not WebSocket — it is a protocol above one, requiring
+its own client, and it answers a reconnection problem we answer with sequences
+(T-231) rather than with a framework.
+
+**The socket delivers; it never decides.** Sending, removing, reacting, pinning,
+muting and leaving stay on the HTTP surface of T-221, where every write already
+passes the database guards (PL003 to PL007). A socket that could also write would
+be a second place to get those guards right, and two places drift. The client
+frames are `subscribe` and `unsubscribe`, and nothing else.
+
+**Authorisation happens at subscribe and again at every delivery.** A socket is
+long-lived; membership is not. Each delivery re-asks the store, and a
+subscription whose membership has ended is closed with a `dropped` frame rather
+than waiting for a reconnect. The re-check also has to ask a *second* question:
+`participation()` deliberately still returns a row after a member leaves, so
+history stays readable (T-223) — live delivery is not the same question as
+readable history, and the socket asks both.
+
+**The `Origin` header is the whole defence against cross-site socket hijacking.**
+A WebSocket handshake is not subject to CORS: any page on any site can open one
+to us and the browser will attach the session cookie. `Origin` is the only thing
+that separates our page from somebody else's, so the allow-list
+(`WEB_BASE_URL`, plus `CHAT_ALLOWED_ORIGINS` for an edge that differs) is an
+access control and not a convenience setting. A handshake with **no** `Origin` is
+allowed: only a browser has the ambient cookie this protects, and a browser
+always sends one.
+
+**A session that ends closes the socket.** The heartbeat re-authenticates every
+connection, so logging out hangs up the delivery channel instead of leaving it
+open until the tab closes. The cost is that the connection holds its session
+token in memory for as long as it is open; the alternative is a socket that
+outlives the session behind it.
+
+**Consequences.** The browser cannot reach the socket yet, and that is
+deliberate: D-027 routes every browser request through the web origin, Next.js
+route handlers cannot answer an `upgrade`, and the answer is an edge route
+(Caddy proxies WebSockets transparently) rather than a second public origin with
+CORS. That route, and the page that uses it, are **T-234** — after T-231, because
+there is no reason to connect a browser to a transport that nothing publishes
+into yet. The Koyeb preview (D-051) has no such edge, so the socket is not part
+of what that preview demonstrates, and it says so.
