@@ -1655,3 +1655,62 @@ CORS. That route, and the page that uses it, are **T-234** — after T-231, beca
 there is no reason to connect a browser to a transport that nothing publishes
 into yet. The Koyeb preview (D-051) has no such edge, so the socket is not part
 of what that preview demonstrates, and it says so.
+
+---
+
+## D-056 — Chat fan-out is Redis pub/sub on one channel, and a bus that cannot deliver says so
+
+**Date:** 2026-09-14 · **Task:** T-231 · **Status:** accepted
+
+T-230 built a socket that delivers whatever it is handed. This is what hands it
+things when the message was written somewhere else.
+
+**Decision.**
+
+**Redis pub/sub, on one channel, from the first commit.** `fmip:chat` carries
+every broadcast; every instance receives all of them and drops the ones no local
+socket subscribed to. In-process fan-out was never a step on the way: it works on
+one instance, works in a one-instance preview, and then delivers half the
+messages the day there are two — a failure that is invisible in development and
+total in production.
+
+**One channel rather than one per conversation.** Per-conversation channels would
+save the local filter and cost a Redis subscription table that must stay in step
+with the socket registry through every subscribe, unsubscribe, leave, disconnect
+and crash. That is a second source of truth for who is listening, which is the
+class of bug this epic is built around. The filter is a `Set.has` per broadcast
+per instance. Sharded channels are the answer when that is measurably the
+bottleneck, and T-233's numbers are what would say so.
+
+**At-most-once delivery, deliberately.** Redis pub/sub drops a message for an
+instance that is disconnected at that moment. The answer is not a durable stream:
+every message already carries a sequence number, and a client that reconnects
+asks for everything after the last one it holds (T-235). A stream would add
+durability we would still have to reconcile against sequence, and two mechanisms
+for one guarantee is one more than the number that stays correct.
+
+**A publish that fails never fails a send.** The message is stored, guarded and
+answered for before anything is published. A bus that is down costs immediacy,
+not the message.
+
+**Without `REDIS_URL` the bus is absent and admits it.** It logs once, reports
+`healthy: false`, and T-233 publishes that. The alternative — an object that
+accepts broadcasts and delivers nothing — is rule 3's "never fake coverage"
+applied to a transport, and it is the exact thing every paragraph above is trying
+not to build.
+
+**Alternatives considered.** *Postgres `LISTEN`/`NOTIFY`*, which the live score
+feed already uses (D-034): it works, and it was rejected here because chat volume
+is member-driven rather than fixture-driven, and putting it on the database
+connection pool couples message delivery to the same resource the writes need.
+*Redis Streams with consumer groups*: durability per instance, at the price of
+per-instance cursors to maintain and prune, answering a question sequence numbers
+already answer. *Socket.io's Redis adapter*: brings the framework rejected in
+D-055 to get the fan-out we can write in a file.
+
+**Consequences.** `REDIS_URL` becomes a requirement for live chat rather than
+only for the ingestion queue, and CI gains a Redis service so the two-instance
+test runs instead of skipping. `ioredis` becomes a direct dependency of
+`apps/api` — which also repairs BullMQ, whose Redis client is an *optional* peer
+dependency that nothing had installed, so the ingestion scheduler (T-026) would
+have thrown on boot the first time it was switched on.

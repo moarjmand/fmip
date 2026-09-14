@@ -19,6 +19,7 @@ import { Pool } from 'pg';
 import { WebSocket, WebSocketServer } from 'ws';
 import { PG_POOL } from '../../database/database.module';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
+import { CHAT_BUS, type ChatBus } from './internal/chat-bus';
 import { ConversationsStore } from './internal/conversations-store';
 
 /** Tunables the tests shorten; production takes the defaults. */
@@ -84,11 +85,11 @@ interface Connection {
  * which is the acceptance criterion of this task: *a socket can only ever carry
  * conversations its member participates in*.
  *
- * **Nothing publishes into it yet.** Fan-out is T-231 and goes through Redis
- * from its first commit: an in-process fan-out would work here, work in a
- * one-instance preview, and then silently deliver half the messages the day
- * there are two instances. So this task ships the leg a fan-out needs and stops
- * there, rather than shipping a version of the wrong thing.
+ * **What arrives comes from Redis, not from this process (T-231).** A message
+ * sent through any instance is published once and delivered by whichever
+ * instances hold a socket for it. In-process fan-out was never an option: it
+ * would work here, work in a one-instance preview, and then silently deliver
+ * half the messages the day there are two instances.
  */
 @Injectable()
 export class ChatGateway implements OnApplicationBootstrap, OnModuleDestroy {
@@ -98,12 +99,14 @@ export class ChatGateway implements OnApplicationBootstrap, OnModuleDestroy {
   private readonly store: ConversationsStore;
   private heartbeat: ReturnType<typeof setInterval> | null = null;
   private attachedTo: Server | null = null;
+  private unsubscribe: (() => void) | null = null;
   private closing = false;
 
   constructor(
     @Inject(PG_POOL) pool: Pool,
     private readonly identity: IdentityService,
     private readonly adapters: HttpAdapterHost,
+    @Inject(CHAT_BUS) private readonly bus: ChatBus,
     @Inject(CHAT_GATEWAY_OPTIONS) private readonly options: ChatGatewayOptions,
   ) {
     this.store = new ConversationsStore(pool);
@@ -166,11 +169,12 @@ export class ChatGateway implements OnApplicationBootstrap, OnModuleDestroy {
   // Lifecycle
   // -------------------------------------------------------------------------
 
-  onApplicationBootstrap(): void {
+  async onApplicationBootstrap(): Promise<void> {
     const instance = this.adapters.httpAdapter?.getInstance<{ server?: Server }>();
     const http = instance?.server;
     if (http === undefined) {
-      // A testing module with no HTTP server. There is nothing to upgrade.
+      // A testing module with no HTTP server. There is nothing to upgrade, and
+      // nothing to deliver to, so this instance does not take from the bus.
       return;
     }
     http.on('upgrade', this.upgrade);
@@ -178,6 +182,18 @@ export class ChatGateway implements OnApplicationBootstrap, OnModuleDestroy {
     this.heartbeat = setInterval(() => {
       void this.sweep();
     }, this.options.heartbeatMs);
+
+    // Every instance hears every broadcast and delivers the ones its own
+    // sockets asked for (T-231). The message may have been sent through a
+    // different instance entirely; that is the whole point.
+    this.unsubscribe = await this.bus.subscribe(({ conversation_id, event }) => {
+      void this.deliver(conversation_id, event).catch((error: unknown) => {
+        this.log.error('chat delivery failed', {
+          conversation: conversation_id,
+          detail: error instanceof Error ? error.message : String(error),
+        });
+      });
+    });
   }
 
   async onModuleDestroy(): Promise<void> {
@@ -186,6 +202,8 @@ export class ChatGateway implements OnApplicationBootstrap, OnModuleDestroy {
     this.heartbeat = null;
     this.attachedTo?.off('upgrade', this.upgrade);
     this.attachedTo = null;
+    this.unsubscribe?.();
+    this.unsubscribe = null;
     for (const connection of [...this.connections]) {
       connection.socket.close(CHAT_CLOSE.GOING_AWAY, 'server shutting down');
     }

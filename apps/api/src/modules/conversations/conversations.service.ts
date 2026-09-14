@@ -1,8 +1,9 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Pool } from 'pg';
 import {
   CARD_KINDS,
   type CardKind,
+  type ChatEvent,
   type ConversationKind,
   type ConversationPage,
   type ConversationSummary,
@@ -21,6 +22,7 @@ import {
 } from '@fmip/contracts';
 import { PG_POOL } from '../../database/database.module';
 import { ModerationService } from '../moderation/moderation.service';
+import { CHAT_BUS, type ChatBus } from './internal/chat-bus';
 import {
   CardStore,
   type ConversationRow,
@@ -142,12 +144,14 @@ function collectMarks(
  */
 @Injectable()
 export class ConversationsService {
+  private readonly log = new Logger('Chat');
   private readonly store: ConversationsStore;
   private readonly cards: CardStore;
 
   constructor(
     @Inject(PG_POOL) pool: Pool,
     private readonly moderation: ModerationService,
+    @Inject(CHAT_BUS) private readonly bus: ChatBus,
   ) {
     this.store = new ConversationsStore(pool);
     this.cards = new CardStore(pool);
@@ -412,9 +416,31 @@ export class ConversationsService {
         this.resolveCards([written]),
         this.marksFor([written], viewerId),
       ]);
-      return { ok: true, value: message(written, cards, marks) };
+      const sent = message(written, cards, marks);
+      await this.announce(conversationId, { kind: 'message', message: sent });
+      return { ok: true, value: sent };
     } catch (error) {
       return this.refusal(error);
+    }
+  }
+
+  /**
+   * Tell the other instances (T-231).
+   *
+   * The message is already stored and already answered for; a bus that is down
+   * must not turn a successful send into a failed one. So this logs and returns:
+   * what a client loses is immediacy, and it recovers by asking for everything
+   * after the last sequence it holds (T-235).
+   */
+  private async announce(conversationId: string, event: ChatEvent): Promise<void> {
+    try {
+      await this.bus.publish({ conversation_id: conversationId, event });
+    } catch (error) {
+      this.log.error('chat broadcast failed', {
+        event: 'chat.broadcast_failed',
+        conversation: conversationId,
+        detail: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 

@@ -941,7 +941,8 @@ without one; this epic makes it immediate.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-230 | The gateway: session-cookie auth, subscribe to conversations you are in | T-221 | A socket can only ever carry conversations its member participates in |
-| `[ ]` T-231 | Fan-out across instances, and gap recovery by sequence | T-230 | A reconnecting client asks for everything after N and misses nothing |
+| `[x]` T-231 | Fan-out across instances | T-230 | A message written on one instance reaches a socket held by another |
+| `[ ]` T-235 | Gap recovery by sequence | T-231 | A reconnecting client asks for everything after N and misses nothing |
 | `[ ]` T-232 | Live match cards: the card updates, the conversation does not move | T-222, T-032 | A score change updates a shared card without a new message |
 | `[ ]` T-233 | Observability: connections, delivery latency, `GET /health/chat` | T-231 | A silent socket layer is visible from the admin area, not from a complaint |
 | `[ ]` T-234 | The socket at one origin: the edge route, and the page that connects | T-231 | The browser opens the socket on the web origin, and the page falls back to the requests that already work |
@@ -961,6 +962,15 @@ the precedent for keeping the transport separate from the data.
 Koyeb preview (`docs/11-koyeb.md`, D-051) sleeps its instance after an hour
 without traffic, which drops every socket. That is fine for a preview and must
 not become the reference environment for judging whether chat works.
+
+**T-231 was two acceptance criteria in one row, and is now two rows.** Fan-out
+and gap recovery are different mechanisms — one is a channel between instances,
+the other is a query and a frame — and together they were eight files, past the
+point `CLAUDE.md` 3 says to split at. T-231 keeps the sentence it is about ("a
+message written on one instance reaches a socket held by another") and **T-235**
+takes the other one unchanged. The order is not arbitrary: recovery has to
+interlock with subscription registration, and that interlock is only meaningful
+once there is live delivery to race against.
 
 **T-230 added T-234, which the plan was missing.** D-027 routes every browser
 request through the web origin and no Next.js route handler can answer an
@@ -1012,6 +1022,50 @@ thing `app.inject` cannot stand in for. 54 across the three conversation suites.
 
 **What is not here.** The browser cannot reach it (T-234), nothing publishes into
 it (T-231), and the Koyeb preview has no edge that would route it (D-051).
+
+**T-231 verified on 2026-09-14.** `internal/chat-bus.ts` is a Redis pub/sub
+channel with the two connections Redis requires (a client in subscribe mode may
+issue nothing else). `ConversationsService.send` publishes after the message is
+stored; every instance's gateway takes from the channel and delivers to the
+sockets that asked for that conversation.
+
+**The test runs two whole API instances.** One Postgres, one Redis, two Nest
+applications listening on two ports — because a single-instance test would pass
+with an in-process fan-out and prove nothing, and in-process fan-out failing
+silently at two instances is the exact accident this task exists to prevent. A
+message posted through instance alpha arrives on a socket held by instance beta.
+
+**One channel, not one per conversation.** Every instance hears every broadcast
+and drops what no local socket asked for. Per-conversation channels would save
+that filtering and cost a Redis subscription table that has to stay in step with
+the socket registry through every subscribe, leave, disconnect and crash — two
+sources of truth for who is listening, which is the shape of bug this epic is
+built to avoid (D-056).
+
+**A broken bus never breaks a send.** The message is stored and answered for
+before anything is published; a publish that throws is logged and dropped. What a
+client loses is immediacy, and T-235 is how it gets the rest back.
+
+**With no `REDIS_URL` there is an absent bus that says so.** It logs once, and
+reports `healthy: false` for T-233 to publish. The alternative — a fan-out that
+quietly delivers nothing — is the failure mode this epic keeps naming.
+
+**It also fixed something that was already broken.** BullMQ 6 takes its Redis
+client as an *optional* peer dependency, and nothing had installed one: a probe
+against the running Redis failed with "BullMQ could not load the optional
+'ioredis' package". The ingestion scheduler (T-026) would have thrown on boot the
+first time `INGESTION_SCHEDULE=on` was set. Adding `ioredis` for the chat bus
+gives BullMQ the client it was missing; a regression test for the scheduler is
+its own task.
+
+5 tests (4 across two instances, 1 on the absent bus); 59 across the four
+conversation suites. CI gains a Redis service, for the same reason it has a
+Postgres one: without it the only test that can catch this is skipped.
+
+**What is not here.** Gap recovery (T-235), the browser (T-234), and live
+delivery of anything but a new message: a removal, a reaction and a pin still
+need a re-read, because none of them has a sequence number and gap recovery is
+what makes a live update safe to rely on.
 
 ---
 
