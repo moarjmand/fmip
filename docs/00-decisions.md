@@ -1890,3 +1890,51 @@ impersonation" as a list has accepted nothing. *An automatic sanction ladder*:
 faster, and it would make the report queue a formality. *A rating threshold with
 no floor on settled predictions*: it would be met most easily by predicting
 almost nothing, which is the failure D-037 already refused once.
+
+---
+
+## D-060 — The group board is the global board with its population narrowed, and reputation imports groups rather than the reverse
+
+**Date:** 2026-09-15 · **Task:** T-243 · **Status:** accepted
+
+Blueprint 9.3 lists group-based boards beside global ones, and the obvious
+implementation is a second ranking. A second ranking is how a group board ends
+up flattering small groups.
+
+**Decision.** There is one board. `ReputationService.leaderboard` gained an
+optional set of members and nothing else: same rules version, same floor, same
+formula, same tiers, same parser. `PostgresRatingStore.board` gained one
+predicate on that set. There is deliberately no second method, because a second
+method is where a second formula begins -- and the test does not compare numbers
+between the two boards, it compares the *rules* they report and fails if they
+differ.
+
+**The rating is global and the rank is scoped.** A member's rating comes from
+their settlements, not from their company, so it is the same number on both
+boards. What the group board narrows is the population, and therefore the
+position -- a board showing rank 4,891 of 12,300 would not be a board.
+
+**The floor does not bend.** D-037's minimum-sample filter applies unchanged, so
+a group whose members have all settled fewer than the floor has an empty board.
+It says which filter emptied it, because an empty list would say nobody is in
+the group, which of a group is never true (rule 3).
+
+**The dependency points from reputation to groups.** Each boundary needs exactly
+one answer from the other, so the direction is a choice about what each drags in.
+Reputation reads match difficulty from forecast; importing it into groups made
+every group test require `MODEL_SERVICE_URL` in order to list members. So groups
+answers `audience()` -- who is in this group, and may you ask -- and the ranking,
+along with every rule behind it, stays where those rules already were.
+
+**Who may see a board is who may see the membership**, because a board is the
+membership with numbers beside it. The predicate is the one `read()` already
+uses, an invite-only group nobody may know about is still 404, and the page
+fetches the board only where `members` came back non-null rather than asking a
+second time and rendering the refusal.
+
+**Rejected.** *A `group_leaderboard` view or table*: a second place for the
+ranking to drift. *A lower floor for small groups*: the failure D-037 refused
+once, wearing a friendlier face. *A join against `group_member` inside the
+reputation store*: it would work, and it would teach the reputation boundary what
+a group is -- the set of ids keeps it ignorant and is the same door the
+friends-only board of blueprint 9.3 will use.

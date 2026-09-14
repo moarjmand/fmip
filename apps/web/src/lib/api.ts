@@ -121,6 +121,22 @@ export function fetchGroupRequests(
   );
 }
 
+/**
+ * The group's board (T-243). The same endpoint shape as `/leaderboard` and the
+ * same response, because it is the same board with the population narrowed:
+ * 403 when the viewer is outside a group that shows its membership to members,
+ * 404 when they may not know the group is there at all.
+ */
+export function fetchGroupLeaderboard(
+  slug: string,
+  cookie: string | undefined,
+): Promise<ApiResult<LeaderboardResponse>> {
+  return apiRequest<LeaderboardResponse>(
+    `/groups/${encodeURIComponent(slug)}/leaderboard`,
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
 /** `GET /health/ingestion` (T-071): the feed's recent runs; null when unreachable. */
 export async function fetchIngestionHealth(): Promise<IngestionHealth | null> {
   const result = await apiRequest<IngestionHealth>('/health/ingestion');

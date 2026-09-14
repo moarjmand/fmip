@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { GroupControls, JoinRequestControls } from '@/components/group-controls';
-import { fetchGroup, fetchGroupRequests, fetchMe } from '@/lib/api';
+import { fetchGroup, fetchGroupLeaderboard, fetchGroupRequests, fetchMe } from '@/lib/api';
+import { ratingLabel, statusLabel, tierLabel } from '@/lib/leaderboard';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 
@@ -63,6 +64,10 @@ export default async function GroupPage({
 
   const group = result.data.group;
   const decides = group.standing === 'owner' || group.standing === 'moderator';
+  // `members === null` is the API's own answer to "may this viewer see who is
+  // in this group", and the board is that list with numbers beside it — so it
+  // is the same question, asked once, rather than a 403 fetched on purpose.
+  const board = group.members === null ? null : await fetchGroupLeaderboard(slug, cookie);
   const queue = decides ? await fetchGroupRequests(slug, cookie) : null;
 
   return (
@@ -122,6 +127,57 @@ export default async function GroupPage({
           </ul>
         )}
       </section>
+
+      {board !== null && (
+        <section className="flex flex-col gap-3" data-testid="group-board">
+          <h2 className="text-lg font-semibold">The board</h2>
+          {!board.ok ? (
+            <p role="alert" data-testid="group-board-unreachable">
+              The board cannot be shown right now.
+            </p>
+          ) : board.data.entries.length === 0 ? (
+            // The floor does not bend for a small group (D-037), so a group can
+            // have no board at all — and saying which filter produced that is
+            // the difference between an honest absence and a page that looks
+            // like nobody is here.
+            <p className="text-sm opacity-70" data-testid="group-board-none">
+              Nobody in this group has settled {board.data.min_settled} predictions yet, so there is
+              nobody to rank. That is the same filter the whole product uses.
+            </p>
+          ) : (
+            <>
+              <ol className="flex flex-col gap-2">
+                {board.data.entries.map((entry) => (
+                  <li key={entry.username} className="flex items-baseline gap-3 text-sm">
+                    <span className="w-6 text-end opacity-70">{entry.rank}</span>
+                    <Link
+                      href={`/${locale}/u/${encodeURIComponent(entry.username)}`}
+                      className="underline"
+                    >
+                      @{entry.username}
+                    </Link>
+                    <span className="ms-auto tabular-nums">{ratingLabel(entry)}</span>
+                    <span className="opacity-70">{tierLabel(entry.tier)}</span>
+                    <span className="opacity-70">{statusLabel(entry)}</span>
+                  </li>
+                ))}
+              </ol>
+              {board.data.total > board.data.entries.length && (
+                <p className="text-sm opacity-70" data-testid="group-board-more">
+                  Showing {board.data.entries.length} of {board.data.total} ranked members.
+                </p>
+              )}
+            </>
+          )}
+          <p className="text-sm opacity-70" data-testid="group-board-note">
+            Ranked among this group&rsquo;s members by the same rating as the{' '}
+            <Link href={`/${locale}/leaderboard`} className="underline">
+              global board
+            </Link>
+            . The rating is the one number; only who it is measured against changes.
+          </p>
+        </section>
+      )}
 
       {decides && (
         <section className="flex flex-col gap-3" data-testid="group-queue">

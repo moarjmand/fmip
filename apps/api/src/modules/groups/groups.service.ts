@@ -49,6 +49,18 @@ export type GroupRefusal =
   | 'unavailable'
   | 'rate_limited';
 
+/**
+ * The answer to "who is in this group, and may you ask" (T-243). Narrower than
+ * `GroupOutcome` on purpose: the two refusals here are the only two this
+ * question has, and the caller is another module's controller, which should not
+ * have to map refusals it can never receive.
+ *
+ * `members_only` is not `forbidden`: one says this is for the people who *run*
+ * the group and the other that it is for the people who are *in* it.
+ */
+export type GroupAudience =
+  { ok: true; members: string[] } | { ok: false; reason: 'not_found' | 'members_only' };
+
 export type GroupOutcome<T> =
   { ok: true; value: T } | { ok: false; reason: GroupRefusal; fields?: Record<string, string> };
 
@@ -162,6 +174,38 @@ export class GroupsService {
           : null,
       pending: decides ? await this.store.pending(row.id) : null,
     };
+  }
+
+  /**
+   * Who the group's board is drawn from, and whether this viewer may ask
+   * (blueprint 8.2, T-243).
+   *
+   * **This boundary does not rank anybody.** It answers the one question the
+   * reputation boundary cannot -- who is in this group -- and hands back a set
+   * of ids. The ranking is `ReputationService.leaderboard` under the same rules
+   * version, the same floor and the same formula as the global board, because a
+   * second method is where a second formula begins.
+   *
+   * **Who may look is who may see the membership**, and for the same reason: a
+   * board is a list of members with numbers beside them. So the predicate is
+   * the one `read()` uses for `members` -- inside, or the group is public -- and
+   * an invite-only group nobody may know about is still `not_found`.
+   */
+  async audience(viewerId: string, slug: string): Promise<GroupAudience> {
+    const row = await this.store.bySlug(slug.toLowerCase());
+    if (row === null) return { ok: false, reason: 'not_found' };
+
+    const role = await this.store.role(row.id, viewerId);
+    if (role === null && row.visibility === 'invite_only') {
+      // The same door `read()` opens: an invitation is itself being told the
+      // group is there, so an invitee gets past it and a stranger does not.
+      if (!(await this.store.hasInvite(row.id, viewerId)))
+        return { ok: false, reason: 'not_found' };
+    }
+    if (role === null && row.visibility !== 'public') {
+      return { ok: false, reason: 'members_only' };
+    }
+    return { ok: true, members: await this.store.memberIds(row.id) };
   }
 
   async invites(viewerId: string): Promise<GroupInvite[]> {
