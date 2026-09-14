@@ -1714,3 +1714,72 @@ test runs instead of skipping. `ioredis` becomes a direct dependency of
 `apps/api` — which also repairs BullMQ, whose Redis client is an *optional* peer
 dependency that nothing had installed, so the ingestion scheduler (T-026) would
 have thrown on boot the first time it was switched on.
+
+---
+
+## D-057 — How you get into a group follows from its visibility, and the one-owner rule is a deferred constraint
+
+**Date:** 2026-09-14 · **Task:** T-240 · **Status:** accepted
+
+The Phase 3 plan settled that groups have three visibilities and that the middle
+one — discoverable-private, found but not read — is why there are three.
+Building the schema raised three questions it did not answer.
+
+**Decision.**
+
+**The join route is derived from the visibility, not stored beside it.** Public:
+you join. Discoverable: you ask, and an owner or a moderator answers.
+Invite-only: you are invited, and there is nothing to ask for. A second column —
+a join policy crossed with a visibility — would have been nine combinations of
+which several mean nothing ("invite-only, but anyone may join") and one is a
+silent contradiction ("invite-only and discoverable"). The database refuses the
+wrong route rather than a query filtering it: asking to join an invite-only or a
+public group raises `PL011`.
+
+The case this deliberately does not serve is a group readable by everyone that
+still approves its members. It is a real shape and the product does not have it
+today. A `join_policy` column is the extension point, and it should arrive with
+the case that needs it rather than ahead of it — the same reason
+`sanction.scope` has only ever listed what something enforces.
+
+**Exactly one owner, enforced in two halves.** *At most one* is a partial unique
+index on `group_member (group_id) WHERE role = 'owner'`. *At least one* is a
+**deferred** constraint trigger (`PL009`), checked at commit rather than per
+statement — because handing a group over is demote-then-promote, and a
+per-statement check would refuse the moment in between and make the one safe way
+to pass a group on impossible. The same function guards the group table too, so
+a group that never gets an owner is refused at commit rather than existing
+ownerless.
+
+**A slug never changes** (`PL008`). A group link is shared into conversations
+(T-222), and a renamed slug would break every share silently — the failure
+nobody reports because nobody knows it happened. The display name is what
+changes.
+
+**A `groups` sanction stops the outward moves and nothing else.** Making a group
+and joining one are refused (`PL004`); reading and leaving are not. This is the
+gate pointing the same way it always does in this product: reaching *into* a
+place is a privilege, getting *out* of one never is.
+
+**Why.** Every one of these is the same argument in a different place: a rule
+that lives in one query leaks the first time somebody writes a second query. The
+rules that define what a group *is* — its visibility, its roles, its owner —
+belong where nothing can route around them.
+
+**Alternatives considered.** *A `join_policy` column from the start*: more
+product surface than the blueprint asked for, and most of the grid is
+meaningless. *A `BEFORE` trigger for the owner rule*: simpler to read and it
+makes handing over ownership impossible, which is worse than the complexity it
+saves. *A mutable slug with redirects*: a table of former slugs, forever, to
+avoid a rename nobody needs. *Naming the table `"group"`*: a reserved word in
+every statement that touches it, quoted forever, for a word — `user_group` sits
+beside `user_account`, `user_block` and `user_prediction`.
+
+**Consequences.** Four tables (`user_group`, `group_member`, `group_invite`,
+`group_join_request`), four new SQLSTATEs (`PL008` a renamed slug, `PL009` an
+ownerless group, `PL010` somebody already a member, `PL011` the wrong way in),
+and three new ceilings. `sanction.scope` gains `groups`; `report.subject_type`
+and `moderation_decision.subject_type` gain `group` — in this migration, because
+a group is now a thing that can be reported. Deleting an account that owns a
+group is refused until the group is handed on or deleted, which is the deferred
+constraint doing exactly what it says.
