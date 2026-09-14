@@ -23,7 +23,7 @@ so this is what runs and what does not.
 | API (NestJS) | in the same container, on `127.0.0.1:3001` |
 | Postgres | a Koyeb database, outside the container |
 | Model service | **not deployed** — forecasts say `model_unreachable` |
-| Redis | **not deployed** — only the ingestion scheduler needs it |
+| Redis | **not deployed** — the ingestion scheduler and live chat delivery need it |
 
 **One port carries everything, including the stream.** Nothing in the browser
 talks to the API directly: the Next.js route handlers at `/api/scores/stream`
@@ -41,6 +41,16 @@ show any unavailable forecast. Forgetting the variable still refuses to boot;
 **No scheduler.** A container that scales to zero cannot poll a provider on a
 schedule, and pretending otherwise would leave gaps that look like outages.
 `INGESTION_SCHEDULE=off`, and the preview's data is whatever the database holds.
+
+**No live chat delivery, and the preview says so.** Two independent reasons, and
+either alone would be enough. There is no Redis, so the chat bus is `absent` and
+`GET /health/chat` reports it (T-233). And the socket has nowhere to arrive: the
+VPS routes `/me/conversations/socket` at the edge (T-234), and this deployment
+has no edge — one published port, held by Next.js, which cannot answer a
+WebSocket upgrade. Conversations still work here in full, because every one of
+them works over ordinary requests (T-221 through T-226); what the preview does
+not demonstrate is immediacy. That is also why the free Instance sleeping after
+an hour — which drops every socket — costs this preview nothing.
 
 ---
 

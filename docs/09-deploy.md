@@ -13,16 +13,25 @@ browser ──HTTPS──▶ Cloudflare (edge TLS, cache, WAF)
                       │ HTTPS, origin certificate, SSL mode "Full (strict)"
                       ▼
                    caddy :443 (:80 redirects)          deploy/Caddyfile
-                      │ http, Docker DNS "web", refreshed every second
-                      ▼
-                   web :3000  ──http──▶ api :3001 ──▶ postgres, redis, model
-                   (Next.js; proxies /api/*/stream)   (none published; postgres
+                      │ http, Docker DNS, refreshed every second
+                      ├──────────────────────────────┐
+                      ▼                              ▼ /me/conversations/socket
+                   web :3000  ──http──▶ api :3001 ◀──┘  ──▶ postgres, redis,
+                   (Next.js; proxies /api/*/stream)          model
+                                                      (none published; postgres
                                                        and redis on 127.0.0.1)
 ```
 
-- The browser only ever talks to `web`. The API is not on the network; the
-  two server-sent-event streams reach the browser through the web app's
-  `/api/scores/stream` and `/api/fixtures/:id/stream` routes.
+- The browser talks to **one origin**, and almost everything behind it is
+  `web`. The API is not on the network; the two server-sent-event streams
+  reach the browser through the web app's `/api/scores/stream` and
+  `/api/fixtures/:id/stream` routes.
+- **The chat socket is the one exception** (T-234). A WebSocket upgrade cannot
+  be proxied by a Next.js route handler — App Router handlers answer requests,
+  not upgrades — so Caddy routes the exact path `/me/conversations/socket` to
+  `api` instead. The browser still sees one origin, which is what D-027 is
+  about: the session cookie works and there is no CORS anywhere. Nothing else
+  reaches the API, and the API answers an upgrade on no other path.
 - `postgres` and `redis` keep their `127.0.0.1` ports so `scripts/backup/`,
   `psql` and an SSH tunnel work exactly as in development.
 - `migrate` (`packages/db/Dockerfile`) is a tool image: `docker compose run
