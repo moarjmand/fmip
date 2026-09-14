@@ -653,11 +653,23 @@ export class ConversationsService {
     return true;
   }
 
-  async leave(viewerId: string, conversationId: string): Promise<boolean> {
+  /**
+   * Leaving a direct conversation, and only a direct one.
+   *
+   * A group conversation's membership is the group's (T-245), so `left_at` here
+   * would change nothing and the caller would be told it had worked. Saying so
+   * is the whole point: a silent no-op is the failure rule 3 exists to prevent,
+   * wearing the shape of a success.
+   *
+   * It is also the honest product answer. There are not two ways out of a group
+   * that mean different things -- there is one, and it is leaving the group.
+   */
+  async leave(viewerId: string, conversationId: string): Promise<'left' | 'not_found' | 'group'> {
     const row = await this.store.participation(conversationId, viewerId);
-    if (row === null) return false;
+    if (row === null) return 'not_found';
+    if (row.kind === 'group') return 'group';
     await this.store.leave(conversationId, viewerId);
-    return true;
+    return 'left';
   }
 
   /** The contact sanction behind a PL004, so a refusal can be explained. */
@@ -688,6 +700,13 @@ function summary(
   return {
     id: row.id,
     kind: row.kind as ConversationKind,
+    // Non-null exactly when the conversation is a group's, and `members` is
+    // empty exactly then: a group conversation is not a conversation *with*
+    // particular people, and its membership is the group's to show (T-245).
+    group:
+      row.group_slug === null || row.group_name === null
+        ? null
+        : { slug: row.group_slug, name: row.group_name },
     members,
     last_message: latest === null ? null : message(latest, cards, marks),
     unread: Number(row.unread),

@@ -60,6 +60,9 @@ export interface PredictionCardRow {
 export interface ConversationRow {
   id: string;
   kind: string;
+  /** The group this conversation belongs to; both null for a direct one. */
+  group_slug: string | null;
+  group_name: string | null;
   muted: boolean;
   left: boolean;
   last_read_seq: string;
@@ -88,6 +91,52 @@ export interface ParticipantRow {
 
 const MESSAGE_COLUMNS = `m.id, m.seq, u.username AS author, m.body, m.reply_to_id,
                          m.created_at, m.removed_at, m.removed_kind, m.card_kind, m.card_id`;
+
+/**
+ * The columns every read of a conversation needs, with the membership question
+ * asked of whichever table holds it (T-245).
+ *
+ * A direct conversation's membership is `conversation_participant`. A group's
+ * is `group_member`, and the participant row there holds only the read position
+ * and the mute -- which is why every column that comes from it is coalesced:
+ * for a group member who has never opened the conversation there is no row yet,
+ * and its absence means "has read nothing", not "is not here".
+ */
+const STANDING_COLUMNS = `c.id,
+              c.kind,
+              me.muted_at IS NOT NULL AS muted,
+              COALESCE(me.left_at IS NOT NULL, false) AS left,
+              COALESCE(me.last_read_seq, 0) AS last_read_seq,
+              g.slug AS group_slug,
+              g.name AS group_name,
+              CASE WHEN c.kind = 'direct' THEN (
+                SELECT p.last_read_seq FROM conversation_participant p
+                 WHERE p.conversation_id = c.id AND p.user_id <> $VIEWER
+                 LIMIT 1
+              ) END AS their_read_seq,
+              (SELECT count(*) FROM message m
+                WHERE m.conversation_id = c.id AND m.seq > COALESCE(me.last_read_seq, 0)) AS unread,
+              c.next_seq - 1 AS latest_seq`;
+
+/** Joined the same way wherever the columns above are read. */
+const STANDING_FROM = `FROM conversation c
+         LEFT JOIN conversation_participant me
+                ON me.conversation_id = c.id AND me.user_id = $VIEWER
+         LEFT JOIN user_group g ON g.id = c.group_id`;
+
+/**
+ * True when the viewer is in this conversation *now*.
+ *
+ * The group half is the acceptance criterion of T-245: it reads `group_member`,
+ * so a membership change takes effect on the conversation with nothing to
+ * synchronise and nothing that can drift.
+ */
+const STANDING_WHERE = `(
+           (c.kind <> 'group' AND me.user_id IS NOT NULL)
+           OR (c.kind = 'group' AND EXISTS (
+                 SELECT 1 FROM group_member gm
+                  WHERE gm.group_id = c.group_id AND gm.user_id = $VIEWER))
+         )`;
 
 export class ConversationsStore {
   constructor(private readonly pool: Pool) {}
@@ -163,22 +212,9 @@ export class ConversationsStore {
    */
   async conversationsFor(viewerId: string): Promise<ConversationRow[]> {
     const { rows } = await this.pool.query<ConversationRow>(
-      `SELECT c.id,
-              c.kind,
-              me.muted_at IS NOT NULL AS muted,
-              me.left_at IS NOT NULL AS left,
-              me.last_read_seq,
-              CASE WHEN c.kind = 'direct' THEN (
-                SELECT p.last_read_seq FROM conversation_participant p
-                 WHERE p.conversation_id = c.id AND p.user_id <> $1
-                 LIMIT 1
-              ) END AS their_read_seq,
-              (SELECT count(*) FROM message m
-                WHERE m.conversation_id = c.id AND m.seq > me.last_read_seq) AS unread,
-              c.next_seq - 1 AS latest_seq
-         FROM conversation_participant me
-         JOIN conversation c ON c.id = me.conversation_id
-        WHERE me.user_id = $1
+      `SELECT ${STANDING_COLUMNS.replaceAll('$VIEWER', '$1')}
+         ${STANDING_FROM.replaceAll('$VIEWER', '$1')}
+        WHERE ${STANDING_WHERE.replaceAll('$VIEWER', '$1')}
         ORDER BY c.next_seq > 1 DESC, c.created_at DESC
         LIMIT 200`,
       [viewerId],
@@ -199,25 +235,20 @@ export class ConversationsStore {
     return rows;
   }
 
-  /** The viewer's own row, or `null` when they are not in it at all. */
+  /**
+   * The viewer's own row, or `null` when they are not in it at all.
+   *
+   * The single place this module asks "is this viewer in this conversation" --
+   * the page, the search, the catch-up, the socket's subscribe and the socket's
+   * delivery re-check all come through here. Teaching *this* query about groups
+   * is what makes a membership change immediate on every one of them at once
+   * (T-245).
+   */
   async participation(conversationId: string, viewerId: string): Promise<ConversationRow | null> {
     const { rows } = await this.pool.query<ConversationRow>(
-      `SELECT c.id,
-              c.kind,
-              me.muted_at IS NOT NULL AS muted,
-              me.left_at IS NOT NULL AS left,
-              me.last_read_seq,
-              CASE WHEN c.kind = 'direct' THEN (
-                SELECT p.last_read_seq FROM conversation_participant p
-                 WHERE p.conversation_id = c.id AND p.user_id <> $2
-                 LIMIT 1
-              ) END AS their_read_seq,
-              (SELECT count(*) FROM message m
-                WHERE m.conversation_id = c.id AND m.seq > me.last_read_seq) AS unread,
-              c.next_seq - 1 AS latest_seq
-         FROM conversation_participant me
-         JOIN conversation c ON c.id = me.conversation_id
-        WHERE me.conversation_id = $1 AND me.user_id = $2`,
+      `SELECT ${STANDING_COLUMNS.replaceAll('$VIEWER', '$2')}
+         ${STANDING_FROM.replaceAll('$VIEWER', '$2')}
+        WHERE c.id = $1 AND ${STANDING_WHERE.replaceAll('$VIEWER', '$2')}`,
       [conversationId, viewerId],
     );
     return rows[0] ?? null;
@@ -515,19 +546,28 @@ export class ConversationsStore {
   }
 
   /** Read position only ever moves forward: a page that re-renders must not unread anything. */
+  /**
+   * An upsert, because a group member has no participant row until they open
+   * the conversation (T-245): in a group that row is a read position and a
+   * mute, not a membership, so it is written when there is something to
+   * remember rather than when somebody joins.
+   */
   async markRead(conversationId: string, viewerId: string, seq: number): Promise<void> {
     await this.pool.query(
-      `UPDATE conversation_participant
-          SET last_read_seq = GREATEST(last_read_seq, $3)
-        WHERE conversation_id = $1 AND user_id = $2`,
+      `INSERT INTO conversation_participant (conversation_id, user_id, last_read_seq)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (conversation_id, user_id)
+       DO UPDATE SET last_read_seq = GREATEST(conversation_participant.last_read_seq, $3)`,
       [conversationId, viewerId, seq],
     );
   }
 
   async setMuted(conversationId: string, viewerId: string, muted: boolean): Promise<void> {
     await this.pool.query(
-      `UPDATE conversation_participant SET muted_at = CASE WHEN $3 THEN now() END
-        WHERE conversation_id = $1 AND user_id = $2`,
+      `INSERT INTO conversation_participant (conversation_id, user_id, muted_at)
+       VALUES ($1, $2, CASE WHEN $3 THEN now() END)
+       ON CONFLICT (conversation_id, user_id)
+       DO UPDATE SET muted_at = CASE WHEN $3 THEN now() END`,
       [conversationId, viewerId, muted],
     );
   }

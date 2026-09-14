@@ -307,12 +307,20 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('conversation
       ).rejects.toMatchObject({ constraint: 'conversation_direct_has_a_pair' });
     });
 
-    it('refuses a kind nothing can create yet', async () => {
-      // `group` arrives with the groups of T-240. A kind nothing can produce is
-      // a kind nothing should offer.
+    it('refuses a kind nothing can produce', async () => {
+      // Two kinds now: `direct` (T-220) and `group` (T-245). A third is a kind
+      // nothing would know how to render.
+      await expect(
+        pool.query(`INSERT INTO conversation (kind) VALUES ('broadcast')`),
+      ).rejects.toMatchObject({ constraint: 'conversation_kind_check' });
+    });
+
+    it('refuses a group conversation with no group, and a direct one with a group', async () => {
+      // The same shape as the pair: whichever kind it is, the other kind's
+      // columns are empty, so a row can never be half of each (T-245).
       await expect(
         pool.query(`INSERT INTO conversation (kind) VALUES ('group')`),
-      ).rejects.toMatchObject({ constraint: 'conversation_kind_check' });
+      ).rejects.toMatchObject({ constraint: 'conversation_group_has_a_group' });
     });
   });
 });

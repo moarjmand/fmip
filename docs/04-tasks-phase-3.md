@@ -1305,7 +1305,7 @@ a different visibility and an invitation rule, not a second feature.
 |---|---|---|---|
 | `[x]` T-240 | Schema and contracts: `group`, `member` with roles, `invite`, `join_request` | T-220 | Visibility, roles and the one-owner rule live in the schema |
 | `[x]` T-241 | The group API: membership, roles, invitations, join requests | T-240 | Every refusal the schema makes is explained rather than returned as a 500, and a group nobody may see is 404 rather than 403 |
-| `[ ]` T-245 | The group conversation | T-241, T-221 | Membership changes take effect on the conversation immediately |
+| `[x]` T-245 | The group conversation | T-241, T-221 | Membership changes take effect on the conversation immediately |
 | `[ ]` T-242 | Group surfaces: directory, page, membership controls | T-241 | A private group is not discoverable; an invite-only one is not joinable |
 | `[ ]` T-243 | The group leaderboard and prediction comparison | T-241, T-055 | The same rating rules as the global board, scoped — never a second formula |
 | `[ ]` T-244 | Match threads inside a group | T-241 | A thread is a conversation about a fixture, and says which |
@@ -1437,6 +1437,46 @@ scenery; the ceiling has one test where it is the subject.
 19 tests; 39 across the two group suites.
 
 **What is not here.** The group conversation (T-245) and the surfaces (T-242).
+
+**T-245 verified on 2026-09-14.** `..._group-conversations.sql` widens
+`conversation.kind` with `group`, adds `conversation.group_id` with the same
+shape the pair has -- whichever kind it is, the other kind's columns are empty --
+and gives every group exactly one conversation by unique index. A group's
+conversation is made in the same transaction as the group, because a group whose
+chat page 404s until somebody notices is not a group.
+
+**The membership is the group's, not a copy of it (D-058).** That is the whole
+task. `refuse_non_participant()` branches on the kind, and
+`ConversationsStore.participation()` does the same -- and that one query is where
+the page, the search, the catch-up, the socket's subscribe and the socket's
+delivery re-check all ask the question, so teaching it about groups made a
+membership change immediate on every one of them at once. The tests do the
+membership change and then immediately ask the conversation, with **no step in
+between**, because a step in between is exactly what a mirrored membership would
+have needed.
+
+**The participant row is written when there is something to remember.** A group
+member gets none when they join: in a group that row is a read position and a
+mute, so `markRead` and `setMuted` upsert. Its absence means "has read nothing",
+never "is not here", and every column taken from it is coalesced -- which is why
+a group conversation never reports `left: true` from a missing row.
+
+**Leaving means two different things, deliberately.** A direct conversation can
+be left and still read (T-223); a group is a place, and leaving it means you are
+not in it. `POST /me/conversations/:id/leave` on a group conversation is refused
+with *"leave the group instead"* rather than setting a `left_at` that would
+change nothing and report success.
+
+**Two members who have blocked each other share the room, and both speak.** The
+message block guard stays direct-only, on purpose. A block stops them reaching
+*each other*: the mention guard of T-225 was written for exactly this and has
+been unreachable until now. There is a test for it -- the message goes through,
+and the mention does not.
+
+9 tests; 48 across the three group suites.
+
+**What is not here.** The surfaces (T-242): there is still no page for a group
+or for its conversation.
 
 ---
 

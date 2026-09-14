@@ -226,7 +226,15 @@ export class ConversationsController {
   @HttpCode(204)
   async leave(@Param('id') id: string, @Req() request: FastifyRequest): Promise<void> {
     const viewer = await this.requireViewer(request);
-    if (!(await this.conversations.leave(viewer.id, id))) throw new NotFoundException(NOT_FOUND);
+    const outcome = await this.conversations.leave(viewer.id, id);
+    if (outcome === 'not_found') throw new NotFoundException(NOT_FOUND);
+    if (outcome === 'group') {
+      // One way out of a group, not two that mean different things (T-245).
+      throw new ConflictException({
+        error: 'conflict',
+        message: 'This conversation belongs to a group. Leave the group instead.',
+      } satisfies ApiError);
+    }
   }
 
   /** The outcome's value, or the status code its refusal deserves. */
