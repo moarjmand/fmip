@@ -9,10 +9,13 @@ import {
   MAX_MESSAGE_LENGTH,
   MESSAGE_PAGE_SIZE,
   MIN_SEARCH_TERM,
+  REACTIONS,
   SEARCH_RESULT_LIMIT,
   type ConversationSearchResponse,
   type Message,
   type MessageRemoval,
+  type Reaction,
+  type ReactionCount,
   type SendMessageRequest,
   type SharedCard,
 } from '@fmip/contracts';
@@ -22,7 +25,9 @@ import {
   CardStore,
   type ConversationRow,
   ConversationsStore,
+  type MentionRow,
   type MessageRow,
+  type ReactionRow,
 } from './internal/conversations-store';
 
 /** SQLSTATEs the T-220 triggers raise. */
@@ -30,6 +35,8 @@ const BLOCKED = 'PL003';
 const SANCTIONED = 'PL004';
 const NOT_A_PARTICIPANT = 'PL006';
 const OVER_RATE = 'PL005';
+/** Raised when something is attempted on a message that has been removed. */
+const ALREADY_REMOVED = 'PL007';
 
 export type ConversationOutcome<T> =
   | { ok: true; value: T }
@@ -45,13 +52,23 @@ export type ConversationOutcome<T> =
         | 'rate_limited'
         | 'not_found'
         | 'left'
+        | 'removed'
         | 'invalid';
       fields?: Record<string, string>;
     };
 
 type CardLookup = Map<string, SharedCard>;
 
-function message(row: MessageRow, cards: CardLookup = new Map()): Message {
+/** Reactions, mentions and pins for a page, keyed by message (T-225). */
+interface Marks {
+  reactions: Map<string, ReactionCount[]>;
+  mentions: Map<string, string[]>;
+  pinned: Set<string>;
+}
+
+const NO_MARKS: Marks = { reactions: new Map(), mentions: new Map(), pinned: new Set() };
+
+function message(row: MessageRow, cards: CardLookup = new Map(), marks: Marks = NO_MARKS): Message {
   return {
     id: row.id,
     seq: Number(row.seq),
@@ -76,7 +93,31 @@ function message(row: MessageRow, cards: CardLookup = new Map()): Message {
             kind: 'gone',
             shared: row.card_kind as CardKind,
           }),
+    // A tombstone leaves no applauded outline: the database drops both when a
+    // message is removed (T-225), and these are empty rather than stale.
+    reactions: marks.reactions.get(row.id) ?? [],
+    mentions: marks.mentions.get(row.id) ?? [],
+    pinned: marks.pinned.has(row.id),
   };
+}
+
+function collectMarks(
+  reactions: ReactionRow[],
+  mentions: MentionRow[],
+  pinned: Set<string>,
+): Marks {
+  const byMessage = new Map<string, ReactionCount[]>();
+  for (const row of reactions) {
+    byMessage.set(row.message_id, [
+      ...(byMessage.get(row.message_id) ?? []),
+      { reaction: row.reaction as Reaction, count: Number(row.count), mine: row.mine },
+    ]);
+  }
+  const named = new Map<string, string[]>();
+  for (const row of mentions) {
+    named.set(row.message_id, [...(named.get(row.message_id) ?? []), row.username]);
+  }
+  return { reactions: byMessage, mentions: named, pinned };
 }
 
 /**
@@ -177,6 +218,14 @@ export class ConversationsService {
     return lookup;
   }
 
+  /** The reactions, mentions and pins on a set of messages, in three queries. */
+  private async marksFor(rows: MessageRow[], viewerId: string): Promise<Marks> {
+    const ids = rows.map((row) => row.id);
+    if (ids.length === 0) return NO_MARKS;
+    const { reactions, mentions, pinned } = await this.store.marks(ids, viewerId);
+    return collectMarks(reactions, mentions, pinned);
+  }
+
   async list(viewerId: string): Promise<ConversationSummary[]> {
     const rows = await this.store.conversationsFor(viewerId);
     const ids = rows.map((row) => row.id);
@@ -192,9 +241,13 @@ export class ConversationsService {
       members.set(row.conversation_id, list);
     }
 
-    const cards = await this.resolveCards([...latest.values()]);
+    const newest = [...latest.values()];
+    const [cards, marks] = await Promise.all([
+      this.resolveCards(newest),
+      this.marksFor(newest, viewerId),
+    ]);
     return rows.map((row) =>
-      summary(row, members.get(row.id) ?? [], latest.get(row.id) ?? null, cards),
+      summary(row, members.get(row.id) ?? [], latest.get(row.id) ?? null, cards, marks),
     );
   }
 
@@ -235,7 +288,12 @@ export class ConversationsService {
       this.store.participantsOf([conversationId]),
       this.store.latest([conversationId]),
     ]);
-    const cards = await this.resolveCards([...messages, ...latest.values()]);
+    const pins = await this.store.pins(conversationId);
+    const everything = [...messages, ...latest.values(), ...pins];
+    const [cards, marks] = await Promise.all([
+      this.resolveCards(everything),
+      this.marksFor(everything, viewerId),
+    ]);
 
     return {
       conversation: summary(
@@ -243,10 +301,14 @@ export class ConversationsService {
         participants.map((p) => ({ username: p.username, display_name: p.display_name })),
         latest.get(conversationId) ?? null,
         cards,
+        marks,
       ),
-      messages: messages.map((m) => message(m, cards)),
+      messages: messages.map((m) => message(m, cards, marks)),
       latest_seq: Number(row.latest_seq),
       has_earlier: hasEarlier,
+      // Always sent, whether or not they fall inside the page being read: a pin
+      // nobody can find once the conversation has scrolled past it is not a pin.
+      pinned: pins.map((m) => message(m, cards, marks)),
     };
   }
 
@@ -269,8 +331,11 @@ export class ConversationsService {
     if (term.length < MIN_SEARCH_TERM) return { term, messages: [], more: false };
 
     const { messages, more } = await this.store.search(conversationId, term, SEARCH_RESULT_LIMIT);
-    const cards = await this.resolveCards(messages);
-    return { term, messages: messages.map((m) => message(m, cards)), more };
+    const [cards, marks] = await Promise.all([
+      this.resolveCards(messages),
+      this.marksFor(messages, viewerId),
+    ]);
+    return { term, messages: messages.map((m) => message(m, cards, marks)), more };
   }
 
   async send(
@@ -342,10 +407,124 @@ export class ConversationsService {
         card?.kind ?? null,
         card?.id ?? null,
       );
-      return { ok: true, value: message(written, await this.resolveCards([written])) };
+      await this.recordMentions(conversationId, written.id, text);
+      const [cards, marks] = await Promise.all([
+        this.resolveCards([written]),
+        this.marksFor([written], viewerId),
+      ]);
+      return { ok: true, value: message(written, cards, marks) };
     } catch (error) {
       return this.refusal(error);
     }
+  }
+
+  /**
+   * Resolve `@name` once, against the people already in the conversation.
+   *
+   * **Only participants.** Mentioning somebody who is not in the room would be
+   * a way to put a notification in front of a stranger, which is the direct-
+   * message spam surface arriving through a side door.
+   *
+   * A mention that the database refuses (PL003, a block) is dropped rather than
+   * failing the message: the words were already said and are already stored, and
+   * taking the whole message down because one name in it could not be delivered
+   * would be a worse answer than delivering the rest.
+   */
+  private async recordMentions(
+    conversationId: string,
+    messageId: string,
+    body: string,
+  ): Promise<void> {
+    const named = [...body.matchAll(/@([a-z0-9_]{3,20})/gi)].map((match) =>
+      (match[1] ?? '').toLowerCase(),
+    );
+    if (named.length === 0) return;
+
+    const members = await this.store.participantIdsByUsername(conversationId);
+    const ids = [...new Set(named)]
+      .map((username) => members.get(username))
+      .filter((id): id is string => id !== undefined);
+
+    for (const id of ids) {
+      try {
+        await this.store.mention(messageId, [id]);
+      } catch (error) {
+        if ((error as { code?: string }).code !== BLOCKED) throw error;
+      }
+    }
+  }
+
+  /** Add a reaction. Idempotent: reacting twice is reacting once. */
+  async react(
+    viewerId: string,
+    conversationId: string,
+    messageId: string,
+    reaction: string,
+  ): Promise<ConversationOutcome<true>> {
+    if (!(REACTIONS as readonly string[]).includes(reaction)) {
+      return {
+        ok: false,
+        reason: 'invalid',
+        fields: { reaction: `Must be one of ${REACTIONS.join(', ')}.` },
+      };
+    }
+    const found = await this.owned(viewerId, conversationId, messageId);
+    if (found !== null) return found;
+
+    try {
+      await this.store.react(messageId, viewerId, reaction);
+      return { ok: true, value: true };
+    } catch (error) {
+      return this.refusal(error);
+    }
+  }
+
+  async unreact(
+    viewerId: string,
+    conversationId: string,
+    messageId: string,
+    reaction: string,
+  ): Promise<ConversationOutcome<true>> {
+    const found = await this.owned(viewerId, conversationId, messageId);
+    if (found !== null) return found;
+    await this.store.unreact(messageId, viewerId, reaction);
+    return { ok: true, value: true };
+  }
+
+  async setPinned(
+    viewerId: string,
+    conversationId: string,
+    messageId: string,
+    pinned: boolean,
+  ): Promise<ConversationOutcome<true>> {
+    const found = await this.owned(viewerId, conversationId, messageId);
+    if (found !== null) return found;
+
+    try {
+      if (pinned) await this.store.pin(conversationId, messageId, viewerId);
+      else await this.store.unpin(conversationId, messageId);
+      return { ok: true, value: true };
+    } catch (error) {
+      return this.refusal(error);
+    }
+  }
+
+  /**
+   * `null` when the viewer may act on this message, or the refusal that stops
+   * them. A message in a conversation they are not in is "not found" for the
+   * same reason the conversation itself is.
+   */
+  private async owned(
+    viewerId: string,
+    conversationId: string,
+    messageId: string,
+  ): Promise<ConversationOutcome<true> | null> {
+    const row = await this.store.participation(conversationId, viewerId);
+    if (row === null) return { ok: false, reason: 'not_found' };
+    if (!(await this.store.messageInConversation(conversationId, messageId))) {
+      return { ok: false, reason: 'not_found' };
+    }
+    return null;
   }
 
   /** The author takes their own message down. A moderator's removal is T-212's. */
@@ -396,6 +575,9 @@ export class ConversationsService {
     if (code === SANCTIONED) return { ok: false, reason: 'restricted' };
     if (code === OVER_RATE) return { ok: false, reason: 'rate_limited' };
     if (code === NOT_A_PARTICIPANT) return { ok: false, reason: 'left' };
+    // A reaction or a pin on a tombstone. Caught here rather than checked
+    // first, like every other refusal on this surface.
+    if (code === ALREADY_REMOVED) return { ok: false, reason: 'removed' };
     throw error;
   }
 }
@@ -405,12 +587,13 @@ function summary(
   members: ConversationSummary['members'],
   latest: MessageRow | null,
   cards: CardLookup,
+  marks: Marks,
 ): ConversationSummary {
   return {
     id: row.id,
     kind: row.kind as ConversationKind,
     members,
-    last_message: latest === null ? null : message(latest, cards),
+    last_message: latest === null ? null : message(latest, cards, marks),
     unread: Number(row.unread),
     muted: row.muted,
     left: row.left,

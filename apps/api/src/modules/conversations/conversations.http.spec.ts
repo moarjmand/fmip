@@ -94,6 +94,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('conversation
     });
   const del = (url: string, who?: string) =>
     app.inject({ method: 'DELETE', url, headers: as(who) });
+  const put = (url: string, who?: string) => app.inject({ method: 'PUT', url, headers: as(who) });
 
   const befriend = async (a: string, b: string) => {
     expect((await post(`/me/friend-requests/${b}`, null, a)).statusCode).toBe(204);
@@ -152,6 +153,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('conversation
     const client = await pool.connect();
     try {
       await client.query(`SET session_replication_role = 'replica'`);
+      await client.query(`DELETE FROM conversation_pin WHERE pinned_by = ANY($1::uuid[])`, [
+        everyone,
+      ]);
+      await client.query(`DELETE FROM message_reaction WHERE user_id = ANY($1::uuid[])`, [
+        everyone,
+      ]);
+      await client.query(`DELETE FROM message_mention WHERE user_id = ANY($1::uuid[])`, [everyone]);
       await client.query(`DELETE FROM message WHERE author_id = ANY($1::uuid[])`, [everyone]);
       await client.query(`DELETE FROM rate_window WHERE user_id = ANY($1::uuid[])`, [everyone]);
       await client.query(`DELETE FROM sanction WHERE user_id = ANY($1::uuid[])`, [everyone]);
@@ -423,6 +431,110 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('conversation
       // A removed message keeping its card would leave a fragment of what was
       // said surviving the decision to take it down.
       expect(tombstone).toMatchObject({ body: null, card: null, removed: { by: 'author' } });
+    });
+  });
+
+  describe('reactions, mentions and pins', () => {
+    let subject = '';
+
+    beforeAll(async () => {
+      const sent = await post(
+        `/me/conversations/${room}/messages`,
+        { body: `good call @${bo}, and @nobody_${RUN} was wrong` },
+        ada,
+      );
+      subject = sent.json().message.id;
+    });
+
+    it('names only the people already in the conversation', async () => {
+      const page = (await get(`/me/conversations/${room}`, ada)).json();
+      const mentioned = page.messages.find((m: { id: string }) => m.id === subject);
+
+      // Mentioning somebody who is not in the room would be a way to put a
+      // notification in front of a stranger: the direct-message spam surface
+      // arriving through a side door.
+      expect(mentioned.mentions).toEqual([bo]);
+    });
+
+    it('counts a reaction once per member, and says whether it is yours', async () => {
+      expect(
+        (await put(`/me/conversations/${room}/messages/${subject}/reactions/agree`, bo)).statusCode,
+      ).toBe(204);
+      // Reacting twice is reacting once.
+      expect(
+        (await put(`/me/conversations/${room}/messages/${subject}/reactions/agree`, bo)).statusCode,
+      ).toBe(204);
+
+      const mine = (await get(`/me/conversations/${room}`, bo)).json();
+      const seen = mine.messages.find((m: { id: string }) => m.id === subject);
+      expect(seen.reactions).toEqual([{ reaction: 'agree', count: 1, mine: true }]);
+
+      const theirs = (await get(`/me/conversations/${room}`, ada)).json();
+      expect(theirs.messages.find((m: { id: string }) => m.id === subject).reactions[0].mine).toBe(
+        false,
+      );
+
+      expect(
+        (await del(`/me/conversations/${room}/messages/${subject}/reactions/agree`, bo)).statusCode,
+      ).toBe(204);
+      const after = (await get(`/me/conversations/${room}`, bo)).json();
+      expect(after.messages.find((m: { id: string }) => m.id === subject).reactions).toEqual([]);
+    });
+
+    it('refuses a reaction outside the closed set, and from outside the conversation', async () => {
+      // An open emoji field is a small free-text box attached to somebody
+      // else's words, which is where abuse goes once the big one is moderated.
+      expect(
+        (await put(`/me/conversations/${room}/messages/${subject}/reactions/shrug`, bo)).statusCode,
+      ).toBe(400);
+      expect(
+        (await put(`/me/conversations/${room}/messages/${subject}/reactions/agree`, stranger))
+          .statusCode,
+      ).toBe(404);
+    });
+
+    it('pins a message and sends it back whatever page is being read', async () => {
+      expect(
+        (await post(`/me/conversations/${room}/messages/${subject}/pin`, null, bo)).statusCode,
+      ).toBe(204);
+
+      const page = (await get(`/me/conversations/${room}`, ada)).json();
+      expect(page.pinned.map((m: { id: string }) => m.id)).toEqual([subject]);
+      expect(page.messages.find((m: { id: string }) => m.id === subject).pinned).toBe(true);
+
+      // Read a page that does not contain it: a pin nobody can find once the
+      // conversation has scrolled past it is not a pin.
+      const earlier = (await get(`/me/conversations/${room}?before=2`, ada)).json();
+      expect(earlier.messages.some((m: { id: string }) => m.id === subject)).toBe(false);
+      expect(earlier.pinned.map((m: { id: string }) => m.id)).toEqual([subject]);
+
+      expect((await del(`/me/conversations/${room}/messages/${subject}/pin`, bo)).statusCode).toBe(
+        204,
+      );
+      expect((await get(`/me/conversations/${room}`, ada)).json().pinned).toEqual([]);
+    });
+
+    it('leaves no applauded outline when a message is removed', async () => {
+      const sent = await post(
+        `/me/conversations/${room}/messages`,
+        { body: 'regrettable, and popular' },
+        ada,
+      );
+      const id = sent.json().message.id;
+      await put(`/me/conversations/${room}/messages/${id}/reactions/laugh`, bo);
+      await post(`/me/conversations/${room}/messages/${id}/pin`, null, bo);
+
+      expect((await del(`/me/conversations/${room}/messages/${id}`, ada)).statusCode).toBe(204);
+
+      const page = (await get(`/me/conversations/${room}`, bo)).json();
+      const tombstone = page.messages.find((m: { id: string }) => m.id === id);
+      expect(tombstone).toMatchObject({ body: null, reactions: [], pinned: false });
+      expect(page.pinned).toEqual([]);
+
+      // And nothing can be added to it afterwards.
+      expect(
+        (await put(`/me/conversations/${room}/messages/${id}/reactions/laugh`, bo)).statusCode,
+      ).toBe(409);
     });
   });
 

@@ -250,6 +250,7 @@ export {
   MAX_MESSAGE_LENGTH,
   MESSAGE_PAGE_SIZE,
   MIN_SEARCH_TERM,
+  REACTIONS,
   SEARCH_RESULT_LIMIT,
 } from './conversations';
 export type {
@@ -262,6 +263,8 @@ export type {
   ConversationsResponse,
   Message,
   MessageRemoval,
+  Reaction,
+  ReactionCount,
   SendMessageRequest,
   SendMessageResponse,
   SharedCard,
