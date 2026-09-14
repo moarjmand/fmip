@@ -142,6 +142,23 @@ export function MessageRow({
         </>
       )}
 
+      {message.removed === null && message.mentions.length > 0 && (
+        // Said beside the message rather than woven into it. Highlighting
+        // `@name` inside the body would mean parsing text the API has already
+        // parsed once, and the two could disagree about who was named --
+        // especially after somebody renames themselves, which is exactly what
+        // storing the mention was meant to survive (T-225).
+        <p className="text-xs opacity-60" data-testid="message-mentions">
+          Mentioned {message.mentions.map((username) => `@${username}`).join(', ')}
+        </p>
+      )}
+
+      {message.pinned && (
+        <p className="text-xs opacity-60" data-testid="message-pinned">
+          Pinned in this conversation
+        </p>
+      )}
+
       {isMine && message.removed === null && (
         <span className="text-xs opacity-50" data-testid="message-mine">
           Yours

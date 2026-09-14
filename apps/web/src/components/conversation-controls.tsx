@@ -1,13 +1,16 @@
 'use client';
 
 import { useActionState } from 'react';
+import { REACTIONS, type Reaction, type ReactionCount } from '@fmip/contracts';
 import type { ActionState } from '@/lib/auth-actions';
 import {
   leaveConversationAction,
   openConversationAction,
+  reactAction,
   removeMessageAction,
   sendMessageAction,
   setMutedAction,
+  setPinnedAction,
 } from '@/lib/conversation-actions';
 
 type BoundAction = (state: ActionState, formData: FormData) => Promise<ActionState>;
@@ -195,6 +198,164 @@ export function StartConversation({ locale, username }: { locale: string; userna
       {/* The refusal is the API's, including the one that says you can message
           members you are friends with. */}
       <Result state={state} testId="start-conversation-result" />
+    </form>
+  );
+}
+
+/** What each reaction is called where a reader can see it. */
+const REACTION_LABELS: Record<Reaction, string> = {
+  agree: 'Agree',
+  disagree: 'Disagree',
+  laugh: 'Ha',
+  surprise: 'Oh',
+  sad: 'Sad',
+  celebrate: 'Yes',
+};
+
+function ReactionButton({
+  locale,
+  conversationId,
+  messageId,
+  reaction,
+  count,
+  mine,
+}: {
+  locale: string;
+  conversationId: string;
+  messageId: string;
+  reaction: Reaction;
+  count: number;
+  mine: boolean;
+}) {
+  const action = reactAction.bind(
+    null,
+    locale,
+    conversationId,
+    messageId,
+    reaction,
+    mine,
+  ) as unknown as BoundAction;
+  const [state, formAction, pending] = useActionState(action, null);
+
+  return (
+    <form action={formAction} className="inline">
+      <button
+        type="submit"
+        disabled={pending}
+        aria-pressed={mine}
+        className={`rounded-full border px-2 py-0.5 text-xs disabled:opacity-50 ${
+          mine ? 'border-current' : 'border-current/30 opacity-70'
+        }`}
+        data-testid={`reaction-${reaction}`}
+      >
+        {REACTION_LABELS[reaction]}
+        {count > 0 ? ` ${count}` : ''}
+      </button>
+      {state !== null && !state.ok && (
+        <span role="status" className="text-xs text-red-800">
+          {' '}
+          {state.message}
+        </span>
+      )}
+    </form>
+  );
+}
+
+/**
+ * The reactions on one message (blueprint 8.3, T-226).
+ *
+ * Every reaction is its own form over a server action, so **reacting works with
+ * no JavaScript**. The ones nobody has used yet are behind a `<details>`, which
+ * is the one disclosure widget the browser gives for free — a popover would
+ * have needed a script and would have made this the first control on the
+ * surface that did.
+ */
+export function Reactions({
+  locale,
+  conversationId,
+  messageId,
+  reactions,
+}: {
+  locale: string;
+  conversationId: string;
+  messageId: string;
+  reactions: ReactionCount[];
+}) {
+  const used = new Map(reactions.map((entry) => [entry.reaction, entry]));
+  const unused = REACTIONS.filter((reaction) => !used.has(reaction));
+
+  return (
+    <div className="flex flex-wrap items-center gap-2" data-testid="reactions">
+      {reactions.map((entry) => (
+        <ReactionButton
+          key={entry.reaction}
+          locale={locale}
+          conversationId={conversationId}
+          messageId={messageId}
+          reaction={entry.reaction}
+          count={entry.count}
+          mine={entry.mine}
+        />
+      ))}
+      {unused.length > 0 && (
+        <details className="inline">
+          <summary className="cursor-pointer text-xs opacity-60">React</summary>
+          <div className="mt-1 flex flex-wrap gap-2">
+            {unused.map((reaction) => (
+              <ReactionButton
+                key={reaction}
+                locale={locale}
+                conversationId={conversationId}
+                messageId={messageId}
+                reaction={reaction}
+                count={0}
+                mine={false}
+              />
+            ))}
+          </div>
+        </details>
+      )}
+    </div>
+  );
+}
+
+/** Pin a message where everybody in the conversation can find it again. */
+export function PinMessage({
+  locale,
+  conversationId,
+  messageId,
+  pinned,
+}: {
+  locale: string;
+  conversationId: string;
+  messageId: string;
+  pinned: boolean;
+}) {
+  const action = setPinnedAction.bind(
+    null,
+    locale,
+    conversationId,
+    messageId,
+    !pinned,
+  ) as unknown as BoundAction;
+  const [state, formAction, pending] = useActionState(action, null);
+
+  return (
+    <form action={formAction} className="inline">
+      <button
+        type="submit"
+        disabled={pending}
+        className="text-xs underline opacity-60 disabled:opacity-30"
+        data-testid="message-pin"
+      >
+        {pinned ? 'Unpin' : 'Pin'}
+      </button>
+      {state !== null && !state.ok && (
+        <span role="status" className="text-xs text-red-800">
+          {' '}
+          {state.message}
+        </span>
+      )}
     </form>
   );
 }

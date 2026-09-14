@@ -2,7 +2,13 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { ConversationHeader, MessageRow } from '@/components/conversation';
-import { Composer, ConversationExits, RemoveMessage } from '@/components/conversation-controls';
+import {
+  Composer,
+  ConversationExits,
+  PinMessage,
+  Reactions,
+  RemoveMessage,
+} from '@/components/conversation-controls';
 import { fetchConversation, fetchConversationSearch, fetchMe } from '@/lib/api';
 import { markReadAction } from '@/lib/conversation-actions';
 import { pageMetadata } from '@/lib/seo';
@@ -119,6 +125,25 @@ export default async function ConversationPage({
         </p>
       )}
 
+      {page.pinned.length > 0 && (
+        // Always here, whatever page is being read: a pin nobody can find once
+        // the conversation has scrolled past it is not a pin (T-225).
+        <section className="flex flex-col gap-2" data-testid="conversation-pinned">
+          <h2 className="text-lg font-semibold">Pinned</h2>
+          <ul className="flex flex-col gap-3">
+            {page.pinned.map((message) => (
+              <MessageRow
+                key={message.id}
+                message={message}
+                locale={locale}
+                timeZone={me.timezone}
+                isMine={message.author === me.username}
+              />
+            ))}
+          </ul>
+        </section>
+      )}
+
       {term === '' && page.has_earlier && (
         <Link
           href={`/${locale}/messages/${id}?before=${page.messages[0]?.seq ?? 1}`}
@@ -143,8 +168,24 @@ export default async function ConversationPage({
                 timeZone={me.timezone}
                 isMine={message.author === me.username}
               />
-              {message.author === me.username && message.removed === null && (
-                <RemoveMessage locale={locale} conversationId={id} messageId={message.id} />
+              {message.removed === null && (
+                <div className="flex flex-wrap items-center gap-3">
+                  <Reactions
+                    locale={locale}
+                    conversationId={id}
+                    messageId={message.id}
+                    reactions={message.reactions}
+                  />
+                  <PinMessage
+                    locale={locale}
+                    conversationId={id}
+                    messageId={message.id}
+                    pinned={message.pinned}
+                  />
+                  {message.author === me.username && (
+                    <RemoveMessage locale={locale} conversationId={id} messageId={message.id} />
+                  )}
+                </div>
               )}
             </div>
           ))}
