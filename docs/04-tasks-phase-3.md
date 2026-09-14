@@ -1095,6 +1095,20 @@ a member who has left even though they can still read and search the
 conversation (T-223) — the same second question the delivery check has to ask,
 asked here rather than trusted from the caller.
 
+**It caught something T-231 had got wrong.** The race test failed in CI while
+passing locally, and the reason was in the log above the failure: *"REDIS_URL is
+not set; chat is not delivered live"*. Turborepo passes tasks only the
+environment variables named in `globalEnv`, and `REDIS_URL` was not one of them.
+So `pnpm test` — which is what CI runs — had been hiding it: **T-231's
+two-instance fan-out test was skipped in CI, not passed**, and the Redis service
+added for it was never used. Running `pnpm --filter @fmip/api test` locally
+bypasses Turbo, which is exactly why it looked green. `REDIS_URL` is in
+`globalEnv` now, and the fan-out suite runs where it was meant to.
+
+The lesson is not about Redis. A suite that skips reports success, and the only
+thing between "this is covered" and "this is skipped" is a line in a summary
+nobody reads twice.
+
 6 tests; 19 in the gateway suite, 65 across the four conversation suites.
 
 **E23 has one task left.** T-232 (live match cards) and T-233 (observability)
