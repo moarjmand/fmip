@@ -942,7 +942,7 @@ without one; this epic makes it immediate.
 |---|---|---|---|
 | `[x]` T-230 | The gateway: session-cookie auth, subscribe to conversations you are in | T-221 | A socket can only ever carry conversations its member participates in |
 | `[x]` T-231 | Fan-out across instances | T-230 | A message written on one instance reaches a socket held by another |
-| `[ ]` T-235 | Gap recovery by sequence | T-231 | A reconnecting client asks for everything after N and misses nothing |
+| `[x]` T-235 | Gap recovery by sequence | T-231 | A reconnecting client asks for everything after N and misses nothing |
 | `[ ]` T-232 | Live match cards: the card updates, the conversation does not move | T-222, T-032 | A score change updates a shared card without a new message |
 | `[ ]` T-233 | Observability: connections, delivery latency, `GET /health/chat` | T-231 | A silent socket layer is visible from the admin area, not from a complaint |
 | `[ ]` T-234 | The socket at one origin: the edge route, and the page that connects | T-231 | The browser opens the socket on the web origin, and the page falls back to the requests that already work |
@@ -1066,6 +1066,53 @@ Postgres one: without it the only test that can catch this is skipped.
 delivery of anything but a new message: a removal, a reaction and a pin still
 need a re-read, because none of them has a sequence number and gap recovery is
 what makes a live update safe to rely on.
+
+**T-235 verified on 2026-09-14.** `subscribe` carries an optional `after_seq`
+and the answer is a `catch_up` frame: at most one page of messages, oldest
+first, with `more` when the gap was longer than that.
+
+**The order is the guarantee.** The subscription is registered **before** the
+history is read, never after. Live first and history second means a message
+written in the moment between them arrives *twice*; history first and live
+second means it arrives *never*. A duplicate the client drops by sequence is
+cheap; a missing message is invisible, which is the failure the acceptance
+criterion is written against. There is a test for exactly that window: a message
+is posted at the same instant as the `subscribe` frame, and the assertion is on
+the **union** of what came back — not on which channel carried it, because
+either is correct.
+
+**An empty answer is still an answer.** A client that missed nothing gets
+`catch_up` with no messages, because no frame and an empty frame look identical
+to something that is waiting, and only one of them means "you are up to date".
+
+**Bounded at one page, and it says so.** A client whose gap is longer than fifty
+messages has been away long enough that reading the conversation is the right
+answer, not replaying it down a socket. `more: true` is how it learns to go and
+read instead of waiting for the rest.
+
+**Leaving ends the claim on what comes next, not the history.** `since()` refuses
+a member who has left even though they can still read and search the
+conversation (T-223) — the same second question the delivery check has to ask,
+asked here rather than trusted from the caller.
+
+**It caught something T-231 had got wrong.** The race test failed in CI while
+passing locally, and the reason was in the log above the failure: *"REDIS_URL is
+not set; chat is not delivered live"*. Turborepo passes tasks only the
+environment variables named in `globalEnv`, and `REDIS_URL` was not one of them.
+So `pnpm test` — which is what CI runs — had been hiding it: **T-231's
+two-instance fan-out test was skipped in CI, not passed**, and the Redis service
+added for it was never used. Running `pnpm --filter @fmip/api test` locally
+bypasses Turbo, which is exactly why it looked green. `REDIS_URL` is in
+`globalEnv` now, and the fan-out suite runs where it was meant to.
+
+The lesson is not about Redis. A suite that skips reports success, and the only
+thing between "this is covered" and "this is skipped" is a line in a summary
+nobody reads twice.
+
+6 tests; 19 in the gateway suite, 65 across the four conversation suites.
+
+**E23 has one task left.** T-232 (live match cards) and T-233 (observability)
+still stand, and T-234 is the browser's end of it.
 
 ---
 

@@ -41,7 +41,19 @@ export type ChatCloseCode = (typeof CHAT_CLOSE)[keyof typeof CHAT_CLOSE];
 
 /** What the client asks for. */
 export type ChatClientFrame =
-  { type: 'subscribe'; conversation_id: string } | { type: 'unsubscribe'; conversation_id: string };
+  | {
+      type: 'subscribe';
+      conversation_id: string;
+      /**
+       * The last sequence the client already holds, if it is coming back
+       * (T-235). The server answers with everything after it.
+       *
+       * Omitted by a client opening the conversation for the first time, which
+       * is about to read a page over HTTP anyway.
+       */
+      after_seq?: number;
+    }
+  | { type: 'unsubscribe'; conversation_id: string };
 
 /**
  * Why a subscription was refused.
@@ -84,6 +96,27 @@ export type ChatServerFrame =
       latest_seq: number;
     }
   | { type: 'unsubscribed'; conversation_id: string }
+  /**
+   * What the client missed while it was away (T-235).
+   *
+   * Sent **after** the subscription is already live, never before, so the gap
+   * can only ever overlap and never open: a message written between the two
+   * would otherwise belong to neither. The client may see a sequence twice,
+   * once live and once here, and drops the duplicate by `seq` -- which is
+   * cheap, where a missing message is invisible.
+   */
+  | {
+      type: 'catch_up';
+      conversation_id: string;
+      /** Oldest first, at most `MESSAGE_PAGE_SIZE`. */
+      messages: Message[];
+      /**
+       * `true` when the gap was longer than one page. The client has been away
+       * long enough that reading the conversation is the right answer, not
+       * replaying it down a socket.
+       */
+      more: boolean;
+    }
   /**
    * A subscription the server is ending on its own: membership is not
    * permanent, and a socket opened while you were in a conversation must stop

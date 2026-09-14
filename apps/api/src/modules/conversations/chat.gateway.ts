@@ -19,6 +19,7 @@ import { Pool } from 'pg';
 import { WebSocket, WebSocketServer } from 'ws';
 import { PG_POOL } from '../../database/database.module';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
+import { ConversationsService } from './conversations.service';
 import { CHAT_BUS, type ChatBus } from './internal/chat-bus';
 import { ConversationsStore } from './internal/conversations-store';
 
@@ -85,6 +86,11 @@ interface Connection {
  * which is the acceptance criterion of this task: *a socket can only ever carry
  * conversations its member participates in*.
  *
+ * **A client that comes back asks for what it missed (T-235).** `subscribe`
+ * carries the last sequence it holds, and the answer is a `catch_up` frame sent
+ * after the subscription is already live -- so the seam between history and
+ * live delivery can overlap but never open.
+ *
  * **What arrives comes from Redis, not from this process (T-231).** A message
  * sent through any instance is published once and delivered by whichever
  * instances hold a socket for it. In-process fan-out was never an option: it
@@ -105,6 +111,7 @@ export class ChatGateway implements OnApplicationBootstrap, OnModuleDestroy {
   constructor(
     @Inject(PG_POOL) pool: Pool,
     private readonly identity: IdentityService,
+    private readonly conversations: ConversationsService,
     private readonly adapters: HttpAdapterHost,
     @Inject(CHAT_BUS) private readonly bus: ChatBus,
     @Inject(CHAT_GATEWAY_OPTIONS) private readonly options: ChatGatewayOptions,
@@ -318,7 +325,7 @@ export class ChatGateway implements OnApplicationBootstrap, OnModuleDestroy {
       return;
     }
 
-    const frame = parsed as { type?: unknown; conversation_id?: unknown };
+    const frame = parsed as { type?: unknown; conversation_id?: unknown; after_seq?: unknown };
     const conversationId =
       typeof frame.conversation_id === 'string' ? frame.conversation_id.toLowerCase() : '';
 
@@ -336,6 +343,15 @@ export class ChatGateway implements OnApplicationBootstrap, OnModuleDestroy {
       this.send(connection, { type: 'refused', conversation_id: conversationId, reason });
     };
     if (!UUID.test(conversationId)) {
+      refused('invalid');
+      return;
+    }
+
+    const after = frame.after_seq;
+    if (
+      after !== undefined &&
+      (typeof after !== 'number' || !Number.isInteger(after) || after < 0)
+    ) {
       refused('invalid');
       return;
     }
@@ -360,11 +376,26 @@ export class ChatGateway implements OnApplicationBootstrap, OnModuleDestroy {
       return;
     }
 
+    // The subscription goes in **before** the catch-up is read, and that order
+    // is the guarantee (T-235). Live first, history second, means a message
+    // written in between arrives twice; history first, live second, would mean
+    // it arrives never -- and a duplicate the client drops by `seq` is cheap
+    // where a missing message is invisible.
     connection.subscriptions.add(conversationId);
     this.send(connection, {
       type: 'subscribed',
       conversation_id: conversationId,
       latest_seq: Number(row.latest_seq),
+    });
+
+    if (after === undefined) return;
+    const missed = await this.conversations.since(connection.userId, conversationId, after);
+    if (missed === null) return;
+    this.send(connection, {
+      type: 'catch_up',
+      conversation_id: conversationId,
+      messages: missed.messages,
+      more: missed.more,
     });
   }
 

@@ -1,6 +1,12 @@
 import { Test } from '@nestjs/testing';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
-import { CHAT_CLOSE, CHAT_SOCKET_PATH, type ChatServerFrame, type Message } from '@fmip/contracts';
+import {
+  CHAT_CLOSE,
+  CHAT_SOCKET_PATH,
+  type ChatServerFrame,
+  MESSAGE_PAGE_SIZE,
+  type Message,
+} from '@fmip/contracts';
 import { Pool } from 'pg';
 import { WebSocket } from 'ws';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
@@ -378,6 +384,110 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('chat gateway
     await client.next('ready');
     expect((await post('/auth/logout', null, stranger)).statusCode).toBe(204);
     expect(await client.closed()).toBe(CHAT_CLOSE.UNAUTHENTICATED);
+  });
+
+  describe('coming back after a gap', () => {
+    /** What the conversation had reached, from a socket that just subscribed. */
+    const baseline = async (): Promise<number> => {
+      const probe = await connect(ada);
+      probe.send({ type: 'subscribe', conversation_id: room });
+      return ((await probe.next('subscribed')) as { latest_seq: number }).latest_seq;
+    };
+
+    it('answers with everything written while the client was away', async () => {
+      const before = await baseline();
+      for (const body of ['one', 'two', 'three']) {
+        expect((await post(`/me/conversations/${room}/messages`, { body }, ada)).statusCode).toBe(
+          201,
+        );
+      }
+
+      const returning = await connect(ada);
+      returning.send({ type: 'subscribe', conversation_id: room, after_seq: before });
+      await returning.next('subscribed');
+      const frame = (await returning.next('catch_up')) as {
+        conversation_id: string;
+        messages: { seq: number; body: string }[];
+        more: boolean;
+      };
+      expect(frame.conversation_id).toBe(room);
+      expect(frame.messages.map((m) => m.body)).toEqual(['one', 'two', 'three']);
+      expect(frame.messages.map((m) => m.seq)).toEqual([before + 1, before + 2, before + 3]);
+      expect(frame.more).toBe(false);
+    });
+
+    it('says nothing was missed rather than staying silent about it', async () => {
+      // An empty answer and no answer look the same to a client that is
+      // waiting, and only one of them means "you are up to date".
+      const before = await baseline();
+      const returning = await connect(ada);
+      returning.send({ type: 'subscribe', conversation_id: room, after_seq: before });
+      await returning.next('subscribed');
+      const frame = (await returning.next('catch_up')) as { messages: unknown[]; more: boolean };
+      expect(frame.messages).toEqual([]);
+      expect(frame.more).toBe(false);
+    });
+
+    it('does not catch up a client that never claimed to have been here', async () => {
+      const client = await connect(ada);
+      client.send({ type: 'subscribe', conversation_id: room });
+      await client.next('subscribed');
+      await expect(client.next('catch_up', 300)).rejects.toThrow(/no catch_up frame/);
+    });
+
+    it('loses nothing written in the moment between subscribing and catching up', async () => {
+      // The window the ordering exists to close. The subscription is registered
+      // first and the history read second, so a message written in between is
+      // delivered twice rather than never -- and this asserts the union, not
+      // which channel carried what, because either is correct.
+      const before = await baseline();
+      for (const body of ['first', 'second']) {
+        expect((await post(`/me/conversations/${room}/messages`, { body }, ada)).statusCode).toBe(
+          201,
+        );
+      }
+
+      const returning = await connect(ada);
+      const racing = post(`/me/conversations/${room}/messages`, { body: 'third' }, ada);
+      returning.send({ type: 'subscribe', conversation_id: room, after_seq: before });
+      expect((await racing).statusCode).toBe(201);
+      await returning.next('subscribed');
+
+      const seqs = new Set<number>();
+      const caught = (await returning.next('catch_up')) as { messages: { seq: number }[] };
+      for (const message of caught.messages) seqs.add(message.seq);
+      while (!seqs.has(before + 3)) {
+        const live = (await returning.next('event')) as { event: { message: { seq: number } } };
+        seqs.add(live.event.message.seq);
+      }
+      expect([...seqs].sort((a, b) => a - b)).toEqual([before + 1, before + 2, before + 3]);
+    });
+
+    it('refuses a sequence that is not one', async () => {
+      const client = await connect(ada);
+      client.send({ type: 'subscribe', conversation_id: room, after_seq: -1 });
+      expect(await client.next('refused')).toMatchObject({ reason: 'invalid' });
+    });
+
+    it('stops at one page and says there is more, rather than replaying a history', async () => {
+      const before = await baseline();
+      await pool.query(
+        `INSERT INTO message (conversation_id, author_id, body)
+         SELECT $1::uuid, $2::uuid, 'bulk ' || g FROM generate_series(1, 55) g`,
+        [room, ids.get(ada) ?? ''],
+      );
+
+      const returning = await connect(ada);
+      returning.send({ type: 'subscribe', conversation_id: room, after_seq: before });
+      await returning.next('subscribed');
+      const frame = (await returning.next('catch_up')) as {
+        messages: { seq: number }[];
+        more: boolean;
+      };
+      expect(frame.messages).toHaveLength(MESSAGE_PAGE_SIZE);
+      expect(frame.messages[0]?.seq).toBe(before + 1);
+      expect(frame.more).toBe(true);
+    });
   });
 
   it('answers an upgrade on a path it does not serve rather than leaving it hanging', async () => {
