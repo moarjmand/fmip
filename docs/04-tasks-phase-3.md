@@ -31,6 +31,11 @@ are blocked on instead is **policy**: what the platform rules say, what earns a
 sanction, and whom the founder is willing to approve. Those are written by the
 maintainer, and the tasks that need them say so.
 
+**Settled on 2026-09-15 (D-059).** The thresholds, the conduct ladder and how a
+grant ends are in `docs/13-policy.md`, which also carries drafts of the two
+member-facing texts. What is still the maintainer's is the approvals themselves,
+and those wait on a deployment with real members.
+
 **Exit criteria.** Blueprint 19's social list, checked on the public deployment:
 friend requests, blocking, group roles, invitations and membership changes work
 correctly; direct, group and public messages arrive in real time and retain
@@ -349,7 +354,9 @@ sanction whose appeal lives in somebody's email has no audit history.
 **What the maintainer writes, not the agent.** The platform rules themselves —
 what conduct earns which sanction, and the text a member accepts at registration
 — are editorial and legal judgements (`CLAUDE.md` §7). T-210 builds the machinery
-with the categories as configuration; the words are the maintainer's.
+with the categories as configuration; the words are the maintainer's. Drafted
+for approval on 2026-09-15 in `docs/13-policy.md` (D-059); drafting is not
+approving, and the file says so.
 
 **T-210 verified on 2026-09-13.** `..._moderation.sql` is `report`,
 `moderation_decision`, `sanction` and `appeal_note`;
@@ -1567,6 +1574,14 @@ reputation system visible where it matters.
 **What the maintainer supplies:** the thresholds, the contributor rules text, and
 the approvals themselves. The agent builds the gate; it does not decide who gets
 through it.
+
+**The first two arrived on 2026-09-15 (D-059).** `docs/13-policy.md` fixes the
+threshold at a rating of 70 over at least 50 settled predictions -- confirming
+`privilege-eligibility@1.0.0` rather than replacing it -- and adds the fourth
+requirement that file's own comment promised: no active sanction, and no
+`sanctioned` decision in the last ninety days. The contributor rules are drafted
+there and await approval. The approvals themselves cannot begin before there are
+members with fifty settled predictions, which is after T-074.
 
 ---
 
