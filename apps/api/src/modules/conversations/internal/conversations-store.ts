@@ -302,6 +302,34 @@ export class ConversationsStore {
     return { messages: rows.slice(0, limit), more: rows.length > limit };
   }
 
+  /**
+   * Messages in these conversations that share this card and still stand.
+   *
+   * Scoped to a caller-supplied set of conversations rather than the whole
+   * table, because the caller is the gateway and the only conversations worth
+   * asking about are the ones a socket is watching right now.
+   */
+  async messagesSharing(
+    conversationIds: string[],
+    cardKind: string,
+    cardId: string,
+    limit: number,
+  ): Promise<{ conversation_id: string; id: string }[]> {
+    if (conversationIds.length === 0) return [];
+    const { rows } = await this.pool.query<{ conversation_id: string; id: string }>(
+      `SELECT m.conversation_id, m.id
+         FROM message m
+        WHERE m.conversation_id = ANY($1::uuid[])
+          AND m.card_kind = $2
+          AND m.card_id = $3
+          AND m.removed_at IS NULL
+        ORDER BY m.seq DESC
+        LIMIT $4`,
+      [conversationIds, cardKind, cardId, limit],
+    );
+    return rows;
+  }
+
   async latest(conversationIds: string[]): Promise<Map<string, MessageRow>> {
     if (conversationIds.length === 0) return new Map();
     const { rows } = await this.pool.query<MessageRow & { conversation_id: string }>(

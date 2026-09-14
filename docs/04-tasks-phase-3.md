@@ -943,7 +943,7 @@ without one; this epic makes it immediate.
 | `[x]` T-230 | The gateway: session-cookie auth, subscribe to conversations you are in | T-221 | A socket can only ever carry conversations its member participates in |
 | `[x]` T-231 | Fan-out across instances | T-230 | A message written on one instance reaches a socket held by another |
 | `[x]` T-235 | Gap recovery by sequence | T-231 | A reconnecting client asks for everything after N and misses nothing |
-| `[ ]` T-232 | Live match cards: the card updates, the conversation does not move | T-222, T-032 | A score change updates a shared card without a new message |
+| `[x]` T-232 | Live match cards: the card updates, the conversation does not move | T-222, T-032 | A score change updates a shared card without a new message |
 | `[x]` T-233 | Observability: connections, delivery latency, `GET /health/chat` | T-231 | A silent socket layer is visible from the admin area, not from a complaint |
 | `[ ]` T-236 | One health surface in the admin area, for all three endpoints | T-233, T-071 | An operator sees the live path, ingestion and chat without a terminal |
 | `[ ]` T-234 | The socket at one origin: the edge route, and the page that connects | T-231 | The browser opens the socket on the web origin, and the page falls back to the requests that already work |
@@ -1112,8 +1112,7 @@ nobody reads twice.
 
 6 tests; 19 in the gateway suite, 65 across the four conversation suites.
 
-**T-232 (live match cards) and T-233 (observability) still stand, and T-234 is
-the browser's end of it.**
+**T-234 is the browser's end of this epic, and T-236 the operator's.**
 
 **T-233 verified on 2026-09-14.** `GET /health/chat` answers with this
 instance's socket layer in numbers: bus state, open connections, held
@@ -1155,6 +1154,46 @@ only version worth building.
 6 tests; 25 in the gateway suite, 71 across the four conversation suites. One of
 them measures a real cross-instance delivery end to end: publish on alpha,
 deliver on beta, read the number from beta's `/health/chat`.
+
+**T-232 verified on 2026-09-14.** When a shared fixture moves, the card is sent
+again as a `card` event naming the message it hangs on, so a client replaces it
+in place. T-222 had already made this true of a *read* — the card is resolved
+every time the page is built; this is the other half, for a reader who is
+already looking.
+
+**The conversation does not move, and the test says so two ways.** No message is
+written (the row count before and after is the same), and nothing else comes
+down the socket. A chat that scrolled because a goal was scored would be
+reporting the goal as though somebody had said it.
+
+**This one does not go through Redis, and that is the interesting part.** A
+fixture change is already announced to *every* instance by Postgres (T-032,
+D-034), so each one refreshes its own sockets. Publishing it on the chat bus as
+well would deliver every card update once per instance. A message is the
+opposite case — written on one instance, needing to reach the others — which is
+why the two live paths in this epic are deliberately different.
+
+**A burst collapses into one refresh.** A goal is three writes — score, status,
+minute — inside a few milliseconds, and the reader wants one updated card. The
+debounce is per fixture rather than global, so two matches kicking off together
+do not wait for each other.
+
+**A change nobody is watching costs one `Set` walk and no query.** The gateway
+asks only about conversations some socket on this instance is subscribed to,
+which is also why this needs no index nobody has.
+
+**One sentence taken from another boundary, through a port.** The gateway
+depends on `FIXTURE_CHANGES` — "a fixture moved" — and one line in
+`conversations.module.ts` binds it to the fixtures boundary's feed. The same
+shape as `FRIENDSHIP_ORACLE` in the profile module, and the reason the rest of
+this module still knows nothing about fixtures.
+
+**A tombstone has no card to refresh**, and a card that stopped resolving pushes
+nothing rather than pushing `gone`: the card a reader already holds is what it
+was, and inventing an ending for it is this surface telling a story.
+
+5 tests, in a suite of their own because they need a fixture of their own; 76
+across the five conversation suites.
 
 ---
 

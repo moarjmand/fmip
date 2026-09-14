@@ -12,7 +12,7 @@
  * frame per message.
  */
 
-import type { Message } from './conversations';
+import type { Message, SharedCard } from './conversations';
 
 /** The path the gateway answers on, under the same prefix as the HTTP surface. */
 export const CHAT_SOCKET_PATH = '/me/conversations/socket';
@@ -142,4 +142,15 @@ export type ChatServerFrame =
  * so: a socket that shipped a leaner shape would become a second contract for
  * the same thing, and the page would have to render two of them.
  */
-export type ChatEvent = { kind: 'message'; message: Message };
+export type ChatEvent =
+  | { kind: 'message'; message: Message }
+  /**
+   * A shared card whose entity moved underneath it (T-232) — a score changed,
+   * a match went live, a prediction settled.
+   *
+   * **The conversation does not move.** This names the message the card hangs
+   * on, so a client replaces that card in place rather than appending anything:
+   * nobody said a new thing, and a chat that scrolls because a goal was scored
+   * would be reporting the goal as if somebody had.
+   */
+  | { kind: 'card'; message_id: string; card: SharedCard };
