@@ -940,10 +940,11 @@ without one; this epic makes it immediate.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-230 | The gateway: session-cookie auth, subscribe to conversations you are in | T-221 | A socket can only ever carry conversations its member participates in |
+| `[x]` T-230 | The gateway: session-cookie auth, subscribe to conversations you are in | T-221 | A socket can only ever carry conversations its member participates in |
 | `[ ]` T-231 | Fan-out across instances, and gap recovery by sequence | T-230 | A reconnecting client asks for everything after N and misses nothing |
 | `[ ]` T-232 | Live match cards: the card updates, the conversation does not move | T-222, T-032 | A score change updates a shared card without a new message |
 | `[ ]` T-233 | Observability: connections, delivery latency, `GET /health/chat` | T-231 | A silent socket layer is visible from the admin area, not from a complaint |
+| `[ ]` T-234 | The socket at one origin: the edge route, and the page that connects | T-231 | The browser opens the socket on the web origin, and the page falls back to the requests that already work |
 
 **Authorisation happens at subscribe time and again at send time.** A socket is a
 long-lived connection and membership is not: a member removed from a group
@@ -960,6 +961,57 @@ the precedent for keeping the transport separate from the data.
 Koyeb preview (`docs/11-koyeb.md`, D-051) sleeps its instance after an hour
 without traffic, which drops every socket. That is fine for a preview and must
 not become the reference environment for judging whether chat works.
+
+**T-230 added T-234, which the plan was missing.** D-027 routes every browser
+request through the web origin and no Next.js route handler can answer an
+`upgrade`, so *how the browser reaches the socket* is a real piece of work — an
+edge route in front of both apps — and it was not a row in this table. It is one
+now, after T-231, because connecting a browser to a transport nothing publishes
+into yet would only prove the handshake twice.
+
+**T-230 verified on 2026-09-14.** `apps/api/src/modules/conversations/chat.gateway.ts`
+answers an `upgrade` on `/me/conversations/socket`: one `ws` server with
+`noServer: true`, attached to the Node server Fastify already listens on
+(D-055). The protocol is in `packages/contracts/src/chat-socket.ts`.
+
+**The socket delivers; it never decides.** The only two frames a client may send
+are `subscribe` and `unsubscribe`. Everything a member can change stays on the
+HTTP surface of T-221, where each write already passes the database guards. A
+socket that could also write would be a second place to get PL003 to PL007 right,
+and the second place is the one that is wrong.
+
+**Authorisation happens twice, and the second time asks a different question.**
+Subscribing checks participation; so does every delivery, because a socket is
+long-lived and membership is not. Building the delivery check is where a real
+defect surfaced: `participation()` still returns a row after a member leaves —
+deliberately, so that history stays readable (T-223) — so the first version
+happily kept delivering to somebody who had left, and the test caught it. Live
+delivery and readable history are two questions, and the gateway now asks both.
+That is also why a member who has left is refused with `not_a_participant`
+rather than `not_found`: they can still read the conversation over HTTP, so
+"there is no such conversation" would be a lie they could disprove.
+
+**The `Origin` header is a security control here, not a setting.** A WebSocket
+handshake is not subject to CORS: any page on any site can open one to us and
+the browser will attach the session cookie to it. The allow-list is the whole
+defence, so the test for it runs with a **valid** session — refusing an
+unauthenticated stranger would prove nothing about cross-site hijacking.
+
+**A session that ends closes the socket.** The heartbeat that notices a dead
+connection also re-authenticates it, so logging out hangs up the delivery channel
+instead of leaving it open until the tab closes.
+
+**Nothing publishes into it yet, and that is the point.** Fan-out is T-231 and
+goes through Redis from its first commit. An in-process fan-out would work here,
+work in a one-instance preview, and then silently deliver half the messages the
+day there are two instances — so this task ships the leg a fan-out needs and
+stops, rather than shipping a working version of the wrong thing.
+
+14 tests, on a real listening server with real sessions: an upgrade is the one
+thing `app.inject` cannot stand in for. 54 across the three conversation suites.
+
+**What is not here.** The browser cannot reach it (T-234), nothing publishes into
+it (T-231), and the Koyeb preview has no edge that would route it (D-051).
 
 ---
 

@@ -269,3 +269,15 @@ export type {
   SendMessageResponse,
   SharedCard,
 } from './conversations';
+
+// The chat socket (blueprint 8.3, T-230). Delivery only: everything a member
+// can change stays on the HTTP surface above.
+export { CHAT_CLOSE, CHAT_SOCKET_PATH } from './chat-socket';
+export type {
+  ChatClientFrame,
+  ChatCloseCode,
+  ChatDropReason,
+  ChatEvent,
+  ChatRefusal,
+  ChatServerFrame,
+} from './chat-socket';
