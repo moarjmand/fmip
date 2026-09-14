@@ -277,6 +277,31 @@ export class ConversationsStore {
     return { messages: rows.slice(0, limit), more: rows.length > limit };
   }
 
+  /**
+   * Messages after a sequence, oldest first: what a returning client missed.
+   *
+   * The mirror of `page`, and deliberately a separate query rather than a
+   * direction flag on that one -- paging back and catching up want opposite
+   * orders and opposite answers to "is there more", and one function doing both
+   * would be a boolean argument that inverts the meaning of its own result.
+   */
+  async after(
+    conversationId: string,
+    seq: number,
+    limit: number,
+  ): Promise<{ messages: MessageRow[]; more: boolean }> {
+    const { rows } = await this.pool.query<MessageRow>(
+      `SELECT ${MESSAGE_COLUMNS}
+         FROM message m
+         JOIN user_account u ON u.id = m.author_id
+        WHERE m.conversation_id = $1 AND m.seq > $2::bigint
+        ORDER BY m.seq ASC
+        LIMIT $3`,
+      [conversationId, seq, limit + 1],
+    );
+    return { messages: rows.slice(0, limit), more: rows.length > limit };
+  }
+
   async latest(conversationIds: string[]): Promise<Map<string, MessageRow>> {
     if (conversationIds.length === 0) return new Map();
     const { rows } = await this.pool.query<MessageRow & { conversation_id: string }>(

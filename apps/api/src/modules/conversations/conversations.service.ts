@@ -317,6 +317,36 @@ export class ConversationsService {
   }
 
   /**
+   * Everything after a sequence, for a client that has been away (T-235).
+   *
+   * `null` when the viewer is not a participant, and **also** when they have
+   * left: leaving does not lose the history (they can still read it and search
+   * it), but it does end any claim on what is said next. That is the same
+   * question the socket asks at delivery, asked here too rather than trusted
+   * from the caller.
+   *
+   * Bounded at one page. A client whose gap is longer than that has been away
+   * long enough that reading the conversation is the right answer, and `more`
+   * says so instead of replaying an unbounded history down a socket.
+   */
+  async since(
+    viewerId: string,
+    conversationId: string,
+    afterSeq: number,
+  ): Promise<{ messages: Message[]; more: boolean } | null> {
+    const row = await this.store.participation(conversationId, viewerId);
+    if (row === null || row.left) return null;
+
+    const { messages, more } = await this.store.after(conversationId, afterSeq, MESSAGE_PAGE_SIZE);
+    if (messages.length === 0) return { messages: [], more };
+    const [cards, marks] = await Promise.all([
+      this.resolveCards(messages),
+      this.marksFor(messages, viewerId),
+    ]);
+    return { messages: messages.map((m) => message(m, cards, marks)), more };
+  }
+
+  /**
    * Search inside one conversation.
    *
    * Only a conversation the viewer is in, and it works after they have left —
