@@ -106,6 +106,17 @@ passes without testing anything. Put the setting back **before** deleting the
 cascade does not run while it is set -- the credentials, sessions and tokens
 would be left behind. The moderation specs are the worked example.
 
+Delete every table that references the accounts, not only the ones the spec
+wrote itself. `rating_snapshot` and `points_transaction` are ON DELETE
+RESTRICT, and they are written by whoever recomputes a recently settled member
+-- `POST /ratings/recompute` covers every such member, not only its own
+fixtures -- so a predictions spec's accounts can own rows no test in that file
+created. Miss one and the account delete fails, the account survives the run,
+and it fails the same way for good. Let the cleanup run whether or not the
+tests passed, and do not wrap it in one transaction: a `ROLLBACK` on the last
+statement puts back everything the earlier ones removed.
+`predictions/history.http.spec.ts` is the worked example.
+
 **`/health` is liveness, not readiness.** It reports that the process is serving
 HTTP and nothing else. It deliberately says nothing about Postgres or Redis: no
 client for either exists yet, and claiming a dependency check that never runs is
