@@ -1303,8 +1303,9 @@ a different visibility and an invitation rule, not a second feature.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-240 | Schema and contracts: `group`, `member` with roles, `invite`, `join_request` | T-220 | Visibility, roles and the one-owner rule live in the schema |
-| `[ ]` T-241 | The group API and the group conversation | T-240, T-221 | Membership changes take effect on the conversation immediately |
+| `[x]` T-240 | Schema and contracts: `group`, `member` with roles, `invite`, `join_request` | T-220 | Visibility, roles and the one-owner rule live in the schema |
+| `[ ]` T-241 | The group API: membership, roles, invitations, join requests | T-240 | Every refusal the schema makes is explained rather than returned as a 500, and a group nobody may see is 404 rather than 403 |
+| `[ ]` T-245 | The group conversation | T-241, T-221 | Membership changes take effect on the conversation immediately |
 | `[ ]` T-242 | Group surfaces: directory, page, membership controls | T-241 | A private group is not discoverable; an invite-only one is not joinable |
 | `[ ]` T-243 | The group leaderboard and prediction comparison | T-241, T-055 | The same rating rules as the global board, scoped — never a second formula |
 | `[ ]` T-244 | Match threads inside a group | T-241 | A thread is a conversation about a fixture, and says which |
@@ -1326,6 +1327,76 @@ either.
 groups whose invitations are issued under a privilege the founder grants. Making
 them their own table would duplicate every membership rule and guarantee the two
 copies drift.
+
+**T-241 was two mechanisms in one row, and is now two rows.** "The group API
+**and** the group conversation" put a whole HTTP surface and a change to the
+message guards under one acceptance criterion, and together they are well past
+the point `CLAUDE.md` 3 says to split at. T-241 keeps the API; **T-245** takes
+the sentence it was really about -- *membership changes take effect on the
+conversation immediately* -- unchanged.
+
+**T-245 already has its shape, and it is the reason the split is worth making.**
+That criterion can be met two ways. One mirrors `group_member` into
+`conversation_participant` with triggers: two records of who is in the room, kept
+in step by code that has to be right every time, and "immediate" only for as long
+as the mirror is. The other lets `group_member` *be* the membership, and leaves
+`conversation_participant` holding what it is actually for -- the read position
+and the mute -- with no authority at all. Nothing to synchronise, so nothing can
+drift. The second, which means `refuse_non_participant()` (T-220) is replaced by
+one that branches on the conversation's kind, and a participant row for a group
+is created the first time somebody reads rather than the moment they join.
+
+**T-240 verified on 2026-09-14.** `..._groups.sql` is `user_group`,
+`group_member`, `group_invite` and `group_join_request`;
+`packages/contracts/src/groups.ts` is the contract. Nothing in the API writes
+them yet -- that is T-241 -- so `groups.schema.spec.ts` writes what the service
+will write and checks the half that belongs to the database, which here *is* the
+acceptance criterion: visibility, roles and the one-owner rule live in the
+schema.
+
+**How you get in follows from the visibility (D-057).** Public: you join.
+Discoverable: you ask. Invite-only: there is nothing to ask for, and asking
+anyway is refused (`PL011`) rather than filtered out of a query. A second column
+-- a join policy crossed with a visibility -- would have been nine combinations
+of which several mean nothing. The case that is deliberately not served is a
+group readable by everyone that still approves its members; that column is the
+extension point, and it should arrive with the case that needs it.
+
+**Exactly one owner, in two halves.** *At most one* is a partial unique index.
+*At least one* is a **deferred** constraint trigger (`PL009`), and the deferral
+is the point: handing a group over is demote-then-promote, and a per-statement
+check would refuse the moment in between and make the one safe way to pass a
+group on impossible. There is a test for exactly that -- ownership moves inside
+one transaction -- beside the two that prove the last owner cannot simply leave
+or demote themselves, and one that proves a group which never gets an owner is
+refused at commit rather than existing ownerless.
+
+**A slug never changes** (`PL008`). A group link is shared into conversations
+(T-222), and a renamed slug breaks every share silently -- the failure nobody
+reports because nobody knows it happened. The name is what changes.
+
+**An invitation is a way of reaching somebody**, so it answers the same two
+questions a friend request does: a block refuses it (`PL003`) and a contact
+sanction refuses it (`PL004`). Inviting somebody already inside is refused too
+(`PL010`) -- that is not an offer, it is noise in their inbox.
+
+**A `groups` sanction stops the outward moves and nothing else.** Making a group
+and joining one are refused; reading and leaving are not. The gate points the
+same way it does everywhere else in this product: reaching into a place is a
+privilege, getting out of one never is.
+
+**The moderation lists widen here**, in the migration that builds the surface
+they cover. `sanction.scope` gains `groups`; both `subject_type` lists gain
+`group`, because a group is now a thing with a name and a description that can
+be reported.
+
+20 tests; four new SQLSTATEs (`PL008` a renamed slug, `PL009` an ownerless
+group, `PL010` already a member, `PL011` the wrong way in) and three new
+ceilings.
+
+**What is not here.** Nothing writes these tables (T-241), no group has a
+conversation yet (T-241 widens `conversation.kind`), and there is no surface
+(T-242).
 
 ---
 

@@ -272,6 +272,37 @@ export type {
   SharedCard,
 } from './conversations';
 
+// Groups (blueprint 8.2 and the exclusive groups of 10.1, T-240). Three
+// visibilities, because "found but not read" is the case a boolean would lose.
+export {
+  GROUP_ROLES,
+  GROUP_SLUG_PATTERN,
+  GROUP_STANDINGS,
+  GROUP_VISIBILITIES,
+  MAX_GROUP_DESCRIPTION,
+  MAX_GROUP_NAME,
+  MAX_JOIN_NOTE,
+  MIN_GROUP_NAME,
+} from './groups';
+export type {
+  CreateGroupRequest,
+  Group,
+  GroupInvite,
+  GroupInvitesResponse,
+  GroupJoinRequest,
+  GroupJoinRequestsResponse,
+  GroupMember,
+  GroupResponse,
+  GroupRole,
+  GroupStanding,
+  GroupSummary,
+  GroupVisibility,
+  GroupsResponse,
+  JoinGroupRequest,
+  SetGroupRoleRequest,
+  UpdateGroupRequest,
+} from './groups';
+
 // The chat socket (blueprint 8.3, T-230). Delivery only: everything a member
 // can change stays on the HTTP surface above.
 export { CHAT_CLOSE, CHAT_SOCKET_PATH } from './chat-socket';
