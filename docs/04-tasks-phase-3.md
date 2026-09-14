@@ -1304,7 +1304,7 @@ a different visibility and an invitation rule, not a second feature.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-240 | Schema and contracts: `group`, `member` with roles, `invite`, `join_request` | T-220 | Visibility, roles and the one-owner rule live in the schema |
-| `[ ]` T-241 | The group API: membership, roles, invitations, join requests | T-240 | Every refusal the schema makes is explained rather than returned as a 500, and a group nobody may see is 404 rather than 403 |
+| `[x]` T-241 | The group API: membership, roles, invitations, join requests | T-240 | Every refusal the schema makes is explained rather than returned as a 500, and a group nobody may see is 404 rather than 403 |
 | `[ ]` T-245 | The group conversation | T-241, T-221 | Membership changes take effect on the conversation immediately |
 | `[ ]` T-242 | Group surfaces: directory, page, membership controls | T-241 | A private group is not discoverable; an invite-only one is not joinable |
 | `[ ]` T-243 | The group leaderboard and prediction comparison | T-241, T-055 | The same rating rules as the global board, scoped — never a second formula |
@@ -1395,8 +1395,48 @@ group, `PL010` already a member, `PL011` the wrong way in) and three new
 ceilings.
 
 **What is not here.** Nothing writes these tables (T-241), no group has a
-conversation yet (T-241 widens `conversation.kind`), and there is no surface
-(T-242).
+conversation yet (T-245), and there is no surface (T-242).
+
+**T-241 verified on 2026-09-14.** `groups.service.ts`, `groups.controller.ts`
+and `internal/groups-store.ts` are the boundary; `groups.http.spec.ts` is it
+over real sessions and the real schema.
+
+**It decides who is asking, and nothing about who may be where.** Membership,
+roles, the one-owner rule, which visibility can be asked to join and who may be
+invited are all the schema's (T-240, D-057). The service turns a refusal the
+database made into a sentence and a status code -- it never makes one the
+database would have allowed, because the moment it does there are two answers to
+the same question and only one of them is enforced.
+
+**Two doors, not one endpoint that means two things.** `POST
+/groups/:slug/members` joins a public group; `POST /groups/:slug/requests` asks
+a discoverable one. The group's `standing` says which is available, and the
+database refuses the other. One `POST /join` behaving differently depending on a
+column would have hidden that rule inside a branch where nothing checks it.
+
+**An invite-only group is 404 on every verb, never 403** -- reading it, joining
+it, asking to join it. 403 would confirm it is there, which is the one thing
+that visibility exists to prevent. The exception is an **invitation**, which is
+itself being told the group exists: a list of invitations that cannot be opened
+would be a cruel joke, so an invitee reads it and sees `standing: 'invited'`.
+
+**A discoverable group answers 200 with no membership.** `members: null`, not
+`[]` -- an empty array would say "nobody is in it", which of a group is never
+true (rule 3). Found, not read.
+
+**Inviting needs a verified e-mail**, which T-240's schema does not enforce and
+this task adds: an invitation is reaching somebody, and it lands in a stranger's
+list. Leaving it open here would have been the same gate holding on friend
+requests and direct messages and standing open on one door.
+
+**The ceiling is served as 429 with `rate_limited`**, not as a stack trace,
+which is the second half of the acceptance criterion in one line. The fixture
+that makes groups clears its own window, because in nineteen tests a group is
+scenery; the ceiling has one test where it is the subject.
+
+19 tests; 39 across the two group suites.
+
+**What is not here.** The group conversation (T-245) and the surfaces (T-242).
 
 ---
 
