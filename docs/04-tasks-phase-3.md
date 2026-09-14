@@ -566,7 +566,7 @@ it the other way round means writing the membership rule twice.
 | `[x]` T-221 | The conversation API: open, send, page back, read state, mute, leave | T-220 | A blocked or sanctioned member cannot send; every conversation can be left |
 | `[x]` T-222 | Shared football cards: match, article, team, player, prediction | T-221 | A card is a reference resolved at read time, never a copy of a score |
 | `[x]` T-223 | Search within a conversation | T-221 | Finds a member's own messages in a conversation they are still in |
-| `[ ]` T-224 | The chat surface on the web, without realtime | T-222 | Usable and correct over plain requests, before a socket exists |
+| `[x]` T-224 | The chat surface on the web, without realtime | T-222 | Usable and correct over plain requests, before a socket exists |
 | `[ ]` T-225 | Reactions, mentions and pinned messages | T-221 | Each one is a row of its own; a mention never reaches somebody who blocked the mentioner |
 
 **Order is a sequence, not a timestamp.** Blueprint 19 asks that messages
@@ -801,6 +801,49 @@ letter matches most of a conversation, which is a result nobody wanted and a sca
 nobody needed.
 
 4 tests; 35 across the two conversation suites.
+
+**T-224 verified on 2026-09-14.** `/[locale]/messages` is the conversation list
+and `/[locale]/messages/:id` one conversation: the messages, the composer,
+search, paging back, mute and leave. `components/conversation.tsx` renders a
+message and a card; `conversation-controls.tsx` is the small client half.
+
+**The point of this task is what it does not have.** There is no socket, and
+E22 was ordered so there would not be one yet. The page is a **server
+component** and the composer is a **form over a server action**, so the whole
+surface works without JavaScript and without a connection; sending re-renders
+from the store, which is exactly what a reconnecting client will do when T-230
+adds the transport. A page that were only right while a socket was open would
+have made the socket the source of truth by accident, and `conversation.spec.ts`
+asserts both halves so that T-230 has to be a deliberate addition rather than a
+quiet replacement.
+
+**A shared card is rendered as it is now**, not as it was sent: the fixture card
+carries its `last_updated_at` (rule 4) and its score goes through `<Score>`, so a
+right-to-left paragraph cannot lay `2 – 1` out backwards — the T-153 bug, which
+would otherwise have come straight back on a brand-new surface.
+
+**The guard found a real defect before the page was ever rendered.** The card
+component's four kinds ended with `prediction` as the fall-through `return`,
+which meant a fifth kind added to the contract would have been **silently
+rendered as somebody's prediction** — a card mislabelled as a prediction product,
+on a rule-6 product. Every kind is now an explicit branch, the last statement
+says plainly that the page cannot show it yet, and the spec reads `CARD_KINDS`
+out of the contract so the next kind fails the test rather than the reader.
+
+**The exits are on the surface, on the day of the surface** (D-053): mute and
+leave are here, and blocking and reporting are one link away on the member's
+profile rather than re-implemented — one member with two block buttons that
+could disagree is worse than one.
+
+**"Read" means "opened", and the product does not claim more.** The read
+position moves when the page renders. A script watching the viewport would let
+the product claim that somebody read a particular message, which is a thing no
+page actually knows.
+
+**A removed message is a tombstone that says who removed it**, and every section
+states its own absence rather than vanishing — the T-137 lesson, applied again.
+
+9 guard tests; 143 across the web app.
 
 ---
 

@@ -30,6 +30,7 @@ export const EN = {
   'nav.predictions': 'Predictions',
   'nav.leaderboard': 'Leaderboard',
   'nav.friends': 'Friends',
+  'nav.messages': 'Messages',
   'nav.signIn': 'Sign in',
   'nav.signOut': 'Sign out',
   'nav.settings': 'Settings',

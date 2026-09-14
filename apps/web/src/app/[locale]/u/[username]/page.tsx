@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { StartConversation } from '@/components/conversation-controls';
 import { FriendControls } from '@/components/friend-controls';
 import { PredictionHistory } from '@/components/prediction-history';
 import {
@@ -127,6 +128,9 @@ export default async function ProfilePage({
 
       <div className="flex flex-wrap items-start gap-4">
         <FriendControls locale={locale} username={profile.username} status={friendStatus} />
+        {friendStatus === 'friends' && (
+          <StartConversation locale={locale} username={profile.username} />
+        )}
         {friendStatus !== null && friendStatus !== 'self' && (
           <Link
             href={`/${locale}/u/${encodeURIComponent(profile.username)}/compare`}
