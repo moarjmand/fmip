@@ -1842,3 +1842,51 @@ have to live somewhere, and a second table for them would be the same duplicatio
 one layer down. *Letting a group conversation be left like a direct one*: two
 ways out of one place that mean different things, and the one that does nothing
 reports success.
+
+---
+
+## D-059 — The Phase 3 policy is settled as configuration, and the two texts it needs are drafts until the maintainer approves them
+
+**Date:** 2026-09-15 · **Task:** T-250 (and E25, E26 behind it) · **Status:** accepted
+
+`docs/04-tasks-phase-3.md` says in three places that what Phase 3 is blocked on
+is not code but policy: what the platform rules say, what conduct earns which
+sanction, and who qualifies as a contributor. Those answers now exist.
+
+**Decision.** `docs/13-policy.md` holds them. The numbers are configuration and
+reach the code as named constants; the two member-facing texts are **drafts**
+carried in the same file and marked as drafts, because the words are editorial
+and legal judgements (`CLAUDE.md` §7) and drafting one is not approving it.
+
+**The thresholds confirm `privilege-eligibility@1.0.0` rather than replacing
+it.** A rating of 70 over at least 50 settled predictions were already the values
+in `eligibility.ts`; what is new is the fourth requirement its own comment
+promised — a clean recent conduct record — fixed at no active sanction and no
+`sanctioned` decision in ninety days.
+
+**The conduct ladder is shown to a moderator, never applied by code.** D-053 put
+the exits before the surfaces and put a person at every one of them; a table that
+sanctioned automatically would undo that, and would do it while the admin page
+reported that a human had decided. So the ladder is what the surface offers as a
+default duration, and a moderator who departs from it records why — which is
+already how every decision works.
+
+**Counting runs per reason.** A member warned for spam and later reported for
+abuse meets the abuse row at its first step. Merging the two into one ladder
+would escalate a second behaviour for the weight of an unrelated first one.
+
+**An approval does not expire.** A yearly re-review is a deadline nobody keeps,
+and a lapsed one reads as a judgement when it was only a calendar. Pause exists
+for the case a review would have caught, and is honest about being somebody's
+decision.
+
+**What this does not decide.** Who is approved. The gate says who qualifies; a
+person decides who gets through it, and cannot before there are members with
+fifty settled predictions — which is after a real deployment (T-074).
+
+**Rejected.** *Leaving the rules text to the code and shipping categories alone*:
+`report_reason` values are not rules, and a member accepting "spam, abuse,
+impersonation" as a list has accepted nothing. *An automatic sanction ladder*:
+faster, and it would make the report queue a formality. *A rating threshold with
+no floor on settled predictions*: it would be met most easily by predicting
+almost nothing, which is the failure D-037 already refused once.
