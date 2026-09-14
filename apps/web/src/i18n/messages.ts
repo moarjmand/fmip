@@ -31,6 +31,7 @@ export const EN = {
   'nav.leaderboard': 'Leaderboard',
   'nav.friends': 'Friends',
   'nav.messages': 'Messages',
+  'nav.groups': 'Groups',
   'nav.signIn': 'Sign in',
   'nav.signOut': 'Sign out',
   'nav.settings': 'Settings',

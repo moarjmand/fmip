@@ -24,6 +24,10 @@ import type {
   PowerIndexResponse,
   FollowingResponse,
   ChatHealth,
+  GroupInvitesResponse,
+  GroupJoinRequestsResponse,
+  GroupResponse,
+  GroupsResponse,
   HealthReport,
   IngestionHealth,
   LeaderboardResponse,
@@ -71,6 +75,50 @@ export function fetchAdminUsers(
 /** `GET /admin/audit` (T-070), newest first. */
 export function fetchAudit(cookie: string | undefined): Promise<ApiResult<AuditResponse>> {
   return apiRequest<AuditResponse>('/admin/audit', cookie === undefined ? {} : { cookie });
+}
+
+/** The group directory: public and discoverable only (blueprint 8.2, T-242). */
+export function fetchGroups(
+  term: string,
+  cookie: string | undefined,
+): Promise<ApiResult<GroupsResponse>> {
+  const query = term === '' ? '' : `?q=${encodeURIComponent(term)}`;
+  return apiRequest<GroupsResponse>(`/groups${query}`, cookie === undefined ? {} : { cookie });
+}
+
+/** One group. 404 covers "no such group" and "you may not know it is there". */
+export function fetchGroup(
+  slug: string,
+  cookie: string | undefined,
+): Promise<ApiResult<GroupResponse>> {
+  return apiRequest<GroupResponse>(
+    `/groups/${encodeURIComponent(slug)}`,
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+export function fetchMyGroups(cookie: string | undefined): Promise<ApiResult<GroupsResponse>> {
+  return apiRequest<GroupsResponse>('/me/groups', cookie === undefined ? {} : { cookie });
+}
+
+export function fetchGroupInvites(
+  cookie: string | undefined,
+): Promise<ApiResult<GroupInvitesResponse>> {
+  return apiRequest<GroupInvitesResponse>(
+    '/me/group-invites',
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/** The queue of people asking to join; only whoever runs the group may read it. */
+export function fetchGroupRequests(
+  slug: string,
+  cookie: string | undefined,
+): Promise<ApiResult<GroupJoinRequestsResponse>> {
+  return apiRequest<GroupJoinRequestsResponse>(
+    `/groups/${encodeURIComponent(slug)}/requests`,
+    cookie === undefined ? {} : { cookie },
+  );
 }
 
 /** `GET /health/ingestion` (T-071): the feed's recent runs; null when unreachable. */
