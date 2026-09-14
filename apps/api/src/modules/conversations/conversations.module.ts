@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Inject, Module, type OnModuleDestroy } from '@nestjs/common';
 import { IdentityModule } from '../identity/identity.module';
 import { ModerationModule } from '../moderation/moderation.module';
 import {
@@ -9,6 +9,7 @@ import {
 } from './chat.gateway';
 import { ConversationsController } from './conversations.controller';
 import { ConversationsService } from './conversations.service';
+import { CHAT_BUS, type ChatBus, chatBusFromEnv } from './internal/chat-bus';
 
 /**
  * Which origins may open a chat socket (T-230).
@@ -41,7 +42,9 @@ export function chatOriginsFromEnv(env: NodeJS.ProcessEnv = process.env): string
  * would import a second boundary to answer a question one row already answers.
  *
  * `ChatGateway` (T-230) is the same boundary over a socket, and carries
- * delivery only: every write stays on the controller above it.
+ * delivery only: every write stays on the controller above it. `CHAT_BUS`
+ * (T-231) is how one instance's write reaches another instance's socket; with
+ * no `REDIS_URL` it is the absent bus, which says so rather than pretending.
  */
 @Module({
   imports: [IdentityModule, ModerationModule],
@@ -49,6 +52,7 @@ export function chatOriginsFromEnv(env: NodeJS.ProcessEnv = process.env): string
   providers: [
     ConversationsService,
     ChatGateway,
+    { provide: CHAT_BUS, useFactory: (): ChatBus => chatBusFromEnv() },
     {
       provide: CHAT_GATEWAY_OPTIONS,
       useFactory: (): ChatGatewayOptions => ({
@@ -57,6 +61,13 @@ export function chatOriginsFromEnv(env: NodeJS.ProcessEnv = process.env): string
       }),
     },
   ],
-  exports: [ConversationsService, ChatGateway],
+  exports: [ConversationsService, ChatGateway, CHAT_BUS],
 })
-export class ConversationsModule {}
+export class ConversationsModule implements OnModuleDestroy {
+  constructor(@Inject(CHAT_BUS) private readonly bus: ChatBus) {}
+
+  /** Redis connections outlive nothing: shutting the app down closes them. */
+  async onModuleDestroy(): Promise<void> {
+    await this.bus.close();
+  }
+}

@@ -37,9 +37,22 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 12
+      # A real Redis, for the same reason as the Postgres above: the chat
+      # fan-out of T-231 is only ever wrong when there is more than one
+      # instance, and the test that has two of them is skipped without this.
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
 
     env:
       DATABASE_URL: postgresql://fmip:fmip@localhost:5432/fmip
+      REDIS_URL: redis://localhost:6379
       # The model service is started below, so apps/api's live contract test
       # runs here instead of skipping.
       MODEL_SERVICE_URL: http://127.0.0.1:8000
@@ -204,9 +217,22 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 12
+      # A real Redis, for the same reason as the Postgres above: the chat
+      # fan-out of T-231 is only ever wrong when there is more than one
+      # instance, and the test that has two of them is skipped without this.
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
 
     env:
       DATABASE_URL: postgresql://fmip:fmip@localhost:5432/fmip
+      REDIS_URL: redis://localhost:6379
       # Throwaway: the API lives exactly as long as the job.
       SESSION_SECRET: e2e-only-session-secret-0123456789abcdef
       API_PORT: '3001'
