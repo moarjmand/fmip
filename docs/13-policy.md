@@ -3,12 +3,19 @@
 **What this is.** The judgements `CLAUDE.md` §7 reserves for the maintainer, in
 one place, so the code that reads them has something to point at. Numbers here
 are configuration and appear in code as named constants; the two texts at the
-bottom are **drafts awaiting the maintainer's approval** and are marked as such.
+bottom are what a member and a contributor accept.
 
-**What this is not.** Legal advice, and not reviewed by a lawyer. The words of
-the two texts are the maintainer's to own before either is shown to a member.
+**What this is not.** Legal advice, and not reviewed by a lawyer.
 
 Settled by the maintainer on **2026-09-15**. Recorded as **D-059**.
+
+**Both texts approved by the maintainer on 2026-09-15**, as
+`platform-rules@1.0.0` and `contributor-rules@1.0.0`. They are versioned because
+acceptance is recorded against a version: a registration stores which platform
+rules were accepted, and a contributor grant stores which contributor rules were
+(blueprint 9.4). Changing either in a way that changes what is allowed means a
+new version and a new acceptance -- which is what the *Changes* clause promises,
+and the version is how that promise is kept rather than asserted.
 
 ---
 
@@ -85,10 +92,10 @@ being a decision somebody made.
 
 ---
 
-## 4. Draft — the platform rules
+## 4. The platform rules — `platform-rules@1.0.0`
 
-> **DRAFT. Not approved, not shown to anybody.** These are the words a member
-> accepts at registration (blueprint 1.6). The maintainer owns them.
+> **Approved 2026-09-15.** The words a member accepts at registration
+> (blueprint 1.6).
 
 **Joining.** You need an e-mail address you can receive mail at, a username
 nobody else has, and to be old enough to hold an account where you live. One
@@ -125,9 +132,9 @@ without your name on them.
 **Changes.** If these rules change in a way that affects what is allowed, you are
 told before the change applies, and asked to accept the new version.
 
-## 5. Draft — the contributor rules
+## 5. The contributor rules — `contributor-rules@1.0.0`
 
-> **DRAFT. Not approved.** What an approved contributor accepts before their
+> **Approved 2026-09-15.** What an approved contributor accepts before their
 > first post on a public panel (blueprint 9.4, 10.2, 10.3).
 
 **What approval is.** Permission to post where most members can only read.
@@ -158,3 +165,24 @@ The **approvals themselves**. The gate computes who qualifies; a person decides
 who gets through it, and that decision has a name on it (blueprint 9.4). That
 does not begin until there are members with fifty settled predictions, which is
 after a real deployment.
+
+---
+
+## 6. Where news comes from
+
+**Free sources only, for now** (D-061, 2026-09-15). What that permits is
+narrower than "news", and the narrowness is the decision rather than a
+limitation of it:
+
+| | |
+|---|---|
+| Taken | headline, the publisher's own summary as the feed carries it, byline, publication time, and a link to the original |
+| Not taken | the article body, paywalled content, and images re-hosted here |
+| Shown | the publisher's name, on every item, as a link to their page |
+| Withdrawn | on a publisher's request, without argument |
+
+**The capability for a licensed source is built in from the start**, at the
+maintainer's instruction. Every source carries its own rights, and a surface
+renders what the rights allow rather than what the schema happens to hold. A
+licensed wire feed later is a new adapter and a new rights row -- not a rewrite,
+and not a second article table.
