@@ -1995,7 +1995,7 @@ Blueprint 10.3, and the place rule 6 is most likely to break in this phase.
 |---|---|---|---|
 | `[x]` T-260 | Schema and contracts: draft, submission, review decision, published version | T-250 | Its own tables and its own contract; nothing shared with the founder's analysis |
 | `[x]` T-261 | The workflow: draft → submit → review → approve, request changes or reject → publish | T-260 | Every transition is audited and every published version is immutable |
-| `[ ]` T-262 | The analyst editor and the editorial review queue | T-261 | A reviewer sees the submission, the author's record, and the decision history |
+| `[x]` T-262 | The analyst editor and the editorial review queue | T-261 | A reviewer sees the submission, the author's record, and the decision history |
 | `[ ]` T-263 | Publication surfaces, and the guard extended to a fourth opinion | T-262, T-133 | A test fails if community analysis is merged with, or relabelled as, any of the three |
 
 **This is a fourth signed opinion, and the guard has to know it.** Rule 6 names
@@ -2082,6 +2082,29 @@ instruction with no context.
 34 tests: 17 against the schema and 17 over HTTP, with the audit rows read back
 and the published version's immutability checked against the table rather than
 against the absence of an endpoint.
+
+**T-262 verified on 2026-09-15.**
+
+**The decision history sits on the same page as the draft**, which is the half
+of the criterion that is easiest to lose. A request for changes shown on its own
+is an instruction with no context, and the analyst would be rewriting from
+memory.
+
+**The queue shows the author, linked.** A reviewer deciding blind is a reviewer
+guessing, and the author's record is one click away. It also says which attempt
+this is when it is not the first: the second time somebody submits the same
+thing is a different situation from the first, and a reviewer should know which
+one they are reading.
+
+**Neither surface checks a grant, a role or a kick-off.** All three live in the
+database and are worded by the API; a copy in the browser would be a third, and
+the one that goes stale first. The guard sweeps both files' code for the words
+that would mean one.
+
+**"You may not read this" and "nothing is waiting" are different sentences.** A
+reviewer who saw the second when the first was true would go home.
+
+17 tests on the two surfaces; the web suite is 255 passing.
 
 The contract-level four-way separation guard is T-263, as the epic plans it.
 
