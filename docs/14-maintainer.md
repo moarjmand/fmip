@@ -55,11 +55,16 @@ There is no post-deploy step: `start.mjs` takes the preview's own address from
 the platform, so canonical links, the sitemap, the manifest and the links in
 e-mails name an address that opens.
 
-**How to know it worked.** `/en` answers over HTTPS; `/health/chat` reports the
-bus `absent` (correct here — no Redis); forecasts read `model_unreachable`
-(correct here — `MODEL_SERVICE_URL=off`). Those two are the preview being honest
-about what it is missing, not failures. A first request after idle takes about a
+**How to know it worked.** `/en` answers over HTTPS and its second line reads
+`API: ok, up for Ns`, which means both halves of the container are alive;
+`/en/scores` says **"No fixtures on this day"**, which is an empty database being
+honest, not a broken page; and the page's canonical link names the preview's own
+address rather than `localhost`. A first request after idle takes about a
 minute: that is the free plan waking, not a fault.
+
+The chat bus and the forecast state are **not** observable from outside — the
+API's port is not published, and an empty database has no fixture to carry a
+forecast. `docs/11-preview.md` says why.
 
 ## 2. The Arabic translator (T-150)
 

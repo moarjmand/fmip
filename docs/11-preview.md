@@ -93,18 +93,37 @@ Everything else in `render.yaml` is already correct, including the address:
 so canonical links, the sitemap, the manifest and the links in e-mails name an
 address that can actually be opened. There is no post-deploy step to remember.
 
-### 3. Check three things
+### 3. Check four things
 
 | What to look at | What it should say |
 |---|---|
 | `/en` | the site, over HTTPS |
-| `/health/chat` | the bus is **`absent`** |
-| any fixture's forecast | **`model_unreachable`** |
+| the line under the heading on `/en` | `API: ok, up for Ns` — both halves of the container are alive |
+| `/en/scores` | the day's tabs, and **"No fixtures on this day"** |
+| view-source on `/en`, or `/sitemap.xml` | the preview's **own** address, not `localhost` |
 
-**The last two are the preview being correct, not broken.** There is no Redis
-and no model service here, and this product's rule is that missing data is named
-rather than hidden (rule 3). A populated-looking forecast panel would be the
-failure.
+The third is the empty database being honest rather than a page that failed:
+`INGESTION_SCHEDULE=off` and `PREVIEW_SEED=off`, so the preview holds whatever
+the database holds, which on a new Neon project is nothing. The fourth is D-064
+working — `start.mjs` took the address from the platform, with no step to
+remember.
+
+**Two things cannot be checked from outside, and it is worth knowing why.**
+
+*The chat bus.* `GET /health/chat` (T-233) is an **API** route, and this
+deployment publishes only the web app's port — the API is on `127.0.0.1:3001`
+and nothing proxies `/health`. From outside, `/health/chat` is just an unknown
+path and the locale router answers `307`. The bus state does reach the log, but
+only once something tries to publish: `AbsentChatBus` logs `chat.bus_absent` on
+its first `publish()`, not at boot. So on a preview nobody has chatted on, the
+correct expectation is **silence**, not a reading.
+
+*The forecast state.* `model_unreachable` is recorded per fixture, and an empty
+database has no fixtures. There is no page on which to see it until the preview
+has data.
+
+Neither is a fault, and neither should be written down as a step that passes
+when nobody performs it.
 
 ---
 
