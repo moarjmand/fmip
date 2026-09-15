@@ -33,6 +33,9 @@ import type {
   IngestionHealth,
   LeaderboardResponse,
   LiveHealth,
+  CommunityAnalysesResponse,
+  CommunityAnalysisWorkspace,
+  CommunitySubmission,
   MatchCentre,
   MatchPanelPage,
   NotificationSettings,
@@ -419,6 +422,43 @@ export function fetchForecasts(fixtureId: string): Promise<ApiResult<ForecastVer
 }
 
 /** `GET /fixtures/:id/founder-analysis` (T-131): the analysis and its versions. Public. */
+/**
+ * Everything published on this match (T-262). **No cookie**: a published
+ * analysis is meant to be read, so sending a session would make a public
+ * document viewer-specific for nothing.
+ */
+export function fetchCommunityAnalyses(
+  fixtureId: string,
+): Promise<ApiResult<CommunityAnalysesResponse>> {
+  return apiRequest<CommunityAnalysesResponse>(
+    `/fixtures/${encodeURIComponent(fixtureId)}/community-analyses`,
+  );
+}
+
+/** The analyst's own workspace for one match: draft, attempts, decisions, versions. */
+export function fetchMyAnalysis(
+  fixtureId: string,
+  cookie: string | undefined,
+): Promise<ApiResult<CommunityAnalysisWorkspace>> {
+  return apiRequest<CommunityAnalysisWorkspace>(
+    `/me/analyses/${encodeURIComponent(fixtureId)}`,
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/** What is waiting to be read, oldest first. Needs the editor or admin role. */
+export function fetchAnalysisQueue(
+  cookie: string | undefined,
+): Promise<
+  ApiResult<{ submissions: CommunitySubmission[]; authors: string[]; generated_at: string }>
+> {
+  return apiRequest<{
+    submissions: CommunitySubmission[];
+    authors: string[];
+    generated_at: string;
+  }>('/admin/analysis-reviews', cookie === undefined ? {} : { cookie });
+}
+
 export function fetchFounderAnalysis(
   fixtureId: string,
 ): Promise<ApiResult<FounderAnalysisResponse>> {
