@@ -35,6 +35,8 @@ import type {
   LiveHealth,
   MatchCentre,
   MatchPanelPage,
+  NotificationSettings,
+  NotificationsResponse,
   OwnProfile,
   PanelPermission,
   PlayerPage,
@@ -133,6 +135,28 @@ export function fetchFollowedMembers(
 ): Promise<ApiResult<FollowedMembersResponse>> {
   return apiRequest<FollowedMembersResponse>(
     '/me/followed-members',
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/** The viewer's inbox (T-272). Needs a session; there is no reading anybody else's. */
+export function fetchNotifications(
+  cookie: string | undefined,
+  limit?: number,
+): Promise<ApiResult<NotificationsResponse>> {
+  const query = limit === undefined ? '' : `?limit=${String(limit)}`;
+  return apiRequest<NotificationsResponse>(
+    `/me/notifications${query}`,
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/** Every kind with the value in force, plus the quiet window. */
+export function fetchNotificationSettings(
+  cookie: string | undefined,
+): Promise<ApiResult<NotificationSettings>> {
+  return apiRequest<NotificationSettings>(
+    '/me/notification-settings',
     cookie === undefined ? {} : { cookie },
   );
 }
