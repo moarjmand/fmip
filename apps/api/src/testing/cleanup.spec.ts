@@ -23,12 +23,6 @@ const NOT_YET_CONVERTED = [
   'modules/admin/admin.http.spec.ts',
   'modules/consensus/consensus.http.spec.ts',
   'modules/founder/founder.http.spec.ts',
-  'modules/predictions/lock.http.spec.ts',
-  'modules/predictions/predictions.http.spec.ts',
-  'modules/predictions/settlement.http.spec.ts',
-  'modules/reputation/career-points.http.spec.ts',
-  'modules/reputation/leaderboard.http.spec.ts',
-  'modules/reputation/reputation.http.spec.ts',
 ];
 
 function specs(dir: string): string[] {

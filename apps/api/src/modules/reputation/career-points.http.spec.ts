@@ -8,6 +8,7 @@ import { DatabaseModule } from '../../database/database.module';
 import { MODEL_CLIENT, ModelClient } from '../forecast/forecast.service';
 import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
 import { ReputationModule } from './reputation.module';
+import { withTriggersOff } from '../../testing/cleanup';
 
 // Career Points are a ledger over settlements: the acceptance criterion is
 // that they cannot by themselves unlock privileges, and that re-awarding
@@ -96,18 +97,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Career Point
   });
 
   afterAll(async () => {
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-      for (const [table, trigger] of [
-        ['points_transaction', 'points_transaction_immutable'],
-        ['rating_snapshot', 'rating_snapshot_immutable'],
-        ['settlement', 'settlement_immutable'],
-        ['settlement_run', 'settlement_run_immutable'],
-        ['prediction_version', 'prediction_version_immutable'],
-      ]) {
-        await client.query(`ALTER TABLE ${table} DISABLE TRIGGER ${trigger}`);
-      }
+    // Two lists of five tables, one to turn the guards off and one to put them
+    // back, is what a per-table setting costs. A per-session one costs a block.
+    await withTriggersOff(pool, async (client) => {
       await client.query(
         `DELETE FROM points_transaction WHERE user_id IN (SELECT id FROM user_account WHERE username LIKE $1)`,
         [`cp_${RUN}%`],
@@ -125,25 +117,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Career Point
            (SELECT id FROM user_prediction WHERE fixture_id = ANY($1::uuid[]))`,
         [fixtures],
       );
-      for (const [table, trigger] of [
-        ['prediction_version', 'prediction_version_immutable'],
-        ['settlement_run', 'settlement_run_immutable'],
-        ['settlement', 'settlement_immutable'],
-        ['rating_snapshot', 'rating_snapshot_immutable'],
-        ['points_transaction', 'points_transaction_immutable'],
-      ]) {
-        await client.query(`ALTER TABLE ${table} ENABLE TRIGGER ${trigger}`);
-      }
-      await client.query(`DELETE FROM user_account WHERE username LIKE $1`, [`cp_${RUN}%`]);
-      await client.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [fixtures]);
-      await client.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [[HOME_TEAM, AWAY_TEAM]]);
-      await client.query('COMMIT');
-    } catch (error: unknown) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    });
+    await pool.query(`DELETE FROM user_account WHERE username LIKE $1`, [`cp_${RUN}%`]);
+    await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [fixtures]);
+    await pool.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [[HOME_TEAM, AWAY_TEAM]]);
     await pool.end();
     await app.close();
   });
