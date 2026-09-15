@@ -22,7 +22,7 @@
  * that matters: a direct conversation's is `conversation_participant`, a
  * group's is the group.
  */
-export const CONVERSATION_KINDS = ['direct', 'group'] as const;
+export const CONVERSATION_KINDS = ['direct', 'group', 'group_thread'] as const;
 export type ConversationKind = (typeof CONVERSATION_KINDS)[number];
 
 export const MAX_MESSAGE_LENGTH = 4_000;
@@ -64,18 +64,27 @@ export type CardKind = (typeof CARD_KINDS)[number];
  * `gone` is the honest answer when the entity no longer resolves: the message
  * still says somebody shared something, and the product does not invent what.
  */
+/**
+ * A fixture as something else points at it: shared in a message (T-222), or the
+ * subject of a group's match thread (T-244).
+ *
+ * One shape for both, because both want the same thing and for the same reason
+ * -- the score it has *now*, and its own `last_updated_at` (rule 4). A second
+ * shape would be a second place for a stale score to be shown as a current one.
+ */
+export interface FixtureCard {
+  id: string;
+  home: string;
+  away: string;
+  score: { home: number; away: number } | null;
+  status: string;
+  kickoff_at: string;
+  /** ISO 8601 (rule 4). */
+  last_updated_at: string;
+}
+
 export type SharedCard =
-  | {
-      kind: 'fixture';
-      id: string;
-      home: string;
-      away: string;
-      score: { home: number; away: number } | null;
-      status: string;
-      kickoff_at: string;
-      /** ISO 8601 (rule 4). */
-      last_updated_at: string;
-    }
+  | ({ kind: 'fixture' } & FixtureCard)
   | { kind: 'team'; id: string; name: string; short_name: string | null }
   | { kind: 'person'; id: string; name: string }
   | {
@@ -148,6 +157,16 @@ export interface ConversationSummary {
    * people, and its membership is read from the group rather than copied here.
    */
   group: { slug: string; name: string } | null;
+  /**
+   * The fixture a group thread is about (T-244), and `null` for every other
+   * kind — "a thread is a conversation about a fixture, **and says which**".
+   *
+   * It is the fixture as it stands now rather than as it stood when the thread
+   * was opened, and it carries its own `last_updated_at`, because a thread
+   * about a match that finished an hour ago should not still say the match is
+   * about to start (rule 4).
+   */
+  fixture: FixtureCard | null;
   /** Everyone in it, the viewer included. */
   members: ConversationMember[];
   last_message: Message | null;
@@ -164,6 +183,16 @@ export interface ConversationSummary {
    * subject to; between two people it is information.
    */
   their_read_seq: number | null;
+}
+
+/** `POST /groups/:slug/threads`. Idempotent: one thread per fixture per group. */
+export interface OpenThreadRequest {
+  fixture_id: string;
+}
+
+/** `GET /groups/:slug/threads`: the group's match threads, newest match first. */
+export interface GroupThreadsResponse {
+  threads: ConversationSummary[];
 }
 
 export interface ConversationsResponse {

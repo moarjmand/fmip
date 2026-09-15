@@ -315,12 +315,31 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('conversation
       ).rejects.toMatchObject({ constraint: 'conversation_kind_check' });
     });
 
-    it('refuses a group conversation with no group, and a direct one with a group', async () => {
-      // The same shape as the pair: whichever kind it is, the other kind's
-      // columns are empty, so a row can never be half of each (T-245).
+    it('refuses any conversation carrying the columns of another kind', async () => {
+      // The same shape as the pair: whichever kind it is, every other kind's
+      // columns are empty, so a row can never be half of two things (T-245,
+      // widened for threads in T-244).
+      for (const insert of [
+        `INSERT INTO conversation (kind) VALUES ('group')`,
+        `INSERT INTO conversation (kind) VALUES ('group_thread')`,
+      ]) {
+        await expect(pool.query(insert), insert).rejects.toMatchObject({
+          constraint: 'conversation_kind_has_its_columns',
+        });
+      }
+
+      // And the other way: a well-formed direct conversation that also claims a
+      // match. The pair is real, so this row is refused for the one thing that
+      // is actually wrong with it.
+      const [a, b] = await Promise.all([member('k1'), member('k2')]);
       await expect(
-        pool.query(`INSERT INTO conversation (kind) VALUES ('group')`),
-      ).rejects.toMatchObject({ constraint: 'conversation_group_has_a_group' });
+        pool.query(
+          `INSERT INTO conversation (kind, pair_low, pair_high, fixture_id)
+           VALUES ('direct', LEAST($1::uuid, $2::uuid), GREATEST($1::uuid, $2::uuid),
+                   (SELECT id FROM fixture LIMIT 1))`,
+          [a, b],
+        ),
+      ).rejects.toMatchObject({ constraint: 'conversation_kind_has_its_columns' });
     });
   });
 });

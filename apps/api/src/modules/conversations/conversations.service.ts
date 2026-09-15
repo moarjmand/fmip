@@ -7,6 +7,7 @@ import {
   type ConversationKind,
   type ConversationPage,
   type ConversationSummary,
+  type FixtureCard,
   MAX_MESSAGE_LENGTH,
   MESSAGE_PAGE_SIZE,
   MIN_SEARCH_TERM,
@@ -27,6 +28,7 @@ import {
   CardStore,
   type ConversationRow,
   ConversationsStore,
+  type FixtureCardRow,
   type MentionRow,
   type MessageRow,
   type ReactionRow,
@@ -39,6 +41,8 @@ const NOT_A_PARTICIPANT = 'PL006';
 const OVER_RATE = 'PL005';
 /** Raised when something is attempted on a message that has been removed. */
 const ALREADY_REMOVED = 'PL007';
+/** Raised when a group thread is opened by somebody outside the group (T-244). */
+const OUTSIDE_THE_GROUP = 'PL012';
 
 export type ConversationOutcome<T> =
   | { ok: true; value: T }
@@ -53,6 +57,7 @@ export type ConversationOutcome<T> =
         | 'restricted'
         | 'rate_limited'
         | 'not_found'
+        | 'not_a_member'
         | 'left'
         | 'removed'
         | 'invalid';
@@ -189,16 +194,7 @@ export class ConversationsService {
     for (const [id, row] of fixtures) {
       lookup.set(`fixture:${id}`, {
         kind: 'fixture',
-        id,
-        home: row.home,
-        away: row.away,
-        score:
-          row.home_goals === null || row.away_goals === null
-            ? null
-            : { home: row.home_goals, away: row.away_goals },
-        status: row.status,
-        kickoff_at: row.kickoff_at.toISOString(),
-        last_updated_at: row.last_updated_at.toISOString(),
+        ...fixtureCard(id, row),
       });
     }
     for (const [id, row] of teams) {
@@ -227,6 +223,20 @@ export class ConversationsService {
     return lookup;
   }
 
+  /**
+   * The matches a set of conversations are about (T-244).
+   *
+   * One query for the lot, through the same read the shared cards use, so a
+   * thread's subject is the fixture as it stands now rather than as it stood
+   * when somebody opened the thread.
+   */
+  private async subjectsFor(rows: ConversationRow[]): Promise<Map<string, FixtureCard>> {
+    const ids = [...new Set(rows.map((row) => row.fixture_id).filter((id) => id !== null))];
+    if (ids.length === 0) return new Map();
+    const fixtures = await this.cards.fixtures(ids);
+    return new Map([...fixtures].map(([id, row]) => [id, fixtureCard(id, row)]));
+  }
+
   /** The reactions, mentions and pins on a set of messages, in three queries. */
   private async marksFor(rows: MessageRow[], viewerId: string): Promise<Marks> {
     const ids = rows.map((row) => row.id);
@@ -251,13 +261,79 @@ export class ConversationsService {
     }
 
     const newest = [...latest.values()];
-    const [cards, marks] = await Promise.all([
+    const [cards, marks, subjects] = await Promise.all([
       this.resolveCards(newest),
       this.marksFor(newest, viewerId),
+      this.subjectsFor(rows),
     ]);
     return rows.map((row) =>
-      summary(row, members.get(row.id) ?? [], latest.get(row.id) ?? null, cards, marks),
+      summary(row, members.get(row.id) ?? [], latest.get(row.id) ?? null, cards, marks, subjects),
     );
+  }
+
+  /**
+   * A group's match threads (T-244).
+   *
+   * Not a separate listing of a separate thing: these are conversations, read
+   * with the same standing columns as every other one, so each arrives with the
+   * viewer's unread count, mute and read position already on it.
+   */
+  async threads(
+    viewerId: string,
+    slug: string,
+  ): Promise<ConversationOutcome<ConversationSummary[]>> {
+    const group = await this.store.groupBySlug(slug, viewerId);
+    if (group === null) return { ok: false, reason: 'not_found' };
+    if (!group.inside) return { ok: false, reason: 'not_a_member' };
+
+    const rows = await this.store.threadsFor(group.id, viewerId);
+    const ids = rows.map((row) => row.id);
+    const latest = await this.store.latest(ids);
+    const newest = [...latest.values()];
+    const [cards, marks, subjects] = await Promise.all([
+      this.resolveCards(newest),
+      this.marksFor(newest, viewerId),
+      this.subjectsFor(rows),
+    ]);
+    return {
+      ok: true,
+      value: rows.map((row) =>
+        // A thread has no `members` of its own: its membership is the group's
+        // (D-058), and an empty list here says so rather than naming a subset.
+        summary(row, [], latest.get(row.id) ?? null, cards, marks, subjects),
+      ),
+    };
+  }
+
+  /**
+   * Open the group's thread about a fixture, or find the one already there
+   * (T-244). Idempotent, like `openDirect`: two members reaching for the same
+   * match get the same room.
+   *
+   * The membership check here is the courteous answer, not the guard. A thread
+   * opened from outside the group is refused by the database (`PL012`) whatever
+   * this method believes, because the write guard on `message` asks the group
+   * rather than the row -- so a thread that should not exist would be a room its
+   * opener could then write in.
+   */
+  async openThread(
+    viewer: { id: string; emailVerified: boolean },
+    slug: string,
+    fixtureId: string,
+  ): Promise<ConversationOutcome<string>> {
+    const group = await this.store.groupBySlug(slug, viewer.id);
+    if (group === null) return { ok: false, reason: 'not_found' };
+    if (!group.inside) return { ok: false, reason: 'not_a_member' };
+    if (!(await this.store.fixtureExists(fixtureId))) {
+      return { ok: false, reason: 'invalid', fields: { fixture_id: 'No such fixture.' } };
+    }
+
+    try {
+      const { id } = await this.store.openThread(group.id, fixtureId, viewer.id);
+      return { ok: true, value: id };
+    } catch (error) {
+      return this.refusal(error);
+    }
   }
 
   /**
@@ -299,9 +375,10 @@ export class ConversationsService {
     ]);
     const pins = await this.store.pins(conversationId);
     const everything = [...messages, ...latest.values(), ...pins];
-    const [cards, marks] = await Promise.all([
+    const [cards, marks, subjects] = await Promise.all([
       this.resolveCards(everything),
       this.marksFor(everything, viewerId),
+      this.subjectsFor([row]),
     ]);
 
     return {
@@ -311,6 +388,7 @@ export class ConversationsService {
         latest.get(conversationId) ?? null,
         cards,
         marks,
+        subjects,
       ),
       messages: messages.map((m) => message(m, cards, marks)),
       latest_seq: Number(row.latest_seq),
@@ -686,8 +764,32 @@ export class ConversationsService {
     // A reaction or a pin on a tombstone. Caught here rather than checked
     // first, like every other refusal on this surface.
     if (code === ALREADY_REMOVED) return { ok: false, reason: 'removed' };
+    if (code === OUTSIDE_THE_GROUP) return { ok: false, reason: 'not_a_member' };
     throw error;
   }
+}
+
+/**
+ * A fixture row as the contract's `FixtureCard` (T-244).
+ *
+ * One mapper for both the card shared in a message and the subject of a match
+ * thread, because they are the same fixture read the same way -- the score it
+ * has now, with its own `last_updated_at` (rule 4). Two mappers would be two
+ * places for one of them to start showing a stale score as a current one.
+ */
+function fixtureCard(id: string, row: FixtureCardRow): FixtureCard {
+  return {
+    id,
+    home: row.home,
+    away: row.away,
+    score:
+      row.home_goals === null || row.away_goals === null
+        ? null
+        : { home: row.home_goals, away: row.away_goals },
+    status: row.status,
+    kickoff_at: row.kickoff_at.toISOString(),
+    last_updated_at: row.last_updated_at.toISOString(),
+  };
 }
 
 function summary(
@@ -696,6 +798,7 @@ function summary(
   latest: MessageRow | null,
   cards: CardLookup,
   marks: Marks,
+  subjects: Map<string, FixtureCard> = new Map(),
 ): ConversationSummary {
   return {
     id: row.id,
@@ -707,6 +810,10 @@ function summary(
       row.group_slug === null || row.group_name === null
         ? null
         : { slug: row.group_slug, name: row.group_name },
+    // The match a thread is about, as it stands now (T-244). Null for every
+    // other kind, and null for a thread whose fixture no longer resolves --
+    // which the product says rather than invents (rule 3).
+    fixture: row.fixture_id === null ? null : (subjects.get(row.fixture_id) ?? null),
     members,
     last_message: latest === null ? null : message(latest, cards, marks),
     unread: Number(row.unread),

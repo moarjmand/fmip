@@ -1988,3 +1988,59 @@ schema's hard parts -- entity links by UUID, story clustering, per-language
 versions -- are the same either way. *One rights setting for the whole product*:
 it would be wrong the first day a second kind of source arrives, which is the day
 this decision exists to prepare for.
+
+---
+
+## D-062 — A match thread is a conversation with a fixture on it, not a new kind of place
+
+**Date:** 2026-09-15 · **Task:** T-244 · **Status:** accepted
+
+Blueprint 8.2 asks for "group chat and match-specific discussion threads", and a
+thread has every attribute of a small forum: a subject, its own unread count, its
+own mute, its own membership.
+
+**Decision.** It is a `conversation`, with `kind = 'group_thread'`, `group_id`
+and `fixture_id`. Its membership is the group's, exactly as the group's own room's
+is (D-058). What that buys is everything already built: it arrives in the
+conversation list, the socket delivers it (T-230), the search finds it (T-224),
+the catch-up fills it (T-235), a `messaging` sanction silences it, and a member
+removed from the group loses it at once. None of that is code written for
+threads, and all of it would have had to be written -- and kept right -- if a
+thread had been its own table.
+
+**The subject is on the row, not in a title.** `fixture_id` is what lets a thread
+be listed under its match, linked to it, and refused a duplicate: one thread per
+fixture per group, by unique index. A title would have given the product a
+string, which is not a match.
+
+**And the subject is read now, not stored.** The thread's fixture comes back
+through the same read a shared fixture card uses, with the same
+`last_updated_at`, so a thread about a match that has since kicked off does not
+still say it is scheduled (rule 4). One mapper serves both, because two would be
+two places for a stale score to be shown as a current one.
+
+**Two constraints had to be narrowed, and one had already been written wrong.**
+`conversation_one_per_group` predates threads and, left alone, refuses a group
+its first thread with a duplicate-key error. And the standing query's direct
+branch read `kind <> 'group'`, so a new kind fell into it by default -- a thread
+would have been admitted on a `conversation_participant` row it never has. Both
+branches now name their kinds: an untaught kind belongs to neither, which is a
+conversation nobody can open rather than one anybody can.
+
+**Opening a thread is guarded in the database (`PL012`), not only in the API.**
+A thread in a group its opener is not in would be a room they could then write
+in, because the write guard asks the group rather than the row. The API check
+above it is the courteous answer, not the control.
+
+**Both BEFORE guards step aside for a malformed row.** A `group_thread` with no
+group reached the membership trigger first and was told "only a member can open a
+thread in it" -- true of a row naming a group, a misdiagnosis of one naming none.
+The membership guard and the ceiling now skip such a row so the shape CHECK, which
+actually describes what is wrong, is the one that answers.
+
+**Rejected.** *A `group_thread` table with its own membership and read state*:
+four things to keep in step with the group, and "immediately" true only while
+they are. *A thread as a message subtype inside the group's room*: it would make
+the room's unread count the thread's, and a group that discusses three matches
+would have one conversation nobody can follow. *Threads outside groups*: that is
+E25's public panel, which is gated on approval and is not this.
