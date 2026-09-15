@@ -27,6 +27,8 @@ import { postToPanelAction } from '@/lib/panel-actions';
 
 /** What each refusal says, and what it offers doing about it. */
 const REFUSALS: Record<PanelPermission['refusal'] & string, string> = {
+  no_panel: 'Nobody has opened a discussion on this match.',
+  panel_closed: 'This discussion is closed. It can still be read.',
   not_signed_in: 'Sign in to join the discussion. Reading it needs no account.',
   not_approved: 'Posting here is a granted privilege. Reading is open to everybody.',
   paused: 'Your contributor approval is paused, so you cannot post for now.',
@@ -236,9 +238,19 @@ export function MatchPanel({
         <p role="alert" data-testid="panel-unreachable">
           The discussion cannot be shown right now.
         </p>
+      ) : page.state === 'none' ? (
+        // Not the same as an empty discussion, and it must not read like one
+        // (T-253). One is a match nobody opened a panel on; the other is one
+        // where nobody has spoken yet, and only the second is something a
+        // reader can act on.
+        <p className="text-sm opacity-70" data-testid="panel-none">
+          Nobody has opened a discussion on this match.
+        </p>
       ) : page.posts.length === 0 ? (
         <p className="text-sm opacity-70" data-testid="panel-empty">
-          Nobody has posted about this match yet.
+          {page.state === 'closed'
+            ? 'This discussion is closed, and nothing was posted on it.'
+            : 'Nobody has posted about this match yet.'}
         </p>
       ) : (
         <>

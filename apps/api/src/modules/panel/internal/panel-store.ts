@@ -138,6 +138,23 @@ export class PostgresPanelStore {
     return rows.length === 1;
   }
 
+  /**
+   * Whether this match has a discussion, and whether it is still open (T-253).
+   *
+   * Three answers, not two. "Nobody opened one" and "one was opened and nobody
+   * has spoken" are different facts, and a reader can act on the second (rule
+   * 3). `null` here means the first.
+   */
+  async panelState(fixtureId: string): Promise<'none' | 'open' | 'closed'> {
+    const { rows } = await this.pool.query<{ closed: boolean }>(
+      `SELECT (closed_at IS NOT NULL) AS closed FROM match_panel WHERE fixture_id = $1`,
+      [fixtureId],
+    );
+    const row = rows[0];
+    if (row === undefined) return 'none';
+    return row.closed ? 'closed' : 'open';
+  }
+
   /** Writes the post and lets the triggers refuse it. */
   async write(fixtureId: string, authorId: string, body: string): Promise<PanelPostRow> {
     const { rows } = await this.pool.query<{ id: string }>(

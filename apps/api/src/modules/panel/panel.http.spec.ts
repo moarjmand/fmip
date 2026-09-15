@@ -41,6 +41,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the match pa
   const ids = new Map<string, string>();
   const teams = [randomUUID(), randomUUID()];
   const match = randomUUID();
+  /** Fixtures made inside a test, cleaned up with the rest. */
+  const spare: string[] = [];
 
   const as = (who?: string) =>
     who === undefined ? {} : { cookie: `fmip_session=${cookies.get(who) ?? ''}` };
@@ -133,6 +135,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the match pa
        VALUES ($1, $2, 'home'), ($1, $3, 'away')`,
       [match, teams[0], teams[1]],
     );
+    // T-253: a fixture has no discussion until an operator opens one.
+    await pool.query(
+      `INSERT INTO match_panel (fixture_id, opened_by, reason)
+       VALUES ($1, $2, 'the suite that needs a panel to write to')`,
+      [match, ids.get(admin)],
+    );
     await pool.query(
       `INSERT INTO rating_snapshot
          (user_id, formula_version, settled_count, rating, components, provisional,
@@ -148,6 +156,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the match pa
     try {
       await client.query(`SET session_replication_role = 'replica'`);
       await client.query(`DELETE FROM panel_post WHERE fixture_id = $1`, [match]);
+      await client.query(`DELETE FROM match_panel WHERE fixture_id = $1`, [match]);
       await client.query(`DELETE FROM rate_window WHERE user_id = ANY($1::uuid[])`, [everyone]);
       await client.query(
         `DELETE FROM contributor_grant_event WHERE grant_id IN
@@ -167,7 +176,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the match pa
       client.release();
     }
     await pool.query(`DELETE FROM fixture_participant WHERE fixture_id = $1`, [match]);
-    await pool.query(`DELETE FROM fixture WHERE id = $1`, [match]);
+    await pool.query(`DELETE FROM match_panel WHERE fixture_id = ANY($1::uuid[])`, [spare]);
+    await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [[match, ...spare]]);
     await pool.query(`DELETE FROM user_account WHERE id = ANY($1::uuid[])`, [everyone]);
     await pool.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [teams]);
     await pool.end();
@@ -188,6 +198,62 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the match pa
 
     it('says an unknown match is unknown rather than showing an empty panel', async () => {
       expect((await get(`/fixtures/${randomUUID()}/panel`)).statusCode).toBe(404);
+    });
+
+    it('says a match with no discussion has none, rather than showing an empty one', async () => {
+      // T-253. A fixture nobody opened a panel on and one where nobody has
+      // spoken both come back with no posts, and only the second is something a
+      // reader can act on (rule 3).
+      const unopened = randomUUID();
+      await pool.query(
+        `INSERT INTO fixture (id, season_id, stage_id, round, kickoff_at, status)
+         VALUES ($1, $2, $3, 'Matchday', now() + interval '3 days', 'scheduled')`,
+        [unopened, PL_2025, REGULAR_SEASON],
+      );
+      spare.push(unopened);
+
+      const page = (await get(`/fixtures/${unopened}/panel`)).json() as MatchPanelPage;
+      expect(page.state).toBe('none');
+      expect(page.posts).toEqual([]);
+
+      const answer = (
+        await get(`/fixtures/${unopened}/panel/permission`, writer)
+      ).json() as PanelPermission;
+      // Heard before anything about approval, because it is the refusal that is
+      // true of everybody: this contributor is approved and still cannot post.
+      expect(answer.refusal).toBe('no_panel');
+
+      const refused = await write('nowhere to put this', writer);
+      expect(refused.statusCode).toBe(403);
+    });
+
+    it('says a closed discussion is closed, and still shows it', async () => {
+      const closed = randomUUID();
+      await pool.query(
+        `INSERT INTO fixture (id, season_id, stage_id, round, kickoff_at, status)
+         VALUES ($1, $2, $3, 'Matchday', now() + interval '4 days', 'scheduled')`,
+        [closed, PL_2025, REGULAR_SEASON],
+      );
+      spare.push(closed);
+      await pool.query(
+        `INSERT INTO match_panel (fixture_id, opened_by, reason, closed_at, closed_by, close_reason)
+         VALUES ($1, $2, 'opened for the suite', now(), $2, 'closed for the suite')`,
+        [closed, ids.get(admin)],
+      );
+
+      const page = (await get(`/fixtures/${closed}/panel`)).json() as MatchPanelPage;
+      // Readable. Taking the words down when the argument ends would rewrite a
+      // record people were told was public.
+      expect(page.state).toBe('closed');
+
+      const answer = (
+        await get(`/fixtures/${closed}/panel/permission`, writer)
+      ).json() as PanelPermission;
+      expect(answer.refusal).toBe('panel_closed');
+    });
+
+    it('says an open panel is open', async () => {
+      expect(((await get(`/fixtures/${match}/panel`)).json() as MatchPanelPage).state).toBe('open');
     });
 
     it('tells a guest why they cannot post, without making them sign in to find out', async () => {

@@ -62,6 +62,20 @@ describe('a guest reads', () => {
     // it empty.
     expect(body).toContain('!reachable || page === null');
     expect(body).toContain('page.posts.length === 0');
+    // And the third state T-253 added, which is about the match rather than
+    // about the reader.
+    expect(body).toContain("page.state === 'none'");
+  });
+
+  it('tells a match with no discussion apart from one nobody has posted on', () => {
+    // Two different facts, two different testids, two different sentences. One
+    // is a match nobody opened a panel on; the other is one where nobody has
+    // spoken yet, and only the second is something a reader can act on (rule 3).
+    expect(PANEL).toContain('data-testid="panel-none"');
+    expect(PANEL).toContain('data-testid="panel-empty"');
+    expect(PANEL).toMatch(/Nobody has opened a discussion/);
+    expect(PANEL).toMatch(/Nobody has posted about this match yet/);
+    expect(PANEL).toMatch(/This discussion is closed/);
   });
 
   it('fetches the discussion without a session, and the permission with one', () => {
@@ -89,7 +103,15 @@ describe('an unapproved member is told why', () => {
     // Keyed by the contract's union, so adding a refusal and forgetting its
     // words does not compile. A member refused with no explanation is the
     // failure this surface exists to prevent.
-    for (const refusal of ['not_signed_in', 'not_approved', 'paused', 'withdrawn', 'restricted']) {
+    for (const refusal of [
+      'no_panel',
+      'panel_closed',
+      'not_signed_in',
+      'not_approved',
+      'paused',
+      'withdrawn',
+      'restricted',
+    ]) {
       expect(PANEL, `no words for ${refusal}`).toContain(`${refusal}:`);
     }
     expect(PANEL).toContain("Record<PanelPermission['refusal'] & string, string>");

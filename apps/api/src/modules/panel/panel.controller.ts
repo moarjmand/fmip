@@ -39,6 +39,8 @@ const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in 
  * avoid; it should not be one line away.
  */
 const REFUSAL_TEXT: Record<PanelRefusal, string> = {
+  no_panel: 'This match has no public discussion. Nobody has opened one.',
+  panel_closed: 'This discussion is closed. It can still be read.',
   not_signed_in: 'Sign in to continue.',
   not_approved: 'Posting here needs an approved contributor grant. Reading is open to everybody.',
   paused: 'Your contributor approval is paused. The moderator who paused it gave a reason.',
