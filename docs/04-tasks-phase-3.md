@@ -1994,7 +1994,7 @@ Blueprint 10.3, and the place rule 6 is most likely to break in this phase.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-260 | Schema and contracts: draft, submission, review decision, published version | T-250 | Its own tables and its own contract; nothing shared with the founder's analysis |
-| `[ ]` T-261 | The workflow: draft → submit → review → approve, request changes or reject → publish | T-260 | Every transition is audited and every published version is immutable |
+| `[x]` T-261 | The workflow: draft → submit → review → approve, request changes or reject → publish | T-260 | Every transition is audited and every published version is immutable |
 | `[ ]` T-262 | The analyst editor and the editorial review queue | T-261 | A reviewer sees the submission, the author's record, and the decision history |
 | `[ ]` T-263 | Publication surfaces, and the guard extended to a fourth opinion | T-262, T-133 | A test fails if community analysis is merged with, or relabelled as, any of the three |
 
@@ -2050,9 +2050,40 @@ usually asked in time.
 analyst may keep editing their own unpublished notes after kick-off, because
 nobody has been shown them and nothing is being claimed.
 
-Nothing in the API writes these yet: the workflow is T-261. The contract-level
-four-way separation guard is T-263, as the epic plans it. 17 cases against the
-real schema.
+17 cases against the real schema.
+
+**T-261 verified on 2026-09-15.**
+
+**The `editor` role arrived here**, and it is deliberately not `moderator`.
+Blueprint 7.3 and 10.2 have named an editor since the beginning and the role
+list never had one, because until now nothing needed it -- so it widens in the
+migration that builds the surface it covers, the rule T-210 set for
+`sanction.scope`. Moderation is about conduct; editorial review is about whether
+a piece of writing is good enough to publish under the platform's name. One role
+for both would make every moderator an editor by accident, and would leave no
+way to appoint somebody to read analysis without also handing them the power to
+sanction. The test refuses a moderator explicitly, because reusing an existing
+role is exactly what a reasonable refactor would do.
+
+**The service enforces nothing the schema already does.** The grant is `PL014`,
+kick-off is `PL002`, and "one decision per submission" is a primary key. It
+turns each refusal into a sentence and adds none of its own -- a check here
+would be a second copy that goes stale between the check and the write.
+
+**Approving and publishing are one transaction**, with the audit row. A reviewer
+saying yes is saying it may be read, and a decision that recorded an approval
+and then failed to publish would leave an analyst told yes and a public told
+nothing.
+
+**A resubmission keeps the first attempt and what was said about it.** An
+analyst asked for changes needs to see what they submitted, or the request is an
+instruction with no context.
+
+34 tests: 17 against the schema and 17 over HTTP, with the audit rows read back
+and the published version's immutability checked against the table rather than
+against the absence of an endpoint.
+
+The contract-level four-way separation guard is T-263, as the epic plans it.
 
 ---
 

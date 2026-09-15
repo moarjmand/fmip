@@ -42,8 +42,17 @@ export interface Login {
   sessionToken: string;
 }
 
-/** The roles user_role can grant (migration 1758000000000_identity). */
-export type UserRole = 'admin' | 'founder' | 'moderator';
+/**
+ * The roles `user_role` can grant (migration `..._identity`, `editor` added in
+ * `..._editor-role` for T-261).
+ *
+ * `editor` is not `moderator`, and the difference is deliberate: moderation is
+ * about conduct, editorial review is about whether a piece of writing is good
+ * enough to publish under the platform's name. One role for both would make
+ * every moderator an editor by accident, and would leave no way to appoint
+ * somebody to read analysis without also handing them the power to sanction.
+ */
+export type UserRole = 'admin' | 'founder' | 'moderator' | 'editor';
 
 /**
  * Registration, sessions, e-mail verification and password reset (T-040).
