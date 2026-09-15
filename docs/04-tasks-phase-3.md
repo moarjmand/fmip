@@ -1315,7 +1315,7 @@ a different visibility and an invitation rule, not a second feature.
 | `[x]` T-245 | The group conversation | T-241, T-221 | Membership changes take effect on the conversation immediately |
 | `[x]` T-242 | Group surfaces: directory, page, membership controls | T-241 | A private group is not discoverable; an invite-only one is not joinable |
 | `[x]` T-243 | The group leaderboard | T-241, T-055 | The same rating rules as the global board, scoped — never a second formula |
-| `[ ]` T-244 | Match threads inside a group | T-241 | A thread is a conversation about a fixture, and says which |
+| `[x]` T-244 | Match threads inside a group | T-241 | A thread is a conversation about a fixture, and says which |
 | `[ ]` T-246 | Prediction comparison inside a group | T-243, T-044 | Who called a fixture which way, in one place; never a second settlement |
 
 **T-243 was split on 2026-09-15.** It read "the group leaderboard and prediction
@@ -1543,7 +1543,52 @@ Demo accounts and groups were deleted afterwards.
 
 9 guards; 165 across the web app.
 
-**What is not here.** Match threads inside a group (T-244).
+**T-244 verified on 2026-09-15.** `conversation.kind` gains `group_thread`,
+`GET`/`POST /groups/:slug/threads`, and a name for every conversation in the
+list.
+
+**A thread is a conversation, and almost nothing was written for it.** It
+arrives in the ordinary conversation list, a group member who never touched it
+can write in it, the socket delivers it, the search finds it, the catch-up fills
+it and a `messaging` sanction silences it -- none of that is thread code, and all
+of it would have had to be if a thread were its own kind of place with its own
+membership, read position, mute and delivery.
+
+**Narrowing `conversation_one_per_group` was the whole bug waiting to happen.**
+It was written when a group had exactly one conversation; left alone it refuses a
+group its *first* thread, at insert time, with a duplicate-key error nobody would
+read as "threads are not implemented".
+
+**`kind <> 'group'` was the same class of defect, already present.** The standing
+query's direct branch was written as "not a group", so the next kind added would
+have fallen into it and been let in on a `conversation_participant` row a thread
+never has. Both branches name their kinds now: a kind this query has not been
+taught belongs to neither, which is a conversation nobody can open rather than
+one anybody can.
+
+**Says which, and says it now.** `fixture_id` is on the row rather than in a
+title, so the thread can be listed under its match and kept unique per group --
+and the subject comes back through the same read the shared cards use, so a
+thread about a match that has since kicked off does not still say it is
+scheduled (rule 4).
+
+**Two guards stepped aside for a third.** A `group_thread` row with no group at
+all reached the membership trigger before the shape CHECK, because BEFORE
+triggers run first, and was refused with "only a member can open a thread" --
+true of a row that names a group, a misdiagnosis of one that names none. The
+membership guard and the ceiling now both skip a malformed row so the constraint
+that actually describes it is the one that speaks.
+
+**Every kind gets a name on the surface.** A group's room and all its threads
+carry the same `group` and no members, so the list would have shown several
+entries called "The Open Terrace". The guard reads `CONVERSATION_KINDS` from the
+contract -- the fourth time that shape of guard has been written, after T-226,
+T-236 and T-242.
+
+8 cases against the real schema, 6 guards on the surface.
+
+**What is not here.** Prediction comparison inside a group (T-246), and the
+surfaces for opening a thread from a match page.
 
 **T-243 verified on 2026-09-15.** `GET /groups/:slug/leaderboard`, a board on the
 group page, and one argument added to the method that already existed.

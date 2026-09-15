@@ -26,6 +26,7 @@ import type {
   SendMessageResponse,
 } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
+import type { GroupThreadsResponse, OpenThreadRequest } from '@fmip/contracts';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { type ConversationOutcome, ConversationsService } from './conversations.service';
 
@@ -256,6 +257,14 @@ export class ConversationsController {
       case 'unknown_member':
       case 'not_found':
         throw new NotFoundException(NOT_FOUND);
+      case 'not_a_member':
+        // Not 404. The group is one a member can see in the directory and could
+        // ask to join; pretending it is not there would answer a different
+        // question than the one they asked (T-244).
+        throw new ForbiddenException({
+          error: 'validation',
+          message: 'You are not in this group.',
+        } satisfies ApiError);
       case 'email_unverified':
         throw new ForbiddenException({
           error: 'email_unverified',
@@ -300,5 +309,109 @@ export class ConversationsController {
           429,
         );
     }
+  }
+}
+
+/**
+ * A group's match threads (blueprint 8.2, T-244).
+ *
+ * A second controller rather than a second module: a thread **is** a
+ * conversation, so it belongs to this boundary, and the path is `/groups` only
+ * because that is where a reader looks for it. Nothing about a thread is
+ * decided here that is not decided for every other conversation -- who may
+ * write is `group_member` in a trigger, the page is the same page, the socket
+ * is the same socket.
+ */
+@Controller('groups/:slug/threads')
+export class GroupThreadsController {
+  constructor(
+    private readonly conversations: ConversationsService,
+    private readonly identity: IdentityService,
+  ) {}
+
+  private async requireViewer(request: FastifyRequest): Promise<AuthUser> {
+    const user = await this.identity.authenticate(
+      parseCookies(request.headers.cookie)[SESSION_COOKIE],
+    );
+    if (user === null) throw new UnauthorizedException(UNAUTHENTICATED);
+    return user;
+  }
+
+  @Get()
+  async list(
+    @Param('slug') slug: string,
+    @Req() request: FastifyRequest,
+  ): Promise<GroupThreadsResponse> {
+    const viewer = await this.requireViewer(request);
+    const outcome = await this.conversations.threads(viewer.id, slug);
+    return { threads: unwrapThreads(outcome) };
+  }
+
+  /** Idempotent: opening the thread for a match that has one returns that one. */
+  @Post()
+  async open(
+    @Param('slug') slug: string,
+    @Body() body: OpenThreadRequest,
+    @Req() request: FastifyRequest,
+  ): Promise<{ id: string }> {
+    const viewer = await this.requireViewer(request);
+    const fixtureId = typeof body?.fixture_id === 'string' ? body.fixture_id : '';
+    if (!UUID.test(fixtureId)) {
+      throw new BadRequestException({
+        error: 'validation',
+        message: 'The request is not valid.',
+        fields: { fixture_id: 'A fixture id is required.' },
+      } satisfies ApiError);
+    }
+    const outcome = await this.conversations.openThread(
+      { id: viewer.id, emailVerified: viewer.email_verified },
+      slug,
+      fixtureId,
+    );
+    return { id: unwrapThreads(outcome) };
+  }
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * The three refusals these two routes can produce, mapped once.
+ *
+ * Deliberately not the whole `unwrap` above: this controller cannot receive
+ * `not_friends` or `removed`, and a switch listing refusals it can never be
+ * given would be a switch nobody can read for what it actually does.
+ */
+function unwrapThreads<T>(outcome: ConversationOutcome<T>): T {
+  if (outcome.ok) return outcome.value;
+  switch (outcome.reason) {
+    case 'not_found':
+      throw new NotFoundException({
+        error: 'not_found',
+        message: 'No such group.',
+      } satisfies ApiError);
+    case 'not_a_member':
+      throw new ForbiddenException({
+        error: 'validation',
+        message: 'You are not in this group.',
+      } satisfies ApiError);
+    case 'restricted':
+      throw new ForbiddenException({
+        error: 'validation',
+        message: 'That is not something you can do at the moment.',
+      } satisfies ApiError);
+    case 'rate_limited':
+      throw new HttpException(
+        {
+          error: 'rate_limited',
+          message: 'That is more than this hour allows.',
+        } satisfies ApiError,
+        429,
+      );
+    default:
+      throw new BadRequestException({
+        error: 'validation',
+        message: 'The request is not valid.',
+        ...(outcome.fields === undefined ? {} : { fields: outcome.fields }),
+      } satisfies ApiError);
   }
 }

@@ -63,6 +63,8 @@ export interface ConversationRow {
   /** The group this conversation belongs to; both null for a direct one. */
   group_slug: string | null;
   group_name: string | null;
+  /** The fixture a group thread is about; null for every other kind (T-244). */
+  fixture_id: string | null;
   muted: boolean;
   left: boolean;
   last_read_seq: string;
@@ -109,6 +111,7 @@ const STANDING_COLUMNS = `c.id,
               COALESCE(me.last_read_seq, 0) AS last_read_seq,
               g.slug AS group_slug,
               g.name AS group_name,
+              c.fixture_id,
               CASE WHEN c.kind = 'direct' THEN (
                 SELECT p.last_read_seq FROM conversation_participant p
                  WHERE p.conversation_id = c.id AND p.user_id <> $VIEWER
@@ -129,11 +132,18 @@ const STANDING_FROM = `FROM conversation c
  *
  * The group half is the acceptance criterion of T-245: it reads `group_member`,
  * so a membership change takes effect on the conversation with nothing to
- * synchronise and nothing that can drift.
+ * synchronise and nothing that can drift. A group's match threads (T-244) are
+ * the same people in the same place, so they are the same half.
+ *
+ * **Both branches name their kinds.** This was written as `kind <> 'group'`
+ * against the direct branch, which meant the *next* kind added would have
+ * fallen into it and been let in on a `conversation_participant` row a group
+ * thread never has. A kind this query has not been taught belongs to neither
+ * branch, which is a conversation nobody can open rather than one anybody can.
  */
 const STANDING_WHERE = `(
-           (c.kind <> 'group' AND me.user_id IS NOT NULL)
-           OR (c.kind = 'group' AND EXISTS (
+           (c.kind = 'direct' AND me.user_id IS NOT NULL)
+           OR (c.kind IN ('group', 'group_thread') AND EXISTS (
                  SELECT 1 FROM group_member gm
                   WHERE gm.group_id = c.group_id AND gm.user_id = $VIEWER))
          )`;
@@ -201,6 +211,101 @@ export class ConversationsStore {
     } finally {
       client.release();
     }
+  }
+
+  /**
+   * The group behind a slug, and whether this viewer is in it (T-244).
+   *
+   * Read here rather than asked of the groups service, for the reason the card
+   * reads are: what this needs is one row, and a boundary call would be the
+   * same row fetched by somebody else. The *authority* is not here -- the
+   * database refuses a thread opened from outside the group (`PL012`) and
+   * refuses a message from outside it (`PL006`) whatever this returns.
+   */
+  async groupBySlug(
+    slug: string,
+    viewerId: string,
+  ): Promise<{ id: string; inside: boolean } | null> {
+    const { rows } = await this.pool.query<{ id: string; inside: boolean }>(
+      `SELECT g.id,
+              EXISTS (SELECT 1 FROM group_member m
+                       WHERE m.group_id = g.id AND m.user_id = $2) AS inside
+         FROM user_group g
+        WHERE g.slug = lower($1)`,
+      [slug, viewerId],
+    );
+    return rows[0] ?? null;
+  }
+
+  /** Whether a fixture exists at all, asked before a thread is opened about it (rule 1). */
+  async fixtureExists(fixtureId: string): Promise<boolean> {
+    const { rowCount } = await this.pool.query(`SELECT 1 FROM fixture WHERE id = $1`, [fixtureId]);
+    return rowCount === 1;
+  }
+
+  /**
+   * The group's thread about a fixture, opening it if it is not there (T-244).
+   *
+   * Idempotent, like `openDirect`: two members reaching for the same match get
+   * the same room. The unique index is what makes that true under a race -- the
+   * second insert loses, and losing is answered by reading the winner rather
+   * than by an error nobody can act on.
+   */
+  async openThread(
+    groupId: string,
+    fixtureId: string,
+    openerId: string,
+  ): Promise<{ id: string; created: boolean }> {
+    const existing = await this.threadFor(groupId, fixtureId);
+    if (existing !== null) return { id: existing, created: false };
+
+    const { rows } = await this.pool.query<{ id: string }>(
+      `INSERT INTO conversation (kind, group_id, fixture_id, opened_by)
+       VALUES ('group_thread', $1, $2, $3)
+       ON CONFLICT (group_id, fixture_id) WHERE kind = 'group_thread' DO NOTHING
+       RETURNING id`,
+      [groupId, fixtureId, openerId],
+    );
+    const id = rows[0]?.id;
+    if (id !== undefined) return { id, created: true };
+
+    // The conflict fired: somebody else opened it between the read and the
+    // write, and their room is the room.
+    const raced = await this.threadFor(groupId, fixtureId);
+    if (raced === null) throw new Error('group thread neither inserted nor found');
+    return { id: raced, created: false };
+  }
+
+  async threadFor(groupId: string, fixtureId: string): Promise<string | null> {
+    const { rows } = await this.pool.query<{ id: string }>(
+      `SELECT id FROM conversation
+        WHERE kind = 'group_thread' AND group_id = $1 AND fixture_id = $2`,
+      [groupId, fixtureId],
+    );
+    return rows[0]?.id ?? null;
+  }
+
+  /**
+   * A group's match threads, the next match first (T-244).
+   *
+   * The same standing columns as every other conversation read, so a thread
+   * arrives with the viewer's unread count, mute and read position already on
+   * it. Ordered by kickoff rather than by activity, because a list of matches
+   * is read as a fixture list.
+   */
+  async threadsFor(groupId: string, viewerId: string): Promise<ConversationRow[]> {
+    const { rows } = await this.pool.query<ConversationRow>(
+      `SELECT ${STANDING_COLUMNS.replaceAll('$VIEWER', '$2')}
+         ${STANDING_FROM.replaceAll('$VIEWER', '$2')}
+         JOIN fixture f ON f.id = c.fixture_id
+        WHERE c.kind = 'group_thread'
+          AND c.group_id = $1
+          AND ${STANDING_WHERE.replaceAll('$VIEWER', '$2')}
+        ORDER BY f.kickoff_at DESC
+        LIMIT 100`,
+      [groupId, viewerId],
+    );
+    return rows;
   }
 
   /**

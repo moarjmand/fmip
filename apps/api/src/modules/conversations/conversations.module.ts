@@ -12,7 +12,7 @@ import {
   type FixtureChanges,
 } from './chat.gateway';
 import { ChatHealthController } from './chat-health.controller';
-import { ConversationsController } from './conversations.controller';
+import { ConversationsController, GroupThreadsController } from './conversations.controller';
 import { ConversationsService } from './conversations.service';
 import { CHAT_BUS, type ChatBus, chatBusFromEnv } from './internal/chat-bus';
 
@@ -56,7 +56,7 @@ export function chatOriginsFromEnv(env: NodeJS.ProcessEnv = process.env): string
  */
 @Module({
   imports: [IdentityModule, ModerationModule, FixturesModule],
-  controllers: [ConversationsController, ChatHealthController],
+  controllers: [ConversationsController, GroupThreadsController, ChatHealthController],
   providers: [
     ConversationsService,
     ChatGateway,

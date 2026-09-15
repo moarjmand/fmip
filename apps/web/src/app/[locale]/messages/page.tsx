@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { conversationTitle, threadStanding } from '@/lib/conversation-title';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { fetchConversations, fetchMe } from '@/lib/api';
@@ -65,16 +66,21 @@ export default async function MessagesPage({ params }: { params: Promise<{ local
       ) : (
         <ul className="flex flex-col gap-3" data-testid="conversation-list">
           {result.data.conversations.map((conversation) => {
-            const others = conversation.members.filter((member) => member.username !== me.username);
             const last = conversation.last_message;
+            const standing = threadStanding(conversation);
             return (
               <li key={conversation.id} className="flex flex-col gap-1">
                 <Link
                   href={`/${locale}/messages/${conversation.id}`}
                   className="text-sm font-medium underline"
                 >
-                  {others.map((member) => member.display_name).join(', ') || 'A conversation'}
+                  {conversationTitle(conversation, me.username)}
                 </Link>
+                {standing !== null && (
+                  <p className="text-xs opacity-60" data-testid="conversation-standing">
+                    {standing}
+                  </p>
+                )}
                 <p className="text-sm opacity-70">
                   {last === null ? (
                     'Nothing said yet.'
