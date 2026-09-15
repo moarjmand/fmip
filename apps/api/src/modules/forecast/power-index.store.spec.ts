@@ -2,6 +2,7 @@ import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { POWER_INDEX_WEIGHTS } from '@fmip/contracts';
 import { POWER_INDEX_FORMULA_VERSION, combine } from './internal/power-index';
+import { withTriggersOff } from '../../testing/cleanup';
 
 // The `power_index` table against the real schema (T-110): a stored index is
 // immutable and carries everything needed to reproduce it. Nothing writes this
@@ -28,11 +29,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the power in
 
   afterAll(async () => {
     if (pool === undefined) return;
-    // The rows are immutable, so cleanup has to go around the trigger the same
-    // way every other immutable table's cleanup does.
-    await pool.query(`ALTER TABLE power_index DISABLE TRIGGER power_index_immutable`);
-    await pool.query(`DELETE FROM power_index WHERE id = ANY($1::uuid[])`, [written]);
-    await pool.query(`ALTER TABLE power_index ENABLE TRIGGER power_index_immutable`);
+    // The rows are immutable, so cleanup goes around the trigger -- on this
+    // session only, never with `ALTER TABLE` (03-project-map.md).
+    await withTriggersOff(pool, async (client) => {
+      await client.query(`DELETE FROM power_index WHERE id = ANY($1::uuid[])`, [written]);
+    });
     await pool.end();
   });
 

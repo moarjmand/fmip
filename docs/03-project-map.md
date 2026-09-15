@@ -104,7 +104,14 @@ incomplete.
 | `Dockerfile` | Multi-stage build. Built from the repository root, not from `apps/api`. Compiles through Turbo so `@fmip/contracts` is built first, and deploys with `pnpm deploy --legacy`, because pnpm 10 refuses to deploy a workspace that does not inject its packages. |
 | `vitest.config.mts` | Vitest transformed by SWC rather than esbuild (D-019). |
 
-**Cleaning up after a database spec.** Rows a cascade cannot reach -- the
+**Cleaning up after a database spec.** `src/testing/cleanup.ts` is the helper
+(`withTriggersOff(pool, fn)`) and `cleanup.spec.ts` is the rule made
+enforceable: it reads every spec in the tree and fails on a new offender,
+holding the remaining unconverted files in a list that may only get shorter.
+The rule had been prose since T-120 and was broken in thirteen files by the
+time anything checked -- two of which a hand search missed.
+
+Rows a cascade cannot reach -- the
 immutable ones, guarded by `refuse_change()` -- are deleted on one dedicated
 connection with `SET session_replication_role = 'replica'`, which is scoped to
 that session. Never `ALTER TABLE ... DISABLE TRIGGER`: that is global, and while
