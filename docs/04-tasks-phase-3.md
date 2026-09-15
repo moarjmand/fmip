@@ -1713,7 +1713,7 @@ the gate is the whole feature.
 |---|---|---|---|
 | `[x]` T-250 | Eligibility as a derived view; approval as an audited grant | T-054, T-212 | Eligibility is computed and never grants; approval names its approver and reason |
 | `[x]` T-251 | The discussion: open to read, gated to post, linked to the match | T-250, T-221 | A guest reads; an unapproved member cannot post and is told why |
-| `[ ]` T-252 | Reactions, and following a contributor | T-251, T-042 | Reacting is open to members; it never becomes posting access |
+| `[~]` T-252 | Reactions, and following a contributor | T-251, T-042 | Reacting is open to members; it never becomes posting access |
 | `[ ]` T-253 | Featured matches: which fixtures have a panel at all | T-251, T-070 | An operator decides, with an audit row |
 
 **Eligibility is computed; access is granted.** Blueprint 10.2 lists four
@@ -1857,6 +1857,41 @@ has two homes, and the copy in the browser is the one that goes stale first -- a
 contributor paused a second ago would still see the button work.
 
 44 tests: 15 against the real schema, 16 over HTTP, 13 on the page.
+
+**T-252 backend done on 2026-09-15.** The page is the remaining third.
+
+**The criterion is a negative, so the schema settles it rather than a
+convention.** A reaction is a closed set of six, checked against
+`information_schema` rather than against the code that writes them today,
+because the failure being guarded is a column somebody adds in a year. A follow
+is two ids and a timestamp. Neither has anywhere to put a word, which is what
+keeps them from becoming a way to speak on a panel you were not approved for.
+
+**Neither the store nor the service contains `member_may_contribute`**, and that
+is the task rather than an omission. Reacting and following are open to any
+member; a check for approval on either would be a second, quieter approval
+nobody decided to create. The tests assert it from both ends: the same member,
+in the same test, refused by the approval gate and admitted by the reaction
+route -- and still refused afterwards.
+
+**`member_follow` is its own table.** Not `followed_entity`, which carries no
+foreign key on what it points at: fine for teams, which are never deleted, wrong
+for accounts, which are. Not `friendship` either, which is a mutual pair both
+sides agreed to. What it shares with both is the block -- `PL003` either way,
+and an existing follow ends both ways when one is created, because a block that
+left the follow in place would leave the blocked member still receiving
+somebody.
+
+**A decision the counts forced, and it went the other way from the obvious one.**
+The first shape had `mine` on each tally, which would have made the panel
+viewer-specific and undone T-251's "same bytes for everybody". On a document
+fetched without a session `mine` could only ever be false -- a shape that reads
+as "you have not reacted" when the truth is "nobody asked" (rule 3). So the
+field is gone, and the viewer's own reactions travel on `PanelPermission`, the
+request that already depends on who is asking.
+
+26 tests for T-252 so far: 12 against the real schema and 14 over HTTP. The
+whole panel boundary now runs 57.
 
 ---
 

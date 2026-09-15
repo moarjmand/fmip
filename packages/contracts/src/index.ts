@@ -184,6 +184,7 @@ export type {
   FollowStatus,
   FollowedMember,
   FollowedMembersResponse,
+  MyPostReactions,
   PanelReaction,
   PanelReactionTally,
 } from './panel-social';

@@ -1,7 +1,10 @@
 import { Module } from '@nestjs/common';
 import { IdentityModule } from '../identity/identity.module';
 import { ReputationModule } from '../reputation/reputation.module';
+import { PostgresPanelSocialStore } from './internal/panel-social-store';
 import { PostgresPanelStore } from './internal/panel-store';
+import { PanelSocialController } from './panel-social.controller';
+import { PanelSocialService } from './panel-social.service';
 import { PanelController } from './panel.controller';
 import { PanelService } from './panel.service';
 
@@ -17,11 +20,19 @@ import { PanelService } from './panel.service';
  * -- and never to decide anything: whether a post may be written is settled by
  * the triggers on `panel_post`, and this boundary asks only so that it can tell
  * a member what would happen.
+ *
+ * T-252 adds reacting and following to the same boundary, and they sit here
+ * rather than in social (T-200) because what they are about is a panel: a
+ * reaction hangs on a panel post, and following a contributor is what a reader
+ * of a panel does next. What they emphatically do not do is ask this module's
+ * own gate -- reacting and following are open to any member, and a check for
+ * approval on either would be a second, quieter approval nobody decided to
+ * create.
  */
 @Module({
   imports: [IdentityModule, ReputationModule],
-  controllers: [PanelController],
-  providers: [PanelService, PostgresPanelStore],
-  exports: [PanelService],
+  controllers: [PanelController, PanelSocialController],
+  providers: [PanelService, PostgresPanelStore, PanelSocialService, PostgresPanelSocialStore],
+  exports: [PanelService, PanelSocialService],
 })
 export class PanelModule {}

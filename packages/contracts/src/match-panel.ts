@@ -16,6 +16,7 @@
  * `PanelAuthor` has no shape in which the tier is absent.
  */
 
+import type { MyPostReactions, PanelReactionTally } from './panel-social';
 import type { RatingTier } from './reputation';
 
 /**
@@ -57,6 +58,14 @@ export interface PanelPost {
    * thinking better of it, the other is a moderation record.
    */
   removed: 'author' | 'moderator' | null;
+  /**
+   * Reactions, one entry per kind that has any (T-252).
+   *
+   * Always empty on a removed post: the reactions go with the words, because a
+   * tally left behind would be a count attached to nothing — and on a moderated
+   * post, a visible record of how many people agreed with something taken down.
+   */
+  reactions: PanelReactionTally[];
 }
 
 /**
@@ -90,11 +99,16 @@ export type PanelRefusal =
   | 'restricted';
 
 /**
- * `GET /fixtures/:id/panel/permission` — the viewer's own half.
+ * `GET /fixtures/:id/panel/permission` — everything about this panel that
+ * depends on who is asking.
  *
  * Separate from the panel so the panel itself is the same bytes for everybody,
  * and so that a member who cannot post is **told why** rather than shown a
  * missing box. Blueprint 10.2's gate is only honest if the refusal has words.
+ *
+ * It carries the viewer's own reactions for the same reason (T-252): putting
+ * them on the public document would have made every public read
+ * viewer-specific to save one request.
  */
 export interface PanelPermission {
   may_post: boolean;
@@ -111,6 +125,12 @@ export interface PanelPermission {
    * qualifying is not approval and never becomes it on its own (T-250).
    */
   qualifies: boolean;
+  /**
+   * Which reactions this viewer has left, per post they have reacted to
+   * (T-252). Empty for a guest, and empty for a member who has reacted to
+   * nothing — the same answer, because for a guest it is also the true one.
+   */
+  my_reactions: MyPostReactions[];
 }
 
 /** `POST /fixtures/:id/panel`. */
