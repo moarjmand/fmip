@@ -60,8 +60,48 @@ async function migrate() {
   if (code !== 0) die('migrations failed', { code });
 }
 
+/** `on` exactly; anything else, including absent, is a normal deployment. */
+function isOn(name) {
+  return (process.env[name] ?? '').trim().toLowerCase() === 'on';
+}
+
+/**
+ * The marker, stated at every boot.
+ *
+ * `DEMONSTRATION_DATA=on` is what makes the web app carry its banner, refuse
+ * indexing and empty its sitemap. Logging it unconditionally means "is the
+ * banner up?" is answerable from the log rather than by opening the site and
+ * trusting one's eyes.
+ */
+function announceDemonstrationData() {
+  if (isOn('DEMONSTRATION_DATA')) {
+    log(
+      'preview.demonstration_data',
+      'DEMONSTRATION_DATA=on: the football on this deployment is fixture data. Every page says so and nothing is indexable.',
+    );
+  } else {
+    log('preview.demonstration_data_off', 'DEMONSTRATION_DATA is not on: pages carry no marker.');
+  }
+}
+
 async function seedPreview() {
-  if ((process.env.PREVIEW_SEED ?? 'off').toLowerCase() !== 'on') return;
+  if (!isOn('PREVIEW_SEED')) return;
+
+  // **Fixture data cannot reach a public address unmarked.** Seeding writes
+  // matches that were never played onto a URL anybody can open; the banner, the
+  // `noindex` and the empty sitemap are the only things separating that from
+  // inventing football in public (rule 3). So this refuses rather than warns:
+  // a warning in a boot log is read by nobody, and the container would go on to
+  // serve the pages anyway.
+  //
+  // The check runs in this direction only. Marking a deployment that was never
+  // seeded costs nothing; seeding one that is not marked is the failure.
+  if (!isOn('DEMONSTRATION_DATA')) {
+    die(
+      'PREVIEW_SEED=on with DEMONSTRATION_DATA off: fixture data would be served unmarked and indexable. Set DEMONSTRATION_DATA=on. See docs/11-preview.md.',
+    );
+  }
+
   // The seed runner refuses a production database on purpose, and this is not
   // one: it is a preview whose whole content is development fixture data. The
   // override is a named variable and this line, so nothing about it is quiet.
@@ -127,6 +167,7 @@ async function main() {
   }
 
   resolvePublicAddress();
+  announceDemonstrationData();
 
   process.chdir('/app/db');
   await migrate();

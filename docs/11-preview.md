@@ -45,6 +45,16 @@ show any unavailable forecast. Forgetting the variable still refuses to boot;
 schedule, and pretending otherwise would leave gaps that look like outages.
 `INGESTION_SCHEDULE=off`, and the preview's data is whatever the database holds.
 
+**The data is development fixtures, and every page says so.** Phase 3's exit
+criteria are checked *on the public deployment*, which an empty database makes
+impossible, so `PREVIEW_SEED=on` loads matches that were never played onto an
+address anybody can open. `DEMONSTRATION_DATA=on` is what makes that honest: an
+undismissable band on every page, `Demonstration data —` in front of every
+title, `noindex` everywhere, an empty sitemap, and a `robots.txt` that forbids
+the whole site. The two cannot come apart in the direction that matters —
+`start.mjs` refuses to boot if the seed is on and the marker is not. D-065 has
+the reasoning, including what it deliberately does not close.
+
 **No live chat delivery, and the preview says so.** Two independent reasons, and
 either alone would be enough. There is no Redis, so the chat bus is `absent` and
 `GET /health/chat` reports it (T-233). And the socket has nowhere to arrive: the
@@ -99,14 +109,18 @@ address that can actually be opened. There is no post-deploy step to remember.
 |---|---|
 | `/en` | the site, over HTTPS |
 | the line under the heading on `/en` | `API: ok, up for Ns` — both halves of the container are alive |
-| `/en/scores` | the day's tabs, and **"No fixtures on this day"** |
-| view-source on `/en`, or `/sitemap.xml` | the preview's **own** address, not `localhost` |
+| `/en/scores` | the day's tabs, with fixtures on them |
+| the band at the top of every page | **"Demonstration data… None of it is real football"** |
+| view-source on `/en` | the preview's **own** address in `<link rel="canonical">`, not `localhost` |
 
-The third is the empty database being honest rather than a page that failed:
-`INGESTION_SCHEDULE=off` and `PREVIEW_SEED=off`, so the preview holds whatever
-the database holds, which on a new Neon project is nothing. The fourth is D-064
-working — `start.mjs` took the address from the platform, with no step to
-remember.
+The third and fourth are the same fact stated twice. `PREVIEW_SEED=on` and
+`DEMONSTRATION_DATA=on` (D-065): the preview holds development fixtures, and
+every page says so. `INGESTION_SCHEDULE=off` still, so nothing changes on its
+own — the preview holds whatever the database holds.
+
+The last is D-064 working — `start.mjs` took the address from the platform, with
+no step to remember. It is checked on the canonical link rather than on
+`/sitemap.xml`, because the sitemap is deliberately empty here.
 
 **Two things cannot be checked from outside, and it is worth knowing why.**
 

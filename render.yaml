@@ -11,6 +11,11 @@
 # preview -- it fails silently, weeks later, for a reason nobody remembers. So
 # the database is a Neon free project, permanent, and supplied as DATABASE_URL.
 #
+# The data here is development fixture data and the preview says so on every
+# page (T-087): a banner that cannot be dismissed, `noindex` on every page, an
+# empty sitemap and a robots.txt that forbids the whole site. Seeding without
+# that marker is refused at boot, not warned about.
+#
 # What this preview does not have, and says so rather than faking it (rule 3):
 # no model service (`MODEL_SERVICE_URL=off`, every forecast recorded
 # `model_unreachable`), no Redis (`GET /health/chat` reports the bus `absent`),
@@ -56,10 +61,22 @@ services:
         value: 'off'
       - key: RUN_MIGRATIONS
         value: 'on'
-      # Development fixture data, off by default. Turning it on says in the log
-      # that what follows is not product data.
+      # Development fixture data. On, so that the social surfaces of Phase 3 can
+      # be walked on the public address the exit criteria name -- which an empty
+      # database makes impossible.
+      #
+      # It cannot be turned on alone: `start.mjs` refuses to seed unless
+      # DEMONSTRATION_DATA is also on, because fixture data on a public URL with
+      # nothing saying so is rule 3 in front of everybody.
       - key: PREVIEW_SEED
-        value: 'off'
+        value: 'on'
+      # What the pages then say about themselves: a band on every page, no
+      # indexing at all, and an empty sitemap. A statement about what the
+      # database holds, which is why it is not the same variable as the
+      # instruction to load it -- PREVIEW_SEED is spent at boot, this stays true
+      # for as long as the data does.
+      - key: DEMONSTRATION_DATA
+        value: 'on'
       # SITE_URL and WEB_BASE_URL are not set here on purpose: `start.mjs` takes
       # them from the address Render assigns, so the preview's canonical links,
       # sitemap, manifest and e-mails name an address that can actually be
