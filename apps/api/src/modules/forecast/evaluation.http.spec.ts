@@ -12,6 +12,7 @@ import { DatabaseModule } from '../../database/database.module';
 import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
 import { ForecastModule } from './forecast.module';
 import { MODEL_CLIENT, ModelClient } from './forecast.service';
+import { withTriggersOff } from '../../testing/cleanup';
 
 // Evaluations are decided by the database (one per version, immutable) and
 // the performance figures are SQL aggregates, so these need the real schema.
@@ -169,16 +170,16 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('evaluations'
   });
 
   afterAll(async () => {
+    // The three immutable tables first, on a session of their own.
+    await withTriggersOff(pool, async (client) => {
+      await client.query(`DELETE FROM evaluation WHERE fixture_id = $1`, [FIXTURE]);
+      await client.query(`DELETE FROM forecast WHERE fixture_id = $1`, [FIXTURE]);
+      await client.query(`DELETE FROM input_snapshot WHERE fixture_id = $1`, [FIXTURE]);
+    });
+    // The accounts after it, and deliberately outside it: `replica` turns off
+    // foreign-key triggers too, so the cascade that takes their credentials,
+    // sessions and tokens does not run while it is set (03-project-map.md).
     await inTransaction(pool, [
-      ['ALTER TABLE evaluation DISABLE TRIGGER evaluation_immutable'],
-      ['ALTER TABLE forecast DISABLE TRIGGER forecast_immutable'],
-      ['ALTER TABLE input_snapshot DISABLE TRIGGER input_snapshot_immutable'],
-      ['DELETE FROM evaluation WHERE fixture_id = $1', [FIXTURE]],
-      ['DELETE FROM forecast WHERE fixture_id = $1', [FIXTURE]],
-      ['DELETE FROM input_snapshot WHERE fixture_id = $1', [FIXTURE]],
-      ['ALTER TABLE input_snapshot ENABLE TRIGGER input_snapshot_immutable'],
-      ['ALTER TABLE forecast ENABLE TRIGGER forecast_immutable'],
-      ['ALTER TABLE evaluation ENABLE TRIGGER evaluation_immutable'],
       ['DELETE FROM fixture WHERE id = $1', [FIXTURE]],
       ['DELETE FROM user_account WHERE username LIKE $1', [`ev_${RUN}%`]],
     ]);

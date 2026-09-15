@@ -4,6 +4,7 @@ import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
 import { PowerIndexService } from './power-index.service';
+import { withTriggersOff } from '../../testing/cleanup';
 
 // The Power Index end to end (T-111).
 //
@@ -149,13 +150,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the power in
 
   afterAll(async () => {
     if (pool === undefined) return;
-    await pool.query(`ALTER TABLE power_index DISABLE TRIGGER power_index_immutable`);
-    await pool.query(
-      `DELETE FROM power_index WHERE participant_id IN
-         (SELECT id FROM fixture_participant WHERE fixture_id = ANY($1::uuid[]))`,
-      [[FIXTURE, EARLIER]],
-    );
-    await pool.query(`ALTER TABLE power_index ENABLE TRIGGER power_index_immutable`);
+    await withTriggersOff(pool, async (client) => {
+      await client.query(
+        `DELETE FROM power_index WHERE participant_id IN
+           (SELECT id FROM fixture_participant WHERE fixture_id = ANY($1::uuid[]))`,
+        [[FIXTURE, EARLIER]],
+      );
+    });
     await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [[FIXTURE, EARLIER]]);
     await pool.query(`DELETE FROM season WHERE competition_id = $1`, [COMPETITION]);
     await pool.query(`DELETE FROM training.match WHERE source_load_id = $1`, [LOAD]);
@@ -307,13 +308,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the power in
       expect(outcome.pair.away.value).toBeGreaterThan(outcome.pair.home.value);
     }
 
-    await pool.query(`ALTER TABLE power_index DISABLE TRIGGER power_index_immutable`);
-    await pool.query(
-      `DELETE FROM power_index WHERE participant_id IN
-         (SELECT id FROM fixture_participant WHERE fixture_id = $1)`,
-      [fixture],
-    );
-    await pool.query(`ALTER TABLE power_index ENABLE TRIGGER power_index_immutable`);
+    await withTriggersOff(pool, async (client) => {
+      await client.query(
+        `DELETE FROM power_index WHERE participant_id IN
+           (SELECT id FROM fixture_participant WHERE fixture_id = $1)`,
+        [fixture],
+      );
+    });
     await pool.query(`DELETE FROM fixture WHERE id = $1`, [fixture]);
     await pool.query(`DELETE FROM season WHERE id = $1`, [season]);
   });

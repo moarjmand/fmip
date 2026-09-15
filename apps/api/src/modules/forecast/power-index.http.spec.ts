@@ -7,6 +7,7 @@ import type { ApiError, PowerIndexResponse } from '@fmip/contracts';
 import { DatabaseModule } from '../../database/database.module';
 import { ForecastModule } from './forecast.module';
 import { PowerIndexService } from './power-index.service';
+import { withTriggersOff } from '../../testing/cleanup';
 
 // `GET /fixtures/:id/power-index` and its admin-only compute (T-114). Reading is
 // public because the index is a product surface; computing is an operator
@@ -119,13 +120,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
 
     afterAll(async () => {
       if (pool === undefined) return;
-      await pool.query(`ALTER TABLE power_index DISABLE TRIGGER power_index_immutable`);
-      await pool.query(
-        `DELETE FROM power_index WHERE participant_id IN
-           (SELECT id FROM fixture_participant WHERE fixture_id = $1)`,
-        [FIXTURE],
-      );
-      await pool.query(`ALTER TABLE power_index ENABLE TRIGGER power_index_immutable`);
+      await withTriggersOff(pool, async (client) => {
+        await client.query(
+          `DELETE FROM power_index WHERE participant_id IN
+             (SELECT id FROM fixture_participant WHERE fixture_id = $1)`,
+          [FIXTURE],
+        );
+      });
       await pool.query(`DELETE FROM fixture WHERE id = $1`, [FIXTURE]);
       await pool.query(`DELETE FROM season WHERE competition_id = $1`, [COMPETITION]);
       await pool.query(`DELETE FROM training.match WHERE source_load_id = $1`, [LOAD]);

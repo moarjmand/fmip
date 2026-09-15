@@ -8,6 +8,7 @@ import { MODEL_CLIENT, ForecastService } from './forecast.service';
 import { PostgresForecastStore } from './internal/forecast-store';
 import { ModelClient } from './internal/model-client';
 import { PowerIndexService } from './power-index.service';
+import { withTriggersOff } from '../../testing/cleanup';
 
 // The triggers against the real schema (T-120). The acceptance criterion is
 // "each kind is produced once per fixture and named", so the test runs the
@@ -86,19 +87,18 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
 
     afterAll(async () => {
       if (pool === undefined) return;
-      await pool.query(`ALTER TABLE power_index DISABLE TRIGGER power_index_immutable`);
-      await pool.query(
-        `DELETE FROM power_index WHERE participant_id IN
-           (SELECT id FROM fixture_participant WHERE fixture_id = $1)`,
-        [FIXTURE],
-      );
-      await pool.query(`ALTER TABLE power_index ENABLE TRIGGER power_index_immutable`);
-      await pool.query(`ALTER TABLE forecast DISABLE TRIGGER forecast_immutable`);
-      await pool.query(`ALTER TABLE input_snapshot DISABLE TRIGGER input_snapshot_immutable`);
-      await pool.query(`DELETE FROM forecast WHERE fixture_id = $1`, [FIXTURE]);
-      await pool.query(`DELETE FROM input_snapshot WHERE fixture_id = $1`, [FIXTURE]);
-      await pool.query(`ALTER TABLE input_snapshot ENABLE TRIGGER input_snapshot_immutable`);
-      await pool.query(`ALTER TABLE forecast ENABLE TRIGGER forecast_immutable`);
+      // All three tables are immutable, so all three deletes go in one block:
+      // the setting is the session's, not the table's, so there is nothing to
+      // turn off per table.
+      await withTriggersOff(pool, async (client) => {
+        await client.query(
+          `DELETE FROM power_index WHERE participant_id IN
+             (SELECT id FROM fixture_participant WHERE fixture_id = $1)`,
+          [FIXTURE],
+        );
+        await client.query(`DELETE FROM forecast WHERE fixture_id = $1`, [FIXTURE]);
+        await client.query(`DELETE FROM input_snapshot WHERE fixture_id = $1`, [FIXTURE]);
+      });
       await pool.query(`DELETE FROM fixture WHERE id = $1`, [FIXTURE]);
       await pool.query(`DELETE FROM season WHERE id = $1`, [SEASON]);
       await pool.query(`DELETE FROM competition WHERE id = $1`, [COMPETITION]);

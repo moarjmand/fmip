@@ -13,6 +13,7 @@ import { DatabaseModule } from '../../database/database.module';
 import { IDENTITY_OPTIONS, DEFAULT_IDENTITY_OPTIONS } from '../identity/identity.service';
 import { ForecastModule } from './forecast.module';
 import { MODEL_CLIENT, ModelClient } from './forecast.service';
+import { withTriggersOff } from '../../testing/cleanup';
 
 // Forecast versions are decided by the database: the next version number,
 // the probability total, and the refusal to update or delete (rule 5). A fake
@@ -128,30 +129,22 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
 
     afterAll(async () => {
       // Forecasts refuse DELETE by trigger (that is the point), so test rows are
-      // removed with the trigger disabled, inside one transaction: the ALTER
-      // TABLE lock serialises this with any other suite doing the same, so no
-      // suite ever deletes while another has re-enabled the trigger.
+      // removed with the trigger off for **this session** and nobody else's.
+      //
+      // The previous version argued that the `ALTER TABLE` lock serialised this
+      // against any other suite doing the same. It did -- and that was never
+      // the risk. A suite *asserting* the table is immutable takes no such lock
+      // and would simply have found the trigger off, which is how the
+      // moderation schema suite once passed for the wrong reason.
       if (createdIds.length > 0) {
-        const client = await pool.connect();
-        try {
-          await client.query('BEGIN');
-          await client.query('ALTER TABLE forecast DISABLE TRIGGER forecast_immutable');
-          await client.query('ALTER TABLE input_snapshot DISABLE TRIGGER input_snapshot_immutable');
+        await withTriggersOff(pool, async (client) => {
           await client.query(`DELETE FROM forecast WHERE id = ANY($1::uuid[])`, [createdIds]);
           await client.query(
             `DELETE FROM input_snapshot s WHERE s.fixture_id = $1 AND NOT EXISTS
                (SELECT 1 FROM forecast f WHERE f.input_snapshot_id = s.id)`,
             [FIXTURE],
           );
-          await client.query('ALTER TABLE input_snapshot ENABLE TRIGGER input_snapshot_immutable');
-          await client.query('ALTER TABLE forecast ENABLE TRIGGER forecast_immutable');
-          await client.query('COMMIT');
-        } catch (error: unknown) {
-          await client.query('ROLLBACK');
-          throw error;
-        } finally {
-          client.release();
-        }
+        });
       }
       await pool.query(`DELETE FROM user_account WHERE username LIKE $1`, [`fc_${RUN}%`]);
       await pool.end();
