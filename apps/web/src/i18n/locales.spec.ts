@@ -9,6 +9,7 @@ import {
   isUnfinishedLocale,
   localeFromPathname,
 } from './locales';
+import { INDEXABLE_LOCALES } from '../lib/seo';
 
 describe('locales', () => {
   it('ships English and treats it as the default', () => {
@@ -17,7 +18,10 @@ describe('locales', () => {
   });
 
   it('rejects anything that is not a shipped locale', () => {
-    expect(isLocale('fr')).toBe(false);
+    // `nl` rather than `fr`: the blueprint names eight languages and Dutch is
+    // not one, so this stays a counter-example when the eighth arrives. Using
+    // a planned language here is how this test broke in T-300.
+    expect(isLocale('nl')).toBe(false);
     expect(isLocale('')).toBe(false);
     expect(isLocale('EN')).toBe(false);
   });
@@ -76,7 +80,46 @@ describe('localeFromPathname', () => {
   it('returns undefined when the path carries no shipped locale', () => {
     expect(localeFromPathname('/')).toBeUndefined();
     expect(localeFromPathname('/match/123')).toBeUndefined();
-    expect(localeFromPathname('/fr/match')).toBeUndefined();
+    expect(localeFromPathname('/nl/match')).toBeUndefined();
+  });
+});
+
+describe("the blueprint's eight languages (T-300)", () => {
+  // Blueprint 13: en, es, fr, de, pt, ar, tr, it. Eight, not "several" -- the
+  // product promises a number and this is where the number lives.
+  const EIGHT = ['en', 'es', 'fr', 'de', 'pt', 'ar', 'tr', 'it'] as const;
+
+  it('routes all eight', () => {
+    for (const locale of EIGHT) {
+      expect(isLocale(locale), `${locale} does not route`).toBe(true);
+    }
+  });
+
+  it('ships exactly those eight and one pseudo-locale, and nothing else', () => {
+    // Asserted by equality: a locale added without a decision fails here, and
+    // so does one quietly dropped.
+    expect([...LOCALES].sort()).toEqual([...EIGHT, ...PSEUDO_LOCALES].sort());
+  });
+
+  it('calls the seven unfinished, so none is offered as a language yet', () => {
+    for (const locale of EIGHT) {
+      expect(isUnfinishedLocale(locale), locale).toBe(locale !== 'en');
+    }
+  });
+
+  it('writes the six Latin-script ones left to right, and Arabic right to left', () => {
+    for (const locale of ['es', 'fr', 'de', 'pt', 'tr', 'it'] as const) {
+      expect(directionOf(locale), locale).toBe('ltr');
+    }
+    expect(directionOf('ar')).toBe('rtl');
+  });
+
+  it('keeps every one of them out of the index until it is finished', () => {
+    // A page that renders marked English under `/es` is honest to a reader and
+    // a lie to a search engine, which sees only the URL and the text.
+    for (const locale of EIGHT) {
+      expect(INDEXABLE_LOCALES.includes(locale), locale).toBe(locale === 'en');
+    }
   });
 });
 

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { notFound } from 'next/navigation';
 import { DemonstrationBanner } from '@/components/demonstration-banner';
 import { ServiceWorker } from '@/components/service-worker';
+import { Translated } from '@/components/translated';
 import { SiteHeader } from '@/components/site-header';
 import { LOCALES, directionOf, isLocale } from '@/i18n/locales';
 import {
@@ -89,7 +90,10 @@ export default async function LocaleLayout({
           className="sr-only focus:not-sr-only focus:fixed focus:start-2 focus:top-2 focus:z-50 focus:rounded focus:bg-current/10 focus:px-3 focus:py-2"
           data-testid="skip-link"
         >
-          Skip to content
+          {/* Through `Translated` like every other label: on `/es` this is
+              English and says so, rather than being English and silent. It was
+              the one string in the catalogue with nowhere calling it. */}
+          <Translated locale={locale} message="nav.skipToContent" />
         </a>
         {/* Above the header, on every page, and never dismissible: when this
             deployment's football is fixture data, a reader meets that fact

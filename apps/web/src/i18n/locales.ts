@@ -2,11 +2,12 @@
  * Locale registry.
  *
  * English is the source language (D-003). Arabic joined in T-150 and is the
- * first real right-to-left locale — it routes and renders, and every string it
- * has no translation for falls back to English *and says so* (`i18n/messages.ts`).
- * It is deliberately not indexable and not offered as a finished language until
- * its catalogue is filled, because a page that looks translated and is not is
- * the language version of faking coverage.
+ * first real right-to-left locale; the six Latin-script languages joined in
+ * T-300. Every one of them routes and renders, and every string they have no
+ * translation for falls back to English *and says so* (`i18n/messages.ts`).
+ * None is indexable or offered as a finished language until its catalogue is
+ * filled, because a page that looks translated and is not is the language
+ * version of faking coverage.
  *
  * Every layout decision that depends on writing direction reads `directionOf`
  * rather than assuming left-to-right, so adding a locale stays a change to this
@@ -25,8 +26,19 @@ export const PSEUDO_LOCALES = ['x-rtl'] as const;
  * Locales whose catalogue is not finished. They route and render so that a
  * translator can see their work in place, and they are kept out of the index
  * and out of any "choose your language" list until they are done.
+ *
+ * All seven of the blueprint's non-English languages are here (13.1: `en`,
+ * `es`, `fr`, `de`, `pt`, `ar`, `tr`, `it`). None of them has a catalogue yet,
+ * and that is the honest state rather than a gap: every string they render
+ * falls back to English **and says so** (`messages.ts`), which is what T-151
+ * settled before the first locale existed.
+ *
+ * **The six Latin-script ones were added before Arabic's catalogue was filled,
+ * on purpose.** Their failures are quiet -- a wrong plural form, a date in the
+ * wrong order -- and quiet failures are what the machinery has to survive
+ * before it carries the language whose failures are visible from across a room.
  */
-export const UNFINISHED_LOCALES = ['ar'] as const;
+export const UNFINISHED_LOCALES = ['ar', 'de', 'es', 'fr', 'it', 'pt', 'tr'] as const;
 
 export const LOCALES = ['en', ...UNFINISHED_LOCALES, ...PSEUDO_LOCALES] as const;
 
