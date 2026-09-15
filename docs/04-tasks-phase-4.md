@@ -164,7 +164,7 @@ claim this epic tests rather than assumes.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[ ]` T-320 | **Decision gate:** a native app at all, the framework, and the store accounts | — | New entry in `00-decisions.md`; `CLAUDE.md` §2 is explicit that a framework needs one |
-| `[ ]` T-321 | `@fmip/contracts` proven platform-independent | — | A test fails if the contracts package imports anything web-only or Node-only |
+| `[x]` T-321 | `@fmip/contracts` proven platform-independent | — | A test fails if the contracts package imports anything web-only or Node-only |
 | `[ ]` T-322 | The app shell: routing, session, locale, writing direction | T-320, T-321 | A right-to-left locale lays out correctly on a device, not only in a browser |
 | `[ ]` T-323 | Scores, match centre, predictions against the same endpoints | T-322 | No endpoint exists only for the app |
 | `[ ]` T-324 | Push delivery on the device | T-322, T-330 | A push is the same notification the inbox already has, not a second one |
@@ -173,6 +173,23 @@ claim this epic tests rather than assumes.
 second client is cheap rests entirely on the contracts being free of web
 assumptions, and nobody has checked. It is a guard, it costs an hour, and if it
 fails it fails now rather than after a framework decision.
+
+**T-321 verified on 2026-09-15, and it passed.** `platform-independent.spec.ts`:
+the shipped modules import only from themselves, the package declares no runtime
+or peer dependencies at all, no source names a browser or Node global, the build
+compiles against `ES2023` with no `DOM` and no `types` entry, and the tests --
+which do legitimately use `node:fs` -- are excluded from what ships. **Broken on
+purpose before being believed**: a `node:fs` import and a
+`typeof window === 'undefined'` guard added to one contract file failed two of
+the six cases, and were removed.
+
+**The `dist/` output is deliberately not checked.** It would be the strongest
+evidence and it does not exist on a clean checkout before `build` runs; a guard
+that skips itself when its subject is missing reports success for doing nothing,
+which is the `REDIS_URL` lesson. These read the source, which is always there.
+
+So the framework decision (T-320) can be made without this question hanging over
+it, which was the point of doing the cheap half first.
 
 **No endpoint exists only for the app.** The moment one does, there are two
 products with two behaviours and the second one drifts. If the app needs
