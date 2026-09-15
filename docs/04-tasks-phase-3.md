@@ -1713,7 +1713,7 @@ the gate is the whole feature.
 |---|---|---|---|
 | `[x]` T-250 | Eligibility as a derived view; approval as an audited grant | T-054, T-212 | Eligibility is computed and never grants; approval names its approver and reason |
 | `[x]` T-251 | The discussion: open to read, gated to post, linked to the match | T-250, T-221 | A guest reads; an unapproved member cannot post and is told why |
-| `[~]` T-252 | Reactions, and following a contributor | T-251, T-042 | Reacting is open to members; it never becomes posting access |
+| `[x]` T-252 | Reactions, and following a contributor | T-251, T-042 | Reacting is open to members; it never becomes posting access |
 | `[ ]` T-253 | Featured matches: which fixtures have a panel at all | T-251, T-070 | An operator decides, with an audit row |
 
 **Eligibility is computed; access is granted.** Blueprint 10.2 lists four
@@ -1890,8 +1890,34 @@ as "you have not reacted" when the truth is "nobody asked" (rule 3). So the
 field is gone, and the viewer's own reactions travel on `PanelPermission`, the
 request that already depends on who is asking.
 
-26 tests for T-252 so far: 12 against the real schema and 14 over HTTP. The
-whole panel boundary now runs 57.
+26 tests for T-252 in the two backend PRs: 12 against the real schema and 14
+over HTTP. The whole panel boundary runs 57.
+
+**T-252 closed on 2026-09-15** with the page. The controls appear for **any
+signed-in member**, asked as `signedIn` and never as `may_post`. That is the
+criterion in its visible form, and it is the one a page loses most easily: a
+surface that showed the reaction row only to approved contributors would be a
+second gate nobody decided to create, and it would read as perfectly sensible in
+review. So the guard sweeps the component's *code* -- comments stripped, the way
+T-321 does it, because this file argues about approval at length and a sweep
+over the prose would fail on the explanation of why it passes.
+
+**A guest sees the counts and no buttons.** The counts are part of the public
+document; hiding them until somebody signs in would make the numbers appear to
+change when they did.
+
+**The pressed state is in the `aria-label`.** A coloured border does not reach a
+screen reader and neither does a bold count.
+
+**The six come from `PANEL_REACTIONS`**, not a second list on the page. The copy
+that drifts is always the one a member is looking at.
+
+Two of T-251's own guards had to be rewritten rather than loosened. The panel
+now takes `me`, so "no session reaches it" stopped being the right assertion;
+what replaced it is narrower and truer -- inside the component that renders the
+list, the viewer is only ever passed down, never branched on.
+
+37 tests for T-252: 12 against the real schema, 14 over HTTP, 11 on the page.
 
 ---
 

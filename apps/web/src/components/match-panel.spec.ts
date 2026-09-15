@@ -45,9 +45,23 @@ describe('a guest reads', () => {
       'the me !== null guard is gone; this test no longer proves anything',
     ).toBeGreaterThan(0);
     expect(panelAt).toBeLessThan(guardAt);
-    // And no session is handed to it, so it has nothing to gate on.
-    const props = MATCH.slice(panelAt, MATCH.indexOf('/>', panelAt));
-    expect(props).not.toContain('me=');
+  });
+
+  it('renders the posts without consulting the viewer', () => {
+    // The panel *does* take `me` now, to decide whether to draw reaction
+    // buttons and a follow control (T-252) — so the guard cannot be "no session
+    // reaches it" any more. The property that still matters is this one: inside
+    // the component that renders the list, the viewer is only ever passed down,
+    // never branched on. The per-post checks are in `Post`, and they choose
+    // controls rather than whether the post appears.
+    const body = PANEL.slice(PANEL.indexOf('export function MatchPanel'));
+    expect(body).toContain('page.posts.map');
+    expect(body).not.toMatch(/viewer\s*[!=]==/);
+    expect(body).not.toMatch(/me\s*[!=]==/);
+    // The branches it does take are about the page: could it be fetched, and is
+    // it empty.
+    expect(body).toContain('!reachable || page === null');
+    expect(body).toContain('page.posts.length === 0');
   });
 
   it('fetches the discussion without a session, and the permission with one', () => {
@@ -105,7 +119,7 @@ describe('what a post carries, and what a removal leaves behind', () => {
   it('shows the author standing beside every post', () => {
     // Blueprint 10.2: on a public panel it is the only thing separating an
     // approved contributor's opinion from anybody else's.
-    expect(PANEL).toContain('<Standing author={post.author} />');
+    expect(PANEL).toMatch(/<Standing\s+author=\{post\.author\}/);
     // Both marks, and they are chosen by the same expression: a contributor
     // whose approval has since ended is shown as former rather than as approved.
     // Hiding their post would rewrite the record; still calling them approved

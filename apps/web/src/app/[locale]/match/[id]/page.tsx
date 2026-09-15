@@ -12,6 +12,7 @@ import { MatchThreads } from '@/components/match-threads';
 import { PredictionSection } from '@/components/prediction-section';
 import {
   fetchEvaluations,
+  fetchFollowedMembers,
   fetchForecasts,
   fetchMatchCentre,
   fetchMatchPanel,
@@ -78,8 +79,13 @@ export default async function MatchPage({
         : 'UTC';
 
   // Only for a signed-in member: a match thread happens inside a group, and a
-  // guest is in none.
-  const groups = me === null ? null : await fetchMyGroups(cookie);
+  // guest is in none. The same is true of whom they follow — a guest follows
+  // nobody, and one request here saves a follow-status call per contributor on
+  // the panel below (T-252).
+  const [groups, followed] =
+    me === null
+      ? [null, null]
+      : await Promise.all([fetchMyGroups(cookie), fetchFollowedMembers(cookie)]);
 
   const result = await fetchMatchCentre(id);
   if (!result.ok && result.status === 404) notFound();
@@ -147,6 +153,12 @@ export default async function MatchPage({
                     panelPermission !== null && panelPermission.ok ? panelPermission.data : null
                   }
                   reachable={panel !== null && panel.ok}
+                  me={me?.username ?? null}
+                  followed={
+                    followed !== null && followed.ok
+                      ? followed.data.following.map((f) => f.username)
+                      : []
+                  }
                 />
                 {me !== null && (
                   <MatchThreads
