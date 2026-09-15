@@ -5,6 +5,8 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
 import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
 import { CaptureMailer, MAILER } from '../identity/internal/mailer';
+import { GroupsModule } from '../groups/groups.module';
+import { ModerationModule } from '../moderation/moderation.module';
 import { SocialModule } from '../social/social.module';
 import { NotificationsModule } from './notifications.module';
 import { NotificationsService } from './notifications.service';
@@ -84,7 +86,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('emitting not
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [DatabaseModule, SocialModule, NotificationsModule],
+      imports: [DatabaseModule, SocialModule, NotificationsModule, GroupsModule, ModerationModule],
     })
       .overrideProvider(MAILER)
       .useValue(new CaptureMailer())
@@ -112,6 +114,36 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('emitting not
     // and `user_block` all cascade from the account, so one delete unwinds the
     // lot.
     await pool.query(`DELETE FROM user_block WHERE blocker_id = ANY($1::uuid[])`, [everyone]);
+    // Moderation records are RESTRICT on purpose -- one that vanished with the
+    // account it was about would be the wrong trade (T-210) -- so they are
+    // unwound in order, with the immutable ones behind a session-local
+    // trigger-off.
+    const client = await pool.connect();
+    try {
+      await client.query(`SET session_replication_role = 'replica'`);
+      await client.query(`DELETE FROM report WHERE reporter_id = ANY($1::uuid[])`, [everyone]);
+      await client.query(`DELETE FROM sanction WHERE user_id = ANY($1::uuid[])`, [everyone]);
+      await client.query(`DELETE FROM moderation_decision WHERE moderator_id = ANY($1::uuid[])`, [
+        everyone,
+      ]);
+      await client.query(`DELETE FROM audit_log WHERE actor_id = ANY($1::uuid[])`, [everyone]);
+      // The group goes before its owner's account. `group_member` carries a
+      // deferred constraint trigger requiring at least one owner (T-240), so a
+      // cascade that removed the owner would leave the group ownerless and the
+      // whole delete would fail with "a group must have an owner".
+      await client.query(
+        `DELETE FROM group_member WHERE group_id IN (SELECT id FROM user_group WHERE slug = $1)`,
+        [`g${RUN}`],
+      );
+      await client.query(
+        `DELETE FROM group_invite WHERE group_id IN (SELECT id FROM user_group WHERE slug = $1)`,
+        [`g${RUN}`],
+      );
+      await client.query(`DELETE FROM user_group WHERE slug = $1`, [`g${RUN}`]);
+    } finally {
+      await client.query(`SET session_replication_role = 'origin'`);
+      client.release();
+    }
     await pool.query(`DELETE FROM user_account WHERE id = ANY($1::uuid[])`, [everyone]);
     await pool.end();
     await app.close();
@@ -216,6 +248,69 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('emitting not
         [ids.get(carol)],
       );
       expect(await notifications.wants(ids.get(carol) ?? '', 'moderation_decision')).toBe(false);
+    });
+  });
+
+  describe('the other producers, each from an event that already happened', () => {
+    it('tells an invitee about a group invitation, once per group', async () => {
+      const slug = `g${RUN}`;
+      expect(
+        (
+          await app.inject({
+            method: 'POST',
+            url: '/groups',
+            payload: { name: `Group ${RUN}`, slug, visibility: 'invite_only' },
+            headers: as(alice),
+          })
+        ).statusCode,
+      ).toBeLessThan(300);
+
+      await app.inject({
+        method: 'POST',
+        url: `/groups/${slug}/invites/${bob}`,
+        headers: as(alice),
+      });
+      const invited = (await notificationsFor(bob)).filter((n) => n.kind === 'group_invite');
+      expect(invited).toHaveLength(1);
+      expect(invited[0]?.source).toBe(alice);
+
+      // Withdrawn and re-sent is the same group asking the same person.
+      await app.inject({
+        method: 'DELETE',
+        url: `/groups/${slug}/invites/${bob}`,
+        headers: as(alice),
+      });
+      await app.inject({
+        method: 'POST',
+        url: `/groups/${slug}/invites/${bob}`,
+        headers: as(alice),
+      });
+      expect((await notificationsFor(bob)).filter((n) => n.kind === 'group_invite')).toHaveLength(
+        1,
+      );
+    });
+
+    it('tells a member what was decided about them, and does not name the moderator', async () => {
+      await pool.query(
+        `INSERT INTO user_role (user_id, role, granted_by, reason)
+         VALUES ($1, 'moderator', $1, 'the emission test')`,
+        [ids.get(alice)],
+      );
+      const decided = await app.inject({
+        method: 'POST',
+        url: '/admin/moderation/decisions',
+        payload: { subject: bob, outcome: 'warned', reason: 'a first warning' },
+        headers: as(alice),
+      });
+      expect(decided.statusCode).toBeLessThan(300);
+
+      const theirs = (await notificationsFor(bob)).filter((n) => n.kind === 'moderation_decision');
+      expect(theirs).toHaveLength(1);
+      // Policy section 2 promises the member is told *which* decision and
+      // *why*, not who made it. Naming the moderator would hand a sanctioned
+      // member a person to blame; the audit row names them, where it is read by
+      // people who can be held responsible for reading it.
+      expect(theirs[0]?.source).toBeNull();
     });
   });
 

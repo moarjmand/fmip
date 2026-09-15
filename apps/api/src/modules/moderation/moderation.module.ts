@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { IdentityModule } from '../identity/identity.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { ModerationAdminController } from './moderation-admin.controller';
 import { ModerationController } from './moderation.controller';
 import { ModerationService } from './moderation.service';
@@ -14,7 +15,7 @@ import { ModerationService } from './moderation.service';
  * two boundaries importing each other.
  */
 @Module({
-  imports: [IdentityModule],
+  imports: [IdentityModule, NotificationsModule],
   controllers: [ModerationController, ModerationAdminController],
   providers: [ModerationService],
   exports: [ModerationService],

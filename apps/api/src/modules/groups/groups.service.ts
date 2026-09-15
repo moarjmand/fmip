@@ -26,6 +26,7 @@ import {
   type InviteRow,
   type MemberRow,
 } from './internal/groups-store';
+import { NotificationsService } from '../notifications/notifications.service';
 
 /** How many groups a directory page shows. */
 export const DIRECTORY_LIMIT = 50;
@@ -127,7 +128,10 @@ function invitation(row: InviteRow): GroupInvite {
 export class GroupsService {
   private readonly store: GroupsStore;
 
-  constructor(@Inject(PG_POOL) pool: Pool) {
+  constructor(
+    @Inject(PG_POOL) pool: Pool,
+    private readonly notifications: NotificationsService,
+  ) {
     this.store = new GroupsStore(pool);
   }
 
@@ -421,6 +425,17 @@ export class GroupsService {
 
     try {
       await this.store.invite(found.value.group.id, invitee, viewerId);
+      // One standing invitation is one notification, whoever sends it and
+      // however many times. The key is the group, because a withdrawn and
+      // re-sent invitation is the same group asking the same person.
+      await this.notifications.emit({
+        userId: invitee,
+        kind: 'group_invite',
+        subjectType: 'group',
+        subjectId: found.value.group.id,
+        sourceId: viewerId,
+        dedupeKey: `group_invite:${found.value.group.id}`,
+      });
       return { ok: true, value: true };
     } catch (error) {
       if (code(error) === UNIQUE) return { ok: false, reason: 'conflict' };
@@ -485,6 +500,21 @@ export class GroupsService {
     }
     try {
       await this.store.requestJoin(row.id, viewerId, note?.trim() ?? null);
+      // Everybody who can answer it, and nobody who cannot. Sending it to every
+      // member would be a group of two hundred told about a queue two of them
+      // can act on -- which is how a member turns notifications off entirely.
+      await this.notifications.emitMany(
+        (await this.store.deciderIds(row.id))
+          .filter((decider) => decider !== viewerId)
+          .map((decider) => ({
+            userId: decider,
+            kind: 'group_join_request' as const,
+            subjectType: 'group' as const,
+            subjectId: row.id,
+            sourceId: viewerId,
+            dedupeKey: `group_join_request:${row.id}:${viewerId}`,
+          })),
+      );
       return { ok: true, value: true };
     } catch (error) {
       if (code(error) === UNIQUE) return { ok: false, reason: 'conflict' };

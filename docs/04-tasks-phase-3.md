@@ -2118,7 +2118,37 @@ misses.
 
 The first producer is the social graph, chosen because it is the clearest block
 case: a friend request is one member reaching another, which is what a block is
-for. 29 tests: 20 against the schema and 9 over HTTP.
+for.
+
+**The remaining producers, 2026-09-15.** Group invitations and join requests,
+moderation decisions, contributor grants and their changes, and panel reactions
+-- each emitted from the event that already happened, in the service that
+already records it.
+
+**Two of them are deliberately sourceless, and it is the same argument twice.**
+A moderation decision and a contributor pause are the platform's, not a
+person's. Policy section 2 promises the member is told *which* decision was made
+and *why*; section 5 promises a reason for a withdrawn approval. Neither
+promises a name, and a notification carrying one would hand a sanctioned member
+somebody to argue with. The audit row names the actor, where it is read by
+people who can be held responsible for reading it (rule 10).
+
+**A join request goes to the deciders and nobody else.** `GroupsStore.deciderIds`
+asks for owner and moderator: a group of two hundred told about a queue two of
+them can act on is how a member turns notifications off entirely, and then hears
+nothing at all.
+
+**A reaction notifies on the way in, once per reactor per post.** A contributor
+is told somebody engaged with what they wrote, not counted at -- and
+`panel_reaction` is off by default for the same reason (T-270).
+
+T-272 and T-273 are the rest of E27: the inbox with its deep links, and quiet
+hours. Settlement and message notifications are held back with them, because
+both are high-volume and deserve the frequency rules rather than arriving
+before them.
+
+31 tests in the notifications boundary: 20 against the schema, 11 over HTTP. The
+whole API suite is 725 passing.
 
 ---
 

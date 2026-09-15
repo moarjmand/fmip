@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { IdentityModule } from '../identity/identity.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { GroupsController } from './groups.controller';
 import { GroupsService } from './groups.service';
 
@@ -14,7 +15,7 @@ import { GroupsService } from './groups.service';
  * boundary to answer a question a row already answers.
  */
 @Module({
-  imports: [IdentityModule],
+  imports: [IdentityModule, NotificationsModule],
   controllers: [GroupsController],
   providers: [GroupsService],
   exports: [GroupsService],

@@ -24,6 +24,7 @@ import {
   type QueueRow,
   type SanctionRow,
 } from './internal/moderation-store';
+import { NotificationsService } from '../notifications/notifications.service';
 
 export type ModerationOutcomeResult =
   | { ok: true; filed: boolean }
@@ -105,7 +106,10 @@ export class ModerationService {
   private readonly store: ModerationStore;
   private readonly queueStore: ModerationQueueStore;
 
-  constructor(@Inject(PG_POOL) pool: Pool) {
+  constructor(
+    @Inject(PG_POOL) pool: Pool,
+    private readonly notifications: NotificationsService,
+  ) {
     this.store = new ModerationStore(pool);
     this.queueStore = new ModerationQueueStore(pool);
   }
@@ -320,6 +324,20 @@ export class ModerationService {
             permanent,
           }
         : null,
+    });
+
+    // **The source is deliberately null.** Policy section 2 promises the member
+    // is told *which* decision was made and *why*, not who made it: a
+    // notification naming the moderator would hand a sanctioned member a person
+    // to blame, and the whole point of a moderation queue is that the decision
+    // belongs to the platform. The audit row names them, where it is read by
+    // people who can be held responsible for reading it (rule 10).
+    await this.notifications.emit({
+      userId: subject.id,
+      kind: 'moderation_decision',
+      subjectType: 'member',
+      subjectId: subject.id,
+      dedupeKey: `moderation_decision:${decisionId}`,
     });
     return { ok: true, decision_id: decisionId, answered };
   }
