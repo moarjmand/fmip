@@ -87,6 +87,22 @@ export interface Notification {
   kind: NotificationKind;
   subject_type: NotificationSubject;
   subject_id: string;
+  /**
+   * The handle the subject is addressed by, when it has one that differs from
+   * its id (T-272).
+   *
+   * A member's profile lives at `/u/{username}` and a group's page at
+   * `/groups/{slug}` — both keyed by a handle, while `subject_id` is the
+   * canonical UUID (rule 1). So the pair alone could not open two of the four
+   * things blueprint 12.2 promises, and this is what closes the gap without
+   * making a name the key.
+   *
+   * Null when the subject is addressed by its id (a fixture), and null when the
+   * subject no longer resolves — a group that was deleted. A client with no
+   * label renders the notification without a link rather than a broken one,
+   * because a link that 404s is worse than none (rule 3).
+   */
+  subject_label: string | null;
   /** Who caused it. Null for an event with no member behind it, like a settlement. */
   source: string | null;
   /** ISO 8601. */

@@ -2028,8 +2028,8 @@ they need a delivery provider, which is the maintainer's (T-074).
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-270 | Schema and contracts: `notification`, `notification_preference`, quiet hours | T-041 | A preference exists per type; a missing row means the documented default |
-| `[~]` T-271 | Emission from the events that already happen | T-270 | Nothing is emitted twice, and nothing is emitted to somebody who blocked the source |
-| `[ ]` T-272 | The inbox, and a deep link that lands on the exact thing | T-271 | Every notification opens the match, profile, group or conversation that caused it |
+| `[x]` T-271 | Emission from the events that already happen | T-270 | Nothing is emitted twice, and nothing is emitted to somebody who blocked the source |
+| `[x]` T-272 | The inbox, and a deep link that lands on the exact thing | T-271 | Every notification opens the match, profile, group or conversation that caused it |
 | `[ ]` T-273 | Quiet hours and frequency limits | T-272 | A quiet-hours notification is delayed or dropped by rule, and says which |
 
 **A notification is a consequence, not a feature.** Every one of them is already
@@ -2147,8 +2147,44 @@ hours. Settlement and message notifications are held back with them, because
 both are high-volume and deserve the frequency rules rather than arriving
 before them.
 
-31 tests in the notifications boundary: 20 against the schema, 11 over HTTP. The
-whole API suite is 725 passing.
+31 tests in the notifications boundary: 20 against the schema, 11 over HTTP.
+
+---
+
+**T-272 verified on 2026-09-15.**
+
+**The deep link is a pair of identifiers, and the client builds the URL.** A URL
+built in the API would put the web app's routing table in the API, and Phase 4's
+second client (E32) would have to either accept the web's routes or ignore the
+field.
+
+**The pair alone was not enough, and that only surfaced here.** A profile is
+reached at `/u/{username}` and a group at `/groups/{slug}`, while `subject_id`
+holds the canonical UUID (rule 1) -- so two of the four things the criterion
+names could not be opened from what T-270 stored. The store resolves a
+`subject_label` at read time, which keeps the id as the key and gives the client
+the handle a route is actually spelled with.
+
+**A subject that no longer resolves gets no link, and the notification is still
+shown.** A group that was deleted still happened; a link that 404s is worse than
+none (rule 3). The page renders the sentence without one.
+
+**Every kind comes back from the settings endpoint**, with the value in force
+and whether it is the member's own. A client given only the departures would
+need the defaults too, and that is how a second copy of them gets written --
+which T-270 went to some trouble to avoid.
+
+**Turning something on that was already on is still a choice**, and the
+difference matters the day a default changes: that member said yes. `chosen` is
+what carries it.
+
+Unread is counted across the whole inbox rather than the page, so a badge does
+not fall when somebody scrolls. And the test asserts that as a relationship
+rather than a number, because a hardcoded total only says how many rows the file
+happens to seed.
+
+46 tests in the notifications boundary (20 schema, 26 HTTP) and 15 on the page.
+The whole web suite is 226 passing.
 
 ---
 

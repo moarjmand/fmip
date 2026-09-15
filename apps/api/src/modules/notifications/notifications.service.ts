@@ -102,6 +102,47 @@ export class NotificationsService {
     }
   }
 
+  /** The inbox itself (T-272). Only what is deliverable now; held ones wait. */
+  inbox(userId: string, limit: number) {
+    return this.store.inbox(userId, limit);
+  }
+
+  unread(userId: string): Promise<number> {
+    return this.store.unreadCount(userId);
+  }
+
+  readAll(userId: string): Promise<number> {
+    return this.store.readAll(userId);
+  }
+
+  read(notificationId: string, userId: string): Promise<boolean> {
+    return this.store.read(notificationId, userId);
+  }
+
+  mutedKinds(userId: string): Promise<Set<string>> {
+    return this.store.mutedKinds(userId);
+  }
+
+  chosenKinds(userId: string): Promise<Set<string>> {
+    return this.store.chosenKinds(userId);
+  }
+
+  setPreference(userId: string, kind: NotificationKind, inProduct: boolean): Promise<void> {
+    return this.store.setPreference(userId, kind, inProduct);
+  }
+
+  quietHours(userId: string): Promise<{ starts_at: string; ends_at: string } | null> {
+    return this.store.quietHours(userId);
+  }
+
+  setQuietHours(userId: string, starts: string, ends: string): Promise<void> {
+    return this.store.setQuietHours(userId, starts, ends);
+  }
+
+  clearQuietHours(userId: string): Promise<void> {
+    return this.store.clearQuietHours(userId);
+  }
+
   /**
    * Tell several members about one thing.
    *

@@ -16,6 +16,7 @@ export interface NotificationRow {
   kind: string;
   subject_type: string;
   subject_id: string;
+  subject_label: string | null;
   source: string | null;
   created_at: Date;
   read_at: Date | null;
@@ -76,19 +77,85 @@ export class PostgresNotificationsStore {
     return new Set(rows.map((row) => row.kind));
   }
 
+  /** Which kinds this member has an opinion about at all, either way. */
+  async chosenKinds(userId: string): Promise<Set<string>> {
+    const { rows } = await this.pool.query<{ kind: string }>(
+      `SELECT kind FROM notification_preference WHERE user_id = $1`,
+      [userId],
+    );
+    return new Set(rows.map((row) => row.kind));
+  }
+
+  /** Set or change one. Idempotent: the end state is what was asked for. */
+  async setPreference(userId: string, kind: string, inProduct: boolean): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO notification_preference (user_id, kind, in_product)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (user_id, kind) DO UPDATE SET in_product = EXCLUDED.in_product`,
+      [userId, kind, inProduct],
+    );
+  }
+
+  /** The member's quiet window, as they set it, or null. */
+  async quietHours(userId: string): Promise<{ starts_at: string; ends_at: string } | null> {
+    const { rows } = await this.pool.query<{ starts_at: string; ends_at: string }>(
+      // `to_char` rather than the raw `time`, which pg renders as `23:00:00`.
+      // The contract says `HH:MM` and the seconds were never asked for.
+      `SELECT to_char(starts_at, 'HH24:MI') AS starts_at, to_char(ends_at, 'HH24:MI') AS ends_at
+         FROM quiet_hours WHERE user_id = $1`,
+      [userId],
+    );
+    return rows[0] ?? null;
+  }
+
+  async setQuietHours(userId: string, starts: string, ends: string): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO quiet_hours (user_id, starts_at, ends_at)
+       VALUES ($1, $2::time, $3::time)
+       ON CONFLICT (user_id) DO UPDATE SET starts_at = EXCLUDED.starts_at, ends_at = EXCLUDED.ends_at`,
+      [userId, starts, ends],
+    );
+  }
+
+  async clearQuietHours(userId: string): Promise<void> {
+    await this.pool.query(`DELETE FROM quiet_hours WHERE user_id = $1`, [userId]);
+  }
+
   /** One member's inbox, newest first, only what is deliverable now (T-272). */
   async inbox(userId: string, limit: number): Promise<NotificationRow[]> {
     const { rows } = await this.pool.query<NotificationRow>(
+      // The handle the client routes by, resolved here because only the
+      // database can (T-272). A member is reached at `/u/{username}` and a group
+      // at `/groups/{slug}`, while `subject_id` is the canonical UUID (rule 1) --
+      // so the pair alone cannot open two of the four things the criterion
+      // names. Left null when the subject no longer resolves, and a client
+      // without a label renders no link rather than a broken one.
       `SELECT n.id,
               n.kind,
               n.subject_type,
               n.subject_id,
+              CASE n.subject_type
+                WHEN 'member' THEN subject_member.username
+                WHEN 'group' THEN subject_group.slug
+                ELSE NULL
+              END AS subject_label,
               source.username AS source,
               n.created_at,
               n.read_at,
               n.held_reason
          FROM notification n
          LEFT JOIN user_account source ON source.id = n.source_id
+         -- Joined on a cast rather than a foreign key, because the subject is
+         -- one of several tables chosen by its type (T-270), and a subject_id
+         -- that is not a uuid must not fail the whole query.
+         LEFT JOIN user_account subject_member
+                ON n.subject_type = 'member'
+               AND n.subject_id ~ '^[0-9a-f-]{36}$'
+               AND subject_member.id = n.subject_id::uuid
+         LEFT JOIN user_group subject_group
+                ON n.subject_type = 'group'
+               AND n.subject_id ~ '^[0-9a-f-]{36}$'
+               AND subject_group.id = n.subject_id::uuid
         WHERE n.user_id = $1 AND n.deliver_after <= now()
         ORDER BY n.created_at DESC
         LIMIT $2`,
