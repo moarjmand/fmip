@@ -77,6 +77,14 @@ things it deliberately does not build.
 - Native mobile via Expo, reusing the same API and shared types.
 - Notification campaigns and personalisation depth.
 
+**Planned in `04-tasks-phase-4.md`** (2026-09-15, at the maintainer's request,
+while Phase 3 is still being built). Four epics, eighteen tasks. Three of the
+four bands are blocked on the maintainer -- translators, a broadcast licence,
+store accounts -- so the plan separates what is buildable before each blocker
+clears from what is not, the way D-061 let the news schema proceed without the
+licence. **E25, E26 and E27 come first**; E27 in particular, because it is what
+Phase 4's outward delivery delivers.
+
 ## Phase 5 — Intelligence layer
 
 - LLM-assisted features: match summaries, natural-language search over football

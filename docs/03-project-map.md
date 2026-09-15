@@ -43,6 +43,7 @@ incomplete.
 | `04-tasks-phase-1.md` | Task backlog with acceptance criteria | Picking up work |
 | `04-tasks-phase-2.md` | The Phase 2 backlog: epics, the order they unblock each other in, and which two-thirds need nobody's permission | Planning or picking up Phase 2 |
 | `04-tasks-phase-3.md` | The Phase 3 backlog: the community epics in the order the exits come before the surfaces (D-053), and what the maintainer has to write rather than the agent | Planning or picking up Phase 3 |
+| `04-tasks-phase-4.md` | The Phase 4 backlog: the seven remaining languages, watch and highlights, native mobile, and notifications that leave the building. Written on request while Phase 3 is still being built, so every epic separates what is buildable before its blocker clears from what is not -- eight of eighteen tasks need nothing from the maintainer. Records what the phase declines to build. | Planning Phase 4, or checking whether something is blocked |
 | `05-data-providers.md` | Provider research, the bake-off protocol, and which free source the pipeline runs on until T-025 (D-049) | Touching ingestion |
 | `06-session-handoff.md` | How to resume in a fresh chat | Starting a new session |
 | `07-backups.md` | Backups and the restore drill (T-072, D-032) | Touching the database host or the backup scripts |
