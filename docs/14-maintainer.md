@@ -71,7 +71,34 @@ manifest is valid; it cannot assert that Chrome offered to install it.
 
 **Outcome:** signed off in `00-decisions.md`.
 
-## 5. Standing: approving contributors and analysts
+## 5. Two members on the preview, so Phase 3 can be closed (~5 minutes)
+
+**Why yours.** Not a judgement -- a login. Conversations, friendship and
+predictions all refuse an unverified e-mail, the preview has no mail provider
+(T-330 is open), so the verification link is written to the service log and the
+log is behind your Render account. A session cannot read it, and cannot create
+accounts on a public address on your behalf.
+
+**What it unblocks.** The rest of Phase 3's exit criteria. Everything that does
+not need two members is already walked and recorded in `04-tasks-phase-3.md`.
+
+1. Open `https://fmip-preview.onrender.com/en/register` and register two
+   accounts. Any names; the data there is demonstration data and says so.
+2. Render dashboard -> `fmip-preview` -> **Logs**. Each registration writes a
+   line beginning `[mail] to=...` followed by a `.../verify-email?token=...`
+   link.
+3. Open both links. That is the whole gate.
+
+Then either walk Blueprint 19's list yourself, or say so and a session will --
+with two accounts in existence, all of it is ordinary HTTP.
+
+**The alternative, if you would rather not.** The accounts could be seeded
+instead, and then nobody has to register anything. It needs a password in the
+seed file, which two standing rules touch: never write a password into a file,
+and a known credential on a public address is a product decision rather than a
+technical one. Say which you prefer; neither is assumed.
+
+## 6. Standing: approving contributors and analysts
 
 **Why yours.** `13-policy.md` §3: a grant is a row that names its approver and
 their reason. "The system approved it" is not an approver, which is the whole

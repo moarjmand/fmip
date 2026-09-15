@@ -53,6 +53,49 @@ could get away from:
   Community-written analysis (blueprint 10.3) stays separate from the founder's
   analysis, from the model and from the consensus, and the guard proves it.
 
+### Walked on the public deployment, 2026-09-16
+
+The preview at `https://fmip-preview.onrender.com` carries development fixture
+data and says so on every page (T-087, D-065), which is what made this possible
+at all: before that it held an empty database and nothing could be exercised.
+
+**Met, on the deployment.**
+
+| Criterion | What was seen |
+|---|---|
+| A fourth opinion stays separate | All four panels render on the public match page, each under its own heading, and the community one says what it is *not* |
+| Controlled discussion is closed to a guest | The match page renders `panel-refusal`, and `panel-none` where no discussion is open -- two different facts, both stated |
+| Member surfaces are member-only | `/friends`, `/groups`, `/messages`, `/notifications`, `/settings` and `/admin/analysis-reviews` each answer a guest with `307` to the sign-in page |
+| Nothing is shown that is not there | `/predictions` answers a guest `200` and asks them to sign in; `/scores` says "No fixtures on this day" rather than rendering an empty grid |
+
+**Not met, and the reason is not the code.**
+
+Everything else on the list -- friend requests and blocking, group roles and
+invitations, messages arriving in order, a grant given **and withdrawn**, a
+report producing an audit row -- needs **two members interacting**, and the
+preview has none. The seed builds a catalogue and fixtures; it does not build
+accounts.
+
+Registering them is not something a session does: conversations, friendship and
+predictions all refuse an unverified e-mail, and this deployment has no mail
+provider (T-330 is open), so the verification link exists only in the service
+log, behind the maintainer's own Render account. `docs/14-maintainer.md` has the
+procedure, and it is about five minutes.
+
+**One criterion cannot be met here at all, and should not be recorded as
+pending.** "Messages **arrive in real time**" needs Redis for the bus and an
+edge that routes the socket; the preview has neither, by design (`11-preview.md`
+says why). Ordering is checkable; immediacy is not. It waits for T-074, and
+saying so is the point -- a criterion nobody can perform is not a criterion
+nearly met.
+
+**What this exercise was worth on its own.** It found a bug no local check
+could: `/en` rendered with no demonstration marker in its title while every page
+below it carried one, because a Next.js title template does not reach a page in
+its layout's own segment. The variable it depends on exists only at runtime, on
+a deployment. That is what "checked on the public deployment" is *for*, and it
+proved itself on the first surface it was applied to.
+
 ---
 
 ## Epic order and what blocks what
