@@ -1712,7 +1712,7 @@ the gate is the whole feature.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-250 | Eligibility as a derived view; approval as an audited grant | T-054, T-212 | Eligibility is computed and never grants; approval names its approver and reason |
-| `[~]` T-251 | The discussion: open to read, gated to post, linked to the match | T-250, T-221 | A guest reads; an unapproved member cannot post and is told why |
+| `[x]` T-251 | The discussion: open to read, gated to post, linked to the match | T-250, T-221 | A guest reads; an unapproved member cannot post and is told why |
 | `[ ]` T-252 | Reactions, and following a contributor | T-251, T-042 | Reacting is open to members; it never becomes posting access |
 | `[ ]` T-253 | Featured matches: which fixtures have a panel at all | T-251, T-070 | An operator decides, with an audit row |
 
@@ -1836,6 +1836,27 @@ scroll past the same opinion twice and think nothing of it.
 
 31 tests: 15 against the real schema (#138) and 16 over HTTP, read with and
 without a session.
+
+**T-251 closed on 2026-09-15** with the page. The panel renders on the match
+page **outside** the `me !== null` branch `MatchThreads` sits in -- that guard is
+correct for a thread, which happens inside a group, and copying it is exactly
+how the public discussion would have become private with nobody deciding to. The
+test asserts the ordering, so moving the panel below the guard fails and has to
+be argued for.
+
+**A refusal with no words is still a gate, and a worse one**: the member does not
+learn there is anything to ask about. So the sentence goes where the compose box
+would be, keyed by the contract's union so that a new refusal cannot be added
+without one. Falling short renders the shortfall list; qualifying and waiting
+renders a different sentence, because "reach a rating of 70" said to somebody
+with 82 is worse than silence.
+
+**The browser checks nothing.** `panel-actions.ts` posts and shows whatever the
+API said. A permission check there would be a third copy of a rule that already
+has two homes, and the copy in the browser is the one that goes stale first -- a
+contributor paused a second ago would still see the button work.
+
+44 tests: 15 against the real schema, 16 over HTTP, 13 on the page.
 
 ---
 
