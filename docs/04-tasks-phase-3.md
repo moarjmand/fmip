@@ -2028,7 +2028,7 @@ they need a delivery provider, which is the maintainer's (T-074).
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-270 | Schema and contracts: `notification`, `notification_preference`, quiet hours | T-041 | A preference exists per type; a missing row means the documented default |
-| `[ ]` T-271 | Emission from the events that already happen | T-270 | Nothing is emitted twice, and nothing is emitted to somebody who blocked the source |
+| `[~]` T-271 | Emission from the events that already happen | T-270 | Nothing is emitted twice, and nothing is emitted to somebody who blocked the source |
 | `[ ]` T-272 | The inbox, and a deep link that lands on the exact thing | T-271 | Every notification opens the match, profile, group or conversation that caused it |
 | `[ ]` T-273 | Quiet hours and frequency limits | T-272 | A quiet-hours notification is delayed or dropped by rule, and says which |
 
@@ -2081,8 +2081,44 @@ enforces is a promise the product does not keep. A notification kind is shown to
 nobody until the preferences surface exists, and widening a CHECK in four later
 migrations would put the list in four places.
 
-Nothing in the API writes these tables yet: emission is T-271, the inbox T-272.
 20 cases against the real schema.
+
+**T-271 started on 2026-09-15**: the emission core, and the first producer. The
+rest of the producers are the remaining part and the row stays `[~]` until they
+land.
+
+**`NotificationsModule` imports nothing.** That is what makes it safe for every
+other module to import, and it is the whole architectural decision: a
+notification is a consequence of something that happened elsewhere, so the
+boundary that records consequences must not depend on the ones that produce
+them. A cycle here would be a cycle between almost every module in the product.
+The cost is that it knows nothing about what it describes -- ids and kinds, not
+fixtures and conversations -- and the deep link is resolved by whoever reads the
+inbox (T-272).
+
+**`emit` never throws**, which is a deliberate asymmetry with the rest of this
+codebase. A friend request that succeeded and then failed because a notification
+could not be written is a friend request the member is told failed, and they
+will send it again. So the outcome is a value -- `sent`, `muted`, `duplicate`,
+`blocked`, `failed` -- and a real fault is logged and swallowed. It is safe only
+because nothing depends on a notification existing: the inbox is a convenience
+over records that are already durable elsewhere, and the test asserts the
+friendship survives a refused notification.
+
+**The block is not checked in the service.** `notification_block_guard` refuses
+one whose source the recipient blocked, and `emit` treats `PL003` as an ordinary
+outcome. A check in the service would be a second copy of the rule and would go
+stale the moment a block was created between the check and the write. The test
+exercises the direction a check written from the blocker's side would miss.
+
+**Nothing is emitted twice, at both layers.** The producer emits only when the
+write actually changed something -- re-sending a friend request that already
+stands changes nothing -- and the partial unique index catches what the producer
+misses.
+
+The first producer is the social graph, chosen because it is the clearest block
+case: a friend request is one member reaching another, which is what a block is
+for. 29 tests: 20 against the schema and 9 over HTTP.
 
 ---
 

@@ -3,6 +3,7 @@ import type { Pool } from 'pg';
 import type { BlockedMember, Friend, FriendRequest, FriendStatus } from '@fmip/contracts';
 import { PG_POOL } from '../../database/database.module';
 import { ModerationService } from '../moderation/moderation.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { SocialStore } from './internal/social-store';
 
 /** SQLSTATE raised by the T-200 triggers when a block stands between two members. */
@@ -57,6 +58,7 @@ export class SocialService {
   constructor(
     @Inject(PG_POOL) pool: Pool,
     private readonly moderation: ModerationService,
+    private readonly notifications: NotificationsService,
   ) {
     this.store = new SocialStore(pool);
   }
@@ -131,7 +133,25 @@ export class SocialService {
     if (!viewer.emailVerified) return { ok: false, reason: 'email_unverified' };
 
     try {
-      return { ok: true, changed: await this.store.request(viewer.id, other.id) };
+      const changed = await this.store.request(viewer.id, other.id);
+      // Only when a request was actually created. Re-sending one that already
+      // stands changes nothing, and telling the other member again about
+      // something that has not changed is the "emitted twice" this epic exists
+      // to prevent (T-271).
+      if (changed) {
+        await this.notifications.emit({
+          userId: other.id,
+          kind: 'friend_request',
+          subjectType: 'member',
+          subjectId: viewer.id,
+          sourceId: viewer.id,
+          // One standing request is one notification, however many times the
+          // button is pressed. The key is the pair, so a withdrawn-and-resent
+          // request is still the same thing being asked.
+          dedupeKey: `friend_request:${viewer.id}`,
+        });
+      }
+      return { ok: true, changed };
     } catch (error) {
       if (isBlocked(error)) return { ok: false, reason: 'unavailable' };
       if (isSanctioned(error)) return { ok: false, reason: 'restricted' };
@@ -155,7 +175,20 @@ export class SocialService {
     if (!viewer.emailVerified) return { ok: false, reason: 'email_unverified' };
 
     try {
-      return { ok: true, changed: await this.store.accept(viewer.id, other.id) };
+      const changed = await this.store.accept(viewer.id, other.id);
+      if (changed) {
+        // The other way round from the request: the person who *sent* it is the
+        // one who wants to know it was accepted.
+        await this.notifications.emit({
+          userId: other.id,
+          kind: 'friend_accepted',
+          subjectType: 'member',
+          subjectId: viewer.id,
+          sourceId: viewer.id,
+          dedupeKey: `friend_accepted:${viewer.id}`,
+        });
+      }
+      return { ok: true, changed };
     } catch (error) {
       if (isBlocked(error)) return { ok: false, reason: 'unavailable' };
       if (isSanctioned(error)) return { ok: false, reason: 'restricted' };
