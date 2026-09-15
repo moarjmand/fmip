@@ -176,6 +176,21 @@ export type {
   SettlementVoidReason,
   SubmitPredictionRequest,
 } from './predictions';
+// Approval to post on a public panel (blueprint 9.4 and 10.2, T-250). Computed
+// eligibility and a granted privilege are separate types on purpose: nothing
+// here lets one become the other.
+export type {
+  ContributorCandidate,
+  ContributorEligibility,
+  ContributorGrant,
+  ContributorListResponse,
+  ContributorStatusResponse,
+  EligibilityShortfall,
+  GrantContributorRequest,
+  GrantEvent,
+  GrantEventRequest,
+  GrantStanding,
+} from './contributor';
 export type {
   CareerPoints,
   CareerPointsResponse,
