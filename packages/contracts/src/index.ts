@@ -193,6 +193,22 @@ export type {
   PanelReactionTally,
 } from './panel-social';
 
+// In-product notifications (blueprint 12.2, T-270). The defaults live here and
+// nowhere else: "a missing preference row means the documented default" is only
+// true while the document and the code are the same thing.
+export { NOTIFICATION_DEFAULTS, NOTIFICATION_KINDS, isNotificationKind } from './notifications';
+export type {
+  Notification,
+  NotificationKind,
+  NotificationPreference,
+  NotificationSettings,
+  NotificationSubject,
+  NotificationsResponse,
+  QuietHours,
+  SetNotificationPreferenceRequest,
+  SetQuietHoursRequest,
+} from './notifications';
+
 // The public match discussion (blueprint 10.2, T-251). Reading is open and
 // posting is granted, so the panel and the viewer's permission are separate
 // shapes: a guest gets the first and the second does not apply to them.
