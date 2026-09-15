@@ -22,7 +22,7 @@ import type { FastifyRequest } from 'fastify';
 import { GroupsService } from '../groups/groups.service';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { CareerPointsService } from './career-points.service';
-import { eligibilityFor } from './internal/eligibility';
+import { ContributorService } from './contributor.service';
 import { parseLeaderboardQuery } from './internal/leaderboard';
 import { ReputationService } from './reputation.service';
 
@@ -45,6 +45,7 @@ export class ReputationController {
     private readonly points: CareerPointsService,
     private readonly identity: IdentityService,
     private readonly groups: GroupsService,
+    private readonly contributors: ContributorService,
   ) {}
 
   @Get('me/rating')
@@ -162,12 +163,29 @@ export class ReputationController {
     return { username: user.username, points };
   }
 
-  /** Blueprint 9.4: rating, sample and verified contact; never Career Points. */
+  /**
+   * Blueprint 9.4's requirements, as this endpoint has always published them.
+   *
+   * T-250 added conduct to the same computation and moved it behind
+   * `ContributorService`. This is now a **projection** of that one answer, not a
+   * second one: `reasons` is the shortfall list flattened. A separate
+   * computation here would be two answers to one question, which is exactly the
+   * defect the contributor work exists to avoid. The fuller shape, with the
+   * grant beside it, is `GET /me/contributor`.
+   */
   @Get('me/eligibility')
   async myEligibility(@Req() request: FastifyRequest): Promise<EligibilityResponse> {
     const user = await this.viewer(request);
-    const rating = await this.reputation.current(user.id);
-    return { username: user.username, eligibility: eligibilityFor(rating, user.email_verified) };
+    const eligibility = await this.contributors.eligibilityOf(user.id);
+    if (eligibility === null) throw new NotFoundException(NO_USER);
+    return {
+      username: user.username,
+      eligibility: {
+        eligible: eligibility.qualifies,
+        reasons: eligibility.shortfalls.map((shortfall) => shortfall.message),
+        rules_version: eligibility.rules_version,
+      },
+    };
   }
 
   @Post('ratings/recompute')
