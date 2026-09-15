@@ -10,7 +10,13 @@ import {
   RemoveMessage,
 } from '@/components/conversation-controls';
 import { LiveConversation } from '@/components/live-conversation';
-import { fetchConversation, fetchConversationSearch, fetchMe } from '@/lib/api';
+import { GroupComparison } from '@/components/group-comparison';
+import {
+  fetchConversation,
+  fetchConversationSearch,
+  fetchGroupComparison,
+  fetchMe,
+} from '@/lib/api';
 import { markReadAction } from '@/lib/conversation-actions';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
@@ -90,6 +96,15 @@ export default async function ConversationPage({
 
   const shown = found !== null && found.ok ? found.data.messages : page.messages;
 
+  // A thread is about a match, so what the group called it is the one thing
+  // worth putting beside the conversation (T-246). Asked only for a thread:
+  // there is no fixture to compare in any other kind.
+  const thread = page.conversation;
+  const comparison =
+    thread.kind === 'group_thread' && thread.fixture !== null && thread.group !== null
+      ? await fetchGroupComparison(thread.group.slug, thread.fixture.id, cookie)
+      : null;
+
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
       <ConversationHeader conversation={page.conversation} me={me.username} locale={locale} />
@@ -97,6 +112,19 @@ export default async function ConversationPage({
       <Link href={`/${locale}/messages`} className="text-sm underline">
         All conversations
       </Link>
+
+      {comparison !== null &&
+        (comparison.ok ? (
+          <GroupComparison
+            comparison={comparison.data.comparison}
+            locale={locale}
+            groupName={thread.group?.name ?? 'this group'}
+          />
+        ) : (
+          <p role="alert" data-testid="group-comparison-unreachable" className="text-sm">
+            What the group called cannot be shown right now.
+          </p>
+        ))}
 
       <form action={`/${locale}/messages/${id}`} className="flex items-center gap-2">
         <label htmlFor="conversation-search" className="sr-only">

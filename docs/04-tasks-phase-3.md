@@ -1317,7 +1317,7 @@ a different visibility and an invitation rule, not a second feature.
 | `[x]` T-243 | The group leaderboard | T-241, T-055 | The same rating rules as the global board, scoped — never a second formula |
 | `[x]` T-244 | Match threads inside a group | T-241 | A thread is a conversation about a fixture, and says which |
 | `[x]` T-246 | Prediction comparison inside a group | T-243, T-052, T-056 | Who called a fixture which way, in one place; never a second settlement |
-| `[ ]` T-248 | Group surfaces for threads and comparisons | T-244, T-246 | A thread is opened from the match it is about, and shows what the group called |
+| `[x]` T-248 | Group surfaces for threads and comparisons | T-244, T-246 | A thread is opened from the match it is about, and shows what the group called |
 
 **T-243 was split on 2026-09-15.** It read "the group leaderboard and prediction
 comparison" and those are two features that share a sentence and nothing else:
@@ -1621,8 +1621,38 @@ comparison.
 
 8 cases against the real schema.
 
-**What is not here.** The surfaces for either (T-248): opening a thread from a
-match page, and the comparison on a thread's page.
+**T-248 verified on 2026-09-15.** The control on the match page, the comparison
+on the thread's page, and a name for every conversation at the top of its own
+page.
+
+**The control is on the match, which is what the criterion asks.** A member
+pressing "discuss in ..." on a group page would have had to say which match they
+meant; on the match page there is nothing to say. One button per group, and the
+same button whether or not the thread exists, because opening is idempotent
+(T-244) -- so nothing is asked before the page can draw itself, which for a
+member in six groups would have been six requests to render one line, stale by
+the time one was pressed. It redirects into the room: somebody who pressed
+"discuss this match" wants to be in the conversation, not told one now exists.
+
+**The comparison computes nothing, and the guard is written for that.** The
+verdict beside a call is the stored settlement (D-063); a component that worked
+out for itself whether somebody was right would be the same defect the API
+refuses, reappearing where nobody would look for it. The guard checks the
+component reads `settlement.outcome_correct` and never compares a predicted
+outcome against an actual score.
+
+**"Not settled yet" is a verdict.** So is "Void". A blank in that column would
+have been a member the product had quietly nothing to say about.
+
+**The header named a group conversation "A conversation with nobody else."**
+That fell out of T-245 -- a group's membership is not copied into the
+conversation (D-058) -- and nobody had looked at the page since. It goes through
+`conversationTitle` now, like the list, and a thread's header links the match,
+says its standing, and links the group.
+
+11 guards.
+
+**What is not here.** Nothing in E24.
 
 ---
 

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { conversationTitle, threadStanding } from '@/lib/conversation-title';
 import type { ConversationSummary, Message, SharedCard } from '@fmip/contracts';
 import { Score } from '@/components/score';
 
@@ -186,14 +187,34 @@ export function ConversationHeader({
   locale: string;
 }) {
   const others = conversation.members.filter((member) => member.username !== me);
+  const match = conversation.fixture;
 
   return (
     <div className="flex flex-col gap-2" data-testid="conversation-header">
-      <h1 className="text-2xl font-semibold">
-        {others.length === 0
-          ? 'A conversation with nobody else'
-          : others.map((member) => member.display_name).join(', ')}
-      </h1>
+      {/* One name for every kind (T-248). A group's room and each of its match
+          threads carry the same group and no members of their own, so titling
+          by the group alone would have called them all the same thing — and a
+          direct conversation with nobody left in it is still not a group. */}
+      <h1 className="text-2xl font-semibold">{conversationTitle(conversation, me)}</h1>
+      {match !== null && (
+        <p className="text-sm" data-testid="conversation-fixture">
+          <Link href={`/${locale}/match/${match.id}`} className="underline">
+            {match.home} v {match.away}
+          </Link>
+          <span className="opacity-70"> · {threadStanding(conversation)}</span>
+          {conversation.group !== null && (
+            <>
+              {' · '}
+              <Link
+                href={`/${locale}/groups/${encodeURIComponent(conversation.group.slug)}`}
+                className="underline"
+              >
+                {conversation.group.name}
+              </Link>
+            </>
+          )}
+        </p>
+      )}
       <p className="text-sm opacity-70">
         {others.map((member) => (
           <Link
