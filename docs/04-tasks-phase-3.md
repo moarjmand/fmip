@@ -968,7 +968,7 @@ in the stack (D-006-era decisions and the live path), and the SSE change feed is
 the precedent for keeping the transport separate from the data.
 
 **An operational note that belongs here rather than in a surprise.** The free
-Koyeb preview (`docs/11-koyeb.md`, D-051) sleeps its instance after an hour
+public preview (`docs/11-preview.md`, D-064) sleeps its container after 15 minutes
 without traffic, which drops every socket. That is fine for a preview and must
 not become the reference environment for judging whether chat works.
 
@@ -1030,7 +1030,7 @@ stops, rather than shipping a working version of the wrong thing.
 thing `app.inject` cannot stand in for. 54 across the three conversation suites.
 
 **What is not here.** The browser cannot reach it (T-234), nothing publishes into
-it (T-231), and the Koyeb preview has no edge that would route it (D-051).
+it (T-231), and the public preview has no edge that would route it (D-064).
 
 **T-231 verified on 2026-09-14.** `internal/chat-bus.ts` is a Redis pub/sub
 channel with the two connections Redis requires (a client in subscribe mode may
@@ -1147,7 +1147,7 @@ acceptance criterion. The page is **T-237**, and it is the larger half: the E22
 surfaces are deliberately script-free, so a socket has to arrive as an
 enhancement that adds nothing the page depends on.
 
-**The free preview does not get this, and says so** (`docs/11-koyeb.md`). It has
+**The free preview does not get this, and says so** (`docs/11-preview.md`). It has
 no Redis, so the bus is `absent`; and it has no edge, because one published port
 is held by Next.js. Conversations work there in full — every one of them works
 over ordinary requests — and what is missing is immediacy. Which is also why the

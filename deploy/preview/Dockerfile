@@ -1,6 +1,6 @@
-# The preview image for Koyeb (T-086, D-051).
+# The preview image (T-086, D-064).
 #
-# One container, because a Koyeb free organisation gets one free Instance. It
+# One container, because the free plan of every host worth using gives one. It
 # runs the API and the web app together and exposes only the web app's port:
 # nothing in the browser talks to the API directly — the Next.js route handlers
 # proxy `/api/scores/stream` and `/api/fixtures/:id/stream` server-side — so a
@@ -13,7 +13,7 @@
 # fixtures (they live under `src/`, which no built package ships).
 #
 # Built from the repository root:
-#   docker build -f deploy/koyeb/Dockerfile -t fmip-preview .
+#   docker build -f deploy/preview/Dockerfile -t fmip-preview .
 
 FROM node:22-alpine AS base
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH
@@ -88,7 +88,7 @@ COPY --from=build --chown=node:node /app/packages/db/migrations ./db/migrations
 COPY --from=build --chown=node:node /tmp/migrator/node_modules ./db/migrator/node_modules
 COPY --from=build --chown=node:node /app/packages/db/seed ./db/seed
 
-COPY --chown=node:node deploy/koyeb/start.mjs ./start.mjs
+COPY --chown=node:node deploy/preview/start.mjs ./start.mjs
 
 EXPOSE 8000
 CMD ["node", "start.mjs"]

@@ -1406,7 +1406,13 @@ decision from the maintainer, not more research.
 ---
 
 ## D-051 — The stable free preview is one Koyeb container holding the web app and the API, and it declares what it does not have
-**Status:** Accepted · 2026-09-13
+**Status:** Superseded by D-064 · 2026-09-13, superseded 2026-09-15
+
+> **Why it ended.** Not because the reasoning was wrong — the one-container shape
+> it chose is the shape D-064 keeps. Koyeb was acquired in February 2026 and
+> withdrew its free Instance from new accounts, so the platform underneath the
+> decision stopped existing. Kept in full, because the shortlist and the
+> trade-offs it weighed are what D-064 was decided from.
 
 **Decision.** Koyeb is the platform for a stable public preview (T-086), chosen
 over Render and Oracle Cloud from the shortlist in `docs/10-public-preview.md`.
@@ -2091,3 +2097,59 @@ over the same thing, and the first one to be forgotten. *Hiding a call until
 kick-off by default*: defensible, and it silently overrides the member's own
 `public` choice -- a decision for the maintainer to make explicitly, which is now
 possible because the place to make it is written down.
+
+
+## D-064 — The preview runs on Render with a Neon database, keeping the shape D-051 chose and replacing only the host
+
+**Date:** 2026-09-15 · **Task:** T-086 · **Status:** accepted
+
+D-051 put the preview on Koyeb's free Instance. Koyeb was acquired by Mistral in
+February 2026, turned toward AI infrastructure, and stopped offering the free
+Instance to new accounts; its plans now begin at $29/month. The maintainer's
+account, opened on 2026-09-15, is a new one. So the preview had no host, three
+days after it had one.
+
+**What was actually lost.** Very little, and this is the part worth recording.
+Of the three files under `deploy/`, exactly one named Koyeb: the script that
+called its CLI. The image holding the web app and the API on one port, the
+supervisor that takes the container down if either half dies, the declared
+absences — none of that was ever about the platform. The directory is now
+`deploy/preview/` and the script is gone.
+
+**Decision.** Render runs the container, Neon holds the database.
+
+*Render*, because its free tier is still real in 2026, it needs no card, it
+builds a Dockerfile straight from the repository, and `render.yaml` makes the
+whole service reviewable in git. It sleeps after 15 minutes and wakes in about
+one — a worse nap than Koyeb's hour, and the same kind of trade-off D-051
+already accepted.
+
+*Neon and not Render's own Postgres*, because **Render deletes a free database
+after 30 days.** A preview that expires on a schedule is a worse failure than no
+preview: it breaks weeks later, silently, for a reason nobody still remembers,
+and the first person to notice will be looking at an unrelated bug. Neon's free
+project is permanent and allows `CREATE EXTENSION` for `pg_trgm` and `unaccent`,
+which T-038's search migration needs.
+
+**The address is no longer a step to remember.** On Koyeb, `SITE_URL` and
+`WEB_BASE_URL` were set by hand after the first deploy, and forgetting them left
+canonical links, the sitemap, the manifest and every link in an e-mail saying
+`localhost` — wrong in a way that raises no error anywhere. `start.mjs` now
+takes the address from the platform when neither variable is set, and logs which
+source it used, including neither. `RENDER_EXTERNAL_URL` is the one
+host-specific name in the image, and it lives in the supervisor because that
+file *is* the deployment: the app reads its own two variables and knows nothing
+about who set them.
+
+**Rejected.** *Paying for Koyeb Pro*: $29/month for a preview, and no session
+spends the maintainer's money (`CLAUDE.md` §7). *Render's free Postgres*: one
+fewer account, in exchange for a deployment with a 30-day fuse. *Going straight
+to the VPS (T-074)*: defensible — the preview exists only to exercise the live
+path before there is a server — but it converts a free step into a purchase and
+a deploy, and the maintainer chose to keep the preview. *Fly.io, Railway*:
+neither has a free allowance worth the name in 2026. *Holding the preview until
+the VPS exists*: leaves T-085's tunnel, which cannot carry the stream, which is
+the entire reason T-086 exists.
+
+**What would reverse this.** T-074. Once the product has a server, the preview
+is a second place for the same thing, and the reason to keep it is habit.

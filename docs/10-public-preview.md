@@ -76,12 +76,16 @@ free plan and give an HTTPS hostname with it. Unlike the quick tunnel these are
 ordinary reverse proxies, so **server-sent events work**, which makes them the
 first real option for testing the live path in public.
 
-The free plans have real limits — a small amount of memory, and on at least one
-of them the service sleeps when idle and takes a while to wake — and the current
-terms were not verified here. Check <https://www.koyeb.com/pricing> and
-<https://render.com/pricing>, then say which one you want and I will write the
-deployment file for it (`render.yaml`, or the Koyeb service definition) against
-the Dockerfiles that already exist.
+The free plans have real limits — a small amount of memory, and the service
+sleeps when idle and takes a while to wake.
+
+> **Settled, twice.** Koyeb was chosen first (D-051, 2026-09-13). It was
+> acquired in February 2026 and withdrew its free Instance from new accounts, so
+> the preview now runs on **Render** with a **Neon** database (D-064,
+> 2026-09-15). The runbook is `docs/11-preview.md`. This section is kept as
+> written because the comparison it makes is what the second choice was made
+> from — and because it is a fair record of how quickly the terms under a free
+> plan can move.
 
 Worth knowing before choosing: the stack is five containers, and a free plan
 that runs one service will not hold all of them. The realistic shape is the web

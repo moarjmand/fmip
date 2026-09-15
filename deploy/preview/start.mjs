@@ -1,6 +1,6 @@
-// Entry point for the Koyeb preview image (T-086, D-051).
+// Entry point for the preview image (T-086, D-064).
 //
-// One container has to hold the two processes a free Instance cannot hold as
+// One container has to hold the two processes a free plan cannot hold as
 // two services, so this is a supervisor, not an init system, and it is
 // deliberately strict about it: if either process dies the container dies with
 // its exit code, so the platform restarts a whole known-good pair rather than
@@ -88,10 +88,45 @@ async function waitForApi(child) {
   die('the API did not answer /health in time', { timeout_ms: HEALTH_TIMEOUT_MS });
 }
 
+/**
+ * The address this preview answers on.
+ *
+ * `SITE_URL` and `WEB_BASE_URL` are what canonical links, the sitemap, the
+ * manifest and every link in an e-mail are built from. Left unset they fall
+ * back to `localhost`, which fails nowhere and looks like nothing: a preview
+ * quietly publishing addresses nobody can open. Rule 3 is about exactly that
+ * shape of wrong, so the supervisor asks the platform rather than leaving it a
+ * step to remember after the first deploy.
+ *
+ * `RENDER_EXTERNAL_URL` is the only host-specific name in this image, and it
+ * belongs here because this file *is* the deployment -- the app reads its own
+ * two variables and knows nothing about who set them. An explicit value always
+ * wins, and whichever source was used is logged, including neither.
+ */
+function resolvePublicAddress() {
+  const fromPlatform = (process.env.RENDER_EXTERNAL_URL ?? '').trim().replace(/\/+$/, '');
+  for (const name of ['SITE_URL', 'WEB_BASE_URL']) {
+    const explicit = (process.env[name] ?? '').trim();
+    if (explicit !== '') {
+      log('preview.address', `${name} was set explicitly`, { [name]: explicit });
+    } else if (fromPlatform !== '') {
+      process.env[name] = fromPlatform;
+      log('preview.address', `${name} taken from the platform`, { [name]: fromPlatform });
+    } else {
+      log(
+        'preview.address_unknown',
+        `${name} is not set and the platform supplied no address; links will say localhost`,
+      );
+    }
+  }
+}
+
 async function main() {
   if (!process.env.DATABASE_URL) {
-    die('DATABASE_URL is not set; the preview has nothing to read. See docs/11-koyeb.md.');
+    die('DATABASE_URL is not set; the preview has nothing to read. See docs/11-preview.md.');
   }
+
+  resolvePublicAddress();
 
   process.chdir('/app/db');
   await migrate();

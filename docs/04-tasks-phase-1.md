@@ -1111,7 +1111,7 @@ tests (7 new on percentages, framing, deltas), typecheck, lint, stylelint.
 | `[x]` T-073 | Load test at expected peak (many concurrent SSE clients) | T-032 | Documented pass at an agreed threshold |
 | `[ ]` T-074 | Production deploy: VPS, Docker Compose, Cloudflare, TLS, domain | T-073 | Zero-downtime redeploy verified |
 | `[x]` T-085 | A free public address for testing, before the deploy exists | T-002 | The running stack answers on public HTTPS, and what the tunnel drops is named |
-| `[~]` T-086 | A stable free preview that carries the live stream (Koyeb) | T-085 | One image serves the site and the stream; what is absent is declared |
+| `[~]` T-086 | A stable free preview that carries the live stream | T-085 | One image serves the site and the stream; what is absent is declared |
 
 **T-072 verified on 2026-09-10.** `scripts/backup/backup.sh` dumps the
 database from inside the postgres container (`pg_dump` custom format,
@@ -1275,12 +1275,12 @@ by the `curl` check the script performs on itself; the public tunnel has not bee
 opened from this session — the sandbox refuses to expose a local port to the
 internet, so the first `start` is the maintainer's.
 
-**T-086 prepared and verified locally on 2026-09-13; open until it runs on
-Koyeb.** D-050 left one gap: a quick tunnel does not carry server-sent events, so
-the live path could not be tested in public. Koyeb was chosen (D-051) and the
-whole deployment is one container, because a free organisation gets one Free
-Instance: `deploy/koyeb/Dockerfile` builds the web app and the API together,
-`deploy/koyeb/start.mjs` migrates, starts the API, waits for `/health`, starts
+**T-086 prepared and verified locally on 2026-09-13; re-hosted 2026-09-15; open
+until it runs.** D-050 left one gap: a quick tunnel does not carry server-sent
+events, so the live path could not be tested in public. The whole deployment is
+one container, because every free plan gives one:
+`deploy/preview/Dockerfile` builds the web app and the API together,
+`deploy/preview/start.mjs` migrates, starts the API, waits for `/health`, starts
 the web app, and takes the container down with the exit code if either process
 dies — a half-running service answering requests it cannot serve is worse than a
 restart.
@@ -1301,10 +1301,18 @@ manifest since T-026, which would have broken that image the next time anyone
 built it — exactly the trap `06-session-handoff.md` says to re-run the emulation
 for.
 
-**What remains is the maintainer's and only that:** a Koyeb account, a Postgres
-database, and the two secrets. `docs/11-koyeb.md` is the runbook, `deploy.sh` is
-the rest. The task stays `[~]` until the service is created, because nothing here
-has been seen running on Koyeb itself.
+**The host changed under it on 2026-09-15, and almost nothing moved.** Koyeb
+(D-051) was acquired and withdrew its free Instance from new accounts, so the
+preview lost its platform three days after gaining one. Of the three files under
+`deploy/`, exactly one named Koyeb -- the script that called its CLI. The image,
+the supervisor and every declared absence were never about the platform. The
+directory is `deploy/preview/`, the service is `render.yaml`, the database is
+Neon, and D-064 records why.
+
+**What remains is the maintainer's and only that:** a Render account, a Neon
+project, and one connection string. `docs/11-preview.md` is the runbook. The
+task stays `[~]` until the service is created, because nothing here has been seen
+running anywhere but a laptop.
 
 ---
 
