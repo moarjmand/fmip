@@ -1993,7 +1993,7 @@ Blueprint 10.3, and the place rule 6 is most likely to break in this phase.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-260 | Schema and contracts: draft, submission, review decision, published version | T-250 | Its own tables and its own contract; nothing shared with the founder's analysis |
+| `[x]` T-260 | Schema and contracts: draft, submission, review decision, published version | T-250 | Its own tables and its own contract; nothing shared with the founder's analysis |
 | `[ ]` T-261 | The workflow: draft → submit → review → approve, request changes or reject → publish | T-260 | Every transition is audited and every published version is immutable |
 | `[ ]` T-262 | The analyst editor and the editorial review queue | T-261 | A reviewer sees the submission, the author's record, and the decision history |
 | `[ ]` T-263 | Publication surfaces, and the guard extended to a fourth opinion | T-262, T-133 | A test fails if community analysis is merged with, or relabelled as, any of the three |
@@ -2016,6 +2016,43 @@ purpose before believing it.
 and rating** (10.3). The kick-off wall that `founder_analysis` has (T-130,
 SQLSTATE `PL002`) applies here for the same reason — a call revised after the
 result is known is not a call — and so does versioning after publication.
+
+---
+
+**T-260 verified on 2026-09-15.**
+
+**Five tables of its own, sharing nothing.** The one-line wrong version of this
+epic is a second `author_id` on `founder_analysis`, and it would pass every test
+about content while making the founder's signature mean nothing -- the column
+that distinguished them would be one a query could forget to filter on. The
+schema spec checks that `founder_analysis_one_per_fixture` still says
+`UNIQUE (fixture_id)`: if community analysis had been folded in, that constraint
+would have had to go, which is how the change would have announced itself.
+
+**The workflow is four rows, not a status column.** A `state` column would be
+one fact kept in one place and changed from four, and the first time it
+disagreed with the rows nobody would know which to believe.
+`community_analysis_state()` derives it, and **published wins** -- a later
+refused revision does not unpublish what the public has already read.
+
+**A submission is a copy, not a reference.** A reviewer must be able to say what
+they were looking at, and a draft that kept changing under them would make every
+decision unverifiable afterwards.
+
+**One review per submission, by the primary key.** Two reviewers reaching
+different conclusions about the same submission is a situation the product has
+no answer for, so it is made impossible rather than resolved arbitrarily. And a
+reason is required on every decision *including an approval*: "why did this get
+through" is as much a question as "why was this refused", and only one of them is
+usually asked in time.
+
+**The kick-off wall guards submission and publication, not the draft.** An
+analyst may keep editing their own unpublished notes after kick-off, because
+nobody has been shown them and nothing is being claimed.
+
+Nothing in the API writes these yet: the workflow is T-261. The contract-level
+four-way separation guard is T-263, as the epic plans it. 17 cases against the
+real schema.
 
 ---
 

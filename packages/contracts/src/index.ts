@@ -13,6 +13,25 @@ export type {
   FounderOutcome,
 } from './founder-analysis';
 
+// Community-written match analysis (blueprint 10.3, T-260). A **fourth** signed
+// opinion, sharing no type with the three prediction products rule 6 names --
+// the resemblance to the founder's analysis is exactly the danger.
+export type {
+  CommunityAnalysesResponse,
+  CommunityAnalysis,
+  CommunityAnalysisContent,
+  CommunityAnalysisState,
+  CommunityAnalysisVersion,
+  CommunityAnalysisWorkspace,
+  CommunityAnalyst,
+  CommunityConfidence,
+  CommunityOutcome,
+  CommunityReview,
+  CommunitySubmission,
+  ReviewAnalysisRequest,
+  SaveAnalysisDraftRequest,
+} from './community-analysis';
+
 // Community consensus (blueprint 6.6, T-134). The third of the three
 // prediction products, sharing no type with the other two (rule 6).
 export { MAX_CONSENSUS_FIXTURES, MIN_CONSENSUS_SAMPLE } from './consensus';
