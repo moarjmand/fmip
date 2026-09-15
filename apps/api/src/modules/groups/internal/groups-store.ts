@@ -296,6 +296,22 @@ export class GroupsStore {
   // Join requests
   // -------------------------------------------------------------------------
 
+  /**
+   * Who can answer a join request: the owner and the moderators.
+   *
+   * Asked for by role rather than "everybody in the group", because a group of
+   * two hundred told about a queue two of them can act on is how a member turns
+   * notifications off entirely (T-271).
+   */
+  async deciderIds(groupId: string): Promise<string[]> {
+    const { rows } = await this.pool.query<{ user_id: string }>(
+      `SELECT user_id FROM group_member
+        WHERE group_id = $1 AND role IN ('owner', 'moderator')`,
+      [groupId],
+    );
+    return rows.map((row) => row.user_id);
+  }
+
   async requestJoin(groupId: string, userId: string, note: string | null): Promise<void> {
     await this.pool.query(
       `INSERT INTO group_join_request (group_id, user_id, note) VALUES ($1, $2, $3)`,

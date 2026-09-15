@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ForecastModule } from '../forecast/forecast.module';
 import { GroupsModule } from '../groups/groups.module';
 import { IdentityModule } from '../identity/identity.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { PredictionsModule } from '../predictions/predictions.module';
 import { CareerPointsService } from './career-points.service';
 import { ContributorController } from './contributor.controller';
@@ -29,7 +30,7 @@ import { ReputationService } from './reputation.service';
  * rule of which is here -- stays here.
  */
 @Module({
-  imports: [IdentityModule, PredictionsModule, ForecastModule, GroupsModule],
+  imports: [IdentityModule, PredictionsModule, ForecastModule, GroupsModule, NotificationsModule],
   controllers: [ReputationController, ContributorController],
   providers: [
     ReputationService,

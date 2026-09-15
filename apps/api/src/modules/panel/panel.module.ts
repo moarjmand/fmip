@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { IdentityModule } from '../identity/identity.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { ReputationModule } from '../reputation/reputation.module';
 import { PostgresPanelAdminStore } from './internal/panel-admin-store';
 import { PostgresPanelSocialStore } from './internal/panel-social-store';
@@ -32,7 +33,7 @@ import { PanelService } from './panel.service';
  * create.
  */
 @Module({
-  imports: [IdentityModule, ReputationModule],
+  imports: [IdentityModule, ReputationModule, NotificationsModule],
   controllers: [PanelController, PanelSocialController, PanelAdminController],
   providers: [
     PanelService,

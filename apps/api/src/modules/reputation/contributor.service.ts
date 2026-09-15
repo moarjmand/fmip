@@ -12,6 +12,7 @@ import {
   type GrantRow,
 } from './internal/contributor-store';
 import { ELIGIBILITY_V1, eligibilityFor } from './internal/eligibility';
+import { NotificationsService } from '../notifications/notifications.service';
 
 /**
  * Contributor eligibility and contributor grants (blueprint 9.4 and 10.2,
@@ -72,6 +73,7 @@ export class ContributorService {
   constructor(
     private readonly store: PostgresContributorStore,
     private readonly identity: IdentityService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /** The four requirements, computed. Grants nothing and never has. */
@@ -144,6 +146,18 @@ export class ContributorService {
     }
     const held = await this.store.grantFor(user.id);
     if (held === null) return { ok: false, why: 'unknown_member' };
+    // **No source.** The contributor rules promise a reason, not a name: a
+    // notification naming the approver would hand a member who was later paused
+    // somebody to argue with, and the decision belongs to the platform. The
+    // audit row names them, where it is read by people who can be held
+    // responsible for reading it (rule 10).
+    await this.notifications.emit({
+      userId: user.id,
+      kind: 'contributor_granted',
+      subjectType: 'member',
+      subjectId: user.id,
+      dedupeKey: `contributor_granted:${held.grant.id}`,
+    });
     return { ok: true, grant: asGrant(held.grant, held.history) };
   }
 
@@ -170,6 +184,16 @@ export class ContributorService {
     }
     const held = await this.store.grantFor(user.id);
     if (held === null) return { ok: false, why: 'no_grant' };
+    // One per act rather than one per grant: a pause and a later withdrawal are
+    // two things a member needs to know about, and a key on the grant alone
+    // would tell them about the first and silently swallow the second.
+    await this.notifications.emit({
+      userId: user.id,
+      kind: 'contributor_grant_changed',
+      subjectType: 'member',
+      subjectId: user.id,
+      dedupeKey: `contributor_grant_changed:${grantId}:${kind}:${held.history.length}`,
+    });
     return { ok: true, grant: asGrant(held.grant, held.history) };
   }
 }

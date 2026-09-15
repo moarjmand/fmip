@@ -99,9 +99,19 @@ export class PostgresPanelSocialStore {
     );
   }
 
-  async postExists(postId: string): Promise<boolean> {
-    const { rows } = await this.pool.query(`SELECT 1 FROM panel_post WHERE id = $1`, [postId]);
-    return rows.length === 1;
+  /**
+   * Who wrote a post, or null if there is no such post.
+   *
+   * One query where "does it exist" and "who wrote it" were two: reacting needs
+   * both -- the first to answer a bad id, the second to know whom to tell
+   * (T-271) -- and asking twice would be two round trips for one fact.
+   */
+  async authorOf(postId: string): Promise<string | null> {
+    const { rows } = await this.pool.query<{ author_id: string }>(
+      `SELECT author_id FROM panel_post WHERE id = $1`,
+      [postId],
+    );
+    return rows[0]?.author_id ?? null;
   }
 
   /** Whom this member follows, with each one's standing as it is now. */

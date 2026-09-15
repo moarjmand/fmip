@@ -8,6 +8,7 @@ import type {
   PanelReactionTally,
 } from '@fmip/contracts';
 import { IdentityService } from '../identity/identity.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PostgresPanelSocialStore } from './internal/panel-social-store';
 
 /**
@@ -42,6 +43,7 @@ export class PanelSocialService {
   constructor(
     private readonly store: PostgresPanelSocialStore,
     private readonly identity: IdentityService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /**
@@ -80,13 +82,29 @@ export class PanelSocialService {
     reaction: PanelReaction,
     on: boolean,
   ): Promise<ReactOutcome> {
-    if (!(await this.store.postExists(postId))) return 'no_post';
+    const author = await this.store.authorOf(postId);
+    if (author === null) return 'no_post';
     try {
       if (on) await this.store.react(postId, userId, reaction);
       else await this.store.unreact(postId, userId, reaction);
     } catch (error) {
       if (codeOf(error) === REMOVED) return 'removed';
       throw error;
+    }
+    // Only on the way in, and one per post per reactor however many of the six
+    // they leave: a contributor is told somebody engaged with what they wrote,
+    // not counted at. `panel_reaction` is off by default for the same reason
+    // (T-270) -- a busy panel can produce dozens an evening and none of them
+    // needs answering.
+    if (on && author !== userId) {
+      await this.notifications.emit({
+        userId: author,
+        kind: 'panel_reaction',
+        subjectType: 'panel_post',
+        subjectId: postId,
+        sourceId: userId,
+        dedupeKey: `panel_reaction:${postId}:${userId}`,
+      });
     }
     return 'ok';
   }
