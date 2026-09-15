@@ -176,6 +176,18 @@ export type {
   SettlementVoidReason,
   SubmitPredictionRequest,
 } from './predictions';
+// Reacting to a panel post and following a contributor (blueprint 10.2, T-252).
+// Both open to any member, and neither a way to post: a reaction is one of six
+// named values and a follow carries nothing at all.
+export { PANEL_REACTIONS, isPanelReaction } from './panel-social';
+export type {
+  FollowStatus,
+  FollowedMember,
+  FollowedMembersResponse,
+  PanelReaction,
+  PanelReactionTally,
+} from './panel-social';
+
 // The public match discussion (blueprint 10.2, T-251). Reading is open and
 // posting is granted, so the panel and the viewer's permission are separate
 // shapes: a guest gets the first and the second does not apply to them.
