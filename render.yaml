@@ -43,23 +43,23 @@ services:
       # Stated rather than detected. `start.mjs` reads PORT and the web app
       # binds it; the API stays on 127.0.0.1 and is not published.
       - key: PORT
-        value: "8000"
+        value: '8000'
       - key: API_PORT
-        value: "3001"
+        value: '3001'
       - key: API_BASE_URL
         value: http://127.0.0.1:3001
       - key: MODEL_SERVICE_URL
-        value: "off"
+        value: 'off'
       - key: INGESTION_SOURCE
-        value: "off"
+        value: 'off'
       - key: INGESTION_SCHEDULE
-        value: "off"
+        value: 'off'
       - key: RUN_MIGRATIONS
-        value: "on"
+        value: 'on'
       # Development fixture data, off by default. Turning it on says in the log
       # that what follows is not product data.
       - key: PREVIEW_SEED
-        value: "off"
+        value: 'off'
       # SITE_URL and WEB_BASE_URL are not set here on purpose: `start.mjs` takes
       # them from the address Render assigns, so the preview's canonical links,
       # sitemap, manifest and e-mails name an address that can actually be
