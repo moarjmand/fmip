@@ -293,7 +293,7 @@ argument for having the pseudo-locale.
 
 | Path | Purpose | Consumed by |
 |---|---|---|
-| `packages/contracts` | API request/response types, shared enums, coverage states. **The single source of truth for the API shape.** | `apps/web`, `apps/api` |
+| `packages/contracts` | API request/response types, shared enums, coverage states. **The single source of truth for the API shape.** | `apps/web`, `apps/api` `platform-independent.spec.ts` (T-321) is the guard that keeps it belonging to no platform: shipped modules import only from themselves, no runtime or peer dependencies, no browser or Node global named in any source, `ES2023` with no `DOM` and no `types`, and the specs excluded from the build. Phase 4's second client rests on this being true; it is checked rather than assumed. |
 | `packages/ingestion` | The normalised model adapters produce, the adapter contract, and the recorded-fixture harness that verifies an adapter, and the three adapters: `api-football` (T-021), `football-data-org` (T-022), `highlightly` (T-023). | `apps/api` |
 | `packages/db` | Schema, migrations, seed data. Plain SQL, applied by node-pg-migrate (D-022). `Dockerfile` builds the production `migrate` tool image (T-074). | `apps/api` |
 | schema `training` (was `packages/db/training`) | Historical datasets for model training only, as a Postgres schema created by the T-060 migration (D-028). **Never read by `apps/api` or `apps/web`** (D-014) | `apps/model` |
