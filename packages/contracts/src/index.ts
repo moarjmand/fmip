@@ -176,6 +176,18 @@ export type {
   SettlementVoidReason,
   SubmitPredictionRequest,
 } from './predictions';
+// The public match discussion (blueprint 10.2, T-251). Reading is open and
+// posting is granted, so the panel and the viewer's permission are separate
+// shapes: a guest gets the first and the second does not apply to them.
+export type {
+  MatchPanelPage,
+  PanelAuthor,
+  PanelPermission,
+  PanelPost,
+  PanelRefusal,
+  SubmitPanelPostRequest,
+} from './match-panel';
+
 // Approval to post on a public panel (blueprint 9.4 and 10.2, T-250). Computed
 // eligibility and a granted privilege are separate types on purpose: nothing
 // here lets one become the other.
