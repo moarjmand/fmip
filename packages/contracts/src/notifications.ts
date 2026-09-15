@@ -64,6 +64,47 @@ export const NOTIFICATION_DEFAULTS: Record<NotificationKind, boolean> = {
   panel_reaction: false,
 };
 
+/**
+ * How many of one kind a member is told about in an hour (T-273).
+ *
+ * **Absent means uncapped**, and most kinds are. A cap is for a thing that can
+ * happen to you faster than you can care about it, and there are only two:
+ * messages, which a busy conversation produces one per line, and panel
+ * reactions, which a public post can collect dozens of in an evening.
+ *
+ * Everything else happens at human speed. A cap on `moderation_decision` would
+ * be a number deciding a member should not hear about the second thing done to
+ * their account.
+ *
+ * Over the ceiling the notification is **not written**, and the newest one of
+ * that kind says how many were held behind it. A row per suppressed event would
+ * be the flood again with a note attached.
+ */
+export const NOTIFICATION_HOURLY_CAP: Partial<Record<NotificationKind, number>> = {
+  message_received: 10,
+  panel_reaction: 5,
+};
+
+/**
+ * What quiet hours do to each kind (T-273).
+ *
+ * **Everything waits, and nothing is thrown away.** The criterion asks for
+ * "delayed or dropped by rule, and says which", and the rule this product
+ * chooses is that quiet hours are about *when* somebody is disturbed, never
+ * about whether they are told. Dropping a moderation decision because it landed
+ * at two in the morning would be the product deciding a member did not need to
+ * know.
+ *
+ * Dropping is what the **frequency cap** does, and it is a different judgement:
+ * the tenth message notification in an hour tells a member nothing the ninth
+ * did not.
+ *
+ * This constant exists so that the rule is written down where somebody looking
+ * for an exception will find the argument against one, rather than discovering
+ * there is no mechanism and adding it in the wrong place.
+ */
+export const QUIET_HOURS_RULE = 'delay' as const;
+
 /** What a notification points at, so the inbox can open it (T-272). */
 export type NotificationSubject =
   | 'fixture'

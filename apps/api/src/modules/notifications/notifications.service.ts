@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { NotificationKind, NotificationSubject } from '@fmip/contracts';
-import { NOTIFICATION_DEFAULTS } from '@fmip/contracts';
+import { NOTIFICATION_DEFAULTS, NOTIFICATION_HOURLY_CAP } from '@fmip/contracts';
 import { PostgresNotificationsStore, type NewNotification } from './internal/notifications-store';
 
 /**
@@ -45,7 +45,16 @@ export interface EmitRequest {
 }
 
 /** What happened, for a caller that wants to know and a test that must. */
-export type EmitOutcome = 'sent' | 'muted' | 'duplicate' | 'blocked' | 'failed';
+export type EmitOutcome =
+  | 'sent'
+  /** Written, but waiting for the member's quiet hours to end (T-273). */
+  | 'delayed'
+  /** Not written: they had already been told enough times this hour. */
+  | 'capped'
+  | 'muted'
+  | 'duplicate'
+  | 'blocked'
+  | 'failed';
 
 @Injectable()
 export class NotificationsService {
@@ -76,6 +85,28 @@ export class NotificationsService {
     try {
       if (!(await this.wants(request.userId, request.kind))) return 'muted';
 
+      // **Dropped, and the inbox still says so.** Over the ceiling nothing new
+      // is written -- the tenth message notification in an hour tells a member
+      // nothing the ninth did not -- but the newest one of that kind is marked
+      // with how many were held behind it. A row per suppressed event would be
+      // the flood again with a note attached, and silence would be a lie
+      // (rule 3, T-270).
+      const cap = NOTIFICATION_HOURLY_CAP[request.kind];
+      if (cap !== undefined) {
+        const { count, newest } = await this.store.sentThisHour(request.userId, request.kind);
+        if (count >= cap && newest !== null) {
+          await this.store.noteHeldBehind(newest);
+          return 'capped';
+        }
+      }
+
+      // **Delayed, never thrown away.** Quiet hours are about *when* somebody is
+      // disturbed, not whether they are told: dropping a moderation decision
+      // because it landed at two in the morning would be the product deciding a
+      // member did not need to know. The row exists now and surfaces when their
+      // window ends.
+      const quietUntil = await this.store.quietUntil(request.userId);
+
       const entry: NewNotification = {
         userId: request.userId,
         kind: request.kind,
@@ -83,8 +114,12 @@ export class NotificationsService {
         subjectId: request.subjectId,
         sourceId: request.sourceId ?? null,
         dedupeKey: request.dedupeKey ?? null,
+        deliverAfter: quietUntil?.toISOString() ?? null,
+        heldReason: quietUntil === null ? null : 'your quiet hours',
       };
-      return (await this.store.write(entry)) ? 'sent' : 'duplicate';
+      const written = await this.store.write(entry);
+      if (!written) return 'duplicate';
+      return quietUntil === null ? 'sent' : 'delayed';
     } catch (error) {
       const code = (error as { code?: string }).code ?? '';
       // Not a failure: the recipient blocked the source, or the other way
