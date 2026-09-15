@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ForecastPanel } from '@/components/forecast-panel';
+import { CommunityAnalysisPanel } from '@/components/community-analysis-panel';
 import { CommunityForecastPanel } from '@/components/community-consensus';
 import { FounderAnalysisPanel } from '@/components/founder-analysis';
 import { JsonLd } from '@/components/json-ld';
@@ -18,6 +19,7 @@ import {
   fetchMatchPanel,
   fetchMe,
   fetchMyGroups,
+  fetchCommunityAnalyses,
   fetchConsensus,
   fetchFounderAnalysis,
   fetchOwnPrediction,
@@ -91,22 +93,33 @@ export default async function MatchPage({
   if (!result.ok && result.status === 404) notFound();
   // The forecast (T-065), the Power Index (T-114) and, once the match is over,
   // its evaluation (T-066).
-  const [forecasts, evaluations, prediction, power, founder, consensus, panel, panelPermission] =
-    result.ok
-      ? await Promise.all([
-          fetchForecasts(id),
-          result.data.fixture.status === 'finished' ? fetchEvaluations(id) : Promise.resolve(null),
-          fetchOwnPrediction(id, cookie),
-          fetchPowerIndex(id),
-          fetchFounderAnalysis(id),
-          fetchConsensus(id),
-          // No cookie: the discussion is the same document for everybody, and a
-          // session here would make a public read viewer-specific for nothing
-          // (T-251). The permission beside it is the only viewer-specific half.
-          fetchMatchPanel(id),
-          fetchPanelPermission(id, cookie),
-        ])
-      : [null, null, null, null, null, null, null, null];
+  const [
+    forecasts,
+    evaluations,
+    prediction,
+    power,
+    founder,
+    consensus,
+    panel,
+    panelPermission,
+    communityAnalyses,
+  ] = result.ok
+    ? await Promise.all([
+        fetchForecasts(id),
+        result.data.fixture.status === 'finished' ? fetchEvaluations(id) : Promise.resolve(null),
+        fetchOwnPrediction(id, cookie),
+        fetchPowerIndex(id),
+        fetchFounderAnalysis(id),
+        fetchConsensus(id),
+        // No cookie: the discussion is the same document for everybody, and a
+        // session here would make a public read viewer-specific for nothing
+        // (T-251). The permission beside it is the only viewer-specific half.
+        fetchMatchPanel(id),
+        fetchPanelPermission(id, cookie),
+        // No cookie: a published analysis is meant to be read (T-263).
+        fetchCommunityAnalyses(id),
+      ])
+    : [null, null, null, null, null, null, null, null, null];
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
@@ -188,6 +201,16 @@ export default async function MatchPage({
                       ? (forecasts.data.latest?.probabilities ?? null)
                       : null
                   }
+                />
+                {/* Below the founder's analysis and visibly not it: a fourth
+                    signed opinion, named as one (rule 6, T-263). */}
+                <CommunityAnalysisPanel
+                  analyses={
+                    communityAnalyses !== null && communityAnalyses.ok
+                      ? communityAnalyses.data
+                      : null
+                  }
+                  reachable={communityAnalyses !== null && communityAnalyses.ok}
                 />
                 <PowerIndexPanel
                   power={power !== null && power.ok ? power.data : null}

@@ -1996,7 +1996,7 @@ Blueprint 10.3, and the place rule 6 is most likely to break in this phase.
 | `[x]` T-260 | Schema and contracts: draft, submission, review decision, published version | T-250 | Its own tables and its own contract; nothing shared with the founder's analysis |
 | `[x]` T-261 | The workflow: draft → submit → review → approve, request changes or reject → publish | T-260 | Every transition is audited and every published version is immutable |
 | `[x]` T-262 | The analyst editor and the editorial review queue | T-261 | A reviewer sees the submission, the author's record, and the decision history |
-| `[ ]` T-263 | Publication surfaces, and the guard extended to a fourth opinion | T-262, T-133 | A test fails if community analysis is merged with, or relabelled as, any of the three |
+| `[x]` T-263 | Publication surfaces, and the guard extended to a fourth opinion | T-262, T-133 | A test fails if community analysis is merged with, or relabelled as, any of the three |
 
 **This is a fourth signed opinion, and the guard has to know it.** Rule 6 names
 three prediction products. Community analysis is not one of them — it is not the
@@ -2104,9 +2104,38 @@ that would mean one.
 **"You may not read this" and "nothing is waiting" are different sentences.** A
 reviewer who saw the second when the first was true would go home.
 
-17 tests on the two surfaces; the web suite is 255 passing.
+17 tests on the two surfaces.
 
-The contract-level four-way separation guard is T-263, as the epic plans it.
+**T-263 verified on 2026-09-15, and E26 closes with it. Phase 3 is complete.**
+
+**The guard was broken on purpose before it was believed**, which is the T-133
+precedent and the only thing that makes a separation test worth having. Two
+deliberate breaks, both caught with a message naming the file:
+
+- `community-analysis.ts` importing `FounderOutcome` -- the exact shortcut the
+  fields invite, since the two products have the same ones.
+- `founder-analysis.ts` importing `CommunityAnalysis` -- the reverse, which two
+  assertions caught rather than one.
+
+Both reverted; the guard runs green over the real files.
+
+**The page-level guard is the one that matters to anybody outside this
+repository.** The contracts guard keeps the four apart in the types; a component
+that took "an analysis" and rendered whichever it was given would pass every
+assertion in it. So the fourth opinion has its own component, borrows from none
+of the three, and none of the three reaches for it.
+
+**The heading names who is speaking.** "Analysis" on its own is the relabelling
+rule broken in two words, so the panel says *Analysis from approved
+contributors* and, under it, that this is not the founder's analysis, not the
+statistical model and not the community consensus. Four signed opinions on one
+page, each legible as itself.
+
+**A formerly approved analyst keeps their work and is shown as former.** Taking
+it down would rewrite the record; calling them approved would be false.
+
+27 tests across T-262 and T-263's surfaces; the web suite is 265 passing and the
+contracts guards 23.
 
 ---
 
