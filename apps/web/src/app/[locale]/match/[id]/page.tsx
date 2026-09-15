@@ -6,6 +6,7 @@ import { CommunityForecastPanel } from '@/components/community-consensus';
 import { FounderAnalysisPanel } from '@/components/founder-analysis';
 import { JsonLd } from '@/components/json-ld';
 import { LiveMatch } from '@/components/live-match';
+import { MatchPanel } from '@/components/match-panel';
 import { PowerIndexPanel } from '@/components/power-index-panel';
 import { MatchThreads } from '@/components/match-threads';
 import { PredictionSection } from '@/components/prediction-section';
@@ -13,11 +14,13 @@ import {
   fetchEvaluations,
   fetchForecasts,
   fetchMatchCentre,
+  fetchMatchPanel,
   fetchMe,
   fetchMyGroups,
   fetchConsensus,
   fetchFounderAnalysis,
   fetchOwnPrediction,
+  fetchPanelPermission,
   fetchPowerIndex,
 } from '@/lib/api';
 import { isTimeZone } from '@/lib/scores';
@@ -82,16 +85,22 @@ export default async function MatchPage({
   if (!result.ok && result.status === 404) notFound();
   // The forecast (T-065), the Power Index (T-114) and, once the match is over,
   // its evaluation (T-066).
-  const [forecasts, evaluations, prediction, power, founder, consensus] = result.ok
-    ? await Promise.all([
-        fetchForecasts(id),
-        result.data.fixture.status === 'finished' ? fetchEvaluations(id) : Promise.resolve(null),
-        fetchOwnPrediction(id, cookie),
-        fetchPowerIndex(id),
-        fetchFounderAnalysis(id),
-        fetchConsensus(id),
-      ])
-    : [null, null, null, null, null, null];
+  const [forecasts, evaluations, prediction, power, founder, consensus, panel, panelPermission] =
+    result.ok
+      ? await Promise.all([
+          fetchForecasts(id),
+          result.data.fixture.status === 'finished' ? fetchEvaluations(id) : Promise.resolve(null),
+          fetchOwnPrediction(id, cookie),
+          fetchPowerIndex(id),
+          fetchFounderAnalysis(id),
+          fetchConsensus(id),
+          // No cookie: the discussion is the same document for everybody, and a
+          // session here would make a public read viewer-specific for nothing
+          // (T-251). The permission beside it is the only viewer-specific half.
+          fetchMatchPanel(id),
+          fetchPanelPermission(id, cookie),
+        ])
+      : [null, null, null, null, null, null, null, null];
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
@@ -126,6 +135,18 @@ export default async function MatchPage({
                   fixture={result.data.fixture}
                   me={me}
                   current={prediction}
+                />
+                {/* Outside any `me !== null` guard, and deliberately: reading
+                    the public discussion is open to everybody, and a guard here
+                    would have made it private without anybody deciding to. */}
+                <MatchPanel
+                  locale={locale}
+                  fixtureId={result.data.fixture.id}
+                  page={panel !== null && panel.ok ? panel.data : null}
+                  permission={
+                    panelPermission !== null && panelPermission.ok ? panelPermission.data : null
+                  }
+                  reachable={panel !== null && panel.ok}
                 />
                 {me !== null && (
                   <MatchThreads

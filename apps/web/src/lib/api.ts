@@ -33,7 +33,9 @@ import type {
   LeaderboardResponse,
   LiveHealth,
   MatchCentre,
+  MatchPanelPage,
   OwnProfile,
+  PanelPermission,
   PlayerPage,
   PowerIndexResponse,
   PredictionHistoryResponse,
@@ -100,6 +102,33 @@ export function fetchGroup(
 
 export function fetchMyGroups(cookie: string | undefined): Promise<ApiResult<GroupsResponse>> {
   return apiRequest<GroupsResponse>('/me/groups', cookie === undefined ? {} : { cookie });
+}
+
+/**
+ * The public match discussion (T-251).
+ *
+ * **No cookie.** Reading is open to everybody, and sending a session here would
+ * make the response viewer-specific for no reason — the panel is the same
+ * document for a guest and for a contributor, and only `fetchPanelPermission`
+ * differs between them.
+ */
+export function fetchMatchPanel(
+  fixtureId: string,
+  cursor?: string,
+): Promise<ApiResult<MatchPanelPage>> {
+  const query = cursor === undefined ? '' : `?cursor=${encodeURIComponent(cursor)}`;
+  return apiRequest<MatchPanelPage>(`/fixtures/${fixtureId}/panel${query}`);
+}
+
+/** Whether *this* viewer may post, and if not, why not. The half that needs the session. */
+export function fetchPanelPermission(
+  fixtureId: string,
+  cookie: string | undefined,
+): Promise<ApiResult<PanelPermission>> {
+  return apiRequest<PanelPermission>(
+    `/fixtures/${fixtureId}/panel/permission`,
+    cookie === undefined ? {} : { cookie },
+  );
 }
 
 export function fetchGroupInvites(
