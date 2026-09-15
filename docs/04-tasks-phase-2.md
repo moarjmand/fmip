@@ -623,7 +623,7 @@ less than it claims.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-140 | **Decision gate:** where news comes from, and under what licence | — | New entry in `00-decisions.md` |
+| `[x]` T-140 | **Decision gate:** where news comes from, and under what licence | — | New entry in `00-decisions.md` |
 | `[ ]` T-141 | Article schema: canonical story, per-language version, entity links | T-140 | An article links to its match, teams, players and competition by UUID |
 | `[ ]` T-142 | Ingestion and deduplication into story clusters | T-141 | Duplicate reports of one event become one cluster with a promoted original |
 | `[ ]` T-143 | Sections: latest, trending, debate, following | T-142 | Trending is computed from qualified signals, not raw views |
@@ -633,6 +633,24 @@ less than it claims.
 people's copyright. A feed is licensed, or syndicated with rules, or it is
 scraping — and `CLAUDE.md` §7 says anything involving licensing stops and asks.
 No article ingestion is written before that entry exists.
+
+**Settled on 2026-09-15 (D-061).** Free publisher feeds, and only what a feed
+carries for that purpose: headline, the publisher's own summary, byline, time,
+and a link to the original -- never the body, never paywalled content, never
+re-hosted images. Every item names its publisher and links to them; a publisher
+who asks to be dropped is dropped.
+
+**So the news section is a front page that sends readers away**, and T-144 is
+built against that rather than against an article page with nothing to put in it.
+
+**Rights live on the source and surfaces obey them**, which is the maintainer's
+second instruction -- the ability to take a licensed source later, built in now.
+A `news_source` says what may be shown, the renderer asks instead of assuming,
+and a licensed wire feed arrives as an adapter and a rights row. T-141 carries
+that field from its first migration, because a rights model retrofitted after
+there are two kinds of source is retrofitted too late.
+
+T-141 through T-144 are unblocked.
 
 ---
 
@@ -780,8 +798,8 @@ the production build.
 | T-150, T-151, T-152, T-153 | the Arabic strings themselves | agent, then **maintainer** |
 | T-100 | a purchase | **maintainer** |
 | T-101, T-102, T-103, T-112 | T-100 | after the purchase |
-| T-140 | a licensing decision | **maintainer** |
-| T-141..T-144 | T-140 | after the decision |
+| ~~T-140~~ | ~~a licensing decision~~ | **decided 2026-09-15, D-061** |
+| T-141..T-144 | ~~T-140~~ | unblocked |
 
 Two-thirds of Phase 2 needs nobody's permission. That is deliberate: the epics
 were ordered so that the money and the licence sit in front of the smallest

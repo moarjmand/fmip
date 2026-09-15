@@ -1938,3 +1938,53 @@ once, wearing a friendlier face. *A join against `group_member` inside the
 reputation store*: it would work, and it would teach the reputation boundary what
 a group is -- the set of ids keeps it ignorant and is the same door the
 friends-only board of blueprint 9.3 will use.
+
+---
+
+## D-061 — News comes from free publisher feeds as headline and link, and every source carries its own rights so a licensed one is an adapter rather than a rewrite
+
+**Date:** 2026-09-15 · **Task:** T-140 · **Status:** accepted
+
+The gate `CLAUDE.md` §7 requires before any article ingestion is written: news is
+other people's copyright, and a feed is licensed, syndicated with rules, or
+scraped.
+
+**Decision, from the maintainer.** Free sources for now, **and** the ability to
+take a licensed one later built in from the start rather than promised.
+
+**What "free" actually permits, which is narrower than "news".** Publisher
+RSS/Atom feeds, and from each item only what the publisher put in the feed for
+that purpose: headline, their own summary, byline, publication time, and a link
+to the original. **Not** the article body, not paywalled content, not images
+re-hosted here. Every item shows the publisher's name as a link to their page,
+and a publisher who asks to be dropped is dropped without argument. Fetching
+obeys `robots.txt` and each feed's stated terms.
+
+**So the product's news is a front page that sends readers to publishers**, and
+saying that out loud is the point: a section that looked like full articles while
+holding three-sentence summaries would be rule 3 wearing a newspaper's clothes.
+Blueprint 3.3's article page is built against what a source actually grants.
+
+**Rights live on the source, and surfaces obey them.** A `news_source` carries
+what may be shown -- headline-only, summary, or full text -- and the renderer
+asks rather than assumes. This is what makes "a licensed source later" an
+adapter and a rights row instead of a rewrite, and it is why the constraint is
+structural now, while there is only one kind of source, rather than retrofitted
+when there are two.
+
+**Nothing here is on the critical path** (D-014, rule 9). News is a section; a
+match, its score and its forecast never depend on it. A source that goes away
+takes its own items with it and nothing else.
+
+**No translation of a publisher's words.** An Arabic reader gets the headline in
+the language the publisher wrote it, with the interface around it translated --
+machine output presented as a publisher's sentence is the same invention rule 3
+forbids and T-151 already refused once.
+
+**Rejected.** *Scraping article bodies*: it is the version that looks best in a
+demo and is the one CLAUDE.md §7 names. *Waiting for a licence before building
+anything*: four tasks blocked on a purchase that is not planned, when the
+schema's hard parts -- entity links by UUID, story clustering, per-language
+versions -- are the same either way. *One rights setting for the whole product*:
+it would be wrong the first day a second kind of source arrives, which is the day
+this decision exists to prepare for.
