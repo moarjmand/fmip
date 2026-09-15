@@ -12,6 +12,7 @@ import { MODEL_CLIENT, ModelClient } from '../forecast/forecast.service';
 import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
 import { ReputationModule } from './reputation.module';
 import { ReputationService } from './reputation.service';
+import { withTriggersOff } from '../../testing/cleanup';
 
 // The acceptance criterion is "rating recomputable from stored records
 // alone": settlements and forecast versions are written, the rating is
@@ -157,20 +158,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Performance 
   });
 
   afterAll(async () => {
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-      for (const [table, trigger] of [
-        ['points_transaction', 'points_transaction_immutable'],
-        ['rating_snapshot', 'rating_snapshot_immutable'],
-        ['settlement', 'settlement_immutable'],
-        ['settlement_run', 'settlement_run_immutable'],
-        ['prediction_version', 'prediction_version_immutable'],
-        ['forecast', 'forecast_immutable'],
-        ['input_snapshot', 'input_snapshot_immutable'],
-      ]) {
-        await client.query(`ALTER TABLE ${table} DISABLE TRIGGER ${trigger}`);
-      }
+    // Seven tables named twice each: fourteen statements that existed only
+    // because the setting was per table rather than per session.
+    await withTriggersOff(pool, async (client) => {
       await client.query(`DELETE FROM points_transaction WHERE user_id = ANY($1::uuid[])`, [
         users.map((u) => u.id),
       ]);
@@ -190,27 +180,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Performance 
       await client.query(`DELETE FROM input_snapshot WHERE fixture_id = ANY($1::uuid[])`, [
         fixtures,
       ]);
-      for (const [table, trigger] of [
-        ['input_snapshot', 'input_snapshot_immutable'],
-        ['forecast', 'forecast_immutable'],
-        ['prediction_version', 'prediction_version_immutable'],
-        ['settlement_run', 'settlement_run_immutable'],
-        ['settlement', 'settlement_immutable'],
-        ['rating_snapshot', 'rating_snapshot_immutable'],
-        ['points_transaction', 'points_transaction_immutable'],
-      ]) {
-        await client.query(`ALTER TABLE ${table} ENABLE TRIGGER ${trigger}`);
-      }
-      await client.query(`DELETE FROM user_account WHERE username LIKE $1`, [`rt_${RUN}%`]);
-      await client.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [fixtures]);
-      await client.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [[HOME_TEAM, AWAY_TEAM]]);
-      await client.query('COMMIT');
-    } catch (error: unknown) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    });
+    await pool.query(`DELETE FROM user_account WHERE username LIKE $1`, [`rt_${RUN}%`]);
+    await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [fixtures]);
+    await pool.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [[HOME_TEAM, AWAY_TEAM]]);
     await pool.end();
     await app.close();
   });

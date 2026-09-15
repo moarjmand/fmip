@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
 import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
 import { PredictionsModule } from './predictions.module';
+import { withTriggersOff } from '../../testing/cleanup';
 
 // Who may predict, and that versions are kept, are decided by the database
 // and the session: these run only against the real schema (CI has it).
@@ -99,31 +100,19 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
     });
 
     afterAll(async () => {
-      // Versions refuse DELETE (that is the point); the account cascade removes
-      // user_prediction, and the trigger is toggled inside one transaction.
-      const client = await pool.connect();
-      try {
-        await client.query('BEGIN');
-        await client.query(
-          'ALTER TABLE prediction_version DISABLE TRIGGER prediction_version_immutable',
-        );
+      // Versions refuse DELETE (that is the point), so they go first on a
+      // session of their own. The account cascade removes `user_prediction`,
+      // and it has to run with foreign-key triggers on -- which `replica` turns
+      // off -- so the account delete is outside that block, not inside it.
+      await withTriggersOff(pool, async (client) => {
         await client.query(
           `DELETE FROM prediction_version WHERE prediction_id IN
            (SELECT id FROM user_prediction WHERE user_id = $1)`,
           [userId],
         );
-        await client.query(
-          'ALTER TABLE prediction_version ENABLE TRIGGER prediction_version_immutable',
-        );
-        await client.query(`DELETE FROM user_account WHERE id = $1`, [userId]);
-        await client.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [[OPEN, PAST]]);
-        await client.query('COMMIT');
-      } catch (error: unknown) {
-        await client.query('ROLLBACK');
-        throw error;
-      } finally {
-        client.release();
-      }
+      });
+      await pool.query(`DELETE FROM user_account WHERE id = $1`, [userId]);
+      await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [[OPEN, PAST]]);
       await pool.end();
       await app.close();
     });

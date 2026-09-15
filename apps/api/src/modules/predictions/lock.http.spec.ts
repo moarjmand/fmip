@@ -8,6 +8,7 @@ import { DatabaseModule } from '../../database/database.module';
 import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
 import { PredictionsModule } from './predictions.module';
 import { PredictionsService } from './predictions.service';
+import { withTriggersOff } from '../../testing/cleanup';
 
 // The kick-off lock (T-051). The acceptance criterion is "no write succeeds
 // after kick-off, verified by clock skew test": the API's clock is made to
@@ -103,30 +104,19 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('kick-off loc
 
   afterAll(async () => {
     service.clock = () => new Date();
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-      await client.query(
-        'ALTER TABLE prediction_version DISABLE TRIGGER prediction_version_immutable',
-      );
+    // The versions first, on a session of their own. The account follows,
+    // outside that block: `replica` turns off foreign-key triggers too, so the
+    // cascade that takes `user_prediction` does not run while it is set.
+    await withTriggersOff(pool, async (client) => {
       await client.query(
         `DELETE FROM prediction_version WHERE prediction_id IN
            (SELECT id FROM user_prediction WHERE user_id = $1)`,
         [userId],
       );
-      await client.query(
-        'ALTER TABLE prediction_version ENABLE TRIGGER prediction_version_immutable',
-      );
-      await client.query(`DELETE FROM user_account WHERE id = $1`, [userId]);
-      await client.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [fixtures]);
-      await client.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [[HOME_TEAM, AWAY_TEAM]]);
-      await client.query('COMMIT');
-    } catch (error: unknown) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    });
+    await pool.query(`DELETE FROM user_account WHERE id = $1`, [userId]);
+    await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [fixtures]);
+    await pool.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [[HOME_TEAM, AWAY_TEAM]]);
     await pool.end();
     await app.close();
   });

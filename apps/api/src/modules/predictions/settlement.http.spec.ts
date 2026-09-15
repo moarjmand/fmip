@@ -11,6 +11,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
 import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
 import { PredictionsModule } from './predictions.module';
+import { withTriggersOff } from '../../testing/cleanup';
 
 // Settlement is decided by rows in the database and must be safe to re-run:
 // these tests run only against the real schema (CI has it).
@@ -138,29 +139,17 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('settlement',
   });
 
   afterAll(async () => {
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-      await client.query(
-        'ALTER TABLE points_transaction DISABLE TRIGGER points_transaction_immutable',
-      );
+    // Five immutable tables, one block. The setting belongs to the session, not
+    // to a table, so there is nothing to turn off and on again per table --
+    // which is most of what this cleanup used to be.
+    await withTriggersOff(pool, async (client) => {
       await client.query(
         `DELETE FROM points_transaction WHERE user_id IN (SELECT id FROM user_account WHERE username LIKE $1)`,
         [`st_${RUN}%`],
       );
       await client.query(
-        'ALTER TABLE points_transaction ENABLE TRIGGER points_transaction_immutable',
-      );
-      await client.query('ALTER TABLE rating_snapshot DISABLE TRIGGER rating_snapshot_immutable');
-      await client.query(
         `DELETE FROM rating_snapshot WHERE user_id IN (SELECT id FROM user_account WHERE username LIKE $1)`,
         [`st_${RUN}%`],
-      );
-      await client.query('ALTER TABLE rating_snapshot ENABLE TRIGGER rating_snapshot_immutable');
-      await client.query('ALTER TABLE settlement DISABLE TRIGGER settlement_immutable');
-      await client.query('ALTER TABLE settlement_run DISABLE TRIGGER settlement_run_immutable');
-      await client.query(
-        'ALTER TABLE prediction_version DISABLE TRIGGER prediction_version_immutable',
       );
       await client.query(`DELETE FROM settlement WHERE fixture_id = ANY($1::uuid[])`, [fixtures]);
       await client.query(`DELETE FROM settlement_run WHERE fixture_id = ANY($1::uuid[])`, [
@@ -171,21 +160,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('settlement',
            (SELECT id FROM user_prediction WHERE fixture_id = ANY($1::uuid[]))`,
         [fixtures],
       );
-      await client.query(
-        'ALTER TABLE prediction_version ENABLE TRIGGER prediction_version_immutable',
-      );
-      await client.query('ALTER TABLE settlement_run ENABLE TRIGGER settlement_run_immutable');
-      await client.query('ALTER TABLE settlement ENABLE TRIGGER settlement_immutable');
-      await client.query(`DELETE FROM user_account WHERE username LIKE $1`, [`st_${RUN}%`]);
-      await client.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [fixtures]);
-      await client.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [[HOME_TEAM, AWAY_TEAM]]);
-      await client.query('COMMIT');
-    } catch (error: unknown) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    });
+    // Accounts after, with foreign-key triggers back on, so the cascade runs.
+    await pool.query(`DELETE FROM user_account WHERE username LIKE $1`, [`st_${RUN}%`]);
+    await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [fixtures]);
+    await pool.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [[HOME_TEAM, AWAY_TEAM]]);
     await pool.end();
     await app.close();
   });

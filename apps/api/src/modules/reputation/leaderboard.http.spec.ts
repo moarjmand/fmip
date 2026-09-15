@@ -8,6 +8,7 @@ import { MODEL_CLIENT, ModelClient } from '../forecast/forecast.service';
 import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
 import { LEADERBOARD_RULES_V1 } from './internal/leaderboard';
 import { ReputationModule } from './reputation.module';
+import { withTriggersOff } from '../../testing/cleanup';
 
 // The board is a function of the stored rating snapshots, so the suite
 // writes snapshots (the insert-only path the engine uses) and checks what the
@@ -117,20 +118,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Leaderboard'
 
   afterAll(async () => {
     const ids = Object.values(users).map((u) => u.id);
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-      await client.query('ALTER TABLE rating_snapshot DISABLE TRIGGER rating_snapshot_immutable');
+    await withTriggersOff(pool, async (client) => {
       await client.query(`DELETE FROM rating_snapshot WHERE user_id = ANY($1::uuid[])`, [ids]);
-      await client.query('ALTER TABLE rating_snapshot ENABLE TRIGGER rating_snapshot_immutable');
-      await client.query(`DELETE FROM user_account WHERE id = ANY($1::uuid[])`, [ids]);
-      await client.query('COMMIT');
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    });
+    // Outside the block, so the cascade runs and takes the credentials,
+    // sessions and tokens with it.
+    await pool.query(`DELETE FROM user_account WHERE id = ANY($1::uuid[])`, [ids]);
     await pool.end();
     await app.close();
   });
