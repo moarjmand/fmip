@@ -28,6 +28,10 @@ export interface NewNotification {
   kind: string;
   subjectType: string;
   subjectId: string;
+  /** When it may be shown. Omitted means now (T-273). */
+  deliverAfter?: string | null;
+  /** Why it is waiting, when it is. */
+  heldReason?: string | null;
   /** The member who caused it, when there is one. */
   sourceId?: string | null;
   /** What the emitter considers "the same notification". Omit when there is nothing to say. */
@@ -48,8 +52,9 @@ export class PostgresNotificationsStore {
    */
   async write(entry: NewNotification): Promise<boolean> {
     const { rowCount } = await this.pool.query(
-      `INSERT INTO notification (user_id, kind, subject_type, subject_id, source_id, dedupe_key)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO notification
+         (user_id, kind, subject_type, subject_id, source_id, dedupe_key, deliver_after, held_reason)
+       VALUES ($1, $2, $3, $4, $5, $6, coalesce($7::timestamptz, now()), $8)
        ON CONFLICT DO NOTHING`,
       [
         entry.userId,
@@ -58,6 +63,8 @@ export class PostgresNotificationsStore {
         entry.subjectId,
         entry.sourceId ?? null,
         entry.dedupeKey ?? null,
+        entry.deliverAfter ?? null,
+        entry.heldReason ?? null,
       ],
     );
     return rowCount === 1;
@@ -75,6 +82,67 @@ export class PostgresNotificationsStore {
       [userId],
     );
     return new Set(rows.map((row) => row.kind));
+  }
+
+  /**
+   * When this member's quiet window ends, or null when it is not quiet (T-273).
+   *
+   * Asked of the database rather than computed here, because the window is in
+   * the member's own timezone and the wrap-around is the kind of three lines
+   * that is wrong the second time somebody writes it.
+   */
+  async quietUntil(userId: string): Promise<Date | null> {
+    const { rows } = await this.pool.query<{ ends: Date | null }>(
+      `SELECT quiet_hours_end($1, now()) AS ends`,
+      [userId],
+    );
+    return rows[0]?.ends ?? null;
+  }
+
+  /**
+   * How many of one kind this member has been sent since the hour began, and
+   * the newest of them.
+   *
+   * The same fixed window `rate_limit` uses (T-213), and the same cost stated
+   * the same way: somebody who fills their allowance at the end of one hour and
+   * again at the start of the next gets twice the ceiling across that boundary.
+   * A sliding window needs every event kept; this needs one count.
+   */
+  async sentThisHour(
+    userId: string,
+    kind: string,
+  ): Promise<{ count: number; newest: string | null }> {
+    const { rows } = await this.pool.query<{ count: string; newest: string | null }>(
+      `SELECT count(*)::text AS count,
+              (SELECT id FROM notification
+                WHERE user_id = $1 AND kind = $2 AND created_at >= date_trunc('hour', now())
+                ORDER BY created_at DESC LIMIT 1) AS newest
+         FROM notification
+        WHERE user_id = $1 AND kind = $2 AND created_at >= date_trunc('hour', now())`,
+      [userId, kind],
+    );
+    return { count: Number(rows[0]?.count ?? '0'), newest: rows[0]?.newest ?? null };
+  }
+
+  /**
+   * Count one more as held behind an existing notification, and say so.
+   *
+   * The alternative was a row per suppressed event, which is the flood again
+   * with a note attached. One row saying "and fourteen more" is what a member
+   * can actually read.
+   *
+   * The count is incremented in SQL rather than read and written back: two
+   * suppressions racing would otherwise both read the same number and one of
+   * them would be lost, which is the failure this counter exists to prevent.
+   */
+  async noteHeldBehind(notificationId: string): Promise<void> {
+    await this.pool.query(
+      `UPDATE notification
+          SET held_count = held_count + 1,
+              held_reason = (held_count + 1)::text || ' more like this were held back this hour'
+        WHERE id = $1`,
+      [notificationId],
+    );
   }
 
   /** Which kinds this member has an opinion about at all, either way. */

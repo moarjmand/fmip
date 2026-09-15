@@ -196,7 +196,13 @@ export type {
 // In-product notifications (blueprint 12.2, T-270). The defaults live here and
 // nowhere else: "a missing preference row means the documented default" is only
 // true while the document and the code are the same thing.
-export { NOTIFICATION_DEFAULTS, NOTIFICATION_KINDS, isNotificationKind } from './notifications';
+export {
+  NOTIFICATION_DEFAULTS,
+  NOTIFICATION_HOURLY_CAP,
+  NOTIFICATION_KINDS,
+  QUIET_HOURS_RULE,
+  isNotificationKind,
+} from './notifications';
 export type {
   Notification,
   NotificationKind,

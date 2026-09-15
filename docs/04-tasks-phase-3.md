@@ -2030,7 +2030,7 @@ they need a delivery provider, which is the maintainer's (T-074).
 | `[x]` T-270 | Schema and contracts: `notification`, `notification_preference`, quiet hours | T-041 | A preference exists per type; a missing row means the documented default |
 | `[x]` T-271 | Emission from the events that already happen | T-270 | Nothing is emitted twice, and nothing is emitted to somebody who blocked the source |
 | `[x]` T-272 | The inbox, and a deep link that lands on the exact thing | T-271 | Every notification opens the match, profile, group or conversation that caused it |
-| `[ ]` T-273 | Quiet hours and frequency limits | T-272 | A quiet-hours notification is delayed or dropped by rule, and says which |
+| `[x]` T-273 | Quiet hours and frequency limits | T-272 | A quiet-hours notification is delayed or dropped by rule, and says which |
 
 **A notification is a consequence, not a feature.** Every one of them is already
 an event somewhere else in the product — a settlement, a rating change, a friend
@@ -2184,7 +2184,42 @@ rather than a number, because a hardcoded total only says how many rows the file
 happens to seed.
 
 46 tests in the notifications boundary (20 schema, 26 HTTP) and 15 on the page.
-The whole web suite is 226 passing.
+
+---
+
+**T-273 verified on 2026-09-15, and E27 closes with it.**
+
+**The criterion asks for "delayed or dropped, and says which", and the two
+halves do different things on purpose.**
+
+**Quiet hours delay, and never discard.** They are about *when* somebody is
+disturbed, not whether they are told. `quiet_hours_end` gives the instant the
+window closes on the member's own clock; `deliver_after` is set to it and
+`held_reason` says why it is waiting. Dropping a moderation decision because it
+landed at two in the morning would be the product deciding a member did not need
+to know what was done to their account.
+
+**The frequency cap drops.** The tenth message notification in an hour tells a
+member nothing the ninth did not. Over the ceiling nothing new is written, and
+the newest one of that kind carries the count of what was held behind it.
+
+**`held_count` is a column, and the first attempt was wrong.** It inferred the
+number from the rows in the hour -- and the things being counted were never
+written, which is what the cap does, so it could only ever say "1 more". The
+arithmetic was being honest about having no inputs. The counter is incremented
+in SQL, so two suppressions racing do not lose one.
+
+**Only two kinds are capped**, and the rest happen at human speed. A cap on
+`moderation_decision` would be a number deciding a member should not hear about
+the second thing done to their account.
+
+**A test tried to wind the clock backwards and the schema stopped it.**
+Simulating "the window passed" as `deliver_after = now() - 1 minute` violates
+`notification_delivers_after_creation`, and rightly: a notification cannot arrive
+before it exists. It is spelled `deliver_after = created_at` now.
+
+54 tests in the notifications boundary and 27 on the page; the web suite is 238
+passing. E27 is complete: T-270, T-271, T-272 and T-273.
 
 ---
 
