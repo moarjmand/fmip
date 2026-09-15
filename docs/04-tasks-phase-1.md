@@ -1112,6 +1112,7 @@ tests (7 new on percentages, framing, deltas), typecheck, lint, stylelint.
 | `[ ]` T-074 | Production deploy: VPS, Docker Compose, Cloudflare, TLS, domain | T-073 | Zero-downtime redeploy verified |
 | `[x]` T-085 | A free public address for testing, before the deploy exists | T-002 | The running stack answers on public HTTPS, and what the tunnel drops is named |
 | `[x]` T-086 | A stable free preview that carries the live stream | T-085 | One image serves the site and the stream; what is absent is declared |
+| `[x]` T-087 | Demonstration data declared wherever it can be met: reader, crawler, shared link | T-086 | Fixture data cannot be served from a public address unmarked, and the refusal is at boot |
 
 **T-072 verified on 2026-09-10.** `scripts/backup/backup.sh` dumps the
 database from inside the postgres container (`pg_dump` custom format,
@@ -1329,6 +1330,48 @@ not published; `model_unreachable` is recorded per fixture and there are no
 fixtures. Both were briefly written into the runbook as checks and removed once
 they were tried -- a check that passes because nobody performed it is the
 `REDIS_URL` lesson again.
+
+**T-087 verified on 2026-09-16, on a real build rather than by reasoning.** The
+maintainer chose to load development fixtures into the preview so that Phase 3's
+exit criteria -- which say the social list is checked *on the public deployment*
+-- could be walked at all. That decision is D-065; this is what it cost to make
+it honest.
+
+**The failure that shaped the design.** `DEMONSTRATION_DATA` reaches the
+container as a runtime variable and Render does not pass it to `docker build`.
+A server component that read it while Next.js was prerendering would read
+nothing, decide "not demonstration data", and bake a page of invented scores
+with no marker on it -- the exact failure, arrived at by being fast. So
+`DemonstrationBanner` calls `connection()` **before** the check, not after, and
+the test asserts that ordering rather than the outcome, because the outcome is
+identical in development and wrong only in production.
+
+**Four statements, because a marker is met in four places.** A reader gets an
+undismissable band. A crawler gets `noindex` on the page *and* a `robots.txt`
+that forbids the site, because one is obeyed after fetching and the other
+prevents fetching, and an invented score in an index outlives the deployment.
+The sitemap is emptied too, since sitemaps are fetched even where crawling is
+forbidden. A shared link carries it in the title.
+
+**The title found a real hole.** The first version prefixed titles inside
+`pageMetadata`, and the build showed `<title>Offline · FMIP</title>` with no
+marker: **nine pages** export a plain `metadata` object and never call that
+function. A prefix there would have missed every one and the miss would have
+looked like nothing. `title.template` on the locale layout applies to whatever
+a child segment set, however it set it; after the change all thirty pages
+carry it.
+
+**Verified both ways on a production build.** With the marker on: the band
+renders, `<title>` reads `Demonstration data — Scores · FMIP`, the page says
+`noindex, nofollow`, `robots.txt` is `Disallow: /`, the sitemap is empty. With
+it off: no band, bare title, `index, follow`, the normal `robots.txt`. Every
+locale route moved from a mix to `ƒ`, which is the prerendering bail-out doing
+what it was called for. Both guards were broken on purpose and both failed with
+the message that names the cause. 18 tests on this, 283 in the web suite.
+
+**What is deliberately still open.** Turning `DEMONSTRATION_DATA` off by hand
+while the fixtures remain removes the marker and leaves the data. Nothing here
+prevents that; the reason is in D-065.
 
 ---
 

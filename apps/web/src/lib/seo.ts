@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type { CompetitionPage, MatchHeader, PlayerPage, TeamPage } from '@fmip/contracts';
 import { DEFAULT_LOCALE, LOCALES, isPseudoLocale, isUnfinishedLocale } from '../i18n/locales';
+import { DEMONSTRATION_TITLE_PREFIX, isDemonstrationData } from './demonstration';
 
 /**
  * The SEO surface (T-039, D-040): one canonical URL per page under its
@@ -41,22 +42,44 @@ export interface PageMeta {
   index?: boolean;
 }
 
-/** Title, description, canonical, alternates, robots and Open Graph for one page. */
-export function pageMetadata(meta: PageMeta, origin = siteUrl()): Metadata {
+/**
+ * Title, description, canonical, alternates, robots and Open Graph for one page.
+ *
+ * **A deployment holding demonstration data is never indexable** (T-087),
+ * whatever the page asked for. An invented score in a search result is rule 3
+ * told at scale, and it outlives the preview: the page can be taken down and
+ * the snippet stays in the index.
+ *
+ * The Open Graph title carries the marker too — that is the one a chat app
+ * renders when somebody pastes the link, and it is an explicit field that
+ * inherits nothing. The `<title>` is deliberately *not* prefixed here: it comes
+ * from `title.template` on the layout instead, because nine pages set their
+ * metadata without ever calling this function and a prefix added here would
+ * miss every one of them.
+ */
+export function pageMetadata(
+  meta: PageMeta,
+  origin = siteUrl(),
+  demonstration = isDemonstrationData(),
+): Metadata {
   const canonical = canonicalUrl(meta.locale, meta.path, origin);
   const languages: Record<string, string> = {};
   for (const locale of INDEXABLE_LOCALES)
     languages[locale] = canonicalUrl(locale, meta.path, origin);
   languages['x-default'] = canonicalUrl(DEFAULT_LOCALE, meta.path, origin);
   const index =
-    meta.index !== false && !isPseudoLocale(meta.locale) && !isUnfinishedLocale(meta.locale);
+    !demonstration &&
+    meta.index !== false &&
+    !isPseudoLocale(meta.locale) &&
+    !isUnfinishedLocale(meta.locale);
+  const shared = demonstration ? `${DEMONSTRATION_TITLE_PREFIX}${meta.title}` : meta.title;
   return {
     title: meta.title,
     ...(meta.description !== undefined ? { description: meta.description } : {}),
     alternates: { canonical, languages },
     robots: index ? { index: true, follow: true } : { index: false, follow: false },
     openGraph: {
-      title: meta.title,
+      title: shared,
       ...(meta.description !== undefined ? { description: meta.description } : {}),
       url: canonical,
       siteName: 'FMIP',

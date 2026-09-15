@@ -2153,3 +2153,69 @@ the entire reason T-086 exists.
 
 **What would reverse this.** T-074. Once the product has a server, the preview
 is a second place for the same thing, and the reason to keep it is habit.
+
+---
+
+## D-065 — Demonstration data is a statement the deployment makes about itself, separate from the instruction that loaded it
+
+**Date:** 2026-09-16 · **Task:** T-087 · **Status:** accepted
+
+Phase 3's exit criteria say the social list is checked **on the public
+deployment**. The preview's database was empty, so none of it could be. The
+maintainer chose to load development fixtures rather than leave the phase
+formally open until there is a VPS.
+
+That puts matches that were never played on an address anybody can open, which
+is rule 3 — inventing a value — told to every reader and every crawler. So the
+fixtures ship with four things saying so, and one guard making them
+inseparable from the data.
+
+**Decision.** `DEMONSTRATION_DATA=on` is a statement about what the database
+holds. The web app then carries an undismissable band on every page, prefixes
+every page title, marks every page `noindex`, empties the sitemap, and has
+`robots.txt` forbid the whole site. `deploy/preview/start.mjs` refuses to boot
+if `PREVIEW_SEED=on` and this is not.
+
+**Why it is not `PREVIEW_SEED`.** That variable is an instruction, and it is
+spent the moment it runs: turn it off afterwards and the fixtures are still in
+the database. A marker keyed on it would disappear while the thing it marks
+stayed — which is the failure it existed to prevent, arrived at by tidying up.
+`DEMONSTRATION_DATA` stays true for as long as the data does.
+
+The tie runs one way on purpose. Marking a deployment nobody seeded costs
+nothing. Seeding one that is not marked is the thing that must not be possible,
+so that is the direction the guard refuses in — and it refuses rather than
+warns, because a warning in a boot log is read by nobody and the container goes
+on to serve the pages anyway.
+
+**Why the crawler gets two answers and not one.** `noindex` is what a crawler
+obeys after fetching a page; `robots.txt` is what stops it fetching. Both,
+because an invented score in a search index outlives the deployment that
+produced it: the preview can be emptied and the snippet stays. The sitemap is
+emptied as well, because a sitemap is fetched even where `robots.txt` forbids
+crawling, and a map of matches that never happened is the same claim made
+twice.
+
+**Why the title is a Next.js template and not a prefix in `pageMetadata`.**
+Nine pages export a plain `metadata` object and never call that function. A
+prefix added there would have missed every one of them, and the miss would have
+been invisible — the pages would have looked fine. A template on the layout
+applies to whatever a child segment set, however it set it.
+
+**The cost, named.** `DemonstrationBanner` calls `connection()` before it reads
+the environment, because Render supplies the variable at runtime and not to
+`docker build`; a check that ran during prerendering would read nothing, decide
+"not demonstration data", and bake a page of invented scores with no marker on
+it. That stops prerendering for every page. Twenty-six of the thirty were
+already `force-dynamic`; the three that were not — `offline`, `forgot-password`,
+`reset-password` — carry no football data and no meaningful saving, and the
+service worker caches the offline page's response rather than its rendering
+mode, so T-082 is unaffected. If it ever costs more, the fix is a Docker build
+argument, not a quieter banner.
+
+**What this does not close.** Setting `DEMONSTRATION_DATA=off` by hand while the
+fixtures are still in the database removes the marker and leaves the data. No
+guard here prevents that, and the honest reason is proportion: it is a
+deliberate act by the one person who knows what the database holds, and closing
+it would cost a migration and a query on every page render. `start.mjs` states
+the marker's value at every boot so the log answers the question.

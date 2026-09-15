@@ -1,8 +1,14 @@
 import type { Metadata, Viewport } from 'next';
 import { notFound } from 'next/navigation';
+import { DemonstrationBanner } from '@/components/demonstration-banner';
 import { ServiceWorker } from '@/components/service-worker';
 import { SiteHeader } from '@/components/site-header';
 import { LOCALES, directionOf, isLocale } from '@/i18n/locales';
+import {
+  DEMONSTRATION_TITLE_PREFIX,
+  DEMONSTRATION_TITLE_TEMPLATE,
+  isDemonstrationData,
+} from '@/lib/demonstration';
 import { pageMetadata, siteUrl } from '@/lib/seo';
 import '../globals.css';
 
@@ -33,6 +39,19 @@ export async function generateMetadata({
       description:
         'Football match intelligence: live scores, match centre, forecasts and predictions.',
     }),
+    // On a deployment whose football is fixture data, every page title says so
+    // (T-087). A template rather than a prefix in `pageMetadata`, because nine
+    // pages export a plain `metadata` object and never call that function --
+    // and a template applies to whatever a child segment sets, however it set
+    // it. Next.js requires a `default` alongside a template.
+    ...(isDemonstrationData()
+      ? {
+          title: {
+            template: DEMONSTRATION_TITLE_TEMPLATE,
+            default: `${DEMONSTRATION_TITLE_PREFIX}FMIP`,
+          },
+        }
+      : {}),
     // Installability (T-082): the manifest, the icons and the iOS home-screen title.
     manifest: '/manifest.webmanifest',
     icons: { icon: '/icons/icon-192.png', apple: '/icons/apple-touch-icon.png' },
@@ -72,6 +91,10 @@ export default async function LocaleLayout({
         >
           Skip to content
         </a>
+        {/* Above the header, on every page, and never dismissible: when this
+            deployment's football is fixture data, a reader meets that fact
+            before they meet a score (T-087). */}
+        <DemonstrationBanner />
         <SiteHeader locale={locale} />
         <div id="content" tabIndex={-1} className="outline-none">
           {children}

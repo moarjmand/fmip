@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { fetchCompetitions, fetchTeams } from '@/lib/api';
+import { isDemonstrationData } from '@/lib/demonstration';
 import { INDEXABLE_LOCALES, canonicalUrl, siteUrl } from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
@@ -18,6 +19,10 @@ const STATIC_PATHS: { path: string; priority: number }[] = [
  * static pages are still listed rather than the whole map failing.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // A map of competitions and teams that do not exist is an invitation to index
+  // them, and a sitemap is fetched even where robots.txt forbids crawling
+  // (T-087). Empty, not absent: the route still answers, and answers honestly.
+  if (isDemonstrationData()) return [];
   const origin = siteUrl();
   const [competitions, teams] = await Promise.all([fetchCompetitions(), fetchTeams()]);
   const entries: MetadataRoute.Sitemap = [];
