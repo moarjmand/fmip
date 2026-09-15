@@ -272,17 +272,34 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('live match c
 
   it('collapses a burst into one refresh, because a goal is three writes', async () => {
     const next = await watcher(bo);
-    // Score, status and minute inside a few milliseconds: what one goal looks
-    // like to the database.
-    await pool.query(
-      `UPDATE fixture_score SET home = 2 WHERE fixture_id = $1 AND kind = 'current'`,
-      [fixture],
-    );
-    await pool.query(`UPDATE fixture SET status = 'live' WHERE id = $1`, [fixture]);
-    await pool.query(
-      `UPDATE fixture_score SET away = 1 WHERE fixture_id = $1 AND kind = 'current'`,
-      [fixture],
-    );
+    // Score, status and minute: what one goal looks like to the database.
+    //
+    // **In one transaction, and that is the point rather than a convenience.**
+    // Postgres delivers `NOTIFY` at commit, so a single transaction is what
+    // makes this a burst at all -- three separate commits are three bursts that
+    // merely arrive close together, and whether the collapse window outlives
+    // them is a race against however fast the database happens to be that day.
+    // It is also what ingestion actually does: a goal is one transactional
+    // write of a fixture's state, not three unrelated ones.
+    const writer = await pool.connect();
+    try {
+      await writer.query('BEGIN');
+      await writer.query(
+        `UPDATE fixture_score SET home = 2 WHERE fixture_id = $1 AND kind = 'current'`,
+        [fixture],
+      );
+      await writer.query(`UPDATE fixture SET status = 'live' WHERE id = $1`, [fixture]);
+      await writer.query(
+        `UPDATE fixture_score SET away = 1 WHERE fixture_id = $1 AND kind = 'current'`,
+        [fixture],
+      );
+      await writer.query('COMMIT');
+    } catch (error) {
+      await writer.query('ROLLBACK');
+      throw error;
+    } finally {
+      writer.release();
+    }
 
     const frame = (await next()) as { event: { card: { score: { home: number; away: number } } } };
     expect(frame.event.card.score).toEqual({ home: 2, away: 1 });
