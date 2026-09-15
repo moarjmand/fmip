@@ -2027,7 +2027,7 @@ they need a delivery provider, which is the maintainer's (T-074).
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-270 | Schema and contracts: `notification`, `notification_preference`, quiet hours | T-041 | A preference exists per type; a missing row means the documented default |
+| `[x]` T-270 | Schema and contracts: `notification`, `notification_preference`, quiet hours | T-041 | A preference exists per type; a missing row means the documented default |
 | `[ ]` T-271 | Emission from the events that already happen | T-270 | Nothing is emitted twice, and nothing is emitted to somebody who blocked the source |
 | `[ ]` T-272 | The inbox, and a deep link that lands on the exact thing | T-271 | Every notification opens the match, profile, group or conversation that caused it |
 | `[ ]` T-273 | Quiet hours and frequency limits | T-272 | A quiet-hours notification is delayed or dropped by rule, and says which |
@@ -2045,6 +2045,44 @@ emission, not at display.
 **Quiet hours need the member's timezone**, which the account has had since T-040.
 A frequency cap that silently drops is dishonest; the inbox shows what was held
 back, because rule 3 does not stop applying because the surface is small.
+
+---
+
+**T-270 verified on 2026-09-15.**
+
+**The defaults live in code and nowhere else.** The acceptance criterion is "a
+missing row means the documented default", and that is only true while the
+document and the code are the same thing -- so `notification_preference` holds
+**one row per departure**, not one per member per kind. Writing the defaults in
+at registration would freeze each member's settings at the day they joined:
+changing a default afterwards would reach nobody, silently, and the first person
+to notice would be looking at an unrelated bug. The cost is stated rather than
+hidden -- no query can answer "what is this member's preference" from SQL alone.
+
+**The block is applied at emission.** The fastest way to undo a block is a
+notification saying the blocked member did something, so `PL003` refuses one
+before it exists rather than hiding it at display. Either direction, because a
+block is not a direction (T-200). A notification with no source -- a settlement
+-- goes through: refusing it because the recipient blocked somebody unrelated
+would be a block applied to the product.
+
+**Quiet hours are two local times, not an offset.** A stored UTC offset drifts
+by an hour twice a year and is wrong for exactly the people who set it. And a
+window that wraps midnight is the *ordinary* case rather than the edge one --
+almost nobody's quiet hours sit inside one day -- so `starts_at > ends_at` is
+legal and means "through midnight". Read as a single range it would mean the
+exact opposite: quiet all day except at night. The test checks both ends and the
+middle, and checks that two members in different timezones get different answers
+about the same instant.
+
+**Naming the whole kind list here is allowed, where `sanction.scope` was not.**
+A scope is shown to a moderator as an action they may take, so one nothing
+enforces is a promise the product does not keep. A notification kind is shown to
+nobody until the preferences surface exists, and widening a CHECK in four later
+migrations would put the list in four places.
+
+Nothing in the API writes these tables yet: emission is T-271, the inbox T-272.
+20 cases against the real schema.
 
 ---
 
