@@ -1712,7 +1712,7 @@ the gate is the whole feature.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-250 | Eligibility as a derived view; approval as an audited grant | T-054, T-212 | Eligibility is computed and never grants; approval names its approver and reason |
-| `[ ]` T-251 | The discussion: open to read, gated to post, linked to the match | T-250, T-221 | A guest reads; an unapproved member cannot post and is told why |
+| `[~]` T-251 | The discussion: open to read, gated to post, linked to the match | T-250, T-221 | A guest reads; an unapproved member cannot post and is told why |
 | `[ ]` T-252 | Reactions, and following a contributor | T-251, T-042 | Reacting is open to members; it never becomes posting access |
 | `[ ]` T-253 | Featured matches: which fixtures have a panel at all | T-251, T-070 | An operator decides, with an audit row |
 
@@ -1801,6 +1801,41 @@ wall on the first day.
 
 54 tests: 22 against the real schema, 21 over HTTP with real sessions and the
 audit rows read back, and 11 on the four requirements as a pure function.
+
+**T-251 backend done on 2026-09-15**, split the same way and for the same
+reason. The frontend is the remaining third and the row stays `[~]` until it
+lands: the acceptance criterion is about what a *reader* sees, and an API that
+answers correctly with no page in front of it has met half of it.
+
+**The panel takes no session and asks for none.** "A guest reads" is the half
+that is easiest to lose by accident -- one `viewer(request)` at the top of the
+handler would have made the whole discussion private without anybody deciding
+to -- so the test reads it with no cookie at all rather than with a signed-out
+client.
+
+**Every refusal has words.** A hidden compose box would have been a gate too,
+and a worse one: the member would not know there was anything to ask about. Four
+refusals, and the write path does **not** word them itself. From inside
+`member_may_contribute` a paused grant, a withdrawn one and one that never
+existed are the same fact; to the person refused they are not, because two of
+them have a moderator and a reason behind them. So a `PL014` refusal is handed
+to `permissionFor` before it is put into a sentence. The write is attempted
+first and the explanation second, so the lookup can describe a refusal
+imprecisely and can never undo one.
+
+**Two faults found by the tests rather than by review**, both silent.
+
+The refusal a paused contributor received said they were not approved -- true to
+the trigger, wrong to them. That is what produced the rule above.
+
+And the page cursor lost the row it pointed at. Postgres keeps microseconds in a
+`timestamptz`; a JavaScript `Date` holds milliseconds, so a cursor round-tripped
+through one sorts *before* its own row and every page repeats its last post. The
+cursor is built from `created_at::text` now. Nobody reports that as a bug; they
+scroll past the same opinion twice and think nothing of it.
+
+31 tests: 15 against the real schema (#138) and 16 over HTTP, read with and
+without a session.
 
 ---
 
