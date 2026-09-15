@@ -111,6 +111,16 @@ holding the remaining unconverted files in a list that may only get shorter.
 The rule had been prose since T-120 and was broken in thirteen files by the
 time anything checked -- two of which a hand search missed.
 
+**What it was actually costing.** `ALTER TABLE` takes an `ACCESS EXCLUSIVE` lock
+on every table it names. Under a parallel run that is contention in the
+`afterAll`, and the cleanups were one all-or-nothing transaction, so a blocked
+one rolled back and left **everything** -- accounts with settled ratings
+included. Those then sat in the database and put extra members on the global
+leaderboard, so the next run failed in a different spec, for a reason with no
+visible connection to the first. Two generations of that debris were found on
+2026-09-16, which is how long it had been happening. The converted cleanups take
+no lock at all.
+
 Rows a cascade cannot reach -- the
 immutable ones, guarded by `refuse_change()` -- are deleted on one dedicated
 connection with `SET session_replication_role = 'replica'`, which is scoped to

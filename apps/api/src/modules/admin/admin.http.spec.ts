@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
 import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
 import { AdminModule } from './admin.module';
+import { withTriggersOff } from '../../testing/cleanup';
 
 // The administration area against the real schema: the admin role gates
 // it, the overview reads across the platform, and every high-impact action
@@ -97,22 +98,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('administrati
   });
 
   afterAll(async () => {
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-      await client.query('ALTER TABLE audit_log DISABLE TRIGGER audit_log_immutable');
+    await withTriggersOff(pool, async (client) => {
       await client.query(`DELETE FROM audit_log WHERE actor_id = $1`, [admin.id]);
-      await client.query('ALTER TABLE audit_log ENABLE TRIGGER audit_log_immutable');
-      await client.query(`DELETE FROM user_account WHERE username LIKE $1`, [`ad_${RUN}%`]);
-      await client.query(`DELETE FROM season WHERE id = $1`, [SEASON]);
-      await client.query(`DELETE FROM competition WHERE id = $1`, [COMPETITION]);
-      await client.query('COMMIT');
-    } catch (error: unknown) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    });
+    await pool.query(`DELETE FROM user_account WHERE username LIKE $1`, [`ad_${RUN}%`]);
+    await pool.query(`DELETE FROM season WHERE id = $1`, [SEASON]);
+    await pool.query(`DELETE FROM competition WHERE id = $1`, [COMPETITION]);
     await pool.end();
     await app.close();
   });
