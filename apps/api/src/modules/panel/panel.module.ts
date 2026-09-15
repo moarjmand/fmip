@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
 import { IdentityModule } from '../identity/identity.module';
 import { ReputationModule } from '../reputation/reputation.module';
+import { PostgresPanelAdminStore } from './internal/panel-admin-store';
 import { PostgresPanelSocialStore } from './internal/panel-social-store';
 import { PostgresPanelStore } from './internal/panel-store';
+import { PanelAdminController } from './panel-admin.controller';
 import { PanelSocialController } from './panel-social.controller';
 import { PanelSocialService } from './panel-social.service';
 import { PanelController } from './panel.controller';
@@ -31,8 +33,14 @@ import { PanelService } from './panel.service';
  */
 @Module({
   imports: [IdentityModule, ReputationModule],
-  controllers: [PanelController, PanelSocialController],
-  providers: [PanelService, PostgresPanelStore, PanelSocialService, PostgresPanelSocialStore],
+  controllers: [PanelController, PanelSocialController, PanelAdminController],
+  providers: [
+    PanelService,
+    PostgresPanelStore,
+    PanelSocialService,
+    PostgresPanelSocialStore,
+    PostgresPanelAdminStore,
+  ],
   exports: [PanelService, PanelSocialService],
 })
 export class PanelModule {}
