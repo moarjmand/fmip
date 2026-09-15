@@ -150,3 +150,49 @@ export type PredictionHistoryResponse =
       username: string;
       visibility: Exclude<'public' | 'friends' | 'private', 'public'>;
     };
+
+// ---------------------------------------------------------------------------
+// Prediction comparison inside a group (blueprint 8.2, T-246)
+// ---------------------------------------------------------------------------
+
+/**
+ * One member's call on a fixture, as their group sees it.
+ *
+ * `settlement` is the **stored** settlement (T-052), read and never recomputed.
+ * A comparison that scored the calls itself would be a second settlement, and
+ * the day it disagreed with the first one there would be no way to say which
+ * was the product's answer (rule 8).
+ */
+export interface GroupPredictionCall {
+  username: string;
+  display_name: string;
+  /** The version that stands: the last one submitted before the lock. */
+  version: PredictionVersion;
+  /** How many versions there are, so a call changed four times says so. */
+  revisions: number;
+  settlement: Settlement | null;
+}
+
+/** `GET /groups/:slug/fixtures/:fixtureId/predictions`. */
+export interface GroupPredictionComparison {
+  fixture_id: string;
+  /** ISO 8601. Nothing may change after this (T-051). */
+  kickoff_at: string;
+  locked: boolean;
+  /** Ordered by confidence, then by who called it first. */
+  calls: GroupPredictionCall[];
+  /** Members of the group with no prediction for this fixture. */
+  silent: number;
+  /**
+   * Members whose prediction history this viewer may not see (T-056).
+   *
+   * Counted and stated rather than dropped, because a comparison that quietly
+   * omitted them would report a smaller group than the one that exists, and a
+   * reader would take the calls shown for all of them (rule 3).
+   */
+  withheld: number;
+}
+
+export interface GroupPredictionComparisonResponse {
+  comparison: GroupPredictionComparison;
+}

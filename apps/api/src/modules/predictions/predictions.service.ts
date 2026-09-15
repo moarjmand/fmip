@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { Prediction, PredictionHistoryItem } from '@fmip/contracts';
+import type { GroupPredictionCall, Prediction, PredictionHistoryItem } from '@fmip/contracts';
 import type { HistoryQuery } from './internal/history-query';
 import { PostgresPredictionStore, PredictionLockedError } from './internal/prediction-store';
 import { validateSubmission } from './internal/validation';
@@ -48,6 +48,21 @@ export class PredictionsService {
     query: HistoryQuery,
   ): Promise<{ total: number; items: PredictionHistoryItem[] }> {
     return this.store.history(userId, query.limit, query.offset);
+  }
+
+  /**
+   * What a set of members called one fixture (T-246). Null when there is no
+   * such fixture.
+   *
+   * It takes ids rather than a group, the same way the leaderboard does
+   * (D-060): this boundary is handed the members and reads their calls, and
+   * never learns what a group is.
+   */
+  callsOn(
+    fixtureId: string,
+    userIds: string[],
+  ): Promise<{ kickoffAt: Date; locked: boolean; calls: GroupPredictionCall[] } | null> {
+    return this.store.callsOn(fixtureId, userIds);
   }
 
   async submit(who: Submitter, fixtureId: string, body: unknown): Promise<SubmitOutcome> {

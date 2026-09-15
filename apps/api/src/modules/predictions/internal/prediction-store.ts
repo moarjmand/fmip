@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type {
+  GroupPredictionCall,
   Prediction,
   PredictionHistoryItem,
   PredictionOutcome,
@@ -43,6 +44,46 @@ const toVersion = (row: VersionRow): PredictionVersion => ({
   explanation: row.explanation,
   submitted_at: row.submitted_at.toISOString(),
 });
+
+interface SettlementRow {
+  id: string;
+  status: 'settled' | 'void';
+  void_reason: SettlementVoidReason | null;
+  actual_home: number | null;
+  actual_away: number | null;
+  outcome_correct: boolean | null;
+  score_predicted: boolean;
+  score_correct: boolean | null;
+  confidence: number;
+  settled_at: Date;
+  version_number: number;
+}
+
+/**
+ * A settlement row as the contract's `Settlement`.
+ *
+ * One mapper for the single read and the bulk one (T-246), because the
+ * comparison must show *the* settlement and not a second reading of it.
+ */
+const toSettlement = (row: SettlementRow): Settlement => ({
+  id: row.id,
+  status: row.status,
+  void_reason: row.void_reason,
+  actual:
+    row.actual_home !== null && row.actual_away !== null
+      ? { home: row.actual_home, away: row.actual_away }
+      : null,
+  outcome_correct: row.outcome_correct,
+  score_predicted: row.score_predicted,
+  score_correct: row.score_correct,
+  confidence: row.confidence,
+  settled_at: row.settled_at.toISOString(),
+  version_number: row.version_number,
+});
+
+const SETTLEMENT_COLUMNS = `s.id, s.status, s.void_reason, s.actual_home, s.actual_away,
+              s.outcome_correct, s.score_predicted, s.score_correct, s.confidence,
+              s.settled_at, v.version_number`;
 
 /** SQLSTATE raised by refuse_prediction_after_kickoff() (migration 1758900000000). */
 export const LOCKED_SQLSTATE = 'PL001';
@@ -250,41 +291,98 @@ export class PostgresPredictionStore {
 
   /** The newest settlement row of a prediction (T-052), or null. */
   private async currentSettlement(predictionId: string): Promise<Settlement | null> {
-    const { rows } = await this.pool.query<{
-      id: string;
-      status: 'settled' | 'void';
-      void_reason: SettlementVoidReason | null;
-      actual_home: number | null;
-      actual_away: number | null;
-      outcome_correct: boolean | null;
-      score_predicted: boolean;
-      score_correct: boolean | null;
-      confidence: number;
-      settled_at: Date;
-      version_number: number;
-    }>(
-      `SELECT s.id, s.status, s.void_reason, s.actual_home, s.actual_away, s.outcome_correct,
-              s.score_predicted, s.score_correct, s.confidence, s.settled_at, v.version_number
+    const { rows } = await this.pool.query<SettlementRow>(
+      `SELECT ${SETTLEMENT_COLUMNS}
          FROM settlement s JOIN prediction_version v ON v.id = s.version_id
         WHERE s.prediction_id = $1 ORDER BY s.settled_at DESC, s.id DESC LIMIT 1`,
       [predictionId],
     );
-    const r = rows[0];
-    if (r === undefined) return null;
-    return {
-      id: r.id,
-      status: r.status,
-      void_reason: r.void_reason,
-      actual:
-        r.actual_home !== null && r.actual_away !== null
-          ? { home: r.actual_home, away: r.actual_away }
-          : null,
-      outcome_correct: r.outcome_correct,
-      score_predicted: r.score_predicted,
-      score_correct: r.score_correct,
-      confidence: r.confidence,
-      settled_at: r.settled_at.toISOString(),
-      version_number: r.version_number,
-    };
+    const row = rows[0];
+    return row === undefined ? null : toSettlement(row);
+  }
+
+  /**
+   * What a set of members called one fixture (blueprint 8.2, T-246).
+   *
+   * Three queries whatever the size of the group: the calls, their versions,
+   * and the newest settlement of each. The settlement is **read**, never
+   * recomputed -- a comparison that scored the calls itself would be a second
+   * settlement, and on the day the two disagreed there would be no saying which
+   * was the product's answer (rule 8).
+   */
+  async callsOn(
+    fixtureId: string,
+    userIds: string[],
+  ): Promise<{ kickoffAt: Date; locked: boolean; calls: GroupPredictionCall[] } | null> {
+    const fixture = await this.pool.query<{ kickoff_at: Date; locked: boolean }>(
+      `SELECT kickoff_at, (kickoff_at <= now()) AS locked FROM fixture WHERE id = $1`,
+      [fixtureId],
+    );
+    const match = fixture.rows[0];
+    if (match === undefined) return null;
+    if (userIds.length === 0) {
+      return { kickoffAt: match.kickoff_at, locked: match.locked, calls: [] };
+    }
+
+    const { rows: predictions } = await this.pool.query<{
+      id: string;
+      username: string;
+      display_name: string;
+    }>(
+      `SELECT p.id, u.username, u.display_name
+         FROM user_prediction p
+         JOIN user_account u ON u.id = p.user_id
+        WHERE p.fixture_id = $1 AND p.user_id = ANY($2::uuid[]) AND u.status = 'active'`,
+      [fixtureId, userIds],
+    );
+    if (predictions.length === 0) {
+      return { kickoffAt: match.kickoff_at, locked: match.locked, calls: [] };
+    }
+
+    const ids = predictions.map((row) => row.id);
+    const [versions, settlements] = await Promise.all([
+      this.pool.query<VersionRow & { prediction_id: string; revisions: string }>(
+        `SELECT DISTINCT ON (prediction_id)
+                prediction_id, id, version_number, outcome, home_goals, away_goals, confidence,
+                reason_tags, explanation, submitted_at,
+                count(*) OVER (PARTITION BY prediction_id)::text AS revisions
+           FROM prediction_version
+          WHERE prediction_id = ANY($1::uuid[])
+          ORDER BY prediction_id, version_number DESC`,
+        [ids],
+      ),
+      this.pool.query<SettlementRow & { prediction_id: string }>(
+        `SELECT DISTINCT ON (s.prediction_id) s.prediction_id, ${SETTLEMENT_COLUMNS}
+           FROM settlement s JOIN prediction_version v ON v.id = s.version_id
+          WHERE s.prediction_id = ANY($1::uuid[])
+          ORDER BY s.prediction_id, s.settled_at DESC, s.id DESC`,
+        [ids],
+      ),
+    ]);
+
+    const heads = new Map(versions.rows.map((row) => [row.prediction_id, row]));
+    const settled = new Map(settlements.rows.map((row) => [row.prediction_id, row]));
+    const calls: GroupPredictionCall[] = [];
+    for (const row of predictions) {
+      const head = heads.get(row.id);
+      // A prediction with no version cannot happen -- the first version is
+      // written with it -- and if it ever did, the member has called nothing.
+      if (head === undefined) continue;
+      const settlement = settled.get(row.id);
+      calls.push({
+        username: row.username,
+        display_name: row.display_name,
+        version: toVersion(head),
+        revisions: Number(head.revisions),
+        settlement: settlement === undefined ? null : toSettlement(settlement),
+      });
+    }
+    calls.sort(
+      (a, b) =>
+        b.version.confidence - a.version.confidence ||
+        a.version.submitted_at.localeCompare(b.version.submitted_at) ||
+        a.username.localeCompare(b.username),
+    );
+    return { kickoffAt: match.kickoff_at, locked: match.locked, calls };
   }
 }

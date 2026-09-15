@@ -160,7 +160,13 @@ export type {
 export { MAX_EXPLANATION_LENGTH, MAX_REASON_TAGS, PREDICTION_REASON_TAGS } from './predictions';
 export type {
   FixtureSettlementsResponse,
+  GroupPredictionCall,
+  GroupPredictionComparison,
+  GroupPredictionComparisonResponse,
   Prediction,
+  PredictionHistoryFixture,
+  PredictionHistoryItem,
+  PredictionHistoryResponse,
   PredictionOutcome,
   PredictionReasonTag,
   PredictionResponse,
@@ -169,9 +175,6 @@ export type {
   SettlementRunResponse,
   SettlementVoidReason,
   SubmitPredictionRequest,
-  PredictionHistoryFixture,
-  PredictionHistoryItem,
-  PredictionHistoryResponse,
 } from './predictions';
 export type {
   CareerPoints,
