@@ -7,12 +7,14 @@ import { FounderAnalysisPanel } from '@/components/founder-analysis';
 import { JsonLd } from '@/components/json-ld';
 import { LiveMatch } from '@/components/live-match';
 import { PowerIndexPanel } from '@/components/power-index-panel';
+import { MatchThreads } from '@/components/match-threads';
 import { PredictionSection } from '@/components/prediction-section';
 import {
   fetchEvaluations,
   fetchForecasts,
   fetchMatchCentre,
   fetchMe,
+  fetchMyGroups,
   fetchConsensus,
   fetchFounderAnalysis,
   fetchOwnPrediction,
@@ -72,6 +74,10 @@ export default async function MatchPage({
         ? me.timezone
         : 'UTC';
 
+  // Only for a signed-in member: a match thread happens inside a group, and a
+  // guest is in none.
+  const groups = me === null ? null : await fetchMyGroups(cookie);
+
   const result = await fetchMatchCentre(id);
   if (!result.ok && result.status === 404) notFound();
   // The forecast (T-065), the Power Index (T-114) and, once the match is over,
@@ -121,6 +127,14 @@ export default async function MatchPage({
                   me={me}
                   current={prediction}
                 />
+                {me !== null && (
+                  <MatchThreads
+                    locale={locale}
+                    groups={groups !== null && groups.ok ? groups.data.groups : []}
+                    reachable={groups !== null && groups.ok}
+                    fixtureId={result.data.fixture.id}
+                  />
+                )}
                 <FounderAnalysisPanel
                   analysis={founder !== null && founder.ok ? founder.data : null}
                   home={result.data.fixture.home.name}

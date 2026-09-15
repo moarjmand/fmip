@@ -4,28 +4,28 @@ import type {
   ApiError,
   AuditResponse,
   BlocksResponse,
+  ChatHealth,
+  CommunityConsensusResponse,
+  CompetitionPage,
+  CompetitionsResponse,
+  ConsensusListResponse,
   ConversationPage,
   ConversationSearchResponse,
   ConversationsResponse,
-  CommunityConsensusResponse,
-  ConsensusListResponse,
-  CompetitionPage,
-  CompetitionsResponse,
   CountriesResponse,
   FixtureEvaluationsResponse,
-  ForecastListResponse,
   FollowedEntity,
+  FollowingResponse,
+  ForecastListResponse,
   ForecastVersionsResponse,
+  FounderAnalysesResponse,
+  FounderAnalysisResponse,
   FriendRequestsResponse,
   FriendStatusResponse,
   FriendsResponse,
-  FounderAnalysesResponse,
-  FounderAnalysisResponse,
-  PowerIndexResponse,
-  FollowingResponse,
-  ChatHealth,
   GroupInvitesResponse,
   GroupJoinRequestsResponse,
+  GroupPredictionComparisonResponse,
   GroupResponse,
   GroupsResponse,
   HealthReport,
@@ -35,6 +35,7 @@ import type {
   MatchCentre,
   OwnProfile,
   PlayerPage,
+  PowerIndexResponse,
   PredictionHistoryResponse,
   PredictionResponse,
   ProfileView,
@@ -133,6 +134,22 @@ export function fetchGroupLeaderboard(
 ): Promise<ApiResult<LeaderboardResponse>> {
   return apiRequest<LeaderboardResponse>(
     `/groups/${encodeURIComponent(slug)}/leaderboard`,
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/**
+ * What a group called one fixture (T-246). 403 when the viewer is outside a
+ * group that shows its membership to members, 404 when the group or the fixture
+ * is not there.
+ */
+export function fetchGroupComparison(
+  slug: string,
+  fixtureId: string,
+  cookie: string | undefined,
+): Promise<ApiResult<GroupPredictionComparisonResponse>> {
+  return apiRequest<GroupPredictionComparisonResponse>(
+    `/groups/${encodeURIComponent(slug)}/fixtures/${encodeURIComponent(fixtureId)}/predictions`,
     cookie === undefined ? {} : { cookie },
   );
 }
