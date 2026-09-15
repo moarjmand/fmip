@@ -52,7 +52,8 @@ incomplete.
 | `10-public-preview.md` | A free public address for testing before the deploy exists: the quick tunnel, what it does not carry, and the ranked options for a stable one (T-085, D-050) | Showing the site to a phone or a person, or choosing where to host it |
 | `11-koyeb.md` | The stable free preview on Koyeb: the one-container shape and why, the three things the maintainer does by hand, and what misbehaves (T-086, D-051) | Deploying or debugging the preview |
 | `12-power-index.md` | The Power Index: where each piece lives, the two rules it is built on, and the weight validation with the record of every run (T-110..T-114) | Touching the index, its weights or its panel |
-| `13-policy.md` | The Phase 3 policy (D-059): the contributor thresholds, the conduct ladder a moderator is shown, how a grant ends, and **drafts** of the platform rules and the contributor rules awaiting the maintainer's approval | Touching eligibility, moderation defaults, or anything a member accepts |
+| `13-policy.md` | The Phase 3 policy (D-059): the contributor thresholds, the conduct ladder a moderator is shown, how a grant ends, and the platform rules and the contributor rules a member accepts, approved 2026-09-15 | Touching eligibility, moderation defaults, or anything a member accepts |
+| `14-maintainer.md` | The things no agent session can do -- account creation, money, secrets, a physical device, a judgement -- in the order they unblock work, with the commands and how to know each worked | Asking what is left for the maintainer, or finishing one of them |
 | `product-blueprint.md` | The original product definition, converted from `m1.docx`. Authoritative on behaviour, **not** on engineering | Questions about intended behaviour |
 | `adr/` *(planned)* | Long-form decision records when a log entry is not enough | — |
 
