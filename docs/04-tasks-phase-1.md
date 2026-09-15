@@ -1111,7 +1111,7 @@ tests (7 new on percentages, framing, deltas), typecheck, lint, stylelint.
 | `[x]` T-073 | Load test at expected peak (many concurrent SSE clients) | T-032 | Documented pass at an agreed threshold |
 | `[ ]` T-074 | Production deploy: VPS, Docker Compose, Cloudflare, TLS, domain | T-073 | Zero-downtime redeploy verified |
 | `[x]` T-085 | A free public address for testing, before the deploy exists | T-002 | The running stack answers on public HTTPS, and what the tunnel drops is named |
-| `[~]` T-086 | A stable free preview that carries the live stream | T-085 | One image serves the site and the stream; what is absent is declared |
+| `[x]` T-086 | A stable free preview that carries the live stream | T-085 | One image serves the site and the stream; what is absent is declared |
 
 **T-072 verified on 2026-09-10.** `scripts/backup/backup.sh` dumps the
 database from inside the postgres container (`pg_dump` custom format,
@@ -1309,10 +1309,26 @@ the supervisor and every declared absence were never about the platform. The
 directory is `deploy/preview/`, the service is `render.yaml`, the database is
 Neon, and D-064 records why.
 
-**What remains is the maintainer's and only that:** a Render account, a Neon
-project, and one connection string. `docs/11-preview.md` is the runbook. The
-task stays `[~]` until the service is created, because nothing here has been seen
-running anywhere but a laptop.
+**Verified in public on 2026-09-15** at `https://fmip-preview.onrender.com`.
+`GET /en` and `GET /en/scores` answer 200, the second saying "No fixtures on this
+day" -- an empty database being honest rather than a page that failed. The
+acceptance criterion is the stream, and the stream carries: a `snapshot` event
+with a real payload (`"total":0`, the database again) followed by a `heartbeat`
+fifteen seconds later, **over the single published port** -- browser to the
+Next.js route handler to the API and back out, which is the one thing the T-085
+tunnel could never demonstrate.
+
+`SITE_URL` was set by nobody. The canonical link, the Open Graph URL and every
+entry in `/sitemap.xml` name the preview's own address, because `start.mjs` took
+it from the platform (D-064). On Koyeb this was a manual step whose omission
+raised no error anywhere.
+
+**What the preview does not show, and why that is not a gap:** the chat bus state
+and the forecast state. `GET /health/chat` is an API route and the API's port is
+not published; `model_unreachable` is recorded per fixture and there are no
+fixtures. Both were briefly written into the runbook as checks and removed once
+they were tried -- a check that passes because nobody performed it is the
+`REDIS_URL` lesson again.
 
 ---
 
