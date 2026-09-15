@@ -1,7 +1,14 @@
 'use client';
 
 import { useActionState } from 'react';
-import type { MatchPanelPage, PanelPermission, PanelPost, RatingTier } from '@fmip/contracts';
+import type {
+  MatchPanelPage,
+  PanelPermission,
+  PanelPost,
+  PanelReaction,
+  RatingTier,
+} from '@fmip/contracts';
+import { FollowButton, PanelReactions } from '@/components/panel-social';
 import { postToPanelAction } from '@/lib/panel-actions';
 
 /**
@@ -46,7 +53,14 @@ const TIER_LABEL: Record<RatingTier, string> = {
  * **former** rather than as approved. Hiding the post would rewrite the record;
  * still calling them approved would be false (rule 3).
  */
-function Standing({ author }: { author: PanelPost['author'] }) {
+function Standing({
+  author,
+  follow,
+}: {
+  author: PanelPost['author'];
+  /** The control, when the viewer is a member who is not this author. */
+  follow: React.ReactNode;
+}) {
   return (
     <span className="flex flex-wrap items-center gap-2 text-xs opacity-80">
       <span className="font-medium opacity-100">{author.display_name}</span>
@@ -66,11 +80,29 @@ function Standing({ author }: { author: PanelPost['author'] }) {
       >
         {author.approved ? 'Approved contributor' : 'Formerly approved'}
       </span>
+      {follow}
     </span>
   );
 }
 
-function Post({ post }: { post: PanelPost }) {
+function Post({
+  post,
+  locale,
+  fixtureId,
+  mine,
+  me,
+  followed,
+}: {
+  post: PanelPost;
+  locale: string;
+  fixtureId: string;
+  /** The viewer's own reactions on this post. Empty for a guest. */
+  mine: PanelReaction[];
+  /** The viewer's username, or null for a guest. */
+  me: string | null;
+  /** Whom the viewer already follows. Empty for a guest. */
+  followed: ReadonlySet<string>;
+}) {
   if (post.removed !== null) {
     // Kept in place rather than dropped. A panel with holes makes the posts
     // around a removal read as non sequiturs, and "the author thought better of
@@ -91,8 +123,31 @@ function Post({ post }: { post: PanelPost }) {
       className="flex flex-col gap-2 rounded border border-current/20 p-3"
       data-testid="panel-post"
     >
-      <Standing author={post.author} />
+      <Standing
+        author={post.author}
+        follow={
+          // A member, and not the author. Approval is deliberately not asked
+          // about: following a contributor is what a reader of a panel does
+          // next, and gating it would be a second, quieter approval (T-252).
+          me !== null && me !== post.author.username ? (
+            <FollowButton
+              locale={locale}
+              fixtureId={fixtureId}
+              username={post.author.username}
+              following={followed.has(post.author.username)}
+            />
+          ) : null
+        }
+      />
       <p className="whitespace-pre-wrap text-sm">{post.body}</p>
+      <PanelReactions
+        locale={locale}
+        fixtureId={fixtureId}
+        postId={post.id}
+        tallies={post.reactions}
+        mine={mine}
+        signedIn={me !== null}
+      />
       <time className="text-xs opacity-60" dateTime={post.created_at}>
         {post.created_at}
       </time>
@@ -147,6 +202,8 @@ export function MatchPanel({
   page,
   permission,
   reachable,
+  me,
+  followed,
 }: {
   locale: string;
   fixtureId: string;
@@ -155,7 +212,19 @@ export function MatchPanel({
   permission: PanelPermission | null;
   /** False when the panel itself could not be fetched at all. */
   reachable: boolean;
+  /** The viewer's username, or null for a guest (T-252). */
+  me?: string | null;
+  /** Whom the viewer already follows. Empty for a guest. */
+  followed?: readonly string[];
 }) {
+  const viewer = me ?? null;
+  const follows = new Set(followed ?? []);
+  // Keyed once for the whole page rather than searched per post: a panel of
+  // fifty posts should not walk a list fifty times to draw its own buttons.
+  const myReactions = new Map(
+    (permission?.my_reactions ?? []).map((entry) => [entry.post_id, entry.reactions]),
+  );
+
   return (
     <section className="flex flex-col gap-3" data-testid="match-panel">
       <h2 className="text-lg font-semibold">Match discussion</h2>
@@ -175,7 +244,15 @@ export function MatchPanel({
         <>
           <ul className="flex flex-col gap-2">
             {page.posts.map((post) => (
-              <Post key={post.id} post={post} />
+              <Post
+                key={post.id}
+                post={post}
+                locale={locale}
+                fixtureId={fixtureId}
+                mine={myReactions.get(post.id) ?? []}
+                me={viewer}
+                followed={follows}
+              />
             ))}
           </ul>
           {page.cursor !== null && (

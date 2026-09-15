@@ -20,6 +20,7 @@ import type {
   ForecastVersionsResponse,
   FounderAnalysesResponse,
   FounderAnalysisResponse,
+  FollowedMembersResponse,
   FriendRequestsResponse,
   FriendStatusResponse,
   FriendsResponse,
@@ -118,6 +119,22 @@ export function fetchMatchPanel(
 ): Promise<ApiResult<MatchPanelPage>> {
   const query = cursor === undefined ? '' : `?cursor=${encodeURIComponent(cursor)}`;
   return apiRequest<MatchPanelPage>(`/fixtures/${fixtureId}/panel${query}`);
+}
+
+/**
+ * Whom the viewer follows (T-252), fetched once for a whole page.
+ *
+ * One request and a set of usernames, rather than a follow-status call per
+ * author: a panel with a dozen contributors on it would otherwise cost a dozen
+ * round trips to draw a dozen buttons.
+ */
+export function fetchFollowedMembers(
+  cookie: string | undefined,
+): Promise<ApiResult<FollowedMembersResponse>> {
+  return apiRequest<FollowedMembersResponse>(
+    '/me/followed-members',
+    cookie === undefined ? {} : { cookie },
+  );
 }
 
 /** Whether *this* viewer may post, and if not, why not. The half that needs the session. */
