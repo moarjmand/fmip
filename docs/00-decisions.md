@@ -2044,3 +2044,50 @@ they are. *A thread as a message subtype inside the group's room*: it would make
 the room's unread count the thread's, and a group that discusses three matches
 would have one conversation nobody can follow. *Threads outside groups*: that is
 E25's public panel, which is gated on approval and is not this.
+
+---
+
+## D-063 — A group's prediction comparison repeats the stored settlement and obeys the member's own visibility, adding no rule of its own
+
+**Date:** 2026-09-15 · **Task:** T-246 · **Status:** accepted
+
+Blueprint 8.2 asks for prediction comparisons inside a group. The shape that
+invites two defects: scoring the calls where they are displayed, and deciding
+afresh who may see them.
+
+**Decision.** The comparison computes nothing and decides nothing. Each call
+carries the settlement stored for it (T-052), read through the same mapper the
+single settlement read uses; whether a member's calls may be shown is
+`prediction_history_visibility`, asked of the profile boundary exactly as
+`GET /users/:username/predictions` asks it.
+
+**Never a second settlement is the load-bearing half.** A comparison that scored
+the calls itself would be a second answer to "was this right", and on the day the
+two disagreed there would be no saying which was the product's (rule 8). The test
+writes a settlement deliberately at odds with the obvious reading of the score
+and expects the comparison to repeat it -- a comparison that recomputed would
+"correct" that row and pass every test that only checked plausible data.
+
+**The silent and the withheld are separate numbers.** A member who said nothing
+and a member whose calls this viewer may not see are different facts, and neither
+may be dropped: a comparison that quietly omitted both would report a smaller
+group than exists and a reader would take the calls shown for all of them
+(rule 3).
+
+**A group can therefore see a call before kick-off**, because a profile already
+can. That is a consequence of adding no rule, not an oversight, and it is
+recorded in `docs/13-policy.md` §7 with the one-condition change that would
+reverse it -- the maintainer's to make, since it would override a setting members
+have already chosen.
+
+**Visibility is asked once per member who actually called the fixture**, which
+bounds it: a group of fifty with eight calls asks eight times. A bulk answer
+would have meant re-implementing the rule in SQL, which is the second rule this
+decision exists to avoid.
+
+**Rejected.** *Computing the verdict at display time*: faster to write, and it
+is the second settlement. *A group-wide visibility setting*: a second control
+over the same thing, and the first one to be forgotten. *Hiding a call until
+kick-off by default*: defensible, and it silently overrides the member's own
+`public` choice -- a decision for the maintainer to make explicitly, which is now
+possible because the place to make it is written down.

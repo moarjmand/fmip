@@ -186,3 +186,25 @@ maintainer's instruction. Every source carries its own rights, and a surface
 renders what the rights allow rather than what the schema happens to hold. A
 licensed wire feed later is a new adapter and a new rights row -- not a rewrite,
 and not a second article table.
+
+---
+
+## 7. What a group sees of a member's predictions
+
+**The member's own control decides, and nothing else** (T-246). A prediction
+comparison inside a group shows what `prediction_history_visibility` already
+allows -- the same setting that governs a profile's history (T-056). A member
+who set `private` is not shown, one who set `friends` is shown only to friends,
+and either way they are **counted** so the comparison never reports a smaller
+group than the one that exists.
+
+**This means a group can see a call before kick-off**, because the product
+already allows that on a profile. It is stated here rather than buried because
+it is the one place the maintainer might reasonably want a different rule: a
+side-by-side comparison inside a small group makes copying easier than browsing
+one profile at a time does.
+
+**If that should change**, the rule would be "a call is shown to the group only
+once the fixture is locked, except to its own author". It is one condition in
+one place. Say so and it changes; until then the member's setting is the whole
+answer, because a second rule would override a choice they have already made.

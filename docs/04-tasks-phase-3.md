@@ -1316,7 +1316,8 @@ a different visibility and an invitation rule, not a second feature.
 | `[x]` T-242 | Group surfaces: directory, page, membership controls | T-241 | A private group is not discoverable; an invite-only one is not joinable |
 | `[x]` T-243 | The group leaderboard | T-241, T-055 | The same rating rules as the global board, scoped — never a second formula |
 | `[x]` T-244 | Match threads inside a group | T-241 | A thread is a conversation about a fixture, and says which |
-| `[ ]` T-246 | Prediction comparison inside a group | T-243, T-044 | Who called a fixture which way, in one place; never a second settlement |
+| `[x]` T-246 | Prediction comparison inside a group | T-243, T-052, T-056 | Who called a fixture which way, in one place; never a second settlement |
+| `[ ]` T-248 | Group surfaces for threads and comparisons | T-244, T-246 | A thread is opened from the match it is about, and shows what the group called |
 
 **T-243 was split on 2026-09-15.** It read "the group leaderboard and prediction
 comparison" and those are two features that share a sentence and nothing else:
@@ -1587,8 +1588,49 @@ T-236 and T-242.
 
 8 cases against the real schema, 6 guards on the surface.
 
-**What is not here.** Prediction comparison inside a group (T-246), and the
-surfaces for opening a thread from a match page.
+**T-246 verified on 2026-09-15.**
+`GET /groups/:slug/fixtures/:fixtureId/predictions`.
+
+**Never a second settlement, and the test is built to catch one.** Each call
+carries the settlement stored for it (T-052), through the same mapper the single
+settlement read uses. The spec writes a settlement deliberately at odds with the
+obvious reading of the score and expects the comparison to repeat it -- because a
+comparison that recomputed would "correct" that row and pass every test written
+only against plausible data. On the day two answers disagreed there would be no
+saying which was the product's (rule 8).
+
+**And no second visibility rule.** Whether a member's calls may be shown is
+`prediction_history_visibility`, asked of the profile boundary exactly as the
+profile history asks it. A group is not a reason to show what somebody has said
+not to show. Asked once per member who actually called the fixture, which bounds
+it: fifty members and eight calls is eight questions.
+
+**The silent and the withheld are counted separately.** Somebody who said nothing
+and somebody whose calls this viewer may not see are different facts, and a
+comparison that dropped either would report a smaller group than exists (rule 3).
+
+**A group can see a call before kick-off**, because a profile already can. That
+follows from adding no rule, and is written down in `docs/13-policy.md` §7 with
+the one condition that would reverse it -- the maintainer's to decide, since
+reversing it overrides a setting members have already chosen (D-063).
+
+**The dependency points the same way as T-243**: predictions imports groups,
+groups ranks and scores nothing. `GroupsService.audience()` is now the single
+answer to "who is in this group, and may you ask" for both the board and the
+comparison.
+
+8 cases against the real schema.
+
+**What is not here.** The surfaces for either (T-248): opening a thread from a
+match page, and the comparison on a thread's page.
+
+---
+
+## E24 is complete.
+
+Six tasks and two splits: T-243 shed the comparison, which became T-246; the
+surfaces for threads and comparisons became T-248 for the same reason -- a row
+that spans eleven files is two rows (`CLAUDE.md` §3).
 
 **T-243 verified on 2026-09-15.** `GET /groups/:slug/leaderboard`, a board on the
 group page, and one argument added to the method that already existed.
