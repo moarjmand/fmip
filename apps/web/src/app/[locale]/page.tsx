@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { JsonLd } from '@/components/json-ld';
 import { FounderAnalysisFeed } from '@/components/founder-analysis';
 import { fetchApiHealth, fetchFounderFeed } from '@/lib/api';
+import { rootTitle } from '@/lib/demonstration';
 import { pageMetadata, websiteJsonLd } from '@/lib/seo';
 
 // The API is queried per request, so a build never depends on it being up.
@@ -17,7 +18,9 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path: '',
-    title: 'FMIP',
+    // The only page in the layout's own segment, so the layout's title
+    // template does not reach it and it carries the marker itself (T-087).
+    title: rootTitle('FMIP'),
     description:
       'Football match intelligence: live scores, match centre, forecasts and predictions.',
   });

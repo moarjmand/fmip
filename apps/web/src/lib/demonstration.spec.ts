@@ -1,9 +1,9 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import robots from '../app/robots';
 import sitemap from '../app/sitemap';
-import { DEMONSTRATION_TITLE_PREFIX, isDemonstrationData } from './demonstration';
+import { DEMONSTRATION_TITLE_PREFIX, isDemonstrationData, rootTitle } from './demonstration';
 import { pageMetadata } from './seo';
 
 /**
@@ -121,6 +121,37 @@ describe('sitemap.xml', () => {
     // not covered by the rule above.
     process.env['DEMONSTRATION_DATA'] = 'on';
     await expect(sitemap()).resolves.toEqual([]);
+  });
+});
+
+describe('the locale root, which the template cannot reach', () => {
+  // Next.js applies `title.template` to child route segments, and
+  // `[locale]/page.tsx` is not one -- it shares its segment with the layout
+  // that defines the template. The result was a marked title on every page
+  // below `/en` and a bare one on `/en` itself, which is the page most people
+  // open first. It was found on the public deployment, because that is the
+  // only place a runtime-only variable is real.
+  it('prefixes the title itself when the data is demonstration data', () => {
+    expect(rootTitle('FMIP', true)).toBe(`${DEMONSTRATION_TITLE_PREFIX}FMIP`);
+  });
+
+  it('leaves a normal deployment alone', () => {
+    expect(rootTitle('FMIP', false)).toBe('FMIP');
+  });
+
+  it('is used by the one page it applies to', () => {
+    const ROOT = readFileSync(join(__dirname, '..', 'app', '[locale]', 'page.tsx'), 'utf8');
+    expect(ROOT).toContain("rootTitle('FMIP')");
+  });
+
+  it('applies to exactly one page, because a segment holds one page', () => {
+    // If a second page ever sat beside the layout this fix would be partial.
+    // It cannot, and this says so rather than leaving it to be remembered.
+    const segment = join(__dirname, '..', 'app', '[locale]');
+    const pages = readdirSync(segment, { withFileTypes: true }).filter(
+      (entry) => entry.isFile() && entry.name === 'page.tsx',
+    );
+    expect(pages).toHaveLength(1);
   });
 });
 
