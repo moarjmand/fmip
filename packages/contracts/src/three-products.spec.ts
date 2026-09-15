@@ -19,6 +19,18 @@ import { join } from 'node:path';
  * that did not exist. The model and the founder's analysis were built; the
  * third product was named in the rule, named in this test, and never written.
  * T-134 built it, and these assertions now cover all three.
+ *
+ * **T-263 makes it four.** Community-written analysis (blueprint 10.3) is not
+ * one of rule 6's three — and it is the most dangerous addition yet, because it
+ * carries a predicted result, a confidence and reasoning, which makes it look
+ * exactly like the founder's analysis. The one-line wrong version of E26 was a
+ * second author on `founder_analysis`, and it would have made the founder's own
+ * signature meaningless: a reader could no longer tell whose opinion they were
+ * reading, and the column that distinguished them would be one a query could
+ * forget to filter on.
+ *
+ * So the rule these assertions defend is now wider than rule 6 as written:
+ * **four signed opinions, each legible as itself.**
  */
 
 const CONTRACTS = join(__dirname);
@@ -87,5 +99,74 @@ describe('the three prediction products stay three', () => {
       expect(text).not.toMatch(/'model'\s*\|\s*'founder'/);
       expect(text).not.toMatch(/'founder'\s*\|\s*'community'/);
     }
+  });
+});
+
+describe('community analysis is a fourth opinion, not a fourth label', () => {
+  const FILES = ['forecast.ts', 'founder-analysis.ts', 'consensus.ts', 'community-analysis.ts'];
+
+  /** Code only: these files argue about each other at length in prose. */
+  function code(file: string): string {
+    return source(file)
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/(^|[\r\n])\s*\/\/.*/g, '$1');
+  }
+
+  it('imports none of the three, and none of them imports it', () => {
+    // The first shared type is how blending starts, and here it would be the
+    // easiest one to reach for: a community analysis and a founder analysis
+    // have the same fields.
+    const community = code('community-analysis.ts');
+    for (const other of ['forecast', 'founder-analysis', 'consensus', 'predictions']) {
+      expect(community, `community-analysis imports ${other}`).not.toMatch(
+        new RegExp(`from '\\./${other}'`),
+      );
+    }
+    for (const file of ['forecast.ts', 'founder-analysis.ts', 'consensus.ts']) {
+      expect(code(file), `${file} imports community-analysis`).not.toMatch(
+        /from '\.\/community-analysis'/,
+      );
+    }
+  });
+
+  it('names no type belonging to another product, in either direction', () => {
+    const community = code('community-analysis.ts');
+    expect(community).not.toMatch(
+      /FounderAnalysis|ForecastVersion|ModelProbabilities|CommunityConsensus/,
+    );
+
+    // And the reverse: a `CommunityAnalysis` field on the founder's payload so
+    // a page can render "the analysis", whichever it came from.
+    for (const file of ['forecast.ts', 'founder-analysis.ts', 'consensus.ts']) {
+      expect(code(file), `${file} names a community analysis type`).not.toMatch(
+        /CommunityAnalysis(?!es)/,
+      );
+    }
+  });
+
+  it('is not enumerable alongside the others as an interchangeable kind', () => {
+    // `type AnalysisSource = 'founder' | 'community'` is the compact way to say
+    // the two are the same shape with a label, which is exactly what the epic
+    // exists to prevent.
+    for (const file of FILES) {
+      const text = code(file);
+      expect(text, `${file} enumerates the products`).not.toMatch(
+        /'founder'\s*\|\s*'community'|'community'\s*\|\s*'founder'/,
+      );
+      expect(text).not.toMatch(/'model'\s*\|\s*'community'/);
+    }
+  });
+
+  it('keeps the word "prediction" out of the community analysis contract too', () => {
+    // The same relabelling rule the founder's analysis has: "prediction" means
+    // a member's, and a reader who sees the same word twice will assume the
+    // same thing twice.
+    expect(code('community-analysis.ts')).not.toMatch(/[Pp]rediction\b/);
+  });
+
+  it('gives the fourth opinion its own file, so the count is four', () => {
+    // A sweep rather than a list: a fifth product added without a file of its
+    // own would be a fifth opinion sharing somebody else's shape.
+    for (const file of FILES) expect(source(file).length).toBeGreaterThan(0);
   });
 });
