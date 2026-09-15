@@ -1714,7 +1714,7 @@ the gate is the whole feature.
 | `[x]` T-250 | Eligibility as a derived view; approval as an audited grant | T-054, T-212 | Eligibility is computed and never grants; approval names its approver and reason |
 | `[x]` T-251 | The discussion: open to read, gated to post, linked to the match | T-250, T-221 | A guest reads; an unapproved member cannot post and is told why |
 | `[x]` T-252 | Reactions, and following a contributor | T-251, T-042 | Reacting is open to members; it never becomes posting access |
-| `[ ]` T-253 | Featured matches: which fixtures have a panel at all | T-251, T-070 | An operator decides, with an audit row |
+| `[~]` T-253 | Featured matches: which fixtures have a panel at all | T-251, T-070 | An operator decides, with an audit row |
 
 **Eligibility is computed; access is granted.** Blueprint 10.2 lists four
 requirements and then a fifth: "manual approval by the founder, editor or
@@ -1918,6 +1918,47 @@ what replaced it is narrower and truer -- inside the component that renders the
 list, the viewer is only ever passed down, never branched on.
 
 37 tests for T-252: 12 against the real schema, 14 over HTTP, 11 on the page.
+
+**T-253 schema and the member-facing half, 2026-09-15.** The operator's surface
+is the remaining part and the row stays `[~]` until it lands: the acceptance
+criterion is *an operator decides, with an audit row*, and there is no operator
+surface yet.
+
+**The default was wrong and this is what changes it.** Until this migration
+every fixture had a panel, because nothing said which ones did -- ten thousand
+rooms a season, each of which can still be used to reach the public and each of
+which costs the same to moderate as a room somebody wanted. A panel is now
+opened, by a person, for a reason, and the opening is a row rather than a
+boolean on `fixture`: a flag has no actor and no history, and "who decided this
+match should have a public discussion" is the question asked after one goes
+wrong.
+
+**Closing is not deleting.** A closed panel stays readable and takes no new
+posts. Taking the words down when the argument ends would rewrite a record
+people were told was public, and the reader who followed a link should find what
+they were shown.
+
+**`PL015` fires before the approval guard**, and the trigger is named
+`panel_post_a_open_guard` to make it. A member told they are not an approved
+contributor would go and read about approval, and none of it would help: there
+is no discussion here, and there would not be one for them if they were approved
+tomorrow. The refusal that is true of everybody is heard first. Both orders are
+asserted -- the same member, before and after a panel exists.
+
+**Three states, not two.** `MatchPanelPage.state` says `none`, `open` or
+`closed`, because a match nobody opened a panel on and one where nobody has
+spoken both come back with no posts and only the second is something a reader
+can act on (rule 3). The page gives them separate sentences.
+
+**Shipped together rather than split**, unlike the three tasks before it. The
+migration alone would have left an unopened fixture returning a 500: `PL015`
+would have reached the API unmapped. A split that ships a broken intermediate is
+not a smaller change, it is a worse one.
+
+The five existing panel suites each open a panel now, which is the new
+requirement written down where somebody will read it. 78 tests across the
+boundary: 69 in the API, 9 of them new, plus the page.
+
 
 ---
 

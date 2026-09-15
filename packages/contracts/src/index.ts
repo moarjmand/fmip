@@ -198,6 +198,7 @@ export type {
   PanelPermission,
   PanelPost,
   PanelRefusal,
+  PanelState,
   SubmitPanelPostRequest,
 } from './match-panel';
 

@@ -41,6 +41,7 @@ export const MAX_POST_LENGTH = 4000;
 
 /** The database's refusals, and what each one means to the person refused. */
 const REFUSALS: Record<string, PanelRefusal> = {
+  PL015: 'no_panel',
   PL014: 'not_approved',
   PL004: 'restricted',
   PL005: 'restricted',
@@ -97,12 +98,17 @@ export class PanelService {
     // A cursor this server did not write is treated as no cursor rather than as
     // a 400: a stale or mangled link should show the panel from the start, not
     // an error page about pagination.
+    const state = await this.store.panelState(fixtureId);
     const { rows, total } = await this.store.page(fixtureId, decodeCursor(cursor), size);
     // One query for the whole page. One per post would cost fifty round trips
     // to draw the cheapest thing on the screen.
     const reactions = await this.social.talliesFor(rows.map((row) => row.id));
     const last = rows.at(-1);
     return {
+      // Said, never inferred. A match nobody opened a discussion on and one
+      // where nobody has spoken yet both come back with no posts, and only the
+      // second is something a reader can do anything about (rule 3, T-253).
+      state,
       posts: rows.map((row) => postOf(row, reactions.get(row.id) ?? [])),
       // Only when the page was full. A cursor on a short page would invite one
       // more request that is certain to be empty.
@@ -132,6 +138,16 @@ export class PanelService {
     // round trip.
     const mine = await this.social.myReactions(fixtureId, viewer?.id ?? null);
     const none = { shortfalls: [], qualifies: false, my_reactions: mine };
+
+    // First, and before anything about the viewer, because it is the refusal
+    // that is true of everybody (T-253). Telling a member they are not approved
+    // would send them to read about approval, and none of it would help: there
+    // is no discussion here, and there would not be one for them if they were
+    // approved tomorrow. The trigger refuses in this order too.
+    const state = await this.store.panelState(fixtureId);
+    if (state === 'none') return { may_post: false, refusal: 'no_panel', ...none };
+    if (state === 'closed') return { may_post: false, refusal: 'panel_closed', ...none };
+
     if (viewer === null) {
       return { may_post: false, refusal: 'not_signed_in', ...none };
     }

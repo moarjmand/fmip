@@ -85,8 +85,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the match pa
       [match, authorId, body],
     );
 
+  let operator = '';
+
   beforeAll(async () => {
     pool = new Pool({ connectionString: DATABASE_URL });
+    operator = await member('op');
     for (const [index, id] of teams.entries()) {
       await pool.query(
         `INSERT INTO team (id, country_id, name, short_name, kind, gender)
@@ -105,6 +108,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the match pa
        VALUES ($1, $2, 'home'), ($1, $3, 'away')`,
       [match, teams[0], teams[1]],
     );
+    // T-253: a fixture has no discussion until an operator opens one, so this
+    // suite opens the one it writes to. Before T-253 every fixture had a panel
+    // by default, which is the wrong default and is what that task changed.
+    await pool.query(
+      `INSERT INTO match_panel (fixture_id, opened_by, reason)
+       VALUES ($1, $2, 'the panel schema suite')`,
+      [match, operator],
+    );
   });
 
   afterAll(async () => {
@@ -113,6 +124,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the match pa
     try {
       await client.query(`SET session_replication_role = 'replica'`);
       await client.query(`DELETE FROM panel_post WHERE fixture_id = $1`, [match]);
+      await client.query(`DELETE FROM match_panel WHERE fixture_id = $1`, [match]);
       await client.query(`DELETE FROM rate_window WHERE user_id = ANY($1::uuid[])`, [members]);
       await client.query(
         `DELETE FROM contributor_grant_event WHERE grant_id IN

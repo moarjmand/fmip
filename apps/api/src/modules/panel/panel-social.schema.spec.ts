@@ -97,6 +97,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
          VALUES ($1, $2, 'home'), ($1, $3, 'away')`,
         [match, teams[0], teams[1]],
       );
+      // T-253: a fixture has no discussion until an operator opens one.
+      await pool.query(
+        `INSERT INTO match_panel (fixture_id, opened_by, reason)
+         VALUES ($1, $2, 'the suite that needs a panel to write to')`,
+        [match, approver],
+      );
       await pool.query(
         `INSERT INTO contributor_grant (user_id, granted_by, reason, rules_version, accepted_at)
          VALUES ($1, $2, 'the panel social suite', 'contributor-rules@1.0.0', now())`,
@@ -116,6 +122,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         ]);
         await client.query(`DELETE FROM user_block WHERE blocker_id = ANY($1::uuid[])`, [members]);
         await client.query(`DELETE FROM panel_post WHERE fixture_id = $1`, [match]);
+        await client.query(`DELETE FROM match_panel WHERE fixture_id = $1`, [match]);
         await client.query(`DELETE FROM rate_window WHERE user_id = ANY($1::uuid[])`, [members]);
         await client.query(`DELETE FROM contributor_grant WHERE user_id = ANY($1::uuid[])`, [
           members,

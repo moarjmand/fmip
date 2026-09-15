@@ -69,12 +69,24 @@ export interface PanelPost {
 }
 
 /**
+ * Whether this match has a public discussion at all (T-253).
+ *
+ * `none` and `open`-with-nothing-in-it are different facts and must not render
+ * the same: one is a match nobody decided to open a discussion on, the other is
+ * one where nobody has spoken yet. A reader can act on the second and is owed
+ * the truth about the first (rule 3).
+ */
+export type PanelState = 'none' | 'open' | 'closed';
+
+/**
  * A page of the panel.
  *
  * `cursor` is the opaque position of the last post on this page; passing it
  * back asks for the next. Absent when there is nothing after it.
  */
 export interface MatchPanelPage {
+  /** Always present. `none` means no operator opened one. */
+  state: PanelState;
   posts: PanelPost[];
   cursor: string | null;
   /**
@@ -88,6 +100,17 @@ export interface MatchPanelPage {
 
 /** Why the viewer may not post, in their own terms. */
 export type PanelRefusal =
+  /**
+   * No operator opened a discussion on this match (T-253).
+   *
+   * First in the list because it is first in the order the database refuses,
+   * and for the same reason: it is the refusal that is true of everybody. A
+   * member told they are not an approved contributor would go and read about
+   * approval, and none of it would help.
+   */
+  | 'no_panel'
+  /** The discussion was closed. Still readable; nothing more can be added. */
+  | 'panel_closed'
   | 'not_signed_in'
   /** Nobody has approved them. The shortfalls say what they still need. */
   | 'not_approved'
