@@ -12,6 +12,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
 import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
 import { FounderModule } from './founder.module';
+import { withTriggersOff } from '../../testing/cleanup';
 
 // The founder's analysis over HTTP (T-131): who may publish, what the database
 // refuses, and the audit row every editorial act has to leave behind.
@@ -130,16 +131,18 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
 
     afterAll(async () => {
       if (pool === undefined) return;
-      await pool.query(
-        `ALTER TABLE founder_analysis_version DISABLE TRIGGER founder_analysis_version_immutable`,
-      );
+      // The versions by name, not through their owner: `replica` turns off
+      // foreign-key triggers too, so the cascade from `founder_analysis` would
+      // not run and would leave them orphaned without complaining.
+      await withTriggersOff(pool, async (client) => {
+        await client.query(
+          `DELETE FROM founder_analysis_version WHERE analysis_id IN
+             (SELECT id FROM founder_analysis WHERE author_id = $1)`,
+          [founder.id],
+        );
+        await client.query(`DELETE FROM audit_log WHERE actor_id = $1`, [founder.id]);
+      });
       await pool.query(`DELETE FROM founder_analysis WHERE author_id = $1`, [founder.id]);
-      await pool.query(
-        `ALTER TABLE founder_analysis_version ENABLE TRIGGER founder_analysis_version_immutable`,
-      );
-      await pool.query('ALTER TABLE audit_log DISABLE TRIGGER audit_log_immutable');
-      await pool.query(`DELETE FROM audit_log WHERE actor_id = $1`, [founder.id]);
-      await pool.query('ALTER TABLE audit_log ENABLE TRIGGER audit_log_immutable');
       await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [[FIXTURE, STARTED]]);
       await pool.query(`DELETE FROM season WHERE id = $1`, [SEASON]);
       await pool.query(`DELETE FROM competition WHERE id = $1`, [COMPETITION]);

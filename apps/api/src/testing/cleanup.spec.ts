@@ -12,18 +12,18 @@ import { withTriggersOff } from './cleanup';
  * the same table is immutable **passes without testing anything**. That has
  * already happened once here, to the moderation schema suite.
  *
- * The list below is the remaining offenders, and it may only ever get shorter.
+ * The list below was the remaining offenders, and it may only ever get
+ * shorter. It is empty now, and it stays as a list rather than becoming
+ * `toHaveLength(0)` because that is the shape that says what to do if the rule
+ * ever has to be suspended for one file: name the file, in public.
+ *
  * It is asserted by equality rather than containment on purpose: a converted
  * file that stays on the list is a list nobody trusts, and a new offender is a
  * failing test on the day it is written rather than a note in a review.
  */
 const SRC = join(__dirname, '..');
 
-const NOT_YET_CONVERTED = [
-  'modules/admin/admin.http.spec.ts',
-  'modules/consensus/consensus.http.spec.ts',
-  'modules/founder/founder.http.spec.ts',
-];
+const NOT_YET_CONVERTED: string[] = [];
 
 function specs(dir: string): string[] {
   const found: string[] = [];

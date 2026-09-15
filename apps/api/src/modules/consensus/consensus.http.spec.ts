@@ -6,6 +6,7 @@ import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
 import { ConsensusModule } from './consensus.module';
+import { withTriggersOff } from '../../testing/cleanup';
 
 /**
  * Community consensus over HTTP (T-134, blueprint 6.6).
@@ -153,23 +154,24 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       if (pool === undefined) return;
       // Prediction versions and rating snapshots are immutable by trigger
       // (rules 5 and 8), so even the cascade from deleting what owns them is
-      // refused. Test data still has to go; the same device the forecast and
-      // audit specs use.
-      await pool.query(
-        `ALTER TABLE prediction_version DISABLE TRIGGER prediction_version_immutable`,
-      );
-      await pool.query(`ALTER TABLE rating_snapshot DISABLE TRIGGER rating_snapshot_immutable`);
-      try {
-        await pool.query(`DELETE FROM user_prediction WHERE fixture_id = ANY($1)`, [
-          [FULL, THIN, UNRATED],
-        ]);
-        await pool.query(`DELETE FROM rating_snapshot WHERE user_id = ANY($1)`, [MEMBERS]);
-      } finally {
-        await pool.query(
-          `ALTER TABLE prediction_version ENABLE TRIGGER prediction_version_immutable`,
+      // refused.
+      //
+      // The versions are deleted **by name** rather than through their owner.
+      // `replica` turns off foreign-key triggers along with the rest, so the
+      // cascade from `user_prediction` would not run and would leave the
+      // versions orphaned -- silently, since nothing would complain either.
+      // The owner goes afterwards, with the triggers back on.
+      await withTriggersOff(pool, async (client) => {
+        await client.query(
+          `DELETE FROM prediction_version WHERE prediction_id IN
+             (SELECT id FROM user_prediction WHERE fixture_id = ANY($1))`,
+          [[FULL, THIN, UNRATED]],
         );
-        await pool.query(`ALTER TABLE rating_snapshot ENABLE TRIGGER rating_snapshot_immutable`);
-      }
+        await client.query(`DELETE FROM rating_snapshot WHERE user_id = ANY($1)`, [MEMBERS]);
+      });
+      await pool.query(`DELETE FROM user_prediction WHERE fixture_id = ANY($1)`, [
+        [FULL, THIN, UNRATED],
+      ]);
       await pool.query(`DELETE FROM user_account WHERE id = ANY($1)`, [MEMBERS]);
       await pool.query(`DELETE FROM fixture WHERE id = ANY($1)`, [[FULL, THIN, UNRATED]]);
       await pool.query(`DELETE FROM season WHERE id = $1`, [SEASON]);
