@@ -82,7 +82,7 @@ search already folds transliterations (T-152).
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[x]` T-300 | The six Latin-script locales as unfinished: routing, formatting, plurals | T-151 | `/es` renders every page, every untranslated string says it is untranslated, and none of the six is offered as a finished language |
+| `[~]` T-300 | The six Latin-script locales as unfinished: routing, formatting, plurals | T-151 | `/es` renders every page, every untranslated string says it is untranslated, and none of the six is offered as a finished language |
 | `[ ]` T-301 | Plural and ordinal rules from CLDR, not from English's two forms | T-300 | A language with six plural forms gets six; a missing form is a failing test, not a fallback |
 | `[ ]` T-302 | The translator's catalogue: export, import, review state, coverage per locale | T-151 | "How much of `tr` is done" is an answer the product gives, not a grep |
 | `[ ]` T-303 | Localised entity names and aliases against the canonical UUID | T-010, T-152 | A team's Arabic name is a row against its id, never a second team (rule 1) |
@@ -124,7 +124,18 @@ their own work can see exactly when.
 every missing string says so, which is exactly what T-151 decided and why that
 task came before the first locale.
 
-**T-300 verified on 2026-09-16.** All eight of blueprint 13's languages route:
+**T-300 stays `[~]`, and the reason is in its own title.** Routing is done and
+verified; **formatting is not started**. Every date in the product is a
+hardcoded `en-GB`, so `/es` renders Spanish-marked English over British dates.
+Plurals are T-301 by design, but formatting is this task's, and marking it `[x]`
+would be the progress-report version of the thing rule 3 is about.
+
+It is separated rather than deferred, and there is a trap in it worth the
+separation: `scores.ts` reaches for `en-CA` to **build a date key** and `en-US`
+to **validate a timezone**, neither of which displays anything. Making every
+`Intl.DateTimeFormat` locale-aware would break the day tabs on the scores page.
+
+**What is verified, 2026-09-16.** All eight of blueprint 13's languages route:
 `/es`, `/fr`, `/de`, `/pt`, `/tr`, `/it` each render every page with the right
 `lang` and `dir`, and every string they have no translation for is English
 carrying `lang="en"` and `data-translation="untranslated"`. `/en` carries none
