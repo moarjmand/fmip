@@ -51,3 +51,20 @@ export const DEMONSTRATION_TITLE_PREFIX = 'Demonstration data — ';
  * is done this way round and not in that function.
  */
 export const DEMONSTRATION_TITLE_TEMPLATE = `${DEMONSTRATION_TITLE_PREFIX}%s`;
+
+/**
+ * The one page the template cannot reach.
+ *
+ * Next.js applies `title.template` to **child route segments**, and
+ * `[locale]/page.tsx` is not one: it sits in the same segment as
+ * `[locale]/layout.tsx`, which is where the template is defined. So the locale
+ * root rendered `FMIP` with no marker on it while every page below it carried
+ * one -- found on the public deployment, which is the only place it shows.
+ *
+ * This is a complete fix rather than a patch over one case: a segment holds at
+ * most one `page.tsx`, so there is exactly one page this can ever apply to, and
+ * `demonstration.spec.ts` asserts it is the one calling this.
+ */
+export function rootTitle(title: string, demonstration = isDemonstrationData()): string {
+  return demonstration ? `${DEMONSTRATION_TITLE_PREFIX}${title}` : title;
+}

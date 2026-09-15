@@ -1369,6 +1369,23 @@ locale route moved from a mix to `ƒ`, which is the prerendering bail-out doing
 what it was called for. Both guards were broken on purpose and both failed with
 the message that names the cause. 18 tests on this, 283 in the web suite.
 
+**And then the public deployment found one the build had not.** With the
+preview live and seeded, `/en` rendered `<title>FMIP</title>` -- bare -- while
+every page below it carried the marker. Next.js applies `title.template` to
+**child route segments**, and `[locale]/page.tsx` is not one: it shares its
+segment with the layout that defines the template. The documentation says so in
+a line I had read and gone past.
+
+It is the page most people open first, and no local check would have shown it:
+the variable only exists at runtime, on a deployment. This is what "checked on
+the public deployment" is in the exit criteria *for*, and it earned its place on
+the first surface it was applied to.
+
+`rootTitle()` is the fix, and it is complete rather than a patch over one case:
+a route segment holds at most one `page.tsx`, so there is exactly one page this
+can ever apply to, and the test asserts both that this page uses it and that no
+second page can appear beside it.
+
 **What is deliberately still open.** Turning `DEMONSTRATION_DATA` off by hand
 while the fixtures remain removes the marker and leaves the data. Nothing here
 prevents that; the reason is in D-065.
