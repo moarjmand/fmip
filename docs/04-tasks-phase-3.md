@@ -1714,7 +1714,7 @@ the gate is the whole feature.
 | `[x]` T-250 | Eligibility as a derived view; approval as an audited grant | T-054, T-212 | Eligibility is computed and never grants; approval names its approver and reason |
 | `[x]` T-251 | The discussion: open to read, gated to post, linked to the match | T-250, T-221 | A guest reads; an unapproved member cannot post and is told why |
 | `[x]` T-252 | Reactions, and following a contributor | T-251, T-042 | Reacting is open to members; it never becomes posting access |
-| `[~]` T-253 | Featured matches: which fixtures have a panel at all | T-251, T-070 | An operator decides, with an audit row |
+| `[x]` T-253 | Featured matches: which fixtures have a panel at all | T-251, T-070 | An operator decides, with an audit row |
 
 **Eligibility is computed; access is granted.** Blueprint 10.2 lists four
 requirements and then a fifth: "manual approval by the founder, editor or
@@ -1956,8 +1956,33 @@ would have reached the API unmapped. A split that ships a broken intermediate is
 not a smaller change, it is a worse one.
 
 The five existing panel suites each open a panel now, which is the new
-requirement written down where somebody will read it. 78 tests across the
-boundary: 69 in the API, 9 of them new, plus the page.
+requirement written down where somebody will read it.
+
+**T-253 closed on 2026-09-15** with the operator's surface. `moderator` or
+`admin`, the pair blueprint 7.3 gives the reports queue -- opening a panel is
+not an editorial nicety, it creates a room that can be used to reach the public,
+and the person who cleans it up afterwards is the same person. An approved
+contributor is refused: being trusted to *write* on a panel is not being trusted
+to decide that one exists, and the test says so.
+
+**Every decision writes its `audit_log` row in the same transaction**, with
+`target_type` `fixture` rather than `user_account` -- the thing that changed is
+a match, and "who opened the discussion on *this match*" is the only question
+the row is ever asked. That is the acceptance criterion, so the tests read the
+rows back rather than stopping at the status code, including `previous`: "closed"
+with no "was open" beside it does not say what changed.
+
+**Closing is a `POST .../close`, not a `DELETE`,** and the method is the
+argument: nothing is deleted. Opening and reopening are one call because they
+are one decision, and a reopening records why it is open *now*.
+
+**One assertion was passing while testing nothing** and was found by reading the
+failure rather than the code. `open(match, reason, undefined)` hits a defaulted
+parameter, so "a guest cannot open a panel" was being made as the operator and
+returning 204. It calls `post` directly now. A default parameter is a quiet way
+to make a negative test affirm the wrong thing.
+
+81 tests across the panel boundary.
 
 
 ---

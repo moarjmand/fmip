@@ -176,6 +176,10 @@ export type {
   SettlementVoidReason,
   SubmitPredictionRequest,
 } from './predictions';
+// Deciding which matches have a public discussion (blueprint 10.2, T-253).
+// An operator decides, and every shape here carries a required reason.
+export type { PanelDecisionRequest, PanelListResponse, PanelRecord } from './panel-admin';
+
 // Reacting to a panel post and following a contributor (blueprint 10.2, T-252).
 // Both open to any member, and neither a way to post: a reaction is one of six
 // named values and a follow carries nothing at all.
