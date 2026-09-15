@@ -1711,7 +1711,7 @@ the gate is the whole feature.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-250 | Eligibility as a derived view; approval as an audited grant | T-054, T-212 | Eligibility is computed and never grants; approval names its approver and reason |
+| `[x]` T-250 | Eligibility as a derived view; approval as an audited grant | T-054, T-212 | Eligibility is computed and never grants; approval names its approver and reason |
 | `[ ]` T-251 | The discussion: open to read, gated to post, linked to the match | T-250, T-221 | A guest reads; an unapproved member cannot post and is told why |
 | `[ ]` T-252 | Reactions, and following a contributor | T-251, T-042 | Reacting is open to members; it never becomes posting access |
 | `[ ]` T-253 | Featured matches: which fixtures have a panel at all | T-251, T-070 | An operator decides, with an audit row |
@@ -1745,6 +1745,62 @@ requirement that file's own comment promised: no active sanction, and no
 `sanctioned` decision in the last ninety days. The contributor rules are drafted
 there and await approval. The approvals themselves cannot begin before there are
 members with fifty settled predictions, which is after T-074.
+
+**T-250 verified on 2026-09-15**, in two parts because the whole task is about
+ten files and `CLAUDE.md` §3 asks for a split past roughly six. The cut is the
+phase's own sequencing rule: schema and contracts, then the backend module with
+tests.
+
+**Eligibility is a view, and that is the guarantee rather than a convention.**
+`contributor_eligibility_input` has no INSERT path, so "eligibility never grants"
+is a property of the shape -- a *table* of eligibility rows would be one UPDATE
+away from being an access-control list. It carries the facts and no verdict,
+because the thresholds are configuration and live in `ELIGIBILITY_V1`; a copy of
+`70` in SQL would be a second place to change a number, and the day the two
+disagreed the member and the moderator would read different answers about the
+same person.
+
+**Conduct asks `member_under_sanction(user)`, which takes no scope.** T-251 adds
+a `post` scope, and a check written as `member_sanctioned(m, 'contact')` would
+have gone on reporting a clean record for a member restricted from the very
+thing they were being considered for. A guard that lists its subjects stops
+covering the ones added after it -- the `REDIS_URL` lesson, in a different
+costume.
+
+**`privilege-eligibility@1.1.0`.** The two thresholds are confirmed unchanged and
+the conduct requirement is new, which changes the verdict for some members, so it
+changes the version: the answer somebody was given last month has to stay
+explainable. `GET /me/eligibility` keeps its published shape and is now a
+*projection* of the one computation rather than a second one.
+
+**A grant is a row with a lifecycle.** `contributor_grant` is immutable and names
+its approver, its reason and which contributor rules the member accepted, with
+the version; `contributor_grant_event` carries pause, resume and withdrawal, each
+with an actor and a reason. Standing is derived from the newest event, tie-broken
+by a sequence because two events in one transaction share `now()` exactly.
+`PL013` refuses an event on a withdrawn grant, a second pause, a resume of
+something not paused, and a second live grant.
+
+**Approval never consults eligibility, in either direction.** `member_may_
+contribute()` asks about the grant and nothing else: a rating that dips to 69
+must not quietly undo a decision a person signed (`13-policy.md` §3 -- an
+approval does not expire, and pausing is the thing that exists for the case a
+review would have caught). And a grant does not make eligibility say yes either;
+the two are answers to two questions and neither moves the other.
+
+**Approving does not check eligibility before writing, and that is deliberate.**
+The approver has the four requirements in front of them in `GET /admin/
+contributors`. Refusing the write would put the platform's arithmetic above a
+person's judgement, which is the opposite of what blueprint 10.2 asks for; what
+is recorded instead is who decided and why, so it can be argued with afterwards.
+
+**Self-approval is not refused.** The row names the approver twice, and at launch
+the founder may be the only person who can grant anything. A constraint there
+would have invented a rule the blueprint does not have and been discovered as a
+wall on the first day.
+
+54 tests: 22 against the real schema, 21 over HTTP with real sessions and the
+audit rows read back, and 11 on the four requirements as a pure function.
 
 ---
 
