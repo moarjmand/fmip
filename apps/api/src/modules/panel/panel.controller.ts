@@ -96,8 +96,11 @@ export class PanelController {
    * have made every public read viewer-specific to save one request.
    */
   @Get('permission')
-  async permission(@Req() request: FastifyRequest): Promise<PanelPermission> {
-    return this.panel.permissionFor(await this.viewer(request));
+  async permission(
+    @Param('id') fixtureId: string,
+    @Req() request: FastifyRequest,
+  ): Promise<PanelPermission> {
+    return this.panel.permissionFor(await this.viewer(request), fixtureId);
   }
 
   @Post()

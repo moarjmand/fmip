@@ -31,15 +31,26 @@ export function isPanelReaction(value: string): value is PanelReaction {
   return (PANEL_REACTIONS as readonly string[]).includes(value);
 }
 
-/** How a post's reactions are reported: a count per kind, and whether the viewer is in it. */
+/**
+ * How a post's reactions are reported: a count per kind, and nothing about the
+ * viewer.
+ *
+ * **There is deliberately no `mine` here.** The panel is a public document,
+ * fetched without a session so that it is the same bytes for everybody (T-251),
+ * and a `mine` field on it could only ever be false — a shape that reads as "you
+ * have not reacted" when the truth is "nobody asked". The viewer's own
+ * reactions arrive on `PanelPermission`, which is the request that already
+ * depends on who is asking.
+ */
 export interface PanelReactionTally {
   reaction: PanelReaction;
   count: number;
-  /**
-   * Whether *this* viewer has reacted this way. Always false for a guest, who
-   * has not — rather than absent, which would read as unknown.
-   */
-  mine: boolean;
+}
+
+/** Which reactions the viewer has left on one post. */
+export interface MyPostReactions {
+  post_id: string;
+  reactions: PanelReaction[];
 }
 
 /**

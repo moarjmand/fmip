@@ -4,10 +4,12 @@ import type {
   PanelAuthor,
   PanelPermission,
   PanelPost,
+  PanelReactionTally,
   PanelRefusal,
   RatingTier,
 } from '@fmip/contracts';
 import { ContributorService } from '../reputation/contributor.service';
+import { PanelSocialService } from './panel-social.service';
 import { RATING_FORMULA_V1, tierOf } from '../reputation/reputation.service';
 import {
   PostgresPanelStore,
@@ -66,13 +68,17 @@ function authorOf(row: PanelPostRow): PanelAuthor {
   };
 }
 
-function postOf(row: PanelPostRow): PanelPost {
+function postOf(row: PanelPostRow, reactions: PanelReactionTally[] = []): PanelPost {
   return {
     id: row.id,
     author: authorOf(row),
     body: row.body,
     created_at: row.created_at.toISOString(),
     removed: (row.removed_kind as PanelPost['removed']) ?? null,
+    // A removed post carries none, and the database has already deleted them
+    // (T-252). Passing an empty array here as well is belt and braces on a
+    // promise the contract makes out loud.
+    reactions: row.removed_kind === null ? reactions : [],
   };
 }
 
@@ -81,6 +87,7 @@ export class PanelService {
   constructor(
     private readonly store: PostgresPanelStore,
     private readonly contributors: ContributorService,
+    private readonly social: PanelSocialService,
   ) {}
 
   /** Null when there is no such fixture — an unknown match is not an empty panel. */
@@ -91,9 +98,12 @@ export class PanelService {
     // a 400: a stale or mangled link should show the panel from the start, not
     // an error page about pagination.
     const { rows, total } = await this.store.page(fixtureId, decodeCursor(cursor), size);
+    // One query for the whole page. One per post would cost fifty round trips
+    // to draw the cheapest thing on the screen.
+    const reactions = await this.social.talliesFor(rows.map((row) => row.id));
     const last = rows.at(-1);
     return {
-      posts: rows.map(postOf),
+      posts: rows.map((row) => postOf(row, reactions.get(row.id) ?? [])),
       // Only when the page was full. A cursor on a short page would invite one
       // more request that is certain to be empty.
       cursor:
@@ -112,34 +122,44 @@ export class PanelService {
    * member hears that they are not approved, because that is the refusal that
    * outlives the sanction (T-251).
    */
-  async permissionFor(viewer: { id: string; username: string } | null): Promise<PanelPermission> {
+  async permissionFor(
+    viewer: { id: string; username: string } | null,
+    fixtureId: string,
+  ): Promise<PanelPermission> {
+    // The viewer's own reactions travel with the permission because this is
+    // already the request that depends on who is asking (T-252). Putting them on
+    // the panel would have made every public read viewer-specific to save one
+    // round trip.
+    const mine = await this.social.myReactions(fixtureId, viewer?.id ?? null);
+    const none = { shortfalls: [], qualifies: false, my_reactions: mine };
     if (viewer === null) {
-      return { may_post: false, refusal: 'not_signed_in', shortfalls: [], qualifies: false };
+      return { may_post: false, refusal: 'not_signed_in', ...none };
     }
     const status = await this.contributors.statusOf(viewer.id, viewer.username);
     if (status === null) {
-      return { may_post: false, refusal: 'not_signed_in', shortfalls: [], qualifies: false };
+      return { may_post: false, refusal: 'not_signed_in', ...none };
     }
     const shortfalls = status.eligibility.shortfalls.map((s) => s.message);
     const qualifies = status.eligibility.qualifies;
+    const seen = { shortfalls, qualifies, my_reactions: mine };
 
     if (status.grant === null) {
-      return { may_post: false, refusal: 'not_approved', shortfalls, qualifies };
+      return { may_post: false, refusal: 'not_approved', ...seen };
     }
     if (status.grant.standing === 'withdrawn') {
-      return { may_post: false, refusal: 'withdrawn', shortfalls, qualifies };
+      return { may_post: false, refusal: 'withdrawn', ...seen };
     }
     if (status.grant.standing === 'paused') {
-      return { may_post: false, refusal: 'paused', shortfalls, qualifies };
+      return { may_post: false, refusal: 'paused', ...seen };
     }
     // Approved. A `post` sanction still stops them — and it is asked for by
     // name, through the same `member_sanctioned(user, 'post')` the trigger uses.
     // `eligibility.under_sanction` is the wrong question here: it is true for a
     // contact restriction too, which stops friend requests and nothing else.
     if (await this.store.postSanctioned(viewer.id)) {
-      return { may_post: false, refusal: 'restricted', shortfalls, qualifies };
+      return { may_post: false, refusal: 'restricted', ...seen };
     }
-    return { may_post: true, refusal: null, shortfalls, qualifies };
+    return { may_post: true, refusal: null, ...seen };
   }
 
   /**
@@ -171,7 +191,7 @@ export class PanelService {
       const refusal = REFUSALS[code];
       if (refusal === undefined) throw error;
       if (code !== 'PL014') return { ok: false, refusal, tooMany: code === 'PL005' };
-      const permission = await this.permissionFor(viewer);
+      const permission = await this.permissionFor(viewer, fixtureId);
       return { ok: false, refusal: permission.refusal ?? refusal };
     }
   }
