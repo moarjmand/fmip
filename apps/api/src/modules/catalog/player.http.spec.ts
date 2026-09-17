@@ -148,6 +148,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('player page'
       id: PLAYER,
       full_name: `Test Player ${RUN}`,
       known_as: 'Player',
+      localised_name: null,
       date_of_birth: '2000-02-29',
       nationality: { id: ENGLAND, name: 'England', code: 'ENG' },
       height_cm: 181,

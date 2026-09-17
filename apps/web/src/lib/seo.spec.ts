@@ -166,6 +166,7 @@ describe('structured data', () => {
         {
           id: 'a',
           name: 'Test Alpha',
+          localised_name: null,
           short_name: 'ALP',
           code: null,
           kind: 'club',
@@ -192,6 +193,7 @@ describe('structured data', () => {
             id: 'p',
             full_name: 'Test Player',
             known_as: 'Player',
+            localised_name: null,
             date_of_birth: '2000-02-29',
             nationality: { id: 'c', name: 'England', code: 'ENG' },
             height_cm: 181,

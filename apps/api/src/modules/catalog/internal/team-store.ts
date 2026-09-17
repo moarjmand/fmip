@@ -13,10 +13,11 @@ export interface TeamSeason {
 export class PostgresTeamStore {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
 
-  async team(id: string): Promise<TeamPage['team'] | null> {
+  async team(id: string, locale: string | null = null): Promise<TeamPage['team'] | null> {
     const { rows } = await this.pool.query<{
       id: string;
       name: string;
+      localised_name: string | null;
       short_name: string | null;
       code: string | null;
       kind: 'club' | 'national';
@@ -31,20 +32,22 @@ export class PostgresTeamStore {
       venue_city: string | null;
       venue_capacity: number | null;
     }>(
-      `SELECT t.id, t.name, t.short_name, t.code, t.kind, t.gender, t.age_group, t.founded_year,
+      `SELECT t.id, t.name, localised_name('team', t.id, $2) AS localised_name,
+              t.short_name, t.code, t.kind, t.gender, t.age_group, t.founded_year,
               co.id AS country_id, co.name AS country_name, co.code AS country_code,
               v.id AS venue_id, v.name AS venue_name, v.city AS venue_city, v.capacity AS venue_capacity
          FROM team t
          LEFT JOIN country co ON co.id = t.country_id
          LEFT JOIN venue v ON v.id = t.home_venue_id
         WHERE t.id = $1`,
-      [id],
+      [id, locale],
     );
     const r = rows[0];
     if (r === undefined) return null;
     return {
       id: r.id,
       name: r.name,
+      localised_name: r.localised_name,
       short_name: r.short_name,
       code: r.code,
       kind: r.kind,

@@ -14,10 +14,14 @@ import { PG_POOL } from '../../../database/database.module';
 export class PostgresCompetitionStore {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
 
-  async competition(id: string): Promise<CompetitionPage['competition'] | null> {
+  async competition(
+    id: string,
+    locale: string | null = null,
+  ): Promise<CompetitionPage['competition'] | null> {
     const { rows } = await this.pool.query<{
       id: string;
       name: string;
+      localised_name: string | null;
       short_name: string | null;
       kind: CompetitionPage['competition']['kind'];
       scope: CompetitionPage['competition']['scope'];
@@ -28,18 +32,20 @@ export class PostgresCompetitionStore {
       country_name: string | null;
       country_code: string | null;
     }>(
-      `SELECT c.id, c.name, c.short_name, c.kind, c.scope, c.gender, c.age_group, c.tier,
+      `SELECT c.id, c.name, localised_name('competition', c.id, $2) AS localised_name,
+              c.short_name, c.kind, c.scope, c.gender, c.age_group, c.tier,
               co.id AS country_id, co.name AS country_name, co.code AS country_code
          FROM competition c
          LEFT JOIN country co ON co.id = c.country_id
         WHERE c.id = $1`,
-      [id],
+      [id, locale],
     );
     const r = rows[0];
     if (r === undefined) return null;
     return {
       id: r.id,
       name: r.name,
+      localised_name: r.localised_name,
       short_name: r.short_name,
       kind: r.kind,
       scope: r.scope,

@@ -50,8 +50,8 @@ export class CatalogService {
   ) {}
 
   /** The player page (blueprint 5.3): identity, spells, the record our line-ups support, recent matches. */
-  async player(id: string): Promise<PlayerOutcome> {
-    const person = await this.players_.person(id);
+  async player(id: string, locale: string | null = null): Promise<PlayerOutcome> {
+    const person = await this.players_.person(id, locale);
     if (person === null) return { kind: 'unknown_player' };
     const [spells, record, recent] = await Promise.all([
       this.players_.spells(id),
@@ -98,8 +98,12 @@ export class CatalogService {
    * The competition page for one season: `seasonId` when given (and the
    * competition's own), else the current season, else the newest.
    */
-  async competition(id: string, seasonId: string | null): Promise<CompetitionOutcome> {
-    const competition = await this.competitions_.competition(id);
+  async competition(
+    id: string,
+    seasonId: string | null,
+    locale: string | null = null,
+  ): Promise<CompetitionOutcome> {
+    const competition = await this.competitions_.competition(id, locale);
     if (competition === null) return { kind: 'unknown_competition' };
     const seasons = await this.competitions_.seasons(id);
     const selected = pickSeason(seasons, seasonId);
@@ -132,8 +136,8 @@ export class CatalogService {
   }
 
   /** The team page (blueprint 5.2): the team, where it stands, its matches, its squad. */
-  async team(id: string): Promise<TeamOutcome> {
-    const team = await this.teams_.team(id);
+  async team(id: string, locale: string | null = null): Promise<TeamOutcome> {
+    const team = await this.teams_.team(id, locale);
     if (team === null) return { kind: 'unknown_team' };
     const seasons = await this.teams_.seasons(id);
     const [{ fixtures, lastUpdatedAt }, squad, followers, tables] = await Promise.all([
