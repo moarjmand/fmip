@@ -1,4 +1,5 @@
 import { type Freshness, type IngestionHealth, STALE_LIVE_AFTER_MS } from '@fmip/contracts';
+import { formatTime } from '@/i18n/format';
 
 /**
  * Freshness for live surfaces (rule 4, T-032). Pure, so the thresholds are
@@ -32,16 +33,15 @@ export function isBehind(
  * (from `GET /health/ingestion`): the outage is named with its time, and the
  * page keeps showing what it has, labelled, rather than nothing.
  */
-export function feedNotice(health: IngestionHealth | null, timeZone: string): string | null {
+export function feedNotice(
+  health: IngestionHealth | null,
+  locale: string,
+  timeZone: string,
+): string | null {
   if (health === null) return null;
   const last = health.last_run;
   if (last === null || (last.status !== 'failed' && last.status !== 'partial')) return null;
-  const at = new Intl.DateTimeFormat('en-GB', {
-    timeZone,
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-  }).format(new Date(last.finished_at ?? last.started_at));
+  const at = formatTime(locale, last.finished_at ?? last.started_at, timeZone);
   return `The live data feed reported a ${last.status === 'failed' ? 'failure' : 'partial update'} at ${at}. Scores may be behind; every card shows when its data last changed.`;
 }
 
@@ -66,15 +66,13 @@ export function liveState(clock: LiveClock, now: number): LiveState {
 }
 
 /** "Live · updated 20:31:07", "Stale · last update 20:29:40", … */
-export function liveLabel(state: LiveState, clock: LiveClock, timeZone: string): string {
-  const at = (ms: number): string =>
-    new Intl.DateTimeFormat('en-GB', {
-      timeZone,
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hourCycle: 'h23',
-    }).format(new Date(ms));
+export function liveLabel(
+  state: LiveState,
+  clock: LiveClock,
+  locale: string,
+  timeZone: string,
+): string {
+  const at = (ms: number): string => formatTime(locale, ms, timeZone, { seconds: true });
   switch (state) {
     case 'connecting':
       return 'Connecting to live updates…';

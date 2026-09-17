@@ -5,6 +5,7 @@ import type {
   Settlement,
   SettlementVoidReason,
 } from '@fmip/contracts';
+import { formatDate } from '@/i18n/format';
 import { OUTCOME_LABEL } from './prediction-form';
 
 /**
@@ -38,16 +39,15 @@ export function versionLabel(version: PredictionVersion): string {
 }
 
 /** Date and time in the viewer's zone, e.g. "05 Jan 2025, 16:28". */
-export function formatSubmitted(iso: string, timeZone: string): string {
-  return new Intl.DateTimeFormat('en-GB', {
-    timeZone,
+export function formatSubmitted(locale: string, iso: string, timeZone: string): string {
+  return formatDate(locale, iso, timeZone, {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
     hourCycle: 'h23',
-  }).format(new Date(iso));
+  });
 }
 
 export const VOID_LABEL: Record<SettlementVoidReason, string> = {

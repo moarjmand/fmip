@@ -85,7 +85,10 @@ describe('labels', () => {
   });
 
   it('formats the submission time in the viewer zone', () => {
-    expect(formatSubmitted('2025-01-05T16:28:00.000Z', 'Asia/Tehran')).toBe('05 Jan 2025, 19:58');
+    expect(formatSubmitted('en', '2025-01-05T16:28:00.000Z', 'Asia/Tehran')).toBe(
+      '05 Jan 2025, 19:58',
+    );
+    expect(formatSubmitted('es', '2025-01-05T16:28:00.000Z', 'Asia/Tehran')).toMatch(/ene/);
   });
 
   it('says how the prediction stands', () => {

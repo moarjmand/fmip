@@ -69,7 +69,7 @@ export function LiveScores({
         data-state={state}
         role={state === 'stale' || state === 'unavailable' ? 'status' : undefined}
       >
-        {liveLabel(state, clock, timeZone)}
+        {liveLabel(state, clock, locale, timeZone)}
       </p>
       <div
         aria-live="polite"
