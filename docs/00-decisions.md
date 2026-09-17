@@ -2266,3 +2266,48 @@ analysis and sensitive claims, not for "Sign in". The number is reported so
 that whoever decides a language is finished can see how much of the done part
 a second speaker has read -- a decision that stays theirs (`14-maintainer.md`
 §1), now with the information it needs.
+
+## D-067 — A plural is a catalogue entry of CLDR forms, selected by `Intl.PluralRules`; a translated entry missing a form its language has fails the build
+
+**Date:** 2026-09-18 · **Task:** T-301 · **Status:** accepted
+
+**Decision.** A key whose English is an object of forms keyed by CLDR category
+(`one`, `other`, …) is a plural. The category for a count comes from
+`Intl.PluralRules` for the locale — cardinal, or ordinal when the English says
+`type: "ordinal"` — and the form for it from the locale's file when the entry
+is translated, otherwise from the English, marked `untranslated` like any
+other fallback and selected by *English* rules. `{count}` is filled with the
+number in the locale's own digits and grouping; other `{name}` placeholders
+from the call site. A translated entry must carry **exactly** the categories
+its language has, every one filled: the script refuses the file and the spec
+fails the build. Nothing fills a missing form in.
+
+**Why exactly, and not at least.** "At least `other`" would let Arabic ship
+with two forms out of six and read correctly for 0 and 1 and wrongly for 2,
+3–10 and 11–99 — a sentence wrong in a way only a native speaker sees, which
+is the failure this task exists to make impossible. "Exactly" also catches the
+opposite: a form for a category the language does not have is a translator
+guessing at English's grammar, and it is refused with the same message.
+
+**Why the English fallback is selected by English rules.** A count of 2 on
+`/ar` with no Arabic forms yet shows "2 members"; asking Arabic's rules would
+have picked `two` and found nothing, or picked a form the English does not
+have. The fallback is English text, so English arithmetic.
+
+**Why `message()` still answers a plural key.** With the `other` form, its
+placeholders unfilled. "Never returns a blank, for any key in any locale" is a
+promise the spec makes over every key, and a plural must keep it; what it must
+not do is be rendered that way, so pages render plurals through `plural()`
+and `Translated` takes a `count`.
+
+**Why the ordinal is one of the seven.** `lib/team.ts` spelled "1st, 2nd,
+3rd, 11th" by hand, in English arithmetic, on a page that ships in eight
+languages. English ordinals have four categories, French two, Italian two and
+Arabic one; the hand-rolled version could not have been right in any of them.
+`type: "ordinal"` selects `Intl.PluralRules`' ordinal rules and the file shape
+is otherwise unchanged.
+
+**What the file shape gained, as an addition.** A plural entry carries `forms`
+where a sentence carries `text`; D-066 said this would be an addition and not
+a migration, and it was — the six existing sentence files refreshed with the
+seven new keys as `untranslated` and nothing else moved.

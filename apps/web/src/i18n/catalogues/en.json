@@ -19,5 +19,36 @@
   "language.name.fr": "French",
   "language.name.it": "Italian",
   "language.name.pt": "Portuguese",
-  "language.name.tr": "Turkish"
+  "language.name.tr": "Turkish",
+  "friends.mutualCount": {
+    "one": "{count} friend in common",
+    "other": "{count} friends in common"
+  },
+  "groups.memberCount": {
+    "one": "{count} member",
+    "other": "{count} members"
+  },
+  "conversation.matchCount": {
+    "one": "{count} message matching “{term}”",
+    "other": "{count} messages matching “{term}”"
+  },
+  "team.followerCount": {
+    "one": "{count} follower",
+    "other": "{count} followers"
+  },
+  "groupComparison.silent": {
+    "one": "{count} member did not call this match.",
+    "other": "{count} members did not call this match."
+  },
+  "groupComparison.withheld": {
+    "one": "{count} keeps their predictions to themselves.",
+    "other": "{count} keep their predictions to themselves."
+  },
+  "team.position": {
+    "type": "ordinal",
+    "one": "{count}st",
+    "two": "{count}nd",
+    "few": "{count}rd",
+    "other": "{count}th"
+  }
 }

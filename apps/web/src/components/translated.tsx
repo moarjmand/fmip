@@ -1,5 +1,5 @@
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
-import { message, type MessageKey } from '@/i18n/messages';
+import { type MessageKey, type PluralKey, message, plural } from '@/i18n/messages';
 
 /**
  * One message, rendered with the truth about where it came from (T-151).
@@ -15,18 +15,24 @@ import { message, type MessageKey } from '@/i18n/messages';
  * finished and is not, which is the failure rule 3 describes, applied to
  * language. Machine-translating it instead would be worse: content nobody
  * checked, presented as the product's own words.
+ *
+ * With `count`, the key is a plural (T-301) and the form is chosen by the
+ * locale's own rules; `params` fills any other `{name}` placeholder. The
+ * marking is the same either way — a plural nobody has translated is English
+ * and says so, exactly like a sentence.
  */
-export function Translated({
-  locale,
-  message: key,
-  className,
-}: {
-  locale: string;
-  message: MessageKey;
-  className?: string;
-}) {
+export function Translated(
+  props: { locale: string; className?: string } & (
+    | { message: MessageKey; count?: undefined; params?: undefined }
+    | { message: PluralKey; count: number; params?: Record<string, string> }
+  ),
+) {
+  const { locale, message: key, className } = props;
   const resolved: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
-  const { text, status } = message(resolved, key);
+  const { text, status } =
+    props.count === undefined
+      ? message(resolved, key)
+      : plural(resolved, props.message, props.count, props.params);
 
   if (status === 'untranslated') {
     return (
