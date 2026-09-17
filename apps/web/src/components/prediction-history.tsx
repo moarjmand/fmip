@@ -62,7 +62,7 @@ export function PredictionHistory({
                 <span className="text-xs opacity-70">
                   {fixture.competition.name} ·{' '}
                   <time dateTime={fixture.kickoff_at}>
-                    {formatSubmitted(fixture.kickoff_at, timeZone)}
+                    {formatSubmitted(locale, fixture.kickoff_at, timeZone)}
                   </time>
                 </span>
               </div>
@@ -74,7 +74,7 @@ export function PredictionHistory({
                 <span className="ms-2 text-xs opacity-70">
                   submitted{' '}
                   <time dateTime={prediction.latest.submitted_at}>
-                    {formatSubmitted(prediction.latest.submitted_at, timeZone)}
+                    {formatSubmitted(locale, prediction.latest.submitted_at, timeZone)}
                   </time>
                 </span>
               </p>
@@ -103,7 +103,7 @@ export function PredictionHistory({
                         <li key={v.id}>
                           v{v.version_number} · {versionLabel(v)} ·{' '}
                           <time dateTime={v.submitted_at}>
-                            {formatSubmitted(v.submitted_at, timeZone)}
+                            {formatSubmitted(locale, v.submitted_at, timeZone)}
                           </time>
                         </li>
                       ))}

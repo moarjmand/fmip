@@ -45,13 +45,13 @@ describe('feedNotice', () => {
   });
 
   it('names a failed or partial latest run with its time, and says nothing otherwise', () => {
-    expect(feedNotice(run('failed'), 'Asia/Tehran')).toBe(
+    expect(feedNotice(run('failed'), 'en', 'Asia/Tehran')).toBe(
       'The live data feed reported a failure at 23:29. Scores may be behind; every card shows when its data last changed.',
     );
-    expect(feedNotice(run('partial'), 'UTC')).toContain('partial update at 19:59');
-    expect(feedNotice(run('succeeded'), 'UTC')).toBeNull();
-    expect(feedNotice(null, 'UTC')).toBeNull();
-    expect(feedNotice({ ...run('failed'), last_run: null }, 'UTC')).toBeNull();
+    expect(feedNotice(run('partial'), 'en', 'UTC')).toContain('partial update at 19:59');
+    expect(feedNotice(run('succeeded'), 'en', 'UTC')).toBeNull();
+    expect(feedNotice(null, 'en', 'UTC')).toBeNull();
+    expect(feedNotice({ ...run('failed'), last_run: null }, 'en', 'UTC')).toBeNull();
   });
 });
 
@@ -77,10 +77,14 @@ describe('liveState', () => {
 describe('liveLabel', () => {
   it('says what it knows in the viewer zone', () => {
     const clock = { lastEventAt: T0, lastSnapshotAt: T0, broken: false };
-    expect(liveLabel('live', clock, 'UTC')).toBe('Live · updated 20:31:07');
-    expect(liveLabel('live', clock, 'Asia/Tehran')).toBe('Live · updated 00:01:07');
-    expect(liveLabel('stale', clock, 'UTC')).toBe('Stale · last update 20:31:07');
-    expect(liveLabel('connecting', INITIAL_CLOCK, 'UTC')).toBe('Connecting to live updates…');
-    expect(liveLabel('unavailable', INITIAL_CLOCK, 'UTC')).toBe('Live updates unavailable');
+    expect(liveLabel('live', clock, 'en', 'UTC')).toBe('Live · updated 20:31:07');
+    expect(liveLabel('live', clock, 'en', 'Asia/Tehran')).toBe('Live · updated 00:01:07');
+    expect(liveLabel('stale', clock, 'en', 'UTC')).toBe('Stale · last update 20:31:07');
+    // The stamp is a clock reading: the same digits in Spanish. What changes
+    // with the language is the sentence around it, and that is T-151's
+    // catalogue, not this function.
+    expect(liveLabel('live', clock, 'es', 'UTC')).toBe('Live · updated 20:31:07');
+    expect(liveLabel('connecting', INITIAL_CLOCK, 'en', 'UTC')).toBe('Connecting to live updates…');
+    expect(liveLabel('unavailable', INITIAL_CLOCK, 'en', 'UTC')).toBe('Live updates unavailable');
   });
 });
