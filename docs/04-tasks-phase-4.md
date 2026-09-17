@@ -83,7 +83,7 @@ search already folds transliterations (T-152).
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-300 | The six Latin-script locales as unfinished: routing, formatting, plurals | T-151 | `/es` renders every page, every untranslated string says it is untranslated, and none of the six is offered as a finished language |
-| `[~]` T-301 | Plural and ordinal rules from CLDR, not from English's two forms | T-300 | A language with six plural forms gets six; a missing form is a failing test, not a fallback |
+| `[x]` T-301 | Plural and ordinal rules from CLDR, not from English's two forms | T-300 | A language with six plural forms gets six; a missing form is a failing test, not a fallback |
 | `[x]` T-302 | The translator's catalogue: export, import, review state, coverage per locale | T-151 | "How much of `tr` is done" is an answer the product gives, not a grep |
 | `[ ]` T-303 | Localised entity names and aliases against the canonical UUID | T-010, T-152 | A team's Arabic name is a row against its id, never a second team (rule 1) |
 | `[ ]` T-304 | One canonical article with a controlled version per language | T-141, T-302 | A language version is a version, with its own review state and its own `last_updated_at` |
@@ -177,10 +177,13 @@ whoever finishes Arabic: on this ICU the bare `ar` tag writes Latin digits and
 `ar-EG` writes Arabic-Indic; which one the product wants is a decision about
 the tag in `intlLocale`, not about the forms.
 
-**What is still open is the six pages.** They still spell "member{s}" by hand
-in English arithmetic, and `lib/team.ts` still spells "1st" the same way; the
-seven keys sit on `messages.spec.ts`'s waiting list until those call sites
-move, which is the next change and what empties the list again.
+**And the six pages, the same day.** Friends in common, members of a group
+(twice), messages matching a search, followers, and the two group-comparison
+lines render through `Translated` with a `count`; the team page's "3rd of 20"
+comes from `team.position` by the locale's ordinal rules, and the hand-rolled
+`ordinal()` is gone with its teens special case. No `=== 1 ? '' : 's'` is
+left in the web app, and the waiting list in `messages.spec.ts` is empty
+again. T-301 is `[x]`.
 
 **What is buildable now:** everything but T-305. The catalogues ship empty and
 every missing string says so, which is exactly what T-151 decided and why that

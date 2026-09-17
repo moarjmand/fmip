@@ -6,6 +6,7 @@ import { fetchGroup, fetchGroupLeaderboard, fetchGroupRequests, fetchMe } from '
 import { ratingLabel, statusLabel, tierLabel } from '@/lib/leaderboard';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { Translated } from '@/components/translated';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,7 +82,7 @@ export default async function GroupPage({
           {group.name}
         </h1>
         <p className="text-sm opacity-70" data-testid="group-visibility">
-          {group.member_count} member{group.member_count === 1 ? '' : 's'} ·{' '}
+          <Translated locale={locale} message="groups.memberCount" count={group.member_count} /> ·{' '}
           {VISIBILITY[group.visibility] ?? group.visibility}
         </p>
         {group.description !== null && <p data-testid="group-description">{group.description}</p>}

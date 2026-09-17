@@ -1,6 +1,6 @@
 import type { SquadPlayer, TeamFixture } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
-import { contextLine, fromTeamSide, groupSquad, ordinal } from './team';
+import { contextLine, fromTeamSide, groupSquad } from './team';
 
 const player = (
   name: string,
@@ -47,25 +47,6 @@ describe('groupSquad', () => {
 });
 
 describe('labels', () => {
-  it('spells ordinals including the teens', () => {
-    expect([1, 2, 3, 4, 11, 12, 13, 21, 22, 23, 111].map(ordinal)).toEqual([
-      '1st',
-      '2nd',
-      '3rd',
-      '4th',
-      '11th',
-      '12th',
-      '13th',
-      '21st',
-      '22nd',
-      '23rd',
-      '111th',
-    ]);
-    expect(contextLine({ position: 3, total: 20, points: 45, rows: [] })).toBe(
-      '3rd of 20 · 45 pts',
-    );
-  });
-
   it('reads a match from the team side', () => {
     expect(fromTeamSide(fixture(), 'a')).toEqual({
       opponent: 'Test Beta',
@@ -75,5 +56,19 @@ describe('labels', () => {
     expect(fromTeamSide(fixture(), 'b')).toEqual({ opponent: 'ALP', home: false, result: 'L' });
     expect(fromTeamSide(fixture({ score: { home: 1, away: 1 } }), 'b').result).toBe('D');
     expect(fromTeamSide(fixture({ status: 'scheduled', score: null }), 'a').result).toBeNull();
+  });
+
+  it('spells the table position by the locale’s ordinal rules', () => {
+    // The ordinal comes from the catalogue by CLDR rules now (T-301); the
+    // teens, which the hand-rolled version had to special-case, are covered
+    // in messages.spec.ts. A locale with no translation yet gets the English
+    // forms by English rules, and that is asserted rather than assumed.
+    expect(contextLine('en', { position: 3, total: 20, points: 45, rows: [] })).toBe(
+      '3rd of 20 · 45 pts',
+    );
+    expect(contextLine('en', { position: 22, total: 24, points: 1, rows: [] })).toMatch(/^22nd/);
+    expect(contextLine('fr', { position: 3, total: 20, points: 45, rows: [] })).toBe(
+      '3rd of 20 · 45 pts',
+    );
   });
 });

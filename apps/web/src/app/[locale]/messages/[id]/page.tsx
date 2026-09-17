@@ -20,6 +20,7 @@ import {
 import { markReadAction } from '@/lib/conversation-actions';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { Translated } from '@/components/translated';
 
 export const dynamic = 'force-dynamic';
 
@@ -151,9 +152,19 @@ export default async function ConversationPage({
 
       {term !== '' && (
         <p className="text-sm opacity-70" data-testid="conversation-search-note">
-          {found !== null && found.ok
-            ? `${found.data.messages.length} message${found.data.messages.length === 1 ? '' : 's'} matching “${term}”${found.data.more ? ', and more' : ''}.`
-            : 'The search is unreachable right now.'}
+          {found !== null && found.ok ? (
+            <>
+              <Translated
+                locale={locale}
+                message="conversation.matchCount"
+                count={found.data.messages.length}
+                params={{ term }}
+              />
+              {found.data.more ? ', and more' : ''}.
+            </>
+          ) : (
+            'The search is unreachable right now.'
+          )}
         </p>
       )}
 

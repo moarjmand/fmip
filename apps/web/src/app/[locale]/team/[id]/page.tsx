@@ -12,6 +12,7 @@ import { sessionCookieHeader } from '@/lib/session';
 import { contextLine, fromTeamSide, groupSquad } from '@/lib/team';
 import { JsonLd } from '@/components/json-ld';
 import { Score } from '@/components/score';
+import { Translated } from '@/components/translated';
 
 export const dynamic = 'force-dynamic';
 
@@ -92,7 +93,7 @@ export default async function TeamPage({
             : 'Home ground not recorded'}
           {' · '}
           <span data-testid="followers">
-            {page.followers} {page.followers === 1 ? 'follower' : 'followers'}
+            <Translated locale={locale} message="team.followerCount" count={page.followers} />
           </span>
         </p>
       </header>
@@ -129,7 +130,7 @@ export default async function TeamPage({
               ) : (
                 <>
                   <p className="text-sm" data-testid="context-line">
-                    {contextLine(entry.context.data)}
+                    {contextLine(locale, entry.context.data)}
                   </p>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">

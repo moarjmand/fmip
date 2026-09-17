@@ -5,6 +5,7 @@ import type { GroupSummary } from '@fmip/contracts';
 import { fetchGroupInvites, fetchGroups, fetchMe, fetchMyGroups } from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { Translated } from '@/components/translated';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +38,7 @@ function GroupRow({ group, locale }: { group: GroupSummary; locale: string }) {
         {group.name}
       </Link>
       <p className="text-sm opacity-70">
-        {group.member_count} member{group.member_count === 1 ? '' : 's'} ·{' '}
+        <Translated locale={locale} message="groups.memberCount" count={group.member_count} /> ·{' '}
         {VISIBILITY[group.visibility] ?? group.visibility}
       </p>
       {group.description !== null && <p className="text-sm">{group.description}</p>}
