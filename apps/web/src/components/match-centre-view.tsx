@@ -1,4 +1,5 @@
 import type { Covered, FormEntry, MatchCentre, MatchLineupPlayer } from '@fmip/contracts';
+import { formatNumber } from '@/i18n/format';
 import Link from 'next/link';
 import {
   INCIDENT_LABEL,
@@ -49,7 +50,7 @@ export function MatchCentreView({
             ? 'AET'
             : 'FT'
         : f.status === 'scheduled'
-          ? formatKickoff(f.kickoff_at, timeZone)
+          ? formatKickoff(locale, f.kickoff_at, timeZone)
           : f.status.charAt(0).toUpperCase() + f.status.slice(1);
 
   return (
@@ -98,8 +99,10 @@ export function MatchCentreView({
         {behind && (
           <p role="status" className="text-sm font-medium" data-testid="feed-behind">
             The data for this match is behind: nothing has changed since{' '}
-            <time dateTime={f.last_updated_at}>{formatKickoff(f.last_updated_at, timeZone)}</time>.
-            The score and minute shown are the last known, not the current ones.
+            <time dateTime={f.last_updated_at}>
+              {formatKickoff(locale, f.last_updated_at, timeZone)}
+            </time>
+            . The score and minute shown are the last known, not the current ones.
           </p>
         )}
         <ul className="flex flex-wrap gap-x-4 text-xs opacity-70">
@@ -119,7 +122,8 @@ export function MatchCentreView({
             </li>
           )}
           <li>
-            Kick-off <time dateTime={f.kickoff_at}>{formatKickoff(f.kickoff_at, timeZone)}</time>
+            Kick-off{' '}
+            <time dateTime={f.kickoff_at}>{formatKickoff(locale, f.kickoff_at, timeZone)}</time>
           </li>
           {f.venue !== null && (
             <li>
@@ -129,10 +133,12 @@ export function MatchCentreView({
             </li>
           )}
           <li>Referee: {f.referee === null ? 'not supplied' : f.referee.name}</li>
-          {f.attendance !== null && <li>Attendance {f.attendance.toLocaleString('en-GB')}</li>}
+          {f.attendance !== null && <li>Attendance {formatNumber(locale, f.attendance)}</li>}
           <li>
             Last data update{' '}
-            <time dateTime={f.last_updated_at}>{formatKickoff(f.last_updated_at, timeZone)}</time>
+            <time dateTime={f.last_updated_at}>
+              {formatKickoff(locale, f.last_updated_at, timeZone)}
+            </time>
           </li>
         </ul>
       </header>
@@ -212,8 +218,8 @@ export function MatchCentreView({
       <section className="flex flex-col gap-2" data-testid="form">
         <h2 className="text-lg font-semibold">Recent form</h2>
         <div className="grid grid-cols-2 gap-4 text-sm">
-          <Form name={f.home.name} module={centre.form.home} timeZone={timeZone} />
-          <Form name={f.away.name} module={centre.form.away} timeZone={timeZone} />
+          <Form name={f.home.name} module={centre.form.home} timeZone={timeZone} locale={locale} />
+          <Form name={f.away.name} module={centre.form.away} timeZone={timeZone} locale={locale} />
         </div>
       </section>
 
@@ -350,10 +356,12 @@ function Form({
   name,
   module,
   timeZone,
+  locale,
 }: {
   name: string;
   module: Covered<FormEntry[]>;
   timeZone: string;
+  locale: string;
 }) {
   return (
     <div className="flex flex-col gap-1" data-coverage={module.coverage}>
@@ -373,7 +381,7 @@ function Form({
               </span>
               <span className="opacity-70">
                 {e.competition.name} ·{' '}
-                <time dateTime={e.kickoff_at}>{formatKickoff(e.kickoff_at, timeZone)}</time>{' '}
+                <time dateTime={e.kickoff_at}>{formatKickoff(locale, e.kickoff_at, timeZone)}</time>{' '}
                 {e.kickoff_at.slice(0, 10)}
               </span>
             </li>

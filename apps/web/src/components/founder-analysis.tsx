@@ -30,17 +30,19 @@ function Signature({
   publishedAt,
   version,
   timeZone,
+  locale,
 }: {
   author: string;
   publishedAt: string;
   version: number;
   timeZone: string;
+  locale: string;
 }) {
   return (
     <p className="text-xs opacity-60" data-testid="founder-signature">
       Written by {author} · published{' '}
       <time dateTime={publishedAt}>
-        {publishedAt.slice(0, 10)} {formatKickoff(publishedAt, timeZone)}
+        {publishedAt.slice(0, 10)} {formatKickoff(locale, publishedAt, timeZone)}
       </time>
       {version > 1 ? ` · updated, version ${version}` : ''}
     </p>
@@ -53,11 +55,13 @@ export function FounderAnalysisPanel({
   home,
   away,
   timeZone,
+  locale,
 }: {
   analysis: FounderAnalysisResponse | null;
   home: string;
   away: string;
   timeZone: string;
+  locale: string;
 }) {
   const current = analysis?.analysis?.versions[0] ?? null;
   if (analysis === null || analysis.analysis === null || current === null) {
@@ -111,6 +115,7 @@ export function FounderAnalysisPanel({
         publishedAt={current.published_at}
         version={current.version_number}
         timeZone={timeZone}
+        locale={locale}
       />
 
       {analysis.analysis.versions.length > 1 && (
@@ -169,7 +174,7 @@ export function FounderAnalysisFeed({
               {entry.fixture.competition.name} ·{' '}
               <time dateTime={entry.fixture.kickoff_at}>
                 {entry.fixture.kickoff_at.slice(0, 10)}{' '}
-                {formatKickoff(entry.fixture.kickoff_at, timeZone)}
+                {formatKickoff(locale, entry.fixture.kickoff_at, timeZone)}
               </time>
             </p>
             <p className="text-sm">
@@ -194,6 +199,7 @@ export function FounderAnalysisFeed({
               publishedAt={entry.published_at}
               version={entry.version_number}
               timeZone={timeZone}
+              locale={locale}
             />
           </li>
         ))}

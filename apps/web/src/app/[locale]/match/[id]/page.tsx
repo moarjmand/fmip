@@ -186,12 +186,14 @@ export default async function MatchPage({
                   home={result.data.fixture.home.name}
                   away={result.data.fixture.away.name}
                   timeZone={timeZone}
+                  locale={locale}
                 />
                 <CommunityForecastPanel
                   consensus={consensus !== null && consensus.ok ? consensus.data : null}
                   home={result.data.fixture.home.name}
                   away={result.data.fixture.away.name}
                   timeZone={timeZone}
+                  locale={locale}
                   // Three numbers, pulled out here so the community panel never
                   // holds a forecast (rule 6). The comparison blueprint 4.2 asks
                   // for is a difference between two labelled answers, never a
@@ -215,6 +217,7 @@ export default async function MatchPage({
                 <PowerIndexPanel
                   power={power !== null && power.ok ? power.data : null}
                   timeZone={timeZone}
+                  locale={locale}
                 />
                 <ForecastPanel
                   forecasts={forecasts !== null && forecasts.ok ? forecasts.data : null}
@@ -222,6 +225,7 @@ export default async function MatchPage({
                   home={result.data.fixture.home.name}
                   away={result.data.fixture.away.name}
                   timeZone={timeZone}
+                  locale={locale}
                 />
               </>
             }

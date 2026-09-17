@@ -68,7 +68,7 @@ export function ScoreCard({
           className={`w-16 shrink-0 text-sm ${card.status === 'live' ? 'font-semibold' : 'opacity-70'}`}
           data-testid="score-status"
         >
-          {statusLabel(card, timeZone, now)}
+          {statusLabel(card, locale, timeZone, now)}
         </span>
         <span className="flex-1 truncate text-end" data-testid="home-team">
           {card.home.name}
@@ -90,7 +90,7 @@ export function ScoreCard({
         <p role="status" className="text-xs font-medium" data-testid="behind">
           Data behind: nothing has changed since{' '}
           <time dateTime={card.last_updated_at}>
-            {formatKickoff(card.last_updated_at, timeZone)}
+            {formatKickoff(locale, card.last_updated_at, timeZone)}
           </time>
           . The score shown is the last known, not the current one.
         </p>
@@ -102,7 +102,7 @@ export function ScoreCard({
         ))}
         <span>
           Kick-off{' '}
-          <time dateTime={card.kickoff_at}>{formatKickoff(card.kickoff_at, timeZone)}</time>
+          <time dateTime={card.kickoff_at}>{formatKickoff(locale, card.kickoff_at, timeZone)}</time>
         </span>
         {card.venue !== null && (
           <span>
@@ -135,7 +135,7 @@ export function ScoreCard({
         <span>
           Updated{' '}
           <time dateTime={card.last_updated_at}>
-            {formatKickoff(card.last_updated_at, timeZone)}
+            {formatKickoff(locale, card.last_updated_at, timeZone)}
           </time>
         </span>
       </div>

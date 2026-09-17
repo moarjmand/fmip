@@ -48,7 +48,7 @@ export default async function ScoresPage({
   ]);
   // A provider outage is named on the page (T-083), never hidden behind old numbers.
   const notice = feedNotice(ingestion, q.timezone);
-  const strip = dayStrip(q);
+  const strip = dayStrip(q, locale);
   const linkClass = (active: boolean): string =>
     `rounded px-2 py-1 ${active ? 'bg-current/10 font-semibold' : 'underline'}`;
 
