@@ -88,7 +88,7 @@ search already folds transliterations (T-152).
 | `[ ]` T-303 | Localised entity names and aliases against the canonical UUID | T-010, T-152 | A team's Arabic name is a row against its id, never a second team (rule 1) |
 | `[ ]` T-304 | One canonical article with a controlled version per language | T-141, T-302 | A language version is a version, with its own review state and its own `last_updated_at` |
 | `[ ]` T-305 | **The strings themselves**, per language | T-302 | Reviewed by a fluent speaker; never machine output presented as a translation |
-| `[ ]` T-306 | The language picker: offers the languages the product actually speaks | T-300 | A locale appears the day its catalogue crosses `SHIPPABLE_COMPLETENESS`, and never before |
+| `[x]` T-306 | The language picker: offers the languages the product actually speaks | T-300 | A locale appears the day its catalogue crosses `SHIPPABLE_COMPLETENESS`, and never before |
 
 **Six locales, not seven, and Arabic is the seventh on purpose.** `ar` is
 already routed and already right-to-left; what it lacks is its catalogue, which
@@ -143,6 +143,24 @@ ever get shorter. T-302 is `[x]`.
 **What this unblocks for the maintainer.** `14-maintainer.md` §1 waited on
 this: a translator now has a file to work in, with nothing to install and no
 account to create, and their work arrives as a pull request.
+
+**T-306 done on 2026-09-18, and it renders nothing.** That is the point rather
+than an apology. `pickerEntries` is `[]` while fewer than two languages are
+`isShippable` -- which is today, with English alone -- because a menu with one
+entry is furniture, and the spec asserts the empty state as firmly as the
+populated one, with the predicate injected so the populated state is shown
+without pretending a catalogue is finished. The day `es.json` crosses 95% the
+picker appears in the header with `English` and `Español`, each in its own
+words from its own catalogue, linking to the same page, with no deployment
+decision in between: the threshold is the decision (T-151). It is a client
+component because it links to the *same page* and a server component cannot
+read the pathname (Next documents that as intentional); the proxy only
+redirects, so there is no hydration mismatch to guard.
+
+**And T-300's vacuous criterion is now a real one.** "None of the six is offered
+as a finished language" was true by there being no offer. There is an offer
+now, driven by the same `isShippable` that `/admin` reports, and it offers none
+of the six.
 
 **What is buildable now:** everything but T-305. The catalogues ship empty and
 every missing string says so, which is exactly what T-151 decided and why that
