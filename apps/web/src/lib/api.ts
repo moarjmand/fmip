@@ -54,6 +54,7 @@ import type {
   TeamPage,
   TeamsResponse,
 } from '@fmip/contracts';
+import { withLocale } from '@/lib/locale-query';
 
 const API_BASE_URL = process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
 
@@ -372,19 +373,29 @@ export function fetchSearch(query: string): Promise<ApiResult<SearchResponse>> {
   return apiRequest<SearchResponse>(`/search?${query}`);
 }
 
-/** `GET /players/:id` (T-037): the player page. Public. */
-export function fetchPlayer(id: string): Promise<ApiResult<PlayerPage>> {
-  return apiRequest<PlayerPage>(`/players/${encodeURIComponent(id)}`);
+/**
+ * `GET /players/:id?locale=` (T-037, T-303): the player page, with the name in
+ * the reader's language beside the canonical one when somebody has written it.
+ * Public.
+ */
+export function fetchPlayer(id: string, locale?: string): Promise<ApiResult<PlayerPage>> {
+  return apiRequest<PlayerPage>(withLocale(`/players/${encodeURIComponent(id)}`, locale));
 }
 
-/** `GET /teams/:id` (T-036): the team page. Public. */
-export function fetchTeam(id: string): Promise<ApiResult<TeamPage>> {
-  return apiRequest<TeamPage>(`/teams/${encodeURIComponent(id)}`);
+/** `GET /teams/:id?locale=` (T-036, T-303): the team page. Public. */
+export function fetchTeam(id: string, locale?: string): Promise<ApiResult<TeamPage>> {
+  return apiRequest<TeamPage>(withLocale(`/teams/${encodeURIComponent(id)}`, locale));
 }
 
-/** `GET /competitions/:id${query}` (T-035): the competition page for one season. Public. */
-export function fetchCompetition(id: string, query: string): Promise<ApiResult<CompetitionPage>> {
-  return apiRequest<CompetitionPage>(`/competitions/${encodeURIComponent(id)}${query}`);
+/** `GET /competitions/:id${query}&locale=` (T-035, T-303): the competition page for one season. Public. */
+export function fetchCompetition(
+  id: string,
+  query: string,
+  locale?: string,
+): Promise<ApiResult<CompetitionPage>> {
+  return apiRequest<CompetitionPage>(
+    withLocale(`/competitions/${encodeURIComponent(id)}${query}`, locale),
+  );
 }
 
 /** `GET /users/:username/predictions?${query}` (T-056): the history as this viewer may see it. */

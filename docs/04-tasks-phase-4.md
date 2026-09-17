@@ -85,7 +85,7 @@ search already folds transliterations (T-152).
 | `[x]` T-300 | The six Latin-script locales as unfinished: routing, formatting, plurals | T-151 | `/es` renders every page, every untranslated string says it is untranslated, and none of the six is offered as a finished language |
 | `[x]` T-301 | Plural and ordinal rules from CLDR, not from English's two forms | T-300 | A language with six plural forms gets six; a missing form is a failing test, not a fallback |
 | `[x]` T-302 | The translator's catalogue: export, import, review state, coverage per locale | T-151 | "How much of `tr` is done" is an answer the product gives, not a grep |
-| `[~]` T-303 | Localised entity names and aliases against the canonical UUID | T-010, T-152 | A team's Arabic name is a row against its id, never a second team (rule 1) |
+| `[x]` T-303 | Localised entity names and aliases against the canonical UUID | T-010, T-152 | A team's Arabic name is a row against its id, never a second team (rule 1) |
 | `[ ]` T-304 | One canonical article with a controlled version per language | T-141, T-302 | A language version is a version, with its own review state and its own `last_updated_at` |
 | `[ ]` T-305 | **The strings themselves**, per language | T-302 | Reviewed by a fluent speaker; never machine output presented as a translation |
 | `[x]` T-306 | The language picker: offers the languages the product actually speaks | T-300 | A locale appears the day its catalogue crosses `SHIPPABLE_COMPLETENESS`, and never before |
@@ -203,8 +203,16 @@ that shows the localised one still knows what it is a name for. A language
 nobody wrote is `null`, not the English copied in; an odd spelling of the tag
 is a preference nobody could honour, so it is `null` with 200, not a 400. The
 API was locale-blind until this; the query is the first thing in it that knows
-the reader's language. What is still open is the pages: passing the locale
-they already have and showing the name.
+the reader's language. The pages, last: they pass the locale they already
+had and show the localised name as the heading, with the canonical name in a
+line beneath it -- shown, not hidden, because a page that showed only the
+localised name would have lost the entity it is a name for. Where nobody has
+written one, the canonical name stands alone and nothing is shown twice. The
+journeys suite reads Real Madrid on `/ar` (Arabic heading, canonical beneath)
+and on `/tr` (canonical alone) -- one id, two languages, nothing invented.
+T-303 is `[x]`. Lists (`/teams`, `/competitions`, search results) still show
+the canonical name only; a localised list is a follow-up, not a gap this task
+claimed.
 
 **What is buildable now:** everything but T-305. The catalogues ship empty and
 every missing string says so, which is exactly what T-151 decided and why that

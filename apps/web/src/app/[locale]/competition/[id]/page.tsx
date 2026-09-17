@@ -33,7 +33,7 @@ export async function generateMetadata({
   if (!UUID.test(id))
     return { title: 'Competition · FMIP', robots: { index: false, follow: false } };
   const season = readSeasonParam(query);
-  const result = await fetchCompetition(id, competitionQuery(season));
+  const result = await fetchCompetition(id, competitionQuery(season), locale);
   if (!result.ok)
     return pageMetadata({ locale, path: `/competition/${id}`, title: 'Competition · FMIP' });
   const c = result.data.competition;
@@ -44,7 +44,7 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path,
-    title: `${c.name} ${result.data.season.label} · FMIP`,
+    title: `${c.localised_name ?? c.name} ${result.data.season.label} · FMIP`,
     description: `${c.name} ${result.data.season.label}: table, results, fixtures and top scorers.`,
   });
 }
@@ -66,7 +66,7 @@ export default async function CompetitionPage({
   if (!UUID.test(id)) notFound();
   const seasonParam = readSeasonParam(query);
   const [result, me, founder] = await Promise.all([
-    fetchCompetition(id, competitionQuery(seasonParam)),
+    fetchCompetition(id, competitionQuery(seasonParam), locale),
     fetchMe(await sessionCookieHeader()),
     fetchFounderFeed({ competition: id, limit: 3 }),
   ]);
@@ -96,8 +96,13 @@ export default async function CompetitionPage({
           {c.gender === 'women' ? ' · Women' : ''}
         </p>
         <h1 className="border-s-4 border-s-current ps-4 text-2xl font-semibold" data-testid="title">
-          {c.name}
+          {c.localised_name ?? c.name}
         </h1>
+        {c.localised_name !== null && (
+          <p className="text-sm opacity-70" data-testid="canonical-name">
+            {c.name}
+          </p>
+        )}
         <nav
           aria-label="Season"
           className="mt-2 flex flex-wrap gap-1 text-sm"

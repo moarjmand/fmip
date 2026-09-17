@@ -25,13 +25,15 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale, id } = await params;
   if (!UUID.test(id)) return { title: 'Team · FMIP', robots: { index: false, follow: false } };
-  const result = await fetchTeam(id);
+  const result = await fetchTeam(id, locale);
   if (!result.ok) return pageMetadata({ locale, path: `/team/${id}`, title: 'Team · FMIP' });
   const t = result.data.team;
+  // The reader's name in the title; the canonical one in the description, so
+  // both are on the page and neither pretends to be the other (T-303).
   return pageMetadata({
     locale,
     path: `/team/${t.id}`,
-    title: `${t.name} · FMIP`,
+    title: `${t.localised_name ?? t.name} · FMIP`,
     description: `${t.name}: fixtures, results, squad and where they stand.`,
   });
 }
@@ -50,7 +52,7 @@ export default async function TeamPage({
   const { locale, id } = await params;
   if (!UUID.test(id)) notFound();
   const [result, me, founder] = await Promise.all([
-    fetchTeam(id),
+    fetchTeam(id, locale),
     fetchMe(await sessionCookieHeader()),
     fetchFounderFeed({ team: id, limit: 3 }),
   ]);
@@ -83,8 +85,15 @@ export default async function TeamPage({
           {t.founded_year !== null ? ` · Founded ${t.founded_year}` : ''}
         </p>
         <h1 className="border-s-4 border-s-current ps-4 text-2xl font-semibold" data-testid="title">
-          {t.name}
+          {t.localised_name ?? t.name}
         </h1>
+        {t.localised_name !== null && (
+          // The name it is a name for. Shown, not hidden: a page that showed
+          // only the localised name would have lost the entity (rule 1).
+          <p className="text-sm opacity-70" data-testid="canonical-name">
+            {t.name}
+          </p>
+        )}
         <p className="text-sm opacity-70">
           {t.venue !== null
             ? `${t.venue.name}${t.venue.city !== null ? `, ${t.venue.city}` : ''}${

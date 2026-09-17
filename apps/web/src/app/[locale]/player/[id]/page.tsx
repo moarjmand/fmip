@@ -32,14 +32,15 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale, id } = await params;
   if (!UUID.test(id)) return { title: 'Player · FMIP', robots: { index: false, follow: false } };
-  const result = await fetchPlayer(id);
+  const result = await fetchPlayer(id, locale);
   if (!result.ok) return pageMetadata({ locale, path: `/player/${id}`, title: 'Player · FMIP' });
-  const name = result.data.person.known_as ?? result.data.person.full_name;
+  const canonical = result.data.person.known_as ?? result.data.person.full_name;
+  const name = result.data.person.localised_name ?? canonical;
   return pageMetadata({
     locale,
     path: `/player/${result.data.person.id}`,
     title: `${name} · FMIP`,
-    description: `${name}: career, record by season and recent matches.`,
+    description: `${canonical}: career, record by season and recent matches.`,
   });
 }
 
@@ -58,7 +59,10 @@ export default async function PlayerPage({
 }) {
   const [{ locale, id }, query] = await Promise.all([params, searchParams]);
   if (!UUID.test(id)) notFound();
-  const [result, me] = await Promise.all([fetchPlayer(id), fetchMe(await sessionCookieHeader())]);
+  const [result, me] = await Promise.all([
+    fetchPlayer(id, locale),
+    fetchMe(await sessionCookieHeader()),
+  ]);
   if (!result.ok) {
     if (result.status === 404) notFound();
     return (
@@ -88,8 +92,13 @@ export default async function PlayerPage({
       <JsonLd data={playerJsonLd(locale, page)} />
       <header className="flex flex-col gap-1" data-testid="player-header">
         <h1 className="border-s-4 border-s-current ps-4 text-2xl font-semibold" data-testid="title">
-          {p.known_as ?? p.full_name}
+          {p.localised_name ?? p.known_as ?? p.full_name}
         </h1>
+        {p.localised_name !== null && (
+          <p className="text-sm opacity-70" data-testid="canonical-name">
+            {p.known_as ?? p.full_name}
+          </p>
+        )}
         {p.known_as !== null && <p className="text-sm opacity-70">{p.full_name}</p>}
         <dl className="flex flex-wrap gap-x-4 text-sm opacity-80" data-testid="identity">
           {p.nationality !== null && (
