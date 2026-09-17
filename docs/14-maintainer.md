@@ -71,32 +71,24 @@ manifest is valid; it cannot assert that Chrome offered to install it.
 
 **Outcome:** signed off in `00-decisions.md`.
 
-## 5. Two members on the preview, so Phase 3 can be closed (~5 minutes)
+## 5. Two members on the preview -- withdrawn on 2026-09-17
 
-**Why yours.** Not a judgement -- a login. Conversations, friendship and
-predictions all refuse an unverified e-mail, the preview has no mail provider
-(T-330 is open), so the verification link is written to the service log and the
-log is behind your Render account. A session cannot read it, and cannot create
-accounts on a public address on your behalf.
+This asked you to register two accounts on the preview and fish their
+verification links out of the service log, so the rest of Phase 3's exit
+criteria could be walked. It is gone, and nothing replaced it for you.
 
-**What it unblocks.** The rest of Phase 3's exit criteria. Everything that does
-not need two members is already walked and recorded in `04-tasks-phase-3.md`.
+Those criteria are now `apps/web/tests/e2e/journeys/social.spec.ts`: two
+members, registered through the real form and verified from the real message,
+against the real API, database and seed, on every pull request. The preview
+walk would have been one observation, on one day, by one person, and it could
+not have been repeated without that person. This is one on every commit -- and
+it checks the criterion the preview could never have checked at all, because
+messages arriving in real time needs a Redis the preview does not have.
 
-1. Open `https://fmip-preview.onrender.com/en/register` and register two
-   accounts. Any names; the data there is demonstration data and says so.
-2. Render dashboard -> `fmip-preview` -> **Logs**. Each registration writes a
-   line beginning `[mail] to=...` followed by a `.../verify-email?token=...`
-   link.
-3. Open both links. That is the whole gate.
-
-Then either walk Blueprint 19's list yourself, or say so and a session will --
-with two accounts in existence, all of it is ordinary HTTP.
-
-**The alternative, if you would rather not.** The accounts could be seeded
-instead, and then nobody has to register anything. It needs a password in the
-seed file, which two standing rules touch: never write a password into a file,
-and a known credential on a public address is a product decision rather than a
-technical one. Say which you prefer; neither is assumed.
+If you ever want members on the preview for your own use, the procedure was:
+register at `/en/register`, find the line beginning `[mail] to=` in the Render
+logs, and open the `verify-email` link in it. Nothing in the project waits on
+it any more.
 
 ## 6. Standing: approving contributors and analysts
 

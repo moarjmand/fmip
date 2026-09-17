@@ -244,6 +244,11 @@ jobs:
       # No model service here: forecasts read stored versions and say "unavailable".
       MODEL_SERVICE_URL: http://127.0.0.1:8000
       API_LOG: ${{ github.workspace }}/apps/api/api.log
+      # The chat socket lives on the API port here. In a deployment the edge
+      # routes the one path (T-234) and the page uses its own origin; with two
+      # ports and nothing in front, the page has to be told. Without this the
+      # socket is unreachable and the real-time criterion cannot be checked.
+      NEXT_PUBLIC_CHAT_SOCKET_URL: ws://127.0.0.1:3001/me/conversations/socket
 
     steps:
       - name: Check out
