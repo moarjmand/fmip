@@ -203,6 +203,17 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('live match c
     );
     expect(shared.statusCode).toBe(201);
     sharedMessage = (shared.json() as { message: { id: string } }).message.id;
+
+    // The fixture and its two participants were just written, and every one
+    // of those writes raised `fixture_change`, so a card refresh is already
+    // scheduled behind the collapse window. Let it go out before any test
+    // opens a socket. Without this the first test's first frame is sometimes
+    // that refresh -- a card read before its own score write, so `score` is
+    // null -- and it asserted on it. Passed here every time and failed on CI,
+    // which is what a race against the collapse window looks like; the card
+    // was right both times, the test's assumption about which frame was its
+    // own was not.
+    await new Promise((resolve) => setTimeout(resolve, gatewayOptions.cardDebounceMs * 3));
   });
 
   afterAll(async () => {
