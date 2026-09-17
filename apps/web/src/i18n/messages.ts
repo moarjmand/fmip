@@ -13,43 +13,34 @@
  * translates anything. Producing Arabic by machine and shipping it as the
  * product's Arabic would be inventing content, and a football glossary is a
  * judgement a fluent speaker makes (blueprint 13.1).
+ *
+ * **Where the words live (T-302, D-066).** In `catalogues/`, as JSON a
+ * translator edits directly: `en.json` is the source, and each other locale's
+ * file carries every key with the English beside it and a `status` a person
+ * set. `scripts/i18n-catalogues.mjs` keeps those files in step with the source
+ * and never touches a translation; `messages.spec.ts` fails if a file is stale
+ * or claims a status its text does not support. This module only reads them.
  */
 
 import { DEFAULT_LOCALE, UNFINISHED_LOCALES, type Locale } from './locales';
+import en from './catalogues/en.json';
+import ar from './catalogues/ar.json';
+import de from './catalogues/de.json';
+import es from './catalogues/es.json';
+import fr from './catalogues/fr.json';
+import it from './catalogues/it.json';
+import pt from './catalogues/pt.json';
+import tr from './catalogues/tr.json';
 
 /**
  * Every message the product shows, by key.
  *
  * The English catalogue is the source of truth: a key that is not here does not
  * exist, and `MessageKey` makes asking for one a type error rather than a blank
- * on a page.
+ * on a page. The keys are the JSON file's own, which is what makes the file
+ * the source rather than a copy of one.
  */
-export const EN = {
-  'nav.scores': 'Scores',
-  'nav.search': 'Search',
-  'nav.predictions': 'Predictions',
-  'nav.leaderboard': 'Leaderboard',
-  'nav.friends': 'Friends',
-  'nav.messages': 'Messages',
-  'nav.groups': 'Groups',
-  'nav.signIn': 'Sign in',
-  'nav.signOut': 'Sign out',
-  'nav.settings': 'Settings',
-  'nav.skipToContent': 'Skip to content',
-  'nav.searchLabel': 'Search teams, competitions and players',
-  'common.unreachable': 'The service is unreachable right now.',
-  'language.name.en': 'English',
-  // The eight languages of blueprint 13, named in English because this is the
-  // English catalogue. In each locale's own catalogue exactly one of these is
-  // a fact rather than a translation -- see `AUTONYMS` below.
-  'language.name.ar': 'Arabic',
-  'language.name.de': 'German',
-  'language.name.es': 'Spanish',
-  'language.name.fr': 'French',
-  'language.name.it': 'Italian',
-  'language.name.pt': 'Portuguese',
-  'language.name.tr': 'Turkish',
-} as const;
+export const EN = en;
 
 export type MessageKey = keyof typeof EN;
 
@@ -67,6 +58,30 @@ export type MessageKey = keyof typeof EN;
  */
 
 /**
+ * What a translator's file says about one key.
+ *
+ * `untranslated` — nobody has written it; `text` is empty and the page shows
+ * English and says so. `translated` — a fluent speaker wrote it. `reviewed` —
+ * a second fluent speaker approved it (blueprint 13.2's review step). The last
+ * two render the same way: both are a person's words. The distinction is for
+ * whoever is deciding whether a language is done, not for the reader.
+ */
+export type TranslationStatus = 'untranslated' | 'translated' | 'reviewed';
+
+export interface TranslationEntry {
+  /** The English, copied in so the translator sees it beside their work. */
+  source: string;
+  /** The translation, or empty when there is none. */
+  text: string;
+  status: TranslationStatus;
+  /** A translator's or reviewer's remark, kept with the entry. */
+  note?: string;
+}
+
+/** A translator's file: every source key, whether translated or not. */
+export type TranslationFile = Record<MessageKey, TranslationEntry>;
+
+/**
  * A catalogue for a locale. Partial on purpose: a language arrives a key at a
  * time, and the type says so rather than forcing a placeholder for every key
  * nobody has translated.
@@ -74,34 +89,40 @@ export type MessageKey = keyof typeof EN;
 export type Catalogue = Partial<Record<MessageKey, string>>;
 
 /**
- * The one entry a catalogue may hold before a translator touches it: the
- * language's **own** name, written the way that language writes it.
- *
- * That is a fact, not a rendering of an English phrase — `Español` is `Español`
- * whoever is reading. Everything else, including what Spanish calls *German*,
- * is a translation and waits for a fluent speaker (blueprint 13.1).
- *
- * Note what is deliberately **not** here. Arabic used to carry
- * `language.name.en: 'English'`, and that is not an autonym: the Arabic for
- * English is `الإنجليزية`, and shipping the Latin word under `status:
- * 'translated'` claimed somebody had translated it. Falling back and being
- * marked `untranslated` is the smaller lie, which is to say none.
+ * The seven translators' files, by locale. Typed as `TranslationFile` here
+ * rather than trusting the JSON's inferred shape, so a file that drifts from
+ * the source keys is a type error and not a silent miss.
  */
-const AUTONYMS = {
-  ar: 'العربية',
-  de: 'Deutsch',
-  es: 'Español',
-  fr: 'Français',
-  it: 'Italiano',
-  pt: 'Português',
-  tr: 'Türkçe',
-} as const satisfies Record<(typeof UNFINISHED_LOCALES)[number], string>;
+export const TRANSLATION_FILES: Record<(typeof UNFINISHED_LOCALES)[number], TranslationFile> = {
+  ar: ar as TranslationFile,
+  de: de as TranslationFile,
+  es: es as TranslationFile,
+  fr: fr as TranslationFile,
+  it: it as TranslationFile,
+  pt: pt as TranslationFile,
+  tr: tr as TranslationFile,
+};
+
+/**
+ * The words a locale actually has: every entry with a text. An entry whose
+ * status says `translated` but whose text is empty is *not* a translation, and
+ * the spec refuses the file; here the text decides, so a page can never render
+ * a blank on the strength of a label.
+ */
+function catalogueOf(file: TranslationFile): Catalogue {
+  const words: Catalogue = {};
+  for (const key of Object.keys(file) as MessageKey[]) {
+    const entry = file[key];
+    if (entry.text !== '') words[key] = entry.text;
+  }
+  return words;
+}
 
 /** Arabic (T-150). Exported because `messages.spec.ts` argues about it by name. */
-export const AR: Catalogue = { 'language.name.ar': AUTONYMS.ar };
+export const AR: Catalogue = catalogueOf(TRANSLATION_FILES.ar);
 
 const CATALOGUES: Partial<Record<Locale, Catalogue>> = Object.fromEntries(
-  UNFINISHED_LOCALES.map((locale) => [locale, { [`language.name.${locale}`]: AUTONYMS[locale] }]),
+  UNFINISHED_LOCALES.map((locale) => [locale, catalogueOf(TRANSLATION_FILES[locale])]),
 );
 
 export type MessageStatus = 'translated' | 'untranslated' | 'source';
@@ -163,12 +184,38 @@ export function attribute(locale: Locale, key: MessageKey): { text: string; lang
   return status === 'untranslated' ? { text, lang: DEFAULT_LOCALE } : { text };
 }
 
+/**
+ * How far a locale has got, as the product's own answer (T-302): "how much of
+ * `tr` is done" is these four numbers, not a grep. `reviewed` is a subset of
+ * what counts as done; it is reported so that whoever decides can see how much
+ * of the done part a second speaker has read.
+ */
+export interface Coverage {
+  total: number;
+  untranslated: number;
+  translated: number;
+  reviewed: number;
+}
+
+export function coverage(locale: Locale): Coverage {
+  const total = Object.keys(EN).length;
+  if (locale === DEFAULT_LOCALE) return { total, untranslated: 0, translated: 0, reviewed: total };
+  const file = (TRANSLATION_FILES as Partial<Record<Locale, TranslationFile>>)[locale];
+  if (file === undefined) return { total, untranslated: total, translated: 0, reviewed: 0 };
+  const counts: Coverage = { total, untranslated: 0, translated: 0, reviewed: 0 };
+  for (const key of Object.keys(EN) as MessageKey[]) {
+    const entry = file[key];
+    if (entry === undefined || entry.text === '') counts.untranslated += 1;
+    else if (entry.status === 'reviewed') counts.reviewed += 1;
+    else counts.translated += 1;
+  }
+  return counts;
+}
+
 /** How much of the catalogue a locale actually has, `0`–`1`. */
 export function completeness(locale: Locale): number {
-  if (locale === DEFAULT_LOCALE) return 1;
-  const keys = Object.keys(EN) as MessageKey[];
-  const have = keys.filter((key) => CATALOGUES[locale]?.[key] !== undefined);
-  return have.length / keys.length;
+  const { total, untranslated } = coverage(locale);
+  return (total - untranslated) / total;
 }
 
 /**

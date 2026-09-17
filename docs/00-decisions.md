@@ -2219,3 +2219,50 @@ guard here prevents that, and the honest reason is proportion: it is a
 deliberate act by the one person who knows what the database holds, and closing
 it would cost a migration and a query on every page render. `start.mjs` states
 the marker's value at every boot so the log answers the question.
+
+## D-066 — The translator's catalogue is a JSON file per locale that a fluent speaker edits directly, with the English beside every key and a status a person set
+
+**Date:** 2026-09-18 · **Task:** T-302 · **Status:** accepted
+
+**Decision.** `apps/web/src/i18n/catalogues/en.json` is the source of every
+message the product shows. Each other locale has one file beside it carrying
+every source key as `{ source, text, status, note? }`, where `status` is
+`untranslated` (text empty; the page shows English and says so), `translated`
+(a fluent speaker wrote it) or `reviewed` (a second fluent speaker approved it,
+blueprint 13.2). `messages.ts` only reads these files. A script refreshes them
+from the source and never touches a translation; a spec fails on a stale
+`source`, a missing or extra key, or a status the text does not support.
+"How much of `tr` is done" is `coverage(locale)` -- four numbers the product
+computes -- and not a grep.
+
+**Why JSON, in the repository, and not a translation platform or `.po`/XLIFF.**
+The catalogue is twenty-one keys and will be a few hundred. A fluent speaker
+with a text editor can open a JSON file, see the English on the same line, and
+write beside it; nothing has to be installed, no account has to be created
+(§7), and the change arrives as a pull request the same way everything else
+does, reviewed by whoever reviews it. `.po` and XLIFF would each be a format,
+a parser and a tool the maintainer does not have, for a benefit -- translation
+memory, plural forms -- the first of which blueprint 13.1 wants eventually and
+the second of which T-301 will need. When T-301 arrives the entry gains a
+`forms` field keyed by CLDR category; the file shape was chosen so that is an
+addition, not a migration.
+
+**Why the English is copied into every file.** A translator who has to open
+`en.json` in a second window to know what they are translating will stop
+looking, and the day a source string changes they would go on translating the
+old sentence. Copying it costs nothing and makes staleness a thing a test can
+see: `source !== EN[key]` fails the build.
+
+**Why a script that refuses.** Refreshing drops a key the source no longer has
+*only if it carries no text*. A translation is removed on purpose, by a person,
+never by a script that noticed the English moved; the script stops and names
+the key. The same shape as every other guard in this repository: it does the
+safe thing and reports the unsafe one, rather than warning and continuing.
+
+**What `reviewed` changes.** Nothing a reader sees: a translated and a reviewed
+string are both a person's words and render the same way. `isShippable` counts
+both as done, because blueprint 13.2's review is for headlines, founder
+analysis and sensitive claims, not for "Sign in". The number is reported so
+that whoever decides a language is finished can see how much of the done part
+a second speaker has read -- a decision that stays theirs (`14-maintainer.md`
+§1), now with the information it needs.

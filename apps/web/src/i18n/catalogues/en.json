@@ -1,0 +1,23 @@
+{
+  "nav.scores": "Scores",
+  "nav.search": "Search",
+  "nav.predictions": "Predictions",
+  "nav.leaderboard": "Leaderboard",
+  "nav.friends": "Friends",
+  "nav.messages": "Messages",
+  "nav.groups": "Groups",
+  "nav.signIn": "Sign in",
+  "nav.signOut": "Sign out",
+  "nav.settings": "Settings",
+  "nav.skipToContent": "Skip to content",
+  "nav.searchLabel": "Search teams, competitions and players",
+  "common.unreachable": "The service is unreachable right now.",
+  "language.name.en": "English",
+  "language.name.ar": "Arabic",
+  "language.name.de": "German",
+  "language.name.es": "Spanish",
+  "language.name.fr": "French",
+  "language.name.it": "Italian",
+  "language.name.pt": "Portuguese",
+  "language.name.tr": "Turkish"
+}
