@@ -104,5 +104,64 @@
     "text": "Türkçe",
     "status": "translated",
     "note": "The language's own name: a fact, not a translation of the English."
+  },
+  "friends.mutualCount": {
+    "source": {
+      "one": "{count} friend in common",
+      "other": "{count} friends in common"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "groups.memberCount": {
+    "source": {
+      "one": "{count} member",
+      "other": "{count} members"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "conversation.matchCount": {
+    "source": {
+      "one": "{count} message matching “{term}”",
+      "other": "{count} messages matching “{term}”"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "team.followerCount": {
+    "source": {
+      "one": "{count} follower",
+      "other": "{count} followers"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "groupComparison.silent": {
+    "source": {
+      "one": "{count} member did not call this match.",
+      "other": "{count} members did not call this match."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "groupComparison.withheld": {
+    "source": {
+      "one": "{count} keeps their predictions to themselves.",
+      "other": "{count} keep their predictions to themselves."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "team.position": {
+    "source": {
+      "type": "ordinal",
+      "one": "{count}st",
+      "two": "{count}nd",
+      "few": "{count}rd",
+      "other": "{count}th"
+    },
+    "forms": {},
+    "status": "untranslated"
   }
 }

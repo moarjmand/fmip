@@ -83,7 +83,7 @@ search already folds transliterations (T-152).
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-300 | The six Latin-script locales as unfinished: routing, formatting, plurals | T-151 | `/es` renders every page, every untranslated string says it is untranslated, and none of the six is offered as a finished language |
-| `[ ]` T-301 | Plural and ordinal rules from CLDR, not from English's two forms | T-300 | A language with six plural forms gets six; a missing form is a failing test, not a fallback |
+| `[~]` T-301 | Plural and ordinal rules from CLDR, not from English's two forms | T-300 | A language with six plural forms gets six; a missing form is a failing test, not a fallback |
 | `[x]` T-302 | The translator's catalogue: export, import, review state, coverage per locale | T-151 | "How much of `tr` is done" is an answer the product gives, not a grep |
 | `[ ]` T-303 | Localised entity names and aliases against the canonical UUID | T-010, T-152 | A team's Arabic name is a row against its id, never a second team (rule 1) |
 | `[ ]` T-304 | One canonical article with a controlled version per language | T-141, T-302 | A language version is a version, with its own review state and its own `last_updated_at` |
@@ -161,6 +161,26 @@ redirects, so there is no hydration mismatch to guard.
 as a finished language" was true by there being no offer. There is an offer
 now, driven by the same `isShippable` that `/admin` reports, and it offers none
 of the six.
+**T-301, the machinery, on 2026-09-18 (D-067).** Seven plural keys in
+`en.json` -- six cardinal, one ordinal -- each an object of forms keyed by
+CLDR category. `plural(locale, key, count)` picks the category from
+`Intl.PluralRules` for the locale, fills `{count}` in the locale's digits, and
+falls back to the English forms *by English rules* when nobody has translated
+the entry. `Translated` takes a `count`. The rule the task exists for is
+enforced twice: the refresh script and the spec both refuse a translated
+plural whose forms are not **exactly** the categories its language has --
+Arabic's six, Spanish's three, Turkish's two -- and nothing fills a missing
+one in. Checked by breaking it: two of Arabic's six forms were refused by
+name, and all six were accepted and selected -- `zero`, `one`, `two`, `few`,
+`many`, `other` for 0, 1, 2, 3, 11, 100 -- by Arabic's rules. One thing for
+whoever finishes Arabic: on this ICU the bare `ar` tag writes Latin digits and
+`ar-EG` writes Arabic-Indic; which one the product wants is a decision about
+the tag in `intlLocale`, not about the forms.
+
+**What is still open is the six pages.** They still spell "member{s}" by hand
+in English arithmetic, and `lib/team.ts` still spells "1st" the same way; the
+seven keys sit on `messages.spec.ts`'s waiting list until those call sites
+move, which is the next change and what empties the list again.
 
 **What is buildable now:** everything but T-305. The catalogues ship empty and
 every missing string says so, which is exactly what T-151 decided and why that

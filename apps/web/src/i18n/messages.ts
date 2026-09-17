@@ -20,9 +20,17 @@
  * set. `scripts/i18n-catalogues.mjs` keeps those files in step with the source
  * and never touches a translation; `messages.spec.ts` fails if a file is stale
  * or claims a status its text does not support. This module only reads them.
+ *
+ * **Plurals (T-301, D-067).** A key whose English is an object of forms is a
+ * plural. Its forms are keyed by CLDR category, the category for a count comes
+ * from `Intl.PluralRules` for the locale, and a translated entry that lacks a
+ * category its language *has* fails the spec rather than falling back — a
+ * fallback there is a sentence that is wrong in a way only a native speaker
+ * sees. `type: "ordinal"` selects the ordinal rules ("1st", "2nd") instead.
  */
 
 import { DEFAULT_LOCALE, UNFINISHED_LOCALES, type Locale } from './locales';
+import { formatNumber, intlLocale } from './format';
 import en from './catalogues/en.json';
 import ar from './catalogues/ar.json';
 import de from './catalogues/de.json';
@@ -57,6 +65,36 @@ export type MessageKey = keyof typeof EN;
  * nowhere. `messages.spec.ts` now fails on a key with no call site.
  */
 
+/** The CLDR plural categories. Which ones a locale has is `Intl`'s to say. */
+export type PluralCategory = 'zero' | 'one' | 'two' | 'few' | 'many' | 'other';
+export const PLURAL_CATEGORIES: readonly PluralCategory[] = [
+  'zero',
+  'one',
+  'two',
+  'few',
+  'many',
+  'other',
+];
+
+/**
+ * A plural's forms. `other` is the one category every language has, so it is
+ * the one the type requires; the rest are whatever the language needs, and the
+ * spec holds each locale's file to exactly its own set.
+ */
+export type PluralForms = { other: string } & Partial<Record<PluralCategory, string>> & {
+    /** `ordinal` for "1st, 2nd"; absent means cardinal. */
+    type?: 'ordinal';
+  };
+
+/** The keys whose English is a plural rather than a sentence. */
+export type PluralKey = {
+  [K in MessageKey]: (typeof EN)[K] extends string ? never : K;
+}[MessageKey];
+
+export function isPluralKey(key: MessageKey): key is PluralKey {
+  return typeof EN[key] !== 'string';
+}
+
 /**
  * What a translator's file says about one key.
  *
@@ -70,9 +108,11 @@ export type TranslationStatus = 'untranslated' | 'translated' | 'reviewed';
 
 export interface TranslationEntry {
   /** The English, copied in so the translator sees it beside their work. */
-  source: string;
-  /** The translation, or empty when there is none. */
-  text: string;
+  source: string | PluralForms;
+  /** The translation, or empty when there is none. Sentences only. */
+  text?: string;
+  /** The translation's forms, in the locale's own categories. Plurals only. */
+  forms?: Partial<Record<PluralCategory, string>>;
   status: TranslationStatus;
   /** A translator's or reviewer's remark, kept with the entry. */
   note?: string;
@@ -86,7 +126,7 @@ export type TranslationFile = Record<MessageKey, TranslationEntry>;
  * time, and the type says so rather than forcing a placeholder for every key
  * nobody has translated.
  */
-export type Catalogue = Partial<Record<MessageKey, string>>;
+export type Catalogue = Partial<Record<MessageKey, string | PluralForms>>;
 
 /**
  * The seven translators' files, by locale. Typed as `TranslationFile` here
@@ -103,17 +143,32 @@ export const TRANSLATION_FILES: Record<(typeof UNFINISHED_LOCALES)[number], Tran
   tr: tr as TranslationFile,
 };
 
+/** Whether an entry carries any words at all. */
+function hasWords(entry: TranslationEntry): boolean {
+  if (typeof entry.text === 'string' && entry.text !== '') return true;
+  return Object.values(entry.forms ?? {}).some((form) => form !== undefined && form !== '');
+}
+
 /**
- * The words a locale actually has: every entry with a text. An entry whose
- * status says `translated` but whose text is empty is *not* a translation, and
- * the spec refuses the file; here the text decides, so a page can never render
- * a blank on the strength of a label.
+ * The words a locale actually has: every entry with a text or with forms. An
+ * entry whose status says `translated` but which carries nothing is *not* a
+ * translation, and the spec refuses the file; here the words decide, so a page
+ * can never render a blank on the strength of a label.
  */
 function catalogueOf(file: TranslationFile): Catalogue {
   const words: Catalogue = {};
   for (const key of Object.keys(file) as MessageKey[]) {
     const entry = file[key];
-    if (entry.text !== '') words[key] = entry.text;
+    if (!hasWords(entry)) continue;
+    if (isPluralKey(key)) {
+      const source = EN[key] as PluralForms;
+      words[key] = {
+        ...(entry.forms as PluralForms),
+        ...(source.type === 'ordinal' ? { type: 'ordinal' as const } : {}),
+      };
+    } else if (typeof entry.text === 'string') {
+      words[key] = entry.text;
+    }
   }
   return words;
 }
@@ -138,6 +193,11 @@ export interface Message {
   status: MessageStatus;
 }
 
+/** A sentence's text, or a plural's `other` form: the one every language has. */
+function textOf(value: string | PluralForms): string {
+  return typeof value === 'string' ? value : value.other;
+}
+
 /**
  * The message for a key in a locale, with the truth about where it came from.
  *
@@ -145,19 +205,69 @@ export interface Message {
  * a machine translation tells them something nobody checked. What the caller
  * must not do is drop the `status`: that is the part that keeps the fallback
  * honest.
+ *
+ * For a plural key this is the `other` form with its placeholders unfilled --
+ * enough to never be blank, which is what "never returns a blank" promises,
+ * and not what a page should render. Pages render plurals through `plural()`.
  */
 export function message(locale: Locale, key: MessageKey): Message {
-  if (locale === DEFAULT_LOCALE) return { text: EN[key], status: 'source' };
+  const source = EN[key] as string | PluralForms;
+  if (locale === DEFAULT_LOCALE) return { text: textOf(source), status: 'source' };
 
   const translated = CATALOGUES[locale]?.[key];
   return translated === undefined
-    ? { text: EN[key], status: 'untranslated' }
-    : { text: translated, status: 'translated' };
+    ? { text: textOf(source), status: 'untranslated' }
+    : { text: textOf(translated), status: 'translated' };
 }
 
 /** Just the text, for the many places that render it directly. */
 export function t(locale: Locale, key: MessageKey): string {
   return message(locale, key).text;
+}
+
+/** `{name}` placeholders, filled from `params`; an unknown name is left as it is, visibly. */
+export function interpolate(template: string, params: Record<string, string>): string {
+  return template.replace(/\{([a-zA-Z]+)\}/g, (whole, name: string) => params[name] ?? whole);
+}
+
+/**
+ * A plural, chosen for `count` by the locale's own rules (T-301).
+ *
+ * The category comes from `Intl.PluralRules` -- cardinal, or ordinal when the
+ * English says `type: "ordinal"` -- and the form for it from the locale's
+ * catalogue when the entry is translated, otherwise from the English, marked
+ * `untranslated` like any other fallback. `{count}` is filled with the number
+ * in the locale's own digits and grouping; other `{name}` placeholders from
+ * `params`.
+ *
+ * The `other` form is used only when the rules ask for it: a translated entry
+ * missing a category its language has is refused by the spec, so at runtime
+ * the form is always there. The `?? other` below is for the type, not for a
+ * gap the spec would already have caught.
+ */
+export function plural(
+  locale: Locale,
+  key: PluralKey,
+  count: number,
+  params: Record<string, string> = {},
+): Message {
+  const source = EN[key] as PluralForms;
+  const translated = locale === DEFAULT_LOCALE ? undefined : CATALOGUES[locale]?.[key];
+  const forms: PluralForms =
+    translated !== undefined && typeof translated !== 'string' ? translated : source;
+  const status: MessageStatus =
+    locale === DEFAULT_LOCALE ? 'source' : translated === undefined ? 'untranslated' : 'translated';
+  // The English forms are selected by English rules: a fallback shown in
+  // English must not be conjugated by Arabic arithmetic.
+  const rulesFor = status === 'untranslated' ? DEFAULT_LOCALE : locale;
+  const category = new Intl.PluralRules(intlLocale(rulesFor), {
+    type: source.type === 'ordinal' ? 'ordinal' : 'cardinal',
+  }).select(count) as PluralCategory;
+  const form = forms[category] ?? forms.other;
+  return {
+    text: interpolate(form, { count: formatNumber(locale, count), ...params }),
+    status,
+  };
 }
 
 /**
@@ -205,7 +315,7 @@ export function coverage(locale: Locale): Coverage {
   const counts: Coverage = { total, untranslated: 0, translated: 0, reviewed: 0 };
   for (const key of Object.keys(EN) as MessageKey[]) {
     const entry = file[key];
-    if (entry === undefined || entry.text === '') counts.untranslated += 1;
+    if (entry === undefined || !hasWords(entry)) counts.untranslated += 1;
     else if (entry.status === 'reviewed') counts.reviewed += 1;
     else counts.translated += 1;
   }
