@@ -13,6 +13,7 @@ import {
 } from '@/lib/api';
 import { moduleState } from '@/lib/match';
 import { sessionCookieHeader } from '@/lib/session';
+import { Translated } from '@/components/translated';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,7 +59,9 @@ export default async function AdminPage({
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-4 p-8">
         <h1 className="text-2xl font-semibold">Administration</h1>
-        <p role="alert">The service is unreachable right now.</p>
+        <p role="alert">
+          <Translated locale={locale} message="common.unreachable" />
+        </p>
       </main>
     );
   }

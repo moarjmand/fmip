@@ -82,12 +82,13 @@ search already folds transliterations (T-152).
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-300 | The six Latin-script locales as unfinished: routing, formatting, plurals | T-151 | `/es` renders every page, every untranslated string says it is untranslated, and none of the six is offered as a finished language |
+| `[~]` T-300 | The six Latin-script locales as unfinished: routing, formatting, plurals | T-151 | `/es` renders every page, every untranslated string says it is untranslated, and none of the six is offered as a finished language |
 | `[ ]` T-301 | Plural and ordinal rules from CLDR, not from English's two forms | T-300 | A language with six plural forms gets six; a missing form is a failing test, not a fallback |
 | `[ ]` T-302 | The translator's catalogue: export, import, review state, coverage per locale | T-151 | "How much of `tr` is done" is an answer the product gives, not a grep |
 | `[ ]` T-303 | Localised entity names and aliases against the canonical UUID | T-010, T-152 | A team's Arabic name is a row against its id, never a second team (rule 1) |
 | `[ ]` T-304 | One canonical article with a controlled version per language | T-141, T-302 | A language version is a version, with its own review state and its own `last_updated_at` |
 | `[ ]` T-305 | **The strings themselves**, per language | T-302 | Reviewed by a fluent speaker; never machine output presented as a translation |
+| `[ ]` T-306 | The language picker: offers the languages the product actually speaks | T-300 | A locale appears the day its catalogue crosses `SHIPPABLE_COMPLETENESS`, and never before |
 
 **Six locales, not seven, and Arabic is the seventh on purpose.** `ar` is
 already routed and already right-to-left; what it lacks is its catalogue, which
@@ -110,9 +111,61 @@ against the canonical UUID, with the same `entity_alias` table search already
 uses (T-038, T-152) — so a localised name is findable by the thing that already
 finds names.
 
+**T-306 came out of building T-300, and it is not a nicety.** The acceptance
+criterion says *none of the six is offered as a finished language* -- and
+nothing in the product offers a language at all, so that criterion is true by
+there being no offer. The eight `language.name.*` keys have sat in the catalogue
+with nothing rendering them; the guard added in T-300 is what found them. A
+picker driven by `isShippable` turns a vacuous pass into a real one: a language
+appears the day its catalogue crosses the threshold, and a translator watching
+their own work can see exactly when.
+
 **What is buildable now:** everything but T-305. The catalogues ship empty and
 every missing string says so, which is exactly what T-151 decided and why that
 task came before the first locale.
+
+**T-300 stays `[~]`, and the reason is in its own title.** Routing is done and
+verified; **formatting is not started**. Every date in the product is a
+hardcoded `en-GB`, so `/es` renders Spanish-marked English over British dates.
+Plurals are T-301 by design, but formatting is this task's, and marking it `[x]`
+would be the progress-report version of the thing rule 3 is about.
+
+It is separated rather than deferred, and there is a trap in it worth the
+separation: `scores.ts` reaches for `en-CA` to **build a date key** and `en-US`
+to **validate a timezone**, neither of which displays anything. Making every
+`Intl.DateTimeFormat` locale-aware would break the day tabs on the scores page.
+
+**What is verified, 2026-09-16.** All eight of blueprint 13's languages route:
+`/es`, `/fr`, `/de`, `/pt`, `/tr`, `/it` each render every page with the right
+`lang` and `dir`, and every string they have no translation for is English
+carrying `lang="en"` and `data-translation="untranslated"`. `/en` carries none
+of those marks, which is the half of the test that makes the other half mean
+something.
+
+**The six before Arabic, deliberately.** Their failures are quiet -- a wrong
+plural form, a date in the wrong order. Arabic's are visible from across a room.
+The machinery should meet the quiet ones first.
+
+**What the work actually found.** Nine of the catalogue's twenty-one keys had no
+call site: `nav.search`, whose surface existed but was hardcoded, and the eight
+language names, whose surface does not exist yet (T-306). A dead key is not
+free -- `completeness()` divides by the number of keys, so each one made every
+locale look further behind than it was, and the first translator to reach it
+would have spent time on a string that goes nowhere. `common.notTranslated` was
+removed outright: the fallback is marked structurally, with `lang` and a data
+attribute, and no page ever rendered the words.
+
+**And one key could not be marked the usual way.** `Translated` wraps a fallback
+in `<span lang="en">`, and the header's search `placeholder` holds a string, not
+an element -- often the only instruction that input carries. `attribute()` moves
+the marking onto the element that holds the attribute, which is the same
+argument one level out.
+
+**One entry was removed from Arabic for being a translation nobody made.** The
+catalogue carried `language.name.en: 'English'` as though it were an autonym. It
+is not -- the Arabic for English is `الإنجليزية` -- so the Latin word was being
+served under `status: 'translated'`. Falling back and being marked untranslated
+is the honest state.
 
 ---
 

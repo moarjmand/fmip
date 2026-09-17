@@ -15,7 +15,7 @@
  * judgement a fluent speaker makes (blueprint 13.1).
  */
 
-import { DEFAULT_LOCALE, type Locale } from './locales';
+import { DEFAULT_LOCALE, UNFINISHED_LOCALES, type Locale } from './locales';
 
 /**
  * Every message the product shows, by key.
@@ -36,13 +36,35 @@ export const EN = {
   'nav.signOut': 'Sign out',
   'nav.settings': 'Settings',
   'nav.skipToContent': 'Skip to content',
+  'nav.searchLabel': 'Search teams, competitions and players',
   'common.unreachable': 'The service is unreachable right now.',
-  'common.notTranslated': 'not translated yet',
   'language.name.en': 'English',
-  'language.name.ar': 'العربية',
+  // The eight languages of blueprint 13, named in English because this is the
+  // English catalogue. In each locale's own catalogue exactly one of these is
+  // a fact rather than a translation -- see `AUTONYMS` below.
+  'language.name.ar': 'Arabic',
+  'language.name.de': 'German',
+  'language.name.es': 'Spanish',
+  'language.name.fr': 'French',
+  'language.name.it': 'Italian',
+  'language.name.pt': 'Portuguese',
+  'language.name.tr': 'Turkish',
 } as const;
 
 export type MessageKey = keyof typeof EN;
+
+/*
+ * `common.notTranslated` used to be here and is gone (T-300). Nothing rendered
+ * it: the fallback is marked structurally, with `lang="en"` and a data
+ * attribute, which a screen reader and a browser's translation offer can both
+ * act on -- a visible "not translated yet" beside every string would be noise
+ * that only a reader who does not need it can see.
+ *
+ * A key nobody renders is not free. `completeness()` divides by the number of
+ * keys, so a dead one makes every locale look further behind than it is, and
+ * the first translator to reach it would have spent time on a string that goes
+ * nowhere. `messages.spec.ts` now fails on a key with no call site.
+ */
 
 /**
  * A catalogue for a locale. Partial on purpose: a language arrives a key at a
@@ -52,20 +74,35 @@ export type MessageKey = keyof typeof EN;
 export type Catalogue = Partial<Record<MessageKey, string>>;
 
 /**
- * Arabic (T-150). Empty until a fluent speaker fills it.
+ * The one entry a catalogue may hold before a translator touches it: the
+ * language's **own** name, written the way that language writes it.
  *
- * The two entries that are here are the ones that are not translation: a
- * language's own name, which is a fact rather than a rendering of an English
- * phrase.
+ * That is a fact, not a rendering of an English phrase — `Español` is `Español`
+ * whoever is reading. Everything else, including what Spanish calls *German*,
+ * is a translation and waits for a fluent speaker (blueprint 13.1).
+ *
+ * Note what is deliberately **not** here. Arabic used to carry
+ * `language.name.en: 'English'`, and that is not an autonym: the Arabic for
+ * English is `الإنجليزية`, and shipping the Latin word under `status:
+ * 'translated'` claimed somebody had translated it. Falling back and being
+ * marked `untranslated` is the smaller lie, which is to say none.
  */
-export const AR: Catalogue = {
-  'language.name.ar': 'العربية',
-  'language.name.en': 'English',
-};
+const AUTONYMS = {
+  ar: 'العربية',
+  de: 'Deutsch',
+  es: 'Español',
+  fr: 'Français',
+  it: 'Italiano',
+  pt: 'Português',
+  tr: 'Türkçe',
+} as const satisfies Record<(typeof UNFINISHED_LOCALES)[number], string>;
 
-const CATALOGUES: Partial<Record<Locale, Catalogue>> = {
-  ar: AR,
-};
+/** Arabic (T-150). Exported because `messages.spec.ts` argues about it by name. */
+export const AR: Catalogue = { 'language.name.ar': AUTONYMS.ar };
+
+const CATALOGUES: Partial<Record<Locale, Catalogue>> = Object.fromEntries(
+  UNFINISHED_LOCALES.map((locale) => [locale, { [`language.name.${locale}`]: AUTONYMS[locale] }]),
+);
 
 export type MessageStatus = 'translated' | 'untranslated' | 'source';
 
@@ -100,6 +137,30 @@ export function message(locale: Locale, key: MessageKey): Message {
 /** Just the text, for the many places that render it directly. */
 export function t(locale: Locale, key: MessageKey): string {
   return message(locale, key).text;
+}
+
+/**
+ * A message that goes in an **attribute** — a `placeholder`, a `title`, an
+ * `aria-label` — with the marking that `Translated` cannot supply there.
+ *
+ * `Translated` marks a fallback by wrapping it in `<span lang="en">`, and an
+ * attribute holds a string, not an element. Dropping the marking would leave
+ * exactly one kind of text on the page that is English and silent about it, and
+ * a placeholder is not a small piece of text: it is often the only instruction
+ * an input carries.
+ *
+ * So the marking moves to the element that holds the attribute. `lang` on the
+ * input is what HTML already provides for, and it is what a screen reader and a
+ * browser's translation offer both act on — the same argument as `Translated`,
+ * one level out.
+ *
+ * @example
+ * const search = attribute(locale, 'nav.search');
+ * <input placeholder={search.text} lang={search.lang} />
+ */
+export function attribute(locale: Locale, key: MessageKey): { text: string; lang?: string } {
+  const { text, status } = message(locale, key);
+  return status === 'untranslated' ? { text, lang: DEFAULT_LOCALE } : { text };
 }
 
 /** How much of the catalogue a locale actually has, `0`–`1`. */
