@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
 import { type Page, expect, test } from '@playwright/test';
+import { verifyLink } from './members';
 
 /**
  * The blueprint's essential user journeys, the slices of them Phase 1 ships
@@ -25,23 +25,12 @@ import { type Page, expect, test } from '@playwright/test';
  * member and run in order.
  */
 const API = process.env.E2E_API_URL ?? '';
-const API_LOG = process.env.API_LOG ?? '';
 const RUN = Date.now().toString(36).slice(-6);
 const USERNAME = `e2e_${RUN}`;
 const EMAIL = `${USERNAME}@example.test`;
 const PASSWORD = 'correct horse battery staple';
 const OPEN_MATCH = '00000000-0000-4000-8000-000000000902';
 const PLAYED_DAY = '2025-01-05';
-
-/** The verification link from the API's mail log for our address (D-026: mail is logged). */
-function verifyLink(): string {
-  const log = readFileSync(API_LOG, 'utf8');
-  const from = log.lastIndexOf(`[mail] to=${EMAIL}`);
-  expect(from, 'a verification mail for the new member').toBeGreaterThanOrEqual(0);
-  const match = /https?:\/\/\S+\/verify-email\?token=\S+/.exec(log.slice(from));
-  expect(match, 'the verification link in the mail').not.toBeNull();
-  return match![0];
-}
 
 test.describe.configure({ mode: 'serial' });
 
@@ -81,7 +70,7 @@ test.describe('blueprint journeys', () => {
     await expect(page.getByTestId('prediction-form')).toBeVisible();
     await expect(page.getByText('Verify your e-mail address before predicting')).toBeVisible();
 
-    await page.goto(verifyLink());
+    await page.goto(verifyLink(EMAIL));
     await expect(page.getByTestId('verify-result')).toBeVisible();
 
     await page.goto(`/en/match/${OPEN_MATCH}`);

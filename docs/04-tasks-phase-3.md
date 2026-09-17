@@ -68,26 +68,44 @@ at all: before that it held an empty database and nothing could be exercised.
 | Member surfaces are member-only | `/friends`, `/groups`, `/messages`, `/notifications`, `/settings` and `/admin/analysis-reviews` each answer a guest with `307` to the sign-in page |
 | Nothing is shown that is not there | `/predictions` answers a guest `200` and asks them to sign in; `/scores` says "No fixtures on this day" rather than rendering an empty grid |
 
-**Not met, and the reason is not the code.**
+**Met on 2026-09-17, as a test rather than a walk.**
 
-Everything else on the list -- friend requests and blocking, group roles and
-invitations, messages arriving in order, a grant given **and withdrawn**, a
-report producing an audit row -- needs **two members interacting**, and the
-preview has none. The seed builds a catalogue and fixtures; it does not build
-accounts.
+Everything else on the list needs **two members interacting**, and the preview
+has none: its verification links exist only in a service log behind the
+maintainer's own hosting account, so nobody without that account can make a
+second member there. Rather than wait for one, the walk became
+`tests/e2e/journeys/social.spec.ts` -- the same criteria, driven through the
+same web app, API, database and seed, with two members registered through the
+real form and verified from the real message.
 
-Registering them is not something a session does: conversations, friendship and
-predictions all refuse an unverified e-mail, and this deployment has no mail
-provider (T-330 is open), so the verification link exists only in the service
-log, behind the maintainer's own Render account. `docs/14-maintainer.md` has the
-procedure, and it is about five minutes.
+| Criterion | What is asserted |
+|---|---|
+| Friend requests work correctly | The request reaches the recipient's own `/friends`; the accept control is on their page and **not** on the sender's; both sides then say they are friends |
+| Blocking works correctly | The blocked member is told a request cannot be sent and is **not** told they were blocked -- asserted as an absence, not only as a presence -- the block control stays available to the member who did not take it, and the block is listed where its owner can undo it |
+| Messages retain ordering | Three messages, two senders, the same order for the member who sent two of them and the member who sent one |
+| Messages arrive in real time | The socket reports `live` before anything is sent, and the next message appears on a page nobody reloaded, navigated or touched |
 
-**One criterion cannot be met here at all, and should not be recorded as
-pending.** "Messages **arrive in real time**" needs Redis for the bus and an
-edge that routes the socket; the preview has neither, by design (`11-preview.md`
-says why). Ordering is checkable; immediacy is not. It waits for T-074, and
-saying so is the point -- a criterion nobody can perform is not a criterion
-nearly met.
+**A walk is evidence once; a test is evidence on every commit.** That is the
+part worth writing down. "Checked on the public deployment" was doing less work
+than it looked: it bought one observation, on one day, by one person, and it
+could not be repeated without that person. What replaced it runs on every pull
+request, and it needs nobody's password and nobody's dashboard.
+
+**The real-time criterion was recorded as impossible here, and that was wrong.**
+It said immediacy waits for T-074 because the preview has no Redis and no edge
+that routes the socket. True of the preview; not true of the journeys job,
+which has a real Redis and a real API. The socket only needed telling where it
+is, because there the web app and the API are two ports with nothing in front
+of them. `NEXT_PUBLIC_CHAT_SOCKET_URL` is that, and it is load-bearing: built
+without it the page holds at **"Connecting..."**, never claims to be live, and
+the test fails on the assertion that it is. Checked by removing it and watching
+it fail, not by reasoning about it.
+
+**Still open, deliberately.** Group roles, invitations and membership changes; a
+grant given **and withdrawn** by an authorised administrator; a report producing
+an audit row. Each of those needs a surface this spec does not open yet, and
+carrying them in the same change would put it well past the size CLAUDE.md
+section 3 asks for. They are the next spec, not a different venue.
 
 **What this exercise was worth on its own.** It found a bug no local check
 could: `/en` rendered with no demonstration marker in its title while every page
