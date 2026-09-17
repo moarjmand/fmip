@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { COVERAGE_STATES } from '@fmip/contracts';
 import { ActionForm, type Field } from '@/components/action-form';
 import { HealthPanel } from '@/components/health-panel';
+import { LanguageCoverage } from '@/components/language-coverage';
 import { setCoverageAction, setUserStatusAction } from '@/lib/admin-actions';
 import {
   fetchAdminOverview,
@@ -243,6 +244,8 @@ export default async function AdminPage({
           ))}
         </div>
       </section>
+
+      <LanguageCoverage locale={locale} />
 
       <section className="flex flex-col gap-3" data-testid="admin-users">
         <h2 className="text-lg font-semibold">Members</h2>

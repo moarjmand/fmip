@@ -84,7 +84,7 @@ search already folds transliterations (T-152).
 |---|---|---|---|
 | `[x]` T-300 | The six Latin-script locales as unfinished: routing, formatting, plurals | T-151 | `/es` renders every page, every untranslated string says it is untranslated, and none of the six is offered as a finished language |
 | `[ ]` T-301 | Plural and ordinal rules from CLDR, not from English's two forms | T-300 | A language with six plural forms gets six; a missing form is a failing test, not a fallback |
-| `[~]` T-302 | The translator's catalogue: export, import, review state, coverage per locale | T-151 | "How much of `tr` is done" is an answer the product gives, not a grep |
+| `[x]` T-302 | The translator's catalogue: export, import, review state, coverage per locale | T-151 | "How much of `tr` is done" is an answer the product gives, not a grep |
 | `[ ]` T-303 | Localised entity names and aliases against the canonical UUID | T-010, T-152 | A team's Arabic name is a row against its id, never a second team (rule 1) |
 | `[ ]` T-304 | One canonical article with a controlled version per language | T-141, T-302 | A language version is a version, with its own review state and its own `last_updated_at` |
 | `[ ]` T-305 | **The strings themselves**, per language | T-302 | Reviewed by a fluent speaker; never machine output presented as a translation |
@@ -132,8 +132,13 @@ the file and in `coverage(locale)`, which is the product's own answer to how
 far a language has got. The spec refuses a stale `source`, a missing key and
 a status the text does not support -- checked by breaking each one.
 
-**What is still open is the surface**: coverage per locale on `/admin`, so the
-answer is a page and not a function. That is the second half, and it is small.
+**Second half, the same day: the surface.** `/admin` has a Languages table --
+one row per real locale, the translators' numbers through `coverage()`, the
+percent rounded down (94.9% beside "Not yet offered" must not read as 95%),
+and "Offered" from `isShippable`, the same test T-306's picker will use. It
+names the eight `language.name.*` keys literally, which took them off
+`messages.spec.ts`'s waiting list: that list is now empty, and it could only
+ever get shorter. T-302 is `[x]`.
 
 **What this unblocks for the maintainer.** `14-maintainer.md` §1 waited on
 this: a translator now has a file to work in, with nothing to install and no
