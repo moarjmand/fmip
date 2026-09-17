@@ -62,12 +62,19 @@ nobody has run it on a VPS.
 **Before it:** rerun the load test (`docs/08-load-test.md`) against the VPS, not
 against a laptop.
 
-## 4. The launch review, and the install tap (T-084)
+## 4. The launch review (T-084)
 
-**Why yours.** One is a judgement — does this meet the exit criteria in
-`01-roadmap.md` — and the other needs a physical Android device to confirm the
-PWA installs from the browser's own prompt. A headless browser can assert the
-manifest is valid; it cannot assert that Chrome offered to install it.
+**Why yours.** It is a judgement — does this meet the exit criteria in
+`01-roadmap.md`. Nothing else in the project can make it.
+
+**The install tap is done.** It was the other half of this item: a physical
+Android device confirming that Chrome itself offers to install the app, which a
+headless browser cannot assert. On 2026-09-17 you opened the preview on Android
+and Chrome's menu showed **Install app** — the browser's own offer, not the
+always-present "Add to Home screen". It could not have shown it a day earlier:
+the images shipped without `public/`, so the service worker and every icon were
+404 on every deployment, and no local check could see it (`04-tasks-phase-1.md`,
+T-082). That was found by asking the deployment rather than the build.
 
 **Outcome:** signed off in `00-decisions.md`.
 
