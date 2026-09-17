@@ -45,6 +45,7 @@ published to the host and no router is touched.
 | Sign-in, predictions, the admin area | works |
 | Installing the progressive web app on a phone | works — this is the point |
 | **Live scores updating by themselves** | **does not work** |
+| Every page saying that its football is fixture data | on, and not optional |
 
 Cloudflare says three things about quick tunnels, and the third is the one that
 matters here: no uptime is guaranteed, concurrent requests are capped at 200,
@@ -53,6 +54,60 @@ so through the tunnel the scores page shows its connecting and stale states
 instead of updating. That is the page being honest rather than the page being
 broken — it is exactly what rule 4 asks for — but it means the live path can
 only be tested on localhost or on a real deployment.
+
+### What it serves, and why it says so
+
+The database behind this stack is the seed: invented matches, invented teams,
+invented scores. On `localhost` that is obvious, because the person reading them
+is the person who loaded them. Through the tunnel it is football on the public
+internet, and the distance between those two is what rule 3 is about.
+
+So the tunnel turns `DEMONSTRATION_DATA` on (T-087, D-065) and there is no way
+to ask it not to. Every page then carries the band that says what the data is,
+the titles are marked, the sitemap is empty and `robots.txt` forbids the whole
+site. Setting the variable to anything else does not override it -- the script
+stops and says so, the way `deploy/preview/start.mjs` refuses to seed a preview
+that would serve its fixtures unmarked. A warning would have been the wrong
+shape: by the time anybody read it the address would already be public.
+
+The marker is then **checked on the page that was served**, not assumed from the
+variable that was passed: `start` fetches `/robots.txt` through the tunnel and
+fails unless it forbids the site. Between the variable and the page is a
+container that may not have been recreated, and a guard that only reads its own
+intention is a guard that reports success for doing nothing.
+
+Stopping the tunnel puts the app back on localhost without the marker. On a
+machine nobody else can reach, the band is noise, and noise is what teaches
+everyone to read past a band that matters.
+
+### When it cannot connect at all
+
+On 2026-09-17 this stopped working from the maintainer's network, and the shape
+of the failure is worth knowing because it looks like success. `cloudflared`
+asks for a quick tunnel, Cloudflare hands back a name, and **cloudflared prints
+that name before it has a connection to the edge**. It then retries forever:
+
+```
+ERR Failed to dial a quic connection error="timeout: no recent network activity"
+WRN ... your machine/network is getting its egress UDP to port 7844 blocked
+ERR Unable to establish connection with Cloudflare edge
+    error="TLS handshake with edge error: ... 198.41.200.13:7844: i/o timeout"
+```
+
+Both transports were tried. The default is QUIC on **UDP 7844**; `--protocol
+http2` is the same tunnel over TCP, and cloudflared dials **TCP 7844** for it,
+not 443. This network drops both, so the address never resolves for anybody --
+including the person who was just handed it.
+
+`start` catches this, which is the only reason it is a footnote rather than an
+afternoon: it fetches `/en` through the tunnel before printing anything, and
+stops when that does not answer 200. An address that was printed and never
+worked is exactly the kind of thing rule 4 is about.
+
+There is no way around it from here -- the block is on the path to Cloudflare's
+edge, not on anything this repository configures. Where a public address is
+actually needed, the Render preview (`docs/11-preview.md`) is the venue: it is
+already public, already HTTPS, and already marked as demonstration data.
 
 The address also changes every time the tunnel restarts. For a session of
 testing that is fine; for anything anybody is expected to come back to, it is

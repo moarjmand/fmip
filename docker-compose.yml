@@ -123,6 +123,12 @@ services:
       # sitemap, the manifest. Localhost unless a preview tunnel set it
       # (`scripts/public-preview.sh`, `docs/10-public-preview.md`).
       SITE_URL: ${SITE_URL:-http://localhost:${WEB_PORT:-3000}}
+      # Whether the football in this stack is development fixture data and says
+      # so (T-087, D-065). Absent here, because on localhost the person looking
+      # at an invented score is the person who seeded it. It is
+      # `scripts/public-preview.sh` that sets it, because the moment this stack
+      # has a public address the reader is no longer that person.
+      DEMONSTRATION_DATA: ${DEMONSTRATION_DATA:-}
     ports:
       - '127.0.0.1:${WEB_PORT:-3000}:3000'
     depends_on:
