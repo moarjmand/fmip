@@ -31,5 +31,18 @@ USER node
 # into the paths the server expects.
 COPY --from=build --chown=node:node /app/apps/web/.next/standalone ./
 COPY --from=build --chown=node:node /app/apps/web/.next/static ./apps/web/.next/static
+COPY --from=build --chown=node:node /app/apps/web/public ./apps/web/public
+# The copy above is load-bearing, and it was missing until T-082 was checked on
+# a deployment rather than on a laptop. `next build` does not put `public` in
+# the standalone bundle, so an image without that line answers 404 for the
+# service worker and every icon; the browser then stops considering the app
+# installable, and no local check notices, because `next start` reads `public`
+# straight from the working tree.
+#
+# Asserted here rather than covered by a test somewhere else: this is the only
+# place it can go wrong, and a 404 for `/sw.js` is not a failure anything else
+# is looking at.
+RUN test -s ./apps/web/public/sw.js && test -d ./apps/web/public/icons
+
 EXPOSE 3000
 CMD ["node", "apps/web/server.js"]
