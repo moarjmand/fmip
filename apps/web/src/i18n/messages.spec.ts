@@ -114,22 +114,13 @@ describe('every key is a key something renders', () => {
    * Keys whose surface is planned and not built. Each one has a task id, and
    * the list may only ever get shorter.
    *
-   * The names of the eight languages exist for the picker that offers them
-   * (T-306). Nothing in the product lists a language today, which is why the
-   * acceptance criterion "none of the six is offered as a finished language"
-   * is currently true by there being no offer at all -- a weaker thing than it
-   * sounds, and worth writing down rather than ticking.
+   * It is empty now. The eight `language.name.*` keys sat here from T-300
+   * until T-302 put the operator's language table on `/admin`, which renders
+   * every one of them. The picker (T-306) is still to come, but a key with
+   * one real surface is not awaiting one -- and the list is asserted by
+   * equality, so it could not have kept them.
    */
-  const AWAITING_A_SURFACE: MessageKey[] = [
-    'language.name.en',
-    'language.name.ar',
-    'language.name.de',
-    'language.name.es',
-    'language.name.fr',
-    'language.name.it',
-    'language.name.pt',
-    'language.name.tr',
-  ];
+  const AWAITING_A_SURFACE: MessageKey[] = [];
 
   it('has a call site for every key in the catalogue', () => {
     const code = sources(SRC).map((file) => readFileSync(file, 'utf8'));
