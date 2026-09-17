@@ -94,8 +94,12 @@ test.describe('blueprint 19 social, with two members', () => {
     await expect(alex.getByTestId('friend-accept')).toHaveCount(0);
     await robin.getByTestId('friend-accept').click();
 
-    await robin.goto('/en/friends');
+    // Waited for on the page the click happened on, rather than by navigating
+    // to it again. The action revalidates `/friends`, so this page *is* the
+    // evidence -- and a `goto` fired here races the submission that is still in
+    // flight, which is what made this pass on one machine and fail on another.
     await expect(robin.getByTestId('friend-list')).toContainText(A.displayName);
+    await expect(robin.getByTestId('requests-none')).toBeVisible();
     await alex.goto(`/en/u/${B.username}`);
     await expect(alex.getByTestId('friend-state')).toHaveText('You are friends.');
   });
