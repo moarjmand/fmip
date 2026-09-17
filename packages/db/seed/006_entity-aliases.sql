@@ -43,7 +43,14 @@ INSERT INTO entity_alias (id, entity_type, entity_id, alias, language, kind, sou
   ('00000000-0000-4000-8000-000000000e1f', 'person', '00000000-0000-4000-8000-000000000702', 'Bruno', NULL, 'abbreviation', 'seed'),
   ('00000000-0000-4000-8000-000000000e20', 'person', '00000000-0000-4000-8000-000000000702', 'برونو فرناندز', 'fa', 'transliteration', 'seed'),
   ('00000000-0000-4000-8000-000000000e21', 'person', '00000000-0000-4000-8000-000000000703', 'VVD', NULL, 'abbreviation', 'seed'),
-  ('00000000-0000-4000-8000-000000000e22', 'person', '00000000-0000-4000-8000-000000000703', 'فان دایک', 'fa', 'transliteration', 'seed')
+  ('00000000-0000-4000-8000-000000000e22', 'person', '00000000-0000-4000-8000-000000000703', 'فان دایک', 'fa', 'transliteration', 'seed'),
+  -- Localised display names (T-303): kind = name, one per language per entity.
+  -- Fixture data, like everything in this file; a translator replaces them.
+  ('00000000-0000-4000-8000-000000000e23', 'team', '00000000-0000-4000-8000-000000000601', 'مانشستر يونايتد', 'ar', 'name', 'seed'),
+  ('00000000-0000-4000-8000-000000000e24', 'team', '00000000-0000-4000-8000-000000000601', 'Manchester United', 'es', 'name', 'seed'),
+  ('00000000-0000-4000-8000-000000000e25', 'team', '00000000-0000-4000-8000-000000000603', 'ريال مدريد', 'ar', 'name', 'seed'),
+  ('00000000-0000-4000-8000-000000000e26', 'competition', '00000000-0000-4000-8000-000000000201', 'الدوري الإنجليزي الممتاز', 'ar', 'name', 'seed'),
+  ('00000000-0000-4000-8000-000000000e27', 'competition', '00000000-0000-4000-8000-000000000201', 'Premier League inglesa', 'es', 'name', 'seed')
 ON CONFLICT (id) DO UPDATE SET
   entity_type = EXCLUDED.entity_type,
   entity_id = EXCLUDED.entity_id,
