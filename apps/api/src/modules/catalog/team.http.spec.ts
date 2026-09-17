@@ -137,6 +137,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('team page', 
     await pool.query(`DELETE FROM stage WHERE id = $1`, [STAGE]);
     await pool.query(`DELETE FROM season WHERE id = $1`, [SEASON]);
     await pool.query(`DELETE FROM competition WHERE id = $1`, [COMPETITION]);
+    await pool.query(`DELETE FROM entity_alias WHERE entity_id = ANY($1::uuid[])`, [
+      Object.values(TEAMS),
+    ]);
     await pool.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [Object.values(TEAMS)]);
     await pool.query(`DELETE FROM venue WHERE id = $1`, [VENUE]);
     await pool.end();
@@ -208,6 +211,38 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('team page', 
         since: '2025-01-15',
       },
     ]);
+  });
+
+  it('names the team in the language asked for, beside the name, and null when nobody has (T-303)', async () => {
+    await pool.query(
+      `INSERT INTO entity_alias (entity_type, entity_id, alias, language, kind, source)
+       VALUES ('team', $1, $2, 'ar', 'name', 'test')`,
+      [TEAMS.alpha, `فريق ألفا ${RUN}`],
+    );
+    const inArabic = (
+      await app.inject({ method: 'GET', url: `/teams/${TEAMS.alpha}?locale=ar` })
+    ).json() as TeamPage;
+    expect(inArabic.team.localised_name).toBe(`فريق ألفا ${RUN}`);
+    // Beside, never instead: the canonical name is still the team's.
+    expect(inArabic.team.name).toBe(`Test Alpha ${RUN}`);
+
+    // A language nobody wrote is null, not the English copied in.
+    const inTurkish = (
+      await app.inject({ method: 'GET', url: `/teams/${TEAMS.alpha}?locale=tr` })
+    ).json() as TeamPage;
+    expect(inTurkish.team.localised_name).toBeNull();
+    const unasked = (
+      await app.inject({ method: 'GET', url: `/teams/${TEAMS.alpha}` })
+    ).json() as TeamPage;
+    expect(unasked.team.localised_name).toBeNull();
+
+    // An odd spelling is a preference nobody could honour, not a bad request.
+    const odd = await app.inject({
+      method: 'GET',
+      url: `/teams/${TEAMS.alpha}?locale=%3Cscript%3E`,
+    });
+    expect(odd.statusCode).toBe(200);
+    expect((odd.json() as TeamPage).team.localised_name).toBeNull();
   });
 
   it('is honest about a squad it does not hold, and answers 404 for an unknown team', async () => {

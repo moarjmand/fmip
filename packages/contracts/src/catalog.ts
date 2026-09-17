@@ -113,6 +113,13 @@ export interface CompetitionPage {
   competition: {
     id: string;
     name: string;
+    /**
+     * The name in the language the reader asked for (`?locale=`), or `null`
+     * when nobody has written one (T-303). Beside `name`, never in its place:
+     * the canonical name is the entity's, and a page that shows the localised
+     * one still knows what it is a name for.
+     */
+    localised_name: string | null;
     short_name: string | null;
     kind: 'league' | 'cup' | 'super_cup' | 'qualifying' | 'friendly';
     scope: 'domestic' | 'continental' | 'international';
@@ -182,6 +189,13 @@ export interface TeamPage {
   team: {
     id: string;
     name: string;
+    /**
+     * The name in the language the reader asked for (`?locale=`), or `null`
+     * when nobody has written one (T-303). Beside `name`, never in its place:
+     * the canonical name is the entity's, and a page that shows the localised
+     * one still knows what it is a name for.
+     */
+    localised_name: string | null;
     short_name: string | null;
     code: string | null;
     kind: 'club' | 'national';
@@ -253,6 +267,13 @@ export interface PlayerPage {
     id: string;
     full_name: string;
     known_as: string | null;
+    /**
+     * The name in the language the reader asked for (`?locale=`), or `null`
+     * when nobody has written one (T-303). Beside `name`, never in its place:
+     * the canonical name is the entity's, and a page that shows the localised
+     * one still knows what it is a name for.
+     */
+    localised_name: string | null;
     /** ISO 8601 date, when recorded. */
     date_of_birth: string | null;
     nationality: { id: string; name: string; code: string } | null;

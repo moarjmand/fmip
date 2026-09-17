@@ -196,10 +196,15 @@ refusal; and `localised_name(type, id, language)` answers the row or **NULL**
 -- never the English -- so a missing name looks missing. The schema spec
 writes two names against one team and checks the team is still one team.
 
-**What is still open is the reading.** The API is locale-blind today: pages
-call it from the server and pass no locale. The second half gives the catalog
-endpoints a `locale` and returns the localised name *beside* the canonical
-one, never in its place, and the pages show it; that is the next change.
+**The reading, the same day: the API.** `GET /teams/:id`, `/competitions/:id`
+and `/players/:id` take `?locale=` and answer `localised_name` **beside**
+`name`, never in its place -- the canonical name is the entity's, and a page
+that shows the localised one still knows what it is a name for. A language
+nobody wrote is `null`, not the English copied in; an odd spelling of the tag
+is a preference nobody could honour, so it is `null` with 200, not a 400. The
+API was locale-blind until this; the query is the first thing in it that knows
+the reader's language. What is still open is the pages: passing the locale
+they already have and showing the name.
 
 **What is buildable now:** everything but T-305. The catalogues ship empty and
 every missing string says so, which is exactly what T-151 decided and why that

@@ -8,11 +8,12 @@ import { PG_POOL } from '../../../database/database.module';
 export class PostgresPlayerStore {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
 
-  async person(id: string): Promise<PlayerPage['person'] | null> {
+  async person(id: string, locale: string | null = null): Promise<PlayerPage['person'] | null> {
     const { rows } = await this.pool.query<{
       id: string;
       full_name: string;
       known_as: string | null;
+      localised_name: string | null;
       date_of_birth: string | null;
       height_cm: number | null;
       preferred_foot: PlayerPage['person']['preferred_foot'];
@@ -20,12 +21,13 @@ export class PostgresPlayerStore {
       nationality_name: string | null;
       nationality_code: string | null;
     }>(
-      `SELECT p.id, p.full_name, p.known_as, p.date_of_birth::text, p.height_cm, p.preferred_foot,
+      `SELECT p.id, p.full_name, p.known_as, localised_name('person', p.id, $2) AS localised_name,
+              p.date_of_birth::text, p.height_cm, p.preferred_foot,
               co.id AS nationality_id, co.name AS nationality_name, co.code AS nationality_code
          FROM person p
          LEFT JOIN country co ON co.id = p.nationality_id
         WHERE p.id = $1`,
-      [id],
+      [id, locale],
     );
     const r = rows[0];
     if (r === undefined) return null;
@@ -33,6 +35,7 @@ export class PostgresPlayerStore {
       id: r.id,
       full_name: r.full_name,
       known_as: r.known_as,
+      localised_name: r.localised_name,
       date_of_birth: r.date_of_birth,
       nationality:
         r.nationality_id !== null && r.nationality_name !== null && r.nationality_code !== null

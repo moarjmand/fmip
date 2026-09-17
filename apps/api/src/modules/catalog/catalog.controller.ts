@@ -20,6 +20,18 @@ const NO_SEASON: ApiError = {
 };
 
 /** Fastify hands a repeated parameter over as an array; the first one counts. */
+/**
+ * A locale tag for `?locale=` (T-303): the language the reader wants names
+ * in. Anything that is not a plausible BCP 47 tag is `null` rather than 400 --
+ * a locale is a preference, not an address, and a page must not fail because
+ * its reader's language was spelled oddly.
+ */
+const LOCALE = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
+function localeOf(value: unknown): string | null {
+  const v = first(value);
+  return v !== undefined && LOCALE.test(v) ? v : null;
+}
+
 function first(value: unknown): string | undefined {
   const v = Array.isArray(value) ? value[0] : value;
   return typeof v === 'string' && v.trim() !== '' ? v.trim() : undefined;
@@ -46,18 +58,18 @@ export class CatalogController {
 
   /** The player page (blueprint 5.3, T-037). Public. */
   @Get('players/:id')
-  async player(@Param('id') id: string): Promise<PlayerPage> {
+  async player(@Param('id') id: string, @Query('locale') locale: unknown): Promise<PlayerPage> {
     if (!UUID.test(id)) throw new NotFoundException(NO_PLAYER);
-    const outcome = await this.catalog.player(id.toLowerCase());
+    const outcome = await this.catalog.player(id.toLowerCase(), localeOf(locale));
     if (outcome.kind === 'unknown_player') throw new NotFoundException(NO_PLAYER);
     return outcome.page;
   }
 
   /** The team page (blueprint 5.2, T-036). Public. */
   @Get('teams/:id')
-  async team(@Param('id') id: string): Promise<TeamPage> {
+  async team(@Param('id') id: string, @Query('locale') locale: unknown): Promise<TeamPage> {
     if (!UUID.test(id)) throw new NotFoundException(NO_TEAM);
-    const outcome = await this.catalog.team(id.toLowerCase());
+    const outcome = await this.catalog.team(id.toLowerCase(), localeOf(locale));
     if (outcome.kind === 'unknown_team') throw new NotFoundException(NO_TEAM);
     return outcome.page;
   }
@@ -67,11 +79,16 @@ export class CatalogController {
   async competition(
     @Param('id') id: string,
     @Query('season') season: unknown,
+    @Query('locale') locale: unknown,
   ): Promise<CompetitionPage> {
     if (!UUID.test(id)) throw new NotFoundException(NO_COMPETITION);
     const wanted = first(season);
     if (wanted !== undefined && !UUID.test(wanted)) throw new NotFoundException(NO_SEASON);
-    const outcome = await this.catalog.competition(id.toLowerCase(), wanted?.toLowerCase() ?? null);
+    const outcome = await this.catalog.competition(
+      id.toLowerCase(),
+      wanted?.toLowerCase() ?? null,
+      localeOf(locale),
+    );
     switch (outcome.kind) {
       case 'ok':
         return outcome.page;
