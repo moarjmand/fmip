@@ -130,6 +130,34 @@ hardcoded `en-GB`, so `/es` renders Spanish-marked English over British dates.
 Plurals are T-301 by design, but formatting is this task's, and marking it `[x]`
 would be the progress-report version of the thing rule 3 is about.
 
+**Formatting started on 2026-09-17, and the first cut is the one that matters.**
+`src/i18n/format.ts` is the module; `formatDateTime`, `formatTime`, `formatDate`
+and `formatNumber` take the locale, and `intlLocale` maps `en` and the
+pseudo-locale to `en-GB`. Three things about it are worth more than the code:
+
+- **English is byte-for-byte what it was.** Every call site said `'en-GB'`, so
+  that is what `en` still becomes, and `format.spec.ts` pins the exact strings.
+  The other seven locales are the only change.
+- **The pseudo-locale had to be mapped, not passed through.** `x-rtl` is a
+  private-use tag and `Intl.DateTimeFormat('x-rtl')` throws a `RangeError`;
+  the first page on `/x-rtl` to show a date through this module would have
+  crashed in render. Found by asking Node before writing the mapping, and the
+  spec asserts the throw so the reason survives the code.
+- **The two machine formats stay out.** `lib/scores.ts` validates a time zone
+  on `en-US` and builds the day-tab key on `en-CA`, whose date order is ISO.
+  Neither is read by a person, and localising them would make the scores URLs
+  depend on the reader's language. `format.spec.ts` reads the source and fails
+  if either changes, and fails if this module ever grows a date-key helper --
+  in its code, not its comments, because a guard that trips on the explanation
+  teaches people to delete explanations.
+
+Converted so far: the three page-level sites that had the locale in hand
+(friends, the conversation list, the conversation itself). The library
+formatters -- kick-offs, live stamps, fixture dates, player spells, submitted
+times, day tabs -- and the two counts (capacity, attendance) are the next
+change, because they need the locale threaded through their callers and that
+is more than six files on its own.
+
 It is separated rather than deferred, and there is a trap in it worth the
 separation: `scores.ts` reaches for `en-CA` to **build a date key** and `en-US`
 to **validate a timezone**, neither of which displays anything. Making every
