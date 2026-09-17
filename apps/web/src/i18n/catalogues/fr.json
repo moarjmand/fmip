@@ -1,0 +1,108 @@
+{
+  "nav.scores": {
+    "source": "Scores",
+    "text": "",
+    "status": "untranslated"
+  },
+  "nav.search": {
+    "source": "Search",
+    "text": "",
+    "status": "untranslated"
+  },
+  "nav.predictions": {
+    "source": "Predictions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "nav.leaderboard": {
+    "source": "Leaderboard",
+    "text": "",
+    "status": "untranslated"
+  },
+  "nav.friends": {
+    "source": "Friends",
+    "text": "",
+    "status": "untranslated"
+  },
+  "nav.messages": {
+    "source": "Messages",
+    "text": "",
+    "status": "untranslated"
+  },
+  "nav.groups": {
+    "source": "Groups",
+    "text": "",
+    "status": "untranslated"
+  },
+  "nav.signIn": {
+    "source": "Sign in",
+    "text": "",
+    "status": "untranslated"
+  },
+  "nav.signOut": {
+    "source": "Sign out",
+    "text": "",
+    "status": "untranslated"
+  },
+  "nav.settings": {
+    "source": "Settings",
+    "text": "",
+    "status": "untranslated"
+  },
+  "nav.skipToContent": {
+    "source": "Skip to content",
+    "text": "",
+    "status": "untranslated"
+  },
+  "nav.searchLabel": {
+    "source": "Search teams, competitions and players",
+    "text": "",
+    "status": "untranslated"
+  },
+  "common.unreachable": {
+    "source": "The service is unreachable right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "language.name.en": {
+    "source": "English",
+    "text": "",
+    "status": "untranslated"
+  },
+  "language.name.ar": {
+    "source": "Arabic",
+    "text": "",
+    "status": "untranslated"
+  },
+  "language.name.de": {
+    "source": "German",
+    "text": "",
+    "status": "untranslated"
+  },
+  "language.name.es": {
+    "source": "Spanish",
+    "text": "",
+    "status": "untranslated"
+  },
+  "language.name.fr": {
+    "source": "French",
+    "text": "Français",
+    "status": "translated",
+    "note": "The language's own name: a fact, not a translation of the English."
+  },
+  "language.name.it": {
+    "source": "Italian",
+    "text": "",
+    "status": "untranslated"
+  },
+  "language.name.pt": {
+    "source": "Portuguese",
+    "text": "",
+    "status": "untranslated"
+  },
+  "language.name.tr": {
+    "source": "Turkish",
+    "text": "",
+    "status": "untranslated"
+  }
+}

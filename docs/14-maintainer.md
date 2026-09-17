@@ -38,6 +38,14 @@ still be honest — which is why this is not blocking anything.
 **What it unblocks.** Nothing. It improves `/ar`, which already routes, formats,
 sorts and lays out right-to-left correctly (T-152, T-153).
 
+**What the translator gets, since 2026-09-18 (T-302, D-066).** One file:
+`apps/web/src/i18n/catalogues/ar.json`. Every key the product shows, the
+English beside it, and a `text` to fill in with a `status` to set --
+`translated` when they have written it, `reviewed` when a second fluent
+speaker has read it. Nothing to install, no account to make; the work comes
+back as a pull request, and `/ar` shows it in place the moment it merges. The
+same file exists for the other six languages.
+
 ## 2. The paid data provider (T-100)
 
 **Why yours.** It is a purchase. `CLAUDE.md` §7: no session spends money.

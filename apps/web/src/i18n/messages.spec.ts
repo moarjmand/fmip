@@ -5,7 +5,9 @@ import {
   AR,
   EN,
   SHIPPABLE_COMPLETENESS,
+  TRANSLATION_FILES,
   completeness,
+  coverage,
   isShippable,
   message,
   t,
@@ -137,6 +139,73 @@ describe('every key is a key something renders', () => {
     // Equality, not containment: a key that gains a surface and stays on the
     // list makes the list something nobody trusts.
     expect(unused.sort()).toEqual([...AWAITING_A_SURFACE].sort());
+  });
+});
+
+describe("the translator's files (T-302)", () => {
+  // These are the files a fluent speaker edits by hand, so what they may
+  // contain is checked here rather than trusted: a stale `source` would have
+  // them translating a sentence the product no longer says, and a status the
+  // text does not support would count a blank as done.
+  const DIR = join(__dirname, 'catalogues');
+
+  it('is the same file on disk that the module imported', () => {
+    // The module bundles the JSON; the script and a translator work on disk.
+    // If those ever differed, every other test here would be about the wrong
+    // thing.
+    for (const locale of UNFINISHED_LOCALES) {
+      const onDisk = JSON.parse(readFileSync(join(DIR, `${locale}.json`), 'utf8'));
+      expect(onDisk, locale).toEqual(TRANSLATION_FILES[locale]);
+    }
+    expect(JSON.parse(readFileSync(join(DIR, 'en.json'), 'utf8'))).toEqual(EN);
+  });
+
+  it('carries every source key and nothing else, with the current English beside it', () => {
+    const keys = Object.keys(EN).sort();
+    for (const locale of UNFINISHED_LOCALES) {
+      const file = TRANSLATION_FILES[locale];
+      expect(Object.keys(file).sort(), locale).toEqual(keys);
+      for (const key of keys as MessageKey[]) {
+        expect(file[key].source, `${locale} ${key} source`).toBe(EN[key]);
+      }
+    }
+  });
+
+  it('never lets a status say more than the text does', () => {
+    for (const locale of UNFINISHED_LOCALES) {
+      for (const [key, entry] of Object.entries(TRANSLATION_FILES[locale])) {
+        expect(['untranslated', 'translated', 'reviewed'], `${locale} ${key}`).toContain(
+          entry.status,
+        );
+        expect(entry.text === '', `${locale} ${key}: empty text iff untranslated`).toBe(
+          entry.status === 'untranslated',
+        );
+      }
+    }
+  });
+
+  it('answers how far a locale has got, in numbers that add up', () => {
+    for (const locale of UNFINISHED_LOCALES) {
+      const c = coverage(locale);
+      expect(c.total).toBe(Object.keys(EN).length);
+      expect(c.untranslated + c.translated + c.reviewed, locale).toBe(c.total);
+      // Today: exactly the autonym, and nobody has reviewed anything.
+      expect(c.translated, locale).toBe(1);
+      expect(c.reviewed, locale).toBe(0);
+    }
+    expect(coverage('en')).toEqual({
+      total: Object.keys(EN).length,
+      untranslated: 0,
+      translated: 0,
+      reviewed: Object.keys(EN).length,
+    });
+  });
+
+  it('is what completeness is computed from', () => {
+    for (const locale of UNFINISHED_LOCALES) {
+      const c = coverage(locale);
+      expect(completeness(locale)).toBeCloseTo((c.total - c.untranslated) / c.total, 10);
+    }
   });
 });
 
