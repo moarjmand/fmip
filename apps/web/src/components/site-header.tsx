@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Translated } from '@/components/translated';
+import { LanguagePicker } from '@/components/language-picker';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { attribute } from '@/i18n/messages';
 import { fetchMe } from '@/lib/api';
@@ -90,6 +91,8 @@ export async function SiteHeader({ locale }: { locale: string }) {
             </form>
           </>
         )}
+        {/* Nothing until a second language is finished (T-306); see the component. */}
+        <LanguagePicker />
       </nav>
     </header>
   );
