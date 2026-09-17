@@ -25,9 +25,11 @@ import {
 export function PowerIndexPanel({
   power,
   timeZone,
+  locale,
 }: {
   power: PowerIndexResponse | null;
   timeZone: string;
+  locale: string;
 }) {
   if (power === null) {
     return (
@@ -52,7 +54,7 @@ export function PowerIndexPanel({
   }
 
   const { home, away } = power.index;
-  const stamp = `${home.computed_at.slice(0, 10)} ${formatKickoff(home.computed_at, timeZone)}`;
+  const stamp = `${home.computed_at.slice(0, 10)} ${formatKickoff(locale, home.computed_at, timeZone)}`;
 
   return (
     <section className="flex flex-col gap-3" data-testid="power-index" data-state="available">

@@ -34,14 +34,17 @@ export function ForecastPanel({
   home,
   away,
   timeZone,
+  locale,
 }: {
   forecasts: ForecastVersionsResponse | null;
   evaluations: FixtureEvaluationsResponse | null;
   home: string;
   away: string;
   timeZone: string;
+  locale: string;
 }) {
-  const stamp = (iso: string): string => `${iso.slice(0, 10)} ${formatKickoff(iso, timeZone)}`;
+  const stamp = (iso: string): string =>
+    `${iso.slice(0, 10)} ${formatKickoff(locale, iso, timeZone)}`;
 
   if (forecasts === null) {
     return (

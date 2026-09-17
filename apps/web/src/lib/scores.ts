@@ -1,5 +1,6 @@
 import type { ScoreCard } from '@fmip/contracts';
 import { isBehind } from './live';
+import { formatDate, formatTime } from '@/i18n/format';
 
 /**
  * The scores page's pure helpers (T-031): which day the page shows, the
@@ -12,6 +13,12 @@ export const DAY_OFFSETS = [-1, 0, 1, 2, 3, 4, 5] as const;
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
+// Two machine formats, and the only two `Intl` calls in the web app that do
+// not go through `@/i18n/format`. `isTimeZone` asks `Intl` whether a zone name
+// exists; `dateIn` builds the YYYY-MM-DD key the day tabs are addressed by, on
+// `en-CA` because its date order *is* ISO. Neither is read by a person, and
+// localising either would make the scores URLs depend on the reader's
+// language. `i18n/format.spec.ts` fails if these two literals change.
 export function isTimeZone(value: string): boolean {
   try {
     new Intl.DateTimeFormat('en-US', { timeZone: value });
@@ -127,7 +134,7 @@ export interface DayLink {
   isSelected: boolean;
 }
 
-export function dayStrip(q: ScoresPageQuery): DayLink[] {
+export function dayStrip(q: ScoresPageQuery, locale: string): DayLink[] {
   return DAY_OFFSETS.map((offset) => {
     const date = shiftDate(q.today, offset);
     const label =
@@ -137,23 +144,14 @@ export function dayStrip(q: ScoresPageQuery): DayLink[] {
           ? 'Today'
           : offset === 1
             ? 'Tomorrow'
-            : new Intl.DateTimeFormat('en-GB', {
-                weekday: 'short',
-                day: 'numeric',
-                timeZone: 'UTC',
-              }).format(new Date(`${date}T00:00:00Z`));
+            : formatDate(locale, `${date}T00:00:00Z`, 'UTC', { weekday: 'short', day: 'numeric' });
     return { date, label, isToday: offset === 0, isSelected: date === q.date };
   });
 }
 
 /** Kick-off as the viewer sees it, e.g. "20:30". */
-export function formatKickoff(iso: string, timeZone: string): string {
-  return new Intl.DateTimeFormat('en-GB', {
-    timeZone,
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-  }).format(new Date(iso));
+export function formatKickoff(locale: string, iso: string, timeZone: string): string {
+  return formatTime(locale, iso, timeZone);
 }
 
 /**
@@ -161,7 +159,12 @@ export function formatKickoff(iso: string, timeZone: string): string {
  * before. A live match whose data is behind (T-083) shows "Behind" instead of
  * a minute that is no longer the current one.
  */
-export function statusLabel(card: ScoreCard, timeZone: string, now?: number): string {
+export function statusLabel(
+  card: ScoreCard,
+  locale: string,
+  timeZone: string,
+  now?: number,
+): string {
   switch (card.status) {
     case 'live':
       if (now !== undefined && isBehind(card, now)) return 'Behind';
@@ -173,7 +176,7 @@ export function statusLabel(card: ScoreCard, timeZone: string, now?: number): st
           ? 'AET'
           : 'FT';
     case 'scheduled':
-      return formatKickoff(card.kickoff_at, timeZone);
+      return formatKickoff(locale, card.kickoff_at, timeZone);
     case 'postponed':
       return 'Postponed';
     case 'suspended':

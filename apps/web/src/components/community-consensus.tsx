@@ -59,11 +59,13 @@ export function CommunityForecastPanel({
   away,
   timeZone,
   model,
+  locale,
 }: {
   consensus: CommunityConsensusResponse | null;
   home: string;
   away: string;
   timeZone: string;
+  locale: string;
   /**
    * The model's three probabilities as shares, for the comparison blueprint 4.2
    * asks for — extracted by the page, so this component never holds a forecast.
@@ -179,7 +181,7 @@ export function CommunityForecastPanel({
           Last prediction{' '}
           <time dateTime={consensus.last_updated_at}>
             {consensus.last_updated_at.slice(0, 10)}{' '}
-            {formatKickoff(consensus.last_updated_at, timeZone)}
+            {formatKickoff(locale, consensus.last_updated_at, timeZone)}
           </time>
           . Members may keep predicting until kick-off.
         </p>

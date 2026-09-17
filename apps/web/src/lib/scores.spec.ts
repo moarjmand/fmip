@@ -88,7 +88,12 @@ describe('links', () => {
   });
 
   it('lists yesterday, today and the next five days, marking today and the selection', () => {
-    const strip = dayStrip(q);
+    const strip = dayStrip(q, 'en');
+    // 2025-01-08 is a Wednesday: "Wed 8" in English, and in Spanish it is
+    // Spanish -- the whole reason the strip takes a locale.
+    expect(strip[3]?.label).toBe('Wed 8');
+    expect(dayStrip(q, 'es')[3]?.label).toMatch(/^mié/);
+    expect(dayStrip(q, 'de')[3]?.label).toMatch(/^Mi/);
     expect(strip.map((d) => d.date)).toEqual([
       '2025-01-05',
       '2025-01-06',
@@ -107,31 +112,37 @@ describe('links', () => {
 
 describe('card labels', () => {
   it('shows the clock, the abbreviation or the local kick-off', () => {
-    expect(statusLabel(card({ status: 'live', minute: 67 }), 'UTC')).toBe('67′');
-    expect(statusLabel(card({ status: 'live' }), 'UTC')).toBe('Live');
+    expect(statusLabel(card({ status: 'live', minute: 67 }), 'en', 'UTC')).toBe('67′');
+    expect(statusLabel(card({ status: 'live' }), 'en', 'UTC')).toBe('Live');
     // A live match whose data is behind never shows a minute as current (T-083).
     const behind = card({
       status: 'live',
       minute: 67,
       last_updated_at: new Date(NOW.getTime() - 10 * 60_000).toISOString(),
     });
-    expect(statusLabel(behind, 'UTC', NOW.getTime())).toBe('Behind');
-    expect(statusLabel(card({ status: 'live', minute: 67, freshness: 'stale' }), 'UTC', 0)).toBe(
-      'Behind',
-    );
-    expect(statusLabel(card({ status: 'finished' }), 'UTC')).toBe('FT');
+    expect(statusLabel(behind, 'en', 'UTC', NOW.getTime())).toBe('Behind');
+    expect(
+      statusLabel(card({ status: 'live', minute: 67, freshness: 'stale' }), 'en', 'UTC', 0),
+    ).toBe('Behind');
+    expect(statusLabel(card({ status: 'finished' }), 'en', 'UTC')).toBe('FT');
     expect(
       statusLabel(
         card({
           status: 'finished',
           scores: { ...card({}).scores, extra_time: { home: 1, away: 1 } },
         }),
+        'en',
         'UTC',
       ),
     ).toBe('AET');
-    expect(statusLabel(card({}), 'Asia/Tehran')).toBe('20:00');
-    expect(statusLabel(card({ status: 'postponed' }), 'UTC')).toBe('Postponed');
-    expect(formatKickoff('2025-01-05T16:30:00.000Z', 'Europe/London')).toBe('16:30');
+    expect(statusLabel(card({}), 'en', 'Asia/Tehran')).toBe('20:00');
+    expect(statusLabel(card({ status: 'postponed' }), 'en', 'UTC')).toBe('Postponed');
+    expect(formatKickoff('en', '2025-01-05T16:30:00.000Z', 'Europe/London')).toBe('16:30');
+    // A clock reading is the same digits in every language; the day strip is
+    // where the language shows. Both pinned, because a helper that localised
+    // the clock would have been "working" and wrong.
+    expect(formatKickoff('es', '2025-01-05T16:30:00.000Z', 'Europe/London')).toBe('16:30');
+    expect(formatKickoff('ar', '2025-01-05T16:30:00.000Z', 'Europe/London')).toMatch(/16.30/);
   });
 
   it('never shows a score it does not have', () => {

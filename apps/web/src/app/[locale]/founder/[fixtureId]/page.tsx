@@ -133,7 +133,8 @@ export default async function FounderAnalysisPage({
           <p className="text-sm opacity-70">
             {fixture.competition.name} · kick-off{' '}
             <time dateTime={fixture.kickoff_at}>
-              {fixture.kickoff_at.slice(0, 10)} {formatKickoff(fixture.kickoff_at, 'UTC')} UTC
+              {fixture.kickoff_at.slice(0, 10)} {formatKickoff(locale, fixture.kickoff_at, 'UTC')}{' '}
+              UTC
             </time>
           </p>
         )}
@@ -173,8 +174,8 @@ export default async function FounderAnalysisPage({
                 <p className="text-xs opacity-70">
                   v{version.version_number} ·{' '}
                   <time dateTime={version.published_at}>
-                    {version.published_at.slice(0, 10)} {formatKickoff(version.published_at, 'UTC')}{' '}
-                    UTC
+                    {version.published_at.slice(0, 10)}{' '}
+                    {formatKickoff(locale, version.published_at, 'UTC')} UTC
                   </time>{' '}
                   · confidence {version.confidence}/5
                 </p>
