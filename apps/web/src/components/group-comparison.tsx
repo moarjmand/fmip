@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { GroupPredictionCall, GroupPredictionComparison } from '@fmip/contracts';
+import { Translated } from '@/components/translated';
 
 /**
  * What the group called (blueprint 8.2, T-246, T-248).
@@ -83,10 +84,13 @@ export function GroupComparison({
 
       {(silent > 0 || withheld > 0) && (
         <p className="text-xs opacity-60" data-testid="group-comparison-absent">
-          {silent > 0 && `${silent} member${silent === 1 ? '' : 's'} did not call this match.`}
+          {silent > 0 && (
+            <Translated locale={locale} message="groupComparison.silent" count={silent} />
+          )}
           {silent > 0 && withheld > 0 && ' '}
-          {withheld > 0 &&
-            `${withheld} keep${withheld === 1 ? 's' : ''} their predictions to themselves.`}
+          {withheld > 0 && (
+            <Translated locale={locale} message="groupComparison.withheld" count={withheld} />
+          )}
         </p>
       )}
 

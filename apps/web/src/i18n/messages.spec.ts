@@ -118,20 +118,12 @@ describe('every key is a key something renders', () => {
    * Keys whose surface is planned and not built. Each one has a task id, and
    * the list may only ever get shorter.
    *
-   * The eight `language.name.*` keys sat here from T-300 until T-302 gave
-   * them a surface. The seven plurals below are T-301's: the machinery lands
-   * first, and the six pages that still spell "member{s}" by hand move onto
-   * these keys in the change that follows, which empties this list again.
+   * Empty again. The eight `language.name.*` keys sat here from T-300 until
+   * T-302 gave them a surface; the seven plurals sat here for one change,
+   * between T-301's machinery and the six pages moving onto them. The list is
+   * asserted by equality, so a key that gains a surface cannot stay.
    */
-  const AWAITING_A_SURFACE: MessageKey[] = [
-    'friends.mutualCount',
-    'groups.memberCount',
-    'conversation.matchCount',
-    'team.followerCount',
-    'groupComparison.silent',
-    'groupComparison.withheld',
-    'team.position',
-  ];
+  const AWAITING_A_SURFACE: MessageKey[] = [];
 
   it('has a call site for every key in the catalogue', () => {
     const code = sources(SRC).map((file) => readFileSync(file, 'utf8'));

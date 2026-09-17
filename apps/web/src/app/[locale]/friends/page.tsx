@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { FriendControls } from '@/components/friend-controls';
 import { formatDateTime } from '@/i18n/format';
+import { Translated } from '@/components/translated';
 import { fetchBlocks, fetchFriendRequests, fetchFriends, fetchMe } from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
@@ -143,9 +144,16 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
                 <span className="opacity-70">
                   @{friend.member.username} · friends since{' '}
                   {formatDateTime(locale, friend.friends_since, zone)}
-                  {friend.mutual_friends > 0
-                    ? ` · ${friend.mutual_friends} friend${friend.mutual_friends === 1 ? '' : 's'} in common`
-                    : ''}
+                  {friend.mutual_friends > 0 && (
+                    <>
+                      {' · '}
+                      <Translated
+                        locale={locale}
+                        message="friends.mutualCount"
+                        count={friend.mutual_friends}
+                      />
+                    </>
+                  )}
                 </span>
               </p>
               <div className="flex flex-wrap items-start gap-4">

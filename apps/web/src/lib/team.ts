@@ -1,4 +1,6 @@
 import type { SquadPlayer, SquadPosition, TableContext, TeamFixture } from '@fmip/contracts';
+import { DEFAULT_LOCALE, type Locale, isLocale } from '@/i18n/locales';
+import { plural } from '@/i18n/messages';
 
 /**
  * The team page's pure helpers (T-036): the squad grouped by position, how
@@ -42,25 +44,17 @@ export function groupSquad(players: readonly SquadPlayer[]): SquadGroup[] {
   })).filter((g) => g.players.length > 0);
 }
 
-/** "1st", "2nd", "3rd", "11th", "22nd". */
-export function ordinal(n: number): string {
-  const rem100 = n % 100;
-  if (rem100 >= 11 && rem100 <= 13) return `${n}th`;
-  switch (n % 10) {
-    case 1:
-      return `${n}st`;
-    case 2:
-      return `${n}nd`;
-    case 3:
-      return `${n}rd`;
-    default:
-      return `${n}th`;
-  }
-}
-
-/** "3rd of 20 · 45 pts". */
-export function contextLine(context: TableContext): string {
-  return `${ordinal(context.position)} of ${context.total} · ${context.points} pts`;
+/**
+ * "3rd of 20 · 45 pts". The ordinal is the catalogue's `team.position`,
+ * selected by the locale's own ordinal rules (T-301): the hand-rolled
+ * "st/nd/rd/th" that used to live here was English arithmetic on a page that
+ * ships in eight languages. Until a locale translates the entry, it is the
+ * English forms by English rules, which is the honest state and says so.
+ */
+export function contextLine(locale: string, context: TableContext): string {
+  const resolved: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  const position = plural(resolved, 'team.position', context.position).text;
+  return `${position} of ${context.total} · ${context.points} pts`;
 }
 
 /** The match from the team's side: the opponent, home or away, and the result letter once played. */
