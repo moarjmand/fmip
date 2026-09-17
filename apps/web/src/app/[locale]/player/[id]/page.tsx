@@ -156,7 +156,7 @@ export default async function PlayerPage({
                 <Link href={`/${locale}/team/${spell.team.id}`} className="underline">
                   {spell.team.name}
                 </Link>
-                <span className="opacity-70">{spellPeriod(spell)}</span>
+                <span className="opacity-70">{spellPeriod(locale, spell)}</span>
                 <span className="text-xs opacity-70">
                   {spell.shirt_number !== null ? `No. ${spell.shirt_number}` : ''}
                   {spell.position !== null ? ` · ${POSITION_LABEL[spell.position]}` : ''}
@@ -302,7 +302,7 @@ export default async function PlayerPage({
                 {m.red_cards > 0 && <span>Red card</span>}
                 <span className="text-xs opacity-70">
                   <time dateTime={m.fixture.kickoff_at}>
-                    {formatFixtureDate(m.fixture.kickoff_at, timeZone)}
+                    {formatFixtureDate(locale, m.fixture.kickoff_at, timeZone)}
                   </time>
                   {' · '}
                   <Link

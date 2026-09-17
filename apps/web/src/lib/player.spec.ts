@@ -59,10 +59,17 @@ describe('ageOn', () => {
 
 describe('labels', () => {
   it('names a spell period', () => {
-    expect(spellPeriod({ start_date: '2022-07-01', end_date: '2025-06-30' })).toBe(
+    expect(spellPeriod('en', { start_date: '2022-07-01', end_date: '2025-06-30' })).toBe(
       'Jul 2022 – Jun 2025',
     );
-    expect(spellPeriod({ start_date: '2025-07-01', end_date: null })).toBe('Jul 2025 – present');
+    expect(spellPeriod('en', { start_date: '2025-07-01', end_date: null })).toBe(
+      'Jul 2025 – present',
+    );
+    // "present" is a word and stays English until T-151's catalogue reaches
+    // it; the months are dates and change now.
+    expect(spellPeriod('de', { start_date: '2025-07-01', end_date: null })).toBe(
+      'Juli 2025 – present',
+    );
   });
 
   it('sums appearances and names the role', () => {
