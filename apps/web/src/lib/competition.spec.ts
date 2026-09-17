@@ -50,8 +50,13 @@ describe('labels', () => {
   it('spells out the form run and the kick-off in the viewer zone', () => {
     expect(formLine(['W', 'D', 'L'])).toBe('W D L');
     expect(formLine([])).toBe('');
-    expect(formatFixtureDate('2025-09-01T15:00:00.000Z', 'Asia/Tehran')).toBe(
+    expect(formatFixtureDate('en', '2025-09-01T15:00:00.000Z', 'Asia/Tehran')).toBe(
       'Mon, 1 Sept 2025, 18:30',
+    );
+    // The same instant in Spanish: the weekday and the month are Spanish and
+    // the clock is the same digits.
+    expect(formatFixtureDate('es', '2025-09-01T15:00:00.000Z', 'Asia/Tehran')).toMatch(
+      /^lun.*sept?.*18:30$/,
     );
   });
 });

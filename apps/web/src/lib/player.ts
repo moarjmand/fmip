@@ -1,4 +1,5 @@
 import type { PlayerMatch, PlayerPage, PlayerSeasonRecord, PlayerSpell } from '@fmip/contracts';
+import { formatDate } from '@/i18n/format';
 
 /**
  * The player page's pure helpers (T-037): age, labels, the season selector
@@ -34,11 +35,12 @@ export const POSITION_LABEL: Record<NonNullable<PlayerSpell['position']>, string
 };
 
 /** "Jul 2025 – present" or "Jul 2022 – Jun 2025". */
-export function spellPeriod(spell: Pick<PlayerSpell, 'start_date' | 'end_date'>): string {
+export function spellPeriod(
+  locale: string,
+  spell: Pick<PlayerSpell, 'start_date' | 'end_date'>,
+): string {
   const month = (iso: string): string =>
-    new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(
-      new Date(`${iso}T00:00:00Z`),
-    );
+    formatDate(locale, `${iso}T00:00:00Z`, 'UTC', { month: 'short', year: 'numeric' });
   return `${month(spell.start_date)} – ${spell.end_date === null ? 'present' : month(spell.end_date)}`;
 }
 

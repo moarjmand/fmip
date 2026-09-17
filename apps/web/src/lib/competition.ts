@@ -1,4 +1,5 @@
 import type { FormResult, SeasonFixture, SeasonSummary } from '@fmip/contracts';
+import { formatDate } from '@/i18n/format';
 
 /**
  * The competition page's pure helpers (T-035): the season the URL selects,
@@ -45,9 +46,8 @@ export function formLine(form: FormResult[]): string {
 }
 
 /** "Mon, 1 Sept 2025, 18:30" in the viewer's zone. */
-export function formatFixtureDate(iso: string, timeZone: string): string {
-  return new Intl.DateTimeFormat('en-GB', {
-    timeZone,
+export function formatFixtureDate(locale: string, iso: string, timeZone: string): string {
+  return formatDate(locale, iso, timeZone, {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -55,7 +55,7 @@ export function formatFixtureDate(iso: string, timeZone: string): string {
     hour: '2-digit',
     minute: '2-digit',
     hourCycle: 'h23',
-  }).format(new Date(iso));
+  });
 }
 
 export const KIND_LABEL: Record<string, string> = {

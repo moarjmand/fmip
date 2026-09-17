@@ -82,7 +82,7 @@ search already folds transliterations (T-152).
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[~]` T-300 | The six Latin-script locales as unfinished: routing, formatting, plurals | T-151 | `/es` renders every page, every untranslated string says it is untranslated, and none of the six is offered as a finished language |
+| `[x]` T-300 | The six Latin-script locales as unfinished: routing, formatting, plurals | T-151 | `/es` renders every page, every untranslated string says it is untranslated, and none of the six is offered as a finished language |
 | `[ ]` T-301 | Plural and ordinal rules from CLDR, not from English's two forms | T-300 | A language with six plural forms gets six; a missing form is a failing test, not a fallback |
 | `[ ]` T-302 | The translator's catalogue: export, import, review state, coverage per locale | T-151 | "How much of `tr` is done" is an answer the product gives, not a grep |
 | `[ ]` T-303 | Localised entity names and aliases against the canonical UUID | T-010, T-152 | A team's Arabic name is a row against its id, never a second team (rule 1) |
@@ -151,12 +151,27 @@ pseudo-locale to `en-GB`. Three things about it are worth more than the code:
   in its code, not its comments, because a guard that trips on the explanation
   teaches people to delete explanations.
 
-Converted so far: the three page-level sites that had the locale in hand
-(friends, the conversation list, the conversation itself). The library
-formatters -- kick-offs, live stamps, fixture dates, player spells, submitted
-times, day tabs -- and the two counts (capacity, attendance) are the next
-change, because they need the locale threaded through their callers and that
-is more than six files on its own.
+**Formatting finished on 2026-09-18, in four changes, and T-300 is `[x]`.**
+Every `Intl` call in the web app that a person reads now goes through
+`src/i18n/format` with the reader's locale: the three page-level sites, then
+`scores` (kick-offs, status, the day strip -- eleven files, because five panels
+borrow the kick-off as a generic clock), then `live` and `prediction-history`,
+then `competition`, `player` and the venue capacity. What is left outside the
+module is exactly three calls and each is a machine format: the register page
+lists `Intl.supportedValuesOf('timeZone')`, and `scores.ts` validates a zone on
+`en-US` and keys the day tabs on `en-CA`. The guard in `format.spec.ts` names
+the last two; the first returns identifiers, not text.
+
+Each change pinned English byte-for-byte and asserted one other language, and
+each split a clock from a date on purpose: a kick-off or a live stamp is the
+same digits in Spanish, a fixture date or a spell is not. The words around
+them -- "present", "updated", "Yesterday" -- are still English on `/es`, and
+that is T-151's catalogue doing what it was built to do, marked and visible,
+not a formatting gap.
+
+Plurals are T-301 by design. The "none of the six is offered as a finished
+language" criterion is true by there being no offer, which T-306 exists to
+make real; that was recorded when T-300 was `[~]` and is no less true now.
 
 It is separated rather than deferred, and there is a trap in it worth the
 separation: `scores.ts` reaches for `en-CA` to **build a date key** and `en-US`

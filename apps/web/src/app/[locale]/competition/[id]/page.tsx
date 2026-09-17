@@ -309,7 +309,7 @@ function FixtureList({
           </Link>
           <span className="text-xs opacity-70">
             <time dateTime={fixture.kickoff_at}>
-              {formatFixtureDate(fixture.kickoff_at, timeZone)}
+              {formatFixtureDate(locale, fixture.kickoff_at, timeZone)}
             </time>
             {fixture.stage !== null ? ` · ${fixture.stage.name}` : ''}
             {fixture.round !== null ? ` · ${fixture.round}` : ''}

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { formatNumber } from '@/i18n/format';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { TeamFixture } from '@fmip/contracts';
@@ -86,7 +87,7 @@ export default async function TeamPage({
         <p className="text-sm opacity-70">
           {t.venue !== null
             ? `${t.venue.name}${t.venue.city !== null ? `, ${t.venue.city}` : ''}${
-                t.venue.capacity !== null ? ` · ${t.venue.capacity.toLocaleString('en-GB')}` : ''
+                t.venue.capacity !== null ? ` · ${formatNumber(locale, t.venue.capacity)}` : ''
               }`
             : 'Home ground not recorded'}
           {' · '}
@@ -307,7 +308,9 @@ function MatchLine({
         )}
       </Link>
       <span className="text-xs opacity-70">
-        <time dateTime={fixture.kickoff_at}>{formatFixtureDate(fixture.kickoff_at, timeZone)}</time>
+        <time dateTime={fixture.kickoff_at}>
+          {formatFixtureDate(locale, fixture.kickoff_at, timeZone)}
+        </time>
         {' · '}
         <Link
           href={`/${locale}/competition/${fixture.competition.id}?season=${fixture.season.id}`}
