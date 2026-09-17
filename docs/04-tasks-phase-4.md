@@ -85,7 +85,7 @@ search already folds transliterations (T-152).
 | `[x]` T-300 | The six Latin-script locales as unfinished: routing, formatting, plurals | T-151 | `/es` renders every page, every untranslated string says it is untranslated, and none of the six is offered as a finished language |
 | `[x]` T-301 | Plural and ordinal rules from CLDR, not from English's two forms | T-300 | A language with six plural forms gets six; a missing form is a failing test, not a fallback |
 | `[x]` T-302 | The translator's catalogue: export, import, review state, coverage per locale | T-151 | "How much of `tr` is done" is an answer the product gives, not a grep |
-| `[ ]` T-303 | Localised entity names and aliases against the canonical UUID | T-010, T-152 | A team's Arabic name is a row against its id, never a second team (rule 1) |
+| `[~]` T-303 | Localised entity names and aliases against the canonical UUID | T-010, T-152 | A team's Arabic name is a row against its id, never a second team (rule 1) |
 | `[ ]` T-304 | One canonical article with a controlled version per language | T-141, T-302 | A language version is a version, with its own review state and its own `last_updated_at` |
 | `[ ]` T-305 | **The strings themselves**, per language | T-302 | Reviewed by a fluent speaker; never machine output presented as a translation |
 | `[x]` T-306 | The language picker: offers the languages the product actually speaks | T-300 | A locale appears the day its catalogue crosses `SHIPPABLE_COMPLETENESS`, and never before |
@@ -184,6 +184,22 @@ comes from `team.position` by the locale's ordinal rules, and the hand-rolled
 `ordinal()` is gone with its teens special case. No `=== 1 ? '' : 's'` is
 left in the web app, and the waiting list in `messages.spec.ts` is empty
 again. T-301 is `[x]`.
+
+**T-303, the schema, on 2026-09-18.** A localised name is an `entity_alias`
+row with `kind = 'name'` and the language it belongs to -- the table search
+already reads, so a reader who types the Arabic name finds the team by the
+thing that already finds names, and nothing about search changed. Three
+guarantees live in the database and not in a caller: a name has a language
+(one without is the canonical name, which lives on the entity); one name per
+language per entity, by a partial unique index that names itself in the
+refusal; and `localised_name(type, id, language)` answers the row or **NULL**
+-- never the English -- so a missing name looks missing. The schema spec
+writes two names against one team and checks the team is still one team.
+
+**What is still open is the reading.** The API is locale-blind today: pages
+call it from the server and pass no locale. The second half gives the catalog
+endpoints a `locale` and returns the localised name *beside* the canonical
+one, never in its place, and the pages show it; that is the next change.
 
 **What is buildable now:** everything but T-305. The catalogues ship empty and
 every missing string says so, which is exactly what T-151 decided and why that
