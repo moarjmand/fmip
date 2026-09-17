@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { fetchConversations, fetchMe } from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { formatDateTime } from '@/i18n/format';
 
 export const dynamic = 'force-dynamic';
 
@@ -98,11 +99,7 @@ export default async function MessagesPage({ params }: { params: Promise<{ local
                   {conversation.left && <span>you have left · </span>}
                   {last !== null && (
                     <time dateTime={last.created_at}>
-                      {new Intl.DateTimeFormat('en-GB', {
-                        dateStyle: 'medium',
-                        timeStyle: 'short',
-                        timeZone: zone,
-                      }).format(new Date(last.created_at))}
+                      {formatDateTime(locale, last.created_at, zone)}
                     </time>
                   )}
                 </p>

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { conversationTitle, threadStanding } from '@/lib/conversation-title';
 import type { ConversationSummary, Message, SharedCard } from '@fmip/contracts';
 import { Score } from '@/components/score';
+import { formatDateTime } from '@/i18n/format';
 
 /**
  * One conversation, read (blueprint 8.3, T-224).
@@ -10,14 +11,6 @@ import { Score } from '@/components/score';
  * without it, which is what lets the socket be added to something already right
  * rather than becoming the source of truth by accident.
  */
-
-function when(iso: string, timeZone: string): string {
-  return new Intl.DateTimeFormat('en-GB', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone,
-  }).format(new Date(iso));
-}
 
 /**
  * A shared football card, as it is **now**.
@@ -125,7 +118,9 @@ export function MessageRow({
     <li className="flex flex-col gap-1" data-testid="message">
       <p className="text-xs opacity-60">
         <span className="font-medium">@{message.author}</span> ·{' '}
-        <time dateTime={message.created_at}>{when(message.created_at, timeZone)}</time>
+        <time dateTime={message.created_at}>
+          {formatDateTime(locale, message.created_at, timeZone)}
+        </time>
       </p>
 
       {message.removed !== null ? (

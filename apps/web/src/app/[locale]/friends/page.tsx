@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { FriendControls } from '@/components/friend-controls';
+import { formatDateTime } from '@/i18n/format';
 import { fetchBlocks, fetchFriendRequests, fetchFriends, fetchMe } from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
@@ -20,14 +21,6 @@ export async function generateMetadata({
     title: 'Friends · FMIP',
     description: 'Your friends, your pending requests and the members you have blocked.',
   });
-}
-
-function when(iso: string, timeZone: string): string {
-  return new Intl.DateTimeFormat('en-GB', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone,
-  }).format(new Date(iso));
 }
 
 /**
@@ -91,7 +84,8 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
                     {request.member.display_name}
                   </Link>{' '}
                   <span className="opacity-70">
-                    @{request.member.username} · asked {when(request.sent_at, zone)}
+                    @{request.member.username} · asked{' '}
+                    {formatDateTime(locale, request.sent_at, zone)}
                   </span>
                 </p>
                 <FriendControls
@@ -111,7 +105,8 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
                     {request.member.display_name}
                   </Link>{' '}
                   <span className="opacity-70">
-                    @{request.member.username} · you asked {when(request.sent_at, zone)}
+                    @{request.member.username} · you asked{' '}
+                    {formatDateTime(locale, request.sent_at, zone)}
                   </span>
                 </p>
                 <FriendControls
@@ -146,7 +141,8 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
                   {friend.member.display_name}
                 </Link>{' '}
                 <span className="opacity-70">
-                  @{friend.member.username} · friends since {when(friend.friends_since, zone)}
+                  @{friend.member.username} · friends since{' '}
+                  {formatDateTime(locale, friend.friends_since, zone)}
                   {friend.mutual_friends > 0
                     ? ` · ${friend.mutual_friends} friend${friend.mutual_friends === 1 ? '' : 's'} in common`
                     : ''}
@@ -190,7 +186,8 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
               <p className="text-sm">
                 {entry.member.display_name}{' '}
                 <span className="opacity-70">
-                  @{entry.member.username} · blocked {when(entry.blocked_at, zone)}
+                  @{entry.member.username} · blocked{' '}
+                  {formatDateTime(locale, entry.blocked_at, zone)}
                 </span>
               </p>
               <FriendControls locale={locale} username={entry.member.username} status="blocked" />
