@@ -147,3 +147,101 @@ true until you choose an e-mail or push provider -- after the deploy (T-074),
 because a provider is a credential on a server. The agent adds the provider
 behind the port; you supply the account. Campaigns (T-332) mean nothing
 without one.
+
+## 8. The exact steps, per item
+
+Written on 2026-09-18 after PR #200, when the agent's share of every open task
+was merged and the maintainer asked for each remaining step spelled out. For
+every item: what only you can do, in order, and what the agent builds the
+moment it is done. Nothing below asks the agent to guess at a decision, a
+purchase or a licence (`CLAUDE.md` §7).
+
+**T-305, the strings.**
+1. Find one fluent speaker for each of `es`, `fr`, `de`, `it`, `pt`, `tr`,
+   `ar`; a second reader per language if you want `reviewed` rather than
+   `translated`.
+2. Send each one `apps/web/src/i18n/catalogues/<locale>.json`. Every entry has
+   the English in `source`; they fill `text` and set `status`. A plural entry
+   takes one form per category their language has, no more and no fewer
+   (D-067). Nothing to install and no account to make.
+3. Their work comes back as a pull request. CI's Verify runs
+   `pnpm --filter @fmip/web i18n:catalogues --check` and `messages.spec.ts`,
+   which refuse a stale `source`, a missing key, a status the text does not
+   support and a plural missing a form.
+4. `/admin` shows each language's percentage; the picker offers a language the
+   day it crosses `SHIPPABLE_COMPLETENESS` (T-306), with no deploy decision
+   in between.
+5. One decision, yours: **drafts.** D-066 and T-151 say machine output is
+   never presented as a translation, and nothing in the product does. A
+   middle path exists that keeps that true: a `draft` field beside `text`,
+   written by the agent and never read by `messages.ts`, `coverage()` or any
+   page, for the speaker to accept, rewrite or discard -- which turns their
+   job from writing every string into checking one. It changes D-066's file
+   format and the sentence in §7, so nothing is drafted until you say so.
+
+**T-310, the viewing licence.** Decide where viewing data comes from:
+(a) a licensed listings provider -- rights-cleared "where to watch" data per
+territory, under a contract and a fee; (b) broadcasters' own published
+schedules under their terms, which is usually link-only; or (c) editorial
+hand-entry by your editors from public schedules, link-only, where every row
+is a claim an editor made and signed. Record the choice as a decision that
+names the source, the territories it covers, what each source grants (a
+link, a thumbnail or an embed -- the `viewing_source` rights of T-311), how
+often it refreshes and who may enter rows. Then the agent builds T-313
+(ingestion or the editor's form, and coverage per territory), T-314 (the four
+surfaces) and T-315 (highlights within rights).
+
+**T-320, the native app.** Four things, all yours: whether at all; the
+framework (the roadmap names Expo, and `CLAUDE.md` §2 wants a decision entry
+before it is added); the two store accounts, Apple Developer Program and
+Google Play Console, opened in your name and paid for; and one device per
+platform, because T-322's right-to-left acceptance is checked on a device and
+not in a browser. Then the agent builds T-322 and T-323; T-324 waits for
+T-330's provider.
+
+**T-074, the deploy.** In order: buy the VPS (`09-deploy.md`, "What you need
+before starting"); put the domain's DNS on Cloudflare; generate an SSH key on
+your own machine; follow `09-deploy.md` §1 to §5; rerun `08-load-test.md`
+against the server rather than a laptop; record the outcome in
+`00-decisions.md`. The agent never holds the SSH key or the server's secrets,
+which is why this cannot move without you.
+
+**T-330, the provider.** After T-074, because a provider is a credential on a
+server. E-mail: open an account with a transactional e-mail service, put its
+credential in the server's environment, and tell the agent the service's
+name; the agent adds the adapter behind `OUTBOUND_DELIVERY` and the value
+`DELIVERY_EMAIL_PROVIDER` takes. Push, two roads: Web Push over VAPID needs
+no account at all -- a key pair generated once on the server -- but needs a
+dependency and therefore a decision entry, yours to approve; or a push
+service, which is an account, and is what T-324 would need on a device
+anyway. Say which, and the agent builds the adapter, the subscription flow
+and the setting; `/health/delivery` then says `present` because it is.
+
+**T-332, campaigns.** Nothing from you beyond the provider.
+
+**T-084, the launch review.** Read the exit criteria in `01-roadmap.md` and
+in each `04-tasks-phase-*.md` against the public preview or the VPS, and
+sign off in `00-decisions.md`. The agent can walk the public pages and
+report what it sees, and did for the news pages on 2026-09-18 locally; the
+preview itself refused the agent's browser that day, so the public
+walk-through is yours or waits for a session whose browser is allowed there.
+
+**The local database.** The development Postgres on this machine carries
+rows from runs that did not finish -- on 2026-09-18: 28 teams named
+`Test Home`, `Test Away` and `News Schema Team`, 33 fixtures on them, 27
+`@example.test` accounts and 31 of their messages. Every API spec that
+inserts a team was run alone that day and left nothing behind; what remains
+is from interrupted runs. The rows are held by immutable tables (settlement,
+forecast, evaluation, message tombstones), so the honest fix is a fresh
+volume rather than a hand-written delete, and removing a volume is a step
+the agent's sandbox refuses, rightly:
+
+```bash
+docker compose stop postgres && docker compose rm -f postgres
+docker volume rm fmip_postgres-data
+docker compose up -d --wait postgres
+set -a; . ./.env; set +a
+pnpm --filter @fmip/db build && pnpm --filter @fmip/db migrate:up && pnpm --filter @fmip/db seed
+```
+
+CI is unaffected: every run there starts from an empty database.
