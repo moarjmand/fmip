@@ -133,6 +133,21 @@ export type {
   TeamSummary,
   TeamsResponse,
 } from './catalog';
+// The Following feed (blueprint 12.1, T-333): ranked from qualified signals,
+// never raw volume, and saying what it is showing.
+export { FEED_RANKING_VERSION, FEED_SIGNALS } from './following-feed';
+export type {
+  FeedFixture,
+  FeedFounderAnalysis,
+  FeedItem,
+  FeedItemBody,
+  FeedPanelPost,
+  FeedSignal,
+  FeedSignalKind,
+  FeedStory,
+  FollowingFeed,
+  FollowingFeedReason,
+} from './following-feed';
 export { FOLLOWED_ENTITY_TYPES } from './following';
 export type {
   FavouriteIds,
