@@ -86,7 +86,7 @@ search already folds transliterations (T-152).
 | `[x]` T-301 | Plural and ordinal rules from CLDR, not from English's two forms | T-300 | A language with six plural forms gets six; a missing form is a failing test, not a fallback |
 | `[x]` T-302 | The translator's catalogue: export, import, review state, coverage per locale | T-151 | "How much of `tr` is done" is an answer the product gives, not a grep |
 | `[x]` T-303 | Localised entity names and aliases against the canonical UUID | T-010, T-152 | A team's Arabic name is a row against its id, never a second team (rule 1) |
-| `[ ]` T-304 | One canonical article with a controlled version per language | T-141, T-302 | A language version is a version, with its own review state and its own `last_updated_at` |
+| `[x]` T-304 | One canonical article with a controlled version per language | T-141, T-302 | A language version is a version, with its own review state and its own `last_updated_at` |
 | `[ ]` T-305 | **The strings themselves**, per language | T-302 | Reviewed by a fluent speaker; never machine output presented as a translation |
 | `[x]` T-306 | The language picker: offers the languages the product actually speaks | T-300 | A locale appears the day its catalogue crosses `SHIPPABLE_COMPLETENESS`, and never before |
 
@@ -96,6 +96,28 @@ is T-305's problem and not an architecture problem. Adding the six Latin-script
 locales first proves the machinery against languages whose failures are *quiet*
 — a wrong plural form, a date in the wrong order — before it is asked to carry
 the one whose failures are visible.
+
+**T-304 done on 2026-09-18.** A language version was already a version
+(T-141: one immutable row per language and number, its `created_at` its
+last-updated time); what it lacked was whose words it carried. Migration
+`..._article-translations` adds `origin` -- `publisher` for what the feed
+carried, `translation` for what a person wrote -- and, for a translation,
+the catalogue's own review state (`translated` by a fluent speaker,
+`reviewed` by a second; T-302, D-066) with `written_by` and `reviewed_by`.
+The constraints say what a machine translation could not satisfy: a
+translation has an author, a reviewed one has a reviewer, and the reviewer
+is a different person. **A review is a new version, not an edit** (rule 5):
+`POST /admin/articles/:id/translations/:language/review` copies the newest
+translation forward as `reviewed`, naming both people, and refuses the
+author. A translation into a language the publisher already writes the
+article in is refused as a second original, and one that carries a summary
+from a headline-only source is refused by `PL016` before it is written
+(D-061). Every write is an `audit_log` row (`translation.write`,
+`translation.review`, target type `article`). The story page shows each
+language with whose words it is -- the publisher's own, translated awaiting
+review, or reviewed -- from a total record over the three states, so a
+fourth state fails the build until it has a sentence. Who translates is
+still the maintainer's (T-305); the machinery is what this task was.
 
 **T-301 is where this epic actually gets hard.** English has two plural forms.
 Arabic has six, Portuguese has two but not the same two, and a catalogue keyed on

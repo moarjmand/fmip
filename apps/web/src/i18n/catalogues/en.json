@@ -99,7 +99,7 @@
   "story.readOriginal": "Read the original",
   "story.updated": "These words were last updated",
   "story.languages": "Languages",
-  "story.translationStatus": "Each language is the publisher's own version. Nothing here is machine-translated.",
+  "story.translationStatus": "Each language is either the publisher’s own version or a translation a fluent speaker wrote and a second one reviewed. Nothing here is machine-translated.",
   "story.corrections": "Corrections",
   "story.noCorrections": "No corrections have been noted.",
   "story.about": "About",
@@ -108,5 +108,8 @@
   "story.matchProducts": "for the model forecast, the founder's analysis and the community consensus, kept apart there.",
   "story.otherReports": "Other reports of this story",
   "story.noOtherReports": "No other publisher has reported this story.",
-  "story.notYet": "Save and share are not built yet."
+  "story.notYet": "Save and share are not built yet.",
+  "story.version.publisher": "the publisher's own words",
+  "story.version.translated": "translated by a fluent speaker, awaiting review",
+  "story.version.reviewed": "translated and reviewed by two fluent speakers"
 }

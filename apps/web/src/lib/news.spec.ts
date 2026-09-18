@@ -10,8 +10,10 @@ import {
   feedsStale,
   pageHref,
   readNewsQuery,
+  VERSION_STATUS_KEY,
   readStoryQuery,
   storyHref,
+  versionStatus,
 } from './news';
 
 const TEAM = '0e230000-0000-4000-8000-000000000001';
@@ -91,6 +93,15 @@ describe('the story page', () => {
   it('links a card to its story, in a language only when asked', () => {
     expect(storyHref('en', TEAM)).toBe(`/en/news/story/${TEAM}`);
     expect(storyHref('ar', TEAM, 'pt-BR')).toBe(`/ar/news/story/${TEAM}?language=pt-BR`);
+  });
+});
+
+describe('versionStatus', () => {
+  it('names whose words a version carries, and has a sentence for each', () => {
+    expect(versionStatus({ origin: 'publisher', review_state: null })).toBe('publisher');
+    expect(versionStatus({ origin: 'translation', review_state: 'translated' })).toBe('translated');
+    expect(versionStatus({ origin: 'translation', review_state: 'reviewed' })).toBe('reviewed');
+    for (const key of Object.values(VERSION_STATUS_KEY)) expect(EN[key]).toBeDefined();
   });
 });
 

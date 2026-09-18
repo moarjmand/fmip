@@ -43,6 +43,9 @@ export interface NewsStoryCard {
   byline: string | null;
   /** BCP 47 tag of the version shown. */
   language: string;
+  /** Whose words these are (T-304): the publisher's, or a person's translation with its review state. */
+  origin: VersionOrigin;
+  review_state: ReviewState | null;
   /** The publisher's time, or `null` when they gave none -- never the fetch time in its place. */
   published_at: string | null;
   fetched_at: string;
@@ -124,11 +127,29 @@ export interface NewsReport {
   source: { id: string; name: string; homepage_url: string; rights: NewsRights };
 }
 
+/** Whose words a version carries (T-304, blueprint 13). Never a machine's presented as a person's (T-151). */
+export type VersionOrigin = 'publisher' | 'translation';
+/** A translation's review state, the catalogue's own (T-302, D-066): written by a fluent speaker, or approved by a second. */
+export type ReviewState = 'translated' | 'reviewed';
+
 /** One language the original has been written in, and when its newest version was. */
 export interface StoryVersion {
   language: string;
   version_number: number;
   updated_at: string;
+  origin: VersionOrigin;
+  /** `null` for the publisher's own words. */
+  review_state: ReviewState | null;
+}
+
+/** `POST /admin/articles/:id/translations` (T-304): a person's version in another language. */
+export interface TranslationRequest {
+  /** BCP 47; not a language the publisher already writes this article in. */
+  language: string;
+  headline: string;
+  /** Only what the source grants (D-061): refused for a headline-only source. */
+  summary?: string | null;
+  byline?: string | null;
 }
 
 export interface StoryPage {

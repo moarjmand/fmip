@@ -9,6 +9,8 @@ import { NewsClusteringService } from './news-clustering.service';
 import { NewsIngestionService } from './news-ingestion.service';
 import { NewsSchedulerService } from './news-scheduler.service';
 import { DebateAdminController } from './debate-admin.controller';
+import { PostgresTranslationsAdminStore } from './internal/translations-admin-store';
+import { TranslationsAdminController } from './translations-admin.controller';
 import { NewsController } from './news.controller';
 
 /**
@@ -22,11 +24,12 @@ import { NewsController } from './news.controller';
  */
 @Module({
   imports: [IdentityModule, ProfileModule],
-  controllers: [NewsController, DebateAdminController],
+  controllers: [NewsController, DebateAdminController, TranslationsAdminController],
   providers: [
     PostgresNewsStore,
     PostgresNewsReadStore,
     PostgresDebateAdminStore,
+    PostgresTranslationsAdminStore,
     NewsClusteringService,
     NewsIngestionService,
     NewsSchedulerService,

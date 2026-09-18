@@ -1,4 +1,4 @@
-import type { NewsEntity, NewsSection, NewsSectionReason } from '@fmip/contracts';
+import type { NewsEntity, NewsSection, NewsSectionReason, StoryVersion } from '@fmip/contracts';
 import { isNewsSection } from '@fmip/contracts';
 import type { MessageKey } from '@/i18n/messages';
 
@@ -121,6 +121,23 @@ export function storyHref(locale: string, storyId: string, language: string | nu
   const base = `/${locale}/news/story/${storyId}`;
   return language === null ? base : `${base}?language=${encodeURIComponent(language)}`;
 }
+
+/** Whose words a language version carries, as the three states the page names (T-304). */
+export type VersionStatus = 'publisher' | 'translated' | 'reviewed';
+
+export function versionStatus(
+  version: Pick<StoryVersion, 'origin' | 'review_state'>,
+): VersionStatus {
+  if (version.origin === 'publisher') return 'publisher';
+  return version.review_state === 'reviewed' ? 'reviewed' : 'translated';
+}
+
+/** Total over the states, so a fourth state fails the build until it has a sentence. */
+export const VERSION_STATUS_KEY: Record<VersionStatus, MessageKey> = {
+  publisher: 'story.version.publisher',
+  translated: 'story.version.translated',
+  reviewed: 'story.version.reviewed',
+};
 
 /** Whether the newest feed read is too old to present the list as current (rule 4). */
 export function feedsStale(lastUpdatedAt: string | null, now = new Date()): boolean {
