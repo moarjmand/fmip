@@ -114,3 +114,36 @@ point of recording one.
 Eligibility is computed and never grants (T-250). What you see is a list of
 members who **could** be approved; approving is a separate act, by a person,
 with a reason that is stored.
+
+## 7. Phase 4: what the agent built and what waits for you
+
+Written on 2026-09-18, when every Phase 4 task that needs nothing from you
+was done (`04-tasks-phase-4.md`). What is left is yours, and each item below
+is buildable the day you decide it.
+
+**Translations (T-305).** The machinery exists: `POST /admin/articles/:id/
+translations` writes a fluent speaker's version of a headline (and summary,
+where the source grants one) as a new immutable version, and `POST .../
+translations/:language/review` has a second speaker approve it (T-304). Both
+need the `editor` role, granted with a reason in `user_role`. The interface
+strings are the same job in another file: `apps/web/src/i18n/catalogues/
+<locale>.json`, one entry per key with the English beside it (D-066). Nothing
+here is machine-translated, and nothing will be (T-151).
+
+**The viewing licence (T-310).** The schema and the rights model are built
+(T-311): a `viewing_source` says whether it grants a link, a thumbnail or an
+embed, and a listing or a highlight cannot carry more. What it needs is a
+source, which is a licence, which is money and terms -- `CLAUDE.md` §7. Until
+then every Watch surface says `not_supplied`, per territory, and never "not
+available". A member's territory is already theirs to choose (T-312).
+
+**A native app (T-320).** A framework and two store accounts, each a
+decision and a cost. The contracts are proven platform-independent (T-321),
+so the day you decide, the app is a second client of the same endpoints.
+
+**Notification delivery (T-330, the provider).** The port exists and
+`/health/delivery` says both channels are absent, which is true and will stay
+true until you choose an e-mail or push provider -- after the deploy (T-074),
+because a provider is a credential on a server. The agent adds the provider
+behind the port; you supply the account. Campaigns (T-332) mean nothing
+without one.
