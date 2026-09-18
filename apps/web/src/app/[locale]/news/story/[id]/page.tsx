@@ -5,7 +5,14 @@ import type { NewsEntity, NewsReport, StoryPage as StoryPageData } from '@fmip/c
 import { Translated } from '@/components/translated';
 import { formatDateTime } from '@/i18n/format';
 import { fetchMe, fetchStory } from '@/lib/api';
-import { entityHref, feedsStale, readStoryQuery, storyHref } from '@/lib/news';
+import {
+  VERSION_STATUS_KEY,
+  entityHref,
+  feedsStale,
+  readStoryQuery,
+  storyHref,
+  versionStatus,
+} from '@/lib/news';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 
@@ -144,13 +151,17 @@ export default async function StoryPage({
                 aria-current={v.language === story.language ? 'true' : undefined}
                 className={`rounded px-2 py-1 ${v.language === story.language ? 'bg-current/10 font-semibold' : 'underline'}`}
                 lang={v.language}
+                data-origin={v.origin}
+                data-review-state={v.review_state ?? ''}
               >
                 {v.language}
+                {' · '}
+                <Translated locale={locale} message={VERSION_STATUS_KEY[versionStatus(v)]} />
               </Link>
             </li>
           ))}
         </ul>
-        {/* Blueprint 3.3: language and translation status. Every version is the publisher's own; nothing here is machine-translated. */}
+        {/* Blueprint 3.3: language and translation status, per version (T-304). Nothing here is machine-translated. */}
         <p className="opacity-80">
           <Translated locale={locale} message="story.translationStatus" />
         </p>

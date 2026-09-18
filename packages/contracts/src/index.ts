@@ -453,6 +453,9 @@ export type {
   NewsReport,
   NewsSectionResponse,
   NewsStoryCard,
+  ReviewState,
   StoryPage,
   StoryVersion,
+  TranslationRequest,
+  VersionOrigin,
 } from './news';

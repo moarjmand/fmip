@@ -381,7 +381,7 @@
     "status": "untranslated"
   },
   "story.translationStatus": {
-    "source": "Each language is the publisher's own version. Nothing here is machine-translated.",
+    "source": "Each language is either the publisher’s own version or a translation a fluent speaker wrote and a second one reviewed. Nothing here is machine-translated.",
     "text": "",
     "status": "untranslated"
   },
@@ -427,6 +427,21 @@
   },
   "story.notYet": {
     "source": "Save and share are not built yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.version.publisher": {
+    "source": "the publisher's own words",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.version.translated": {
+    "source": "translated by a fluent speaker, awaiting review",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.version.reviewed": {
+    "source": "translated and reviewed by two fluent speakers",
     "text": "",
     "status": "untranslated"
   }

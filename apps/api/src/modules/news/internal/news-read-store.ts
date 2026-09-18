@@ -5,7 +5,9 @@ import type {
   NewsReport,
   NewsRights,
   NewsStoryCard,
+  ReviewState,
   StoryPage,
+  VersionOrigin,
 } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
@@ -31,6 +33,8 @@ interface CardRow {
   summary: string | null;
   byline: string | null;
   language: string;
+  origin: VersionOrigin;
+  review_state: ReviewState | null;
   published_at: Date | null;
   fetched_at: Date;
   url: string;
@@ -195,7 +199,8 @@ export class PostgresNewsReadStore {
     language: string | null,
   ): Promise<StoryPage | null> {
     const version = (alias: string, sourceLanguage: string) => `
-      SELECT id, headline, summary, body, byline, language, published_at, created_at
+      SELECT id, headline, summary, body, byline, language, published_at, created_at,
+             origin, review_state
         FROM article_version
        WHERE article_id = ${alias}.id
        ORDER BY COALESCE(language = $2::text, FALSE) DESC,
@@ -209,6 +214,7 @@ export class PostgresNewsReadStore {
               src.id AS source_id, src.name AS source_name, src.homepage_url, src.rights,
               src.language AS source_language,
               v.headline, v.summary, v.body, v.byline, v.language, v.published_at, v.created_at,
+              v.origin, v.review_state,
               COALESCE((SELECT min(published_at) FROM article_version WHERE article_id = a.id),
                        a.fetched_at) AS at,
               (SELECT count(*)::int - 1 FROM article m WHERE m.story_id = s.id) AS other_reports,
@@ -227,12 +233,18 @@ export class PostgresNewsReadStore {
 
     const [entities, versions, corrections, reports, lastUpdatedAt] = await Promise.all([
       this.entities([storyId], locale),
-      this.pool.query<{ language: string; version_number: number; updated_at: Date }>(
-        `SELECT language, max(version_number)::int AS version_number, max(created_at) AS updated_at
+      this.pool.query<{
+        language: string;
+        version_number: number;
+        updated_at: Date;
+        origin: VersionOrigin;
+        review_state: ReviewState | null;
+      }>(
+        `SELECT DISTINCT ON (language)
+                language, version_number, created_at AS updated_at, origin, review_state
            FROM article_version
           WHERE article_id = $1
-          GROUP BY language
-          ORDER BY language`,
+          ORDER BY language, version_number DESC, created_at DESC`,
         [r.article_id],
       ),
       this.pool.query<{ note: string; noted_at: Date }>(
@@ -273,6 +285,8 @@ export class PostgresNewsReadStore {
         language: v.language,
         version_number: v.version_number,
         updated_at: v.updated_at.toISOString(),
+        origin: v.origin,
+        review_state: v.review_state,
       })),
       body: granted
         ? { coverage: 'available', last_updated_at: r.created_at.toISOString(), data: r.body }
@@ -321,6 +335,8 @@ export class PostgresNewsReadStore {
       summary: r.summary,
       byline: r.byline,
       language: r.language,
+      origin: r.origin,
+      review_state: r.review_state,
       published_at: r.published_at?.toISOString() ?? null,
       fetched_at: r.fetched_at.toISOString(),
       url: r.url,
@@ -427,7 +443,7 @@ class Query {
     return `WITH story_card AS (
       SELECT s.id AS story_id, a.id AS article_id, a.url, a.fetched_at,
              src.id AS source_id, src.name AS source_name, src.homepage_url, src.rights,
-             v.headline, v.summary, v.byline, v.language, v.published_at,
+             v.headline, v.summary, v.byline, v.language, v.published_at, v.origin, v.review_state,
              COALESCE((SELECT min(published_at) FROM article_version WHERE article_id = a.id),
                       a.fetched_at) AS at,
              (SELECT count(*)::int - 1 FROM article m WHERE m.story_id = s.id) AS other_reports
@@ -435,7 +451,7 @@ class Query {
         JOIN article a ON a.id = s.promoted_article_id
         JOIN news_source src ON src.id = a.source_id AND src.dropped_at IS NULL
         JOIN LATERAL (
-          SELECT headline, summary, byline, language, published_at
+          SELECT headline, summary, byline, language, published_at, origin, review_state
             FROM article_version
            WHERE article_id = a.id
              AND (${this.language}::text IS NULL OR language = ${this.language}::text)
