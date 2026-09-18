@@ -119,15 +119,23 @@ API suite is where an operator's act and its audit row are read back.
 | Only authorised members post in controlled discussions | `panel.http.spec.ts`, `panel-admin.http.spec.ts` | A guest is told why without signing in; an unapproved member is refused with the reason; posting opens the moment somebody approves and stops the moment the grant is paused |
 | Reports and moderation actions create an audit record | `moderation.http.spec.ts`, `moderation-admin.http.spec.ts` | A report is a `report` row the member can read back, and it stays one row however often it is repeated; a decision answers the reports, applies the sanction and writes `audit_log` in one transaction; lifting a sanction is its own audited act |
 | Group messages arrive in real time | `chat.gateway.spec.ts`, `chat-fanout.spec.ts` | A group conversation rides the same socket as a direct one; an event reaches only the sockets subscribed to that conversation, across instances, and stops the moment the member is no longer in it |
+| Public messages arrive in real time | `fixtures/stream.http.spec.ts`, `panel/match-panel.schema.spec.ts`, `components/live-match.spec.ts` | A post raises `fixture_change` like a goal (the trigger is asserted on the catalog); the match page's stream turns it into a `panel` event and never a snapshot; the page asks the server to render itself again, collapsed, and renders nothing from the event (T-254, D-068) |
 
-**One line of the criterion is not met, and is now a task rather than a
-footnote.** "Direct, group and **public** messages arrive in real time." Public
-match discussion (E25) is request and response: a panel post is written and
-read over HTTP, and nothing in the panel module touches the gateway or a
-stream. A reader of a live match's discussion sees new posts on reload. That is
-honest -- the page does not claim to be live -- but it is not the criterion,
-and it was not in any E25 row. **T-254** carries it. Until it lands, this
-criterion is two thirds met and says so.
+**The one line that was not met, and now is (T-254, 2026-09-18).** "Direct,
+group and **public** messages arrive in real time" was recorded as two thirds
+met: public match discussion was request and response, a reader saw new posts
+on reload, and no E25 row had planned otherwise. Now a panel post raises
+`fixture_change` like a goal, the match page's stream -- the public one it
+already holds open -- says the discussion moved, and the page re-renders
+itself. Over the fixture stream rather than the chat socket, because the
+socket refuses a guest and a public panel is read by everybody (D-068). The
+chain is proven in three places rather than walked once: the trigger on the
+catalog, the stream's event without a second snapshot, and the page's
+listener that renders nothing from the event. What is not in the suite is a
+browser watching a real post land, because a post needs an approved
+contributor and the journeys job cannot make one; the three pieces are each
+asserted, and the join between them is the same `EventSource` the scores
+already ride.
 
 **Which is the whole finding.** The preview walk found a title bug no local
 check could see; this reading found that the list was mostly already true and
@@ -1803,7 +1811,7 @@ the gate is the whole feature.
 | `[x]` T-251 | The discussion: open to read, gated to post, linked to the match | T-250, T-221 | A guest reads; an unapproved member cannot post and is told why |
 | `[x]` T-252 | Reactions, and following a contributor | T-251, T-042 | Reacting is open to members; it never becomes posting access |
 | `[x]` T-253 | Featured matches: which fixtures have a panel at all | T-251, T-070 | An operator decides, with an audit row |
-| `[~]` T-254 | Public discussion arrives live: panel posts over the fixture stream | T-251, T-032 | A new post on a featured match appears to a reader without a reload, and the page never looks live when it is not |
+| `[x]` T-254 | Public discussion arrives live: panel posts over the fixture stream | T-251, T-032 | A new post on a featured match appears to a reader without a reload, and the page never looks live when it is not |
 
 **Eligibility is computed; access is granted.** Blueprint 10.2 lists four
 requirements and then a fifth: "manual approval by the founder, editor or
