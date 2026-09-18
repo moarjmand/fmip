@@ -626,7 +626,7 @@ less than it claims.
 | `[x]` T-140 | **Decision gate:** where news comes from, and under what licence | — | New entry in `00-decisions.md` |
 | `[x]` T-141 | Article schema: canonical story, per-language version, entity links | T-140 | An article links to its match, teams, players and competition by UUID |
 | `[x]` T-142 | Ingestion and deduplication into story clusters | T-141 | Duplicate reports of one event become one cluster with a promoted original |
-| `[~]` T-143 | Sections: latest, trending, debate, following | T-142 | Trending is computed from qualified signals, not raw views |
+| `[x]` T-143 | Sections: latest, trending, debate, following | T-142 | Trending is computed from qualified signals, not raw views |
 | `[ ]` T-144 | Article page and filters | T-143 | Carries every field blueprint 3.3 requires, including corrections |
 
 **T-140 first, and it is a real decision, not a formality.** News is other
@@ -806,8 +806,35 @@ directly. `last_updated_at` is when the feeds were last read (rule 4).
 own rule), story type (no such concept exists) and date beyond `before`.
 Each is a line here rather than a parameter that would return everything.
 
-Remaining in T-143: the web page with the four sections and the filters, and
-the editor's page for the debate selection.
+**T-143, second piece, and done: the page.** `/news` is one page with four
+views (`?section=`), the filters as a plain GET form -- country, competition
+and team from the catalogue lists, language from the site's own locales --
+and `Older` as a link carrying `before`. Every reason the API can give is a
+sentence in the catalogue (`REASON_KEY` is `Record<NewsSectionReason, …>`, so
+a new reason fails the build until it has one), rendered where the list would
+be; a guest's following section says it needs a session and links to sign in.
+The page states when the feeds were last read and, past three hours -- three
+missed hourly reads -- says the list may be behind (rule 4). A card is the
+publisher's headline as a link to the original, their name as a link to their
+site, the byline and the publisher's time or "time not given" (never the
+fetch time in its place), the summary when the source grants one, the linked
+entities as chips to their own pages, and how many other publishers reported
+it. The card is `lang`-tagged with the version's language, so a French
+headline on an Arabic page is read as French.
+
+**The editor's controls are on the same page, not an admin page of their
+own.** An editor finds a story by reading, so "select for debate" belongs
+beside the story: an `ActionForm` per card with the note readers will see, or
+a clear with a reason. The session carries no roles, so the page asks the
+editor's own list (`GET /admin/debates`) once and draws the controls only when
+it answered -- the API is the authority either way, this only decides what is
+drawn. A new reason for latest, `nothing_yet`, came from writing the journey:
+an unfiltered empty list is not "no story matches these filters".
+
+`tests/e2e/journeys/news.spec.ts` walks the seed, which carries no publisher
+feed -- the state worth checking: every section says what it holds and why,
+a guest's following asks for a session, a filter that matches nothing says
+so and clears.
 
 
 ---

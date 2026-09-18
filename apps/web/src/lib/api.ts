@@ -37,7 +37,9 @@ import type {
   CommunityAnalysisWorkspace,
   CommunitySubmission,
   MatchCentre,
+  DebateListResponse,
   MatchPanelPage,
+  NewsSectionResponse,
   NotificationSettings,
   NotificationsResponse,
   OwnProfile,
@@ -358,6 +360,25 @@ export async function fetchTeams(): Promise<TeamsResponse['teams'] | null> {
 export async function fetchCompetitions(): Promise<CompetitionsResponse['competitions'] | null> {
   const result = await apiRequest<CompetitionsResponse>('/competitions');
   return result.ok ? result.data.competitions : null;
+}
+
+/** `GET /news${query}` (T-143); the session (if any) is what makes `following` answerable. */
+export function fetchNewsSection(
+  query: string,
+  locale: string | undefined,
+  cookie: string | undefined,
+): Promise<ApiResult<NewsSectionResponse>> {
+  return apiRequest<NewsSectionResponse>(withLocale(`/news${query}`, locale), { cookie });
+}
+
+/**
+ * `GET /admin/debates` (T-143): the editor's list. A success is also the only
+ * way the web app knows the viewer is an editor -- the session carries no
+ * roles -- so the news page asks this once to decide whether to draw the
+ * editor's controls.
+ */
+export function fetchDebates(cookie: string | undefined): Promise<ApiResult<DebateListResponse>> {
+  return apiRequest<DebateListResponse>('/admin/debates?state=open', { cookie });
 }
 
 /** `GET /scores?${query}`; the session (if any) pins favourites and enables the filter. */

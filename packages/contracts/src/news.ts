@@ -87,7 +87,9 @@ export type NewsSectionReason =
   /** The member follows nothing yet. */
   | 'nothing_followed'
   /** No story matched the filters. */
-  | 'no_match';
+  | 'no_match'
+  /** Nothing has been read from any publisher yet. */
+  | 'nothing_yet';
 
 export interface NewsSectionResponse {
   section: NewsSection;
