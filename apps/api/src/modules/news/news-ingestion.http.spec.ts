@@ -1,3 +1,4 @@
+import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
 import type { Transport, TransportResponse } from '@fmip/ingestion';
 import { Pool } from 'pg';
@@ -46,7 +47,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('news ingesti
   let pool: Pool;
   let service: NewsIngestionService;
   let transport: ScriptedTransport;
-  let app: { close(): Promise<void> };
+  let app: NestFastifyApplication;
   const sources: string[] = [];
 
   const source = async (
@@ -95,7 +96,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('news ingesti
       .overrideProvider(NEWS_TRANSPORT)
       .useValue(transport)
       .compile();
-    app = await moduleRef.createNestApplication().init();
+    app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    await app.init();
     service = moduleRef.get(NewsIngestionService);
     pool = new Pool({ connectionString: DATABASE_URL });
   });
