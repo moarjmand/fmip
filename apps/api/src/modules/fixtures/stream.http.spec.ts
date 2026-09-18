@@ -198,4 +198,32 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('SSE gateway'
     const needsSession = await fetch(`${base}/scores/stream?favourites=1`);
     expect(needsSession.status).toBe(401);
   });
+
+  it('announces a panel post as its own event, and does not re-send the match for it (T-254)', async () => {
+    const controller = connect();
+    const response = await fetch(`${base}/fixtures/${FIXTURE}/stream`, {
+      headers: { accept: 'text/event-stream' },
+      signal: controller.signal,
+    });
+    expect(response.status).toBe(200);
+    const sse = new SseReader(response.body as ReadableStream<Uint8Array>);
+    await sse.collect((list) => list.some((e) => e.name === 'snapshot'), 5_000);
+    const snapshotsBefore = sse.events.filter((e) => e.name === 'snapshot').length;
+
+    // What the trigger on panel_post raises, without needing an approved
+    // contributor to write a post here: the payload names the table, and the
+    // stream is what this test is about.
+    await pool.query(`SELECT pg_notify('fixture_change', $1)`, [
+      JSON.stringify({ fixture_id: FIXTURE, table: 'panel_post', at: new Date().toISOString() }),
+    ]);
+
+    const events = await sse.collect((list) => list.some((e) => e.name === 'panel'), 5_000);
+    const panel = events.find((e) => e.name === 'panel');
+    expect(panel).toBeDefined();
+    expect((panel?.data as { at: string }).at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    // The panel is not in the match centre, so the match centre did not go out again.
+    expect(events.filter((e) => e.name === 'snapshot').length).toBe(snapshotsBefore);
+    await sse.close();
+    controller.abort();
+  }, 20_000);
 });
