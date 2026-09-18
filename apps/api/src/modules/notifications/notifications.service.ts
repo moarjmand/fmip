@@ -1,7 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { NotificationKind, NotificationSubject } from '@fmip/contracts';
-import { NOTIFICATION_DEFAULTS, NOTIFICATION_HOURLY_CAP } from '@fmip/contracts';
-import { PostgresNotificationsStore, type NewNotification } from './internal/notifications-store';
+import {
+  NOTIFICATION_CATEGORY_OF,
+  NOTIFICATION_DEFAULTS,
+  NOTIFICATION_HOURLY_CAP,
+} from '@fmip/contracts';
+import {
+  type MuteRow,
+  PostgresNotificationsStore,
+  type NewNotification,
+} from './internal/notifications-store';
 
 /**
  * Emitting in-product notifications (blueprint 12.2, T-271).
@@ -70,8 +78,12 @@ export class NotificationsService {
    * the documented default; a stored row is their own decision and wins.
    */
   async wants(userId: string, kind: NotificationKind): Promise<boolean> {
-    const muted = await this.store.mutedKinds(userId);
-    return muted.has(kind) ? false : NOTIFICATION_DEFAULTS[kind];
+    const [muted, categories] = await Promise.all([
+      this.store.mutedKinds(userId),
+      this.store.mutedCategories(userId),
+    ]);
+    if (muted.has(kind) || categories.has(NOTIFICATION_CATEGORY_OF[kind])) return false;
+    return NOTIFICATION_DEFAULTS[kind];
   }
 
   /**
@@ -84,6 +96,13 @@ export class NotificationsService {
   async emit(request: EmitRequest): Promise<EmitOutcome> {
     try {
       if (!(await this.wants(request.userId, request.kind))) return 'muted';
+      // A team or competition the member silenced (T-331): what this is about,
+      // not what kind it is, so one team goes quiet and football does not.
+      if (
+        (await this.store.mutedFor(request.userId, request.subjectType, request.subjectId)) !== null
+      ) {
+        return 'muted';
+      }
 
       // **Dropped, and the inbox still says so.** Over the ceiling nothing new
       // is written -- the tenth message notification in an hour tells a member
@@ -160,6 +179,20 @@ export class NotificationsService {
 
   chosenKinds(userId: string): Promise<Set<string>> {
     return this.store.chosenKinds(userId);
+  }
+
+  // --- mutes (T-331) ----------------------------------------------------
+
+  mutes(userId: string): Promise<MuteRow[]> {
+    return this.store.mutes(userId);
+  }
+
+  mute(userId: string, scope: string, target: string): Promise<'muted' | 'unknown'> {
+    return this.store.mute(userId, scope, target);
+  }
+
+  unmute(userId: string, scope: string, target: string): Promise<boolean> {
+    return this.store.unmute(userId, scope, target);
   }
 
   setPreference(userId: string, kind: NotificationKind, inProduct: boolean): Promise<void> {

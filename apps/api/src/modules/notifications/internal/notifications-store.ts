@@ -23,6 +23,13 @@ export interface NotificationRow {
   held_reason: string | null;
 }
 
+export interface MuteRow {
+  scope: 'team' | 'competition' | 'category';
+  target: string;
+  label: string | null;
+  created_at: Date;
+}
+
 export interface NewNotification {
   userId: string;
   kind: string;
@@ -82,6 +89,72 @@ export class PostgresNotificationsStore {
       [userId],
     );
     return new Set(rows.map((row) => row.kind));
+  }
+
+  // --- mutes (T-331) ----------------------------------------------------
+
+  /** The categories the member silenced as one. */
+  async mutedCategories(userId: string): Promise<Set<string>> {
+    const { rows } = await this.pool.query<{ target: string }>(
+      `SELECT target FROM notification_mute WHERE user_id = $1 AND scope = 'category'`,
+      [userId],
+    );
+    return new Set(rows.map((row) => row.target));
+  }
+
+  /**
+   * The scope that silences what a notification is about -- `team` or
+   * `competition` -- or null. Asked of the database, which knows which match
+   * a subject points at; a friend request is about nobody's team and passes.
+   */
+  async mutedFor(userId: string, subjectType: string, subjectId: string): Promise<string | null> {
+    const { rows } = await this.pool.query<{ scope: string | null }>(
+      `SELECT notification_muted_for($1, $2, $3) AS scope`,
+      [userId, subjectType, subjectId],
+    );
+    return rows[0]?.scope ?? null;
+  }
+
+  /** Every mute, with the team's or competition's name for the page. */
+  async mutes(userId: string): Promise<MuteRow[]> {
+    const { rows } = await this.pool.query<MuteRow>(
+      `SELECT m.scope, m.target, m.created_at,
+              CASE m.scope
+                WHEN 'team' THEN (SELECT name FROM team WHERE id = m.target::uuid)
+                WHEN 'competition' THEN (SELECT name FROM competition WHERE id = m.target::uuid)
+              END AS label
+         FROM notification_mute m
+        WHERE m.user_id = $1
+        ORDER BY m.scope, label NULLS LAST, m.target`,
+      [userId],
+    );
+    return rows;
+  }
+
+  /** Silences a target; `unknown` when it is not a team, competition or category. */
+  async mute(userId: string, scope: string, target: string): Promise<'muted' | 'unknown'> {
+    try {
+      await this.pool.query(
+        `INSERT INTO notification_mute (user_id, scope, target) VALUES ($1, $2, $3)
+         ON CONFLICT DO NOTHING`,
+        [userId, scope, target],
+      );
+      return 'muted';
+    } catch (error: unknown) {
+      const code = (error as { code?: string }).code;
+      // foreign_key_violation from the trigger, check_violation from the shape,
+      // invalid_text_representation should a cast ever run first.
+      if (code === '23503' || code === '23514' || code === '22P02') return 'unknown';
+      throw error;
+    }
+  }
+
+  async unmute(userId: string, scope: string, target: string): Promise<boolean> {
+    const { rowCount } = await this.pool.query(
+      `DELETE FROM notification_mute WHERE user_id = $1 AND scope = $2 AND target = $3`,
+      [userId, scope, target],
+    );
+    return (rowCount ?? 0) > 0;
   }
 
   /**

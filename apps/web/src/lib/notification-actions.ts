@@ -59,6 +59,43 @@ export async function setNotificationPreferenceAction(
   return { ok: true };
 }
 
+/**
+ * Silence a team, a competition or a category (T-331). The scope is bound by
+ * the form that offers it; the target is what the member picked.
+ */
+export async function muteAction(
+  locale: string,
+  scope: 'team' | 'competition' | 'category',
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const target = String(formData.get('target') ?? '').trim();
+  if (target === '') return { ok: false, message: 'Choose something to silence first.' };
+  const outcome = await send(
+    `/me/notification-mutes/${scope}/${encodeURIComponent(target)}`,
+    'PUT',
+  );
+  if (!outcome.ok) return outcome;
+  revalidatePath(`/${locale}/settings/notifications`);
+  return { ok: true, message: 'Silenced.' };
+}
+
+export async function unmuteAction(
+  locale: string,
+  scope: string,
+  target: string,
+  _previous: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  const outcome = await send(
+    `/me/notification-mutes/${encodeURIComponent(scope)}/${encodeURIComponent(target)}`,
+    'DELETE',
+  );
+  if (!outcome.ok) return outcome;
+  revalidatePath(`/${locale}/settings/notifications`);
+  return { ok: true };
+}
+
 export async function setQuietHoursAction(
   locale: string,
   _previous: ActionState,

@@ -448,7 +448,7 @@ E27 builds the inbox. This is where it reaches somebody who is not looking.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[ ]` T-330 | Delivery behind one port: email and push, with a provider chosen at deployment | T-270, T-074 | A deployment with no provider says so and delivers nothing, rather than appearing to |
-| `[ ]` T-331 | Per-team, per-competition and per-category controls | T-270 | A member can silence one team without silencing football |
+| `[x]` T-331 | Per-team, per-competition and per-category controls | T-270 | A member can silence one team without silencing football |
 | `[ ]` T-332 | Campaigns: an audience is a saved query, a send is a row | T-330 | Nobody receives the same campaign twice, and every send says who it reached |
 | `[ ]` T-333 | The Following feed, ranked | T-042, T-141 | Ranking is from qualified signals, never raw volume, and says what it is showing |
 
@@ -476,6 +476,27 @@ what other people looked at rather than what they follow.
 half of T-330 (which is how the product behaves with no provider). What needs
 the maintainer is the provider itself, and campaigns need a provider to mean
 anything.
+
+**T-331 done on 2026-09-18.** A mute is a row (`notification_mute`): a team
+or a competition by id -- never by name, rule 1, and a name where an id
+belongs is refused rather than cast -- or one of three categories,
+`football`, `social` and `account`, into which `NOTIFICATION_CATEGORY_OF`
+puts every kind exactly once (the spec asserts the partition, so a new kind
+cannot arrive in no category and be impossible to silence with its
+neighbours). **A team mute silences what is *about* that team's matches,
+not a kind**: `notification_about(subject_type, subject_id)` resolves a
+fixture, a prediction or a panel post to its match's teams and competition,
+and `notification_muted_for()` is the one question emission asks. A friend
+request is about nobody's team and passes; a match of two other clubs
+passes; the `prediction_settled` switch stays on and reads as the default --
+that is the sentence "silence one team without silencing football" made
+into four assertions. A category mute is read where the kind preference is
+read (`wants()`), beside it and not instead of it, so the per-kind choice is
+untouched. The settings page's "What stays quiet" section lists what is
+silenced with the club's name, offers a team, a competition and a category
+from the catalogue lists, and unmutes with one button; muting is idempotent
+and the second unmute is a 404, because "nothing was silenced under that
+name" is an answer and a silent 204 is not.
 
 ---
 

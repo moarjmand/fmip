@@ -24,7 +24,13 @@ import type {
   SetNotificationPreferenceRequest,
   SetQuietHoursRequest,
 } from '@fmip/contracts';
-import { NOTIFICATION_DEFAULTS, NOTIFICATION_KINDS, isNotificationKind } from '@fmip/contracts';
+import {
+  MUTE_SCOPES,
+  NOTIFICATION_DEFAULTS,
+  NOTIFICATION_KINDS,
+  type MuteScope,
+  isNotificationKind,
+} from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { NotificationsService } from './notifications.service';
@@ -139,10 +145,11 @@ export class NotificationsController {
   @Get('me/notification-settings')
   async settings(@Req() request: FastifyRequest): Promise<NotificationSettings> {
     const user = await this.viewer(request);
-    const [muted, chosen, quiet] = await Promise.all([
+    const [muted, chosen, quiet, mutes] = await Promise.all([
       this.notifications.mutedKinds(user.id),
       this.notifications.chosenKinds(user.id),
       this.notifications.quietHours(user.id),
+      this.notifications.mutes(user.id),
     ]);
     return {
       preferences: NOTIFICATION_KINDS.map((kind) => ({
@@ -155,7 +162,64 @@ export class NotificationsController {
       // and never updated their account would otherwise see a quiet window that
       // behaves inexplicably (T-040).
       timezone: user.timezone,
+      mutes: mutes.map((m) => ({
+        scope: m.scope,
+        target: m.target,
+        label: m.label,
+        created_at: m.created_at.toISOString(),
+      })),
     };
+  }
+
+  // --- mutes (T-331, blueprint 12.2) ------------------------------------
+
+  private static scope(raw: string): MuteScope {
+    if (!(MUTE_SCOPES as readonly string[]).includes(raw)) {
+      throw new NotFoundException({
+        error: 'not_found',
+        message: 'No such mute scope.',
+      } satisfies ApiError);
+    }
+    return raw as MuteScope;
+  }
+
+  /** Silence a team, a competition or a category. Idempotent. */
+  @Put('me/notification-mutes/:scope/:target')
+  @HttpCode(204)
+  async mute(
+    @Param('scope') scope: string,
+    @Param('target') target: string,
+    @Req() request: FastifyRequest,
+  ): Promise<void> {
+    const user = await this.viewer(request);
+    const wanted = NotificationsController.scope(scope);
+    const outcome = await this.notifications.mute(user.id, wanted, target.trim().toLowerCase());
+    if (outcome === 'unknown') {
+      throw new BadRequestException({
+        error: 'validation',
+        message:
+          wanted === 'category'
+            ? 'No such category.'
+            : `No such ${wanted}; a mute names one by its id.`,
+      } satisfies ApiError);
+    }
+  }
+
+  @Delete('me/notification-mutes/:scope/:target')
+  @HttpCode(204)
+  async unmute(
+    @Param('scope') scope: string,
+    @Param('target') target: string,
+    @Req() request: FastifyRequest,
+  ): Promise<void> {
+    const user = await this.viewer(request);
+    const wanted = NotificationsController.scope(scope);
+    if (!(await this.notifications.unmute(user.id, wanted, target.trim().toLowerCase()))) {
+      throw new NotFoundException({
+        error: 'not_found',
+        message: 'Nothing was silenced under that name.',
+      } satisfies ApiError);
+    }
   }
 
   @Put('me/notification-settings/:kind')

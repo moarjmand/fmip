@@ -191,6 +191,49 @@ export interface QuietHours {
   ends_at: string;
 }
 
+/**
+ * The categories a member can silence as one (blueprint 12.2, T-331). Every
+ * kind is in exactly one; the test that says so is what keeps a new kind
+ * from arriving in no category and being impossible to silence with its
+ * neighbours.
+ */
+export const NOTIFICATION_CATEGORIES = ['football', 'social', 'account'] as const;
+export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
+
+export const NOTIFICATION_CATEGORY_OF: Record<NotificationKind, NotificationCategory> = {
+  prediction_settled: 'football',
+  rating_changed: 'football',
+  career_points_awarded: 'football',
+  friend_request: 'social',
+  friend_accepted: 'social',
+  message_received: 'social',
+  mentioned: 'social',
+  group_invite: 'social',
+  group_join_request: 'social',
+  panel_reaction: 'social',
+  moderation_decision: 'account',
+  contributor_granted: 'account',
+  contributor_grant_changed: 'account',
+};
+
+export const MUTE_SCOPES = ['team', 'competition', 'category'] as const;
+export type MuteScope = (typeof MUTE_SCOPES)[number];
+
+/**
+ * One thing a member chose not to hear about (T-331): a team or a
+ * competition by id, or a category of kinds. A team mute silences what is
+ * about that team's matches and nothing else -- a member can silence one
+ * team without silencing football.
+ */
+export interface NotificationMute {
+  scope: MuteScope;
+  /** A team or competition id, or a category name. */
+  target: string;
+  /** The team's or competition's name; `null` for a category, which the page names itself. */
+  label: string | null;
+  created_at: string;
+}
+
 /** `GET /me/notification-settings`. */
 export interface NotificationSettings {
   preferences: NotificationPreference[];
@@ -198,6 +241,8 @@ export interface NotificationSettings {
   quiet_hours: QuietHours | null;
   /** The timezone the quiet hours are read in (T-040). */
   timezone: string;
+  /** What the member silenced (T-331); `PUT`/`DELETE /me/notification-mutes/:scope/:target`. */
+  mutes: NotificationMute[];
 }
 
 /** `PUT /me/notification-settings/:kind`. */

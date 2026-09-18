@@ -177,6 +177,25 @@ test.describe('blueprint journeys', () => {
     await expect(form.getByLabel('Where you watch from')).toHaveValue('GB');
   });
 
+  test('T-331 silences one team without silencing football, and unmutes with one button', async () => {
+    await page.goto('/en/settings/notifications');
+    const quiet = page.getByTestId('notification-mutes');
+    await expect(quiet.getByTestId('no-mutes')).toBeVisible();
+    const teamForm = quiet.getByTestId('mute-team');
+    await teamForm.getByLabel('Silence a team').selectOption({ label: 'Liverpool' });
+    await teamForm.getByRole('button', { name: 'Silence' }).click();
+    const muted = quiet.getByTestId('notification-mute').filter({ hasText: 'Liverpool' });
+    await expect(muted).toBeVisible();
+    await expect(muted).toHaveAttribute('data-scope', 'team');
+    // The football switch is untouched: silencing a club is not silencing football.
+    await expect(page.getByTestId('notification-kind-prediction_settled')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await muted.getByRole('button', { name: 'Unmute' }).click();
+    await expect(quiet.getByTestId('no-mutes')).toBeVisible();
+  });
+
   test('18.4 follows a team, sees it pinned, and moves team → match → player → search', async () => {
     await page.goto('/en/settings');
     const teamForm = page.locator('form').filter({ has: page.getByLabel('Follow a team') });
