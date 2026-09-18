@@ -1,5 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type {
+  Territory,
+  ViewingTerritory,
   FavouriteIds,
   FollowedEntity,
   FollowedEntityType,
@@ -107,7 +109,22 @@ export class ProfileService {
       profile: toPublicProfile(row, await this.following.favouriteTeamNames(userId)),
       account,
       privacy: toPrivacy(row),
+      viewing_territory: await this.store.viewingTerritory(userId),
     };
+  }
+
+  // --- the viewing territory (T-312) -------------------------------------
+
+  territories(): Promise<Territory[]> {
+    return this.store.territories();
+  }
+
+  viewingTerritory(userId: string): Promise<ViewingTerritory> {
+    return this.store.viewingTerritory(userId);
+  }
+
+  setViewingTerritory(userId: string, code: string | null): Promise<'set' | 'unknown'> {
+    return this.store.setViewingTerritory(userId, code);
   }
 
   async updateProfile(userId: string, patch: UpdateProfileRequest): Promise<OwnProfile | null> {

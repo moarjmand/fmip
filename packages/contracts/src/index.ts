@@ -74,6 +74,15 @@ export type {
   SessionResponse,
   VerifyEmailRequest,
 } from './identity';
+// The viewer's territory (blueprint 11, T-312): chosen, stored, never inferred.
+export { TERRITORY_CODE } from './territory';
+export type {
+  SetViewingTerritoryRequest,
+  TerritoriesResponse,
+  Territory,
+  ViewingTerritory,
+  ViewingTerritoryResponse,
+} from './territory';
 export { PRIVACY_VISIBILITIES } from './profile';
 export type {
   OwnProfile,

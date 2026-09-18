@@ -7,7 +7,9 @@ import type {
   OwnProfile,
   RegisterRequest,
   SessionResponse,
+  SetViewingTerritoryRequest,
   UpdatePrivacyRequest,
+  ViewingTerritoryResponse,
   UpdateProfileRequest,
 } from '@fmip/contracts';
 import { revalidatePath } from 'next/cache';
@@ -175,6 +177,36 @@ export async function updatePrivacyAction(
 
   revalidatePath(`/${locale}/settings`);
   return { ok: true, message: 'Privacy settings saved.' };
+}
+
+// --- the viewing territory (T-312) --------------------------------------------
+
+/**
+ * Chosen by the member on the settings page. An empty choice clears it, after
+ * which the surfaces ask again; nothing here guesses from the browser.
+ */
+export async function setTerritoryAction(
+  locale: string,
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const code = text(formData, 'code');
+  const result = await apiRequest<ViewingTerritoryResponse>('/me/territory', {
+    method: 'PUT',
+    body: { code: code === '' ? null : code } satisfies SetViewingTerritoryRequest,
+    cookie: await sessionCookieHeader(),
+  });
+  if (!result.ok) return failure(result);
+
+  revalidatePath(`/${locale}/settings`);
+  const chosen = result.data.viewing_territory;
+  return {
+    ok: true,
+    message:
+      chosen.state === 'chosen'
+        ? `Viewing territory set to ${chosen.territory.name}.`
+        : 'Viewing territory cleared; you will be asked when it matters.',
+  };
 }
 
 // --- following (T-042) -------------------------------------------------------

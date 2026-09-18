@@ -316,7 +316,7 @@ from the wrong country is worse than no answer.
 |---|---|---|---|
 | `[ ]` T-310 | **Decision gate:** where viewing and highlight data comes from, and under what licence | — | New entry in `00-decisions.md` |
 | `[ ]` T-311 | Schema and contracts: `broadcaster`, `viewing_option`, `highlight`, rights per source | T-011 | Availability is stored per territory; a source carries what may be shown |
-| `[ ]` T-312 | Territory: chosen by the member, stored, never silently inferred | T-041 | A viewer with no territory is asked, not guessed at |
+| `[x]` T-312 | Territory: chosen by the member, stored, never silently inferred | T-041 | A viewer with no territory is asked, not guessed at |
 | `[ ]` T-313 | Ingestion and coverage per territory | T-310, T-311 | A territory with no data says `not_supplied`; it never says "not available" |
 | `[ ]` T-314 | Surfaces: the Watch page, the match centre panel, the team fixture list, the Following feed | T-313 | One module, four places, one answer |
 | `[ ]` T-315 | Highlights: an approved embed where there is one, the official page where there is not | T-313 | Never an embed the rights do not allow, and never a dead player |
@@ -343,6 +343,27 @@ two, which is the same argument that put it in T-141.
 **What is buildable now:** T-311 and T-312 entirely, which is the schema, the
 contracts, the rights model, the territory setting and every honest-absence
 path. What needs the licence is the data.
+
+**T-312 done on 2026-09-18.** A territory is an ISO 3166-1 country, not a
+row of `country`: rights are sold by state, and England, Scotland and Wales
+are three football countries in one territory (GB), while a viewer in
+Guernsey is in none of them. `territory` (migration `..._viewing-territory`)
+carries the full ISO list, seeded, so a member anywhere can choose;
+`user_account.viewing_territory` is nullable and starts null for everybody,
+and **`country_id` is never read in its place** -- the spec registers a
+member in England and asserts the territory is `not_chosen`. The contract is
+a state, not a nullable string: `ViewingTerritory` is `chosen` with the
+territory or `not_chosen`, so a surface that meets it has to write the
+sentence for the second case rather than fall through to a default. `PUT
+/me/territory` takes a code in any case or `null` to clear; a code that is
+not a territory is refused by the foreign key and served as 400, never mapped
+to a neighbour. `GET /territories` is public and lists what may be chosen,
+by name in the database's collation -- a page re-sorts for its locale, and
+may name the codes with `Intl.DisplayNames` so the list is in the reader's
+language for free. The settings page has the chooser; the surfaces that ask
+(T-314) get `viewing_territory` from `OwnProfile` and from `GET /me/territory`.
+A guest has nowhere to store a choice; the Watch surfaces will ask them each
+time rather than guess, which is T-314's to render.
 
 ---
 

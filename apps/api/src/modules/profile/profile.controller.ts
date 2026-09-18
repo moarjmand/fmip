@@ -20,12 +20,15 @@ import {
   type FollowingResponse,
   type OwnProfile,
   type ProfileView,
+  type TerritoriesResponse,
+  type ViewingTerritoryResponse,
 } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import {
   type Validated,
   validateFollow,
+  validateSetTerritory,
   validateUpdatePrivacy,
   validateUpdateProfile,
 } from './internal/validation';
@@ -105,6 +108,42 @@ export class ProfileController {
     const own = await this.profiles.updateProfile(userId, unwrap(validateUpdateProfile(body)));
     if (own === null) throw new UnauthorizedException(UNAUTHENTICATED);
     return own;
+  }
+
+  // --- the viewing territory (T-312, blueprint 11) ----------------------
+
+  /** Public: what a member may choose from. */
+  @Get('territories')
+  async territories(): Promise<TerritoriesResponse> {
+    return { territories: await this.profiles.territories() };
+  }
+
+  @Get('me/territory')
+  async viewingTerritory(@Req() request: FastifyRequest): Promise<ViewingTerritoryResponse> {
+    const userId = await this.requireViewer(request);
+    return { viewing_territory: await this.profiles.viewingTerritory(userId) };
+  }
+
+  /**
+   * Chosen by the member, and only by them. An unknown code is refused
+   * rather than mapped to a neighbour; `null` clears, after which the
+   * member is asked again rather than remembered wrongly.
+   */
+  @Put('me/territory')
+  async setViewingTerritory(
+    @Body() body: unknown,
+    @Req() request: FastifyRequest,
+  ): Promise<ViewingTerritoryResponse> {
+    const userId = await this.requireViewer(request);
+    const { code } = unwrap(validateSetTerritory(body));
+    if ((await this.profiles.setViewingTerritory(userId, code)) === 'unknown') {
+      throw new BadRequestException({
+        error: 'validation',
+        message: 'No such territory.',
+        fields: { code: 'is not a territory' },
+      } satisfies ApiError & { fields: Record<string, string> });
+    }
+    return { viewing_territory: await this.profiles.viewingTerritory(userId) };
   }
 
   @Patch('me/privacy')
