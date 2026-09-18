@@ -626,7 +626,7 @@ less than it claims.
 | `[x]` T-140 | **Decision gate:** where news comes from, and under what licence | — | New entry in `00-decisions.md` |
 | `[x]` T-141 | Article schema: canonical story, per-language version, entity links | T-140 | An article links to its match, teams, players and competition by UUID |
 | `[x]` T-142 | Ingestion and deduplication into story clusters | T-141 | Duplicate reports of one event become one cluster with a promoted original |
-| `[ ]` T-143 | Sections: latest, trending, debate, following | T-142 | Trending is computed from qualified signals, not raw views |
+| `[~]` T-143 | Sections: latest, trending, debate, following | T-142 | Trending is computed from qualified signals, not raw views |
 | `[ ]` T-144 | Article page and filters | T-143 | Carries every field blueprint 3.3 requires, including corrections |
 
 **T-140 first, and it is a real decision, not a formality.** News is other
@@ -756,6 +756,47 @@ whose headline names no team is never clustered; a headline corrected to name
 a team gains the link but keeps its story; a source dropped under D-061 takes
 its articles and can leave a story whose `promoted_article_id` points at
 nothing, so a reader must treat that column as a pointer, not a fact.
+
+**T-143, first piece, on 2026-09-18: the API.** `GET /news?section=latest|
+trending|debate|following` with `country`, `competition`, `team` and
+`language` filters (blueprint 3.2) and `before` to page latest and following.
+Every section starts from the same card -- a story as its promoted original,
+from a publisher that still grants it, carrying only what the source's rights
+allow and a link back -- and differs in what it joins and how it orders. The
+filters apply to the whole cluster: a story about a team is a story any of
+whose reports links the team, so a filter never hides a story because the
+original named the club differently.
+
+**Trending is computed from qualified signals, not raw views, and says so.**
+The blueprint names views, saves, shares and discussion; the platform
+measures discussion, so trending ranks stories by how many *distinct* members
+posted or reacted on the public panel of the story's matches inside 48 hours
+-- once per member, so one person cannot trend a story alone -- and the
+section's coverage is `limited` with the reason `discussion_only`. Views,
+saves and shares are not pretended (rule 3); when they are measured, the
+coverage becomes `available` and the reason goes.
+
+**Debate is what editors selected.** `story_debate` is a row with an actor
+and a note the reader sees, cleared by another actor with a reason, one open
+selection per story -- not a flag on `story`, because a flag has no history
+and no author. "Or supported by genuine discussion signals" is not built:
+those signals are what trending already ranks by, and a second section
+computed from the same numbers would be the same list under another name.
+When nobody has selected anything the section says `nothing_selected`. The
+editor's write endpoint and the admin surface are the second piece.
+
+**Following is answerable only for a member.** For a guest the section is
+`not_supplied` with `needs_session` -- not an empty list, not a 401: the page
+is still a page with one section that says what it needs. The follows come
+from the profile boundary's public service, never from `followed_entity`
+directly. `last_updated_at` is when the feeds were last read (rule 4).
+
+**Not in the filters yet:** player (no article links a person, by T-142's
+own rule), story type (no such concept exists) and date beyond `before`.
+Each is a line here rather than a parameter that would return everything.
+
+Remaining in T-143: the editor's debate endpoint with its audit row, and the
+web page with the four sections and the filters.
 
 
 ---
