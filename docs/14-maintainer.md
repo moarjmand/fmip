@@ -130,12 +130,13 @@ strings are the same job in another file: `apps/web/src/i18n/catalogues/
 <locale>.json`, one entry per key with the English beside it (D-066). Nothing
 here is machine-translated, and nothing will be (T-151).
 
-**The viewing licence (T-310).** The schema and the rights model are built
-(T-311): a `viewing_source` says whether it grants a link, a thumbnail or an
-embed, and a listing or a highlight cannot carry more. What it needs is a
-source, which is a licence, which is money and terms -- `CLAUDE.md` §7. Until
-then every Watch surface says `not_supplied`, per territory, and never "not
-available". A member's territory is already theirs to choose (T-312).
+**The viewing licence (T-310), decided on 2026-09-18 by delegation (D-069).**
+You asked the agent to choose; under the rule that nothing is bought, it
+chose the editorial desk: editors declare coverage per season and territory
+and enter listings and official highlight pages by hand, link-only, every
+row audited (T-313). What waits for you is editors' time -- grant `editor`
+to whoever enters listings -- and a licence only if you ever want thumbnails
+or embeds, which would be a second source beside the desk, not a replacement.
 
 **A native app (T-320).** A framework and two store accounts, each a
 decision and a cost. The contracts are proven platform-independent (T-321),
@@ -179,17 +180,10 @@ purchase or a licence (`CLAUDE.md` §7).
    job from writing every string into checking one. It changes D-066's file
    format and the sentence in §7, so nothing is drafted until you say so.
 
-**T-310, the viewing licence.** Decide where viewing data comes from:
-(a) a licensed listings provider -- rights-cleared "where to watch" data per
-territory, under a contract and a fee; (b) broadcasters' own published
-schedules under their terms, which is usually link-only; or (c) editorial
-hand-entry by your editors from public schedules, link-only, where every row
-is a claim an editor made and signed. Record the choice as a decision that
-names the source, the territories it covers, what each source grants (a
-link, a thumbnail or an embed -- the `viewing_source` rights of T-311), how
-often it refreshes and who may enter rows. Then the agent builds T-313
-(ingestion or the editor's form, and coverage per territory), T-314 (the four
-surfaces) and T-315 (highlights within rights).
+**T-310, the viewing licence: decided (D-069).** The editorial desk, chosen
+by the agent at your request on 2026-09-18. Nothing to decide now: grant
+`editor` to whoever enters listings, and revisit only for a licence with
+more rights.
 
 **T-320, the native app.** Four things, all yours: whether at all; the
 framework (the roadmap names Expo, and `CLAUDE.md` §2 wants a decision entry
