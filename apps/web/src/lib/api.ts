@@ -55,6 +55,7 @@ import type {
   SessionResponse,
   StoryPage,
   TeamPage,
+  TerritoriesResponse,
   TeamsResponse,
 } from '@fmip/contracts';
 import { withLocale } from '@/lib/locale-query';
@@ -351,6 +352,12 @@ export async function fetchFollowing(cookie: string | undefined): Promise<Follow
   if (cookie === undefined) return null;
   const result = await apiRequest<FollowingResponse>('/me/following', { cookie });
   return result.ok ? result.data.items : null;
+}
+
+/** `GET /territories` (T-312): what a member may choose; `null` when the API cannot be reached. */
+export async function fetchTerritories(): Promise<TerritoriesResponse['territories'] | null> {
+  const result = await apiRequest<TerritoriesResponse>('/territories');
+  return result.ok ? result.data.territories : null;
 }
 
 export async function fetchTeams(): Promise<TeamsResponse['teams'] | null> {

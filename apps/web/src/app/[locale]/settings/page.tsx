@@ -3,8 +3,15 @@ import { redirect } from 'next/navigation';
 import { PRIVACY_VISIBILITIES } from '@fmip/contracts';
 import { ActionForm, type FieldOption } from '@/components/action-form';
 import { FollowingSection } from '@/components/following-section';
-import { fetchCompetitions, fetchFollowing, fetchOwnProfile, fetchTeams } from '@/lib/api';
-import { updatePrivacyAction, updateProfileAction } from '@/lib/auth-actions';
+import {
+  fetchCompetitions,
+  fetchFollowing,
+  fetchOwnProfile,
+  fetchTeams,
+  fetchTerritories,
+} from '@/lib/api';
+import { territoryOptions, territoryValue } from '@/lib/territory';
+import { setTerritoryAction, updatePrivacyAction, updateProfileAction } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
 
 // A member's own page: never indexed.
@@ -40,11 +47,12 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
     );
   }
 
-  const { profile, account, privacy } = result.data;
-  const [following, teams, competitions] = await Promise.all([
+  const { profile, account, privacy, viewing_territory } = result.data;
+  const [following, teams, competitions, territories] = await Promise.all([
     fetchFollowing(cookie),
     fetchTeams(),
     fetchCompetitions(),
+    fetchTerritories(),
   ]);
 
   return (
@@ -112,6 +120,35 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
           submitLabel="Save privacy settings"
           testId="privacy-form"
         />
+      </section>
+
+      <section className="flex flex-col gap-4" data-testid="territory-section">
+        <h2 className="text-xl font-semibold">Viewing territory</h2>
+        {/* T-312: chosen here and only here; nothing guesses it from an address (blueprint 11). */}
+        <p className="text-sm opacity-70" data-testid="territory-state">
+          {viewing_territory.state === 'chosen'
+            ? `Viewing options are shown for ${viewing_territory.territory.name}.`
+            : 'You have not chosen a territory yet. Where a match can be watched depends on it, so you will be asked rather than guessed at.'}
+        </p>
+        {territories === null ? (
+          <p role="alert">The territory list could not be loaded right now.</p>
+        ) : (
+          <ActionForm
+            action={setTerritoryAction.bind(null, locale)}
+            fields={[
+              {
+                name: 'code',
+                label: 'Where you watch from',
+                type: 'select',
+                options: territoryOptions(locale, territories, 'Not chosen'),
+                defaultValue: territoryValue(viewing_territory),
+                hint: 'Rights are sold by country, so this is the country you are in, not the team you support.',
+              },
+            ]}
+            submitLabel="Save viewing territory"
+            testId="territory-form"
+          />
+        )}
       </section>
 
       {following === null || teams === null || competitions === null ? (

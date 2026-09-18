@@ -1,3 +1,4 @@
+import type { ViewingTerritory } from './territory';
 import type { AuthUser } from './identity';
 
 /**
@@ -44,6 +45,8 @@ export interface OwnProfile {
   profile: PublicProfile;
   account: AuthUser;
   privacy: PrivacySettings;
+  /** Where the member chose to be shown viewing options for (T-312); `not_chosen` until they do. */
+  viewing_territory: ViewingTerritory;
 }
 
 /** `PATCH /me/profile`. Only the fields present change; `null` clears. */

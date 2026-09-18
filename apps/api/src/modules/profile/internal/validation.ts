@@ -1,3 +1,4 @@
+import { TERRITORY_CODE, type SetViewingTerritoryRequest } from '@fmip/contracts';
 import {
   type FollowRequest,
   PRIVACY_VISIBILITIES,
@@ -86,6 +87,19 @@ export function validateUpdatePrivacy(body: unknown): Validated<UpdatePrivacyReq
 }
 
 /** `PUT /me/following/:type/:id` body: an optional favourite flag, nothing else. */
+/** `PUT /me/territory`: a two-letter code (any case) or `null` to clear. Nothing else. */
+export function validateSetTerritory(body: unknown): Validated<SetViewingTerritoryRequest> {
+  if (!isRecord(body) || !('code' in body)) {
+    return { ok: false, fields: { code: 'is required (a territory code, or null to clear)' } };
+  }
+  const raw = body.code;
+  if (raw === null) return { ok: true, value: { code: null } };
+  if (typeof raw !== 'string' || !TERRITORY_CODE.test(raw.trim().toUpperCase())) {
+    return { ok: false, fields: { code: 'must be an ISO 3166-1 alpha-2 code' } };
+  }
+  return { ok: true, value: { code: raw.trim().toUpperCase() } };
+}
+
 export function validateFollow(body: unknown): Validated<FollowRequest> {
   if (body === undefined || body === null || body === '') return { ok: true, value: {} };
   if (!isRecord(body)) return { ok: false, fields: { body: 'must be a JSON object' } };

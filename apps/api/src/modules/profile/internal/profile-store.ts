@@ -1,5 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { PrivacySettings, PrivacyVisibility, PublicProfile } from '@fmip/contracts';
+import type {
+  PrivacySettings,
+  PrivacyVisibility,
+  PublicProfile,
+  Territory,
+  ViewingTerritory,
+} from '@fmip/contracts';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 
@@ -60,6 +66,45 @@ export class PostgresProfileStore {
   async findByUserId(userId: string): Promise<ProfileRow | null> {
     const { rows } = await this.pool.query<ProfileRow>(`${SELECT} AND u.id = $1`, [userId]);
     return rows[0] ?? null;
+  }
+
+  /** Every territory a member may choose, by name. */
+  async territories(): Promise<Territory[]> {
+    const { rows } = await this.pool.query<Territory>(
+      `SELECT code, name FROM territory ORDER BY name`,
+    );
+    return rows;
+  }
+
+  /**
+   * The member's viewing territory (T-312). `not_chosen` is the answer until
+   * they choose; nothing here reads `country_id` in its place.
+   */
+  async viewingTerritory(userId: string): Promise<ViewingTerritory> {
+    const { rows } = await this.pool.query<Territory>(
+      `SELECT t.code, t.name
+         FROM user_account u
+         JOIN territory t ON t.code = u.viewing_territory
+        WHERE u.id = $1`,
+      [userId],
+    );
+    const territory = rows[0];
+    return territory === undefined ? { state: 'not_chosen' } : { state: 'chosen', territory };
+  }
+
+  /** Sets or clears the choice; `unknown` when the code is not a territory. */
+  async setViewingTerritory(userId: string, code: string | null): Promise<'set' | 'unknown'> {
+    try {
+      await this.pool.query(`UPDATE user_account SET viewing_territory = $2 WHERE id = $1`, [
+        userId,
+        code,
+      ]);
+      return 'set';
+    } catch (error: unknown) {
+      // foreign_key_violation: the territory table is the list of what may be chosen.
+      if ((error as { code?: string }).code === '23503') return 'unknown';
+      throw error;
+    }
   }
 
   /**
