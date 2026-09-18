@@ -112,7 +112,7 @@ export class NewsController {
         return answer(
           await this.store.latest(filters, locale, before, NEWS_PAGE_SIZE),
           'available',
-          'no_match',
+          'nothing_yet',
         );
       case 'trending':
         return answer(

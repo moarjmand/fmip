@@ -163,5 +163,196 @@
     },
     "forms": {},
     "status": "untranslated"
+  },
+  "nav.news": {
+    "source": "News",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.title": {
+    "source": "News",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.section.latest": {
+    "source": "Latest",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.section.trending": {
+    "source": "Trending",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.section.debate": {
+    "source": "Debate",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.section.following": {
+    "source": "Following",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.filter.country": {
+    "source": "Country",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.filter.competition": {
+    "source": "Competition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.filter.team": {
+    "source": "Team",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.filter.language": {
+    "source": "Language",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.filter.any": {
+    "source": "Any",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.filter.apply": {
+    "source": "Filter",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.filter.clear": {
+    "source": "Clear filters",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.filter.unavailable": {
+    "source": "Some filter lists could not be loaded.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.updated": {
+    "source": "Feeds last read",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.neverRead": {
+    "source": "The feeds have not been read yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.stale": {
+    "source": "The feeds have not been read for a while, so this list may be behind.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.unreachable": {
+    "source": "The news service is unreachable right now, so nothing can be shown.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.reason.discussionOnly": {
+    "source": "Trending counts public discussion only. Views, saves and shares are not measured.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.reason.nothingTrending": {
+    "source": "Nothing has been discussed in the last two days.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.reason.nothingSelected": {
+    "source": "Editors have not selected any debates yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.reason.needsSession": {
+    "source": "Sign in to see stories about what you follow.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.reason.nothingFollowed": {
+    "source": "You follow nothing yet. Follow a team or a competition to see its stories here.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.reason.noMatch": {
+    "source": "No story matches these filters.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.signIn": {
+    "source": "Sign in",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.readAt": {
+    "source": "Read at",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.noTime": {
+    "source": "time not given by the publisher",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.match": {
+    "source": "Match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.otherReports": {
+    "source": {
+      "one": "{count} more report on this story",
+      "other": "{count} more reports on this story"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "news.discussion": {
+    "source": {
+      "one": "{count} member in the match discussion in the last {hours} hours",
+      "other": "{count} members in the match discussion in the last {hours} hours"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "news.debateNote": {
+    "source": "Why this is a debate:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.older": {
+    "source": "Older",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.reason.nothingYet": {
+    "source": "No stories have been read from any publisher yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.debate.noteLabel": {
+    "source": "Why this is a debate (readers see this)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.debate.select": {
+    "source": "Select for debate",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.debate.reasonLabel": {
+    "source": "Reason (recorded)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.debate.clear": {
+    "source": "Take off the debate page",
+    "text": "",
+    "status": "untranslated"
   }
 }
