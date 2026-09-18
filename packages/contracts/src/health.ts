@@ -100,3 +100,22 @@ export interface ChatHealth {
    */
   latency_ms: { p50: number; p95: number; samples: number } | null;
 }
+
+/**
+ * One outbound channel (T-330): present with the provider chosen at
+ * deployment, or absent. Never a default that looks like a provider.
+ */
+export type DeliveryChannelState = { state: 'absent' } | { state: 'configured'; provider: string };
+
+/** `GET /health/delivery`. */
+export interface DeliveryHealth {
+  checked_at: string;
+  email: DeliveryChannelState;
+  push: DeliveryChannelState;
+  /**
+   * True when no channel exists: notifications stay in the product, and every
+   * surface that shows them says so rather than letting a member wait for an
+   * e-mail that no deployment sent.
+   */
+  in_product_only: boolean;
+}

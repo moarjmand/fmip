@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { DeliveryModule } from '../delivery/delivery.module';
 import { IdentityModule } from '../identity/identity.module';
 import { PostgresNotificationsStore } from './internal/notifications-store';
 import { NotificationsController } from './notifications.controller';
@@ -18,10 +19,11 @@ import { NotificationsService } from './notifications.service';
  * resolved by whoever reads the inbox (T-272).
  */
 @Module({
-  // Identity, and only identity: the inbox has to know who is asking, and
-  // nothing else about the product. Importing a producer here would be the
-  // cycle this module exists to avoid.
-  imports: [IdentityModule],
+  // Identity (who is asking) and delivery (whether anything can leave the
+  // product, T-330), and nothing else about the product. Neither imports a
+  // producer, so importing them here cannot be the cycle this module exists
+  // to avoid.
+  imports: [IdentityModule, DeliveryModule],
   controllers: [NotificationsController],
   providers: [NotificationsService, PostgresNotificationsStore],
   exports: [NotificationsService],

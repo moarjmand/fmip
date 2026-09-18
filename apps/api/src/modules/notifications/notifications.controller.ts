@@ -32,6 +32,7 @@ import {
   isNotificationKind,
 } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
+import { DeliveryService } from '../delivery/delivery.service';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { NotificationsService } from './notifications.service';
 
@@ -61,6 +62,7 @@ export class NotificationsController {
   constructor(
     private readonly notifications: NotificationsService,
     private readonly identity: IdentityService,
+    private readonly delivery: DeliveryService,
   ) {}
 
   private async viewer(request: FastifyRequest): Promise<AuthUser> {
@@ -106,6 +108,9 @@ export class NotificationsController {
         read_at: row.read_at?.toISOString() ?? null,
         held_reason: row.held_reason,
       })),
+      // Said on every page of the inbox (T-330): with no provider, this is
+      // the only place a notification exists.
+      delivery: this.delivery.describe(),
       // Across the whole inbox, not this page: a badge counting only what was
       // fetched would go down when somebody scrolled.
       unread,

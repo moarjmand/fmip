@@ -16,6 +16,7 @@ import { ModerationModule } from './modules/moderation/moderation.module';
 import { GroupsModule } from './modules/groups/groups.module';
 import { SocialModule } from './modules/social/social.module';
 import { AnalysisModule } from './modules/analysis/analysis.module';
+import { DeliveryModule } from './modules/delivery/delivery.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PanelModule } from './modules/panel/panel.module';
 import { ReputationModule } from './modules/reputation/reputation.module';
@@ -48,6 +49,7 @@ import { NewsModule } from './modules/news/news.module';
     ReputationModule,
     PanelModule,
     NotificationsModule,
+    DeliveryModule,
     AnalysisModule,
     SearchModule,
     NewsModule,
