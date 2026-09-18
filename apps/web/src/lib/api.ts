@@ -53,6 +53,7 @@ import type {
   ScoresResponse,
   SearchResponse,
   SessionResponse,
+  StoryPage,
   TeamPage,
   TeamsResponse,
 } from '@fmip/contracts';
@@ -379,6 +380,18 @@ export function fetchNewsSection(
  */
 export function fetchDebates(cookie: string | undefined): Promise<ApiResult<DebateListResponse>> {
   return apiRequest<DebateListResponse>('/admin/debates?state=open', { cookie });
+}
+
+/** `GET /news/stories/:id` (T-144), in `language` when the original has a version in it. */
+export function fetchStory(
+  id: string,
+  language: string | null,
+  locale?: string,
+): Promise<ApiResult<StoryPage>> {
+  const query = language === null ? '' : `?language=${encodeURIComponent(language)}`;
+  return apiRequest<StoryPage>(
+    withLocale(`/news/stories/${encodeURIComponent(id)}${query}`, locale),
+  );
 }
 
 /** `GET /scores?${query}`; the session (if any) pins favourites and enables the filter. */

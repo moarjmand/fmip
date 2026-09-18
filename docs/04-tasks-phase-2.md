@@ -627,7 +627,7 @@ less than it claims.
 | `[x]` T-141 | Article schema: canonical story, per-language version, entity links | T-140 | An article links to its match, teams, players and competition by UUID |
 | `[x]` T-142 | Ingestion and deduplication into story clusters | T-141 | Duplicate reports of one event become one cluster with a promoted original |
 | `[x]` T-143 | Sections: latest, trending, debate, following | T-142 | Trending is computed from qualified signals, not raw views |
-| `[~]` T-144 | Article page and filters | T-143 | Carries every field blueprint 3.3 requires, including corrections |
+| `[x]` T-144 | Article page and filters | T-143 | Carries every field blueprint 3.3 requires, including corrections |
 
 **T-140 first, and it is a real decision, not a formality.** News is other
 people's copyright. A feed is licensed, or syndicated with rules, or it is
@@ -855,6 +855,29 @@ newest first. A story whose original's publisher was dropped is 404: the
 words went with them. Save, share and the three prediction products are the
 page's to name as not built or to link to the match centre, where rule 6
 already keeps them apart.
+
+**T-144, second piece, and done: the page.** `/news/story/:id` shows the
+original's headline, summary, byline and time as the publisher wrote them,
+and where a free feed grants no body it says so in a sentence and makes
+"Read the original" the largest link on the page -- the product, not a
+consolation. The languages the original exists in are links that reload the
+page in that language, with the sentence that every version is the
+publisher's own and nothing is machine-translated (blueprint 3.3's
+"translation status", answered honestly). Corrections are listed with their
+dates or the page says none were noted; the linked teams and competition are
+chips to their pages; a linked match is a link to the match centre with the
+words "for the model forecast, the founder's analysis and the community
+consensus, kept apart there" -- the three products are not copied onto a
+news page, where a reader could take three sections for one verdict (rule 6).
+The other publishers' reports are listed newest first, each in its own
+language, each a link to its publisher. Save and share are named as not built
+(rule 3), and the page carries the same feed-read freshness the list does.
+Each card on the section page gained a link to its story. The filters the
+task names were built with T-143's page and are not repeated here.
+
+E14 is complete under D-061. What it does not have, on purpose, is a body:
+that arrives with a licensed source, as a rights row and an adapter, and the
+page already knows what to do with one.
 
 
 ---

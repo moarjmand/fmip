@@ -23,6 +23,7 @@ import {
   feedsStale,
   pageHref,
   readNewsQuery,
+  storyHref,
 } from '@/lib/news';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
@@ -395,11 +396,19 @@ function Story({
           ))}
         </ul>
       )}
-      {card.other_reports > 0 && (
-        <p className="text-sm opacity-80" data-testid="story-others">
-          <Translated locale={locale} message="news.otherReports" count={card.other_reports} />
-        </p>
-      )}
+      <p className="text-sm" data-testid="story-more">
+        <Link href={storyHref(locale, card.story_id)} className="underline">
+          <Translated locale={locale} message="news.storyPage" />
+        </Link>
+        {card.other_reports > 0 && (
+          <>
+            {' · '}
+            <span className="opacity-80" data-testid="story-others">
+              <Translated locale={locale} message="news.otherReports" count={card.other_reports} />
+            </span>
+          </>
+        )}
+      </p>
       {card.discussion !== null && (
         <p className="text-sm" data-testid="story-discussion">
           <Translated
