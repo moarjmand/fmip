@@ -1,12 +1,14 @@
 import { Module } from '@nestjs/common';
 import { IdentityModule } from '../identity/identity.module';
 import { ProfileModule } from '../profile/profile.module';
+import { PostgresDebateAdminStore } from './internal/debate-admin-store';
 import { PostgresNewsReadStore } from './internal/news-read-store';
 import { FetchTransport, NEWS_TRANSPORT } from './internal/news-transport';
 import { PostgresNewsStore } from './internal/news-store';
 import { NewsClusteringService } from './news-clustering.service';
 import { NewsIngestionService } from './news-ingestion.service';
 import { NewsSchedulerService } from './news-scheduler.service';
+import { DebateAdminController } from './debate-admin.controller';
 import { NewsController } from './news.controller';
 
 /**
@@ -20,10 +22,11 @@ import { NewsController } from './news.controller';
  */
 @Module({
   imports: [IdentityModule, ProfileModule],
-  controllers: [NewsController],
+  controllers: [NewsController, DebateAdminController],
   providers: [
     PostgresNewsStore,
     PostgresNewsReadStore,
+    PostgresDebateAdminStore,
     NewsClusteringService,
     NewsIngestionService,
     NewsSchedulerService,

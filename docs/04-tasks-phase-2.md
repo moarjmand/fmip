@@ -782,8 +782,19 @@ selection per story -- not a flag on `story`, because a flag has no history
 and no author. "Or supported by genuine discussion signals" is not built:
 those signals are what trending already ranks by, and a second section
 computed from the same numbers would be the same list under another name.
-When nobody has selected anything the section says `nothing_selected`. The
-editor's write endpoint and the admin surface are the second piece.
+When nobody has selected anything the section says `nothing_selected`.
+
+**The editor's half is in the same PR:** `POST /admin/stories/:id/debate`
+with the note readers see, `POST .../debate/clear` with a reason, and `GET
+/admin/debates?state=` to see both -- the `editor` role, which existed in
+`UserRole` and was granted nowhere before this, or `admin`. Each decision is
+an `audit_log` row (`debate.select`, `debate.clear`, target type `story`)
+written in the same transaction (rule 10), with the previous selection's note
+beside the new one so a re-selection after a clear remembers what was there.
+Selecting an already-selected story is refused rather than re-noted: changing
+the words on the page is a clear and a select, two decisions with two
+reasons. Not a `DELETE`, and the method is the argument: a cleared selection
+stays as the record of what was on the page and who took it off.
 
 **Following is answerable only for a member.** For a guest the section is
 `not_supplied` with `needs_session` -- not an empty list, not a 401: the page
@@ -795,8 +806,8 @@ directly. `last_updated_at` is when the feeds were last read (rule 4).
 own rule), story type (no such concept exists) and date beyond `before`.
 Each is a line here rather than a parameter that would return everything.
 
-Remaining in T-143: the editor's debate endpoint with its audit row, and the
-web page with the four sections and the filters.
+Remaining in T-143: the web page with the four sections and the filters, and
+the editor's page for the debate selection.
 
 
 ---

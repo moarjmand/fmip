@@ -411,6 +411,10 @@ export type {
 // link back to the publisher; each section says what it is computed from.
 export { NEWS_PAGE_SIZE, NEWS_SECTIONS, TRENDING_WINDOW_HOURS, isNewsSection } from './news';
 export type {
+  DebateClearRequest,
+  DebateListResponse,
+  DebateRecord,
+  DebateSelectionRequest,
   NewsEntity,
   NewsFilters,
   NewsRights,

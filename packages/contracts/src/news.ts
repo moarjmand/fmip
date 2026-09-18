@@ -103,3 +103,37 @@ export interface NewsSectionResponse {
   /** `?before=` for the next page of latest and following; `null` when this is the last. */
   next_before: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// The editor's half of the debate section (blueprint 3.1, rule 10). Editors
+// and administrators; every shape carries the words a reader or an auditor
+// will see, and neither is optional.
+// ---------------------------------------------------------------------------
+
+export interface DebateSelectionRequest {
+  /** Why this is a debate: shown beside the story and recorded in the audit log. */
+  note: string;
+}
+
+export interface DebateClearRequest {
+  /** Recorded on the row and in the audit log; required. */
+  reason: string;
+}
+
+export interface DebateRecord {
+  story_id: string;
+  /** The promoted original's newest headline, or `null` when the story has none. */
+  headline: string | null;
+  selected_by: string;
+  note: string;
+  selected_at: string;
+  cleared_by: string | null;
+  cleared_reason: string | null;
+  cleared_at: string | null;
+}
+
+export interface DebateListResponse {
+  generated_at: string;
+  /** Newest selection first. */
+  selections: DebateRecord[];
+}
