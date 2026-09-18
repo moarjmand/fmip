@@ -336,10 +336,10 @@ from the wrong country is worse than no answer.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-310 | **Decision gate:** where viewing and highlight data comes from, and under what licence | — | New entry in `00-decisions.md` |
+| `[x]` T-310 | **Decision gate:** where viewing and highlight data comes from, and under what licence | — | New entry in `00-decisions.md` |
 | `[x]` T-311 | Schema and contracts: `broadcaster`, `viewing_option`, `highlight`, rights per source | T-011 | Availability is stored per territory; a source carries what may be shown |
 | `[x]` T-312 | Territory: chosen by the member, stored, never silently inferred | T-041 | A viewer with no territory is asked, not guessed at |
-| `[ ]` T-313 | Ingestion and coverage per territory | T-310, T-311 | A territory with no data says `not_supplied`; it never says "not available" |
+| `[x]` T-313 | Ingestion and coverage per territory | T-310, T-311 | A territory with no data says `not_supplied`; it never says "not available" |
 | `[ ]` T-314 | Surfaces: the Watch page, the match centre panel, the team fixture list, the Following feed | T-313 | One module, four places, one answer |
 | `[ ]` T-315 | Highlights: an approved embed where there is one, the official page where there is not | T-313 | Never an embed the rights do not allow, and never a dead player |
 
@@ -412,6 +412,27 @@ language for free. The settings page has the chooser; the surfaces that ask
 (T-314) get `viewing_territory` from `OwnProfile` and from `GET /me/territory`.
 A guest has nowhere to store a choice; the Watch surfaces will ask them each
 time rather than guess, which is T-314's to render.
+
+**T-310 decided on 2026-09-18 (D-069), by delegation.** The maintainer asked
+the agent to choose among the three roads in `14-maintainer.md` §8 under the
+rule that nothing is bought and no account is opened. That leaves the
+editorial desk: link-only, per territory, every row an editor's and audited.
+A licence, if one ever comes, is a second source beside it, not a replacement.
+
+**T-313 done the same day: the desk.** Migration `..._viewing-editorial` fixes
+the desk's `viewing_source` by id (`manual`, `link`, no homepage because it
+lives here). `GET /fixtures/:id/viewing` and `GET /viewing?fixture=…` answer
+`MatchViewing` for the viewer's stored territory, or `?territory=` for a guest
+or a member looking elsewhere on purpose -- an unknown code refused, never
+mapped to a neighbour, and none at all answered as `not_chosen`. The editor's
+endpoints under `/admin` declare coverage per season, territory and module
+(`not_supplied` is a declaration too, dated and sourceless), keep the
+broadcaster list, and enter, replace and remove listings and official
+highlight pages. Coverage comes first, because a listing in a territory
+nobody declared is a fact nobody stood behind; every write is an audit row
+(rule 10) and every removal carries a reason. `viewing.http.spec.ts` walks a
+guest, a member in Iran, an editor, and the schema's own refusal of a player
+under the desk. T-314 and T-315, the surfaces, are next.
 
 ---
 
@@ -599,9 +620,9 @@ for Phase 3:
 |---|---|---|
 | T-300..T-304 | nothing | agent |
 | T-305 | a fluent speaker per language | **maintainer** |
-| T-310 | a licensing decision | **maintainer** |
+| T-310 | decided by delegation (D-069) | agent |
 | T-311, T-312 | nothing | agent |
-| T-313..T-315 | T-310 | after the decision |
+| T-313..T-315 | D-069 | agent |
 | T-320 | a framework decision, store accounts, money | **maintainer** |
 | T-321 | nothing | agent |
 | T-322..T-324 | T-320 | after the decision |

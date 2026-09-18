@@ -23,6 +23,7 @@ import { PanelModule } from './modules/panel/panel.module';
 import { ReputationModule } from './modules/reputation/reputation.module';
 import { SearchModule } from './modules/search/search.module';
 import { NewsModule } from './modules/news/news.module';
+import { ViewingModule } from './modules/viewing/viewing.module';
 
 /**
  * The remaining modules from `docs/02-architecture.md` are registered here as
@@ -55,6 +56,7 @@ import { NewsModule } from './modules/news/news.module';
     AnalysisModule,
     SearchModule,
     NewsModule,
+    ViewingModule,
     AdminModule,
   ],
 })

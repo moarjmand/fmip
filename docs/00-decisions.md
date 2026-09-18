@@ -2341,3 +2341,47 @@ for the match; `panel` is for the panel.
 **What "live" means to a reader.** The same freshness line the page already
 shows. A page whose stream is stale says so, and a panel under it is as stale
 as the score beside it -- rule 4 is answered once, for the page.
+
+---
+
+## D-069 — Viewing data is editorial and link-only until a licence says otherwise
+
+**Date:** 2026-09-18 · **Task:** T-310, T-313 · **Status:** accepted
+
+**Decision.** The first viewing source is the editorial desk: a
+`viewing_source` row of kind `manual` with `rights = 'link'`, fixed by id in
+the T-313 migration. An editor declares which seasons the desk covers in which
+territories, keeps the broadcaster list, and enters listings -- this match, in
+this territory, on this service, with this access, at this official page --
+and highlight pages, from public schedules. Nothing is ingested from anybody
+and nothing is hosted: a listing is a fact an editor entered and signed (an
+audit row), and a viewer is sent to the official destination.
+
+**Why this road.** Three were open (`14-maintainer.md` §8): a licensed
+listings provider, broadcasters' own schedules under their terms, or the desk.
+The maintainer delegated the choice to the agent on 2026-09-18 under the
+standing rule that nothing is bought and no account is opened, which leaves
+the desk. It is also the only road that puts no third party's terms between
+the product and a reader, and the schema was built (T-311) so that a second
+source with more rights slots in beside it rather than replacing it.
+
+**What it means for the surfaces.** Every territory the desk has not declared
+is `not_supplied`: the product says it knows nothing about Turkey, not that
+there is nothing to watch there. A territory the desk declared `available`
+turns an empty listing into a fact. A highlight from the desk is the official
+page and never a player -- the desk holds no rights to anybody's video,
+`PL017` refuses an embed under it in the schema, and a surface renders a
+player only for a source that grants one, which today is none.
+
+**What it costs.** Editors' time, per match and per territory; the product
+will cover few territories and say so. Coverage is per season, so a desk that
+covers the Premier League in Iran and nothing else is honest by construction.
+
+**Rejected.** *Scraping listings sites*: their terms, and a listing nobody
+signed. *Inferring "not available" from an empty desk*: the failure the epic
+exists to avoid (rule 3). *Waiting for a licence*: leaves blueprint 11 unbuilt
+for a decision that may never be taken, when the honest half needs none.
+
+**What would reverse this.** A licence (T-310 revisited): a second
+`viewing_source` with `thumbnail` or `embed` rights, an ingestion job behind
+it, and the same surfaces.
