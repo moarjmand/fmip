@@ -10,6 +10,8 @@ import {
   feedsStale,
   pageHref,
   readNewsQuery,
+  readStoryQuery,
+  storyHref,
 } from './news';
 
 const TEAM = '0e230000-0000-4000-8000-000000000001';
@@ -76,6 +78,19 @@ describe('apiQuery and pageHref', () => {
       `before=${encodeURIComponent('2026-09-01T00:00:00Z')}`,
     );
     expect(pageHref('en', q, { team: null })).toBe('/en/news?section=following');
+  });
+});
+
+describe('the story page', () => {
+  it('reads a language when one is asked for, and drops one that is not a tag', () => {
+    expect(readStoryQuery({})).toEqual({ language: null });
+    expect(readStoryQuery({ language: 'ar' })).toEqual({ language: 'ar' });
+    expect(readStoryQuery({ language: 'not a tag!' })).toEqual({ language: null });
+  });
+
+  it('links a card to its story, in a language only when asked', () => {
+    expect(storyHref('en', TEAM)).toBe(`/en/news/story/${TEAM}`);
+    expect(storyHref('ar', TEAM, 'pt-BR')).toBe(`/ar/news/story/${TEAM}?language=pt-BR`);
   });
 });
 

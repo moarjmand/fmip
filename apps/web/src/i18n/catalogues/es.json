@@ -354,5 +354,80 @@
     "source": "Take off the debate page",
     "text": "",
     "status": "untranslated"
+  },
+  "news.storyPage": {
+    "source": "Story, languages and other reports",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.bodyAtSource": {
+    "source": "This publisher grants the headline and summary here; the article itself is on their site.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.readOriginal": {
+    "source": "Read the original",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.updated": {
+    "source": "These words were last updated",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.languages": {
+    "source": "Languages",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.translationStatus": {
+    "source": "Each language is the publisher's own version. Nothing here is machine-translated.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.corrections": {
+    "source": "Corrections",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.noCorrections": {
+    "source": "No corrections have been noted.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.about": {
+    "source": "About",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.noEntities": {
+    "source": "No team, competition or match has been linked to this story.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.matchCentre": {
+    "source": "Open the match centre",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.matchProducts": {
+    "source": "for the model forecast, the founder's analysis and the community consensus, kept apart there.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.otherReports": {
+    "source": "Other reports of this story",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.noOtherReports": {
+    "source": "No other publisher has reported this story.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.notYet": {
+    "source": "Save and share are not built yet.",
+    "text": "",
+    "status": "untranslated"
   }
 }

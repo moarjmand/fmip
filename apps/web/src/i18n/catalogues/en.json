@@ -93,5 +93,20 @@
   "news.debate.noteLabel": "Why this is a debate (readers see this)",
   "news.debate.select": "Select for debate",
   "news.debate.reasonLabel": "Reason (recorded)",
-  "news.debate.clear": "Take off the debate page"
+  "news.debate.clear": "Take off the debate page",
+  "news.storyPage": "Story, languages and other reports",
+  "story.bodyAtSource": "This publisher grants the headline and summary here; the article itself is on their site.",
+  "story.readOriginal": "Read the original",
+  "story.updated": "These words were last updated",
+  "story.languages": "Languages",
+  "story.translationStatus": "Each language is the publisher's own version. Nothing here is machine-translated.",
+  "story.corrections": "Corrections",
+  "story.noCorrections": "No corrections have been noted.",
+  "story.about": "About",
+  "story.noEntities": "No team, competition or match has been linked to this story.",
+  "story.matchCentre": "Open the match centre",
+  "story.matchProducts": "for the model forecast, the founder's analysis and the community consensus, kept apart there.",
+  "story.otherReports": "Other reports of this story",
+  "story.noOtherReports": "No other publisher has reported this story.",
+  "story.notYet": "Save and share are not built yet."
 }

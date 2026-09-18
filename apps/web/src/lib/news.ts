@@ -110,6 +110,18 @@ export function entityHref(locale: string, entity: NewsEntity): string {
   }
 }
 
+/** The story page's query: which of the original's languages to show, if asked. */
+export function readStoryQuery(params: Params): { language: string | null } {
+  const language = first(params, 'language');
+  return { language: language !== null && LANGUAGE.test(language) ? language : null };
+}
+
+/** The story page for a card, in a language when one is asked for. */
+export function storyHref(locale: string, storyId: string, language: string | null = null): string {
+  const base = `/${locale}/news/story/${storyId}`;
+  return language === null ? base : `${base}?language=${encodeURIComponent(language)}`;
+}
+
 /** Whether the newest feed read is too old to present the list as current (rule 4). */
 export function feedsStale(lastUpdatedAt: string | null, now = new Date()): boolean {
   if (lastUpdatedAt === null) return true;
