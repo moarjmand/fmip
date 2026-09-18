@@ -15,6 +15,7 @@ import type {
   CountriesResponse,
   FixtureEvaluationsResponse,
   FollowedEntity,
+  FollowingFeed,
   FollowingResponse,
   ForecastListResponse,
   ForecastVersionsResponse,
@@ -346,6 +347,11 @@ export function fetchOwnProfile(cookie: string | undefined): Promise<ApiResult<O
 export async function fetchCountries(): Promise<CountriesResponse['countries'] | null> {
   const result = await apiRequest<CountriesResponse>('/countries');
   return result.ok ? result.data.countries : null;
+}
+
+/** `GET /me/feed` (T-333): the member's Following feed, in the API's order. */
+export function fetchFeed(cookie: string | undefined): Promise<ApiResult<FollowingFeed>> {
+  return apiRequest<FollowingFeed>('/me/feed', { cookie });
 }
 
 export async function fetchFollowing(cookie: string | undefined): Promise<FollowedEntity[] | null> {

@@ -111,5 +111,40 @@
   "story.notYet": "Save and share are not built yet.",
   "story.version.publisher": "the publisher's own words",
   "story.version.translated": "translated by a fluent speaker, awaiting review",
-  "story.version.reviewed": "translated and reviewed by two fluent speakers"
+  "story.version.reviewed": "translated and reviewed by two fluent speakers",
+  "nav.following": "Following",
+  "feed.title": "Following",
+  "feed.manage": "Choose what you follow",
+  "feed.unreachable": "Your feed cannot be shown right now.",
+  "feed.showing": "Showing",
+  "feed.followedTeams": {
+    "one": "{count} team",
+    "other": "{count} teams"
+  },
+  "feed.followedCompetitions": {
+    "one": "{count} competition",
+    "other": "{count} competitions"
+  },
+  "feed.followedMembers": {
+    "one": "{count} contributor",
+    "other": "{count} contributors"
+  },
+  "feed.rankingRule": "ranked by",
+  "feed.rank": "Rank",
+  "feed.analysisCall": "The founder's call:",
+  "feed.kind.fixture": "Match",
+  "feed.kind.story": "Story",
+  "feed.kind.founderAnalysis": "Founder's analysis",
+  "feed.kind.panelPost": "Panel post",
+  "feed.signal.follows": "you follow",
+  "feed.signal.favourite": "a favourite:",
+  "feed.signal.live": "live now",
+  "feed.signal.imminent": "kicks off within a day",
+  "feed.signal.discussed": {
+    "one": "{count} member discussing in the last {hours} hours",
+    "other": "{count} members discussing in the last {hours} hours"
+  },
+  "feed.signal.fresh": "new today",
+  "feed.reason.nothingFollowed": "You follow nothing yet. Follow a team, a competition or a contributor and what happens around them will appear here.",
+  "feed.reason.nothingInWindow": "Nothing has happened around what you follow in the last week, and nothing is due in the next."
 }
