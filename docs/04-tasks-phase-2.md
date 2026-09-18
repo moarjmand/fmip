@@ -701,10 +701,27 @@ items is a feed with no items. No dependency was added: a feed is small
 enough to read by hand, and a parser would have hidden the one thing that
 matters -- what is taken.
 
-**Still to come in T-142:** the fetch job (per source, `robots.txt` and the
-feed's own terms obeyed, one open run per source), the upsert into
-`article`/`article_version` by the feed's own id, and the clustering of
-duplicate reports into one `story` with a promoted original.
+**T-142, second piece: the job.** `apps/api/src/modules/news/` reads every
+active source on an hourly schedule (the same `INGESTION_SCHEDULE=on` gate
+as the football jobs, its own queue). Every attempt is a `news_fetch` row --
+one open run per source by a partial unique index -- so a feed that stops
+answering is a fact in a table rather than a silence. `robots.txt` is fetched
+first and honoured: the group written for `fmip-news` wins over `*`, the
+longest rule wins inside a group, and a missing file allows everything, which
+is what the standard says. A refusal -- robots, a 404, a body that is not a
+feed -- is a `partial` run naming the reason, never a thrown error. The
+source's rights are applied **before** the write, so a headline-only source
+never has its summary stored and the database's PL016 is the guard that does
+not fire in normal operation. A version is written only when the feed's words
+changed: running twice over the same feed writes nothing the second time, and
+a changed headline is version 2 with version 1 still there. Reading real feeds
+also corrected T-141: a publisher who gives no time gives no time, so
+`published_at` is nullable now, and the fetch time stays where it means what
+it says.
+
+**Still to come in T-142:** entity links (a headline naming a team, by the
+team's own name or alias and never by guess) and the clustering of duplicate
+reports into one `story` with a promoted original.
 
 
 ---

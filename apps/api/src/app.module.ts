@@ -20,6 +20,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { PanelModule } from './modules/panel/panel.module';
 import { ReputationModule } from './modules/reputation/reputation.module';
 import { SearchModule } from './modules/search/search.module';
+import { NewsModule } from './modules/news/news.module';
 
 /**
  * The remaining modules from `docs/02-architecture.md` are registered here as
@@ -49,6 +50,7 @@ import { SearchModule } from './modules/search/search.module';
     NotificationsModule,
     AnalysisModule,
     SearchModule,
+    NewsModule,
     AdminModule,
   ],
 })
