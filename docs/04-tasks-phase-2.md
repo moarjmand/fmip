@@ -625,7 +625,7 @@ less than it claims.
 |---|---|---|---|
 | `[x]` T-140 | **Decision gate:** where news comes from, and under what licence | — | New entry in `00-decisions.md` |
 | `[x]` T-141 | Article schema: canonical story, per-language version, entity links | T-140 | An article links to its match, teams, players and competition by UUID |
-| `[ ]` T-142 | Ingestion and deduplication into story clusters | T-141 | Duplicate reports of one event become one cluster with a promoted original |
+| `[~]` T-142 | Ingestion and deduplication into story clusters | T-141 | Duplicate reports of one event become one cluster with a promoted original |
 | `[ ]` T-143 | Sections: latest, trending, debate, following | T-142 | Trending is computed from qualified signals, not raw views |
 | `[ ]` T-144 | Article page and filters | T-143 | Carries every field blueprint 3.3 requires, including corrections |
 
@@ -684,6 +684,27 @@ the first cascade test failed on `refuse_change()`, which was the trigger
 telling the truth about a rule that was the wrong rule for news.
 
 T-142 through T-144 are unblocked; the schema they need is the one above.
+
+**T-142, first piece, on 2026-09-18: the feed reader.** `packages/ingestion/
+src/news/feed.ts` reads RSS 2.0 and Atom by hand -- a handful of elements
+inside `<item>` or `<entry>` -- over the same `Transport` seam every adapter
+uses, so the job never reaches for `fetch` and a test never reaches for the
+network. What it takes from a feed is exactly what D-061 permits, and the
+rights model is in the type rather than in a check: `NormalisedNewsItem` has
+no body field, so there is no code path that could store one; the RSS sample
+in the spec carries a full `content:encoded` and the result is asserted not to
+contain it. Nothing is guessed (rule 3): a missing summary, byline, time or
+language is `null`, never the fetch time or the site's language; an entry
+with no headline or no link is skipped and counted. A JSON answer, an HTML
+error page or an empty body is `malformed`, not an empty feed; a feed with no
+items is a feed with no items. No dependency was added: a feed is small
+enough to read by hand, and a parser would have hidden the one thing that
+matters -- what is taken.
+
+**Still to come in T-142:** the fetch job (per source, `robots.txt` and the
+feed's own terms obeyed, one open run per source), the upsert into
+`article`/`article_version` by the feed's own id, and the clustering of
+duplicate reports into one `story` with a promoted original.
 
 
 ---

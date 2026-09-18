@@ -20,6 +20,9 @@ export {
   type TransportResponse,
 } from './adapters/_contract';
 
+// A publisher's feed, read by hand and only as far as D-061 permits (T-142).
+export { type FeedProblem, type ParsedFeed, parseFeed, readFeed } from './news/feed';
+
 // The recorded-fixture contract harness.
 export {
   checkAdapterContract,

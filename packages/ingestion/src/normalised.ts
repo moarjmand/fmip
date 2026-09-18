@@ -202,3 +202,25 @@ export interface NormalisedFixtureDetail {
   statistics: NormalisedStat[];
   periods: NormalisedPeriod[];
 }
+
+/**
+ * One item from a publisher's feed, and only what the feed carries for that
+ * purpose (T-142, D-061): the headline, the publisher's own summary, the
+ * byline, the time, and the link to the original. There is no body field,
+ * and that is the rights model in the type rather than in a check -- a reader
+ * cannot return what a free source does not grant.
+ */
+export interface NormalisedNewsItem {
+  /** The feed's own identity for the item (guid or id), or the link when it has none. */
+  externalId: string;
+  /** The original, where a reader is sent. */
+  url: string;
+  headline: string;
+  /** The publisher's summary as they put it in the feed, tags stripped; `null` when absent. */
+  summary: string | null;
+  byline: string | null;
+  /** ISO 8601; `null` when the feed gave no time, never "now". */
+  publishedAt: string | null;
+  /** BCP 47 when the feed or the item says; `null` otherwise. Never guessed. */
+  language: string | null;
+}
