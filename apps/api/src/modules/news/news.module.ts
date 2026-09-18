@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { FetchTransport, NEWS_TRANSPORT } from './internal/news-transport';
 import { PostgresNewsStore } from './internal/news-store';
+import { NewsClusteringService } from './news-clustering.service';
 import { NewsIngestionService } from './news-ingestion.service';
 import { NewsSchedulerService } from './news-scheduler.service';
 
@@ -14,6 +15,7 @@ import { NewsSchedulerService } from './news-scheduler.service';
 @Module({
   providers: [
     PostgresNewsStore,
+    NewsClusteringService,
     NewsIngestionService,
     NewsSchedulerService,
     { provide: NEWS_TRANSPORT, useFactory: (): FetchTransport => new FetchTransport() },

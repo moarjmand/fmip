@@ -625,7 +625,7 @@ less than it claims.
 |---|---|---|---|
 | `[x]` T-140 | **Decision gate:** where news comes from, and under what licence | — | New entry in `00-decisions.md` |
 | `[x]` T-141 | Article schema: canonical story, per-language version, entity links | T-140 | An article links to its match, teams, players and competition by UUID |
-| `[~]` T-142 | Ingestion and deduplication into story clusters | T-141 | Duplicate reports of one event become one cluster with a promoted original |
+| `[x]` T-142 | Ingestion and deduplication into story clusters | T-141 | Duplicate reports of one event become one cluster with a promoted original |
 | `[ ]` T-143 | Sections: latest, trending, debate, following | T-142 | Trending is computed from qualified signals, not raw views |
 | `[ ]` T-144 | Article page and filters | T-143 | Carries every field blueprint 3.3 requires, including corrections |
 
@@ -719,9 +719,43 @@ also corrected T-141: a publisher who gives no time gives no time, so
 `published_at` is nullable now, and the fetch time stays where it means what
 it says.
 
-**Still to come in T-142:** entity links (a headline naming a team, by the
-team's own name or alias and never by guess) and the clustering of duplicate
-reports into one `story` with a promoted original.
+**T-142, third piece, and done: where a report belongs.** After every
+version written, `NewsClusteringService.place()` links the entities the
+headline names and, for a report seen for the first time, looks for the story
+it duplicates. Linking is a whole-word match of the entity's own name or a
+recorded alias, folded by `search_key` (rule 1: by id, never by guess), and a
+name shorter than five letters after folding links nothing -- "Roma" and
+"Ajax" are words a headline can carry without meaning the club, and the alias
+table is where a longer form belongs. A person is never linked: surnames are
+too common to link on without a guess. The match follows from the teams: when
+exactly one fixture between the linked teams kicks off within two days of the
+article's time, the article is about it, and two candidates link none.
+
+**Clustering is narrower than it could be, on purpose.** Two reports become
+one `story` only when they link exactly the same teams, come from different
+publishers, fall within two days of each other, and still read alike once the
+names are taken out. That last step was the finding: with the names left in,
+"Testville 2-1 Otherton: late winner" and "Otherton sack manager after
+Testville defeat" scored 0.52 on trigram similarity, above any threshold that
+would also catch a reworded duplicate, because the two long names *are* most
+of both headlines. With every name and alias of the linked entities removed,
+duplicates score 0.55-0.68, independent write-ups of one match 0.24-0.31 and
+different events 0.09 at most; the threshold is 0.4, so the independent
+write-ups stay apart. A duplicate left apart costs a reader one repeated
+headline; a story wrongly merged hides a report behind another publisher's
+original, and of the two mistakes the first is the one to make. The original
+(`story.promoted_article_id`) is the earliest published report, then the
+earliest fetched, and a story of one report is its own original, so the
+column always answers; the story a joined report was born with is deleted in
+the same transaction. The http spec grows the two clubs, an alias and the
+match between them for the run, and asserts the links, the promotion, the
+merge and the event that stays apart.
+
+**Known limits, for T-143 to meet rather than guess around:** an article
+whose headline names no team is never clustered; a headline corrected to name
+a team gains the link but keeps its story; a source dropped under D-061 takes
+its articles and can leave a story whose `promoted_article_id` points at
+nothing, so a reader must treat that column as a pointer, not a fact.
 
 
 ---
