@@ -472,7 +472,7 @@ E27 builds the inbox. This is where it reaches somebody who is not looking.
 | `[~]` T-330 | Delivery behind one port: email and push, with a provider chosen at deployment | T-270, T-074 | A deployment with no provider says so and delivers nothing, rather than appearing to |
 | `[x]` T-331 | Per-team, per-competition and per-category controls | T-270 | A member can silence one team without silencing football |
 | `[ ]` T-332 | Campaigns: an audience is a saved query, a send is a row | T-330 | Nobody receives the same campaign twice, and every send says who it reached |
-| `[~]` T-333 | The Following feed, ranked | T-042, T-141 | Ranking is from qualified signals, never raw volume, and says what it is showing |
+| `[x]` T-333 | The Following feed, ranked | T-042, T-141 | Ranking is from qualified signals, never raw volume, and says what it is showing |
 
 **One port, providers behind it, and a deployment that has none says so.** This
 is the `LogMailer` shape the product already uses (T-043): a missing provider
@@ -516,7 +516,19 @@ what it is showing -- the window, the kinds, how many of each thing the
 member follows, and the ranking rule by name. There is no `views` signal
 because nothing records views, and there will not be one: raw views rank
 whatever was already seen. A member who follows nothing is told so; a window
-with nothing in it says so. The page is the second piece.
+with nothing in it says so.
+
+**T-333, second piece, and done: the page.** `/following` is the API's list
+in the API's order -- the page adds nothing to the ranking and hides nothing
+of it. Its first line says what the list is made from: the window, how many
+teams, competitions and contributors are followed, and the rule by name;
+every item shows its kind, its moment, the thing it is about as a link by
+id, its `because` chips (each signal a sentence from a total record over the
+contract's signal kinds, `discussed` as a plural of members) and the rank
+they add up to. The journey follows Liverpool as a favourite in 18.4 and
+then finds their match in the feed with "you follow Liverpool" and "a
+favourite" on it. E33's agent-buildable half is complete; the provider
+(T-330) and campaigns (T-332) wait for the maintainer.
 
 **T-330, the port and the honest absence, on 2026-09-18.** `apps/api/src/
 modules/delivery/` is one port (`OUTBOUND_DELIVERY`: an e-mail channel and a

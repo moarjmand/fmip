@@ -444,5 +444,132 @@
     "source": "translated and reviewed by two fluent speakers",
     "text": "",
     "status": "untranslated"
+  },
+  "nav.following": {
+    "source": "Following",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feed.title": {
+    "source": "Following",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feed.manage": {
+    "source": "Choose what you follow",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feed.unreachable": {
+    "source": "Your feed cannot be shown right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feed.showing": {
+    "source": "Showing",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feed.followedTeams": {
+    "source": {
+      "one": "{count} team",
+      "other": "{count} teams"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "feed.followedCompetitions": {
+    "source": {
+      "one": "{count} competition",
+      "other": "{count} competitions"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "feed.followedMembers": {
+    "source": {
+      "one": "{count} contributor",
+      "other": "{count} contributors"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "feed.rankingRule": {
+    "source": "ranked by",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feed.rank": {
+    "source": "Rank",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feed.analysisCall": {
+    "source": "The founder's call:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feed.kind.fixture": {
+    "source": "Match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feed.kind.story": {
+    "source": "Story",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feed.kind.founderAnalysis": {
+    "source": "Founder's analysis",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feed.kind.panelPost": {
+    "source": "Panel post",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feed.signal.follows": {
+    "source": "you follow",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feed.signal.favourite": {
+    "source": "a favourite:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feed.signal.live": {
+    "source": "live now",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feed.signal.imminent": {
+    "source": "kicks off within a day",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feed.signal.discussed": {
+    "source": {
+      "one": "{count} member discussing in the last {hours} hours",
+      "other": "{count} members discussing in the last {hours} hours"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "feed.signal.fresh": {
+    "source": "new today",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feed.reason.nothingFollowed": {
+    "source": "You follow nothing yet. Follow a team, a competition or a contributor and what happens around them will appear here.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feed.reason.nothingInWindow": {
+    "source": "Nothing has happened around what you follow in the last week, and nothing is due in the next.",
+    "text": "",
+    "status": "untranslated"
   }
 }
