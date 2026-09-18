@@ -1,4 +1,4 @@
-import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
+import { DEFAULT_LOCALE, directionOf, isLocale, type Locale } from '@/i18n/locales';
 import { type MessageKey, type PluralKey, message, plural } from '@/i18n/messages';
 
 /**
@@ -15,6 +15,15 @@ import { type MessageKey, type PluralKey, message, plural } from '@/i18n/message
  * finished and is not, which is the failure rule 3 describes, applied to
  * language. Machine-translating it instead would be worse: content nobody
  * checked, presented as the product's own words.
+ *
+ * The span also carries `dir`, the source language's own direction. On a
+ * right-to-left page the bidi algorithm lays out a Latin run correctly on its
+ * own, but resolves the punctuation and digits at its edges by the paragraph
+ * around it -- so "Sign in?" at the end of an Arabic line renders as "?Sign
+ * in", and "3 followers" moves its number. An element with `dir` is isolated
+ * (HTML gives it `unicode-bidi: isolate`), so the fallback reads as the
+ * English sentence it is. The direction comes from `directionOf`, not a
+ * literal, for the same reason the layout never says left or right (rule 7).
  *
  * With `count`, the key is a plural (T-301) and the form is chosen by the
  * locale's own rules; `params` fills any other `{name}` placeholder. The
@@ -36,7 +45,12 @@ export function Translated(
 
   if (status === 'untranslated') {
     return (
-      <span lang={DEFAULT_LOCALE} data-translation="untranslated" className={className}>
+      <span
+        lang={DEFAULT_LOCALE}
+        dir={directionOf(DEFAULT_LOCALE)}
+        data-translation="untranslated"
+        className={className}
+      >
         {text}
       </span>
     );
