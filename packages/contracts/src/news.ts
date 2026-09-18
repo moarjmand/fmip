@@ -107,6 +107,51 @@ export interface NewsSectionResponse {
 }
 
 // ---------------------------------------------------------------------------
+// The story page (blueprint 3.3, T-144), built against D-061: a front page
+// that sends readers away. Everything the blueprint lists is here or is named
+// as not supplied; nothing is invented to fill a slot.
+// ---------------------------------------------------------------------------
+
+/** Another publisher's report of the same event, in the cluster. */
+export interface NewsReport {
+  article_id: string;
+  headline: string;
+  summary: string | null;
+  byline: string | null;
+  language: string;
+  published_at: string | null;
+  url: string;
+  source: { id: string; name: string; homepage_url: string; rights: NewsRights };
+}
+
+/** One language the original has been written in, and when its newest version was. */
+export interface StoryVersion {
+  language: string;
+  version_number: number;
+  updated_at: string;
+}
+
+export interface StoryPage {
+  /** The promoted original, shown in `?language=` when a version exists, else the source's language. */
+  story: NewsStoryCard;
+  /** When the words shown were written; a correction is a new version, so this moves. */
+  updated_at: string;
+  versions: StoryVersion[];
+  /**
+   * The full text, only when the source grants it (`rights = 'full_text'`,
+   * D-061). For every free feed this is `not_supplied` and the page sends
+   * the reader to the publisher, which is the product (rule 3).
+   */
+  body: Covered<string>;
+  /** Newest first. */
+  corrections: { note: string; noted_at: string }[];
+  /** The other publishers' reports grouped under this story, newest first. */
+  reports: NewsReport[];
+  /** When the feeds were last read (rule 4). */
+  last_updated_at: string | null;
+}
+
+// ---------------------------------------------------------------------------
 // The editor's half of the debate section (blueprint 3.1, rule 10). Editors
 // and administrators; every shape carries the words a reader or an auditor
 // will see, and neither is optional.

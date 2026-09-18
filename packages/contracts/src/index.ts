@@ -420,6 +420,9 @@ export type {
   NewsRights,
   NewsSection,
   NewsSectionReason,
+  NewsReport,
   NewsSectionResponse,
   NewsStoryCard,
+  StoryPage,
+  StoryVersion,
 } from './news';

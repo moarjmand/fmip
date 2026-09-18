@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
-import type { NewsSectionResponse } from '@fmip/contracts';
+import type { NewsSectionResponse, StoryPage } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
@@ -38,6 +38,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('news section
   let app: NestFastifyApplication;
   let pool: Pool;
   let source: string;
+  let other: string;
   let matchStory: string;
   let otherStory: string;
   const members = new Map<string, { id: string; cookie: string }>();
@@ -157,6 +158,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('news section
       [`Sections ${RUN}`, `https://scripted.test/sections-${RUN}.xml`],
     );
     source = src.rows[0]!.id;
+    const second = await pool.query<{ id: string }>(
+      `INSERT INTO news_source (name, homepage_url, feed_url, kind, rights, language)
+       VALUES ($1, 'https://other.test', $2, 'rss', 'headline', 'en') RETURNING id`,
+      [`Other ${RUN}`, `https://other.test/feed-${RUN}.xml`],
+    );
+    other = second.rows[0]!.id;
     matchStory = await story(`Rovers edge Athletic ${RUN}`, 'en', '2026-09-17T16:00:00Z', [
       { type: 'team', id: HOME },
       { type: 'team', id: AWAY },
@@ -175,7 +182,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('news section
     } finally {
       client.release();
     }
-    await pool.query(`DELETE FROM news_source WHERE id = $1`, [source]);
+    await pool.query(`DELETE FROM news_source WHERE id IN ($1, $2)`, [source, other]);
     await pool.query(`DELETE FROM story WHERE id IN ($1, $2)`, [matchStory, otherStory]);
     await pool.query(`DELETE FROM fixture WHERE id = $1`, [MATCH]);
     await pool.query(`DELETE FROM team WHERE id IN ($1, $2)`, [HOME, AWAY]);
@@ -295,6 +302,73 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('news section
     );
     const cleared = await section('section=debate');
     expect(cleared.body.stories.data!.map((c) => c.story_id)).not.toContain(matchStory);
+  });
+
+  it('serves the story page: the original in the language asked for, its languages, corrections, the other reports, and no body it is not granted', async () => {
+    const original = (
+      await pool.query<{ id: string }>(
+        `SELECT promoted_article_id AS id FROM story WHERE id = $1`,
+        [matchStory],
+      )
+    ).rows[0]!.id;
+    await pool.query(
+      `INSERT INTO article_version (article_id, language, version_number, headline, published_at)
+       VALUES ($1, 'ar', 1, $2, '2026-09-17T16:00:00Z')`,
+      [original, `روفرز يفوز ${RUN}`],
+    );
+    await pool.query(
+      `INSERT INTO article_correction (article_id, note) VALUES ($1, 'The scorer was corrected.')`,
+      [original],
+    );
+    const report = await pool.query<{ id: string }>(
+      `INSERT INTO article (source_id, story_id, external_id, url)
+       VALUES ($1, $2, $3, 'https://other.test/report') RETURNING id`,
+      [other, matchStory, `report-${RUN}`],
+    );
+    await pool.query(
+      `INSERT INTO article_version (article_id, language, version_number, headline, published_at)
+       VALUES ($1, 'en', 1, $2, '2026-09-17T18:00:00Z')`,
+      [report.rows[0]!.id, `Athletic lose late ${RUN}`],
+    );
+
+    const missing = await app.inject({ method: 'GET', url: `/news/stories/${randomUUID()}` });
+    expect(missing.statusCode).toBe(404);
+
+    const english = await app.inject({ method: 'GET', url: `/news/stories/${matchStory}` });
+    expect(english.statusCode).toBe(200);
+    const page = english.json<StoryPage>();
+    expect(page.story).toMatchObject({
+      story_id: matchStory,
+      headline: `Rovers edge Athletic ${RUN}`,
+      language: 'en',
+      other_reports: 1,
+    });
+    expect(page.versions.map((v) => v.language)).toEqual(['ar', 'en']);
+    expect(page.corrections).toMatchObject([{ note: 'The scorer was corrected.' }]);
+    expect(page.reports).toMatchObject([
+      {
+        headline: `Athletic lose late ${RUN}`,
+        source: { name: `Other ${RUN}`, rights: 'headline' },
+      },
+    ]);
+    // A summary source grants no body; the page says so rather than carrying an empty one.
+    expect(page.body).toEqual({ coverage: 'not_supplied', last_updated_at: null, data: null });
+    expect(page.story.entities.map((e) => e.entity_type).sort()).toEqual([
+      'fixture',
+      'team',
+      'team',
+    ]);
+
+    const arabic = await app.inject({
+      method: 'GET',
+      url: `/news/stories/${matchStory}?language=ar`,
+    });
+    expect(arabic.json<StoryPage>().story).toMatchObject({
+      headline: `روفرز يفوز ${RUN}`,
+      language: 'ar',
+    });
+    // The other report has no Arabic version, so it stays in its own language rather than vanishing.
+    expect(arabic.json<StoryPage>().reports[0]?.language).toBe('en');
   });
 
   it('answers following from what the member follows, and tells a guest it needs a session', async () => {

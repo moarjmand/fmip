@@ -627,7 +627,7 @@ less than it claims.
 | `[x]` T-141 | Article schema: canonical story, per-language version, entity links | T-140 | An article links to its match, teams, players and competition by UUID |
 | `[x]` T-142 | Ingestion and deduplication into story clusters | T-141 | Duplicate reports of one event become one cluster with a promoted original |
 | `[x]` T-143 | Sections: latest, trending, debate, following | T-142 | Trending is computed from qualified signals, not raw views |
-| `[ ]` T-144 | Article page and filters | T-143 | Carries every field blueprint 3.3 requires, including corrections |
+| `[~]` T-144 | Article page and filters | T-143 | Carries every field blueprint 3.3 requires, including corrections |
 
 **T-140 first, and it is a real decision, not a formality.** News is other
 people's copyright. A feed is licensed, or syndicated with rules, or it is
@@ -835,6 +835,26 @@ an unfiltered empty list is not "no story matches these filters".
 feed -- the state worth checking: every section says what it holds and why,
 a guest's following asks for a session, a filter that matches nothing says
 so and clears.
+
+**T-144, first piece, on 2026-09-18: the story page's API.** `GET
+/news/stories/:id` is blueprint 3.3's article page built against D-061, which
+is to say built as a page that sends the reader to the publisher. Of the
+fields the blueprint lists: headline, summary, byline and the publisher's
+time are the original's card; **the body is a `Covered<string>` that is
+`not_supplied` for every free feed** -- the column exists for the licensed
+source D-061 leaves room for, and the page carries it only when `rights =
+'full_text'` -- so the slot is named rather than filled (rule 3); the
+last-updated time is when the words shown were written, because a correction
+is a new version and the old one stays; corrections are the dated notes of
+`article_correction`; the links to match, teams and competition are the
+cluster's entity links by id; language is the version shown, with every
+language the original has and `?language=` to ask for one -- a report
+without a version in that language stays in its own rather than vanishing;
+and the related articles are the other publishers' reports in the cluster,
+newest first. A story whose original's publisher was dropped is 404: the
+words went with them. Save, share and the three prediction products are the
+page's to name as not built or to link to the match centre, where rule 6
+already keeps them apart.
 
 
 ---

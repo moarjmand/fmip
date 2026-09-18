@@ -1,5 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { NewsEntity, NewsFilters, NewsRights, NewsStoryCard } from '@fmip/contracts';
+import type {
+  NewsEntity,
+  NewsFilters,
+  NewsReport,
+  NewsRights,
+  NewsStoryCard,
+  StoryPage,
+} from '@fmip/contracts';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 
@@ -10,7 +17,8 @@ export interface Followed {
   persons: string[];
 }
 
-export interface StoryPage {
+/** One page of a section. */
+export interface StoryPage_ {
   cards: NewsStoryCard[];
   /** The `at` of the last card when more exist beyond `limit`; the next page's `before`. */
   nextBefore: string | null;
@@ -72,7 +80,7 @@ export class PostgresNewsReadStore {
     locale: string | null,
     before: string | null,
     limit: number,
-  ): Promise<StoryPage> {
+  ): Promise<StoryPage_> {
     const q = new Query(filters, locale);
     const cursor = before === null ? '' : `AND sc.at < ${q.param(before)}::timestamptz`;
     return this.page(
@@ -97,7 +105,7 @@ export class PostgresNewsReadStore {
     locale: string | null,
     windowHours: number,
     limit: number,
-  ): Promise<StoryPage> {
+  ): Promise<StoryPage_> {
     const q = new Query(filters, locale);
     q.windowHours = windowHours;
     const window = q.param(`${windowHours} hours`);
@@ -130,7 +138,7 @@ export class PostgresNewsReadStore {
   }
 
   /** What editors selected and have not cleared, newest selection first. */
-  async debate(filters: NewsFilters, locale: string | null, limit: number): Promise<StoryPage> {
+  async debate(filters: NewsFilters, locale: string | null, limit: number): Promise<StoryPage_> {
     const q = new Query(filters, locale);
     return this.page(
       q,
@@ -150,7 +158,7 @@ export class PostgresNewsReadStore {
     followed: Followed,
     before: string | null,
     limit: number,
-  ): Promise<StoryPage> {
+  ): Promise<StoryPage_> {
     const q = new Query(filters, locale);
     const cursor = before === null ? '' : `AND sc.at < ${q.param(before)}::timestamptz`;
     const teams = q.param(followed.teams);
@@ -175,7 +183,124 @@ export class PostgresNewsReadStore {
     );
   }
 
-  private async page(q: Query, select: string, limit: number): Promise<StoryPage> {
+  /**
+   * The story page (T-144): the promoted original in the language asked for
+   * when it has one, else the source's own; its languages, corrections and
+   * the other publishers' reports. Null when the story does not exist or its
+   * original's publisher has been dropped (D-061).
+   */
+  async story(
+    storyId: string,
+    locale: string | null,
+    language: string | null,
+  ): Promise<StoryPage | null> {
+    const version = (alias: string, sourceLanguage: string) => `
+      SELECT id, headline, summary, body, byline, language, published_at, created_at
+        FROM article_version
+       WHERE article_id = ${alias}.id
+       ORDER BY COALESCE(language = $2::text, FALSE) DESC,
+                (language = ${sourceLanguage}) DESC,
+                created_at DESC, version_number DESC
+       LIMIT 1`;
+    const { rows } = await this.pool.query<
+      CardRow & { body: string | null; created_at: Date; source_language: string }
+    >(
+      `SELECT s.id AS story_id, a.id AS article_id, a.url, a.fetched_at,
+              src.id AS source_id, src.name AS source_name, src.homepage_url, src.rights,
+              src.language AS source_language,
+              v.headline, v.summary, v.body, v.byline, v.language, v.published_at, v.created_at,
+              COALESCE((SELECT min(published_at) FROM article_version WHERE article_id = a.id),
+                       a.fetched_at) AS at,
+              (SELECT count(*)::int - 1 FROM article m WHERE m.story_id = s.id) AS other_reports,
+              NULL::int AS participants,
+              d.selected_at AS debate_selected_at, d.note AS debate_note
+         FROM story s
+         JOIN article a ON a.id = s.promoted_article_id
+         JOIN news_source src ON src.id = a.source_id AND src.dropped_at IS NULL
+         JOIN LATERAL (${version('a', 'src.language')}) v ON TRUE
+         LEFT JOIN story_debate d ON d.story_id = s.id AND d.cleared_at IS NULL
+        WHERE s.id = $1`,
+      [storyId, language],
+    );
+    const r = rows[0];
+    if (r === undefined) return null;
+
+    const [entities, versions, corrections, reports, lastUpdatedAt] = await Promise.all([
+      this.entities([storyId], locale),
+      this.pool.query<{ language: string; version_number: number; updated_at: Date }>(
+        `SELECT language, max(version_number)::int AS version_number, max(created_at) AS updated_at
+           FROM article_version
+          WHERE article_id = $1
+          GROUP BY language
+          ORDER BY language`,
+        [r.article_id],
+      ),
+      this.pool.query<{ note: string; noted_at: Date }>(
+        `SELECT note, noted_at FROM article_correction WHERE article_id = $1 ORDER BY noted_at DESC`,
+        [r.article_id],
+      ),
+      this.pool.query<{
+        article_id: string;
+        url: string;
+        source_id: string;
+        source_name: string;
+        homepage_url: string;
+        rights: NewsRights;
+        headline: string;
+        summary: string | null;
+        byline: string | null;
+        language: string;
+        published_at: Date | null;
+      }>(
+        `SELECT a.id AS article_id, a.url,
+                src.id AS source_id, src.name AS source_name, src.homepage_url, src.rights,
+                v.headline, v.summary, v.byline, v.language, v.published_at
+           FROM article a
+           JOIN news_source src ON src.id = a.source_id AND src.dropped_at IS NULL
+           JOIN LATERAL (${version('a', 'src.language')}) v ON TRUE
+          WHERE a.story_id = $1 AND a.id <> $3
+          ORDER BY COALESCE(v.published_at, a.fetched_at) DESC, a.id`,
+        [storyId, language, r.article_id],
+      ),
+      this.lastFetchedAt(),
+    ]);
+
+    const granted = r.rights === 'full_text' && r.body !== null;
+    return {
+      story: this.card(r, entities.get(storyId) ?? [], null),
+      updated_at: r.created_at.toISOString(),
+      versions: versions.rows.map((v) => ({
+        language: v.language,
+        version_number: v.version_number,
+        updated_at: v.updated_at.toISOString(),
+      })),
+      body: granted
+        ? { coverage: 'available', last_updated_at: r.created_at.toISOString(), data: r.body }
+        : { coverage: 'not_supplied', last_updated_at: null, data: null },
+      corrections: corrections.rows.map((c) => ({
+        note: c.note,
+        noted_at: c.noted_at.toISOString(),
+      })),
+      reports: reports.rows.map((p): NewsReport => ({
+        article_id: p.article_id,
+        headline: p.headline,
+        summary: p.summary,
+        byline: p.byline,
+        language: p.language,
+        published_at: p.published_at?.toISOString() ?? null,
+        url: p.url,
+        source: {
+          id: p.source_id,
+          name: p.source_name,
+          homepage_url: p.homepage_url,
+          rights: p.rights,
+        },
+      })),
+      last_updated_at: lastUpdatedAt,
+    };
+  }
+
+  private async page(q: Query, select: string, limit: number): Promise<StoryPage_> {
     const { rows } = await this.pool.query<CardRow>(`${q.storyCard()} ${select}`, q.params);
     const more = rows.length > limit;
     const shown = more ? rows.slice(0, limit) : rows;
@@ -183,7 +308,13 @@ export class PostgresNewsReadStore {
       shown.map((r) => r.story_id),
       q.locale,
     );
-    const cards = shown.map((r): NewsStoryCard => ({
+    const cards = shown.map((r) => this.card(r, entities.get(r.story_id) ?? [], q.windowHours));
+    const last = shown[shown.length - 1];
+    return { cards, nextBefore: more && last !== undefined ? last.at.toISOString() : null };
+  }
+
+  private card(r: CardRow, entities: NewsEntity[], windowHours: number | null): NewsStoryCard {
+    return {
       story_id: r.story_id,
       article_id: r.article_id,
       headline: r.headline,
@@ -199,19 +330,17 @@ export class PostgresNewsReadStore {
         homepage_url: r.homepage_url,
         rights: r.rights,
       },
-      entities: entities.get(r.story_id) ?? [],
+      entities,
       other_reports: r.other_reports,
       discussion:
         r.participants === null
           ? null
-          : { participants: r.participants, window_hours: q.windowHours ?? 0 },
+          : { participants: r.participants, window_hours: windowHours ?? 0 },
       debate:
         r.debate_selected_at === null || r.debate_note === null
           ? null
           : { selected_at: r.debate_selected_at.toISOString(), note: r.debate_note },
-    }));
-    const last = shown[shown.length - 1];
-    return { cards, nextBefore: more && last !== undefined ? last.at.toISOString() : null };
+    };
   }
 
   /** The union of every report's links in each story, named for the reader. */

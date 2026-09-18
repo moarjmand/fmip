@@ -1,4 +1,12 @@
-import { BadRequestException, Controller, Get, Query, Req } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Query,
+  Req,
+} from '@nestjs/common';
 import {
   type ApiError,
   NEWS_PAGE_SIZE,
@@ -7,16 +15,18 @@ import {
   type NewsSection,
   type NewsSectionReason,
   type NewsSectionResponse,
+  type StoryPage,
   TRENDING_WINDOW_HOURS,
   isNewsSection,
 } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { ProfileService } from '../profile/profile.service';
-import { PostgresNewsReadStore, type StoryPage } from './internal/news-read-store';
+import { PostgresNewsReadStore, type StoryPage_ } from './internal/news-read-store';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const LOCALE = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
+const NO_STORY: ApiError = { error: 'not_found', message: 'No such story.' };
 
 function first(value: unknown): string | undefined {
   const v = Array.isArray(value) ? value[0] : value;
@@ -95,7 +105,7 @@ export class NewsController {
     const last_updated_at = await this.store.lastFetchedAt();
 
     const answer = (
-      page: StoryPage,
+      page: StoryPage_,
       coverage: 'available' | 'limited',
       whenEmpty: NewsSectionReason,
       whenFull: NewsSectionReason | null = null,
@@ -165,5 +175,27 @@ export class NewsController {
         );
       }
     }
+  }
+
+  /**
+   * The story page (blueprint 3.3, T-144): `GET /news/stories/:id`, in
+   * `?language=` when the original has a version in it. Unknown, or an
+   * original whose publisher asked to be dropped, is 404: the words are gone
+   * with them (D-061), and the story is not shown without its original.
+   */
+  @Get('news/stories/:id')
+  async story(
+    @Param('id') id: string,
+    @Query('locale') locale: unknown,
+    @Query('language') language: unknown,
+  ): Promise<StoryPage> {
+    if (!UUID.test(id)) throw new NotFoundException(NO_STORY);
+    const page = await this.store.story(
+      id.toLowerCase(),
+      localeOf(locale),
+      languageFilter(language),
+    );
+    if (page === null) throw new NotFoundException(NO_STORY);
+    return page;
   }
 }
