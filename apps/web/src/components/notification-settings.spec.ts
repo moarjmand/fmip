@@ -57,6 +57,27 @@ describe('every kind is offered, and named in words', () => {
   });
 });
 
+describe('what stays quiet (T-331)', () => {
+  it('offers a team, a competition and a category, each named in words', () => {
+    // Keyed by the contract's union: a category added without a sentence does not compile.
+    expect(FORM).toContain('Record<NotificationCategory, string>');
+    for (const scope of ['team', 'competition', 'category']) {
+      expect(FORM, `no form to silence a ${scope}`).toContain(`scope="${scope}"`);
+    }
+    expect(FORM).toContain('settings.mutes.map');
+    expect(FORM).toContain('Nothing is silenced.');
+  });
+
+  it('silences and unmutes through the API, never a second copy of the rule', () => {
+    expect(ACTIONS).toContain('/me/notification-mutes/');
+    expect(ACTIONS).toMatch(/'PUT'/);
+    expect(ACTIONS).toMatch(/'DELETE'/);
+    // The page hands the lists over; the form does not fetch.
+    expect(PAGE).toContain('fetchTeams()');
+    expect(PAGE).toContain('fetchCompetitions()');
+  });
+});
+
 describe('quiet hours explain themselves', () => {
   it('says nothing is thrown away, because that is the rule', () => {
     // The criterion asks for "delayed or dropped, and says which". Quiet hours
