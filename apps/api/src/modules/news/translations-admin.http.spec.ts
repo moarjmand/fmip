@@ -65,7 +65,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('article tran
   }
 
   const as = (username: string) => ({ cookie: `fmip_session=${cookies.get(username) ?? ''}` });
-  const translate = (who: string, article: string, payload: unknown) =>
+  const translate = (who: string, article: string, payload: Record<string, unknown>) =>
     app.inject({
       method: 'POST',
       url: `/admin/articles/${article}/translations`,
