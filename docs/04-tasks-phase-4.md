@@ -472,7 +472,7 @@ E27 builds the inbox. This is where it reaches somebody who is not looking.
 | `[~]` T-330 | Delivery behind one port: email and push, with a provider chosen at deployment | T-270, T-074 | A deployment with no provider says so and delivers nothing, rather than appearing to |
 | `[x]` T-331 | Per-team, per-competition and per-category controls | T-270 | A member can silence one team without silencing football |
 | `[ ]` T-332 | Campaigns: an audience is a saved query, a send is a row | T-330 | Nobody receives the same campaign twice, and every send says who it reached |
-| `[ ]` T-333 | The Following feed, ranked | T-042, T-141 | Ranking is from qualified signals, never raw volume, and says what it is showing |
+| `[~]` T-333 | The Following feed, ranked | T-042, T-141 | Ranking is from qualified signals, never raw volume, and says what it is showing |
 
 **One port, providers behind it, and a deployment that has none says so.** This
 is the `LogMailer` shape the product already uses (T-043): a missing provider
@@ -498,6 +498,25 @@ what other people looked at rather than what they follow.
 half of T-330 (which is how the product behaves with no provider). What needs
 the maintainer is the provider itself, and campaigns need a provider to mean
 anything.
+
+**T-333, first piece, on 2026-09-18: the feed itself.** `GET /me/feed`
+(`apps/api/src/modules/following-feed/`) is what happened, and what is
+about to, around what a member follows: matches of followed teams and
+competitions from three days back to seven ahead, stories the news links to
+them, the founder's analyses of their matches, and followed contributors'
+panel posts (blueprint 12.1 names line-ups and predictions too; a line-up
+change is not yet an event the product records, and a member's own
+predictions are their history, not a feed). **Ranking is `feed-rank@1`, and
+it is the signals added up**: a favourite counts two, a live match three, a
+kick-off within a day two, a discussion one or two for its *distinct members*
+inside 48 hours (never its post count), a publication within a day one; a
+follow is inclusion, not rank. Every item carries its `because` list and its
+`rank`, so a reader can add one up and get the other, and the response says
+what it is showing -- the window, the kinds, how many of each thing the
+member follows, and the ranking rule by name. There is no `views` signal
+because nothing records views, and there will not be one: raw views rank
+whatever was already seen. A member who follows nothing is told so; a window
+with nothing in it says so. The page is the second piece.
 
 **T-330, the port and the honest absence, on 2026-09-18.** `apps/api/src/
 modules/delivery/` is one port (`OUTBOUND_DELIVERY`: an e-mail channel and a
