@@ -624,7 +624,7 @@ less than it claims.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-140 | **Decision gate:** where news comes from, and under what licence | — | New entry in `00-decisions.md` |
-| `[ ]` T-141 | Article schema: canonical story, per-language version, entity links | T-140 | An article links to its match, teams, players and competition by UUID |
+| `[x]` T-141 | Article schema: canonical story, per-language version, entity links | T-140 | An article links to its match, teams, players and competition by UUID |
 | `[ ]` T-142 | Ingestion and deduplication into story clusters | T-141 | Duplicate reports of one event become one cluster with a promoted original |
 | `[ ]` T-143 | Sections: latest, trending, debate, following | T-142 | Trending is computed from qualified signals, not raw views |
 | `[ ]` T-144 | Article page and filters | T-143 | Carries every field blueprint 3.3 requires, including corrections |
@@ -650,7 +650,41 @@ and a licensed wire feed arrives as an adapter and a rights row. T-141 carries
 that field from its first migration, because a rights model retrofitted after
 there are two kinds of source is retrofitted too late.
 
-T-141 through T-144 are unblocked.
+**T-141 shipped on 2026-09-18, and the rights field is a trigger, not a
+column somebody remembers.** Six tables. `news_source` carries `rights` --
+`headline`, `summary` or `full_text` -- and `article_version_within_rights()`
+refuses, at the write and with its own SQLSTATE (`PL016`), a version that
+carries more than its source grants: a summary on a headline-only source, a
+body on anything but a full-text one. Today every source is a free feed; the
+day a licensed wire arrives it is a rights row and an adapter, and no renderer
+has to be taught anything, because none of them decides.
+
+`article` is the identity -- source, story, the feed's own id, the original's
+URL -- and `article_version` is what is shown, one per language, immutable,
+with a change being a new version so "what did it say before" always has an
+answer. `article_entity` is (article, type, id) and nothing else: the spec
+reads `information_schema.columns` and asserts there is no name column to
+put a team's name in. `story` exists from the first row so T-142 clusters into
+something rather than grouping after the fact; `article_correction` is the
+dated, immutable note blueprint 3.3's page shows. A source that goes away
+takes its own articles, versions and links and nothing else -- asserted by
+deleting one and counting what the other still has.
+
+**And immutability had to be narrower than `refuse_change()` here, on
+purpose.** A forecast version is never deleted; an article version goes with
+its article, because a publisher who asks to be dropped takes their words
+with them (D-061), and a version that could not be deleted would keep those
+words on a site they asked to leave. `refuse_change_unless_article_gone()`
+refuses every update and every delete except the one that arrives because
+the article is already gone -- during a cascade the parent row is deleted
+first, which is exactly the test. Marking a source dropped (`dropped_at`,
+with a reason the constraint insists on) removes its articles by trigger; the
+source row stays as the answer to "why is X not here". Found by the spec:
+the first cascade test failed on `refuse_change()`, which was the trigger
+telling the truth about a rule that was the wrong rule for news.
+
+T-142 through T-144 are unblocked; the schema they need is the one above.
+
 
 ---
 
