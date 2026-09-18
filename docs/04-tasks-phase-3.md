@@ -1803,7 +1803,7 @@ the gate is the whole feature.
 | `[x]` T-251 | The discussion: open to read, gated to post, linked to the match | T-250, T-221 | A guest reads; an unapproved member cannot post and is told why |
 | `[x]` T-252 | Reactions, and following a contributor | T-251, T-042 | Reacting is open to members; it never becomes posting access |
 | `[x]` T-253 | Featured matches: which fixtures have a panel at all | T-251, T-070 | An operator decides, with an audit row |
-| `[ ]` T-254 | Public discussion arrives live: panel posts over the existing gateway | T-251, T-237 | A new post on a featured match appears to a reader without a reload, and the page never looks live when it is not |
+| `[~]` T-254 | Public discussion arrives live: panel posts over the fixture stream | T-251, T-032 | A new post on a featured match appears to a reader without a reload, and the page never looks live when it is not |
 
 **Eligibility is computed; access is granted.** Blueprint 10.2 lists four
 requirements and then a fifth: "manual approval by the founder, editor or

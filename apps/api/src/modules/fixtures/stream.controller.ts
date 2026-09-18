@@ -109,7 +109,11 @@ export class StreamController {
     }
     await this.serve(request, reply, {
       snapshot: () => this.fixtures.matchCentre(fixtureId),
-      concerns: (change) => change.fixtureId === fixtureId,
+      // A panel post is a change to this fixture that the match centre does not
+      // show, so it must not cost every open page a snapshot; it goes out as
+      // its own event below (T-254).
+      concerns: (change) => change.fixtureId === fixtureId && change.table !== 'panel_post',
+      panel: (change) => change.fixtureId === fixtureId && change.table === 'panel_post',
       initial: first,
     });
   }
@@ -122,6 +126,8 @@ export class StreamController {
     source: {
       snapshot: () => Promise<T | null>;
       concerns: (change: FixtureChange) => boolean;
+      /** Changes that mean "the public discussion moved" rather than "the match moved". */
+      panel?: (change: FixtureChange) => boolean;
       initial?: T;
     },
   ): Promise<void> {
@@ -159,9 +165,16 @@ export class StreamController {
       write(sseEvent('heartbeat', { at: new Date().toISOString() }));
     }, this.options.heartbeatMs);
 
+    // Collapsed like a snapshot burst, for the same reason: a reply and the
+    // reaction it draws are two writes and one change to what the reader sees.
+    const panel = debounce(this.options.debounceMs, () => {
+      write(sseEvent('panel', { at: new Date().toISOString() }));
+    });
+
     const unsubscribe = await this.feed.subscribe(
       (change) => {
         if (source.concerns(change)) refresh.trigger();
+        else if (source.panel?.(change)) panel.trigger();
       },
       (error) => {
         write(
@@ -179,6 +192,7 @@ export class StreamController {
       open = false;
       clearInterval(heartbeat);
       refresh.cancel();
+      panel.cancel();
       unsubscribe();
       raw.end();
     };

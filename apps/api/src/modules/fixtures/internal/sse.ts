@@ -5,7 +5,14 @@
  * can tell how stale what it shows has become.
  */
 
-export type SseEventName = 'snapshot' | 'heartbeat' | 'stale';
+/**
+ * `panel` (T-254) carries no payload worth rendering: it says the public
+ * discussion on this match changed, and the page re-reads it the way it
+ * already reads it. A snapshot would be wrong here -- the panel is not part
+ * of the match centre, and a client that rendered posts from a stream event
+ * would be a second way a post can look.
+ */
+export type SseEventName = 'snapshot' | 'heartbeat' | 'stale' | 'panel';
 
 /** One event as bytes on the wire. `id` is the ISO time the payload was true. */
 export function sseEvent(name: SseEventName, data: unknown, id?: string): string {

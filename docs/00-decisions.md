@@ -2311,3 +2311,33 @@ is otherwise unchanged.
 where a sentence carries `text`; D-066 said this would be an addition and not
 a migration, and it was — the six existing sentence files refreshed with the
 seven new keys as `untranslated` and nothing else moved.
+
+## D-068 — Public discussion goes live over the fixture stream, not the chat socket
+
+**Date:** 2026-09-18 · **Task:** T-254 · **Status:** accepted
+
+**Decision.** A panel post raises `fixture_change` like a goal does, and the
+match page's server-sent stream turns that into a `panel` event -- no payload
+beyond the time, because the page re-reads the panel the way it already reads
+it. The stream is the one the match page already holds open, it is public, and
+it reaches guests and members alike.
+
+**Why not the chat socket.** Blueprint 14.1 lists WebSockets for "direct, group
+and public chat", and the chat gateway is where members' conversations are
+delivered. But the gateway refuses a handshake with no session, and a public
+panel is read by everybody: routing it through the socket would make "arrives
+in real time" true for signed-in readers and false for the rest, on the one
+discussion surface that is public. The fixture stream (D-034) is already the
+public live transport on exactly this page. One transport per page, and the
+one the page has.
+
+**Why an event with no payload.** `LiveConversation` (T-237) set the shape: the
+client renders nothing from an event and asks the page to render itself again,
+so there is one way a post can look. A snapshot would be the wrong event: the
+panel is not part of the match centre, and re-sending the match for every
+reply would cost every open page a payload it did not ask for. Snapshots are
+for the match; `panel` is for the panel.
+
+**What "live" means to a reader.** The same freshness line the page already
+shows. A page whose stream is stale says so, and a panel under it is as stale
+as the score beside it -- rule 4 is answered once, for the page.

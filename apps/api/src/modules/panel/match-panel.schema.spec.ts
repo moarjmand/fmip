@@ -391,4 +391,18 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the match pa
       await pool.query(`DELETE FROM report WHERE reporter_id = $1`, [reader]);
     });
   });
+
+  it('announces every post to the fixture change feed, like a goal (T-254)', async () => {
+    // The trigger is the guarantee: a post that did not raise fixture_change
+    // would reach a reader on reload only, and the page would be right and
+    // late. Asserted on the catalog, so removing the trigger fails here and not
+    // on a live match one evening.
+    const { rows } = await pool.query<{ tgname: string; tgfoid: string }>(
+      `SELECT t.tgname, p.proname AS tgfoid
+         FROM pg_trigger t JOIN pg_proc p ON p.oid = t.tgfoid
+        WHERE t.tgrelid = 'panel_post'::regclass AND NOT t.tgisinternal
+          AND t.tgname = 'panel_post_notify_change'`,
+    );
+    expect(rows).toEqual([{ tgname: 'panel_post_notify_change', tgfoid: 'notify_fixture_change' }]);
+  });
 });
