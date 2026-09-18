@@ -160,6 +160,23 @@ test.describe('blueprint journeys', () => {
     ).toBeVisible();
   });
 
+  test('T-312 the viewing territory is asked for, chosen, and remembered -- never guessed', async () => {
+    await page.goto('/en/settings');
+    // Registered in England, and still asked: the football country is not the territory.
+    await expect(page.getByTestId('territory-state')).toContainText(
+      'You have not chosen a territory yet',
+    );
+    const form = page.getByTestId('territory-form');
+    await form.getByLabel('Where you watch from').selectOption({ label: 'United Kingdom' });
+    await form.getByRole('button', { name: 'Save viewing territory' }).click();
+    await expect(page.getByTestId('territory-state')).toContainText(
+      'Viewing options are shown for United Kingdom.',
+    );
+    await page.reload();
+    await expect(page.getByTestId('territory-state')).toContainText('United Kingdom');
+    await expect(form.getByLabel('Where you watch from')).toHaveValue('GB');
+  });
+
   test('18.4 follows a team, sees it pinned, and moves team → match → player → search', async () => {
     await page.goto('/en/settings');
     const teamForm = page.locator('form').filter({ has: page.getByLabel('Follow a team') });
