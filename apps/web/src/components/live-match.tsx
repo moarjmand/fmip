@@ -1,6 +1,7 @@
 'use client';
 
 import type { MatchCentre } from '@fmip/contracts';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { MatchCentreView } from '@/components/match-centre-view';
 import { matchAnnouncements } from '@/lib/announce';
@@ -11,7 +12,16 @@ import { INITIAL_CLOCK, type LiveClock, liveLabel, liveState } from '@/lib/live'
  * snapshot, then subscribes to the web app's `/api/fixtures/:id/stream` and
  * replaces the whole payload on every `snapshot`. The freshness line is the
  * same one the scores page uses.
+ *
+ * The same stream says when the public discussion moved (T-254, D-068): a
+ * `panel` event carries nothing to render, and the page asks the server to
+ * render itself again -- the shape `LiveConversation` set, so there is one
+ * way a post can look. Collapsed, because a reply and the reaction it draws
+ * are two events and one change to what the reader sees.
  */
+
+/** Collapse a burst of panel events -- three in a second is one render, not three. */
+const PANEL_REFRESH_MS = 400;
 export function LiveMatch({
   initial,
   timeZone,
@@ -30,9 +40,11 @@ export function LiveMatch({
   // What the last snapshot changed, in words, for the polite live region (T-081).
   const [announcement, setAnnouncement] = useState('');
   const id = initial.fixture.id;
+  const router = useRouter();
 
   useEffect(() => {
     const source = new EventSource(`/api/fixtures/${id}/stream`);
+    let panelRefresh: ReturnType<typeof setTimeout> | null = null;
     const stamp = (snapshot: boolean): void =>
       setClock((c) => ({
         lastEventAt: Date.now(),
@@ -49,15 +61,24 @@ export function LiveMatch({
       stamp(true);
     });
     source.addEventListener('heartbeat', () => stamp(false));
+    source.addEventListener('panel', () => {
+      stamp(false);
+      if (panelRefresh !== null) return;
+      panelRefresh = setTimeout(() => {
+        panelRefresh = null;
+        router.refresh();
+      }, PANEL_REFRESH_MS);
+    });
     source.addEventListener('stale', () => setClock((c) => ({ ...c, broken: true })));
     source.onerror = () => setClock((c) => ({ ...c, broken: true }));
     source.onopen = () => setClock((c) => ({ ...c, broken: false }));
     const tick = setInterval(() => setNow(Date.now()), 5_000);
     return () => {
       clearInterval(tick);
+      if (panelRefresh !== null) clearTimeout(panelRefresh);
       source.close();
     };
-  }, [id]);
+  }, [id, router]);
 
   const state = liveState(clock, now);
   return (
