@@ -3,6 +3,7 @@ import { type Transport, readFeed } from '@fmip/ingestion';
 import { NEWS_TRANSPORT } from './internal/news-transport';
 import { type NewsSourceRow, PostgresNewsStore, type VersionFields } from './internal/news-store';
 import { NEWS_USER_AGENT, robotsAllows } from './internal/robots';
+import { NewsClusteringService } from './news-clustering.service';
 
 /** Postgres' unique_violation: a run of this source is already open. */
 const UNIQUE_VIOLATION = '23505';
@@ -38,6 +39,7 @@ export class NewsIngestionService {
 
   constructor(
     private readonly store: PostgresNewsStore,
+    private readonly clustering: NewsClusteringService,
     @Inject(NEWS_TRANSPORT) private readonly transport: Transport,
   ) {}
 
@@ -134,6 +136,8 @@ export class NewsIngestionService {
       if (newest !== null && same(newest, fields)) continue;
       await this.store.addVersion(article.id, language, (newest?.version_number ?? 0) + 1, fields);
       written += 1;
+      // Which entities the report is about, and whether it is a story already here.
+      await this.clustering.place(article.id, article.inserted);
     }
 
     const skipped =
