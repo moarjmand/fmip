@@ -447,7 +447,7 @@ E27 builds the inbox. This is where it reaches somebody who is not looking.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-330 | Delivery behind one port: email and push, with a provider chosen at deployment | T-270, T-074 | A deployment with no provider says so and delivers nothing, rather than appearing to |
+| `[~]` T-330 | Delivery behind one port: email and push, with a provider chosen at deployment | T-270, T-074 | A deployment with no provider says so and delivers nothing, rather than appearing to |
 | `[x]` T-331 | Per-team, per-competition and per-category controls | T-270 | A member can silence one team without silencing football |
 | `[ ]` T-332 | Campaigns: an audience is a saved query, a send is a row | T-330 | Nobody receives the same campaign twice, and every send says who it reached |
 | `[ ]` T-333 | The Following feed, ranked | T-042, T-141 | Ranking is from qualified signals, never raw volume, and says what it is showing |
@@ -476,6 +476,25 @@ what other people looked at rather than what they follow.
 half of T-330 (which is how the product behaves with no provider). What needs
 the maintainer is the provider itself, and campaigns need a provider to mean
 anything.
+
+**T-330, the port and the honest absence, on 2026-09-18.** `apps/api/src/
+modules/delivery/` is one port (`OUTBOUND_DELIVERY`: an e-mail channel and a
+push channel, each present with its provider or absent) behind which a
+provider is chosen at deployment by `DELIVERY_EMAIL_PROVIDER` and
+`DELIVERY_PUSH_PROVIDER`. `off` or unset is the honest absence: `GET
+/health/delivery` reports both channels absent and `in_product_only: true`,
+the API logs it at boot, and the inbox (`NotificationsResponse.delivery`)
+tells the member that notifications appear there only and nothing is on its
+way to their mail or their phone. **A provider name this build cannot drive
+refuses to start**, naming the variable: a typo that silently fell back to
+"absent" would be the failure the port exists to prevent, found weeks later
+by nobody having been told anything. `DeliveryService.deliver()` carries a
+message on every channel that exists and reports each one -- `absent`, `sent`
+or `failed`, never a throw that undoes the event -- and the spec drives it
+with a capturing channel and a broken one. What waits for the maintainer is
+the provider itself (T-074 first), which arrives as a class behind the port,
+its name in `KNOWN_*_PROVIDERS`, and the composition of an e-mail and a push
+from a notification at the point `emit()` writes the row.
 
 **T-331 done on 2026-09-18.** A mute is a row (`notification_mute`): a team
 or a competition by id -- never by name, rule 1, and a name where an id

@@ -1,3 +1,4 @@
+import type { DeliveryHealth } from './health';
 /**
  * In-product notifications (blueprint 12.2, T-270).
  *
@@ -167,6 +168,12 @@ export interface NotificationsResponse {
   unread: number;
   /** ISO 8601, when this page was assembled. */
   generated_at: string;
+  /**
+   * Whether anything here can also leave the product (T-330). With no
+   * provider it is `in_product_only`, and the inbox says so: a member who
+   * expects an e-mail must be told none is coming.
+   */
+  delivery: DeliveryHealth;
 }
 
 /**

@@ -58,6 +58,8 @@ export type {
 export type {
   ChatBusState,
   ChatHealth,
+  DeliveryChannelState,
+  DeliveryHealth,
   HealthReport,
   IngestRun,
   IngestRunStatus,
