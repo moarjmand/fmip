@@ -83,6 +83,19 @@ export type {
   ViewingTerritory,
   ViewingTerritoryResponse,
 } from './territory';
+// Watch and highlights (blueprint 11, T-311): per territory, under the rights
+// each source grants; "not supplied" and "not available" kept apart by shape.
+export { BROADCASTER_KINDS, VIEWING_ACCESS, VIEWING_RIGHTS } from './viewing';
+export type {
+  Broadcaster,
+  BroadcasterKind,
+  Highlight,
+  MatchViewing,
+  ViewingAccess,
+  ViewingOption,
+  ViewingRights,
+  ViewingSource,
+} from './viewing';
 export { PRIVACY_VISIBILITIES } from './profile';
 export type {
   OwnProfile,

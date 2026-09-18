@@ -315,7 +315,7 @@ from the wrong country is worse than no answer.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[ ]` T-310 | **Decision gate:** where viewing and highlight data comes from, and under what licence | — | New entry in `00-decisions.md` |
-| `[ ]` T-311 | Schema and contracts: `broadcaster`, `viewing_option`, `highlight`, rights per source | T-011 | Availability is stored per territory; a source carries what may be shown |
+| `[x]` T-311 | Schema and contracts: `broadcaster`, `viewing_option`, `highlight`, rights per source | T-011 | Availability is stored per territory; a source carries what may be shown |
 | `[x]` T-312 | Territory: chosen by the member, stored, never silently inferred | T-041 | A viewer with no territory is asked, not guessed at |
 | `[ ]` T-313 | Ingestion and coverage per territory | T-310, T-311 | A territory with no data says `not_supplied`; it never says "not available" |
 | `[ ]` T-314 | Surfaces: the Watch page, the match centre panel, the team fixture list, the Following feed | T-313 | One module, four places, one answer |
@@ -343,6 +343,32 @@ two, which is the same argument that put it in T-141.
 **What is buildable now:** T-311 and T-312 entirely, which is the schema, the
 contracts, the rights model, the territory setting and every honest-absence
 path. What needs the licence is the data.
+
+**T-311 done on 2026-09-18, before the licence, as planned.** Migration
+`..._viewing.sql` is the news schema's shape applied to viewing, because it
+is the same problem: `viewing_source` says what it grants -- `link`,
+`thumbnail` or `embed` -- and a `highlight` cannot carry more (`PL017`: an
+embed from a link-only source, a thumbnail from a link-only source). A
+`viewing_option` is one listing -- this match, in this territory, on this
+`broadcaster` (a canonical row, named by id), with this access and this
+official destination -- unique per service per territory, because the
+correct option differs between countries. A `highlight` is per territory for
+the same reason, one per match per territory, its `url` always the official
+page so a dead player still has somewhere to send the viewer; the shape
+itself insists an embed has a player and nothing else does.
+**`viewing_coverage` is what makes "not available" sayable.** It is per
+season, per territory and per module, and a supplied state must name its
+source; a match in a territory with no coverage row is `not_supplied`, and
+only a source that covers the territory can make an empty listing mean
+"nothing to watch here". A dropped source takes its listings and highlights
+and turns the coverage it stood behind into `not_supplied` with the reason
+-- kept, not deleted, because "why is there nothing for Turkey" needs an
+answer. The contract (`src/viewing.ts`) is `MatchViewing`: the viewer's
+territory as T-312's state, and `options` and `highlights` as `Covered`
+lists, so the four surfaces T-314 builds cannot render an empty panel that
+reads either way. `viewing.schema.spec.ts` asserts each rule against the real
+database, including that the drop is refused without a reason. No ingestion
+and no surface yet: those are T-313 and T-314, after the T-310 decision.
 
 **T-312 done on 2026-09-18.** A territory is an ISO 3166-1 country, not a
 row of `country`: rights are sold by state, and England, Scotland and Wales
