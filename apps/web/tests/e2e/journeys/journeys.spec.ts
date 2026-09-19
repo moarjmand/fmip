@@ -30,6 +30,7 @@ const USERNAME = `e2e_${RUN}`;
 const EMAIL = `${USERNAME}@example.test`;
 const PASSWORD = 'correct horse battery staple';
 const OPEN_MATCH = '00000000-0000-4000-8000-000000000902';
+const LIVERPOOL = '00000000-0000-4000-8000-000000000602';
 const PLAYED_DAY = '2025-01-05';
 
 test.describe.configure({ mode: 'serial' });
@@ -175,6 +176,47 @@ test.describe('blueprint journeys', () => {
     await page.reload();
     await expect(page.getByTestId('territory-state')).toContainText('United Kingdom');
     await expect(form.getByLabel('Where you watch from')).toHaveValue('GB');
+  });
+
+  test('T-314 where to watch asks a guest for a territory, and answers a member honestly -- never "not available"', async ({
+    browser,
+  }) => {
+    // This run's member chose United Kingdom in T-312, and nobody has declared
+    // any coverage there: the sentence names the territory and says nothing is
+    // known, which is not the same as nothing to watch.
+    await page.goto(`/en/match/${OPEN_MATCH}`);
+    const panel = page.getByTestId('viewing');
+    await expect(panel).toHaveAttribute('data-state', 'not_supplied');
+    await expect(panel.getByTestId('viewing-not-supplied')).toContainText('United Kingdom');
+    await expect(panel).not.toContainText('not available');
+    await expect(panel.getByTestId('viewing-territory')).toContainText('Change territory');
+
+    // A guest is asked, and the pick travels in the address rather than being
+    // read off anything.
+    const guest = await browser.newPage();
+    await guest.goto(`/en/match/${OPEN_MATCH}`);
+    const asked = guest.getByTestId('viewing');
+    await expect(asked).toHaveAttribute('data-state', 'ask');
+    await asked.getByLabel('Territory').selectOption({ label: 'Iran' });
+    await asked.getByRole('button', { name: 'Show viewing options' }).click();
+    await expect(guest).toHaveURL(/territory=IR/);
+    await expect(guest.getByTestId('viewing')).toHaveAttribute('data-state', 'not_supplied');
+    await expect(guest.getByTestId('viewing-not-supplied')).toContainText('Iran');
+
+    // The Watch page: the same chooser, the day's matches, and the pick kept on its links.
+    await guest.goto('/en/watch?territory=IR');
+    await expect(guest.getByTestId('title')).toContainText('Watch');
+    await expect(guest.getByTestId('viewing-territory-form').getByLabel('Territory')).toHaveValue(
+      'IR',
+    );
+    await guest.close();
+
+    // The team fixture list carries the same line, for the same member, in the
+    // same words: not supplied, never not available.
+    await page.goto(`/en/team/${LIVERPOOL}`);
+    const line = page.getByTestId('fixtures').getByTestId('viewing-line').first();
+    await expect(line).toHaveAttribute('data-state', 'not_supplied');
+    await expect(line).toContainText('United Kingdom');
   });
 
   test('T-331 silences one team without silencing football, and unmutes with one button', async () => {

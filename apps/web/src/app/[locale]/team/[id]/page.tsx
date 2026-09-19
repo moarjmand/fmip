@@ -2,17 +2,19 @@ import type { Metadata } from 'next';
 import { formatNumber } from '@/i18n/format';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import type { TeamFixture } from '@fmip/contracts';
+import type { MatchViewing, TeamFixture } from '@fmip/contracts';
 import { FounderAnalysisFeed } from '@/components/founder-analysis';
-import { fetchFounderFeed, fetchMe, fetchTeam } from '@/lib/api';
+import { fetchFounderFeed, fetchMe, fetchTeam, fetchViewingBatch } from '@/lib/api';
 import { formatFixtureDate } from '@/lib/competition';
 import { moduleState } from '@/lib/match';
 import { pageMetadata, teamJsonLd } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { contextLine, fromTeamSide, groupSquad } from '@/lib/team';
+import { readTerritoryQuery, withTerritory } from '@/lib/viewing';
 import { JsonLd } from '@/components/json-ld';
 import { Score } from '@/components/score';
 import { Translated } from '@/components/translated';
+import { ViewingPanel } from '@/components/viewing-panel';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,14 +48,17 @@ export async function generateMetadata({
  */
 export default async function TeamPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string; id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { locale, id } = await params;
+  const [{ locale, id }, query] = await Promise.all([params, searchParams]);
   if (!UUID.test(id)) notFound();
+  const cookie = await sessionCookieHeader();
   const [result, me, founder] = await Promise.all([
     fetchTeam(id, locale),
-    fetchMe(await sessionCookieHeader()),
+    fetchMe(cookie),
     fetchFounderFeed({ team: id, limit: 3 }),
   ]);
   if (!result.ok) {
@@ -68,6 +73,21 @@ export default async function TeamPage({
     );
   }
   const page = result.data;
+  // Where each fixture can be watched (T-314): one batch for the list, in the
+  // member's stored territory or the one a guest carried here on the link.
+  const territory = readTerritoryQuery(query);
+  const viewing =
+    page.fixtures.length > 0
+      ? await fetchViewingBatch(
+          page.fixtures.slice(0, 100).map((f) => f.id),
+          territory,
+          cookie,
+        )
+      : null;
+  const answers = new Map<string, MatchViewing>(
+    viewing !== null && viewing.ok ? viewing.data.fixtures.map((v) => [v.fixture_id, v]) : [],
+  );
+  const guestTerritory = me === null ? territory : undefined;
   const t = page.team;
   const timeZone = me?.timezone ?? 'UTC';
   const teamHref = (teamId: string) => `/${locale}/team/${teamId}`;
@@ -215,8 +235,18 @@ export default async function TeamPage({
         ) : (
           <ul className="flex flex-col divide-y divide-current/10">
             {page.fixtures.map((fixture) => (
-              <li key={fixture.id} className="py-2">
+              <li key={fixture.id} className="flex flex-col gap-1 py-2">
                 <MatchLine fixture={fixture} teamId={t.id} locale={locale} timeZone={timeZone} />
+                <ViewingPanel
+                  variant="line"
+                  locale={locale}
+                  timeZone={timeZone}
+                  viewing={answers.get(fixture.id) ?? null}
+                  kickoffAt={fixture.kickoff_at}
+                  status={fixture.status}
+                  signedIn={me !== null}
+                  href={withTerritory(`/${locale}/match/${fixture.id}`, guestTerritory)}
+                />
               </li>
             ))}
           </ul>

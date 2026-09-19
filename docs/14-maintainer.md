@@ -182,8 +182,9 @@ purchase or a licence (`CLAUDE.md` §7).
 
 **T-310, the viewing licence: decided (D-069).** The editorial desk, chosen
 by the agent at your request on 2026-09-18. Nothing to decide now: grant
-`editor` to whoever enters listings, and revisit only for a licence with
-more rights.
+`editor` to whoever enters listings -- the desk is at the bottom of any
+match page for them (declare coverage first, then list) -- and revisit only
+for a licence with more rights.
 
 **T-320, the native app.** Four things, all yours: whether at all; the
 framework (the roadmap names Expo, and `CLAUDE.md` §2 wants a decision entry

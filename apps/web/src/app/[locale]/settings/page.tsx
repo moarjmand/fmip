@@ -122,7 +122,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
         />
       </section>
 
-      <section className="flex flex-col gap-4" data-testid="territory-section">
+      <section id="territory" className="flex flex-col gap-4" data-testid="territory-section">
         <h2 className="text-xl font-semibold">Viewing territory</h2>
         {/* T-312: chosen here and only here; nothing guesses it from an address (blueprint 11). */}
         <p className="text-sm opacity-70" data-testid="territory-state">
