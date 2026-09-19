@@ -40,6 +40,7 @@ import type {
   CommunityAnalysisWorkspace,
   CommunitySubmission,
   MatchCentre,
+  MatchSummaryResponse,
   MatchViewing,
   DebateListResponse,
   MatchPanelPage,
@@ -720,4 +721,9 @@ export function fetchFixtureNews(
   return apiRequest<FixtureNewsResponse>(
     `/fixtures/${fixtureId}/news?locale=${encodeURIComponent(locale)}`,
   );
+}
+
+/** The match summary (E41, T-413): what a model wrote from the record, or the reason there is none. */
+export function fetchMatchSummary(fixtureId: string): Promise<ApiResult<MatchSummaryResponse>> {
+  return apiRequest<MatchSummaryResponse>(`/fixtures/${fixtureId}/summary`);
 }

@@ -128,10 +128,10 @@ say is on the match page beside it.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-410 | The facts: a `MatchFacts` document assembled from the canonical record, each part under its coverage state | T-034, T-066 | The prompt carries only what `GET /fixtures/:id` already serves; a `not_supplied` part is named as absent, never filled |
-| `[ ]` T-411 | Schema and contracts: `match_summary` as immutable versions, the grounding gate, `MatchSummary` | T-403, T-410 | A version stores its facts, model, prompt version and time; a summary naming a person or a number the facts do not hold is `rejected`, never shown |
-| `[ ]` T-412 | Generation: at full time and on an editor's request, audited; absent model → `not_supplied` | T-411, T-401 | Regeneration is a new version with a reason in the audit log; nothing is overwritten |
-| `[ ]` T-413 | The surface: the match centre's summary, labelled, with the model and the time | T-412 | A reader can see it is a machine's and when; a match with none shows the sentence, not a box |
+| `[x]` T-410 | The facts: a `MatchFacts` document assembled from the canonical record, each part under its coverage state | T-034, T-066 | The prompt carries only what `GET /fixtures/:id` already serves; a `not_supplied` part is named as absent, never filled |
+| `[x]` T-411 | Schema and contracts: `match_summary` as immutable versions, the grounding gate, `MatchSummary` | T-403, T-410 | A version stores its facts, model, prompt version and time; a summary naming a person or a number the facts do not hold is `rejected`, never shown |
+| `[x]` T-412 | Generation: at full time and on an editor's request, audited; absent model → `not_supplied` | T-411, T-401 | Regeneration is a new version with a reason in the audit log; nothing is overwritten |
+| `[x]` T-413 | The surface: the match centre's summary, labelled, with the model and the time | T-412 | A reader can see it is a machine's and when; a match with none shows the sentence, not a box |
 
 **The grounding gate is the whole feature.** A summary that reads well and is
 wrong about who scored is worse than no summary, and no reader can tell from
@@ -140,6 +140,34 @@ person in the facts, every score must be the record's, and a sentence that
 fails is a rejected version with the failing token in its reason. The gate
 is not the model's job and not a reviewer's; it is code, and it is tested with
 summaries written to fail it.
+
+**E41 built on 2026-09-19, the day the port was.** The facts (T-410) are the
+match centre's own payload -- header, score, timeline, statistics, line-ups,
+form, head-to-head -- plus the forecast's latest probabilities and the
+crowd's shares as labelled percentages, each part under its coverage state
+with absences named, assembled by `match-facts.ts` and stored whole with
+every version. The schema (T-411) is `match_summary`: immutable versions
+with the facts, the prompt version, the model, the tokens, who asked and
+when; `published` rows are what a reader sees and `rejected` rows are kept
+for the record. The grounding gate is `grounding.ts`: every number in the
+text must be a number in the facts and every capitalised name outside a
+sentence start must be a name in them, a heuristic that refuses a true
+sentence naming a fact the record lacks -- the right way round -- and is
+tested with summaries written to fail it. Generation (T-412) is
+`SummariesService`: the standing instruction is stable so the provider can
+cache it, the prompt is the facts document and nothing else, a refusal, a
+truncation or a failed gate is a rejected version with its reason, a failed
+call leaves no version, and full time's mechanism is a ten-minute catch-up
+that only runs when a model exists; an editor's request is `POST
+/admin/fixtures/:id/summary` with a reason in the audit log. The surface
+(T-413) is the match centre's last module for a finished match: the
+paragraphs under a label that says a machine wrote them from the record and
+that they are not the founder's, the model's or the community's view, with
+the model, the version, the time and the parts it was written from; a
+finished match with none shows the sentence that says why, and an editor
+sees the regeneration form. `summaries.http.spec.ts` walks all of it with a
+scripted model, including a plausible name the record lacks being turned
+down and the schema refusing to rewrite a version.
 
 **What the facts are and are not.** The header, the timeline, the statistics,
 the line-ups, the form and the head-to-head, each with its coverage, plus the
@@ -212,7 +240,7 @@ moderator a minute and leaves the decision where the policy put it.
 |---|---|---|
 | T-400 | a key on the server, after T-074 | **maintainer** |
 | T-401..T-403 | nothing | agent |
-| T-410..T-413 | nothing (generation waits for T-400 at runtime, not at build) | agent |
+| T-410..T-413 | built 2026-09-19; generation waits for T-400 at runtime | agent |
 | T-420..T-422 | nothing | agent |
 | T-430, T-431 | nothing | agent |
 | T-432 | T-330's channel | after the provider |

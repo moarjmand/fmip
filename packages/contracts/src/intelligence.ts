@@ -34,3 +34,51 @@ export interface MachineText {
   prompt_version: string;
   generated_at: string;
 }
+
+// ---------------------------------------------------------------------------
+// Match summaries (E41, T-411): what a model wrote about a finished match,
+// from the record beside it, or the sentence that says why there is none.
+// ---------------------------------------------------------------------------
+import type { CoverageState, Covered } from './coverage';
+
+/** Which parts of the record the summary was written from, by their coverage at the time. */
+export interface SummaryGrounding {
+  timeline: CoverageState;
+  statistics: CoverageState;
+  lineups: CoverageState;
+  forecast: CoverageState;
+  consensus: CoverageState;
+}
+
+export interface MatchSummary extends MachineText {
+  version_number: number;
+  grounded_on: SummaryGrounding;
+}
+
+export type MatchSummaryReason =
+  /** The match is not over; a summary is written from the full record. */
+  | 'not_finished'
+  /** No language model is configured on this deployment (T-400). */
+  | 'no_model'
+  /** A model exists and nobody has asked yet; full time or an editor will. */
+  | 'not_generated'
+  /** Every attempt so far was turned down -- by the grounding gate, a refusal or a truncation -- and none is shown. */
+  | 'rejected';
+
+/** `GET /fixtures/:id/summary`. */
+export interface MatchSummaryResponse {
+  fixture_id: string;
+  summary: Covered<MatchSummary>;
+  reason: MatchSummaryReason | null;
+  /** Attempts on record, published or rejected: the history a regeneration adds to. */
+  versions: number;
+}
+
+/** `POST /admin/fixtures/:id/summary`: an editor asks for a new version, with the reason the audit log keeps. */
+export interface MatchSummaryRequest {
+  reason: string;
+}
+
+export type MatchSummaryOutcome =
+  | { outcome: 'published' | 'rejected'; version_number: number; rejection: string | null }
+  | { outcome: 'absent' | 'not_finished' | 'failed' };
