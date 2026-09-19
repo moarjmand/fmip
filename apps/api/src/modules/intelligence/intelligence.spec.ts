@@ -37,6 +37,13 @@ describe('settingsFromEnv', () => {
     expect(() => settingsFromEnv({ INTELLIGENCE_PROVIDER: 'anthropic' })).toThrow(
       /ANTHROPIC_API_KEY/,
     );
+    expect(() => settingsFromEnv({ INTELLIGENCE_PROVIDER: 'mistral' })).toThrow(/MISTRAL_API_KEY/);
+    expect(() =>
+      settingsFromEnv({
+        INTELLIGENCE_PROVIDER: 'openai_compatible',
+        INTELLIGENCE_BASE_URL: 'https://x',
+      }),
+    ).toThrow(/INTELLIGENCE_API_KEY/);
     expect(() =>
       settingsFromEnv({ INTELLIGENCE_PROVIDER: 'anthropic', ANTHROPIC_API_KEY: '   ' }),
     ).toThrow(/ANTHROPIC_API_KEY/);
@@ -52,6 +59,7 @@ describe('settingsFromEnv', () => {
       model: DEFAULT_MODEL,
       effort: 'medium',
       apiKey: 'not-a-real-key',
+      baseUrl: null,
     });
     expect(
       settingsFromEnv({
@@ -68,6 +76,47 @@ describe('settingsFromEnv', () => {
         INTELLIGENCE_EFFORT: 'max',
       }),
     ).toThrow(/INTELLIGENCE_EFFORT=max/);
+  });
+});
+
+describe('settingsFromEnv: the second adapter (D-072)', () => {
+  it('names Mistral as a preset with its own key and default model', () => {
+    expect(settingsFromEnv({ INTELLIGENCE_PROVIDER: 'mistral', MISTRAL_API_KEY: 'k' })).toEqual({
+      provider: 'mistral',
+      model: 'mistral-small-latest',
+      effort: 'medium',
+      apiKey: 'k',
+      baseUrl: null,
+    });
+  });
+
+  it('drives any compatible endpoint named by its URL, and refuses one with no URL or no model', () => {
+    expect(
+      settingsFromEnv({
+        INTELLIGENCE_PROVIDER: 'openai_compatible',
+        INTELLIGENCE_BASE_URL: 'http://127.0.0.1:11434/v1',
+        INTELLIGENCE_API_KEY: 'k',
+        INTELLIGENCE_MODEL: 'llama',
+      }),
+    ).toMatchObject({
+      provider: 'openai_compatible',
+      baseUrl: 'http://127.0.0.1:11434/v1',
+      model: 'llama',
+    });
+    expect(() =>
+      settingsFromEnv({
+        INTELLIGENCE_PROVIDER: 'openai_compatible',
+        INTELLIGENCE_API_KEY: 'k',
+        INTELLIGENCE_MODEL: 'llama',
+      }),
+    ).toThrow(/INTELLIGENCE_BASE_URL/);
+    expect(() =>
+      settingsFromEnv({
+        INTELLIGENCE_PROVIDER: 'openai_compatible',
+        INTELLIGENCE_API_KEY: 'k',
+        INTELLIGENCE_BASE_URL: 'https://api.example/v1',
+      }),
+    ).toThrow(/INTELLIGENCE_MODEL/);
   });
 });
 

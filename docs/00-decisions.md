@@ -2497,3 +2497,50 @@ criterion but one clause is observable now, and a review that waits for the
 last clause records nothing about the others. *Signing without the
 condition*: it would claim a public deployment with real fixtures that does
 not exist.
+
+---
+
+## D-072 — A second adapter behind the intelligence port: the chat-completions shape, Mistral as a named preset, and any compatible endpoint by URL
+
+**Date:** 2026-09-19 · **Task:** T-404 · **Status:** accepted
+
+**Decision.** D-070 said a second provider is an adapter and a name, not a
+change to the rules, and the maintainer asked for one on 2026-09-19: Mistral's
+free tier to test the phase with, and the freedom to run any language model
+later. Both are one adapter, `internal/chat-completions-model.ts`: the `POST
+/chat/completions` shape that Mistral's La Plateforme serves and most other
+vendors and local runtimes answer, spoken over `fetch` with no dependency
+added. It has two names in `INTELLIGENCE_PROVIDER`:
+
+- **`mistral`** is a preset: the base URL, the key variable (`MISTRAL_API_KEY`)
+  and a default model (`mistral-small-latest`) are known, and the effort the
+  deployment set travels as `reasoning_effort`, which Mistral's reference
+  documents. Studio's free mode is enough to exercise every surface of the
+  phase.
+- **`openai_compatible`** is any endpoint that answers the same shape, named
+  by the deployment: `INTELLIGENCE_BASE_URL`, `INTELLIGENCE_API_KEY` and
+  `INTELLIGENCE_MODEL`, all three required, because no default is honest for
+  an endpoint nobody has named. It sends only the fields every such server
+  accepts; a field one server does not know is a 400 on another.
+
+The port's rules hold unchanged: `off` is an honest absence, a name this
+build cannot drive still refuses to start, a driveable name with no key
+refuses to start, and the finish reason is read before the text so a
+truncation is an outcome and never prose cut off mid-sentence. There is no
+`refusal` stop on this shape; a server that declines answers with an error,
+which is a failure the service records. A 429 -- what a free tier says when
+asked too fast -- is retried once after the pause the server names, capped
+at five seconds, and then recorded as a failure the surface says out loud.
+
+**Consequences.** `/health/intelligence` names the provider and the model as
+before. Every `MachineText` carries the model that wrote it, so a briefing
+written by `mistral-small-latest` says so. What the maintainer weighs when
+choosing: the free tier's rate limits and the provider's terms on the data
+sent, which for briefings is a member's feed; the choice of provider is
+theirs and is a line in the server's `.env`.
+
+**Rejected.** *Mistral's SDK*: a dependency for a request `fetch` sends in
+twelve lines. *Streaming*: nothing in the phase shows text as it arrives;
+every answer is gated before anyone sees it. *A per-provider adapter for
+every vendor*: the shape is shared, and the generic name covers the ones
+nobody has asked for yet.

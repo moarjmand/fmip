@@ -1,6 +1,7 @@
 import { Controller, Get, Module } from '@nestjs/common';
 import type { IntelligenceHealth } from '@fmip/contracts';
 import { AnthropicModel } from './internal/anthropic-model';
+import { ChatCompletionsModel } from './internal/chat-completions-model';
 import {
   AbsentIntelligence,
   type Intelligence,
@@ -40,7 +41,9 @@ export class IntelligenceHealthController {
       useFactory: (): Intelligence => {
         const settings = settingsFromEnv();
         if (settings === null) return new AbsentIntelligence();
-        return { model: AnthropicModel.fromSettings(settings) };
+        if (settings.provider === 'anthropic')
+          return { model: AnthropicModel.fromSettings(settings) };
+        return { model: ChatCompletionsModel.fromSettings(settings) };
       },
     },
   ],

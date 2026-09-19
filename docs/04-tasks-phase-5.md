@@ -94,6 +94,7 @@ stated as tests, checked on the public deployment:
 | `[x]` T-401 | The port: `LANGUAGE_MODEL`, an honest absence, `/health/intelligence`, the deployment variables | T-330 | A deployment with no model says so; a provider name this build cannot drive refuses to start |
 | `[x]` T-402 | The first adapter: Anthropic's Messages API through the official SDK, scripted in tests | T-401 | A refusal and a truncation are outcomes, never text; the model and prompt version travel with every answer |
 | `[x]` T-403 | The rules as a contract: `MachineText` -- labelled, grounded, versioned -- and the decision that binds every surface | T-401 | No surface renders machine text without the label, the model and the time |
+| `[x]` T-404 | A second adapter: the chat-completions shape over `fetch`, `mistral` as a named preset, `openai_compatible` for any endpoint by URL (D-072) | T-402 | The same port and the same refusals; a free tier is enough to test every surface; a truncation is an outcome, never prose |
 
 **The port precedes the provider, as it did for delivery.** `INTELLIGENCE_PROVIDER`
 is `off` on every deployment until the maintainer puts a key on the server;
@@ -119,6 +120,17 @@ the port returns, not exceptions it swallows and not text it passes on: a
 surface that gets one records a rejected version and shows nothing.
 
 ---
+
+**T-404 on 2026-09-19 (D-072).** The maintainer asked to test the phase on
+Mistral's free tier and to be free to use any language model later. One
+adapter answers both: `internal/chat-completions-model.ts` speaks the
+`POST /chat/completions` shape over `fetch`, with `mistral` as a preset
+(base URL, `MISTRAL_API_KEY`, `mistral-small-latest`, the effort as
+`reasoning_effort`) and `openai_compatible` for any endpoint the deployment
+names with `INTELLIGENCE_BASE_URL`, `INTELLIGENCE_API_KEY` and
+`INTELLIGENCE_MODEL`. The finish reason is read before the text, a 429 is
+retried once after the pause the server names, and every other failure is
+the service's `failed`. Scripted against a fake `fetch`; no key, no network.
 
 ## E41 — Match summaries
 
@@ -317,6 +329,7 @@ spec asserts.
 |---|---|---|
 | T-400 | a key on the server, after T-074 | **maintainer** |
 | T-401..T-403 | nothing | agent |
+| T-404 | built 2026-09-19 at the maintainer's request (D-072) | agent |
 | T-410..T-413 | built 2026-09-19; generation waits for T-400 at runtime | agent |
 | T-420..T-422 | built 2026-09-19 | agent |
 | T-430, T-431 | built 2026-09-19 | agent |
