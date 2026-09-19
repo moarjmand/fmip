@@ -38,6 +38,7 @@
     "@types/node": "^22.19.0",
     "@types/nodemailer": "^8.0.2",
     "@types/pg": "^8.23.1",
+    "@types/web-push": "^3.6.4",
     "@types/ws": "^8.18.1",
     "eslint": "^9.39.5",
     "typescript": "^5.9.3",
