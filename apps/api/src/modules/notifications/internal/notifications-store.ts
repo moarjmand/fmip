@@ -30,13 +30,21 @@ export interface MuteRow {
   created_at: Date;
 }
 
-/** One notification due to leave the building (T-432): past its hold, and not yet claimed by a carrier. */
+/** One notification due to leave the building (T-330): past its hold, recent, and not yet claimed by a carrier. */
 export interface DueNotification {
   id: string;
   user_id: string;
+  kind: string;
+  subject_type: string;
   subject_id: string;
+  /** The handle the route needs, resolved as the inbox resolves it; null when the subject no longer resolves. */
+  subject_label: string | null;
+  /** Who caused it, by username; null for a sourceless kind. */
+  source: string | null;
   /** The member's address, for the e-mail channel. */
   email: string;
+  /** The member's language, for the route an e-mail or a push opens. */
+  locale: string;
 }
 
 /** What each channel did with one notification, as `notification_delivery` records it. */
@@ -354,20 +362,47 @@ export class PostgresNotificationsStore {
   // --- carrying outward (T-330, T-432) ------------------------------------
 
   /**
-   * Notifications of one kind that may leave the building now: past their
-   * hold (quiet hours delay, and this respects the delay) and with no
-   * delivery claim yet. Oldest first, a page at a time.
+   * Notifications that may leave the building now: past their hold (quiet
+   * hours delay, and this respects the delay), **created within the last
+   * day**, and with no delivery claim yet. The day is the difference between
+   * a channel arriving and a flood: the first carrier after a provider is
+   * configured must not send a member everything they were told last month.
+   * Oldest first, a page at a time, with the label and the source resolved
+   * as the inbox resolves them, because the route and the sentence need them.
    */
-  async due(kind: string, limit = 100): Promise<DueNotification[]> {
+  async due(limit = 100): Promise<DueNotification[]> {
     const { rows } = await this.pool.query<DueNotification>(
-      `SELECT n.id, n.user_id, n.subject_id, u.email
+      `SELECT n.id,
+              n.user_id,
+              n.kind,
+              n.subject_type,
+              n.subject_id,
+              CASE n.subject_type
+                WHEN 'member' THEN subject_member.username
+                WHEN 'group' THEN subject_group.slug
+                ELSE NULL
+              END AS subject_label,
+              source.username AS source,
+              u.email,
+              u.preferred_language AS locale
          FROM notification n
          JOIN user_account u ON u.id = n.user_id
          LEFT JOIN notification_delivery d ON d.notification_id = n.id
-        WHERE n.kind = $1 AND n.deliver_after <= now() AND d.notification_id IS NULL
+         LEFT JOIN user_account source ON source.id = n.source_id
+         LEFT JOIN user_account subject_member
+                ON n.subject_type = 'member'
+               AND n.subject_id ~ '^[0-9a-f-]{36}$'
+               AND subject_member.id = n.subject_id::uuid
+         LEFT JOIN user_group subject_group
+                ON n.subject_type = 'group'
+               AND n.subject_id ~ '^[0-9a-f-]{36}$'
+               AND subject_group.id = n.subject_id::uuid
+        WHERE n.deliver_after <= now()
+          AND n.created_at >= now() - interval '1 day'
+          AND d.notification_id IS NULL
         ORDER BY n.deliver_after, n.created_at
-        LIMIT $2`,
-      [kind, limit],
+        LIMIT $1`,
+      [limit],
     );
     return rows;
   }

@@ -17,6 +17,11 @@ import { NOTIFICATION_TEXT, notificationHref, notificationLine } from '../lib/no
 const HERE = __dirname;
 const LIST = readFileSync(join(HERE, 'notification-list.tsx'), 'utf8');
 const LINKS = readFileSync(join(HERE, '..', 'lib', 'notification-links.ts'), 'utf8');
+// The sentences and the routing table live in the contract since 2026-09-20 (T-330), shared with e-mail and push.
+const CONTRACT = readFileSync(
+  join(HERE, '..', '..', '..', '..', 'packages', 'contracts', 'src', 'notifications.ts'),
+  'utf8',
+);
 const ACTIONS = readFileSync(join(HERE, '..', 'lib', 'notification-actions.ts'), 'utf8');
 
 const NOTIFICATION = (over: Partial<Notification> = {}): Notification => ({
@@ -101,8 +106,9 @@ describe('what each notification says', () => {
   it('decides on a field rather than on the wording', () => {
     // Inferring from capitalisation would work until somebody rephrased one,
     // and then be wrong silently.
-    expect(LINKS).toContain('named: boolean');
-    expect(LINKS).not.toMatch(/toLowerCase\(\)/);
+    expect(CONTRACT).toContain('named: boolean');
+    expect(LINKS).toContain("from '@fmip/contracts'");
+    expect(CONTRACT).not.toMatch(/toLowerCase\(\)/);
   });
 });
 

@@ -1,9 +1,18 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  type OnModuleDestroy,
+  type OnModuleInit,
+} from '@nestjs/common';
 import type { NotificationKind, NotificationSubject } from '@fmip/contracts';
 import {
   NOTIFICATION_CATEGORY_OF,
   NOTIFICATION_DEFAULTS,
   NOTIFICATION_HOURLY_CAP,
+  isNotificationKind,
+  notificationLine,
+  notificationPath,
 } from '@fmip/contracts';
 import type { OutboundEmail, OutboundPush } from '../delivery/delivery.port';
 import { DeliveryService } from '../delivery/delivery.service';
@@ -27,6 +36,17 @@ export interface CarryReport {
   due: number;
   carried: number;
 }
+
+/** A producer's own words for its kind, richer than the sentence: the briefing sends its prose (T-432). */
+export type Composer = (due: DueNotification) => Promise<OutboundMessages | null>;
+
+/** The web origin an e-mail's link is built on; the same `WEB_BASE_URL` identity uses. */
+export const WEB_ORIGIN = Symbol('WEB_ORIGIN');
+
+/** How often held and missed notifications are carried once they are due (T-330). */
+const CARRY_EVERY_MS = 5 * 60_000;
+/** The push's title; the sentence is its body. */
+const PUSH_TITLE = 'FMIP';
 
 /**
  * Emitting in-product notifications (blueprint 12.2, T-271).
@@ -82,13 +102,38 @@ export type EmitOutcome =
   | 'failed';
 
 @Injectable()
-export class NotificationsService {
+export class NotificationsService implements OnModuleInit, OnModuleDestroy {
   private readonly log = new Logger(NotificationsService.name);
+  private readonly composers = new Map<NotificationKind, Composer>();
+  private timer: NodeJS.Timeout | null = null;
 
   constructor(
     private readonly store: PostgresNotificationsStore,
     private readonly delivery: DeliveryService,
+    @Inject(WEB_ORIGIN) private readonly webOrigin: string,
   ) {}
+
+  /** A held notification leaves when its hold ends; a missed one on the next pass. Nothing waits on this. */
+  onModuleInit(): void {
+    if (process.env.NODE_ENV === 'test') return;
+    this.timer = setInterval(() => {
+      this.carry().catch((error: unknown) =>
+        this.log.error(
+          `notification.carry_failed: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
+    }, CARRY_EVERY_MS);
+    this.timer.unref();
+  }
+
+  onModuleDestroy(): void {
+    if (this.timer !== null) clearInterval(this.timer);
+  }
+
+  /** A producer with more to say than the sentence registers its own words for its kind (T-432). */
+  registerComposer(kind: NotificationKind, compose: Composer): void {
+    this.composers.set(kind, compose);
+  }
 
   /**
    * Whether this member would receive this kind.
@@ -177,8 +222,8 @@ export class NotificationsService {
   }
 
   /**
-   * Carry every due notification of one kind out of the building, through
-   * the delivery port (T-330, T-432).
+   * Carry every due notification out of the building, through the delivery
+   * port (T-330, T-432).
    *
    * Everything upstream has already decided the member should be told: the
    * row exists, its hold has ended (quiet hours delay, and `due` honours the
@@ -188,28 +233,30 @@ export class NotificationsService {
    * second process, the timer racing a request -- finds it taken and does
    * nothing; deduplicating afterwards from logs is how one retry becomes two
    * e-mails. The outcome on each channel is then recorded once, and an
-   * absent channel is an outcome too: it says nothing carried it, rather
-   * than leaving a gap that reads as "not yet".
+   * absent channel is an outcome too.
    *
-   * `compose` is the caller's, because this module knows nothing about what
-   * a notification describes; it returns the messages, or `null` when there
-   * is nothing to say for this one (the subject is gone), which is carried
-   * as nothing on every channel.
+   * **With no channel at all nothing is claimed.** The inbox already says it
+   * is the only place a notification exists, and a claim that could only
+   * ever say `absent` would be a row per notification for nothing; when a
+   * channel arrives, `due` carries the last day and not the month before.
+   *
+   * The words are the contract's sentence and route, the same the inbox
+   * shows, so an e-mail and a push open exactly what the inbox opens; a
+   * producer with more to say registers a composer for its kind.
    */
-  async carry(
-    kind: NotificationKind,
-    compose: (due: DueNotification) => Promise<OutboundMessages | null>,
-  ): Promise<CarryReport> {
-    const due = await this.store.due(kind);
+  async carry(): Promise<CarryReport> {
+    if (this.delivery.describe().in_product_only) return { due: 0, carried: 0 };
+    const due = await this.store.due();
     let carried = 0;
     for (const item of due) {
       if (!(await this.store.claimDelivery(item.id))) continue;
       let messages: OutboundMessages | null = null;
       try {
-        messages = await compose(item);
+        const compose = isNotificationKind(item.kind) ? this.composers.get(item.kind) : undefined;
+        messages = compose === undefined ? this.composeLine(item) : await compose(item);
       } catch (error) {
         this.log.error(
-          `notification.compose_failed kind=${kind} notification=${item.id}`,
+          `notification.compose_failed kind=${item.kind} notification=${item.id}`,
           error instanceof Error ? error.stack : String(error),
         );
       }
@@ -218,6 +265,30 @@ export class NotificationsService {
       carried += 1;
     }
     return { due: due.length, carried };
+  }
+
+  /** The sentence and the route, as the inbox shows them; a route that cannot be opened is left out of the e-mail and sends the push to the inbox. */
+  private composeLine(due: DueNotification): OutboundMessages | null {
+    if (!isNotificationKind(due.kind)) return null;
+    const line = notificationLine({ kind: due.kind, source: due.source });
+    const path = notificationPath(due.locale, {
+      subject_type: due.subject_type as NotificationSubject,
+      subject_id: due.subject_id,
+      subject_label: due.subject_label,
+    });
+    return {
+      email: {
+        to: due.email,
+        subject: line,
+        text: path === null ? line : `${line}\n\n${this.webOrigin}${path}`,
+      },
+      push: {
+        userId: due.user_id,
+        title: PUSH_TITLE,
+        body: line,
+        url: path ?? `/${due.locale}/notifications`,
+      },
+    };
   }
 
   /** The inbox itself (T-272). Only what is deliverable now; held ones wait. */

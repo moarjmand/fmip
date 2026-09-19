@@ -280,8 +280,11 @@ export {
   NOTIFICATION_DEFAULTS,
   NOTIFICATION_HOURLY_CAP,
   NOTIFICATION_KINDS,
+  NOTIFICATION_TEXT,
   QUIET_HOURS_RULE,
   isNotificationKind,
+  notificationLine,
+  notificationPath,
 } from './notifications';
 export type {
   MuteScope,
