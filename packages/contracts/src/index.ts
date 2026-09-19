@@ -515,5 +515,8 @@ export type {
   MatchSummaryRequest,
   MatchSummaryResponse,
   SearchIntent,
+  ModerationSuggestion,
+  SuggestedCategory,
+  SuggestionOutcome,
   SummaryGrounding,
 } from './intelligence';

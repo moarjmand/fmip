@@ -117,3 +117,24 @@ export interface AskResponse {
   /** The search's own rows, by id, in score order; never a name the search did not find. */
   results: SearchResult[];
 }
+
+// ---------------------------------------------------------------------------
+// Moderation assistance (E44, T-440): a suggested category and a reason
+// beside a report, for a moderator who decides. Never a decision, never an
+// action; the prompt is the report and the platform rules, and nothing about
+// who the member is (T-442).
+// ---------------------------------------------------------------------------
+import type { ReportReason } from './moderation';
+
+export type SuggestedCategory = ReportReason | 'no_action';
+
+export interface ModerationSuggestion extends MachineText {
+  version_number: number;
+  category: SuggestedCategory;
+  /** Why, in the model's words, for the moderator to weigh -- not a finding. */
+  reasoning: string;
+}
+
+export type SuggestionOutcome =
+  | { outcome: 'published' | 'rejected'; version_number: number; rejection: string | null }
+  | { outcome: 'absent' | 'failed' };

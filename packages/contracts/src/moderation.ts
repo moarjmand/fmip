@@ -13,6 +13,8 @@
  */
 
 /** What can be reported today. Messages, groups and analyses join it with the surfaces that hold them. */
+import type { LanguageModelState, ModerationSuggestion } from './intelligence';
+
 export const REPORT_SUBJECTS = ['member'] as const;
 export type ReportSubject = (typeof REPORT_SUBJECTS)[number];
 
@@ -132,6 +134,8 @@ export interface OwnStandingResponse {
 /** One open report as a moderator sees it: with who filed it. */
 export interface QueuedReport extends Report {
   reporter: string;
+  /** What the language model suggested, when one is configured and has answered (T-441); a moderator's to ignore. */
+  suggestion: ModerationSuggestion | null;
 }
 
 /**
@@ -157,6 +161,8 @@ export interface QueueSubject {
 
 export interface ModerationQueueResponse {
   subjects: QueueSubject[];
+  /** Whether a model is there to suggest at all, so an empty `suggestion` is read the right way. */
+  assistant: LanguageModelState;
   /** Open reports in total, so a page showing one screen can say what it is not showing. */
   open_total: number;
 }
