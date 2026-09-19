@@ -1276,6 +1276,25 @@ server (VPS, domain, Cloudflare, origin certificate, first start), the
 load-test rerun there, and one `verify-rollout.sh` on the real host; the row
 is ticked when those are done.
 
+**Rehearsed again on 2026-09-19, on the tree after PR #203.** The same
+steps, the same result: the four images built from this tree (the model one
+reused by tag, since pip has no route out of this host's Docker), every
+migration applied to an empty database, the stack healthy behind Caddy, and
+`verify-rollout.sh` rolling `api` then `web` -- 46 probes, 46 answered 200,
+slowest 0.367 s; `/en/watch` answered 200 through the production stack.
+Two things the rerun found, both fixed the same day: the production compose
+forwarded none of `INGESTION_SOURCE`, `INGESTION_SCHEDULE`, the delivery
+providers, `CHAT_ALLOWED_ORIGINS` or `DEMONSTRATION_DATA` into the
+containers, so a value set per the runbook would never have reached the API
+(PR #205); and the laptop rehearsal generated its certificate after the first
+start, which left Caddy crash-looping and `up --wait` saying only
+"unhealthy" -- on Windows the certificate was not written at all, because
+Git Bash turns `/CN=localhost` into a path. The runbook puts the certificate
+before the first start and `verify-rollout.sh` refuses to continue without
+one. What remains is unchanged: the runbook's steps 1-5 on a server that
+does not exist yet, the load-test rerun there, and one `verify-rollout.sh`
+on the real host.
+
 **T-085 verified on 2026-09-12.** `bash scripts/public-preview.sh start` puts
 the development stack on a public HTTPS address with no account, no domain and
 no port forward: a Cloudflare quick tunnel (`cloudflare/cloudflared:2026.9.1`,

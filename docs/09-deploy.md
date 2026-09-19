@@ -94,6 +94,9 @@ Edit `.env` (`nano .env`). Set these and leave the rest at their defaults:
 | `POSTGRES_PASSWORD` | output of `openssl rand -base64 36` |
 | `SESSION_SECRET` | output of `openssl rand -base64 48` (a different one) |
 | `API_FOOTBALL_KEY` etc. | the provider key(s) once T-025 is decided; empty until then |
+| `INGESTION_SOURCE`, `INGESTION_SCHEDULE` | the source profile and `on`, once T-025 is decided; `off` until then, and nothing is fetched |
+| `DELIVERY_EMAIL_PROVIDER`, `DELIVERY_PUSH_PROVIDER` | `off` until a provider is chosen (T-330); `/health/delivery` reports the absence |
+| `DEMONSTRATION_DATA` | leave `off`: it is the preview's marker for seeded fixtures (D-065), never a production setting |
 | `BACKUP_RCLONE_REMOTE` | per `07-backups.md` |
 
 `SITE_URL` and `WEB_BASE_URL` are derived from `SITE_HOST` by the compose
@@ -237,11 +240,20 @@ cp .env .env.dev-backup
     SITE_HOST=localhost HTTPS_PORT=8443 HTTP_PORT=8080 POSTGRES_PORT=55432 REDIS_PORT=56379; } > .env
 docker compose --profile tools build
 docker compose run --rm migrate
+# The certificate before the first start: Caddy will not come up without one,
+# and `up --wait` then reports it unhealthy. On Windows (Git Bash) prefix the
+# openssl line with MSYS_NO_PATHCONV=1, or `/CN=localhost` becomes a path and
+# no certificate is written.
+openssl req -x509 -newkey rsa:2048 -nodes -days 30 -subj '/CN=localhost' \n  -addext 'subjectAltName=DNS:localhost,IP:127.0.0.1' \n  -keyout deploy/certs/origin.key -out deploy/certs/origin.pem
 docker compose up -d --wait
-bash deploy/verify-rollout.sh          # generates a self-signed localhost certificate
+bash deploy/verify-rollout.sh
 docker compose down -v                 # afterwards
 mv .env.dev-backup .env
 ```
+
+The model image cannot be built on a machine whose Docker has no route to
+PyPI; `docker tag fmip-model:latest fmip-rehearsal-model:latest` reuses the
+development one and `up` then starts it without building.
 
 `COMPOSE_PROJECT_NAME` keeps the rehearsal apart from the development stack
 (`fmip`), and the shifted ports keep both up at once.
@@ -251,3 +263,4 @@ mv .env.dev-backup .env
 | Date | Where | Result |
 |---|---|---|
 | 2026-09-12 | Maintainer's laptop, rehearsal as above | see the T-074 note in `04-tasks-phase-1.md` |
+| 2026-09-19 | Maintainer's laptop, rehearsal as above, on the tree after PR #203 (34 migrations, the viewing epic, the compose env fix of PR #205) | 46 probes of `https://localhost:8443/en` during the api and web rollout, 46 answered 200, slowest 0.367 s; `/en/watch` answered 200 through Caddy. The first pass found Caddy unhealthy because the certificate was generated after `up`, and on Windows not at all (`/CN=localhost` mangled into a path); both are fixed above and `verify-rollout.sh` now fails loudly on a missing certificate. |

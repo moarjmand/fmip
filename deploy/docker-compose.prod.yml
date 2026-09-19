@@ -125,6 +125,17 @@ services:
       API_FOOTBALL_KEY: ${API_FOOTBALL_KEY:-}
       FOOTBALL_DATA_ORG_KEY: ${FOOTBALL_DATA_ORG_KEY:-}
       HIGHLIGHTLY_KEY: ${HIGHLIGHTLY_KEY:-}
+      # The schedule is what makes the provider key do anything (T-050): off
+      # until a source is chosen (T-025), and forwarded here because a value in
+      # .env reaches a container only when this file names it.
+      INGESTION_SOURCE: ${INGESTION_SOURCE:-}
+      INGESTION_SCHEDULE: ${INGESTION_SCHEDULE:-off}
+      HIGHLIGHTLY_DAILY_BUDGET: ${HIGHLIGHTLY_DAILY_BUDGET:-}
+      # Delivery (T-330): absent until a provider is chosen, and /health/delivery says so.
+      DELIVERY_EMAIL_PROVIDER: ${DELIVERY_EMAIL_PROVIDER:-off}
+      DELIVERY_PUSH_PROVIDER: ${DELIVERY_PUSH_PROVIDER:-off}
+      # Extra socket origins beyond https://SITE_HOST, e.g. a second domain (T-234).
+      CHAT_ALLOWED_ORIGINS: ${CHAT_ALLOWED_ORIGINS:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -156,6 +167,8 @@ services:
       API_BASE_URL: http://api:3001
       # Canonical URLs, sitemap, structured data (T-039).
       SITE_URL: https://${SITE_HOST}
+      # Off on a real deployment; on only where the database holds seeded fixtures (D-065).
+      DEMONSTRATION_DATA: ${DEMONSTRATION_DATA:-off}
     depends_on:
       api:
         condition: service_healthy
