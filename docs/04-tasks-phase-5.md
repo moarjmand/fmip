@@ -182,15 +182,32 @@ about it.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-420 | The reading: a sentence → a structured intent (entity kind, names, competition, season, date range) as `Covered<Intent>` | T-403, T-038 | The intent is the model's structured output, checked against the schema; an unreadable sentence is `not_supplied` with the reason |
-| `[ ]` T-421 | The answer: the intent run through the search that exists, and the interpretation shown | T-420, T-152 | Results are the search's own rows by id (rule 1); the page says how it read the question |
-| `[ ]` T-422 | Fallback: with no model, the sentence is keywords, and the page says so | T-421 | Nothing about search changes for a deployment without a model except one sentence |
+| `[x]` T-420 | The reading: a sentence → a structured intent (entity kind, names, competition, season, date range) as `Covered<Intent>` | T-403, T-038 | The intent is the model's structured output, checked against the schema; an unreadable sentence is `not_supplied` with the reason |
+| `[x]` T-421 | The answer: the intent run through the search that exists, and the interpretation shown | T-420, T-152 | Results are the search's own rows by id (rule 1); the page says how it read the question |
+| `[x]` T-422 | Fallback: with no model, the sentence is keywords, and the page says so | T-421 | Nothing about search changes for a deployment without a model except one sentence |
 
 **The model reads; it never answers.** A question about a team is answered
 by the team's row, found by the search T-038 built and T-152 taught to fold
 transliterations. The model's output is a structured intent and nothing else,
 which is what makes it checkable and what keeps a hallucinated club out of the
 results: a name the search cannot find is a name the answer does not contain.
+
+**E42 built on 2026-09-19.** `GET /ask?q=` (`apps/api/src/modules/ask/`):
+the model is asked the question and nothing else, under a standing
+instruction that says what to return -- the names the question mentions
+and which of `team`, `competition`, `person` it asks for, as JSON -- and
+`readIntent` accepts exactly that schema and nothing else (T-420): a field
+it does not name, a kind the search does not know, a name too short to
+search, and the answer is unreadable. A readable intent is run through the
+search that exists, one query per name, merged by id and ordered by score
+(T-421); every way the reading can fail -- no model, unreadable, nothing
+named, a failed call -- ends in the question searched as keywords with the
+reason beside the results (T-422). The search page calls `/ask` and shows
+"Read as" with the names and kinds, or the sentence that says why it did
+not; on a deployment with no model it is the search it was, with one
+sentence more, and the e2e suite that drives `/search?q=` is unchanged.
+`ask.http.spec.ts` runs a scripted model against the seed and a second
+application with the model absent.
 
 ---
 
@@ -241,7 +258,7 @@ moderator a minute and leaves the decision where the policy put it.
 | T-400 | a key on the server, after T-074 | **maintainer** |
 | T-401..T-403 | nothing | agent |
 | T-410..T-413 | built 2026-09-19; generation waits for T-400 at runtime | agent |
-| T-420..T-422 | nothing | agent |
+| T-420..T-422 | built 2026-09-19 | agent |
 | T-430, T-431 | nothing | agent |
 | T-432 | T-330's channel | after the provider |
 | T-440..T-442 | nothing | agent |

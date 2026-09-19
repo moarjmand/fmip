@@ -504,6 +504,8 @@ export type {
 // The intelligence layer (Phase 5, D-070): a language model behind one port,
 // its honest absence, and the labelled shape of anything a machine wrote.
 export type {
+  AskReason,
+  AskResponse,
   IntelligenceHealth,
   LanguageModelState,
   MachineText,
@@ -512,5 +514,6 @@ export type {
   MatchSummaryReason,
   MatchSummaryRequest,
   MatchSummaryResponse,
+  SearchIntent,
   SummaryGrounding,
 } from './intelligence';
