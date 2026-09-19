@@ -65,13 +65,14 @@ export function moduleState<T>(module: Covered<T>): string {
   return COVERAGE_LABEL[module.coverage];
 }
 
-/** Blueprint 4.2 modules that are not built yet, named on the page (rule 3). */
+/**
+ * Blueprint 4.2 modules that are not built yet, named on the page (rule 3).
+ * The list only ever gets shorter: the founder's analysis (T-132), the
+ * community forecast (T-135), the discussion (T-251) and Watch and highlights
+ * (T-314) left it the day they reached the page.
+ */
 export const NOT_YET = [
-  ["Founder's analysis", 'unsupported'],
-  ['Community forecast', 'unsupported'],
   ['Availability', 'unsupported'],
   ['Key players', 'unsupported'],
-  ['Discussion', 'unsupported'],
-  ['Watch and highlights', 'unsupported'],
   ['Related news', 'unsupported'],
 ] as const;
