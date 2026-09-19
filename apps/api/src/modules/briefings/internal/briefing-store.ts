@@ -51,7 +51,16 @@ export class PostgresBriefingStore {
     return rows[0]?.n ?? 0;
   }
 
-  async add(briefing: NewBriefing): Promise<number> {
+  /** The row a briefing notification points at (T-432): the published text and whose it is. */
+  async published(id: string): Promise<{ user_id: string; text: string } | null> {
+    const { rows } = await this.pool.query<{ user_id: string; text: string }>(
+      `SELECT user_id, text FROM member_briefing WHERE id = $1 AND state = 'published'`,
+      [id],
+    );
+    return rows[0] ?? null;
+  }
+
+  async add(briefing: NewBriefing): Promise<{ id: string; number: number }> {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
@@ -61,10 +70,11 @@ export class PostgresBriefingStore {
         [briefing.userId],
       );
       const number = next.rows[0]?.n ?? 1;
-      await client.query(
+      const inserted = await client.query<{ id: string }>(
         `INSERT INTO member_briefing
            (user_id, version_number, since, until, state, text, rejection, document, prompt_version, model)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10)`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10)
+         RETURNING id`,
         [
           briefing.userId,
           number,
@@ -79,7 +89,7 @@ export class PostgresBriefingStore {
         ],
       );
       await client.query('COMMIT');
-      return number;
+      return { id: inserted.rows[0]!.id, number };
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;

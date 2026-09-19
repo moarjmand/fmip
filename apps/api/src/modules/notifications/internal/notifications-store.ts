@@ -30,6 +30,21 @@ export interface MuteRow {
   created_at: Date;
 }
 
+/** One notification due to leave the building (T-432): past its hold, and not yet claimed by a carrier. */
+export interface DueNotification {
+  id: string;
+  user_id: string;
+  subject_id: string;
+  /** The member's address, for the e-mail channel. */
+  email: string;
+}
+
+/** What each channel did with one notification, as `notification_delivery` records it. */
+export interface DeliveryRecord {
+  email: 'absent' | 'sent' | 'failed';
+  push: 'absent' | 'sent' | 'failed';
+}
+
 export interface NewNotification {
   userId: string;
   kind: string;
@@ -334,5 +349,49 @@ export class PostgresNotificationsStore {
       [notificationId, userId],
     );
     return rowCount === 1;
+  }
+
+  // --- carrying outward (T-330, T-432) ------------------------------------
+
+  /**
+   * Notifications of one kind that may leave the building now: past their
+   * hold (quiet hours delay, and this respects the delay) and with no
+   * delivery claim yet. Oldest first, a page at a time.
+   */
+  async due(kind: string, limit = 100): Promise<DueNotification[]> {
+    const { rows } = await this.pool.query<DueNotification>(
+      `SELECT n.id, n.user_id, n.subject_id, u.email
+         FROM notification n
+         JOIN user_account u ON u.id = n.user_id
+         LEFT JOIN notification_delivery d ON d.notification_id = n.id
+        WHERE n.kind = $1 AND n.deliver_after <= now() AND d.notification_id IS NULL
+        ORDER BY n.deliver_after, n.created_at
+        LIMIT $2`,
+      [kind, limit],
+    );
+    return rows;
+  }
+
+  /**
+   * The claim, written before the send and unique per notification: a second
+   * carrier finds it taken and returns `false`. This is what makes "never
+   * sent twice" a property of the table rather than of the logs.
+   */
+  async claimDelivery(notificationId: string): Promise<boolean> {
+    const { rowCount } = await this.pool.query(
+      `INSERT INTO notification_delivery (notification_id) VALUES ($1) ON CONFLICT DO NOTHING`,
+      [notificationId],
+    );
+    return rowCount === 1;
+  }
+
+  /** The outcome on each channel, written once; the trigger refuses a second. */
+  async recordDelivery(notificationId: string, outcome: DeliveryRecord): Promise<void> {
+    await this.pool.query(
+      `UPDATE notification_delivery
+          SET email = $2, push = $3, carried_at = now()
+        WHERE notification_id = $1`,
+      [notificationId, outcome.email, outcome.push],
+    );
   }
 }

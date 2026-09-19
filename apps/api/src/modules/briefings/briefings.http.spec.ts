@@ -14,6 +14,7 @@ import {
   LANGUAGE_MODEL,
 } from '../intelligence/intelligence.port';
 import { BriefingsModule } from './briefings.module';
+import { BriefingsService } from './briefings.service';
 
 /**
  * Briefings through the API (T-430, T-431), with a scripted model: a member
@@ -22,6 +23,9 @@ import { BriefingsModule } from './briefings.module';
  * more into the feed than it carries -- a paragraph about nobody, a number
  * from nowhere -- is a rejected version the page never shows; the reasons
  * for having none are sentences; and a guest has no briefing to ask for.
+ * T-432: a published briefing is the inbox's notification, once per day
+ * however many versions, held by quiet hours and carried through the
+ * delivery port -- absent on both channels here -- exactly once.
  */
 const DATABASE_URL = process.env.DATABASE_URL;
 const RUN = `${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
@@ -44,6 +48,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('briefings', 
   const ids = new Map<string, string>();
   const follower = `br_${RUN}f`;
   const nobody = `br_${RUN}n`;
+  const sleeper = `br_${RUN}s`;
   const home = `Briefton ${RUN}`;
   const away = `Digestham ${RUN}`;
   let script: Completion = {
@@ -131,6 +136,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('briefings', 
     pool = new Pool({ connectionString: DATABASE_URL });
     await register(follower);
     await register(nobody);
+    await register(sleeper);
     await pool.query(
       `INSERT INTO team (id, country_id, name, short_name, kind, gender)
        VALUES ($1, $3, $4, 'BRF', 'club', 'men'), ($2, $3, $5, 'DGH', 'club', 'men')`,
@@ -146,8 +152,17 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('briefings', 
       [MATCH, HOME, AWAY],
     );
     await pool.query(
-      `INSERT INTO followed_entity (user_id, entity_type, entity_id, favourite) VALUES ($1, 'team', $2, true)`,
-      [ids.get(follower), HOME],
+      `INSERT INTO followed_entity (user_id, entity_type, entity_id, favourite) VALUES ($1, 'team', $2, true), ($3, 'team', $2, true)`,
+      [ids.get(follower), HOME, ids.get(sleeper)],
+    );
+    // Quiet from an hour ago to an hour from now, on the sleeper's own clock.
+    await pool.query(
+      `INSERT INTO quiet_hours (user_id, starts_at, ends_at)
+       SELECT $1,
+              ((now() AT TIME ZONE u.timezone) - interval '1 hour')::time,
+              ((now() AT TIME ZONE u.timezone) + interval '1 hour')::time
+         FROM user_account u WHERE u.id = $1`,
+      [ids.get(sleeper)],
     );
   });
 
@@ -156,7 +171,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('briefings', 
     try {
       await client.query(`SET session_replication_role = 'replica'`);
       await client.query(`DELETE FROM member_briefing WHERE user_id = ANY($1::uuid[])`, [
-        [ids.get(follower), ids.get(nobody)],
+        [ids.get(follower), ids.get(nobody), ids.get(sleeper)],
       ]);
     } finally {
       await client.query(`SET session_replication_role = 'origin'`);
@@ -191,7 +206,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('briefings', 
     };
     const outcome = await write(follower);
     expect(outcome.status).toBe(201);
-    expect(outcome.body).toEqual({ outcome: 'published', version_number: 1, rejection: null });
+    expect(outcome.body).toEqual({
+      outcome: 'published',
+      version_number: 1,
+      rejection: null,
+      notification: 'sent',
+    });
     const request = asked[asked.length - 1]!;
     const document = JSON.parse(request.prompt) as { days: { items: { kind: string }[] }[] };
     expect(document.days[0]?.items[0]?.kind).toBe('fixture');
@@ -206,6 +226,35 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('briefings', 
       version_number: 1,
     });
     expect(shown.body.reason).toBeNull();
+
+    // T-432: the same notification the inbox has, opening this version, keyed
+    // on the day the window starts, and carried once through the port, which
+    // had nothing to carry it with.
+    const { rows: told } = await pool.query<{
+      id: string;
+      subject_type: string;
+      subject_id: string;
+      dedupe_key: string;
+    }>(
+      `SELECT id, subject_type, subject_id, dedupe_key FROM notification
+        WHERE user_id = $1 AND kind = 'briefing' AND deliver_after <= now()`,
+      [ids.get(follower)],
+    );
+    expect(told).toHaveLength(1);
+    const { rows: versions } = await pool.query<{ id: string }>(
+      `SELECT id FROM member_briefing WHERE user_id = $1 AND version_number = 1`,
+      [ids.get(follower)],
+    );
+    expect(told[0]).toMatchObject({
+      subject_type: 'briefing',
+      subject_id: versions[0]?.id,
+      dedupe_key: shown.body.prose.data?.since.slice(0, 10),
+    });
+    const { rows: carried } = await pool.query(
+      `SELECT email, push, carried_at FROM notification_delivery WHERE notification_id = $1`,
+      [told[0]?.id],
+    );
+    expect(carried).toEqual([{ email: 'absent', push: 'absent', carried_at: expect.any(Date) }]);
   });
 
   it('rejects a paragraph that points at nothing in the feed and a number from nowhere, and keeps showing the published one', async () => {
@@ -240,5 +289,60 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('briefings', 
         ids.get(follower),
       ]),
     ).rejects.toThrow(/immutable/);
+  });
+  it('tells the member once for a day, however many versions are written', async () => {
+    script = { ...script, text: `${home} play ${away} tomorrow.`, stop: 'end_turn' };
+    const again = await write(follower);
+    expect(again.body).toMatchObject({ outcome: 'published', notification: 'duplicate' });
+    const { rows } = await pool.query<{ told: number; carried: number }>(
+      `SELECT count(n.id)::int AS told, count(d.notification_id)::int AS carried
+         FROM notification n LEFT JOIN notification_delivery d ON d.notification_id = n.id
+        WHERE n.user_id = $1 AND n.kind = 'briefing'`,
+      [ids.get(follower)],
+    );
+    expect(rows[0]).toEqual({ told: 1, carried: 1 });
+  });
+
+  it('keeps quiet hours: held now, carried once the hold ends, and its outcome written once', async () => {
+    script = { ...script, text: `${home} play ${away} tomorrow.`, stop: 'end_turn' };
+    expect((await write(sleeper)).body).toMatchObject({
+      outcome: 'published',
+      notification: 'delayed',
+    });
+    const { rows: held } = await pool.query<{
+      id: string;
+      deliver_after: Date;
+      held_reason: string | null;
+    }>(
+      `SELECT id, deliver_after, held_reason FROM notification WHERE user_id = $1 AND kind = 'briefing'`,
+      [ids.get(sleeper)],
+    );
+    expect(held).toHaveLength(1);
+    const notification = held[0]!;
+    expect(notification.deliver_after.getTime()).toBeGreaterThan(Date.now());
+    expect(notification.held_reason).toBe('your quiet hours');
+    const claimed = () =>
+      pool.query<{ email: string | null; push: string | null }>(
+        `SELECT email, push FROM notification_delivery WHERE notification_id = $1`,
+        [notification.id],
+      );
+
+    const service = app.get(BriefingsService);
+    await service.carry();
+    expect((await claimed()).rows).toHaveLength(0);
+
+    // The hold ends (moved by hand, as the clock would move it).
+    await pool.query(`UPDATE notification SET deliver_after = created_at WHERE id = $1`, [
+      notification.id,
+    ]);
+    expect((await service.carry()).carried).toBeGreaterThanOrEqual(1);
+    expect((await claimed()).rows).toEqual([{ email: 'absent', push: 'absent' }]);
+    await service.carry();
+    expect((await claimed()).rows).toHaveLength(1);
+    await expect(
+      pool.query(`UPDATE notification_delivery SET email = 'sent' WHERE notification_id = $1`, [
+        notification.id,
+      ]),
+    ).rejects.toThrow(/written once/);
   });
 });

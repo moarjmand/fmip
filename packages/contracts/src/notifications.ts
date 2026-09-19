@@ -28,6 +28,8 @@ export const NOTIFICATION_KINDS = [
   'contributor_granted',
   'contributor_grant_changed',
   'panel_reaction',
+  // The member's briefing was written (Phase 5, T-432).
+  'briefing',
 ] as const;
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
@@ -63,6 +65,9 @@ export const NOTIFICATION_DEFAULTS: Record<NotificationKind, boolean> = {
   contributor_granted: true,
   contributor_grant_changed: true,
   panel_reaction: false,
+  // A member asked for it, so they hear that it exists; the inbox is where a
+  // channel carries it from (T-432).
+  briefing: true,
 };
 
 /**
@@ -115,7 +120,9 @@ export type NotificationSubject =
   | 'message'
   | 'panel_post'
   | 'prediction'
-  | 'sanction';
+  | 'sanction'
+  /** The member's own briefing (T-432): `subject_id` is the `member_briefing` row. */
+  | 'briefing';
 
 /**
  * One notification, as its recipient sees it.
@@ -218,6 +225,7 @@ export const NOTIFICATION_CATEGORY_OF: Record<NotificationKind, NotificationCate
   group_invite: 'social',
   group_join_request: 'social',
   panel_reaction: 'social',
+  briefing: 'football',
   moderation_decision: 'account',
   contributor_granted: 'account',
   contributor_grant_changed: 'account',

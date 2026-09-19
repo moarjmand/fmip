@@ -41,7 +41,12 @@ export function BriefingPanel({
   const canAsk =
     briefing !== null && briefing.reason !== 'no_model' && briefing.reason !== 'nothing_to_brief';
   return (
-    <section className="flex flex-col gap-3" data-testid="briefing" data-state={state}>
+    <section
+      id="briefing"
+      className="flex flex-col gap-3"
+      data-testid="briefing"
+      data-state={state}
+    >
       <h2 className="text-lg font-semibold">
         <Translated locale={locale} message="briefing.title" />
       </h2>
