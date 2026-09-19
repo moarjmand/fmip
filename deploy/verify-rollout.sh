@@ -35,6 +35,13 @@ if [ ! -f deploy/certs/origin.pem ] || [ ! -f deploy/certs/origin.key ]; then
     openssl req -x509 -newkey rsa:2048 -nodes -days 30 -subj '/CN=localhost' \
       -addext 'subjectAltName=DNS:localhost,IP:127.0.0.1' \
       -keyout deploy/certs/origin.key -out deploy/certs/origin.pem 2>/dev/null
+    # openssl exits 0 on some hosts and still writes no certificate (Git Bash on
+    # Windows turns `/CN=localhost` into a path); say so rather than let Caddy
+    # crash-loop on a missing file and report only "unhealthy".
+    if [ ! -s deploy/certs/origin.pem ]; then
+      echo "ERROR: openssl wrote no certificate. On Windows run it with MSYS_NO_PATHCONV=1 (docs/09-deploy.md, rehearsal)." >&2
+      exit 1
+    fi
   else
     echo "ERROR: deploy/certs/origin.pem and origin.key are missing (docs/09-deploy.md, step 4)." >&2
     exit 1
