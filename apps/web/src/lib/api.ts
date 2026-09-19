@@ -48,6 +48,7 @@ import type {
   MatchPanelPage,
   NewsSectionResponse,
   NotificationSettings,
+  PushState,
   NotificationsResponse,
   OwnProfile,
   PanelPermission,
@@ -176,6 +177,11 @@ export function fetchNotificationSettings(
     '/me/notification-settings',
     cookie === undefined ? {} : { cookie },
   );
+}
+
+/** Push on this deployment and this member's devices (T-330, D-074). */
+export function fetchPushState(cookie: string | undefined): Promise<ApiResult<PushState>> {
+  return apiRequest<PushState>('/me/push', cookie === undefined ? {} : { cookie });
 }
 
 /** Whether *this* viewer may post, and if not, why not. The half that needs the session. */

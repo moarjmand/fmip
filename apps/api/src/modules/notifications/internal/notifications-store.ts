@@ -49,8 +49,8 @@ export interface DueNotification {
 
 /** What each channel did with one notification, as `notification_delivery` records it. */
 export interface DeliveryRecord {
-  email: 'absent' | 'sent' | 'failed';
-  push: 'absent' | 'sent' | 'failed';
+  email: 'absent' | 'sent' | 'failed' | 'skipped';
+  push: 'absent' | 'sent' | 'failed' | 'skipped';
 }
 
 export interface NewNotification {

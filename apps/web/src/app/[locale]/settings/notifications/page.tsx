@@ -2,7 +2,14 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { NotificationSettingsForm } from '@/components/notification-settings';
-import { fetchCompetitions, fetchMe, fetchNotificationSettings, fetchTeams } from '@/lib/api';
+import { PushToggle } from '@/components/push-toggle';
+import {
+  fetchCompetitions,
+  fetchMe,
+  fetchNotificationSettings,
+  fetchPushState,
+  fetchTeams,
+} from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 
@@ -32,10 +39,11 @@ export default async function NotificationSettingsPage({
   const me = await fetchMe(cookie);
   if (me === null) redirect(`/${locale}/login?next=/${locale}/settings/notifications`);
 
-  const [result, teams, competitions] = await Promise.all([
+  const [result, teams, competitions, push] = await Promise.all([
     fetchNotificationSettings(cookie),
     fetchTeams(),
     fetchCompetitions(),
+    fetchPushState(cookie),
   ]);
 
   return (
@@ -46,6 +54,17 @@ export default async function NotificationSettingsPage({
         </Link>
       </p>
       <h1 className="text-2xl font-semibold">What reaches you</h1>
+
+      <section className="flex flex-col gap-2" data-testid="push-section">
+        <h2 className="text-lg font-semibold">On this device</h2>
+        {push.ok ? (
+          <PushToggle locale={locale} push={push.data} />
+        ) : (
+          <p className="text-sm opacity-70" data-testid="push-unreachable">
+            Whether push is available could not be read right now.
+          </p>
+        )}
+      </section>
 
       {result.ok ? (
         <NotificationSettingsForm

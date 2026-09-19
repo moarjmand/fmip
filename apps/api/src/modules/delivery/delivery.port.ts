@@ -1,5 +1,15 @@
 import type { DeliveryChannelState, DeliveryHealth } from '@fmip/contracts';
+import type { PostgresPushSubscriptionStore } from './internal/push-subscriptions';
 import { SmtpEmailChannel, smtpSettingsFromEnv } from './internal/smtp-email';
+import { WebPushChannel, vapidSettingsFromEnv } from './internal/webpush';
+
+/**
+ * Thrown by a channel that exists when this member has nowhere to receive
+ * on it -- no device registered for push. The port records it as `skipped`:
+ * neither the channel's absence nor its failure, and saying either would be
+ * a lie about what happened (rule 3).
+ */
+export class NoRecipient extends Error {}
 
 /**
  * Delivery behind one port (T-330, blueprint 12.2): e-mail and push, with a
@@ -70,7 +80,8 @@ export function describeDelivery(delivery: OutboundDelivery, now = new Date()): 
  * deployment chooses the service and this build does not. Push: none yet.
  */
 export const KNOWN_EMAIL_PROVIDERS: readonly string[] = ['smtp'];
-export const KNOWN_PUSH_PROVIDERS: readonly string[] = [];
+/** Push: `webpush`, the standard every browser's push service speaks, signed with the deployment's VAPID keys (D-074). */
+export const KNOWN_PUSH_PROVIDERS: readonly string[] = ['webpush'];
 
 /**
  * The delivery a deployment configured. `off` or unset is an honest
@@ -79,7 +90,10 @@ export const KNOWN_PUSH_PROVIDERS: readonly string[] = [];
  * failure the port exists to prevent, discovered weeks later by nobody
  * having been told anything.
  */
-export function deliveryFromEnv(env: NodeJS.ProcessEnv = process.env): OutboundDelivery {
+export function deliveryFromEnv(
+  env: NodeJS.ProcessEnv = process.env,
+  subscriptions: PostgresPushSubscriptionStore | null = null,
+): OutboundDelivery {
   const email = (env.DELIVERY_EMAIL_PROVIDER ?? 'off').trim().toLowerCase();
   const push = (env.DELIVERY_PUSH_PROVIDER ?? 'off').trim().toLowerCase();
   if (email !== 'off' && email !== '' && !KNOWN_EMAIL_PROVIDERS.includes(email)) {
@@ -96,6 +110,16 @@ export function deliveryFromEnv(env: NodeJS.ProcessEnv = process.env): OutboundD
   }
   const emailChannel =
     email === 'smtp' ? SmtpEmailChannel.fromSettings(smtpSettingsFromEnv(env)) : null;
-  if (emailChannel === null) return new AbsentDelivery();
-  return { email: emailChannel, push: null };
+  let pushChannel: WebPushChannel | null = null;
+  if (push === 'webpush') {
+    const settings = vapidSettingsFromEnv(env);
+    if (subscriptions === null) {
+      throw new Error(
+        'DELIVERY_PUSH_PROVIDER=webpush needs the subscription store; the module provides it',
+      );
+    }
+    pushChannel = WebPushChannel.fromSettings(settings, subscriptions);
+  }
+  if (emailChannel === null && pushChannel === null) return new AbsentDelivery();
+  return { email: emailChannel, push: pushChannel };
 }
