@@ -529,6 +529,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "summary.reason.thinRecord": {
+    "source": "The record of this match holds only the score, so there is no summary: nothing else would be from the record.",
+    "text": "",
+    "status": "untranslated"
+  },
   "summary.unreachable": {
     "source": "The summary service is unreachable right now.",
     "text": "",
@@ -556,6 +561,11 @@
   },
   "summary.part.consensus": {
     "source": "consensus",
+    "text": "",
+    "status": "untranslated"
+  },
+  "summary.part.score": {
+    "source": "the score",
     "text": "",
     "status": "untranslated"
   },

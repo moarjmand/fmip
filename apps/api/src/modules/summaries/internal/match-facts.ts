@@ -20,7 +20,7 @@ import type {
  * be reconciled (rule 6).
  */
 export const FACTS_VERSION = 'facts@1';
-export const PROMPT_VERSION = 'match-summary@1';
+export const PROMPT_VERSION = 'match-summary@2';
 
 export interface MatchFacts {
   facts_version: typeof FACTS_VERSION;
@@ -225,4 +225,15 @@ export function groundingOf(facts: MatchFacts): SummaryGrounding {
     forecast: facts.forecast.coverage,
     consensus: facts.consensus.coverage,
   };
+}
+
+/**
+ * A record that holds only the score: no timeline, no statistics and no
+ * line-ups held. Nothing is written from it (T-412): a model asked anyway
+ * narrates goals it never saw, in words no gate can catch.
+ */
+export function thinRecord(grounding: SummaryGrounding): boolean {
+  const held = (coverage: SummaryGrounding[keyof SummaryGrounding]) =>
+    coverage === 'available' || coverage === 'limited';
+  return !held(grounding.timeline) && !held(grounding.statistics) && !held(grounding.lineups);
 }

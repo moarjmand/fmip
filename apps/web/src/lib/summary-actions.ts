@@ -53,6 +53,11 @@ export async function regenerateSummaryAction(
       return { ok: false, message: 'No language model is configured on this deployment.' };
     case 'not_finished':
       return { ok: false, message: 'A summary is written after the match.' };
+    case 'thin_record':
+      return {
+        ok: false,
+        message: 'The record of this match holds only the score, so no summary was written.',
+      };
     case 'failed':
       return { ok: false, message: 'The model could not be reached; nothing was written.' };
   }

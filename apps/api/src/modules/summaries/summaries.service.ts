@@ -11,6 +11,7 @@ import {
   PROMPT_VERSION,
   assembleFacts,
   groundingOf,
+  thinRecord,
 } from './internal/match-facts';
 import { PostgresMatchSummaryStore, groundingFromRow } from './internal/match-summary-store';
 
@@ -21,11 +22,16 @@ export const SYSTEM = [
   'Write two to four short paragraphs in plain English about what happened.',
   'Use only what the record says: name only people, teams and places that appear in it, spelled exactly as they appear, and give only numbers that appear in it.',
   'A part whose coverage is not_supplied is unknown: do not describe it and do not guess at it.',
+  // match-summary@2, after the first real run (2026-09-19): given a score and
+  // nothing else, the model narrated who scored first and how.
+  'Describe who scored, the order of the goals, possession or momentum only when the timeline or the statistics say so; when they are not supplied, give the score and the half-time score and say nothing about how the match went.',
   'Do not predict anything. Do not judge the forecast against the consensus and do not combine them; if you mention either, report it as the labelled number it is.',
   'Do not mention that you are a model or that you were given a record. Output the paragraphs only.',
 ].join(' ');
 
 const MAX_TOKENS = 1_200;
+/** The reason on a `skipped` version. */
+export const THIN_RECORD = 'the record holds only the score';
 const LANGUAGE = 'en';
 /** How far back the catch-up looks for finished matches with no version. */
 const CATCH_UP_DAYS = 3;
@@ -98,14 +104,17 @@ export class SummariesService implements OnModuleInit, OnModuleDestroy {
         versions,
       };
     }
+    const latest = versions > 0 ? await this.store.latestState(fixtureId) : null;
     const reason =
       status !== 'finished'
         ? 'not_finished'
         : this.intelligence.describe().absent
           ? 'no_model'
-          : versions > 0
-            ? 'rejected'
-            : 'not_generated';
+          : latest === 'skipped'
+            ? 'thin_record'
+            : versions > 0
+              ? 'rejected'
+              : 'not_generated';
     return {
       fixture_id: fixtureId,
       summary: { coverage: 'not_supplied', last_updated_at: null, data: null },
@@ -128,6 +137,36 @@ export class SummariesService implements OnModuleInit, OnModuleDestroy {
       this.consensus.forFixture(fixtureId),
     ]);
     const facts = assembleFacts(centre, forecast, consensus);
+    const described = this.intelligence.describe();
+    if (described.absent) return { outcome: 'absent' };
+    if (thinRecord(groundingOf(facts))) {
+      // Nothing is written from a score alone (rule 3): asked anyway, a model
+      // narrates goals it never saw (seen on 2026-09-19). The decision is a
+      // version too -- `skipped`, with the facts and the reason -- so the
+      // catch-up does not ask every ten minutes and the page can say why
+      // there is none. One such row stands until the record grows.
+      if ((await this.store.latestState(fixtureId)) !== 'skipped') {
+        await this.store.add({
+          fixtureId,
+          language: LANGUAGE,
+          state: 'skipped',
+          text: null,
+          rejection: THIN_RECORD,
+          facts,
+          factsVersion: FACTS_VERSION,
+          promptVersion: PROMPT_VERSION,
+          model:
+            described.language_model.state === 'configured'
+              ? described.language_model.model
+              : 'none',
+          inputTokens: null,
+          outputTokens: null,
+          requestedBy,
+          reason,
+        });
+      }
+      return { outcome: 'thin_record' };
+    }
     const answer = await this.intelligence.complete({
       system: SYSTEM,
       prompt: JSON.stringify(facts),

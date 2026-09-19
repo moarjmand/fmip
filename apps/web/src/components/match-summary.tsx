@@ -19,6 +19,7 @@ const REASON_KEY: Record<MatchSummaryReason, MessageKey> = {
   not_finished: 'summary.reason.notFinished',
   no_model: 'summary.reason.noModel',
   not_generated: 'summary.reason.notGenerated',
+  thin_record: 'summary.reason.thinRecord',
   rejected: 'summary.reason.rejected',
 };
 
@@ -97,7 +98,7 @@ export function MatchSummaryPanel({
             {(Object.keys(PART_KEY) as (keyof SummaryGrounding)[])
               .filter((part) => data.grounded_on[part] !== 'not_supplied')
               .map((part) => t(PART_KEY[part]))
-              .join(', ')}
+              .join(', ') || t('summary.part.score')}
           </p>
         </>
       )}

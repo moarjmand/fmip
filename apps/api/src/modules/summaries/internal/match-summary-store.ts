@@ -4,12 +4,14 @@ import { Pool, type PoolClient } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 import type { MatchFacts } from './match-facts';
 
+export type SummaryState = 'published' | 'rejected' | 'skipped';
+
 export interface SummaryRow {
   id: string;
   fixture_id: string;
   version_number: number;
   language: string;
-  state: 'published' | 'rejected';
+  state: SummaryState;
   text: string | null;
   rejection: string | null;
   facts: MatchFacts;
@@ -21,7 +23,7 @@ export interface SummaryRow {
 export interface NewVersion {
   fixtureId: string;
   language: string;
-  state: 'published' | 'rejected';
+  state: SummaryState;
   text: string | null;
   rejection: string | null;
   facts: MatchFacts;
@@ -86,6 +88,15 @@ export class PostgresMatchSummaryStore {
       [since, limit],
     );
     return rows.map((r) => r.id);
+  }
+
+  /** The newest version's state, or `null` with none: what the page's reason is read from. */
+  async latestState(fixtureId: string): Promise<SummaryState | null> {
+    const { rows } = await this.pool.query<{ state: SummaryState }>(
+      `SELECT state FROM match_summary WHERE fixture_id = $1 ORDER BY version_number DESC LIMIT 1`,
+      [fixtureId],
+    );
+    return rows[0]?.state ?? null;
   }
 
   async add(version: NewVersion): Promise<number> {

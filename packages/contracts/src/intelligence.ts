@@ -62,6 +62,8 @@ export type MatchSummaryReason =
   | 'no_model'
   /** A model exists and nobody has asked yet; full time or an editor will. */
   | 'not_generated'
+  /** The record holds only the score -- no timeline, statistics or line-ups -- and nothing is written from a score alone (T-412). */
+  | 'thin_record'
   /** Every attempt so far was turned down -- by the grounding gate, a refusal or a truncation -- and none is shown. */
   | 'rejected';
 
@@ -81,7 +83,7 @@ export interface MatchSummaryRequest {
 
 export type MatchSummaryOutcome =
   | { outcome: 'published' | 'rejected'; version_number: number; rejection: string | null }
-  | { outcome: 'absent' | 'not_finished' | 'failed' };
+  | { outcome: 'absent' | 'not_finished' | 'failed' | 'thin_record' };
 
 // ---------------------------------------------------------------------------
 // Natural-language search (E42, T-420): the model reads the question; the

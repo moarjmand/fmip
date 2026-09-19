@@ -32,6 +32,8 @@ const HOME = randomUUID();
 const AWAY = randomUUID();
 const MATCH = randomUUID();
 const UPCOMING = randomUUID();
+/** Finished, with a score and nothing else held: no summary is written from it (T-412). */
+const THIN = randomUUID();
 
 function cookieValue(setCookie: string | string[] | undefined): string {
   const header = Array.isArray(setCookie) ? setCookie[0] : setCookie;
@@ -145,13 +147,21 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('match summar
     await pool.query(
       `INSERT INTO fixture (id, season_id, stage_id, round, kickoff_at, status)
        VALUES ($1, $3, $4, 'Matchday 23', now() - interval '2 hours', 'finished'),
-              ($2, $3, $4, 'Matchday 24', now() + interval '5 days', 'scheduled')`,
-      [MATCH, UPCOMING, PL_2025, REGULAR_SEASON],
+              ($2, $3, $4, 'Matchday 24', now() + interval '5 days', 'scheduled'),
+              ($5, $3, $4, 'Matchday 22', now() - interval '3 hours', 'finished')`,
+      [MATCH, UPCOMING, PL_2025, REGULAR_SEASON, THIN],
     );
     await pool.query(
       `INSERT INTO fixture_participant (fixture_id, team_id, side)
-       VALUES ($1, $2, 'home'), ($1, $3, 'away'), ($4, $2, 'home'), ($4, $3, 'away')`,
-      [MATCH, HOME, AWAY, UPCOMING],
+       VALUES ($1, $2, 'home'), ($1, $3, 'away'), ($4, $2, 'home'), ($4, $3, 'away'),
+              ($5, $2, 'home'), ($5, $3, 'away')`,
+      [MATCH, HOME, AWAY, UPCOMING, THIN],
+    );
+    // MATCH holds one statistic, so its record is more than the score; THIN holds nothing else.
+    await pool.query(
+      `INSERT INTO fixture_stat (participant_id, metric, value)
+       SELECT id, 'shots', 9 FROM fixture_participant WHERE fixture_id = $1 AND side = 'home'`,
+      [MATCH],
     );
   });
 
@@ -161,7 +171,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('match summar
       // Summaries and audit rows are immutable by design; a test's own rows go with the triggers off.
       await client.query(`SET session_replication_role = 'replica'`);
       await client.query(`DELETE FROM match_summary WHERE fixture_id = ANY($1::uuid[])`, [
-        [MATCH, UPCOMING],
+        [MATCH, UPCOMING, THIN],
       ]);
       await client.query(`DELETE FROM audit_log WHERE actor_id = ANY($1::uuid[])`, [
         [ids.get(editor), ids.get(member)],
@@ -170,7 +180,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('match summar
       await client.query(`SET session_replication_role = 'origin'`);
       client.release();
     }
-    await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [[MATCH, UPCOMING]]);
+    await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [[MATCH, UPCOMING, THIN]]);
     await pool.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [[HOME, AWAY]]);
     await pool.query(`DELETE FROM user_account WHERE username LIKE $1`, [`sm_${RUN}%`]);
     await pool.end();
@@ -229,9 +239,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('match summar
       text: `${home} and ${away} drew. Neither side scored.`,
       language: 'en',
       model: 'scripted-1',
-      prompt_version: 'match-summary@1',
+      prompt_version: 'match-summary@2',
       version_number: 1,
-      grounded_on: { timeline: 'not_supplied', statistics: 'not_supplied' },
+      grounded_on: { timeline: 'not_supplied', statistics: 'limited' },
     });
     expect(shown.body.versions).toBe(1);
     const audit = await pool.query<{ action: string; reason: string }>(
@@ -283,5 +293,25 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('match summar
     await expect(
       pool.query(`UPDATE match_summary SET text = 'edited' WHERE fixture_id = $1`, [MATCH]),
     ).rejects.toThrow(/immutable/);
+  });
+
+  it('writes nothing from a record that holds only the score, says so, and does not ask the model again', async () => {
+    const before = asked.length;
+    const outcome = await generate(THIN, 'try anyway');
+    expect([200, 201]).toContain(outcome.status);
+    expect(outcome.body).toEqual({ outcome: 'thin_record' });
+    expect(asked.length).toBe(before);
+    const shown = await current(THIN);
+    expect(shown.body.summary.coverage).toBe('not_supplied');
+    expect(shown.body.reason).toBe('thin_record');
+    expect(shown.body.versions).toBe(1);
+    // Asked again: the decision stands as the one row, not a second.
+    expect((await generate(THIN, 'again')).body).toEqual({ outcome: 'thin_record' });
+    expect((await current(THIN)).body.versions).toBe(1);
+    const { rows } = await pool.query<{ state: string; rejection: string }>(
+      `SELECT state, rejection FROM match_summary WHERE fixture_id = $1`,
+      [THIN],
+    );
+    expect(rows).toEqual([{ state: 'skipped', rejection: 'the record holds only the score' }]);
   });
 });
