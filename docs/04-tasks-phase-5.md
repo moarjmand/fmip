@@ -215,9 +215,25 @@ application with the model absent.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-430 | The briefing as a document: the feed's window (T-333) grouped by day, each item by id | T-333 | A briefing with no model is the feed as a dated page, and is honest as it is |
-| `[ ]` T-431 | The prose: a `MachineText` over the document, every sentence pointing at an item in it | T-403, T-430 | A sentence that points at nothing is a rejected version; the page shows the list under the prose |
+| `[x]` T-430 | The briefing as a document: the feed's window (T-333) grouped by day, each item by id | T-333 | A briefing with no model is the feed as a dated page, and is honest as it is |
+| `[x]` T-431 | The prose: a `MachineText` over the document, every sentence pointing at an item in it | T-403, T-430 | A sentence that points at nothing is a rejected version; the page shows the list under the prose |
 | `[ ]` T-432 | Delivery: the briefing as a notification when T-330 has a channel | T-431, T-330 | Never sent twice for the same window; quiet hours kept (T-331) |
+
+**E43, the first two, on 2026-09-19.** The document (T-430) is the feed's
+window grouped by the day each item is about, each item by id, built by
+`documentOf` from the feed the member already has -- and with no model it
+is the briefing, honest as it is. The prose (T-431) is `member_briefing`:
+immutable versions with the document, the prompt version, the model and
+when; written only when the member asks (`POST /me/briefing`), never on a
+page load, so the Following page never waits for a model. The gate,
+`checkBriefing`, holds every paragraph to the document -- each must name a
+team, a competition, a headline, a publisher or a member that is in it --
+and every number to one the document holds; a paragraph that points at
+nothing is the one that reads more into the feed than it carries, and is a
+rejected version with its reason. The Following page shows the prose under
+its label with the window, the model and the time, or the sentence that
+says why there is none, and the button that asks. T-432 waits for a
+delivery channel (T-330).
 
 ---
 
@@ -279,7 +295,7 @@ spec asserts.
 | T-401..T-403 | nothing | agent |
 | T-410..T-413 | built 2026-09-19; generation waits for T-400 at runtime | agent |
 | T-420..T-422 | built 2026-09-19 | agent |
-| T-430, T-431 | nothing | agent |
+| T-430, T-431 | built 2026-09-19 | agent |
 | T-432 | T-330's channel | after the provider |
 | T-440..T-442 | built 2026-09-19 | agent |
 

@@ -506,6 +506,12 @@ export type {
 export type {
   AskReason,
   AskResponse,
+  Briefing,
+  BriefingDay,
+  BriefingDigest,
+  BriefingOutcome,
+  BriefingReason,
+  BriefingResponse,
   IntelligenceHealth,
   LanguageModelState,
   MachineText,

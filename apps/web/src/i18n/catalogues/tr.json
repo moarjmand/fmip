@@ -589,6 +589,51 @@
     "text": "",
     "status": "untranslated"
   },
+  "briefing.title": {
+    "source": "Your briefing",
+    "text": "",
+    "status": "untranslated"
+  },
+  "briefing.label": {
+    "source": "Written by a language model from your feed, not by a person, and only about what is in it.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "briefing.window": {
+    "source": "Covering",
+    "text": "",
+    "status": "untranslated"
+  },
+  "briefing.write": {
+    "source": "Write my briefing",
+    "text": "",
+    "status": "untranslated"
+  },
+  "briefing.reason.noModel": {
+    "source": "No language model is configured on this deployment; your feed below is the briefing.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "briefing.reason.nothingToBrief": {
+    "source": "Nothing happened around what you follow in this window, so there is nothing to brief.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "briefing.reason.notWritten": {
+    "source": "No briefing has been written yet. Ask for one and it is written from the feed below.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "briefing.reason.rejected": {
+    "source": "The last attempt was turned down by the check that holds it to your feed, and is not shown.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "briefing.unreachable": {
+    "source": "The briefing service is unreachable right now.",
+    "text": "",
+    "status": "untranslated"
+  },
   "news.title": {
     "source": "News",
     "text": "",
