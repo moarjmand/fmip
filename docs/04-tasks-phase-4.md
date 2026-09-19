@@ -592,8 +592,25 @@ message on every channel that exists and reports each one -- `absent`, `sent`
 or `failed`, never a throw that undoes the event -- and the spec drives it
 with a capturing channel and a broken one. What waits for the maintainer is
 the provider itself (T-074 first), which arrives as a class behind the port,
-its name in `KNOWN_*_PROVIDERS`, and the composition of an e-mail and a push
-from a notification at the point `emit()` writes the row.
+its name in `KNOWN_*_PROVIDERS`.
+
+**T-330, the composition, on 2026-09-20.** The other half that was waiting
+for a provider turned out not to need one. The words are the contract's:
+`NOTIFICATION_TEXT`, `notificationLine()` and `notificationPath()` moved
+from the web into `@fmip/contracts`, so an e-mail and a push say exactly
+what the inbox says and open exactly what it opens, and the web's
+`notification-links.ts` re-exports them. `NotificationsService.carry()`
+carries every due notification of every kind -- past its hold, **created
+within the last day**, unclaimed -- as the sentence with the absolute link
+by e-mail (`WEB_BASE_URL`) and the sentence with the path as a push; a
+producer with more to say registers a composer for its kind (the briefing
+sends its prose, T-432), and the carrier runs every five minutes. Two
+rules worth naming: **with no channel nothing is claimed**, because a row
+per notification that could only say `absent` is a row for nothing, and
+**the day's limit** is what keeps a provider's first morning from mailing
+every member everything they were told last month. What still waits for
+you is the channel itself: a class behind the port and its name in the
+variable; from that day, every kind leaves.
 
 **T-331 done on 2026-09-18.** A mute is a row (`notification_mute`): a team
 or a competition by id -- never by name, rule 1, and a name where an id

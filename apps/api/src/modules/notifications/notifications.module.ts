@@ -3,7 +3,7 @@ import { DeliveryModule } from '../delivery/delivery.module';
 import { IdentityModule } from '../identity/identity.module';
 import { PostgresNotificationsStore } from './internal/notifications-store';
 import { NotificationsController } from './notifications.controller';
-import { NotificationsService } from './notifications.service';
+import { NotificationsService, WEB_ORIGIN } from './notifications.service';
 
 /**
  * In-product notifications (blueprint 12.2, E27).
@@ -25,7 +25,17 @@ import { NotificationsService } from './notifications.service';
   // to avoid.
   imports: [IdentityModule, DeliveryModule],
   controllers: [NotificationsController],
-  providers: [NotificationsService, PostgresNotificationsStore],
+  providers: [
+    NotificationsService,
+    PostgresNotificationsStore,
+    {
+      provide: WEB_ORIGIN,
+      useFactory: (): string => {
+        const origin = process.env.WEB_BASE_URL ?? 'http://localhost:3000';
+        return origin.endsWith('/') ? origin.slice(0, -1) : origin;
+      },
+    },
+  ],
   exports: [NotificationsService],
 })
 export class NotificationsModule {}

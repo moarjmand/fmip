@@ -1,4 +1,4 @@
-import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import type {
   BriefingDigest,
   BriefingNotice,
@@ -19,8 +19,6 @@ import { PostgresBriefingStore } from './internal/briefing-store';
 
 export const PROMPT_VERSION = 'briefing@2';
 const MAX_TOKENS = 900;
-/** How often held briefing notifications are carried once their hold ends (T-432). */
-const CARRY_EVERY_MS = 5 * 60_000;
 /** The title a channel shows; the same words the inbox uses for the kind. */
 export const BRIEFING_NOTICE_TITLE = 'Your briefing';
 /** Where the notification opens: the Following page, at the briefing (the web adds its locale). */
@@ -48,15 +46,14 @@ export const BRIEFING_SYSTEM = [
  * **The notification is the inbox's, not a second one.** A published
  * briefing is emitted like any other kind, so the member's preference, their
  * quiet hours and the one-per-window rule are the inbox's own, and it leaves
- * the building through the delivery port, which says when nothing can carry
- * it (T-330). "The same window" is the member's day: the key is the date the
+ * the building through the inbox's carrier, with this module's own words for
+ * it -- the prose by e-mail, its first paragraph as a push (T-330). "The same window" is the member's day: the key is the date the
  * feed's window starts on, so asking twice in a day writes two versions and
  * tells them once.
  */
 @Injectable()
-export class BriefingsService implements OnModuleInit, OnModuleDestroy {
+export class BriefingsService implements OnModuleInit {
   private readonly log = new Logger('Briefings');
-  private timer: NodeJS.Timeout | null = null;
 
   constructor(
     private readonly store: PostgresBriefingStore,
@@ -65,22 +62,9 @@ export class BriefingsService implements OnModuleInit, OnModuleDestroy {
     private readonly notifications: NotificationsService,
   ) {}
 
+  /** The carrier's words for a briefing are this module's: the prose, not the inbox's one line. */
   onModuleInit(): void {
-    // A briefing held by quiet hours leaves when the hold ends, and nothing
-    // waits on this: a member's request carries its own at once (below).
-    this.timer = setInterval(() => {
-      this.carry().catch((error: unknown) =>
-        this.log.error(
-          'briefing.carry_failed',
-          error instanceof Error ? error.stack : String(error),
-        ),
-      );
-    }, CARRY_EVERY_MS);
-    this.timer.unref();
-  }
-
-  onModuleDestroy(): void {
-    if (this.timer !== null) clearInterval(this.timer);
+    this.notifications.registerComposer('briefing', (due) => this.compose(due));
   }
 
   async current(userId: string): Promise<BriefingResponse> {
@@ -173,9 +157,9 @@ export class BriefingsService implements OnModuleInit, OnModuleDestroy {
     return { outcome: 'published', version_number: number, rejection: null, notification };
   }
 
-  /** Carries every briefing notification past its hold through the delivery port (T-432). */
+  /** Carries what is due through the inbox's carrier, now rather than on its next pass (T-432). */
   carry(): Promise<CarryReport> {
-    return this.notifications.carry('briefing', (due) => this.compose(due));
+    return this.notifications.carry();
   }
 
   /**

@@ -271,3 +271,94 @@ export interface SetQuietHoursRequest {
   starts_at: string;
   ends_at: string;
 }
+
+/**
+ * What each kind says, in the member's own terms: one table for the inbox,
+ * an e-mail and a push (T-272, T-330), so a notification reads the same
+ * wherever it reaches them. Keyed by the union, so a kind added without
+ * words does not compile. `named` says whether the sentence takes a
+ * member's name in front of it, and it is a field rather than something
+ * inferred from capitalisation: inference would work until somebody
+ * rephrased one, and then it would be wrong silently. The kinds with
+ * `named: false` are exactly the ones emitted with no source on purpose
+ * (T-271) -- a moderation decision and a contributor change belong to the
+ * platform, not to a person.
+ */
+export const NOTIFICATION_TEXT: Record<NotificationKind, { text: string; named: boolean }> = {
+  prediction_settled: { text: 'A prediction of yours was settled.', named: false },
+  rating_changed: { text: 'Your Performance Rating changed.', named: false },
+  career_points_awarded: { text: 'You earned Career Points.', named: false },
+  friend_request: { text: 'sent you a friend request.', named: true },
+  friend_accepted: { text: 'accepted your friend request.', named: true },
+  message_received: { text: 'sent you a message.', named: true },
+  mentioned: { text: 'mentioned you.', named: true },
+  group_invite: { text: 'invited you to a group.', named: true },
+  group_join_request: { text: 'asked to join a group you run.', named: true },
+  moderation_decision: {
+    text: 'A moderation decision was made about your account.',
+    named: false,
+  },
+  contributor_granted: { text: 'You were approved as a contributor.', named: false },
+  contributor_grant_changed: { text: 'Your contributor approval changed.', named: false },
+  panel_reaction: { text: 'reacted to something you posted.', named: true },
+  briefing: { text: 'Your briefing was written.', named: false },
+};
+
+/**
+ * The whole line, name included when there is one. A `named` kind whose
+ * source did not resolve falls back to "Somebody" rather than rendering a
+ * gap: an account can be deleted after it caused something, and a sentence
+ * starting with a space is worse than an honest indefinite (rule 3).
+ */
+export function notificationLine(notification: Pick<Notification, 'kind' | 'source'>): string {
+  const entry = NOTIFICATION_TEXT[notification.kind];
+  if (!entry.named) return entry.text;
+  return `${notification.source ?? 'Somebody'} ${entry.text}`;
+}
+
+/**
+ * The route a notification opens, under a locale and relative to the web
+ * origin (T-272), shared so that an e-mail and a push open exactly what the
+ * inbox opens (T-330). This is the only place that knows a profile lives at
+ * `/u/{username}` and a group at `/groups/{slug}`.
+ *
+ * `null` when it cannot be opened, which is a real state rather than a
+ * failure: a group that was deleted still has a notification about it, and
+ * the API sends no label for it. A link that 404s is worse than none, so a
+ * caller renders the sentence without one (rule 3).
+ */
+export function notificationPath(
+  locale: string,
+  notification: Pick<Notification, 'subject_type' | 'subject_id' | 'subject_label'>,
+): string | null {
+  const { subject_type: type, subject_id: id, subject_label: label } = notification;
+  switch (type) {
+    case 'fixture':
+      return `/${locale}/match/${id}`;
+    case 'member':
+      return label === null ? null : `/${locale}/u/${encodeURIComponent(label)}`;
+    case 'group':
+      return label === null ? null : `/${locale}/groups/${encodeURIComponent(label)}`;
+    case 'conversation':
+    case 'message':
+      // A message opens the conversation it is in; there is no per-message
+      // route, and an anchor the page does not implement would land in the
+      // right room and then do nothing.
+      return `/${locale}/messages/${id}`;
+    case 'panel_post':
+      // The panel hangs off the match and `subject_id` is the post; until the
+      // panel has a per-post anchor there is nothing more precise to open.
+      return null;
+    case 'prediction':
+      return `/${locale}/predictions`;
+    case 'sanction':
+      // A member's own standing, which is where an appeal starts.
+      return `/${locale}/settings`;
+    case 'briefing':
+      // The briefing lives on the Following page, above the feed it was
+      // written from (T-432).
+      return `/${locale}/following#briefing`;
+    default:
+      return null;
+  }
+}

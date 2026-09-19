@@ -5,6 +5,12 @@ import type { BriefingOutcome, BriefingResponse } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
+import {
+  OUTBOUND_DELIVERY,
+  type OutboundDelivery,
+  type OutboundEmail,
+  type OutboundPush,
+} from '../delivery/delivery.port';
 import { CaptureMailer, MAILER } from '../identity/internal/mailer';
 import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
 import {
@@ -25,7 +31,8 @@ import { BriefingsService } from './briefings.service';
  * for having none are sentences; and a guest has no briefing to ask for.
  * T-432: a published briefing is the inbox's notification, once per day
  * however many versions, held by quiet hours and carried through the
- * delivery port -- absent on both channels here -- exactly once.
+ * delivery port -- two capturing channels here -- exactly once, with this
+ * module's own words: the prose by e-mail, its first paragraph as a push.
  */
 const DATABASE_URL = process.env.DATABASE_URL;
 const RUN = `${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
@@ -59,6 +66,22 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('briefings', 
     output_tokens: 5,
   };
   const asked: CompletionRequest[] = [];
+  const mails: OutboundEmail[] = [];
+  const pushes: OutboundPush[] = [];
+  const channels: OutboundDelivery = {
+    email: {
+      provider: 'capture',
+      send: async (mail) => {
+        mails.push(mail);
+      },
+    },
+    push: {
+      provider: 'capture',
+      send: async (push) => {
+        pushes.push(push);
+      },
+    },
+  };
   const scripted: Intelligence = {
     model: {
       provider: 'scripted',
@@ -129,6 +152,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('briefings', 
       })
       .overrideProvider(LANGUAGE_MODEL)
       .useValue(scripted)
+      .overrideProvider(OUTBOUND_DELIVERY)
+      .useValue(channels)
       .compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
     await app.init();
@@ -228,8 +253,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('briefings', 
     expect(shown.body.reason).toBeNull();
 
     // T-432: the same notification the inbox has, opening this version, keyed
-    // on the day the window starts, and carried once through the port, which
-    // had nothing to carry it with.
+    // on the day the window starts, and carried once through the port with
+    // this module's own words.
     const { rows: told } = await pool.query<{
       id: string;
       subject_type: string;
@@ -254,7 +279,15 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('briefings', 
       `SELECT email, push, carried_at FROM notification_delivery WHERE notification_id = $1`,
       [told[0]?.id],
     );
-    expect(carried).toEqual([{ email: 'absent', push: 'absent', carried_at: expect.any(Date) }]);
+    expect(carried).toEqual([{ email: 'sent', push: 'sent', carried_at: expect.any(Date) }]);
+    // The carrier carries every member's due notifications; only this member's are counted.
+    const mine = mails.filter((mail) => mail.to === `${follower}@example.test`);
+    expect(mine).toHaveLength(1);
+    expect(mine[0]).toMatchObject({ subject: 'Your briefing' });
+    expect(mine[0]?.text).toContain(`${home} play ${away} tomorrow`);
+    const theirs = pushes.filter((push) => push.userId === ids.get(follower));
+    expect(theirs).toHaveLength(1);
+    expect(theirs[0]).toMatchObject({ title: 'Your briefing', url: '/following#briefing' });
   });
 
   it('rejects a paragraph that points at nothing in the feed and a number from nowhere, and keeps showing the published one', async () => {
@@ -336,7 +369,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('briefings', 
       notification.id,
     ]);
     expect((await service.carry()).carried).toBeGreaterThanOrEqual(1);
-    expect((await claimed()).rows).toEqual([{ email: 'absent', push: 'absent' }]);
+    expect((await claimed()).rows).toEqual([{ email: 'sent', push: 'sent' }]);
     await service.carry();
     expect((await claimed()).rows).toHaveLength(1);
     await expect(
