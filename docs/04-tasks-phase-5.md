@@ -131,6 +131,9 @@ names with `INTELLIGENCE_BASE_URL`, `INTELLIGENCE_API_KEY` and
 `INTELLIGENCE_MODEL`. The finish reason is read before the text, a 429 is
 retried once after the pause the server names, and every other failure is
 the service's `failed`. Scripted against a fake `fetch`; no key, no network.
+The free plan, tried the same day, answered only the Ministral models and
+refused `reasoning_effort` for them; both are handled in the adapter (D-072,
+the addendum) and `INTELLIGENCE_MODEL=ministral-14b-latest` is the setting.
 
 ## E41 — Match summaries
 

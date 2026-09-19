@@ -2544,3 +2544,13 @@ twelve lines. *Streaming*: nothing in the phase shows text as it arrives;
 every answer is gated before anyone sees it. *A per-provider adapter for
 every vendor*: the shape is shared, and the generic name covers the ones
 nobody has asked for yet.
+
+**Learned on the free plan, 2026-09-19 (same day).** The workspace's free
+plan served the Ministral models (`ministral-3b`, `-8b`, `-14b-latest`)
+and answered 429 with `x-ratelimit-limit-req-minute: 0` for Small, Medium
+and Magistral, and 403 for Large. Two consequences in the adapter, not in a
+footnote: a 429 with a zero limit is thrown as "not in this workspace's
+plan" rather than retried as "too fast", and a 400 that names
+`reasoning_effort` (the Ministral models take none) turns the field off for
+the rest of the process and sends again. The default model stays
+`mistral-small-latest`; the free plan sets `INTELLIGENCE_MODEL`.

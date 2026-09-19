@@ -271,8 +271,11 @@ generation at the provider's token prices, and nothing until the key exists.
 Mistral's free tier first and to keep every model open later. Both are
 built. On your own machine: in Mistral Studio, activate Free mode and create
 an API key; in **your local** `.env` set `INTELLIGENCE_PROVIDER=mistral` and
-`MISTRAL_API_KEY=` (the key; never in chat), leave `INTELLIGENCE_MODEL`
-empty for `mistral-small-latest`; start the API and open a finished match,
+`MISTRAL_API_KEY=` (the key; never in chat) and `INTELLIGENCE_MODEL=
+ministral-14b-latest` -- on 2026-09-19 the free plan answered only the
+Ministral models (3b, 8b, 14b); Small, Medium and Magistral came back 429
+with a request limit of zero and Large 403, and the log names that as
+"not in this workspace's plan". Start the API and open a finished match,
 the search box with a question, and Following's briefing button. The same
 two lines on the server later. Any other model: `INTELLIGENCE_PROVIDER=
 openai_compatible` with `INTELLIGENCE_BASE_URL`, `INTELLIGENCE_API_KEY` and

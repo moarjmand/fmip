@@ -26,7 +26,13 @@ import type {
  * truncation comes back as an outcome, never as prose cut off mid-sentence.
  * A free tier answers 429 when it is asked too fast; that is retried once
  * after the pause the server names (capped), and then it is a failure the
- * caller records. `fetch` is injected so a spec can script every answer.
+ * caller records. Two things learned on Mistral's free plan on 2026-09-19
+ * are handled here rather than documented away: a model that does not take
+ * `reasoning_effort` says so with a 400 naming the field, and the adapter
+ * drops the field for the rest of the process and sends again; and a model
+ * outside the workspace's plan answers 429 with a request limit of zero,
+ * which is not "too fast" and is named as what it is. `fetch` is injected
+ * so a spec can script every answer.
  */
 export type FetchLike = (input: string, init: RequestInit) => Promise<Response>;
 
@@ -56,6 +62,8 @@ interface ChatCompletionsResponse {
 export class ChatCompletionsModel implements LanguageModel {
   readonly provider: string;
   readonly model: string;
+  /** Learned from a 400 that names the field: a model that takes no effort is not asked again. */
+  private effortAccepted = true;
 
   constructor(
     private readonly preset: ChatCompletionsPreset,
@@ -90,20 +98,25 @@ export class ChatCompletionsModel implements LanguageModel {
   }
 
   async complete(request: CompletionRequest): Promise<Completion> {
-    const body: Record<string, unknown> = {
-      model: this.preset.model,
-      messages: [
-        { role: 'system', content: request.system },
-        { role: 'user', content: request.prompt },
-      ],
-      max_tokens: request.maxTokens,
-    };
-    if (this.preset.effort !== null) body.reasoning_effort = this.preset.effort;
-
-    let response = await this.send(body);
+    let response = await this.send(this.bodyFor(request));
+    if (response.status === 400 && this.preset.effort !== null && this.effortAccepted) {
+      const detail = await response
+        .clone()
+        .text()
+        .catch(() => '');
+      if (detail.includes('reasoning_effort')) {
+        this.effortAccepted = false;
+        response = await this.send(this.bodyFor(request));
+      }
+    }
+    if (response.status === 429 && response.headers.get('x-ratelimit-limit-req-minute') === '0') {
+      throw new Error(
+        `${this.provider} answered HTTP 429 with a request limit of zero: ${this.preset.model} is not in this workspace's plan (on Mistral's free plan the Ministral models answer; set INTELLIGENCE_MODEL)`,
+      );
+    }
     if (response.status === 429) {
       await this.pause(retryAfterMs(response.headers.get('retry-after')));
-      response = await this.send(body);
+      response = await this.send(this.bodyFor(request));
     }
     if (!response.ok) {
       const detail = (await response.text().catch(() => '')).slice(0, 200);
@@ -121,6 +134,21 @@ export class ChatCompletionsModel implements LanguageModel {
       input_tokens: answer.usage?.prompt_tokens ?? 0,
       output_tokens: answer.usage?.completion_tokens ?? 0,
     };
+  }
+
+  private bodyFor(request: CompletionRequest): Record<string, unknown> {
+    const body: Record<string, unknown> = {
+      model: this.preset.model,
+      messages: [
+        { role: 'system', content: request.system },
+        { role: 'user', content: request.prompt },
+      ],
+      max_tokens: request.maxTokens,
+    };
+    if (this.preset.effort !== null && this.effortAccepted) {
+      body.reasoning_effort = this.preset.effort;
+    }
+    return body;
   }
 
   private send(body: Record<string, unknown>): Promise<Response> {
