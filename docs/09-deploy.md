@@ -94,6 +94,9 @@ Edit `.env` (`nano .env`). Set these and leave the rest at their defaults:
 | `POSTGRES_PASSWORD` | output of `openssl rand -base64 36` |
 | `SESSION_SECRET` | output of `openssl rand -base64 48` (a different one) |
 | `API_FOOTBALL_KEY` etc. | the provider key(s) once T-025 is decided; empty until then |
+| `INGESTION_SOURCE`, `INGESTION_SCHEDULE` | the source profile and `on`, once T-025 is decided; `off` until then, and nothing is fetched |
+| `DELIVERY_EMAIL_PROVIDER`, `DELIVERY_PUSH_PROVIDER` | `off` until a provider is chosen (T-330); `/health/delivery` reports the absence |
+| `DEMONSTRATION_DATA` | leave `off`: it is the preview's marker for seeded fixtures (D-065), never a production setting |
 | `BACKUP_RCLONE_REMOTE` | per `07-backups.md` |
 
 `SITE_URL` and `WEB_BASE_URL` are derived from `SITE_HOST` by the compose
