@@ -244,3 +244,26 @@ pnpm --filter @fmip/db build && pnpm --filter @fmip/db migrate:up && pnpm --filt
 ```
 
 CI is unaffected: every run there starts from an empty database.
+
+## 9. Phase 5: the intelligence layer waits on one key
+
+Written on 2026-09-19, when the phase was planned (`04-tasks-phase-5.md`)
+and its port built (D-070). Fourteen of its fifteen tasks need nothing from
+you, because a language model is a provider behind a port with an honest
+absence, exactly like delivery. The one that does is **T-400**: a key on the
+server.
+
+**What you do, after the deploy (T-074).** Open an account with the provider
+you choose -- the first adapter drives Anthropic's Messages API, and a second
+provider is an adapter beside it -- and put the key in the server's `.env`
+as `ANTHROPIC_API_KEY`, with `INTELLIGENCE_PROVIDER=anthropic`. Nothing in
+chat, nothing in a file the agent writes. `INTELLIGENCE_MODEL` names the
+model (the reference's current default when empty) and `INTELLIGENCE_EFFORT`
+is `low`, `medium` or `high`. Restart the API; `/health/intelligence` says
+`configured`, and every Phase 5 surface starts answering. It costs per
+generation at the provider's token prices, and nothing until the key exists.
+
+**What the agent builds without it.** Every schema, contract, grounding gate,
+surface and honest-absence sentence in the plan. With the key absent, each
+surface says so in a sentence; nothing on the critical path is touched either
+way.
