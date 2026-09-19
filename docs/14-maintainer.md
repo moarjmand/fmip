@@ -20,6 +20,7 @@ unblocks, and how to know it worked.
 | The two member-facing texts | The platform rules and the contributor rules — the words a member accepts (`13-policy.md` §4, §5) | 2026-09-15 |
 | The news licence question | Free publisher feeds, rights carried per source rather than assumed (D-061) | 2026-09-15 |
 | The public preview | A Render service and a Neon database. Live at `https://fmip-preview.onrender.com`; the stream carries over the single published port, which is what T-086 was for (D-064) | 2026-09-15 |
+| The launch review | Phase 0 and Phase 1 exit criteria signed one at a time against CI and the preview; the real-fixture clause is re-checked on the first real deployment (D-071) | 2026-09-19 |
 
 These were judgements, not tasks: what a platform asks of its members is not
 derivable from the code, and an agent that picked them would have been inventing
@@ -84,7 +85,8 @@ the images shipped without `public/`, so the service worker and every icon were
 404 on every deployment, and no local check could see it (`04-tasks-phase-1.md`,
 T-082). That was found by asking the deployment rather than the build.
 
-**Outcome:** signed off in `00-decisions.md`.
+**Outcome:** signed on 2026-09-19 (D-071), conditional on the real-fixture
+re-check after T-074.
 
 ## 5. Two members on the preview -- withdrawn on 2026-09-17
 
@@ -217,8 +219,10 @@ and the setting; `/health/delivery` then says `present` because it is.
 
 **T-332, campaigns.** Nothing from you beyond the provider.
 
-**T-084, the launch review.** You said on 2026-09-19 that you will sign it.
-Read the exit criteria in `01-roadmap.md` and
+**T-084, the launch review.** Signed on 2026-09-19 (D-071), one criterion at
+a time in chat; what remains is the re-check with real fixtures on the
+server after T-074. The original steps, kept for that re-check:
+read the exit criteria in `01-roadmap.md` and
 in each `04-tasks-phase-*.md` against the public preview or the VPS, and
 sign off in `00-decisions.md`. The agent can walk the public pages and
 report what it sees, and did for the news pages on 2026-09-18 locally; the

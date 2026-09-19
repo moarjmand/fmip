@@ -1447,7 +1447,13 @@ prevents that; the reason is in D-065.
 | `[x]` T-081 | Accessibility pass: keyboard, focus order, contrast, live-score announcements | T-034 | Meets the agreed standard |
 | `[x]` T-082 | PWA: manifest, offline shell, installability | T-039 | Installs on Android; audited |
 | `[x]` T-083 | Feed-failure resilience: provider outage degrades gracefully | (T-027) | Stale data is labelled, never presented as live |
-| `[ ]` T-084 | Launch acceptance review against `01-roadmap.md` exit criteria | all | Signed off in `00-decisions.md` |
+| `[x]` T-084 | Launch acceptance review against `01-roadmap.md` exit criteria | all | Signed off in `00-decisions.md` |
+
+**T-084 signed on 2026-09-19 (D-071).** The maintainer reviewed the Phase 0
+and Phase 1 exit criteria one at a time, each with the agent's finding on CI
+and the public preview; every one passed. The one clause the preview cannot
+show -- real fixtures on a public deployment -- is re-checked on the first
+real deployment (T-074) and the result appended to D-071.
 
 ---
 
