@@ -159,6 +159,44 @@ describe('ChatCompletionsModel', () => {
     ).rejects.toThrow(/HTTP 401/);
   });
 
+  it('drops reasoning_effort for the rest of the process after a 400 that names it, and sends again', async () => {
+    const { fetchLike, sent } = scripted([
+      {
+        status: 400,
+        body: {
+          object: 'error',
+          message: 'reasoning_effort is not enabled for this model',
+          code: '3051',
+        },
+      },
+      answer('stop'),
+      answer('stop'),
+    ]);
+    const model = new ChatCompletionsModel(mistral, fetchLike, pause);
+    expect((await model.complete(request)).text).toBe('Liverpool drew 2-2.');
+    expect(sent).toHaveLength(2);
+    expect(sent[0]!.body).toHaveProperty('reasoning_effort', 'low');
+    expect(sent[1]!.body).not.toHaveProperty('reasoning_effort');
+    await model.complete(request);
+    expect(sent).toHaveLength(3);
+    expect(sent[2]!.body).not.toHaveProperty('reasoning_effort');
+  });
+
+  it('names a 429 with a zero request limit as a model outside the plan, without retrying', async () => {
+    const { fetchLike, sent } = scripted([
+      {
+        status: 429,
+        body: { object: 'error', message: 'Rate limit exceeded', code: '1300' },
+        headers: { 'x-ratelimit-limit-req-minute': '0', 'x-ratelimit-remaining-req-minute': '0' },
+      },
+    ]);
+    const model = new ChatCompletionsModel(mistral, fetchLike, pause);
+    await expect(model.complete(request)).rejects.toThrow(
+      /request limit of zero: mistral-small-latest is not in this workspace's plan/,
+    );
+    expect(sent).toHaveLength(1);
+  });
+
   it('is built from settings for the two providers it serves, and refuses the one it does not', () => {
     expect(
       ChatCompletionsModel.fromSettings({
