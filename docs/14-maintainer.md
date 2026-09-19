@@ -172,13 +172,9 @@ purchase or a licence (`CLAUDE.md` §7).
 4. `/admin` shows each language's percentage; the picker offers a language the
    day it crosses `SHIPPABLE_COMPLETENESS` (T-306), with no deploy decision
    in between.
-5. One decision, yours: **drafts.** D-066 and T-151 say machine output is
-   never presented as a translation, and nothing in the product does. A
-   middle path exists that keeps that true: a `draft` field beside `text`,
-   written by the agent and never read by `messages.ts`, `coverage()` or any
-   page, for the speaker to accept, rewrite or discard -- which turns their
-   job from writing every string into checking one. It changes D-066's file
-   format and the sentence in §7, so nothing is drafted until you say so.
+5. Drafts were offered and declined on 2026-09-19: the translators are
+   yours, and you asked not to be reminded. Nothing is drafted, and nothing
+   about T-305 is raised again unless you raise it.
 
 **T-310, the viewing licence: decided (D-069).** The editorial desk, chosen
 by the agent at your request on 2026-09-18. Nothing to decide now: grant
@@ -186,7 +182,8 @@ by the agent at your request on 2026-09-18. Nothing to decide now: grant
 match page for them (declare coverage first, then list) -- and revisit only
 for a licence with more rights.
 
-**T-320, the native app.** Four things, all yours: whether at all; the
+**T-320, the native app.** Parked on 2026-09-19 at your request, to be
+raised later. When it is, four things, all yours: whether at all; the
 framework (the roadmap names Expo, and `CLAUDE.md` §2 wants a decision entry
 before it is added); the two store accounts, Apple Developer Program and
 Google Play Console, opened in your name and paid for; and one device per
@@ -194,15 +191,21 @@ platform, because T-322's right-to-left acceptance is checked on a device and
 not in a browser. Then the agent builds T-322 and T-323; T-324 waits for
 T-330's provider.
 
-**T-074, the deploy.** In order: buy the VPS (`09-deploy.md`, "What you need
+**T-074, the deploy.** You asked on 2026-09-19 for all of it to be done
+by the agent, by any route. The route has a wall in it: the machine is a
+purchase and its access is a credential, and neither is the agent's to make
+-- the standing rule, not a preference. What the agent does instead is
+below this list: rehearse the production stack on this laptop after every
+change that touches it, and keep the runbook and the compose file current,
+so the day the machine exists the steps are only the ones here. In order: buy the VPS (`09-deploy.md`, "What you need
 before starting"); put the domain's DNS on Cloudflare; generate an SSH key on
 your own machine; follow `09-deploy.md` §1 to §5; rerun `08-load-test.md`
 against the server rather than a laptop; record the outcome in
 `00-decisions.md`. The agent never holds the SSH key or the server's secrets,
 which is why this cannot move without you.
 
-**T-330, the provider.** After T-074, because a provider is a credential on a
-server. E-mail: open an account with a transactional e-mail service, put its
+**T-330, the provider.** Parked on 2026-09-19 at your request ("later").
+After T-074, because a provider is a credential on a server. E-mail: open an account with a transactional e-mail service, put its
 credential in the server's environment, and tell the agent the service's
 name; the agent adds the adapter behind `OUTBOUND_DELIVERY` and the value
 `DELIVERY_EMAIL_PROVIDER` takes. Push, two roads: Web Push over VAPID needs
@@ -214,7 +217,8 @@ and the setting; `/health/delivery` then says `present` because it is.
 
 **T-332, campaigns.** Nothing from you beyond the provider.
 
-**T-084, the launch review.** Read the exit criteria in `01-roadmap.md` and
+**T-084, the launch review.** You said on 2026-09-19 that you will sign it.
+Read the exit criteria in `01-roadmap.md` and
 in each `04-tasks-phase-*.md` against the public preview or the VPS, and
 sign off in `00-decisions.md`. The agent can walk the public pages and
 report what it sees, and did for the news pages on 2026-09-18 locally; the
