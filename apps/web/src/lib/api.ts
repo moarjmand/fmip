@@ -3,6 +3,7 @@ import type {
   AdminUsersResponse,
   ApiError,
   AskResponse,
+  BriefingResponse,
   AuditResponse,
   BroadcastersResponse,
   BlocksResponse,
@@ -732,4 +733,9 @@ export function fetchMatchSummary(fixtureId: string): Promise<ApiResult<MatchSum
 /** Search as a question (E42, T-421): read by the model when there is one, answered by the search either way. */
 export function fetchAsk(question: string): Promise<ApiResult<AskResponse>> {
   return apiRequest<AskResponse>(`/ask?q=${encodeURIComponent(question)}`);
+}
+
+/** The member's briefing (E43): the feed's window as a document, and the prose over it or the reason there is none. */
+export function fetchBriefing(cookie: string | undefined): Promise<ApiResult<BriefingResponse>> {
+  return apiRequest<BriefingResponse>('/me/briefing', { cookie });
 }

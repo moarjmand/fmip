@@ -2,10 +2,11 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import type { FeedItem, FeedSignal, MatchViewing } from '@fmip/contracts';
+import { BriefingPanel } from '@/components/briefing';
 import { Translated } from '@/components/translated';
 import { ViewingPanel } from '@/components/viewing-panel';
 import { formatDateTime } from '@/i18n/format';
-import { fetchFeed, fetchMe, fetchViewingBatch } from '@/lib/api';
+import { fetchBriefing, fetchFeed, fetchMe, fetchViewingBatch } from '@/lib/api';
 import {
   KIND_KEY,
   REASON_KEY,
@@ -49,6 +50,8 @@ export default async function FollowingPage({ params }: { params: Promise<{ loca
   if (me === null) redirect(`/${locale}/login?next=/${locale}/following`);
   const timeZone = me.timezone;
   const result = await fetchFeed(cookie);
+  // The briefing (E43): a stored version or the reason there is none; never a model call on this request.
+  const briefing = await fetchBriefing(cookie);
   // Where each match in the feed can be watched (T-314): one batch, in the
   // member's stored territory -- the feed is theirs, so there is no guest here.
   const fixtureIds = result.ok
@@ -73,6 +76,12 @@ export default async function FollowingPage({ params }: { params: Promise<{ loca
           <Translated locale={locale} message="feed.manage" />
         </Link>
       </div>
+
+      <BriefingPanel
+        locale={locale}
+        timeZone={timeZone}
+        briefing={briefing.ok ? briefing.data : null}
+      />
 
       {!result.ok ? (
         <p role="alert" data-testid="feed-unreachable">

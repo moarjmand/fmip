@@ -138,3 +138,53 @@ export interface ModerationSuggestion extends MachineText {
 export type SuggestionOutcome =
   | { outcome: 'published' | 'rejected'; version_number: number; rejection: string | null }
   | { outcome: 'absent' | 'failed' };
+
+// ---------------------------------------------------------------------------
+// Personalised briefings (E43, T-430, T-431): the Following feed's span as a
+// dated digest, and a machine's prose over it in which every paragraph
+// points at something that is in the digest -- never at anything else.
+// ---------------------------------------------------------------------------
+import type { FeedItem, FollowingFeed } from './following-feed';
+
+export interface BriefingDay {
+  /** YYYY-MM-DD, UTC. */
+  date: string;
+  items: FeedItem[];
+}
+
+/** The feed's span as a digest (T-430): what a briefing is written from, and honest as it is with no model. */
+export interface BriefingDigest {
+  since: string;
+  until: string;
+  followed: FollowingFeed['showing']['followed'];
+  days: BriefingDay[];
+}
+
+export interface Briefing extends MachineText {
+  version_number: number;
+  since: string;
+  until: string;
+}
+
+export type BriefingReason =
+  /** No language model is configured on this deployment (T-400). */
+  | 'no_model'
+  /** The feed's span holds nothing to write about. */
+  | 'nothing_to_brief'
+  /** A model exists and the member has not asked for one yet. */
+  | 'not_written'
+  /** The last attempt was turned down and none is shown. */
+  | 'rejected';
+
+/** `GET /me/briefing`. */
+export interface BriefingResponse {
+  digest: BriefingDigest;
+  prose: Covered<Briefing>;
+  reason: BriefingReason | null;
+  versions: number;
+}
+
+/** `POST /me/briefing`: the member asks for a new version over the feed as it is now. */
+export type BriefingOutcome =
+  | { outcome: 'published' | 'rejected'; version_number: number; rejection: string | null }
+  | { outcome: 'absent' | 'failed' | 'nothing_to_brief' };
