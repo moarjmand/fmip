@@ -2450,3 +2450,50 @@ twice already (T-151, T-305).
 
 **What would reverse this.** A second provider, which is an adapter and a
 name, not a change to any of the four rules.
+
+---
+
+## D-071 — The launch acceptance review is signed, with the real-fixture clause re-checked on the first real deployment
+
+**Date:** 2026-09-19 · **Task:** T-084 · **Status:** accepted, conditional
+
+**Decision.** The maintainer reviewed the roadmap's exit criteria for the
+launch slice -- Phase 0 and Phase 1 -- with the agent on 2026-09-19, one
+criterion at a time, each with the agent's finding and a recommendation, and
+signed off on all of them.
+
+*Phase 0, three criteria.* `docker compose up` runs Postgres, Redis, the API
+and the web app: the production stack was rehearsed end to end on the
+maintainer's machine on 2026-09-19 (`09-deploy.md`, "Rehearsal on a laptop").
+CI is green: Verify, E2E and E2E journeys on `main` after PR #213. The
+right-to-left pseudo-locale renders: `/x-rtl` on the public preview, and the
+RTL test inside Verify. **Passed.**
+
+*Phase 1, one criterion* -- "the acceptance list in `04-tasks-phase-1.md`
+passes on a public deployment with real fixtures" -- reviewed in four parts.
+Public read and live (E3): **passed** on the preview, where scores, search,
+news and watch answer and every absence is a sentence. Accounts, predictions
+and reputation (E4, E5): **passed**, on the E2E journeys and the preview's
+surfaces, the leaderboard naming its formula and rules version. Model and
+operations (E6, E7): **passed with a note** -- the model service in public and
+the load test on a server are seen only on the real deployment; the preview
+runs with the model off and says `model_unreachable`. Delivery (E8):
+**passed** -- the PWA install was confirmed on Android on 2026-09-17,
+accessibility and feed-failure resilience are green in CI.
+
+**The condition.** The public preview runs demonstration data with the
+scheduler off, so the words "with real fixtures" cannot be observed today.
+The sign-off stands on CI and the preview, and **is re-checked on the first
+real deployment (T-074)**: the same four parts, walked on the server with
+ingestion on, and the result appended to this entry. If that walk fails, this
+decision is reopened, not amended.
+
+**Consequences.** T-084 is checked. The Phase 1 exit is closed subject to the
+condition above. Phase 4 and Phase 5 have exit criteria of their own, checked
+on the real deployment when those phases close, not here.
+
+**Rejected.** *Waiting for the server before signing anything*: every
+criterion but one clause is observable now, and a review that waits for the
+last clause records nothing about the others. *Signing without the
+condition*: it would claim a public deployment with real fixtures that does
+not exist.

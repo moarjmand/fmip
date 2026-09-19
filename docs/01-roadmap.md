@@ -35,6 +35,9 @@ The launch slice.
 **Exit criteria:** the acceptance list in `docs/04-tasks-phase-1.md` passes on a
 public deployment with real fixtures.
 
+*Signed 2026-09-19 (D-071), conditional on a re-check with real fixtures on
+the first real deployment.*
+
 ---
 
 ## Phase 2 — Depth on football intelligence
