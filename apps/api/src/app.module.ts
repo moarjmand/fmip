@@ -25,6 +25,7 @@ import { SearchModule } from './modules/search/search.module';
 import { NewsModule } from './modules/news/news.module';
 import { ViewingModule } from './modules/viewing/viewing.module';
 import { IntelligenceModule } from './modules/intelligence/intelligence.module';
+import { SummariesModule } from './modules/summaries/summaries.module';
 
 /**
  * The remaining modules from `docs/02-architecture.md` are registered here as
@@ -59,6 +60,7 @@ import { IntelligenceModule } from './modules/intelligence/intelligence.module';
     NewsModule,
     ViewingModule,
     IntelligenceModule,
+    SummariesModule,
     AdminModule,
   ],
 })

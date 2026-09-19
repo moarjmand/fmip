@@ -479,6 +479,86 @@
     "text": "",
     "status": "untranslated"
   },
+  "summary.title": {
+    "source": "Match summary",
+    "text": "",
+    "status": "untranslated"
+  },
+  "summary.label": {
+    "source": "Written by a language model from the match record, not by a person. Not the founder's analysis, not the statistical forecast, not the community's view.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "summary.model": {
+    "source": "Model",
+    "text": "",
+    "status": "untranslated"
+  },
+  "summary.written": {
+    "source": "written",
+    "text": "",
+    "status": "untranslated"
+  },
+  "summary.version": {
+    "source": "version",
+    "text": "",
+    "status": "untranslated"
+  },
+  "summary.groundedOn": {
+    "source": "Written from",
+    "text": "",
+    "status": "untranslated"
+  },
+  "summary.reason.notFinished": {
+    "source": "A summary is written from the full record, after the match.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "summary.reason.noModel": {
+    "source": "No language model is configured on this deployment, so there is no machine-written summary.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "summary.reason.notGenerated": {
+    "source": "No summary has been written for this match yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "summary.reason.rejected": {
+    "source": "The last attempt was turned down by the grounding check and is not shown.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "summary.unreachable": {
+    "source": "The summary service is unreachable right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "summary.part.timeline": {
+    "source": "timeline",
+    "text": "",
+    "status": "untranslated"
+  },
+  "summary.part.statistics": {
+    "source": "statistics",
+    "text": "",
+    "status": "untranslated"
+  },
+  "summary.part.lineups": {
+    "source": "line-ups",
+    "text": "",
+    "status": "untranslated"
+  },
+  "summary.part.forecast": {
+    "source": "forecast",
+    "text": "",
+    "status": "untranslated"
+  },
+  "summary.part.consensus": {
+    "source": "consensus",
+    "text": "",
+    "status": "untranslated"
+  },
   "news.title": {
     "source": "News",
     "text": "",

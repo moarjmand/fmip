@@ -8,6 +8,7 @@ import { FounderAnalysisPanel } from '@/components/founder-analysis';
 import { JsonLd } from '@/components/json-ld';
 import { LiveMatch } from '@/components/live-match';
 import { MatchPanel } from '@/components/match-panel';
+import { MatchSummaryPanel } from '@/components/match-summary';
 import { PowerIndexPanel } from '@/components/power-index-panel';
 import { MatchThreads } from '@/components/match-threads';
 import { PredictionSection } from '@/components/prediction-section';
@@ -22,6 +23,7 @@ import {
   fetchForecasts,
   fetchMatchCentre,
   fetchMatchPanel,
+  fetchMatchSummary,
   fetchMatchViewing,
   fetchMe,
   fetchMyGroups,
@@ -119,6 +121,7 @@ export default async function MatchPage({
     viewing,
     territories,
     news,
+    summary,
   ] = result.ok
     ? await Promise.all([
         fetchForecasts(id),
@@ -140,8 +143,10 @@ export default async function MatchPage({
         me === null ? fetchTerritories() : Promise.resolve(null),
         // Related news (T-145): the news page's cards, for this match and its sides.
         fetchFixtureNews(id, locale),
+        // The match summary (E41): a stored row, never a model call on this request.
+        fetchMatchSummary(id),
       ])
-    : [null, null, null, null, null, null, null, null, null, null, null, null];
+    : [null, null, null, null, null, null, null, null, null, null, null, null, null];
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
@@ -270,6 +275,14 @@ export default async function MatchPage({
                   away={result.data.fixture.away.name}
                   timeZone={timeZone}
                   locale={locale}
+                />
+                <MatchSummaryPanel
+                  locale={locale}
+                  timeZone={timeZone}
+                  fixtureId={result.data.fixture.id}
+                  status={result.data.fixture.status}
+                  summary={summary !== null && summary.ok ? summary.data : null}
+                  editor={editor}
                 />
                 <RelatedNews
                   locale={locale}
