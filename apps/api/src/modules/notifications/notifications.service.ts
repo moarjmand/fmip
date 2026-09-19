@@ -5,11 +5,28 @@ import {
   NOTIFICATION_DEFAULTS,
   NOTIFICATION_HOURLY_CAP,
 } from '@fmip/contracts';
+import type { OutboundEmail, OutboundPush } from '../delivery/delivery.port';
+import { DeliveryService } from '../delivery/delivery.service';
 import {
+  type DueNotification,
   type MuteRow,
   PostgresNotificationsStore,
   type NewNotification,
 } from './internal/notifications-store';
+
+export type { DueNotification } from './internal/notifications-store';
+
+/** What a carrier composes for one due notification: a message per channel, or `null` for a channel it has nothing for. */
+export interface OutboundMessages {
+  email: OutboundEmail | null;
+  push: OutboundPush | null;
+}
+
+/** One pass of `carry()`: how many were due, and how many this pass claimed and carried. */
+export interface CarryReport {
+  due: number;
+  carried: number;
+}
 
 /**
  * Emitting in-product notifications (blueprint 12.2, T-271).
@@ -68,7 +85,10 @@ export type EmitOutcome =
 export class NotificationsService {
   private readonly log = new Logger(NotificationsService.name);
 
-  constructor(private readonly store: PostgresNotificationsStore) {}
+  constructor(
+    private readonly store: PostgresNotificationsStore,
+    private readonly delivery: DeliveryService,
+  ) {}
 
   /**
    * Whether this member would receive this kind.
@@ -154,6 +174,50 @@ export class NotificationsService {
       );
       return 'failed';
     }
+  }
+
+  /**
+   * Carry every due notification of one kind out of the building, through
+   * the delivery port (T-330, T-432).
+   *
+   * Everything upstream has already decided the member should be told: the
+   * row exists, its hold has ended (quiet hours delay, and `due` honours the
+   * delay), and it is not muted or capped, or it would not be a row. What is
+   * decided here is only that it leaves once. **The claim is written before
+   * the send**, unique per notification, so a second carrier -- a retry, a
+   * second process, the timer racing a request -- finds it taken and does
+   * nothing; deduplicating afterwards from logs is how one retry becomes two
+   * e-mails. The outcome on each channel is then recorded once, and an
+   * absent channel is an outcome too: it says nothing carried it, rather
+   * than leaving a gap that reads as "not yet".
+   *
+   * `compose` is the caller's, because this module knows nothing about what
+   * a notification describes; it returns the messages, or `null` when there
+   * is nothing to say for this one (the subject is gone), which is carried
+   * as nothing on every channel.
+   */
+  async carry(
+    kind: NotificationKind,
+    compose: (due: DueNotification) => Promise<OutboundMessages | null>,
+  ): Promise<CarryReport> {
+    const due = await this.store.due(kind);
+    let carried = 0;
+    for (const item of due) {
+      if (!(await this.store.claimDelivery(item.id))) continue;
+      let messages: OutboundMessages | null = null;
+      try {
+        messages = await compose(item);
+      } catch (error) {
+        this.log.error(
+          `notification.compose_failed kind=${kind} notification=${item.id}`,
+          error instanceof Error ? error.stack : String(error),
+        );
+      }
+      const outcome = await this.delivery.deliver(messages?.email ?? null, messages?.push ?? null);
+      await this.store.recordDelivery(item.id, outcome);
+      carried += 1;
+    }
+    return { due: due.length, carried };
   }
 
   /** The inbox itself (T-272). Only what is deliverable now; held ones wait. */

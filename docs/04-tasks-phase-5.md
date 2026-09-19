@@ -217,7 +217,7 @@ application with the model absent.
 |---|---|---|---|
 | `[x]` T-430 | The briefing as a document: the feed's window (T-333) grouped by day, each item by id | T-333 | A briefing with no model is the feed as a dated page, and is honest as it is |
 | `[x]` T-431 | The prose: a `MachineText` over the document, every sentence pointing at an item in it | T-403, T-430 | A sentence that points at nothing is a rejected version; the page shows the list under the prose |
-| `[ ]` T-432 | Delivery: the briefing as a notification when T-330 has a channel | T-431, T-330 | Never sent twice for the same window; quiet hours kept (T-331) |
+| `[x]` T-432 | Delivery: the briefing as a notification when T-330 has a channel | T-431, T-330 | Never sent twice for the same window; quiet hours kept (T-331) |
 
 **E43, the first two, on 2026-09-19.** The document (T-430) is the feed's
 window grouped by the day each item is about, each item by id, built by
@@ -232,8 +232,32 @@ and every number to one the document holds; a paragraph that points at
 nothing is the one that reads more into the feed than it carries, and is a
 rejected version with its reason. The Following page shows the prose under
 its label with the window, the model and the time, or the sentence that
-says why there is none, and the button that asks. T-432 waits for a
-delivery channel (T-330).
+says why there is none, and the button that asks.
+
+**T-432 on 2026-09-19.** A published briefing is **the same notification the
+inbox already has, not a second one** (E32's rule for a push, applied here):
+`BriefingsService.write()` emits a `briefing` kind whose subject is the
+`member_briefing` row, through the inbox's own `emit()`, so the member's
+preference for the kind, their quiet hours (held with the reason, never
+dropped) and the one-per-window rule are the inbox's, not a copy. "The same
+window" is the member's day: the dedupe key is the date the feed's window
+starts on, so asking twice in a day writes two versions and tells them once
+(`duplicate`), and the outcome comes back in the response as a sentence.
+Leaving the building is `NotificationsService.carry()`: every due
+notification of a kind -- past its hold, unclaimed -- is **claimed in
+`notification_delivery` before the send**, unique per notification, so a
+retry, a second process or the timer racing a request finds it taken;
+the outcome on each channel is then written once (the trigger refuses a
+second), and an absent channel is an outcome too, so a row that says
+`absent` says nothing carried it rather than leaving a gap that reads as
+"not yet". The briefings module composes the messages (the prose by e-mail,
+its first paragraph as a push that opens the Following page at the
+briefing) because the notifications module knows nothing about what a
+notification describes. A request carries its own at once; a held one is
+carried by a timer every five minutes once the hold ends. The port has no
+channel today (T-330), so every row says `absent` on both -- and the day a
+provider arrives as a class behind the port, briefings leave with it
+without another line here.
 
 ---
 
@@ -296,7 +320,7 @@ spec asserts.
 | T-410..T-413 | built 2026-09-19; generation waits for T-400 at runtime | agent |
 | T-420..T-422 | built 2026-09-19 | agent |
 | T-430, T-431 | built 2026-09-19 | agent |
-| T-432 | T-330's channel | after the provider |
+| T-432 | built 2026-09-19; carried by whatever channel T-330 has, none today | agent |
 | T-440..T-442 | built 2026-09-19 | agent |
 
 **Fourteen of the fifteen tasks are buildable with nothing from the

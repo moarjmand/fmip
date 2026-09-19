@@ -45,6 +45,10 @@ export function notificationHref(locale: string, notification: Notification): st
     case 'sanction':
       // A member's own standing, which is where an appeal starts.
       return `/${locale}/settings`;
+    case 'briefing':
+      // The briefing lives on the Following page, above the feed it was
+      // written from (T-432); the anchor is the section's own id.
+      return `/${locale}/following#briefing`;
     default:
       return null;
   }
@@ -81,6 +85,7 @@ export const NOTIFICATION_TEXT: Record<NotificationKind, { text: string; named: 
   contributor_granted: { text: 'You were approved as a contributor.', named: false },
   contributor_grant_changed: { text: 'Your contributor approval changed.', named: false },
   panel_reaction: { text: 'reacted to something you posted.', named: true },
+  briefing: { text: 'Your briefing was written.', named: false },
 };
 
 /**

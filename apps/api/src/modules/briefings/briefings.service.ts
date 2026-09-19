@@ -1,12 +1,30 @@
-import { Injectable, Logger } from '@nestjs/common';
-import type { BriefingDigest, BriefingOutcome, BriefingResponse } from '@fmip/contracts';
+import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
+import type {
+  BriefingDigest,
+  BriefingNotice,
+  BriefingOutcome,
+  BriefingResponse,
+} from '@fmip/contracts';
 import { FollowingFeedService } from '../following-feed/following-feed.service';
 import { IntelligenceService } from '../intelligence/intelligence.service';
+import {
+  type CarryReport,
+  type DueNotification,
+  type EmitOutcome,
+  NotificationsService,
+  type OutboundMessages,
+} from '../notifications/notifications.service';
 import { checkBriefing, documentOf } from './internal/briefing-document';
 import { PostgresBriefingStore } from './internal/briefing-store';
 
 export const PROMPT_VERSION = 'briefing@1';
 const MAX_TOKENS = 900;
+/** How often held briefing notifications are carried once their hold ends (T-432). */
+const CARRY_EVERY_MS = 5 * 60_000;
+/** The title a channel shows; the same words the inbox uses for the kind. */
+export const BRIEFING_NOTICE_TITLE = 'Your briefing';
+/** Where the notification opens: the Following page, at the briefing (the web adds its locale). */
+export const BRIEFING_PATH = '/following#briefing';
 
 /** The standing instruction: stable across every briefing, so the provider can cache it. */
 export const BRIEFING_SYSTEM = [
@@ -16,21 +34,49 @@ export const BRIEFING_SYSTEM = [
 ].join(' ');
 
 /**
- * Briefings (E43): the feed's window as a document (T-430), and a machine's
- * prose over it (T-431) that the gate holds to the document. A version is
- * written when the member asks, never on a page load, so a page never waits
- * for a model; with no model the document is the briefing, and the page
- * says so in a sentence.
+ * Briefings (E43): the feed's window as a document (T-430), a machine's
+ * prose over it (T-431) that the gate holds to the document, and the prose
+ * as a notification (T-432). A version is written when the member asks,
+ * never on a page load, so a page never waits for a model; with no model
+ * the document is the briefing, and the page says so in a sentence.
+ *
+ * **The notification is the inbox's, not a second one.** A published
+ * briefing is emitted like any other kind, so the member's preference, their
+ * quiet hours and the one-per-window rule are the inbox's own, and it leaves
+ * the building through the delivery port, which says when nothing can carry
+ * it (T-330). "The same window" is the member's day: the key is the date the
+ * feed's window starts on, so asking twice in a day writes two versions and
+ * tells them once.
  */
 @Injectable()
-export class BriefingsService {
+export class BriefingsService implements OnModuleInit, OnModuleDestroy {
   private readonly log = new Logger('Briefings');
+  private timer: NodeJS.Timeout | null = null;
 
   constructor(
     private readonly store: PostgresBriefingStore,
     private readonly feeds: FollowingFeedService,
     private readonly intelligence: IntelligenceService,
+    private readonly notifications: NotificationsService,
   ) {}
+
+  onModuleInit(): void {
+    // A briefing held by quiet hours leaves when the hold ends, and nothing
+    // waits on this: a member's request carries its own at once (below).
+    this.timer = setInterval(() => {
+      this.carry().catch((error: unknown) =>
+        this.log.error(
+          'briefing.carry_failed',
+          error instanceof Error ? error.stack : String(error),
+        ),
+      );
+    }, CARRY_EVERY_MS);
+    this.timer.unref();
+  }
+
+  onModuleDestroy(): void {
+    if (this.timer !== null) clearInterval(this.timer);
+  }
 
   async current(userId: string): Promise<BriefingResponse> {
     const [feed, published, versions] = await Promise.all([
@@ -89,7 +135,7 @@ export class BriefingsService {
     const { completion } = answer;
     const rejection = rejectionOf(completion.stop, completion.text, document);
     const state = rejection === null ? 'published' : 'rejected';
-    const number = await this.store.add({
+    const { id, number } = await this.store.add({
       userId,
       since: document.since,
       until: document.until,
@@ -106,8 +152,67 @@ export class BriefingsService {
       model: completion.model,
       rejection,
     });
-    return { outcome: state, version_number: number, rejection };
+    if (rejection !== null) return { outcome: 'rejected', version_number: number, rejection };
+
+    const notification = noticeOf(
+      await this.notifications.emit({
+        userId,
+        kind: 'briefing',
+        subjectType: 'briefing',
+        subjectId: id,
+        dedupeKey: windowKey(document),
+      }),
+    );
+    // Carried now if nothing holds it; a held one leaves when the hold ends.
+    if (notification === 'sent') await this.carry();
+    return { outcome: 'published', version_number: number, rejection: null, notification };
   }
+
+  /** Carries every briefing notification past its hold through the delivery port (T-432). */
+  carry(): Promise<CarryReport> {
+    return this.notifications.carry('briefing', (due) => this.compose(due));
+  }
+
+  /**
+   * The messages for one due notification: the prose itself by e-mail, and
+   * its first paragraph as a push that opens the Following page. A briefing
+   * that is no longer there, or is not this member's, is carried as nothing.
+   */
+  private async compose(due: DueNotification): Promise<OutboundMessages | null> {
+    const briefing = await this.store.published(due.subject_id);
+    if (briefing === null || briefing.user_id !== due.user_id) return null;
+    return {
+      email: { to: due.email, subject: BRIEFING_NOTICE_TITLE, text: briefing.text },
+      push: {
+        userId: due.user_id,
+        title: BRIEFING_NOTICE_TITLE,
+        body: firstParagraph(briefing.text),
+        url: BRIEFING_PATH,
+      },
+    };
+  }
+}
+
+/** One notification per member per day: the date the feed's window starts on. */
+export function windowKey(document: Pick<BriefingDigest, 'since'>): string {
+  return document.since.slice(0, 10);
+}
+
+/** The inbox's outcome in the briefing's words; capped and blocked cannot happen to a sourceless, uncapped kind. */
+function noticeOf(outcome: EmitOutcome): BriefingNotice {
+  switch (outcome) {
+    case 'sent':
+    case 'delayed':
+    case 'duplicate':
+    case 'muted':
+      return outcome;
+    default:
+      return 'failed';
+  }
+}
+
+function firstParagraph(text: string): string {
+  return text.split(/\n{2,}/)[0]?.trim() ?? text;
 }
 
 function rejectionOf(

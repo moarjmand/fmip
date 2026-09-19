@@ -184,7 +184,17 @@ export interface BriefingResponse {
   versions: number;
 }
 
+/**
+ * What became of the inbox notification a published briefing raises (T-432).
+ * It is the same notification the inbox has, so its rules apply: one per
+ * member per day (`duplicate`), the member's quiet hours (`delayed`) and
+ * their preference (`muted`). Whether a channel carried it outward is the
+ * delivery port's report (T-330), not the briefing's.
+ */
+export type BriefingNotice = 'sent' | 'delayed' | 'duplicate' | 'muted' | 'failed';
+
 /** `POST /me/briefing`: the member asks for a new version over the feed as it is now. */
 export type BriefingOutcome =
-  | { outcome: 'published' | 'rejected'; version_number: number; rejection: string | null }
+  | { outcome: 'published'; version_number: number; rejection: null; notification: BriefingNotice }
+  | { outcome: 'rejected'; version_number: number; rejection: string }
   | { outcome: 'absent' | 'failed' | 'nothing_to_brief' };

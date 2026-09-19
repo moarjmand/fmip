@@ -509,6 +509,7 @@ export type {
   Briefing,
   BriefingDay,
   BriefingDigest,
+  BriefingNotice,
   BriefingOutcome,
   BriefingReason,
   BriefingResponse,
