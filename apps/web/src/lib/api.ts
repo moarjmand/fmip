@@ -2,6 +2,7 @@ import type {
   AdminOverview,
   AdminUsersResponse,
   ApiError,
+  AskResponse,
   AuditResponse,
   BroadcastersResponse,
   BlocksResponse,
@@ -726,4 +727,9 @@ export function fetchFixtureNews(
 /** The match summary (E41, T-413): what a model wrote from the record, or the reason there is none. */
 export function fetchMatchSummary(fixtureId: string): Promise<ApiResult<MatchSummaryResponse>> {
   return apiRequest<MatchSummaryResponse>(`/fixtures/${fixtureId}/summary`);
+}
+
+/** Search as a question (E42, T-421): read by the model when there is one, answered by the search either way. */
+export function fetchAsk(question: string): Promise<ApiResult<AskResponse>> {
+  return apiRequest<AskResponse>(`/ask?q=${encodeURIComponent(question)}`);
 }

@@ -82,3 +82,38 @@ export interface MatchSummaryRequest {
 export type MatchSummaryOutcome =
   | { outcome: 'published' | 'rejected'; version_number: number; rejection: string | null }
   | { outcome: 'absent' | 'not_finished' | 'failed' };
+
+// ---------------------------------------------------------------------------
+// Natural-language search (E42, T-420): the model reads the question; the
+// search that exists answers it. The model's output is a structured intent
+// and nothing else, which is what makes it checkable and what keeps an
+// invented club out of the results -- a name the search cannot find is a
+// name the answer does not contain (rule 1).
+// ---------------------------------------------------------------------------
+import type { SearchEntityType, SearchResult } from './search';
+
+export interface SearchIntent {
+  /** The names the question asks about, as written in it. */
+  names: string[];
+  /** What kinds of thing it asks for; empty means any kind. */
+  types: SearchEntityType[];
+}
+
+export type AskReason =
+  /** No language model is configured: the question was searched as keywords. */
+  | 'no_model'
+  /** The model's answer was not an intent the schema accepts: searched as keywords. */
+  | 'unreadable'
+  /** The model read the question and found no name in it: searched as keywords. */
+  | 'nothing_named'
+  /** The model could not be reached: searched as keywords. */
+  | 'failed';
+
+/** `GET /ask?q=`. */
+export interface AskResponse {
+  question: string;
+  interpretation: Covered<SearchIntent>;
+  reason: AskReason | null;
+  /** The search's own rows, by id, in score order; never a name the search did not find. */
+  results: SearchResult[];
+}

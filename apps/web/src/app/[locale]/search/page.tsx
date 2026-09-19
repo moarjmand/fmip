@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { fetchSearch } from '@/lib/api';
+import type { AskReason } from '@fmip/contracts';
+import { Translated } from '@/components/translated';
+import type { MessageKey } from '@/i18n/messages';
+import { fetchAsk } from '@/lib/api';
 import {
   MIN_QUERY_LENGTH,
   TYPE_LABEL,
@@ -12,6 +15,14 @@ import {
 import { pageMetadata } from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
+
+/** Why the question was searched as keywords (T-422), as a sentence beside the results. */
+const REASON_KEY: Record<AskReason, MessageKey> = {
+  no_model: 'search.reason.noModel',
+  unreadable: 'search.reason.unreadable',
+  nothing_named: 'search.reason.nothingNamed',
+  failed: 'search.reason.failed',
+};
 
 export async function generateMetadata({
   params,
@@ -46,7 +57,8 @@ export default async function SearchPage({
   const [{ locale }, query] = await Promise.all([params, searchParams]);
   const term = readSearchTerm(query);
   const ask = apiQuery(term);
-  const result = ask === null ? null : await fetchSearch(ask);
+  // Read by the model when there is one (T-421); the search's own rows either way.
+  const result = ask === null ? null : await fetchAsk(term);
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
@@ -72,6 +84,30 @@ export default async function SearchPage({
           Search
         </button>
       </form>
+
+      {result !== null && result.ok && (
+        <p
+          className="text-sm opacity-80"
+          data-testid="search-reading"
+          data-reason={result.data.reason ?? 'read'}
+        >
+          {result.data.interpretation.data !== null ? (
+            <>
+              <Translated locale={locale} message="search.readAs" />{' '}
+              {result.data.interpretation.data.names.join(', ')}
+              {result.data.interpretation.data.types.length > 0 && (
+                <>
+                  {' · '}
+                  <Translated locale={locale} message="search.kinds" />{' '}
+                  {result.data.interpretation.data.types.map((type) => TYPE_LABEL[type]).join(', ')}
+                </>
+              )}
+            </>
+          ) : result.data.reason !== null ? (
+            <Translated locale={locale} message={REASON_KEY[result.data.reason]} />
+          ) : null}
+        </p>
+      )}
 
       {ask === null ? (
         <p className="text-sm opacity-70" data-testid="search-hint">

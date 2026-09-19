@@ -559,6 +559,36 @@
     "text": "",
     "status": "untranslated"
   },
+  "search.readAs": {
+    "source": "Read as",
+    "text": "",
+    "status": "untranslated"
+  },
+  "search.kinds": {
+    "source": "kinds",
+    "text": "",
+    "status": "untranslated"
+  },
+  "search.reason.noModel": {
+    "source": "No language model is configured, so this is a keyword search.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "search.reason.unreadable": {
+    "source": "The question could not be read as one, so it was searched as keywords.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "search.reason.nothingNamed": {
+    "source": "The question names nothing the search could look for, so it was searched as keywords.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "search.reason.failed": {
+    "source": "The language model could not be reached, so this is a keyword search.",
+    "text": "",
+    "status": "untranslated"
+  },
   "news.title": {
     "source": "News",
     "text": "",
