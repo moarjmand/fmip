@@ -144,12 +144,14 @@ or embeds, which would be a second source beside the desk, not a replacement.
 decision and a cost. The contracts are proven platform-independent (T-321),
 so the day you decide, the app is a second client of the same endpoints.
 
-**Notification delivery (T-330, the provider).** The port exists and
-`/health/delivery` says both channels are absent, which is true and will stay
-true until you choose an e-mail or push provider -- after the deploy (T-074),
-because a provider is a credential on a server. The agent adds the provider
-behind the port; you supply the account. Campaigns (T-332) mean nothing
-without one.
+**Notification delivery (T-330).** Built end to end on 2026-09-20 without a
+vendor: every kind leaves as the inbox's own sentence and route, e-mail is
+SMTP (D-073, any service's credentials) and push is Web Push with your own
+keys (D-074, no account). `/health/delivery` says both channels are absent
+until the server has `SMTP_URL` + `DELIVERY_EMAIL_FROM` and a VAPID key pair
+-- after the deploy (T-074), because credentials live on a server. §8 has
+the exact lines. Campaigns (T-332) are the one thing left unbuilt, by
+choice: their audience semantics are a product decision.
 
 ## 8. The exact steps, per item
 
