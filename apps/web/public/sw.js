@@ -90,7 +90,10 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = new URL((event.notification.data && event.notification.data.url) || '/', self.location.origin).href;
+  const url = new URL(
+    (event.notification.data && event.notification.data.url) || '/',
+    self.location.origin,
+  ).href;
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
       const open = windows.find((w) => w.url === url);
