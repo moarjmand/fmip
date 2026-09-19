@@ -2385,3 +2385,68 @@ for a decision that may never be taken, when the honest half needs none.
 **What would reverse this.** A licence (T-310 revisited): a second
 `viewing_source` with `thumbnail` or `embed` rights, an ingestion job behind
 it, and the same surfaces.
+
+---
+
+## D-070 — A language model runs behind one port, speaks only from the record, says it is a machine, and keeps every version
+
+**Date:** 2026-09-19 · **Task:** T-401, T-402, T-403 · **Status:** accepted
+
+**Decision.** Phase 5's four features share one boundary and four rules.
+
+*The port.* A language model is a provider chosen at deployment, behind
+`LANGUAGE_MODEL` in `apps/api/src/modules/intelligence/`, exactly as delivery
+is behind `OUTBOUND_DELIVERY` (T-330). `INTELLIGENCE_PROVIDER=off` is an honest
+absence that `/health/intelligence` reports and every surface of the phase
+turns into a sentence; a provider this build cannot drive, or one it can drive
+with no key beside it, refuses to start. Nothing on the critical path calls
+the port: scores, the match centre, forecasts, predictions and settlement never
+wait for a model, and a model that fails is an outcome a caller records, never
+a page that falls over.
+
+*The rules.* Machine text is **labelled** wherever it appears -- as a
+machine's, with the model and the time (`MachineText`). It is **grounded**:
+a prompt carries only what the product already serves under a coverage state,
+with the absences named, and an answer is checked against those facts by code
+before anyone sees it. It is **versioned**: every generation is an immutable
+row with its inputs, model, prompt version and time, and a regeneration is a
+new row with a reason in the audit log (rules 5 and 10). And it is **never a
+fourth product**: the model is not asked who will win, and nothing it writes
+is blended into the statistical forecast, the founder's analysis or the
+consensus (rule 6). Machine translation stays out (T-151, D-066).
+
+*The first adapter.* Anthropic's Messages API, through the official SDK
+(`@anthropic-ai/sdk`, a new dependency, which this entry records per
+`CLAUDE.md` §2), with the model named by `INTELLIGENCE_MODEL` and defaulting
+to the reference's current default, adaptive thinking, an effort of `medium`
+unless the deployment says otherwise, and the API's server-side refusal
+fallback enabled. A refusal and a truncation are stop reasons the adapter
+returns and the caller treats as rejections, never text.
+
+**Why this adapter first, and the conflict named.** The agent that built this
+phase is a Claude model. That is a reason to be careful about the choice,
+which is why it is a decision entry and not a default: the port is
+provider-shaped, `INTELLIGENCE_PROVIDER` is whichever name the maintainer sets,
+and a second adapter sits beside the first the way a second viewing source
+sits beside the editorial desk (D-069). The narrower reason this adapter came
+first is that it is the API the agent can write from its documentation rather
+than from memory -- model identifiers, thinking configuration and refusal
+handling checked against the reference -- which for code that will run
+unattended matters more than the name on it.
+
+**What it costs.** Per generation, by the provider's token prices, and nothing
+until a key exists: the maintainer decides when by putting one on the server
+(T-400), which is the same shape as the delivery provider and the paid data
+provider before it.
+
+**Rejected.** *A model on the critical path* (summaries computed inside the
+match centre's request): a slow or absent provider would take the page with
+it. *Unlabelled prose*: a reader who cannot tell a machine's paragraph from the
+founder's has been misled about the one thing the product promises to keep
+apart. *Free-text chat with the model*: no surface takes free text and returns
+free text; every prompt is composed by the product from rows, and every answer
+is structured or gated. *Machine translation as a Phase 5 feature*: refused
+twice already (T-151, T-305).
+
+**What would reverse this.** A second provider, which is an adapter and a
+name, not a change to any of the four rules.

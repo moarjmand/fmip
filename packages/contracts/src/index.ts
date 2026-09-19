@@ -501,3 +501,6 @@ export type {
   TranslationRequest,
   VersionOrigin,
 } from './news';
+// The intelligence layer (Phase 5, D-070): a language model behind one port,
+// its honest absence, and the labelled shape of anything a machine wrote.
+export type { IntelligenceHealth, LanguageModelState, MachineText } from './intelligence';

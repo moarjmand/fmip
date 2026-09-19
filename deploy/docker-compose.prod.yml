@@ -134,6 +134,11 @@ services:
       # Delivery (T-330): absent until a provider is chosen, and /health/delivery says so.
       DELIVERY_EMAIL_PROVIDER: ${DELIVERY_EMAIL_PROVIDER:-off}
       DELIVERY_PUSH_PROVIDER: ${DELIVERY_PUSH_PROVIDER:-off}
+      # The intelligence layer (Phase 5): off until a key exists on this server (T-400).
+      INTELLIGENCE_PROVIDER: ${INTELLIGENCE_PROVIDER:-off}
+      INTELLIGENCE_MODEL: ${INTELLIGENCE_MODEL:-}
+      INTELLIGENCE_EFFORT: ${INTELLIGENCE_EFFORT:-medium}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       # Extra socket origins beyond https://SITE_HOST, e.g. a second domain (T-234).
       CHAT_ALLOWED_ORIGINS: ${CHAT_ALLOWED_ORIGINS:-}
     depends_on:

@@ -92,6 +92,13 @@ Phase 4's outward delivery delivers.
 - Deferred deliberately: these are most valuable once the canonical data model
   and the reputation signal already exist.
 
+**Planned in `04-tasks-phase-5.md`** (2026-09-19, at the maintainer's request).
+Five epics, fifteen tasks, one blocker: a language model is a provider behind
+a port, chosen at deployment by a key on the server (T-400), so fourteen of
+the fifteen are buildable with nothing from the maintainer and every surface
+has an honest sentence for the absence. The four rules every surface obeys --
+labelled, grounded, versioned, off the critical path -- are D-070.
+
 ---
 
 ## Sequencing rule
