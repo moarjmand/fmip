@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { AbsentDelivery, deliveryFromEnv, describeDelivery } from './delivery.port';
+import { AbsentDelivery, NoRecipient, deliveryFromEnv, describeDelivery } from './delivery.port';
+import type { PostgresPushSubscriptionStore } from './internal/push-subscriptions';
 import { DeliveryService } from './delivery.service';
 
 /**
@@ -53,6 +54,32 @@ describe('deliveryFromEnv: smtp (D-073)', () => {
   });
 });
 
+describe('deliveryFromEnv: webpush (D-074)', () => {
+  const vapid = {
+    DELIVERY_PUSH_PROVIDER: 'webpush',
+    VAPID_PUBLIC_KEY: 'pub',
+    VAPID_PRIVATE_KEY: 'priv',
+    VAPID_SUBJECT: 'mailto:admin@example.test',
+  };
+
+  it('refuses the push channel named without its keys, and without the store', () => {
+    expect(() => deliveryFromEnv({ DELIVERY_PUSH_PROVIDER: 'webpush' })).toThrow(
+      /VAPID_PUBLIC_KEY/,
+    );
+    expect(() => deliveryFromEnv(vapid)).toThrow(/subscription store/);
+  });
+
+  it('drives webpush with a key pair, a subject and the store, e-mail still absent', () => {
+    const store = {} as PostgresPushSubscriptionStore;
+    const delivery = deliveryFromEnv(vapid, store);
+    expect(describeDelivery(delivery)).toMatchObject({
+      email: { state: 'absent' },
+      push: { state: 'configured', provider: 'webpush' },
+      in_product_only: false,
+    });
+  });
+});
+
 describe('DeliveryService', () => {
   it('reports absence on both channels rather than throwing or pretending', async () => {
     const service = new DeliveryService(new AbsentDelivery());
@@ -91,5 +118,24 @@ describe('DeliveryService', () => {
       push: { state: 'configured', provider: 'broken' },
       in_product_only: false,
     });
+  });
+
+  it('records a channel that has nowhere to deliver for this member as skipped, not failed', async () => {
+    const service = new DeliveryService({
+      email: null,
+      push: {
+        provider: 'webpush',
+        send: async () => {
+          throw new NoRecipient('no device');
+        },
+      },
+    });
+    const outcome = await service.deliver(null, {
+      userId: 'u',
+      title: 't',
+      body: 'b',
+      url: '/en/notifications',
+    });
+    expect(outcome).toEqual({ email: 'absent', push: 'skipped' });
   });
 });

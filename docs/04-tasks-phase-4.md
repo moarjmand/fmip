@@ -619,6 +619,17 @@ verification and reset mail leave by the same channel (`DeliveryMailer`),
 printed as before where there is none. What waits for you is now only the
 credentials of a service you open, and a push decision (VAPID or a service).
 
+**T-330, the push channel, on 2026-09-20 (D-074).** Web Push with the
+deployment's own VAPID keys, through `web-push`: `DELIVERY_PUSH_PROVIDER=
+webpush`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`. A
+member's browsers are rows in `push_subscription`, registered from the
+settings page (`GET /me/push`, `POST`/`DELETE /me/push-subscriptions`),
+shown by `sw.js` and opened at the inbox's route on a click. A member with
+no device is `skipped`, a fourth outcome. Nothing is bought and no account
+is opened; what waits for you is one command on the server to generate the
+key pair. With this, T-330 is built end to end; the `[~]` stands only for
+the credentials on a server that does not exist yet (T-074).
+
 **T-331 done on 2026-09-18.** A mute is a row (`notification_mute`): a team
 or a competition by id -- never by name, rule 1, and a name where an id
 belongs is refused rather than cast -- or one of three categories,
@@ -677,7 +688,7 @@ for Phase 3:
 | T-322..T-324 | T-320 | after the decision |
 | T-330 (the port and the absence) | nothing | agent |
 | T-330 (the e-mail channel) | built 2026-09-20 (D-073); the credentials of a service after T-074 | agent, then **maintainer** |
-| T-330 (a push channel) | a decision: VAPID or a service | **maintainer** |
+| T-330 (the push channel) | built 2026-09-20 (D-074, Web Push); a VAPID key pair generated on the server after T-074 | agent, then **maintainer** |
 | T-331 | nothing | agent |
 | T-332 | T-330 | after the provider |
 | T-333 | T-141 | agent |

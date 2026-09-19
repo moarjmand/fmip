@@ -21,6 +21,9 @@ import type {
   NotificationSettings,
   NotificationSubject,
   NotificationsResponse,
+  PushState,
+  PushSubscriptionRequest,
+  PushUnsubscribeRequest,
   SetNotificationPreferenceRequest,
   SetQuietHoursRequest,
 } from '@fmip/contracts';
@@ -274,5 +277,61 @@ export class NotificationsController {
     const user = await this.viewer(request);
     // Silent when there were none: the end state is what was asked for.
     await this.notifications.clearQuietHours(user.id);
+  }
+
+  // --- push on a device (T-330, D-074) -----------------------------------
+
+  /** Whether this deployment can push, the key a browser subscribes with, and how many devices this member has. */
+  @Get('me/push')
+  async push(@Req() request: FastifyRequest): Promise<PushState> {
+    const user = await this.viewer(request);
+    return this.delivery.pushState(user.id);
+  }
+
+  /**
+   * A device's registration, as the browser's push manager hands it out.
+   * The browser made it; the session is what ties it to the member. The
+   * same endpoint registered again refreshes the keys rather than doubling
+   * the device.
+   */
+  @Post('me/push-subscriptions')
+  @HttpCode(204)
+  async subscribe(
+    @Req() request: FastifyRequest,
+    @Body() body: PushSubscriptionRequest,
+  ): Promise<void> {
+    const user = await this.viewer(request);
+    const endpoint = typeof body?.endpoint === 'string' ? body.endpoint.trim() : '';
+    const p256dh = typeof body?.keys?.p256dh === 'string' ? body.keys.p256dh.trim() : '';
+    const auth = typeof body?.keys?.auth === 'string' ? body.keys.auth.trim() : '';
+    if (!endpoint.startsWith('https://') || p256dh === '' || auth === '') {
+      throw new BadRequestException({
+        error: 'validation',
+        message:
+          'A push subscription is an https endpoint and two keys, as the browser hands them out.',
+      } satisfies ApiError);
+    }
+    const agent = request.headers['user-agent'];
+    await this.delivery.registerDevice(
+      user.id,
+      { endpoint, keys: { p256dh, auth } },
+      typeof agent === 'string' ? agent.slice(0, 300) : null,
+    );
+  }
+
+  @Delete('me/push-subscriptions')
+  @HttpCode(204)
+  async unsubscribe(
+    @Req() request: FastifyRequest,
+    @Body() body: PushUnsubscribeRequest,
+  ): Promise<void> {
+    const user = await this.viewer(request);
+    const endpoint = typeof body?.endpoint === 'string' ? body.endpoint.trim() : '';
+    if (!(await this.delivery.removeDevice(user.id, endpoint))) {
+      throw new NotFoundException({
+        error: 'not_found',
+        message: 'No such device is registered for you.',
+      } satisfies ApiError);
+    }
   }
 }

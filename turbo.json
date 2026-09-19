@@ -18,7 +18,10 @@
     "INTELLIGENCE_BASE_URL",
     "INTELLIGENCE_API_KEY",
     "SMTP_URL",
-    "DELIVERY_EMAIL_FROM"
+    "DELIVERY_EMAIL_FROM",
+    "VAPID_PUBLIC_KEY",
+    "VAPID_PRIVATE_KEY",
+    "VAPID_SUBJECT"
   ],
   "tasks": {
     "build": {

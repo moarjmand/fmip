@@ -2,6 +2,7 @@ import { Controller, Get, Module } from '@nestjs/common';
 import type { DeliveryHealth } from '@fmip/contracts';
 import { OUTBOUND_DELIVERY, type OutboundDelivery, deliveryFromEnv } from './delivery.port';
 import { DeliveryService } from './delivery.service';
+import { PostgresPushSubscriptionStore } from './internal/push-subscriptions';
 
 /**
  * `GET /health/delivery` (T-330): which channels this deployment can carry a
@@ -28,7 +29,13 @@ export class DeliveryHealthController {
   controllers: [DeliveryHealthController],
   providers: [
     DeliveryService,
-    { provide: OUTBOUND_DELIVERY, useFactory: (): OutboundDelivery => deliveryFromEnv() },
+    PostgresPushSubscriptionStore,
+    {
+      provide: OUTBOUND_DELIVERY,
+      useFactory: (subscriptions: PostgresPushSubscriptionStore): OutboundDelivery =>
+        deliveryFromEnv(process.env, subscriptions),
+      inject: [PostgresPushSubscriptionStore],
+    },
   ],
   exports: [DeliveryService],
 })

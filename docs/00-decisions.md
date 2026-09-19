@@ -2589,3 +2589,43 @@ start. Nothing connects until the first send, so a wrong password is a
 `verify()` at boot that refuses to start*: a provider's outage would take
 the API down for e-mail's sake. *Sending identity's mail some other way*:
 two channels are two configurations and two things to get wrong.
+
+---
+
+## D-074 — Push is Web Push signed with the deployment's own VAPID keys: no account anywhere, a member's devices as rows, and "nowhere to receive" as its own outcome
+
+**Date:** 2026-09-20 · **Task:** T-330 (T-324's push is the same) · **Status:** accepted
+
+**Decision.** The push provider behind the delivery port is Web Push (RFC
+8030), the standard every browser's push service speaks, through the
+`web-push` library: `DELIVERY_PUSH_PROVIDER=webpush` with a VAPID key pair
+the maintainer generates once on the server (`VAPID_PUBLIC_KEY`,
+`VAPID_PRIVATE_KEY`) and `VAPID_SUBJECT`, a `mailto:` or `https://` the push
+services may contact. No account is opened with anybody: the browser's own
+service carries the message, and the key pair is the only credential. The
+same shape as SMTP (D-073) and `openai_compatible` (D-072): a standard,
+not a vendor.
+
+**A device is a row.** `push_subscription` holds what the browser's push
+manager hands out -- the endpoint and two keys -- one row per browser,
+unique by endpoint, so registering again refreshes rather than doubles.
+The member registers from the settings page ("On this device"): the browser
+asks their permission, subscribes with the public key from `GET /me/push`,
+and hands the result to `POST /me/push-subscriptions`; turning it off is
+the same in reverse. A device whose service answers 404 or 410 is gone and
+its row is removed by the channel.
+
+**A fourth outcome.** A member with no device on a channel that exists is
+`skipped` in `notification_delivery`: neither the channel's absence nor its
+failure, and recording either would be a lie about what happened (rule 3).
+The channel throws `NoRecipient`, the port records `skipped`.
+
+**What the service worker does.** `sw.js` shows the payload -- the inbox's
+sentence and the route it opens -- as the browser's notification, and a
+click opens that route in the app (T-324: the same notification the inbox
+has, not a second one).
+
+**Rejected.** *A push service (FCM, OneSignal)*: an account and a vendor
+for what the browser already carries. *Storing subscriptions per session*:
+a device outlives a session. *Treating "no device" as failed*: the log would
+fill with failures that were nobody's fault.

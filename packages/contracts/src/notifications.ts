@@ -362,3 +362,24 @@ export function notificationPath(
       return null;
   }
 }
+
+/**
+ * `GET /me/push` (T-330, D-074): whether this deployment can push to a
+ * device, the public key a browser subscribes with when it can, how many
+ * devices this member has registered, and whether e-mail is there too (so
+ * the settings page can say where a notification reaches them).
+ */
+export type PushState =
+  | { state: 'absent'; email: boolean; devices: number }
+  | { state: 'configured'; public_key: string; email: boolean; devices: number };
+
+/** `POST /me/push-subscriptions`: what the browser's push manager hands out, as it serialises it. */
+export interface PushSubscriptionRequest {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+}
+
+/** `DELETE /me/push-subscriptions`. */
+export interface PushUnsubscribeRequest {
+  endpoint: string;
+}

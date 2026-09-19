@@ -216,12 +216,19 @@ server's `.env` as `SMTP_URL=smtps://USER:PASSWORD@HOST:465` (or
 `smtp://HOST:587`), set `DELIVERY_EMAIL_FROM="FMIP <no-reply@your-domain>"`
 and `DELIVERY_EMAIL_PROVIDER=smtp`, restart the API: `/health/delivery`
 says `smtp`, and from that moment every notification and the verification
-and reset mails go out. Nothing else to tell the agent. Push, two roads: Web Push over VAPID needs
-no account at all -- a key pair generated once on the server -- but needs a
-dependency and therefore a decision entry, yours to approve; or a push
-service, which is an account, and is what T-324 would need on a device
-anyway. Say which, and the agent builds the adapter, the subscription flow
-and the setting; `/health/delivery` then says `present` because it is.
+and reset mails go out. Nothing else to tell the agent. **Push is built too (D-074,
+2026-09-20)**, as Web Push with your own keys, no account anywhere. On the
+server, once:
+
+```bash
+cd /opt/fmip && docker compose run --rm --no-deps api npx web-push generate-vapid-keys
+```
+
+put the two keys it prints into `.env` as `VAPID_PUBLIC_KEY` and
+`VAPID_PRIVATE_KEY`, set `VAPID_SUBJECT=mailto:you@your-domain` and
+`DELIVERY_PUSH_PROVIDER=webpush`, restart the API. Members then turn push
+on per device from Settings → Notifications → "On this device";
+`/health/delivery` says `webpush`.
 
 **T-332, campaigns.** Nothing from you beyond the provider.
 

@@ -5,7 +5,7 @@
  * network; when that fails the offline page is shown. Only the offline page,
  * the manifest, the icons and Next's immutable static assets are cached.
  */
-const VERSION = 'fmip-shell-v1';
+const VERSION = 'fmip-shell-v2';
 const OFFLINE_PATH = '/en/offline';
 const SHELL = [OFFLINE_PATH, '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png'];
 
@@ -66,4 +66,39 @@ self.addEventListener('fetch', (event) => {
     );
   }
   // Everything else (the web app's own API routes, streams) is never cached.
+});
+
+// Web Push (T-330, D-074): the payload is the inbox's own sentence and the
+// route it opens, sent by the API to this browser's push service. Shown as
+// the browser's notification; a click opens the route in this app.
+self.addEventListener('push', (event) => {
+  let payload = { title: 'FMIP', body: '', url: '/' };
+  try {
+    payload = { ...payload, ...(event.data ? event.data.json() : {}) };
+  } catch {
+    // A payload that is not JSON is shown as the title alone.
+  }
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      data: { url: payload.url },
+    }),
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = new URL(
+    (event.notification.data && event.notification.data.url) || '/',
+    self.location.origin,
+  ).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      const open = windows.find((w) => w.url === url);
+      if (open) return open.focus();
+      return self.clients.openWindow(url);
+    }),
+  );
 });
