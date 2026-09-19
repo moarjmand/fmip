@@ -154,7 +154,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('related news
     const { status, body } = await related(MATCH);
     expect(status).toBe(200);
     expect(body.fixture_id).toBe(MATCH);
-    expect(body.window).toEqual({
+    expect(body.period).toEqual({
       since: '2026-09-05T15:00:00.000Z',
       until: '2026-09-15T15:00:00.000Z',
     });

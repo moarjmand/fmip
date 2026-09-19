@@ -223,8 +223,8 @@ export type FixtureNewsReason =
 /** `GET /fixtures/:id/news`. */
 export interface FixtureNewsResponse {
   fixture_id: string;
-  /** The window around the kick-off the list covers. */
-  window: { since: string; until: string };
+  /** The span around the kick-off the list covers. */
+  period: { since: string; until: string };
   /**
    * `available` with the stories (possibly none) once the feeds have been
    * read; `not_supplied` when they never were. Reports about the match itself

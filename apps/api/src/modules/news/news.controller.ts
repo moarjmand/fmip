@@ -223,21 +223,21 @@ export class NewsController {
       this.store.lastFetchedAt(),
     ]);
     if (found === null) throw new NotFoundException(NO_FIXTURE);
-    const window = {
+    const period = {
       since: found.window.since.toISOString(),
       until: found.window.until.toISOString(),
     };
     if (last_updated_at === null) {
       return {
         fixture_id: fixtureId,
-        window,
+        period,
         stories: { coverage: 'not_supplied', last_updated_at: null, data: null },
         reason: 'feeds_unread',
       };
     }
     return {
       fixture_id: fixtureId,
-      window,
+      period,
       stories: { coverage: 'available', last_updated_at, data: found.page.cards },
       reason: found.page.cards.length === 0 ? 'nothing_linked' : null,
     };

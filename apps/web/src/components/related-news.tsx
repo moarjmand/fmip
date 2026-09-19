@@ -65,12 +65,12 @@ export function RelatedNews({
             )}
             {' · '}
             <Translated locale={locale} message="news.related.window" />{' '}
-            <time dateTime={news.window.since}>
-              {formatDateTime(locale, news.window.since, timeZone)}
+            <time dateTime={news.period.since}>
+              {formatDateTime(locale, news.period.since, timeZone)}
             </time>
             {' – '}
-            <time dateTime={news.window.until}>
-              {formatDateTime(locale, news.window.until, timeZone)}
+            <time dateTime={news.period.until}>
+              {formatDateTime(locale, news.period.until, timeZone)}
             </time>
           </>
         )}
