@@ -17,7 +17,7 @@ import {
 import { checkBriefing, documentOf } from './internal/briefing-document';
 import { PostgresBriefingStore } from './internal/briefing-store';
 
-export const PROMPT_VERSION = 'briefing@1';
+export const PROMPT_VERSION = 'briefing@2';
 const MAX_TOKENS = 900;
 /** How often held briefing notifications are carried once their hold ends (T-432). */
 const CARRY_EVERY_MS = 5 * 60_000;
@@ -31,6 +31,11 @@ export const BRIEFING_SYSTEM = [
   "You write a short personal briefing for a member of a football website, from a JSON document of what happened around the teams, competitions and people they follow: the days in the window, and on each day the items -- matches with scores, published stories with their headline and publisher, analyses with a stated call, and members' posts -- each with the signals that put it there.",
   'Write two to four short paragraphs in plain English addressed to the member. Every paragraph must be about items in the document, naming them as the document names them; give only numbers the document holds.',
   'Do not predict anything, do not add anything the document does not say, and do not say what the member should think. Do not mention that you are a model or that you were given a document. Output the paragraphs only.',
+  // briefing@2, after the first real run (2026-09-19): two of three attempts
+  // were turned down by the gate -- one paragraph about what was *absent*
+  // from the feed, one carrying a date written as digits. Both are things
+  // the model reaches for when the feed is thin, and both are said plainly.
+  'Write only about the items listed, in the words the document uses for them. Do not mention what is absent, missing or not logged, and do not describe the window itself. Do not write dates, times or years as numbers; say "yesterday" or "on Sunday" instead. If there is a single item, write about that item alone.',
 ].join(' ');
 
 /**

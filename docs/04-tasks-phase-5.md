@@ -274,6 +274,18 @@ channel today (T-330), so every row says `absent` on both -- and the day a
 provider arrives as a class behind the port, briefings leave with it
 without another line here.
 
+**First real run, 2026-09-19, on Mistral's free plan (`ministral-14b-latest`).**
+A test member following Liverpool, one finished match in the window. Three
+attempts: the first turned down for a paragraph about what was *absent*
+from the feed, the second for a date written as digits ("number not in the
+feed: 09"), the third published and its notification `sent`, claimed and
+carried as `absent` on both channels. The gate did what it is for; the
+prompt learned from it -- `briefing@2` says plainly not to describe what is
+missing, not to write dates as numbers, and to write about a single item
+alone. What the gate cannot catch is a phrase like "second place in the
+table" that the feed never said: names and numbers are checked, adjectives
+are not, which is the known limit D-070 records.
+
 ---
 
 ## E44 — Moderation assistance

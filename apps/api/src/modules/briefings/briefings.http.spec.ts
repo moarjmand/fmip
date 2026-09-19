@@ -222,7 +222,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('briefings', 
     expect(shown.body.prose.data).toMatchObject({
       text: `${home} play ${away} tomorrow, the one match around what you follow this week.`,
       model: 'scripted-1',
-      prompt_version: 'briefing@1',
+      prompt_version: 'briefing@2',
       version_number: 1,
     });
     expect(shown.body.reason).toBeNull();
