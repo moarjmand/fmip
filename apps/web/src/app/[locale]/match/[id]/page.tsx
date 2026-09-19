@@ -11,12 +11,14 @@ import { MatchPanel } from '@/components/match-panel';
 import { PowerIndexPanel } from '@/components/power-index-panel';
 import { MatchThreads } from '@/components/match-threads';
 import { PredictionSection } from '@/components/prediction-section';
+import { ViewingPanel } from '@/components/viewing-panel';
 import {
   fetchEvaluations,
   fetchFollowedMembers,
   fetchForecasts,
   fetchMatchCentre,
   fetchMatchPanel,
+  fetchMatchViewing,
   fetchMe,
   fetchMyGroups,
   fetchCommunityAnalyses,
@@ -25,10 +27,12 @@ import {
   fetchOwnPrediction,
   fetchPanelPermission,
   fetchPowerIndex,
+  fetchTerritories,
 } from '@/lib/api';
 import { isTimeZone } from '@/lib/scores';
 import { matchJsonLd, pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { readTerritoryQuery } from '@/lib/viewing';
 
 export const dynamic = 'force-dynamic';
 
@@ -73,6 +77,7 @@ export default async function MatchPage({
   const cookie = await sessionCookieHeader();
   const me = await fetchMe(cookie);
   const tzParam = typeof query.tz === 'string' ? query.tz : undefined;
+  const territory = readTerritoryQuery(query);
   const timeZone =
     tzParam !== undefined && isTimeZone(tzParam)
       ? tzParam
@@ -103,6 +108,8 @@ export default async function MatchPage({
     panel,
     panelPermission,
     communityAnalyses,
+    viewing,
+    territories,
   ] = result.ok
     ? await Promise.all([
         fetchForecasts(id),
@@ -118,8 +125,12 @@ export default async function MatchPage({
         fetchPanelPermission(id, cookie),
         // No cookie: a published analysis is meant to be read (T-263).
         fetchCommunityAnalyses(id),
+        // Where to watch (T-314): the member's stored territory, or the one a
+        // guest chose on this page; a guest also needs the list to choose from.
+        fetchMatchViewing(id, territory, cookie),
+        me === null ? fetchTerritories() : Promise.resolve(null),
       ])
-    : [null, null, null, null, null, null, null, null, null];
+    : [null, null, null, null, null, null, null, null, null, null, null];
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
@@ -149,6 +160,18 @@ export default async function MatchPage({
             locale={locale}
             panels={
               <>
+                <ViewingPanel
+                  locale={locale}
+                  timeZone={timeZone}
+                  viewing={viewing !== null && viewing.ok ? viewing.data : null}
+                  kickoffAt={result.data.fixture.kickoff_at}
+                  status={result.data.fixture.status}
+                  variant="panel"
+                  signedIn={me !== null}
+                  href={`/${locale}/match/${result.data.fixture.id}`}
+                  hidden={tzParam === undefined ? {} : { tz: tzParam }}
+                  territories={territories}
+                />
                 <PredictionSection
                   locale={locale}
                   fixture={result.data.fixture}

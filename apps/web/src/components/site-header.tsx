@@ -43,6 +43,9 @@ export async function SiteHeader({ locale }: { locale: string }) {
         <Link href={href('/news')} data-testid="nav-news">
           <Translated locale={locale} message="nav.news" />
         </Link>
+        <Link href={href('/watch')} data-testid="nav-watch">
+          <Translated locale={locale} message="nav.watch" />
+        </Link>
         <form action={href('/search')} method="get" role="search" className="me-auto">
           <label htmlFor="header-search" className="sr-only">
             <Translated locale={locale} message="nav.searchLabel" />

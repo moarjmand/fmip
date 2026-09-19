@@ -169,6 +169,171 @@
     "text": "",
     "status": "untranslated"
   },
+  "nav.watch": {
+    "source": "Watch",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.title": {
+    "source": "Where to watch",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.pageTitle": {
+    "source": "Watch",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.pageLead": {
+    "source": "Official services for each match, in the territory you choose. Nothing is guessed from your address, and a territory nobody has covered says so.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.in": {
+    "source": "Shown for",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.change": {
+    "source": "Change territory",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.choose": {
+    "source": "Choose your territory",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.ask": {
+    "source": "Choose your territory to see where this match is shown. It is never guessed from your address.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.askLabel": {
+    "source": "Territory",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.askSubmit": {
+    "source": "Show viewing options",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.notChosen": {
+    "source": "Not chosen",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.noInfo": {
+    "source": "No viewing information yet for",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.nothingListed": {
+    "source": "No official service listed for this match in",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.on": {
+    "source": "On",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.kickoff": {
+    "source": "Kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.officialPage": {
+    "source": "Official page",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.access.free": {
+    "source": "Free",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.access.registration": {
+    "source": "Free with registration",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.access.subscription": {
+    "source": "Subscription",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.access.payPerView": {
+    "source": "Pay per view",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.kind.tv": {
+    "source": "TV",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.kind.streaming": {
+    "source": "Streaming",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.kind.radio": {
+    "source": "Radio",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.highlights": {
+    "source": "Highlights",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.highlightsNoInfo": {
+    "source": "No highlight information yet for",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.highlightsNone": {
+    "source": "No official highlight listed for",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.highlightsPage": {
+    "source": "Official highlights",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.highlightsPlayer": {
+    "source": "Official highlights player",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.source": {
+    "source": "Source",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.confirmed": {
+    "source": "confirmed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.unreachable": {
+    "source": "The viewing service is unreachable right now, so where to watch cannot be shown.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.noMatches": {
+    "source": "No matches on this day.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.matchCentre": {
+    "source": "Match centre",
+    "text": "",
+    "status": "untranslated"
+  },
   "news.title": {
     "source": "News",
     "text": "",

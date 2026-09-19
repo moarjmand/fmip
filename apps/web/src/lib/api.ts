@@ -38,6 +38,7 @@ import type {
   CommunityAnalysisWorkspace,
   CommunitySubmission,
   MatchCentre,
+  MatchViewing,
   DebateListResponse,
   MatchPanelPage,
   NewsSectionResponse,
@@ -57,6 +58,7 @@ import type {
   StoryPage,
   TeamPage,
   TerritoriesResponse,
+  ViewingBatchResponse,
   TeamsResponse,
 } from '@fmip/contracts';
 import { withLocale } from '@/lib/locale-query';
@@ -659,4 +661,30 @@ export function fetchConversationSearch(
     `/me/conversations/${encodeURIComponent(id)}/search?q=${encodeURIComponent(term)}`,
     { cookie },
   );
+}
+
+/**
+ * Where a match can be watched (T-314): the viewer's stored territory, or the
+ * one a guest chose on the page (`territory`). A code that is not a territory
+ * comes back as a 400 result, never as a neighbour's answer.
+ */
+export function fetchMatchViewing(
+  fixtureId: string,
+  territory: string | undefined,
+  cookie: string | undefined,
+): Promise<ApiResult<MatchViewing>> {
+  const query = territory === undefined ? '' : `?territory=${encodeURIComponent(territory)}`;
+  return apiRequest<MatchViewing>(`/fixtures/${fixtureId}/viewing${query}`, { cookie });
+}
+
+/** The same module for a list of matches, one request (T-314). */
+export function fetchViewingBatch(
+  fixtureIds: string[],
+  territory: string | undefined,
+  cookie: string | undefined,
+): Promise<ApiResult<ViewingBatchResponse>> {
+  const p = new URLSearchParams();
+  for (const id of fixtureIds) p.append('fixture', id);
+  if (territory !== undefined) p.set('territory', territory);
+  return apiRequest<ViewingBatchResponse>(`/viewing?${p.toString()}`, { cookie });
 }
