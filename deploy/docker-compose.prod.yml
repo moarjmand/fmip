@@ -142,6 +142,8 @@ services:
       MISTRAL_API_KEY: ${MISTRAL_API_KEY:-}
       INTELLIGENCE_BASE_URL: ${INTELLIGENCE_BASE_URL:-}
       INTELLIGENCE_API_KEY: ${INTELLIGENCE_API_KEY:-}
+      SMTP_URL: ${SMTP_URL:-}
+      DELIVERY_EMAIL_FROM: ${DELIVERY_EMAIL_FROM:-}
       # Extra socket origins beyond https://SITE_HOST, e.g. a second domain (T-234).
       CHAT_ALLOWED_ORIGINS: ${CHAT_ALLOWED_ORIGINS:-}
     depends_on:

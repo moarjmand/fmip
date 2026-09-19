@@ -612,6 +612,13 @@ every member everything they were told last month. What still waits for
 you is the channel itself: a class behind the port and its name in the
 variable; from that day, every kind leaves.
 
+**T-330, the e-mail channel, on 2026-09-20 (D-073).** SMTP, which every
+service speaks and no vendor owns: `DELIVERY_EMAIL_PROVIDER=smtp` with
+`SMTP_URL` and `DELIVERY_EMAIL_FROM`, through `nodemailer`. Identity's
+verification and reset mail leave by the same channel (`DeliveryMailer`),
+printed as before where there is none. What waits for you is now only the
+credentials of a service you open, and a push decision (VAPID or a service).
+
 **T-331 done on 2026-09-18.** A mute is a row (`notification_mute`): a team
 or a competition by id -- never by name, rule 1, and a name where an id
 belongs is refused rather than cast -- or one of three categories,
@@ -669,7 +676,8 @@ for Phase 3:
 | T-321 | nothing | agent |
 | T-322..T-324 | T-320 | after the decision |
 | T-330 (the port and the absence) | nothing | agent |
-| T-330 (a provider) | T-074 | **maintainer** |
+| T-330 (the e-mail channel) | built 2026-09-20 (D-073); the credentials of a service after T-074 | agent, then **maintainer** |
+| T-330 (a push channel) | a decision: VAPID or a service | **maintainer** |
 | T-331 | nothing | agent |
 | T-332 | T-330 | after the provider |
 | T-333 | T-141 | agent |

@@ -1,4 +1,5 @@
 import type { DeliveryChannelState, DeliveryHealth } from '@fmip/contracts';
+import { SmtpEmailChannel, smtpSettingsFromEnv } from './internal/smtp-email';
 
 /**
  * Delivery behind one port (T-330, blueprint 12.2): e-mail and push, with a
@@ -63,8 +64,12 @@ export function describeDelivery(delivery: OutboundDelivery, now = new Date()): 
   };
 }
 
-/** The provider names this build knows how to drive. None yet: the port precedes the provider. */
-export const KNOWN_EMAIL_PROVIDERS: readonly string[] = [];
+/**
+ * The provider names this build knows how to drive. E-mail: `smtp`, which
+ * every transactional service speaks and no vendor owns (D-073), so the
+ * deployment chooses the service and this build does not. Push: none yet.
+ */
+export const KNOWN_EMAIL_PROVIDERS: readonly string[] = ['smtp'];
 export const KNOWN_PUSH_PROVIDERS: readonly string[] = [];
 
 /**
@@ -89,5 +94,8 @@ export function deliveryFromEnv(env: NodeJS.ProcessEnv = process.env): OutboundD
         ` (known: ${KNOWN_PUSH_PROVIDERS.join(', ') || 'none'}; use "off" for none)`,
     );
   }
-  return new AbsentDelivery();
+  const emailChannel =
+    email === 'smtp' ? SmtpEmailChannel.fromSettings(smtpSettingsFromEnv(env)) : null;
+  if (emailChannel === null) return new AbsentDelivery();
+  return { email: emailChannel, push: null };
 }

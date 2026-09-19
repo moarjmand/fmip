@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { DeliveryModule } from '../delivery/delivery.module';
+import { DeliveryService } from '../delivery/delivery.service';
 import { IdentityController } from './identity.controller';
 import {
   DEFAULT_IDENTITY_OPTIONS,
@@ -7,7 +9,8 @@ import {
   type IdentityOptions,
 } from './identity.service';
 import { PostgresIdentityStore } from './internal/identity-store';
-import { LogMailer, MAILER } from './internal/mailer';
+import { DeliveryMailer } from './internal/delivery-mailer';
+import { MAILER } from './internal/mailer';
 import { sessionSecretFromEnv } from './internal/tokens';
 
 /** Options from the environment. Refuses a missing or weak SESSION_SECRET. */
@@ -22,16 +25,23 @@ export function identityOptionsFromEnv(env: NodeJS.ProcessEnv = process.env): Id
 
 /**
  * The identity boundary (02-architecture.md): users, credentials, sessions,
- * roles. Mail goes through the `MAILER` port; `LogMailer` prints it until a
- * provider is chosen at deployment (D-026).
+ * roles. Mail goes through the `MAILER` port, which since D-073 is the
+ * delivery port's e-mail channel -- the same one every notification leaves
+ * by -- and prints the message where the deployment has none (D-026), so
+ * local development still finds the verification link in the terminal.
  */
 @Module({
+  imports: [DeliveryModule],
   controllers: [IdentityController],
   providers: [
     IdentityService,
     PostgresIdentityStore,
     { provide: IDENTITY_OPTIONS, useFactory: (): IdentityOptions => identityOptionsFromEnv() },
-    { provide: MAILER, useClass: LogMailer },
+    {
+      provide: MAILER,
+      useFactory: (delivery: DeliveryService): DeliveryMailer => new DeliveryMailer(delivery),
+      inject: [DeliveryService],
+    },
   ],
   exports: [IdentityService],
 })

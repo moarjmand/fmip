@@ -207,10 +207,16 @@ against the server rather than a laptop; record the outcome in
 which is why this cannot move without you.
 
 **T-330, the provider.** Parked on 2026-09-19 at your request ("later").
-After T-074, because a provider is a credential on a server. E-mail: open an account with a transactional e-mail service, put its
-credential in the server's environment, and tell the agent the service's
-name; the agent adds the adapter behind `OUTBOUND_DELIVERY` and the value
-`DELIVERY_EMAIL_PROVIDER` takes. Push, two roads: Web Push over VAPID needs
+After T-074, because a provider is a credential on a server. **E-mail is
+built (D-073, 2026-09-20)** and takes any service's SMTP credentials: open
+an account with a transactional e-mail service (Brevo, Mailjet, Postmark,
+Amazon SES, or any relay), verify your domain there as it asks (a few DNS
+records in Cloudflare), copy its SMTP host, port, user and password into the
+server's `.env` as `SMTP_URL=smtps://USER:PASSWORD@HOST:465` (or
+`smtp://HOST:587`), set `DELIVERY_EMAIL_FROM="FMIP <no-reply@your-domain>"`
+and `DELIVERY_EMAIL_PROVIDER=smtp`, restart the API: `/health/delivery`
+says `smtp`, and from that moment every notification and the verification
+and reset mails go out. Nothing else to tell the agent. Push, two roads: Web Push over VAPID needs
 no account at all -- a key pair generated once on the server -- but needs a
 dependency and therefore a decision entry, yours to approve; or a push
 service, which is an account, and is what T-324 would need on a device
