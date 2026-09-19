@@ -11,8 +11,10 @@ import { MatchPanel } from '@/components/match-panel';
 import { PowerIndexPanel } from '@/components/power-index-panel';
 import { MatchThreads } from '@/components/match-threads';
 import { PredictionSection } from '@/components/prediction-section';
+import { ViewingDesk } from '@/components/viewing-desk';
 import { ViewingPanel } from '@/components/viewing-panel';
 import {
+  fetchBroadcasters,
   fetchEvaluations,
   fetchFollowedMembers,
   fetchForecasts,
@@ -85,6 +87,10 @@ export default async function MatchPage({
         ? me.timezone
         : 'UTC';
 
+  // The editorial desk answers an editor and nobody else (T-313): its list is
+  // both the probe for the role and the services a listing can name.
+  const desk = me === null ? null : await fetchBroadcasters(cookie);
+  const editor = desk !== null && desk.ok;
   // Only for a signed-in member: a match thread happens inside a group, and a
   // guest is in none. The same is true of whom they follow — a guest follows
   // nobody, and one request here saves a follow-status call per contributor on
@@ -172,6 +178,16 @@ export default async function MatchPage({
                   hidden={tzParam === undefined ? {} : { tz: tzParam }}
                   territories={territories}
                 />
+                {editor && desk !== null && desk.ok && (
+                  <ViewingDesk
+                    locale={locale}
+                    fixtureId={result.data.fixture.id}
+                    seasonId={result.data.fixture.season.id}
+                    seasonLabel={result.data.fixture.season.label}
+                    viewing={viewing !== null && viewing.ok ? viewing.data : null}
+                    broadcasters={desk.data.broadcasters}
+                  />
+                )}
                 <PredictionSection
                   locale={locale}
                   fixture={result.data.fixture}

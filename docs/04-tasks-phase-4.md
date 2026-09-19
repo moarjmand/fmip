@@ -340,7 +340,7 @@ from the wrong country is worse than no answer.
 | `[x]` T-311 | Schema and contracts: `broadcaster`, `viewing_option`, `highlight`, rights per source | T-011 | Availability is stored per territory; a source carries what may be shown |
 | `[x]` T-312 | Territory: chosen by the member, stored, never silently inferred | T-041 | A viewer with no territory is asked, not guessed at |
 | `[x]` T-313 | Ingestion and coverage per territory | T-310, T-311 | A territory with no data says `not_supplied`; it never says "not available" |
-| `[~]` T-314 | Surfaces: the Watch page, the match centre panel, the team fixture list, the Following feed | T-313 | One module, four places, one answer |
+| `[x]` T-314 | Surfaces: the Watch page, the match centre panel, the team fixture list, the Following feed | T-313 | One module, four places, one answer |
 | `[x]` T-315 | Highlights: an approved embed where there is one, the official page where there is not | T-313 | Never an embed the rights do not allow, and never a dead player |
 
 **"Not supplied" and "not available" are different sentences and the difference
@@ -434,7 +434,7 @@ nobody declared is a fact nobody stood behind; every write is an audit row
 guest, a member in Iran, an editor, and the schema's own refusal of a player
 under the desk. T-314 and T-315, the surfaces, are next.
 
-**T-314, two of the four places, and T-315, on 2026-09-19.** One component,
+**T-314 and T-315 on 2026-09-19.** One component,
 `viewing-panel.tsx`, with four sentences and never a fifth: no territory and
 the surface asks -- a member is sent to settings, a guest gets a chooser
 whose pick goes into the address and follows them by link, and nothing is
@@ -444,15 +444,20 @@ service listed", which is then a fact; and listings show the service, its
 kind, the access, the kick-off in the viewer's zone and the official
 destination. The match centre carries the panel; `/watch` is the scores
 page's day with the same chooser and one line per match from one batch
-request, and a match the viewing service could not answer for says so. The
+request; the team fixture list and the Following feed carry the line under
+each fixture, from one batch each; and a match the viewing service could
+not answer for says so. The
 highlight (T-315) renders after the match: a player only for a row whose
 source grants an embed and which has one -- checked in the surface as well
 as the schema -- and the official page for everybody, so there is never a
-dead player and never one the rights do not allow. The team fixture list
-and the Following feed are the other two places, next; T-314 stays `[~]`
-until they carry the same line. The journey walks a member in the United
-Kingdom and a guest choosing Iran through the match page and `/watch`, and
-asserts the words "not available" appear nowhere.
+dead player and never one the rights do not allow. The journey walks a
+member in the United Kingdom and a guest choosing Iran through the match
+page, `/watch` and the team page, and asserts the words "not available"
+appear nowhere. **The desk has a surface too:** an editor sees the
+editorial desk under the panel on any match page -- coverage for the
+season, a broadcaster, a listing, the highlight page, and removal with a
+reason -- through server actions that call T-313's endpoints, so entering a
+listing needs no tool but the page.
 
 ---
 

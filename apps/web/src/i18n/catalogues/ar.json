@@ -334,6 +334,151 @@
     "text": "",
     "status": "untranslated"
   },
+  "viewing.desk.title": {
+    "source": "Editorial desk",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.desk.lead": {
+    "source": "Listings are entered by hand from public schedules, link-only, and every entry is recorded with your name. Declare coverage for a territory before listing anything in it.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.desk.territory": {
+    "source": "Territory code",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.desk.territoryHint": {
+    "source": "ISO 3166-1 alpha-2, such as GB or IR.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.desk.coverage": {
+    "source": "Declare coverage for this season",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.desk.module": {
+    "source": "Module",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.desk.moduleViewing": {
+    "source": "Viewing",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.desk.moduleHighlights": {
+    "source": "Highlights",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.desk.state": {
+    "source": "State",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.desk.stateAvailable": {
+    "source": "Covered: what is listed is what there is",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.desk.stateLimited": {
+    "source": "Partly covered",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.desk.stateNotSupplied": {
+    "source": "Not covered",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.desk.note": {
+    "source": "Which schedule you are working from",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.desk.declare": {
+    "source": "Declare coverage",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.desk.broadcaster": {
+    "source": "New broadcaster",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.desk.name": {
+    "source": "Name",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.desk.homepage": {
+    "source": "Homepage (optional)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.desk.kind": {
+    "source": "Kind",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.desk.addBroadcaster": {
+    "source": "Add broadcaster",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.desk.listing": {
+    "source": "List this match on a service",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.desk.service": {
+    "source": "Service",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.desk.access": {
+    "source": "Access",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.desk.url": {
+    "source": "Official page",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.desk.list": {
+    "source": "Add listing",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.desk.highlight": {
+    "source": "Official highlight page",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.desk.setHighlight": {
+    "source": "Set highlight page",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.desk.remove": {
+    "source": "Remove",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.desk.reason": {
+    "source": "Why",
+    "text": "",
+    "status": "untranslated"
+  },
+  "viewing.desk.noBroadcasters": {
+    "source": "No broadcasters yet. Add one below before listing.",
+    "text": "",
+    "status": "untranslated"
+  },
   "news.title": {
     "source": "News",
     "text": "",

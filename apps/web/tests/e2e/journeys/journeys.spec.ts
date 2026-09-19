@@ -30,6 +30,7 @@ const USERNAME = `e2e_${RUN}`;
 const EMAIL = `${USERNAME}@example.test`;
 const PASSWORD = 'correct horse battery staple';
 const OPEN_MATCH = '00000000-0000-4000-8000-000000000902';
+const LIVERPOOL = '00000000-0000-4000-8000-000000000602';
 const PLAYED_DAY = '2025-01-05';
 
 test.describe.configure({ mode: 'serial' });
@@ -209,6 +210,13 @@ test.describe('blueprint journeys', () => {
       'IR',
     );
     await guest.close();
+
+    // The team fixture list carries the same line, for the same member, in the
+    // same words: not supplied, never not available.
+    await page.goto(`/en/team/${LIVERPOOL}`);
+    const line = page.getByTestId('fixtures').getByTestId('viewing-line').first();
+    await expect(line).toHaveAttribute('data-state', 'not_supplied');
+    await expect(line).toContainText('United Kingdom');
   });
 
   test('T-331 silences one team without silencing football, and unmutes with one button', async () => {

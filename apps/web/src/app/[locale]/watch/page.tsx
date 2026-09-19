@@ -1,10 +1,16 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import type { MatchViewing, ScoreCard } from '@fmip/contracts';
+import type { MatchViewing, ScoreCard, ViewingTerritory } from '@fmip/contracts';
 import { Translated } from '@/components/translated';
 import { TerritoryChooser, ViewingPanel } from '@/components/viewing-panel';
 import { formatDateTime } from '@/i18n/format';
-import { fetchMe, fetchScores, fetchTerritories, fetchViewingBatch } from '@/lib/api';
+import {
+  fetchMe,
+  fetchScores,
+  fetchTerritories,
+  fetchViewingBatch,
+  fetchViewingTerritory,
+} from '@/lib/api';
 import { apiQuery, dayStrip, readScoresQuery } from '@/lib/scores';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
@@ -64,11 +70,22 @@ export default async function WatchPage({
   const answers = new Map<string, MatchViewing>(
     batch !== null && batch.ok ? batch.data.fixtures.map((v) => [v.fixture_id, v]) : [],
   );
-  // The chooser needs a territory state to show even when the day is empty.
-  const territoryState: MatchViewing | null =
+  // The chooser shows on an empty day too, so it needs the territory state
+  // without a match to ask about: the batch's answer when there was one, else
+  // the member's stored choice, else the code a guest carried, named from the
+  // list they choose from. Never anything inferred.
+  const chosen: ViewingTerritory =
     batch !== null && batch.ok
-      ? { fixture_id: '', territory: batch.data.territory, options: NONE, highlights: NONE }
-      : null;
+      ? batch.data.territory
+      : me !== null
+        ? ((await fetchViewingTerritory(cookie)) ?? { state: 'not_chosen' })
+        : guestChoice(territory, territories);
+  const territoryState: MatchViewing = {
+    fixture_id: '',
+    territory: chosen,
+    options: NONE,
+    highlights: NONE,
+  };
   const strip = dayStrip(q, locale);
   const guestTerritory = me === null ? territory : undefined;
   const linkClass = (active: boolean): string =>
@@ -99,22 +116,14 @@ export default async function WatchPage({
         </span>
       </nav>
 
-      {territoryState !== null ? (
-        <TerritoryChooser
-          locale={locale}
-          viewing={territoryState}
-          signedIn={me !== null}
-          href={`/${locale}/watch`}
-          territories={territories}
-          hidden={{ date: q.date, ...(q.explicitTimezone ? { tz: q.timezone } : {}) }}
-        />
-      ) : (
-        cards.length > 0 && (
-          <p role="alert">
-            <Translated locale={locale} message="viewing.unreachable" />
-          </p>
-        )
-      )}
+      <TerritoryChooser
+        locale={locale}
+        viewing={territoryState}
+        signedIn={me !== null}
+        href={`/${locale}/watch`}
+        territories={territories}
+        hidden={{ date: q.date, ...(q.explicitTimezone ? { tz: q.timezone } : {}) }}
+      />
 
       {!scores.ok ? (
         <p role="alert" data-testid="watch-unreachable">
@@ -169,3 +178,12 @@ export default async function WatchPage({
 }
 
 const NONE = { coverage: 'not_supplied', last_updated_at: null, data: null } as const;
+
+/** A guest's carried code as a territory, when the list they chose from has it. */
+function guestChoice(
+  code: string | undefined,
+  territories: { code: string; name: string }[] | null,
+): ViewingTerritory {
+  const found = code === undefined ? undefined : territories?.find((t) => t.code === code);
+  return found === undefined ? { state: 'not_chosen' } : { state: 'chosen', territory: found };
+}

@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import type { FeedItem, FeedSignal } from '@fmip/contracts';
+import type { FeedItem, FeedSignal, MatchViewing } from '@fmip/contracts';
 import { Translated } from '@/components/translated';
+import { ViewingPanel } from '@/components/viewing-panel';
 import { formatDateTime } from '@/i18n/format';
-import { fetchFeed, fetchMe } from '@/lib/api';
+import { fetchFeed, fetchMe, fetchViewingBatch } from '@/lib/api';
 import {
   KIND_KEY,
   REASON_KEY,
@@ -48,6 +49,18 @@ export default async function FollowingPage({ params }: { params: Promise<{ loca
   if (me === null) redirect(`/${locale}/login?next=/${locale}/following`);
   const timeZone = me.timezone;
   const result = await fetchFeed(cookie);
+  // Where each match in the feed can be watched (T-314): one batch, in the
+  // member's stored territory -- the feed is theirs, so there is no guest here.
+  const fixtureIds = result.ok
+    ? result.data.items.flatMap((item) => (item.kind === 'fixture' ? [item.fixture_id] : []))
+    : [];
+  const viewing =
+    fixtureIds.length > 0
+      ? await fetchViewingBatch(fixtureIds.slice(0, 100), undefined, cookie)
+      : null;
+  const answers = new Map<string, MatchViewing>(
+    viewing !== null && viewing.ok ? viewing.data.fixtures.map((v) => [v.fixture_id, v]) : [],
+  );
   const when = (iso: string): string => formatDateTime(locale, iso, timeZone);
 
   return (
@@ -105,7 +118,15 @@ export default async function FollowingPage({ params }: { params: Promise<{ loca
             <ol className="flex flex-col gap-4" data-testid="feed-items">
               {result.data.items.map((item) => (
                 <li key={feedItemKey(item)}>
-                  <Item item={item} locale={locale} when={when} />
+                  <Item
+                    item={item}
+                    locale={locale}
+                    when={when}
+                    timeZone={timeZone}
+                    viewing={
+                      item.kind === 'fixture' ? (answers.get(item.fixture_id) ?? null) : undefined
+                    }
+                  />
                 </li>
               ))}
             </ol>
@@ -120,10 +141,15 @@ function Item({
   item,
   locale,
   when,
+  timeZone,
+  viewing,
 }: {
   item: FeedItem;
   locale: string;
   when: (iso: string) => string;
+  timeZone: string;
+  /** For a fixture: the module, or `null` when the viewing service could not be reached. */
+  viewing?: MatchViewing | null;
 }) {
   return (
     <article
@@ -146,6 +172,18 @@ function Item({
         <p className="text-sm">
           {item.score.home} – {item.score.away}
         </p>
+      )}
+      {item.kind === 'fixture' && viewing !== undefined && (
+        <ViewingPanel
+          variant="line"
+          locale={locale}
+          timeZone={timeZone}
+          viewing={viewing}
+          kickoffAt={item.kickoff_at}
+          status={item.status}
+          signedIn
+          href={`/${locale}/match/${item.fixture_id}`}
+        />
       )}
       {item.kind === 'story' && (
         <p className="text-sm opacity-80">

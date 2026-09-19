@@ -3,6 +3,7 @@ import type {
   AdminUsersResponse,
   ApiError,
   AuditResponse,
+  BroadcastersResponse,
   BlocksResponse,
   ChatHealth,
   CommunityConsensusResponse,
@@ -58,6 +59,7 @@ import type {
   StoryPage,
   TeamPage,
   TerritoriesResponse,
+  ViewingTerritoryResponse,
   ViewingBatchResponse,
   TeamsResponse,
 } from '@fmip/contracts';
@@ -687,4 +689,24 @@ export function fetchViewingBatch(
   for (const id of fixtureIds) p.append('fixture', id);
   if (territory !== undefined) p.set('territory', territory);
   return apiRequest<ViewingBatchResponse>(`/viewing?${p.toString()}`, { cookie });
+}
+
+/**
+ * The editorial desk's broadcaster list (T-313). Editors and administrators
+ * only, so a 401 or 403 result is also how a page learns the viewer is not
+ * one: the session carries no roles, and the desk answers whoever it is for.
+ */
+export function fetchBroadcasters(
+  cookie: string | undefined,
+): Promise<ApiResult<BroadcastersResponse>> {
+  return apiRequest<BroadcastersResponse>('/admin/viewing/broadcasters', { cookie });
+}
+
+/** The member's stored viewing territory (T-312), for a surface with no match to ask about. */
+export async function fetchViewingTerritory(
+  cookie: string | undefined,
+): Promise<ViewingTerritoryResponse['viewing_territory'] | null> {
+  if (cookie === undefined) return null;
+  const result = await apiRequest<ViewingTerritoryResponse>('/me/territory', { cookie });
+  return result.ok ? result.data.viewing_territory : null;
 }
