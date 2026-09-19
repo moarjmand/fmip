@@ -11,11 +11,13 @@ import { MatchPanel } from '@/components/match-panel';
 import { PowerIndexPanel } from '@/components/power-index-panel';
 import { MatchThreads } from '@/components/match-threads';
 import { PredictionSection } from '@/components/prediction-section';
+import { RelatedNews } from '@/components/related-news';
 import { ViewingDesk } from '@/components/viewing-desk';
 import { ViewingPanel } from '@/components/viewing-panel';
 import {
   fetchBroadcasters,
   fetchEvaluations,
+  fetchFixtureNews,
   fetchFollowedMembers,
   fetchForecasts,
   fetchMatchCentre,
@@ -116,6 +118,7 @@ export default async function MatchPage({
     communityAnalyses,
     viewing,
     territories,
+    news,
   ] = result.ok
     ? await Promise.all([
         fetchForecasts(id),
@@ -135,8 +138,10 @@ export default async function MatchPage({
         // guest chose on this page; a guest also needs the list to choose from.
         fetchMatchViewing(id, territory, cookie),
         me === null ? fetchTerritories() : Promise.resolve(null),
+        // Related news (T-145): the news page's cards, for this match and its sides.
+        fetchFixtureNews(id, locale),
       ])
-    : [null, null, null, null, null, null, null, null, null, null, null];
+    : [null, null, null, null, null, null, null, null, null, null, null, null];
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
@@ -265,6 +270,11 @@ export default async function MatchPage({
                   away={result.data.fixture.away.name}
                   timeZone={timeZone}
                   locale={locale}
+                />
+                <RelatedNews
+                  locale={locale}
+                  timeZone={timeZone}
+                  news={news !== null && news.ok ? news.data : null}
                 />
               </>
             }

@@ -16,6 +16,7 @@ import type {
   CountriesResponse,
   FixtureEvaluationsResponse,
   FollowedEntity,
+  FixtureNewsResponse,
   FollowingFeed,
   FollowingResponse,
   ForecastListResponse,
@@ -709,4 +710,14 @@ export async function fetchViewingTerritory(
   if (cookie === undefined) return null;
   const result = await apiRequest<ViewingTerritoryResponse>('/me/territory', { cookie });
   return result.ok ? result.data.viewing_territory : null;
+}
+
+/** Related news for a match (T-145): the same cards the news page shows, linked to the match or either side. */
+export function fetchFixtureNews(
+  fixtureId: string,
+  locale: string,
+): Promise<ApiResult<FixtureNewsResponse>> {
+  return apiRequest<FixtureNewsResponse>(
+    `/fixtures/${fixtureId}/news?locale=${encodeURIComponent(locale)}`,
+  );
 }

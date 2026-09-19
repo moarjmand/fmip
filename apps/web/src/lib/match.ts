@@ -68,11 +68,10 @@ export function moduleState<T>(module: Covered<T>): string {
 /**
  * Blueprint 4.2 modules that are not built yet, named on the page (rule 3).
  * The list only ever gets shorter: the founder's analysis (T-132), the
- * community forecast (T-135), the discussion (T-251) and Watch and highlights
- * (T-314) left it the day they reached the page.
+ * community forecast (T-135), the discussion (T-251), Watch and highlights
+ * (T-314) and related news (T-145) left it the day they reached the page.
  */
 export const NOT_YET = [
   ['Availability', 'unsupported'],
   ['Key players', 'unsupported'],
-  ['Related news', 'unsupported'],
 ] as const;

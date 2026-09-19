@@ -219,6 +219,16 @@ test.describe('blueprint journeys', () => {
     await expect(line).toContainText('United Kingdom');
   });
 
+  test('T-145 related news on the match centre says what it knows, and never shows an empty box', async () => {
+    await page.goto(`/en/match/${OPEN_MATCH}`);
+    const news = page.getByTestId('related-news');
+    await expect(news).toBeVisible();
+    // The seed carries no publishers: either the feeds were never read, or
+    // they were and nothing links this match. Both are sentences, not a blank.
+    await expect(news).toHaveAttribute('data-state', /^(not_supplied|nothing_linked)$/);
+    await expect(news.getByTestId('related-news-freshness')).toBeVisible();
+  });
+
   test('T-331 silences one team without silencing football, and unmutes with one button', async () => {
     await page.goto('/en/settings/notifications');
     const quiet = page.getByTestId('notification-mutes');

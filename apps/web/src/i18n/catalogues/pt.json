@@ -484,6 +484,21 @@
     "text": "",
     "status": "untranslated"
   },
+  "news.related.title": {
+    "source": "Related news",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.related.nothing": {
+    "source": "No publisher has reported on this match or its sides in the week around it.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.related.window": {
+    "source": "Stories from",
+    "text": "",
+    "status": "untranslated"
+  },
   "news.section.latest": {
     "source": "Latest",
     "text": "",

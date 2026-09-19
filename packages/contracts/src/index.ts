@@ -473,12 +473,20 @@ export type {
 
 // News (blueprint 3.1 and 3.3, T-143). A story is its promoted original and a
 // link back to the publisher; each section says what it is computed from.
-export { NEWS_PAGE_SIZE, NEWS_SECTIONS, TRENDING_WINDOW_HOURS, isNewsSection } from './news';
+export {
+  FIXTURE_NEWS_LIMIT,
+  NEWS_PAGE_SIZE,
+  NEWS_SECTIONS,
+  TRENDING_WINDOW_HOURS,
+  isNewsSection,
+} from './news';
 export type {
   DebateClearRequest,
   DebateListResponse,
   DebateRecord,
   DebateSelectionRequest,
+  FixtureNewsReason,
+  FixtureNewsResponse,
   NewsEntity,
   NewsFilters,
   NewsRights,
