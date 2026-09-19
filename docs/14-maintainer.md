@@ -267,6 +267,17 @@ is `low`, `medium` or `high`. Restart the API; `/health/intelligence` says
 `configured`, and every Phase 5 surface starts answering. It costs per
 generation at the provider's token prices, and nothing until the key exists.
 
+**Testing before the deploy, for free (D-072, 2026-09-19).** You asked to try
+Mistral's free tier first and to keep every model open later. Both are
+built. On your own machine: in Mistral Studio, activate Free mode and create
+an API key; in **your local** `.env` set `INTELLIGENCE_PROVIDER=mistral` and
+`MISTRAL_API_KEY=` (the key; never in chat), leave `INTELLIGENCE_MODEL`
+empty for `mistral-small-latest`; start the API and open a finished match,
+the search box with a question, and Following's briefing button. The same
+two lines on the server later. Any other model: `INTELLIGENCE_PROVIDER=
+openai_compatible` with `INTELLIGENCE_BASE_URL`, `INTELLIGENCE_API_KEY` and
+`INTELLIGENCE_MODEL`, which covers a local runtime as well as a vendor.
+
 **What the agent builds without it.** Every schema, contract, grounding gate,
 surface and honest-absence sentence in the plan. With the key absent, each
 surface says so in a sentence; nothing on the critical path is touched either
