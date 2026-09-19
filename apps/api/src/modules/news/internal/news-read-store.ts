@@ -314,6 +314,55 @@ export class PostgresNewsReadStore {
     };
   }
 
+  /**
+   * Related news for one match (blueprint 4.2, T-145): stories any of whose
+   * reports link the match itself or either side, inside a window around the
+   * kick-off -- a week before, three days after -- so the list is current
+   * rather than a club's whole archive. Reports about the match come first,
+   * then reports about one of its sides, each group newest first. `null` when
+   * the id is not a match.
+   */
+  async forFixture(
+    fixtureId: string,
+    locale: string | null,
+    limit: number,
+  ): Promise<{ window: { since: Date; until: Date }; page: StoryPage_ } | null> {
+    const fixture = await this.pool.query<{ kickoff_at: Date; teams: string[] | null }>(
+      `SELECT f.kickoff_at, array_remove(array_agg(p.team_id), NULL) AS teams
+         FROM fixture f
+         LEFT JOIN fixture_participant p ON p.fixture_id = f.id
+        WHERE f.id = $1
+        GROUP BY f.id`,
+      [fixtureId],
+    );
+    const found = fixture.rows[0];
+    if (found === undefined) return null;
+    const since = new Date(found.kickoff_at.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const until = new Date(found.kickoff_at.getTime() + 3 * 24 * 60 * 60 * 1000);
+    const q = new Query({ country: null, competition: null, team: null, language: null }, locale);
+    const match = q.param(fixtureId);
+    const teams = q.param(found.teams ?? []);
+    const from = q.param(since.toISOString());
+    const to = q.param(until.toISOString());
+    const page = await this.page(
+      q,
+      `SELECT sc.*, NULL::int AS participants, NULL::timestamptz AS debate_selected_at, NULL::text AS debate_note,
+              EXISTS (SELECT 1 FROM article m JOIN article_entity e ON e.article_id = m.id
+                       WHERE m.story_id = sc.story_id
+                         AND e.entity_type = 'fixture' AND e.entity_id = ${match}::uuid) AS about_match
+         FROM story_card sc
+        WHERE sc.at BETWEEN ${from}::timestamptz AND ${to}::timestamptz
+          AND EXISTS (SELECT 1 FROM article m JOIN article_entity e ON e.article_id = m.id
+                       WHERE m.story_id = sc.story_id
+                         AND ((e.entity_type = 'fixture' AND e.entity_id = ${match}::uuid)
+                           OR (e.entity_type = 'team' AND e.entity_id = ANY(${teams}::uuid[]))))
+        ORDER BY about_match DESC, sc.at DESC, sc.story_id
+        LIMIT ${q.param(limit + 1)}`,
+      limit,
+    );
+    return { window: { since, until }, page };
+  }
+
   private async page(q: Query, select: string, limit: number): Promise<StoryPage_> {
     const { rows } = await this.pool.query<CardRow>(`${q.storyCard()} ${select}`, q.params);
     const more = rows.length > limit;

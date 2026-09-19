@@ -628,6 +628,7 @@ less than it claims.
 | `[x]` T-142 | Ingestion and deduplication into story clusters | T-141 | Duplicate reports of one event become one cluster with a promoted original |
 | `[x]` T-143 | Sections: latest, trending, debate, following | T-142 | Trending is computed from qualified signals, not raw views |
 | `[x]` T-144 | Article page and filters | T-143 | Carries every field blueprint 3.3 requires, including corrections |
+| `[x]` T-145 | Related news on the match centre | T-142, T-143 | The match page lists current stories linked to it or its sides, or says the feeds were never read -- never an empty box |
 
 **T-140 first, and it is a real decision, not a formality.** News is other
 people's copyright. A feed is licensed, or syndicated with rules, or it is
@@ -875,6 +876,19 @@ language, each a link to its publisher. Save and share are named as not built
 Each card on the section page gained a link to its story. The filters the
 task names were built with T-143's page and are not repeated here.
 
+
+**T-145 on 2026-09-19: related news on the match centre.** Blueprint 4.2's
+last module without a task. `GET /fixtures/:id/news` answers the same cards
+the news page shows, for stories any of whose reports link the match itself
+or either side, inside a window around the kick-off (a week before, three
+days after), reports about the match before reports about a side, each
+group newest first, under the same rights (D-061). The list is `available`
+-- possibly empty, and then `nothing_linked` -- only once the feeds have
+been read at all; before that it is `not_supplied` with `feeds_unread`,
+because an empty list nobody has looked for is not a fact (rule 3). The
+match centre carries it as its last module with the news page's own
+freshness line, and the "not yet" list beneath the coverage table is down to
+the two modules that need the paid provider: availability and key players.
 E14 is complete under D-061. What it does not have, on purpose, is a body:
 that arrives with a licensed source, as a rights row and an adapter, and the
 page already knows what to do with one.

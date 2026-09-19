@@ -9,6 +9,8 @@ import {
 } from '@nestjs/common';
 import {
   type ApiError,
+  type FixtureNewsResponse,
+  FIXTURE_NEWS_LIMIT,
   NEWS_PAGE_SIZE,
   NEWS_SECTIONS,
   type NewsFilters,
@@ -27,6 +29,7 @@ import { PostgresNewsReadStore, type StoryPage_ } from './internal/news-read-sto
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const LOCALE = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
 const NO_STORY: ApiError = { error: 'not_found', message: 'No such story.' };
+const NO_FIXTURE: ApiError = { error: 'not_found', message: 'No such fixture.' };
 
 function first(value: unknown): string | undefined {
   const v = Array.isArray(value) ? value[0] : value;
@@ -197,5 +200,46 @@ export class NewsController {
     );
     if (page === null) throw new NotFoundException(NO_STORY);
     return page;
+  }
+
+  /**
+   * Related news on the match centre (blueprint 4.2, T-145): `GET
+   * /fixtures/:id/news`, the same cards as the news page, for stories linked
+   * to the match or either side inside the window around kick-off. The list
+   * is `available` -- possibly empty, and then `nothing_linked` -- only once
+   * the feeds have been read at all; before that it is `not_supplied` with
+   * `feeds_unread`, because an empty list nobody has looked for is not a fact
+   * (rule 3). Public: a story is a headline and a link (D-061).
+   */
+  @Get('fixtures/:id/news')
+  async fixtureNews(
+    @Param('id') id: string,
+    @Query('locale') locale: unknown,
+  ): Promise<FixtureNewsResponse> {
+    if (!UUID.test(id)) throw new NotFoundException(NO_FIXTURE);
+    const fixtureId = id.toLowerCase();
+    const [found, last_updated_at] = await Promise.all([
+      this.store.forFixture(fixtureId, localeOf(locale), FIXTURE_NEWS_LIMIT),
+      this.store.lastFetchedAt(),
+    ]);
+    if (found === null) throw new NotFoundException(NO_FIXTURE);
+    const period = {
+      since: found.window.since.toISOString(),
+      until: found.window.until.toISOString(),
+    };
+    if (last_updated_at === null) {
+      return {
+        fixture_id: fixtureId,
+        period,
+        stories: { coverage: 'not_supplied', last_updated_at: null, data: null },
+        reason: 'feeds_unread',
+      };
+    }
+    return {
+      fixture_id: fixtureId,
+      period,
+      stories: { coverage: 'available', last_updated_at, data: found.page.cards },
+      reason: found.page.cards.length === 0 ? 'nothing_linked' : null,
+    };
   }
 }

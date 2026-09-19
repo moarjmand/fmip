@@ -205,3 +205,31 @@ export interface DebateListResponse {
   /** Newest selection first. */
   selections: DebateRecord[];
 }
+
+// ---------------------------------------------------------------------------
+// Related news on the match centre (blueprint 4.2, T-145): current stories
+// linked to the match itself or to either side, from the same cards the news
+// page shows and under the same rights (D-061).
+// ---------------------------------------------------------------------------
+export const FIXTURE_NEWS_LIMIT = 8;
+
+/** Why the list holds what it holds -- or nothing. */
+export type FixtureNewsReason =
+  /** The feeds have been read and no report links this match or its sides inside the window. */
+  | 'nothing_linked'
+  /** The feeds have never been read, so an empty list would say nothing (rule 3). */
+  | 'feeds_unread';
+
+/** `GET /fixtures/:id/news`. */
+export interface FixtureNewsResponse {
+  fixture_id: string;
+  /** The span around the kick-off the list covers. */
+  period: { since: string; until: string };
+  /**
+   * `available` with the stories (possibly none) once the feeds have been
+   * read; `not_supplied` when they never were. Reports about the match itself
+   * come before reports about one of its sides; each group newest first.
+   */
+  stories: Covered<NewsStoryCard[]>;
+  reason: FixtureNewsReason | null;
+}
