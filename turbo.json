@@ -16,7 +16,9 @@
     "ANTHROPIC_API_KEY",
     "MISTRAL_API_KEY",
     "INTELLIGENCE_BASE_URL",
-    "INTELLIGENCE_API_KEY"
+    "INTELLIGENCE_API_KEY",
+    "SMTP_URL",
+    "DELIVERY_EMAIL_FROM"
   ],
   "tasks": {
     "build": {

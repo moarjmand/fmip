@@ -31,6 +31,28 @@ describe('deliveryFromEnv', () => {
   });
 });
 
+describe('deliveryFromEnv: smtp (D-073)', () => {
+  it('refuses the e-mail channel named without its connection or its sender', () => {
+    expect(() => deliveryFromEnv({ DELIVERY_EMAIL_PROVIDER: 'smtp' })).toThrow(/SMTP_URL/);
+    expect(() =>
+      deliveryFromEnv({ DELIVERY_EMAIL_PROVIDER: 'smtp', SMTP_URL: 'smtp://mail.example:587' }),
+    ).toThrow(/DELIVERY_EMAIL_FROM/);
+  });
+
+  it('drives smtp with a URL and a sender, and reports the push channel still absent', () => {
+    const delivery = deliveryFromEnv({
+      DELIVERY_EMAIL_PROVIDER: 'SMTP',
+      SMTP_URL: 'smtps://u:p@mail.example:465',
+      DELIVERY_EMAIL_FROM: 'FMIP <no-reply@example.test>',
+    });
+    expect(describeDelivery(delivery)).toMatchObject({
+      email: { state: 'configured', provider: 'smtp' },
+      push: { state: 'absent' },
+      in_product_only: false,
+    });
+  });
+});
+
 describe('DeliveryService', () => {
   it('reports absence on both channels rather than throwing or pretending', async () => {
     const service = new DeliveryService(new AbsentDelivery());

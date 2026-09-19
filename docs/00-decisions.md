@@ -2554,3 +2554,38 @@ plan" rather than retried as "too fast", and a 400 that names
 `reasoning_effort` (the Ministral models take none) turns the field off for
 the rest of the process and sends again. The default model stays
 `mistral-small-latest`; the free plan sets `INTELLIGENCE_MODEL`.
+
+---
+
+## D-073 — The e-mail channel is SMTP, which every service speaks and no vendor owns, and identity's mail leaves by it too
+
+**Date:** 2026-09-20 · **Task:** T-330 · **Status:** accepted
+
+**Decision.** The e-mail provider behind the delivery port (T-330) is not a
+vendor's API but SMTP: `DELIVERY_EMAIL_PROVIDER=smtp`, `SMTP_URL` for the
+whole connection (`smtps://user:pass@host:465`, or `smtp://host:587` with
+STARTTLS) and `DELIVERY_EMAIL_FROM` for the sender. Every transactional
+service -- Brevo, Mailjet, Postmark, Amazon SES, a self-hosted relay -- hands
+out SMTP credentials, so the maintainer chooses the service on the day and
+this build does not choose for them; the same shape the intelligence port
+took with `openai_compatible` (D-072). `nodemailer` is the one dependency,
+the standard transport for it in this ecosystem, added to `apps/api`.
+
+**Identity's mail goes the same way.** The verification and the password
+reset links (D-026 deferred their provider to T-074) now leave by the
+delivery port's e-mail channel through `DeliveryMailer`, and where the
+deployment has no channel they are printed as before, so local development
+still finds the link in the terminal. A send the channel reports as failed
+is printed too and never thrown: the account exists, and the member can ask
+again.
+
+**Rules kept.** A channel named without its URL or its sender refuses to
+start. Nothing connects until the first send, so a wrong password is a
+`failed` outcome in the log at the first message, not a boot that hangs.
+`/health/delivery` names the provider as `smtp`; the inbox stops saying
+`in_product_only`. The push channel stays absent until its own decision.
+
+**Rejected.** *A vendor SDK*: it would name the service in the build. *A
+`verify()` at boot that refuses to start*: a provider's outage would take
+the API down for e-mail's sake. *Sending identity's mail some other way*:
+two channels are two configurations and two things to get wrong.
