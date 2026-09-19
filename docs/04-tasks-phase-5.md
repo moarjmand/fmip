@@ -193,6 +193,21 @@ about it.
 
 ---
 
+**T-412, the thin record, on 2026-09-19.** The first real run (Mistral's
+free plan, `ministral-14b-latest`) wrote a summary of a seeded match whose
+record held only the score: who scored first, how the goals came, how
+possession went -- none of it in the record, none of it a name or a number
+the gate could catch. So **nothing is written from a score alone** (rule 3):
+`generate()` looks at the grounding before asking, and a record with no
+timeline, statistics or line-ups held becomes a `skipped` version with the
+facts and the reason, so the catch-up does not ask again every ten minutes
+and the page says why there is none (`thin_record`). One such row stands
+until the record grows; an editor's request then writes a real version
+after it. `match-summary@2` also tells the model, for the records that
+are thin in part, to narrate goals and momentum only when the timeline or
+the statistics say so. The gate's known limit stays: adjectives are not
+checked (D-070).
+
 ## E42 — Natural-language search
 
 | ID | Task | Deps | Acceptance |
