@@ -24,6 +24,7 @@ import {
   type QueueRow,
   type SanctionRow,
 } from './internal/moderation-store';
+import { ModerationAssistService } from '../moderation-assist/moderation-assist.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
 export type ModerationOutcomeResult =
@@ -55,6 +56,8 @@ function queued(row: QueueRow) {
     detail: row.detail,
     created_at: row.created_at.toISOString(),
     decision_id: null,
+    // Filled in by the queue from the assistant's rows; a history has no assistant beside it.
+    suggestion: null,
   };
 }
 
@@ -109,6 +112,7 @@ export class ModerationService {
   constructor(
     @Inject(PG_POOL) pool: Pool,
     private readonly notifications: NotificationsService,
+    private readonly assist: ModerationAssistService,
   ) {
     this.store = new ModerationStore(pool);
     this.queueStore = new ModerationQueueStore(pool);
@@ -219,11 +223,15 @@ export class ModerationService {
    */
   async queue(limit: number): Promise<ModerationQueueResponse> {
     const { rows, total } = await this.queueStore.queue(limit);
+    // The assistant's suggestions beside the reports (T-441): read with the
+    // queue, never a hand on it, and the queue says whether there is an
+    // assistant at all so an empty one is read the right way.
+    const suggestions = await this.assist.forReports(rows.map((row) => row.report_id));
     const bySubject = new Map<string, ModerationQueueResponse['subjects'][number]>();
 
     for (const row of rows) {
       const existing = bySubject.get(row.subject_id);
-      const report = queued(row);
+      const report = { ...queued(row), suggestion: suggestions.get(row.report_id) ?? null };
       if (existing === undefined) {
         bySubject.set(row.subject_id, {
           subject_type: 'member',
@@ -241,7 +249,11 @@ export class ModerationService {
 
     // The rows arrive oldest first, so each group's first report is its oldest
     // and the insertion order is already "who has waited longest".
-    return { subjects: [...bySubject.values()], open_total: total };
+    return {
+      subjects: [...bySubject.values()],
+      open_total: total,
+      assistant: this.assist.assistant(),
+    };
   }
 
   async history(username: string): Promise<MemberModerationHistory | null> {

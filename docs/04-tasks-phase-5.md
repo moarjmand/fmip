@@ -225,15 +225,35 @@ application with the model absent.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-440 | Schema and contracts: `moderation_suggestion` per report -- category, reason, model, prompt version, time -- immutable | T-403, E23 | A suggestion is a row beside the report, never a decision |
-| `[ ]` T-441 | The suggestion: requested when a report is filed, absent when there is no model; the queue shows it or its absence | T-440 | The moderator's decision is their own and the audit row records what was suggested and what was done |
-| `[ ]` T-442 | What the assistant may see: the reported text and the rules, never the member's history | T-441 | The prompt is the report and `13-policy.md`'s rules; nothing about who the member is |
+| `[x]` T-440 | Schema and contracts: `moderation_suggestion` per report -- category, reason, model, prompt version, time -- immutable | T-403, E23 | A suggestion is a row beside the report, never a decision |
+| `[x]` T-441 | The suggestion: requested when a report is filed, absent when there is no model; the queue shows it or its absence | T-440 | The moderator's decision is their own and the audit row records what was suggested and what was done |
+| `[x]` T-442 | What the assistant may see: the reported text and the rules, never the member's history | T-441 | The prompt is the report and `13-policy.md`'s rules; nothing about who the member is |
 
 **Assistance is a suggestion a person can ignore.** Blueprint 10.4 and
 `13-policy.md` put every sanction behind a human with a reason. A model that
 took an action would be a fifth product nobody agreed to; a model that
 suggests one, beside the report, with the rule it thinks applies, saves the
 moderator a minute and leaves the decision where the policy put it.
+
+**E44 built on 2026-09-19.** `moderation_suggestion` (T-440) is an immutable
+row beside a report: a category from the four reasons plus `no_action`, the
+model's reasoning, the model and the prompt version; rejected attempts are
+kept and never shown, and nothing in the moderation tables references a
+suggestion -- it is never a decision. `ModerationAssistService` (T-441)
+asks the model with a standing instruction that carries the platform
+rules' three named behaviours in `13-policy.md`'s own words and says what
+to answer when a report describes none of them; the answer must be exactly
+`{category, reasoning}` with a category the rules name, or it is rejected
+with the reason. A catch-up over open reports with no attempt on record
+runs every five minutes when a model exists, and `POST
+/admin/moderation/reports/:id/suggest` lets a moderator ask about one. The
+queue (`GET /admin/moderation/queue`) carries each report's latest
+suggestion and the assistant's state, so an empty suggestion is read the
+right way; the queue has no web page of its own (Phase 3 left it as an
+API), so the surface is the queue's JSON. What the assistant sees (T-442)
+is the report's reason and the reporter's words, and nothing about either
+member: the prompt is built from those two fields and the rules, which the
+spec asserts.
 
 ---
 
@@ -261,7 +281,7 @@ moderator a minute and leaves the decision where the policy put it.
 | T-420..T-422 | built 2026-09-19 | agent |
 | T-430, T-431 | nothing | agent |
 | T-432 | T-330's channel | after the provider |
-| T-440..T-442 | nothing | agent |
+| T-440..T-442 | built 2026-09-19 | agent |
 
 **Fourteen of the fifteen tasks are buildable with nothing from the
 maintainer**, because the model is a runtime dependency behind a port and
