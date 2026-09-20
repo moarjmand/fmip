@@ -91,6 +91,25 @@ export class PostgresMatchSummaryStore {
   }
 
   /** The newest version's state, or `null` with none: what the page's reason is read from. */
+  /**
+   * The highest version number that was `skipped`, or null if none was.
+   *
+   * Compared against the published version rather than simply read as "the
+   * newest state", because a verdict on the record stands until something is
+   * published from it: a rejected draft written after a skip is one more bad
+   * draft, not a reason to serve the text the skip condemned.
+   */
+  async latestSkippedVersion(fixtureId: string): Promise<number | null> {
+    const { rows } = await this.pool.query<{ version_number: number }>(
+      `SELECT version_number FROM match_summary
+        WHERE fixture_id = $1 AND state = 'skipped'
+        ORDER BY version_number DESC
+        LIMIT 1`,
+      [fixtureId],
+    );
+    return rows[0]?.version_number ?? null;
+  }
+
   async latestState(fixtureId: string): Promise<SummaryState | null> {
     const { rows } = await this.pool.query<{ state: SummaryState }>(
       `SELECT state FROM match_summary WHERE fixture_id = $1 ORDER BY version_number DESC LIMIT 1`,
