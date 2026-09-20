@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { COVERAGE_STATES } from '@fmip/contracts';
 import { ActionForm, type Field } from '@/components/action-form';
@@ -130,6 +131,15 @@ export default async function AdminPage({
       <h1 className="border-s-4 border-s-current ps-4 text-2xl font-semibold" data-testid="title">
         Administration
       </h1>
+
+      <nav className="flex flex-wrap gap-4 text-sm" data-testid="admin-links">
+        <Link href={`/${locale}/admin/campaigns`} className="underline">
+          Campaigns
+        </Link>
+        <Link href={`/${locale}/admin/analysis-reviews`} className="underline">
+          Analysis reviews
+        </Link>
+      </nav>
 
       <HealthPanel live={live} chat={chat} />
 

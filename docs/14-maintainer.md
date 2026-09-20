@@ -234,8 +234,8 @@ on per device from Settings → Notifications → "On this device";
 `/health/delivery` says `webpush`.
 
 **T-332, campaigns.** Built on 2026-09-20 (D-075): audiences, campaigns and
-the send through the inbox, administrators only. Nothing from you; the
-admin page for it follows.
+the send through the inbox, administrators only, at `/admin/campaigns`.
+Nothing from you.
 
 **T-084, the launch review.** Signed on 2026-09-19 (D-071), one criterion at
 a time in chat; what remains is the re-check with real fixtures on the
