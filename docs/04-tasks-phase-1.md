@@ -117,6 +117,7 @@ split into two commits, wiring then resolver, in one PR.
 | `[ ]` T-025 | **Decision gate:** review bake-off, pick provider, subscribe to paid tier | T-024 | New entry in `00-decisions.md` |
 | `[x]` T-026 | Scheduled ingestion jobs (BullMQ): fixtures, live, lineups, standings, post-match | T-020..T-024 (was T-025, D-049) | Jobs are idempotent; a replay changes nothing |
 | `[x]` T-027 | Coverage profile computation + freshness tracking | T-026 | Every module payload carries a coverage state |
+| `[x]` T-028 | The paid provider's profile, written before the purchase | T-026 | Buying a plan is one line in `.env`, not a code change |
 
 **T-020 verified on 2026-09-10.** `packages/ingestion` holds the normalised
 model, the `ProviderAdapter` contract and `checkAdapterContract`. The
@@ -219,6 +220,26 @@ detail 57%, 388 ms — Highlightly ran on the Premier League only because its
 league ids for the other four are not yet in the plan. No disagreements among
 the matched fixtures. One run is one day's snapshot; the protocol's seven days
 are seven runs, and T-025 reads them together. The second run (2026-09-11 05:04 UTC) added the Highlightly ids of the other four leagues: Highlightly 25/35 ok with 50 requests (its fixture list costs one request per day; every `getLineup` `unsupported` on BASIC), fixture 40%, detail 57%; API-Football and football-data.org repeated day one exactly; again no disagreements.
+
+**T-028 done on 2026-09-20.** The bake-off's conclusion and the code did not
+meet: `docs/05-data-providers.md` says API-Football is the most complete
+source by a wide margin (90% of fixture fields, 99% of line-up fields, 95% of
+detail, a live clock, no feature gating between tiers), and `INGESTION_SOURCE`
+accepted `replay`, `live` and `off` -- where `live` means football-data.org
+plus Highlightly, the two-provider split that exists only because their free
+tiers each cover half of what one paid plan covers whole. A maintainer who
+bought the recommended plan would have found it had nowhere to go.
+
+So the profile is written before the purchase: `INGESTION_SOURCE=api_football`
+with `API_FOOTBALL_KEY` puts one adapter behind all five jobs. The adapter
+itself is T-021's and unchanged; this is twenty lines of configuration and the
+tests that hold them. `API_FOOTBALL_DAILY_BUDGET` is optional and reuses
+D-049's `BudgetedTransport`: a paid plan has a daily ceiling too, and a job
+that discovers it mid-match discovers it by spending a request on a 429. Empty
+leaves the plan its own limit; a value that is not a positive whole number
+refuses the profile rather than guessing at a number. Nothing selects any of
+this until someone sets it, so T-025 stays exactly as deferred as it was --
+what changed is that the day it is decided, the decision is one line.
 
 **T-026 verified on 2026-09-12.** T-025 stays deferred, so the jobs run on the
 free sources D-049 chose: football-data.org for the spine, Highlightly for the

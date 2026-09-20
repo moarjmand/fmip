@@ -365,6 +365,14 @@ tier is not serving a stale feed.
 3. **The replay source for CI and for anything that must not touch a network**
    (below). No key, no quota, no terms.
 
+**When a plan is bought, the split ends.** `INGESTION_SOURCE=api_football`
+(T-028) puts one provider behind all five jobs, which is what the table at the
+top of this file says a paid API-Football plan is for: its free tier's only
+fatal limitation was the seasons it can see (2022-2024), not its completeness.
+The profile is already written, so the purchase is `API_FOOTBALL_KEY` and that
+one line in `.env` -- no code change, no new adapter, and `INGESTION_SOURCE`
+back to `live` or `replay` if the plan is ever dropped.
+
 Both keys are already in `.env` and both adapters already exist (T-022, T-023),
 so this needs no purchase, no sign-up and no new adapter. What it does need is
 honesty about the split: two providers, each `limited` or `not_supplied` where it

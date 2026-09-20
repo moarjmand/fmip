@@ -75,7 +75,7 @@ describe('which provider answers which job (D-049)', () => {
     expect(resolveSources({ INGESTION_SOURCE: 'off' })).toMatchObject({ kind: 'off' });
     expect(resolveSources({ INGESTION_SOURCE: 'live' }).reason).toContain('neither');
     expect(resolveSources({ INGESTION_SOURCE: 'espn' }).reason).toContain(
-      'is not one of replay, live, off',
+      'is not one of replay, live, api_football, off',
     );
     const noRecordings = resolveSources(
       { INGESTION_SOURCE: 'replay' },
@@ -83,6 +83,71 @@ describe('which provider answers which job (D-049)', () => {
     );
     expect(noRecordings.kind).toBe('off');
     expect(noRecordings.reason).toContain('no recordings are present');
+  });
+});
+
+describe('the paid single-provider profile (T-028)', () => {
+  it('puts one provider behind all five jobs', () => {
+    const sources = resolveSources({ INGESTION_SOURCE: 'api_football', API_FOOTBALL_KEY: 'paid' });
+
+    expect(sources.kind).toBe('api_football');
+    expect(sources.reason).toBeNull();
+    for (const job of ['fixtures', 'live', 'lineups', 'standings', 'post_match'] as const) {
+      expect(sources.forJob(job)?.provider).toBe('api_football');
+    }
+  });
+
+  it('refuses without the key rather than running with none', () => {
+    const sources = resolveSources({ INGESTION_SOURCE: 'api_football' });
+
+    expect(sources.kind).toBe('off');
+    expect(sources.reason).toContain('API_FOOTBALL_KEY is not set');
+    expect(sources.forJob('fixtures')).toBeNull();
+  });
+
+  it('leaves the plan its own limit when no ceiling is given', async () => {
+    const inner = counting();
+    const sources = resolveSources(
+      { INGESTION_SOURCE: 'api_football', API_FOOTBALL_KEY: 'paid' },
+      { transport: () => inner.transport },
+    );
+
+    await sources.forJob('lineups')?.adapter.getLineup('1');
+    await sources.forJob('lineups')?.adapter.getLineup('2');
+
+    expect(inner.calls()).toBe(2);
+  });
+
+  it('stops asking the provider once the ceiling given is spent', async () => {
+    const inner = counting();
+    const sources = resolveSources(
+      {
+        INGESTION_SOURCE: 'api_football',
+        API_FOOTBALL_KEY: 'paid',
+        API_FOOTBALL_DAILY_BUDGET: '1',
+      },
+      { transport: () => inner.transport },
+    );
+
+    await sources.forJob('lineups')?.adapter.getLineup('1');
+    await sources.forJob('lineups')?.adapter.getLineup('2');
+
+    // The second call was answered 429 here; a paid plan's quota is not spent
+    // finding out that it is spent.
+    expect(inner.calls()).toBe(1);
+  });
+
+  it('refuses a ceiling that is not a positive whole number', () => {
+    for (const ceiling of ['0', '-5', '7.5', 'many']) {
+      const sources = resolveSources({
+        INGESTION_SOURCE: 'api_football',
+        API_FOOTBALL_KEY: 'paid',
+        API_FOOTBALL_DAILY_BUDGET: ceiling,
+      });
+
+      expect(sources.kind).toBe('off');
+      expect(sources.reason).toContain('is not a positive number of requests');
+    }
   });
 });
 
