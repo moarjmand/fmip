@@ -201,6 +201,17 @@ docker compose run --rm migrate node scripts/grant-role.mjs \
   --by you@your-domain
 ```
 
+**Before e-mail is on**, the verification message has nowhere to go and the API
+writes it to its own log instead. Signing in does not require a verified
+address, so nothing is blocked -- but when you want the link:
+
+```bash
+docker compose logs api | grep -A 3 "\[mail\]"
+```
+
+The last block is the most recent message, and the `verify-email` link in it
+works exactly like one that arrived by post.
+
 `--list` shows every grant with who gave it and why; `--revoke` removes one and
 takes the same `--reason`. The roles are `admin`, `founder`, `moderator` and
 `editor`; the tool refuses anything else, an unknown account, and a blank
