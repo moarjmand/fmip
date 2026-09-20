@@ -120,12 +120,19 @@ else
 fi
 
 if [ -z "${SETUP_CHECK_API:-}" ] && [ -n "${SITE_HOST:-}" ]; then
+  # Name the address that was actually asked, port and all. A rehearsal runs
+  # on 8443, and a report saying `https://localhost/en` would be describing a
+  # request nobody made.
+  port="${HTTPS_PORT:-443}"
+  site_url="https://${SITE_HOST}:${port}/en"
+  shown="https://${SITE_HOST}/en"
+  [ "$port" = '443' ] || shown="$site_url"
   code="$(curl -sk -m 15 -o /dev/null -w '%{http_code}' \
-    "https://${SITE_HOST}:${HTTPS_PORT:-443}/en" 2>/dev/null || echo '000')"
+    "$site_url" 2>/dev/null || echo '000')"
   case "$code" in
-    200) require 'Public site' 'ok' "https://${SITE_HOST}/en answered 200" ;;
-    000) require 'Public site' 'FAILED' 'no answer -- is Caddy up, and do the certificates match?' ;;
-    *) require 'Public site' 'FAILED' "answered $code" ;;
+    200) require 'Public site' 'ok' "$shown answered 200" ;;
+    000) require 'Public site' 'FAILED' "$shown did not answer -- is Caddy up, and do the certificates match?" ;;
+    *) require 'Public site' 'FAILED' "$shown answered $code" ;;
   esac
 fi
 
