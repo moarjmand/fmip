@@ -630,6 +630,28 @@ is opened; what waits for you is one command on the server to generate the
 key pair. With this, T-330 is built end to end; the `[~]` stands only for
 the credentials on a server that does not exist yet (T-074).
 
+**Both channels proven end to end on 2026-09-20, without buying anything.**
+The e-mail and push code had only ever met their own unit tests, so the whole
+outward chain was run against stand-ins: a local SMTP server, and a stand-in
+push service holding a certificate. A campaign sent to a real audience arrived
+as a real message on both channels -- the campaign's title as the subject and
+the inbox line, the body, and `/en/scores` as the link -- and the push arrived
+`aes128gcm`-encrypted under a VAPID signature, with the plaintext nowhere in
+the body. A member with no device recorded `skipped`, as designed. The
+verification e-mail of a fresh registration arrived too, and its link verified
+the address.
+
+**What that run found: a dead push endpoint could stall every notification
+behind it.** The carrier works through due notifications one at a time, and
+`webpush.sendNotification` was called with no timeout, so a push service that
+accepts a connection and then says nothing holds the whole queue -- and the
+send that triggered it never returns to its caller. Measured against an
+endpoint that answers never: **still hanging after 150 seconds** with no
+timeout, **rejected after 10.1 seconds** with one. `PUSH_SOCKET_TIMEOUT_MS`
+is now ten seconds, which a real push service beats by two orders of
+magnitude. It is a socket timeout rather than a deadline for the whole
+response, which is the shape this failure actually takes.
+
 **T-332 on 2026-09-20 (D-075).** `apps/api/src/modules/campaigns/`:
 an audience is a saved filter with a closed vocabulary (a followed team or
 competition, a country, a language, verified only, joined after) and a
