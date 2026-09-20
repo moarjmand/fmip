@@ -65,6 +65,22 @@ export class PushServiceError extends Error {
   }
 }
 
+/**
+ * How long one push may hold the carrier.
+ *
+ * The carrier works through due notifications one at a time, so a push service
+ * that accepts a connection and then says nothing holds up every notification
+ * behind it -- not just its own. Found by pointing a subscription at an
+ * endpoint that never answered: two notifications took two minutes to carry,
+ * and the send that triggered them never returned to its caller.
+ *
+ * A real push service answers in well under a second, so ten is generous. It
+ * is a socket timeout rather than a deadline for the whole response, which is
+ * the shape of the failure that actually happens here: a connection that opens
+ * and then goes quiet.
+ */
+const PUSH_SOCKET_TIMEOUT_MS = 10_000;
+
 export class WebPushChannel implements PushChannel {
   readonly provider = 'webpush';
 
@@ -88,6 +104,7 @@ export class WebPushChannel implements PushChannel {
         await webpush.sendNotification(subscription, payload, {
           vapidDetails: details,
           TTL: 24 * 60 * 60,
+          timeout: PUSH_SOCKET_TIMEOUT_MS,
         });
       } catch (error) {
         const status = (error as { statusCode?: number }).statusCode;
