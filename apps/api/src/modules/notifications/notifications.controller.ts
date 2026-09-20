@@ -106,6 +106,7 @@ export class NotificationsController {
         subject_type: row.subject_type as NotificationSubject,
         subject_id: row.subject_id,
         subject_label: row.subject_label,
+        headline: row.headline,
         source: row.source,
         created_at: row.created_at.toISOString(),
         read_at: row.read_at?.toISOString() ?? null,

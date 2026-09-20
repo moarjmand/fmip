@@ -361,16 +361,16 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('briefings', 
       );
 
     const service = app.get(BriefingsService);
-    await service.carry();
+    await service.carry(ids.get(sleeper));
     expect((await claimed()).rows).toHaveLength(0);
 
     // The hold ends (moved by hand, as the clock would move it).
     await pool.query(`UPDATE notification SET deliver_after = created_at WHERE id = $1`, [
       notification.id,
     ]);
-    expect((await service.carry()).carried).toBeGreaterThanOrEqual(1);
+    expect((await service.carry(ids.get(sleeper))).carried).toBe(1);
     expect((await claimed()).rows).toEqual([{ email: 'sent', push: 'sent' }]);
-    await service.carry();
+    await service.carry(ids.get(sleeper));
     expect((await claimed()).rows).toHaveLength(1);
     await expect(
       pool.query(`UPDATE notification_delivery SET email = 'sent' WHERE notification_id = $1`, [

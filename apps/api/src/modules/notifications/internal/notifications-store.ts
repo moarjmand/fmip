@@ -17,6 +17,8 @@ export interface NotificationRow {
   subject_type: string;
   subject_id: string;
   subject_label: string | null;
+  /** The subject's own words where it has them (a campaign's title); null elsewhere. */
+  headline: string | null;
   source: string | null;
   created_at: Date;
   read_at: Date | null;
@@ -41,6 +43,8 @@ export interface DueNotification {
   subject_label: string | null;
   /** Who caused it, by username; null for a sourceless kind. */
   source: string | null;
+  /** The subject's own words where it has them (a campaign's title); null elsewhere. */
+  headline: string | null;
   /** The member's address, for the e-mail channel. */
   email: string;
   /** The member's language, for the route an e-mail or a push opens. */
@@ -301,8 +305,10 @@ export class PostgresNotificationsStore {
               CASE n.subject_type
                 WHEN 'member' THEN subject_member.username
                 WHEN 'group' THEN subject_group.slug
+                WHEN 'campaign' THEN subject_campaign.path
                 ELSE NULL
               END AS subject_label,
+              subject_campaign.title AS headline,
               source.username AS source,
               n.created_at,
               n.read_at,
@@ -320,6 +326,10 @@ export class PostgresNotificationsStore {
                 ON n.subject_type = 'group'
                AND n.subject_id ~ '^[0-9a-f-]{36}$'
                AND subject_group.id = n.subject_id::uuid
+         LEFT JOIN campaign subject_campaign
+                ON n.subject_type = 'campaign'
+               AND n.subject_id ~ '^[0-9a-f-]{36}$'
+               AND subject_campaign.id = n.subject_id::uuid
         WHERE n.user_id = $1 AND n.deliver_after <= now()
         ORDER BY n.created_at DESC
         LIMIT $2`,
@@ -370,7 +380,7 @@ export class PostgresNotificationsStore {
    * Oldest first, a page at a time, with the label and the source resolved
    * as the inbox resolves them, because the route and the sentence need them.
    */
-  async due(limit = 100): Promise<DueNotification[]> {
+  async due(limit = 100, userIds: string[] | null = null): Promise<DueNotification[]> {
     const { rows } = await this.pool.query<DueNotification>(
       `SELECT n.id,
               n.user_id,
@@ -380,8 +390,10 @@ export class PostgresNotificationsStore {
               CASE n.subject_type
                 WHEN 'member' THEN subject_member.username
                 WHEN 'group' THEN subject_group.slug
+                WHEN 'campaign' THEN subject_campaign.path
                 ELSE NULL
               END AS subject_label,
+              subject_campaign.title AS headline,
               source.username AS source,
               u.email,
               u.preferred_language AS locale
@@ -397,12 +409,17 @@ export class PostgresNotificationsStore {
                 ON n.subject_type = 'group'
                AND n.subject_id ~ '^[0-9a-f-]{36}$'
                AND subject_group.id = n.subject_id::uuid
+         LEFT JOIN campaign subject_campaign
+                ON n.subject_type = 'campaign'
+               AND n.subject_id ~ '^[0-9a-f-]{36}$'
+               AND subject_campaign.id = n.subject_id::uuid
         WHERE n.deliver_after <= now()
           AND n.created_at >= now() - interval '1 day'
           AND d.notification_id IS NULL
+          AND ($2::uuid[] IS NULL OR n.user_id = ANY($2::uuid[]))
         ORDER BY n.deliver_after, n.created_at
         LIMIT $1`,
-      [limit],
+      [limit, userIds],
     );
     return rows;
   }

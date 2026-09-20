@@ -29,6 +29,7 @@ import { SummariesModule } from './modules/summaries/summaries.module';
 import { AskModule } from './modules/ask/ask.module';
 import { ModerationAssistModule } from './modules/moderation-assist/moderation-assist.module';
 import { BriefingsModule } from './modules/briefings/briefings.module';
+import { CampaignsModule } from './modules/campaigns/campaigns.module';
 
 /**
  * The remaining modules from `docs/02-architecture.md` are registered here as
@@ -67,6 +68,7 @@ import { BriefingsModule } from './modules/briefings/briefings.module';
     AskModule,
     ModerationAssistModule,
     BriefingsModule,
+    CampaignsModule,
     AdminModule,
   ],
 })

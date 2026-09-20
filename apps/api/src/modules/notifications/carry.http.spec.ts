@@ -144,7 +144,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('carry', () =
         dedupeKey: `friend:${ids.get(bob)}`,
       }),
     ).toBe('sent');
-    const first = await service.carry();
+    const first = await service.carry({ userIds: [ids.get(ada)!, ids.get(bob)!] });
     expect(first.carried).toBeGreaterThanOrEqual(1);
     const mine = mails.filter((mail) => mail.to === `${ada}@example.test`);
     expect(mine).toHaveLength(1);
@@ -160,7 +160,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('carry', () =
       body: `${bob} sent you a friend request.`,
       url: `/en/u/${bob}`,
     });
-    await service.carry();
+    await service.carry({ userIds: [ids.get(ada)!, ids.get(bob)!] });
     expect(mails.filter((mail) => mail.to === `${ada}@example.test`)).toHaveLength(1);
     const { rows } = await pool.query<{ email: string; push: string }>(
       `SELECT d.email, d.push FROM notification_delivery d
@@ -179,7 +179,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('carry', () =
        VALUES ($1, 'group_invite', 'group', gen_random_uuid(), $2)`,
       [ids.get(bob), ids.get(ada)],
     );
-    await service.carry();
+    await service.carry({ userIds: [ids.get(ada)!, ids.get(bob)!] });
     const mine = mails.filter((mail) => mail.to === `${bob}@example.test`);
     expect(mine).toHaveLength(1);
     expect(mine[0]?.text).toBe(`${ada} invited you to a group.`);
@@ -196,7 +196,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('carry', () =
     // Other suites' members are carried by the same pass; only this member's mail is counted.
     const mine = () => mails.filter((mail) => mail.to === `${ada}@example.test`).length;
     const before = mine();
-    await service.carry();
+    await service.carry({ userIds: [ids.get(ada)!, ids.get(bob)!] });
     expect(mine()).toBe(before);
   });
 });

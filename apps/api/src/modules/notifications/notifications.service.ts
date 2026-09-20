@@ -244,9 +244,11 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
    * shows, so an e-mail and a push open exactly what the inbox opens; a
    * producer with more to say registers a composer for its kind.
    */
-  async carry(): Promise<CarryReport> {
+  async carry(scope?: { userIds: string[] }): Promise<CarryReport> {
     if (this.delivery.describe().in_product_only) return { due: 0, carried: 0 };
-    const due = await this.store.due();
+    // A producer carries its own members at once (a briefing, a campaign);
+    // the timer carries everyone's. The scope is who, never what.
+    const due = await this.store.due(100, scope?.userIds ?? null);
     let carried = 0;
     for (const item of due) {
       if (!(await this.store.claimDelivery(item.id))) continue;
@@ -270,7 +272,7 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
   /** The sentence and the route, as the inbox shows them; a route that cannot be opened is left out of the e-mail and sends the push to the inbox. */
   private composeLine(due: DueNotification): OutboundMessages | null {
     if (!isNotificationKind(due.kind)) return null;
-    const line = notificationLine({ kind: due.kind, source: due.source });
+    const line = notificationLine({ kind: due.kind, source: due.source, headline: due.headline });
     const path = notificationPath(due.locale, {
       subject_type: due.subject_type as NotificationSubject,
       subject_id: due.subject_id,

@@ -30,6 +30,8 @@ export const NOTIFICATION_KINDS = [
   'panel_reaction',
   // The member's briefing was written (Phase 5, T-432).
   'briefing',
+  // A message from the platform to an audience (T-332, D-075).
+  'campaign',
 ] as const;
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
@@ -68,6 +70,9 @@ export const NOTIFICATION_DEFAULTS: Record<NotificationKind, boolean> = {
   // A member asked for it, so they hear that it exists; the inbox is where a
   // channel carries it from (T-432).
   briefing: true,
+  // On, and a kind of its own so a member can turn campaigns off without
+  // turning off what happens to their account (T-332).
+  campaign: true,
 };
 
 /**
@@ -122,7 +127,9 @@ export type NotificationSubject =
   | 'prediction'
   | 'sanction'
   /** The member's own briefing (T-432): `subject_id` is the `member_briefing` row. */
-  | 'briefing';
+  | 'briefing'
+  /** A campaign (T-332): `subject_id` is the campaign, `subject_label` the path it opens, `headline` its title. */
+  | 'campaign';
 
 /**
  * One notification, as its recipient sees it.
@@ -152,6 +159,11 @@ export interface Notification {
    * because a link that 404s is worse than none (rule 3).
    */
   subject_label: string | null;
+  /**
+   * The subject's own words where it has them -- a campaign's title -- and
+   * null everywhere else, where the kind's sentence is the line (T-332).
+   */
+  headline: string | null;
   /** Who caused it. Null for an event with no member behind it, like a settlement. */
   source: string | null;
   /** ISO 8601. */
@@ -226,6 +238,7 @@ export const NOTIFICATION_CATEGORY_OF: Record<NotificationKind, NotificationCate
   group_join_request: 'social',
   panel_reaction: 'social',
   briefing: 'football',
+  campaign: 'account',
   moderation_decision: 'account',
   contributor_granted: 'account',
   contributor_grant_changed: 'account',
@@ -302,6 +315,7 @@ export const NOTIFICATION_TEXT: Record<NotificationKind, { text: string; named: 
   contributor_grant_changed: { text: 'Your contributor approval changed.', named: false },
   panel_reaction: { text: 'reacted to something you posted.', named: true },
   briefing: { text: 'Your briefing was written.', named: false },
+  campaign: { text: 'A message from the platform.', named: false },
 };
 
 /**
@@ -310,7 +324,12 @@ export const NOTIFICATION_TEXT: Record<NotificationKind, { text: string; named: 
  * gap: an account can be deleted after it caused something, and a sentence
  * starting with a space is worse than an honest indefinite (rule 3).
  */
-export function notificationLine(notification: Pick<Notification, 'kind' | 'source'>): string {
+export function notificationLine(
+  notification: Pick<Notification, 'kind' | 'source'> & { headline?: string | null },
+): string {
+  if (notification.headline !== undefined && notification.headline !== null) {
+    return notification.headline;
+  }
   const entry = NOTIFICATION_TEXT[notification.kind];
   if (!entry.named) return entry.text;
   return `${notification.source ?? 'Somebody'} ${entry.text}`;
@@ -358,6 +377,12 @@ export function notificationPath(
       // The briefing lives on the Following page, above the feed it was
       // written from (T-432).
       return `/${locale}/following#briefing`;
+    case 'campaign':
+      // The campaign chose its own in-app path (T-332); one that is not a
+      // path opens nothing rather than somewhere else.
+      return label !== null && label.startsWith('/') && !label.startsWith('//')
+        ? `/${locale}${label}`
+        : null;
     default:
       return null;
   }

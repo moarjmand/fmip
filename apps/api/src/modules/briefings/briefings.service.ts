@@ -153,13 +153,13 @@ export class BriefingsService implements OnModuleInit {
       }),
     );
     // Carried now if nothing holds it; a held one leaves when the hold ends.
-    if (notification === 'sent') await this.carry();
+    if (notification === 'sent') await this.carry(userId);
     return { outcome: 'published', version_number: number, rejection: null, notification };
   }
 
   /** Carries what is due through the inbox's carrier, now rather than on its next pass (T-432). */
-  carry(): Promise<CarryReport> {
-    return this.notifications.carry();
+  carry(userId?: string): Promise<CarryReport> {
+    return this.notifications.carry(userId === undefined ? undefined : { userIds: [userId] });
   }
 
   /**

@@ -150,8 +150,9 @@ SMTP (D-073, any service's credentials) and push is Web Push with your own
 keys (D-074, no account). `/health/delivery` says both channels are absent
 until the server has `SMTP_URL` + `DELIVERY_EMAIL_FROM` and a VAPID key pair
 -- after the deploy (T-074), because credentials live on a server. §8 has
-the exact lines. Campaigns (T-332) are the one thing left unbuilt, by
-choice: their audience semantics are a product decision.
+the exact lines. Campaigns (T-332) are built too (D-075): an audience
+is a saved filter over what a member can see about themselves, and a send
+goes through the inbox, so a member's preference decides.
 
 ## 8. The exact steps, per item
 
@@ -232,7 +233,9 @@ put the two keys it prints into `.env` as `VAPID_PUBLIC_KEY` and
 on per device from Settings → Notifications → "On this device";
 `/health/delivery` says `webpush`.
 
-**T-332, campaigns.** Nothing from you beyond the provider.
+**T-332, campaigns.** Built on 2026-09-20 (D-075): audiences, campaigns and
+the send through the inbox, administrators only. Nothing from you; the
+admin page for it follows.
 
 **T-084, the launch review.** Signed on 2026-09-19 (D-071), one criterion at
 a time in chat; what remains is the re-check with real fixtures on the
