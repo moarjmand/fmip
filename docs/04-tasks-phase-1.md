@@ -1138,6 +1138,7 @@ tests (7 new on percentages, framing, deltas), typecheck, lint, stylelint.
 | `[x]` T-072 | Automated off-provider database backups + tested restore | T-008 | A restore drill is documented and passes |
 | `[x]` T-073 | Load test at expected peak (many concurrent SSE clients) | T-032 | Documented pass at an agreed threshold |
 | `[ ]` T-074 | Production deploy: VPS, Docker Compose, Cloudflare, TLS, domain | T-073 | Zero-downtime redeploy verified |
+| `[x]` T-075 | A setup check: one command that says what a deployment can and cannot do | T-070, T-330 | An optional capability that is off is reported, never failed; no secret reaches the output |
 | `[x]` T-085 | A free public address for testing, before the deploy exists | T-002 | The running stack answers on public HTTPS, and what the tunnel drops is named |
 | `[x]` T-086 | A stable free preview that carries the live stream | T-085 | One image serves the site and the stream; what is absent is declared |
 | `[x]` T-087 | Demonstration data declared wherever it can be met: reader, crawler, shared link | T-086 | Fixture data cannot be served from a public address unmarked, and the refusal is at boot |
@@ -1294,6 +1295,31 @@ before the first start and `verify-rollout.sh` refuses to continue without
 one. What remains is unchanged: the runbook's steps 1-5 on a server that
 does not exist yet, the load-test rerun there, and one `verify-rollout.sh`
 on the real host.
+
+**T-075 done on 2026-09-20.** `deploy/check-setup.sh`, run from `/opt/fmip`,
+asks the running stack what this deployment can and cannot do: the six
+containers' health, the public site through Caddy, the session secret, the
+chat bus, and -- from `/health/delivery`, `/health/intelligence` and the
+service's own environment, read inside the container by
+`deploy/report-capabilities.mjs` -- whether e-mail, push, a language model and
+match-data ingestion are on. It came from the shape of what is left: the
+remaining work is a person putting credentials into a file on a server, four
+capabilities that are each a switch plus a secret, and until now the only way
+to know whether that had worked was to curl five endpoints and read five JSON
+shapes.
+
+Two rules make it worth having. **Off never fails the run**: every optional
+capability is absent on a new deployment by design and the product says so on
+the surface (rule 3), so the exit code covers the required half only -- what
+the report catches instead is a credential filled in with its switch left at
+its default, which from outside is indistinguishable from having done nothing
+and is the likeliest mistake of the whole sequence. And **no secret reaches
+the output**: every key, password and connection string is reported as `set`
+or `empty`, which is what lets the output be pasted to whoever is helping --
+the person who needs help with a deployment is rarely the person who should
+be handling its credentials. `report-capabilities.spec.ts` runs the shipped
+file rather than a copy of its logic, against a stand-in API, and its last
+test asserts that ten planted secret values appear nowhere in what it printed.
 
 **T-085 verified on 2026-09-12.** `bash scripts/public-preview.sh start` puts
 the development stack on a public HTTPS address with no account, no domain and
