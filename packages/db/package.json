@@ -26,7 +26,8 @@
     "migrate:up": "pnpm migrate up",
     "migrate:down": "pnpm migrate down",
     "migrate:redo": "pnpm migrate redo",
-    "seed": "node dist/seed.js"
+    "seed": "node dist/seed.js",
+    "grant-role": "node scripts/grant-role.mjs"
   },
   "dependencies": {
     "pg": "^8.23.0"

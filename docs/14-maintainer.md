@@ -138,6 +138,19 @@ Eligibility is computed and never grants (T-250). What you see is a list of
 members who **could** be approved; approving is a separate act, by a person,
 with a reason that is stored.
 
+**How you actually grant one (T-076, 2026-09-20).** On the server:
+
+```bash
+docker compose run --rm migrate node scripts/grant-role.mjs --list
+docker compose run --rm migrate node scripts/grant-role.mjs \
+  --email them@their-domain --role editor --reason "enters viewing listings" \
+  --by you@your-domain
+```
+
+`--revoke` takes it back and wants the same reason. Roles: `admin`, `founder`,
+`moderator`, `editor`. Your own first grant is in `09-deploy.md` under "The
+first administrator" -- until it exists, `/en/admin` opens for nobody.
+
 ## 7. Phase 4: what the agent built and what waits for you
 
 Written on 2026-09-18, when every Phase 4 task that needs nothing from you

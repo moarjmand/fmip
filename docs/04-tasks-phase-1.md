@@ -1160,6 +1160,7 @@ tests (7 new on percentages, framing, deltas), typecheck, lint, stylelint.
 | `[x]` T-073 | Load test at expected peak (many concurrent SSE clients) | T-032 | Documented pass at an agreed threshold |
 | `[ ]` T-074 | Production deploy: VPS, Docker Compose, Cloudflare, TLS, domain | T-073 | Zero-downtime redeploy verified |
 | `[x]` T-075 | A setup check: one command that says what a deployment can and cannot do | T-070, T-330 | An optional capability that is off is reported, never failed; no secret reaches the output |
+| `[x]` T-076 | Granting a role: the row nothing in the product writes | T-070 | A fresh deployment can get its first administrator, and every later grant names who and why |
 | `[x]` T-085 | A free public address for testing, before the deploy exists | T-002 | The running stack answers on public HTTPS, and what the tunnel drops is named |
 | `[x]` T-086 | A stable free preview that carries the live stream | T-085 | One image serves the site and the stream; what is absent is declared |
 | `[x]` T-087 | Demonstration data declared wherever it can be met: reader, crawler, shared link | T-086 | Fixture data cannot be served from a public address unmarked, and the refusal is at boot |
@@ -1341,6 +1342,31 @@ the person who needs help with a deployment is rarely the person who should
 be handling its credentials. `report-capabilities.spec.ts` runs the shipped
 file rather than a copy of its logic, against a stand-in API, and its last
 test asserts that ten planted secret values appear nowhere in what it printed.
+
+**T-076 done on 2026-09-20.** Walking the production stack after T-075 turned
+up something neither the plan nor the runbook had noticed: `user_role` decides
+who may open `/en/admin`, the editorial desk and the moderation queue, and
+**nothing in the product writes to that table**. The API reads roles
+(`hasRole`, the member list) and never grants one, which is correct -- a grant
+is a decision by a person, and D-053 puts a person at every exit -- but it left
+a freshly migrated database with no way to produce its first administrator
+except SQL typed by hand against production, undocumented. `--list` against
+the development database said it plainly: *No role has been granted on this
+deployment.*
+
+`packages/db/scripts/grant-role.mjs`, carried in the `migrate` image that the
+VPS already has, is that SQL with the fallible parts done: it refuses a role
+the schema would refuse, an account that does not exist and a blank reason,
+and it is idempotent both ways. `--by` names the administrator making the
+change and writes the `audit_log` row; the first grant on a deployment can
+have neither, because `audit_log.actor_id` is NOT NULL and there is no actor
+yet, so that one is written with `granted_by` null and **says so** rather than
+inventing an actor to satisfy a column.
+
+The refusals are unit-tested; the SQL was exercised end to end against a real
+database -- bootstrap grant, repeat, audited grant, listing, revoke, revoke of
+a role not held -- and the two throwaway accounts and their audit rows were
+removed afterwards by the convention in `03-project-map.md`.
 
 **T-085 verified on 2026-09-12.** `bash scripts/public-preview.sh start` puts
 the development stack on a public HTTPS address with no account, no domain and
