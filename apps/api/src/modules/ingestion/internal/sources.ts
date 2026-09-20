@@ -12,11 +12,19 @@
  * Highlightly has the depth (lineups, incidents, a live clock) inside a hard
  * 100 requests a day. What neither reaches is `not_supplied`, which is T-027's
  * job to record.
+ *
+ * A paid plan ends that split (T-028). `INGESTION_SOURCE=api_football` puts
+ * one provider behind all five jobs: the bake-off's most complete source (90%
+ * of fixture fields, 99% of line-up fields, 95% of detail, and a live clock),
+ * whose only real limitation was a free tier that cannot see the current
+ * season. It is written before the purchase so that the purchase is one line
+ * in `.env` rather than a code change; nothing selects it until someone does.
  */
 
 import {
   REPLAY_QUERY,
   TimedTransport,
+  createApiFootballAdapter,
   createFootballDataOrgAdapter,
   createHighlightlyAdapter,
   createReplayAdapter,
@@ -38,7 +46,7 @@ export const INGESTION_SOURCES = Symbol('INGESTION_SOURCES');
 export const INGEST_JOBS = ['fixtures', 'live', 'lineups', 'standings', 'post_match'] as const;
 export type IngestJob = (typeof INGEST_JOBS)[number];
 
-export type SourceKind = 'replay' | 'live' | 'off';
+export type SourceKind = 'replay' | 'live' | 'api_football' | 'off';
 
 export interface JobSource {
   provider: Provider;
@@ -61,6 +69,14 @@ export interface SourceEnv {
   FOOTBALL_DATA_ORG_KEY?: string;
   HIGHLIGHTLY_KEY?: string;
   HIGHLIGHTLY_DAILY_BUDGET?: string;
+  API_FOOTBALL_KEY?: string;
+  /**
+   * The plan's daily ceiling, when you want it enforced here rather than
+   * discovered at the provider. Absent means no ceiling of our own, so the
+   * plan's own limit is the only one. A value that is not a positive whole
+   * number refuses the profile rather than guessing at a number.
+   */
+  API_FOOTBALL_DAILY_BUDGET?: string;
 }
 
 /** Highlightly's free plan, and the default ceiling the budget transport holds. */
@@ -151,11 +167,34 @@ export function resolveSources(
     return { kind: 'replay', reason: null, forJob: () => source };
   }
 
-  if (requested !== 'live') {
-    return off(`INGESTION_SOURCE=${requested} is not one of replay, live, off`);
+  const make = options.transport ?? ((): Transport => new TimedTransport());
+
+  // One provider for every job: what a paid plan buys, and the thing the split
+  // below exists only to work around (T-028).
+  if (requested === 'api_football') {
+    const apiKey = env.API_FOOTBALL_KEY;
+    if (apiKey === undefined || apiKey === '') {
+      return off('INGESTION_SOURCE=api_football, but API_FOOTBALL_KEY is not set');
+    }
+    const ceiling = (env.API_FOOTBALL_DAILY_BUDGET ?? '').trim();
+    let transport = make();
+    if (ceiling !== '') {
+      const perDay = Number(ceiling);
+      if (!Number.isInteger(perDay) || perDay <= 0) {
+        return off(`API_FOOTBALL_DAILY_BUDGET=${ceiling} is not a positive number of requests`);
+      }
+      transport = new BudgetedTransport(transport, perDay);
+    }
+    const source: JobSource = {
+      provider: 'api_football',
+      adapter: createApiFootballAdapter(transport, { apiKey }),
+    };
+    return { kind: 'api_football', reason: null, forJob: () => source };
   }
 
-  const make = options.transport ?? ((): Transport => new TimedTransport());
+  if (requested !== 'live') {
+    return off(`INGESTION_SOURCE=${requested} is not one of replay, live, api_football, off`);
+  }
 
   const spine: JobSource | null =
     env.FOOTBALL_DATA_ORG_KEY === undefined || env.FOOTBALL_DATA_ORG_KEY === ''

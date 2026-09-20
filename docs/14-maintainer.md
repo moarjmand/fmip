@@ -59,6 +59,27 @@ suspensions), and the rest of the depth that a free tier does not carry.
 deferred. T-025 — the Phase 1 version of the same gate — is deferred under D-033
 and stays deferred until you say otherwise.
 
+**What the evidence says, if you want a recommendation.** API-Football
+(`api-sports.io`), the entry paid tier: in the bake-off it answered every call
+and filled the most fields by a wide margin — 90% of fixture fields, 99% of
+line-up fields, 95% of detail, with a live clock and no feature gating between
+tiers. Its free tier failed for one reason only, the seasons it can see
+(2022-2024), which a paid plan ends. The daily need is 1,000-1,500 requests,
+so the ~$19 tier's 7,500 a day is roughly five times what the product uses;
+the figures are from 2026-09-08 and belong re-checked on the vendor's page
+before paying. Buy it directly from `api-sports.io` rather than through
+RapidAPI: the adapter sends `x-apisports-key`, which is the direct API's
+header.
+
+**The day it is bought (T-028, 2026-09-20).** In the server's `.env`:
+`API_FOOTBALL_KEY` = the key, `INGESTION_SOURCE=api_football`,
+`INGESTION_SCHEDULE=on`, and optionally `API_FOOTBALL_DAILY_BUDGET` = the
+plan's daily limit so a ceiling is enforced here rather than discovered
+mid-match. Then `docker compose restart api`. `bash deploy/check-setup.sh`
+says `Match data ... ON` and `/admin` shows the first run within minutes.
+Nothing else, and no code change: the profile was written before the purchase
+so that the purchase is one line.
+
 ## 3. The production deploy (T-074)
 
 **Why yours.** It runs on a machine that does not exist yet, and buying it is a
@@ -254,6 +275,13 @@ on per device from Settings → Notifications → "On this device";
 **T-332, campaigns.** Built on 2026-09-20 (D-075): audiences, campaigns and
 the send through the inbox, administrators only, at `/admin/campaigns`.
 Nothing from you.
+
+**T-025 / T-100, the data plan.** §2 above has the recommendation and the
+evidence behind it. The steps after paying are four lines in `.env` and a
+restart, and `deploy/check-setup.sh` tells you whether they took. Until then
+the product runs on the free split (`INGESTION_SOURCE=live`) or the
+recordings, and every module neither reaches says `not_supplied` rather than
+looking empty.
 
 **T-084, the launch review.** Signed on 2026-09-19 (D-071), one criterion at
 a time in chat; what remains is the re-check with real fixtures on the
