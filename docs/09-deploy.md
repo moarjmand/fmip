@@ -206,7 +206,7 @@ writes it to its own log instead. Signing in does not require a verified
 address, so nothing is blocked -- but when you want the link:
 
 ```bash
-docker compose logs api | grep -A 3 "\[mail\]"
+docker compose logs api | grep -A 3 "mail] to="
 ```
 
 The last block is the most recent message, and the `verify-email` link in it
