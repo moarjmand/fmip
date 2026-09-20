@@ -295,6 +295,57 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('match summar
     ).rejects.toThrow(/immutable/);
   });
 
+  it('stops showing a published summary once a later version says the record cannot carry one', async () => {
+    // The state a real deployment reaches: a summary published under an older
+    // prompt, then the record re-examined and found to hold only the score.
+    // The published text was written from that same record, so it goes too.
+    const before = await current(MATCH);
+    expect(before.body.summary.coverage).toBe('available');
+    const published = before.body.summary.data?.text ?? '';
+    expect(published).not.toBe('');
+
+    await pool.query(
+      `INSERT INTO match_summary
+         (fixture_id, version_number, state, rejection, facts, facts_version, prompt_version, model)
+       VALUES ($1, (SELECT max(version_number) + 1 FROM match_summary WHERE fixture_id = $1),
+               'skipped', 'the record holds only the score', '{}'::jsonb, 'x', 'match-summary@2', 'test')`,
+      [MATCH],
+    );
+
+    const after = await current(MATCH);
+    expect(after.body.summary.coverage).toBe('not_supplied');
+    expect(after.body.summary.data).toBeNull();
+    expect(after.body.reason).toBe('thin_record');
+    // The version is kept, never deleted: the count still climbs.
+    expect(after.body.versions).toBe(before.body.versions + 1);
+
+    // A rejected draft written after the verdict does not bring the old text
+    // back. The record has not changed; one more bad draft says nothing about
+    // it. The verdict stands until something is published from it again.
+    await pool.query(
+      `INSERT INTO match_summary
+         (fixture_id, version_number, state, rejection, facts, facts_version, prompt_version, model)
+       VALUES ($1, (SELECT max(version_number) + 1 FROM match_summary WHERE fixture_id = $1),
+               'rejected', 'name not in the record: Someone', '{}'::jsonb, 'x', 'match-summary@2', 'test')`,
+      [MATCH],
+    );
+    const later = await current(MATCH);
+    expect(later.body.summary.coverage).toBe('not_supplied');
+    expect(later.body.reason).toBe('thin_record');
+
+    // Published again from the same record, through the same route as any
+    // other summary, and the reader has one once more -- the new text, not the
+    // old.
+    script = { ...script, text: `${home} and ${away} drew again.`, stop: 'end_turn' };
+    expect((await generate(MATCH, 'after the verdict')).body).toMatchObject({
+      outcome: 'published',
+    });
+    const republished = await current(MATCH);
+    expect(republished.body.summary.coverage).toBe('available');
+    expect(republished.body.summary.data?.text).toBe(`${home} and ${away} drew again.`);
+    expect(republished.body.summary.data?.text).not.toBe(published);
+  });
+
   it('writes nothing from a record that holds only the score, says so, and does not ask the model again', async () => {
     const before = asked.length;
     const outcome = await generate(THIN, 'try anyway');

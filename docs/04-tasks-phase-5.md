@@ -216,6 +216,24 @@ checked (D-070).
 | `[x]` T-421 | The answer: the intent run through the search that exists, and the interpretation shown | T-420, T-152 | Results are the search's own rows by id (rule 1); the page says how it read the question |
 | `[x]` T-422 | Fallback: with no model, the sentence is keywords, and the page says so | T-421 | Nothing about search changes for a deployment without a model except one sentence |
 
+**And the verdict now reaches what was published before it (2026-09-20).**
+Walking the deployment turned up the gap: a summary published under
+`match-summary@1` was still being served after the same record had been
+re-examined and `skipped` under `@2`. The reader saw the very thing the skip
+exists to prevent -- goals described in an order the record does not hold --
+because the read path asked only "is there a published version?". A `skipped`
+version now supersedes any published version older than it: the skip is a
+verdict on the record, and a record that cannot carry a narrative today could
+not carry the one written from it yesterday. The page falls back to the
+`thin_record` sentence T-412 already wrote.
+
+A `rejected` version does not supersede: that is one bad draft, and the
+published text remains the best thing written from the record. Nor does a
+rejected draft written *after* a skip bring the old text back -- the
+comparison is against the published version's own number, so the verdict
+stands until something is published from that record again. Nothing is
+deleted; every version is still there and the count still climbs.
+
 **The model reads; it never answers.** A question about a team is answered
 by the team's row, found by the search T-038 built and T-152 taught to fold
 transliterations. The model's output is a structured intent and nothing else,

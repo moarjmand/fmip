@@ -80,11 +80,23 @@ export class SummariesService implements OnModuleInit, OnModuleDestroy {
   async current(fixtureId: string): Promise<MatchSummaryResponse | null> {
     const status = await this.store.fixtureStatus(fixtureId);
     if (status === null) return null;
-    const [published, versions] = await Promise.all([
+    const [published, versions, latest, skipped] = await Promise.all([
       this.store.latestPublished(fixtureId),
       this.store.versions(fixtureId),
+      this.store.latestState(fixtureId),
+      this.store.latestSkippedVersion(fixtureId),
     ]);
-    if (published !== null) {
+    // A newer `skipped` version supersedes a published one. `skipped` is a
+    // verdict on the record -- it holds only the score -- and a record that
+    // cannot carry a narrative now could not carry the one published earlier
+    // either; going on showing it would serve exactly the invention the skip
+    // exists to prevent. A `rejected` version does not supersede: that is one
+    // bad draft, and the published text is still the best thing written from
+    // this record. The comparison is against the published version's own
+    // number, so the verdict stands until something is published from the
+    // record again rather than until the next draft of any kind.
+    const superseded = skipped !== null && published !== null && skipped > published.version_number;
+    if (published !== null && !superseded) {
       return {
         fixture_id: fixtureId,
         summary: {
@@ -104,13 +116,12 @@ export class SummariesService implements OnModuleInit, OnModuleDestroy {
         versions,
       };
     }
-    const latest = versions > 0 ? await this.store.latestState(fixtureId) : null;
     const reason =
       status !== 'finished'
         ? 'not_finished'
         : this.intelligence.describe().absent
           ? 'no_model'
-          : latest === 'skipped'
+          : latest === 'skipped' || superseded
             ? 'thin_record'
             : versions > 0
               ? 'rejected'
