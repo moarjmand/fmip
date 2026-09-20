@@ -127,6 +127,40 @@ local one — that is the copy whose existence is in doubt:
 If any step fails, that is the highest-priority task of the week, ahead of
 any feature.
 
+### What the drill caught on 2026-09-20
+
+The first run against this laptop's development database **failed**, and the
+reason is worth knowing before it happens on a server: `pg_restore` could not
+recreate a foreign key, because the dump held rows whose parent was gone --
+eight `community_analysis_draft` rows with no `community_analysis`, then
+thirty-nine `conversation` rows with no `user_group`.
+
+A row like that cannot be written while the key is enforced. It gets in when
+the key is *not* enforced, which is exactly what the test-cleanup convention
+does: `SET session_replication_role = 'replica'` to delete immutable rows also
+turns off foreign-key triggers, so a delete that should have cascaded does not,
+and the children survive their parent. Nothing complains at the time. The
+database keeps working for months. **It simply stops being restorable**, and
+the only thing that says so is this drill.
+
+Two consequences. A cleanup that disables triggers must put the setting back
+before deleting anything whose children matter -- already the convention in
+`03-project-map.md`, and this is what forgetting it costs. And every foreign key
+in the schema can be checked at once, which is how both families above were
+found rather than one drill run at a time:
+
+```sql
+-- for each fk: rows in the child with no parent. The catalogue knows them all;
+-- generate one count per constraint from pg_constraint and run them together.
+SELECT c.conname, c.conrelid::regclass, c.confrelid::regclass
+  FROM pg_constraint c JOIN pg_class t ON t.oid = c.conrelid
+  JOIN pg_namespace n ON n.oid = t.relnamespace
+ WHERE c.contype = 'f' AND n.nspname IN ('public', 'training');
+```
+
+After deleting the orphans the same dump restored and matched: 58 migrations,
+105 tables, 477 rows, `DRILL PASSED`.
+
 ## Restoring for real
 
 Two situations.
