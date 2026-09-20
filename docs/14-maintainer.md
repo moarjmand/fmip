@@ -162,6 +162,24 @@ every item: what only you can do, in order, and what the agent builds the
 moment it is done. Nothing below asks the agent to guess at a decision, a
 purchase or a licence (`CLAUDE.md` §7).
 
+**How to tell whether any step below worked.** One command on the server,
+after every change to `.env`:
+
+```bash
+cd /opt/fmip && bash deploy/check-setup.sh
+```
+
+It says what this deployment can and cannot do -- the containers, the public
+site through Caddy, and whether e-mail, push, a language model and match-data
+ingestion are on -- and for each one that is off, the line to add. `off` is
+never a failure there: all four are absent by design until someone turns them
+on, and the product says so on the surface rather than pretending. What it
+catches is the likeliest mistake in everything below -- a credential filled in
+and its switch left at the default, which from outside looks exactly like
+having done nothing. It prints no key, password or connection string, only
+`set` or `empty`, so its output is safe to paste to whoever is helping you
+(T-075).
+
 **T-305, the strings.**
 1. Find one fluent speaker for each of `es`, `fr`, `de`, `it`, `pt`, `tr`,
    `ar`; a second reader per language if you want `reviewed` rather than

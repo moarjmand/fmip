@@ -163,6 +163,20 @@ On the server, the API's own health (not public):
 docker compose exec api node -e "fetch('http://127.0.0.1:3001/health/ingestion').then(r=>r.text()).then(console.log)"
 ```
 
+Then one command for everything else (T-075):
+
+```bash
+bash deploy/check-setup.sh
+```
+
+It says which containers are healthy, whether the public site answers through
+Caddy, and whether e-mail, push, a language model and match-data ingestion are
+on -- with the `.env` line to add for each one that is off. Those four are
+absent on a first start by design, so `off` never fails the run; what it
+catches is a credential filled in with its switch forgotten. It prints no
+secret (every key is reported only as `set` or `empty`), so its output is safe
+to paste to whoever is helping. Run it again after every change to `.env`.
+
 Two more things, both from other runbooks:
 
 - **Backups**: `07-backups.md`, install `fmip-backup.timer`, then run one
@@ -223,6 +237,7 @@ criterion of T-074.
 | Restart one service without a rollout | `docker compose restart web` |
 | Free disk after many builds | `docker image prune -f` |
 | Renewed origin certificate | paste, then `docker compose restart caddy` |
+| What is on and what is off | `bash deploy/check-setup.sh` |
 
 Reboots are safe: every service has `restart: unless-stopped` and Docker is
 enabled at boot.
