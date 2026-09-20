@@ -641,7 +641,9 @@ apply, recorded per member (`campaign_send`), tallied
 campaign's title is the inbox line (`headline` on the notification), and
 the carrier sends title and body by e-mail and push, opening the path.
 Administrators only; `POST /admin/audiences`, `GET`/`POST /admin/campaigns`,
-`POST /admin/campaigns/:id/send`. The admin page for it is the next task.
+`POST /admin/campaigns/:id/send`. The page is `/admin/campaigns`: audiences
+with their live sizes and a form whose fields are the vocabulary, campaigns
+with their reports and a send form that asks why.
 
 **T-331 done on 2026-09-18.** A mute is a row (`notification_mute`): a team
 or a competition by id -- never by name, rule 1, and a name where an id

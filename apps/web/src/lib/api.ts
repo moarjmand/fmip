@@ -1,5 +1,7 @@
 import type {
   AdminOverview,
+  AudiencesResponse,
+  CampaignsResponse,
   AdminUsersResponse,
   ApiError,
   AskResponse,
@@ -83,6 +85,16 @@ export type ApiHealth = { reachable: true; report: HealthReport } | { reachable:
 /** `GET /admin/overview` (T-070): the operator's view; 401/403 come back as results. */
 export function fetchAdminOverview(cookie: string | undefined): Promise<ApiResult<AdminOverview>> {
   return apiRequest<AdminOverview>('/admin/overview', cookie === undefined ? {} : { cookie });
+}
+
+/** `GET /admin/audiences` (T-332): saved filters with their live sizes. */
+export function fetchAudiences(cookie: string | undefined): Promise<ApiResult<AudiencesResponse>> {
+  return apiRequest<AudiencesResponse>('/admin/audiences', cookie === undefined ? {} : { cookie });
+}
+
+/** `GET /admin/campaigns` (T-332): every campaign with its send, if it was sent. */
+export function fetchCampaigns(cookie: string | undefined): Promise<ApiResult<CampaignsResponse>> {
+  return apiRequest<CampaignsResponse>('/admin/campaigns', cookie === undefined ? {} : { cookie });
 }
 
 /** `GET /admin/users?q=` (T-070). */
