@@ -259,7 +259,9 @@ docker compose run --rm migrate
 # and `up --wait` then reports it unhealthy. On Windows (Git Bash) prefix the
 # openssl line with MSYS_NO_PATHCONV=1, or `/CN=localhost` becomes a path and
 # no certificate is written.
-openssl req -x509 -newkey rsa:2048 -nodes -days 30 -subj '/CN=localhost' \n  -addext 'subjectAltName=DNS:localhost,IP:127.0.0.1' \n  -keyout deploy/certs/origin.key -out deploy/certs/origin.pem
+openssl req -x509 -newkey rsa:2048 -nodes -days 30 -subj '/CN=localhost' \
+  -addext 'subjectAltName=DNS:localhost,IP:127.0.0.1' \
+  -keyout deploy/certs/origin.key -out deploy/certs/origin.pem
 docker compose up -d --wait
 bash deploy/verify-rollout.sh
 docker compose down -v                 # afterwards
