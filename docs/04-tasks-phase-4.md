@@ -517,7 +517,7 @@ E27 builds the inbox. This is where it reaches somebody who is not looking.
 |---|---|---|---|
 | `[~]` T-330 | Delivery behind one port: email and push, with a provider chosen at deployment | T-270, T-074 | A deployment with no provider says so and delivers nothing, rather than appearing to |
 | `[x]` T-331 | Per-team, per-competition and per-category controls | T-270 | A member can silence one team without silencing football |
-| `[ ]` T-332 | Campaigns: an audience is a saved query, a send is a row | T-330 | Nobody receives the same campaign twice, and every send says who it reached |
+| `[x]` T-332 | Campaigns: an audience is a saved query, a send is a row | T-330 | Nobody receives the same campaign twice, and every send says who it reached |
 | `[x]` T-333 | The Following feed, ranked | T-042, T-141 | Ranking is from qualified signals, never raw volume, and says what it is showing |
 
 **One port, providers behind it, and a deployment that has none says so.** This
@@ -630,6 +630,19 @@ is opened; what waits for you is one command on the server to generate the
 key pair. With this, T-330 is built end to end; the `[~]` stands only for
 the credentials on a server that does not exist yet (T-074).
 
+**T-332 on 2026-09-20 (D-075).** `apps/api/src/modules/campaigns/`:
+an audience is a saved filter with a closed vocabulary (a followed team or
+competition, a country, a language, verified only, joined after) and a
+size; a campaign is a title, a body and the in-app path it opens, on an
+audience; a send is claimed once per campaign (`campaign_dispatch`), told
+through the inbox's own `emit()` so preference, quiet hours and mutes
+apply, recorded per member (`campaign_send`), tallied
+(`campaign_dispatch_result`) and audited; a second send is 409. The
+campaign's title is the inbox line (`headline` on the notification), and
+the carrier sends title and body by e-mail and push, opening the path.
+Administrators only; `POST /admin/audiences`, `GET`/`POST /admin/campaigns`,
+`POST /admin/campaigns/:id/send`. The admin page for it is the next task.
+
 **T-331 done on 2026-09-18.** A mute is a row (`notification_mute`): a team
 or a competition by id -- never by name, rule 1, and a name where an id
 belongs is refused rather than cast -- or one of three categories,
@@ -690,7 +703,7 @@ for Phase 3:
 | T-330 (the e-mail channel) | built 2026-09-20 (D-073); the credentials of a service after T-074 | agent, then **maintainer** |
 | T-330 (the push channel) | built 2026-09-20 (D-074, Web Push); a VAPID key pair generated on the server after T-074 | agent, then **maintainer** |
 | T-331 | nothing | agent |
-| T-332 | T-330 | after the provider |
+| T-332 | built 2026-09-20 (D-075); reaches devices and inboxes as soon as the channels have credentials | agent |
 | T-333 | T-141 | agent |
 
 **Eight of the eighteen tasks are buildable with nothing from the maintainer**:

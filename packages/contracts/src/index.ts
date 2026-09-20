@@ -533,3 +533,16 @@ export type {
   SuggestionOutcome,
   SummaryGrounding,
 } from './intelligence';
+export type {
+  Audience,
+  AudienceFilter,
+  AudienceFollowType,
+  AudiencesResponse,
+  Campaign,
+  CampaignDispatch,
+  CampaignsResponse,
+  CreateAudienceRequest,
+  CreateCampaignRequest,
+  SendCampaignRequest,
+} from './campaigns';
+export { AUDIENCE_FOLLOW_TYPES } from './campaigns';

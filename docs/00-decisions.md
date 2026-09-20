@@ -2629,3 +2629,45 @@ has, not a second one).
 for what the browser already carries. *Storing subscriptions per session*:
 a device outlives a session. *Treating "no device" as failed*: the log would
 fill with failures that were nobody's fault.
+
+---
+
+## D-075 — A campaign is the inbox's own kind sent to a saved audience: the vocabulary is what a member can see about themselves, the send is claimed once, and every row says who it reached
+
+**Date:** 2026-09-20 · **Task:** T-332 · **Status:** accepted
+
+**Decision.** Campaigns (blueprint 16, "notification campaigns") reach a
+member only through the inbox's own `emit()`, as the `campaign` kind: a
+kind of its own, on by default, in the `account` category, so a member can
+turn campaigns off without turning off what happens to their account -- and
+a member who did is `muted` in the report, not reached around the side.
+From the inbox they leave the building like everything else (the carrier,
+SMTP, Web Push), with the campaign's own title and body, opening the in-app
+path the campaign chose.
+
+**An audience is a saved query with a closed vocabulary.** A followed team
+or competition, a country, a language, verified only, joined after a date,
+all conditions together; an empty filter is every active member. Every
+condition is one a member can see about themselves on their own settings
+page, nothing is inferred and nothing is a score, and a word outside the
+vocabulary is refused. Audiences and campaigns are immutable, so what a
+past campaign reached stays true; a change is a new audience.
+
+**A send is a row, claimed first.** `campaign_dispatch` is one row per
+campaign by its primary key, written before the first member is told, so a
+second send finds it taken (409); `campaign_send` is one row per member
+with what the inbox did, and the notification's dedupe key (the campaign
+id) is the second guard. `campaign_dispatch_result` is the tally when the
+pass is over, and the audit log carries `audience.create`,
+`campaign.create` and `campaign.send` with the administrator's reason.
+
+**Who may.** Administrators only. A campaign is the platform speaking to
+many members at once, which is the one voice the product has that is not a
+member's, and it is not an editor's job.
+
+**Rejected.** *Free SQL or a rule engine for audiences*: a query nobody can
+read is a query nobody can be told about. *Sending around the inbox* (a
+direct mail merge): it would ignore a member's preference, their quiet
+hours and their mutes, which exist precisely for messages like these.
+*Editing a sent campaign*: the report would describe a message nobody
+received.

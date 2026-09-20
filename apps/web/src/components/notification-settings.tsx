@@ -44,6 +44,7 @@ const KIND_LABEL: Record<NotificationKind, string> = {
   contributor_grant_changed: 'When my contributor approval changes',
   panel_reaction: 'When somebody reacts to something I posted',
   briefing: 'When a briefing of mine is written',
+  campaign: 'When the platform sends a message to members like me',
 };
 
 /** The categories a member can silence as one (T-331), named in words. */

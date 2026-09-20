@@ -30,6 +30,7 @@ const NOTIFICATION = (over: Partial<Notification> = {}): Notification => ({
   subject_type: 'member',
   subject_id: '00000000-0000-4000-8000-000000000001',
   subject_label: 'ada',
+  headline: null,
   source: 'ada',
   created_at: '2026-09-15T12:00:00.000Z',
   read_at: null,
