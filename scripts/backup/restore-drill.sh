@@ -70,45 +70,60 @@ psql_drill() {
 echo "==> pg_restore"
 # --exit-on-error: a partially restored database must not pass. The dump was
 # taken with --no-owner/--no-privileges, so the drill role owns everything.
-docker exec -i "$CONTAINER" pg_restore -U drill -d drill --no-owner --no-privileges --exit-on-error < "$DUMP"
-
-echo "==> migrations"
-EXPECTED_MIGRATIONS="$(grep '^migration ' "$MANIFEST" | cut -d' ' -f2-)"
-ACTUAL_MIGRATIONS="$(psql_drill -c "SELECT name FROM schema_migration ORDER BY id" | tr -d '\r')"
-if [ "$EXPECTED_MIGRATIONS" = "$ACTUAL_MIGRATIONS" ]; then
-  echo "    ok $(printf '%s\n' "$ACTUAL_MIGRATIONS" | grep -c .) migrations, last: $(printf '%s\n' "$ACTUAL_MIGRATIONS" | tail -n 1)"
+#
+# A failure here is reported like every other check rather than killing the
+# script: `set -e` on this one line meant the most likely failure of all -- the
+# dump does not restore -- ended the run before the verdict was printed, so a
+# maintainer running this monthly got a wall of pg_restore output and no
+# answer. The checks below are then skipped, because a half-restored database
+# fails all of them for the same single reason and the diff would bury it.
+RESTORED=1
+if docker exec -i "$CONTAINER" pg_restore -U drill -d drill --no-owner --no-privileges --exit-on-error < "$DUMP"; then
+  echo "    ok"
 else
-  fail "migrations differ"
-  diff <(printf '%s\n' "$EXPECTED_MIGRATIONS") <(printf '%s\n' "$ACTUAL_MIGRATIONS") >&2 || true
+  RESTORED=0
+  fail "pg_restore did not complete: this dump does not restore as it stands (its reason is above)"
 fi
 
-echo "==> row counts"
-COUNT_SQL="$(psql_drill -c "
-  SELECT string_agg(
-           format('SELECT %L AS t, count(*) AS n FROM %I.%I', schemaname || '.' || tablename, schemaname, tablename),
-           ' UNION ALL ' ORDER BY schemaname, tablename)
-    FROM pg_tables WHERE schemaname IN ('public', 'training')")"
-EXPECTED_ROWS="$(grep '^rows ' "$MANIFEST" | cut -d' ' -f2- | sort)"
-ACTUAL_ROWS="$(psql_drill -c "$COUNT_SQL" | tr -d '\r' | tr '|' ' ' | sort)"
-if [ "$EXPECTED_ROWS" = "$ACTUAL_ROWS" ]; then
-  echo "    ok $(printf '%s\n' "$ACTUAL_ROWS" | grep -c .) tables, $(printf '%s\n' "$ACTUAL_ROWS" | awk '{s+=$2} END{print s+0}') rows"
-else
-  fail "row counts differ (expected < > restored)"
-  diff <(printf '%s\n' "$EXPECTED_ROWS") <(printf '%s\n' "$ACTUAL_ROWS") >&2 || true
-fi
+if [ "$RESTORED" -eq 1 ]; then
+  echo "==> migrations"
+  EXPECTED_MIGRATIONS="$(grep '^migration ' "$MANIFEST" | cut -d' ' -f2-)"
+  ACTUAL_MIGRATIONS="$(psql_drill -c "SELECT name FROM schema_migration ORDER BY id" | tr -d '\r')"
+  if [ "$EXPECTED_MIGRATIONS" = "$ACTUAL_MIGRATIONS" ]; then
+    echo "    ok $(printf '%s\n' "$ACTUAL_MIGRATIONS" | grep -c .) migrations, last: $(printf '%s\n' "$ACTUAL_MIGRATIONS" | tail -n 1)"
+  else
+    fail "migrations differ"
+    diff <(printf '%s\n' "$EXPECTED_MIGRATIONS") <(printf '%s\n' "$ACTUAL_MIGRATIONS") >&2 || true
+  fi
 
-echo "==> constraints and triggers came along"
-# Two things a schema-only or data-only mistake would lose: the forecast
-# probability CHECK (must refuse 0.5/0.3/0.3) and the immutability trigger.
-if psql_drill -c "SELECT 1 FROM pg_constraint WHERE conname = 'forecast_probabilities_total_one'" | grep -q 1; then
-  echo "    ok forecast_probabilities_total_one"
-else
-  fail "forecast_probabilities_total_one is missing"
-fi
-if psql_drill -c "SELECT 1 FROM pg_trigger WHERE tgname = 'forecast_immutable'" | grep -q 1; then
-  echo "    ok forecast_immutable"
-else
-  fail "forecast_immutable trigger is missing"
+  echo "==> row counts"
+  COUNT_SQL="$(psql_drill -c "
+    SELECT string_agg(
+             format('SELECT %L AS t, count(*) AS n FROM %I.%I', schemaname || '.' || tablename, schemaname, tablename),
+             ' UNION ALL ' ORDER BY schemaname, tablename)
+      FROM pg_tables WHERE schemaname IN ('public', 'training')")"
+  EXPECTED_ROWS="$(grep '^rows ' "$MANIFEST" | cut -d' ' -f2- | sort)"
+  ACTUAL_ROWS="$(psql_drill -c "$COUNT_SQL" | tr -d '\r' | tr '|' ' ' | sort)"
+  if [ "$EXPECTED_ROWS" = "$ACTUAL_ROWS" ]; then
+    echo "    ok $(printf '%s\n' "$ACTUAL_ROWS" | grep -c .) tables, $(printf '%s\n' "$ACTUAL_ROWS" | awk '{s+=$2} END{print s+0}') rows"
+  else
+    fail "row counts differ (expected < > restored)"
+    diff <(printf '%s\n' "$EXPECTED_ROWS") <(printf '%s\n' "$ACTUAL_ROWS") >&2 || true
+  fi
+
+  echo "==> constraints and triggers came along"
+  # Two things a schema-only or data-only mistake would lose: the forecast
+  # probability CHECK (must refuse 0.5/0.3/0.3) and the immutability trigger.
+  if psql_drill -c "SELECT 1 FROM pg_constraint WHERE conname = 'forecast_probabilities_total_one'" | grep -q 1; then
+    echo "    ok forecast_probabilities_total_one"
+  else
+    fail "forecast_probabilities_total_one is missing"
+  fi
+  if psql_drill -c "SELECT 1 FROM pg_trigger WHERE tgname = 'forecast_immutable'" | grep -q 1; then
+    echo "    ok forecast_immutable"
+  else
+    fail "forecast_immutable trigger is missing"
+  fi
 fi
 
 if [ "$FAILED" -ne 0 ]; then
