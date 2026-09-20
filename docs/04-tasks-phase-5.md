@@ -319,6 +319,28 @@ alone. What the gate cannot catch is a phrase like "second place in the
 table" that the feed never said: names and numbers are checked, adjectives
 are not, which is the known limit D-070 records.
 
+**Second real run, 2026-09-20, and `briefing@3`.** The same shape of member --
+one followed team, one match in the window -- and the gate turned the briefing
+down **four times out of four**, every time for a paragraph pointing at
+nothing in the feed. `briefing@2` had already said not to mention what is
+absent and to write about a single item alone, and the model did it anyway,
+because the instruction above it still asked for *two to four paragraphs*. A
+single match cannot fill two to four paragraphs; the only way to obey both is
+to write about what is not there. The length was forcing the padding.
+
+So the length now follows the document: one short paragraph when it holds one
+or two items, two to four when it holds more. On the same feed that had failed
+four times, `briefing@3` published **five times out of five**:
+
+> Yesterday, Liverpool drew 2-2 with Manchester United in the Premier League.
+> The match finished as a stalemate after both teams traded goals.
+
+Grounded, no absence paragraph, no date in digits -- and the notification
+`sent` once, then `duplicate` on each later attempt, which is the one-per-window
+rule holding. "Traded goals" is a shade beyond a record that holds only the
+score, and it is the same limit as above: the gate checks names and numbers,
+not adjectives.
+
 ---
 
 ## E44 — Moderation assistance
