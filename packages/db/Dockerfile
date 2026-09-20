@@ -3,8 +3,13 @@
 #
 #     docker compose run --rm migrate
 #
-# without Node or pnpm installed on the VPS. Built from the repository root so
-# the lockfile is in context:  docker build -f packages/db/Dockerfile .
+# without Node or pnpm installed on the VPS. The same image carries the
+# operator's database tools (T-076), which is why it has `pg`:
+#
+#     docker compose run --rm migrate node scripts/grant-role.mjs --list
+#
+# Built from the repository root so the lockfile is in context:
+#     docker build -f packages/db/Dockerfile .
 #
 # Dev dependencies are installed on purpose: node-pg-migrate is one. The seed
 # is deliberately not part of the command — `assertSeedAllowed` refuses to seed
@@ -24,6 +29,9 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 FROM deps AS runtime
 ENV NODE_ENV=production
 COPY packages/db/migrations ./packages/db/migrations
+# The operator's tools that need the database and nothing else (T-076), run as
+#     docker compose run --rm migrate node scripts/grant-role.mjs ...
+COPY packages/db/scripts ./packages/db/scripts
 USER node
 WORKDIR /app/packages/db
 # The same command as the package's `migrate` script, called directly rather

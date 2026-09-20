@@ -177,6 +177,35 @@ catches is a credential filled in with its switch forgotten. It prints no
 secret (every key is reported only as `set` or `empty`), so its output is safe
 to paste to whoever is helping. Run it again after every change to `.env`.
 
+### The first administrator
+
+A freshly migrated database has no roles in it, so nobody can open `/en/admin`,
+the editorial desk or the moderation queue -- not a policy, just a table with no
+rows. Nothing in the product grants a role: a grant is a decision by a person
+and it is written as a row that names them and their reason (rule 10, D-053).
+
+Register your own account on the site, verify it if e-mail is on, then once:
+
+```bash
+docker compose run --rm migrate node scripts/grant-role.mjs \
+  --email you@your-domain --role admin --reason "first administrator"
+```
+
+That first grant records no `granted_by` and writes no audit row, and says so:
+an audit record must name an actor and there is nobody yet. Every grant after it
+should name one, which also writes the audit row:
+
+```bash
+docker compose run --rm migrate node scripts/grant-role.mjs \
+  --email them@their-domain --role editor --reason "enters viewing listings" \
+  --by you@your-domain
+```
+
+`--list` shows every grant with who gave it and why; `--revoke` removes one and
+takes the same `--reason`. The roles are `admin`, `founder`, `moderator` and
+`editor`; the tool refuses anything else, an unknown account, and a blank
+reason.
+
 Two more things, both from other runbooks:
 
 - **Backups**: `07-backups.md`, install `fmip-backup.timer`, then run one
