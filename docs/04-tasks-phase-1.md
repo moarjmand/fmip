@@ -114,7 +114,7 @@ split into two commits, wiring then resolver, in one PR.
 | `[x]` T-022 | football-data.org adapter (free tier) | T-020 | Same |
 | `[x]` T-023 | Highlightly adapter (free tier) | T-020 | Same |
 | `[x]` T-024 | Bake-off harness: run all three over the same fixtures, log latency/completeness/errors | T-021, T-022, T-023 | Produces `docs/05-data-providers.md` results table automatically |
-| `[ ]` T-025 | **Decision gate:** review bake-off, pick provider, subscribe to paid tier | T-024 | New entry in `00-decisions.md` |
+| `[x]` T-025 | **Decision gate:** review bake-off, pick provider, subscribe to paid tier | T-024 | New entry in `00-decisions.md` |
 | `[x]` T-026 | Scheduled ingestion jobs (BullMQ): fixtures, live, lineups, standings, post-match | T-020..T-024 (was T-025, D-049) | Jobs are idempotent; a replay changes nothing |
 | `[x]` T-027 | Coverage profile computation + freshness tracking | T-026 | Every module payload carries a coverage state |
 | `[x]` T-028 | The paid provider's profile, written before the purchase | T-026 | Buying a plan is one line in `.env`, not a code change |
