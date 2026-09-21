@@ -215,11 +215,19 @@ if [ -n "$source_name" ] && [ -n "$schedule" ] && [ "$schedule" != 'off' ]; then
   # is what a first deployment reads until somebody adds one.
   mapped="$(value_of pollable_competitions)"
   seasons="$(value_of pollable_current_seasons)"
+  provider="$(value_of pollable_provider)"
   if [ "$mapped" = 'unknown' ]; then
     row 'Match data' 'ON' "$source_name, schedule $schedule"
+  elif [ -z "$provider" ]; then
+    # The environment and the resolved source can disagree: a value the
+    # resolver refused -- a missing key, a profile whose recordings are not in
+    # this build -- leaves the switch reading `on` with nothing behind it.
+    # Repeat the API's own reason rather than the two variables.
+    row 'Match data' 'IDLE' "$source_name, schedule $schedule -- no provider serves the fixtures job"
+    notes+=("Match data: $(value_of pollable_reason). The switch is on and nothing is behind it, so no fixture will be fetched until that is resolved (docs/14-maintainer.md §2).")
   elif [ "$mapped" = '0' ]; then
     row 'Match data' 'IDLE' "$source_name, schedule $schedule -- but nothing is mapped to poll"
-    notes+=("Match data: the schedule is on and no competition is mapped to $(value_of pollable_provider), so the jobs ask for nothing and no fixture will ever appear. Add one on the server: docker compose run --rm migrate node scripts/catalog.mjs --add-competition ... then --add-season --current (docs/14-maintainer.md §2).")
+    notes+=("Match data: the schedule is on and no competition is mapped to $provider, so the jobs ask for nothing and no fixture will ever appear. Add one on the server: docker compose run --rm migrate node scripts/catalog.mjs --add-competition ... then --add-season --current (docs/14-maintainer.md §2).")
   elif [ "$seasons" = '0' ]; then
     row 'Match data' 'IDLE' "$source_name, schedule $schedule -- $mapped mapped, none with a current season"
     notes+=('Match data: every mapped competition is without a current season, so the jobs poll nothing. Add one with `node scripts/catalog.mjs --add-season --current` (docs/14-maintainer.md §2).')
