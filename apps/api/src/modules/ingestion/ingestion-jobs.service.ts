@@ -43,6 +43,11 @@ function dayIso(now: Date, offsetDays: number): string {
 /** Postgres unique violation: the "already running" lock on `ingest_run`. */
 const UNIQUE_VIOLATION = '23505';
 
+/** The earlier of two `YYYY-MM-DD` days; they sort as they read. */
+function earlier(a: string, b: string): string {
+  return a < b ? a : b;
+}
+
 function describe(error: { kind: string; message: string }): string {
   return `${error.kind}: ${error.message}`;
 }
@@ -102,39 +107,88 @@ export class IngestionJobsService {
    * postponement or a rearranged kick-off is picked up, not only new matches.
    */
   fixtures(now: Date = new Date()): Promise<JobReport> {
-    return this.track('fixtures', async (source, targets) => {
+    return this.track('fixtures', (source, targets) => {
       const replay = this.sources.kind === 'replay';
       const from = replay ? REPLAY_QUERY.from : dayIso(now, -FIXTURE_WINDOW_BACK_DAYS);
       const to = replay ? REPLAY_QUERY.to : dayIso(now, FIXTURE_WINDOW_FORWARD_DAYS);
-      let seen = 0;
-      let written = 0;
-      const refused: string[] = [];
-      const unresolved = new Set<string>();
-      const seasons = new Set<string>();
-
-      for (const target of targets) {
-        const result = await source.adapter.listFixtures({
-          competitionExternalId: target.competitionExternalId,
-          seasonLabel: replay ? REPLAY_QUERY.seasonLabel : target.seasonLabel,
-          from,
-          to,
-        });
-        if (!result.ok) {
-          refused.push(`${target.seasonLabel}: ${describe(result.error)}`);
-          continue;
-        }
-        seen += result.data.length;
-        for (const fixture of result.data) {
-          const write = await this.store.saveFixture(source.provider, target, fixture, 'fixtures');
-          written += write.changed;
-          if (write.seasonId !== undefined) seasons.add(write.seasonId);
-          for (const id of write.unresolved) unresolved.add(id);
-        }
-      }
-      // What arrived decides what the season's modules may claim (T-027).
-      written += await this.coverage.recomputeMany([...seasons]);
-      return this.report('fixtures', source.provider, seen, written, refused, unresolved);
+      return this.ingestFixtures(source, targets, () => ({ from, to }));
     });
+  }
+
+  /**
+   * The same ingestion over a season's whole span, once (T-030).
+   *
+   * `fixtures` asks for a window around now, which is right for a schedule and
+   * wrong for a deployment that has just been given a licence: it learns about
+   * this week and nothing before it. A standings table then refuses to write,
+   * correctly -- "provider 5 played, we have 1" -- because a table beside a
+   * match list that contradicts it is worse than no table.
+   *
+   * Recorded as a `fixtures` run with the scope `backfill`, not as a job of its
+   * own: it is the same work over a wider window, `ingest_run.job` names the
+   * five jobs there are, and the open-run lock is what stops it colliding with
+   * the schedule. Not scheduled, because a season starts once.
+   */
+  backfill(now: Date = new Date()): Promise<JobReport> {
+    return this.track(
+      'fixtures',
+      (source, targets) => {
+        const replay = this.sources.kind === 'replay';
+        return this.ingestFixtures(source, targets, (target) =>
+          replay
+            ? { from: REPLAY_QUERY.from, to: REPLAY_QUERY.to }
+            : {
+                from: target.seasonStart,
+                // Never past today: a season's later half has not happened, and
+                // asking for it spends a request to be told so.
+                to: earlier(dayIso(now, FIXTURE_WINDOW_FORWARD_DAYS), target.seasonEnd),
+              },
+        );
+      },
+      'backfill',
+    );
+  }
+
+  /**
+   * One pass over the targets, asking each for the window it is given. Shared
+   * by the scheduled job and the backfill so there is one writer, one set of
+   * refusals and one coverage recomputation however wide the window is.
+   */
+  private async ingestFixtures(
+    source: { provider: Provider; adapter: ProviderAdapter },
+    targets: PollTarget[],
+    window: (target: PollTarget) => { from: string; to: string },
+  ): Promise<JobReport> {
+    const replay = this.sources.kind === 'replay';
+    let seen = 0;
+    let written = 0;
+    const refused: string[] = [];
+    const unresolved = new Set<string>();
+    const seasons = new Set<string>();
+
+    for (const target of targets) {
+      const { from, to } = window(target);
+      const result = await source.adapter.listFixtures({
+        competitionExternalId: target.competitionExternalId,
+        seasonLabel: replay ? REPLAY_QUERY.seasonLabel : target.seasonLabel,
+        from,
+        to,
+      });
+      if (!result.ok) {
+        refused.push(`${target.seasonLabel}: ${describe(result.error)}`);
+        continue;
+      }
+      seen += result.data.length;
+      for (const fixture of result.data) {
+        const write = await this.store.saveFixture(source.provider, target, fixture, 'fixtures');
+        written += write.changed;
+        if (write.seasonId !== undefined) seasons.add(write.seasonId);
+        for (const id of write.unresolved) unresolved.add(id);
+      }
+    }
+    // What arrived decides what the season's modules may claim (T-027).
+    written += await this.coverage.recomputeMany([...seasons]);
+    return this.report('fixtures', source.provider, seen, written, refused, unresolved);
   }
 
   /**
@@ -394,6 +448,7 @@ export class IngestionJobsService {
       source: { provider: Provider; adapter: ProviderAdapter },
       targets: PollTarget[],
     ) => Promise<JobReport>,
+    scope: string | null = null,
   ): Promise<JobReport> {
     const source = this.sources.forJob(job);
     if (source === null) {
@@ -406,7 +461,7 @@ export class IngestionJobsService {
     }
 
     try {
-      return await this.runOne(job, source, work);
+      return await this.runOne(job, source, work, scope);
     } catch (error: unknown) {
       // `ingest_run` has a partial unique index on (provider, job) while a run
       // is open, so a second tick of the same job cannot start. That is the
@@ -436,8 +491,9 @@ export class IngestionJobsService {
       source: { provider: Provider; adapter: ProviderAdapter },
       targets: PollTarget[],
     ) => Promise<JobReport>,
+    scope: string | null,
   ): Promise<JobReport> {
-    return this.runs.track(source.provider, job, null, async () => {
+    return this.runs.track(source.provider, job, scope, async () => {
       const targets = await this.store.pollTargets(source.provider);
       if (targets.length === 0) {
         const reason = `no competition is mapped to ${source.provider} with a current season`;

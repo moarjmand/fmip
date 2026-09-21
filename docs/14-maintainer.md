@@ -99,6 +99,20 @@ all; the five target leagues are 39 (England), 140 (Spain), 78 (Germany), 135
 on 2026-09-21. An adopted club gets its name and nothing invented; `--map` is
 for when the provider means a club you already hold.
 
+**Then backfill the season, once (T-030).** The scheduled job asks for a window
+around now, so a deployment licensed today knows about this week and nothing
+before it -- and the standings writer then refuses the table, correctly,
+because it disagrees with the matches you hold. Signed in as an administrator:
+
+```bash
+curl -sk -X POST https://your-domain/api/admin/ingestion/backfill   -H 'content-type: application/json'   -d '{"reason":"first season after the licence"}'
+```
+
+It reads each current season's own span from the catalogue, so the season you
+added above is the season it fetches. It appears on `/admin` as a `fixtures`
+run scoped `backfill`, and the reason is in the audit log. Run it once per
+season; the schedule keeps it fresh after.
+
 ## 3. The production deploy (T-074)
 
 **Why yours.** It runs on a machine that does not exist yet, and buying it is a

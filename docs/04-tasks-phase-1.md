@@ -119,6 +119,7 @@ split into two commits, wiring then resolver, in one PR.
 | `[x]` T-027 | Coverage profile computation + freshness tracking | T-026 | Every module payload carries a coverage state |
 | `[x]` T-028 | The paid provider's profile, written before the purchase | T-026 | Buying a plan is one line in `.env`, not a code change |
 | `[x]` T-029 | The catalogue an operator can build: the resolver's queue, read and answered | T-013, T-028 | A deployment with a licence can be made to write rows, and no club is matched by its name |
+| `[x]` T-030 | A season backfilled once, from its start | T-029 | A table and a match list can agree, because both cover the same season |
 
 **T-020 verified on 2026-09-10.** `packages/ingestion` holds the normalised
 model, the `ProviderAdapter` contract and `checkAdapterContract`. The
@@ -265,6 +266,36 @@ table beside a match list that contradicts it is worse than no table. We hold
 one match per club because the fixtures job asks for a window around today.
 **A season needs backfilling once, from its start**, and the window job keeps
 it fresh after. That is the next task, and it is not this one.
+
+**T-030 done on 2026-09-21.** T-029 got real fixtures in and found the next
+wall: the `standings` writer refused the table, per club, *"provider 5 played,
+we have 1"*. It was right to. A league table beside a match list that
+contradicts it is worse than no table, and we held one match per club because
+the fixtures job asks for a window around now -- right for a schedule, wrong
+for a deployment that has just been licensed and knows about this week and
+nothing before it.
+
+`IngestionJobsService.backfill()` runs the same writer over each current
+season's own span, `season.start_date` to today, which `pollTargets` now
+carries. Against the real licence: **50 fixtures, 305 rows**, where the window
+job had seen 9. It is recorded as a `fixtures` run scoped `backfill` rather
+than a sixth job -- `ingest_run.job` names the five jobs there are, the open-run
+lock already stops it colliding with the schedule, and a job in `INGEST_JOBS`
+would be scheduled, which a season's start does not want. `POST
+/admin/ingestion/backfill` is the operator's door, administrator-only, with a
+reason that is audited: it spends the provider's quota and rewrites a season.
+
+**Two things it exposed in the tests themselves**, both fixed here, both the
+same shape -- a spec that owns less than it deletes:
+
+- `ingestion-jobs.spec.ts` took *every* `api_football` fixture mapping in the
+  database on teardown. Harmless against CI's empty database; against a
+  development one holding a real catalogue it removed the mappings, so the next
+  ingestion could not find the fixtures it had already written and wrote them
+  again. Now it deletes only what its own run created.
+- The same spec assumed the provider ids in its recordings were unmapped. A
+  database with a real catalogue already maps them, to real clubs. It now
+  borrows those mappings for the length of the run and gives them back.
 
 **T-026 verified on 2026-09-12.** T-025 stays deferred, so the jobs run on the
 free sources D-049 chose: football-data.org for the spine, Highlightly for the

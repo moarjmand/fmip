@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ForecastModule } from '../forecast/forecast.module';
+import { IdentityModule } from '../identity/identity.module';
 import { StandingsModule } from '../standings/standings.module';
 import { CoverageService } from './coverage.service';
 import { IngestRunsService } from './ingest-runs.service';
+import { IngestionAdminController } from './ingestion-admin.controller';
 import { IngestionController } from './ingestion.controller';
 import { IngestionJobsService } from './ingestion-jobs.service';
 import { IngestionSchedulerService } from './ingestion-scheduler.service';
@@ -28,8 +30,8 @@ import { INGESTION_SOURCES, resolveSources } from './internal/sources';
  * `DatabaseModule`.
  */
 @Module({
-  imports: [StandingsModule, ForecastModule],
-  controllers: [IngestionController],
+  imports: [StandingsModule, ForecastModule, IdentityModule],
+  controllers: [IngestionController, IngestionAdminController],
   providers: [
     EntityResolverService,
     IngestRunsService,
