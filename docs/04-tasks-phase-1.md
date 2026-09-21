@@ -118,6 +118,7 @@ split into two commits, wiring then resolver, in one PR.
 | `[x]` T-026 | Scheduled ingestion jobs (BullMQ): fixtures, live, lineups, standings, post-match | T-020..T-024 (was T-025, D-049) | Jobs are idempotent; a replay changes nothing |
 | `[x]` T-027 | Coverage profile computation + freshness tracking | T-026 | Every module payload carries a coverage state |
 | `[x]` T-028 | The paid provider's profile, written before the purchase | T-026 | Buying a plan is one line in `.env`, not a code change |
+| `[x]` T-029 | The catalogue an operator can build: the resolver's queue, read and answered | T-013, T-028 | A deployment with a licence can be made to write rows, and no club is matched by its name |
 
 **T-020 verified on 2026-09-10.** `packages/ingestion` holds the normalised
 model, the `ProviderAdapter` contract and `checkAdapterContract`. The
@@ -240,6 +241,30 @@ leaves the plan its own limit; a value that is not a positive whole number
 refuses the profile rather than guessing at a number. Nothing selects any of
 this until someone sets it, so T-025 stays exactly as deferred as it was --
 what changed is that the day it is decided, the decision is one line.
+
+**T-029 done on 2026-09-21, and the first real football arrived with it.**
+D-076's paid run wrote nothing: the provider named twenty clubs and the
+catalogue held seven. `unresolved_entity` had been collecting those names since
+T-013 and nothing read it. `packages/db/scripts/catalog.mjs` is the reader and
+the answer -- `--list`, `--adopt-teams`, `--add-competition`, `--add-season`,
+`--map` -- in the `migrate` image the VPS already builds.
+
+Exercised against the real licence, in order: 20 teams adopted from the queue,
+the Premier League's **2026/27** season created and made current (the
+catalogue's current season had been 2025/26, which ended in May, which is why
+the fixtures job had correctly seen nothing), then the five jobs run again.
+**Nine real Premier League fixtures and 43 rows** -- Sunderland v Manchester
+City, Arsenal v Brighton, Liverpool v Bournemouth -- the first licensed
+football the product has ever held. Three more clubs were queued by that run
+and adopted in turn.
+
+**What it also found.** `standings` still writes nothing, and says why per
+club: *"Manchester City: provider 5 played, we have 1"*. The writer refuses a
+table that disagrees with the fixtures we hold, which is right -- a league
+table beside a match list that contradicts it is worse than no table. We hold
+one match per club because the fixtures job asks for a window around today.
+**A season needs backfilling once, from its start**, and the window job keeps
+it fresh after. That is the next task, and it is not this one.
 
 **T-026 verified on 2026-09-12.** T-025 stays deferred, so the jobs run on the
 free sources D-049 chose: football-data.org for the spine, Highlightly for the

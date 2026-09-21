@@ -2723,3 +2723,48 @@ exactly what it should -- asked the right provider for the right competition
 and refused to invent rows for clubs it cannot identify. *Mapping the 18 teams
 by hand to get a green run*: it would prove nothing about a deployment that
 covers five leagues, and the same wall stands the next morning.
+
+---
+
+## D-077 — The catalogue is adopted from the resolver's queue, one row per external id, and never matched by name
+
+**Status:** decided · **Date:** 2026-09-21 · **Task:** T-029 · **Follows:** D-076
+
+**The problem.** D-076 bought the licence and found the wall behind it: a
+provider answers, and nothing is written, because the competitions, seasons and
+teams it names do not exist here. `unresolved_entity` had been collecting them
+since T-013 -- every external id we could not place, with the provider's own
+name beside it -- and nothing read that table. Not the API, not the admin page,
+not a script.
+
+**The decision.** `packages/db/scripts/catalog.mjs`, in the `migrate` image the
+server already builds, is the operator's side of the resolver: list what is
+waiting, adopt the teams, add a competition or a season, or place one external
+id by hand. It is SQL and the mapping table; it calls no provider, so it needs
+no adapter and cannot drift from one.
+
+**Adoption creates, it never matches.** A queued team becomes a *new* team row
+and a mapping from that external id to it. It is never attached to a club whose
+name looks the same, because a name is not a key (rule 1) and "Manchester
+United" is a different row in two different leagues. When the provider is
+talking about a club that is already here, a person says so -- `--map --to
+<id>` -- and the queue records that it was placed by hand rather than adopted.
+
+**What an adopted team holds.** Its name, `club`, `men`, `senior`, active. Not
+a country, not a founding year, not a badge: the queue knows a name and an
+external id, and inventing the rest would be a coverage lie of exactly the kind
+rule 3 forbids. Those fields are filled in later, by a person or by a provider
+that serves them.
+
+**Audited when there is somebody to name.** `--by <address>` writes the
+`audit_log` row; without it the write still happens and the output says why it
+could not be audited -- `audit_log.actor_id` is NOT NULL and a fresh deployment
+has no account. The same shape as T-076's role grants, for the same reason.
+
+**Rejected.** *A `listTeams` call on the adapter*: it would add a method to a
+contract three adapters implement and two contract suites check, to fetch names
+the standings call already brought back and the queue already holds. *Matching
+by name with a similarity threshold*: the first time it is wrong it merges two
+clubs, and nothing downstream can tell. *Adopting people as well as teams*: a
+person is a career, not a row -- 25 are queued and they wait for a decision of
+their own.
