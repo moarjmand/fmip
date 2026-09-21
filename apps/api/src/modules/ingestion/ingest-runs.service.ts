@@ -121,6 +121,9 @@ export class IngestRunsService {
       recent,
       pollable: {
         provider,
+        // The resolver already knows why nothing serves the job; nothing until
+        // now carried it out of the process.
+        reason: provider === null ? this.sources.reason : null,
         competitions: pollable.competitions,
         with_current_season: pollable.withCurrentSeason,
       },

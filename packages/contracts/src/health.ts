@@ -44,6 +44,14 @@ export interface IngestRun {
 export interface PollableCatalogue {
   /** The provider the fixtures job is configured to ask, `null` when none is. */
   provider: string | null;
+  /**
+   * Why no provider serves the fixtures job, when `provider` is `null`; `null`
+   * otherwise. The environment and the resolved source can disagree --
+   * `INGESTION_SOURCE=replay` in a build carrying no recordings resolves to
+   * nothing at all -- and without this the only honest thing a reader could
+   * say is that the switch is on.
+   */
+  reason: string | null;
   /** Competitions with a mapping for that provider. */
   competitions: number;
   /** Of those, the ones with a current season: what is actually polled. */

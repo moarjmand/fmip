@@ -77,6 +77,7 @@ say('chat_bus', chat === null ? 'unknown' : chat.bus);
 // Reported as `unknown` rather than 0 when the endpoint did not answer, so the
 // check never accuses a healthy deployment of an empty catalogue.
 say('pollable_provider', ingestion?.pollable?.provider ?? '');
+say('pollable_reason', ingestion?.pollable?.reason ?? '');
 say('pollable_competitions', ingestion?.pollable?.competitions ?? 'unknown');
 say('pollable_current_seasons', ingestion?.pollable?.with_current_season ?? 'unknown');
 

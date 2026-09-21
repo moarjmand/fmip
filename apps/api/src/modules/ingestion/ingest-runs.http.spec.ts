@@ -140,8 +140,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingest runs'
     expect(Object.keys(health.pollable).sort()).toEqual([
       'competitions',
       'provider',
+      'reason',
       'with_current_season',
     ]);
+    // Either a provider serves the fixtures job, or there is a sentence saying
+    // why none does. Never neither: that pair is the whole point of the field.
+    expect(health.pollable.provider === null).toBe(health.pollable.reason !== null);
     expect(health.pollable.with_current_season).toBeLessThanOrEqual(health.pollable.competitions);
     if (health.pollable.provider === null) expect(health.pollable.competitions).toBe(0);
   });
