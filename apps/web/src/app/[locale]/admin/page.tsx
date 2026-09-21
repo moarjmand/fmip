@@ -5,7 +5,7 @@ import { COVERAGE_STATES } from '@fmip/contracts';
 import { ActionForm, type Field } from '@/components/action-form';
 import { HealthPanel } from '@/components/health-panel';
 import { LanguageCoverage } from '@/components/language-coverage';
-import { setCoverageAction, setUserStatusAction } from '@/lib/admin-actions';
+import { backfillAction, setCoverageAction, setUserStatusAction } from '@/lib/admin-actions';
 import {
   fetchAdminOverview,
   fetchAdminUsers,
@@ -161,6 +161,26 @@ export default async function AdminPage({
           <li>Failed or partial in the last 24 h: {data.ingestion.failed_last_24h}</li>
           <li>Running now: {data.ingestion.running}</li>
         </ul>
+        <h3 className="font-medium">Backfill the current seasons</h3>
+        <p className="text-sm opacity-70">
+          The scheduled job asks for a window around now, which is all a running deployment needs. A
+          season that was licensed part-way through needs its earlier matches once, or the league
+          table will keep refusing to write because it disagrees with the matches held here. Run
+          this once per season; it spends the provider&rsquo;s quota.
+        </p>
+        <ActionForm
+          action={backfillAction.bind(null, locale)}
+          fields={[
+            {
+              name: 'reason',
+              label: 'Reason for this backfill',
+              required: true,
+              hint: 'Recorded in the audit log, e.g. "first season after the licence".',
+            },
+          ]}
+          submitLabel="Backfill (audited)"
+          testId="backfill-form"
+        />
       </section>
 
       <section className="flex flex-col gap-2" data-testid="admin-freshness">

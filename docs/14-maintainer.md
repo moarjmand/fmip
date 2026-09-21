@@ -102,16 +102,18 @@ for when the provider means a club you already hold.
 **Then backfill the season, once (T-030).** The scheduled job asks for a window
 around now, so a deployment licensed today knows about this week and nothing
 before it -- and the standings writer then refuses the table, correctly,
-because it disagrees with the matches you hold. Signed in as an administrator:
+because it disagrees with the matches you hold.
 
-```bash
-curl -sk -X POST https://your-domain/api/admin/ingestion/backfill   -H 'content-type: application/json'   -d '{"reason":"first season after the licence"}'
-```
+Open `/en/admin` as an administrator, find **Backfill the current seasons**
+under Ingestion, give a reason and submit. It reads each current season's own
+span from the catalogue, so the season you added above is the season it
+fetches, and it appears in the same list as every other run -- a `fixtures` run
+scoped `backfill` -- with your reason in the audit log.
 
-It reads each current season's own span from the catalogue, so the season you
-added above is the season it fetches. It appears on `/admin` as a `fixtures`
-run scoped `backfill`, and the reason is in the audit log. Run it once per
-season; the schedule keeps it fresh after.
+There is no `curl` for this and there is not meant to be: Caddy hands every
+public path to the web app and the browser never reaches the API directly, so
+the page is the way in, carrying your own session. Run it once per season; the
+schedule keeps it fresh after.
 
 ## 3. The production deploy (T-074)
 
