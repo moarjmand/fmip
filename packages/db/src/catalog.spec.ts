@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
+// A namespace import on one line, on purpose: `@ts-expect-error` suppresses the
+// line below it, and a named-import list long enough for Prettier to split
+// leaves the directive pointing at `import {` while the error lands on the
+// module specifier three lines down.
 // @ts-expect-error -- a plain script, deliberately not part of the TypeScript build.
-import {
-  COMPETITION_KINDS,
-  COMPETITION_SCOPES,
-  PROVIDERS,
-  parseArgs,
-} from '../scripts/catalog.mjs';
+import * as catalog from '../scripts/catalog.mjs';
+
+const { COMPETITION_KINDS, COMPETITION_SCOPES, PROVIDERS, parseArgs } = catalog;
 
 /**
  * The refusals in `scripts/catalog.mjs` (T-029).
