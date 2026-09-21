@@ -236,6 +236,39 @@ else
   fi
 fi
 
+# Backups. `07-backups.md` opens with "a database without a backup is not in
+# production", and nothing above this line would notice their absence: every
+# container is healthy on a deployment that has never written a dump. Read from
+# the directory the scripts write to rather than from a switch, because a timer
+# that is installed and failing looks exactly like one that is working.
+backup_dir="${BACKUP_DIR:-./backups}"
+newest_dump=''
+if [ -d "$backup_dir" ]; then
+  newest_dump="$(ls -t "$backup_dir"/fmip-*.dump 2>/dev/null | head -1 || true)"
+fi
+if [ -z "$newest_dump" ]; then
+  row 'Backups' 'off' "no dump in $backup_dir -- nothing has been backed up here"
+  notes+=("Backups: nothing has ever been backed up. Install scripts/backup/fmip-backup.timer and point BACKUP_RCLONE_REMOTE at a bucket at another company (docs/07-backups.md).")
+else
+  dump_age_h=$((($(date -u +%s) - $(date -r "$newest_dump" +%s)) / 3600))
+  if [ -n "${BACKUP_RCLONE_REMOTE:-}" ]; then
+    copies="off-site copy to ${BACKUP_RCLONE_REMOTE}"
+  else
+    copies='local only'
+  fi
+  # The timer runs daily, so one missed run is still inside 48 hours; past that
+  # something is wrong rather than merely late.
+  if [ "$dump_age_h" -gt 48 ]; then
+    row 'Backups' 'STALE' "newest dump is ${dump_age_h}h old, $copies"
+    notes+=("Backups: the newest dump is ${dump_age_h} hours old and the timer runs daily. Look at it: systemctl status fmip-backup.timer, then journalctl -u fmip-backup (docs/07-backups.md).")
+  else
+    row 'Backups' 'ON' "newest dump ${dump_age_h}h old, $copies"
+  fi
+  if [ -z "${BACKUP_RCLONE_REMOTE:-}" ]; then
+    notes+=('Backups: local only. A copy on the machine it is a backup of does not survive losing that machine -- set BACKUP_RCLONE_REMOTE (docs/07-backups.md).')
+  fi
+fi
+
 if [ "$(value_of demonstration_data)" = 'on' ]; then
   row 'Demonstration data' 'ON' 'seeded fixtures are labelled as such -- turn off on a real deployment'
 fi

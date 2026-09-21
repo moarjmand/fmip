@@ -110,6 +110,19 @@ bash scripts/backup/restore-drill.sh backups/fmip-20260910T120000Z.dump
 Exit status 0 is the verdict; the last line reads `DRILL PASSED` or
 `DRILL FAILED` with the difference printed above it.
 
+### Is any of this running?
+
+```bash
+bash deploy/check-setup.sh
+```
+
+The `Backups` line reads the newest dump in `BACKUP_DIR` rather than a
+switch, because a timer that is installed and failing looks exactly like one
+that is working: `off` when nothing was ever written, `ON` with the age when
+it is current, `STALE` past 48 hours (the timer runs daily, so one missed run
+is still inside that), and a note whenever `BACKUP_RCLONE_REMOTE` is unset --
+a copy on the machine it is a backup of does not survive losing that machine.
+
 ### Monthly checklist
 
 Do this on the first Monday of the month, from the off-provider copy, not the
