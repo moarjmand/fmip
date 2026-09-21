@@ -72,3 +72,36 @@ export async function setCoverageAction(
   revalidatePath(`/${locale}/admin`);
   return { ok: true, message: 'Coverage updated and recorded.' };
 }
+
+/**
+ * Backfill the current seasons (T-030).
+ *
+ * It lives here rather than in a runbook's `curl` because there is nowhere to
+ * curl: Caddy hands every public path to the web app, the browser never
+ * reaches the API directly, and this is the route every other audited admin
+ * action already takes -- a server action carrying the operator's own session.
+ */
+export async function backfillAction(
+  locale: string,
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const result = await apiRequest<{
+    itemsSeen: number;
+    itemsWritten: number;
+    partial?: string | null;
+  }>('/admin/ingestion/backfill', {
+    method: 'POST',
+    body: { reason: text(formData, 'reason') },
+    cookie: await sessionCookieHeader(),
+  });
+  if (!result.ok) return failure(result);
+  revalidatePath(`/${locale}/admin`);
+  const { itemsSeen, itemsWritten, partial } = result.data;
+  return {
+    ok: true,
+    message:
+      `Backfill done: ${itemsSeen} fixture(s) seen, ${itemsWritten} row(s) written.` +
+      (partial === undefined || partial === null ? '' : ` Partial: ${partial}`),
+  };
+}
