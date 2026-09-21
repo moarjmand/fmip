@@ -188,34 +188,6 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
     return Number(rows[0]?.n ?? 0);
   }
 
-  it('backfills a season through the same writer, and says so in the run', async () => {
-    // On the replay source the window is the recording's own either way, so
-    // what this proves is the rest of it: the backfill is the fixtures job
-    // with a wider window, it goes through one writer, and the run it records
-    // is a `fixtures` run that names itself `backfill` -- so a maintainer
-    // reading `/health/ingestion` sees it beside every other run rather than
-    // wondering where it went.
-    const report = await jobs.backfill();
-    expect(report.job).toBe('fixtures');
-    expect(report.provider).toBe('api_football');
-    expect(report.itemsSeen).toBe(10);
-
-    const { rows } = await pool.query<{ scope: string | null; status: string }>(
-      `SELECT scope, status FROM ingest_run
-        WHERE provider = 'api_football' AND job = 'fixtures' AND started_at >= $1
-        ORDER BY started_at DESC LIMIT 1`,
-      [startedAt],
-    );
-    expect(rows[0]?.scope).toBe('backfill');
-    expect(rows[0]?.status).not.toBe('running');
-
-    // And it is still idempotent: the same season, asked for twice, writes
-    // nothing the second time (T-026's criterion, which a wider window must
-    // not break).
-    const again = await jobs.backfill();
-    expect(again.itemsWritten).toBe(0);
-  });
-
   it('writes the fixtures it can resolve, queues the ids it cannot, and writes nothing twice', async () => {
     const first = await jobs.fixtures();
     expect(first.provider).toBe('api_football');
@@ -270,6 +242,35 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
     expect(
       await count(`SELECT count(*)::text AS n FROM fixture WHERE season_id = $1`, [SEASON]),
     ).toBe(1);
+  });
+
+  it('backfills a season through the same writer, and says so in the run', async () => {
+    // On the replay source the window is the recording's own either way, so
+    // what this proves is the rest of it: the backfill is the fixtures job
+    // with a wider window, it goes through one writer, and the run it records
+    // is a `fixtures` run that names itself `backfill` -- so a maintainer
+    // reading `/health/ingestion` sees it beside every other run rather than
+    // wondering where it went.
+    const report = await jobs.backfill();
+    expect(report.job).toBe('fixtures');
+    expect(report.provider).toBe('api_football');
+    expect(report.itemsSeen).toBe(10);
+
+    const { rows } = await pool.query<{ scope: string | null; status: string }>(
+      `SELECT scope, status FROM ingest_run
+        WHERE provider = 'api_football' AND job = 'fixtures' AND started_at >= $1
+        ORDER BY started_at DESC LIMIT 1`,
+      [startedAt],
+    );
+    expect(rows[0]?.scope).toBe('backfill');
+    expect(rows[0]?.status).not.toBe('running');
+
+    // And a wider window does not break T-026's criterion. It runs after the
+    // fixtures job above, over the same season it already wrote, so a backfill
+    // that changed anything here would be changing rows nobody asked it to.
+    expect(report.itemsWritten).toBe(0);
+    const again = await jobs.backfill();
+    expect(again.itemsWritten).toBe(0);
   });
 
   it('writes incidents, statistics, periods and the formation after the whistle, once', async () => {
