@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ModelForecastRequest } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
+import { NO_MODEL_SERVICE } from './forecast.module';
 import { ModelClient, contractProblems } from './internal/model-client';
 
 // The golden examples the model service writes from its own test suite
@@ -125,54 +126,59 @@ describe('ModelClient', () => {
 
 // The live half of the contract: a running model service, when there is one
 // (CI starts it; locally: python -m fmip_model.service). Skipped, visibly,
-// otherwise.
+// otherwise -- and `off` is one of the ways there is none. It is the sentinel
+// the app itself reads (`NO_MODEL_SERVICE`), and the right value on a machine
+// where the model runs in compose, where D-009 keeps it off the host's
+// network on purpose. Without this the three tests below run against a
+// hostname nothing answers, or worse against whatever else holds that port.
 const MODEL_SERVICE_URL = process.env.MODEL_SERVICE_URL;
+const NO_LIVE_MODEL =
+  MODEL_SERVICE_URL === undefined ||
+  MODEL_SERVICE_URL.trim() === '' ||
+  MODEL_SERVICE_URL.trim().toLowerCase() === NO_MODEL_SERVICE;
 
-describe.skipIf(MODEL_SERVICE_URL === undefined || MODEL_SERVICE_URL === '')(
-  'the live model service',
-  () => {
-    const client = new ModelClient({ baseUrl: MODEL_SERVICE_URL ?? '' });
+describe.skipIf(NO_LIVE_MODEL)('the live model service', () => {
+  const client = new ModelClient({ baseUrl: MODEL_SERVICE_URL ?? '' });
 
-    it('answers /health with its model version', async () => {
-      const health = await client.health();
-      expect(health.ok).toBe(true);
-      if (health.ok) expect(health.data.model_version).toMatch(/^[a-z0-9-]+@\d+\.\d+\.\d+$/);
+  it('answers /health with its model version', async () => {
+    const health = await client.health();
+    expect(health.ok).toBe(true);
+    if (health.ok) expect(health.data.model_version).toMatch(/^[a-z0-9-]+@\d+\.\d+\.\d+$/);
+  });
+
+  it('answers /forecast for the seeded fixture with a contract-valid body', async () => {
+    // Liverpool v Manchester United (seed 002) in E0: available once E0 is
+    // loaded and aliased (seed 004), otherwise an honest unavailable. Both
+    // are valid contract responses; neither is a guess.
+    const result = await client.forecast({
+      fixture_id: '00000000-0000-4000-8000-000000000901',
+      home_team_id: '00000000-0000-4000-8000-000000000602',
+      away_team_id: '00000000-0000-4000-8000-000000000601',
+      division: 'E0',
+      kickoff_at: '2025-01-05T16:30:00Z',
     });
 
-    it('answers /forecast for the seeded fixture with a contract-valid body', async () => {
-      // Liverpool v Manchester United (seed 002) in E0: available once E0 is
-      // loaded and aliased (seed 004), otherwise an honest unavailable. Both
-      // are valid contract responses; neither is a guess.
-      const result = await client.forecast({
-        fixture_id: '00000000-0000-4000-8000-000000000901',
-        home_team_id: '00000000-0000-4000-8000-000000000602',
-        away_team_id: '00000000-0000-4000-8000-000000000601',
-        division: 'E0',
-        kickoff_at: '2025-01-05T16:30:00Z',
-      });
-
-      expect(result.ok).toBe(true);
-      if (result.ok) {
-        expect(['available', 'unavailable']).toContain(result.data.status);
-        if (result.data.status === 'available') {
-          const p = result.data.probabilities;
-          expect(Math.abs(p.home + p.draw + p.away - 1)).toBeLessThan(0.0011);
-          expect(result.data.inputs.fit_date).toBe('2025-01-04');
-        }
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(['available', 'unavailable']).toContain(result.data.status);
+      if (result.data.status === 'available') {
+        const p = result.data.probabilities;
+        expect(Math.abs(p.home + p.draw + p.away - 1)).toBeLessThan(0.0011);
+        expect(result.data.inputs.fit_date).toBe('2025-01-04');
       }
-    });
+    }
+  });
 
-    it('answers an unmapped team with unavailable and a reason', async () => {
-      const result = await client.forecast({
-        fixture_id: '00000000-0000-4000-8000-000000000901',
-        home_team_id: '00000000-0000-4000-8000-000000000603',
-        away_team_id: '00000000-0000-4000-8000-000000000601',
-        division: 'E0',
-        kickoff_at: '2025-01-05T16:30:00Z',
-      });
-      expect(result.ok && result.data.status === 'unavailable' && result.data.reason).toBe(
-        'team_not_mapped',
-      );
+  it('answers an unmapped team with unavailable and a reason', async () => {
+    const result = await client.forecast({
+      fixture_id: '00000000-0000-4000-8000-000000000901',
+      home_team_id: '00000000-0000-4000-8000-000000000603',
+      away_team_id: '00000000-0000-4000-8000-000000000601',
+      division: 'E0',
+      kickoff_at: '2025-01-05T16:30:00Z',
     });
-  },
-);
+    expect(result.ok && result.data.status === 'unavailable' && result.data.reason).toBe(
+      'team_not_mapped',
+    );
+  });
+});
