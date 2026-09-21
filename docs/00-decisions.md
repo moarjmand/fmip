@@ -2671,3 +2671,55 @@ direct mail merge): it would ignore a member's preference, their quiet
 hours and their mutes, which exist precisely for messages like these.
 *Editing a sent campaign*: the report would describe a message nobody
 received.
+
+---
+
+## D-076 — API-Football's Pro tier is the licensed source: the bake-off's most complete provider, bought on 2026-09-21, and the catalogue is what now stands between the key and the data
+
+**Status:** decided · **Date:** 2026-09-21 · **Closes:** T-025, T-100
+
+**The decision.** The maintainer bought API-Football (`api-sports.io`) on the
+Pro tier, and the key is on their machine. `/status` answers `plan: Pro`,
+`active: true`, `limit_day: 7500`, which is the tier D-049's evidence pointed
+at: in the bake-off this provider answered 35 of 35 calls and filled 90% of
+fixture fields, 99% of line-up fields and 95% of detail, against 70/25 and
+40/57 for the two free alternatives. Its one fatal limitation was the seasons
+a free key may see (2022-2024), and that is what a paid tier ends.
+
+Daily need is 1,000-1,500 requests, so 7,500 is roughly five times the
+product's appetite; `API_FOOTBALL_DAILY_BUDGET` can hold the ceiling in code
+if a runaway job is ever a worry. Bought direct rather than through RapidAPI,
+because the adapter sends `x-apisports-key`, which is the direct API's header.
+
+D-049 is not superseded: the free split (football-data.org for the spine,
+Highlightly for the detail) remains what `INGESTION_SOURCE=live` means, and
+the replay source remains what CI uses. This adds the third profile, T-028's
+`api_football`, as the one a deployment with a licence chooses.
+
+**What the first paid run showed (2026-09-21, all five jobs, once each).**
+The profile resolved every job to `api_football`; the provider answered; and
+**nothing was written** -- for a reason worth having in writing:
+
+- `standings` saw **20 teams**, a real Premier League table, and wrote none:
+  *"18 teams in the provider's table have no mapping"*, and the two that are
+  mapped have no table row here to update.
+- `fixtures` saw nothing at all. The catalogue's current season is
+  **2025/26**, which ended in May; the job asked the provider for that
+  season's fixtures in a window around today and the answer was correctly
+  empty.
+- 20 teams and 25 people are now queued in `unresolved_entity`, each with the
+  provider's own name, which is rule 1 working: an unknown external id is
+  queued, never silently turned into a second row for a club we already hold.
+
+So the licence is not the last blocker; **the catalogue is**. A deployment
+needs the competitions, seasons and teams it covers to exist as internal rows
+with mappings, and nothing builds them today: `packages/db/seed` writes seven
+teams and two seasons for development, `src/modules/catalog/` only reads, and
+no surface anywhere shows the unresolved queue or acts on it. That is the next
+decision and it is recorded as its own gate rather than smuggled in here.
+
+**Rejected.** *Treating the empty run as a failure of T-028*: the profile did
+exactly what it should -- asked the right provider for the right competition
+and refused to invent rows for clubs it cannot identify. *Mapping the 18 teams
+by hand to get a green run*: it would prove nothing about a deployment that
+covers five leagues, and the same wall stands the next morning.

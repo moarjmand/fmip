@@ -56,7 +56,7 @@ into one number.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-100 | **Decision gate:** review the bake-off and D-049, buy the chosen paid tier | T-024, D-049 | New entry in `00-decisions.md`; keys in `.env` |
+| `[x]` T-100 | **Decision gate:** review the bake-off and D-049, buy the chosen paid tier | T-024, D-049 | New entry in `00-decisions.md`; keys in `.env` |
 | `[ ]` T-101 | Player-level match statistics: schema, normalised model, adapter support | T-100 | A player's minutes, shots, xG and passing are stored per fixture, or the module says `not_supplied` |
 | `[ ]` T-102 | Expected goals on the critical path: ingestion, coverage, display | T-101 | Every finished fixture in a covered competition carries team xG, or says why not |
 | `[ ]` T-103 | Injury and suspension availability feed | T-100 | A player unavailable for a fixture is stored with a reason and a source time |
