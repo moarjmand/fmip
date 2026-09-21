@@ -130,6 +130,35 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
     for (const [externalId, internalId] of TEAM_IDS) await map('team', externalId, internalId);
     for (const [externalId, internalId] of PERSON_IDS) await map('person', externalId, internalId);
 
+    // And take over every other api_football team mapping for the length of
+    // the run. What this spec asserts is a world where exactly the clubs above
+    // are known: one fixture written and the other nine queued, a table that
+    // names the clubs it cannot place, coverage computed from that much and no
+    // more. A database where a real catalogue has been built (T-029) knows all
+    // twenty, and every one of those assertions reads differently -- not
+    // because the code changed, but because the world did. CI meets an empty
+    // table and takes over nothing; a developer's machine keeps its catalogue
+    // and gets it back below.
+    // The seed's own mappings stay: `ingestion.spec.ts` runs in another worker
+    // against this database and resolves one of them, and a row taken from
+    // under it would flake a suite that has nothing to do with this one. The
+    // seed's ids are the fixed range; everything else here was adopted.
+    const others = await pool.query<{ external_id: string; internal_id: string }>(
+      `DELETE FROM provider_mapping
+        WHERE provider = 'api_football' AND entity_type = 'team'
+          AND NOT (external_id = ANY($1::text[]))
+          AND internal_id::text NOT LIKE '00000000-0000-4000-8000-%'
+        RETURNING external_id, internal_id`,
+      [TEAM_IDS.map(([externalId]) => externalId)],
+    );
+    for (const row of others.rows) {
+      borrowed.push({
+        entity_type: 'team',
+        external_id: row.external_id,
+        internal_id: row.internal_id,
+      });
+    }
+
     // No HTTP surface here: the jobs are driven directly. `init()` still runs
     // the lifecycle hooks, which is how the scheduler proves it stays off.
     const moduleRef = await Test.createTestingModule({
