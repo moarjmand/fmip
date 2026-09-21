@@ -71,6 +71,9 @@ before paying. Buy it directly from `api-sports.io` rather than through
 RapidAPI: the adapter sends `x-apisports-key`, which is the direct API's
 header.
 
+**Bought on 2026-09-21 (D-076): API-Football Pro, 7,500 requests a day.**
+What is below is what you do with it.
+
 **The day it is bought (T-028, 2026-09-20).** In the server's `.env`:
 `API_FOOTBALL_KEY` = the key, `INGESTION_SOURCE=api_football`,
 `INGESTION_SCHEDULE=on`, and optionally `API_FOOTBALL_DAILY_BUDGET` = the
@@ -79,6 +82,22 @@ mid-match. Then `docker compose restart api`. `bash deploy/check-setup.sh`
 says `Match data ... ON` and `/admin` shows the first run within minutes.
 Nothing else, and no code change: the profile was written before the purchase
 so that the purchase is one line.
+
+**Then the catalogue, once per competition (T-029, D-077).** A licence alone
+writes nothing: the clubs and seasons it names have to exist here first. Run
+the jobs once so the provider tells us who it means, then:
+
+```bash
+docker compose run --rm migrate node scripts/catalog.mjs --list
+docker compose run --rm migrate node scripts/catalog.mjs --adopt-teams --by you@your-domain
+docker compose run --rm migrate node scripts/catalog.mjs --add-season   --competition 39 --label 2026/27 --start 2026-08-21 --end 2027-05-30 --current   --by you@your-domain
+```
+
+`--add-competition` does the same for a league the catalogue does not hold at
+all; the five target leagues are 39 (England), 140 (Spain), 78 (Germany), 135
+(Italy), 61 (France) and 2 (Champions League), confirmed against the provider
+on 2026-09-21. An adopted club gets its name and nothing invented; `--map` is
+for when the provider means a club you already hold.
 
 ## 3. The production deploy (T-074)
 
