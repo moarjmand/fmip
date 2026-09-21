@@ -137,6 +137,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('administrati
       'failed_last_24h',
       'last_failure',
       'last_run',
+      'pollable',
       'recent',
       'running',
     ]);

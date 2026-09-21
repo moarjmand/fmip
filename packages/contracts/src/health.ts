@@ -34,6 +34,22 @@ export interface IngestRun {
   error: string | null;
 }
 
+/**
+ * What the fixtures job can ask its provider for, which is not the same thing
+ * as the job being switched on. A deployment that has just been migrated holds
+ * no competition at all, so the schedule runs, asks for nothing, and writes
+ * nothing -- and every other line of a health report still reads well. Rule 3
+ * applies to the operator's view as much as to a member's.
+ */
+export interface PollableCatalogue {
+  /** The provider the fixtures job is configured to ask, `null` when none is. */
+  provider: string | null;
+  /** Competitions with a mapping for that provider. */
+  competitions: number;
+  /** Of those, the ones with a current season: what is actually polled. */
+  with_current_season: number;
+}
+
 /** `GET /health/ingestion`: an ingest failure, visible without SSH. */
 export interface IngestionHealth {
   checked_at: string;
@@ -44,6 +60,8 @@ export interface IngestionHealth {
   running: number;
   /** Newest first. */
   recent: IngestRun[];
+  /** What there is to poll; zero means the jobs fetch nothing. */
+  pollable: PollableCatalogue;
 }
 
 /** `GET /health/live`: the live path's gateway in numbers. */

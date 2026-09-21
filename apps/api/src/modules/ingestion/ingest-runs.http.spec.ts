@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
 import { IngestRunsService } from './ingest-runs.service';
 import { IngestionModule } from './ingestion.module';
+import { PostgresRunStore } from './internal/run-store';
 
 // An ingest failure is visible without SSH (T-071): recorded in ingest_run,
 // logged as a structured event, and answered by GET /health/ingestion.
@@ -17,6 +18,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingest runs'
   let pool: Pool;
   let runs: IngestRunsService;
   const ids: string[] = [];
+  /** Competitions this file created, removed with everything hanging off them. */
+  const competitions: string[] = [];
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -31,6 +34,15 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingest runs'
 
   afterAll(async () => {
     await pool.query(`DELETE FROM ingest_run WHERE id = ANY($1::uuid[])`, [ids]);
+    // In reverse dependency order and by id: no trigger is ever disabled here,
+    // because a cleanup that leaves an orphan behind is what makes a backup
+    // unrestorable (docs/07-backups.md).
+    await pool.query(`DELETE FROM season WHERE competition_id = ANY($1::uuid[])`, [competitions]);
+    await pool.query(
+      `DELETE FROM provider_mapping WHERE entity_type = 'competition' AND internal_id = ANY($1::uuid[])`,
+      [competitions],
+    );
+    await pool.query(`DELETE FROM competition WHERE id = ANY($1::uuid[])`, [competitions]);
     await pool.end();
     await app.close();
   });
@@ -115,9 +127,68 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingest runs'
       'failed_last_24h',
       'last_failure',
       'last_run',
+      'pollable',
       'recent',
       'running',
     ]);
     expect(Array.isArray(health.recent)).toBe(true);
+    // What there is to poll travels with the runs, so an empty run list can be
+    // read. The numbers themselves belong to whatever `INGESTION_SOURCE` this
+    // process was given and to what the database holds, so what is asserted
+    // here is the shape and the one invariant that must hold everywhere: with
+    // no provider to ask, nothing is pollable.
+    expect(Object.keys(health.pollable).sort()).toEqual([
+      'competitions',
+      'provider',
+      'with_current_season',
+    ]);
+    expect(health.pollable.with_current_season).toBeLessThanOrEqual(health.pollable.competitions);
+    if (health.pollable.provider === null) expect(health.pollable.competitions).toBe(0);
+  });
+
+  /**
+   * A schedule that is on and a catalogue that is empty are opposite states
+   * that look identical from the environment alone: the second fetches
+   * nothing. A freshly migrated database holds no competition at all, so this
+   * is what a first deployment is in until somebody adds one, and the count is
+   * how `deploy/check-setup.sh` tells `ON` from `IDLE`.
+   */
+  it('separates a competition that is merely mapped from one that is polled', async () => {
+    const store = app.get(PostgresRunStore);
+    expect(await store.pollableCatalogue(null)).toEqual({
+      competitions: 0,
+      withCurrentSeason: 0,
+    });
+
+    const before = await store.pollableCatalogue('highlightly');
+
+    // Mapped, with no season yet: the state between `--add-competition` and
+    // `--add-season`, where the job still asks for nothing.
+    const {
+      rows: [competition],
+    } = await pool.query<{ id: string }>(
+      `INSERT INTO competition (name, kind, scope, gender)
+       VALUES ($1, 'cup', 'continental', 'men') RETURNING id`,
+      [`Pollable probe ${Date.now()}`],
+    );
+    competitions.push(competition!.id);
+    await pool.query(
+      `INSERT INTO provider_mapping (provider, entity_type, external_id, internal_id)
+       VALUES ('highlightly', 'competition', $1, $2)`,
+      [`probe-${Date.now()}`, competition!.id],
+    );
+    const mappedOnly = await store.pollableCatalogue('highlightly');
+    expect(mappedOnly.competitions).toBe(before.competitions + 1);
+    expect(mappedOnly.withCurrentSeason).toBe(before.withCurrentSeason);
+
+    // A current season is what makes it something the fixtures job asks for.
+    await pool.query(
+      `INSERT INTO season (competition_id, label, start_date, end_date, is_current)
+       VALUES ($1, '2026/27', '2026-08-01', '2027-05-31', true)`,
+      [competition!.id],
+    );
+    const polled = await store.pollableCatalogue('highlightly');
+    expect(polled.competitions).toBe(before.competitions + 1);
+    expect(polled.withCurrentSeason).toBe(before.withCurrentSeason + 1);
   });
 });
