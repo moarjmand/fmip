@@ -41,6 +41,9 @@ export interface PollTarget {
   competitionExternalId: string;
   seasonId: string;
   seasonLabel: string;
+  /** The season's own span, `YYYY-MM-DD`: what a backfill asks for (T-030). */
+  seasonStart: string;
+  seasonEnd: string;
 }
 
 /** What a write did: rows changed, and the provider ids that had no mapping. */
@@ -91,8 +94,12 @@ export class IngestStore {
       external_id: string;
       season_id: string;
       label: string;
+      start_date: string;
+      end_date: string;
     }>(
-      `SELECT c.id AS competition_id, pm.external_id, s.id AS season_id, s.label
+      `SELECT c.id AS competition_id, pm.external_id, s.id AS season_id, s.label,
+              to_char(s.start_date, 'YYYY-MM-DD') AS start_date,
+              to_char(s.end_date, 'YYYY-MM-DD') AS end_date
          FROM provider_mapping pm
          JOIN competition c ON c.id = pm.internal_id
          JOIN season s ON s.competition_id = c.id AND s.is_current
@@ -105,6 +112,8 @@ export class IngestStore {
       competitionExternalId: row.external_id,
       seasonId: row.season_id,
       seasonLabel: row.label,
+      seasonStart: row.start_date,
+      seasonEnd: row.end_date,
     }));
   }
 

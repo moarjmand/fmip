@@ -49,6 +49,17 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
   let close: () => Promise<void>;
   let competitionId: string;
   const mappings: string[] = [];
+  /**
+   * Mappings this spec has to take over for the length of the run.
+   *
+   * The recordings carry the provider's real ids, so the rows below are the
+   * provider's real ids, and a development database that has had a real
+   * catalogue built in it (T-029) already holds them -- pointing at real clubs
+   * rather than this spec's fixtures. Borrowing them and putting them back is
+   * the only way both can live in one database; CI meets an empty table and
+   * borrows nothing.
+   */
+  const borrowed: { entity_type: string; external_id: string; internal_id: string }[] = [];
   const startedAt = new Date();
 
   beforeAll(async () => {
@@ -94,6 +105,19 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
       externalId: string,
       internalId: string,
     ): Promise<void> => {
+      const taken = await pool.query<{ internal_id: string }>(
+        `DELETE FROM provider_mapping
+          WHERE provider = 'api_football' AND entity_type = $1 AND external_id = $2
+          RETURNING internal_id`,
+        [entityType, externalId],
+      );
+      if (taken.rows[0] !== undefined) {
+        borrowed.push({
+          entity_type: entityType,
+          external_id: externalId,
+          internal_id: taken.rows[0].internal_id,
+        });
+      }
       const id = randomUUID();
       mappings.push(id);
       await pool.query(
@@ -121,11 +145,25 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
     if (pool === undefined) return;
     await pool.query(`DELETE FROM coverage_profile WHERE season_id = $1`, [SEASON]);
     await pool.query(`DELETE FROM fixture WHERE season_id = $1`, [SEASON]);
+    // Only what this run made. The second clause used to take every
+    // api_football fixture mapping in the database, which is fine against an
+    // empty CI database and destroys a development one that holds a real
+    // catalogue: the mappings vanish, the next ingestion cannot find the
+    // fixtures it already wrote, and writes them a second time.
     await pool.query(
       `DELETE FROM provider_mapping WHERE id = ANY($1::uuid[])
-          OR (provider = 'api_football' AND entity_type = 'fixture')`,
-      [mappings],
+          OR (provider = 'api_football' AND entity_type = 'fixture' AND first_seen_at >= $2)`,
+      [mappings, startedAt],
     );
+    // Give back whatever this run took over.
+    for (const row of borrowed) {
+      await pool.query(
+        `INSERT INTO provider_mapping (provider, entity_type, external_id, internal_id)
+         VALUES ('api_football', $1, $2, $3)
+         ON CONFLICT DO NOTHING`,
+        [row.entity_type, row.external_id, row.internal_id],
+      );
+    }
     // Everything this run queued, and nothing else: `ingestion.spec.ts` runs in
     // another worker against the same database and owns the id 9999.
     await pool.query(
@@ -149,6 +187,34 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
     const { rows } = await pool.query<{ n: string }>(sql, params);
     return Number(rows[0]?.n ?? 0);
   }
+
+  it('backfills a season through the same writer, and says so in the run', async () => {
+    // On the replay source the window is the recording's own either way, so
+    // what this proves is the rest of it: the backfill is the fixtures job
+    // with a wider window, it goes through one writer, and the run it records
+    // is a `fixtures` run that names itself `backfill` -- so a maintainer
+    // reading `/health/ingestion` sees it beside every other run rather than
+    // wondering where it went.
+    const report = await jobs.backfill();
+    expect(report.job).toBe('fixtures');
+    expect(report.provider).toBe('api_football');
+    expect(report.itemsSeen).toBe(10);
+
+    const { rows } = await pool.query<{ scope: string | null; status: string }>(
+      `SELECT scope, status FROM ingest_run
+        WHERE provider = 'api_football' AND job = 'fixtures' AND started_at >= $1
+        ORDER BY started_at DESC LIMIT 1`,
+      [startedAt],
+    );
+    expect(rows[0]?.scope).toBe('backfill');
+    expect(rows[0]?.status).not.toBe('running');
+
+    // And it is still idempotent: the same season, asked for twice, writes
+    // nothing the second time (T-026's criterion, which a wider window must
+    // not break).
+    const again = await jobs.backfill();
+    expect(again.itemsWritten).toBe(0);
+  });
 
   it('writes the fixtures it can resolve, queues the ids it cannot, and writes nothing twice', async () => {
     const first = await jobs.fixtures();

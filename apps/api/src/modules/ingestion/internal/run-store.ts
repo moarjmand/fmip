@@ -16,6 +16,20 @@ export class PostgresRunStore {
     return rows[0]!.id;
   }
 
+  /**
+   * A backfill is a deliberate act by an administrator: it spends the
+   * provider's quota and rewrites a season's rows, so it is audited like any
+   * other (rule 10). The run itself is recorded as an ordinary `ingest_run`;
+   * this says who asked for it and why.
+   */
+  async auditBackfill(actorId: string, reason: string): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO audit_log (actor_id, action, target_type, target_id, reason, previous, next)
+       VALUES ($1, 'ingestion.backfill', 'ingestion', 'fixtures', $2, NULL, NULL)`,
+      [actorId, reason],
+    );
+  }
+
   async finish(
     id: string,
     outcome: {
