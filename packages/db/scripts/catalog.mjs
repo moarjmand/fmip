@@ -196,6 +196,57 @@ function sayIfUnaudited(audited, by) {
   }
 }
 
+/**
+ * What an empty queue means, which is one of two opposite things.
+ *
+ * Nothing waiting reads like success: everything the provider mentioned has
+ * been placed. On a deployment that has just been migrated it means the
+ * reverse -- no competition exists, so the jobs ask for nothing, nothing comes
+ * back, and nothing can ever be queued. `grant-role.mjs` says as much about an
+ * empty `user_role` rather than printing a blank list; silence is not an
+ * answer here either.
+ */
+export function emptyQueueNote(provider, mapped, withCurrentSeason) {
+  if (mapped === 0) {
+    return (
+      `No competition is mapped to ${provider} here, so the jobs ask for nothing and this ` +
+      'queue cannot fill. Create one, then give it the season you want:\n' +
+      '  --add-competition --external-id <the provider’s id> --name "<name>" ' +
+      '--kind league --scope domestic --country <ISO2>\n' +
+      '  --add-season --competition <the same external id> --label 2026/27 ' +
+      '--start <YYYY-MM-DD> --end <YYYY-MM-DD> --current'
+    );
+  }
+  if (withCurrentSeason === 0) {
+    return (
+      `${mapped} competition(s) are mapped to ${provider} and none has a current season, so ` +
+      'the jobs still ask for nothing:\n' +
+      '  --add-season --competition <external id> --label 2026/27 ' +
+      '--start <YYYY-MM-DD> --end <YYYY-MM-DD> --current'
+    );
+  }
+  return (
+    `${withCurrentSeason} of ${mapped} competition(s) mapped to ${provider} are in season and ` +
+    'being polled, and everything seen so far has been placed.'
+  );
+}
+
+/** Competitions this provider can be asked about, and how many are in season. */
+async function pollableCounts(client, provider) {
+  const { rows } = await client.query(
+    `SELECT count(*)::int AS mapped,
+            count(*) FILTER (
+              WHERE EXISTS (SELECT 1 FROM season s
+                             WHERE s.competition_id = c.id AND s.is_current)
+            )::int AS in_season
+       FROM provider_mapping pm
+       JOIN competition c ON c.id = pm.internal_id
+      WHERE pm.provider = $1 AND pm.entity_type = 'competition'`,
+    [provider],
+  );
+  return { mapped: rows[0].mapped, inSeason: rows[0].in_season };
+}
+
 async function list(client, options) {
   const { rows } = await client.query(
     `SELECT entity_type, external_id, payload->>'name' AS name, seen_count, status
@@ -207,6 +258,8 @@ async function list(client, options) {
   );
   if (rows.length === 0) {
     console.log('Nothing is waiting to be placed.');
+    const counts = await pollableCounts(client, options.provider);
+    console.log(`\n${emptyQueueNote(options.provider, counts.mapped, counts.inSeason)}`);
     return 0;
   }
   console.log(`${rows.length} waiting (provider ${options.provider}):`);

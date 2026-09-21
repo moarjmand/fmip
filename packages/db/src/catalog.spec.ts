@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 // @ts-expect-error -- a plain script, deliberately not part of the TypeScript build.
 import * as catalog from '../scripts/catalog.mjs';
 
-const { COMPETITION_KINDS, COMPETITION_SCOPES, PROVIDERS, parseArgs } = catalog;
+const { COMPETITION_KINDS, COMPETITION_SCOPES, PROVIDERS, emptyQueueNote, parseArgs } = catalog;
 
 /**
  * The refusals in `scripts/catalog.mjs` (T-029).
@@ -121,6 +121,30 @@ describe('catalog arguments', () => {
     expect(parseArgs(['--map', '--type', 'team', '--external-id', '40']).error).toContain(
       '--to is required',
     );
+  });
+
+  /**
+   * An empty queue is the same sentence for a finished catalogue and for one
+   * that does not exist, and those are opposite states: the second fetches
+   * nothing at all and will queue nothing to place. A deployment is in it from
+   * the moment it is migrated until someone adds a competition.
+   */
+  it('tells a finished queue from a deployment with nothing to poll', () => {
+    const fresh = emptyQueueNote('api_football', 0, 0);
+    expect(fresh).toContain('No competition is mapped to api_football');
+    expect(fresh).toContain('--add-competition');
+    expect(fresh).toContain('--add-season');
+
+    const noSeason = emptyQueueNote('api_football', 3, 0);
+    expect(noSeason).toContain('3 competition(s)');
+    expect(noSeason).toContain('none has a current season');
+    expect(noSeason).toContain('--add-season');
+    expect(noSeason).not.toContain('--add-competition');
+
+    const working = emptyQueueNote('api_football', 6, 4);
+    expect(working).toContain('4 of 6');
+    expect(working).toContain('being polled');
+    expect(working).not.toContain('--add-');
   });
 
   it('refuses a provider the mapping table does not know, and an unknown flag', () => {
