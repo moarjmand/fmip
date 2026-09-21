@@ -209,7 +209,23 @@ fi
 schedule="$(value_of ingestion_schedule)"
 source_name="$(value_of ingestion_source)"
 if [ -n "$source_name" ] && [ -n "$schedule" ] && [ "$schedule" != 'off' ]; then
-  row 'Match data' 'ON' "$source_name, schedule $schedule"
+  # A schedule that is on and a catalogue that is empty look identical from
+  # the environment alone, and they are opposite states: the second fetches
+  # nothing at all. A freshly migrated database holds no competition, so this
+  # is what a first deployment reads until somebody adds one.
+  mapped="$(value_of pollable_competitions)"
+  seasons="$(value_of pollable_current_seasons)"
+  if [ "$mapped" = 'unknown' ]; then
+    row 'Match data' 'ON' "$source_name, schedule $schedule"
+  elif [ "$mapped" = '0' ]; then
+    row 'Match data' 'IDLE' "$source_name, schedule $schedule -- but nothing is mapped to poll"
+    notes+=("Match data: the schedule is on and no competition is mapped to $(value_of pollable_provider), so the jobs ask for nothing and no fixture will ever appear. Add one on the server: docker compose run --rm migrate node scripts/catalog.mjs --add-competition ... then --add-season --current (docs/14-maintainer.md §2).")
+  elif [ "$seasons" = '0' ]; then
+    row 'Match data' 'IDLE' "$source_name, schedule $schedule -- $mapped mapped, none with a current season"
+    notes+=('Match data: every mapped competition is without a current season, so the jobs poll nothing. Add one with `node scripts/catalog.mjs --add-season --current` (docs/14-maintainer.md §2).')
+  else
+    row 'Match data' 'ON' "$source_name, schedule $schedule, $seasons of $mapped competition(s) in season"
+  fi
 else
   row 'Match data' 'off' 'no fixture, score or table is being fetched'
   if [ "$(value_of env_API_FOOTBALL_KEY)" = 'set' ] || [ "$(value_of env_FOOTBALL_DATA_ORG_KEY)" = 'set' ] ||

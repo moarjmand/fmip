@@ -49,11 +49,12 @@ function present(name) {
   say(`env_${name}`, value === undefined || value.trim() === '' ? 'empty' : 'set');
 }
 
-const [health, delivery, intelligence, chat] = await Promise.all([
+const [health, delivery, intelligence, chat, ingestion] = await Promise.all([
   read('/health'),
   read('/health/delivery'),
   read('/health/intelligence'),
   read('/health/chat'),
+  read('/health/ingestion'),
 ]);
 
 say('api', health === null ? 'unreachable' : (health.status ?? 'unknown'));
@@ -69,6 +70,15 @@ say('language_model_provider', model?.state === 'configured' ? model.provider : 
 say('language_model_name', model?.state === 'configured' ? model.model : '');
 
 say('chat_bus', chat === null ? 'unknown' : chat.bus);
+
+// What the fixtures job can ask for. A switched-on schedule with nothing
+// mapped fetches nothing, and that is the ordinary state of a deployment that
+// has just been migrated -- no competition exists until someone creates one.
+// Reported as `unknown` rather than 0 when the endpoint did not answer, so the
+// check never accuses a healthy deployment of an empty catalogue.
+say('pollable_provider', ingestion?.pollable?.provider ?? '');
+say('pollable_competitions', ingestion?.pollable?.competitions ?? 'unknown');
+say('pollable_current_seasons', ingestion?.pollable?.with_current_season ?? 'unknown');
 
 // The switches, and the values each switch needs beside it. A switch left at
 // its default is the ordinary state of a new deployment, not a fault; the

@@ -78,10 +78,17 @@ What is below is what you do with it.
 `API_FOOTBALL_KEY` = the key, `INGESTION_SOURCE=api_football`,
 `INGESTION_SCHEDULE=on`, and optionally `API_FOOTBALL_DAILY_BUDGET` = the
 plan's daily limit so a ceiling is enforced here rather than discovered
-mid-match. Then `docker compose restart api`. `bash deploy/check-setup.sh`
-says `Match data ... ON` and `/admin` shows the first run within minutes.
-Nothing else, and no code change: the profile was written before the purchase
-so that the purchase is one line.
+mid-match. Then `docker compose restart api`. Nothing else, and no code
+change: the profile was written before the purchase so that the purchase is
+one line.
+
+`bash deploy/check-setup.sh` will then say `Match data ... IDLE`, not `ON`,
+and it is right to: a freshly migrated database holds no competition, so the
+jobs have nothing to ask for and no fixture will ever appear however correct
+the four lines above are. It becomes `ON` -- with the count of competitions
+in season beside it -- after the catalogue below. The switch and the
+catalogue look identical from the environment alone, which is why the check
+reads the database rather than the environment (T-071).
 
 **Then the catalogue, once per competition (T-029, D-077).** A licence alone
 writes nothing: the clubs and seasons it names have to exist here first. Run

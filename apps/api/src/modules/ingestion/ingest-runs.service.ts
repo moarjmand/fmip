@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { IngestRun, IngestRunStatus, IngestionHealth } from '@fmip/contracts';
 import { PostgresRunStore } from './internal/run-store';
+import { INGESTION_SOURCES, type IngestionSources } from './internal/sources';
 
 /** How far back "recent failures" looks. */
 export const FAILURE_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -26,7 +27,10 @@ export interface RunOutcome {
 export class IngestRunsService {
   private readonly log = new Logger('Ingestion');
 
-  constructor(private readonly store: PostgresRunStore) {}
+  constructor(
+    private readonly store: PostgresRunStore,
+    @Inject(INGESTION_SOURCES) private readonly sources: IngestionSources,
+  ) {}
 
   start(provider: string, job: string, scope: string | null = null): Promise<string> {
     return this.store.start(provider, job, scope);
@@ -99,9 +103,13 @@ export class IngestRunsService {
   }
 
   async ingestionHealth(now: Date = new Date()): Promise<IngestionHealth> {
-    const [recent, failed] = await Promise.all([
+    // The provider the fixtures job would ask, which is the only one whose
+    // mappings decide whether anything is fetched at all.
+    const provider = this.sources.forJob('fixtures')?.provider ?? null;
+    const [recent, failed, pollable] = await Promise.all([
       this.store.recent(RECENT_RUNS),
       this.store.failedSince(new Date(now.getTime() - FAILURE_WINDOW_MS)),
+      this.store.pollableCatalogue(provider),
     ]);
     const lastFailure = recent.find((r) => r.status === 'failed' || r.status === 'partial') ?? null;
     return {
@@ -111,6 +119,11 @@ export class IngestRunsService {
       failed_last_24h: failed,
       running: recent.filter((r) => r.status === 'running').length,
       recent,
+      pollable: {
+        provider,
+        competitions: pollable.competitions,
+        with_current_season: pollable.withCurrentSeason,
+      },
     };
   }
 }

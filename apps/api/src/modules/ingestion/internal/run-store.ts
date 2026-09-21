@@ -17,6 +17,33 @@ export class PostgresRunStore {
   }
 
   /**
+   * How much of the catalogue the fixtures job can ask this provider about.
+   * `getPollTargets` joins the same three tables to decide what to fetch; this
+   * counts them, so a health report can say "the schedule is on and there is
+   * nothing to poll" instead of only "the schedule is on".
+   */
+  async pollableCatalogue(
+    provider: string | null,
+  ): Promise<{ competitions: number; withCurrentSeason: number }> {
+    if (provider === null) return { competitions: 0, withCurrentSeason: 0 };
+    const { rows } = await this.pool.query<{ competitions: number; with_current_season: number }>(
+      `SELECT count(*)::int AS competitions,
+              count(*) FILTER (
+                WHERE EXISTS (SELECT 1 FROM season s
+                               WHERE s.competition_id = c.id AND s.is_current)
+              )::int AS with_current_season
+         FROM provider_mapping pm
+         JOIN competition c ON c.id = pm.internal_id
+        WHERE pm.provider = $1 AND pm.entity_type = 'competition'`,
+      [provider],
+    );
+    return {
+      competitions: rows[0]!.competitions,
+      withCurrentSeason: rows[0]!.with_current_season,
+    };
+  }
+
+  /**
    * A backfill is a deliberate act by an administrator: it spends the
    * provider's quota and rewrites a season's rows, so it is audited like any
    * other (rule 10). The run itself is recorded as an ordinary `ingest_run`;
