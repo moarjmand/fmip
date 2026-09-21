@@ -39,6 +39,21 @@ fi
 REPORT="$(mktemp)"
 trap 'rm -f "$REPORT"' EXIT
 
+# The deployment's public origin, written one way for the whole report: with
+# the port whenever it is not 443. A rehearsal runs on 8443, and a line saying
+# `https://localhost` would name an address nothing answers on. The same value
+# is what the site probe below asks for, so the report cannot describe a
+# request it did not make.
+public_origin() {
+  if [ -z "${SITE_HOST:-}" ]; then
+    echo '<SITE_HOST not set in .env>'
+  elif [ "${HTTPS_PORT:-443}" = '443' ]; then
+    echo "https://${SITE_HOST}"
+  else
+    echo "https://${SITE_HOST}:${HTTPS_PORT}"
+  fi
+}
+
 failures=0
 notes=()
 
@@ -82,7 +97,7 @@ if [ -n "${SETUP_CHECK_API:-}" ]; then
   SELF_BASE_URL="$SETUP_CHECK_API" node deploy/report-capabilities.mjs >"$REPORT" 2>/dev/null ||
     echo 'api=unreachable' >"$REPORT"
 else
-  echo "Site: https://${SITE_HOST:-<SITE_HOST not set in .env>}"
+  echo "Site: $(public_origin)"
   docker compose exec -T api node - <deploy/report-capabilities.mjs >"$REPORT" 2>/dev/null ||
     echo 'api=unreachable' >"$REPORT"
 fi
@@ -120,19 +135,15 @@ else
 fi
 
 if [ -z "${SETUP_CHECK_API:-}" ] && [ -n "${SITE_HOST:-}" ]; then
-  # Name the address that was actually asked, port and all. A rehearsal runs
-  # on 8443, and a report saying `https://localhost/en` would be describing a
-  # request nobody made.
-  port="${HTTPS_PORT:-443}"
-  site_url="https://${SITE_HOST}:${port}/en"
-  shown="https://${SITE_HOST}/en"
-  [ "$port" = '443' ] || shown="$site_url"
+  # The address that was actually asked, port and all -- one value, so what is
+  # printed here and in the header above cannot drift apart.
+  site_url="$(public_origin)/en"
   code="$(curl -sk -m 15 -o /dev/null -w '%{http_code}' \
     "$site_url" 2>/dev/null || echo '000')"
   case "$code" in
-    200) require 'Public site' 'ok' "$shown answered 200" ;;
-    000) require 'Public site' 'FAILED' "$shown did not answer -- is Caddy up, and do the certificates match?" ;;
-    *) require 'Public site' 'FAILED' "$shown answered $code" ;;
+    200) require 'Public site' 'ok' "$site_url answered 200" ;;
+    000) require 'Public site' 'FAILED' "$site_url did not answer -- is Caddy up, and do the certificates match?" ;;
+    *) require 'Public site' 'FAILED' "$site_url answered $code" ;;
   esac
 fi
 
