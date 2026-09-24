@@ -15,6 +15,13 @@ Requires=docker.service
 
 [Service]
 Type=oneshot
+# As the account that owns the checkout, not root. A system service with no
+# User= is given no $HOME, and backup.sh (set -u) stops at its first use of it:
+# "HOME: unbound variable", every night, while a run by hand works. Checked on
+# Ubuntu 24.04's systemd 255. fmip is in the docker group, so compose and the
+# rclone container work the same, and the dumps stay owned by the account that
+# later prunes them.
+User=fmip
 WorkingDirectory=/opt/fmip
 ExecStart=/usr/bin/bash scripts/backup/backup.sh
 # The script reads .env itself; nothing secret lives in this unit.

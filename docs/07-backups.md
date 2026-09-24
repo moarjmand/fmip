@@ -54,7 +54,10 @@ the remote's reported size differs from the local dump.
    changed later): EU Central, beside a server in Europe. Bucket names are
    global across all of B2, so `fmip-backups` may be taken; whatever name
    you get goes into `remote = b2:<name>` below.
-2. On the VPS, write `~/.config/rclone/rclone.conf` with two remotes: the
+2. On the VPS, **as `fmip`**, write `~/.config/rclone/rclone.conf` --
+   `/home/fmip/.config/rclone/rclone.conf`, because the timer runs the backup
+   as `fmip` (the unit's `User=`) and reads the config from that account's
+   home -- with two remotes: the
    storage remote, and a `crypt` remote wrapping it, so the dumps are
    encrypted before they leave the machine:
 

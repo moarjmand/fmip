@@ -58,9 +58,16 @@ and builds.
 As root on a fresh Ubuntu 24.04:
 
 ```bash
-apt-get update && apt-get -y upgrade
+# No dialog may open while this block is being pasted: the lines after it would
+# be typed into the dialog instead of the shell.
+export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a
+apt-get update && apt-get -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold upgrade
 adduser --disabled-password --gecos '' fmip && usermod -aG sudo fmip
+# fmip has no password (it is reached by SSH key only), so sudo must not ask for one
+echo 'fmip ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/fmip && chmod 440 /etc/sudoers.d/fmip && visudo -cf /etc/sudoers.d/fmip
 mkdir -p /home/fmip/.ssh && cp /root/.ssh/authorized_keys /home/fmip/.ssh/ && chown -R fmip:fmip /home/fmip/.ssh
+# The checkout lives here, owned by the account that runs everything
+mkdir -p /opt/fmip && chown fmip:fmip /opt/fmip
 # Docker Engine + Compose plugin, from Docker's repository
 curl -fsSL https://get.docker.com | sh
 usermod -aG docker fmip
@@ -75,10 +82,18 @@ apt-get -y install unattended-upgrades && dpkg-reconfigure -f noninteractive una
 
 Log in again as `fmip` for everything below.
 
+**Why the `sudoers.d` line.** `--disabled-password` leaves `fmip` with no
+password at all, which is right for an account reached only by SSH key -- and
+means `sudo` asks for a password that does not exist and refuses (checked on
+Ubuntu 24.04: `sudo: a password is required`). Every later `sudo` in these
+runbooks, the backup timer's installation among them, would stop there. The
+line gives `fmip` what the default user of an Ubuntu cloud image already has.
+If you would rather type a password, `passwd fmip` instead and leave the line
+out.
+
 ## 2. Check out and configure
 
 ```bash
-sudo mkdir -p /opt/fmip && sudo chown fmip:fmip /opt/fmip
 git clone https://github.com/moarjmand/fmip.git /opt/fmip
 cd /opt/fmip
 cp .env.example .env
