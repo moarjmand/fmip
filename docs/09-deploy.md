@@ -91,13 +91,26 @@ Edit `.env` (`nano .env`). Set these and leave the rest at their defaults:
 | `COMPOSE_FILE` | `deploy/docker-compose.prod.yml` — uncomment it |
 | `SITE_HOST` | the public host name, e.g. `fmip.example` |
 | `NODE_ENV` | `production` |
-| `POSTGRES_PASSWORD` | output of `openssl rand -base64 36` |
+| `POSTGRES_PASSWORD` | output of `openssl rand -hex 32` -- hex, not base64; see below |
 | `SESSION_SECRET` | output of `openssl rand -base64 48` (a different one) |
 | `API_FOOTBALL_KEY` etc. | the provider key(s) once T-025 is decided; empty until then |
 | `INGESTION_SOURCE`, `INGESTION_SCHEDULE` | the source profile and `on`, once T-025 is decided; `off` until then, and nothing is fetched |
 | `DELIVERY_EMAIL_PROVIDER`, `DELIVERY_PUSH_PROVIDER` | `off` until a provider is chosen (T-330); `/health/delivery` reports the absence |
 | `DEMONSTRATION_DATA` | leave `off`: it is the preview's marker for seeded fixtures (D-065), never a production setting |
 | `BACKUP_RCLONE_REMOTE` | per `07-backups.md` |
+
+**Why hex for the database password.** The compose file splices
+`POSTGRES_PASSWORD` into `DATABASE_URL` as it is, and the connection-string
+parser that `migrate`, `api` and `model` share refuses a URL whose password
+holds `/`, `?`, `#` or `%` -- "Invalid URL", on start, naming nothing in
+`.env`. A 48-character base64 string contains a `/` more often than not
+(about 53% of the time), so the command this table used to give failed on
+roughly every other new server. Hex is `0-9a-f` and nothing else, which also
+keeps compose from reading a `$` in it as a variable. `check-setup.sh` fails
+the run if the password holds one of the four. On a server that already
+started with a bad one there is no data yet: set a new one, then
+`docker compose down -v` (the volume keeps the password it was created
+with) and start again.
 
 `SITE_URL` and `WEB_BASE_URL` are derived from `SITE_HOST` by the compose
 file; do not set them. `HTTP_PORT`/`HTTPS_PORT` stay at 80/443.
