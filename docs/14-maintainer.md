@@ -90,21 +90,61 @@ in season beside it -- after the catalogue below. The switch and the
 catalogue look identical from the environment alone, which is why the check
 reads the database rather than the environment (T-071).
 
-**Then the catalogue, once per competition (T-029, D-077).** A licence alone
-writes nothing: the clubs and seasons it names have to exist here first. Run
-the jobs once so the provider tells us who it means, then:
+**Then the catalogue, once (T-029, D-077).** A licence alone writes nothing:
+the countries, competitions and seasons it covers have to exist here first,
+and a deployment that has just been migrated holds none of them -- no
+migration writes a country or a league, and the seed is refused in
+production. In this order, with `--by` naming the administrator you granted
+yourself (the dates are the ones the provider gave on 2026-09-21):
 
 ```bash
-docker compose run --rm migrate node scripts/catalog.mjs --list
-docker compose run --rm migrate node scripts/catalog.mjs --adopt-teams --by you@your-domain
-docker compose run --rm migrate node scripts/catalog.mjs --add-season   --competition 39 --label 2026/27 --start 2026-08-21 --end 2027-05-30 --current   --by you@your-domain
+catalog() { docker compose run --rm migrate node scripts/catalog.mjs "$@"; }
+
+# 1. Countries, by FIFA trigram. England has no ISO code of its own.
+catalog --add-country --code ENG --name England --by you@your-domain
+catalog --add-country --code ESP --iso2 ES --name Spain --by you@your-domain
+catalog --add-country --code GER --iso2 DE --name Germany --by you@your-domain
+catalog --add-country --code ITA --iso2 IT --name Italy --by you@your-domain
+catalog --add-country --code FRA --iso2 FR --name France --by you@your-domain
+
+# 2. Competitions, by the provider's ids.
+catalog --add-competition --external-id 39  --name "Premier League" --kind league --scope domestic --country ENG --by you@your-domain
+catalog --add-competition --external-id 140 --name "La Liga"        --kind league --scope domestic --country ESP --by you@your-domain
+catalog --add-competition --external-id 78  --name "Bundesliga"     --kind league --scope domestic --country GER --by you@your-domain
+catalog --add-competition --external-id 135 --name "Serie A"        --kind league --scope domestic --country ITA --by you@your-domain
+catalog --add-competition --external-id 61  --name "Ligue 1"        --kind league --scope domestic --country FRA --by you@your-domain
+catalog --add-competition --external-id 2   --name "UEFA Champions League" --kind cup --scope continental --by you@your-domain
+
+# 3. Their current seasons.
+catalog --add-season --competition 39  --label 2026/27 --start 2026-08-21 --end 2027-05-30 --current --by you@your-domain
+catalog --add-season --competition 140 --label 2026/27 --start 2026-08-15 --end 2027-05-30 --current --by you@your-domain
+catalog --add-season --competition 78  --label 2026/27 --start 2026-08-28 --end 2027-05-22 --current --by you@your-domain
+catalog --add-season --competition 135 --label 2026/27 --start 2026-08-22 --end 2027-05-30 --current --by you@your-domain
+catalog --add-season --competition 61  --label 2026/27 --start 2026-08-21 --end 2027-05-29 --current --by you@your-domain
+catalog --add-season --competition 2   --label 2026/27 --start 2026-07-07 --end 2027-01-27 --current --by you@your-domain
+
+catalog --list    # "6 of 6 competition(s) mapped to api_football are in season"
 ```
 
-`--add-competition` does the same for a league the catalogue does not hold at
-all; the five target leagues are 39 (England), 140 (Spain), 78 (Germany), 135
-(Italy), 61 (France) and 2 (Champions League), confirmed against the provider
-on 2026-09-21. An adopted club gets its name and nothing invented; `--map` is
-for when the provider means a club you already hold.
+Every one of these is safe to repeat: a country, competition or season that
+already exists is reported and left alone. The whole sequence was run on an
+empty, freshly migrated database on 2026-09-24 before it was written here; an
+earlier version of this section began with `--adopt-teams` and could not have
+worked, because a domestic league needs a country and there was no way to add
+one.
+
+Then the backfill below. Its first pass writes few fixtures: the provider
+names clubs the catalogue does not hold yet, and each is queued rather than
+guessed at. Adopt them, and backfill again:
+
+```bash
+catalog --list                          # the queued clubs, by the provider's name
+catalog --adopt-teams --dry-run         # what would be created
+catalog --adopt-teams --by you@your-domain
+```
+
+An adopted club gets its name and nothing invented; `--map` is for when the
+provider means a club you already hold.
 
 **Then backfill the season, once (T-030).** The scheduled job asks for a window
 around now, so a deployment licensed today knows about this week and nothing
@@ -119,8 +159,9 @@ scoped `backfill` -- with your reason in the audit log.
 
 There is no `curl` for this and there is not meant to be: Caddy hands every
 public path to the web app and the browser never reaches the API directly, so
-the page is the way in, carrying your own session. Run it once per season; the
-schedule keeps it fresh after.
+the page is the way in, carrying your own session. On a new deployment run it
+twice -- once to learn the clubs, once after adopting them -- and after that
+once per new season; the schedule keeps it fresh.
 
 ## 3. The production deploy (T-074)
 

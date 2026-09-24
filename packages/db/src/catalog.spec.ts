@@ -79,6 +79,30 @@ describe('catalog arguments', () => {
     expect(badKind.error).toContain('league, cup, super_cup, qualifying, friendly');
   });
 
+  /**
+   * A freshly migrated database holds no country -- no migration writes one
+   * and the seed is refused in production -- so every domestic league on a
+   * new server starts here.
+   */
+  it('reads a country by its FIFA trigram, with an ISO code only where one exists', () => {
+    expect(
+      parseArgs(['--add-country', '--code', 'esp', '--iso2', 'es', '--name', 'Spain']),
+    ).toMatchObject({ command: 'add-country', code: 'ESP', iso2: 'ES', name: 'Spain' });
+    // England plays as England and has no ISO 3166 code of its own.
+    expect(parseArgs(['--add-country', '--code', 'ENG', '--name', 'England'])).toMatchObject({
+      command: 'add-country',
+      code: 'ENG',
+      iso2: '',
+    });
+    expect(parseArgs(['--add-country', '--code', 'ES', '--name', 'Spain']).error).toContain(
+      'FIFA trigram',
+    );
+    expect(parseArgs(['--add-country', '--code', 'ESP']).error).toContain('--name is required');
+    expect(
+      parseArgs(['--add-country', '--code', 'ENG', '--iso2', 'GBR', '--name', 'England']).error,
+    ).toContain('--iso2 is two letters');
+  });
+
   it('asks for a country only where the database will', () => {
     const domestic = ['--add-competition', '--external-id', '1', '--name', 'X', '--kind', 'league'];
     expect(parseArgs([...domestic, '--scope', 'domestic']).error).toContain(

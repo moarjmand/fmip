@@ -18,7 +18,9 @@
  * yourself with `--map --to <id>`, and that judgement is recorded. It never
  * invents a country, a founding year or a badge: a team arrives with the one
  * thing the queue knows, its name, and the rest is filled in later by people
- * or by a provider that serves it.
+ * or by a provider that serves it. A country is the operator's to add, with
+ * `--add-country` and the FIFA trigram: a domestic competition cannot exist
+ * without one, and a deployment that has just been migrated holds none.
  *
  * Every write is audited when `--by` names an administrator -- `audit_log`
  * needs an actor and a fresh deployment has none, exactly as in
@@ -37,7 +39,7 @@ export const COMPETITION_SCOPES = ['domestic', 'continental', 'international'];
 const SEASON_LABEL = /^\d{4}(\/\d{2,4})?$/;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-const VERBS = ['list', 'adopt-teams', 'add-competition', 'add-season', 'map'];
+const VERBS = ['list', 'adopt-teams', 'add-country', 'add-competition', 'add-season', 'map'];
 const SWITCHES = [...VERBS, 'dry-run', 'current'];
 const VALUED = [
   'type',
@@ -54,11 +56,14 @@ const VALUED = [
   'end',
   'to',
   'by',
+  'code',
+  'iso2',
 ];
 
 const USAGE = `Usage (one verb per call):
   --list [--type team|person|competition] [--limit N]
   --adopt-teams [--dry-run] [--by <address>]
+  --add-country --code <FIFA trigram> --name "<name>" [--iso2 <XX>] [--by <address>]
   --add-competition --external-id <id> --name "<name>" --kind <${COMPETITION_KINDS.join('|')}>
                     --scope <${COMPETITION_SCOPES.join('|')}> [--country <ISO>] [--by <address>]
   --add-season --competition <external id> --label <2026/27> --start <YYYY-MM-DD>
@@ -109,6 +114,23 @@ export function parseArgs(argv) {
   }
   if (verb === 'adopt-teams') {
     return { command: 'adopt-teams', provider, by, dryRun: flags.get('dry-run') === true };
+  }
+  if (verb === 'add-country') {
+    const code = text('code').toUpperCase();
+    const name = text('name');
+    const iso2 = text('iso2').toUpperCase();
+    // `country_code_format` and `country_iso2_format` say the same in the
+    // database; saying it here names the flag instead of the constraint.
+    if (!/^[A-Z]{3}$/.test(code)) {
+      return { error: '--code is the FIFA trigram, three letters: ENG, ESP, GER.' };
+    }
+    if (name === '') return { error: '--name is required.' };
+    if (iso2 !== '' && !/^[A-Z]{2}$/.test(iso2)) {
+      return {
+        error: '--iso2 is two letters (ES, DE), or left out where none exists, as for England.',
+      };
+    }
+    return { command: 'add-country', code, name, iso2, by };
   }
   if (verb === 'add-competition') {
     const externalId = text('external-id');
@@ -338,6 +360,41 @@ async function adoptTeams(client, options) {
   return 0;
 }
 
+/**
+ * A country, by its FIFA trigram. The catalogue never infers one -- a team
+ * adopted from the queue arrives without a country -- but a domestic
+ * competition cannot exist without one (`competition_domestic_has_country`),
+ * and a deployment that has just been migrated holds none. The operator names
+ * it here, from the standard, and that is recorded like every other write.
+ */
+async function addCountry(client, options) {
+  const existing = await client.query('SELECT id FROM country WHERE code = $1', [options.code]);
+  if (existing.rows[0] !== undefined) {
+    console.log(`${options.code} already exists as ${existing.rows[0].id}. Nothing written.`);
+    return 0;
+  }
+  await client.query('BEGIN');
+  try {
+    const created = await client.query(
+      'INSERT INTO country (code, iso2, name) VALUES ($1, $2, $3) RETURNING id',
+      [options.code, options.iso2 === '' ? null : options.iso2, options.name],
+    );
+    const id = created.rows[0].id;
+    const audited = await audit(client, options.by, 'catalog.country_added', 'country', id, {
+      code: options.code,
+      iso2: options.iso2 === '' ? null : options.iso2,
+      name: options.name,
+    });
+    await client.query('COMMIT');
+    console.log(`${options.name} (${options.code}) -> ${id}.`);
+    sayIfUnaudited(audited, options.by);
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  }
+  return 0;
+}
+
 async function addCompetition(client, options) {
   const existing = await client.query(
     `SELECT internal_id FROM provider_mapping
@@ -355,7 +412,13 @@ async function addCompetition(client, options) {
       [options.country],
     );
     if (country.rows[0] === undefined) {
-      console.error(`No country with the code ${options.country}.`);
+      // A fresh deployment holds no country at all -- no migration writes one
+      // and the seed is refused in production -- so this is the first thing
+      // every domestic league meets on a new server.
+      console.error(
+        `No country with the code ${options.country}. Add it first:
+` + '  --add-country --code <FIFA trigram> --name "<name>" [--iso2 <XX>]',
+      );
       return 1;
     }
     countryId = country.rows[0].id;
@@ -498,6 +561,8 @@ async function main() {
         return await list(client, parsed);
       case 'adopt-teams':
         return await adoptTeams(client, parsed);
+      case 'add-country':
+        return await addCountry(client, parsed);
       case 'add-competition':
         return await addCompetition(client, parsed);
       case 'add-season':
