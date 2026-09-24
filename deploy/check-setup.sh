@@ -160,6 +160,20 @@ elif [ "$api_state" = 'ok' ]; then
   require 'Session secret' 'FAILED' 'SESSION_SECRET is empty -- nobody can stay signed in'
 fi
 
+# The compose file splices POSTGRES_PASSWORD into DATABASE_URL unencoded, and
+# the connection-string parser refuses a password holding `/`, `?`, `#` or
+# `%` -- "Invalid URL" from migrate, api and model alike, naming nothing in
+# .env. `openssl rand -base64` produces a `/` about half the time. Read from
+# .env itself, so it is said even when the API never came up to say anything.
+if [ -n "${POSTGRES_PASSWORD:-}" ]; then
+  case "$POSTGRES_PASSWORD" in
+    */* | *'?'* | *'#'* | *%*)
+      require 'Database password' 'FAILED' "POSTGRES_PASSWORD holds / ? # or %, which breaks DATABASE_URL -- make one with: openssl rand -hex 32 (docs/09-deploy.md §2)"
+      ;;
+    *) require 'Database password' 'ok' ;;
+  esac
+fi
+
 # ---------------------------------------------------------------------------
 # Optional: each one off until someone turns it on, and the product says so.
 
