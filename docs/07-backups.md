@@ -41,6 +41,19 @@ the remote's reported size differs from the local dump.
    Cloudflare R2, Hetzner Storage Box, Scaleway; any S3-compatible or SFTP
    target rclone supports. Create credentials that can write and delete in
    that bucket only.
+
+   **On Backblaze B2, deleting is not deleting unless you say so.** A new
+   bucket keeps every version of every file, and rclone’s B2 backend only
+   *hides* a file it is asked to remove. `backup.sh` prunes the remote with
+   `rclone delete --min-age 90d`, so without `hard_delete = true` below
+   every dump ever uploaded stays stored, and billed, forever, while
+   `rclone ls` shows only the last ninety days -- a retention setting that
+   looks as if it works. Set the bucket’s lifecycle to "Keep only the last
+   version of the file" as well, so anything hidden by some other route is
+   removed too. Pick the region when the account is created (it cannot be
+   changed later): EU Central, beside a server in Europe. Bucket names are
+   global across all of B2, so `fmip-backups` may be taken; whatever name
+   you get goes into `remote = b2:<name>` below.
 2. On the VPS, write `~/.config/rclone/rclone.conf` with two remotes: the
    storage remote, and a `crypt` remote wrapping it, so the dumps are
    encrypted before they leave the machine:
@@ -50,6 +63,8 @@ the remote's reported size differs from the local dump.
    type = b2
    account = <key id>
    key = <application key>
+   # Without this, a pruned dump is hidden, not removed (see step 1).
+   hard_delete = true
 
    [offsite]
    type = crypt
