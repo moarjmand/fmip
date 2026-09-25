@@ -20,7 +20,7 @@ function Result({ state, testId }: { state: ActionState; testId: string }) {
   return (
     <p
       role="status"
-      className={`text-sm ${state.ok ? 'opacity-70' : 'text-red-800'}`}
+      className={`text-sm ${state.ok ? 'opacity-70' : 'text-red-800 dark:text-red-300'}`}
       data-testid={testId}
     >
       {state.ok ? (state.message ?? 'Done.') : state.message}
@@ -86,7 +86,7 @@ export function Composer({
       <button
         type="submit"
         disabled={pending}
-        className="self-start rounded bg-current px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:text-black"
+        className="self-start rounded bg-[color:CanvasText] px-4 py-2 text-sm font-medium text-[color:Canvas] disabled:opacity-50"
         data-testid="composer-send"
       >
         {pending ? 'Sending…' : 'Send'}
@@ -252,7 +252,7 @@ function ReactionButton({
         {count > 0 ? ` ${count}` : ''}
       </button>
       {state !== null && !state.ok && (
-        <span role="status" className="text-xs text-red-800">
+        <span role="status" className="text-xs text-red-800 dark:text-red-300">
           {' '}
           {state.message}
         </span>
@@ -351,7 +351,7 @@ export function PinMessage({
         {pinned ? 'Unpin' : 'Pin'}
       </button>
       {state !== null && !state.ok && (
-        <span role="status" className="text-xs text-red-800">
+        <span role="status" className="text-xs text-red-800 dark:text-red-300">
           {' '}
           {state.message}
         </span>

@@ -46,7 +46,9 @@ export function ActionForm({ action, fields, submitLabel, testId }: Props) {
         <p
           role="status"
           className={`rounded border px-3 py-2 text-sm ${
-            state.ok ? 'border-green-700/40 text-green-800' : 'border-red-700/40 text-red-800'
+            state.ok
+              ? 'border-green-700/40 text-green-800 dark:text-green-300'
+              : 'border-red-700/40 text-red-800 dark:text-red-300'
           }`}
         >
           {state.ok ? (state.message ?? 'Done.') : state.message}
@@ -117,7 +119,7 @@ export function ActionForm({ action, fields, submitLabel, testId }: Props) {
               </>
             )}
             {error ? (
-              <p id={`${id}-error`} className="text-sm text-red-800">
+              <p id={`${id}-error`} className="text-sm text-red-800 dark:text-red-300">
                 {error}
               </p>
             ) : field.hint ? (
@@ -132,7 +134,7 @@ export function ActionForm({ action, fields, submitLabel, testId }: Props) {
       <button
         type="submit"
         disabled={pending}
-        className="self-start rounded bg-current px-4 py-2 font-medium text-white disabled:opacity-50 dark:text-black"
+        className="self-start rounded bg-[color:CanvasText] px-4 py-2 font-medium text-[color:Canvas] disabled:opacity-50"
       >
         {pending ? 'Working…' : submitLabel}
       </button>

@@ -42,6 +42,49 @@ test.describe('accessibility', () => {
     });
   }
 
+  /**
+   * axe files text drawn in its own background colour under "incomplete",
+   * never as a violation, because the text might be meant to be hidden. The
+   * primary buttons were exactly that for months -- `bg-current` paints the
+   * background in the button's own text colour -- so a blank white box in the
+   * light scheme and a blank black one in the dark, and every contrast run
+   * above passed. `/en/login` carries the shared form's button without an API.
+   */
+  for (const colorScheme of ['light', 'dark'] as const) {
+    test(`no text is drawn in its own background colour (${colorScheme})`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme });
+      await page.goto('/en/login');
+      const results = await new AxeBuilder({ page }).withRules(['color-contrast']).analyze();
+      const invisible = [...results.violations, ...results.incomplete]
+        .flatMap((r) => r.nodes)
+        .filter((n) =>
+          n.any.some(
+            (c) => (c.data as { messageKey?: string } | null)?.messageKey === 'equalRatio',
+          ),
+        )
+        .map((n) => n.target.join(' '));
+      expect(invisible).toEqual([]);
+      await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+    });
+  }
+
+  test('an open select list is readable in the dark scheme', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await page.goto('/en/login');
+    const colours = await page.evaluate(() => {
+      const select = document.createElement('select');
+      select.className = 'bg-transparent';
+      const option = document.createElement('option');
+      option.textContent = 'UTC';
+      select.append(option);
+      document.body.append(select);
+      const style = getComputedStyle(option);
+      return { background: style.backgroundColor, text: style.color };
+    });
+    expect(colours.background).not.toBe(colours.text);
+    expect(colours.background).not.toBe('rgba(0, 0, 0, 0)');
+  });
+
   test('the keyboard reaches the content in one step and focus is visible', async ({ page }) => {
     await page.goto('/en/scores');
     await page.keyboard.press('Tab');

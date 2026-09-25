@@ -76,7 +76,7 @@ function ReactionButton({
         {count > 0 && <span className="ms-1 tabular-nums">{count}</span>}
       </button>
       {state !== null && !state.ok && (
-        <p role="status" className="text-xs text-red-800">
+        <p role="status" className="text-xs text-red-800 dark:text-red-300">
           {state.message}
         </p>
       )}
@@ -172,7 +172,7 @@ export function FollowButton({
         {pending ? 'Working…' : following ? 'Following' : 'Follow'}
       </button>
       {state !== null && !state.ok && (
-        <span role="status" className="ms-2 text-xs text-red-800">
+        <span role="status" className="ms-2 text-xs text-red-800 dark:text-red-300">
           {state.message}
         </span>
       )}

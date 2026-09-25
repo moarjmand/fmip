@@ -63,7 +63,7 @@ function Decide({
       {state !== null && (
         <p
           role="status"
-          className={state.ok ? 'text-sm' : 'text-sm text-red-800'}
+          className={state.ok ? 'text-sm' : 'text-sm text-red-800 dark:text-red-300'}
           data-testid={`analysis-decide-result-${submission}`}
         >
           {state.message}

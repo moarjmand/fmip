@@ -86,7 +86,7 @@ function MuteRow({ locale, mute }: { locale: string; mute: NotificationMute }) {
           Unmute
         </button>
         {state !== null && !state.ok && (
-          <span role="status" className="ms-2 text-xs text-red-800">
+          <span role="status" className="ms-2 text-xs text-red-800 dark:text-red-300">
             {state.message}
           </span>
         )}
@@ -133,7 +133,10 @@ function MuteForm({
         Silence
       </button>
       {state !== null && (
-        <span role="status" className={`text-xs ${state.ok ? '' : 'text-red-800'}`}>
+        <span
+          role="status"
+          className={`text-xs ${state.ok ? '' : 'text-red-800 dark:text-red-300'}`}
+        >
           {state.ok ? (state.message ?? 'Done.') : state.message}
         </span>
       )}
@@ -184,7 +187,7 @@ function KindRow({
           {inProduct ? 'On' : 'Off'}
         </button>
         {state !== null && !state.ok && (
-          <span role="status" className="ms-2 text-xs text-red-800">
+          <span role="status" className="ms-2 text-xs text-red-800 dark:text-red-300">
             {state.message}
           </span>
         )}
@@ -318,7 +321,7 @@ export function NotificationSettingsForm({
           <p
             role="status"
             data-testid="quiet-hours-result"
-            className={quietState.ok ? 'text-sm' : 'text-sm text-red-800'}
+            className={quietState.ok ? 'text-sm' : 'text-sm text-red-800 dark:text-red-300'}
           >
             {quietState.message}
           </p>
