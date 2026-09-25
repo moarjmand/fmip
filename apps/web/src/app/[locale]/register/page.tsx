@@ -27,6 +27,16 @@ export default async function RegisterPage({ params }: { params: Promise<{ local
     );
   }
 
+  if (countries.length === 0) {
+    return (
+      <main className="mx-auto flex max-w-md flex-col gap-4 p-8">
+        <h1 className="text-2xl font-semibold">Register</h1>
+        {/* A required list with nothing in it is a form nobody can submit (D-078). */}
+        <p role="alert">Registration is not open yet: no country has been set up to choose from.</p>
+      </main>
+    );
+  }
+
   const fields: Field[] = [
     {
       name: 'username',

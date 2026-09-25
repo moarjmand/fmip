@@ -39,6 +39,33 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('catalog read
     expect(Object.keys(countries[0] ?? {}).sort()).toEqual(['code', 'id', 'iso2', 'name']);
   });
 
+  /**
+   * Registration offers these rows and requires one, so a database the seed
+   * never touched -- every production one -- must hold them from its
+   * migrations (D-078). The first production deploy found the list empty.
+   */
+  it('offers every FIFA member association, in the order a reader expects', async () => {
+    const response = await app.inject({ method: 'GET', url: '/countries' });
+    const { countries } = response.json() as {
+      countries: { code: string; iso2: string | null; name: string }[];
+    };
+    const codes = new Set(countries.map((c) => c.code));
+    for (const code of ['AFG', 'CIV', 'ENG', 'IRN', 'KVX', 'SCO', 'TAH', 'USA', 'ZIM']) {
+      expect(codes.has(code)).toBe(true);
+    }
+    expect(countries.filter((c) => /^[A-Z]{3}$/.test(c.code)).length).toBeGreaterThanOrEqual(211);
+    // Kosovo is a FIFA member without an ISO 3166 code; nothing is invented.
+    expect(countries.find((c) => c.code === 'KVX')).toMatchObject({ iso2: null, name: 'Kosovo' });
+
+    // Byte order would put these after "Czechia" and "Turks and Caicos Islands".
+    const names = countries.map((c) => c.name);
+    const at = (name: string) => names.indexOf(name);
+    expect(at('Costa Rica')).toBeLessThan(at("Côte d'Ivoire"));
+    expect(at("Côte d'Ivoire")).toBeLessThan(at('Croatia'));
+    expect(at('Tunisia')).toBeLessThan(at('Türkiye'));
+    expect(at('Türkiye')).toBeLessThan(at('Turkmenistan'));
+  });
+
   it('lists active teams and competitions by name for the follow controls', async () => {
     const teams = await app.inject({ method: 'GET', url: '/teams' });
     const competitions = await app.inject({ method: 'GET', url: '/competitions' });

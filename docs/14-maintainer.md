@@ -92,20 +92,17 @@ reads the database rather than the environment (T-071).
 
 **Then the catalogue, once (T-029, D-077).** A licence alone writes nothing:
 the countries, competitions and seasons it covers have to exist here first,
-and a deployment that has just been migrated holds none of them -- no
-migration writes a country or a league, and the seed is refused in
-production. In this order, with `--by` naming the administrator you granted
+and a deployment that has just been migrated holds none of the leagues --
+no migration writes one, and the seed is refused in production. The countries
+are already there: FIFA's 211 member associations arrive with the migrations
+(D-078), because registration needs one. In this order, with `--by` naming the administrator you granted
 yourself (the dates are the ones the provider gave on 2026-09-21):
 
 ```bash
 catalog() { docker compose run --rm migrate node scripts/catalog.mjs "$@"; }
 
-# 1. Countries, by FIFA trigram. England has no ISO code of its own.
-catalog --add-country --code ENG --name England --by you@your-domain
-catalog --add-country --code ESP --iso2 ES --name Spain --by you@your-domain
-catalog --add-country --code GER --iso2 DE --name Germany --by you@your-domain
-catalog --add-country --code ITA --iso2 IT --name Italy --by you@your-domain
-catalog --add-country --code FRA --iso2 FR --name France --by you@your-domain
+# 1. Countries: already there (D-078). Only one outside FIFA's list needs
+#    catalog --add-country --code <FIFA trigram> --name "<name>" [--iso2 <XX>]
 
 # 2. Competitions, by the provider's ids.
 catalog --add-competition --external-id 39  --name "Premier League" --kind league --scope domestic --country ENG --by you@your-domain
