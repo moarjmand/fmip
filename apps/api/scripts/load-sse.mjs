@@ -7,6 +7,7 @@
 // the API already has.
 //
 //   DATABASE_URL=... node scripts/load-sse.mjs --url http://127.0.0.1:3151 --clients 500 --seconds 60 --changes 10,25,40
+//   ... --season <uuid> --home <team uuid> --away <team uuid>   (an unseeded database)
 import http from 'node:http';
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
@@ -21,11 +22,13 @@ const URL_BASE = args.url ?? 'http://127.0.0.1:3001';
 const CLIENTS = Number(args.clients ?? 500);
 const SECONDS = Number(args.seconds ?? 60);
 const CHANGE_AT_SECONDS = (args.changes ?? '10,25,40').split(',').map(Number);
-// A day nothing else uses, in the seeded current season, between two seeded clubs.
+// A day nothing else uses, between two clubs of a season that exists. The
+// defaults are the seed's; a production database is never seeded, so there
+// the run names a real season and two of its clubs (docs/08-load-test.md).
 const DAY = '2087-01-05';
-const SEASON = '00000000-0000-4000-8000-000000000302';
-const HOME = '00000000-0000-4000-8000-000000000602';
-const AWAY = '00000000-0000-4000-8000-000000000601';
+const SEASON = args.season ?? '00000000-0000-4000-8000-000000000302';
+const HOME = args.home ?? '00000000-0000-4000-8000-000000000602';
+const AWAY = args.away ?? '00000000-0000-4000-8000-000000000601';
 
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const fixtureId = randomUUID();
