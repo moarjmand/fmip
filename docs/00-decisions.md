@@ -2768,3 +2768,42 @@ by name with a similarity threshold*: the first time it is wrong it merges two
 clubs, and nothing downstream can tell. *Adopting people as well as teams*: a
 person is a career, not a row -- 25 are queued and they wait for a decision of
 their own.
+
+## D-078 — The migrations write FIFA's member associations, because registration requires a country and production is never seeded
+
+**Status:** decided · **Date:** 2026-09-25 · **Task:** T-040 · **Follows:** D-077
+
+**The problem.** Registration requires a country (blueprint 7.1,
+`user_account.country_id`) and offers the rows of `country`. No migration wrote
+one and the seed is refused in production, so a freshly deployed platform
+showed a required list with nothing in it, and nobody could register. The
+first production deploy found it on 2026-09-25, at the first attempt to create
+the first account. Every test environment is seeded, so nothing had ever seen
+an empty list.
+
+**The decision.** `1763300000000_member-countries.sql` writes FIFA's 211 member
+associations, keyed by the FIFA trigram as every `country` row is: the
+football country a member identifies with. England, Scotland, Wales and
+Northern Ireland are four rows with no ISO code; Kosovo (`KVX`) has none
+either, because XK is not in ISO 3166 and inventing one is what rule 3
+forbids. The nine rows the development seed also writes keep the seed's ids;
+any row that already exists by code or ISO code is left as it is. The down
+migration removes the rest of these codes, keeping any row something points
+at.
+
+**The order is ICU's.** `GET /countries` sorts with `COLLATE "und-x-icu"`: the
+Alpine image's default collation is byte order, which files "Côte d'Ivoire"
+after "Czechia" and "Türkiye" after "Turks and Caicos Islands".
+
+**An empty list says so.** The register page, given no country at all, says
+registration is not open yet rather than rendering a form nobody can submit.
+
+**Not the territory list.** Where a member watches from is `territory`
+(T-312), ISO 3166, a different question; neither is read as the other.
+
+**Rejected.** *Leaving it to `catalog.mjs --add-country`*: every deployment
+would start unable to register, and a member from a country the operator did
+not think of would have no honest answer. *The full ISO list*: `country.code`
+is a FIFA trigram by constraint, and England is a football country ISO does
+not have. *A member from outside FIFA's list* (Monaco, Greenland) has no row;
+`--add-country` adds one when somebody asks.

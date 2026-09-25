@@ -412,9 +412,8 @@ async function addCompetition(client, options) {
       [options.country],
     );
     if (country.rows[0] === undefined) {
-      // A fresh deployment holds no country at all -- no migration writes one
-      // and the seed is refused in production -- so this is the first thing
-      // every domestic league meets on a new server.
+      // Every FIFA member association arrives with the migrations (D-078), so
+      // this is a code mistyped, or a country outside FIFA's list.
       console.error(
         `No country with the code ${options.country}. Add it first:
 ` + '  --add-country --code <FIFA trigram> --name "<name>" [--iso2 <XX>]',

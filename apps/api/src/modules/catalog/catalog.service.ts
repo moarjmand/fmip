@@ -73,7 +73,10 @@ export class CatalogService {
 
   async countries(): Promise<CountrySummary[]> {
     const { rows } = await this.pool.query<CountrySummary>(
-      `SELECT id, code, iso2, name FROM country ORDER BY name`,
+      // The database's own collation is byte order on the Alpine image, which
+      // files "Côte d'Ivoire" after "Czechia" and "Türkiye" after "Turks and
+      // Caicos Islands"; ICU's root order is the one a reader expects.
+      `SELECT id, code, iso2, name FROM country ORDER BY name COLLATE "und-x-icu"`,
     );
     return rows;
   }

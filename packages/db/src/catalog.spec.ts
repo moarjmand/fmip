@@ -80,9 +80,9 @@ describe('catalog arguments', () => {
   });
 
   /**
-   * A freshly migrated database holds no country -- no migration writes one
-   * and the seed is refused in production -- so every domestic league on a
-   * new server starts here.
+   * The migrations write FIFA's member associations (D-078); this is for a
+   * country outside that list, and was once the only way a new server got
+   * one at all.
    */
   it('reads a country by its FIFA trigram, with an ISO code only where one exists', () => {
     expect(
