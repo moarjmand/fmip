@@ -107,11 +107,14 @@ with its own filters) and serialises it: the work is linear in clients, and
 that is the whole slope of the change-propagation column. Two remedies, in
 order, when the peak grows past 1,000:
 
-1. **One snapshot per distinct query per change**: subscribers with the same
-   filters share one read and one serialisation. Most clients on a match day
-   watch the same day in the same zone, so this collapses the linear term
-   almost entirely. A cache keyed by the parsed filters, invalidated by the
-   same debounce that triggers the refresh.
+1. **One snapshot per distinct query per change** -- **done on 2026-09-26**,
+   after the server run above failed at 1,000: subscribers with the same
+   filters (and the same viewer, since favourites are pinned per member)
+   share one read and one serialisation, and so do the streams of one match.
+   `apps/api/src/modules/fixtures/internal/shared-snapshots.ts` joins a read
+   already in flight rather than caching a finished one, and only when no
+   change has arrived since that read began, so nothing older than a fresh
+   read is ever served (rule 4).
 2. **More processes**: the fan-out is per process and Postgres `NOTIFY`
    reaches all of them, so N processes behind Cloudflare carry N × the
    figure above with no coordination.
