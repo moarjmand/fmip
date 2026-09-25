@@ -138,11 +138,14 @@ if [ -z "${SETUP_CHECK_API:-}" ] && [ -n "${SITE_HOST:-}" ]; then
   # The address that was actually asked, port and all -- one value, so what is
   # printed here and in the header above cannot drift apart.
   site_url="$(public_origin)/en"
-  code="$(curl -sk -m 15 -o /dev/null -w '%{http_code}' \
-    "$site_url" 2>/dev/null || echo '000')"
+  # curl prints 000 through -w itself when it cannot connect, then exits
+  # non-zero; an `|| echo 000` on top of that made the code 000000, missed the
+  # branch below and printed a bare number instead of what to check.
+  code="$(curl -sk -m 15 -o /dev/null -w '%{http_code}' "$site_url" 2>/dev/null || true)"
+  [ -n "$code" ] || code='000'
   case "$code" in
     200) require 'Public site' 'ok' "$site_url answered 200" ;;
-    000) require 'Public site' 'FAILED' "$site_url did not answer -- is Caddy up, and do the certificates match?" ;;
+    000) require 'Public site' 'FAILED' "$site_url did not answer -- check the Cloudflare A record (proxied, pointing at this server) and SSL mode Full (strict), then that Caddy is up and the origin certificate matches its key" ;;
     *) require 'Public site' 'FAILED' "$site_url answered $code" ;;
   esac
 fi
