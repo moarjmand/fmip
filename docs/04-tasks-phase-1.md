@@ -1329,7 +1329,9 @@ per change; more processes), and when to rerun (before T-074 on the VPS,
 after any live-path change, before a known big match). Lint clean (Node
 globals declared for `scripts/`).
 
-**T-074 done on 2026-09-25: FMIP is live at `traveltohormuz.ir`.** The runbook ran on the real server (Hetzner CPX22 behind Cloudflare), and the acceptance criterion held there: `verify-rollout.sh` rolled `api` then `web` on the production host with **47 of 47 probes answering 200**. The load test was rerun on the server (`08-load-test.md`): 500 clients pass D-047, 1,000 are all served but outside its latencies, and the runbook's first remedy followed. The details are the 2026-09-25 row of `09-deploy.md`, "Record".
+**T-074 done on 2026-09-25: FMIP is live at `traveltohormuz.ir`.** The runbook ran on the real server (Hetzner CPX22 behind Cloudflare), and the acceptance criterion held there: `verify-rollout.sh` rolled `api` then `web` on the production host with **47 of 47 probes answering 200**. The load test was rerun on the server (`08-load-test.md`): 1,000 clients were all served but outside D-047's latencies until the runbook's
+first remedy (PR #252) landed the same evening; after it, 1,000 and 2,000 clients both pass, a change reaching
+every client in under half a second (p95). The details are the 2026-09-25 row of `09-deploy.md`, "Record".
 
 **Prepared and rehearsed on 2026-09-12.**
 Everything that does not need the server exists and was exercised: the
