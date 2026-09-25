@@ -14,6 +14,7 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { FixturesService, parseScoresQuery } from './fixtures.service';
 import { FixtureChangeFeed, type FixtureChange } from './internal/change-feed';
+import { SharedSnapshots } from './internal/shared-snapshots';
 import { SSE_HEADERS, SSE_PING, debounce, sseEvent } from './internal/sse';
 
 /** Tunables the tests shorten; production takes the defaults. */
@@ -42,6 +43,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  */
 @Controller()
 export class StreamController {
+  /** One read per distinct snapshot at a time, across every open stream. */
+  private readonly shared = new SharedSnapshots();
+
   constructor(
     private readonly fixtures: FixturesService,
     private readonly identity: IdentityService,
@@ -83,6 +87,9 @@ export class StreamController {
     }
 
     await this.serve(request, reply, {
+      // The same filters for the same viewer are the same snapshot: the viewer
+      // is in the key because favourites are pinned per member.
+      key: `scores:${viewerId ?? ''}:${JSON.stringify(parsed.filters)}`,
       snapshot: async () => {
         const outcome = await this.fixtures.scores(parsed.filters, viewerId);
         return outcome.kind === 'ok' ? outcome.response : null;
@@ -108,6 +115,7 @@ export class StreamController {
       throw new NotFoundException(error);
     }
     await this.serve(request, reply, {
+      key: `fixture:${fixtureId}`,
       snapshot: () => this.fixtures.matchCentre(fixtureId),
       // A panel post is a change to this fixture that the match centre does not
       // show, so it must not cost every open page a snapshot; it goes out as
@@ -124,6 +132,8 @@ export class StreamController {
     request: FastifyRequest,
     reply: FastifyReply,
     source: {
+      /** Streams with the same key are served the same snapshot. */
+      key: string;
       snapshot: () => Promise<T | null>;
       concerns: (change: FixtureChange) => boolean;
       /** Changes that mean "the public discussion moved" rather than "the match moved". */
@@ -141,12 +151,14 @@ export class StreamController {
       if (open) raw.write(chunk);
     };
     const send = async (): Promise<void> => {
-      const data = await source.snapshot();
-      if (data === null) {
-        write(sseEvent('stale', { reason: 'gone', at: new Date().toISOString() }));
-        return;
-      }
-      write(sseEvent('snapshot', data, new Date().toISOString()));
+      write(
+        await this.shared.event(source.key, async () => {
+          const data = await source.snapshot();
+          return data === null
+            ? sseEvent('stale', { reason: 'gone', at: new Date().toISOString() })
+            : sseEvent('snapshot', data, new Date().toISOString());
+        }),
+      );
     };
 
     const refresh = debounce(this.options.debounceMs, () => {
@@ -173,6 +185,7 @@ export class StreamController {
 
     const unsubscribe = await this.feed.subscribe(
       (change) => {
+        this.shared.noteChange();
         if (source.concerns(change)) refresh.trigger();
         else if (source.panel?.(change)) panel.trigger();
       },
