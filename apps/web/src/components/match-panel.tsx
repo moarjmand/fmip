@@ -189,7 +189,7 @@ function Compose({ locale, fixtureId }: { locale: string; fixtureId: string }) {
         <p
           role="status"
           data-testid="panel-compose-result"
-          className={state.ok ? 'text-sm' : 'text-sm text-red-800'}
+          className={state.ok ? 'text-sm' : 'text-sm text-red-800 dark:text-red-300'}
         >
           {state.message}
         </p>

@@ -43,7 +43,7 @@ function OpenThread({
       {state !== null && !state.ok && (
         <p
           role="status"
-          className="text-sm text-red-800"
+          className="text-sm text-red-800 dark:text-red-300"
           data-testid={`open-thread-${group.slug}-result`}
         >
           {state.message}

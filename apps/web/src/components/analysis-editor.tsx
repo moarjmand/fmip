@@ -106,7 +106,9 @@ export function AnalysisEditor({
             <option value="away">Away win</option>
           </select>
           {fields.predicted_outcome !== undefined && (
-            <span className="text-xs text-red-800">{fields.predicted_outcome}</span>
+            <span className="text-xs text-red-800 dark:text-red-300">
+              {fields.predicted_outcome}
+            </span>
           )}
         </label>
 
@@ -133,7 +135,7 @@ export function AnalysisEditor({
           </label>
         </div>
         {fields.predicted_home !== undefined && (
-          <span className="text-xs text-red-800">{fields.predicted_home}</span>
+          <span className="text-xs text-red-800 dark:text-red-300">{fields.predicted_home}</span>
         )}
 
         <label className="flex flex-col gap-1 text-sm">
@@ -147,7 +149,7 @@ export function AnalysisEditor({
             className="w-24 rounded border border-current/30 bg-transparent p-1"
           />
           {fields.confidence !== undefined && (
-            <span className="text-xs text-red-800">{fields.confidence}</span>
+            <span className="text-xs text-red-800 dark:text-red-300">{fields.confidence}</span>
           )}
         </label>
 
@@ -166,7 +168,7 @@ export function AnalysisEditor({
             An analysis without reasoning is a prediction, and we already have those.
           </span>
           {fields.reasoning !== undefined && (
-            <span className="text-xs text-red-800">{fields.reasoning}</span>
+            <span className="text-xs text-red-800 dark:text-red-300">{fields.reasoning}</span>
           )}
         </label>
 
@@ -200,7 +202,7 @@ export function AnalysisEditor({
           <p
             role="status"
             data-testid="analysis-save-result"
-            className={saveState.ok ? 'text-sm' : 'text-sm text-red-800'}
+            className={saveState.ok ? 'text-sm' : 'text-sm text-red-800 dark:text-red-300'}
           >
             {saveState.message}
           </p>
@@ -220,7 +222,7 @@ export function AnalysisEditor({
           <p
             role="status"
             data-testid="analysis-submit-result"
-            className={submitState.ok ? 'text-sm' : 'text-sm text-red-800'}
+            className={submitState.ok ? 'text-sm' : 'text-sm text-red-800 dark:text-red-300'}
           >
             {submitState.message}
           </p>

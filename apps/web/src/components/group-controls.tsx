@@ -42,7 +42,7 @@ function ActionButton({
         className={
           quiet
             ? 'self-start rounded border border-current/30 px-3 py-1 text-sm disabled:opacity-50'
-            : 'self-start rounded bg-current px-3 py-1 text-sm font-medium text-white disabled:opacity-50 dark:text-black'
+            : 'self-start rounded bg-[color:CanvasText] px-3 py-1 text-sm font-medium text-[color:Canvas] disabled:opacity-50'
         }
       >
         {pending ? 'Working…' : label}
@@ -50,7 +50,7 @@ function ActionButton({
       {state !== null && (
         <p
           role="status"
-          className={`text-sm ${state.ok ? 'opacity-70' : 'text-red-800'}`}
+          className={`text-sm ${state.ok ? 'opacity-70' : 'text-red-800 dark:text-red-300'}`}
           data-testid={`${testId}-result`}
         >
           {state.ok ? (state.message ?? 'Done.') : state.message}
@@ -84,14 +84,14 @@ function AskToJoin({ locale, slug }: { locale: string; slug: string }) {
         type="submit"
         disabled={pending}
         data-testid="group-ask"
-        className="self-start rounded bg-current px-3 py-1 text-sm font-medium text-white disabled:opacity-50 dark:text-black"
+        className="self-start rounded bg-[color:CanvasText] px-3 py-1 text-sm font-medium text-[color:Canvas] disabled:opacity-50"
       >
         {pending ? 'Working…' : 'Ask to join'}
       </button>
       {state !== null && (
         <p
           role="status"
-          className={`text-sm ${state.ok ? 'opacity-70' : 'text-red-800'}`}
+          className={`text-sm ${state.ok ? 'opacity-70' : 'text-red-800 dark:text-red-300'}`}
           data-testid="group-ask-result"
         >
           {state.ok ? (state.message ?? 'Done.') : state.message}

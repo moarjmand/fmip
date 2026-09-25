@@ -10,8 +10,31 @@
   color-scheme: light dark;
 }
 
+/*
+ * The page's colours are the scheme's own, said out loud: a body with no
+ * background is painted by the browser in the scheme's colour, but read as
+ * white by anything that computes contrast -- which is how light text on a
+ * dark page passed as "unknown" rather than being checked at all.
+ */
 body {
   min-block-size: 100dvh;
+  background-color: Canvas;
+  color: CanvasText;
+}
+
+/*
+ * A select's open list is drawn by the browser, which paints each option on
+ * its own background. A select styled `bg-transparent` left that to the
+ * default white while the options inherited the dark scheme's light text: an
+ * open list with nothing readable in it. The page's own colours, which follow
+ * the scheme, fix every select at once; a utility can still override them.
+ */
+@layer base {
+  option,
+  optgroup {
+    background-color: Canvas;
+    color: CanvasText;
+  }
 }
 
 /*
