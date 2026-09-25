@@ -165,12 +165,16 @@ once per new season; the schedule keeps it fresh.
 **Why yours.** It runs on a machine that does not exist yet, and buying it is a
 purchase.
 
-**What it unblocks.** The product having a home. `docs/09-deploy.md` is the
-runbook; it was rehearsed end to end on 2026-09-12 and is open only because
-nobody has run it on a VPS.
+**Done on 2026-09-25.** You bought the server (Hetzner CPX22) and the domain
+sits behind Cloudflare; the runbook ran on it, the zero-downtime check passed on
+the real host (47 of 47), and the load test was rerun there. FMIP is live at
+`https://traveltohormuz.ir` with real fixtures, an administrator, nightly
+off-site backups and a passed restore drill. The record is the 2026-09-25 row of
+`docs/09-deploy.md`.
 
-**Before it:** rerun the load test (`docs/08-load-test.md`) against the VPS, not
-against a laptop.
+**Still yours on it:** the server's SSH settings (step 1 of the runbook now
+turns password logins off; the live server predates that line), and the three
+optional capabilities `check-setup.sh` lists as `off`.
 
 ## 4. The launch review (T-084)
 
