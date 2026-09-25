@@ -40,6 +40,19 @@ DATABASE_URL=... SESSION_SECRET=... MODEL_SERVICE_URL=http://127.0.0.1:8000 API_
 DATABASE_URL=... node apps/api/scripts/load-sse.mjs --url http://127.0.0.1:3151 --clients 1000 --seconds 60
 ```
 
+The temporary fixture goes into the seed's current season between two seeded
+clubs. A production database is never seeded: there, name a real current
+season and two of its clubs with `--season`, `--home` and `--away`, and run
+the tool from the API image on the compose network, so it measures the API
+process rather than the edge:
+
+```bash
+docker compose run --rm --no-deps -T   -v "$PWD/apps/api/scripts/load-sse.mjs:/app/load-sse.mjs:ro"   --entrypoint node api load-sse.mjs --url http://api:3001 --clients 1000 --seconds 60   --season <season uuid> --home <team uuid> --away <team uuid>
+```
+
+The fixture is on 2087-01-05, which no feed or job reaches, and is deleted
+when the run ends.
+
 `GET /health/live` reports the subscriber count while it runs (T-071); the
 report records what it said at each change.
 
@@ -58,7 +71,26 @@ milliseconds; the API's resident memory is Windows' working set.
 ¹ Measured from the previous event, which at these sizes was the change
 snapshot ~10 s before the heartbeat; the heartbeat itself is every 15 s.
 
-**Verdict:** pass at 1,000 (every measure inside the threshold). At 2,000
+2026-09-25, **the production server**: Hetzner CPX22 (2 shared AMD vCPUs,
+4 GB), the tool running from the API image on the compose network against
+`http://api:3001` -- so the API process, not the edge -- with Postgres, Redis,
+the model, the web app, Caddy and the tool on the same two cores. The
+temporary fixture went into the real Premier League 2026/27 season (the
+database is not seeded) and was gone after each run.
+
+| Clients | Refused / dropped | First snapshot p50 / p95 | Change → client p50 / p95 / max | Heartbeat gap p95 | Verdict |
+| --- | --- | --- | --- | --- | --- |
+| 500 | 0 / 0 | 1,023 / 1,348 | 1,124 / 1,765 / 1,903 | 4.6 s¹ | pass |
+| 1,000 | 0 / 0 | 1,717 / 2,373 | 1,848 / 3,159 / 3,305 | 4.5 s¹ | **fail**: both latencies outside the threshold |
+
+**Verdict on the server:** every client is served and nothing is dropped at
+1,000, but one process on this machine meets D-047's latencies only up to
+somewhere between 500 and 1,000 clients. The laptop's pass below does not
+carry over to two shared cores. The remedies under "What limits it" are the
+answer, in their order; until one lands, 500 is what the launch server is
+proven to carry.
+
+**Verdict on the laptop:** pass at 1,000 (every measure inside the threshold). At 2,000
 every client is still served and nothing is dropped, but a change takes
 3.4 s (p95) to reach everyone — outside the threshold. The knee is between
 1,000 and 2,000 clients per process on this hardware.
