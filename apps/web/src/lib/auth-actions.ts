@@ -15,6 +15,7 @@ import type {
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { type ApiResult, apiRequest } from './api';
+import { afterRegistration, readInviter } from './invite';
 import { applyApiSetCookie, sessionCookieHeader } from './session';
 
 /**
@@ -66,7 +67,10 @@ export async function registerAction(
   if (!result.ok) return failure(result);
 
   await applyApiSetCookie(result.setCookie);
-  redirect(`/${locale}/u/${encodeURIComponent(result.data.user.username)}`);
+  // Through a member's invite link, the new member lands on the inviter's
+  // profile and its friend-request control; nothing is sent for them (T-522).
+  const inviter = readInviter(text(formData, 'invited_by') || undefined);
+  redirect(afterRegistration(locale, result.data.user.username, inviter));
 }
 
 export async function loginAction(
