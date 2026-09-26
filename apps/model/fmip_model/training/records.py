@@ -33,7 +33,11 @@ SELECT s.label, (f.kickoff_at AT TIME ZONE 'UTC')::date, h.team_id::text, a.team
   JOIN fixture_participant h ON h.fixture_id = f.id AND h.side = 'home'
   JOIN fixture_participant a ON a.fixture_id = f.id AND a.side = 'away'
   JOIN fixture_score sc ON sc.fixture_id = f.id AND sc.kind = 'full_time'
- WHERE c.football_data_division = %s AND f.status = 'finished'
+ WHERE f.status = 'finished'
+   AND CASE WHEN %s = 'XL'
+            -- Across leagues: every competition that is not one domestic league (T-533).
+            THEN c.kind <> 'league' OR c.scope <> 'domestic'
+            ELSE c.football_data_division = %s END
  ORDER BY f.kickoff_at, f.id
 """
 
@@ -49,9 +53,14 @@ class RecordedMatch:
 
 
 def recorded_matches(conn: Connection[tuple[object, ...]], division: str) -> list[RecordedMatch]:
-    """Every finished match we hold for the competitions set to ``division``."""
+    """Every finished match we hold for the competitions set to ``division``.
+
+    ``XL`` is not a competition's division but the matches between clubs of
+    different leagues: every competition that is not one domestic league, as
+    the API decides it (T-503, T-533).
+    """
     with conn.cursor() as cur:
-        cur.execute(RECORDED_MATCHES_SQL, (division,))
+        cur.execute(RECORDED_MATCHES_SQL, (division, division))
         rows = cur.fetchall()
     return [
         RecordedMatch(

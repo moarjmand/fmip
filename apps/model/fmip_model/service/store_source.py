@@ -9,7 +9,8 @@ from datetime import UTC, date, datetime
 
 import psycopg
 
-from ..model.data import elo_on, matches_before
+from ..model.cross_league import CROSS_LEAGUE
+from ..model.data import elo_on, every_match_before, matches_before
 from ..model.dixon_coles import MatchObservation
 from ..training.load import load_records
 from ..training.sources import OUR_RECORDS
@@ -55,6 +56,11 @@ class PostgresTrainingSource(TrainingSource):
     def elo(self, day: date) -> Mapping[str, float]:
         with psycopg.connect(self.database_url) as conn:
             return elo_on(conn, day)
+
+    def every_match(self, since: date, until: date) -> Sequence[tuple[str, MatchObservation]]:
+        self.refresh(CROSS_LEAGUE)
+        with psycopg.connect(self.database_url) as conn:
+            return every_match_before(conn, until, since=since)
 
     def refresh(self, division: str) -> None:
         today = self.today()

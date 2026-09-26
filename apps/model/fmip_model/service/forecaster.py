@@ -6,6 +6,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 
+from ..model.cross_league import CROSS_LEAGUE, fit_joint, groups_for
 from ..model.dixon_coles import FittedModel, MatchObservation, fit
 from ..model.version import BASELINE, ModelVersion
 from .contract import (
@@ -38,6 +39,10 @@ class TrainingSource:
     def elo(self, day: date) -> Mapping[str, float]:
         raise NotImplementedError
 
+    def every_match(self, since: date, until: date) -> Sequence[tuple[str, MatchObservation]]:
+        """Every division's matches, clubs named by catalogue id (T-533)."""
+        raise NotImplementedError
+
 
 @dataclass
 class CachedFit:
@@ -67,6 +72,9 @@ class Forecaster:
         now = self.clock()
         # History strictly before kick-off day; never later than today.
         fit_date = min(request.kickoff_at.date(), now.date()) - timedelta(days=1)
+
+        if request.division == CROSS_LEAGUE:
+            return self._across_leagues(request, now, fit_date)
 
         aliases = self.source.aliases(request.division)
         missing = [t for t in (request.home_team_id, request.away_team_id) if t not in aliases]
@@ -98,7 +106,41 @@ class Forecaster:
                 reason="no_history",
                 detail=f"{unknown!r} has no matches in {request.division} before {fit_date}",
             )
+        return self._answer(request, now, cached, home, away)
 
+    def _across_leagues(
+        self, request: ForecastRequest, now: datetime, fit_date: date
+    ) -> ForecastResponse:
+        """Clubs of different leagues, on one scale (T-533) -- only a version that has it."""
+        if self.version.cross_league is None:
+            return Unavailable(
+                fixture_id=request.fixture_id,
+                computed_at=now,
+                reason="division_not_loaded",
+                detail=f"{self.version.id} rates clubs within one league only",
+            )
+        cached = self._joint_fit_for(fit_date)
+        if cached is None:
+            return Unavailable(
+                fixture_id=request.fixture_id,
+                computed_at=now,
+                reason="division_not_loaded",
+                detail=f"fewer than {MIN_HISTORY} matches across leagues before {fit_date}",
+            )
+        home, away = request.home_team_id, request.away_team_id
+        for team in (home, away):
+            if team not in cached.model.attack:
+                return Unavailable(
+                    fixture_id=request.fixture_id,
+                    computed_at=now,
+                    reason="no_history",
+                    detail=f"team {team} has no match in any loaded division before {fit_date}",
+                )
+        return self._answer(request, now, cached, home, away)
+
+    def _answer(
+        self, request: ForecastRequest, now: datetime, cached: CachedFit, home: str, away: str
+    ) -> Forecast:
         outcome = cached.model.predict(home, away)
         h, d, a = outcome.rounded(4)
 
@@ -133,6 +175,37 @@ class Forecaster:
             ),
         )
 
+    def _joint_fit_for(self, fit_date: date) -> CachedFit | None:
+        key = (CROSS_LEAGUE, fit_date)
+        if key in self._fits:
+            return self._fits[key]
+        constants = self.version.cross_league
+        assert constants is not None
+        history_from = fit_date - timedelta(days=self.version.history_days)
+        tagged = self.source.every_match(history_from, fit_date)
+        if len(tagged) < MIN_HISTORY:
+            return None
+        matches = [m for _, m in tagged]
+        model = fit_joint(
+            matches,
+            groups_for(tagged),
+            fit_date,
+            xi=constants.xi,
+            team_ridge=constants.team_ridge,
+            group_ridge=constants.group_ridge,
+        )
+        cached = CachedFit(
+            CROSS_LEAGUE,
+            fit_date,
+            model,
+            elo_used=False,
+            history_from=history_from,
+            matches_per_team=matches_per_team(matches),
+        )
+        self._fits = {k: v for k, v in self._fits.items() if k[0] != CROSS_LEAGUE}
+        self._fits[key] = cached
+        return cached
+
     def _fit_for(self, division: str, fit_date: date) -> CachedFit | None:
         key = (division, fit_date)
         if key in self._fits:
@@ -153,22 +226,26 @@ class Forecaster:
             ridge=ridge,
             elo_weight=self.version.elo_weight,
         )
-        per_team: dict[str, int] = {}
-        for m in matches:
-            per_team[m.home] = per_team.get(m.home, 0) + 1
-            per_team[m.away] = per_team.get(m.away, 0) + 1
         cached = CachedFit(
             division,
             fit_date,
             model,
             elo_used=bool(elo),
             history_from=history_from,
-            matches_per_team=per_team,
+            matches_per_team=matches_per_team(matches),
         )
         # One fit per division is enough to keep; yesterday's is never asked for again.
         self._fits = {k: v for k, v in self._fits.items() if k[0] != division}
         self._fits[key] = cached
         return cached
+
+
+def matches_per_team(matches: Sequence[MatchObservation]) -> dict[str, int]:
+    per_team: dict[str, int] = {}
+    for m in matches:
+        per_team[m.home] = per_team.get(m.home, 0) + 1
+        per_team[m.away] = per_team.get(m.away, 0) + 1
+    return per_team
 
 
 def leading_factors(model: FittedModel, home: str, away: str) -> list[LeadingFactor]:
