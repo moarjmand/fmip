@@ -111,7 +111,7 @@ partial run.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-510 | The league on the server: provider facts, competition, season, teams, backfill, and each module's coverage as the feed supplies it | T-500, T-501 | Scores, table and match pages; every module the feed lacks says so in a sentence |
+| `[x]` T-510 | The league on the server: provider facts, competition, season, teams, backfill, and each module's coverage as the feed supplies it | T-500, T-501 | Scores, table and match pages; every module the feed lacks says so in a sentence |
 | `[ ]` T-511 | **Decision gate:** whether the model forecasts Iranian matches, and from which licensed history | — | A decision entry; neither football-data.co.uk nor Club Elo covers the league |
 | `[ ]` T-512 | The league's forecasts, per T-511 | T-511, T-530 | Its history in the training store under its own division, a backtest beside the others, and a forecast in the seven-day window |
 
@@ -129,10 +129,10 @@ from our own records (T-112) and says what it cannot measure.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[~]` T-520 | Share cards: an Open Graph image for a match, a competition table and a member's settled prediction, rendered with `next/og` | T-065 | A link pasted into Telegram shows the card; a card never shows what its page does not, and a private profile's prediction has none |
-| `[ ]` T-521 | A share control on the match centre and after a prediction is saved | T-520 | The platform's share sheet where there is one, a copied link where not; the link carries nothing about the sharer |
-| `[ ]` T-522 | Invite links: a member's link, and a sign-up through it offered a friend request to the inviter | T-040, T-201 | The new member may decline; there is no reward and no ranking of inviters |
-| `[ ]` T-523 | A page for a first visit: what the product is, the three prediction products, how a rating is earned | — | Linked from the homepage for signed-out visitors; every claim on it is true of the product as deployed |
+| `[x]` T-520 | Share cards: an Open Graph image for a match, a competition table and a member's settled prediction, rendered with `next/og` | T-065 | A link pasted into Telegram shows the card; a card never shows what its page does not, and a private profile's prediction has none |
+| `[x]` T-521 | A share control on the match centre and after a prediction is saved | T-520 | The platform's share sheet where there is one, a copied link where not; the link carries nothing about the sharer |
+| `[x]` T-522 | Invite links: a member's link, and a sign-up through it offered a friend request to the inviter | T-040, T-201 | The new member may decline; there is no reward and no ranking of inviters |
+| `[x]` T-523 | A page for a first visit: what the product is, the three prediction products, how a rating is earned | — | Linked from the homepage for signed-out visitors; every claim on it is true of the product as deployed |
 | `[ ]` T-524 | **Decision gate:** a Telegram channel the product posts to | — | The maintainer creates the bot and the channel and puts the token on the server themselves |
 | `[ ]` T-525 | A daily post: the day's covered matches with the model's forecast, each linking to its match | T-524, T-520 | Labelled as the model's; a day with no matches posts nothing |
 
@@ -148,9 +148,9 @@ about football -- a chat, a channel -- and let one member bring another.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-530 | The baseline restated at scale: the backtest over every loaded division and the last three seasons, against the market and uniform | T-062, T-502 | Per-division log loss and Brier recorded as the numbers a candidate must beat |
-| `[ ]` T-531 | Shadow forecasts: a candidate version computed beside the published one for every match, stored and never shown | T-064, T-066 | The evaluation records read both; the match page is unchanged |
-| `[ ]` T-532 | The constants D-029 left to the backtest -- time decay, ridge, Elo weight -- tuned per division | T-530, T-531 | Frozen into the candidate only where they beat the baseline out of sample |
+| `[x]` T-530 | The baseline restated at scale: the backtest over every loaded division and the last three seasons, against the market and uniform | T-062, T-502 | Per-division log loss and Brier recorded as the numbers a candidate must beat |
+| `[x]` T-531 | Shadow forecasts: a candidate version computed beside the published one for every match, stored and never shown | T-064, T-066 | The evaluation records read both; the match page is unchanged |
+| `[~]` T-532 | The constants D-029 left to the backtest -- time decay, ridge, Elo weight -- tuned per division | T-530, T-531 | Frozen into the candidate only where they beat the baseline out of sample |
 | `[ ]` T-533 | European cup matches on one scale: clubs of two leagues forecast from Club Elo and each side's domestic strength | T-531, T-060 | In shadow until the season's cup results show it calibrated; its limits stated in the model's docs |
 | `[ ]` T-534 | Line-ups and absences in expected goals: the T-112 measurement as an additive term | T-531, T-112, T-103 | Fitted on our own recorded matches, since the history holds no line-ups; in shadow |
 | `[ ]` T-535 | Promotion: the candidate replaces the published version only on the evaluation | T-531 | A decision entry with the numbers; stored forecasts keep their version (rule 5) |
@@ -230,4 +230,89 @@ model's name when the page shows one; or the top six of the current season's
 table. A page that cannot be read gives a card with the product's name and
 nothing about the match. A member's settled prediction is the part still to
 come, with the rule that a private profile has no card.
+
+---
+
+**T-510 done on 2026-09-26.** The Persian Gulf Pro League is on the server
+(provider id 290, 2026/27 as the provider dates it, 14 August to 8 November so
+far), backfilled with the others. Its matches carry scores, events and line-ups;
+the provider supplies neither match nor player statistics for it and no
+availability, and each of those modules says so rather than waiting. Its forecast
+panel says the league's history is not in the model's training data, which is
+T-511's question and the maintainer's.
+
+**T-520 done on 2026-09-26.** The third card is a member's: their name, their
+rating as the profile shows it and their three latest settled predictions,
+built from requests made without a session, so a friends-only or private
+profile gets the product's name and nothing about the member. The first real
+card on the server also showed a long name wrapping against the edge; the name
+columns are now equal and a long name is set smaller.
+
+**T-521 done on 2026-09-26.** The match centre has a share control beside its
+time zone, and a saved prediction offers one under the confirmation: the
+platform's share sheet where there is one, a copied link where not, the link to
+copy by hand when neither works. The link is the page's canonical address and
+nothing else.
+
+**T-522 done on 2026-09-26.** A member's own profile has "Invite a friend": the
+registration page naming them. The registration page says who invited the
+visitor, and after signing up they land on the inviter's profile with its own
+friend-request control and a sentence saying nothing has been sent. Nothing is
+stored or counted. A journey test walks it with two members.
+
+**T-523 done on 2026-09-26.** `/about`, offered on the homepage to a visitor who
+is not signed in, says what the product is, the three prediction products and
+how a rating is earned; the competitions and the provisional threshold are read
+from the API, and the rating's weights, an administrator's versioned
+configuration, are described rather than quoted.
+
+**T-530 done on 2026-09-26: the baseline v2 must beat.** The published model
+(`dixon-coles-elo@0.1.0`, no Elo while Club Elo is down) walked forward over
+2024/25 and 2025/26 in all eleven divisions, refitted weekly on history from
+2023/24, against the closing market and a uniform guess (1.0986):
+
+| Division | Season | Forecasts | Log loss (model / market) | Gap | Brier (model / market) | Calibration error |
+|---|---|---|---|---|---|---|
+| E0 | 2024/25 | 377 | 0.9812 / 0.9726 | +0.0086 | 0.5879 / 0.5799 | 0.0505 |
+| E0 | 2025/26 | 378 | 1.0590 / 1.0183 | +0.0407 | 0.6269 / 0.6113 | 0.0431 |
+| SP1 | 2024/25 | 378 | 0.9907 / 0.9527 | +0.0380 | 0.5880 / 0.5635 | 0.0498 |
+| SP1 | 2025/26 | 377 | 0.9989 / 0.9648 | +0.0340 | 0.5917 / 0.5719 | 0.0441 |
+| D1 | 2024/25 | 304 | 1.0569 / 0.9888 | +0.0681 | 0.6303 / 0.5906 | 0.0680 |
+| D1 | 2025/26 | 305 | 1.0050 / 0.9499 | +0.0551 | 0.5909 / 0.5611 | 0.0549 |
+| I1 | 2024/25 | 377 | 0.9917 / 0.9571 | +0.0346 | 0.5940 / 0.5701 | 0.0438 |
+| I1 | 2025/26 | 377 | 1.0105 / 0.9768 | +0.0337 | 0.6039 / 0.5809 | 0.0391 |
+| F1 | 2024/25 | 303 | 1.0006 / 0.9625 | +0.0381 | 0.5890 / 0.5693 | 0.0622 |
+| F1 | 2025/26 | 305 | 1.0159 / 0.9728 | +0.0432 | 0.6091 / 0.5799 | 0.0519 |
+| E1 | 2024/25 | 547 | 1.0535 / 1.0299 | +0.0236 | 0.6358 / 0.6190 | 0.0540 |
+| E1 | 2025/26 | 550 | 1.0789 / 1.0425 | +0.0364 | 0.6522 / 0.6292 | 0.0516 |
+| N1 | 2024/25 | 304 | 1.0017 / 0.9468 | +0.0548 | 0.5966 / 0.5616 | 0.0613 |
+| N1 | 2025/26 | 305 | 1.0023 / 0.9799 | +0.0224 | 0.5951 / 0.5819 | 0.0594 |
+| P1 | 2024/25 | 304 | 0.9626 / 0.9329 | +0.0297 | 0.5676 / 0.5517 | 0.0470 |
+| P1 | 2025/26 | 304 | 0.9307 / 0.9157 | +0.0150 | 0.5525 / 0.5413 | 0.0724 |
+| T1 | 2024/25 | 339 | 0.9478 / 0.9213 | +0.0265 | 0.5584 / 0.5401 | 0.0573 |
+| T1 | 2025/26 | 304 | 1.0024 / 0.9686 | +0.0338 | 0.5992 / 0.5786 | 0.0573 |
+| B1 | 2024/25 | 304 | 1.0358 / 0.9927 | +0.0431 | 0.6178 / 0.5905 | 0.0516 |
+| B1 | 2025/26 | 303 | 1.0544 / 1.0187 | +0.0357 | 0.6307 / 0.6107 | 0.0592 |
+| SC0 | 2024/25 | 227 | 0.9775 / 0.9519 | +0.0256 | 0.5792 / 0.5607 | 0.0531 |
+| SC0 | 2025/26 | 227 | 0.9964 / 0.9704 | +0.0261 | 0.5925 / 0.5774 | 0.0498 |
+| **All** | both | 7499 | 1.0109 / 0.9764 | +0.0345 | 0.6025 / 0.5813 | |
+
+It beats uniform everywhere and trails the market everywhere, by 0.009 to
+0.068; over 7,499 forecasts the gap is 0.0345. The market sees line-ups, news
+and money, so it is the ceiling, not the target: closing part of the gap is.
+
+**T-531 done on 2026-09-26 (D-082).** A candidate model version now runs in
+shadow: every forecast the published version makes is followed by the model
+service's `/forecast/candidate` answer, stored as a forecast with `role =
+'shadow'`, numbered within its role, evaluated after the match and shown
+nowhere. The service answers 404 while it has no candidate, and nothing is
+recorded.
+
+**T-532 under way on 2026-09-26.** `fmip_model.backtest.tune` chooses (xi, ridge)
+per division on 2024/25 and adopts it only if it also beats the published
+constants on 2025/26 by 0.002. The first divisions adopt a longer memory: E0 xi
+0.002 (test log loss 1.0590 to 1.0487) and SP1 xi 0.002 (0.9989 to 0.9859), both
+at the grid's edge, so a second pass widens it (`--xi`). The adopted constants
+become the candidate (`fmip_model/model/candidate.json`) and run in shadow;
+they are published only by T-535.
 
