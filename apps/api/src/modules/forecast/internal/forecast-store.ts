@@ -33,6 +33,11 @@ export interface FixtureForModel {
 export interface NewForecast {
   fixtureId: string;
   kind: ForecastKind;
+  /**
+   * `published` for the version the product shows; `shadow` for a candidate
+   * computed beside it and shown nowhere (T-531). Absent means published.
+   */
+  role?: 'published' | 'shadow';
   modelId: string;
   request: ModelForecastRequest;
   computedAt: Date;
@@ -148,8 +153,9 @@ export class PostgresForecastStore {
   }
 
   async versions(fixtureId: string): Promise<ForecastVersion[]> {
+    // Published versions only: a shadow candidate is never shown (T-531).
     const { rows } = await this.pool.query<ForecastRow>(
-      `${SELECT} WHERE f.fixture_id = $1 ORDER BY f.version_number`,
+      `${SELECT} WHERE f.fixture_id = $1 AND f.role = 'published' ORDER BY f.version_number`,
       [fixtureId],
     );
     return rows.map(toVersion);
@@ -168,9 +174,10 @@ export class PostgresForecastStore {
     const { rows } = await this.pool.query<ForecastRow>(
       `${SELECT}
         WHERE f.fixture_id = ANY($1)
+          AND f.role = 'published'
           AND f.version_number = (
             SELECT MAX(later.version_number) FROM forecast later
-             WHERE later.fixture_id = f.fixture_id
+             WHERE later.fixture_id = f.fixture_id AND later.role = 'published'
           )`,
       [fixtureIds],
     );
@@ -214,11 +221,12 @@ export class PostgresForecastStore {
         `INSERT INTO forecast (
            fixture_id, input_snapshot_id, model_version_id, version_number, computed_at, status,
            p_home, p_draw, p_away, expected_home_goals, expected_away_goals,
-           most_likely, leading_factors, data_completeness, unavailable_reason, unavailable_detail
+           most_likely, leading_factors, data_completeness, unavailable_reason, unavailable_detail,
+           role
          )
          SELECT $1, $2, $3, COALESCE(MAX(version_number), 0) + 1, $4, $5,
-                $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb, $13, $14, $15
-           FROM forecast WHERE fixture_id = $1
+                $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb, $13, $14, $15, $16
+           FROM forecast WHERE fixture_id = $1 AND role = $16
          RETURNING id`,
         [
           input.fixtureId,
@@ -236,6 +244,7 @@ export class PostgresForecastStore {
           input.available?.inputs.data_completeness ?? null,
           input.unavailable?.reason ?? null,
           input.unavailable?.detail ?? null,
+          input.role ?? 'published',
         ],
       );
       const forecastId = forecast.rows[0]?.id;

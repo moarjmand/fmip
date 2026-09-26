@@ -166,7 +166,23 @@ export class ModelClient {
   }
 
   async forecast(request: ModelForecastRequest): Promise<ModelCallResult<ModelForecastResponse>> {
-    const result = await this.call('/forecast', request);
+    return this.forecastAt('/forecast', request);
+  }
+
+  /**
+   * The candidate version's answer to the same question (T-531), for a shadow
+   * forecast; HTTP 404 when the service has no candidate, which is the usual
+   * state and not a failure.
+   */
+  async candidate(request: ModelForecastRequest): Promise<ModelCallResult<ModelForecastResponse>> {
+    return this.forecastAt('/forecast/candidate', request);
+  }
+
+  private async forecastAt(
+    path: string,
+    request: ModelForecastRequest,
+  ): Promise<ModelCallResult<ModelForecastResponse>> {
+    const result = await this.call(path, request);
     if (!result.ok) return result;
 
     const problems = contractProblems(result.data);
