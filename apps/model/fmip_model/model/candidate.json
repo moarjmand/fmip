@@ -1,48 +1,48 @@
 {
   "name": "dixon-coles-elo",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "history_days": 1100,
-  "source": "T-532 tuning on the server, 2026-09-26: chosen on 2024/25, adopted only where it also beat 0.1.0 on 2025/26 by 0.002 (no Club Elo). E1 kept the published constants (gain 0.0019). 2025/26, 3,735 forecasts: log loss 1.0192 -> 1.0110.",
+  "source": "T-532, two tuning passes on the server 2026-09-26 (grids xi 0.002-0.012 x ridge 0.003-0.03, then xi 0.0005-0.003 x ridge 0.03-0.3), no Club Elo. Per division the pair with the lower 2024/25 log loss across both passes, adopted only where it beat 0.1.0 on 2025/26 by 0.002; E1 keeps the published pair. 2025/26, 3,735 forecasts: 0.1.0 1.0192, 0.2.0 1.0110, 0.3.0 1.0087.",
   "per_division": {
     "E0": {
       "xi": 0.002,
       "ridge": 0.003
     },
     "SP1": {
-      "xi": 0.002,
-      "ridge": 0.03
+      "xi": 0.003,
+      "ridge": 0.3
     },
     "D1": {
-      "xi": 0.002,
-      "ridge": 0.03
+      "xi": 0.001,
+      "ridge": 0.3
     },
     "I1": {
-      "xi": 0.002,
-      "ridge": 0.03
+      "xi": 0.001,
+      "ridge": 0.3
     },
     "F1": {
-      "xi": 0.004,
-      "ridge": 0.03
+      "xi": 0.003,
+      "ridge": 0.3
     },
     "N1": {
-      "xi": 0.004,
-      "ridge": 0.01
+      "xi": 0.003,
+      "ridge": 0.3
     },
     "P1": {
-      "xi": 0.002,
-      "ridge": 0.03
+      "xi": 0.0005,
+      "ridge": 0.3
     },
     "T1": {
       "xi": 0.004,
       "ridge": 0.01
     },
     "B1": {
-      "xi": 0.004,
-      "ridge": 0.03
+      "xi": 0.003,
+      "ridge": 0.3
     },
     "SC0": {
-      "xi": 0.002,
-      "ridge": 0.03
+      "xi": 0.001,
+      "ridge": 0.3
     }
   }
 }
