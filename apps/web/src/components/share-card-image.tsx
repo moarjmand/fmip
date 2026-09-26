@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import type { MatchCardText, TableCardText } from '@/lib/share-card';
+import { nameSize, type MatchCardText, type TableCardText } from '@/lib/share-card';
 
 /**
  * The pictures behind the share cards (T-520), for `next/og`'s
@@ -65,19 +65,37 @@ export function MatchCardImage({
       <div style={{ display: 'flex', fontSize: 30, color: MUTED }}>{text.eyebrow}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 36 }}>
+          {/*
+            Equal columns (a zero basis) keep the score in the middle however
+            long either name is; a long name wraps within its own column,
+            against the score, at a size chosen for its length.
+          */}
           <div
             style={{
               display: 'flex',
               flex: 1,
+              flexBasis: 0,
               justifyContent: 'flex-end',
-              fontSize: 58,
+              textAlign: 'end',
+              fontSize: nameSize(text.home),
               fontWeight: 700,
             }}
           >
             {text.home}
           </div>
           <div style={{ display: 'flex', fontSize: 72, fontWeight: 700 }}>{text.centre}</div>
-          <div style={{ display: 'flex', flex: 1, fontSize: 58, fontWeight: 700 }}>{text.away}</div>
+          <div
+            style={{
+              display: 'flex',
+              flex: 1,
+              flexBasis: 0,
+              textAlign: 'start',
+              fontSize: nameSize(text.away),
+              fontWeight: 700,
+            }}
+          >
+            {text.away}
+          </div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'center', fontSize: 32, color: MUTED }}>
           {text.status}

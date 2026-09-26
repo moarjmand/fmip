@@ -93,6 +93,17 @@ export function matchCardText(header: MatchHeader, latest: ForecastVersion | nul
   };
 }
 
+/**
+ * The type size for a team's name on the match card: full size for most, and
+ * smaller for a long one so that two lines of it still sit beside the score
+ * (seen on the server: "Omonia Nicosia", "Gençlerbirliği S.K.").
+ */
+export function nameSize(name: string): number {
+  if (name.length <= 12) return 58;
+  if (name.length <= 18) return 50;
+  return 42;
+}
+
 export interface TableCardRow extends Pick<TableRow, 'position' | 'played' | 'points'> {
   team: string;
 }
