@@ -21,7 +21,6 @@ from .contract import (
 )
 
 MIN_HISTORY = 60
-HISTORY_DAYS = 400  # a season and a bit: the decay makes older matches nearly weightless anyway
 # A side with fewer matches than this in the window is forecast, but the
 # forecast says "limited": the strengths rest on the prior more than on results.
 MIN_MATCHES_PER_TEAM = 15
@@ -139,18 +138,19 @@ class Forecaster:
         if key in self._fits:
             return self._fits[key]
 
-        history_from = fit_date - timedelta(days=HISTORY_DAYS)
+        history_from = fit_date - timedelta(days=self.version.history_days)
         matches = self.source.matches(division, history_from, fit_date)
         if len(matches) < MIN_HISTORY:
             return None
 
         elo = dict(self.source.elo(fit_date))
+        xi, ridge = self.version.constants_for(division)
         model = fit(
             matches,
             fit_date,
             elo=elo or None,
-            xi=self.version.xi,
-            ridge=self.version.ridge,
+            xi=xi,
+            ridge=ridge,
             elo_weight=self.version.elo_weight,
         )
         per_team: dict[str, int] = {}

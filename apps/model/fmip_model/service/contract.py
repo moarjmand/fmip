@@ -116,4 +116,6 @@ class Health(BaseModel):
     status: Literal["ok"] = "ok"
     service: Literal["model"] = "model"
     model_version: str
+    #: The version offered for shadow forecasts at /forecast/candidate (T-531), or null.
+    candidate_version: str | None = None
     checked_at: datetime
