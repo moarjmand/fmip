@@ -37,6 +37,8 @@ export const PROVIDERS = ['api_football', 'football_data_org', 'highlightly'];
 /** Mirrors `competition_kind_check` and `competition_scope_check`. */
 export const COMPETITION_KINDS = ['league', 'cup', 'super_cup', 'qualifying', 'friendly'];
 export const COMPETITION_SCOPES = ['domestic', 'continental', 'international'];
+/** Mirrors `stage_kind_check` and `stage_legs_check`. */
+export const STAGE_KINDS = ['league', 'group', 'knockout', 'playoff', 'qualifying'];
 const SEASON_LABEL = /^\d{4}(\/\d{2,4})?$/;
 /** The bridge from the provider's clubs to the training data's names (D-080). */
 const DEFAULT_ALIASES = new URL('./data/training-aliases.csv', import.meta.url);
@@ -50,6 +52,7 @@ const VERBS = [
   'add-country',
   'add-competition',
   'add-season',
+  'add-stage',
   'map',
   'set-division',
   'alias-training',
@@ -74,6 +77,8 @@ const VALUED = [
   'iso2',
   'division',
   'file',
+  'order',
+  'legs',
 ];
 
 const USAGE = `Usage (one verb per call):
@@ -86,6 +91,9 @@ const USAGE = `Usage (one verb per call):
                     --scope <${COMPETITION_SCOPES.join('|')}> [--country <ISO>] [--by <address>]
   --add-season --competition <external id> --label <2026/27> --start <YYYY-MM-DD>
                --end <YYYY-MM-DD> [--current] [--by <address>]
+  --add-stage --competition <external id> --name "<the provider’s stage name>"
+              --kind <${STAGE_KINDS.join('|')}> --order <N> [--legs 1|2]
+              [--label <season, default the current one>] [--by <address>]
   --map --type <kind> --external-id <id> --to <internal uuid> [--by <address>]
   --set-division --competition <external id> --division <E0|SP1|...> [--by <address>]
   --alias-training [--file <csv>] [--by <address>]
@@ -141,6 +149,37 @@ export function parseArgs(argv) {
       return { error: '--division is a football-data.co.uk code: E0, SP1, D1, I1, F1.' };
     }
     return { command: 'set-division', provider, by, competition, division };
+  }
+  if (verb === 'add-stage') {
+    const competition = text('competition');
+    const name = text('name');
+    const kind = text('kind');
+    const order = Number(text('order'));
+    const legs = Number(flags.get('legs') ?? '1');
+    const label = text('label');
+    if (competition === '') return { error: '--competition (the provider id) is required.' };
+    if (name === '') return { error: '--name is required: the stage as the provider names it.' };
+    if (!STAGE_KINDS.includes(kind)) {
+      return { error: `--kind must be one of ${STAGE_KINDS.join(', ')}.` };
+    }
+    if (!Number.isInteger(order) || order < 1) {
+      return { error: '--order is the stage’s place in the season: 1, 2, 3 ...' };
+    }
+    if (legs !== 1 && legs !== 2) return { error: '--legs is 1 or 2.' };
+    if (label !== '' && !SEASON_LABEL.test(label)) {
+      return { error: '--label looks like 2026 or 2026/27.' };
+    }
+    return {
+      command: 'add-stage',
+      provider,
+      competition,
+      name,
+      kind,
+      order,
+      legs,
+      label: label === '' ? null : label,
+      by,
+    };
   }
   if (verb === 'alias-training') {
     return {
@@ -600,6 +639,85 @@ async function addSeason(client, options) {
   return 0;
 }
 
+/**
+ * A stage of a season, and the matches already held that belong to it.
+ *
+ * The jobs never create a stage: they look one up by the name the adapter
+ * gives it and leave a match stage-less when none exists. That is harmless
+ * for a domestic league, whose table falls back to the competition's kind,
+ * and it empties the table of a competition that is not a league, such as
+ * the Champions League's league stage (found on the server, 2026-09-26).
+ * The name is the provider's round without its matchday ("League Stage" for
+ * "League Stage - 1"), the rule every adapter applies; the order and the legs
+ * are the operator's to say, since a round's name does not say either.
+ */
+async function addStage(client, options) {
+  const { rows: seasons } = await client.query(
+    `SELECT s.id, s.label
+       FROM provider_mapping pm
+       JOIN season s ON s.competition_id = pm.internal_id
+      WHERE pm.provider = $1 AND pm.entity_type = 'competition' AND pm.external_id = $2
+        AND ($3::text IS NULL AND s.is_current OR s.label = $3)`,
+    [options.provider, options.competition, options.label],
+  );
+  if (seasons[0] === undefined) {
+    console.error(
+      `No ${options.label ?? 'current'} season for ${options.provider} competition ${options.competition}.`,
+    );
+    return 1;
+  }
+  const season = seasons[0];
+
+  await client.query('BEGIN');
+  try {
+    const existing = await client.query('SELECT id FROM stage WHERE season_id = $1 AND name = $2', [
+      season.id,
+      options.name,
+    ]);
+    const stage =
+      existing.rows[0] === undefined
+        ? await client.query(
+            `INSERT INTO stage (season_id, name, kind, sort_order, legs)
+             VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+            [season.id, options.name, options.kind, options.order, options.legs],
+          )
+        : await client.query(
+            `UPDATE stage SET kind = $2, sort_order = $3, legs = $4 WHERE id = $1 RETURNING id`,
+            [existing.rows[0].id, options.kind, options.order, options.legs],
+          );
+    const stageId = stage.rows[0].id;
+    const attached = await client.query(
+      `UPDATE fixture SET stage_id = $1
+        WHERE season_id = $2
+          AND (round = $3 OR round LIKE $4 ESCAPE '\\')
+          AND stage_id IS DISTINCT FROM $1`,
+      [stageId, season.id, options.name, `${options.name.replace(/[\\%_]/g, '\\$&')} - %`],
+    );
+    const audited = await audit(client, options.by, 'catalog.stage_added', 'stage', stageId, {
+      season: season.label,
+      name: options.name,
+      kind: options.kind,
+      sort_order: options.order,
+      legs: options.legs,
+    });
+    await client.query('COMMIT');
+    console.log(
+      `${season.label} ${options.name} (${options.kind}) ` +
+        `${existing.rows[0] === undefined ? 'created' : 'updated'} -> ${stageId}; ` +
+        `${attached.rowCount} match(es) attached.`,
+    );
+    sayIfUnaudited(audited, options.by);
+  } catch (error) {
+    await client.query('ROLLBACK');
+    if (error?.constraint === 'stage_sort_order_unique') {
+      console.error(`${season.label} already has a stage at --order ${options.order}.`);
+      return 1;
+    }
+    throw error;
+  }
+  return 0;
+}
+
 async function map(client, options) {
   const existing = await client.query(
     `SELECT internal_id FROM provider_mapping
@@ -812,6 +930,8 @@ async function main() {
         return await addCompetition(client, parsed);
       case 'add-season':
         return await addSeason(client, parsed);
+      case 'add-stage':
+        return await addStage(client, parsed);
       case 'set-division':
         return await setDivision(client, parsed);
       case 'alias-training':

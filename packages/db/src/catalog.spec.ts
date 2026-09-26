@@ -12,6 +12,7 @@ const {
   COMPETITION_KINDS,
   COMPETITION_SCOPES,
   PROVIDERS,
+  STAGE_KINDS,
   emptyQueueNote,
   parseAliases,
   parseArgs,
@@ -210,6 +211,35 @@ describe('catalog arguments', () => {
       parseArgs(['--set-division', '--competition', '39', '--division', 'EPL']).error,
     ).toContain('football-data.co.uk code');
     expect(parseArgs(['--set-division', '--division', 'E0']).error).toContain('--competition');
+  });
+
+  it('reads a stage, with the season defaulting to the current one', () => {
+    const stage = ['--add-stage', '--competition', '2', '--name', 'League Stage', '--kind'];
+    expect(parseArgs([...stage, 'league', '--order', '5'])).toMatchObject({
+      command: 'add-stage',
+      competition: '2',
+      name: 'League Stage',
+      kind: 'league',
+      order: 5,
+      legs: 1,
+      label: null,
+    });
+    expect(
+      parseArgs([...stage, 'knockout', '--order', '7', '--legs', '2', '--label', '2026/27']),
+    ).toMatchObject({ legs: 2, label: '2026/27' });
+    expect(parseArgs([...stage, 'cup', '--order', '5']).error).toContain('--kind must be one of');
+    expect(parseArgs([...stage, 'league', '--order', '0']).error).toContain('--order');
+    expect(parseArgs([...stage, 'league', '--order', '5', '--legs', '3']).error).toContain(
+      '--legs',
+    );
+    expect(parseArgs(['--add-stage', '--competition', '2', '--kind', 'league']).error).toContain(
+      '--name',
+    );
+  });
+
+  it('knows the same stage kinds the database does', () => {
+    // `stage_kind_check`; `@fmip/ingestion`'s `STAGE_KINDS` is the same list.
+    expect(STAGE_KINDS).toEqual(['league', 'group', 'knockout', 'playoff', 'qualifying']);
   });
 });
 

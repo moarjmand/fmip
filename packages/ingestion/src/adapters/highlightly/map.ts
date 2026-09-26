@@ -115,7 +115,9 @@ export function parseTime(value: unknown): { minute: number; added: number | nul
 
 export function stageKindOf(round: string): StageKind | null {
   const r = round.toLowerCase();
-  if (r.includes('regular season')) return 'league';
+  // "League Stage - 1": the one table UEFA's competitions have played since
+  // 2024/25. Asked before the knockout words, which it does not contain.
+  if (r.includes('regular season') || /^league (stage|phase)/.test(r)) return 'league';
   if (r.includes('group')) return 'group';
   if (r.includes('play-off') || r.includes('playoff') || r.includes('relegation round')) {
     return 'playoff';

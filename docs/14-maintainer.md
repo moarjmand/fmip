@@ -121,7 +121,25 @@ catalog --add-season --competition 61  --label 2026/27 --start 2026-08-21 --end 
 catalog --add-season --competition 2   --label 2026/27 --start 2026-07-07 --end 2027-01-27 --current --by you@your-domain
 
 catalog --list    # "6 of 6 competition(s) mapped to api_football are in season"
+
+# 4. The Champions League's stages. A domestic league's table falls back to the
+#    competition's kind; a cup's has only its stages to go on, so without the
+#    league stage the Champions League has no table at all.
+catalog --add-stage --competition 2 --name "1st Qualifying Round" --kind qualifying --order 1 --legs 2 --by you@your-domain
+catalog --add-stage --competition 2 --name "2nd Qualifying Round" --kind qualifying --order 2 --legs 2 --by you@your-domain
+catalog --add-stage --competition 2 --name "3rd Qualifying Round" --kind qualifying --order 3 --legs 2 --by you@your-domain
+catalog --add-stage --competition 2 --name "Play-offs"            --kind playoff    --order 4 --legs 2 --by you@your-domain
+catalog --add-stage --competition 2 --name "League Stage"         --kind league     --order 5 --by you@your-domain
 ```
+
+A stage's name is the provider's round without its matchday ("League Stage"
+for "League Stage - 1"), and each line reports how many matches already held
+it attached. The knockout rounds are added the same way once they are drawn,
+under the names their matches arrive with; only the league stage has a table,
+so until then nothing is missing but a label. The standings job says when a
+table is short: every team of the provider's table named in its `partial`
+message is a table we do not hold. Found on the server on 2026-09-26, when the
+first matchday of the league stage had been played and our table was empty.
 
 Every one of these is safe to repeat: a country, competition or season that
 already exists is reported and left alone. The whole sequence was run on an
