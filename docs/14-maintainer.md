@@ -21,10 +21,78 @@ unblocks, and how to know it worked.
 | The news licence question | Free publisher feeds, rights carried per source rather than assumed (D-061) | 2026-09-15 |
 | The public preview | A Render service and a Neon database. Live at `https://fmip-preview.onrender.com`; the stream carries over the single published port, which is what T-086 was for (D-064) | 2026-09-15 |
 | The launch review | Phase 0 and Phase 1 exit criteria signed one at a time against CI and the preview; the real-fixture clause is re-checked on the first real deployment (D-071) | 2026-09-19 |
+| The viewing licence | Decided by delegation: the editorial desk, link-only, per territory (D-069) | 2026-09-18 |
+| The data plan | API-Football Pro bought, 7,500 requests a day (D-076) | 2026-09-21 |
+| The production deploy | Live at `https://traveltohormuz.ir` on a Hetzner server, backups off-site, restore drill passed | 2026-09-25 |
+| Training on the feed's data | Allowed: the model learns from our own records of it (D-083, T-511) | 2026-09-26 |
+| A native app | Not now: the installable web app is the mobile product (D-084, T-320) | 2026-09-26 |
 
 These were judgements, not tasks: what a platform asks of its members is not
 derivable from the code, and an agent that picked them would have been inventing
 product.
+
+---
+
+## Now: what waits for you, in order (2026-09-26)
+
+Everything an agent can do on its own is done or runs by itself (the
+scheduled follow-up below). What is left is this list, most urgent first. For
+every item: nothing goes into a chat -- keys, passwords and tokens go into the
+server's `/opt/fmip/.env` by your own hand (`ssh fmip-prod`, then
+`nano /opt/fmip/.env`; change a line that exists rather than adding a second
+one) -- and `cd /opt/fmip && bash deploy/check-setup.sh` tells you whether it
+took. Its output holds no secret and is safe to paste to whoever is helping.
+
+1. **Renew the data plan before 2026-10-21 10:29 UTC** (a purchase). The Pro
+   plan ends then; a prepaid plan that ends falls back to the free one (100
+   requests a day), and scores, schedules and match details stop. On
+   `https://dashboard.api-football.com`, signed in with the buying account,
+   choose Pro again for 1, 3, 6 or 12 months (longer is cheaper per month,
+   nothing is refundable) and pay, a few days early. Nothing changes on the
+   server. *How to know:* the provider's `/status` shows the new end date (an
+   agent reads it from inside the API container without seeing the key), and
+   `check-setup.sh` keeps `Match data ... ON`.
+2. **E-mail (T-330)**: without it no reset or notification mail leaves. An
+   account with a transactional e-mail service you can use from where you
+   are (Brevo, Mailjet, Postmark, Amazon SES, ...); your domain verified there
+   with the DNS records it gives you, added in Cloudflare (a CNAME as "DNS
+   only"); then in `.env`: `DELIVERY_EMAIL_PROVIDER=smtp`,
+   `SMTP_URL=smtp://USER:PASSWORD@HOST:587` (an `@` inside the user becomes
+   `%40`), `DELIVERY_EMAIL_FROM="FMIP <no-reply@traveltohormuz.ir>"`; then
+   `cd /opt/fmip && bash deploy/rollout.sh api`. *How to know:* `E-mail ... ON
+   smtp`, and "Forgot password" on the site with your own address delivers.
+3. **The Telegram channel (T-524)** for the daily post, which is built: the
+   steps are §10. Posts are in English with times in UTC, from 06:00 UTC
+   (`CHANNEL_POST_HOUR` moves it).
+4. **Push (T-330)**, five minutes and no account: on the server
+   `cd /opt/fmip && docker compose run --rm --no-deps api npx web-push generate-vapid-keys`;
+   the two keys it prints into `.env` as `VAPID_PUBLIC_KEY` and
+   `VAPID_PRIVATE_KEY`, with `VAPID_SUBJECT=mailto:<your address>` and
+   `DELIVERY_PUSH_PROVIDER=webpush`; roll the API. *How to know:* `Push ... ON
+   webpush`; on a phone, Settings, Notifications, "On this device" (an iPhone
+   needs the site added to its home screen first).
+5. **A language model (T-400)**, §9: Mistral's free plan on the server is
+   `INTELLIGENCE_PROVIDER=mistral`, `MISTRAL_API_KEY=<key>`,
+   `INTELLIGENCE_MODEL=ministral-14b-latest`; Anthropic is
+   `INTELLIGENCE_PROVIDER=anthropic` with `ANTHROPIC_API_KEY`, billed per use.
+   Roll the API. *How to know:* the language model line is on; a finished
+   match's summary, a question in search and Following's briefing answer.
+6. **One prediction of your own, from 2026-10-08** when club football
+   resumes: sign in, predict an upcoming match before kick-off, and after it
+   see it settled on your profile. The real-fixture re-check of D-071 needs a
+   member's settled prediction.
+7. **Optional: an editor for broadcast listings (T-310)**:
+   `cd /opt/fmip && docker compose run --rm -T migrate node scripts/grant-role.mjs --email <address> --role editor --reason "enters broadcast listings"`;
+   the desk appears at the bottom of every match page for them.
+
+**Meanwhile, by itself.** The scheduled task `fmip-server-followup` runs every
+six hours from the Claude desktop app on your laptop, so it needs the laptop
+awake and the app open until about mid-October. It finishes the detail
+backlog and the adoptions, fits the line-up term (T-534), ticks Iran's first
+forecast (T-512), measures the first match day (T-501, T-504), reports the
+candidate model against the published one (T-535) and re-checks D-071 on real
+matches. When it says its work is done, turn it off in the Scheduled tasks
+list.
 
 ---
 

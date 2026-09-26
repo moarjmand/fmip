@@ -16,10 +16,11 @@ Paste this into a fresh Claude Code session:
 ```
 Project: FMIP (Football Match Intelligence Platform).
 Read CLAUDE.md and docs/03-project-map.md first.
-Then read "Environment constraints" in docs/06-session-handoff.md — it will
-save you from re-discovering two network limits the hard way.
-Current phase: <phase> — see docs/01-roadmap.md
-Task: <task id> from docs/04-tasks-phase-1.md
+Then read "Environment constraints" and "Production" in docs/06-session-handoff.md
+— they will save you from re-discovering the network limits and the server the hard way.
+Current phase: 6 — see docs/01-roadmap.md and docs/04-tasks-phase-6.md
+What waits on the maintainer: "Now" in docs/14-maintainer.md
+Task: <task id> from docs/04-tasks-phase-6.md
 Do not read files outside what the project map indicates for this task.
 ```
 
@@ -28,10 +29,44 @@ question that the documents should have answered, that is a **documentation
 bug** — fix the document, not the prompt.
 
 **Where the current state lives.** Nowhere in this file. Task status is in
-`docs/04-tasks-phase-1.md`, including a note under each epic table for any task
-that is `[~]` and what remains. Decisions are in `docs/00-decisions.md`. This
-file deliberately holds neither, because a second copy of a status is a copy
-that goes stale.
+the current phase's `docs/04-tasks-phase-<n>.md` (Phase 6 since 2026-09-26),
+including a note under each epic table for any task that is `[~]` and what
+remains. Decisions are in `docs/00-decisions.md`; what waits on the maintainer
+is "Now" in `docs/14-maintainer.md`. This file deliberately holds neither,
+because a second copy of a status is a copy that goes stale.
+
+---
+
+## Production
+
+Live since 2026-09-25 at `https://traveltohormuz.ir`: one Hetzner server,
+Docker Compose, checkout `/opt/fmip`, Cloudflare in front (`09-deploy.md`).
+An agent on the maintainer's laptop reaches it only as
+`ssh fmip-prod '<command>'`, through a key the maintainer set up for that
+purpose; long commands run in `tmux` on the server with their output in a
+log, because a long-held ssh session gets closed.
+
+- **Health:** `cd /opt/fmip && bash deploy/check-setup.sh` (e-mail, push, the
+  language model and the channel post read `off` until the maintainer turns
+  them on; that is the designed state).
+- **Deploy after a merge:** `git pull --ff-only`, then
+  `bash deploy/rollout.sh` (zero downtime; `rollout.sh api` for the API
+  alone, e.g. after an `.env` change).
+- **Operator commands:** the catalogue tool
+  (`docker compose run --rm -T migrate node scripts/catalog.mjs ...`), the
+  season backfill (`docker compose run --rm -T api node dist/cli/backfill.js
+  --by <admin> --reason "..." [--season <label>]`), the model's loaders and
+  backtests (`docker compose run --rm -T model python -m fmip_model...`); each
+  is in `14-maintainer.md`. Inside a `while read` loop give
+  `docker compose run` `</dev/null`, or it eats the loop's input.
+- **The request budget:** every ingest run records the provider requests it
+  spent (`ingest_run.requests`, T-501) under a daily ceiling
+  (`API_FOOTBALL_DAILY_BUDGET`); `INGESTION_BACKLOG_BATCH` sets how fast the
+  post-match backlog drains (`05-data-providers.md`).
+- **A scheduled follow-up** (`fmip-server-followup`, every six hours, from the
+  Claude desktop app) watches health, drains the backlog and adopts people
+  after it, and carries Phase 6's observations to their end. It is the
+  maintainer's to turn off.
 
 ---
 
@@ -41,6 +76,10 @@ Two hard limits shape how work gets verified here. Both were found by hitting
 them, and neither is guessable from the code.
 
 ### 1. The agent sandbox cannot build container images
+
+*This is the cloud sandbox's limit. An agent running on the maintainer's
+laptop has Docker Desktop and builds and runs the stack there (the deploy
+rehearsal of 2026-09-19); production images are built on the server.*
 
 Claude Code's environment blocks Docker Hub's layer CDN
 (`production.cloudfront.docker.com` returns `403`). The registry API is
@@ -150,7 +189,7 @@ Before closing a long chat, make sure each of these is true:
 
 - [ ] Any decision reached is written into `docs/00-decisions.md`.
 - [ ] Any file added or responsibility moved is reflected in `docs/03-project-map.md`.
-- [ ] Task checkboxes in `docs/04-tasks-phase-1.md` match reality.
+- [ ] Task checkboxes in the current phase's `docs/04-tasks-phase-<n>.md` match reality.
 - [ ] Work in progress is pushed to a branch, even if incomplete, with a note in
       the PR description about where it stopped.
 - [ ] Anything learned that changes future work has a home in a document.
@@ -215,3 +254,4 @@ The monthly checklist in `07-backups.md` ends by noting the drill here.
 | --- | --- | --- | --- |
 | 2026-09-10 | `fmip-20260910T115417Z.dump` (development database, 36 tables, 458 rows) | local + rclone `local` rehearsal | `DRILL PASSED` |
 | 2026-09-10 | `fmip-20260910T184440Z.dump` (development database, 36 tables, 458 rows, 144,439 bytes) | **off-provider**: written to Backblaze B2 through the `offsite:` crypt remote, size verified on the remote, fetched back from B2, drilled on the fetched copy | `DRILL PASSED` |
+| 2026-09-25 | `fmip-20260925T202823Z.dump` (**production**, 105 tables, 873 rows, 59 migrations, 471,989 bytes) | the server's local copy, taken during the backup setup after its off-provider copy to `offsite:` succeeded | `DRILL PASSED` |
