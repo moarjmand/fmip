@@ -50,11 +50,17 @@ const EVIDENCE: Record<CoverageModule, { expected: string; present: string }> = 
                        WHERE p.fixture_id = f.id)`,
   },
   // The table is derived from results (D-038), so its coverage is the coverage
-  // of the results it is derived from, restricted to the league stage that has
-  // a table at all.
+  // of the results it is derived from, restricted to the matches the table
+  // counts: a league stage's, or -- the same rule as the table's own query --
+  // a stage-less match of a competition that is a league. No deployment
+  // creates a domestic league's stage, so without the second half every
+  // league's complete table was declared not supplied (found 2026-09-26).
   standings: {
-    expected: `f.status = 'finished' AND EXISTS (
-                 SELECT 1 FROM stage g WHERE g.id = f.stage_id AND g.kind = 'league')`,
+    expected: `f.status = 'finished' AND (
+                 EXISTS (SELECT 1 FROM stage g WHERE g.id = f.stage_id AND g.kind = 'league')
+                 OR (f.stage_id IS NULL AND EXISTS (
+                       SELECT 1 FROM season se JOIN competition c ON c.id = se.competition_id
+                        WHERE se.id = f.season_id AND c.kind = 'league')))`,
     present: `EXISTS (SELECT 1 FROM fixture_score s
                        WHERE s.fixture_id = f.id AND s.kind = 'full_time')`,
   },

@@ -472,6 +472,24 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
     expect((await coverage.recompute(SEASON)).changed).toBe(0);
   });
 
+  it('counts a league’s stage-less matches toward its table, as the table does', async () => {
+    // No deployment creates a domestic league's stage: its matches arrive with
+    // none, and its table counts them because the competition is a league.
+    // The coverage said the opposite until 2026-09-26.
+    await pool.query(`UPDATE fixture SET stage_id = NULL WHERE season_id = $1`, [SEASON]);
+    try {
+      await coverage.recompute(SEASON);
+      const { rows } = await pool.query<{ state: string }>(
+        `SELECT state FROM coverage_profile WHERE season_id = $1 AND module = 'standings'`,
+        [SEASON],
+      );
+      expect(rows[0]?.state).toBe('available');
+    } finally {
+      await pool.query(`UPDATE fixture SET stage_id = $2 WHERE season_id = $1`, [SEASON, STAGE]);
+      await coverage.recompute(SEASON);
+    }
+  });
+
   it('asks about live matches by id, so a match nobody follows costs nothing', async () => {
     // The recording is "everything live right now" on the day it was made, and
     // none of those matches is ours; the adapter filters to the ids we asked for.
