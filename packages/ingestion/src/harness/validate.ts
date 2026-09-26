@@ -13,6 +13,7 @@ import {
   FIXTURE_STATUSES,
   INCIDENT_KINDS,
   PERIOD_KINDS,
+  PLAYER_STAT_METRICS,
   POSITIONS,
   PROVIDERS,
   STAGE_KINDS,
@@ -372,6 +373,33 @@ export function validateFixtureDetail(value: unknown, path = 'detail'): Problem[
       `${path}.statistics`,
       '(side, metric)',
     );
+  }
+
+  if (value.playerStatistics !== null) {
+    if (expectArray(sink, value.playerStatistics, `${path}.playerStatistics`)) {
+      value.playerStatistics.forEach((stat, index) => {
+        const p = `${path}.playerStatistics[${index}]`;
+        if (!expectRecord(sink, stat, p)) return;
+        expectEnum(sink, stat.side, `${p}.side`, ['home', 'away']);
+        expectRef(sink, stat.player, `${p}.player`);
+        const metricOk = expectEnum(sink, stat.metric, `${p}.metric`, PLAYER_STAT_METRICS);
+        expectNumber(
+          sink,
+          stat.value,
+          `${p}.value`,
+          0,
+          metricOk && stat.metric === 'rating' ? 10 : undefined,
+        );
+      });
+      noDuplicates(
+        sink,
+        value.playerStatistics.map((stat) =>
+          isRecord(stat) && isRecord(stat.player) ? [stat.player.externalId, stat.metric] : stat,
+        ),
+        `${path}.playerStatistics`,
+        '(player, metric)',
+      );
+    }
   }
 
   if (expectArray(sink, value.periods, `${path}.periods`)) {

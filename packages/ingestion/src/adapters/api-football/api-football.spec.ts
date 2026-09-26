@@ -5,6 +5,7 @@ import { createApiFootballAdapter } from './index';
 import {
   mapFixture,
   mapIncidents,
+  mapPlayerStatistics,
   mapStatistics,
   mapStatus,
   seasonLabel,
@@ -56,6 +57,42 @@ describe('mapping rules', () => {
     expect(stageKindOf('Round of 16')).toBe('knockout');
     expect(stageKindOf('Relegation Round - 1')).toBe('playoff');
     expect(stageKindOf('Something else')).toBeNull();
+  });
+
+  /**
+   * T-101, against the recorded Burnley v Manchester City (2023-08-11, 0-3):
+   * Haaland played 80 minutes and scored twice; Ortega sat on the bench.
+   */
+  it('reads each player’s numbers from the detail, and nothing for a player who never came on', () => {
+    const scenario = loadScenarios(FIXTURES_DIR).find((s) => s.name === 'detail-burnley-man-city');
+    const request = scenario?.requests[0];
+    const raw = request?.body;
+    const body = (typeof raw === 'string' ? JSON.parse(raw) : raw) as {
+      response: { players: unknown }[];
+    };
+    const stats = mapPlayerStatistics(body.response[0]?.players, '44', '50');
+    const of = (playerId: string) =>
+      Object.fromEntries(
+        stats.filter((s) => s.player.externalId === playerId).map((s) => [s.metric, s.value]),
+      );
+
+    expect(of('1100')).toMatchObject({
+      minutes: 80,
+      rating: 8.6,
+      goals: 2,
+      shots: 3,
+      shots_on_target: 2,
+      passes: 11,
+      key_passes: 2,
+    });
+    expect(stats.find((s) => s.player.externalId === '1100')?.side).toBe('away');
+    // The provider left his assists null: absent, not zero.
+    expect(of('1100')).not.toHaveProperty('assists');
+    // An outfield player's "conceded" is the provider's zero, not a fact.
+    expect(of('1100')).not.toHaveProperty('goals_conceded');
+    // The unused substitute has no rows at all.
+    expect(of('25004')).toEqual({});
+    expect(stats.every((s) => s.value >= 0)).toBe(true);
   });
 
   it('parses statistic values and drops what the provider left null', () => {

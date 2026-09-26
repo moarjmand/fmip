@@ -200,6 +200,8 @@ class FootballDataOrgAdapter implements ProviderAdapter {
       lineup: mapLineup(result.body),
       // Match statistics are a paid add-on the free tier does not carry.
       statistics: [],
+      // The free tier's match record has no per-player numbers (D-049).
+      playerStatistics: null,
       periods: [],
     };
     return { ok: true, data: detail, requests: 1, fetchedAt: result.receivedAt };

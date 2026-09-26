@@ -15,10 +15,12 @@ import type {
   NormalisedLineup,
   NormalisedLineupPlayer,
   NormalisedPeriod,
+  NormalisedPlayerStat,
   NormalisedSideLineup,
   NormalisedStanding,
   NormalisedStandingRow,
   NormalisedStat,
+  PlayerStatMetric,
   Position,
   Side,
   StageKind,
@@ -429,6 +431,87 @@ export function mapStatistics(statistics: unknown, homeTeamId: string): Normalis
       if (seen.has(key)) continue;
       seen.add(key);
       out.push({ side, metric, value });
+    }
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Player statistics (T-101)
+// ---------------------------------------------------------------------------
+
+/**
+ * Where each metric sits in a player's `statistics[0]`. Pass accuracy is left
+ * out on purpose: the value reads as a count against some totals and as a
+ * percentage against others, and a number whose meaning we would have to guess
+ * is not supplied. Nor are penalties, which the incidents already carry.
+ */
+const PLAYER_STAT: [PlayerStatMetric, string, string | null][] = [
+  ['minutes', 'games', 'minutes'],
+  ['rating', 'games', 'rating'],
+  ['shots', 'shots', 'total'],
+  ['shots_on_target', 'shots', 'on'],
+  ['goals', 'goals', 'total'],
+  ['assists', 'goals', 'assists'],
+  ['saves', 'goals', 'saves'],
+  ['goals_conceded', 'goals', 'conceded'],
+  ['passes', 'passes', 'total'],
+  ['key_passes', 'passes', 'key'],
+  ['tackles', 'tackles', 'total'],
+  ['blocks', 'tackles', 'blocks'],
+  ['interceptions', 'tackles', 'interceptions'],
+  ['duels', 'duels', 'total'],
+  ['duels_won', 'duels', 'won'],
+  ['dribbles', 'dribbles', 'attempts'],
+  ['dribbles_won', 'dribbles', 'success'],
+  ['fouls_drawn', 'fouls', 'drawn'],
+  ['fouls_committed', 'fouls', 'committed'],
+  ['offsides', 'offsides', null],
+  ['yellow_cards', 'cards', 'yellow'],
+  ['red_cards', 'cards', 'red'],
+];
+
+/**
+ * `players` (one block per team, matched to a side by team id). A player who
+ * never came on has no minutes and no rating, so no rows at all: an unused
+ * substitute did not play a match with zeroes in it. A value the provider left
+ * null is absent -- API-Football writes null for a player with no shots, and
+ * turning that into 0 would be a guess about what null means. Saves and goals
+ * conceded are a goalkeeper's: the provider writes `conceded: 0` for every
+ * outfield player, whatever the score was.
+ */
+export function mapPlayerStatistics(
+  players: unknown,
+  homeTeamId: string,
+  awayTeamId: string,
+): NormalisedPlayerStat[] {
+  if (!Array.isArray(players)) return [];
+  const out: NormalisedPlayerStat[] = [];
+  const seen = new Set<string>();
+  for (const teamBlock of players) {
+    const tb = rec(teamBlock);
+    const teamId = id(rec(tb.team).id);
+    if (teamId === null || !Array.isArray(tb.players)) continue;
+    const side: Side | null =
+      teamId === homeTeamId ? 'home' : teamId === awayTeamId ? 'away' : null;
+    if (side === null) continue;
+    for (const entry of tb.players) {
+      const en = rec(entry);
+      const player = ref(en.player);
+      const stats = Array.isArray(en.statistics) ? rec(en.statistics[0]) : {};
+      if (player === null) continue;
+      if (statValue(rec(stats.games).minutes) === null) continue;
+      const keeper = rec(stats.games).position === 'G';
+      for (const [metric, group, field] of PLAYER_STAT) {
+        if (!keeper && (metric === 'saves' || metric === 'goals_conceded')) continue;
+        const value = statValue(field === null ? stats[group] : rec(stats[group])[field]);
+        if (value === null) continue;
+        if (metric === 'rating' && value > 10) continue;
+        const key = `${player.externalId}:${metric}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push({ side, player, metric, value });
+      }
     }
   }
   return out;
