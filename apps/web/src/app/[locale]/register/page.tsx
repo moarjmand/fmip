@@ -3,14 +3,23 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ActionForm, type Field } from '@/components/action-form';
 import { fetchCountries, fetchMe } from '@/lib/api';
+import { readInviter } from '@/lib/invite';
 import { registerAction } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
 
 export const metadata: Metadata = { title: 'Register · FMIP' };
 export const dynamic = 'force-dynamic';
 
-export default async function RegisterPage({ params }: { params: Promise<{ locale: string }> }) {
-  const { locale } = await params;
+export default async function RegisterPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const [{ locale }, query] = await Promise.all([params, searchParams]);
+  // A member's invite link names them (T-522); anything else is ignored.
+  const inviter = readInviter(query.invited_by);
   const me = await fetchMe(await sessionCookieHeader());
   if (me !== null) redirect(`/${locale}/u/${encodeURIComponent(me.username)}`);
 
@@ -38,6 +47,16 @@ export default async function RegisterPage({ params }: { params: Promise<{ local
   }
 
   const fields: Field[] = [
+    ...(inviter === null
+      ? []
+      : [
+          {
+            name: 'invited_by',
+            label: 'Invited by',
+            type: 'hidden' as const,
+            defaultValue: inviter,
+          },
+        ]),
     {
       name: 'username',
       label: 'Username',
@@ -95,6 +114,11 @@ export default async function RegisterPage({ params }: { params: Promise<{ local
   return (
     <main className="mx-auto flex max-w-md flex-col gap-6 p-8">
       <h1 className="text-2xl font-semibold">Register</h1>
+      {inviter !== null && (
+        <p data-testid="invited-by">
+          @{inviter} invited you. After you register you can send them a friend request, or not.
+        </p>
+      )}
       <ActionForm
         action={registerAction.bind(null, locale)}
         fields={fields}

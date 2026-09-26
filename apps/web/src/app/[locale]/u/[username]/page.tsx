@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { StartConversation } from '@/components/conversation-controls';
 import { FriendControls } from '@/components/friend-controls';
+import { ShareLink } from '@/components/share-link';
 import { PredictionHistory } from '@/components/prediction-history';
 import {
   fetchFriendStatus,
@@ -12,6 +13,7 @@ import {
   fetchRating,
 } from '@/lib/api';
 import { ratingLabel, statusLabel, tierLabel } from '@/lib/leaderboard';
+import { inviteUrl } from '@/lib/invite';
 import { historyQuery, readHistoryPage } from '@/lib/prediction-history';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
@@ -66,6 +68,17 @@ export default async function ProfilePage({
   }
 
   const view = result.data;
+  // Arrived here from registering through this member's invite link (T-522).
+  const invited =
+    query.invited === '1' &&
+    friendStatus !== null &&
+    friendStatus !== 'self' &&
+    friendStatus !== 'friends' ? (
+      <p role="status" data-testid="invited-note">
+        You joined through @{name}&rsquo;s invitation. Send them a friend request below if you like;
+        nothing has been sent.
+      </p>
+    ) : null;
 
   if (view.kind === 'restricted') {
     return (
@@ -74,6 +87,7 @@ export default async function ProfilePage({
           {view.display_name}
         </h1>
         <p className="opacity-70">@{view.username}</p>
+        {invited}
         <p data-testid="profile-restricted">
           {view.visibility === 'friends'
             ? 'This profile is visible to friends only.'
@@ -126,6 +140,16 @@ export default async function ProfilePage({
         )}
       </header>
 
+      {invited}
+      {view.is_self && (
+        <p className="text-sm" data-testid="invite-link">
+          <ShareLink
+            url={inviteUrl(locale, profile.username)}
+            title="Join me on FMIP"
+            label="Invite a friend"
+          />
+        </p>
+      )}
       <div className="flex flex-wrap items-start gap-4">
         <FriendControls locale={locale} username={profile.username} status={friendStatus} />
         {friendStatus === 'friends' && (
