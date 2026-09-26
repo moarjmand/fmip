@@ -8,8 +8,11 @@
  */
 
 import type {
+  AbsenceKind,
+  AbsenceStatus,
   FixtureStatus,
   IncidentKind,
+  NormalisedAbsence,
   NormalisedFixture,
   NormalisedIncident,
   NormalisedLineup,
@@ -513,6 +516,56 @@ export function mapPlayerStatistics(
         out.push({ side, player, metric, value });
       }
     }
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Availability (T-103)
+// ---------------------------------------------------------------------------
+
+/** `player.type` of `/injuries`: the only two the provider uses. */
+const ABSENCE_STATUS: Record<string, AbsenceStatus> = {
+  'Missing Fixture': 'out',
+  Questionable: 'doubtful',
+};
+
+/**
+ * What a reason amounts to. Read from the provider's words and kept beside
+ * them, so a reason this does not recognise is `other` with its text intact
+ * rather than a guess.
+ */
+export function absenceKind(reason: string | null): AbsenceKind | null {
+  if (reason === null) return null;
+  if (/suspen|red card|yellow card/i.test(reason)) return 'suspension';
+  if (/illness|virus|sick/i.test(reason)) return 'illness';
+  if (/injur|knock|strain|fracture|surgery|concussion|tear|sprain/i.test(reason)) return 'injury';
+  return 'other';
+}
+
+/**
+ * `/injuries?fixture=` -- one entry per player listed for the match. An entry
+ * whose status is neither of the two above is dropped: we cannot say whether
+ * that player will play, so we do not say they will not.
+ */
+export function mapAvailability(response: unknown, fixtureExternalId: string): NormalisedAbsence[] {
+  if (!Array.isArray(response)) return [];
+  const out: NormalisedAbsence[] = [];
+  const seen = new Set<string>();
+  for (const item of response) {
+    const it = rec(item);
+    const player = ref(it.player);
+    const team = ref(it.team);
+    const fixtureId = id(rec(it.fixture).id);
+    if (player === null || team === null) continue;
+    if (fixtureId !== null && fixtureId !== fixtureExternalId) continue;
+    const type = str(rec(it.player).type);
+    const status = type === null ? undefined : ABSENCE_STATUS[type];
+    if (status === undefined) continue;
+    if (seen.has(player.externalId)) continue;
+    seen.add(player.externalId);
+    const reason = str(rec(it.player).reason);
+    out.push({ fixtureExternalId, team, player, status, kind: absenceKind(reason), reason });
   }
   return out;
 }

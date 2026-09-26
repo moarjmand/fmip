@@ -225,6 +225,34 @@ export interface NormalisedStat {
   value: number;
 }
 
+/**
+ * Whether a player will miss a match (T-103). `out` is the provider's "will
+ * miss it"; `doubtful` its "might". There is no third value for "fit": a
+ * player nobody lists is simply not in the list.
+ */
+export const ABSENCE_STATUSES = ['out', 'doubtful'] as const;
+export type AbsenceStatus = (typeof ABSENCE_STATUSES)[number];
+
+/**
+ * What the reason amounts to, read from the provider's own words, which are
+ * kept beside it. `other` is a reason that is none of these (a coach's
+ * decision, international duty); `null` is a reason that says nothing.
+ */
+export const ABSENCE_KINDS = ['injury', 'suspension', 'illness', 'other'] as const;
+export type AbsenceKind = (typeof ABSENCE_KINDS)[number];
+
+/** One player the provider says will miss, or may miss, one match. */
+export interface NormalisedAbsence {
+  fixtureExternalId: string;
+  /** The player's club, by the provider's id: the answer does not say home or away. */
+  team: EntityRef;
+  player: EntityRef;
+  status: AbsenceStatus;
+  kind: AbsenceKind | null;
+  /** The provider's words, e.g. "Knee Injury"; `null` when it gave none. */
+  reason: string | null;
+}
+
 export interface NormalisedPlayerStat {
   side: Side;
   player: EntityRef;

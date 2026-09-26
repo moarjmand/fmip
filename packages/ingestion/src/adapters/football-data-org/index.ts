@@ -8,6 +8,7 @@
  */
 
 import type {
+  NormalisedAbsence,
   NormalisedFixture,
   NormalisedFixtureDetail,
   NormalisedLineup,
@@ -205,6 +206,17 @@ class FootballDataOrgAdapter implements ProviderAdapter {
       periods: [],
     };
     return { ok: true, data: detail, requests: 1, fetchedAt: result.receivedAt };
+  }
+
+  getAvailability(): Promise<AdapterResult<NormalisedAbsence[]>> {
+    return Promise.resolve({
+      ok: false,
+      error: {
+        kind: 'unsupported',
+        message: 'football-data.org does not report who will miss a match',
+      },
+      requests: 0,
+    });
   }
 }
 

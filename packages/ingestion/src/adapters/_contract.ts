@@ -6,6 +6,7 @@
  */
 
 import type {
+  NormalisedAbsence,
   NormalisedFixture,
   NormalisedFixtureDetail,
   NormalisedLineup,
@@ -94,7 +95,7 @@ export interface StandingsQuery {
   seasonLabel: string;
 }
 
-/** The five capabilities the ingestion jobs (T-026) need. */
+/** The six capabilities the ingestion jobs (T-026, T-103) need. */
 export interface ProviderAdapter {
   readonly manifest: AdapterManifest;
   listFixtures(query: FixtureQuery): Promise<AdapterResult<NormalisedFixture[]>>;
@@ -102,6 +103,12 @@ export interface ProviderAdapter {
   getLineup(fixtureExternalId: string): Promise<AdapterResult<NormalisedLineup>>;
   getStandings(query: StandingsQuery): Promise<AdapterResult<NormalisedStanding[]>>;
   getFixtureDetail(fixtureExternalId: string): Promise<AdapterResult<NormalisedFixtureDetail>>;
+  /**
+   * Who will or may miss a match, as the provider reports it before kick-off
+   * (T-103). An empty list is the provider saying nobody; a provider that
+   * does not report availability answers `unsupported`.
+   */
+  getAvailability(fixtureExternalId: string): Promise<AdapterResult<NormalisedAbsence[]>>;
 }
 
 export type AdapterCall = keyof Omit<ProviderAdapter, 'manifest'>;
@@ -112,6 +119,7 @@ export const ADAPTER_CALLS: readonly AdapterCall[] = [
   'getLineup',
   'getStandings',
   'getFixtureDetail',
+  'getAvailability',
 ];
 
 export interface AdapterConfig {

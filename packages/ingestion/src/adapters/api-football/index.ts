@@ -9,6 +9,7 @@
  */
 
 import type {
+  NormalisedAbsence,
   NormalisedFixture,
   NormalisedFixtureDetail,
   NormalisedLineup,
@@ -34,6 +35,7 @@ import {
   mapLineup,
   mapPeriods,
   mapStandings,
+  mapAvailability,
   mapPlayerStatistics,
   mapStatistics,
   seasonYear,
@@ -48,10 +50,12 @@ export const API_FOOTBALL_MANIFEST: AdapterManifest = {
   licence: {
     kind: 'licensed_api',
     termsUrl: 'https://www.api-football.com/terms',
-    tier: 'free',
+    // Bought on 2026-09-21 (D-076). The per-minute ceiling is not stated with
+    // the plan, so it is not claimed here.
+    tier: 'pro',
   },
   degradable: false,
-  quota: { requestsPerDay: 100, requestsPerMinute: 10 },
+  quota: { requestsPerDay: 7500, requestsPerMinute: null },
 };
 
 type Envelope = { response: unknown[]; errors: Record<string, string> };
@@ -283,6 +287,17 @@ class ApiFootballAdapter implements ProviderAdapter {
       periods: mapPeriods(isRecord(item.fixture) ? item.fixture.periods : null),
     };
     return { ok: true, data: detail, requests: 1, fetchedAt: result.receivedAt };
+  }
+
+  async getAvailability(fixtureExternalId: string): Promise<AdapterResult<NormalisedAbsence[]>> {
+    const result = await this.call('/injuries', { fixture: fixtureExternalId });
+    if (!result.ok) return { ok: false, error: result.error, requests: 1 };
+    return {
+      ok: true,
+      data: mapAvailability(result.data.response, fixtureExternalId),
+      requests: 1,
+      fetchedAt: result.receivedAt,
+    };
   }
 }
 

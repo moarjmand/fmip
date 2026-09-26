@@ -27,6 +27,8 @@ export default {
     },
     { name: 'lineup-burnley-man-city', call: 'getLineup', args: [BURNLEY_MAN_CITY] },
     { name: 'detail-burnley-man-city', call: 'getFixtureDetail', args: [BURNLEY_MAN_CITY] },
+    // Who missed it (T-103), recorded on the paid plan (D-076).
+    { name: 'availability-burnley-man-city', call: 'getAvailability', args: [BURNLEY_MAN_CITY] },
     // Whatever is in play at recording time; the free plan has no ids lookup.
     { name: 'live-all-now', call: 'getLive', args: [{ fixtureExternalIds: [] }] },
     {
