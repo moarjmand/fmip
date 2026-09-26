@@ -425,6 +425,14 @@ question; the published version ignores it. The term itself is fitted on our
 own recorded matches once the detail backlog holds their line-ups, and enters
 as the candidate (D-082).
 
+**T-534, the term (2026-09-26, D-086).** A version with `lineup_beta` moves
+the expected goals by the XIs' difference, `exp(±beta·Δ)`; `beta` is fitted by
+`python -m fmip_model.backtest.lineups` on our recorded matches before a split
+date, each measured as the API would have measured it before its kick-off,
+and scored after it with and without the term. It waits for the detail
+backlog (every finished match re-asked since the clubs were adopted) to hold
+the line-ups and ratings; the candidate carries it only on a real gain.
+
 **T-532, a second pass (2026-09-26).** Most of the first pass's choices sat at
 the grid's edge, so a second pass searched longer memories and heavier
 ridges (xi 0.0005 to 0.003, ridge 0.03 to 0.3). Per division the pair with the

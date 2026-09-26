@@ -8,6 +8,8 @@ from datetime import UTC, date, datetime, timedelta
 
 from ..model.cross_league import CROSS_LEAGUE, fit_joint, groups_for
 from ..model.dixon_coles import FittedModel, MatchObservation, fit
+from ..model.lineups import adjusted
+from ..model.poisson import outcome_from_matrix, score_matrix
 from ..model.version import BASELINE, ModelVersion
 from .contract import (
     ExpectedGoals,
@@ -142,6 +144,16 @@ class Forecaster:
         self, request: ForecastRequest, now: datetime, cached: CachedFit, home: str, away: str
     ) -> Forecast:
         outcome = cached.model.predict(home, away)
+        # Line-ups and absences (T-534): only a version that reads them, and
+        # only when the API could measure both XIs.
+        if self.version.lineup_beta is not None and request.xi_strength is not None:
+            lam, mu = adjusted(
+                outcome.expected_home_goals,
+                outcome.expected_away_goals,
+                self.version.lineup_beta,
+                request.xi_strength.home - request.xi_strength.away,
+            )
+            outcome = outcome_from_matrix(score_matrix(lam, mu, cached.model.rho))
         h, d, a = outcome.rounded(4)
 
         return Forecast(
