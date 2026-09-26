@@ -305,6 +305,28 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
     expect(again.itemsWritten).toBe(0);
   });
 
+  it('backfills a past season by its label, and names it in the run', async () => {
+    // The season this spec inserted is not current: only a label reaches it
+    // (T-512). Through the same writer, so the rows it already holds stand.
+    const report = await jobs.backfill(new Date(), SEASON_LABEL);
+    expect(report.itemsSeen).toBe(10);
+    expect(report.itemsWritten).toBe(0);
+    // The recording's unmapped ids make every run here partial; not for want of a season.
+    expect(report.partial ?? '').not.toContain('season labelled');
+    const { rows } = await pool.query<{ scope: string | null }>(
+      `SELECT scope FROM ingest_run
+        WHERE provider = 'api_football' AND job = 'fixtures' AND started_at >= $1
+        ORDER BY started_at DESC LIMIT 1`,
+      [startedAt],
+    );
+    expect(rows[0]?.scope).toBe(`backfill ${SEASON_LABEL}`);
+
+    // A label no competition holds is a partial run that says so, not a quiet nothing.
+    const none = await jobs.backfill(new Date(), '1899/00');
+    expect(none.itemsSeen).toBe(0);
+    expect(none.partial).toContain('season labelled 1899/00');
+  });
+
   it('writes incidents, statistics, periods and the formation after the whistle, once', async () => {
     const first = await jobs.postMatch(AFTER_KICKOFF);
     expect(first.itemsSeen).toBe(1);

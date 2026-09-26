@@ -84,8 +84,8 @@ export class IngestRunsService {
    * Who asked for a season backfill and why (rule 10), for the operator's
    * command (T-502); the admin page's route records the same row.
    */
-  auditBackfill(actorId: string, reason: string): Promise<void> {
-    return this.store.auditBackfill(actorId, reason);
+  auditBackfill(actorId: string, reason: string, seasonLabel: string | null = null): Promise<void> {
+    return this.store.auditBackfill(actorId, reason, seasonLabel);
   }
 
   /**

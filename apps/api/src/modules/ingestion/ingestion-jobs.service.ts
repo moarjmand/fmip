@@ -232,27 +232,33 @@ export class IngestionJobsService {
    * own: it is the same work over a wider window, `ingest_run.job` names the
    * five jobs there are, and the open-run lock is what stops it colliding with
    * the schedule. Not scheduled, because a season starts once.
+   *
+   * With a season label it reads that season instead, for every competition
+   * the catalogue holds it for -- a past season added with `--add-season` so
+   * the model can learn from it (T-512, D-083). A past season is asked for
+   * its own span and no further, and the run's scope names the label.
    */
-  backfill(now: Date = new Date()): Promise<JobReport> {
+  backfill(now: Date = new Date(), seasonLabel: string | null = null): Promise<JobReport> {
     return this.track(
       'fixtures',
       (source, targets) => {
         const replay = this.sources.kind === 'replay';
-        return this.ingestFixtures(source, targets, (target) =>
-          replay
-            ? { from: REPLAY_QUERY.from, to: REPLAY_QUERY.to }
-            : {
-                from: target.seasonStart,
-                // To the season's end: the provider publishes the schedule
-                // ahead, and the whole season is still one request (T-505).
-                to:
-                  target.seasonEnd > dayIso(now, FIXTURE_WINDOW_FORWARD_DAYS)
-                    ? target.seasonEnd
-                    : dayIso(now, FIXTURE_WINDOW_FORWARD_DAYS),
-              },
-        );
+        return this.ingestFixtures(source, targets, (target) => {
+          if (replay) return { from: REPLAY_QUERY.from, to: REPLAY_QUERY.to };
+          if (seasonLabel !== null) return { from: target.seasonStart, to: target.seasonEnd };
+          return {
+            from: target.seasonStart,
+            // To the season's end: the provider publishes the schedule
+            // ahead, and the whole season is still one request (T-505).
+            to:
+              target.seasonEnd > dayIso(now, FIXTURE_WINDOW_FORWARD_DAYS)
+                ? target.seasonEnd
+                : dayIso(now, FIXTURE_WINDOW_FORWARD_DAYS),
+          };
+        });
       },
-      'backfill',
+      seasonLabel === null ? 'backfill' : `backfill ${seasonLabel}`,
+      seasonLabel,
     );
   }
 
@@ -655,6 +661,7 @@ export class IngestionJobsService {
       targets: PollTarget[],
     ) => Promise<JobReport>,
     scope: string | null = null,
+    seasonLabel: string | null = null,
   ): Promise<JobReport> {
     const source = this.sources.forJob(job);
     if (source === null) {
@@ -667,7 +674,7 @@ export class IngestionJobsService {
     }
 
     try {
-      return await this.runOne(job, source, work, scope);
+      return await this.runOne(job, source, work, scope, seasonLabel);
     } catch (error: unknown) {
       // `ingest_run` has a partial unique index on (provider, job) while a run
       // is open, so a second tick of the same job cannot start. That is the
@@ -698,11 +705,15 @@ export class IngestionJobsService {
       targets: PollTarget[],
     ) => Promise<JobReport>,
     scope: string | null,
+    seasonLabel: string | null = null,
   ): Promise<JobReport> {
     return this.runs.track(source.provider, job, scope, async () => {
-      const targets = await this.store.pollTargets(source.provider);
+      const targets = await this.store.pollTargets(source.provider, seasonLabel);
       if (targets.length === 0) {
-        const reason = `no competition is mapped to ${source.provider} with a current season`;
+        const reason =
+          seasonLabel === null
+            ? `no competition is mapped to ${source.provider} with a current season`
+            : `no competition mapped to ${source.provider} has a season labelled ${seasonLabel}`;
         const report: JobReport = {
           job,
           provider: source.provider,

@@ -14,6 +14,11 @@ import { IngestionModule } from '../modules/ingestion/ingestion.module';
  *     docker compose run --rm -T api node dist/cli/backfill.js \
  *       --by you@your-domain --reason "six new leagues added"
  *
+ * `--season 2025/26` reads that season instead of the current one, for every
+ * competition the catalogue holds it for: a past season added with
+ * `catalog.mjs --add-season` (not `--current`) so the model can learn from it
+ * (T-512, D-083).
+ *
  * The admin page's button is the same act and stays the way in from a
  * browser. This is for the operator who is already on the server, adding a
  * competition with `catalog.mjs` and needing its season before the table can
@@ -26,24 +31,35 @@ import { IngestionModule } from '../modules/ingestion/ingestion.module';
 
 export const MAX_REASON = 300;
 
-export type BackfillArgs = { by: string; reason: string } | { error: string };
+export type BackfillArgs =
+  { by: string; reason: string; season: string | null } | { error: string };
+
+/** A season label as the catalogue writes it: `2025/26`. */
+const SEASON_LABEL = /^\d{4}\/\d{2}$/;
 
 /** The operator's arguments, or the reason there are none. Pure, for tests. */
 export function parseBackfillArgs(argv: string[]): BackfillArgs {
   let by = '';
   let reason = '';
+  let season: string | null = null;
   for (let i = 0; i < argv.length; i += 1) {
     const flag = argv[i];
     const value = argv[i + 1];
-    if (flag !== '--by' && flag !== '--reason') return { error: `Unknown argument: ${flag}` };
+    if (flag !== '--by' && flag !== '--reason' && flag !== '--season') {
+      return { error: `Unknown argument: ${flag}` };
+    }
     if (value === undefined || value.startsWith('--')) return { error: `${flag} needs a value.` };
     if (flag === '--by') by = value.trim().toLowerCase();
-    else reason = value.trim();
+    else if (flag === '--reason') reason = value.trim();
+    else season = value.trim();
     i += 1;
   }
   if (by === '') return { error: '--by is required: the e-mail of an administrator.' };
   if (reason === '') return { error: '--reason is required: why the seasons are backfilled.' };
-  return { by, reason: reason.slice(0, MAX_REASON) };
+  if (season !== null && !SEASON_LABEL.test(season)) {
+    return { error: `--season takes a label such as 2025/26, not "${season}".` };
+  }
+  return { by, reason: reason.slice(0, MAX_REASON), season };
 }
 
 @Module({ imports: [DatabaseModule, IdentityModule, IngestionModule] })
@@ -53,7 +69,9 @@ async function main(): Promise<number> {
   const parsed = parseBackfillArgs(process.argv.slice(2));
   if ('error' in parsed) {
     console.error(parsed.error);
-    console.error('Usage: node dist/cli/backfill.js --by <admin e-mail> --reason "<why>"');
+    console.error(
+      'Usage: node dist/cli/backfill.js --by <admin e-mail> --reason "<why>" [--season 2025/26]',
+    );
     return 2;
   }
   process.env.INGESTION_SCHEDULE = 'off';
@@ -72,8 +90,8 @@ async function main(): Promise<number> {
       console.error(`${parsed.by} is not an administrator; a backfill is recorded as theirs.`);
       return 1;
     }
-    await app.get(IngestRunsService).auditBackfill(user.id, parsed.reason);
-    const report = await app.get(IngestionJobsService).backfill();
+    await app.get(IngestRunsService).auditBackfill(user.id, parsed.reason, parsed.season);
+    const report = await app.get(IngestionJobsService).backfill(new Date(), parsed.season);
     process.stdout.write(
       `backfill ${report.partial === undefined ? 'succeeded' : 'partial'}: ` +
         `${report.itemsSeen} fixture(s) seen, ${report.itemsWritten} row(s) written` +

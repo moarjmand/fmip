@@ -279,6 +279,18 @@ page before a request is spent, and never starts a second scheduler. On a new de
 twice -- once to learn the clubs, once after adopting them -- and after that
 once per new season; the schedule keeps it fresh.
 
+**A past season, for the model (T-512, D-083).** Add it to the catalogue as
+not current, with the provider's own dates, then backfill it by its label:
+
+```bash
+docker compose run --rm -T migrate node scripts/catalog.mjs --add-season --competition 290   --label 2025/26 --start 2025-08-18 --end 2026-07-22 --by you@your-domain
+docker compose run --rm -T api node dist/cli/backfill.js --by you@your-domain   --reason "history for the model" --season 2025/26
+```
+
+Every competition holding a season of that label is read, over that season's
+span only; the run's scope says `backfill 2025/26`. Leave `--current` off, or
+the past season becomes the one the site shows.
+
 ## 3. The production deploy (T-074)
 
 **Why yours.** It runs on a machine that does not exist yet, and buying it is a
