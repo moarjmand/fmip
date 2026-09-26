@@ -187,7 +187,7 @@ about football -- a chat, a channel -- and let one member bring another.
 | `[x]` T-530 | The baseline restated at scale: the backtest over every loaded division and the last three seasons, against the market and uniform | T-062, T-502 | Per-division log loss and Brier recorded as the numbers a candidate must beat |
 | `[x]` T-531 | Shadow forecasts: a candidate version computed beside the published one for every match, stored and never shown | T-064, T-066 | The evaluation records read both; the match page is unchanged |
 | `[x]` T-532 | The constants D-029 left to the backtest -- time decay, ridge, Elo weight -- tuned per division | T-530, T-531 | Frozen into the candidate only where they beat the baseline out of sample |
-| `[~]` T-533 | European cup matches on one scale: clubs of two leagues forecast from Club Elo and each side's domestic strength | T-531, T-060 | In shadow until the season's cup results show it calibrated; its limits stated in the model's docs |
+| `[x]` T-533 | European cup matches on one scale: clubs of two leagues forecast from Club Elo and each side's domestic strength | T-531, T-060 | In shadow until the season's cup results show it calibrated; its limits stated in the model's docs |
 | `[~]` T-534 | Line-ups and absences in expected goals: the T-112 measurement as an additive term | T-531, T-112, T-103 | Fitted on our own recorded matches, since the history holds no line-ups; in shadow |
 | `[ ]` T-535 | Promotion: the candidate replaces the published version only on the evaluation | T-531 | A decision entry with the numbers; stored forecasts keep their version (rule 5) |
 
@@ -415,6 +415,19 @@ model does not hold toward the shared level of all such clubs. The published
 version answers a cross-league request with "rates clubs within one league";
 the candidate answers it once `candidate.json` names the constants, which
 the cup backtest chooses. Until then nothing the product shows changes.
+
+**T-533 in shadow (2026-09-26).** The cup backtest ran on the server over our
+own cup records (three past seasons and this one, 3,188 matches): tuned on
+2024/25's 905 cup matches in two passes, the choice is xi 0.0005, a club ridge
+of 4 and a group ridge of 0.001, and on 2025/26's 929 -- never seen by the
+choice -- its log loss is **0.9727**, against uniform 1.0986 and the base
+rates 1.0402: 0.9292 between clubs of held leagues, 0.9868 with a club from
+elsewhere, where the method is weakest. It is the candidate
+`dixon-coles-elo@0.4.0` (the reports are in
+`apps/model/reports/dixon-coles-elo-0.4.0/`), and the API now asks it about
+every match of a competition that mixes leagues, in shadow; the match page
+still says the published version rates clubs within one league. Publishing it
+is T-535's, on the cups' own pre-kick-off record.
 
 **T-534, the question first (2026-09-26).** Every forecast request now
 carries both sides' XI strength when both can be measured: the mean season
