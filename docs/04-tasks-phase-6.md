@@ -387,6 +387,24 @@ matches into the training store with our team ids as names. T-512, T-533 and
 T-534 are unblocked: Iran's league as one more division once its backtest is
 recorded, the other two as the candidate version (D-082).
 
+**T-512 on the server (2026-09-26).** Iran's league has three past seasons in
+the catalogue (2023/24 to 2025/26, the provider's dates; the last was stopped
+part-way, 178 matches), backfilled by label with 4 requests each, and division
+`IR1`: 709 finished matches in the training store under our team ids. The
+backtest, each match forecast only from the ones before it (published
+constants, no Elo, no market in the feed's records):
+
+| Season | Forecasts | Model | Uniform | The previous season's H/D/A |
+|---|---|---|---|---|
+| 2024/25 | 238 | 1.0715 | 1.0986 | 1.0935 |
+| 2025/26 | 177 | 1.0757 | 1.0986 | 1.0841 |
+
+Better than both in both seasons, by less than in Europe's leagues: a league
+of few goals and many draws (2025/26: 1.79 goals a match, 37% draws) is harder
+to separate. The reports are in `apps/model/reports/dixon-coles-elo-0.1.0/`.
+The service answers for Iranian fixtures already; the first stored forecast
+arrives when 8 October enters the seven-day window, and T-512 is ticked then.
+
 **T-532, a second pass (2026-09-26).** Most of the first pass's choices sat at
 the grid's edge, so a second pass searched longer memories and heavier
 ridges (xi 0.0005 to 0.003, ridge 0.03 to 0.3). Per division the pair with the
