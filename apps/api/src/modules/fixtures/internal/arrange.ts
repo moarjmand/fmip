@@ -10,6 +10,8 @@ import type { ScoredRow } from './scores-store';
  * Ranks come from the profile boundary's `favouriteRank`: 0 favourite team,
  * 1 favourite competition, 2 followed team, 3 followed competition, 4 rest.
  * Ranks 0 and 1 are pinned; ranks 2 and 3 lift their group up the list.
+ * Within a rank, a competition's stated place comes first (T-504), then the
+ * country and the name for every competition without one.
  */
 export interface Arranged {
   pinned: ScoreCard[];
@@ -33,9 +35,17 @@ export function onlyFollowed(rows: ScoredRow[], prefs: FavouriteIds): ScoredRow[
   return rows.filter((row) => rankOf(row.card, prefs) < 4);
 }
 
+/** A stated place before none; two stated places by number. */
+function byStatedOrder(a: number | null, b: number | null): number {
+  if (a === b) return 0;
+  if (a === null) return 1;
+  if (b === null) return -1;
+  return a - b;
+}
+
 export function arrange(rows: ScoredRow[], prefs: FavouriteIds | null): Arranged {
   const pinned: ScoreCard[] = [];
-  const groups = new Map<string, ScoresGroup & { rank: number }>();
+  const groups = new Map<string, ScoresGroup & { rank: number; order: number | null }>();
 
   for (const row of rows) {
     const rank = rankOf(row.card, prefs);
@@ -53,6 +63,7 @@ export function arrange(rows: ScoredRow[], prefs: FavouriteIds | null): Arranged
       },
       fixtures: [],
       rank,
+      order: row.competitionOrder,
     };
     group.fixtures.push(row.card);
     group.rank = Math.min(group.rank, rank);
@@ -71,10 +82,11 @@ export function arrange(rows: ScoredRow[], prefs: FavouriteIds | null): Arranged
     .sort(
       (a, b) =>
         a.rank - b.rank ||
+        byStatedOrder(a.order, b.order) ||
         (a.country?.name ?? '').localeCompare(b.country?.name ?? '') ||
         a.competition.name.localeCompare(b.competition.name),
     )
-    .map(({ rank: _rank, ...group }) => ({
+    .map(({ rank: _rank, order: _order, ...group }) => ({
       ...group,
       fixtures: [...group.fixtures].sort(byKickoff),
     }));

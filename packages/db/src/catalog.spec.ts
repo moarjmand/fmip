@@ -237,6 +237,21 @@ describe('catalog arguments', () => {
     );
   });
 
+  it('reads a competition’s place on the scores page, and a zero that clears it', () => {
+    expect(parseArgs(['--set-order', '--competition', '39', '--order', '2'])).toMatchObject({
+      command: 'set-order',
+      competition: '39',
+      order: 2,
+    });
+    expect(parseArgs(['--set-order', '--competition', '39', '--order', '0'])).toMatchObject({
+      order: null,
+    });
+    expect(parseArgs(['--set-order', '--competition', '39', '--order', 'top']).error).toContain(
+      '--order',
+    );
+    expect(parseArgs(['--set-order', '--order', '1']).error).toContain('--competition');
+  });
+
   it('knows the same stage kinds the database does', () => {
     // `stage_kind_check`; `@fmip/ingestion`'s `STAGE_KINDS` is the same list.
     expect(STAGE_KINDS).toEqual(['league', 'group', 'knockout', 'playoff', 'qualifying']);
