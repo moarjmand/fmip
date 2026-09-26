@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { MatchCentre, ScoresFilters, ScoresResponse } from '@fmip/contracts';
+import type { CoverageState, MatchCentre, ScoresFilters, ScoresResponse } from '@fmip/contracts';
 import { ProfileService } from '../profile/profile.service';
 import { arrange, onlyFollowed } from './internal/arrange';
 import { covered, derived } from './internal/covered';
@@ -61,7 +61,7 @@ export class FixturesService {
   async matchCentre(fixtureId: string): Promise<MatchCentre | null> {
     const head = await this.centre.header(fixtureId);
     if (head === null) return null;
-    const { header, homeParticipantId, awayParticipantId } = head;
+    const { header, homeParticipantId, awayParticipantId, detailOwed } = head;
 
     const [coverage, incidents, statistics, lineups, homeForm, awayForm, meetings] =
       await Promise.all([
@@ -75,24 +75,29 @@ export class FixturesService {
       ]);
 
     const bothSides = lineups.home.length > 0 && lineups.away.length > 0;
+    // A finished match whose detail has not been asked for yet is owed it: a
+    // module with nothing in it there is `delayed`, not the provider declining
+    // (T-102). A module that has rows says what the season says, as ever.
+    const owed = (empty: boolean, declared: CoverageState): CoverageState =>
+      detailOwed && empty ? 'delayed' : declared;
     return {
       fixture: header,
       timeline: covered(
         incidents.rows,
         incidents.rows.length === 0,
-        coverage.incidents,
+        owed(incidents.rows.length === 0, coverage.incidents),
         incidents.lastUpdatedAt,
       ),
       statistics: covered(
         statistics.rows,
         statistics.rows.length === 0,
-        coverage.statistics,
+        owed(statistics.rows.length === 0, coverage.statistics),
         statistics.lastUpdatedAt,
       ),
       lineups: covered(
         { home: lineups.home, away: lineups.away },
         !bothSides,
-        coverage.lineups,
+        owed(!bothSides, coverage.lineups),
         lineups.lastUpdatedAt,
       ),
       form: {

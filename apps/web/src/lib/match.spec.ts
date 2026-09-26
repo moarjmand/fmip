@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { NOT_YET, minuteLabel, moduleState, statValue } from './match';
+import { NOT_YET, minuteLabel, moduleState, statValue, xgNotice } from './match';
 
 describe('match centre labels', () => {
   it('writes minutes with added time', () => {
@@ -29,5 +29,12 @@ describe('match centre labels', () => {
     // Equality, not containment: a module that reaches the page must leave
     // this list, or the page says "not yet" about something it shows.
     expect(NOT_YET.map(([name]) => name)).toEqual(['Availability', 'Key players']);
+  });
+});
+
+describe('expected goals', () => {
+  it('says so when a match has statistics but no xG, and says nothing when it has', () => {
+    expect(xgNotice(['possession_pct', 'shots'])).toContain('did not supply');
+    expect(xgNotice(['possession_pct', 'expected_goals'])).toBeNull();
   });
 });
