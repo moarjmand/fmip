@@ -102,6 +102,21 @@ the fifteen are buildable with nothing from the maintainer and every surface
 has an honest sentence for the absence. The four rules every surface obeys --
 labelled, grounded, versioned, off the critical path -- are D-070.
 
+## Phase 6 — Breadth, first members, a better model
+
+- More leagues: six domestic leagues the training data covers, and the Europa
+  and Conference Leagues.
+- Iran's Persian Gulf Pro League, with a forecast only once a licensed history
+  for it is chosen.
+- The first members: share cards, a share control, invite links, a page for a
+  first visit, and a Telegram channel once the maintainer creates one.
+- A second model version, run in shadow and promoted only on the evaluation.
+
+**Planned in `04-tasks-phase-6.md`** (2026-09-26, at the maintainer's request,
+the day after the first real deployment). Four epics, twenty tasks, three
+gates that are the maintainer's: the Iranian league's history (T-511), the
+Telegram channel (T-524), and the feed's plan continuing past 2026-10-21.
+
 ---
 
 ## Sequencing rule
