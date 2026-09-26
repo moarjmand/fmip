@@ -33,6 +33,12 @@ export type ComputeOutcome =
  * rather than showing an empty panel (rule 3). The only things this service
  * never does are update a version or invent a probability.
  */
+/**
+ * The model's name for a match between clubs of different leagues (D-085):
+ * not a competition's division but the scale the candidate puts them on.
+ */
+export const CROSS_LEAGUE_DIVISION = 'XL';
+
 @Injectable()
 export class ForecastService {
   private readonly log = new Logger('Forecast');
@@ -79,6 +85,12 @@ export class ForecastService {
               detail: `competition ${fixture.competitionId} has no football-data division`,
             },
       });
+      // A cup's match goes to the candidate on the scale across leagues
+      // (T-533, D-085): stored in shadow and shown nowhere, while the
+      // published version keeps saying why it has no answer.
+      if (fixture.mixesLeagues) {
+        await this.shadow(fixtureId, kind, { ...request, division: CROSS_LEAGUE_DIVISION });
+      }
       return { kind: 'recorded', version };
     }
 
