@@ -27,8 +27,21 @@ export const DETAIL_BATCH = 10;
  * How many finished fixtures that never had their detail one post-match run
  * also asks about (T-102): 20 every half hour is 960 requests a day at most,
  * and a backfilled season's few hundred matches are filled within a day.
+ * `INGESTION_BACKLOG_BATCH` raises it where the plan allows (T-501): fifteen
+ * competitions backfilled at once are a thousand matches, a day and more at
+ * twenty.
  */
 export const DETAIL_BACKLOG_BATCH = 20;
+/** A ceiling on the setting, so a typo cannot spend a day's plan in one run. */
+export const MAX_BACKLOG_BATCH = 200;
+
+/** The backlog batch this deployment asked for, or the default for anything else. */
+export function backlogBatch(raw: string | undefined): number {
+  const value = Number((raw ?? '').trim());
+  return Number.isInteger(value) && value > 0 && value <= MAX_BACKLOG_BATCH
+    ? value
+    : DETAIL_BACKLOG_BATCH;
+}
 /**
  * Availability (T-103): matches kicking off within three days are asked about,
  * each again once its last answer is three hours old, at most ten per run of
@@ -115,6 +128,7 @@ export function liveQuestion(known: { target: PollTarget; externalIds: string[] 
 export class IngestionJobsService {
   private readonly log = new Logger('Ingestion');
   private readonly store: IngestStore;
+  private readonly backlogBatch = backlogBatch(process.env.INGESTION_BACKLOG_BATCH);
 
   constructor(
     @Inject(PG_POOL) pool: Pool,
@@ -526,7 +540,7 @@ export class IngestionJobsService {
         target.competitionId,
         replay ? REPLAY_QUERY.from : target.seasonStart,
         before,
-        DETAIL_BACKLOG_BATCH,
+        this.backlogBatch,
       );
       for (const row of rows) {
         if (!taken.has(row.fixtureId)) found.push({ ...row, target });
@@ -534,7 +548,7 @@ export class IngestionJobsService {
     }
     return found
       .sort((a, b) => b.kickoffAt.localeCompare(a.kickoffAt))
-      .slice(0, DETAIL_BACKLOG_BATCH)
+      .slice(0, this.backlogBatch)
       .map(({ externalId, fixtureId, target }) => ({ externalId, fixtureId, target }));
   }
 
