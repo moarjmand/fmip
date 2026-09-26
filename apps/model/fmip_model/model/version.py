@@ -19,6 +19,16 @@ from pathlib import Path
 
 from .dixon_coles import DEFAULT_ELO_WEIGHT, DEFAULT_RIDGE, DEFAULT_XI, ELO_SCALE
 
+
+@dataclass(frozen=True)
+class CrossLeague:
+    """The constants of the fit that puts clubs of different leagues on one scale (T-533)."""
+
+    xi: float
+    team_ridge: float
+    group_ridge: float
+
+
 #: How far back the service fits from, unless a version says otherwise.
 DEFAULT_HISTORY_DAYS = 400
 CANDIDATE_FILE = Path(__file__).with_name("candidate.json")
@@ -41,6 +51,9 @@ class ModelVersion:
     per_division: Mapping[str, tuple[float, float]] = field(
         default_factory=dict, hash=False, compare=False
     )
+    #: Whether, and with which constants, this version answers a match between
+    #: clubs of different leagues (T-533). ``None``: it rates within one league.
+    cross_league: CrossLeague | None = None
 
     @property
     def id(self) -> str:
@@ -52,6 +65,7 @@ class ModelVersion:
     def as_dict(self) -> dict[str, object]:
         body = asdict(self)
         body["per_division"] = {d: list(c) for d, c in self.per_division.items()}
+        body["cross_league"] = None if self.cross_league is None else asdict(self.cross_league)
         return {"id": self.id, **body}
 
 
@@ -80,7 +94,17 @@ def load_candidate(path: Path = CANDIDATE_FILE) -> ModelVersion | None:
         for division, c in body.get("per_division", {}).items()
     }
     history_days = int(body.get("history_days", BASELINE.history_days))
-    if not per_division and history_days == BASELINE.history_days:
+    cross = body.get("cross_league")
+    cross_league = (
+        None
+        if cross is None
+        else CrossLeague(
+            xi=float(cross["xi"]),
+            team_ridge=float(cross["team_ridge"]),
+            group_ridge=float(cross["group_ridge"]),
+        )
+    )
+    if not per_division and history_days == BASELINE.history_days and cross_league is None:
         return None
     return ModelVersion(
         name=str(body.get("name", BASELINE.name)),
@@ -92,4 +116,5 @@ def load_candidate(path: Path = CANDIDATE_FILE) -> ModelVersion | None:
         max_goals=BASELINE.max_goals,
         history_days=history_days,
         per_division=per_division,
+        cross_league=cross_league,
     )

@@ -3042,3 +3042,44 @@ contracts remain ready for a second client if the question is asked again.
 
 **Rejected.** *Building the app now and publishing later*: a second interface
 to keep in step with every change, before anyone has asked for it.
+
+---
+
+## D-085 — Clubs of different leagues on one scale: one fit, a club's strength its league's plus its own
+
+**Status:** decided · **Date:** 2026-09-26 · **Task:** T-533 · **Follows:** D-029, D-082, D-083
+
+**The problem.** The model fits each league on its own (D-029), so it can say
+how Arsenal compares with Chelsea but not with Inter: nothing inside one
+league's matches says how strong the league is. T-533 planned to take that
+scale from Club Elo, whose API has answered 502 since 2026-09-25, and a
+scraped page is not its API.
+
+**The decision.** The scale comes from the matches that cross leagues. One
+fit takes every loaded division's matches and the cup matches of our own
+records (D-083, the pseudo-division `XL`: every competition that is not one
+domestic league, as the API already decides it), with each club's attack and
+defence written as its group's plus its own. A club's group is the division of
+its latest domestic match; a club from a league the model does not hold is in
+one shared group, `other`. Ridges pull a club toward its group and a group
+toward zero, so a league's level is what its clubs did against other leagues,
+and a club with three cup matches is judged mostly by its group's. The fit has
+an exact, vectorised gradient; the published per-division fit is untouched.
+
+**Where it runs.** Only in a version that names its constants
+(`cross_league` in `candidate.json`); the published version answers such a
+request "unavailable: rates clubs within one league". The constants are
+chosen by the cup backtest (`python -m fmip_model.backtest.cross_league`) on
+one season and scored once on the next, and the candidate stays in shadow
+(D-082) until the season's cup forecasts show it calibrated.
+
+**Limits, stated.** One home advantage for all leagues. No Elo while Club Elo
+is down. The `other` group puts Andorra's champions and Denmark's beside each
+other until their own matches separate them. Extra time and penalties are not
+goals the model learns from.
+
+**Rejected.** *Scraping Club Elo's website*: not its published API. *Fitting
+the cups alone*: a few hundred matches cannot rate several hundred clubs.
+*Averaging each side's domestic forecast*: two leagues' numbers are on two
+scales, which is the problem, not its answer.
+

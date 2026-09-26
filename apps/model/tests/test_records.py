@@ -16,7 +16,13 @@ import pytest
 
 from fmip_model.service.store_source import PostgresTrainingSource
 from fmip_model.training.load import load_football_data, load_records
-from fmip_model.training.records import RecordedMatch, as_text, by_season, team_ids
+from fmip_model.training.records import (
+    RecordedMatch,
+    as_text,
+    by_season,
+    recorded_matches,
+    team_ids,
+)
 from fmip_model.training.store import TrainingStore
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
@@ -101,9 +107,9 @@ def world() -> Iterator[World]:
     s.conn.commit()
     yield World(s, ids)
     with s.conn.cursor() as cur:
-        cur.execute("DELETE FROM training.match WHERE division IN ('Z9', 'T0')")
-        cur.execute("DELETE FROM training.team_alias WHERE division = 'Z9'")
-        cur.execute("DELETE FROM training.source_load WHERE scope IN ('Z9', 'T0 2024/25')")
+        cur.execute("DELETE FROM training.match WHERE division IN ('Z9', 'T0', 'XL')")
+        cur.execute("DELETE FROM training.team_alias WHERE division IN ('Z9', 'XL')")
+        cur.execute("DELETE FROM training.source_load WHERE scope IN ('Z9', 'XL', 'T0 2024/25')")
         for table in ("fixture_score", "fixture_participant"):
             cur.execute(
                 f"DELETE FROM {table} WHERE fixture_id = ANY(%s::uuid[])",  # noqa: S608
@@ -201,3 +207,28 @@ def test_the_service_refreshes_a_division_of_our_records_once_a_day(world: World
     day[0] = date(2026, 9, 27)
     assert len(source.matches("Z9", date(2024, 1, 1), date(2026, 9, 26))) == 1
     assert loads() == before + 2
+
+
+@needs_db
+def test_matches_across_leagues_are_every_competition_that_is_not_one_domestic_league(
+    world: World,
+) -> None:
+    store, ids = world
+    # The test competition is continental: its clubs may come from anywhere (T-533).
+    load_records(store, ["XL"])
+    rows = one(
+        store,
+        "SELECT home_team, away_team FROM training.match WHERE division = 'XL' AND home_team = %s",
+        ids["home"],
+    )
+    assert rows == [(ids["home"], ids["away"])]
+    with store.conn.cursor() as cur:
+        cur.execute(
+            "UPDATE competition SET scope = 'domestic', country_id ="
+            " (SELECT id FROM country LIMIT 1) WHERE id = %s",
+            (ids["comp"],),
+        )
+    store.conn.commit()
+    # One domestic league's match is that league's, not a cross-league one.
+    across = recorded_matches(store.conn, "XL")
+    assert all(m.home_team_id != ids["home"] for m in across)

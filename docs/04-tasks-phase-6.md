@@ -187,7 +187,7 @@ about football -- a chat, a channel -- and let one member bring another.
 | `[x]` T-530 | The baseline restated at scale: the backtest over every loaded division and the last three seasons, against the market and uniform | T-062, T-502 | Per-division log loss and Brier recorded as the numbers a candidate must beat |
 | `[x]` T-531 | Shadow forecasts: a candidate version computed beside the published one for every match, stored and never shown | T-064, T-066 | The evaluation records read both; the match page is unchanged |
 | `[x]` T-532 | The constants D-029 left to the backtest -- time decay, ridge, Elo weight -- tuned per division | T-530, T-531 | Frozen into the candidate only where they beat the baseline out of sample |
-| `[ ]` T-533 | European cup matches on one scale: clubs of two leagues forecast from Club Elo and each side's domestic strength | T-531, T-060 | In shadow until the season's cup results show it calibrated; its limits stated in the model's docs |
+| `[~]` T-533 | European cup matches on one scale: clubs of two leagues forecast from Club Elo and each side's domestic strength | T-531, T-060 | In shadow until the season's cup results show it calibrated; its limits stated in the model's docs |
 | `[ ]` T-534 | Line-ups and absences in expected goals: the T-112 measurement as an additive term | T-531, T-112, T-103 | Fitted on our own recorded matches, since the history holds no line-ups; in shadow |
 | `[ ]` T-535 | Promotion: the candidate replaces the published version only on the evaluation | T-531 | A decision entry with the numbers; stored forecasts keep their version (rule 5) |
 
@@ -404,6 +404,17 @@ of few goals and many draws (2025/26: 1.79 goals a match, 37% draws) is harder
 to separate. The reports are in `apps/model/reports/dixon-coles-elo-0.1.0/`.
 The service answers for Iranian fixtures already; the first stored forecast
 arrives when 8 October enters the seven-day window, and T-512 is ticked then.
+
+**T-533, the method (2026-09-26, D-085).** Club Elo has been down since
+2026-09-25, so the scale comes from the matches themselves: every loaded
+division and the cup matches of our own records (division `XL`, three past
+seasons and this one) in one fit, a club's strength its league's plus its
+own. A league's level is learned from the matches that cross leagues; a club
+with few matches is pulled toward its league, and a club whose league the
+model does not hold toward the shared level of all such clubs. The published
+version answers a cross-league request with "rates clubs within one league";
+the candidate answers it once `candidate.json` names the constants, which
+the cup backtest chooses. Until then nothing the product shows changes.
 
 **T-532, a second pass (2026-09-26).** Most of the first pass's choices sat at
 the grid's edge, so a second pass searched longer memories and heavier
