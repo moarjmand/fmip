@@ -1,6 +1,7 @@
 import type {
   CoverageState,
   Covered,
+  MatchAbsence,
   MatchIncident,
   MatchPlayerStats,
   MatchStatMetric,
@@ -112,7 +113,10 @@ export function moduleState<T>(module: Covered<T>): string {
  * community forecast (T-135), the discussion (T-251), Watch and highlights
  * (T-314) and related news (T-145) left it the day they reached the page.
  */
-export const NOT_YET = [
-  ['Availability', 'unsupported'],
-  ['Key players', 'unsupported'],
-] as const;
+export const NOT_YET = [['Key players', 'unsupported']] as const;
+
+/** How an absence reads (T-103): "Out" or "Doubtful", then the provider's reason. */
+export function absenceLine(absence: MatchAbsence): string {
+  const status = absence.status === 'out' ? 'Out' : 'Doubtful';
+  return absence.reason === null ? status : `${status} · ${absence.reason}`;
+}

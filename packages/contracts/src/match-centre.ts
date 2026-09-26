@@ -144,6 +144,20 @@ export interface MatchPlayerStats {
   stats: Partial<Record<PlayerMatchMetric, number>>;
 }
 
+/**
+ * A player the provider says will miss (`out`) or may miss (`doubtful`) this
+ * match (T-103), with its words for why and when it said so.
+ */
+export interface MatchAbsence {
+  id: string;
+  name: string;
+  side: 'home' | 'away';
+  status: 'out' | 'doubtful';
+  kind: 'injury' | 'suspension' | 'illness' | 'other' | null;
+  reason: string | null;
+  reported_at: string;
+}
+
 export interface MatchLineupPlayer {
   id: string;
   name: string;
@@ -195,6 +209,12 @@ export interface MatchCentre {
   timeline: Covered<MatchIncident[]>;
   statistics: Covered<MatchStatRow[]>;
   lineups: Covered<MatchLineups>;
+  /**
+   * Who will or may miss the match (T-103), home side first. Once the provider
+   * has been asked, an empty list is its answer -- nobody -- and
+   * `last_updated_at` is when it was asked; never asked is `not_supplied`.
+   */
+  availability: Covered<MatchAbsence[]>;
   /** Each player who took part, home side first, most minutes first (T-101). */
   player_statistics: Covered<MatchPlayerStats[]>;
   /** Last five competitive matches before this one, newest first, per side. */

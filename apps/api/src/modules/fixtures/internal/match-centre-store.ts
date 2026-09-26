@@ -6,6 +6,7 @@ import type {
   FixtureStatus,
   FormEntry,
   HeadToHeadEntry,
+  MatchAbsence,
   MatchHeader,
   MatchIncident,
   MatchLineupPlayer,
@@ -310,6 +311,49 @@ export class PostgresMatchCentreStore {
       byMetric.set(r.metric, row);
     }
     return { rows: [...byMetric.values()], lastUpdatedAt: newest(rows.map((r) => r.updated_at)) };
+  }
+
+  /**
+   * Who the provider says will miss this match, and when it was last asked
+   * (T-103). `askedAt` null means it never was.
+   */
+  async availability(fixtureId: string): Promise<{ rows: MatchAbsence[]; askedAt: string | null }> {
+    const [absences, ask] = await Promise.all([
+      this.pool.query<{
+        person_id: string;
+        name: string;
+        side: 'home' | 'away';
+        status: MatchAbsence['status'];
+        kind: MatchAbsence['kind'];
+        reason: string | null;
+        reported_at: Date;
+      }>(
+        `SELECT a.person_id, COALESCE(pe.known_as, pe.full_name) AS name, fp.side,
+                a.status, a.kind, a.reason, a.reported_at
+           FROM fixture_absence a
+           JOIN fixture_participant fp ON fp.id = a.participant_id
+           JOIN person pe ON pe.id = a.person_id
+          WHERE a.fixture_id = $1
+          ORDER BY fp.side = 'away', a.status = 'doubtful', name`,
+        [fixtureId],
+      ),
+      this.pool.query<{ fetched_at: Date }>(
+        `SELECT fetched_at FROM fixture_availability_fetch WHERE fixture_id = $1`,
+        [fixtureId],
+      ),
+    ]);
+    return {
+      rows: absences.rows.map((r) => ({
+        id: r.person_id,
+        name: r.name,
+        side: r.side,
+        status: r.status,
+        kind: r.kind,
+        reason: r.reason,
+        reported_at: r.reported_at.toISOString(),
+      })),
+      askedAt: ask.rows[0]?.fetched_at.toISOString() ?? null,
+    };
   }
 
   /** Each player's numbers in this match (T-101), home side first, most minutes first. */

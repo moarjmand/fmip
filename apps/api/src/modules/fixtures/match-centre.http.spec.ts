@@ -236,6 +236,44 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /fixture
     ]);
   });
 
+  /**
+   * T-103: never asked is `not_supplied`; asked is answered -- a list of who
+   * will miss the match, or an empty one, dated by the ask.
+   */
+  it('says who will miss a match once the provider has been asked, and says nobody when that is the answer', async () => {
+    const never = (await get(MATCH)).json() as MatchCentre;
+    expect(never.availability).toEqual({
+      coverage: 'not_supplied',
+      last_updated_at: null,
+      data: null,
+    });
+
+    const { rows } = await pool.query<{ id: string }>(
+      `SELECT id FROM fixture_participant WHERE fixture_id = $1 AND side = 'home'`,
+      [MATCH],
+    );
+    await pool.query(
+      `INSERT INTO fixture_absence (fixture_id, participant_id, person_id, status, kind, reason)
+       VALUES ($1, $2, $3, 'doubtful', 'injury', 'Knock')`,
+      [MATCH, rows[0]?.id, SALAH],
+    );
+    await pool.query(
+      `INSERT INTO fixture_availability_fetch (fixture_id, provider)
+       VALUES ($1, 'api_football'), ($2, 'api_football')`,
+      [MATCH, EARLIER[1]],
+    );
+    const asked = (await get(MATCH)).json() as MatchCentre;
+    expect(asked.availability.coverage).toBe('available');
+    expect(asked.availability.last_updated_at).not.toBeNull();
+    expect(asked.availability.data).toMatchObject([
+      { id: SALAH, side: 'home', status: 'doubtful', kind: 'injury', reason: 'Knock' },
+    ]);
+
+    const nobody = (await get(EARLIER[1])).json() as MatchCentre;
+    expect(nobody.availability.coverage).toBe('available');
+    expect(nobody.availability.data).toEqual([]);
+  });
+
   it('serves both line-ups with captains, and the season coverage per module', async () => {
     const body = (await get(MATCH)).json() as MatchCentre;
     expect(body.lineups.coverage).toBe('limited');

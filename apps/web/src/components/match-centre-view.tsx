@@ -4,6 +4,7 @@ import Link from 'next/link';
 import {
   INCIDENT_LABEL,
   NOT_YET,
+  absenceLine,
   PLAYER_COLUMNS,
   PLAYER_XG_NOTICE,
   STAT_LABEL,
@@ -224,6 +225,42 @@ export function MatchCentreView({
             />
           </div>
         )}
+      </Module>
+
+      <Module title="Availability" module={centre.availability} testId="availability">
+        {(absences) =>
+          absences.length === 0 ? (
+            <p className="text-sm">
+              Nobody is reported missing or doubtful
+              {centre.availability.last_updated_at === null
+                ? '.'
+                : ` (asked ${formatKickoff(locale, centre.availability.last_updated_at, timeZone)}).`}
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              {(
+                [
+                  ['home', f.home.name],
+                  ['away', f.away.name],
+                ] as const
+              ).map(([side, team]) => (
+                <div key={side} className="flex flex-col gap-1">
+                  <h3 className="font-medium">{team}</h3>
+                  <ul className="flex flex-col gap-1">
+                    {absences
+                      .filter((a) => a.side === side)
+                      .map((a) => (
+                        <li key={a.id}>
+                          <Link href={`/${locale}/player/${a.id}`}>{a.name}</Link>{' '}
+                          <span className="opacity-70">{absenceLine(a)}</span>
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )
+        }
       </Module>
 
       <Module
