@@ -327,3 +327,17 @@ with a 1,100-day history window so the decay, not the window, forgets), which
 now runs in shadow (T-531) and is published only by T-535. Most choices sit at
 the grid's edge, so a wider pass may find more; it would be a further version.
 
+---
+
+**One question behind three tasks (2026-09-26).** T-511 asks whether the
+feed's plan allows training the model on its data, for Iran's history. T-533
+and T-534 turn out to ask the same thing: European cup matches can only be put
+on one scale from cup results or from Club Elo, and this season's cup results
+are the feed's; line-ups and absences can only be fitted on the matches the
+feed recorded. The training store has held only sources whose licences were
+read and recorded (D-016, rule 9), so none of the three is built on a guess.
+T-533 can instead proceed from Club Elo once its API answers again (it has
+returned 502 since 2026-09-25; its website answers, and a scraped page is not
+its published API); T-534 waits on the answer. The maintainer's reading of
+the plan's terms decides all three at once.
+
