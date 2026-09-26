@@ -29,6 +29,7 @@
  */
 
 import { readFileSync } from 'node:fs';
+import { URL } from 'node:url';
 import pg from 'pg';
 
 /** Mirrors `unresolved_entity_provider_check`. */
@@ -37,6 +38,8 @@ export const PROVIDERS = ['api_football', 'football_data_org', 'highlightly'];
 export const COMPETITION_KINDS = ['league', 'cup', 'super_cup', 'qualifying', 'friendly'];
 export const COMPETITION_SCOPES = ['domestic', 'continental', 'international'];
 const SEASON_LABEL = /^\d{4}(\/\d{2,4})?$/;
+/** The bridge from the provider's clubs to the training data's names (D-080). */
+const DEFAULT_ALIASES = new URL('./data/training-aliases.csv', import.meta.url);
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 const VERBS = [
@@ -48,6 +51,8 @@ const VERBS = [
   'add-competition',
   'add-season',
   'map',
+  'set-division',
+  'alias-training',
 ];
 const SWITCHES = [...VERBS, 'dry-run', 'current'];
 const VALUED = [
@@ -67,6 +72,8 @@ const VALUED = [
   'by',
   'code',
   'iso2',
+  'division',
+  'file',
 ];
 
 const USAGE = `Usage (one verb per call):
@@ -80,6 +87,8 @@ const USAGE = `Usage (one verb per call):
   --add-season --competition <external id> --label <2026/27> --start <YYYY-MM-DD>
                --end <YYYY-MM-DD> [--current] [--by <address>]
   --map --type <kind> --external-id <id> --to <internal uuid> [--by <address>]
+  --set-division --competition <external id> --division <E0|SP1|...> [--by <address>]
+  --alias-training [--file <csv>] [--by <address>]
 
   --provider defaults to api_football.`;
 
@@ -122,6 +131,23 @@ export function parseArgs(argv) {
     const limit = Number(flags.get('limit') ?? '50');
     if (!Number.isInteger(limit) || limit <= 0) return { error: '--limit must be a whole number.' };
     return { command: 'list', provider, type: flags.get('type'), limit };
+  }
+  if (verb === 'set-division') {
+    const competition = text('competition');
+    const division = text('division').toUpperCase();
+    if (competition === '') return { error: '--competition is required: the provider’s id.' };
+    // `competition_football_data_division_format` says the same in the database.
+    if (!/^[A-Z]{1,2}[0-9C]$/.test(division)) {
+      return { error: '--division is a football-data.co.uk code: E0, SP1, D1, I1, F1.' };
+    }
+    return { command: 'set-division', provider, by, competition, division };
+  }
+  if (verb === 'alias-training') {
+    return {
+      command: 'alias-training',
+      by,
+      file: text('file') === '' ? DEFAULT_ALIASES : text('file'),
+    };
   }
   if (verb === 'adopt-teams' || verb === 'adopt-people' || verb === 'adopt-venues') {
     return { command: verb, provider, by, dryRun: flags.get('dry-run') === true };
@@ -612,6 +638,155 @@ async function map(client, options) {
   return 0;
 }
 
+/**
+ * Which football-data.co.uk division a competition's results are in, so the
+ * model and the Power Index know where its history is (T-063, D-080).
+ */
+async function setDivision(client, options) {
+  const { rows } = await client.query(
+    `UPDATE competition c SET football_data_division = $3
+       FROM provider_mapping pm
+      WHERE pm.internal_id = c.id AND pm.entity_type = 'competition'
+        AND pm.provider = $1 AND pm.external_id = $2
+      RETURNING c.id, c.name`,
+    [options.provider, options.competition, options.division],
+  );
+  if (rows[0] === undefined) {
+    console.error(`No competition is mapped to ${options.provider} ${options.competition}.`);
+    return 1;
+  }
+  const audited = await audit(
+    client,
+    options.by,
+    'catalog.competition_division_set',
+    'competition',
+    rows[0].id,
+    { football_data_division: options.division },
+  );
+  console.log(`${rows[0].name} -> football-data.co.uk ${options.division}.`);
+  sayIfUnaudited(audited, options.by);
+  return 0;
+}
+
+/** `provider,provider_team_id,division,training_name`, one alias a line. */
+export function parseAliases(text) {
+  const lines = text.split(/\r?\n/).filter((line) => line.trim() !== '');
+  const header = lines.shift();
+  if (header !== 'provider,provider_team_id,division,training_name') {
+    return { error: 'the header must be provider,provider_team_id,division,training_name' };
+  }
+  const rows = [];
+  for (const [index, line] of lines.entries()) {
+    const [provider, teamId, division, ...rest] = line.split(',');
+    const name = rest.join(',').trim();
+    if (!PROVIDERS.includes(provider) || !/^\d+$/.test(teamId ?? '') || name === '') {
+      return { error: `line ${index + 2} is not provider,id,division,name: ${line}` };
+    }
+    if (!/^[A-Z]{1,2}[0-9C]$/.test(division ?? '')) {
+      return { error: `line ${index + 2}: ${division} is not a football-data.co.uk division` };
+    }
+    rows.push({ provider, teamId, division, name });
+  }
+  return { rows };
+}
+
+/**
+ * The model is fitted on the training data's names; the product speaks in
+ * catalogue ids. This writes the bridge from a committed list keyed by the
+ * provider's club id -- stable across deployments, where our ids are not --
+ * and refuses a name the training data does not hold, so a typo is an error
+ * rather than a club the model silently cannot see. It then checks the bridge
+ * against results: every match of the training data's newest season should be
+ * one of ours, on the same day, between the same two clubs, with the same
+ * score. A name is never matched to a club by likeness (rule 1).
+ */
+async function aliasTraining(client, options) {
+  const parsed = parseAliases(readFileSync(options.file, 'utf8'));
+  if (parsed.error !== undefined) {
+    console.error(`${options.file}: ${parsed.error}`);
+    return 2;
+  }
+  let written = 0;
+  const unmapped = [];
+  const unknown = [];
+  for (const row of parsed.rows) {
+    const team = await client.query(
+      `SELECT internal_id FROM provider_mapping
+        WHERE provider = $1 AND entity_type = 'team' AND external_id = $2`,
+      [row.provider, row.teamId],
+    );
+    if (team.rows[0] === undefined) {
+      unmapped.push(`${row.provider} ${row.teamId} (${row.name})`);
+      continue;
+    }
+    const known = await client.query(
+      `SELECT 1 FROM training.match
+        WHERE division = $1 AND (home_team = $2 OR away_team = $2) LIMIT 1`,
+      [row.division, row.name],
+    );
+    if (known.rows[0] === undefined) {
+      unknown.push(`${row.division} "${row.name}"`);
+      continue;
+    }
+    const { rowCount } = await client.query(
+      `INSERT INTO training.team_alias (team_id, division, training_name) VALUES ($1, $2, $3)
+       ON CONFLICT (team_id, division) DO UPDATE SET training_name = EXCLUDED.training_name
+        WHERE training.team_alias.training_name IS DISTINCT FROM EXCLUDED.training_name`,
+      [team.rows[0].internal_id, row.division, row.name],
+    );
+    written += rowCount ?? 0;
+  }
+  console.log(`${written} alias(es) written, ${parsed.rows.length} in the list.`);
+  if (unmapped.length > 0) {
+    console.log(`${unmapped.length} club(s) not in the catalogue yet: ${unmapped.join(', ')}`);
+  }
+  if (unknown.length > 0) {
+    console.log(
+      `${unknown.length} name(s) the training data does not hold -- load it first, or fix ` +
+        `the list: ${unknown.join(', ')}`,
+    );
+  }
+
+  const check = await client.query(
+    `WITH newest AS (
+       SELECT division, max(season) AS season FROM training.match GROUP BY division)
+     SELECT m.division,
+            count(*)::int AS results,
+            count(*) FILTER (WHERE EXISTS (
+              SELECT 1 FROM fixture f
+                JOIN fixture_participant h ON h.fixture_id = f.id AND h.side = 'home'
+                JOIN fixture_participant a ON a.fixture_id = f.id AND a.side = 'away'
+                JOIN fixture_score sc ON sc.fixture_id = f.id AND sc.kind = 'full_time'
+               WHERE h.team_id = ah.team_id AND a.team_id = aa.team_id
+                 AND sc.home = m.home_goals AND sc.away = m.away_goals
+                 AND f.kickoff_at::date BETWEEN m.match_date - 1 AND m.match_date + 1))::int
+              AS agreeing
+       FROM training.match m
+       JOIN newest n ON n.division = m.division AND n.season = m.season
+       LEFT JOIN training.team_alias ah
+         ON ah.division = m.division AND ah.training_name = m.home_team
+       LEFT JOIN training.team_alias aa
+         ON aa.division = m.division AND aa.training_name = m.away_team
+      WHERE m.division IN (SELECT DISTINCT division FROM training.team_alias)
+      GROUP BY m.division ORDER BY m.division`,
+  );
+  for (const row of check.rows) {
+    console.log(
+      `  ${row.division}: ${row.agreeing} of ${row.results} results in the newest season agree ` +
+        'with ours (same day, same clubs, same score).',
+    );
+  }
+  await audit(
+    client,
+    options.by,
+    'catalog.training_aliases_set',
+    'training_alias_list',
+    String(options.file).split(/[\\/]/).pop(),
+    { written, listed: parsed.rows.length },
+  );
+  return unknown.length > 0 ? 1 : 0;
+}
+
 async function main() {
   const parsed = parseArgs(process.argv.slice(2));
   if (parsed.error !== undefined) {
@@ -637,6 +812,10 @@ async function main() {
         return await addCompetition(client, parsed);
       case 'add-season':
         return await addSeason(client, parsed);
+      case 'set-division':
+        return await setDivision(client, parsed);
+      case 'alias-training':
+        return await aliasTraining(client, parsed);
       default:
         return await map(client, parsed);
     }

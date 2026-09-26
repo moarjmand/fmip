@@ -155,6 +155,31 @@ catalog --adopt-venues --by you@your-domain
 Run the pair again whenever `catalog --list` shows people waiting: new
 signings and substitutes keep arriving all season.
 
+**Then the model's side (D-080).** The forecast model and the Power Index are
+fitted on football-data.co.uk's results and Club Elo (D-016), which a fresh
+deployment does not hold, and they know clubs by those sources' names. Load the
+history, say which division each league's results are in, and write the bridge
+from our clubs to their names:
+
+```bash
+docker compose run --rm model python -m fmip_model.training.load football-data \
+  --seasons 2324 2425 2526 2627 --divisions E0 SP1 D1 I1 F1
+docker compose run --rm model python -m fmip_model.training.load clubelo --days 2026-09-20
+
+catalog --set-division --competition 39  --division E0  --by you@your-domain
+catalog --set-division --competition 140 --division SP1 --by you@your-domain
+catalog --set-division --competition 78  --division D1  --by you@your-domain
+catalog --set-division --competition 135 --division I1  --by you@your-domain
+catalog --set-division --competition 61  --division F1  --by you@your-domain
+catalog --alias-training --by you@your-domain
+```
+
+The last line reports, per division, how many of the newest season's results
+agree with ours -- same day, same two clubs, same score. Anything short of all
+of them is a club under the wrong name. Load the current season's file again
+each week, and after a promotion add the new club's line to
+`packages/db/scripts/data/training-aliases.csv`.
+
 An adopted club gets its name and nothing invented; `--map` is for when the
 provider means a club you already hold.
 
