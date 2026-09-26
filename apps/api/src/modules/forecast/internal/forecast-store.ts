@@ -22,6 +22,12 @@ export interface FixtureForModel {
   competitionId: string;
   /** football-data.co.uk division, or null when the competition is not mapped. */
   division: string | null;
+  /**
+   * Whether its clubs can come from different leagues -- a cup, or anything
+   * that is not a domestic league -- so that no division could describe it
+   * (T-503).
+   */
+  mixesLeagues: boolean;
 }
 
 export interface NewForecast {
@@ -115,8 +121,10 @@ export class PostgresForecastStore {
       away_team_id: string;
       competition_id: string;
       division: string | null;
+      mixes_leagues: boolean;
     }>(
       `SELECT f.id, f.kickoff_at, c.id AS competition_id, c.football_data_division AS division,
+              (c.kind <> 'league' OR c.scope <> 'domestic') AS mixes_leagues,
               h.team_id AS home_team_id, a.team_id AS away_team_id
          FROM fixture f
          JOIN season se ON se.id = f.season_id
@@ -135,6 +143,7 @@ export class PostgresForecastStore {
       awayTeamId: row.away_team_id,
       competitionId: row.competition_id,
       division: row.division,
+      mixesLeagues: row.mixes_leagues,
     };
   }
 

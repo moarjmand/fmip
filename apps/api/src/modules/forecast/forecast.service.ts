@@ -58,10 +58,18 @@ export class ForecastService {
         request,
         computedAt: new Date(),
         available: null,
-        unavailable: {
-          reason: 'competition_not_mapped',
-          detail: `competition ${fixture.competitionId} has no football-data division`,
-        },
+        // A cup's clubs come from different leagues and the model rates within
+        // one, which is a different sentence from a league whose history is
+        // not loaded (T-503).
+        unavailable: fixture.mixesLeagues
+          ? {
+              reason: 'cross_competition',
+              detail: `competition ${fixture.competitionId} matches clubs of different leagues`,
+            }
+          : {
+              reason: 'competition_not_mapped',
+              detail: `competition ${fixture.competitionId} has no football-data division`,
+            },
       });
       return { kind: 'recorded', version };
     }

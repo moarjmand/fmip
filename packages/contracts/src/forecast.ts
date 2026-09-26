@@ -100,7 +100,12 @@ export interface ModelHealth {
 export type ForecastKind = 'early' | 'lineups_predicted' | 'lineups_confirmed' | 'manual';
 
 export type ForecastUnavailableReason =
-  ModelUnavailableReason | 'competition_not_mapped' | 'model_unreachable' | 'contract_violation';
+  | ModelUnavailableReason
+  | 'competition_not_mapped'
+  /** Clubs of different leagues, as in a European cup: the model rates within one (T-503). */
+  | 'cross_competition'
+  | 'model_unreachable'
+  | 'contract_violation';
 
 export interface ForecastVersion {
   id: string;

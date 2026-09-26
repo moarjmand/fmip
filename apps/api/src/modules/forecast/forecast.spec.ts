@@ -15,6 +15,7 @@ const FIXTURE: FixtureForModel = {
   awayTeamId: '00000000-0000-4000-8000-000000000601',
   competitionId: '00000000-0000-4000-8000-000000000201',
   division: 'E0',
+  mixesLeagues: false,
 };
 
 const AVAILABLE: ModelForecastResponse = {
@@ -230,6 +231,22 @@ describe('ForecastService.compute', () => {
 
     expect(asked).toBe(0);
     expect(store.written[0]?.unavailable?.reason).toBe('competition_not_mapped');
+  });
+
+  it('says a cup match mixes leagues rather than that it is not mapped (T-503)', async () => {
+    const store = new FakeStore({ ...FIXTURE, division: null, mixesLeagues: true });
+    let asked = 0;
+    const model = new ModelClient({
+      baseUrl: 'http://model.test',
+      fetchImpl: async () => {
+        asked += 1;
+        return new Response('{}');
+      },
+    });
+    await service(store, model).compute(FIXTURE.id, 'early');
+
+    expect(asked).toBe(0);
+    expect(store.written[0]?.unavailable).toMatchObject({ reason: 'cross_competition' });
   });
 
   it('reports an unknown fixture instead of writing anything', async () => {

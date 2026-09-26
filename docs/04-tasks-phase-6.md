@@ -83,8 +83,8 @@ Checked on the public deployment:
 |---|---|---|---|
 | `[ ]` T-500 | Provider facts for eight competitions: ids, the current season's dates, coverage flags, and the two cups' stage names | T-029 | Every id, date and flag in `14-maintainer.md` came from the provider on a stated day |
 | `[~]` T-501 | The request budget at fifteen competitions: each ingest run records the requests it spent, a match day is measured, and a ceiling is set below the plan | T-071 | The projection is in `05-data-providers.md`; a day over the ceiling is a partial run naming the budget, never a refusal from the provider |
-| `[ ]` T-502 | The six domestic leagues on the server: Championship, Eredivisie, Primeira Liga, Süper Lig, Belgian Pro League, Scottish Premiership | T-500, T-501, D-080 | `--alias-training` agrees with every current-season result in E1, N1, P1, T1, B1 and SC0 |
-| `[ ]` T-503 | The Europa League and the Conference League on the server, with their stages | T-500, T-501 | Their tables are the league stage's; their match pages say why there is no forecast yet (T-533) |
+| `[x]` T-502 | The six domestic leagues on the server: Championship, Eredivisie, Primeira Liga, Süper Lig, Belgian Pro League, Scottish Premiership | T-500, T-501, D-080 | `--alias-training` agrees with every current-season result in E1, N1, P1, T1, B1 and SC0 |
+| `[x]` T-503 | The Europa League and the Conference League on the server, with their stages | T-500, T-501 | Their tables are the league stage's; their match pages say why there is no forecast yet (T-533) |
 | `[ ]` T-504 | Fifteen competitions on one scores page | T-502, T-042 | A stated order after a member's favourites, and the page stays usable on a phone on a Saturday with every league playing |
 
 **The leagues were chosen for the model, not only for the audience.** Each of
@@ -188,3 +188,21 @@ agent working on the server has neither, and never signs in for anybody.
 `dist/cli/backfill.js` is the same act for the operator already on the
 server: it names an administrator with `--by`, audits the reason before a
 request is spent, and runs without a scheduler of its own.
+
+---
+
+**T-502 and T-503 done on 2026-09-26.** The eight competitions are on the
+server with their 2026/27 seasons, backfilled twice (1,153 matches), 241 clubs
+adopted, and the two cups' stages added under the names their matches carry
+-- the Conference League calls its play-off round "Playoff round". The six
+leagues' history is in the training store and `--alias-training` agrees with
+every current-season result in all eleven divisions: 379 of 379 in the six new
+ones. Trial forecasts answer for each new division. One weakness is visible
+already: a club relegated into a division has only this season's few matches
+there (West Ham and Wolves in the Championship), and the Elo prior that would
+anchor it is absent while Club Elo is down -- T-533's case, and the reason the
+constants in T-532 are tuned per division. A cup match's panel now says why
+the model has no forecast for it (`cross_competition`) rather than that the
+competition "is not mapped", and a domestic league without training history
+says that instead.
+

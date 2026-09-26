@@ -47,7 +47,9 @@ export const UNAVAILABLE_LABEL: Record<ForecastUnavailableReason, string> = {
   team_not_mapped: 'The model does not know one of the teams yet.',
   no_history: 'The model has too little match history for one of the teams.',
   division_not_loaded: "This competition's history is not loaded into the model.",
-  competition_not_mapped: 'This competition is not mapped to the model.',
+  competition_not_mapped: "This competition's history is not in the model's training data.",
+  cross_competition:
+    'The model rates clubs within one league; a match between clubs of different leagues waits for its next version.',
   model_unreachable: 'The model service could not be reached when this version was computed.',
   contract_violation: "The model's answer did not match the contract and was not used.",
 };
