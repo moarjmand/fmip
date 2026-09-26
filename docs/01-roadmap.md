@@ -106,8 +106,8 @@ labelled, grounded, versioned, off the critical path -- are D-070.
 
 - More leagues: six domestic leagues the training data covers, and the Europa
   and Conference Leagues.
-- Iran's Persian Gulf Pro League, with a forecast only once a licensed history
-  for it is chosen.
+- Iran's Persian Gulf Pro League, forecast from its own history as the feed
+  recorded it (D-083).
 - The first members: share cards, a share control, invite links, a page for a
   first visit, and a Telegram channel once the maintainer creates one.
 - A second model version, run in shadow and promoted only on the evaluation.
@@ -116,6 +116,18 @@ labelled, grounded, versioned, off the critical path -- are D-070.
 the day after the first real deployment). Four epics, twenty tasks, three
 gates that are the maintainer's: the Iranian league's history (T-511), the
 Telegram channel (T-524), and the feed's plan continuing past 2026-10-21.
+
+**Where it stands (2026-09-26, evening).** T-511 is answered (D-083): the
+model learns from the feed's own records. Built and on the server: fifteen
+competitions with their season schedules; share cards, share control,
+invites, the first-visit page and the homepage; Iran's league in the model
+(backtested, first forecast when 8 October enters the window); the second
+model as candidate `dixon-coles-elo@0.4.0` in shadow -- tuned constants per
+division and cup matches on one scale across leagues (D-085) -- with the
+line-up term (D-086) built and waiting for a season of line-ups to be fitted
+on; the daily channel post, off until the channel exists. What is left is
+measured on real match days (T-501, T-504), earned by the candidate's own
+record (T-535), or the maintainer's: the channel (T-524) and the plan.
 
 ---
 
