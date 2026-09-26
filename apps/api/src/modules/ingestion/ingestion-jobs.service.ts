@@ -85,6 +85,32 @@ function describe(error: { kind: string; message: string }): string {
  * state, which is what the coverage state (T-027) is for. Only something we did
  * not anticipate is allowed to fail the run.
  */
+/**
+ * One question to the provider per live tick, whatever the number of
+ * competitions (T-501).
+ *
+ * The provider's live list is one answer for everything playing, and the job
+ * used to ask for it once per competition with a match in the window: one
+ * request a minute with the first five leagues, fifteen on a Saturday with
+ * fifteen. Asking once with every id we hold, and sending each fixture back
+ * to the competition it belongs to, spends one. A competition with nothing in
+ * the window still asks nothing.
+ */
+export function liveQuestion(known: { target: PollTarget; externalIds: string[] }[]): {
+  externalIds: string[];
+  targetOf: Map<string, PollTarget>;
+  seasonLabels: string[];
+} {
+  const targetOf = new Map<string, PollTarget>();
+  const seasonLabels: string[] = [];
+  for (const { target, externalIds } of known) {
+    if (externalIds.length === 0) continue;
+    seasonLabels.push(target.seasonLabel);
+    for (const id of externalIds) targetOf.set(id, target);
+  }
+  return { externalIds: [...targetOf.keys()], targetOf, seasonLabels };
+}
+
 @Injectable()
 export class IngestionJobsService {
   private readonly log = new Logger('Ingestion');
@@ -222,28 +248,32 @@ export class IngestionJobsService {
       const unresolved = new Set<string>();
       const seasons = new Set<string>();
 
+      const known: { target: PollTarget; externalIds: string[] }[] = [];
       for (const target of targets) {
-        const known = await this.store.fixtureExternalIds(
+        const ids = await this.store.fixtureExternalIds(
           source.provider,
           target.competitionId,
           from,
           to,
         );
-        if (known.length === 0) continue;
+        known.push({ target, externalIds: ids.map((k) => k.externalId) });
+      }
+      const question = liveQuestion(known);
 
-        const result = await source.adapter.getLive({
-          fixtureExternalIds: known.map((k) => k.externalId),
-        });
+      if (question.externalIds.length > 0) {
+        const result = await source.adapter.getLive({ fixtureExternalIds: question.externalIds });
         if (!result.ok) {
-          refused.push(`${target.seasonLabel}: ${describe(result.error)}`);
-          continue;
-        }
-        seen += result.data.length;
-        for (const fixture of result.data) {
-          const write = await this.store.saveFixture(source.provider, target, fixture, 'live');
-          written += write.changed;
-          if (write.seasonId !== undefined) seasons.add(write.seasonId);
-          for (const id of write.unresolved) unresolved.add(id);
+          refused.push(`${question.seasonLabels.join(', ')}: ${describe(result.error)}`);
+        } else {
+          seen += result.data.length;
+          for (const fixture of result.data) {
+            const target = question.targetOf.get(fixture.externalId);
+            if (target === undefined) continue;
+            const write = await this.store.saveFixture(source.provider, target, fixture, 'live');
+            written += write.changed;
+            if (write.seasonId !== undefined) seasons.add(write.seasonId);
+            for (const id of write.unresolved) unresolved.add(id);
+          }
         }
       }
       written += await this.coverage.recomputeMany([...seasons]);

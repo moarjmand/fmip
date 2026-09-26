@@ -37,12 +37,15 @@ describe('feedNotice', () => {
       items_seen: 0,
       items_written: 0,
       error: status === 'succeeded' ? null : 'boom',
+      requests: 1,
     },
     last_failure: null,
     failed_last_24h: 0,
     running: 0,
     recent: [],
     pollable: { provider: 'api_football', reason: null, competitions: 1, with_current_season: 1 },
+    requests_today: 1,
+    request_budget: null,
   });
 
   it('names a failed or partial latest run with its time, and says nothing otherwise', () => {

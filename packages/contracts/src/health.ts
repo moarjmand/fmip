@@ -32,6 +32,11 @@ export interface IngestRun {
   items_written: number;
   /** What went wrong, for a failed or partial run. */
   error: string | null;
+  /**
+   * Requests this run sent to its provider (T-501); `null` for a run recorded
+   * before they were counted, which is unknown rather than none.
+   */
+  requests: number | null;
 }
 
 /**
@@ -70,6 +75,13 @@ export interface IngestionHealth {
   recent: IngestRun[];
   /** What there is to poll; zero means the jobs fetch nothing. */
   pollable: PollableCatalogue;
+  /**
+   * Requests the jobs have sent the fixtures job's provider since 00:00 UTC,
+   * the moment every plan's day resets (T-501).
+   */
+  requests_today: number;
+  /** This deployment's own daily ceiling for that provider, or `null` for none. */
+  request_budget: number | null;
 }
 
 /** `GET /health/live`: the live path's gateway in numbers. */

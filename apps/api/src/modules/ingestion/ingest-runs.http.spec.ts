@@ -5,8 +5,9 @@ import type { IngestionHealth } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
-import { IngestRunsService } from './ingest-runs.service';
+import { IngestRunsService, utcMidnight } from './ingest-runs.service';
 import { IngestionModule } from './ingestion.module';
+import { CountingTransport } from './internal/request-meter';
 import { PostgresRunStore } from './internal/run-store';
 
 // An ingest failure is visible without SSH (T-071): recorded in ingest_run,
@@ -75,6 +76,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingest runs'
       error: 'three rows failed validation',
     });
     expect(partial).toMatchObject({ status: 'partial', items_seen: 10, items_written: 7 });
+    // Finished by hand, the run says nothing about requests: unknown, not zero.
+    expect(partial!.requests).toBeNull();
 
     // Every run above is ours: collect them for cleanup through the health view.
     const response = await app.inject({ method: 'GET', url: '/health/ingestion' });
@@ -97,6 +100,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingest runs'
     expect(failed!.finished_at).not.toBeNull();
     const succeeded = health.recent.find((r) => r.scope === 'season:test');
     expect(succeeded).toMatchObject({ status: 'succeeded', items_written: 3, error: null });
+    // Run by `track`, each records the requests it sent: none here (T-501).
+    expect(succeeded!.requests).toBe(0);
+    expect(failed!.requests).toBe(0);
 
     // The failure and the partial run were logged as structured events; the success as one too.
     const failedEvents = errorLog.mock.calls.map((c) => c[1] as { event: string; status: string });
@@ -118,6 +124,33 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingest runs'
     logLog.mockRestore();
   });
 
+  it('records the requests a run sent, and sums a provider’s day (T-501)', async () => {
+    const store = app.get(PostgresRunStore);
+    const transport = new CountingTransport({
+      async request() {
+        return { status: 200, body: {}, receivedAt: new Date().toISOString() };
+      },
+    });
+    const before = await store.requestsSince('football_data_org', utcMidnight(new Date()));
+
+    await runs.track('football_data_org', 'lineups', 'requests:test', async () => {
+      for (let i = 0; i < 4; i += 1) await transport.request(`https://provider/${i}`);
+      return { result: null, itemsSeen: 4, itemsWritten: 0 };
+    });
+
+    const { rows } = await pool.query<{ id: string; requests: number }>(
+      `SELECT id, requests FROM ingest_run WHERE scope = 'requests:test'`,
+    );
+    ids.push(...rows.map((r) => r.id));
+    expect(rows.map((r) => r.requests)).toEqual([4]);
+    expect(await store.requestsSince('football_data_org', utcMidnight(new Date()))).toBe(
+      before + 4,
+    );
+    expect(utcMidnight(new Date('2026-09-26T23:59:00+03:30')).toISOString()).toBe(
+      '2026-09-26T00:00:00.000Z',
+    );
+  });
+
   it('answers with an empty picture rather than an invented one when nothing ran', async () => {
     const health = (
       await app.inject({ method: 'GET', url: '/health/ingestion' })
@@ -129,6 +162,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingest runs'
       'last_run',
       'pollable',
       'recent',
+      'request_budget',
+      'requests_today',
       'running',
     ]);
     expect(Array.isArray(health.recent)).toBe(true);
@@ -148,6 +183,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingest runs'
     expect(health.pollable.provider === null).toBe(health.pollable.reason !== null);
     expect(health.pollable.with_current_season).toBeLessThanOrEqual(health.pollable.competitions);
     if (health.pollable.provider === null) expect(health.pollable.competitions).toBe(0);
+    // A day's requests are a count, never negative; the ceiling is a number or absent.
+    expect(health.requests_today).toBeGreaterThanOrEqual(0);
+    expect(health.request_budget === null || health.request_budget > 0).toBe(true);
   });
 
   /**

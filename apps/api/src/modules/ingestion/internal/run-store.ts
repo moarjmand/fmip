@@ -64,14 +64,23 @@ export class PostgresRunStore {
       itemsSeen: number;
       itemsWritten: number;
       error: string | null;
+      requests?: number | null;
     },
   ): Promise<IngestRun | null> {
     const { rows } = await this.pool.query<Row>(
       `UPDATE ingest_run
-          SET status = $2, finished_at = now(), items_seen = $3, items_written = $4, error = $5
+          SET status = $2, finished_at = now(), items_seen = $3, items_written = $4, error = $5,
+              requests = $6
         WHERE id = $1 AND status = 'running'
         RETURNING ${COLUMNS}`,
-      [id, outcome.status, outcome.itemsSeen, outcome.itemsWritten, outcome.error],
+      [
+        id,
+        outcome.status,
+        outcome.itemsSeen,
+        outcome.itemsWritten,
+        outcome.error,
+        outcome.requests ?? null,
+      ],
     );
     const r = rows[0];
     return r === undefined ? null : toRun(r);
@@ -86,6 +95,20 @@ export class PostgresRunStore {
     return rows.map(toRun);
   }
 
+  /**
+   * Requests sent to `provider` by runs started since `since` (T-501). Runs
+   * recorded before requests were counted add nothing, which undercounts the
+   * first day and no other.
+   */
+  async requestsSince(provider: string, since: Date): Promise<number> {
+    const { rows } = await this.pool.query<{ n: string }>(
+      `SELECT COALESCE(sum(requests), 0)::text AS n FROM ingest_run
+        WHERE provider = $1 AND started_at >= $2`,
+      [provider, since],
+    );
+    return Number(rows[0]?.n ?? 0);
+  }
+
   /** Runs that failed or were partial since `since`. */
   async failedSince(since: Date): Promise<number> {
     const { rows } = await this.pool.query<{ n: string }>(
@@ -98,7 +121,7 @@ export class PostgresRunStore {
 }
 
 const COLUMNS =
-  'id, provider, job, scope, status, started_at, finished_at, items_seen, items_written, error';
+  'id, provider, job, scope, status, started_at, finished_at, items_seen, items_written, error, requests';
 
 interface Row {
   id: string;
@@ -111,6 +134,7 @@ interface Row {
   items_seen: number;
   items_written: number;
   error: string | null;
+  requests: number | null;
 }
 
 const toRun = (r: Row): IngestRun => ({
@@ -124,4 +148,5 @@ const toRun = (r: Row): IngestRun => ({
   items_seen: r.items_seen,
   items_written: r.items_written,
   error: r.error,
+  requests: r.requests,
 });

@@ -405,6 +405,43 @@ required for T-026 and is not built yet.
 
 ---
 
+## The request budget at fifteen competitions (T-501, 2026-09-26)
+
+The paid plan (Pro, D-076) allows **7,500 requests a day**, reset at 00:00 UTC.
+Until T-501 nothing on our side counted them; now every ingest run records the
+requests it sent (`ingest_run.requests`), `/health/ingestion` sums the day as
+`requests_today` beside the deployment's own ceiling, and `check-setup.sh`
+prints both. A ceiling (`API_FOOTBALL_DAILY_BUDGET`) turns an overrun into our
+own partial run naming the budget, rather than the provider's refusal
+mid-match; **7000** leaves 500 for hand-run backfills.
+
+Measured on the server during the international break (no matches): about
+**740 a day**, nearly all of it the hourly fixtures and standings polls and the
+post-match backlog.
+
+Projected for a Saturday with all fifteen competitions playing (Phase 6, E50),
+job by job, from the schedule and one request per call (`/fixtures?id=` carries
+a match's line-ups, events, statistics and players together):
+
+| Job | How often | Requests on a busy day |
+|---|---|---|
+| fixtures | hourly, one per competition | 360 |
+| standings | hourly, one per competition | 360 |
+| live | once a minute while any match is in its window (30 min before to 210 after kick-off) | up to 720 |
+| lineups | every 5 min, one per match near kick-off until its line-up is held | up to 720 |
+| availability | each match in the next 72 hours, re-asked after 3 hours, ten a run | about 800 |
+| post-match | every 30 min, one per finished match, plus the backlog's 20 a run while one exists | 70, up to 960 more |
+| **total** | | **about 4,000**, or 3,000 with no backlog |
+
+**What T-501 changed to make that true.** The live job asked the provider's
+live list once *per competition* with a match in the window. The answer is the
+same list whichever competition asks, so at fifteen competitions that was up
+to fifteen requests a minute -- 10,800 on a Saturday, more than the plan on its
+own. It now asks once a tick with every id we hold and sends each fixture back
+to its competition (`liveQuestion`). The first match day after the break will
+be measured from `ingest_run.requests` and recorded here beside the
+projection.
+
 ## Historical training data (free)
 
 | Source | Contents | Licence posture |
