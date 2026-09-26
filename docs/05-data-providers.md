@@ -442,6 +442,21 @@ to its competition (`liveQuestion`). The first match day after the break will
 be measured from `ingest_run.requests` and recorded here beside the
 projection.
 
+**Past seasons, and what they cost (2026-09-26).** A past season is one
+request per competition for its whole fixture list (`backfill.js --season`),
+then one per finished match for its details through the post-match backlog.
+Loading 2023/24 to 2025/26 for Iran's league and the three UEFA cups, and
+2025/26 for the eleven domestic leagues, took 27 list requests and put about
+7,400 matches in the backlog: at `INGESTION_BACKLOG_BATCH=120` (the
+international break's setting; the default returns afterwards) that is about
+5,800 requests a day for a day and a half, under the 7,000 ceiling. The
+feed's own records also train the model where the free sources do not reach
+(D-083): Iran's league, the cup matches, line-ups.
+
+| Source (training) | Contents | Licence posture |
+|---|---|---|
+| Our own records of API-Football | Finished matches, line-ups and player ratings as the product recorded them | The plan's terms forbid reselling the data and say nothing about models; the maintainer allowed training on it (D-083). Copied from our tables, never fetched by the model. |
+
 ## Historical training data (free)
 
 | Source | Contents | Licence posture |

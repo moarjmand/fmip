@@ -405,9 +405,10 @@ row audited (T-313). What waits for you is editors' time -- grant `editor`
 to whoever enters listings -- and a licence only if you ever want thumbnails
 or embeds, which would be a second source beside the desk, not a replacement.
 
-**A native app (T-320).** A framework and two store accounts, each a
-decision and a cost. The contracts are proven platform-independent (T-321),
-so the day you decide, the app is a second client of the same endpoints.
+**A native app (T-320).** Decided on 2026-09-26: not now (D-084); the
+installable web app is the mobile product. The contracts stay proven
+platform-independent (T-321), so if the question returns, the app is a second
+client of the same endpoints.
 
 **Notification delivery (T-330).** Built end to end on 2026-09-20 without a
 vendor: every kind leaves as the inbox's own sentence and route, e-mail is
@@ -470,8 +471,8 @@ by the agent at your request on 2026-09-18. Nothing to decide now: grant
 match page for them (declare coverage first, then list) -- and revisit only
 for a licence with more rights.
 
-**T-320, the native app.** Parked on 2026-09-19 at your request, to be
-raised later. When it is, four things, all yours: whether at all; the
+**T-320, the native app.** Decided on 2026-09-26: not now (D-084). If it
+comes back, four things, all yours: whether at all; the
 framework (the roadmap names Expo, and `CLAUDE.md` §2 wants a decision entry
 before it is added); the two store accounts, Apple Developer Program and
 Google Play Console, opened in your name and paid for; and one device per
