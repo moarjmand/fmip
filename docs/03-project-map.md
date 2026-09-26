@@ -63,6 +63,7 @@ incomplete.
 | Path | Purpose | Talks to |
 |---|---|---|
 | `apps/web` | Next.js App Router application. Locale routing, Tailwind, RTL-safe by lint. | `apps/api` over HTTP + SSE; `packages/contracts` for types |
+| `apps/web/src/lib/share-card.ts`, `components/share-card-image.tsx`, `app/[locale]/{match,competition}/[id]/opengraph-image.tsx` | T-520: the share cards a chat app shows for a match or a competition link, from the same API answers as the page; times in UTC; the model's forecast named as the model's. |
 | `apps/api` | NestJS backend on the Fastify adapter. One module per boundary. | Postgres, Redis, `apps/model` |
 | `apps/model` | Python forecast model service (D-009): training-store loaders (T-060), the Dixon-Coles model (T-061), the backtest harness (T-062) and the FastAPI service (T-063). | Reads and writes the `training` schema; will be called by `apps/api` only. |
 
