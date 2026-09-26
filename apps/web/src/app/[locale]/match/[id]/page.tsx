@@ -10,6 +10,7 @@ import { LiveMatch } from '@/components/live-match';
 import { MatchPanel } from '@/components/match-panel';
 import { MatchSummaryPanel } from '@/components/match-summary';
 import { PowerIndexPanel } from '@/components/power-index-panel';
+import { ShareLink } from '@/components/share-link';
 import { MatchThreads } from '@/components/match-threads';
 import { PredictionSection } from '@/components/prediction-section';
 import { RelatedNews } from '@/components/related-news';
@@ -36,7 +37,7 @@ import {
   fetchTerritories,
 } from '@/lib/api';
 import { isTimeZone } from '@/lib/scores';
-import { matchJsonLd, pageMetadata } from '@/lib/seo';
+import { canonicalUrl, matchJsonLd, pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { readTerritoryQuery } from '@/lib/viewing';
 
@@ -157,6 +158,14 @@ export default async function MatchPage({
         <span className="ms-3 opacity-70" data-testid="timezone">
           Times in {timeZone}
         </span>
+        {result.ok && (
+          <span className="ms-3">
+            <ShareLink
+              url={canonicalUrl(locale, `/match/${result.data.fixture.id}`)}
+              title={`${result.data.fixture.home.name} v ${result.data.fixture.away.name}`}
+            />
+          </span>
+        )}
       </p>
       {!result.ok ? (
         <>

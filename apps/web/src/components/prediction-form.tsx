@@ -4,6 +4,7 @@ import { MAX_REASON_TAGS, PREDICTION_REASON_TAGS, type Prediction } from '@fmip/
 import { useActionState } from 'react';
 import type { ActionState } from '@/lib/auth-actions';
 import { OUTCOME_LABEL, REASON_TAG_LABEL } from '@/lib/prediction-form';
+import { ShareLink } from './share-link';
 
 /**
  * The member's prediction on the match centre (blueprint 6.6, T-050):
@@ -16,11 +17,14 @@ export function PredictionForm({
   current,
   home,
   away,
+  shareUrl,
 }: {
   action: (state: ActionState, formData: FormData) => Promise<ActionState>;
   current: Prediction | null;
   home: string;
   away: string;
+  /** The match's own address, offered for sharing once a prediction is saved (T-521). */
+  shareUrl?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, null);
   const latest = current?.latest ?? null;
@@ -141,6 +145,11 @@ export function PredictionForm({
       {state !== null && (
         <p role={state.ok ? 'status' : 'alert'} data-testid="prediction-state">
           {state.message}
+        </p>
+      )}
+      {state !== null && state.ok && shareUrl !== undefined && (
+        <p className="text-sm">
+          <ShareLink url={shareUrl} title={`${home} v ${away}`} label="Share this match" />
         </p>
       )}
     </form>

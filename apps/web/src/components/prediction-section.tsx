@@ -1,6 +1,7 @@
 import type { AuthUser, MatchHeader, Prediction } from '@fmip/contracts';
 import Link from 'next/link';
 import { PredictionForm } from '@/components/prediction-form';
+import { canonicalUrl } from '@/lib/seo';
 import { OUTCOME_LABEL, REASON_TAG_LABEL, isLocked } from '@/lib/prediction-form';
 import { submitPredictionAction } from '@/lib/prediction-actions';
 
@@ -59,6 +60,7 @@ export function PredictionSection({
             current={current}
             home={fixture.home.name}
             away={fixture.away.name}
+            shareUrl={canonicalUrl(locale, `/match/${fixture.id}`)}
           />
         </>
       )}
