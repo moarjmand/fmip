@@ -29,6 +29,15 @@ export const DETAIL_BATCH = 10;
  * and a backfilled season's few hundred matches are filled within a day.
  */
 export const DETAIL_BACKLOG_BATCH = 20;
+/**
+ * Availability (T-103): matches kicking off within three days are asked about,
+ * each again once its last answer is three hours old, at most ten per run of
+ * the five-minute line-ups job -- a weekend's sixty matches cost about twenty
+ * requests an hour.
+ */
+export const AVAILABILITY_WINDOW_HOURS = 72;
+export const AVAILABILITY_STALE_HOURS = 3;
+export const AVAILABILITY_BATCH = 10;
 
 /** What one job run did. Returned so a caller (a test, the scheduler) can assert on it. */
 export interface JobReport {
@@ -242,7 +251,10 @@ export class IngestionJobsService {
     });
   }
 
-  /** Announced line-ups for matches about to start, or just started. */
+  /**
+   * Announced line-ups for matches about to start, or just started -- and, for
+   * the next three days' matches, who the provider says will miss them (T-103).
+   */
   lineups(now: Date = new Date()): Promise<JobReport> {
     return this.track('lineups', async (source, targets) => {
       const candidates = await this.detailCandidates(source.provider, targets, now, [
@@ -269,8 +281,30 @@ export class IngestionJobsService {
         written += write.changed;
         for (const id of write.unresolved) unresolved.add(id);
       }
+
+      const asked: string[] = [];
+      for (const due of await this.availabilityDue(source, targets, now)) {
+        const result = await source.adapter.getAvailability(due.externalId);
+        if (!result.ok) {
+          // A provider that does not report availability says so every time;
+          // that is its answer, not a failure of this run.
+          if (result.error.kind === 'unsupported') break;
+          refused.push(`${due.externalId}: ${describe(result.error)}`);
+          continue;
+        }
+        seen += 1;
+        asked.push(due.fixtureId);
+        const write = await this.store.saveAvailability(
+          source.provider,
+          due.fixtureId,
+          result.data,
+        );
+        written += write.changed;
+        for (const id of write.unresolved) unresolved.add(id);
+      }
+
       written += await this.coverage.recomputeMany(
-        await this.coverage.seasonsOf(candidates.map((c) => c.fixtureId)),
+        await this.coverage.seasonsOf([...candidates.map((c) => c.fixtureId), ...asked]),
       );
       return this.report('lineups', source.provider, seen, written, refused, unresolved);
     });
@@ -472,6 +506,30 @@ export class IngestionJobsService {
       .sort((a, b) => b.kickoffAt.localeCompare(a.kickoffAt))
       .slice(0, DETAIL_BACKLOG_BATCH)
       .map(({ externalId, fixtureId, target }) => ({ externalId, fixtureId, target }));
+  }
+
+  /** The polled competitions' matches that are owed a fresh availability answer. */
+  private async availabilityDue(
+    source: JobSource,
+    targets: PollTarget[],
+    now: Date,
+  ): Promise<{ externalId: string; fixtureId: string }[]> {
+    const hours = (n: number) => new Date(now.getTime() + n * 60 * 60 * 1000).toISOString();
+    const out: { externalId: string; fixtureId: string }[] = [];
+    for (const target of targets) {
+      if (out.length >= AVAILABILITY_BATCH) break;
+      out.push(
+        ...(await this.store.availabilityDue(
+          source.provider,
+          target.competitionId,
+          now.toISOString(),
+          hours(AVAILABILITY_WINDOW_HOURS),
+          hours(-AVAILABILITY_STALE_HOURS),
+          AVAILABILITY_BATCH - out.length,
+        )),
+      );
+    }
+    return out;
   }
 
   private report(
