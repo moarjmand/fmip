@@ -214,7 +214,16 @@ scoped `backfill` -- with your reason in the audit log.
 
 There is no `curl` for this and there is not meant to be: Caddy hands every
 public path to the web app and the browser never reaches the API directly, so
-the page is the way in, carrying your own session. On a new deployment run it
+the page is the way in, carrying your own session. On the server itself the
+same act is a command (T-502), for when you are there anyway adding a
+competition with `catalog.mjs`:
+
+```bash
+docker compose run --rm -T api node dist/cli/backfill.js --by you@your-domain --reason "why"
+```
+
+It checks that `--by` is an administrator, writes the same audit row as the
+page before a request is spent, and never starts a second scheduler. On a new deployment run it
 twice -- once to learn the clubs, once after adopting them -- and after that
 once per new season; the schedule keeps it fresh.
 
