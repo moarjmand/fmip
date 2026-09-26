@@ -135,6 +135,17 @@ from our own records (T-112) and says what it cannot measure.
 | `[x]` T-523 | A page for a first visit: what the product is, the three prediction products, how a rating is earned | — | Linked from the homepage for signed-out visitors; every claim on it is true of the product as deployed |
 | `[ ]` T-524 | **Decision gate:** a Telegram channel the product posts to | — | The maintainer creates the bot and the channel and puts the token on the server themselves |
 | `[ ]` T-525 | A daily post: the day's covered matches with the model's forecast, each linking to its match | T-524, T-520 | Labelled as the model's; a day with no matches posts nothing |
+| `[x]` T-526 | The homepage the blueprint describes (2.3), from answers the product already gives | T-031, T-136, T-132 | Every block shows only what is real, in the reader's order; a guest is asked to join, a member pointed at their feed |
+
+**T-526, added and done on 2026-09-26.** The homepage was a title, the
+founder's feed and two lines of diagnostics, and it is the page every first
+member lands on. It now carries what blueprint 2.3 asks for from answers the
+product already gives: live and upcoming matches (favourites first, then the
+reader's order), the statistical model's view of the soonest of them, the
+founder's analysis, the table of the first competition in that order, the
+latest stories, and a way in -- joining for a guest, the feed for a member.
+Each block appears only when it has something real in it; during the
+international break most are simply absent.
 
 **Nothing here buys attention.** No points for inviting, no streak bonuses, no
 leaderboard of recruiters: the rating is earned by predicting (blueprint 1.5,
