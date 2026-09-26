@@ -9,7 +9,19 @@ describe('the backfill command', () => {
   it('reads the administrator and the reason', () => {
     expect(
       parseBackfillArgs(['--by', ' Admin@Example.org ', '--reason', ' six new leagues ']),
-    ).toEqual({ by: 'admin@example.org', reason: 'six new leagues' });
+    ).toEqual({ by: 'admin@example.org', reason: 'six new leagues', season: null });
+  });
+
+  it('reads a past season by its label, and refuses anything that is not one', () => {
+    expect(
+      parseBackfillArgs(['--by', 'a@b.c', '--reason', 'history', '--season', '2025/26']),
+    ).toEqual({ by: 'a@b.c', reason: 'history', season: '2025/26' });
+    expect(
+      parseBackfillArgs(['--by', 'a@b.c', '--reason', 'history', '--season', '2025']),
+    ).toMatchObject({ error: expect.stringContaining('2025/26') });
+    expect(parseBackfillArgs(['--by', 'a@b.c', '--reason', 'why', '--season'])).toMatchObject({
+      error: '--season needs a value.',
+    });
   });
 
   it('refuses to run without either, or with anything else', () => {

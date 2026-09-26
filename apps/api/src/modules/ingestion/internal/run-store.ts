@@ -49,11 +49,16 @@ export class PostgresRunStore {
    * other (rule 10). The run itself is recorded as an ordinary `ingest_run`;
    * this says who asked for it and why.
    */
-  async auditBackfill(actorId: string, reason: string): Promise<void> {
+  async auditBackfill(
+    actorId: string,
+    reason: string,
+    seasonLabel: string | null = null,
+  ): Promise<void> {
     await this.pool.query(
       `INSERT INTO audit_log (actor_id, action, target_type, target_id, reason, previous, next)
-       VALUES ($1, 'ingestion.backfill', 'ingestion', 'fixtures', $2, NULL, NULL)`,
-      [actorId, reason],
+       VALUES ($1, 'ingestion.backfill', 'ingestion', 'fixtures', $2, NULL,
+               CASE WHEN $3::text IS NULL THEN NULL ELSE jsonb_build_object('season', $3::text) END)`,
+      [actorId, reason, seasonLabel],
     );
   }
 

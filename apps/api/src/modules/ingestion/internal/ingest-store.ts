@@ -89,8 +89,13 @@ export class IngestStore {
    * Which competition/season pairs this provider can be polled for: the
    * competitions it has a mapping for, on their current season. A competition
    * nobody has mapped is not polled — there would be nowhere to put the result.
+   *
+   * With a label, the season of that label instead, current or not, for the
+   * competitions that have one: how a past season is backfilled once the
+   * catalogue has added it (T-512, D-083). A competition without that season
+   * is simply not a target.
    */
-  async pollTargets(provider: Provider): Promise<PollTarget[]> {
+  async pollTargets(provider: Provider, seasonLabel: string | null = null): Promise<PollTarget[]> {
     const { rows } = await this.pool.query<{
       competition_id: string;
       external_id: string;
@@ -104,10 +109,11 @@ export class IngestStore {
               to_char(s.end_date, 'YYYY-MM-DD') AS end_date
          FROM provider_mapping pm
          JOIN competition c ON c.id = pm.internal_id
-         JOIN season s ON s.competition_id = c.id AND s.is_current
+         JOIN season s ON s.competition_id = c.id
+          AND ($2::text IS NULL AND s.is_current OR s.label = $2)
         WHERE pm.provider = $1 AND pm.entity_type = 'competition'
         ORDER BY c.name`,
-      [provider],
+      [provider, seasonLabel],
     );
     return rows.map((row) => ({
       competitionId: row.competition_id,
