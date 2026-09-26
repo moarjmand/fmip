@@ -2848,3 +2848,37 @@ queue's review for every kind of entity at once. *Waiting for a player
 endpoint to supply full names first*: every match page would stay without
 line-ups until then, when an abbreviated name is what the provider itself
 prints.
+
+## D-080 — The model's bridge to the catalogue is a committed list keyed by the provider's club id, and checked against results
+
+**Status:** decided · **Date:** 2026-09-26 · **Task:** T-063 · **Follows:** D-016, D-079
+
+**The problem.** The forecast model and the Power Index are fitted on
+football-data.co.uk's results (D-016), which name clubs as that source spells
+them -- "Man United", "Nott'm Forest", "Ath Bilbao" -- and `training.team_alias`
+is the bridge to our catalogue ids. The development seed writes two aliases by
+hand. The first production deploy had no training data, no division on any
+competition and no alias, so neither the model nor the Power Index could
+answer for a single match, and no runbook step said otherwise.
+
+**The decision.** `catalog.mjs --alias-training` writes the bridge from
+`packages/db/scripts/data/training-aliases.csv`: provider, the provider's club
+id, the football-data.co.uk division and the name as that source spells it.
+Keyed by the provider's id because our ids are minted per deployment by
+adoption (D-077, D-079) and the provider's are not. A name the training data
+does not hold is refused, not written. `--set-division` records which division
+a competition's results are in.
+
+**Checked against results, never matched by likeness.** After writing, the
+tool counts, per division, how many of the newest season's results agree with
+ours: same day (±1), same two clubs, same full-time score. On 2026-09-26 the
+list's 96 clubs are every club of the five leagues' 2026/27 seasons, and
+all 250 results of those seasons so far agree (D1 36, E0 50, F1 45, I1 50,
+SP1 69), checked on the production database before the list was committed. A name pairing that is wrong
+cannot pass that check for long; one that is merely similar is never tried.
+
+**Rejected.** *Matching names by similarity at training time*: the model's own
+note on the alias table already refuses it, and "Paris SG" is not a
+similarity away from "Paris Saint Germain" in any metric that also keeps
+"Man City" from "Man United". *Keying the list by our ids*: every deployment
+would need its own list.

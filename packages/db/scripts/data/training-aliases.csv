@@ -1,0 +1,97 @@
+provider,provider_team_id,division,training_name
+api_football,42,E0,Arsenal
+api_football,66,E0,Aston Villa
+api_football,35,E0,Bournemouth
+api_football,55,E0,Brentford
+api_football,51,E0,Brighton
+api_football,49,E0,Chelsea
+api_football,1346,E0,Coventry
+api_football,52,E0,Crystal Palace
+api_football,45,E0,Everton
+api_football,36,E0,Fulham
+api_football,64,E0,Hull
+api_football,57,E0,Ipswich
+api_football,63,E0,Leeds
+api_football,40,E0,Liverpool
+api_football,50,E0,Man City
+api_football,33,E0,Man United
+api_football,34,E0,Newcastle
+api_football,65,E0,Nott'm Forest
+api_football,746,E0,Sunderland
+api_football,47,E0,Tottenham
+api_football,542,SP1,Alaves
+api_football,531,SP1,Ath Bilbao
+api_football,530,SP1,Ath Madrid
+api_football,529,SP1,Barcelona
+api_football,538,SP1,Celta
+api_football,544,SP1,La Coruna
+api_football,797,SP1,Elche
+api_football,540,SP1,Espanol
+api_football,546,SP1,Getafe
+api_football,539,SP1,Levante
+api_football,535,SP1,Malaga
+api_football,727,SP1,Osasuna
+api_football,4665,SP1,Santander
+api_football,728,SP1,Vallecano
+api_football,543,SP1,Betis
+api_football,541,SP1,Real Madrid
+api_football,548,SP1,Sociedad
+api_football,536,SP1,Sevilla
+api_football,532,SP1,Valencia
+api_football,533,SP1,Villarreal
+api_football,192,D1,FC Koln
+api_football,167,D1,Hoffenheim
+api_football,168,D1,Leverkusen
+api_football,157,D1,Bayern Munich
+api_football,165,D1,Dortmund
+api_football,163,D1,M'gladbach
+api_football,169,D1,Ein Frankfurt
+api_football,170,D1,Augsburg
+api_football,174,D1,Schalke 04
+api_football,164,D1,Mainz
+api_football,175,D1,Hamburg
+api_football,173,D1,RB Leipzig
+api_football,160,D1,Freiburg
+api_football,185,D1,Paderborn
+api_football,1660,D1,Elversberg
+api_football,182,D1,Union Berlin
+api_football,172,D1,Stuttgart
+api_football,162,D1,Werder Bremen
+api_football,489,I1,Milan
+api_football,497,I1,Roma
+api_football,499,I1,Atalanta
+api_football,500,I1,Bologna
+api_football,490,I1,Cagliari
+api_football,895,I1,Como
+api_football,502,I1,Fiorentina
+api_football,512,I1,Frosinone
+api_football,495,I1,Genoa
+api_football,505,I1,Inter
+api_football,496,I1,Juventus
+api_football,487,I1,Lazio
+api_football,867,I1,Lecce
+api_football,1579,I1,Monza
+api_football,492,I1,Napoli
+api_football,523,I1,Parma
+api_football,488,I1,Sassuolo
+api_football,503,I1,Torino
+api_football,494,I1,Udinese
+api_football,517,I1,Venezia
+api_football,77,F1,Angers
+api_football,108,F1,Auxerre
+api_football,110,F1,Troyes
+api_football,111,F1,Le Havre
+api_football,1298,F1,Le Mans
+api_football,116,F1,Lens
+api_football,79,F1,Lille
+api_football,97,F1,Lorient
+api_football,80,F1,Lyon
+api_football,81,F1,Marseille
+api_football,91,F1,Monaco
+api_football,84,F1,Nice
+api_football,114,F1,Paris FC
+api_football,85,F1,Paris SG
+api_football,94,F1,Rennes
+api_football,106,F1,Brest
+api_football,95,F1,Strasbourg
+api_football,96,F1,Toulouse

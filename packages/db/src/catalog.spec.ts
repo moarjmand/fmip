@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 // A namespace import on one line, on purpose: `@ts-expect-error` suppresses the
 // line below it, and a named-import list long enough for Prettier to split
@@ -6,7 +8,14 @@ import { describe, expect, it } from 'vitest';
 // @ts-expect-error -- a plain script, deliberately not part of the TypeScript build.
 import * as catalog from '../scripts/catalog.mjs';
 
-const { COMPETITION_KINDS, COMPETITION_SCOPES, PROVIDERS, emptyQueueNote, parseArgs } = catalog;
+const {
+  COMPETITION_KINDS,
+  COMPETITION_SCOPES,
+  PROVIDERS,
+  emptyQueueNote,
+  parseAliases,
+  parseArgs,
+} = catalog;
 
 /**
  * The refusals in `scripts/catalog.mjs` (T-029).
@@ -189,5 +198,49 @@ describe('catalog arguments', () => {
     expect(parseArgs(['--list', '--force']).error).toContain('Unknown option: --force');
     expect(parseArgs(['--list', '--limit']).error).toContain('--limit needs a value');
     expect(parseArgs(['--list', '--limit', 'lots']).error).toContain('whole number');
+  });
+
+  it('reads which football-data.co.uk division a competition is in', () => {
+    expect(parseArgs(['--set-division', '--competition', '39', '--division', 'e0'])).toMatchObject({
+      command: 'set-division',
+      competition: '39',
+      division: 'E0',
+    });
+    expect(
+      parseArgs(['--set-division', '--competition', '39', '--division', 'EPL']).error,
+    ).toContain('football-data.co.uk code');
+    expect(parseArgs(['--set-division', '--division', 'E0']).error).toContain('--competition');
+  });
+});
+
+/**
+ * The committed bridge from the provider's clubs to the training data's names
+ * (D-080). One row per club and per name in each division: two clubs sharing a
+ * name, or one club under two, would put one club's history under another.
+ */
+describe('the training alias list', () => {
+  const text = readFileSync(
+    join(__dirname, '..', 'scripts', 'data', 'training-aliases.csv'),
+    'utf8',
+  );
+
+  it('parses, covers the five leagues, and names every club and every name once', () => {
+    const parsed = parseAliases(text);
+    expect(parsed.error).toBeUndefined();
+    const rows = parsed.rows as { teamId: string; division: string; name: string }[];
+    expect(new Set(rows.map((r) => r.division))).toEqual(new Set(['E0', 'SP1', 'D1', 'I1', 'F1']));
+    expect(new Set(rows.map((r) => r.teamId)).size).toBe(rows.length);
+    expect(new Set(rows.map((r) => `${r.division}:${r.name}`)).size).toBe(rows.length);
+  });
+
+  it('refuses a list it cannot read rather than guessing at it', () => {
+    const header = 'provider,provider_team_id,division,training_name';
+    expect(parseAliases(['team,name', '1,Arsenal'].join('\n')).error).toContain('header');
+    expect(parseAliases([header, 'api_football,x,E0,Arsenal'].join('\n')).error).toContain(
+      'line 2',
+    );
+    expect(parseAliases([header, 'api_football,42,EPL,Arsenal'].join('\n')).error).toContain(
+      'division',
+    );
   });
 });
