@@ -270,6 +270,8 @@ class HighlightlyAdapter implements ProviderAdapter {
       // spend a second request on them.
       lineup: null,
       statistics: mapStatistics(item.statistics, homeId),
+      // Highlightly's match statistics are per team only.
+      playerStatistics: null,
       periods: [],
     };
     return { ok: true, data: detail, requests: 1, fetchedAt: result.receivedAt };

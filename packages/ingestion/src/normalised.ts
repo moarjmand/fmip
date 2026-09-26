@@ -76,6 +76,39 @@ export const STAT_METRICS = [
 ] as const;
 export type StatMetric = (typeof STAT_METRICS)[number];
 
+/**
+ * One player's numbers in one match (T-101), a closed list like the team's.
+ * Counts are what the player did; `rating` is the provider's own 0-10 mark and
+ * says so in its name nowhere else, so it is never averaged with anyone's.
+ * There is no per-player expected goals: no provider in use supplies it, and a
+ * metric nobody can fill is not listed as if one could.
+ */
+export const PLAYER_STAT_METRICS = [
+  'minutes',
+  'rating',
+  'shots',
+  'shots_on_target',
+  'goals',
+  'assists',
+  'key_passes',
+  'passes',
+  'tackles',
+  'blocks',
+  'interceptions',
+  'duels',
+  'duels_won',
+  'dribbles',
+  'dribbles_won',
+  'fouls_drawn',
+  'fouls_committed',
+  'offsides',
+  'yellow_cards',
+  'red_cards',
+  'saves',
+  'goals_conceded',
+] as const;
+export type PlayerStatMetric = (typeof PLAYER_STAT_METRICS)[number];
+
 export type Side = 'home' | 'away';
 
 /** A provider's id for an entity plus the name it gave. */
@@ -192,6 +225,13 @@ export interface NormalisedStat {
   value: number;
 }
 
+export interface NormalisedPlayerStat {
+  side: Side;
+  player: EntityRef;
+  metric: PlayerStatMetric;
+  value: number;
+}
+
 /** Everything a match centre needs after the whistle. */
 export interface NormalisedFixtureDetail {
   fixture: NormalisedFixture;
@@ -200,6 +240,12 @@ export interface NormalisedFixtureDetail {
   lineup: NormalisedLineup | null;
   /** Absent metrics are absent, not zero. */
   statistics: NormalisedStat[];
+  /**
+   * Per player, per metric (T-101). `null` when the provider does not supply
+   * player statistics at all; an empty list when it does and sent none for
+   * this match. A metric a player has no value for is absent, never zero.
+   */
+  playerStatistics: NormalisedPlayerStat[] | null;
   periods: NormalisedPeriod[];
 }
 

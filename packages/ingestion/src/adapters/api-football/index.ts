@@ -34,6 +34,7 @@ import {
   mapLineup,
   mapPeriods,
   mapStandings,
+  mapPlayerStatistics,
   mapStatistics,
   seasonYear,
 } from './map';
@@ -278,6 +279,7 @@ class ApiFootballAdapter implements ProviderAdapter {
         fixture.away.externalId,
       ),
       statistics: mapStatistics(item.statistics, homeId),
+      playerStatistics: mapPlayerStatistics(item.players, homeId, fixture.away.externalId),
       periods: mapPeriods(isRecord(item.fixture) ? item.fixture.periods : null),
     };
     return { ok: true, data: detail, requests: 1, fetchedAt: result.receivedAt };
