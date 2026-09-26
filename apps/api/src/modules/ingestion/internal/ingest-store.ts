@@ -150,6 +150,55 @@ export class IngestStore {
     }));
   }
 
+  /**
+   * Finished fixtures of one competition, kicked off in `[fromIso, beforeIso)`,
+   * whose detail has never been asked for (T-102), newest first: what a season
+   * backfill leaves behind, since it writes the fixture list and nothing else.
+   */
+  async detailBacklog(
+    provider: Provider,
+    competitionId: string,
+    fromIso: string,
+    beforeIso: string,
+    limit: number,
+  ): Promise<{ externalId: string; fixtureId: string; kickoffAt: string }[]> {
+    const { rows } = await this.pool.query<{
+      external_id: string;
+      fixture_id: string;
+      kickoff_at: Date;
+    }>(
+      `SELECT pm.external_id, f.id AS fixture_id, f.kickoff_at
+         FROM fixture f
+         JOIN season s ON s.id = f.season_id
+         JOIN provider_mapping pm
+           ON pm.internal_id = f.id AND pm.entity_type = 'fixture' AND pm.provider = $1
+        WHERE s.competition_id = $2 AND f.status = 'finished'
+          AND f.kickoff_at >= $3 AND f.kickoff_at < $4
+          AND NOT EXISTS (SELECT 1 FROM fixture_detail_fetch d WHERE d.fixture_id = f.id)
+        ORDER BY f.kickoff_at DESC
+        LIMIT $5`,
+      [provider, competitionId, fromIso, beforeIso, limit],
+    );
+    return rows.map((r) => ({
+      externalId: r.external_id,
+      fixtureId: r.fixture_id,
+      kickoffAt: r.kickoff_at.toISOString(),
+    }));
+  }
+
+  /**
+   * Records that the provider was asked for this fixture's detail. Not a change
+   * to the match, so it is not counted as one and touches nothing else.
+   */
+  async markDetailFetched(provider: Provider, fixtureId: string): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO fixture_detail_fetch (fixture_id, provider) VALUES ($1, $2)
+       ON CONFLICT (fixture_id) DO UPDATE
+         SET provider = EXCLUDED.provider, fetched_at = now()`,
+      [fixtureId, provider],
+    );
+  }
+
   private async resolveId(
     provider: Provider,
     entityType: EntityType,

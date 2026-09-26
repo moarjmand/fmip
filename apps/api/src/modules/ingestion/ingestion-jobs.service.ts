@@ -12,6 +12,7 @@ import {
   REPLAY_QUERY,
   type IngestJob,
   type IngestionSources,
+  type JobSource,
 } from './internal/sources';
 
 /** How far back and forward the fixtures job looks, in days. */
@@ -22,6 +23,12 @@ export const LIVE_WINDOW_BEFORE_MINUTES = 30;
 export const LIVE_WINDOW_AFTER_MINUTES = 210;
 /** How many fixtures one lineups or post-match run will spend requests on. */
 export const DETAIL_BATCH = 10;
+/**
+ * How many finished fixtures that never had their detail one post-match run
+ * also asks about (T-102): 20 every half hour is 960 requests a day at most,
+ * and a backfilled season's few hundred matches are filled within a day.
+ */
+export const DETAIL_BACKLOG_BATCH = 20;
 
 /** What one job run did. Returned so a caller (a test, the scheduler) can assert on it. */
 export interface JobReport {
@@ -271,14 +278,17 @@ export class IngestionJobsService {
 
   /**
    * Everything after the whistle: incidents, team statistics, the periods and
-   * the closing scores. Runs against matches that have finished recently.
+   * the closing scores. Runs against matches that have finished recently, and
+   * then against finished matches whose detail was never asked for (T-102) --
+   * a season backfill writes the fixture list and nothing after the whistle.
    */
   postMatch(now: Date = new Date()): Promise<JobReport> {
     return this.track('post_match', async (source, targets) => {
-      const candidates = await this.detailCandidates(source.provider, targets, now, [
+      const recent = await this.detailCandidates(source.provider, targets, now, [
         'finished',
         'live',
       ]);
+      const candidates = [...recent, ...(await this.detailBacklog(source, targets, now, recent))];
       let seen = 0;
       let written = 0;
       const refused: string[] = [];
@@ -291,6 +301,7 @@ export class IngestionJobsService {
           continue;
         }
         seen += 1;
+        await this.store.markDetailFetched(source.provider, candidate.fixtureId);
         const detail = result.data;
         const writes: WriteResult[] = [
           await this.store.saveFixture(
@@ -413,6 +424,45 @@ export class IngestionJobsService {
       }
     }
     return out.slice(0, DETAIL_BATCH);
+  }
+
+  /**
+   * Finished fixtures of the polled seasons whose detail was never asked for,
+   * newest first, older than the window the recent sweep covers. The span is
+   * the season's own, or the recordings' on the replay source, as for a
+   * backfill.
+   */
+  private async detailBacklog(
+    source: JobSource,
+    targets: PollTarget[],
+    now: Date,
+    recent: { fixtureId: string }[],
+  ): Promise<{ externalId: string; fixtureId: string; target: PollTarget }[]> {
+    const replay = this.sources.kind === 'replay';
+    const before = new Date(now.getTime() - LIVE_WINDOW_AFTER_MINUTES * 60 * 1000).toISOString();
+    const taken = new Set(recent.map((c) => c.fixtureId));
+    const found: {
+      externalId: string;
+      fixtureId: string;
+      kickoffAt: string;
+      target: PollTarget;
+    }[] = [];
+    for (const target of targets) {
+      const rows = await this.store.detailBacklog(
+        source.provider,
+        target.competitionId,
+        replay ? REPLAY_QUERY.from : target.seasonStart,
+        before,
+        DETAIL_BACKLOG_BATCH,
+      );
+      for (const row of rows) {
+        if (!taken.has(row.fixtureId)) found.push({ ...row, target });
+      }
+    }
+    return found
+      .sort((a, b) => b.kickoffAt.localeCompare(a.kickoffAt))
+      .slice(0, DETAIL_BACKLOG_BATCH)
+      .map(({ externalId, fixtureId, target }) => ({ externalId, fixtureId, target }));
   }
 
   private report(
