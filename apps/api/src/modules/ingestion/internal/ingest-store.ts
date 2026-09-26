@@ -28,6 +28,7 @@ import type {
   NormalisedLineup,
   NormalisedPeriod,
   NormalisedSideLineup,
+  NormalisedAbsence,
   NormalisedPlayerStat,
   NormalisedStat,
   Provider,
@@ -644,6 +645,98 @@ export class IngestStore {
       );
       changed += rowCount ?? 0;
     }
+    return { changed, unresolved: [...unresolved] };
+  }
+
+  /**
+   * Scheduled fixtures of one competition kicking off in `[fromIso, toIso)`
+   * whose availability was never asked for, or last asked before
+   * `staleBeforeIso` (T-103). Soonest first: the next match's team news is
+   * the one a reader is waiting for.
+   */
+  async availabilityDue(
+    provider: Provider,
+    competitionId: string,
+    fromIso: string,
+    toIso: string,
+    staleBeforeIso: string,
+    limit: number,
+  ): Promise<{ externalId: string; fixtureId: string }[]> {
+    const { rows } = await this.pool.query<{ external_id: string; fixture_id: string }>(
+      `SELECT pm.external_id, f.id AS fixture_id
+         FROM fixture f
+         JOIN season s ON s.id = f.season_id
+         JOIN provider_mapping pm
+           ON pm.internal_id = f.id AND pm.entity_type = 'fixture' AND pm.provider = $1
+         LEFT JOIN fixture_availability_fetch a ON a.fixture_id = f.id
+        WHERE s.competition_id = $2 AND f.status = 'scheduled'
+          AND f.kickoff_at >= $3 AND f.kickoff_at < $4
+          AND (a.fetched_at IS NULL OR a.fetched_at < $5)
+        ORDER BY f.kickoff_at
+        LIMIT $6`,
+      [provider, competitionId, fromIso, toIso, staleBeforeIso, limit],
+    );
+    return rows.map((r) => ({ externalId: r.external_id, fixtureId: r.fixture_id }));
+  }
+
+  /**
+   * The provider's whole answer for one fixture (T-103): each listed player
+   * upserted, anyone it no longer lists deleted, and the ask recorded. A club
+   * or a player the catalogue does not hold is queued and skipped, never
+   * written as a blank. `reported_at` moves only when what was said changed.
+   */
+  async saveAvailability(
+    provider: Provider,
+    fixtureId: string,
+    absences: NormalisedAbsence[],
+  ): Promise<WriteResult> {
+    const { rows: sides } = await this.pool.query<{ id: string; team_id: string }>(
+      `SELECT id, team_id FROM fixture_participant WHERE fixture_id = $1`,
+      [fixtureId],
+    );
+    const unresolved = new Set<string>();
+    const listed: string[] = [];
+    let changed = 0;
+    for (const absence of absences) {
+      const teamId = await this.resolveId(provider, 'team', absence.team.externalId, absence.team);
+      const participantId = sides.find((side) => side.team_id === teamId)?.id ?? null;
+      if (teamId === null) unresolved.add(`team:${absence.team.externalId}`);
+      if (participantId === null) continue;
+      const personId = await this.resolveId(
+        provider,
+        'person',
+        absence.player.externalId,
+        absence.player,
+      );
+      if (personId === null) {
+        unresolved.add(`person:${absence.player.externalId}`);
+        continue;
+      }
+      listed.push(personId);
+      const { rowCount } = await this.pool.query(
+        `INSERT INTO fixture_absence (fixture_id, participant_id, person_id, status, kind, reason)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (fixture_id, person_id) DO UPDATE
+           SET participant_id = EXCLUDED.participant_id, status = EXCLUDED.status,
+               kind = EXCLUDED.kind, reason = EXCLUDED.reason, reported_at = now()
+         WHERE (fixture_absence.participant_id, fixture_absence.status, fixture_absence.kind,
+                fixture_absence.reason)
+               IS DISTINCT FROM
+               (EXCLUDED.participant_id, EXCLUDED.status, EXCLUDED.kind, EXCLUDED.reason)`,
+        [fixtureId, participantId, personId, absence.status, absence.kind, absence.reason],
+      );
+      changed += rowCount ?? 0;
+    }
+    const gone = await this.pool.query(
+      `DELETE FROM fixture_absence WHERE fixture_id = $1 AND NOT (person_id = ANY($2::uuid[]))`,
+      [fixtureId, listed],
+    );
+    changed += gone.rowCount ?? 0;
+    await this.pool.query(
+      `INSERT INTO fixture_availability_fetch (fixture_id, provider) VALUES ($1, $2)
+       ON CONFLICT (fixture_id) DO UPDATE SET provider = EXCLUDED.provider, fetched_at = now()`,
+      [fixtureId, provider],
+    );
     return { changed, unresolved: [...unresolved] };
   }
 }

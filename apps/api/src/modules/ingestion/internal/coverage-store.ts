@@ -60,9 +60,13 @@ const EVIDENCE: Record<CoverageModule, { expected: string; present: string }> = 
   },
   // Where to watch. Nothing on any free plan supplies it; the query is written
   // so that it starts reporting the day something does.
+  // Who will miss a match (T-103) is owed for every match about to be played
+  // and every match it was ever asked about; it is present once asked, since
+  // "nobody is missing" is an answer.
   availability: {
-    expected: `f.status IN ('scheduled', 'live')`,
-    present: `false`,
+    expected: `(f.status = 'scheduled' AND f.kickoff_at < now() + interval '72 hours')
+               OR EXISTS (SELECT 1 FROM fixture_availability_fetch a WHERE a.fixture_id = f.id)`,
+    present: `EXISTS (SELECT 1 FROM fixture_availability_fetch a WHERE a.fixture_id = f.id)`,
   },
   // Expected goals is the one advanced metric the schema models.
   advanced_statistics: {
@@ -149,6 +153,7 @@ export class CoverageStore {
       incidents: Date | null;
       lineups: Date | null;
       statistics: Date | null;
+      availability: Date | null;
     }>(
       `SELECT (SELECT max(s.updated_at) FROM fixture_score s
                  JOIN fixture f ON f.id = s.fixture_id WHERE f.season_id = $1) AS scores,
@@ -159,7 +164,11 @@ export class CoverageStore {
                  JOIN fixture f ON f.id = p.fixture_id WHERE f.season_id = $1) AS lineups,
               (SELECT max(st.updated_at) FROM fixture_stat st
                  JOIN fixture_participant p ON p.id = st.participant_id
-                 JOIN fixture f ON f.id = p.fixture_id WHERE f.season_id = $1) AS statistics`,
+                 JOIN fixture f ON f.id = p.fixture_id WHERE f.season_id = $1) AS statistics,
+              -- The one module dated by the ask rather than the rows: an answer
+              -- of "nobody" writes no row and is still as fresh as its ask.
+              (SELECT max(a.fetched_at) FROM fixture_availability_fetch a
+                 JOIN fixture f ON f.id = a.fixture_id WHERE f.season_id = $1) AS availability`,
       [seasonId],
     );
     const row = rows[0];
@@ -176,6 +185,7 @@ export class CoverageStore {
       out.statistics = row.statistics.toISOString();
       out.advanced_statistics = row.statistics.toISOString();
     }
+    if (row.availability !== null) out.availability = row.availability.toISOString();
     return out;
   }
 

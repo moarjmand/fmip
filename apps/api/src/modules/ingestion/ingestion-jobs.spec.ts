@@ -30,6 +30,8 @@ const CITY = randomUUID();
 const HAALAND = randomUUID();
 const RODRI = randomUUID();
 const DE_BRUYNE = randomUUID();
+// Listed by the provider as missing the match with a thigh injury (T-103).
+const OBAFEMI = randomUUID();
 
 /** The provider ids in the recordings, and the rows we map them to. */
 const TEAM_IDS: [string, string][] = [
@@ -96,8 +98,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
       [BURNLEY, CITY],
     );
     await pool.query(
-      `INSERT INTO person (id, full_name) VALUES ($1, 'Erling Haaland'), ($2, 'Rodri'), ($3, 'Kevin De Bruyne')`,
-      [HAALAND, RODRI, DE_BRUYNE],
+      `INSERT INTO person (id, full_name) VALUES ($1, 'Erling Haaland'), ($2, 'Rodri'), ($3, 'Kevin De Bruyne'), ($4, 'Michael Obafemi')`,
+      [HAALAND, RODRI, DE_BRUYNE, OBAFEMI],
     );
 
     const map = async (
@@ -129,6 +131,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
     await map('venue', '512', VENUE);
     for (const [externalId, internalId] of TEAM_IDS) await map('team', externalId, internalId);
     for (const [externalId, internalId] of PERSON_IDS) await map('person', externalId, internalId);
+    await map('person', '18957', OBAFEMI);
 
     // And take over every other api_football team mapping for the length of
     // the run. What this spec asserts is a world where exactly the clubs above
@@ -204,7 +207,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
     await pool.query(`DELETE FROM stage WHERE id = $1`, [STAGE]);
     await pool.query(`DELETE FROM season WHERE id = $1`, [SEASON]);
     await pool.query(`DELETE FROM person WHERE id = ANY($1::uuid[])`, [
-      [HAALAND, RODRI, DE_BRUYNE],
+      [HAALAND, RODRI, DE_BRUYNE, OBAFEMI],
     ]);
     await pool.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [[BURNLEY, CITY]]);
     await pool.query(`DELETE FROM venue WHERE id = $1`, [VENUE]);
@@ -496,5 +499,47 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
     const byJob = new Set(rows.map((r) => r.job));
     expect([...byJob].sort()).toEqual(['fixtures', 'live', 'post_match', 'standings']);
     expect(rows.every((r) => r.status !== 'running')).toBe(true);
+  });
+
+  /**
+   * T-103. Before kick-off the line-ups job also asks who will miss the next
+   * three days' matches. The match is set back to scheduled for the length of
+   * this test, since the post-match job above has already finished it.
+   */
+  it('asks who will miss a match before it starts, and keeps the provider’s reason and time', async () => {
+    const { rows } = await pool.query<{ id: string }>(
+      `SELECT id FROM fixture WHERE season_id = $1`,
+      [SEASON],
+    );
+    const fixtureId = rows[0]?.id;
+    const beforeKickoff = new Date('2023-08-11T18:45:00Z');
+    await pool.query(`UPDATE fixture SET status = 'scheduled' WHERE id = $1`, [fixtureId]);
+    try {
+      await jobs.lineups(beforeKickoff);
+      const absent = () =>
+        pool.query<{ status: string; kind: string; reason: string; team_id: string; at: Date }>(
+          `SELECT a.status, a.kind, a.reason, p.team_id, a.reported_at AS at
+             FROM fixture_absence a JOIN fixture_participant p ON p.id = a.participant_id
+            WHERE a.fixture_id = $1 AND a.person_id = $2`,
+          [fixtureId, OBAFEMI],
+        );
+      const first = await absent();
+      expect(first.rows).toMatchObject([
+        { status: 'out', kind: 'injury', reason: 'Thigh Injury', team_id: BURNLEY },
+      ]);
+      expect(
+        await count(
+          `SELECT count(*)::text AS n FROM fixture_availability_fetch WHERE fixture_id = $1`,
+          [fixtureId],
+        ),
+      ).toBe(1);
+
+      // Not asked again until the answer is three hours old, and nothing moves.
+      await jobs.lineups(beforeKickoff);
+      const second = await absent();
+      expect(second.rows[0]?.at).toEqual(first.rows[0]?.at);
+    } finally {
+      await pool.query(`UPDATE fixture SET status = 'finished' WHERE id = $1`, [fixtureId]);
+    }
   });
 });
