@@ -3083,3 +3083,41 @@ the cups alone*: a few hundred matches cannot rate several hundred clubs.
 *Averaging each side's domestic forecast*: two leagues' numbers are on two
 scales, which is the problem, not its answer.
 
+---
+
+## D-086 — Line-ups and absences move the expected goals by one fitted number, in the candidate only
+
+**Status:** decided · **Date:** 2026-09-26 · **Task:** T-534 · **Follows:** D-081, D-082, D-083
+
+**The problem.** The model rates a club from its results, so a side without
+three starters is the side it was last week. The API already measures each
+XI before a kick-off -- the announced one, or else the last one less the
+players reported out -- by its starters' season ratings (D-081), but the
+history the model learns from holds no line-ups, so the size of the effect
+cannot come from there.
+
+**The decision.** The request carries both XIs' strength (`xi_strength`, the
+raw mean ratings, only when both sides are measurable), and it is stored with
+the forecast as part of its question. A version with a `lineup_beta` moves
+the expected goals by the difference Δ between the two:
+`lambda' = lambda * exp(beta * Δ)`, `mu' = mu * exp(-beta * Δ)`. `beta` is one
+number, fitted by maximum likelihood on our own recorded matches (D-083),
+with the candidate's own expected goals for each match -- from a fit on the
+matches before it -- as offsets, and each match's XIs measured the way the
+API measured them before its kick-off (`xi_before_kickoff`: a starter's mean
+rating over the season's earlier matches of 20 minutes or more, seven rated
+starters at least). The fit uses the matches before a split date and is
+scored on the ones after, the same matches with and without the term
+(`python -m fmip_model.backtest.lineups`); a candidate carries the term only
+if the gain is real, and stays in shadow (D-082).
+
+**Limits, stated.** The ratings are the provider's judgement (D-081). Early in
+a season a player's mean rests on a few matches. A starter with no rating
+this season is left out of the mean rather than guessed. Cup matches carry no
+XI strength yet: a cup season's ratings are too few to rank a squad by.
+
+**Rejected.** *A weight per position or per player*: thousands of parameters
+for a few thousand matches. *The line-up component's position among the
+season's teams*: a position has no scale between leagues or seasons; the raw
+rating does. *Fitting on the published version's expected goals*: the term
+would then correct a model it will never be added to.

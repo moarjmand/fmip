@@ -51,6 +51,9 @@ class ModelVersion:
     per_division: Mapping[str, tuple[float, float]] = field(
         default_factory=dict, hash=False, compare=False
     )
+    #: How far a difference in XI strength moves the expected goals (T-534);
+    #: ``None``: the version does not read line-ups.
+    lineup_beta: float | None = None
     #: Whether, and with which constants, this version answers a match between
     #: clubs of different leagues (T-533). ``None``: it rates within one league.
     cross_league: CrossLeague | None = None
@@ -94,6 +97,8 @@ def load_candidate(path: Path = CANDIDATE_FILE) -> ModelVersion | None:
         for division, c in body.get("per_division", {}).items()
     }
     history_days = int(body.get("history_days", BASELINE.history_days))
+    raw_beta = body.get("lineup_beta")
+    lineup_beta = None if raw_beta is None else float(raw_beta)
     cross = body.get("cross_league")
     cross_league = (
         None
@@ -104,7 +109,12 @@ def load_candidate(path: Path = CANDIDATE_FILE) -> ModelVersion | None:
             group_ridge=float(cross["group_ridge"]),
         )
     )
-    if not per_division and history_days == BASELINE.history_days and cross_league is None:
+    if (
+        not per_division
+        and history_days == BASELINE.history_days
+        and cross_league is None
+        and lineup_beta is None
+    ):
         return None
     return ModelVersion(
         name=str(body.get("name", BASELINE.name)),
@@ -116,5 +126,6 @@ def load_candidate(path: Path = CANDIDATE_FILE) -> ModelVersion | None:
         max_goals=BASELINE.max_goals,
         history_days=history_days,
         per_division=per_division,
+        lineup_beta=lineup_beta,
         cross_league=cross_league,
     )
