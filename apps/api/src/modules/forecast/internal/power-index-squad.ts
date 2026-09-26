@@ -1,3 +1,4 @@
+import type { ModelXiStrength } from '@fmip/contracts';
 import type { Measurement } from './power-index';
 
 /**
@@ -61,6 +62,41 @@ function lastXi(matches: SeasonMatch[] | undefined): string[] {
   return withXi.at(-1)?.starters ?? [];
 }
 
+/** The XI a team fields: the announced one, or else its last XI less the players reported out. */
+export function expectedXi(
+  context: SquadContext,
+  teamId: string,
+): { starters: string[]; confirmed: boolean; dropped: number } {
+  const confirmed = context.confirmed.get(teamId);
+  if (confirmed !== undefined && confirmed.length > 0) {
+    return { starters: confirmed, confirmed: true, dropped: 0 };
+  }
+  const out = new Set(context.out.get(teamId) ?? []);
+  const last = lastXi(context.matches.get(teamId));
+  const starters = last.filter((id) => !out.has(id));
+  return { starters, confirmed: false, dropped: last.length - starters.length };
+}
+
+/**
+ * Both sides' XI strength for the model (T-534): the same XI and the same
+ * ratings the line-up component reads, as raw mean ratings rather than a
+ * position, and only when both sides can be measured -- one side alone would
+ * invite a comparison the model cannot make.
+ */
+export function xiStrengths(
+  context: SquadContext,
+  homeTeamId: string,
+  awayTeamId: string,
+): ModelXiStrength | null {
+  const home = expectedXi(context, homeTeamId);
+  const away = expectedXi(context, awayTeamId);
+  const h = xiStrength(home.starters, context.ratings);
+  const a = xiStrength(away.starters, context.ratings);
+  if (h === null || a === null) return null;
+  const round = (x: number): number => Math.round(x * 10_000) / 10_000;
+  return { home: round(h), away: round(a), confirmed: home.confirmed && away.confirmed };
+}
+
 /**
  * Expected or confirmed line-up quality (blueprint 6.1, 20%): the subject's XI
  * -- announced, or else its last XI less the players reported out -- placed
@@ -68,12 +104,7 @@ function lastXi(matches: SeasonMatch[] | undefined): string[] {
  * season ratings before this kick-off.
  */
 export function measureLineup(context: SquadContext, teamId: string): Measurement {
-  const confirmed = context.confirmed.get(teamId);
-  const out = new Set(context.out.get(teamId) ?? []);
-  const xi =
-    confirmed !== undefined && confirmed.length > 0
-      ? confirmed
-      : lastXi(context.matches.get(teamId)).filter((id) => !out.has(id));
+  const { starters: xi, confirmed: isConfirmed, dropped } = expectedXi(context, teamId);
   if (xi.length === 0) {
     return { value: null, note: 'no line-up recorded for this team yet this season' };
   }
@@ -93,9 +124,7 @@ export function measureLineup(context: SquadContext, teamId: string): Measuremen
   if (others.length < MIN_OTHER_TEAMS) {
     return { value: null, note: 'too few teams in this competition have a measurable line-up' };
   }
-  const isConfirmed = confirmed !== undefined && confirmed.length > 0;
   const allRated = xi.every((id) => context.ratings.has(id));
-  const dropped = isConfirmed ? 0 : lastXi(context.matches.get(teamId)).length - xi.length;
   return {
     value: positionAmong(strength, others),
     state: isConfirmed && allRated && xi.length === 11 ? 'available' : 'limited',

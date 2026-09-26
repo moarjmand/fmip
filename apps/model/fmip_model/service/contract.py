@@ -21,6 +21,14 @@ from pydantic import BaseModel, Field, field_validator
 FixtureStatus = Literal["available", "unavailable"]
 
 
+class XiStrength(BaseModel):
+    """Each side's XI strength before the kick-off (T-534, D-081), as the API measured it."""
+
+    home: float = Field(description="Mean season rating of the home XI's rated starters.")
+    away: float = Field(description="Mean season rating of the away XI's rated starters.")
+    confirmed: bool = Field(description="Both XIs announced, rather than expected.")
+
+
 class ForecastRequest(BaseModel):
     """What apps/api sends. Catalog ids, plus the division hint the alias table needs."""
 
@@ -34,6 +42,10 @@ class ForecastRequest(BaseModel):
     )
     kickoff_at: datetime = Field(
         description="ISO 8601 with zone. The model uses only history before this."
+    )
+    xi_strength: XiStrength | None = Field(
+        default=None,
+        description="Both sides' XI strength (T-534); absent when either cannot be measured.",
     )
 
     @field_validator("home_team_id", "away_team_id", "fixture_id")

@@ -33,6 +33,9 @@ describe('the model service contract (golden examples)', () => {
       'fixture_id',
       'home_team_id',
       'kickoff_at',
+      // Optional (T-534): the example states it as null, which is what an
+      // unmeasurable pair of XIs sends.
+      'xi_strength',
     ]);
   });
 });

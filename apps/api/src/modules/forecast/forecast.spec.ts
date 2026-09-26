@@ -302,6 +302,55 @@ describe('ForecastService.versions', () => {
   });
 });
 
+describe('XI strength in the question (T-534)', () => {
+  const XI = { home: 6.91, away: 6.62, confirmed: false };
+  const recording = () => {
+    const bodies: unknown[] = [];
+    const model = new ModelClient({
+      baseUrl: 'http://model.test',
+      fetchImpl: async (_url, init) => {
+        bodies.push(JSON.parse(String(init?.body)));
+        return new Response(JSON.stringify(AVAILABLE), {
+          headers: { 'content-type': 'application/json' },
+        });
+      },
+    });
+    return { bodies, model };
+  };
+
+  it('asks with both XIs and stores them with the forecast', async () => {
+    const store = new FakeStore(FIXTURE);
+    const { bodies, model } = recording();
+    const squads = { xiStrengths: async () => XI };
+    await new ForecastService(store as unknown as PostgresForecastStore, model, squads).compute(
+      FIXTURE.id,
+      'early',
+    );
+
+    expect(bodies[0]).toMatchObject({ xi_strength: XI });
+    expect(store.published[0]?.request.xi_strength).toEqual(XI);
+  });
+
+  it('asks without them when they cannot be measured, and never fails for it', async () => {
+    const store = new FakeStore(FIXTURE);
+    const { bodies, model } = recording();
+    const squads = {
+      xiStrengths: async (): Promise<null> => {
+        throw new Error('database gone');
+      },
+    };
+    const outcome = await new ForecastService(
+      store as unknown as PostgresForecastStore,
+      model,
+      squads,
+    ).compute(FIXTURE.id, 'early');
+
+    expect(outcome.kind).toBe('recorded');
+    expect(bodies[0]).not.toHaveProperty('xi_strength');
+    expect(store.published[0]?.available).not.toBeNull();
+  });
+});
+
 describe('shadow forecasts (T-531)', () => {
   const answering = (candidateStatus: number) =>
     new ModelClient({

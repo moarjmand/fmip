@@ -188,7 +188,7 @@ about football -- a chat, a channel -- and let one member bring another.
 | `[x]` T-531 | Shadow forecasts: a candidate version computed beside the published one for every match, stored and never shown | T-064, T-066 | The evaluation records read both; the match page is unchanged |
 | `[x]` T-532 | The constants D-029 left to the backtest -- time decay, ridge, Elo weight -- tuned per division | T-530, T-531 | Frozen into the candidate only where they beat the baseline out of sample |
 | `[~]` T-533 | European cup matches on one scale: clubs of two leagues forecast from Club Elo and each side's domestic strength | T-531, T-060 | In shadow until the season's cup results show it calibrated; its limits stated in the model's docs |
-| `[ ]` T-534 | Line-ups and absences in expected goals: the T-112 measurement as an additive term | T-531, T-112, T-103 | Fitted on our own recorded matches, since the history holds no line-ups; in shadow |
+| `[~]` T-534 | Line-ups and absences in expected goals: the T-112 measurement as an additive term | T-531, T-112, T-103 | Fitted on our own recorded matches, since the history holds no line-ups; in shadow |
 | `[ ]` T-535 | Promotion: the candidate replaces the published version only on the evaluation | T-531 | A decision entry with the numbers; stored forecasts keep their version (rule 5) |
 
 **What v2 has to beat.** The first backtest (T-062, 2024/25 Premier League, 320
@@ -415,6 +415,15 @@ model does not hold toward the shared level of all such clubs. The published
 version answers a cross-league request with "rates clubs within one league";
 the candidate answers it once `candidate.json` names the constants, which
 the cup backtest chooses. Until then nothing the product shows changes.
+
+**T-534, the question first (2026-09-26).** Every forecast request now
+carries both sides' XI strength when both can be measured: the mean season
+rating of the announced XI, or else of the last XI less the players reported
+out -- the numbers the line-up component already reads (D-081), as ratings
+rather than positions. It is stored with the forecast as part of the
+question; the published version ignores it. The term itself is fitted on our
+own recorded matches once the detail backlog holds their line-ups, and enters
+as the candidate (D-082).
 
 **T-532, a second pass (2026-09-26).** Most of the first pass's choices sat at
 the grid's edge, so a second pass searched longer memories and heavier

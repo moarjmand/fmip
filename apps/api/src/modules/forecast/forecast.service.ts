@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import type {
   CoverageState,
   ForecastKind,
@@ -6,10 +6,12 @@ import type {
   ForecastListEntry,
   ForecastVersionsResponse,
   ModelForecastRequest,
+  ModelXiStrength,
 } from '@fmip/contracts';
 import { PostgresForecastStore } from './internal/forecast-store';
 import { ModelClient } from './internal/model-client';
 import { roundToTotalOne } from './internal/rounding';
+import { PowerIndexService } from './power-index.service';
 
 // The module's public surface. Other modules import from this file only.
 export { ModelClient, contractProblems } from './internal/model-client';
@@ -38,6 +40,10 @@ export class ForecastService {
   constructor(
     private readonly store: PostgresForecastStore,
     @Inject(MODEL_CLIENT) private readonly model: ModelClient,
+    /** Where each side's XI strength comes from (T-534); absent in tests that do not need it. */
+    @Optional()
+    @Inject(PowerIndexService)
+    private readonly squads?: Pick<PowerIndexService, 'xiStrengths'>,
   ) {}
 
   async compute(fixtureId: string, kind: ForecastKind): Promise<ComputeOutcome> {
@@ -76,10 +82,29 @@ export class ForecastService {
       return { kind: 'recorded', version };
     }
 
-    const result = await this.model.forecast(request);
-    const version = await this.recordAnswer(fixtureId, kind, request, result, 'published');
-    await this.shadow(fixtureId, kind, request);
+    // Both XIs, when both can be measured (T-534): part of the question, so
+    // part of what the forecast stores, whether or not a version uses it.
+    const xi = await this.xiStrength(fixtureId);
+    const asked: ModelForecastRequest = xi === null ? request : { ...request, xi_strength: xi };
+    const result = await this.model.forecast(asked);
+    const version = await this.recordAnswer(fixtureId, kind, asked, result, 'published');
+    await this.shadow(fixtureId, kind, asked);
     return { kind: 'recorded', version };
+  }
+
+  /** Both sides' XI strength, or null -- never a reason to fail the forecast. */
+  private async xiStrength(fixtureId: string): Promise<ModelXiStrength | null> {
+    if (this.squads === undefined) return null;
+    try {
+      return await this.squads.xiStrengths(fixtureId);
+    } catch (error: unknown) {
+      this.log.warn('XI strength not measured', {
+        event: 'forecast.xi_strength_failed',
+        fixture_id: fixtureId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return null;
+    }
   }
 
   /**
