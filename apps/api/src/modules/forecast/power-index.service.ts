@@ -10,6 +10,7 @@ import {
   type MeasureInput,
   type Side,
 } from './internal/power-index-measure';
+import { measureLineup, measureStability, type SquadContext } from './internal/power-index-squad';
 import { PowerIndexStore, type IndexSubject } from './internal/power-index-store';
 
 // The module's public surface for the Power Index. Other modules import here.
@@ -66,8 +67,9 @@ export class PowerIndexService {
       };
     }
 
-    const home = await this.computeSide(subject, 'home', history, now);
-    const away = await this.computeSide(subject, 'away', history, now);
+    const squad = await this.store.squadContext(subject);
+    const home = await this.computeSide(subject, 'home', history, squad, now);
+    const away = await this.computeSide(subject, 'away', history, squad, now);
 
     if (home === null && away === null) {
       return {
@@ -112,6 +114,7 @@ export class PowerIndexService {
     subject: IndexSubject,
     side: Side,
     history: MeasureInput['history'],
+    squad: SquadContext,
     now: Date,
   ): Promise<PowerIndex | null> {
     const team = subject[side];
@@ -121,7 +124,13 @@ export class PowerIndexService {
     if (trainingName === null) return null;
 
     const rest = await this.store.rest(team.teamId, subject.kickoffAt, CONGESTION_WINDOW_DAYS);
-    const measurements = measure({ trainingName, side, history, rest });
+    const measurements = {
+      ...measure({ trainingName, side, history, rest }),
+      // The two our own match records reach once line-ups and ratings arrive
+      // (T-112, D-081); measured from the catalogue, not the training store.
+      lineup_quality: measureLineup(squad, team.teamId),
+      stability: measureStability(squad, team.teamId),
+    };
     const combined = combine(measurements);
     if (combined === null) return null;
 

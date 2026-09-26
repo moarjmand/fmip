@@ -176,8 +176,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the power in
     for (const index of [outcome.pair.home, outcome.pair.away]) {
       expect(index.value).toBeGreaterThanOrEqual(0);
       expect(index.value).toBeLessThanOrEqual(100);
-      // Four of the seven components arrive here; line-up quality, managerial
-      // stability and competition context do not (D-049).
+      // Four of the seven components arrive here. This fixture has no recorded
+      // line-ups or ratings, so line-up quality and stability say so (T-112),
+      // and competition context is not modelled.
       expect(index.completeness).toBeCloseTo(0.7, 4);
       const absent = index.components.filter((c) => c.state === 'not_supplied');
       expect(absent.map((c) => c.key).sort()).toEqual([

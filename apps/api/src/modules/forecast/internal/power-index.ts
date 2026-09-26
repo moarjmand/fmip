@@ -26,7 +26,7 @@ import {
   type PowerIndexComponentValue,
 } from '@fmip/contracts';
 
-export const POWER_INDEX_FORMULA_VERSION = 'power-index@1.0.0';
+export const POWER_INDEX_FORMULA_VERSION = 'power-index@1.1.0';
 
 /** At most this many leading factors are named, however many are supplied. */
 export const LEADING_FACTORS = 3;

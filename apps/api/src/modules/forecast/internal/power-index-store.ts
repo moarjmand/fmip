@@ -15,9 +15,11 @@
 
 import type { Pool } from 'pg';
 import type { HistoryMatch, RestInput } from './power-index-measure';
+import { RATED_MINUTES, type SeasonMatch, type SquadContext } from './power-index-squad';
 
 export interface IndexSubject {
   fixtureId: string;
+  seasonId: string;
   kickoffAt: Date;
   division: string | null;
   home: { participantId: string; teamId: string; name: string };
@@ -31,6 +33,7 @@ export class PowerIndexStore {
   async subject(fixtureId: string): Promise<IndexSubject | null> {
     const { rows } = await this.pool.query<{
       kickoff_at: Date;
+      season_id: string;
       division: string | null;
       home_participant: string;
       home_team: string;
@@ -39,7 +42,7 @@ export class PowerIndexStore {
       away_team: string;
       away_name: string;
     }>(
-      `SELECT f.kickoff_at, c.football_data_division AS division,
+      `SELECT f.kickoff_at, f.season_id, c.football_data_division AS division,
               hp.id AS home_participant, hp.team_id AS home_team, ht.name AS home_name,
               ap.id AS away_participant, ap.team_id AS away_team, at.name AS away_name
          FROM fixture f
@@ -56,10 +59,77 @@ export class PowerIndexStore {
     if (row === undefined) return null;
     return {
       fixtureId,
+      seasonId: row.season_id,
       kickoffAt: row.kickoff_at,
       division: row.division,
       home: { participantId: row.home_participant, teamId: row.home_team, name: row.home_name },
       away: { participantId: row.away_participant, teamId: row.away_team, name: row.away_name },
+    };
+  }
+
+  /**
+   * What line-up quality and stability are measured from (T-112): every team's
+   * finished matches this season before the kick-off with their coach and
+   * starting XI, each player's mean provider rating over those matches (from
+   * `RATED_MINUTES` on the pitch), and this fixture's announced starters and
+   * the players reported out of it. All from our own match records.
+   */
+  async squadContext(subject: IndexSubject): Promise<SquadContext> {
+    const [matches, ratings, confirmed, out] = await Promise.all([
+      this.pool.query<{
+        team_id: string;
+        kickoff_at: Date;
+        coach_id: string | null;
+        starters: string[];
+      }>(
+        `SELECT fp.team_id, f.kickoff_at, fp.coach_id,
+                COALESCE(array_agg(l.person_id) FILTER (WHERE l.role = 'starter'), '{}') AS starters
+           FROM fixture f
+           JOIN fixture_participant fp ON fp.fixture_id = f.id
+           LEFT JOIN lineup l ON l.participant_id = fp.id
+          WHERE f.season_id = $1 AND f.status = 'finished' AND f.kickoff_at < $2
+          GROUP BY fp.id, fp.team_id, f.kickoff_at, fp.coach_id
+          ORDER BY f.kickoff_at`,
+        [subject.seasonId, subject.kickoffAt],
+      ),
+      this.pool.query<{ person_id: string; rating: number }>(
+        `SELECT r.person_id, avg(r.value)::float8 AS rating
+           FROM fixture_player_stat r
+           JOIN fixture_player_stat m
+             ON m.participant_id = r.participant_id AND m.person_id = r.person_id
+            AND m.metric = 'minutes' AND m.value >= $3
+           JOIN fixture_participant fp ON fp.id = r.participant_id
+           JOIN fixture f ON f.id = fp.fixture_id
+          WHERE r.metric = 'rating' AND f.season_id = $1 AND f.kickoff_at < $2
+          GROUP BY r.person_id`,
+        [subject.seasonId, subject.kickoffAt, RATED_MINUTES],
+      ),
+      this.pool.query<{ team_id: string; people: string[] }>(
+        `SELECT fp.team_id, array_agg(l.person_id) AS people
+           FROM lineup l JOIN fixture_participant fp ON fp.id = l.participant_id
+          WHERE fp.fixture_id = $1 AND l.role = 'starter'
+          GROUP BY fp.team_id`,
+        [subject.fixtureId],
+      ),
+      this.pool.query<{ team_id: string; people: string[] }>(
+        `SELECT fp.team_id, array_agg(a.person_id) AS people
+           FROM fixture_absence a JOIN fixture_participant fp ON fp.id = a.participant_id
+          WHERE a.fixture_id = $1 AND a.status = 'out'
+          GROUP BY fp.team_id`,
+        [subject.fixtureId],
+      ),
+    ]);
+    const byTeam = new Map<string, SeasonMatch[]>();
+    for (const row of matches.rows) {
+      const list = byTeam.get(row.team_id) ?? [];
+      list.push({ kickoffAt: row.kickoff_at, coachId: row.coach_id, starters: row.starters });
+      byTeam.set(row.team_id, list);
+    }
+    return {
+      matches: byTeam,
+      ratings: new Map(ratings.rows.map((r) => [r.person_id, r.rating])),
+      confirmed: new Map(confirmed.rows.map((r) => [r.team_id, r.people])),
+      out: new Map(out.rows.map((r) => [r.team_id, r.people])),
     };
   }
 

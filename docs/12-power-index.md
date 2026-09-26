@@ -33,8 +33,35 @@ Substituting a neutral 0.5 would be inventing a value (rule 3), and it would
 drag every index towards the middle by an amount nobody could see. Instead the
 weight goes to the components that did arrive, and the share of the formula's
 weight actually covered is published beside the number as `completeness`. On the
-free data of D-049 that is **70%**: line-up quality, managerial stability and
-competition context are not measurable, and the panel says which.
+free data of D-049 that was **70%**: line-up quality, managerial stability and
+competition context were not measurable, and the panel says which. With the paid
+feed's line-ups and player ratings (T-101) the first two are measured from our
+own match records (T-112, below), so a match of a covered league reaches
+**95%**; competition context is still not modelled.
+
+## Line-up quality and stability (T-112, D-081)
+
+Both are measured from our own tables, not the training store, and both are
+positions among the teams of the same season, measured from only what was
+recorded before the kick-off.
+
+- **Line-up quality (20%).** A player's rating is the mean of the provider's
+  0-10 match ratings this season in matches they played at least 20 minutes of.
+  The team's XI is the announced one when the line-up is confirmed, otherwise
+  its last XI less the players reported out (T-103). Its strength is the mean
+  rating of its rated starters, measurable when at least seven are rated; the
+  component is the share of the other teams' latest XIs below it, ties at half,
+  with at least five teams to rank against. `available` only for a confirmed XI
+  with all eleven rated; an expected XI is `limited` and says so.
+- **Managerial and team stability (5%).** Two readings, each placed among the
+  season's teams and then averaged: the share of the team's matches this season
+  led by its current coach, and the share of starters kept from one match to the
+  next over its last three pairs. Either alone is used, as `limited`, when the
+  other cannot be read.
+
+Neither can be validated by the backtest below: the training data holds results,
+not line-ups or ratings, so the blueprint's 20% and 5% stand as published, and
+this section says so rather than claiming a fit it never had.
 
 ---
 
