@@ -124,6 +124,29 @@ export function liveQuestion(known: { target: PollTarget; externalIds: string[] 
   return { externalIds: [...targetOf.keys()], targetOf, seasonLabels };
 }
 
+/**
+ * What the provider's table row says we are missing, or `null` (T-030).
+ *
+ * A club that has played nothing has nothing we could be missing: a cup's
+ * league stage is tabled before its first matchday, every row zero, and
+ * reading that as a gap made the check partial every hour until the first
+ * match (the Conference League, 2026-09-26).
+ */
+export function tableGap(
+  team: string,
+  providerPlayed: number,
+  heldPlayed: number | undefined,
+): string | null {
+  if (heldPlayed === undefined) {
+    return providerPlayed > 0
+      ? `${team}: provider ${providerPlayed} played, we hold no table row`
+      : null;
+  }
+  return heldPlayed !== providerPlayed
+    ? `${team}: provider ${providerPlayed} played, we have ${heldPlayed}`
+    : null;
+}
+
 @Injectable()
 export class IngestionJobsService {
   private readonly log = new Logger('Ingestion');
@@ -467,14 +490,8 @@ export class IngestionJobsService {
               unmapped += 1;
               continue;
             }
-            const held = mine.get(teamId);
-            if (held === undefined) {
-              behind.push(`${row.team.name}: provider ${row.played} played, we hold no table row`);
-            } else if (held.played !== row.played) {
-              behind.push(
-                `${row.team.name}: provider ${row.played} played, we have ${held.played}`,
-              );
-            }
+            const gap = tableGap(row.team.name, row.played, mine.get(teamId)?.played);
+            if (gap !== null) behind.push(gap);
           }
         }
         if (unmapped > 0) {
