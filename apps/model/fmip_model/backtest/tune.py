@@ -129,6 +129,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--history-from", type=date.fromisoformat, required=True)
     parser.add_argument("--out", type=Path, default=Path("reports"))
     parser.add_argument("--no-elo", action="store_true", help="fit without the Club Elo prior")
+    parser.add_argument(
+        "--xi", type=float, nargs="+", default=list(XI_GRID), help="the xi values to try"
+    )
+    parser.add_argument(
+        "--ridge", type=float, nargs="+", default=list(RIDGE_GRID), help="the ridge values to try"
+    )
     args = parser.parse_args(argv)
     if not args.tune_to < args.test_from:
         print("the test window must start after the tuning window ends", file=sys.stderr)
@@ -162,6 +168,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             matches,
             tune=(args.tune_from, args.tune_to),
             test=(args.test_from, args.test_to),
+            xi_grid=args.xi,
+            ridge_grid=args.ridge,
             elo_on=elo_on,
         )
         results.append(tuned)
@@ -173,12 +181,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
 
     args.out.mkdir(parents=True, exist_ok=True)
-    path = args.out / f"tuning_{args.test_from.isoformat()}..{args.test_to.isoformat()}.json"
+    grid = f"xi{min(args.xi)}-{max(args.xi)}"
+    path = args.out / f"tuning_{args.test_from.isoformat()}..{args.test_to.isoformat()}_{grid}.json"
     path.write_text(
         json.dumps(
             {
                 "published": BASELINE.as_dict(),
-                "grid": {"xi": list(XI_GRID), "ridge": list(RIDGE_GRID)},
+                "grid": {"xi": list(args.xi), "ridge": list(args.ridge)},
                 "min_gain": MIN_GAIN,
                 "elo": not args.no_elo,
                 "divisions": [asdict(r) for r in results],
