@@ -95,3 +95,111 @@ api_football,94,F1,Rennes
 api_football,106,F1,Brest
 api_football,95,F1,Strasbourg
 api_football,96,F1,Toulouse
+api_football,54,E1,Birmingham
+api_football,67,E1,Blackburn
+api_football,68,E1,Bolton
+api_football,56,E1,Bristol City
+api_football,44,E1,Burnley
+api_football,43,E1,Cardiff
+api_football,1335,E1,Charlton
+api_football,69,E1,Derby
+api_football,1379,E1,Lincoln
+api_football,70,E1,Middlesbrough
+api_football,58,E1,Millwall
+api_football,71,E1,Norwich
+api_football,1355,E1,Portsmouth
+api_football,59,E1,Preston
+api_football,72,E1,QPR
+api_football,62,E1,Sheffield United
+api_football,41,E1,Southampton
+api_football,75,E1,Stoke
+api_football,76,E1,Swansea
+api_football,38,E1,Watford
+api_football,60,E1,West Brom
+api_football,48,E1,West Ham
+api_football,39,E1,Wolves
+api_football,1837,E1,Wrexham
+api_football,194,N1,Ajax
+api_football,201,N1,AZ Alkmaar
+api_football,420,N1,Cambuur
+api_football,198,N1,Den Haag
+api_football,196,N1,Excelsior
+api_football,209,N1,Feyenoord
+api_football,205,N1,For Sittard
+api_football,410,N1,Go Ahead Eagles
+api_football,202,N1,Groningen
+api_football,210,N1,Heerenveen
+api_football,413,N1,Nijmegen
+api_football,197,N1,PSV Eindhoven
+api_football,426,N1,Sparta Rotterdam
+api_football,427,N1,Telstar
+api_football,415,N1,Twente
+api_football,207,N1,Utrecht
+api_football,195,N1,Willem II
+api_football,193,N1,Zwolle
+api_football,238,P1,Academico Viseu
+api_football,4724,P1,Alverca
+api_football,240,P1,Arouca
+api_football,211,P1,Benfica
+api_football,4716,P1,Casa Pia
+api_football,230,P1,Estoril
+api_football,15130,P1,Estrela
+api_football,242,P1,Famalicao
+api_football,762,P1,Gil Vicente
+api_football,224,P1,Guimaraes
+api_football,214,P1,Maritimo
+api_football,215,P1,Moreirense
+api_football,225,P1,Nacional
+api_football,212,P1,Porto
+api_football,226,P1,Rio Ave
+api_football,227,P1,Santa Clara
+api_football,217,P1,Sp Braga
+api_football,228,P1,Sp Lisbon
+api_football,996,T1,Alanyaspor
+api_football,3579,T1,Amedspor
+api_football,549,T1,Besiktas
+api_football,564,T1,Buyuksehyr
+api_football,6343,T1,Corum
+api_football,1009,T1,Erzurumspor
+api_football,3588,T1,Eyupspor
+api_football,611,T1,Fenerbahce
+api_football,645,T1,Galatasaray
+api_football,3573,T1,Gaziantep
+api_football,997,T1,Genclerbirligi
+api_football,994,T1,Goztep
+api_football,1004,T1,Kasimpasa
+api_football,7411,T1,Kocaelispor
+api_football,607,T1,Konyaspor
+api_football,1007,T1,Rizespor
+api_football,3603,T1,Samsunspor
+api_football,998,T1,Trabzonspor
+api_football,554,B1,Anderlecht
+api_football,740,B1,Antwerp
+api_football,738,B1,Beveren
+api_football,741,B1,Cercle Brugge
+api_football,736,B1,Charleroi
+api_football,569,B1,Club Brugge
+api_football,742,B1,Genk
+api_football,631,B1,Gent
+api_football,734,B1,Kortrijk
+api_football,259,B1,Lommel SK
+api_football,266,B1,Mechelen
+api_football,260,B1,Oud-Heverlee Leuven
+api_football,5902,B1,RAAL La Louviere
+api_football,735,B1,St Truiden
+api_football,1393,B1,St. Gilloise
+api_football,733,B1,Standard
+api_football,600,B1,Waregem
+api_football,261,B1,Westerlo
+api_football,252,SC0,Aberdeen
+api_football,247,SC0,Celtic
+api_football,253,SC0,Dundee
+api_football,1386,SC0,Dundee United
+api_football,1389,SC0,Falkirk
+api_football,254,SC0,Hearts
+api_football,249,SC0,Hibernian
+api_football,250,SC0,Kilmarnock
+api_football,256,SC0,Motherwell
+api_football,257,SC0,Rangers
+api_football,258,SC0,St Johnstone
+api_football,251,SC0,St Mirren
