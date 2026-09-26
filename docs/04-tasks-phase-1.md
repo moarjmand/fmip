@@ -1214,7 +1214,7 @@ tests (7 new on percentages, framing, deltas), typecheck, lint, stylelint.
 | `[x]` T-071 | Structured logging, error tracking, tracing on ingestion and live path | (T-026) | An ingest failure is visible without SSH |
 | `[x]` T-072 | Automated off-provider database backups + tested restore | T-008 | A restore drill is documented and passes |
 | `[x]` T-073 | Load test at expected peak (many concurrent SSE clients) | T-032 | Documented pass at an agreed threshold |
-| `[ ]` T-074 | Production deploy: VPS, Docker Compose, Cloudflare, TLS, domain | T-073 | Zero-downtime redeploy verified |
+| `[x]` T-074 | Production deploy: VPS, Docker Compose, Cloudflare, TLS, domain | T-073 | Zero-downtime redeploy verified |
 | `[x]` T-075 | A setup check: one command that says what a deployment can and cannot do | T-070, T-330 | An optional capability that is off is reported, never failed; no secret reaches the output |
 | `[x]` T-076 | Granting a role: the row nothing in the product writes | T-070 | A fresh deployment can get its first administrator, and every later grant names who and why |
 | `[x]` T-085 | A free public address for testing, before the deploy exists | T-002 | The running stack answers on public HTTPS, and what the tunnel drops is named |
@@ -1329,7 +1329,17 @@ per change; more processes), and when to rerun (before T-074 on the VPS,
 after any live-path change, before a known big match). Lint clean (Node
 globals declared for `scripts/`).
 
-**T-074 prepared and rehearsed on 2026-09-12; open until run on the VPS.**
+**T-074 done on 2026-09-25: FMIP is live at `traveltohormuz.ir`.** The runbook
+ran on the real server (Hetzner CPX22 behind Cloudflare), and the acceptance
+criterion held there: `verify-rollout.sh` rolled `api` then `web` on the
+production host with **47 of 47 probes answering 200**. The load test was
+rerun on the server (`08-load-test.md`): 1,000 clients were all served but
+outside D-047's latencies until the runbook's first remedy (PR #252) landed
+the same evening; after it, 1,000 and 2,000 clients both pass, a change
+reaching every client in under half a second (p95). The details are the
+2026-09-25 row of `09-deploy.md`, "Record".
+
+**Prepared and rehearsed on 2026-09-12.**
 Everything that does not need the server exists and was exercised: the
 production stack `deploy/docker-compose.prod.yml` (D-048: Caddy the only
 listener, TLS with the Cloudflare origin certificate, `web`/`api`/`model`

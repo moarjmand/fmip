@@ -90,6 +90,21 @@ carry over to two shared cores. The remedies under "What limits it" are the
 answer, in their order; until one lands, 500 is what the launch server is
 proven to carry.
 
+**After the first remedy (PR #252), the same server, the same evening:**
+
+| Clients | Refused / dropped | First snapshot p50 / p95 | Change → client p50 / p95 / max | Heartbeat gap p95 | Verdict |
+| --- | --- | --- | --- | --- | --- |
+| 1,000 | 0 / 0 | 35 / 68 | 411 / 448 / 461 | 5.8 s¹ | pass |
+| 2,000 | 0 / 0 | 15 / 69 | 420 / 473 / 494 | 6.9 s¹ | pass |
+
+Streams asking the same question now share one read, so the linear term is
+gone: a change reaches 2,000 clients faster than it reached 500 before, and
+the first snapshot dropped from seconds to tens of milliseconds because a
+ramp of identical connections joins the read already in flight. **The launch
+server carries D-047's 1,000 with room to spare, and 2,000 as well.** The
+next limit is not measured here; the second remedy, more processes, is still
+the answer when it comes.
+
 **Verdict on the laptop:** pass at 1,000 (every measure inside the threshold). At 2,000
 every client is still served and nothing is dropped, but a change takes
 3.4 s (p95) to reach everyone — outside the threshold. The knee is between
