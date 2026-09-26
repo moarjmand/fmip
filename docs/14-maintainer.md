@@ -260,9 +260,9 @@ because it disagrees with the matches you hold.
 
 Open `/en/admin` as an administrator, find **Backfill the current seasons**
 under Ingestion, give a reason and submit. It reads each current season's own
-span from the catalogue, so the season you added above is the season it
-fetches, and it appears in the same list as every other run -- a `fixtures` run
-scoped `backfill` -- with your reason in the audit log.
+span from the catalogue, to the season's end (T-505), so the season you added
+above is the season it fetches, and it appears in the same list as every other
+run -- a `fixtures` run scoped `backfill` -- with your reason in the audit log.
 
 There is no `curl` for this and there is not meant to be: Caddy hands every
 public path to the web app and the browser never reaches the API directly, so

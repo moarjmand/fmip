@@ -86,6 +86,7 @@ Checked on the public deployment:
 | `[x]` T-502 | The six domestic leagues on the server: Championship, Eredivisie, Primeira Liga, Süper Lig, Belgian Pro League, Scottish Premiership | T-500, T-501, D-080 | `--alias-training` agrees with every current-season result in E1, N1, P1, T1, B1 and SC0 |
 | `[x]` T-503 | The Europa League and the Conference League on the server, with their stages | T-500, T-501 | Their tables are the league stage's; their match pages say why there is no forecast yet (T-533) |
 | `[~]` T-504 | Fifteen competitions on one scores page | T-502, T-042 | A stated order after a member's favourites, and the page stays usable on a phone on a Saturday with every league playing |
+| `[x]` T-505 | The season's schedule, not a week of it | T-030 | A competition's and a team's upcoming matches reach the season's end; the cost is one request per competition a day |
 
 **The leagues were chosen for the model, not only for the audience.** Each of
 the six is a division football-data.co.uk carries (D-016), so each one's
@@ -93,6 +94,15 @@ matches get the same forecast the first five do on the day they arrive; a
 league the training data does not hold would be scores without a forecast,
 which is Iran's case and has a gate of its own. The two cups add the European
 nights of the clubs already covered.
+
+**T-505, added and done on 2026-09-26.** The fixtures job asked a week either
+side of now, and the backfill stopped a week ahead on the belief that a
+season's later half would come back empty. It does not: the provider publishes
+the schedule ahead, and the whole season is the same one request. So the
+backfill now reads to the season's end, and once a day (04:07 UTC) the hourly
+job does too -- recorded as a `fixtures` run scoped `schedule` -- so a
+competition or team page knows next month's matches. Found when the homepage
+had nothing to show during the international break.
 
 **Why T-501 comes before any league is added.** The plan allows 7,500 requests
 a day and the server spent about 740 a day during the international break. The

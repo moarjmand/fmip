@@ -72,9 +72,27 @@ function dayIso(now: Date, offsetDays: number): string {
 /** Postgres unique violation: the "already running" lock on `ingest_run`. */
 const UNIQUE_VIOLATION = '23505';
 
-/** The earlier of two `YYYY-MM-DD` days; they sort as they read. */
-function earlier(a: string, b: string): string {
-  return a < b ? a : b;
+/** The hour (UTC) at which the hourly fixtures run also reads each season's remaining schedule (T-505). */
+export const SCHEDULE_SWEEP_HOUR = 4;
+
+/**
+ * The dates the fixtures job asks a competition about (T-505).
+ *
+ * Hourly, a window around now: enough to catch a postponement or a moved
+ * kick-off. Once a day, from the same start to the season's end, because the
+ * provider publishes a season's schedule long before its matches and the
+ * question costs the same one request either way -- without it a competition
+ * or team page never knows a fixture more than a week ahead. A season whose
+ * recorded end is already inside the window is asked for the window.
+ */
+export function fixtureWindow(
+  now: Date,
+  seasonEnd: string,
+): { from: string; to: string; sweep: boolean } {
+  const from = dayIso(now, -FIXTURE_WINDOW_BACK_DAYS);
+  const to = dayIso(now, FIXTURE_WINDOW_FORWARD_DAYS);
+  const sweep = now.getUTCHours() === SCHEDULE_SWEEP_HOUR;
+  return { from, to: sweep && seasonEnd > to ? seasonEnd : to, sweep };
 }
 
 function describe(error: { kind: string; message: string }): string {
@@ -186,12 +204,19 @@ export class IngestionJobsService {
    * postponement or a rearranged kick-off is picked up, not only new matches.
    */
   fixtures(now: Date = new Date()): Promise<JobReport> {
-    return this.track('fixtures', (source, targets) => {
-      const replay = this.sources.kind === 'replay';
-      const from = replay ? REPLAY_QUERY.from : dayIso(now, -FIXTURE_WINDOW_BACK_DAYS);
-      const to = replay ? REPLAY_QUERY.to : dayIso(now, FIXTURE_WINDOW_FORWARD_DAYS);
-      return this.ingestFixtures(source, targets, () => ({ from, to }));
-    });
+    const replay = this.sources.kind === 'replay';
+    const sweep = !replay && now.getUTCHours() === SCHEDULE_SWEEP_HOUR;
+    return this.track(
+      'fixtures',
+      (source, targets) =>
+        this.ingestFixtures(source, targets, (target) => {
+          if (replay) return { from: REPLAY_QUERY.from, to: REPLAY_QUERY.to };
+          const { from, to } = fixtureWindow(now, target.seasonEnd);
+          return { from, to };
+        }),
+      // The daily sweep is the same job over a wider span, and says so (T-505).
+      sweep ? 'schedule' : null,
+    );
   }
 
   /**
@@ -218,9 +243,12 @@ export class IngestionJobsService {
             ? { from: REPLAY_QUERY.from, to: REPLAY_QUERY.to }
             : {
                 from: target.seasonStart,
-                // Never past today: a season's later half has not happened, and
-                // asking for it spends a request to be told so.
-                to: earlier(dayIso(now, FIXTURE_WINDOW_FORWARD_DAYS), target.seasonEnd),
+                // To the season's end: the provider publishes the schedule
+                // ahead, and the whole season is still one request (T-505).
+                to:
+                  target.seasonEnd > dayIso(now, FIXTURE_WINDOW_FORWARD_DAYS)
+                    ? target.seasonEnd
+                    : dayIso(now, FIXTURE_WINDOW_FORWARD_DAYS),
               },
         );
       },
