@@ -2807,3 +2807,44 @@ not think of would have no honest answer. *The full ISO list*: `country.code`
 is a FIFA trigram by constraint, and England is a football country ISO does
 not have. *A member from outside FIFA's list* (Monaco, Greenland) has no row;
 `--add-country` adds one when somebody asks.
+
+## D-079 — People and grounds are adopted from the queue like clubs: one row per external id, never matched by name
+
+**Status:** decided · **Date:** 2026-09-26 · **Task:** T-029 · **Follows:** D-077
+
+**The problem.** D-077 adopted clubs and left people for "a decision of their
+own", with 25 queued. The first production deploy made it urgent: once the
+post-match job asked about every finished match (T-102), the queue held 700
+people and 66 grounds within an hour, and every one of them had been left out
+of what it arrived in. The resolver never writes a blank for an id it cannot
+place (T-026), so the line-ups were empty and a goal had no scorer -- on a
+licensed feed that supplies both.
+
+**The decision.** `catalog.mjs --adopt-people` and `--adopt-venues` do for a
+person and a ground what `--adopt-teams` does for a club: a new row per queued
+external id, its mapping, the queue entry resolved, an audit row per adoption
+when `--by` names an administrator. A person gets the name the provider printed
+-- often "J. Bellingham" -- in `full_name`, because it is the only name we have;
+a ground gets its name and the city when the provider gave one. Nothing else is
+invented: no birth date, no nationality, no capacity. Adopting people or grounds
+then deletes this provider's `fixture_detail_fetch` rows, so the post-match job
+asks those matches again, a batch at a time within its budget, and writes the
+line-ups and incidents it had to leave out.
+
+**Why not by name, even for people.** The objection in D-077 -- "a person is a
+career, not a row" -- is an argument against matching, not against adopting.
+The provider's id for a player stays the same from club to club, so one id is one
+career; a name does not, and two "J. Rodriguez" are two people. When the
+provider means someone we already hold under another id, `--map` says so and
+the queue records that it was a judgement.
+
+**Why an operator's command and not the resolver.** The resolver's rule --
+queue what cannot be placed, never create -- is what keeps a typo or a
+provider's test record out of the catalogue. Keeping adoption a deliberate,
+audited act costs a command after each busy week; `14-maintainer.md` says when.
+
+**Rejected.** *Creating people automatically at ingestion*: it would end the
+queue's review for every kind of entity at once. *Waiting for a player
+endpoint to supply full names first*: every match page would stay without
+line-ups until then, when an abbreviated name is what the provider itself
+prints.

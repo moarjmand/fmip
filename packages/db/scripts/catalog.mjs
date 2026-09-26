@@ -12,8 +12,8 @@
  * with the provider's own name -- had no reader at all. D-076 found that the
  * hard way: a paid key, a real twenty-team table, and not one row written.
  *
- * What it will not do. It never matches a club by its name (rule 1: a name is
- * never a key). An adoption always creates a new row and maps the external id
+ * What it will not do. It never matches a club, a person or a ground by its
+ * name (rule 1: a name is never a key). An adoption always creates a new row and maps the external id
  * to it; when the provider is talking about a club you already hold, say so
  * yourself with `--map --to <id>`, and that judgement is recorded. It never
  * invents a country, a founding year or a badge: a team arrives with the one
@@ -39,7 +39,16 @@ export const COMPETITION_SCOPES = ['domestic', 'continental', 'international'];
 const SEASON_LABEL = /^\d{4}(\/\d{2,4})?$/;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-const VERBS = ['list', 'adopt-teams', 'add-country', 'add-competition', 'add-season', 'map'];
+const VERBS = [
+  'list',
+  'adopt-teams',
+  'adopt-people',
+  'adopt-venues',
+  'add-country',
+  'add-competition',
+  'add-season',
+  'map',
+];
 const SWITCHES = [...VERBS, 'dry-run', 'current'];
 const VALUED = [
   'type',
@@ -63,6 +72,8 @@ const VALUED = [
 const USAGE = `Usage (one verb per call):
   --list [--type team|person|competition] [--limit N]
   --adopt-teams [--dry-run] [--by <address>]
+  --adopt-people [--dry-run] [--by <address>]
+  --adopt-venues [--dry-run] [--by <address>]
   --add-country --code <FIFA trigram> --name "<name>" [--iso2 <XX>] [--by <address>]
   --add-competition --external-id <id> --name "<name>" --kind <${COMPETITION_KINDS.join('|')}>
                     --scope <${COMPETITION_SCOPES.join('|')}> [--country <ISO>] [--by <address>]
@@ -112,8 +123,8 @@ export function parseArgs(argv) {
     if (!Number.isInteger(limit) || limit <= 0) return { error: '--limit must be a whole number.' };
     return { command: 'list', provider, type: flags.get('type'), limit };
   }
-  if (verb === 'adopt-teams') {
-    return { command: 'adopt-teams', provider, by, dryRun: flags.get('dry-run') === true };
+  if (verb === 'adopt-teams' || verb === 'adopt-people' || verb === 'adopt-venues') {
+    return { command: verb, provider, by, dryRun: flags.get('dry-run') === true };
   }
   if (verb === 'add-country') {
     const code = text('code').toUpperCase();
@@ -291,30 +302,68 @@ async function list(client, options) {
         `${(row.name ?? '(no name)').padEnd(28)} seen ${row.seen_count}`,
     );
   }
-  console.log('\nAdopt the teams with --adopt-teams, or place one by hand with --map.');
+  console.log(
+    '\nAdopt them with --adopt-teams, --adopt-people and --adopt-venues, ' +
+      'or place one by hand with --map.',
+  );
   return 0;
 }
 
-async function adoptTeams(client, options) {
+/**
+ * What each adoption creates from a queued id: the one row, holding only what
+ * the queue knows. A club gets its name and the kind every covered competition
+ * has; a person the name the provider printed (often "J. Bellingham" -- it is
+ * what we have, and a provider that serves full names can fill it in later); a
+ * venue its name and, when the provider gave one, its city.
+ */
+export const ADOPTIONS = {
+  team: {
+    plural: 'team(s)',
+    action: 'catalog.team_added',
+    insert: `INSERT INTO team (name, kind, gender, age_group, is_active)
+             VALUES ($1, 'club', 'men', 'senior', true) RETURNING id`,
+    values: (row) => [row.name],
+  },
+  person: {
+    plural: 'person(s)',
+    action: 'catalog.person_added',
+    insert: 'INSERT INTO person (full_name) VALUES ($1) RETURNING id',
+    values: (row) => [row.name],
+  },
+  venue: {
+    plural: 'venue(s)',
+    action: 'catalog.venue_added',
+    insert: 'INSERT INTO venue (name, city) VALUES ($1, $2) RETURNING id',
+    values: (row) => [row.name, row.city],
+  },
+};
+
+/**
+ * Turns every queued id of one kind into a new row and its mapping. Never a
+ * match by name (rule 1): an id the provider means as someone we already hold
+ * is placed by hand with `--map`, and the queue records which was which.
+ */
+async function adopt(client, options, entityType) {
+  const kind = ADOPTIONS[entityType];
   const { rows } = await client.query(
-    `SELECT id, external_id, payload->>'name' AS name
+    `SELECT id, external_id, payload->>'name' AS name, payload->>'city' AS city
        FROM unresolved_entity
-      WHERE provider = $1 AND status = 'pending' AND entity_type = 'team'
+      WHERE provider = $1 AND status = 'pending' AND entity_type = $2
         AND payload->>'name' IS NOT NULL
         AND NOT EXISTS (
           SELECT 1 FROM provider_mapping m
            WHERE m.provider = unresolved_entity.provider
-             AND m.entity_type = 'team'
+             AND m.entity_type = $2
              AND m.external_id = unresolved_entity.external_id)
       ORDER BY external_id`,
-    [options.provider],
+    [options.provider, entityType],
   );
   if (rows.length === 0) {
-    console.log('No team is waiting to be adopted.');
+    console.log(`No ${entityType} is waiting to be adopted.`);
     return 0;
   }
   if (options.dryRun) {
-    console.log(`${rows.length} team(s) would be created, one row each:`);
+    console.log(`${rows.length} ${kind.plural} would be created, one row each:`);
     for (const row of rows) console.log(`  ${String(row.external_id).padStart(7)}  ${row.name}`);
     console.log('\nRun again without --dry-run to write them.');
     return 0;
@@ -324,40 +373,58 @@ async function adoptTeams(client, options) {
   for (const row of rows) {
     await client.query('BEGIN');
     try {
-      const created = await client.query(
-        `INSERT INTO team (name, kind, gender, age_group, is_active)
-         VALUES ($1, 'club', 'men', 'senior', true) RETURNING id`,
-        [row.name],
-      );
-      const teamId = created.rows[0].id;
+      const created = await client.query(kind.insert, kind.values(row));
+      const id = created.rows[0].id;
       await client.query(
         `INSERT INTO provider_mapping (provider, entity_type, external_id, internal_id)
-         VALUES ($1, 'team', $2, $3)`,
-        [options.provider, row.external_id, teamId],
+         VALUES ($1, $2, $3, $4)`,
+        [options.provider, entityType, row.external_id, id],
       );
       await client.query(
         `UPDATE unresolved_entity
             SET status = 'resolved', resolved_internal_id = $2, resolved_by = $3,
                 resolved_at = now(), resolution_note = 'adopted into the catalogue'
           WHERE id = $1`,
-        [row.id, teamId, options.by ?? 'catalog.mjs'],
+        [row.id, id, options.by ?? 'catalog.mjs'],
       );
       audited =
-        (await audit(client, options.by, 'catalog.team_added', 'team', teamId, {
+        (await audit(client, options.by, kind.action, entityType, id, {
           name: row.name,
           provider: options.provider,
           external_id: row.external_id,
         })) || audited;
       await client.query('COMMIT');
-      console.log(`  + ${row.name} (${options.provider} ${row.external_id}) -> ${teamId}`);
+      // A club or a ground is worth a line each; a season's squads are not.
+      if (entityType !== 'person') {
+        console.log(`  + ${row.name} (${options.provider} ${row.external_id}) -> ${id}`);
+      }
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;
     }
   }
-  console.log(`${rows.length} team(s) adopted.`);
+  console.log(`${rows.length} ${kind.plural} adopted.`);
   sayIfUnaudited(audited, options.by);
+  if (entityType !== 'team') await askAgainForDetail(client, options.provider);
   return 0;
+}
+
+/**
+ * The matches whose detail was fetched while these ids had nowhere to go: their
+ * line-ups, scorers and grounds were left out rather than written as blanks
+ * (T-026), so the post-match job is told to ask again (T-102). It takes them a
+ * batch at a time, newest first, within its own budget.
+ */
+async function askAgainForDetail(client, provider) {
+  const { rowCount } = await client.query('DELETE FROM fixture_detail_fetch WHERE provider = $1', [
+    provider,
+  ]);
+  if (rowCount > 0) {
+    console.log(
+      `${rowCount} finished match(es) will be asked for their detail again, so what these ` +
+        'rows appear in is written.',
+    );
+  }
 }
 
 /**
@@ -559,7 +626,11 @@ async function main() {
       case 'list':
         return await list(client, parsed);
       case 'adopt-teams':
-        return await adoptTeams(client, parsed);
+        return await adopt(client, parsed, 'team');
+      case 'adopt-people':
+        return await adopt(client, parsed, 'person');
+      case 'adopt-venues':
+        return await adopt(client, parsed, 'venue');
       case 'add-country':
         return await addCountry(client, parsed);
       case 'add-competition':

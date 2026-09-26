@@ -36,6 +36,17 @@ describe('catalog arguments', () => {
     });
     expect(parseArgs(['--adopt-teams'])).toMatchObject({ command: 'adopt-teams', dryRun: false });
     expect(parseArgs(['--adopt-teams', '--dry-run'])).toMatchObject({ dryRun: true });
+    // People and grounds are adopted the same way (D-079).
+    expect(parseArgs(['--adopt-people', '--by', 'a@b.c'])).toMatchObject({
+      command: 'adopt-people',
+      by: 'a@b.c',
+      dryRun: false,
+    });
+    expect(parseArgs(['--adopt-venues', '--dry-run'])).toMatchObject({
+      command: 'adopt-venues',
+      dryRun: true,
+    });
+    expect(parseArgs(['--adopt-people', '--adopt-teams']).error).toContain('One verb at a time');
   });
 
   it('insists on one verb, and says which two it was given', () => {
