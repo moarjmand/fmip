@@ -1,6 +1,11 @@
 import type { ForecastVersion, ModelForecastResponse } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
-import { ForecastService, coverageOf, roundToTotalOne } from './forecast.service';
+import {
+  CROSS_LEAGUE_DIVISION,
+  ForecastService,
+  coverageOf,
+  roundToTotalOne,
+} from './forecast.service';
 import type {
   FixtureForModel,
   NewForecast,
@@ -247,18 +252,20 @@ describe('ForecastService.compute', () => {
 
   it('says a cup match mixes leagues rather than that it is not mapped (T-503)', async () => {
     const store = new FakeStore({ ...FIXTURE, division: null, mixesLeagues: true });
-    let asked = 0;
+    const asked: string[] = [];
     const model = new ModelClient({
       baseUrl: 'http://model.test',
-      fetchImpl: async () => {
-        asked += 1;
-        return new Response('{}');
+      fetchImpl: async (url) => {
+        asked.push(String(url));
+        return new Response(JSON.stringify({ detail: 'no candidate' }), { status: 404 });
       },
     });
     await service(store, model).compute(FIXTURE.id, 'early');
 
-    expect(asked).toBe(0);
-    expect(store.written[0]?.unavailable).toMatchObject({ reason: 'cross_competition' });
+    // The published version is never asked; only the candidate is (T-533).
+    expect(asked).toEqual(['http://model.test/forecast/candidate']);
+    expect(store.published[0]?.unavailable).toMatchObject({ reason: 'cross_competition' });
+    expect(store.shadows).toHaveLength(0);
   });
 
   it('reports an unknown fixture instead of writing anything', async () => {
@@ -380,6 +387,17 @@ describe('shadow forecasts (T-531)', () => {
     expect(store.shadows[0]?.modelId).toBe('dixon-coles-elo@0.2.0');
     const served = await service(store, answering(200)).versions(FIXTURE.id);
     expect(served?.versions.map((v) => v.model_version)).not.toContain('dixon-coles-elo@0.2.0');
+  });
+
+  it('asks the candidate about a cup match on the scale across leagues, in shadow (T-533)', async () => {
+    const store = new FakeStore({ ...FIXTURE, division: null, mixesLeagues: true });
+    await service(store, answering(200)).compute(FIXTURE.id, 'early');
+
+    expect(store.published).toHaveLength(1);
+    expect(store.published[0]?.unavailable).toMatchObject({ reason: 'cross_competition' });
+    expect(store.shadows).toHaveLength(1);
+    expect(store.shadows[0]?.request.division).toBe(CROSS_LEAGUE_DIVISION);
+    expect(store.shadows[0]?.modelId).toBe('dixon-coles-elo@0.2.0');
   });
 
   it('records nothing when there is no candidate, and the published version stands if it fails', async () => {
