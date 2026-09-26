@@ -1,5 +1,14 @@
-import type { CompetitionPage, ForecastVersion, MatchHeader, TableRow } from '@fmip/contracts';
+import type {
+  CompetitionPage,
+  ForecastVersion,
+  MatchHeader,
+  PredictionHistoryItem,
+  PublicProfile,
+  Rating,
+  TableRow,
+} from '@fmip/contracts';
 import { percentages } from './forecast';
+import { OUTCOME_LABEL } from './prediction-form';
 
 /**
  * The words on a share card (T-520): the picture a chat app shows when a link
@@ -132,5 +141,51 @@ export function tableCardText(page: CompetitionPage): TableCardText {
       points: row.points,
     })),
     absence: rows.length === 0 ? 'No table for this season yet.' : null,
+  };
+}
+
+export interface MemberCardText {
+  name: string;
+  handle: string;
+  /** The rating as the profile shows it, or a sentence when there is none yet. */
+  rating: string;
+  /** The latest settled predictions, newest first, as many as fit. */
+  recent: { match: string; verdict: string }[];
+}
+
+/** How many settled predictions fit on a member's card. */
+export const MEMBER_CARD_PREDICTIONS = 3;
+
+/**
+ * A member's card, from their profile as a signed-out visitor sees it. The
+ * route asks for that view without a session, so a friends-only or private
+ * profile never reaches this function and has no card beyond the product's
+ * name; a member whose history is hidden shows their rating and nothing else.
+ */
+export function memberCardText(
+  profile: Pick<PublicProfile, 'display_name' | 'username'>,
+  rating: Rating | null,
+  history: PredictionHistoryItem[],
+): MemberCardText {
+  const status = rating === null ? '' : rating.established ? ' · established' : ' · provisional';
+  return {
+    name: profile.display_name,
+    handle: `@${profile.username}`,
+    rating:
+      rating === null
+        ? 'No settled predictions yet'
+        : `Rating ${rating.rating.toFixed(1)}${status} · ${rating.settled_count} settled`,
+    recent: history
+      .filter((item) => item.prediction.settlement?.status === 'settled')
+      .slice(0, MEMBER_CARD_PREDICTIONS)
+      .map(({ fixture, prediction }) => {
+        const actual = prediction.settlement?.actual ?? fixture.score;
+        const score = actual === null ? 'v' : `${actual.home}–${actual.away}`;
+        const right = prediction.settlement?.outcome_correct === true;
+        return {
+          match: `${fixture.home.name} ${score} ${fixture.away.name}`,
+          verdict: `${OUTCOME_LABEL[prediction.latest.outcome]} · ${right ? 'right' : 'wrong'}`,
+        };
+      }),
   };
 }
