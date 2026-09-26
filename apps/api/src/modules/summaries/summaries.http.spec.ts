@@ -163,6 +163,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('match summar
        SELECT id, 'shots', 9 FROM fixture_participant WHERE fixture_id = $1 AND side = 'home'`,
       [MATCH],
     );
+    // Both finished matches have been asked for their detail (T-102): what is
+    // missing from them is the provider's answer, not a fetch still queued.
+    await pool.query(
+      `INSERT INTO fixture_detail_fetch (fixture_id, provider)
+       VALUES ($1, 'api_football'), ($2, 'api_football')`,
+      [MATCH, THIN],
+    );
   });
 
   afterAll(async () => {

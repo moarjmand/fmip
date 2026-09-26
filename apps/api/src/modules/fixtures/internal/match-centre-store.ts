@@ -24,6 +24,11 @@ export interface HeaderRow {
   header: MatchHeader;
   homeParticipantId: string;
   awayParticipantId: string;
+  /**
+   * Finished, and the provider has not yet been asked for what happened after
+   * the whistle (T-102): a module with nothing in it is late, not absent.
+   */
+  detailOwed: boolean;
 }
 
 export interface Stamped<T> {
@@ -81,6 +86,7 @@ interface RawHeader {
       })[]
     | null;
   last_updated_at: Date;
+  detail_owed: boolean;
 }
 
 const SCORE_KINDS = [
@@ -131,7 +137,9 @@ export class PostgresMatchCentreStore {
                 (SELECT max(i.updated_at) FROM incident i WHERE i.fixture_id = f.id),
                 (SELECT max(l.updated_at) FROM lineup l WHERE l.participant_id IN (h.id, a.id)),
                 (SELECT max(s.updated_at) FROM fixture_stat s WHERE s.participant_id IN (h.id, a.id))
-              ) AS last_updated_at
+              ) AS last_updated_at,
+              (f.status = 'finished' AND NOT EXISTS (
+                 SELECT 1 FROM fixture_detail_fetch d WHERE d.fixture_id = f.id)) AS detail_owed
          FROM fixture f
          JOIN season se ON se.id = f.season_id
          JOIN competition c ON c.id = se.competition_id
@@ -155,6 +163,7 @@ export class PostgresMatchCentreStore {
     return {
       homeParticipantId: r.home_pid,
       awayParticipantId: r.away_pid,
+      detailOwed: r.detail_owed,
       header: {
         id: r.id,
         kickoff_at: r.kickoff_at.toISOString(),

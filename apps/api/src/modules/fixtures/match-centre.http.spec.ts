@@ -189,6 +189,30 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /fixture
     ]);
   });
 
+  /**
+   * A season backfill writes finished matches with nothing after the whistle,
+   * and the post-match job asks about each of them in turn (T-102). Until it
+   * has, an empty module is late, not the provider declining; once it has, an
+   * empty module is the provider's answer.
+   */
+  it('says a finished match still waiting for its detail is delayed, not unsupplied', async () => {
+    const waiting = EARLIER[0];
+    const before = (await get(waiting)).json() as MatchCentre;
+    expect(before.timeline.coverage).toBe('delayed');
+    expect(before.statistics.coverage).toBe('delayed');
+    expect(before.lineups.coverage).toBe('delayed');
+    expect(before.statistics.data).toBeNull();
+
+    await pool.query(
+      `INSERT INTO fixture_detail_fetch (fixture_id, provider) VALUES ($1, 'api_football')`,
+      [waiting],
+    );
+    const after = (await get(waiting)).json() as MatchCentre;
+    expect(after.timeline.coverage).toBe('not_supplied');
+    expect(after.statistics.coverage).toBe('not_supplied');
+    expect(after.lineups.coverage).toBe('not_supplied');
+  });
+
   it('serves both line-ups with captains, and the season coverage per module', async () => {
     const body = (await get(MATCH)).json() as MatchCentre;
     expect(body.lineups.coverage).toBe('limited');

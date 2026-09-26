@@ -58,19 +58,21 @@ into one number.
 |---|---|---|---|
 | `[x]` T-100 | **Decision gate:** review the bake-off and D-049, buy the chosen paid tier | T-024, D-049 | New entry in `00-decisions.md`; keys in `.env` |
 | `[ ]` T-101 | Player-level match statistics: schema, normalised model, adapter support | T-100 | A player's minutes, shots, xG and passing are stored per fixture, or the module says `not_supplied` |
-| `[ ]` T-102 | Expected goals on the critical path: ingestion, coverage, display | T-101 | Every finished fixture in a covered competition carries team xG, or says why not |
+| `[x]` T-102 | Expected goals on the critical path: ingestion, coverage, display | T-101 | Every finished fixture in a covered competition carries team xG, or says why not |
 | `[ ]` T-103 | Injury and suspension availability feed | T-100 | A player unavailable for a fixture is stored with a reason and a source time |
 
-**T-102, first half, 2026-09-26: every finished match is asked about once.**
-Team xG was already mapped (`expected_goals` from API-Football's statistics)
-and stored by the post-match job -- but that job only asked about matches in a
-window around now, so everything a season backfill wrote stayed without
-incidents, statistics, line-ups or xG for good: all 358 matches of the first
-production deploy. The job now also takes up to 20 finished matches per run
-that were never detailed, newest first, and records each ask in
-`fixture_detail_fetch`. What is still to do is the other half of the
-acceptance criterion -- a finished match without xG saying why -- on the match
-page.
+**T-102 done on 2026-09-26.** Team xG was already mapped (`expected_goals`
+from API-Football's statistics) and stored by the post-match job -- but that
+job only asked about matches in a window around now, so everything a season
+backfill wrote stayed without incidents, statistics, line-ups or xG for good:
+all 358 matches of the first production deploy. The job now also takes up to
+20 finished matches per run that were never detailed, newest first, and
+records each ask in `fixture_detail_fetch`. On the match page a finished match
+still waiting for that ask says its timeline, statistics and line-ups are
+`delayed` rather than `not_supplied`, and a statistics table without xG ends
+with a line saying the provider did not supply them for this match. Its
+dependency on T-101 was about player xG, which API-Football does not supply
+per player at all; team xG needed nothing from it.
 
 **T-100 is the maintainer's.** No agent buys anything (`CLAUDE.md` §7). Until it
 happens D-049 holds: football-data.org for the spine, Highlightly for the
