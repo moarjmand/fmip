@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic';
 const STATIC_PATHS: { path: string; priority: number }[] = [
   { path: '', priority: 1 },
   { path: '/scores', priority: 0.9 },
+  { path: '/about', priority: 0.6 },
   { path: '/leaderboard', priority: 0.5 },
   { path: '/search', priority: 0.3 },
 ];

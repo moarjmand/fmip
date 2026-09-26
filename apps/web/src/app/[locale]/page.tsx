@@ -2,9 +2,10 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { JsonLd } from '@/components/json-ld';
 import { FounderAnalysisFeed } from '@/components/founder-analysis';
-import { fetchApiHealth, fetchFounderFeed } from '@/lib/api';
+import { fetchApiHealth, fetchFounderFeed, fetchMe } from '@/lib/api';
 import { rootTitle } from '@/lib/demonstration';
 import { pageMetadata, websiteJsonLd } from '@/lib/seo';
+import { sessionCookieHeader } from '@/lib/session';
 
 // The API is queried per request, so a build never depends on it being up.
 export const dynamic = 'force-dynamic';
@@ -28,12 +29,15 @@ export async function generateMetadata({
 
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
-  const [health, founder] = await Promise.all([
+  const cookie = await sessionCookieHeader();
+  const [health, founder, me] = await Promise.all([
     fetchApiHealth(),
     // The blueprint puts the founder's analysis on the homepage "for selected
     // matches"; the feed is upcoming matches only, so there is nothing to
     // select — what exists is what is coming (T-132).
     fetchFounderFeed({ limit: 3 }),
+    // Only to offer the first-visit page to someone who is not signed in (T-523).
+    fetchMe(cookie),
   ]);
 
   return (
@@ -56,6 +60,15 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         </Link>
         .
       </p>
+      {me === null && (
+        <p data-testid="first-visit">
+          New here?{' '}
+          <Link href={`/${locale}/about`} className="underline">
+            What FMIP is, and how a rating is earned
+          </Link>
+          .
+        </p>
+      )}
       {founder.ok && (
         <FounderAnalysisFeed
           analyses={founder.data.analyses}
