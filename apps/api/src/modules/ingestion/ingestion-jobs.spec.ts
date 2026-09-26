@@ -357,6 +357,25 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
       ),
     ).toBe(PERSON_IDS.length);
 
+    // Each mapped player's numbers (T-101): Haaland's 80 minutes and two goals,
+    // and nothing for the players nobody has identified.
+    const haaland = await pool.query<{ metric: string; value: string }>(
+      `SELECT s.metric, s.value::text FROM fixture_player_stat s
+         JOIN fixture_participant p ON p.id = s.participant_id
+        WHERE p.fixture_id = $1 AND s.person_id = $2`,
+      [fixtureId, HAALAND],
+    );
+    const numbers = Object.fromEntries(haaland.rows.map((r) => [r.metric, Number(r.value)]));
+    expect(numbers).toMatchObject({ minutes: 80, goals: 2, shots: 3, rating: 8.6 });
+    expect(
+      await count(
+        `SELECT count(DISTINCT s.person_id)::text AS n FROM fixture_player_stat s
+           JOIN fixture_participant p ON p.id = s.participant_id
+          WHERE p.fixture_id = $1`,
+        [fixtureId],
+      ),
+    ).toBe(PERSON_IDS.length);
+
     const second = await jobs.postMatch(AFTER_KICKOFF);
     expect(second.itemsSeen).toBe(1);
     expect(second.itemsWritten).toBe(0);

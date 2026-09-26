@@ -28,6 +28,7 @@ import type {
   NormalisedLineup,
   NormalisedPeriod,
   NormalisedSideLineup,
+  NormalisedPlayerStat,
   NormalisedStat,
   Provider,
   Side,
@@ -600,5 +601,49 @@ export class IngestStore {
       changed += rowCount ?? 0;
     }
     return { changed, unresolved: [] };
+  }
+
+  /**
+   * Each player's numbers (T-101). A player the catalogue does not hold is
+   * resolved once, queued with the name the provider gave, and skipped: the
+   * row is not written with a blank person, and adopting the person (D-079)
+   * is what makes the next ask write it.
+   */
+  async savePlayerStatistics(
+    provider: Provider,
+    fixtureId: string,
+    statistics: NormalisedPlayerStat[],
+  ): Promise<WriteResult> {
+    const participants = new Map<Side, string | null>([
+      ['home', await this.participantId(fixtureId, 'home')],
+      ['away', await this.participantId(fixtureId, 'away')],
+    ]);
+    const people = new Map<string, string | null>();
+    const unresolved = new Set<string>();
+    let changed = 0;
+    for (const stat of statistics) {
+      const participantId = participants.get(stat.side) ?? null;
+      if (participantId === null) continue;
+      if (!people.has(stat.player.externalId)) {
+        people.set(
+          stat.player.externalId,
+          await this.resolveId(provider, 'person', stat.player.externalId, stat.player),
+        );
+      }
+      const personId = people.get(stat.player.externalId) ?? null;
+      if (personId === null) {
+        unresolved.add(`person:${stat.player.externalId}`);
+        continue;
+      }
+      const { rowCount } = await this.pool.query(
+        `INSERT INTO fixture_player_stat (participant_id, person_id, metric, value)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (participant_id, person_id, metric) DO UPDATE SET value = EXCLUDED.value
+          WHERE fixture_player_stat.value IS DISTINCT FROM EXCLUDED.value`,
+        [participantId, personId, stat.metric, stat.value],
+      );
+      changed += rowCount ?? 0;
+    }
+    return { changed, unresolved: [...unresolved] };
   }
 }

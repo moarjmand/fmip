@@ -319,6 +319,15 @@ export class IngestionJobsService {
             await this.store.saveLineup(source.provider, candidate.fixtureId, detail.lineup),
           );
         }
+        if (detail.playerStatistics !== null) {
+          writes.push(
+            await this.store.savePlayerStatistics(
+              source.provider,
+              candidate.fixtureId,
+              detail.playerStatistics,
+            ),
+          );
+        }
         for (const write of writes) {
           written += write.changed;
           for (const id of write.unresolved) unresolved.add(id);
