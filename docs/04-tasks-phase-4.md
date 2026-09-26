@@ -468,7 +468,7 @@ claim this epic tests rather than assumes.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-320 | **Decision gate:** a native app at all, the framework, and the store accounts | — | New entry in `00-decisions.md`; `CLAUDE.md` §2 is explicit that a framework needs one |
+| `[x]` T-320 | **Decision gate:** a native app at all, the framework, and the store accounts | — | New entry in `00-decisions.md`; `CLAUDE.md` §2 is explicit that a framework needs one |
 | `[x]` T-321 | `@fmip/contracts` proven platform-independent | — | A test fails if the contracts package imports anything web-only or Node-only |
 | `[ ]` T-322 | The app shell: routing, session, locale, writing direction | T-320, T-321 | A right-to-left locale lays out correctly on a device, not only in a browser |
 | `[ ]` T-323 | Scores, match centre, predictions against the same endpoints | T-322 | No endpoint exists only for the app |
@@ -506,6 +506,11 @@ only as a push is one nobody can find again.
 
 **What is buildable now:** T-321. Everything else waits on a decision that costs
 money and adds a framework, which `CLAUDE.md` §7 and §2 both reserve.
+
+**T-320 decided on 2026-09-26: not now (D-084).** The installable web app is
+the mobile product; no framework is added and no store account opened. T-322
+to T-324 stay here, not started, and T-321's guard keeps the contracts ready
+if the question comes back.
 
 ---
 

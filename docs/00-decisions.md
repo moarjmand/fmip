@@ -2956,3 +2956,89 @@ made by.
 *Publishing both with a label*: two numbers from one model is the blending
 rule 6 forbids, seen from the other side. *A separate table*: two places for
 one kind of row, and every evaluation query written twice.
+
+---
+
+## D-083 — The feed's own records may train the model, and reach it through our tables, not a second connection
+
+**Status:** decided by the maintainer · **Date:** 2026-09-26 · **Tasks:** T-511, T-512, T-533, T-534 · **Follows:** D-014, D-016, D-076
+
+**The question.** The training store has held only sources whose terms were
+read and recorded (D-016, rule 9): football-data.co.uk and Club Elo. Neither
+covers Iran's league, European cup matches or line-ups, and the only source
+that does is the feed the product already licenses (D-076). Whether its plan
+allows training a model on its data was the maintainer's to answer.
+
+**What the terms say.** API-SPORTS' terms of service (read on 2026-09-26 from
+the copy archived on 2026-04-15; "last updated" 21 May 2025; the live page sits
+behind a bot check) forbid one use: reselling the data, since a customer who
+sells it directly competes with the provider. They describe the data as
+provided for building projects such as applications and websites, and ask a
+customer in doubt to write to them. They say nothing about models, statistics
+derived from the data, or how long it may be kept. They also grant no licence
+to publish competitions' data, which the rights holders may restrict -- a
+point about publication that D-076 already carries and training does not add
+to: a forecast is our own number, not the feed's data.
+
+**The decision.** The maintainer's answer (2026-09-26): training the model on
+the feed's data is allowed. The model's forecasts are the model's own output,
+never a resale of the feed.
+
+**How the data reaches the model.** Not through a second client of the
+provider. The API's ingestion is the only path to the feed: every request is
+counted against the day's ceiling (T-501), every club and player is a
+catalogue id (rule 1), and nothing provider-shaped passes the adapter (rule 2).
+The training store gains a third source, **our own records**: the model's
+loader copies finished matches from `fixture`, `fixture_participant` and
+`fixture_score` (read only; the API still never reads `training`) into
+`training.match` under a division code per competition, with our team ids as
+the team names, and writes the matching identity rows into
+`training.team_alias` in the same load. A past season reaches `public` the way
+the current one did: the catalogue adds the season (`--add-season`, not
+current) and the backfill reads it (`--season <label>`), audited and counted.
+The load records the feed's terms URL and this decision as its licence note,
+so every row still answers "were we allowed to have it" from the store alone.
+Because a season in progress changes every match day, the model service
+refreshes a division of our own records once a day, before its first fit of
+the day, through the same loader and the same load rows; a refresh that fails
+is recorded as a failed load and the fit uses the copy already held.
+
+**What it covers.** Iran's league history (T-512), European cup results for
+putting clubs of different leagues on one scale (T-533), and line-ups and
+absences as recorded after each match (T-534). Iran's league is one more
+division for the same model, and enters the published version the way every
+division did: once its backtest stands beside the others'. The other two
+change what the model is, so they enter as the candidate version (D-082) and
+are published only on their own pre-kick-off record.
+
+**Limits, stated.** The feed's records carry no bookmaker odds, so a backtest
+on them has no market to compare against and says so. The terms are silent on
+keeping data after a plan ends; the plan on the server runs to 2026-10-21, and
+whether held records keep training after a lapse is the maintainer's call at
+that point, not a default this entry sets.
+
+**Rejected.** *The model calling the provider itself*: a second key holder,
+requests the day's ceiling cannot see, and provider names in the training
+store with no catalogue identity. *No forecast for these matches*: honest, and
+what the product said until today, but the maintainer has answered the
+question it waited on.
+
+---
+
+## D-084 — No native app for now: the installable web app is the mobile product
+
+**Status:** decided by the maintainer · **Date:** 2026-09-26 · **Task:** T-320 · **Follows:** D-042
+
+**The question.** E32 planned a native app with Expo, reusing the API and the
+contracts; T-321 proved the contracts platform-independent. Building it adds a
+framework (`CLAUDE.md` §2), and publishing it needs store accounts that cost
+money and are the maintainer's to open.
+
+**The decision.** Not now. The web app installs on a phone already (D-042:
+manifest, service worker, offline shell), and one interface is what a single
+maintainer can keep true. No framework is added, no store account is opened.
+T-322 to T-324 stay in the plan, not started; T-321's guard stays, so the
+contracts remain ready for a second client if the question is asked again.
+
+**Rejected.** *Building the app now and publishing later*: a second interface
+to keep in step with every change, before anyone has asked for it.
