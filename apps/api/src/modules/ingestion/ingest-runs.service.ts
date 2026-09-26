@@ -81,6 +81,14 @@ export class IngestRunsService {
   }
 
   /**
+   * Who asked for a season backfill and why (rule 10), for the operator's
+   * command (T-502); the admin page's route records the same row.
+   */
+  auditBackfill(actorId: string, reason: string): Promise<void> {
+    return this.store.auditBackfill(actorId, reason);
+  }
+
+  /**
    * Runs a job inside a run record: the outcome, or the thrown error, closes the
    * run, with the requests the job sent on the way (T-501) -- a run that failed
    * half-way still spent what it spent.

@@ -183,6 +183,12 @@ export class IdentityService {
     return row === null ? null : toAuthUser(row);
   }
 
+  /** The active account behind an e-mail address, for an operator's tool (T-502), or null. */
+  async userByEmail(email: string): Promise<AuthUser | null> {
+    const row = await this.store.findByEmail(email.trim().toLowerCase());
+    return row === null ? null : toAuthUser(row);
+  }
+
   /** Granted roles only (user_role); ordinary members have none. */
   async hasRole(userId: string, role: UserRole): Promise<boolean> {
     return this.store.hasRole(userId, role);

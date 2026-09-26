@@ -178,3 +178,13 @@ list every time, which at fifteen competitions would have been more than the
 whole plan on a Saturday; it now asks once a tick. The row is ticked when the
 first match day after the international break has been measured and recorded
 beside the projection.
+
+---
+
+**T-502 started on 2026-09-26: the backfill as a command.** Adding a league on
+the server is `catalog.mjs` and then a backfill, and the backfill was only the
+admin page's button -- a browser carrying an administrator's own session. An
+agent working on the server has neither, and never signs in for anybody.
+`dist/cli/backfill.js` is the same act for the operator already on the
+server: it names an administrator with `--by`, audits the reason before a
+request is spent, and runs without a scheduler of its own.
