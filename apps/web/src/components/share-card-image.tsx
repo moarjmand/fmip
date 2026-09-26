@@ -1,5 +1,10 @@
 import type { ReactElement } from 'react';
-import { nameSize, type MatchCardText, type TableCardText } from '@/lib/share-card';
+import {
+  nameSize,
+  type MatchCardText,
+  type MemberCardText,
+  type TableCardText,
+} from '@/lib/share-card';
 
 /**
  * The pictures behind the share cards (T-520), for `next/og`'s
@@ -158,6 +163,36 @@ export function TableCardImage({
           ))}
         </div>
       )}
+      <Brand host={host} />
+    </Frame>
+  );
+}
+
+export function MemberCardImage({
+  text,
+  host,
+}: {
+  text: MemberCardText;
+  host: string;
+}): ReactElement {
+  return (
+    <Frame>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', fontSize: 56, fontWeight: 700 }}>{text.name}</div>
+        <div style={{ display: 'flex', fontSize: 30, color: MUTED }}>{text.handle}</div>
+        <div style={{ display: 'flex', fontSize: 34, marginTop: 12 }}>{text.rating}</div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {text.recent.map((line) => (
+          <div
+            key={line.match}
+            style={{ display: 'flex', fontSize: 30, gap: 24, borderBottom: `1px solid ${RULE}` }}
+          >
+            <div style={{ display: 'flex', flex: 1 }}>{line.match}</div>
+            <div style={{ display: 'flex', color: MUTED }}>{line.verdict}</div>
+          </div>
+        ))}
+      </div>
       <Brand host={host} />
     </Frame>
   );

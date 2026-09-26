@@ -1,6 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import type { CompetitionPage, ForecastVersion, MatchHeader, TableRow } from '@fmip/contracts';
-import { kickoffUtc, matchCardText, nameSize, tableCardText, TABLE_CARD_ROWS } from './share-card';
+import type {
+  CompetitionPage,
+  ForecastVersion,
+  MatchHeader,
+  PredictionHistoryItem,
+  Rating,
+  TableRow,
+} from '@fmip/contracts';
+import {
+  kickoffUtc,
+  matchCardText,
+  memberCardText,
+  nameSize,
+  tableCardText,
+  TABLE_CARD_ROWS,
+} from './share-card';
 
 /**
  * T-520: a share card says what its page says and nothing more, the same way
@@ -162,5 +176,48 @@ describe('team names on the match card', () => {
     expect(nameSize('Arsenal')).toBe(58);
     expect(nameSize('Omonia Nicosia')).toBe(50);
     expect(nameSize('Gençlerbirliği S.K.')).toBe(42);
+  });
+});
+
+describe('the member card', () => {
+  const settled = (home: string, outcome: 'home' | 'draw' | 'away', right: boolean) =>
+    ({
+      fixture: {
+        id: home,
+        kickoff_at: '2026-09-20T14:00:00.000Z',
+        status: 'finished',
+        competition: { id: 'c', name: 'Premier League' },
+        home: { id: 'h', name: home, short_name: null },
+        away: { id: 'a', name: 'Chelsea', short_name: null },
+        score: { home: 2, away: 1 },
+      },
+      prediction: {
+        latest: { outcome },
+        settlement: { status: 'settled', actual: { home: 2, away: 1 }, outcome_correct: right },
+      },
+    }) as unknown as PredictionHistoryItem;
+
+  it('shows the rating as the profile does, and the latest settled predictions', () => {
+    const text = memberCardText(
+      { display_name: 'Mo', username: 'mosiop' },
+      { rating: 62.44, established: true, settled_count: 55 } as Rating,
+      [settled('Arsenal', 'home', true), settled('Spurs', 'away', false)],
+    );
+    expect(text).toMatchObject({ name: 'Mo', handle: '@mosiop' });
+    expect(text.rating).toBe('Rating 62.4 · established · 55 settled');
+    expect(text.recent).toEqual([
+      { match: 'Arsenal 2–1 Chelsea', verdict: 'Home win · right' },
+      { match: 'Spurs 2–1 Chelsea', verdict: 'Away win · wrong' },
+    ]);
+  });
+
+  it('says there is no rating yet, and leaves open and void predictions off', () => {
+    const open = {
+      ...settled('Leeds', 'draw', false),
+      prediction: { latest: { outcome: 'draw' }, settlement: null },
+    } as unknown as PredictionHistoryItem;
+    const text = memberCardText({ display_name: 'New', username: 'newbie' }, null, [open]);
+    expect(text.rating).toBe('No settled predictions yet');
+    expect(text.recent).toEqual([]);
   });
 });
