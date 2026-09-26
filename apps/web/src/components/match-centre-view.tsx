@@ -8,6 +8,7 @@ import {
   minuteLabel,
   moduleState,
   statValue,
+  xgNotice,
 } from '@/lib/match';
 import { isBehind } from '@/lib/live';
 import { formatKickoff } from '@/lib/scores';
@@ -189,6 +190,13 @@ export function MatchCentreView({
                   <td className="py-1 tabular-nums">{statValue(row.metric, row.away)}</td>
                 </tr>
               ))}
+              {xgNotice(rows.map((row) => row.metric)) === null ? null : (
+                <tr className="border-t border-current/10" data-testid="xg-not-supplied">
+                  <td colSpan={3} className="py-1 text-center opacity-70">
+                    {xgNotice(rows.map((row) => row.metric))}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         )}

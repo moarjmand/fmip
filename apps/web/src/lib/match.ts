@@ -48,6 +48,18 @@ export function minuteLabel(minute: number, addedTime: number | null): string {
   return addedTime !== null && addedTime > 0 ? `${minute}+${addedTime}′` : `${minute}′`;
 }
 
+/**
+ * The line a statistics table ends with when the provider sent statistics for
+ * a match but no expected goals (T-102): the one metric a reader looks for by
+ * name, said to be missing rather than left out of the table unremarked.
+ * `null` when xG is there.
+ */
+export function xgNotice(metrics: readonly MatchStatMetric[]): string | null {
+  return metrics.includes('expected_goals')
+    ? null
+    : 'Expected goals (xG): the provider did not supply them for this match.';
+}
+
 /** A statistic value as shown: percentages with the sign, xG with two decimals. */
 export function statValue(metric: MatchStatMetric, value: number | null): string {
   if (value === null) return '–';
