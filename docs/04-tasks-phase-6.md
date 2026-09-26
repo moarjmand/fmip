@@ -123,7 +123,7 @@ partial run.
 |---|---|---|---|
 | `[x]` T-510 | The league on the server: provider facts, competition, season, teams, backfill, and each module's coverage as the feed supplies it | T-500, T-501 | Scores, table and match pages; every module the feed lacks says so in a sentence |
 | `[x]` T-511 | **Decision gate:** whether the model forecasts Iranian matches, and from which licensed history | — | A decision entry; neither football-data.co.uk nor Club Elo covers the league |
-| `[ ]` T-512 | The league's forecasts, per T-511 | T-511, T-530 | Its history in the training store under its own division, a backtest beside the others, and a forecast in the seven-day window |
+| `[~]` T-512 | The league's forecasts, per T-511 | T-511, T-530 | Its history in the training store under its own division, a backtest beside the others, and a forecast in the seven-day window |
 
 **What T-511 asks, and what the agent will not guess.** The training store is
 built from sources whose licences were read and recorded (D-016, rule 9). The

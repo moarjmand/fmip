@@ -2,6 +2,7 @@
 
     python -m fmip_model.training.load football-data --seasons 2324 2425 --divisions E0 SP1
     python -m fmip_model.training.load clubelo --days 2024-08-01 2025-08-01
+    python -m fmip_model.training.load records --divisions IR1
 
 Each (source, scope) is one ``source_load`` row: opened first, then the file
 is fetched, hashed, parsed and upserted inside one transaction, then the load
@@ -24,12 +25,15 @@ import httpx
 
 from .clubelo import parse_elo
 from .football_data import parse_matches
+from .records import RecordedMatch, as_text, by_season, recorded_matches, team_ids
 from .sources import (
     CLUB_ELO,
     FOOTBALL_DATA,
+    OUR_RECORDS,
     Source,
     clubelo_snapshot_url,
     football_data_url,
+    records_url,
     season_label,
 )
 from .store import LoadResult, TrainingStore, sha256_of
@@ -106,6 +110,45 @@ def load_clubelo(
     return results
 
 
+def load_records(store: TrainingStore, divisions: Sequence[str]) -> list[LoadResult]:
+    """Our own finished matches for each division (T-512, D-083), one load per division.
+
+    Refused, and recorded as failed, for a division another source holds or one
+    no competition is set to.
+    """
+    results: list[LoadResult] = []
+    for division in divisions:
+        matches = recorded_matches(store.conn, division)
+
+        def write(
+            load_id: str,
+            _text: str,
+            division: str = division,
+            matches: list[RecordedMatch] = matches,
+        ) -> int:
+            foreign = store.foreign_division(division, OUR_RECORDS.id)
+            if foreign is not None:
+                raise ValueError(f"division {division} already holds {foreign} rows")
+            if not matches:
+                raise ValueError(
+                    f"no finished match in our records for division {division}: "
+                    "is a competition set to it (catalog.mjs --set-division)?"
+                )
+            count = 0
+            for season, rows in by_season(division, matches).items():
+                count += store.upsert_matches(load_id, season, rows)
+            store.upsert_identity_aliases(division, team_ids(matches))
+            return count
+
+        text = as_text(matches)
+
+        def read(_url: str, text: str = text) -> str:
+            return text
+
+        results.append(load_one(store, OUR_RECORDS, division, records_url(division), read, write))
+    return results
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="fmip_model.training.load", description=__doc__)
     sub = parser.add_subparsers(dest="source", required=True)
@@ -116,6 +159,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     ce = sub.add_parser("clubelo", help="Club Elo snapshots")
     ce.add_argument("--days", nargs="+", required=True, help="ISO dates, e.g. 2025-08-01")
+
+    rc = sub.add_parser("records", help="our own finished matches, per division (D-083)")
+    rc.add_argument("--divisions", nargs="+", required=True, help="e.g. IR1")
 
     args = parser.parse_args(argv)
 
@@ -128,6 +174,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         if args.source == "football-data":
             results = load_football_data(store, args.seasons, args.divisions)
+        elif args.source == "records":
+            results = load_records(store, args.divisions)
         else:
             results = load_clubelo(store, args.days)
     except Exception as error:  # noqa: BLE001
