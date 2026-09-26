@@ -149,6 +149,11 @@ services:
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+      # The daily post to a public channel (T-525): off while both are empty,
+      # posted by the instance with INGESTION_SCHEDULE=on (T-524, the maintainer's).
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHANNEL: ${TELEGRAM_CHANNEL:-}
+      CHANNEL_POST_HOUR: ${CHANNEL_POST_HOUR:-}
       # Extra socket origins beyond https://SITE_HOST, e.g. a second domain (T-234).
       CHAT_ALLOWED_ORIGINS: ${CHAT_ALLOWED_ORIGINS:-}
     depends_on:

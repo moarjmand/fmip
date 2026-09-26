@@ -144,7 +144,7 @@ from our own records (T-112) and says what it cannot measure.
 | `[x]` T-522 | Invite links: a member's link, and a sign-up through it offered a friend request to the inviter | T-040, T-201 | The new member may decline; there is no reward and no ranking of inviters |
 | `[x]` T-523 | A page for a first visit: what the product is, the three prediction products, how a rating is earned | — | Linked from the homepage for signed-out visitors; every claim on it is true of the product as deployed |
 | `[ ]` T-524 | **Decision gate:** a Telegram channel the product posts to | — | The maintainer creates the bot and the channel and puts the token on the server themselves |
-| `[ ]` T-525 | A daily post: the day's covered matches with the model's forecast, each linking to its match | T-524, T-520 | Labelled as the model's; a day with no matches posts nothing |
+| `[~]` T-525 | A daily post: the day's covered matches with the model's forecast, each linking to its match | T-524, T-520 | Labelled as the model's; a day with no matches posts nothing |
 | `[x]` T-526 | The homepage the blueprint describes (2.3), from answers the product already gives | T-031, T-136, T-132 | Every block shows only what is real, in the reader's order; a guest is asked to join, a member pointed at their feed |
 
 **T-526, added and done on 2026-09-26.** The homepage was a title, the
@@ -156,6 +156,21 @@ founder's analysis, the table of the first competition in that order, the
 latest stories, and a way in -- joining for a guest, the feed for a member.
 Each block appears only when it has something real in it; during the
 international break most are simply absent.
+
+**T-525, built on 2026-09-26; it waits on T-524.** Once a UTC day, from the
+post hour, the API posts the day's matches still to come to a public
+channel, in the product's competition order, each with the published
+model's latest forecast as three percentages totalling 100 or the words "No
+forecast from the statistical model", and a link to its match page. Every
+message opens by saying it is the statistical model's forecast and names the
+model version; nothing from the founder or the community is read. A day with
+no match posts nothing and records nothing. The day is claimed in
+`channel_post` before anything is sent, so it is posted at most once however
+many instances tick; a day the channel refused before anything went out is
+tried again on the next tick, anything less certain never is. Telegram sits
+behind a port, and with no bot configured the post is off and
+`check-setup.sh` says so. What waits for you is the bot, the channel and the
+token on the server (`14-maintainer.md` §10).
 
 **Nothing here buys attention.** No points for inviting, no streak bonuses, no
 leaderboard of recruiters: the rating is earned by predicting (blueprint 1.5,

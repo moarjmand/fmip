@@ -157,3 +157,39 @@ export interface DeliveryHealth {
    */
   in_product_only: boolean;
 }
+
+/** Where one day's post stands (T-525). */
+export type ChannelPostState =
+  /** Claimed and being carried; nothing else will post this day. */
+  | 'sending'
+  /** Every message of the day's post was accepted by the channel. */
+  | 'sent'
+  /** The channel refused before anything was posted; a later tick that day may try again. */
+  | 'refused'
+  /** Something went wrong after the claim; the day is not tried again, so nothing is posted twice. */
+  | 'failed';
+
+/**
+ * `GET /health/channel` (T-525): the public channel the day's matches and the
+ * statistical model's forecast are posted to. `absent` is the state of every
+ * deployment until someone configures a channel, and is reported as that.
+ */
+export interface ChannelPostHealth {
+  checked_at: string;
+  channel: DeliveryChannelState;
+  /**
+   * Whether this instance runs the daily post: a channel, the job schedule on
+   * (`INGESTION_SCHEDULE=on`) and Redis. A channel with no schedule posts nothing.
+   */
+  scheduled: boolean;
+  /** The hour (UTC) from which the day's post goes out. */
+  post_hour_utc: number;
+  /** The newest day on record, or null when nothing was ever posted. */
+  last: {
+    day: string;
+    state: ChannelPostState;
+    messages: number;
+    delivered: number;
+    finished_at: string | null;
+  } | null;
+}
