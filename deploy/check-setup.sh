@@ -250,6 +250,14 @@ if [ -n "$source_name" ] && [ -n "$schedule" ] && [ "$schedule" != 'off' ]; then
     notes+=('Match data: every mapped competition is without a current season, so the jobs poll nothing. Add one with `node scripts/catalog.mjs --add-season --current` (docs/14-maintainer.md §2).')
   else
     row 'Match data' 'ON' "$source_name, schedule $schedule, $seasons of $mapped competition(s) in season"
+    # What today has cost against the plan (T-501): the provider counts every
+    # request, and a ceiling of our own turns an overrun into a partial run
+    # rather than the provider's refusal mid-match.
+    spent="$(value_of requests_today)"
+    budget="$(value_of request_budget)"
+    if [ "$spent" != 'unknown' ] && [ -n "$spent" ]; then
+      row 'Requests today' "$spent" "since 00:00 UTC${budget:+, of a ceiling of $budget}"
+    fi
   fi
 else
   row 'Match data' 'off' 'no fixture, score or table is being fetched'

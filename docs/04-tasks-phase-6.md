@@ -82,7 +82,7 @@ Checked on the public deployment:
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[ ]` T-500 | Provider facts for eight competitions: ids, the current season's dates, coverage flags, and the two cups' stage names | T-029 | Every id, date and flag in `14-maintainer.md` came from the provider on a stated day |
-| `[ ]` T-501 | The request budget at fifteen competitions: each ingest run records the requests it spent, a match day is measured, and a ceiling is set below the plan | T-071 | The projection is in `05-data-providers.md`; a day over the ceiling is a partial run naming the budget, never a refusal from the provider |
+| `[~]` T-501 | The request budget at fifteen competitions: each ingest run records the requests it spent, a match day is measured, and a ceiling is set below the plan | T-071 | The projection is in `05-data-providers.md`; a day over the ceiling is a partial run naming the budget, never a refusal from the provider |
 | `[ ]` T-502 | The six domestic leagues on the server: Championship, Eredivisie, Primeira Liga, Süper Lig, Belgian Pro League, Scottish Premiership | T-500, T-501, D-080 | `--alias-training` agrees with every current-season result in E1, N1, P1, T1, B1 and SC0 |
 | `[ ]` T-503 | The Europa League and the Conference League on the server, with their stages | T-500, T-501 | Their tables are the league stage's; their match pages say why there is no forecast yet (T-533) |
 | `[ ]` T-504 | Fifteen competitions on one scores page | T-502, T-042 | A stated order after a member's favourites, and the page stays usable on a phone on a Saturday with every league playing |
@@ -166,3 +166,15 @@ matches. Evidence for them can only come from matches recorded from now on,
 which is what a shadow version collects. It is not a second prediction product
 (rule 6): it is the same model's next version, unpublished until it is better,
 and never blended with the first.
+
+---
+
+**T-501 built on 2026-09-26, and stays `[~]` for its measurement.** Each run
+records the requests it sent, `/health/ingestion` and `check-setup.sh` show
+the day's total beside the ceiling, and the projection is in
+`05-data-providers.md`. Writing it found the largest cost before it was spent:
+the live job asked the provider's live list once per competition, the same
+list every time, which at fifteen competitions would have been more than the
+whole plan on a Saturday; it now asks once a tick. The row is ticked when the
+first match day after the international break has been measured and recorded
+beside the projection.

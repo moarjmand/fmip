@@ -160,6 +160,12 @@ export default async function AdminPage({
           </li>
           <li>Failed or partial in the last 24 h: {data.ingestion.failed_last_24h}</li>
           <li>Running now: {data.ingestion.running}</li>
+          <li>
+            Provider requests since 00:00 UTC: {data.ingestion.requests_today}
+            {data.ingestion.request_budget === null
+              ? ' (no daily ceiling of our own; the plan’s limit applies)'
+              : ` of this deployment’s ceiling of ${data.ingestion.request_budget}`}
+          </li>
         </ul>
         <h3 className="font-medium">Backfill the current seasons</h3>
         <p className="text-sm opacity-70">

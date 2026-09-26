@@ -139,6 +139,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('administrati
       'last_run',
       'pollable',
       'recent',
+      'request_budget',
+      'requests_today',
       'running',
     ]);
     expect(overview.rating.formula.version).toMatch(/^performance-rating@/);

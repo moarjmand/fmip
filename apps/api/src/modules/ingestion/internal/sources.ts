@@ -35,6 +35,7 @@ import {
   type TransportInit,
   type TransportResponse,
 } from '@fmip/ingestion';
+import { CountingTransport } from './request-meter';
 
 /** Re-exported so the jobs ask the replay source for exactly what was recorded. */
 export { REPLAY_QUERY };
@@ -59,6 +60,11 @@ export interface IngestionSources {
   reason: string | null;
   /** The adapter for a job, or `null` when no configured provider serves it. */
   forJob(job: IngestJob): JobSource | null;
+  /**
+   * The daily ceiling this deployment holds the fixtures job's provider to
+   * (`API_FOOTBALL_DAILY_BUDGET`), or absent for none of its own (T-501).
+   */
+  dailyBudget?: number;
 }
 
 /** The provider whose recordings the replay profile uses: the only rich set. */
@@ -167,7 +173,11 @@ export function resolveSources(
     return { kind: 'replay', reason: null, forJob: () => source };
   }
 
-  const make = options.transport ?? ((): Transport => new TimedTransport());
+  // Every request a real adapter sends is counted against the run it is sent
+  // for (T-501); a budget, where there is one, wraps this, so a request it
+  // refuses is never counted as sent.
+  const inner = options.transport ?? ((): Transport => new TimedTransport());
+  const make = (): Transport => new CountingTransport(inner());
 
   // One provider for every job: what a paid plan buys, and the thing the split
   // below exists only to work around (T-028).
@@ -178,8 +188,9 @@ export function resolveSources(
     }
     const ceiling = (env.API_FOOTBALL_DAILY_BUDGET ?? '').trim();
     let transport = make();
+    let perDay: number | undefined;
     if (ceiling !== '') {
-      const perDay = Number(ceiling);
+      perDay = Number(ceiling);
       if (!Number.isInteger(perDay) || perDay <= 0) {
         return off(`API_FOOTBALL_DAILY_BUDGET=${ceiling} is not a positive number of requests`);
       }
@@ -189,7 +200,12 @@ export function resolveSources(
       provider: 'api_football',
       adapter: createApiFootballAdapter(transport, { apiKey }),
     };
-    return { kind: 'api_football', reason: null, forJob: () => source };
+    return {
+      kind: 'api_football',
+      reason: null,
+      forJob: () => source,
+      ...(perDay === undefined ? {} : { dailyBudget: perDay }),
+    };
   }
 
   if (requested !== 'live') {

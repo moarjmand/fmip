@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { IngestRun, IngestRunStatus, IngestionHealth } from '@fmip/contracts';
 import { PostgresRunStore } from './internal/run-store';
+import { withRequestTally } from './internal/request-meter';
 import { INGESTION_SOURCES, type IngestionSources } from './internal/sources';
 
 /** How far back "recent failures" looks. */
@@ -13,6 +14,8 @@ export interface RunOutcome {
   itemsWritten: number;
   /** What went wrong, for a failed or partial run; the same text is logged. */
   error?: string | null;
+  /** Requests the run sent to its provider (T-501); absent when not counted. */
+  requests?: number;
 }
 
 /**
@@ -42,6 +45,7 @@ export class IngestRunsService {
       itemsSeen: outcome.itemsSeen,
       itemsWritten: outcome.itemsWritten,
       error: outcome.error ?? null,
+      requests: outcome.requests ?? null,
     });
     if (run === null) {
       this.log.warn(`finish() for a run that is not open`, {
@@ -60,6 +64,7 @@ export class IngestRunsService {
         status: run.status,
         items_seen: run.items_seen,
         items_written: run.items_written,
+        requests: run.requests,
         error: run.error,
       });
     } else {
@@ -69,12 +74,17 @@ export class IngestRunsService {
         provider: run.provider,
         job: run.job,
         items_written: run.items_written,
+        requests: run.requests,
       });
     }
     return run;
   }
 
-  /** Runs a job inside a run record: the outcome, or the thrown error, closes the run. */
+  /**
+   * Runs a job inside a run record: the outcome, or the thrown error, closes the
+   * run, with the requests the job sent on the way (T-501) -- a run that failed
+   * half-way still spent what it spent.
+   */
   async track<T>(
     provider: string,
     job: string,
@@ -82,13 +92,15 @@ export class IngestRunsService {
     work: () => Promise<{ result: T; itemsSeen: number; itemsWritten: number; partial?: string }>,
   ): Promise<T> {
     const id = await this.start(provider, job, scope);
+    const tally = { requests: 0 };
     try {
-      const done = await work();
+      const done = await withRequestTally(tally, work);
       await this.finish(id, {
         status: done.partial === undefined ? 'succeeded' : 'partial',
         itemsSeen: done.itemsSeen,
         itemsWritten: done.itemsWritten,
         error: done.partial ?? null,
+        requests: tally.requests,
       });
       return done.result;
     } catch (error: unknown) {
@@ -97,6 +109,7 @@ export class IngestRunsService {
         itemsSeen: 0,
         itemsWritten: 0,
         error: error instanceof Error ? error.message : String(error),
+        requests: tally.requests,
       });
       throw error;
     }
@@ -106,10 +119,11 @@ export class IngestRunsService {
     // The provider the fixtures job would ask, which is the only one whose
     // mappings decide whether anything is fetched at all.
     const provider = this.sources.forJob('fixtures')?.provider ?? null;
-    const [recent, failed, pollable] = await Promise.all([
+    const [recent, failed, pollable, requestsToday] = await Promise.all([
       this.store.recent(RECENT_RUNS),
       this.store.failedSince(new Date(now.getTime() - FAILURE_WINDOW_MS)),
       this.store.pollableCatalogue(provider),
+      provider === null ? Promise.resolve(0) : this.store.requestsSince(provider, utcMidnight(now)),
     ]);
     const lastFailure = recent.find((r) => r.status === 'failed' || r.status === 'partial') ?? null;
     return {
@@ -127,6 +141,13 @@ export class IngestRunsService {
         competitions: pollable.competitions,
         with_current_season: pollable.withCurrentSeason,
       },
+      requests_today: requestsToday,
+      request_budget: this.sources.dailyBudget ?? null,
     };
   }
+}
+
+/** 00:00 UTC of `now`'s day: when every provider's plan resets. */
+export function utcMidnight(now: Date): Date {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }

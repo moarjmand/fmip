@@ -80,6 +80,8 @@ say('pollable_provider', ingestion?.pollable?.provider ?? '');
 say('pollable_reason', ingestion?.pollable?.reason ?? '');
 say('pollable_competitions', ingestion?.pollable?.competitions ?? 'unknown');
 say('pollable_current_seasons', ingestion?.pollable?.with_current_season ?? 'unknown');
+say('requests_today', ingestion?.requests_today ?? 'unknown');
+say('request_budget', ingestion?.request_budget ?? '');
 
 // The switches, and the values each switch needs beside it. A switch left at
 // its default is the ordinary state of a new deployment, not a fault; the

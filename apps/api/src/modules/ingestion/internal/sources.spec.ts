@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { Transport, TransportResponse } from '@fmip/ingestion';
+import { withRequestTally } from './request-meter';
 import { BudgetedTransport, HIGHLIGHTLY_DEFAULT_BUDGET, resolveSources } from './sources';
 
 const RECORDINGS = join(
@@ -135,6 +136,33 @@ describe('the paid single-provider profile (T-028)', () => {
     // The second call was answered 429 here; a paid plan's quota is not spent
     // finding out that it is spent.
     expect(inner.calls()).toBe(1);
+  });
+
+  it('says its ceiling, and says nothing when there is none (T-501)', () => {
+    const env = { INGESTION_SOURCE: 'api_football', API_FOOTBALL_KEY: 'paid' };
+    expect(resolveSources({ ...env, API_FOOTBALL_DAILY_BUDGET: '6500' }).dailyBudget).toBe(6500);
+    expect(resolveSources(env).dailyBudget).toBeUndefined();
+  });
+
+  it('counts what a run sends, and not what its own ceiling refused (T-501)', async () => {
+    const inner = counting();
+    const sources = resolveSources(
+      {
+        INGESTION_SOURCE: 'api_football',
+        API_FOOTBALL_KEY: 'paid',
+        API_FOOTBALL_DAILY_BUDGET: '2',
+      },
+      { transport: () => inner.transport },
+    );
+    const adapter = sources.forJob('lineups')!.adapter;
+    const tally = { requests: 0 };
+
+    await withRequestTally(tally, async () => {
+      for (const id of ['1', '2', '3']) await adapter.getLineup(id);
+    });
+
+    expect(inner.calls()).toBe(2);
+    expect(tally.requests).toBe(2);
   });
 
   it('refuses a ceiling that is not a positive whole number', () => {
