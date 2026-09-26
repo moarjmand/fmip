@@ -35,6 +35,36 @@ describe('API-Football adapter against its recordings', () => {
   });
 });
 
+describe('the whole season in one request (T-505)', () => {
+  const asked: string[] = [];
+  const adapter = createApiFootballAdapter(
+    {
+      request: async (url) => {
+        asked.push(url);
+        return {
+          status: 200,
+          body: { errors: [], response: [] },
+          receivedAt: '2026-09-26T00:00:00Z',
+        };
+      },
+    },
+    { apiKey: 'test-key' },
+  );
+
+  it('leaves the dates off, so a schedule published past the recorded end is not missed', async () => {
+    const query = {
+      competitionExternalId: '290',
+      seasonLabel: '2026/27',
+      from: '2026-09-23',
+      to: '2026-11-08',
+    };
+    await adapter.listFixtures(query);
+    await adapter.listFixtures({ ...query, wholeSeason: true });
+    expect(asked[0]).toContain('from=2026-09-23');
+    expect(asked[1]).toMatch(/\/fixtures\?league=290&season=2026$/);
+  });
+});
+
 describe('mapping rules', () => {
   it('reads seasons both ways', () => {
     expect(seasonYear('2023/24')).toBe(2023);
