@@ -57,9 +57,24 @@ into one number.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-100 | **Decision gate:** review the bake-off and D-049, buy the chosen paid tier | T-024, D-049 | New entry in `00-decisions.md`; keys in `.env` |
-| `[ ]` T-101 | Player-level match statistics: schema, normalised model, adapter support | T-100 | A player's minutes, shots, xG and passing are stored per fixture, or the module says `not_supplied` |
+| `[x]` T-101 | Player-level match statistics: schema, normalised model, adapter support | T-100 | A player's minutes, shots, xG and passing are stored per fixture, or the module says `not_supplied` |
 | `[x]` T-102 | Expected goals on the critical path: ingestion, coverage, display | T-101 | Every finished fixture in a covered competition carries team xG, or says why not |
 | `[ ]` T-103 | Injury and suspension availability feed | T-100 | A player unavailable for a fixture is stored with a reason and a source time |
+
+**T-101 done on 2026-09-26.** API-Football's `/fixtures?id=`, the call the
+post-match job already makes, carries a per-player block that the adapter had
+read only for the captains. It now maps it to `playerStatistics` on the
+normalised detail -- a closed list of 22 metrics, from minutes and the
+provider's own rating to duels and cards -- and the job writes it to
+`fixture_player_stat`, one row per player, metric and side. The match centre
+shows it as **Player statistics**, one table per side, most minutes first.
+Four things are absent on purpose, and the page says so where a reader would
+look: a substitute who never came on has no row; a value the provider left
+null is not a zero; saves and goals conceded are kept for goalkeepers only,
+because the provider writes `conceded: 0` for every outfield player; and there
+is no per-player xG, nor pass accuracy, since no provider supplies the first
+and the second's meaning (a count or a percentage) would have to be guessed.
+Players the catalogue does not hold are queued, and D-079 adopts them.
 
 **T-102 done on 2026-09-26.** Team xG was already mapped (`expected_goals`
 from API-Football's statistics) and stored by the post-match job -- but that

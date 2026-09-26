@@ -1,4 +1,11 @@
-import type { CoverageState, Covered, MatchIncident, MatchStatMetric } from '@fmip/contracts';
+import type {
+  CoverageState,
+  Covered,
+  MatchIncident,
+  MatchPlayerStats,
+  MatchStatMetric,
+  PlayerMatchMetric,
+} from '@fmip/contracts';
 
 /**
  * Pure helpers for the match centre page (T-034): labels for incidents,
@@ -59,6 +66,28 @@ export function xgNotice(metrics: readonly MatchStatMetric[]): string | null {
     ? null
     : 'Expected goals (xG): the provider did not supply them for this match.';
 }
+
+/** The per-player columns the match centre shows (T-101), in reading order. */
+export const PLAYER_COLUMNS: readonly [PlayerMatchMetric, string][] = [
+  ['minutes', 'Min'],
+  ['rating', 'Rating'],
+  ['goals', 'Goals'],
+  ['assists', 'Assists'],
+  ['shots', 'Shots'],
+  ['key_passes', 'Key passes'],
+  ['tackles', 'Tackles'],
+];
+
+/** One cell: the provider's rating to one decimal, a count as it is, `–` when not supplied. */
+export function playerCell(player: MatchPlayerStats, metric: PlayerMatchMetric): string {
+  const value = player.stats[metric];
+  if (value === undefined) return '–';
+  return metric === 'rating' ? value.toFixed(1) : String(value);
+}
+
+/** Said under every player table: the one number a reader may look for and will not find. */
+export const PLAYER_XG_NOTICE =
+  'Expected goals per player: not supplied by the provider for any match.';
 
 /** A statistic value as shown: percentages with the sign, xG with two decimals. */
 export function statValue(metric: MatchStatMetric, value: number | null): string {

@@ -107,6 +107,43 @@ export interface MatchStatRow {
   away: number | null;
 }
 
+/**
+ * The per-player metrics a match can carry (T-101), mirroring
+ * `fixture_player_stat_metric_check`. `rating` is the provider's own 0-10
+ * mark. There is no per-player expected goals: no provider in use supplies it.
+ */
+export type PlayerMatchMetric =
+  | 'minutes'
+  | 'rating'
+  | 'shots'
+  | 'shots_on_target'
+  | 'goals'
+  | 'assists'
+  | 'key_passes'
+  | 'passes'
+  | 'tackles'
+  | 'blocks'
+  | 'interceptions'
+  | 'duels'
+  | 'duels_won'
+  | 'dribbles'
+  | 'dribbles_won'
+  | 'fouls_drawn'
+  | 'fouls_committed'
+  | 'offsides'
+  | 'yellow_cards'
+  | 'red_cards'
+  | 'saves'
+  | 'goals_conceded';
+
+/** One player's numbers in this match; a metric missing here was not supplied, never 0. */
+export interface MatchPlayerStats {
+  id: string;
+  name: string;
+  side: 'home' | 'away';
+  stats: Partial<Record<PlayerMatchMetric, number>>;
+}
+
 export interface MatchLineupPlayer {
   id: string;
   name: string;
@@ -158,6 +195,8 @@ export interface MatchCentre {
   timeline: Covered<MatchIncident[]>;
   statistics: Covered<MatchStatRow[]>;
   lineups: Covered<MatchLineups>;
+  /** Each player who took part, home side first, most minutes first (T-101). */
+  player_statistics: Covered<MatchPlayerStats[]>;
   /** Last five competitive matches before this one, newest first, per side. */
   form: { home: Covered<FormEntry[]>; away: Covered<FormEntry[]> };
   /** Recent meetings of the two teams before this one, newest first. */
