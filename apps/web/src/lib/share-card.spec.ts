@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CompetitionPage, ForecastVersion, MatchHeader, TableRow } from '@fmip/contracts';
-import { kickoffUtc, matchCardText, tableCardText, TABLE_CARD_ROWS } from './share-card';
+import { kickoffUtc, matchCardText, nameSize, tableCardText, TABLE_CARD_ROWS } from './share-card';
 
 /**
  * T-520: a share card says what its page says and nothing more, the same way
@@ -154,5 +154,13 @@ describe('the table card', () => {
   it('says there is no table rather than drawing an empty one', () => {
     expect(tableCardText(page(null))).toMatchObject({ rows: [], absence: expect.any(String) });
     expect(tableCardText(page([])).absence).not.toBeNull();
+  });
+});
+
+describe('team names on the match card', () => {
+  it('gets smaller as a name gets longer, so two lines still sit beside the score', () => {
+    expect(nameSize('Arsenal')).toBe(58);
+    expect(nameSize('Omonia Nicosia')).toBe(50);
+    expect(nameSize('Gençlerbirliği S.K.')).toBe(42);
   });
 });
