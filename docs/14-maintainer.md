@@ -565,3 +565,52 @@ openai_compatible` with `INTELLIGENCE_BASE_URL`, `INTELLIGENCE_API_KEY` and
 surface and honest-absence sentence in the plan. With the key absent, each
 surface says so in a sentence; nothing on the critical path is touched either
 way.
+
+---
+
+## 10. Phase 6: the daily channel post waits on a bot and a channel (T-524)
+
+Written on 2026-09-26, when the post itself (T-525) was built. Once a UTC
+day, from 06:00 UTC, the API posts the day's matches still to come with the
+statistical model's forecast, each linking to its match page, to a public
+Telegram channel. It is labelled as the model's on every message and a day
+with no match posts nothing. It is built and tested, and **off** until the
+two values below exist on the server: `check-setup.sh` reports it as `off`,
+which is the designed state, not a fault.
+
+**Why it is yours.** Creating the bot and the channel is opening accounts,
+and the bot's token is a secret. Nothing in chat, nothing in a file the
+agent writes.
+
+**What you do, on your own phone or computer, then on the server.**
+
+1. In Telegram, open **@BotFather**, send `/newbot`, and follow its two
+   questions (a display name, then a username ending in `bot`). It answers
+   with the bot's **token**. Keep it to yourself.
+2. Create the **channel** (New Channel), make it public, and choose its
+   username -- the part after `t.me/`.
+3. In the channel: Administrators, Add Administrator, find the bot by its
+   username, and leave **Post messages** allowed. Without this, Telegram
+   refuses every post.
+4. On the server, in `/opt/fmip/.env`, add the two values:
+
+   ```bash
+   TELEGRAM_BOT_TOKEN=<the token from step 1>
+   TELEGRAM_CHANNEL=@<the channel username from step 2>
+   ```
+
+   Optionally `CHANNEL_POST_HOUR=<0-23>` for an hour other than 06:00 UTC.
+   Both values or neither: one alone stops the new API container at boot,
+   and the rollout keeps the old one running and says so.
+5. Roll the API onto them:
+
+   ```bash
+   cd /opt/fmip && bash deploy/rollout.sh api
+   ```
+
+**How to know it worked.** `bash deploy/check-setup.sh` shows `Daily channel
+post ... ON telegram, from 6:00 UTC`, then after the next post hour the day
+and `sent`. A day the channel refused (most often a bot that is not an
+administrator yet) shows `refused` with a note; the API tries that day again
+on the next hourly tick once you have fixed it. The post runs on the API
+with `INGESTION_SCHEDULE=on`, the same one that fetches the fixtures.

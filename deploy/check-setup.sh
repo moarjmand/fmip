@@ -6,7 +6,7 @@
 # On the VPS, from /opt/fmip. It asks the running stack rather than reading
 # files: which containers are healthy, whether the public site answers through
 # Caddy, and -- from the API's own health endpoints -- whether e-mail, push, a
-# language model and match-data ingestion are on.
+# language model, the daily channel post and match-data ingestion are on.
 #
 # Against an API you can already reach (a laptop running `node apps/api/dist/
 # main.js`, or a tunnel), skip Docker entirely:
@@ -222,6 +222,44 @@ else
     notes+=('Language model: set INTELLIGENCE_PROVIDER and that provider key in .env, then restart the API (docs/14-maintainer.md §9).')
   fi
 fi
+
+# The daily post of the model's forecasts to a public channel (T-525). It
+# turns on by itself once both values are in .env; half of them stops the API
+# at boot, so what is left to catch here is a channel with nothing to post it
+# (the jobs off on this API) and a day the channel refused.
+channel_post="$(value_of channel_post)"
+case "$channel_post" in
+  configured)
+    post_provider="$(value_of channel_post_provider)"
+    post_hour="$(value_of channel_post_hour)"
+    last_day="$(value_of channel_post_last_day)"
+    last_state="$(value_of channel_post_last_state)"
+    if [ "$(value_of channel_post_scheduled)" != 'true' ]; then
+      row 'Daily channel post' 'IDLE' "$post_provider -- configured, but this API does not run the jobs"
+      notes+=("Daily channel post: the channel is configured but INGESTION_SCHEDULE is '$(value_of ingestion_schedule)'. The post runs with the other jobs: set INGESTION_SCHEDULE=on and run: bash deploy/rollout.sh api.")
+    elif [ -z "$last_day" ]; then
+      row 'Daily channel post' 'ON' "$post_provider, from ${post_hour}:00 UTC, nothing posted yet"
+    else
+      row 'Daily channel post' 'ON' "$post_provider, from ${post_hour}:00 UTC, $last_day $last_state"
+      case "$last_state" in
+        refused | failed)
+          notes+=("Daily channel post: the post for $last_day was $last_state. The reason is in the API log: docker compose logs api | grep channel_post. A refusal is most often a bot that is not an administrator of the channel (docs/14-maintainer.md §10).")
+          ;;
+      esac
+    fi
+    ;;
+  unknown)
+    row 'Daily channel post' 'unknown' 'the API did not answer'
+    ;;
+  *)
+    row 'Daily channel post' 'off' 'no channel is configured; nothing is posted'
+    if [ "$(value_of env_TELEGRAM_BOT_TOKEN)" = 'set' ] || [ "$(value_of env_TELEGRAM_CHANNEL)" = 'set' ]; then
+      notes+=('Daily channel post: TELEGRAM_BOT_TOKEN or TELEGRAM_CHANNEL is set but the running API does not read it -- it predates the daily post. Run: bash deploy/rollout.sh api.')
+    else
+      notes+=('Daily channel post: create a bot with @BotFather and a channel, make the bot an administrator that can post, put TELEGRAM_BOT_TOKEN and TELEGRAM_CHANNEL in .env, then run: bash deploy/rollout.sh api (docs/14-maintainer.md §10, T-524).')
+    fi
+    ;;
+esac
 
 schedule="$(value_of ingestion_schedule)"
 source_name="$(value_of ingestion_source)"

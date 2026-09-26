@@ -49,12 +49,13 @@ function present(name) {
   say(`env_${name}`, value === undefined || value.trim() === '' ? 'empty' : 'set');
 }
 
-const [health, delivery, intelligence, chat, ingestion] = await Promise.all([
+const [health, delivery, intelligence, chat, ingestion, channelPost] = await Promise.all([
   read('/health'),
   read('/health/delivery'),
   read('/health/intelligence'),
   read('/health/chat'),
   read('/health/ingestion'),
+  read('/health/channel'),
 ]);
 
 say('api', health === null ? 'unreachable' : (health.status ?? 'unknown'));
@@ -70,6 +71,15 @@ say('language_model_provider', model?.state === 'configured' ? model.provider : 
 say('language_model_name', model?.state === 'configured' ? model.model : '');
 
 say('chat_bus', chat === null ? 'unknown' : chat.bus);
+
+// The daily channel post (T-525): configured or absent, whether this instance
+// posts, and how the newest day went -- a day refused by the channel (a bot
+// not yet an administrator) looks like success from the environment alone.
+channel('channel_post', channelPost?.channel);
+say('channel_post_scheduled', channelPost === null ? 'unknown' : String(channelPost.scheduled));
+say('channel_post_hour', channelPost?.post_hour_utc ?? '');
+say('channel_post_last_day', channelPost?.last?.day ?? '');
+say('channel_post_last_state', channelPost?.last?.state ?? '');
 
 // What the fixtures job can ask for. A switched-on schedule with nothing
 // mapped fetches nothing, and that is the ordinary state of a deployment that
@@ -111,6 +121,8 @@ for (const name of [
   'API_FOOTBALL_KEY',
   'FOOTBALL_DATA_ORG_KEY',
   'HIGHLIGHTLY_KEY',
+  'TELEGRAM_BOT_TOKEN',
+  'TELEGRAM_CHANNEL',
   'SESSION_SECRET',
 ]) {
   present(name);

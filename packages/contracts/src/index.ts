@@ -56,6 +56,8 @@ export type {
   PowerIndexResponse,
 } from './power-index';
 export type {
+  ChannelPostHealth,
+  ChannelPostState,
   ChatBusState,
   ChatHealth,
   DeliveryChannelState,

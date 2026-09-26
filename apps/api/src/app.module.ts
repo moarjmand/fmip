@@ -30,6 +30,7 @@ import { AskModule } from './modules/ask/ask.module';
 import { ModerationAssistModule } from './modules/moderation-assist/moderation-assist.module';
 import { BriefingsModule } from './modules/briefings/briefings.module';
 import { CampaignsModule } from './modules/campaigns/campaigns.module';
+import { ChannelPostModule } from './modules/channel-post/channel-post.module';
 
 /**
  * The remaining modules from `docs/02-architecture.md` are registered here as
@@ -69,6 +70,7 @@ import { CampaignsModule } from './modules/campaigns/campaigns.module';
     ModerationAssistModule,
     BriefingsModule,
     CampaignsModule,
+    ChannelPostModule,
     AdminModule,
   ],
 })
