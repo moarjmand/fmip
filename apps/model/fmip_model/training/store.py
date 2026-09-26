@@ -145,6 +145,51 @@ class TrainingStore:
             )
         return len(rows)
 
+    def foreign_division(self, division: str, source_id: str) -> str | None:
+        """Another source already holding rows in ``division``, if one does.
+
+        A division is one source's: team names from two sources in one fit would
+        be two teams for every club.
+        """
+        with self.conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT l.source FROM training.match m
+                  JOIN training.source_load l ON l.id = m.source_load_id
+                 WHERE m.division = %s AND l.source <> %s
+                 LIMIT 1
+                """,
+                (division, source_id),
+            )
+            row = cur.fetchone()
+        return None if row is None else str(row[0])
+
+    def loaded_from(self, division: str, source_id: str) -> bool:
+        """Whether ``division`` has ever been loaded successfully from this source."""
+        with self.conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT 1 FROM training.source_load
+                 WHERE source = %s AND scope = %s AND status = 'succeeded'
+                 LIMIT 1
+                """,
+                (source_id, division),
+            )
+            return cur.fetchone() is not None
+
+    def upsert_identity_aliases(self, division: str, team_ids: Sequence[str]) -> int:
+        """A team of our own records is named by its catalogue id: its alias is itself."""
+        with self.conn.cursor() as cur:
+            cur.executemany(
+                """
+                INSERT INTO training.team_alias (team_id, division, training_name)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (team_id, division) DO NOTHING
+                """,
+                [(team_id, division, team_id) for team_id in team_ids],
+            )
+        return len(team_ids)
+
     def upsert_elo(self, load_id: str, rows: Sequence[EloRow]) -> int:
         """Upserts on (club, from_date). Returns rows written."""
         with self.conn.cursor() as cur:

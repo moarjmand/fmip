@@ -201,6 +201,22 @@ each week, and after a promotion add the new club's line to
 An adopted club gets its name and nothing invented; `--map` is for when the
 provider means a club you already hold.
 
+**A league only our own records cover (T-512, D-083).** Iran's league is not in
+football-data.co.uk, so its history is the feed's, as we recorded it. Add and
+backfill its past seasons (section 2, "A past season"), then give it a division
+of its own and load it:
+
+```bash
+catalog --set-division --competition 290 --division IR1 --by you@your-domain
+docker compose run --rm -T model python -m fmip_model.training.load records --divisions IR1
+```
+
+The load names our team ids as the training names and writes their aliases
+itself, so there is no list to keep and no `--alias-training` for it. A
+division another source already holds is refused. The model service reloads
+such a division once a day before its first fit, so new results arrive without
+a weekly step.
+
 **Phase 6's eight competitions (T-502, T-503), as run on 2026-09-26.** The ids,
 dates and divisions are the provider's and football-data.co.uk's on that day;
 the alias list already carries the six leagues' clubs:

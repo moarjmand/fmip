@@ -1,4 +1,7 @@
-"""The two free historical sources (D-016) and the terms each is used under.
+"""The training store's sources and the terms each is used under.
+
+The two free historical sources (D-016), and our own records of the licensed
+feed (D-083), read from our tables rather than from the provider.
 
 Every load records the source, the exact URL, the licence page and this note,
 so "where did this row come from and were we allowed to have it" is answerable
@@ -12,7 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-SourceId = Literal["football_data_co_uk", "clubelo"]
+SourceId = Literal["football_data_co_uk", "clubelo", "our_records"]
 
 
 @dataclass(frozen=True)
@@ -44,7 +47,23 @@ CLUB_ELO = Source(
     ),
 )
 
-SOURCES: dict[SourceId, Source] = {FOOTBALL_DATA.id: FOOTBALL_DATA, CLUB_ELO.id: CLUB_ELO}
+OUR_RECORDS = Source(
+    id="our_records",
+    name="Our own records of API-Football",
+    licence_url="https://api-sports.io/terms",
+    licence_note=(
+        "Finished matches as the product recorded them from the licensed feed (D-076), "
+        "copied from our own tables. The feed's terms forbid reselling its data and say "
+        "nothing about models; the maintainer allowed training on it (D-083). Used to "
+        "fit the model only; not redistributed."
+    ),
+)
+
+SOURCES: dict[SourceId, Source] = {
+    FOOTBALL_DATA.id: FOOTBALL_DATA,
+    CLUB_ELO.id: CLUB_ELO,
+    OUR_RECORDS.id: OUR_RECORDS,
+}
 
 
 def football_data_url(season: str, division: str) -> str:
@@ -66,6 +85,13 @@ def season_label(season: str) -> str:
     start, end = int(season[:2]), int(season[2:])
     century = 2000 if start < 90 else 1900
     return f"{century + start}/{end:02d}"
+
+
+def records_url(division: str) -> str:
+    """Where a load of our own records reads from: a description, not a download."""
+    if not division.isalnum() or not 2 <= len(division) <= 3:
+        raise ValueError(f"division must be a code such as IR1, received {division!r}")
+    return f"records:public.fixture?division={division}"
 
 
 def clubelo_snapshot_url(day: str) -> str:
