@@ -138,8 +138,13 @@ const rows: ScoredRow[] = [
       kickoff_at: '2025-01-05T20:00:00.000Z',
     }),
     country: spain,
+    competitionOrder: null,
   },
-  { card: card({ id: 'f-pl-late', kickoff_at: '2025-01-05T17:30:00.000Z' }), country: england },
+  {
+    card: card({ id: 'f-pl-late', kickoff_at: '2025-01-05T17:30:00.000Z' }),
+    country: england,
+    competitionOrder: null,
+  },
   {
     card: card({
       id: 'f-pl-early',
@@ -148,6 +153,7 @@ const rows: ScoredRow[] = [
       kickoff_at: '2025-01-05T12:30:00.000Z',
     }),
     country: england,
+    competitionOrder: null,
   },
   {
     card: card({
@@ -157,10 +163,24 @@ const rows: ScoredRow[] = [
       away: { id: 't-bay', name: 'Bayern', short_name: null, code: 'FCB' },
     }),
     country: null,
+    competitionOrder: null,
   },
 ];
 
 describe('arrange', () => {
+  it('puts a stated place before country and name, and the unstated after (T-504)', () => {
+    const stated = rows.map((row) => ({
+      ...row,
+      competitionOrder:
+        row.card.competition.id === 'c-ll' ? 2 : row.card.competition.id === 'c-ucl' ? null : 1,
+    }));
+    expect(arrange(stated, null).groups.map((g) => g.competition.name)).toEqual([
+      'Premier League',
+      'La Liga',
+      'Champions League',
+    ]);
+  });
+
   it('groups a guest by competition, countries by name, kick-off within', () => {
     const { pinned, groups } = arrange(rows, null);
     expect(pinned).toEqual([]);

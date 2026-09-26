@@ -15,6 +15,8 @@ import { freshnessOf } from './freshness';
 export interface ScoredRow {
   card: ScoreCard;
   country: { id: string; name: string; code: string } | null;
+  /** The competition's stated place on the page (T-504), or `null` for none. */
+  competitionOrder: number | null;
 }
 
 interface Row {
@@ -29,6 +31,7 @@ interface Row {
   competition_id: string;
   competition_name: string;
   competition_short_name: string | null;
+  competition_order: number | null;
   country_id: string | null;
   country_name: string | null;
   country_code: string | null;
@@ -120,6 +123,7 @@ function toRow(row: Row): ScoredRow {
       row.country_id !== null && row.country_name !== null && row.country_code !== null
         ? { id: row.country_id, name: row.country_name, code: row.country_code }
         : null,
+    competitionOrder: row.competition_order,
   };
 }
 
@@ -138,7 +142,7 @@ export class PostgresScoresStore {
          SELECT f.id, f.kickoff_at, f.status, f.minute, f.round, f.leg, f.updated_at,
                 se.id AS season_id, se.label AS season_label,
                 c.id AS competition_id, c.name AS competition_name,
-                c.short_name AS competition_short_name,
+                c.short_name AS competition_short_name, c.display_order AS competition_order,
                 c.country_id, co.name AS country_name, co.code AS country_code,
                 f.stage_id, st.name AS stage_name, st.kind AS stage_kind,
                 f.venue_id, v.name AS venue_name, v.city AS venue_city,
@@ -162,7 +166,7 @@ export class PostgresScoresStore {
        SELECT s.id, s.kickoff_at, s.status, s.minute, s.round, s.leg,
               s.season_id, s.season_label,
               s.competition_id, s.competition_name, s.competition_short_name,
-              s.country_id, s.country_name, s.country_code,
+              s.competition_order, s.country_id, s.country_name, s.country_code,
               s.stage_id, s.stage_name, s.stage_kind,
               s.venue_id, s.venue_name, s.venue_city, s.scores_coverage,
               h.team_id AS home_id, th.name AS home_name, th.short_name AS home_short_name,

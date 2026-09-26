@@ -237,6 +237,17 @@ catalog --set-division --competition 179 --division SC0 --by you@your-domain
 # way, under the round names their matches arrive with), --alias-training.
 ```
 
+**Their order on the scores page (T-504)**, after a member's own favourites.
+Nothing in the data says which league a reader looks for first, so it is
+stated here and changed with the same command; `--order 0` clears a place, and
+a competition without one sorts after every stated one by country and name:
+
+```bash
+n=1; for id in 2 39 140 135 78 61 290 3 848 40 88 94 203 144 179; do
+  catalog --set-order --competition $id --order $n --by you@your-domain; n=$((n+1))
+done
+```
+
 The provider's coverage flags on that day: all eight have events, line-ups,
 match and player statistics and a table; availability (injuries) is missing
 for Primeira Liga, the Belgian Pro League, the Scottish Premiership and the

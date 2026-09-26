@@ -55,6 +55,7 @@ const VERBS = [
   'add-stage',
   'map',
   'set-division',
+  'set-order',
   'alias-training',
 ];
 const SWITCHES = [...VERBS, 'dry-run', 'current'];
@@ -96,6 +97,7 @@ const USAGE = `Usage (one verb per call):
               [--label <season, default the current one>] [--by <address>]
   --map --type <kind> --external-id <id> --to <internal uuid> [--by <address>]
   --set-division --competition <external id> --division <E0|SP1|...> [--by <address>]
+  --set-order --competition <external id> --order <N, 1 first; 0 to clear> [--by <address>]
   --alias-training [--file <csv>] [--by <address>]
 
   --provider defaults to api_football.`;
@@ -180,6 +182,17 @@ export function parseArgs(argv) {
       label: label === '' ? null : label,
       by,
     };
+  }
+  if (verb === 'set-order') {
+    const competition = text('competition');
+    const order = Number(text('order'));
+    if (competition === '') return { error: '--competition is required: the provider’s id.' };
+    if (!Number.isInteger(order) || order < 0 || order > 32767) {
+      return {
+        error: '--order is the competition’s place on the scores page, 1 first; 0 clears it.',
+      };
+    }
+    return { command: 'set-order', provider, by, competition, order: order === 0 ? null : order };
   }
   if (verb === 'alias-training') {
     return {
@@ -786,6 +799,40 @@ async function setDivision(client, options) {
   return 0;
 }
 
+/**
+ * Where a competition sits on the scores page after a member's favourites
+ * (T-504). The operator's to state: nothing in the data says which league a
+ * reader looks for first. Two competitions may share a place; the country and
+ * the name then decide, as they do for every competition with none.
+ */
+async function setOrder(client, options) {
+  const { rows } = await client.query(
+    `UPDATE competition c SET display_order = $3
+       FROM provider_mapping pm
+      WHERE pm.internal_id = c.id AND pm.entity_type = 'competition'
+        AND pm.provider = $1 AND pm.external_id = $2
+      RETURNING c.id, c.name`,
+    [options.provider, options.competition, options.order],
+  );
+  if (rows[0] === undefined) {
+    console.error(`No competition is mapped to ${options.provider} ${options.competition}.`);
+    return 1;
+  }
+  const audited = await audit(
+    client,
+    options.by,
+    'catalog.competition_order_set',
+    'competition',
+    rows[0].id,
+    { display_order: options.order },
+  );
+  console.log(
+    `${rows[0].name} -> ${options.order === null ? 'no stated place' : `place ${options.order}`} on the scores page.`,
+  );
+  sayIfUnaudited(audited, options.by);
+  return 0;
+}
+
 /** `provider,provider_team_id,division,training_name`, one alias a line. */
 export function parseAliases(text) {
   const lines = text.split(/\r?\n/).filter((line) => line.trim() !== '');
@@ -934,6 +981,8 @@ async function main() {
         return await addStage(client, parsed);
       case 'set-division':
         return await setDivision(client, parsed);
+      case 'set-order':
+        return await setOrder(client, parsed);
       case 'alias-training':
         return await aliasTraining(client, parsed);
       default:
