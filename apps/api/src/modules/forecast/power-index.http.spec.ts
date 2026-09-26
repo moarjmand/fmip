@@ -162,7 +162,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       const rest = body.index?.home.components.find((c) => c.key === 'rest_and_congestion');
       expect(rest?.state).toBe('not_supplied');
       expect(rest?.note).toContain('no previous fixture on record');
-      expect(body.index?.home.formula_version).toBe('power-index@1.0.0');
+      expect(body.index?.home.formula_version).toBe('power-index@1.1.0');
       expect(body.index?.home.computed_at).toBe('2025-08-15T09:00:00.000Z');
       expect(body.index?.home.components).toHaveLength(7);
       expect(body.index?.home.leading.length).toBeGreaterThan(0);

@@ -61,6 +61,15 @@ into one number.
 | `[x]` T-102 | Expected goals on the critical path: ingestion, coverage, display | T-101 | Every finished fixture in a covered competition carries team xG, or says why not |
 | `[x]` T-103 | Injury and suspension availability feed | T-100 | A player unavailable for a fixture is stored with a reason and a source time |
 
+**T-112 done on 2026-09-26.** The two components the free data could not
+reach are measured from our own match records now that line-ups and player
+ratings arrive (T-101): line-up quality from the announced XI -- or the last XI
+less the players reported out (T-103) -- by its players' ratings this season,
+and stability from the coach's run and how much of the XI carries over, each a
+position among the season's teams. A covered league's match now reaches 95% of
+the formula; `power-index@1.1.0`. The method is in `12-power-index.md` and
+D-081, including that the backtest cannot see either component.
+
 **T-103 done on 2026-09-26.** A sixth adapter call, `getAvailability`, asks
 who will miss a match; API-Football answers from `/injuries?fixture=` with
 `Missing Fixture` (stored as `out`) or `Questionable` (`doubtful`) and its own
@@ -118,7 +127,7 @@ calculation.
 |---|---|---|---|
 | `[x]` T-110 | Schema and contracts: `power_index` version, components, completeness | T-064 | A stored index is immutable and recomputable from its inputs |
 | `[x]` T-111 | Component computation: strength, form, venue, rest | T-110 | Each component is a number in `[0,1]` with its own coverage state |
-| `[ ]` T-112 | Line-up quality and managerial stability components | T-110, T-101 | Present when the data is, `not_supplied` when it is not — never zero |
+| `[x]` T-112 | Line-up quality and managerial stability components | T-110, T-101 | Present when the data is, `not_supplied` when it is not — never zero |
 | `[x]` T-113 | Weight validation against history | T-111, T-062 | The published weights beat the blueprint's defaults on a backtest, or the defaults are kept and the test says so |
 | `[x]` T-114 | `GET /fixtures/:id/power-index` and the match-centre panel | T-111 | Shows leading factors, completeness and computed-at; missing components are visible |
 

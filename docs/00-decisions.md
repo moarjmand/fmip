@@ -2882,3 +2882,44 @@ note on the alias table already refuses it, and "Paris SG" is not a
 similarity away from "Paris Saint Germain" in any metric that also keeps
 "Man City" from "Man United". *Keying the list by our ids*: every deployment
 would need its own list.
+
+## D-081 — Line-up quality and stability are read from our own match records, as positions among the season's teams
+
+**Status:** decided · **Date:** 2026-09-26 · **Task:** T-112 · **Follows:** D-049, D-080
+
+**The problem.** Two of the blueprint's seven Power Index components -- line-up
+quality (20%) and managerial and team stability (5%) -- were absent on the free
+data, and the index said so at 70% completeness. The paid feed now supplies
+line-ups, coaches and each player's match rating (T-101), and who will miss a
+match (T-103).
+
+**The decision.** Both are measured from our own tables, before the kick-off,
+as positions among the teams of the same season (the rule T-111 set for every
+component):
+
+- *Line-up quality*: a player's rating is the mean of the provider's 0-10
+  match ratings this season over matches they played 20 minutes or more of; the
+  team's XI is the announced one, or else its last XI less the players reported
+  out; its strength is the mean rating of its rated starters (seven at least);
+  the component is its position among the other teams' latest XIs (five at
+  least).
+- *Stability*: the share of the season's matches led by the current coach, and
+  the share of starters kept between consecutive matches over the last three
+  pairs, each placed among the season's teams, averaged; either alone when the
+  other cannot be read.
+
+The formula version moves to `power-index@1.1.0`; stored 1.0.0 rows stay as
+they were.
+
+**What it does not claim.** The provider's rating is its own judgement of a
+performance, and the index says whose it is. An expected XI does not know who
+will replace an absent player, so it is `limited` and says it is expected.
+Neither component can be backtested -- the training data holds results, not
+line-ups or ratings -- so the blueprint's weights stand unvalidated, and
+`12-power-index.md` says that in so many words.
+
+**Rejected.** *A plain average over every appearance*: a substitute's ten
+minutes would count as much as a starter's ninety, so a rating counts only from
+matches of 20 minutes or more. *Replacing an absent starter with the
+bench's best-rated player*: it guesses a manager's choice. *Points for a new
+coach*: arbitrary, and the blueprint forbids fixed points.
