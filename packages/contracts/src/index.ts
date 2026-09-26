@@ -230,9 +230,11 @@ export type {
   MatchLineupPlayer,
   MatchLineups,
   MatchPeriod,
+  MatchPlayerStats,
   MatchStatMetric,
   MatchStatRow,
   MatchTeam,
+  PlayerMatchMetric,
 } from './match-centre';
 export { MAX_EXPLANATION_LENGTH, MAX_REASON_TAGS, PREDICTION_REASON_TAGS } from './predictions';
 export type {

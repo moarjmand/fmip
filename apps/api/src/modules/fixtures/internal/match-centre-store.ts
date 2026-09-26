@@ -10,8 +10,10 @@ import type {
   MatchIncident,
   MatchLineupPlayer,
   MatchPeriod,
+  MatchPlayerStats,
   MatchStatMetric,
   MatchStatRow,
+  PlayerMatchMetric,
   ScoreLine,
 } from '@fmip/contracts';
 import { Pool } from 'pg';
@@ -308,6 +310,49 @@ export class PostgresMatchCentreStore {
       byMetric.set(r.metric, row);
     }
     return { rows: [...byMetric.values()], lastUpdatedAt: newest(rows.map((r) => r.updated_at)) };
+  }
+
+  /** Each player's numbers in this match (T-101), home side first, most minutes first. */
+  async playerStatistics(
+    homeParticipantId: string,
+    awayParticipantId: string,
+  ): Promise<Stamped<MatchPlayerStats>> {
+    const { rows } = await this.pool.query<{
+      person_id: string;
+      name: string;
+      side: 'home' | 'away';
+      metric: PlayerMatchMetric;
+      value: number;
+      updated_at: Date;
+    }>(
+      `SELECT s.person_id, COALESCE(pe.known_as, pe.full_name) AS name, fp.side,
+              s.metric, s.value::float8 AS value, s.updated_at
+         FROM fixture_player_stat s
+         JOIN fixture_participant fp ON fp.id = s.participant_id
+         JOIN person pe ON pe.id = s.person_id
+        WHERE s.participant_id IN ($1, $2)`,
+      [homeParticipantId, awayParticipantId],
+    );
+    const players = new Map<string, MatchPlayerStats>();
+    let newest: Date | null = null;
+    for (const row of rows) {
+      const player = players.get(row.person_id) ?? {
+        id: row.person_id,
+        name: row.name,
+        side: row.side,
+        stats: {},
+      };
+      player.stats[row.metric] = row.value;
+      players.set(row.person_id, player);
+      if (newest === null || row.updated_at > newest) newest = row.updated_at;
+    }
+    const ordered = [...players.values()].sort(
+      (a, b) =>
+        (a.side === b.side ? 0 : a.side === 'home' ? -1 : 1) ||
+        (b.stats.minutes ?? 0) - (a.stats.minutes ?? 0) ||
+        a.name.localeCompare(b.name),
+    );
+    return { rows: ordered, lastUpdatedAt: newest?.toISOString() ?? null };
   }
 
   async lineups(

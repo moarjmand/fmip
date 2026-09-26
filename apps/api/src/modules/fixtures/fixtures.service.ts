@@ -63,12 +63,13 @@ export class FixturesService {
     if (head === null) return null;
     const { header, homeParticipantId, awayParticipantId, detailOwed } = head;
 
-    const [coverage, incidents, statistics, lineups, homeForm, awayForm, meetings] =
+    const [coverage, incidents, statistics, lineups, players, homeForm, awayForm, meetings] =
       await Promise.all([
         this.centre.coverage(header.season.id),
         this.centre.incidents(fixtureId, homeParticipantId),
         this.centre.statistics(homeParticipantId, awayParticipantId),
         this.centre.lineups(homeParticipantId, awayParticipantId),
+        this.centre.playerStatistics(homeParticipantId, awayParticipantId),
         this.centre.form(header.home.id, header.kickoff_at, fixtureId),
         this.centre.form(header.away.id, header.kickoff_at, fixtureId),
         this.centre.headToHead(header.home.id, header.away.id, header.kickoff_at, fixtureId),
@@ -99,6 +100,14 @@ export class FixturesService {
         !bothSides,
         owed(!bothSides, coverage.lineups),
         lineups.lastUpdatedAt,
+      ),
+      // Player numbers arrive with the team's statistics and have no season
+      // profile of their own, so the team statistics' declared state stands in.
+      player_statistics: covered(
+        players.rows,
+        players.rows.length === 0,
+        owed(players.rows.length === 0, coverage.statistics),
+        players.lastUpdatedAt,
       ),
       form: {
         home: derived(homeForm, FORM_WINDOW, homeForm[0]?.kickoff_at ?? null),

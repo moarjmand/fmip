@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { NOT_YET, minuteLabel, moduleState, statValue, xgNotice } from './match';
+import {
+  NOT_YET,
+  PLAYER_COLUMNS,
+  minuteLabel,
+  moduleState,
+  playerCell,
+  statValue,
+  xgNotice,
+} from './match';
 
 describe('match centre labels', () => {
   it('writes minutes with added time', () => {
@@ -36,5 +44,25 @@ describe('expected goals', () => {
   it('says so when a match has statistics but no xG, and says nothing when it has', () => {
     expect(xgNotice(['possession_pct', 'shots'])).toContain('did not supply');
     expect(xgNotice(['possession_pct', 'expected_goals'])).toBeNull();
+  });
+});
+
+describe('player statistics', () => {
+  const haaland = {
+    id: 'p',
+    name: 'Erling Haaland',
+    side: 'away' as const,
+    stats: { minutes: 80, rating: 8.6, goals: 2 },
+  };
+
+  it('shows the rating to one decimal, a count as it is, and a dash for what was not supplied', () => {
+    expect(playerCell(haaland, 'rating')).toBe('8.6');
+    expect(playerCell(haaland, 'goals')).toBe('2');
+    expect(playerCell(haaland, 'assists')).toBe('–');
+  });
+
+  it('starts with minutes and never lists a per-player xG it cannot fill', () => {
+    expect(PLAYER_COLUMNS[0]?.[0]).toBe('minutes');
+    expect(PLAYER_COLUMNS.map(([metric]) => metric)).not.toContain('expected_goals');
   });
 });

@@ -110,6 +110,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /fixture
          ($1, 'expected_goals', 2.13)`,
       [home, away],
     );
+    await pool.query(
+      `INSERT INTO fixture_player_stat (participant_id, person_id, metric, value) VALUES
+         ($1, $3, 'minutes', 90), ($1, $3, 'rating', 7.8), ($1, $3, 'goals', 1),
+         ($2, $4, 'minutes', 90), ($2, $4, 'rating', 6.9)`,
+      [home, away, SALAH, BRUNO],
+    );
   });
 
   afterAll(async () => {
@@ -201,6 +207,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /fixture
     expect(before.timeline.coverage).toBe('delayed');
     expect(before.statistics.coverage).toBe('delayed');
     expect(before.lineups.coverage).toBe('delayed');
+    expect(before.player_statistics.coverage).toBe('delayed');
     expect(before.statistics.data).toBeNull();
 
     await pool.query(
@@ -211,6 +218,22 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /fixture
     expect(after.timeline.coverage).toBe('not_supplied');
     expect(after.statistics.coverage).toBe('not_supplied');
     expect(after.lineups.coverage).toBe('not_supplied');
+    expect(after.player_statistics.coverage).toBe('not_supplied');
+  });
+
+  /** T-101: each player's numbers, home first, with nothing invented for what was not sent. */
+  it('serves each player’s numbers by side, and leaves what was not supplied out', async () => {
+    const { player_statistics } = (await get(MATCH)).json() as MatchCentre;
+    expect(player_statistics.coverage).toBe('limited');
+    expect(player_statistics.data).toEqual([
+      {
+        id: SALAH,
+        name: 'Mohamed Salah',
+        side: 'home',
+        stats: { minutes: 90, rating: 7.8, goals: 1 },
+      },
+      { id: BRUNO, name: 'Bruno Fernandes', side: 'away', stats: { minutes: 90, rating: 6.9 } },
+    ]);
   });
 
   it('serves both line-ups with captains, and the season coverage per module', async () => {

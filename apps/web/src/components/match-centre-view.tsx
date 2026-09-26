@@ -4,9 +4,12 @@ import Link from 'next/link';
 import {
   INCIDENT_LABEL,
   NOT_YET,
+  PLAYER_COLUMNS,
+  PLAYER_XG_NOTICE,
   STAT_LABEL,
   minuteLabel,
   moduleState,
+  playerCell,
   statValue,
   xgNotice,
 } from '@/lib/match';
@@ -219,6 +222,64 @@ export function MatchCentreView({
               players={lineups.away}
               locale={locale}
             />
+          </div>
+        )}
+      </Module>
+
+      <Module
+        title="Player statistics"
+        module={centre.player_statistics}
+        testId="player-statistics"
+      >
+        {(players) => (
+          <div className="flex flex-col gap-3 text-sm">
+            {(
+              [
+                ['home', f.home.name],
+                ['away', f.away.name],
+              ] as const
+            ).map(([side, team]) => {
+              const rows = players.filter((p) => p.side === side);
+              if (rows.length === 0) return null;
+              return (
+                <div key={side} className="overflow-x-auto">
+                  <table className="w-full">
+                    <caption className="text-start font-medium">{team}</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col" className="py-1 text-start font-normal opacity-70">
+                          Player
+                        </th>
+                        {PLAYER_COLUMNS.map(([metric, label]) => (
+                          <th
+                            key={metric}
+                            scope="col"
+                            className="px-2 py-1 text-end font-normal opacity-70"
+                          >
+                            {label}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((player) => (
+                        <tr key={player.id} className="border-t border-current/10">
+                          <th scope="row" className="py-1 text-start font-normal">
+                            <Link href={`/${locale}/player/${player.id}`}>{player.name}</Link>
+                          </th>
+                          {PLAYER_COLUMNS.map(([metric]) => (
+                            <td key={metric} className="px-2 py-1 text-end tabular-nums">
+                              {playerCell(player, metric)}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })}
+            <p className="opacity-70">{PLAYER_XG_NOTICE}</p>
           </div>
         )}
       </Module>
