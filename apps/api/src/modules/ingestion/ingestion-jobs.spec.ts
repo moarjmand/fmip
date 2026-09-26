@@ -362,6 +362,42 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
     expect(second.itemsWritten).toBe(0);
   });
 
+  /**
+   * A season backfill writes the fixture list and nothing after the whistle,
+   * and the sweep above only asks about matches around now: without the
+   * backlog, the first production deploy's 358 backfilled matches would never
+   * have had incidents, statistics or expected goals (T-102).
+   */
+  it('asks once for the detail of a finished match it never detailed, however long ago', async () => {
+    const { rows } = await pool.query<{ id: string }>(
+      `SELECT id FROM fixture WHERE season_id = $1`,
+      [SEASON],
+    );
+    const fixtureId = rows[0]?.id;
+    expect(
+      await count(`SELECT count(*)::text AS n FROM fixture_detail_fetch WHERE fixture_id = $1`, [
+        fixtureId,
+      ]),
+      'the sweep above recorded its fetch',
+    ).toBe(1);
+
+    // As a backfill leaves it: finished, and never detailed.
+    await pool.query(`DELETE FROM fixture_detail_fetch WHERE fixture_id = $1`, [fixtureId]);
+    const weeksLater = new Date('2023-09-01T12:00:00Z');
+
+    const first = await jobs.postMatch(weeksLater);
+    expect(first.itemsSeen).toBe(1);
+    expect(
+      await count(`SELECT count(*)::text AS n FROM fixture_detail_fetch WHERE fixture_id = $1`, [
+        fixtureId,
+      ]),
+    ).toBe(1);
+
+    // Once: a match asked about is not asked about again outside the window.
+    const second = await jobs.postMatch(weeksLater);
+    expect(second.itemsSeen).toBe(0);
+  });
+
   it('records a coverage state for every module, computed from what arrived (T-027)', async () => {
     const { rows } = await pool.query<{ module: string; state: string; provider: string | null }>(
       `SELECT module, state, provider FROM coverage_profile WHERE season_id = $1 ORDER BY module`,
