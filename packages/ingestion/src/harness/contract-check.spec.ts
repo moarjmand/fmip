@@ -149,6 +149,7 @@ function makeFactory(tweak: Tweak = {}): AdapterFactory {
       getLineup: () => unsupported(),
       getStandings: () => unsupported(),
       getFixtureDetail: () => unsupported(),
+      getAvailability: () => unsupported(),
     };
   };
 }

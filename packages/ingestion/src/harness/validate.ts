@@ -10,6 +10,8 @@
 
 import type { AdapterManifest } from '../adapters/_contract';
 import {
+  ABSENCE_KINDS,
+  ABSENCE_STATUSES,
   FIXTURE_STATUSES,
   INCIDENT_KINDS,
   PERIOD_KINDS,
@@ -326,6 +328,22 @@ export function validateStanding(value: unknown, path = 'standing'): Problem[] {
     `${path}.rows`,
     'team',
   );
+  return sink;
+}
+
+export function validateAbsence(value: unknown, path = 'absence'): Problem[] {
+  const sink: Sink = [];
+  if (!expectRecord(sink, value, path)) return sink;
+  if (typeof value.fixtureExternalId !== 'string' || value.fixtureExternalId === '') {
+    fail(sink, `${path}.fixtureExternalId`, 'must be a non-empty string');
+  }
+  expectRef(sink, value.team, `${path}.team`);
+  expectRef(sink, value.player, `${path}.player`);
+  expectEnum(sink, value.status, `${path}.status`, ABSENCE_STATUSES);
+  if (value.kind !== null) expectEnum(sink, value.kind, `${path}.kind`, ABSENCE_KINDS);
+  if (value.reason !== null && (typeof value.reason !== 'string' || value.reason.trim() === '')) {
+    fail(sink, `${path}.reason`, 'must be null or a non-empty string');
+  }
   return sink;
 }
 

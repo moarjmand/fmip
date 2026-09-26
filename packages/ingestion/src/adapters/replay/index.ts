@@ -104,5 +104,6 @@ export function createReplayAdapter(
     getLineup: adapter.getLineup.bind(adapter),
     getStandings: adapter.getStandings.bind(adapter),
     getFixtureDetail: adapter.getFixtureDetail.bind(adapter),
+    getAvailability: adapter.getAvailability.bind(adapter),
   };
 }

@@ -13,6 +13,7 @@ import {
   type Problem,
   expectTimestamp,
   validateFixture,
+  validateAbsence,
   validateFixtureDetail,
   validateLineup,
   validateManifest,
@@ -135,6 +136,9 @@ function validateData(call: AdapterCall, data: unknown, minItems: number | undef
       break;
     case 'getFixtureDetail':
       problems.push(...validateFixtureDetail(data, 'data'));
+      break;
+    case 'getAvailability':
+      asList(validateAbsence, 'absences');
       break;
   }
 

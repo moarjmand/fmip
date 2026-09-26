@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { checkAdapterContract, loadScenarios } from '../../harness/contract-check';
 import { createApiFootballAdapter } from './index';
 import {
+  absenceKind,
+  mapAvailability,
   mapFixture,
   mapIncidents,
   mapPlayerStatistics,
@@ -93,6 +95,52 @@ describe('mapping rules', () => {
     // The unused substitute has no rows at all.
     expect(of('25004')).toEqual({});
     expect(stats.every((s) => s.value >= 0)).toBe(true);
+  });
+
+  /** T-103: who missed Burnley v Manchester City, as the provider recorded it. */
+  it('reads who will miss a match, with the provider’s reason kept beside what it amounts to', () => {
+    const scenario = loadScenarios(FIXTURES_DIR).find(
+      (s) => s.name === 'availability-burnley-man-city',
+    );
+    const raw = scenario?.requests[0]?.body;
+    const body = (typeof raw === 'string' ? JSON.parse(raw) : raw) as { response: unknown };
+    expect(mapAvailability(body.response, '1035037')).toEqual([
+      {
+        fixtureExternalId: '1035037',
+        team: { externalId: '44', name: 'Burnley' },
+        player: { externalId: '18957', name: 'M. Obafemi' },
+        status: 'out',
+        kind: 'injury',
+        reason: 'Thigh Injury',
+      },
+    ]);
+    // An entry for another match, or with a status the provider never defined, is not ours to read.
+    expect(
+      mapAvailability(
+        [
+          {
+            player: { id: 1, name: 'A', type: 'Missing Fixture' },
+            team: { id: 2, name: 'B' },
+            fixture: { id: 9 },
+          },
+          {
+            player: { id: 3, name: 'C', type: 'Rested' },
+            team: { id: 2, name: 'B' },
+            fixture: { id: 5 },
+          },
+        ],
+        '5',
+      ),
+    ).toEqual([]);
+  });
+
+  it('reads what a reason amounts to, and keeps an unknown one as other', () => {
+    expect(absenceKind('Knee Injury')).toBe('injury');
+    expect(absenceKind('Suspended')).toBe('suspension');
+    expect(absenceKind('Red Card')).toBe('suspension');
+    expect(absenceKind('Illness')).toBe('illness');
+    expect(absenceKind("Coach's decision")).toBe('other');
+    expect(absenceKind(null)).toBeNull();
   });
 
   it('parses statistic values and drops what the provider left null', () => {

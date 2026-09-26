@@ -10,6 +10,7 @@
  */
 
 import type {
+  NormalisedAbsence,
   NormalisedFixture,
   NormalisedFixtureDetail,
   NormalisedLineup,
@@ -275,6 +276,14 @@ class HighlightlyAdapter implements ProviderAdapter {
       periods: [],
     };
     return { ok: true, data: detail, requests: 1, fetchedAt: result.receivedAt };
+  }
+
+  getAvailability(): Promise<AdapterResult<NormalisedAbsence[]>> {
+    return Promise.resolve({
+      ok: false,
+      error: { kind: 'unsupported', message: 'Highlightly does not report who will miss a match' },
+      requests: 0,
+    });
   }
 }
 
