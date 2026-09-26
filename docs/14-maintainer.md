@@ -140,6 +140,21 @@ catalog --adopt-teams --dry-run         # what would be created
 catalog --adopt-teams --by you@your-domain
 ```
 
+**Then the people and the grounds (D-079), once the post-match job has run
+for a while.** It asks about every finished match (T-102), and every player,
+coach, referee and ground it names that the catalogue does not hold is queued
+rather than guessed at -- so until they are adopted, line-ups are empty and a
+goal has no scorer. Adopting them also tells the job to ask those matches
+again:
+
+```bash
+catalog --adopt-people --by you@your-domain
+catalog --adopt-venues --by you@your-domain
+```
+
+Run the pair again whenever `catalog --list` shows people waiting: new
+signings and substitutes keep arriving all season.
+
 An adopted club gets its name and nothing invented; `--map` is for when the
 provider means a club you already hold.
 
