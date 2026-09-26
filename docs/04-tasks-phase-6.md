@@ -352,3 +352,15 @@ returned 502 since 2026-09-25; its website answers, and a scraped page is not
 its published API); T-534 waits on the answer. The maintainer's reading of
 the plan's terms decides all three at once.
 
+**T-532, a second pass (2026-09-26).** Most of the first pass's choices sat at
+the grid's edge, so a second pass searched longer memories and heavier
+ridges (xi 0.0005 to 0.003, ridge 0.03 to 0.3). Per division the pair with the
+lower 2024/25 log loss across both passes is kept -- the choice still never
+sees 2025/26 -- and adopted only where it beats 0.1.0 there by 0.002; E1 again
+keeps the published pair. Over 2025/26's 3,735 forecasts: 0.1.0 1.0192, 0.2.0
+1.0110, **0.3.0 1.0087**. The candidate becomes `dixon-coles-elo@0.3.0` before a
+single shadow forecast has been made, so no evidence is lost. Eight divisions
+now choose the grid's heaviest ridge; a further pass is possible, but the second
+bought a fifth of the first's gain, and each pass spends the unseen season
+once more.
+
