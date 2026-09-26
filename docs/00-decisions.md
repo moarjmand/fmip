@@ -2998,11 +2998,18 @@ the current one did: the catalogue adds the season (`--add-season`, not
 current) and the backfill reads it (`--season <label>`), audited and counted.
 The load records the feed's terms URL and this decision as its licence note,
 so every row still answers "were we allowed to have it" from the store alone.
+Because a season in progress changes every match day, the model service
+refreshes a division of our own records once a day, before its first fit of
+the day, through the same loader and the same load rows; a refresh that fails
+is recorded as a failed load and the fit uses the copy already held.
 
 **What it covers.** Iran's league history (T-512), European cup results for
 putting clubs of different leagues on one scale (T-533), and line-ups and
-absences as recorded after each match (T-534). All three enter as the
-candidate version (D-082) and are published only on their own record.
+absences as recorded after each match (T-534). Iran's league is one more
+division for the same model, and enters the published version the way every
+division did: once its backtest stands beside the others'. The other two
+change what the model is, so they enter as the candidate version (D-082) and
+are published only on their own pre-kick-off record.
 
 **Limits, stated.** The feed's records carry no bookmaker odds, so a backtest
 on them has no market to compare against and says so. The terms are silent on

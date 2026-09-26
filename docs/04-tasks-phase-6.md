@@ -369,7 +369,8 @@ is not a resale. The data reaches the model through our own tables, not a
 second connection to the provider: past seasons are added to the catalogue and
 backfilled like the current one, and the model's loader copies finished
 matches into the training store with our team ids as names. T-512, T-533 and
-T-534 are unblocked, each entering as the candidate version (D-082).
+T-534 are unblocked: Iran's league as one more division once its backtest is
+recorded, the other two as the candidate version (D-082).
 
 **T-532, a second pass (2026-09-26).** Most of the first pass's choices sat at
 the grid's edge, so a second pass searched longer memories and heavier
