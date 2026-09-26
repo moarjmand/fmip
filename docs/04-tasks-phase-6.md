@@ -122,7 +122,7 @@ partial run.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-510 | The league on the server: provider facts, competition, season, teams, backfill, and each module's coverage as the feed supplies it | T-500, T-501 | Scores, table and match pages; every module the feed lacks says so in a sentence |
-| `[ ]` T-511 | **Decision gate:** whether the model forecasts Iranian matches, and from which licensed history | — | A decision entry; neither football-data.co.uk nor Club Elo covers the league |
+| `[x]` T-511 | **Decision gate:** whether the model forecasts Iranian matches, and from which licensed history | — | A decision entry; neither football-data.co.uk nor Club Elo covers the league |
 | `[ ]` T-512 | The league's forecasts, per T-511 | T-511, T-530 | Its history in the training store under its own division, a backtest beside the others, and a forecast in the seven-day window |
 
 **What T-511 asks, and what the agent will not guess.** The training store is
@@ -361,6 +361,15 @@ T-533 can instead proceed from Club Elo once its API answers again (it has
 returned 502 since 2026-09-25; its website answers, and a scraped page is not
 its published API); T-534 waits on the answer. The maintainer's reading of
 the plan's terms decides all three at once.
+
+**Answered on 2026-09-26: yes (D-083).** The terms, read from an archived
+copy because the live page sits behind a bot check, forbid reselling the data
+and say nothing about models; the maintainer accepted that training this model
+is not a resale. The data reaches the model through our own tables, not a
+second connection to the provider: past seasons are added to the catalogue and
+backfilled like the current one, and the model's loader copies finished
+matches into the training store with our team ids as names. T-512, T-533 and
+T-534 are unblocked, each entering as the candidate version (D-082).
 
 **T-532, a second pass (2026-09-26).** Most of the first pass's choices sat at
 the grid's edge, so a second pass searched longer memories and heavier
