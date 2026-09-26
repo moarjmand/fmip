@@ -1,0 +1,206 @@
+{
+  "generated_at": "2026-09-26T15:36:38+00:00",
+  "model_version": {
+    "id": "dixon-coles-elo@0.1.0",
+    "name": "dixon-coles-elo",
+    "version": "0.1.0",
+    "xi": 0.0065,
+    "ridge": 0.01,
+    "elo_weight": 0.5,
+    "elo_scale": 1.0,
+    "max_goals": 10,
+    "history_days": 400,
+    "per_division": {}
+  },
+  "scope": "IR1 2025-08-18..2026-07-22",
+  "window": [
+    "2025-08-18",
+    "2026-07-22"
+  ],
+  "forecasts": 177,
+  "refits": 22,
+  "matches_with_odds": 0,
+  "model": {
+    "n": 177,
+    "log_loss": 1.075732,
+    "brier": 0.646956,
+    "calibration_error": 0.069846,
+    "reliability": {
+      "home": [
+        {
+          "lower": 0.0,
+          "upper": 0.1,
+          "count": 5,
+          "mean_forecast": 0.0840040893456841,
+          "observed_frequency": 0.2
+        },
+        {
+          "lower": 0.1,
+          "upper": 0.2,
+          "count": 26,
+          "mean_forecast": 0.15642948555385466,
+          "observed_frequency": 0.3076923076923077
+        },
+        {
+          "lower": 0.2,
+          "upper": 0.3,
+          "count": 38,
+          "mean_forecast": 0.25638674424834634,
+          "observed_frequency": 0.2894736842105263
+        },
+        {
+          "lower": 0.3,
+          "upper": 0.4,
+          "count": 38,
+          "mean_forecast": 0.35247184744857446,
+          "observed_frequency": 0.3157894736842105
+        },
+        {
+          "lower": 0.4,
+          "upper": 0.5,
+          "count": 35,
+          "mean_forecast": 0.4446132014374854,
+          "observed_frequency": 0.5142857142857142
+        },
+        {
+          "lower": 0.5,
+          "upper": 0.6,
+          "count": 24,
+          "mean_forecast": 0.5520835384208232,
+          "observed_frequency": 0.5
+        },
+        {
+          "lower": 0.6,
+          "upper": 0.7,
+          "count": 9,
+          "mean_forecast": 0.6380443267936275,
+          "observed_frequency": 0.6666666666666666
+        },
+        {
+          "lower": 0.7,
+          "upper": 0.8,
+          "count": 2,
+          "mean_forecast": 0.7756067262304187,
+          "observed_frequency": 0.5
+        }
+      ],
+      "draw": [
+        {
+          "lower": 0.1,
+          "upper": 0.2,
+          "count": 2,
+          "mean_forecast": 0.1745546716386776,
+          "observed_frequency": 0.5
+        },
+        {
+          "lower": 0.2,
+          "upper": 0.3,
+          "count": 31,
+          "mean_forecast": 0.2710613680723017,
+          "observed_frequency": 0.3225806451612903
+        },
+        {
+          "lower": 0.3,
+          "upper": 0.4,
+          "count": 104,
+          "mean_forecast": 0.35254809060223086,
+          "observed_frequency": 0.33653846153846156
+        },
+        {
+          "lower": 0.4,
+          "upper": 0.5,
+          "count": 40,
+          "mean_forecast": 0.42391963930319543,
+          "observed_frequency": 0.475
+        }
+      ],
+      "away": [
+        {
+          "lower": 0.0,
+          "upper": 0.1,
+          "count": 10,
+          "mean_forecast": 0.07430392809487504,
+          "observed_frequency": 0.1
+        },
+        {
+          "lower": 0.1,
+          "upper": 0.2,
+          "count": 48,
+          "mean_forecast": 0.15504366740793202,
+          "observed_frequency": 0.25
+        },
+        {
+          "lower": 0.2,
+          "upper": 0.3,
+          "count": 47,
+          "mean_forecast": 0.25018288293497865,
+          "observed_frequency": 0.1702127659574468
+        },
+        {
+          "lower": 0.3,
+          "upper": 0.4,
+          "count": 37,
+          "mean_forecast": 0.3468184142190898,
+          "observed_frequency": 0.2702702702702703
+        },
+        {
+          "lower": 0.4,
+          "upper": 0.5,
+          "count": 18,
+          "mean_forecast": 0.4534391164417224,
+          "observed_frequency": 0.16666666666666666
+        },
+        {
+          "lower": 0.5,
+          "upper": 0.6,
+          "count": 11,
+          "mean_forecast": 0.5480116830144862,
+          "observed_frequency": 0.6363636363636364
+        },
+        {
+          "lower": 0.6,
+          "upper": 0.7,
+          "count": 6,
+          "mean_forecast": 0.6552105967340712,
+          "observed_frequency": 0.3333333333333333
+        }
+      ]
+    }
+  },
+  "market": null,
+  "uniform": {
+    "n": 177,
+    "log_loss": 1.098612,
+    "brier": 0.666667,
+    "calibration_error": 0.060264,
+    "reliability": {
+      "home": [
+        {
+          "lower": 0.3,
+          "upper": 0.4,
+          "count": 177,
+          "mean_forecast": 0.33333333333333415,
+          "observed_frequency": 0.3898305084745763
+        }
+      ],
+      "draw": [
+        {
+          "lower": 0.3,
+          "upper": 0.4,
+          "count": 177,
+          "mean_forecast": 0.33333333333333415,
+          "observed_frequency": 0.3672316384180791
+        }
+      ],
+      "away": [
+        {
+          "lower": 0.3,
+          "upper": 0.4,
+          "count": 177,
+          "mean_forecast": 0.33333333333333415,
+          "observed_frequency": 0.24293785310734464
+        }
+      ]
+    }
+  }
+}
