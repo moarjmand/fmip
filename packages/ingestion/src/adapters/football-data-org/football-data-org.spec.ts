@@ -40,6 +40,7 @@ describe('mapping rules', () => {
     expect(mapStatus('WEIRD')).toBeNull();
     expect(stageKindOf('REGULAR_SEASON')).toBe('league');
     expect(stageKindOf('GROUP_STAGE')).toBe('group');
+    expect(stageKindOf('LEAGUE_STAGE')).toBe('league');
     expect(stageKindOf('LAST_16')).toBe('knockout');
     expect(stageKindOf('QUALIFICATION_ROUND_1')).toBe('qualifying');
     expect(humanise('REGULAR_SEASON')).toBe('Regular Season');

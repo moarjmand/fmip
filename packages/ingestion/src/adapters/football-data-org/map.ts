@@ -81,7 +81,7 @@ export function mapStatus(status: unknown): FixtureStatus | null {
 /** "REGULAR_SEASON" → league, "GROUP_STAGE" → group, "LAST_16" → knockout … */
 export function stageKindOf(stage: string): StageKind | null {
   const s = stage.toUpperCase();
-  if (s === 'REGULAR_SEASON') return 'league';
+  if (s === 'REGULAR_SEASON' || s === 'LEAGUE_STAGE' || s === 'LEAGUE_PHASE') return 'league';
   if (s.includes('GROUP')) return 'group';
   if (s.includes('PLAYOFF') || s.includes('PLAY_OFF') || s.includes('RELEGATION')) return 'playoff';
   if (s.includes('QUALIFICATION') || s.includes('PRELIMINARY')) return 'qualifying';

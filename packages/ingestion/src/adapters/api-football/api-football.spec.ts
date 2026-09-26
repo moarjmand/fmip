@@ -56,6 +56,9 @@ describe('mapping rules', () => {
   it('infers the stage kind from the round text', () => {
     expect(stageKindOf('Regular Season - 3')).toBe('league');
     expect(stageKindOf('Group A - 2')).toBe('group');
+    // The Champions League's one table since 2024/25, as the provider spells it.
+    expect(stageKindOf('League Stage - 1')).toBe('league');
+    expect(stageKindOf('3rd Qualifying Round')).toBe('qualifying');
     expect(stageKindOf('Round of 16')).toBe('knockout');
     expect(stageKindOf('Relegation Round - 1')).toBe('playoff');
     expect(stageKindOf('Something else')).toBeNull();

@@ -267,6 +267,17 @@ one match per club because the fixtures job asks for a window around today.
 **A season needs backfilling once, from its start**, and the window job keeps
 it fresh after. That is the next task, and it is not this one.
 
+**A cup's stages, 2026-09-26.** The same check found the Champions League's
+table empty on the server once its league stage had begun: all 36 clubs
+*"provider 1 played, we hold no table row"*. Two gaps together. The adapters
+did not know the round name UEFA's single table has had since 2024/25
+(`League Stage - 1`), and nothing on a deployment creates a stage -- the jobs
+look one up by name and deliberately never create one. A domestic league
+never noticed, because its table falls back to the competition's kind. The
+adapters now read `League Stage` as a league stage, and `--add-stage` creates a
+season's stage and attaches the matches already held; `14-maintainer.md` step
+4 lists the five the Champions League has so far.
+
 **T-030 done on 2026-09-21.** T-029 got real fixtures in and found the next
 wall: the `standings` writer refused the table, per club, *"provider 5 played,
 we have 1"*. It was right to. A league table beside a match list that
