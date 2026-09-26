@@ -3,6 +3,7 @@ and the golden example the apps/api contract test reads."""
 
 import json
 from collections.abc import Mapping, Sequence
+from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
@@ -10,7 +11,7 @@ import numpy as np
 from fastapi.testclient import TestClient
 
 from fmip_model.model.dixon_coles import MatchObservation
-from fmip_model.model.version import BASELINE
+from fmip_model.model.version import BASELINE, load_candidate
 from fmip_model.service.app import create_app
 from fmip_model.service.contract import ForecastRequest
 from fmip_model.service.forecaster import Forecaster, TrainingSource
@@ -64,7 +65,7 @@ class FakeSource(TrainingSource):
 
 
 def client(source: TrainingSource) -> TestClient:
-    return TestClient(create_app(source))
+    return TestClient(create_app(source, read_candidate=False))
 
 
 def request(**overrides: object) -> dict[str, object]:
@@ -207,3 +208,45 @@ def test_writes_the_contract_examples_apps_api_reads() -> None:
     )
     assert written["status"] == "available"
     assert written["inputs"]["data_completeness"] == "available"
+
+
+def test_without_a_candidate_the_candidate_route_says_so() -> None:
+    app = client(FakeSource())
+    assert app.get("/health").json()["candidate_version"] is None
+    response = app.post("/forecast/candidate", json=request())
+    assert response.status_code == 404
+
+
+def test_a_candidate_answers_under_its_own_version_with_its_own_constants() -> None:
+    candidate = replace(BASELINE, version="0.2.0", per_division={"E0": (0.002, 0.003)})
+    app = TestClient(create_app(FakeSource(), candidate=candidate))
+    assert app.get("/health").json()["candidate_version"] == "dixon-coles-elo@0.2.0"
+
+    published = app.post("/forecast", json=request()).json()
+    shadow = app.post("/forecast/candidate", json=request()).json()
+    assert published["inputs"]["model_version"] == BASELINE.id
+    assert shadow["inputs"]["model_version"] == "dixon-coles-elo@0.2.0"
+    # Different constants for this division: a different answer to the same question.
+    assert shadow["probabilities"] != published["probabilities"]
+
+
+def test_the_candidate_file_names_only_what_changes(tmp_path: Path) -> None:
+    assert load_candidate(tmp_path / "missing.json") is None
+    empty = tmp_path / "empty.json"
+    empty.write_text(json.dumps({"version": "0.2.0", "per_division": {}}))
+    assert load_candidate(empty) is None
+    tuned = tmp_path / "tuned.json"
+    tuned.write_text(
+        json.dumps(
+            {
+                "version": "0.2.0",
+                "history_days": 1100,
+                "per_division": {"E0": {"xi": 0.002, "ridge": 0.003}},
+            }
+        )
+    )
+    version = load_candidate(tuned)
+    assert version is not None and version.id == "dixon-coles-elo@0.2.0"
+    assert version.constants_for("E0") == (0.002, 0.003)
+    assert version.constants_for("SP1") == (BASELINE.xi, BASELINE.ridge)
+    assert version.history_days == 1100
