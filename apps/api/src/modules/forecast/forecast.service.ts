@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type {
   CoverageState,
   ForecastKind,
@@ -33,6 +33,8 @@ export type ComputeOutcome =
  */
 @Injectable()
 export class ForecastService {
+  private readonly log = new Logger('Forecast');
+
   constructor(
     private readonly store: PostgresForecastStore,
     @Inject(MODEL_CLIENT) private readonly model: ModelClient,
@@ -75,11 +77,58 @@ export class ForecastService {
     }
 
     const result = await this.model.forecast(request);
+    const version = await this.recordAnswer(fixtureId, kind, request, result, 'published');
+    await this.shadow(fixtureId, kind, request);
+    return { kind: 'recorded', version };
+  }
 
+  /**
+   * The candidate model version's answer to the same question, stored as a
+   * shadow version (T-531): immutable like any forecast, evaluated after the
+   * match like any forecast, and shown nowhere until a decision promotes it
+   * (T-535). Off the critical path by construction: a service with no
+   * candidate answers 404, which is the usual state and records nothing, and
+   * any other failure is logged while the published version stands.
+   */
+  private async shadow(
+    fixtureId: string,
+    kind: ForecastKind,
+    request: ModelForecastRequest,
+  ): Promise<void> {
+    try {
+      const result = await this.model.candidate(request);
+      if (!result.ok) {
+        if (result.kind !== 'http' || result.status !== 404) {
+          this.log.warn(`shadow forecast not recorded: ${result.message}`, {
+            event: 'forecast.shadow_failed',
+            fixture_id: fixtureId,
+          });
+        }
+        return;
+      }
+      await this.recordAnswer(fixtureId, kind, request, result, 'shadow');
+    } catch (error: unknown) {
+      this.log.warn('shadow forecast not recorded', {
+        event: 'forecast.shadow_failed',
+        fixture_id: fixtureId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  /** One model answer -- an outage, a refusal, or a forecast -- as a stored version. */
+  private async recordAnswer(
+    fixtureId: string,
+    kind: ForecastKind,
+    request: ModelForecastRequest,
+    result: Awaited<ReturnType<ModelClient['forecast']>>,
+    role: 'published' | 'shadow',
+  ): Promise<ForecastVersion> {
     if (!result.ok) {
-      const version = await this.store.record({
+      return this.store.record({
         fixtureId,
         kind,
+        role,
         modelId: 'none@0.0.0',
         request,
         computedAt: new Date(),
@@ -89,26 +138,26 @@ export class ForecastService {
           detail: result.message,
         },
       });
-      return { kind: 'recorded', version };
     }
 
     const answer = result.data;
     if (answer.status === 'unavailable') {
-      const version = await this.store.record({
+      return this.store.record({
         fixtureId,
         kind,
+        role,
         modelId: 'none@0.0.0',
         request,
         computedAt: new Date(answer.computed_at),
         available: null,
         unavailable: { reason: answer.reason, detail: answer.detail },
       });
-      return { kind: 'recorded', version };
     }
 
-    const version = await this.store.record({
+    return this.store.record({
       fixtureId,
       kind,
+      role,
       modelId: answer.inputs.model_version,
       request,
       computedAt: new Date(answer.computed_at),
@@ -121,7 +170,6 @@ export class ForecastService {
       },
       unavailable: null,
     });
-    return { kind: 'recorded', version };
   }
 
   async versions(fixtureId: string): Promise<ForecastVersionsResponse | null> {

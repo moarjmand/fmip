@@ -2923,3 +2923,36 @@ minutes would count as much as a starter's ninety, so a rating counts only from
 matches of 20 minutes or more. *Replacing an absent starter with the
 bench's best-rated player*: it guesses a manager's choice. *Points for a new
 coach*: arbitrary, and the blueprint forbids fixed points.
+
+## D-082 — A candidate model version runs in shadow, and is promoted only on its own pre-kick-off record
+
+**Status:** decided · **Date:** 2026-09-26 · **Task:** T-531 · **Follows:** D-029, D-031
+
+**The problem.** Phase 6's second model (E53) adds what the first could not
+see: constants tuned per division (T-532), clubs of different leagues on one
+scale (T-533), line-ups and absences (T-534). Two of the three cannot be
+backtested -- the history holds no line-ups and no European cup matches -- so
+the evidence for them can only be matches recorded from now on.
+
+**The decision.** A candidate version is computed beside the published one for
+every forecast the published one makes, and stored exactly as a forecast is:
+immutable, with its input snapshot and its model (rule 5), in `forecast` with
+`role = 'shadow'`. Version numbers count within a role, so a published
+forecast's numbering never shows a gap. Every read the product serves -- the
+match centre, the lists, the rating's difficulty (D-035), the summaries, the
+model performance pages -- reads `role = 'published'` only; the evaluation
+records (T-066) are written for both, so the candidate is judged on forecasts
+it made before kick-off (D-031). The model service offers the candidate at
+`/forecast/candidate` and answers 404 when it has none, which is the usual
+state; a shadow that fails is logged and the published version stands.
+
+**What it is not.** Not a second prediction product (rule 6): it is the same
+model's next version, never shown beside the first and never blended with it.
+Promotion is a decision entry with the numbers (T-535), after at least 300
+pre-kick-off forecasts, and the stored forecasts keep the version they were
+made by.
+
+**Rejected.** *A backtest alone*: it cannot see line-ups or cup matches.
+*Publishing both with a label*: two numbers from one model is the blending
+rule 6 forbids, seen from the other side. *A separate table*: two places for
+one kind of row, and every evaluation query written twice.

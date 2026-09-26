@@ -47,13 +47,25 @@ class FakeStore {
     return this.fixture;
   }
 
+  /** Published versions only, numbered within their role, as the real store does (T-531). */
+  get published(): NewForecast[] {
+    return this.written.filter((w) => (w.role ?? 'published') === 'published');
+  }
+
+  get shadows(): NewForecast[] {
+    return this.written.filter((w) => w.role === 'shadow');
+  }
+
   async versions(): Promise<ForecastVersion[]> {
-    return this.written.map((w, i) => this.toVersion(w, i + 1));
+    return this.published.map((w, i) => this.toVersion(w, i + 1));
   }
 
   async record(input: NewForecast): Promise<ForecastVersion> {
     this.written.push(input);
-    return this.toVersion(input, this.written.length);
+    const sameRole = this.written.filter(
+      (w) => (w.role ?? 'published') === (input.role ?? 'published'),
+    );
+    return this.toVersion(input, sameRole.length);
   }
 
   private toVersion(w: NewForecast, n: number): ForecastVersion {
@@ -287,5 +299,50 @@ describe('ForecastService.versions', () => {
 
   it('is null for an unknown fixture', async () => {
     expect(await service(new FakeStore(null), modelAnswering(AVAILABLE)).versions('x')).toBeNull();
+  });
+});
+
+describe('shadow forecasts (T-531)', () => {
+  const answering = (candidateStatus: number) =>
+    new ModelClient({
+      baseUrl: 'http://model.test',
+      fetchImpl: async (url) =>
+        String(url).endsWith('/forecast/candidate') && candidateStatus !== 200
+          ? new Response(JSON.stringify({ detail: 'no candidate' }), { status: candidateStatus })
+          : new Response(
+              JSON.stringify({
+                ...AVAILABLE,
+                inputs: {
+                  ...AVAILABLE.inputs,
+                  model_version: String(url).endsWith('/candidate')
+                    ? 'dixon-coles-elo@0.2.0'
+                    : AVAILABLE.inputs.model_version,
+                },
+              }),
+            ),
+    });
+
+  it('records the candidate beside the published version, and never shows it', async () => {
+    const store = new FakeStore(FIXTURE);
+    await service(store, answering(200)).compute(FIXTURE.id, 'early');
+
+    expect(store.published).toHaveLength(1);
+    expect(store.shadows).toHaveLength(1);
+    expect(store.shadows[0]?.modelId).toBe('dixon-coles-elo@0.2.0');
+    const served = await service(store, answering(200)).versions(FIXTURE.id);
+    expect(served?.versions.map((v) => v.model_version)).not.toContain('dixon-coles-elo@0.2.0');
+  });
+
+  it('records nothing when there is no candidate, and the published version stands if it fails', async () => {
+    const none = new FakeStore(FIXTURE);
+    await service(none, answering(404)).compute(FIXTURE.id, 'early');
+    expect(none.shadows).toHaveLength(0);
+    expect(none.published).toHaveLength(1);
+
+    const failing = new FakeStore(FIXTURE);
+    const outcome = await service(failing, answering(500)).compute(FIXTURE.id, 'early');
+    expect(outcome.kind).toBe('recorded');
+    expect(failing.shadows).toHaveLength(0);
+    expect(failing.published[0]?.available).not.toBeNull();
   });
 });

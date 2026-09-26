@@ -115,7 +115,7 @@ export class ForecastTriggersService {
               (SELECT array_agg(DISTINCT s.kind)
                  FROM forecast fc
                  JOIN input_snapshot s ON s.id = fc.input_snapshot_id
-                WHERE fc.fixture_id = f.id) AS kinds
+                WHERE fc.fixture_id = f.id AND fc.role = 'published') AS kinds
          FROM fixture f
         WHERE f.status = 'scheduled' AND f.kickoff_at > $1 AND f.kickoff_at <= $2
         ORDER BY f.kickoff_at`,

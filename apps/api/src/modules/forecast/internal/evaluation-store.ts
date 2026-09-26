@@ -79,7 +79,9 @@ const SELECT = `
          e.evaluated_at, e.pre_kickoff, e.actual_home, e.actual_away, e.outcome,
          e.p_outcome, e.log_loss, e.brier, e.correct, e.scoreline_hit
     FROM evaluation e
-    JOIN forecast f ON f.id = e.forecast_id
+    -- Published versions only: a shadow candidate is evaluated, for T-535, and
+    -- shown nowhere (T-531).
+    JOIN forecast f ON f.id = e.forecast_id AND f.role = 'published'
     JOIN input_snapshot s ON s.id = f.input_snapshot_id
     JOIN model_version m ON m.id = f.model_version_id`;
 
@@ -219,7 +221,7 @@ export class PostgresEvaluationStore {
               ROUND(AVG(e.correct::int), 4)::text AS accuracy,
               ROUND(AVG(e.scoreline_hit::int), 4)::text AS scoreline_accuracy
          FROM evaluation e
-         JOIN forecast f ON f.id = e.forecast_id
+         JOIN forecast f ON f.id = e.forecast_id AND f.role = 'published'
          JOIN input_snapshot s ON s.id = f.input_snapshot_id
          JOIN model_version m ON m.id = f.model_version_id
         WHERE e.pre_kickoff
@@ -257,9 +259,11 @@ export class PostgresEvaluationStore {
                 WHERE e.pre_kickoff AND e.fixture_id IN (SELECT id FROM scope))::text
                 AS fixtures_evaluated,
               (SELECT COUNT(*) FROM forecast f
-                WHERE f.status = 'unavailable' AND f.fixture_id IN (SELECT id FROM scope))::text
+                WHERE f.status = 'unavailable' AND f.role = 'published'
+                  AND f.fixture_id IN (SELECT id FROM scope))::text
                 AS unavailable_versions,
               (SELECT COUNT(*) FROM evaluation e
+                JOIN forecast f ON f.id = e.forecast_id AND f.role = 'published'
                 WHERE NOT e.pre_kickoff AND e.fixture_id IN (SELECT id FROM scope))::text
                 AS post_kickoff_versions,
               (SELECT MAX(e.evaluated_at) FROM evaluation e
