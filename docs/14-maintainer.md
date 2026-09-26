@@ -201,6 +201,47 @@ each week, and after a promotion add the new club's line to
 An adopted club gets its name and nothing invented; `--map` is for when the
 provider means a club you already hold.
 
+**Phase 6's eight competitions (T-502, T-503), as run on 2026-09-26.** The ids,
+dates and divisions are the provider's and football-data.co.uk's on that day;
+the alias list already carries the six leagues' clubs:
+
+```bash
+catalog --add-competition --external-id 40  --name "Championship"         --kind league --scope domestic --country ENG --by you@your-domain
+catalog --add-competition --external-id 88  --name "Eredivisie"           --kind league --scope domestic --country NED --by you@your-domain
+catalog --add-competition --external-id 94  --name "Primeira Liga"        --kind league --scope domestic --country POR --by you@your-domain
+catalog --add-competition --external-id 203 --name "Süper Lig"            --kind league --scope domestic --country TUR --by you@your-domain
+catalog --add-competition --external-id 144 --name "Belgian Pro League"   --kind league --scope domestic --country BEL --by you@your-domain
+catalog --add-competition --external-id 179 --name "Scottish Premiership" --kind league --scope domestic --country SCO --by you@your-domain
+catalog --add-competition --external-id 3   --name "UEFA Europa League"     --kind cup --scope continental --by you@your-domain
+catalog --add-competition --external-id 848 --name "UEFA Conference League" --kind cup --scope continental --by you@your-domain
+
+catalog --add-season --competition 40  --label 2026/27 --start 2026-08-14 --end 2027-05-01 --current --by you@your-domain
+catalog --add-season --competition 88  --label 2026/27 --start 2026-08-07 --end 2027-05-23 --current --by you@your-domain
+catalog --add-season --competition 94  --label 2026/27 --start 2026-08-07 --end 2027-05-16 --current --by you@your-domain
+catalog --add-season --competition 203 --label 2026/27 --start 2026-08-14 --end 2027-05-23 --current --by you@your-domain
+catalog --add-season --competition 144 --label 2026/27 --start 2026-08-07 --end 2027-05-22 --current --by you@your-domain
+catalog --add-season --competition 179 --label 2026/27 --start 2026-07-31 --end 2027-04-10 --current --by you@your-domain
+catalog --add-season --competition 3   --label 2026/27 --start 2026-07-09 --end 2027-01-28 --current --by you@your-domain
+catalog --add-season --competition 848 --label 2026/27 --start 2026-07-07 --end 2026-12-17 --current --by you@your-domain
+
+docker compose run --rm model python -m fmip_model.training.load football-data \
+  --seasons 2324 2425 2526 2627 --divisions E1 N1 P1 T1 B1 SC0
+catalog --set-division --competition 40  --division E1  --by you@your-domain
+catalog --set-division --competition 88  --division N1  --by you@your-domain
+catalog --set-division --competition 94  --division P1  --by you@your-domain
+catalog --set-division --competition 203 --division T1  --by you@your-domain
+catalog --set-division --competition 144 --division B1  --by you@your-domain
+catalog --set-division --competition 179 --division SC0 --by you@your-domain
+
+# Then: backfill, --adopt-teams, backfill again, the cups' stages (step 4's
+# way, under the round names their matches arrive with), --alias-training.
+```
+
+The provider's coverage flags on that day: all eight have events, line-ups,
+match and player statistics and a table; availability (injuries) is missing
+for Primeira Liga, the Belgian Pro League, the Scottish Premiership and the
+Conference League, and those match pages say so.
+
 **Then backfill the season, once (T-030).** The scheduled job asks for a window
 around now, so a deployment licensed today knows about this week and nothing
 before it -- and the standings writer then refuses the table, correctly,
