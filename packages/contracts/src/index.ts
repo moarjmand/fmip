@@ -181,6 +181,7 @@ export type {
   ModelExpectedGoals,
   ModelForecastAvailable,
   ModelForecastRequest,
+  ModelXiStrength,
   ModelForecastResponse,
   ModelForecastUnavailable,
   ModelHealth,

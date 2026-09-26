@@ -19,6 +19,20 @@ export interface ModelForecastRequest {
   division: string;
   /** ISO 8601 with zone. The model uses only history before this. */
   kickoff_at: string;
+  /**
+   * Each side's XI strength before the kick-off (T-534): the mean season rating
+   * of the announced XI, or else of the last XI less the players reported out
+   * (D-081). Absent or null when either side cannot be measured; a version
+   * that does not use it ignores it.
+   */
+  xi_strength?: ModelXiStrength | null;
+}
+
+export interface ModelXiStrength {
+  home: number;
+  away: number;
+  /** Both XIs announced, rather than expected. */
+  confirmed: boolean;
 }
 
 export interface ModelProbabilities {

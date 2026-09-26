@@ -1,7 +1,12 @@
 import { createHash } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { Pool } from 'pg';
-import type { PowerIndex, PowerIndexComponentValue, PowerIndexPair } from '@fmip/contracts';
+import type {
+  ModelXiStrength,
+  PowerIndex,
+  PowerIndexComponentValue,
+  PowerIndexPair,
+} from '@fmip/contracts';
 import { PG_POOL } from '../../database/database.module';
 import { POWER_INDEX_FORMULA_VERSION, combine, leadingFactors } from './internal/power-index';
 import {
@@ -10,7 +15,12 @@ import {
   type MeasureInput,
   type Side,
 } from './internal/power-index-measure';
-import { measureLineup, measureStability, type SquadContext } from './internal/power-index-squad';
+import {
+  measureLineup,
+  measureStability,
+  xiStrengths,
+  type SquadContext,
+} from './internal/power-index-squad';
 import { PowerIndexStore, type IndexSubject } from './internal/power-index-store';
 
 // The module's public surface for the Power Index. Other modules import here.
@@ -45,6 +55,18 @@ export class PowerIndexService {
 
   constructor(@Inject(PG_POOL) pool: Pool) {
     this.store = new PowerIndexStore(pool);
+  }
+
+  /**
+   * Both sides' XI strength before the kick-off, for the model (T-534): what
+   * the line-up component reads, as raw mean ratings. `null` for an unknown
+   * fixture or when either side cannot be measured.
+   */
+  async xiStrengths(fixtureId: string): Promise<ModelXiStrength | null> {
+    const subject = await this.store.subject(fixtureId);
+    if (subject === null) return null;
+    const squad = await this.store.squadContext(subject);
+    return xiStrengths(squad, subject.home.teamId, subject.away.teamId);
   }
 
   /** Computes and stores both sides' index for a fixture. */

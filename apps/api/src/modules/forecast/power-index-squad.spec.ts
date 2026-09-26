@@ -6,6 +6,7 @@ import {
   measureStability,
   positionAmong,
   xiContinuity,
+  xiStrengths,
   type SeasonMatch,
   type SquadContext,
 } from './internal/power-index-squad';
@@ -112,5 +113,29 @@ describe('stability', () => {
     expect(measured.state).toBe('limited');
     expect(measured.note).toContain('coach');
     expect(measured.value).toBe(0.5);
+  });
+});
+
+describe('both XIs for the model (T-534)', () => {
+  it('gives the raw mean ratings the line-up component reads, expected unless both are announced', () => {
+    expect(xiStrengths(league(), 't5', 't0')).toEqual({ home: 5.5, away: 5, confirmed: false });
+    const context = league();
+    context.confirmed.set('t5', xi('t5'));
+    context.confirmed.set('t0', xi('t0'));
+    expect(xiStrengths(context, 't5', 't0')).toEqual({ home: 5.5, away: 5, confirmed: true });
+  });
+
+  it('reads the expected XI less the players reported out', () => {
+    const context = league();
+    // t5 loses four starters; seven rated remain, so it is still measured on them.
+    context.out.set('t5', xi('t5').slice(0, 4));
+    expect(xiStrengths(context, 't5', 't0')?.home).toBe(5.5);
+    // Five out leaves six rated: fewer than MIN_RATED_STARTERS, so neither side is sent.
+    context.out.set('t5', xi('t5').slice(0, 5));
+    expect(xiStrengths(context, 't5', 't0')).toBeNull();
+  });
+
+  it('sends nothing for a side with no line-up this season', () => {
+    expect(xiStrengths(league(), 't5', 'newcomer')).toBeNull();
   });
 });
