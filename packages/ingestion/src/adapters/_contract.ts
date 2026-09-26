@@ -84,6 +84,14 @@ export interface FixtureQuery {
   from: string;
   /** Inclusive, ISO date (YYYY-MM-DD). */
   to: string;
+  /**
+   * Ask for every fixture of the season instead, where the provider answers
+   * that in one request (T-505): a season's recorded end is only as far as
+   * its published schedule reached when it was recorded, and a question
+   * bounded by it would never learn of the rest. A provider that charges by
+   * the day reads `from` and `to` as before.
+   */
+  wholeSeason?: boolean;
 }
 
 export interface LiveQuery {

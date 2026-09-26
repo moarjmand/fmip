@@ -212,7 +212,10 @@ export class IngestionJobsService {
         this.ingestFixtures(source, targets, (target) => {
           if (replay) return { from: REPLAY_QUERY.from, to: REPLAY_QUERY.to };
           const { from, to } = fixtureWindow(now, target.seasonEnd);
-          return { from, to };
+          // The daily sweep asks for the whole season where that is one
+          // request, so a schedule published past the season's recorded end
+          // is still learned (T-505).
+          return sweep ? { from, to, wholeSeason: true } : { from, to };
         }),
       // The daily sweep is the same job over a wider span, and says so (T-505).
       sweep ? 'schedule' : null,
@@ -245,8 +248,11 @@ export class IngestionJobsService {
         const replay = this.sources.kind === 'replay';
         return this.ingestFixtures(source, targets, (target) => {
           if (replay) return { from: REPLAY_QUERY.from, to: REPLAY_QUERY.to };
-          if (seasonLabel !== null) return { from: target.seasonStart, to: target.seasonEnd };
+          if (seasonLabel !== null) {
+            return { from: target.seasonStart, to: target.seasonEnd, wholeSeason: true };
+          }
           return {
+            wholeSeason: true,
             from: target.seasonStart,
             // To the season's end: the provider publishes the schedule
             // ahead, and the whole season is still one request (T-505).
@@ -270,7 +276,7 @@ export class IngestionJobsService {
   private async ingestFixtures(
     source: { provider: Provider; adapter: ProviderAdapter },
     targets: PollTarget[],
-    window: (target: PollTarget) => { from: string; to: string },
+    window: (target: PollTarget) => { from: string; to: string; wholeSeason?: boolean },
   ): Promise<JobReport> {
     const replay = this.sources.kind === 'replay';
     let seen = 0;
@@ -280,12 +286,13 @@ export class IngestionJobsService {
     const seasons = new Set<string>();
 
     for (const target of targets) {
-      const { from, to } = window(target);
+      const { from, to, wholeSeason } = window(target);
       const result = await source.adapter.listFixtures({
         competitionExternalId: target.competitionExternalId,
         seasonLabel: replay ? REPLAY_QUERY.seasonLabel : target.seasonLabel,
         from,
         to,
+        ...(wholeSeason === true ? { wholeSeason } : {}),
       });
       if (!result.ok) {
         refused.push(`${target.seasonLabel}: ${describe(result.error)}`);

@@ -156,11 +156,11 @@ class ApiFootballAdapter implements ProviderAdapter {
         requests: 0,
       };
     }
+    // One request either way; without the dates it is the whole season (T-505).
     const result = await this.call('/fixtures', {
       league: query.competitionExternalId,
       season: String(season),
-      from: query.from,
-      to: query.to,
+      ...(query.wholeSeason === true ? {} : { from: query.from, to: query.to }),
     });
     if (!result.ok) return { ok: false, error: result.error, requests: 1 };
     const data = result.data.response

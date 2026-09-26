@@ -113,8 +113,7 @@ class FootballDataOrgAdapter implements ProviderAdapter {
     if (season === null) return this.badSeason(query.seasonLabel);
     const result = await this.call(`/competitions/${query.competitionExternalId}/matches`, {
       season: String(season),
-      dateFrom: query.from,
-      dateTo: query.to,
+      ...(query.wholeSeason === true ? {} : { dateFrom: query.from, dateTo: query.to }),
     });
     if (!result.ok) return { ok: false, error: result.error, requests: 1 };
     const matches = Array.isArray(result.body.matches) ? result.body.matches : [];
