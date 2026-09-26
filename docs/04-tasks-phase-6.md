@@ -129,7 +129,7 @@ from our own records (T-112) and says what it cannot measure.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-520 | Share cards: an Open Graph image for a match, a competition table and a member's settled prediction, rendered with `next/og` | T-065 | A link pasted into Telegram shows the card; a card never shows what its page does not, and a private profile's prediction has none |
+| `[~]` T-520 | Share cards: an Open Graph image for a match, a competition table and a member's settled prediction, rendered with `next/og` | T-065 | A link pasted into Telegram shows the card; a card never shows what its page does not, and a private profile's prediction has none |
 | `[ ]` T-521 | A share control on the match centre and after a prediction is saved | T-520 | The platform's share sheet where there is one, a copied link where not; the link carries nothing about the sharer |
 | `[ ]` T-522 | Invite links: a member's link, and a sign-up through it offered a friend request to the inviter | T-040, T-201 | The new member may decline; there is no reward and no ranking of inviters |
 | `[ ]` T-523 | A page for a first visit: what the product is, the three prediction products, how a rating is earned | — | Linked from the homepage for signed-out visitors; every claim on it is true of the product as deployed |
@@ -217,4 +217,17 @@ member's favourites, then that place, then country and name as before; the
 order used on the server is in `14-maintainer.md`. Whether the page stays
 usable on a phone with every league playing is observed on the first full
 Saturday after the international break, not asserted.
+
+---
+
+**T-520 started on 2026-09-26: a match and a table.** A link to a match or a
+competition pasted into a chat now shows a card, rendered by `next/og` from the
+same answers the page is built from (`lib/share-card.ts` decides the words,
+`components/share-card-image.tsx` draws them): the teams, the score or the
+kick-off -- in UTC, and saying so, because a preview is fetched once and shown
+to everyone in the chat -- and the statistical model's forecast with the
+model's name when the page shows one; or the top six of the current season's
+table. A page that cannot be read gives a card with the product's name and
+nothing about the match. A member's settled prediction is the part still to
+come, with the rule that a private profile has no card.
 
