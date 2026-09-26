@@ -18,6 +18,12 @@ import { percentages } from './forecast';
  * they follow.
  */
 
+/**
+ * How many days ahead the homepage looks: two weeks, the most one scores
+ * request may span, so the first matches after an international break are
+ * already on it (T-505 keeps the season's schedule).
+ */
+export const HOME_DAYS = 14;
 /** How many matches the homepage lists before "All scores". */
 export const HOME_MATCHES = 8;
 /** How many of those it shows the model's forecast for. */

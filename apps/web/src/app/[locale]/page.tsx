@@ -12,6 +12,7 @@ import {
   fetchScores,
 } from '@/lib/api';
 import {
+  HOME_DAYS,
   HOME_TABLE_ROWS,
   homeForecasts,
   homeMatches,
@@ -63,7 +64,11 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const today = dateIn(timeZone, new Date());
   const [scores, news] = await Promise.all([
     fetchScores(
-      new URLSearchParams({ from: today, to: shiftDate(today, 6), tz: timeZone }).toString(),
+      new URLSearchParams({
+        from: today,
+        to: shiftDate(today, HOME_DAYS - 1),
+        tz: timeZone,
+      }).toString(),
       cookie,
     ),
     fetchNewsSection('', locale, cookie),
