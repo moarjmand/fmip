@@ -59,7 +59,18 @@ into one number.
 | `[x]` T-100 | **Decision gate:** review the bake-off and D-049, buy the chosen paid tier | T-024, D-049 | New entry in `00-decisions.md`; keys in `.env` |
 | `[x]` T-101 | Player-level match statistics: schema, normalised model, adapter support | T-100 | A player's minutes, shots, xG and passing are stored per fixture, or the module says `not_supplied` |
 | `[x]` T-102 | Expected goals on the critical path: ingestion, coverage, display | T-101 | Every finished fixture in a covered competition carries team xG, or says why not |
-| `[ ]` T-103 | Injury and suspension availability feed | T-100 | A player unavailable for a fixture is stored with a reason and a source time |
+| `[x]` T-103 | Injury and suspension availability feed | T-100 | A player unavailable for a fixture is stored with a reason and a source time |
+
+**T-103 done on 2026-09-26.** A sixth adapter call, `getAvailability`, asks
+who will miss a match; API-Football answers from `/injuries?fixture=` with
+`Missing Fixture` (stored as `out`) or `Questionable` (`doubtful`) and its own
+words for why, kept beside what they amount to -- injury, suspension, illness
+or other. The line-ups job asks about every match in the next 72 hours, again
+once an answer is three hours old, and `fixture_absence` holds the provider's
+whole answer: a player it stops listing is deleted, and `reported_at` moves
+only when what it said changed. Every ask is recorded, because "nobody is
+missing" is an answer, and the match centre's **Availability** module says
+exactly that, with the time of the ask, instead of "not supplied".
 
 **T-101 done on 2026-09-26.** API-Football's `/fixtures?id=`, the call the
 post-match job already makes, carries a per-player block that the adapter had

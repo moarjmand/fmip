@@ -63,17 +63,27 @@ export class FixturesService {
     if (head === null) return null;
     const { header, homeParticipantId, awayParticipantId, detailOwed } = head;
 
-    const [coverage, incidents, statistics, lineups, players, homeForm, awayForm, meetings] =
-      await Promise.all([
-        this.centre.coverage(header.season.id),
-        this.centre.incidents(fixtureId, homeParticipantId),
-        this.centre.statistics(homeParticipantId, awayParticipantId),
-        this.centre.lineups(homeParticipantId, awayParticipantId),
-        this.centre.playerStatistics(homeParticipantId, awayParticipantId),
-        this.centre.form(header.home.id, header.kickoff_at, fixtureId),
-        this.centre.form(header.away.id, header.kickoff_at, fixtureId),
-        this.centre.headToHead(header.home.id, header.away.id, header.kickoff_at, fixtureId),
-      ]);
+    const [
+      coverage,
+      incidents,
+      statistics,
+      lineups,
+      players,
+      absences,
+      homeForm,
+      awayForm,
+      meetings,
+    ] = await Promise.all([
+      this.centre.coverage(header.season.id),
+      this.centre.incidents(fixtureId, homeParticipantId),
+      this.centre.statistics(homeParticipantId, awayParticipantId),
+      this.centre.lineups(homeParticipantId, awayParticipantId),
+      this.centre.playerStatistics(homeParticipantId, awayParticipantId),
+      this.centre.availability(fixtureId),
+      this.centre.form(header.home.id, header.kickoff_at, fixtureId),
+      this.centre.form(header.away.id, header.kickoff_at, fixtureId),
+      this.centre.headToHead(header.home.id, header.away.id, header.kickoff_at, fixtureId),
+    ]);
 
     const bothSides = lineups.home.length > 0 && lineups.away.length > 0;
     // A finished match whose detail has not been asked for yet is owed it: a
@@ -101,6 +111,13 @@ export class FixturesService {
         owed(!bothSides, coverage.lineups),
         lineups.lastUpdatedAt,
       ),
+      // Asked is answered, even when the answer is nobody (T-103): the list
+      // is then `available` and empty, dated by the ask. Never asked is
+      // `not_supplied`; the ingestion job asks about the next three days.
+      availability:
+        absences.askedAt === null
+          ? { coverage: 'not_supplied', last_updated_at: null, data: null }
+          : { coverage: 'available', last_updated_at: absences.askedAt, data: absences.rows },
       // Player numbers arrive with the team's statistics and have no season
       // profile of their own, so the team statistics' declared state stands in.
       player_statistics: covered(

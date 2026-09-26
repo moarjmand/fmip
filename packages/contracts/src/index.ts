@@ -223,6 +223,7 @@ export type {
   CoverageModule,
   FormEntry,
   HeadToHeadEntry,
+  MatchAbsence,
   MatchCentre,
   MatchHeader,
   MatchIncident,

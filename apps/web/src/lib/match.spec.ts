@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   NOT_YET,
+  absenceLine,
   PLAYER_COLUMNS,
   minuteLabel,
   moduleState,
@@ -36,7 +37,7 @@ describe('match centre labels', () => {
   it('lists every blueprint 4.2 module the page does not have yet', () => {
     // Equality, not containment: a module that reaches the page must leave
     // this list, or the page says "not yet" about something it shows.
-    expect(NOT_YET.map(([name]) => name)).toEqual(['Availability', 'Key players']);
+    expect(NOT_YET.map(([name]) => name)).toEqual(['Key players']);
   });
 });
 
@@ -64,5 +65,21 @@ describe('player statistics', () => {
   it('starts with minutes and never lists a per-player xG it cannot fill', () => {
     expect(PLAYER_COLUMNS[0]?.[0]).toBe('minutes');
     expect(PLAYER_COLUMNS.map(([metric]) => metric)).not.toContain('expected_goals');
+  });
+});
+
+describe('availability', () => {
+  it('reads out or doubtful, then the provider’s reason when it gave one', () => {
+    const base = {
+      id: 'p',
+      name: 'M. Obafemi',
+      side: 'home' as const,
+      kind: 'injury' as const,
+      reported_at: '2026-09-26T08:00:00.000Z',
+    };
+    expect(absenceLine({ ...base, status: 'out', reason: 'Thigh Injury' })).toBe(
+      'Out · Thigh Injury',
+    );
+    expect(absenceLine({ ...base, status: 'doubtful', reason: null })).toBe('Doubtful');
   });
 });
