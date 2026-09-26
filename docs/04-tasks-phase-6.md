@@ -150,7 +150,7 @@ about football -- a chat, a channel -- and let one member bring another.
 |---|---|---|---|
 | `[x]` T-530 | The baseline restated at scale: the backtest over every loaded division and the last three seasons, against the market and uniform | T-062, T-502 | Per-division log loss and Brier recorded as the numbers a candidate must beat |
 | `[x]` T-531 | Shadow forecasts: a candidate version computed beside the published one for every match, stored and never shown | T-064, T-066 | The evaluation records read both; the match page is unchanged |
-| `[~]` T-532 | The constants D-029 left to the backtest -- time decay, ridge, Elo weight -- tuned per division | T-530, T-531 | Frozen into the candidate only where they beat the baseline out of sample |
+| `[x]` T-532 | The constants D-029 left to the backtest -- time decay, ridge, Elo weight -- tuned per division | T-530, T-531 | Frozen into the candidate only where they beat the baseline out of sample |
 | `[ ]` T-533 | European cup matches on one scale: clubs of two leagues forecast from Club Elo and each side's domestic strength | T-531, T-060 | In shadow until the season's cup results show it calibrated; its limits stated in the model's docs |
 | `[ ]` T-534 | Line-ups and absences in expected goals: the T-112 measurement as an additive term | T-531, T-112, T-103 | Fitted on our own recorded matches, since the history holds no line-ups; in shadow |
 | `[ ]` T-535 | Promotion: the candidate replaces the published version only on the evaluation | T-531 | A decision entry with the numbers; stored forecasts keep their version (rule 5) |
@@ -315,4 +315,15 @@ constants on 2025/26 by 0.002. The first divisions adopt a longer memory: E0 xi
 at the grid's edge, so a second pass widens it (`--xi`). The adopted constants
 become the candidate (`fmip_model/model/candidate.json`) and run in shadow;
 they are published only by T-535.
+
+**T-532 done on 2026-09-26.** The tuning pass finished: ten of eleven divisions
+adopt new constants, every one of them a longer memory than the published
+0.0065 (xi 0.002 or 0.004, half-lives of 347 or 173 days); E1 keeps the
+published pair, its gain of 0.0019 falling short of 0.002. Over the 3,735
+forecasts of 2025/26, which the choice never saw, log loss falls from 1.0192
+to 1.0110 -- about a quarter of the published model's gap to the market. The
+pairs are frozen into `dixon-coles-elo@0.2.0` (`fmip_model/model/candidate.json`,
+with a 1,100-day history window so the decay, not the window, forgets), which
+now runs in shadow (T-531) and is published only by T-535. Most choices sit at
+the grid's edge, so a wider pass may find more; it would be a further version.
 
