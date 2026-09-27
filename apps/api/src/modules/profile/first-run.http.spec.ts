@@ -167,6 +167,48 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('first run', 
     expect(zone.json<OwnProfile>().theme).toBe('dark');
   });
 
+  it('keeps text size, contrast and motion on the account (T-621)', async () => {
+    const before = (
+      await app.inject({ method: 'GET', url: '/me/profile', headers: { cookie } })
+    ).json<OwnProfile>();
+    expect([before.text_size, before.contrast, before.motion]).toEqual([
+      'default',
+      'system',
+      'system',
+    ]);
+
+    const chosen = await app.inject({
+      method: 'PATCH',
+      url: '/me/preferences',
+      headers: { cookie },
+      payload: { text_size: 'larger', contrast: 'more', motion: 'reduce' },
+    });
+    expect(chosen.statusCode).toBe(200);
+    const after = chosen.json<OwnProfile>();
+    expect([after.text_size, after.contrast, after.motion]).toEqual(['larger', 'more', 'reduce']);
+
+    const bad = await app.inject({
+      method: 'PATCH',
+      url: '/me/preferences',
+      headers: { cookie },
+      payload: { text_size: 'huge', contrast: 'standard' },
+    });
+    expect(bad.statusCode).toBe(400);
+    expect(Object.keys(bad.json<{ fields: Record<string, string> }>().fields)).toEqual([
+      'text_size',
+    ]);
+
+    // One preference leaves the others alone, the refused one included.
+    const one = await app.inject({
+      method: 'PATCH',
+      url: '/me/preferences',
+      headers: { cookie },
+      payload: { contrast: 'standard' },
+    });
+    const kept = one.json<OwnProfile>();
+    expect([kept.text_size, kept.contrast, kept.motion]).toEqual(['larger', 'standard', 'reduce']);
+  });
+
   it('ends once, and a second end keeps the first moment', async () => {
     const first = await app.inject({ method: 'PUT', url: '/me/first-run', headers: { cookie } });
     expect(first.statusCode).toBe(200);

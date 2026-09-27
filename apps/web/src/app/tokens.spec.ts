@@ -38,6 +38,17 @@ const LIGHT = block('\n:root');
 const DARK = block(":root:not([data-theme='light'])");
 const DARK_CHOSEN = block(":root[data-theme='dark']");
 
+// More contrast (T-621): the first of each kind carries the figures, the
+// others are the same values reached another way.
+const LIGHT_MORE = block(":root[data-contrast='more']");
+const LIGHT_MORE_DEVICE = block(":root:not([data-contrast='standard'])");
+const DARK_MORE = block(":root[data-theme='dark'][data-contrast='more']");
+const DARK_MORE_COPIES = [
+  block(":root:not([data-theme='light'])[data-contrast='more']"),
+  block(":root[data-theme='dark']:not([data-contrast='standard'])"),
+  block(":root:not([data-theme='light']):not([data-contrast='standard'])"),
+];
+
 function luminance(hex: string): number {
   const linear = [1, 3, 5]
     .map((at) => parseInt(hex.slice(at, at + 2), 16) / 255)
@@ -74,6 +85,8 @@ function value(theme: Map<string, Declaration>, name: string): string {
 describe.each([
   ['light', LIGHT],
   ['dark', DARK],
+  ['light, more contrast,', LIGHT_MORE],
+  ['dark, more contrast,', DARK_MORE],
 ])('the %s theme', (_name, theme) => {
   it.each(TEXT)('%s is AA text (4.5:1) on the page and both surfaces', (token) => {
     for (const background of BACKGROUNDS) {
@@ -115,6 +128,120 @@ describe.each([
       });
     }
     expect(checked).toBeGreaterThan(20);
+  });
+});
+
+describe.each([
+  ['light', LIGHT_MORE],
+  ['dark', DARK_MORE],
+])('more contrast on %s (T-621)', (_name, theme) => {
+  it.each(TEXT)('%s is AAA text (7:1) on the page and both surfaces', (token) => {
+    for (const background of BACKGROUNDS) {
+      expect(
+        contrast(value(theme, token), value(theme, background)),
+        `${token} on ${background}`,
+      ).toBeGreaterThanOrEqual(7);
+    }
+  });
+
+  it('text on the green is AAA, plain and pressed', () => {
+    for (const background of ON_ACCENT_BACKGROUNDS) {
+      expect(
+        contrast(value(theme, '--token-on-accent'), value(theme, background)),
+      ).toBeGreaterThanOrEqual(7);
+    }
+  });
+
+  it('even the hairline is a visible edge (3:1), and a field or the focus ring 4.5:1', () => {
+    for (const background of BACKGROUNDS) {
+      expect(
+        contrast(value(theme, '--token-border'), value(theme, background)),
+      ).toBeGreaterThanOrEqual(3);
+      for (const token of NON_TEXT) {
+        expect(
+          contrast(value(theme, token), value(theme, background)),
+          `${token} on ${background}`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+});
+
+describe('more contrast, as a whole (T-621)', () => {
+  const standard = { light: LIGHT, dark: DARK };
+  const more = { light: LIGHT_MORE, dark: DARK_MORE };
+
+  it('raises every text role that was below 7:1, and never lowers one', () => {
+    for (const name of ['light', 'dark'] as const) {
+      for (const token of TEXT) {
+        for (const background of BACKGROUNDS) {
+          expect(
+            contrast(value(more[name], token), value(more[name], background)),
+            `${name} ${token} on ${background}`,
+          ).toBeGreaterThanOrEqual(
+            Math.min(7, contrast(value(standard[name], token), value(standard[name], background))),
+          );
+        }
+      }
+    }
+  });
+
+  it('brings muted text close to body text and makes the edges stronger', () => {
+    for (const name of ['light', 'dark'] as const) {
+      const canvas = value(more[name], '--token-canvas');
+      expect(contrast(value(more[name], '--token-text-muted'), canvas)).toBeGreaterThanOrEqual(9);
+      for (const edge of ['--token-border', '--token-border-strong']) {
+        expect(contrast(value(more[name], edge), canvas), `${name} ${edge}`).toBeGreaterThan(
+          contrast(value(standard[name], edge), value(standard[name], '--token-canvas')),
+        );
+      }
+    }
+  });
+
+  it('reaches the same values whether the member chose it or the device asked for it', () => {
+    const names = [...LIGHT.keys()].sort();
+    const pairs = [
+      [LIGHT_MORE_DEVICE, LIGHT_MORE],
+      ...DARK_MORE_COPIES.map((copy) => [copy, DARK_MORE]),
+    ];
+    for (const [copy, of] of pairs) {
+      if (copy === undefined || of === undefined) throw new Error('missing block');
+      expect([...copy.keys()].sort()).toEqual(names);
+      expect([...of.keys()].sort()).toEqual(names);
+      for (const [name, declared] of of) expect(value(copy, name), name).toBe(declared.value);
+    }
+  });
+
+  it('is layered so dark beats light-and-more, and dark-and-more beats dark', () => {
+    const at = (text: string) => {
+      const index = TOKENS.indexOf(text);
+      expect(index, text).toBeGreaterThan(-1);
+      return index;
+    };
+    const lightMore = at(":root[data-contrast='more'] {");
+    const lightMoreDevice = at(
+      "@media (prefers-contrast: more) {\n  :root:not([data-contrast='standard']) {",
+    );
+    const firstDark = at(
+      "@media (prefers-color-scheme: dark) {\n  :root:not([data-theme='light']) {",
+    );
+    const chosenDark = at(":root[data-theme='dark'] {");
+    const darkMore = [
+      at(":root[data-theme='dark'][data-contrast='more'] {"),
+      at(
+        "@media (prefers-color-scheme: dark) {\n  :root:not([data-theme='light'])[data-contrast='more'] {",
+      ),
+      at(
+        "@media (prefers-contrast: more) {\n  :root[data-theme='dark']:not([data-contrast='standard']) {",
+      ),
+      at(
+        "@media (prefers-color-scheme: dark) and (prefers-contrast: more) {\n  :root:not([data-theme='light']):not([data-contrast='standard']) {",
+      ),
+    ];
+    expect(at('\n:root {')).toBeLessThan(lightMore);
+    expect(Math.max(lightMore, lightMoreDevice)).toBeLessThan(firstDark);
+    expect(firstDark).toBeLessThan(chosenDark);
+    for (const index of darkMore) expect(index).toBeGreaterThan(chosenDark);
   });
 });
 

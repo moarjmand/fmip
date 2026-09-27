@@ -138,7 +138,7 @@ export class ProfileService {
       privacy: toPrivacy(row),
       viewing_territory: await this.store.viewingTerritory(userId),
       first_run: await this.store.firstRun(userId),
-      theme: await this.store.theme(userId),
+      ...(await this.store.appearance(userId)),
     };
   }
 
@@ -162,6 +162,9 @@ export class ProfileService {
       language: patch.preferred_language,
       timezone: patch.timezone,
       theme: patch.theme,
+      textSize: patch.text_size,
+      contrast: patch.contrast,
+      motion: patch.motion,
     });
     return this.own(userId);
   }

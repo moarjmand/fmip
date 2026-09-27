@@ -132,6 +132,25 @@ body {
   outline-offset: 2px;
 }
 
+/*
+ * Text size (T-621, blueprint 2.2). Every size above, and Tailwind's spacing,
+ * is in rem, so the root's font size scales the whole page as one: a
+ * percentage of the browser's own setting, which a reader may already have
+ * raised, never a fixed pixel size that would override it. `default` is that
+ * setting unchanged.
+ */
+:root[data-text-size='large'] {
+  font-size: 112.5%;
+}
+
+:root[data-text-size='larger'] {
+  font-size: 125%;
+}
+
+/*
+ * Reduced motion: the device's setting, or the member's own (T-621,
+ * `data-motion="reduce"`), which holds whatever the device says.
+ */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -140,4 +159,13 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+:root[data-motion='reduce'],
+:root[data-motion='reduce'] *,
+:root[data-motion='reduce'] *::before,
+:root[data-motion='reduce'] *::after {
+  animation-duration: 0.01ms !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
 }

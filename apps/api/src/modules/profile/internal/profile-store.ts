@@ -1,6 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type {
+  ContrastPreference,
   FirstRunState,
+  MotionPreference,
+  OwnProfile,
+  TextSizePreference,
   PrivacySettings,
   PrivacyVisibility,
   PublicProfile,
@@ -123,31 +127,62 @@ export class PostgresProfileStore {
 
   /**
    * Language and time zone after registration (T-620), and the colour theme
-   * (T-602); `undefined` leaves a column alone.
+   * (T-602), text size, contrast and motion (T-621); `undefined` leaves a
+   * column alone.
    */
   async setPreferences(
     userId: string,
-    patch: { language?: string; timezone?: string; theme?: ThemePreference },
+    patch: {
+      language?: string;
+      timezone?: string;
+      theme?: ThemePreference;
+      textSize?: TextSizePreference;
+      contrast?: ContrastPreference;
+      motion?: MotionPreference;
+    },
   ): Promise<void> {
-    if (patch.language === undefined && patch.timezone === undefined && patch.theme === undefined)
-      return;
+    if (Object.values(patch).every((value) => value === undefined)) return;
     await this.pool.query(
       `UPDATE user_account
           SET preferred_language = COALESCE($2, preferred_language),
               timezone = COALESCE($3, timezone),
-              theme = COALESCE($4, theme)
+              theme = COALESCE($4, theme),
+              text_size = COALESCE($5, text_size),
+              contrast = COALESCE($6, contrast),
+              motion = COALESCE($7, motion)
         WHERE id = $1`,
-      [userId, patch.language ?? null, patch.timezone ?? null, patch.theme ?? null],
+      [
+        userId,
+        patch.language ?? null,
+        patch.timezone ?? null,
+        patch.theme ?? null,
+        patch.textSize ?? null,
+        patch.contrast ?? null,
+        patch.motion ?? null,
+      ],
     );
   }
 
-  /** The colour theme the member chose (T-602); `system` when there is no such account row. */
-  async theme(userId: string): Promise<ThemePreference> {
-    const { rows } = await this.pool.query<{ theme: ThemePreference }>(
-      `SELECT theme FROM user_account WHERE id = $1`,
-      [userId],
-    );
-    return rows[0]?.theme ?? 'system';
+  /**
+   * The colour theme (T-602) and the accessibility preferences (T-621) the
+   * member chose; each one's "never chose" value when there is no such row.
+   */
+  async appearance(
+    userId: string,
+  ): Promise<Pick<OwnProfile, 'theme' | 'text_size' | 'contrast' | 'motion'>> {
+    const { rows } = await this.pool.query<{
+      theme: ThemePreference;
+      text_size: TextSizePreference;
+      contrast: ContrastPreference;
+      motion: MotionPreference;
+    }>(`SELECT theme, text_size, contrast, motion FROM user_account WHERE id = $1`, [userId]);
+    const row = rows[0];
+    return {
+      theme: row?.theme ?? 'system',
+      text_size: row?.text_size ?? 'default',
+      contrast: row?.contrast ?? 'system',
+      motion: row?.motion ?? 'system',
+    };
   }
 
   /** Sets or clears the choice; `unknown` when the code is not a territory. */

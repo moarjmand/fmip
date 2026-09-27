@@ -77,6 +77,10 @@ export async function SiteHeader({ locale, theme }: { locale: string; theme: The
             <Link href={href('/register')} className="font-medium">
               Register
             </Link>
+            {/* A guest's Settings is the appearance alone: text size, contrast, motion (T-621). */}
+            <Link href={href('/settings')} data-testid="nav-settings-guest">
+              <Translated locale={locale} message="nav.settings" />
+            </Link>
           </>
         ) : (
           <>

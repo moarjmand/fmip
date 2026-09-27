@@ -3381,3 +3381,48 @@ roll call, and a poll that exposes a vote gets fewer honest answers. *Polls in
 direct messages*: two people do not need a poll. *A new report subject for
 polls*: nothing else a member writes in a group is one, and a subject nobody
 enforces is a promise to the moderation team that is not kept.
+
+---
+
+## D-092 — Text size, contrast and motion kept like the theme; more contrast is AAA; a guest has Settings too
+
+**Status:** decided, delegated · **Date:** 2026-09-28 · **Tasks:** T-621 · **Follows:** D-090, D-041
+
+**The decision.**
+
+- **Three preferences, each stored the way D-090 stores the theme.** A cookie
+  per preference (`fmip_text_size`, `fmip_contrast`, `fmip_motion`, a year)
+  that the locale layout renders on `<html>` (`data-text-size`,
+  `data-contrast`, `data-motion`), so the first paint is right with no
+  script; for a member, the same values on `user_account` through
+  `PATCH /me/preferences` (additive columns with constant defaults, no
+  backfill), reconciled at sign-in by the theme's rule.
+- **Text size** is `default` | `large` | `larger`: the root font size at
+  100% / 112.5% / 125% of the browser's own, never a pixel value, so a reader
+  who already raised the browser's size keeps that and gains on top of it.
+  Every size and spacing is in rem, so the page scales as one; at 360px the
+  page does not scroll sideways (a wide table may, inside its container).
+- **Contrast** is `system` | `standard` | `more`. `more` is a second set of
+  token values per theme in which every text role is WCAG AAA (7:1) on the
+  page and both surfaces, muted text is close to body text, the hairline is a
+  visible edge (3:1), and the dark backgrounds go to black. `system`, the
+  default, follows the device's `prefers-contrast: more`; `standard` is a
+  choice to keep the standard values whatever the device says.
+- **Motion** is `system` | `reduce`. Blueprint 2.2 names reduced motion as a
+  preference, so it is a control, not only the OS setting: `reduce` stops
+  animations and transitions whatever the device says. There is no "always
+  animate": overriding a device that asked for less motion is not a choice
+  this product offers.
+- **A guest has Settings.** Blueprint 2.2 lists these among the global
+  controls, so a guest can reach them: `/settings` without a session shows
+  Appearance alone (theme, text size, contrast, motion) with a sign-in link,
+  instead of redirecting to login, and the header shows guests a Settings
+  link. The theme also stays in the header; the three new ones are not
+  added there, because a header row of four switches does not fit a phone.
+
+**Rejected.** *A `more` that only changes muted text*: the green, the
+warnings and the live marker were below 7:1 too. *Honouring
+`prefers-contrast` with no way to decline it*: a reader whose device asks
+for more everywhere may want this site's standard look, as a theme choice
+wins over the device. *A redirect for guests with the controls in the
+header*: four switches crowd the one row the header has at 360px.
