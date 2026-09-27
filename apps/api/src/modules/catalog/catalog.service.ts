@@ -106,9 +106,11 @@ export class CatalogService {
   /**
    * What a member who follows nothing can follow next (T-622): every active
    * competition with the teams of its season (current, else newest -- the
-   * same rule as `pickSeason`) that members follow most. Everything comes
-   * from stored rows; a competition with no season or no fixture yet is
-   * listed with no teams rather than given some from elsewhere.
+   * same rule as `pickSeason`) that play its main phase (`mainPhaseTeams`),
+   * most followed first, then by their place in the season's table when one
+   * exists, then by name. Everything comes from stored rows; a competition
+   * with no season or no fixture yet is listed with no teams rather than
+   * given some from elsewhere.
    */
   async followSuggestions(): Promise<FollowSuggestionsResponse> {
     const { rows } = await this.pool.query<SuggestionRow>(
@@ -118,15 +120,20 @@ export class CatalogService {
           ORDER BY competition_id, is_current DESC, start_date DESC, label DESC
        ),
        played AS (
-         SELECT DISTINCT pk.competition_id, fp.team_id
+         -- Every stage kind the team played in that season; a NULL element
+         -- for a fixture with no stage (array_agg keeps it).
+         SELECT pk.competition_id, fp.team_id, array_agg(DISTINCT st.kind) AS stage_kinds
            FROM picked pk
            JOIN fixture f ON f.season_id = pk.id
+           LEFT JOIN stage st ON st.id = f.stage_id
            JOIN fixture_participant fp ON fp.fixture_id = f.id
+          GROUP BY pk.competition_id, fp.team_id
        )
        SELECT c.id, c.name, c.short_name, c.scope, c.country_id, c.display_order,
               pk.id AS season_id, pk.label AS season_label,
               t.id AS team_id, t.name AS team_name, t.short_name AS team_short_name,
               t.code AS team_code, t.kind AS team_kind, t.country_id AS team_country_id,
+              pl.stage_kinds,
               (SELECT count(*) FROM followed_entity fe
                 WHERE fe.entity_type = 'team' AND fe.entity_id = t.id)::int AS followers
          FROM competition c
@@ -135,8 +142,22 @@ export class CatalogService {
          LEFT JOIN team t ON t.id = pl.team_id AND t.is_active
         WHERE c.is_active`,
     );
+    // The tie-break after followers: each team's place in its season's table,
+    // computed by the standings boundary as the competition page shows it.
+    const seasonIds = [
+      ...new Set(
+        rows.flatMap((r) => (r.season_id !== null && r.team_id !== null ? [r.season_id] : [])),
+      ),
+    ];
+    const tables = await Promise.all(seasonIds.map((id) => this.standings.table(id)));
+    const positions = new Map<string, number>();
+    seasonIds.forEach((seasonId, i) => {
+      for (const row of tables[i]?.data ?? []) {
+        positions.set(`${seasonId}:${row.team.id}`, row.position);
+      }
+    });
     return {
-      competitions: groupSuggestions(rows, SUGGESTED_TEAMS_PER_COMPETITION),
+      competitions: groupSuggestions(rows, SUGGESTED_TEAMS_PER_COMPETITION, positions),
       ranked_by: 'followers',
     };
   }
@@ -254,19 +275,50 @@ export interface SuggestionRow {
   team_code: string | null;
   team_kind: TeamSummary['kind'] | null;
   team_country_id: string | null;
+  /** Stage kinds the team played in that season; a `null` element for a fixture with no stage. */
+  stage_kinds: (string | null)[] | null;
   followers: number | null;
+}
+
+/** Stage kinds of a competition's main phase; qualifying rounds and play-offs are not. */
+const MAIN_PHASE_KINDS: ReadonlySet<string> = new Set(['league', 'group', 'knockout']);
+
+/**
+ * The teams of a season that play its main phase (T-622): when the season
+ * holds a league, group or knockout stage, the teams with a fixture in one;
+ * else (a league whose fixtures carry no stage) the teams with a fixture
+ * outside any stage. Qualifying rounds and play-offs never count on their
+ * own: a club knocked out in the qualifiers is not suggested, and a season
+ * still in its qualifiers suggests no one yet. Knockout play-offs after a
+ * league stage lose no one, since their teams played that stage.
+ */
+export function mainPhaseTeams<T extends { stage_kinds: readonly (string | null)[] }>(
+  teams: readonly T[],
+): T[] {
+  const main = (t: T): boolean => t.stage_kinds.some((k) => k !== null && MAIN_PHASE_KINDS.has(k));
+  if (teams.some(main)) return teams.filter(main);
+  return teams.filter((t) => t.stage_kinds.includes(null));
+}
+
+interface Candidate {
+  team: SuggestedTeam;
+  stage_kinds: readonly (string | null)[];
+  position: number;
 }
 
 /**
  * Pure, so the suggestion rule is one function (T-622): competitions in their
  * scores-page order (a stated `display_order` first, then by name), each with
- * at most `limit` teams, most followed first and then by name.
+ * at most `limit` of the teams that play its main phase (`mainPhaseTeams`),
+ * most followed first, then by table position (`positions`, keyed
+ * `season:team`; a team with none after those with one), then by name.
  */
 export function groupSuggestions(
   rows: readonly SuggestionRow[],
   limit: number,
+  positions: ReadonlyMap<string, number> = new Map(),
 ): SuggestedCompetition[] {
-  const byCompetition = new Map<string, { row: SuggestionRow; teams: SuggestedTeam[] }>();
+  const byCompetition = new Map<string, { row: SuggestionRow; teams: Candidate[] }>();
   for (const row of rows) {
     let entry = byCompetition.get(row.id);
     if (entry === undefined) {
@@ -275,13 +327,17 @@ export function groupSuggestions(
     }
     if (row.team_id !== null && row.team_name !== null && row.team_kind !== null) {
       entry.teams.push({
-        id: row.team_id,
-        name: row.team_name,
-        short_name: row.team_short_name,
-        code: row.team_code,
-        kind: row.team_kind,
-        country_id: row.team_country_id,
-        followers: row.followers ?? 0,
+        team: {
+          id: row.team_id,
+          name: row.team_name,
+          short_name: row.team_short_name,
+          code: row.team_code,
+          kind: row.team_kind,
+          country_id: row.team_country_id,
+          followers: row.followers ?? 0,
+        },
+        stage_kinds: row.stage_kinds ?? [null],
+        position: positions.get(`${row.season_id}:${row.team_id}`) ?? Number.MAX_SAFE_INTEGER,
       });
     }
   }
@@ -304,9 +360,15 @@ export function groupSuggestions(
         row.season_id !== null && row.season_label !== null
           ? { id: row.season_id, label: row.season_label }
           : null,
-      teams: teams
-        .sort((a, b) => b.followers - a.followers || byName(a.name, b.name))
-        .slice(0, limit),
+      teams: mainPhaseTeams(teams)
+        .sort(
+          (a, b) =>
+            b.team.followers - a.team.followers ||
+            a.position - b.position ||
+            byName(a.team.name, b.team.name),
+        )
+        .slice(0, limit)
+        .map((c) => c.team),
     }));
 }
 
