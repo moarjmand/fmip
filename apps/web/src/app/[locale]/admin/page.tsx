@@ -142,6 +142,9 @@ export default async function AdminPage({
         <Link href={`/${locale}/admin/moderation`} className="underline">
           Moderation queue
         </Link>
+        <Link href={`/${locale}/admin/contributors`} className="underline">
+          Contributors
+        </Link>
       </nav>
 
       <HealthPanel live={live} chat={chat} />
