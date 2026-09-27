@@ -3184,3 +3184,68 @@ the flow once too, and one click dismisses it.
 information, plus a table of anonymous visitors to retain and delete.
 *Applying at every sign-in*: a shared or old browser would silently change a
 member's settings.
+
+## D-089 — The identity: FMIP, calm and data-first, one green, the device's theme, Vazirmatn, a monogram mark
+
+**Status:** decided, delegated · **Date:** 2026-09-27 · **Tasks:** T-600, T-601, T-604 · **Follows:** D-042
+
+**Who decided.** The maintainer delegated these choices to the agent on
+2026-09-27 ("decide yourself"). Each is revisable: none is load-bearing for
+data, and a change is a new entry here, a token or an SVG, not a migration.
+
+**The decision.**
+
+- **Name shown:** "FMIP", unchanged: the header, the manifest, the title and
+  the share cards.
+- **Tone:** data-first and calm. Dense and legible, few decorative elements,
+  in the spirit of FotMob and Sofascore; the numbers carry the page. No hype
+  language: no "insane", no exclamation marks, no "guaranteed", nothing that
+  sells a forecast as more than a forecast (rule 6).
+- **Primary colour:** the existing theme green, named and measured (WCAG 2
+  relative luminance; AA is 4.5:1 for text, 3:1 for large text and graphics):
+
+  | Name (a token in T-602) | Role | Pair measured | Contrast |
+  |---|---|---|---|
+  | `green-700` `#0b6b3a` | primary, light theme | on white `#ffffff` | **6.61:1** |
+  | `green-700` `#0b6b3a` | primary, light theme | on a light surface `#f9fafb` | 6.32:1 |
+  | `green-700` `#0b6b3a` | fill under white (buttons, the mark) | white on it | 6.61:1 |
+  | `green-900` `#063c21` | strong / pressed, light theme | on white | **12.53:1** |
+  | `green-300` `#4cc88a` | primary, dark theme | on Chrome's dark canvas `#121212` | **8.86:1** |
+  | `green-300` `#4cc88a` | primary, dark theme | on Firefox's dark canvas `#1c1b22` | 8.08:1 |
+  | `green-300` `#4cc88a` | fill under dark text, dark theme | `#121212` on it | 8.86:1 |
+
+  `#0b6b3a` on `#121212` is 2.84:1, which is why dark has its own variant:
+  the light green is never used as text on a dark page.
+- **Default theme:** follow the device (`prefers-color-scheme`). A member may
+  choose light, dark or system; the switch is T-602 and not built here.
+- **Font:** Vazirmatn (SIL Open Font License 1.1), one variable family (weights
+  100-900) covering Latin and Arabic script, for every locale. Self-hosted:
+  the dependency is **`@fontsource-variable/vazirmatn`** in `apps/web`, whose
+  `@font-face` rules point at woff2 files inside the package; Next copies them
+  into `/_next/static/media` at build time, one file per script subset by
+  `unicode-range`, `font-display: swap`. No request leaves the site for a
+  font, at build time or in a reader's browser (`src/app/fonts.spec.ts`).
+  System fallback: `system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans',
+  'Noto Sans Arabic', Tahoma, Arial, sans-serif`, then the emoji fonts.
+- **Type scale:** seven sizes and no others, in `globals.css` `@theme`:
+  12, 14, 16, 18, 20, 24 and 30 px (`xs` to `3xl`), with Tailwind's line
+  heights. The larger sizes are removed so that a new size is a decision.
+- **Mark:** a geometric monogram, `apps/web/public/icons/mark.svg`: a rounded
+  square in `#0b6b3a` with a white "F" built from three bars and a white ball
+  in the corner the F leaves open. Drawn to stay legible at 16 px (the stem is
+  2.5 px there). `scripts/make-icons.mjs` rasterises the icons from it; the
+  header and the share cards draw it inline (`components/brand-mark.tsx`). It
+  is replaced when the maintainer supplies a logo, by editing the SVG and
+  rerunning the script.
+- **Persian (`fa`) locale:** not now. It is outside the blueprint's eight
+  languages, and its strings would need a fluent human reviewer before they
+  are shown as translated (the missing-string policy, T-151). Vazirmatn
+  already covers Persian, so adding it later costs no font work.
+
+**Rejected.** *`next/font/google`*: the build (and in development the page)
+fetches from Google, which the production build has no reason to reach and a
+reader's privacy has no reason to pay for. *`next/font/local` with woff2
+files committed*: equivalent at run time, but a binary to vendor and update by
+hand where a versioned package already carries the same files and licence.
+*A new brand colour*: `#0b6b3a` is already the theme colour, the manifest and
+the icons, and passes AA on white; changing it buys nothing measurable.

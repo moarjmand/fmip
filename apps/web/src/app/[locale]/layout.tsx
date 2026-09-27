@@ -11,6 +11,12 @@ import {
   isDemonstrationData,
 } from '@/lib/demonstration';
 import { pageMetadata, siteUrl } from '@/lib/seo';
+// The site font (T-601, D-089): Vazirmatn, self-hosted. The package's
+// @font-face rules point at woff2 files Next copies into its own static
+// assets, one per script subset by `unicode-range`, so a page downloads only
+// the scripts it shows and no request leaves the site for a font. Imported
+// before globals.css, which names the family.
+import '@fontsource-variable/vazirmatn';
 import '../globals.css';
 
 /**
