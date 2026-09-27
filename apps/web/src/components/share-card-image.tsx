@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react';
+import { BrandMark } from '@/components/brand-mark';
 import {
   nameSize,
   type MatchCardText,
@@ -38,19 +39,33 @@ function Frame({ children }: { children: ReactElement | ReactElement[] }): React
   );
 }
 
+/** The mark and the name, with the address the card links to. */
 function Brand({ host }: { host: string }): ReactElement {
   return (
-    <div style={{ display: 'flex', fontSize: 28, fontWeight: 700, color: MUTED }}>
-      {`FMIP · ${host}`}
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+        fontSize: 28,
+        fontWeight: 700,
+        color: MUTED,
+      }}
+    >
+      <BrandMark size={40} />
+      <div style={{ display: 'flex' }}>{`FMIP · ${host}`}</div>
     </div>
   );
 }
 
-/** Only the product's name: what a card says when its page could not be read. */
+/** Only the product: what a card says when its page could not be read. */
 export function PlainCard(): ReactElement {
   return (
     <Frame>
-      <div style={{ display: 'flex', fontSize: 72, fontWeight: 700 }}>FMIP</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
+        <BrandMark size={96} />
+        <div style={{ display: 'flex', fontSize: 72, fontWeight: 700 }}>FMIP</div>
+      </div>
       <div style={{ display: 'flex', fontSize: 34, color: MUTED }}>
         Live scores, match centres and forecasts
       </div>
