@@ -22,6 +22,7 @@ import { StandingsService } from '../standings/standings.service';
 import { buildBracket } from './internal/bracket';
 import { PostgresCompetitionStore } from './internal/competition-store';
 import { PostgresPlayerStore } from './internal/player-store';
+import { buildSplits } from './internal/team-splits';
 import { PostgresTeamStore } from './internal/team-store';
 
 export type CompetitionOutcome =
@@ -193,15 +194,15 @@ export class CatalogService {
     const team = await this.teams_.team(id, locale);
     if (team === null) return { kind: 'unknown_team' };
     const seasons = await this.teams_.seasons(id);
-    const [{ fixtures, lastUpdatedAt }, squad, followers, tables] = await Promise.all([
-      this.teams_.fixtures(
-        id,
-        seasons.map((s) => s.season.id),
-      ),
-      this.teams_.squad(id),
-      this.teams_.followers(id),
-      Promise.all(seasons.map((s) => this.standings.table(s.season.id))),
-    ]);
+    const seasonIds = seasons.map((s) => s.season.id);
+    const [{ fixtures, lastUpdatedAt }, squad, followers, tables, splitFixtures] =
+      await Promise.all([
+        this.teams_.fixtures(id, seasonIds),
+        this.teams_.squad(id),
+        this.teams_.followers(id),
+        Promise.all(seasons.map((s) => this.standings.table(s.season.id))),
+        this.teams_.splitFixtures(id, seasonIds),
+      ]);
     const results = fixtures.filter((f) => f.status === 'finished').reverse();
     const upcoming = fixtures.filter((f) => f.status !== 'finished');
     return {
@@ -218,6 +219,7 @@ export class CatalogService {
         fixtures: upcoming,
         results,
         squad: derived(squad.players, 1, squad.lastUpdatedAt),
+        splits: buildSplits(seasons, splitFixtures),
         followers,
         last_updated_at: lastUpdatedAt,
       },

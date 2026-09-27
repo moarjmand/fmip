@@ -274,6 +274,18 @@ export interface TeamFixture extends SeasonFixture {
   season: { id: string; label: string };
 }
 
+/** A fixture on the team page's own lists (T-632): the extra time and the shoot-out said. */
+export interface TeamPageFixture extends TeamFixture {
+  /**
+   * `score` is the latest we hold: after extra time where it was played, as
+   * the bracket reads it (T-632), so the result letter agrees with the
+   * team's figures. True when an extra-time score is on record.
+   */
+  after_extra_time: boolean;
+  /** The shoot-out, when there was one; it decides the tie, not the match (a draw). */
+  penalties: { home: number; away: number } | null;
+}
+
 /** Where the team stands: its row and up to two neighbours either side. */
 export interface TableContext {
   position: number;
@@ -300,6 +312,75 @@ export interface SquadPlayer {
   since: string;
 }
 
+/**
+ * Team statistics averaged per match on the team page (T-632), from the
+ * team's own side of `fixture_stat`. A closed list, in display order.
+ */
+export const TEAM_AVERAGE_METRICS = [
+  'possession_pct',
+  'shots',
+  'shots_on_target',
+  'corners',
+  'fouls',
+  'pass_accuracy_pct',
+  'expected_goals',
+] as const;
+export type TeamAverageMetric = (typeof TEAM_AVERAGE_METRICS)[number];
+
+/** Results and goals over one split (home, away or both) of the counted matches. */
+export interface TeamSplitRecord {
+  played: number;
+  won: number;
+  /** Includes a match decided by a penalty shoot-out: the shoot-out is not a result. */
+  drawn: number;
+  lost: number;
+  /** After extra time where it was played; never the shoot-out. */
+  goals_for: number;
+  goals_against: number;
+  clean_sheets: number;
+}
+
+/** One statistic averaged per match, per split. */
+export interface TeamStatAverage {
+  metric: TeamAverageMetric;
+  /**
+   * `available` — every counted match holds the figure, so all three averages
+   * are complete; `limited` — some do, and a split is averaged only when every
+   * one of its matches holds it; `not_supplied` — none does.
+   */
+  coverage: 'available' | 'limited' | 'not_supplied';
+  /** Counted matches holding the figure, per split. */
+  matches_with_figure: { home: number; away: number; total: number };
+  /**
+   * The mean over every match of the split, rounded to two places; null when
+   * the split has no match or any of its matches lacks the figure — never a
+   * partial average presented as complete.
+   */
+  home: number | null;
+  away: number | null;
+  total: number | null;
+}
+
+/**
+ * A team's figures in one competition's season (blueprint 5.2, T-632),
+ * computed from our stored finished fixtures only.
+ */
+export interface TeamCompetitionSplits {
+  competition: { id: string; name: string; short_name: string | null };
+  season: { id: string; label: string; is_current: boolean };
+  home: TeamSplitRecord;
+  away: TeamSplitRecord;
+  total: TeamSplitRecord;
+  /** Counted matches that went to a shoot-out (in `drawn`). */
+  penalty_shootouts: number;
+  /** Finished matches we hold no score for: not counted anywhere above. */
+  finished_without_score: number;
+  /** One entry per `TEAM_AVERAGE_METRICS`, in that order; empty when nothing is counted. */
+  averages: TeamStatAverage[];
+  /** Newest change to a counted match; null when none is counted. */
+  last_updated_at: string | null;
+}
+
 /** `GET /teams/:id`. */
 export interface TeamPage {
   team: {
@@ -324,13 +405,18 @@ export interface TeamPage {
   /** Competitions with a current season, or one the team still has matches in. */
   competitions: TeamCompetition[];
   /** The soonest match not yet finished, and the most recent finished one. */
-  next_match: TeamFixture | null;
-  previous_match: TeamFixture | null;
+  next_match: TeamPageFixture | null;
+  previous_match: TeamPageFixture | null;
   /** Not finished, soonest first; finished, newest first. Across the seasons above. */
-  fixtures: TeamFixture[];
-  results: TeamFixture[];
+  fixtures: TeamPageFixture[];
+  results: TeamPageFixture[];
   /** Open player spells. Derived from our own records: `not_supplied` when none. */
   squad: Covered<SquadPlayer[]>;
+  /**
+   * Home / away / total figures per competition (T-632), one entry per
+   * `competitions` entry and in the same order.
+   */
+  splits: TeamCompetitionSplits[];
   followers: number;
   last_updated_at: string | null;
 }

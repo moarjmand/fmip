@@ -1,5 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import type { SearchResponse } from '@fmip/contracts';
+import {
+  SEARCH_ENTITY_TYPES,
+  type SearchEntityType,
+  type SearchResponse,
+  type SearchType,
+} from '@fmip/contracts';
+import { PostgresCommunitySearchStore } from './internal/community-search-store';
 import { type SearchQuery } from './internal/search-query';
 import { PostgresSearchStore } from './internal/search-store';
 
@@ -15,20 +21,37 @@ export {
 } from './internal/search-query';
 export { MIN_SIMILARITY } from './internal/search-store';
 
+const isEntityType = (type: SearchType): type is SearchEntityType =>
+  (SEARCH_ENTITY_TYPES as readonly string[]).includes(type);
+
 /**
- * The search boundary (02-architecture.md, T-038): teams, competitions and
- * people by name or alias (D-039). No index of its own yet: Postgres
- * trigrams over the catalog and the alias table are the index.
+ * The search boundary (02-architecture.md): teams, competitions and people
+ * by name or alias (T-038, D-039), and news stories, findable groups and
+ * public members (T-642, D-087). No index of its own: Postgres trigrams over
+ * the tables themselves are the index.
+ *
+ * `viewerId` matters to members only -- a block hides both sides from each
+ * other -- and is null for a guest. A kind not in `types` is not queried and
+ * comes back `null`.
  */
 @Injectable()
 export class SearchService {
-  constructor(private readonly store: PostgresSearchStore) {}
+  constructor(
+    private readonly store: PostgresSearchStore,
+    private readonly community: PostgresCommunitySearchStore,
+  ) {}
 
-  async search(query: SearchQuery): Promise<SearchResponse> {
-    return {
-      query: query.q,
-      types: query.types,
-      results: await this.store.search(query.q, query.types, query.limit),
-    };
+  async search(query: SearchQuery, viewerId: string | null = null): Promise<SearchResponse> {
+    const entityTypes = query.types.filter(isEntityType);
+    const wants = (type: SearchType) => query.types.includes(type);
+    const [results, stories, groups, members] = await Promise.all([
+      entityTypes.length === 0
+        ? Promise.resolve([])
+        : this.store.search(query.q, entityTypes, query.limit),
+      wants('story') ? this.community.stories(query.q, query.limit) : null,
+      wants('group') ? this.community.groups(query.q, query.limit) : null,
+      wants('member') ? this.community.members(query.q, viewerId, query.limit) : null,
+    ]);
+    return { query: query.q, types: query.types, results, stories, groups, members };
   }
 }

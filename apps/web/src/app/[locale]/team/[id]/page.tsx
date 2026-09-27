@@ -2,14 +2,27 @@ import type { Metadata } from 'next';
 import { formatNumber } from '@/i18n/format';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import type { MatchViewing, TeamFixture } from '@fmip/contracts';
+import type { MatchViewing, TeamCompetitionSplits, TeamPageFixture } from '@fmip/contracts';
 import { FounderAnalysisFeed } from '@/components/founder-analysis';
 import { fetchFounderFeed, fetchMe, fetchTeam, fetchViewingBatch } from '@/lib/api';
 import { formatFixtureDate } from '@/lib/competition';
 import { moduleState } from '@/lib/match';
 import { pageMetadata, teamJsonLd } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
-import { contextLine, fromTeamSide, groupSquad } from '@/lib/team';
+import {
+  METRIC_LABEL,
+  SPLIT_COLUMNS,
+  SPLIT_COLUMN_LABEL,
+  SPLIT_RECORD_ROWS,
+  SPLITS_FOOTNOTE,
+  averageCell,
+  afterTimeNote,
+  averageNote,
+  contextLine,
+  fromTeamSide,
+  groupSquad,
+  splitNotes,
+} from '@/lib/team';
 import { readTerritoryQuery, withTerritory } from '@/lib/viewing';
 import { JsonLd } from '@/components/json-ld';
 import { Score } from '@/components/score';
@@ -199,6 +212,22 @@ export default async function TeamPage({
         )}
       </section>
 
+      <section className="flex flex-col gap-3" data-testid="splits">
+        <h2 className="text-lg font-semibold">Home and away</h2>
+        {page.splits.length === 0 ? (
+          <p className="text-sm opacity-70">No current competition on record.</p>
+        ) : (
+          <>
+            {page.splits.map((entry) => (
+              <SplitsTable key={entry.season.id} splits={entry} locale={locale} />
+            ))}
+            <p className="text-xs opacity-70" data-testid="splits-footnote">
+              {SPLITS_FOOTNOTE}
+            </p>
+          </>
+        )}
+      </section>
+
       <section className="grid gap-4 sm:grid-cols-2" data-testid="next-previous">
         <div className="flex flex-col gap-1">
           <h2 className="text-lg font-semibold">Next match</h2>
@@ -316,18 +345,98 @@ export default async function TeamPage({
   );
 }
 
+/**
+ * One competition's figures (T-632): a row per figure, a column per split, so
+ * the table stays four columns wide at 360px. Averages follow under their own
+ * coverage; a short row says why rather than showing a partial figure.
+ */
+function SplitsTable({ splits, locale }: { splits: TeamCompetitionSplits; locale: string }) {
+  const played = splits.total.played;
+  const notes = splitNotes(splits);
+  return (
+    <div className="flex flex-col gap-1" data-testid="splits-competition">
+      <h3 className="font-medium">
+        {splits.competition.name} <span className="text-sm opacity-70">{splits.season.label}</span>
+      </h3>
+      {played === 0 ? (
+        <p className="text-sm opacity-70" data-testid="splits-empty">
+          No finished match on record yet.
+        </p>
+      ) : (
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-current/20 text-xs opacity-70">
+              <th scope="col" className="py-1 pe-2 text-start font-normal">
+                <span className="sr-only">Figure</span>
+              </th>
+              {SPLIT_COLUMNS.map((column) => (
+                <th key={column} scope="col" className="py-1 ps-2 text-end font-normal">
+                  {SPLIT_COLUMN_LABEL[column]}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {SPLIT_RECORD_ROWS.map((row) => (
+              <tr key={row.key} className="border-b border-current/10">
+                <th scope="row" className="py-1 pe-2 text-start font-normal">
+                  {row.label}
+                </th>
+                {SPLIT_COLUMNS.map((column) => (
+                  <td key={column} className="py-1 ps-2 text-end tabular-nums">
+                    {formatNumber(locale, splits[column][row.key])}
+                  </td>
+                ))}
+              </tr>
+            ))}
+            {splits.averages.map((average) => {
+              const note = averageNote(average, played);
+              return (
+                <tr
+                  key={average.metric}
+                  className="border-b border-current/10"
+                  data-testid="splits-average"
+                  data-coverage={average.coverage}
+                >
+                  <th scope="row" className="py-1 pe-2 text-start font-normal">
+                    {METRIC_LABEL[average.metric]}
+                    <span className="block text-xs opacity-60">
+                      {note === null ? 'Per match' : note}
+                    </span>
+                  </th>
+                  {SPLIT_COLUMNS.map((column) => (
+                    <td key={column} className="py-1 ps-2 text-end align-top tabular-nums">
+                      {averageCell(locale, average, column)}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+      {notes.map((note) => (
+        <p key={note} className="text-xs opacity-70">
+          {note}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 function MatchLine({
   fixture,
   teamId,
   locale,
   timeZone,
 }: {
-  fixture: TeamFixture;
+  fixture: TeamPageFixture;
   teamId: string;
   locale: string;
   timeZone: string;
 }) {
   const side = fromTeamSide(fixture, teamId);
+  const note = afterTimeNote(fixture, teamId);
   const opponentId = fixture.home.id === teamId ? fixture.away.id : fixture.home.id;
   return (
     <div className="flex flex-wrap items-baseline gap-x-3 text-sm" data-testid="match-line">
@@ -347,6 +456,11 @@ function MatchLine({
           <Score home={fixture.score.home} away={fixture.score.away} />
         )}
       </Link>
+      {note !== null && (
+        <span className="text-xs opacity-70" data-testid="after-time-note">
+          {note}
+        </span>
+      )}
       <span className="text-xs opacity-70">
         <time dateTime={fixture.kickoff_at}>
           {formatFixtureDate(locale, fixture.kickoff_at, timeZone)}
