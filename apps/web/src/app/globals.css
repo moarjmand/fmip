@@ -1,6 +1,41 @@
 @import 'tailwindcss';
 
 /*
+ * The type (T-601, D-089). One family for every locale: Vazirmatn draws Latin
+ * and Arabic script from the same design, so an Arabic page and an English
+ * one have the same weight and rhythm. Its @font-face rules come from
+ * `@fontsource-variable/vazirmatn` (imported in the locale layout) and are
+ * served from this site; the system stack stands in while it loads
+ * (font-display: swap) and for any script it lacks.
+ *
+ * The scale is the seven sizes the product uses, and only those: a size not
+ * listed here is not a class, so a new one is a decision rather than a habit.
+ * Line heights are Tailwind's own, which leave room for Arabic's ascenders.
+ */
+@theme {
+  --font-sans:
+    'Vazirmatn Variable', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans',
+    'Noto Sans Arabic', Tahoma, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    'Noto Color Emoji';
+
+  --text-*: initial;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: calc(1 / 0.75);
+  --text-sm: 0.875rem;
+  --text-sm--line-height: calc(1.25 / 0.875);
+  --text-base: 1rem;
+  --text-base--line-height: calc(1.5 / 1);
+  --text-lg: 1.125rem;
+  --text-lg--line-height: calc(1.75 / 1.125);
+  --text-xl: 1.25rem;
+  --text-xl--line-height: calc(1.75 / 1.25);
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: calc(2 / 1.5);
+  --text-3xl: 1.875rem;
+  --text-3xl--line-height: calc(2.25 / 1.875);
+}
+
+/*
  * Layout CSS uses logical properties only — `margin-inline-start`, never
  * `margin-left` (CLAUDE.md rule 7). Stylelint enforces this; see
  * stylelint.config.mjs.
