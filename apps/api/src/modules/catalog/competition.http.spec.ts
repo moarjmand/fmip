@@ -23,6 +23,8 @@ const NEW_STAGE = randomUUID();
 const TEAMS = { alpha: randomUUID(), beta: randomUUID(), gamma: randomUUID() };
 const SCORER = randomUUID();
 const OTHER_SCORER = randomUUID();
+const CUP = randomUUID();
+const CUP_SEASON = randomUUID();
 
 describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition page', () => {
   let app: NestFastifyApplication;
@@ -136,14 +138,69 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
     await fixture(NEW_SEASON, NEW_STAGE, TEAMS.beta, TEAMS.gamma, '2099-01-01T15:00:00Z', null);
     // Old season: one result, no declared coverage.
     await fixture(OLD_SEASON, OLD_STAGE, TEAMS.beta, TEAMS.alpha, '2024-09-01T15:00:00Z', [2, 0]);
+
+    // T-630: a continental cup, league stage then a round of 16 settled on
+    // penalties after extra time in the second leg.
+    await pool.query(
+      `INSERT INTO competition (id, name, kind, scope, gender)
+       VALUES ($1, $2, 'cup', 'continental', 'men')`,
+      [CUP, `Test Cup ${RUN}`],
+    );
+    await pool.query(
+      `INSERT INTO season (id, competition_id, label, start_date, end_date, is_current)
+       VALUES ($1, $2, '2025/26', DATE '2025-07-01', DATE '2026-06-30', true)`,
+      [CUP_SEASON, CUP],
+    );
+    const cupFixture = async (
+      round: string,
+      home: string,
+      away: string,
+      kickoff: string,
+      scores: [string, number, number][],
+    ) => {
+      const id = randomUUID();
+      fixtures.push(id);
+      await pool.query(
+        `INSERT INTO fixture (id, season_id, round, kickoff_at, status)
+         VALUES ($1, $2, $3, $4::timestamptz, 'finished')`,
+        [id, CUP_SEASON, round, kickoff],
+      );
+      await pool.query(
+        `INSERT INTO fixture_participant (fixture_id, team_id, side)
+         VALUES ($1, $2, 'home'), ($1, $3, 'away')`,
+        [id, home, away],
+      );
+      for (const [kind, h, a] of scores) {
+        await pool.query(
+          `INSERT INTO fixture_score (fixture_id, kind, home, away) VALUES ($1, $2, $3, $4)`,
+          [id, kind, h, a],
+        );
+      }
+    };
+    await cupFixture('League Stage - 1', TEAMS.alpha, TEAMS.gamma, '2025-09-16T19:00:00Z', [
+      ['full_time', 1, 0],
+    ]);
+    await cupFixture('Round of 16', TEAMS.alpha, TEAMS.beta, '2026-03-10T20:00:00Z', [
+      ['full_time', 2, 0],
+      ['current', 2, 0],
+    ]);
+    // 90 minutes 2-0, 2-0 after extra time: level on aggregate, beta win the shoot-out.
+    await cupFixture('Round of 16', TEAMS.beta, TEAMS.alpha, '2026-03-17T20:00:00Z', [
+      ['full_time', 2, 0],
+      ['extra_time', 0, 0],
+      ['current', 2, 0],
+      ['penalties', 4, 3],
+    ]);
   });
 
   afterAll(async () => {
     await pool.query(`DELETE FROM incident WHERE fixture_id = ANY($1::uuid[])`, [fixtures]);
     await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [fixtures]);
     await pool.query(`DELETE FROM stage WHERE id = ANY($1::uuid[])`, [[OLD_STAGE, NEW_STAGE]]);
-    await pool.query(`DELETE FROM season WHERE id = ANY($1::uuid[])`, [[OLD_SEASON, NEW_SEASON]]);
-    await pool.query(`DELETE FROM competition WHERE id = $1`, [COMPETITION]);
+    await pool.query(`DELETE FROM season WHERE id = ANY($1::uuid[])`, [
+      [OLD_SEASON, NEW_SEASON, CUP_SEASON],
+    ]);
+    await pool.query(`DELETE FROM competition WHERE id = ANY($1::uuid[])`, [[COMPETITION, CUP]]);
     await pool.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [Object.values(TEAMS)]);
     await pool.query(`DELETE FROM person WHERE id = ANY($1::uuid[])`, [[SCORER, OTHER_SCORER]]);
     await pool.end();
@@ -171,6 +228,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
       standings: 'available',
     });
     expect(page.last_updated_at).not.toBeNull();
+    // A domestic league plays no knockout rounds.
+    expect(page.bracket).toBeNull();
   });
 
   it('computes the table from stored results, with the unplayed club on it too', async () => {
@@ -247,5 +306,27 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
     });
     expect(other.statusCode).toBe(404);
     expect((other.json() as ApiError).message).toMatch(/season/);
+  });
+
+  it('draws the knockout rounds of a cup from stored fixtures and states the undrawn ones', async () => {
+    const response = await app.inject({ method: 'GET', url: `/competitions/${CUP}` });
+    expect(response.statusCode).toBe(200);
+    const page = response.json() as CompetitionPage;
+    expect(page.bracket!.rounds.map((r) => [r.key, r.state, r.ties.length])).toEqual([
+      ['round_of_16', 'drawn', 1],
+      ['quarter_final', 'not_drawn', 0],
+      ['semi_final', 'not_drawn', 0],
+      ['final', 'not_drawn', 0],
+    ]);
+    const tie = page.bracket!.rounds[0]!.ties[0]!;
+    expect(tie.teams.map((t) => t.id)).toEqual([TEAMS.alpha, TEAMS.beta]);
+    expect(tie.legs.map((l) => [l.leg, l.score, l.after_extra_time])).toEqual([
+      [1, { home: 2, away: 0 }, false],
+      [2, { home: 2, away: 0 }, true],
+    ]);
+    expect(tie.legs[1]!.penalties).toEqual({ home: 4, away: 3 });
+    expect(tie.aggregate).toEqual([2, 2]);
+    expect(tie.winner?.id).toBe(TEAMS.beta);
+    expect(tie.decided_by).toBe('penalties');
   });
 });

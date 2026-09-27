@@ -15,6 +15,7 @@ import { Pool } from 'pg';
 import { PG_POOL } from '../../database/database.module';
 import { derived } from '../fixtures/fixtures.service';
 import { StandingsService } from '../standings/standings.service';
+import { buildBracket } from './internal/bracket';
 import { PostgresCompetitionStore } from './internal/competition-store';
 import { PostgresPlayerStore } from './internal/player-store';
 import { PostgresTeamStore } from './internal/team-store';
@@ -113,13 +114,16 @@ export class CatalogService {
     if (selected === undefined)
       return { kind: seasons.length === 0 ? 'no_seasons' : 'unknown_season' };
 
-    const [stages, { fixtures, lastUpdatedAt }, coverage, table, leaders] = await Promise.all([
-      this.competitions_.stages(selected.id),
-      this.competitions_.fixtures(selected.id),
-      this.competitions_.coverage(selected.id),
-      this.standings.table(selected.id),
-      this.standings.leaders(selected.id),
-    ]);
+    const knockout = playsKnockoutBracket(competition);
+    const [stages, { fixtures, lastUpdatedAt }, coverage, table, leaders, bracketFixtures] =
+      await Promise.all([
+        this.competitions_.stages(selected.id),
+        this.competitions_.fixtures(selected.id),
+        this.competitions_.coverage(selected.id),
+        this.standings.table(selected.id),
+        this.standings.leaders(selected.id),
+        knockout ? this.competitions_.bracketFixtures(selected.id) : Promise.resolve(null),
+      ]);
     const results = fixtures.filter((f) => f.status === 'finished').reverse();
     const upcoming = fixtures.filter((f) => f.status !== 'finished');
     return {
@@ -132,6 +136,10 @@ export class CatalogService {
         results,
         fixtures: upcoming,
         leaders,
+        bracket:
+          bracketFixtures === null
+            ? null
+            : buildBracket(bracketFixtures, seasonIsOpen(selected, new Date())),
         coverage,
         last_updated_at: lastUpdatedAt,
       },
@@ -173,6 +181,22 @@ export class CatalogService {
       },
     };
   }
+}
+
+/**
+ * Whether the competition page shows a knockout bracket (T-630): the
+ * continental cups, whose rounds after the league stage are the UEFA ones.
+ */
+export function playsKnockoutBracket(competition: {
+  kind: CompetitionPage['competition']['kind'];
+  scope: CompetitionPage['competition']['scope'];
+}): boolean {
+  return competition.kind === 'cup' && competition.scope === 'continental';
+}
+
+/** A season still running: the current one, or one whose last day has not passed. */
+export function seasonIsOpen(season: SeasonSummary, now: Date): boolean {
+  return season.is_current || season.end_date >= now.toISOString().slice(0, 10);
 }
 
 /** Pure, so the selector rule is one function: requested, else current, else newest. */

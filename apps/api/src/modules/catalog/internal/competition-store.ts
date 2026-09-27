@@ -8,6 +8,7 @@ import type {
 } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
+import type { BracketFixture } from './bracket';
 
 /** SQL for the competition page (T-035). Reads only. */
 @Injectable()
@@ -143,6 +144,75 @@ export class PostgresCompetitionStore {
             : null,
       })),
     };
+  }
+
+  /**
+   * Every fixture of the season as the knockout bracket reads it (T-630):
+   * the latest score rather than the 90-minute one, since extra time decides
+   * a tie, plus the shoot-out and the leg when our records hold them.
+   */
+  async bracketFixtures(seasonId: string): Promise<BracketFixture[]> {
+    const { rows } = await this.pool.query<{
+      id: string;
+      kickoff_at: Date;
+      status: string;
+      round: string | null;
+      leg: number | null;
+      stage_name: string | null;
+      stage_kind: string | null;
+      home_id: string;
+      home_name: string;
+      home_short_name: string | null;
+      away_id: string;
+      away_name: string;
+      away_short_name: string | null;
+      score_home: number | null;
+      score_away: number | null;
+      extra_time: boolean;
+      pen_home: number | null;
+      pen_away: number | null;
+    }>(
+      `SELECT f.id, f.kickoff_at, f.status, f.round, f.leg,
+              st.name AS stage_name, st.kind AS stage_kind,
+              h.team_id AS home_id, th.name AS home_name, th.short_name AS home_short_name,
+              a.team_id AS away_id, ta.name AS away_name, ta.short_name AS away_short_name,
+              COALESCE(cur.home, ft.home) AS score_home, COALESCE(cur.away, ft.away) AS score_away,
+              et.id IS NOT NULL AS extra_time,
+              pen.home AS pen_home, pen.away AS pen_away
+         FROM fixture f
+         LEFT JOIN stage st ON st.id = f.stage_id
+         JOIN fixture_participant h ON h.fixture_id = f.id AND h.side = 'home'
+         JOIN team th ON th.id = h.team_id
+         JOIN fixture_participant a ON a.fixture_id = f.id AND a.side = 'away'
+         JOIN team ta ON ta.id = a.team_id
+         LEFT JOIN fixture_score ft ON ft.fixture_id = f.id AND ft.kind = 'full_time'
+         LEFT JOIN fixture_score cur ON cur.fixture_id = f.id AND cur.kind = 'current'
+         LEFT JOIN fixture_score et ON et.fixture_id = f.id AND et.kind = 'extra_time'
+         LEFT JOIN fixture_score pen ON pen.fixture_id = f.id AND pen.kind = 'penalties'
+        WHERE f.season_id = $1
+        ORDER BY f.kickoff_at, f.id`,
+      [seasonId],
+    );
+    return rows.map((r) => ({
+      id: r.id,
+      kickoff_at: r.kickoff_at.toISOString(),
+      status: r.status,
+      round: r.round,
+      stage:
+        r.stage_name !== null && r.stage_kind !== null
+          ? { name: r.stage_name, kind: r.stage_kind }
+          : null,
+      leg: r.leg,
+      home: { id: r.home_id, name: r.home_name, short_name: r.home_short_name },
+      away: { id: r.away_id, name: r.away_name, short_name: r.away_short_name },
+      score:
+        r.score_home !== null && r.score_away !== null
+          ? { home: r.score_home, away: r.score_away }
+          : null,
+      after_extra_time: r.extra_time,
+      penalties:
+        r.pen_home !== null && r.pen_away !== null ? { home: r.pen_home, away: r.pen_away } : null,
+    }));
   }
 
   async coverage(seasonId: string): Promise<Record<string, CoverageState>> {
