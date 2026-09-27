@@ -65,9 +65,11 @@ export interface SuggestedCompetition {
    */
   season: { id: string; label: string } | null;
   /**
-   * Up to `SUGGESTED_TEAMS_PER_COMPETITION` teams that play in that season,
-   * most followed first, then by name. Empty when no fixture of that season
-   * names a team yet -- never filled from anywhere else.
+   * Up to `SUGGESTED_TEAMS_PER_COMPETITION` teams that play that season's
+   * main phase (a league, group or knockout stage; not the qualifying rounds
+   * or play-offs alone), most followed first, then by position in the
+   * season's table when there is one, then by name. Empty when no fixture of
+   * that phase names a team yet -- never filled from anywhere else.
    */
   teams: SuggestedTeam[];
 }
@@ -80,7 +82,7 @@ export interface SuggestedCompetition {
  */
 export interface FollowSuggestionsResponse {
   competitions: SuggestedCompetition[];
-  /** The ranking, in words a page can repeat: followers, then name. */
+  /** The ranking, in words a page can repeat: followers first (ties by table position, then name). */
   ranked_by: 'followers';
 }
 

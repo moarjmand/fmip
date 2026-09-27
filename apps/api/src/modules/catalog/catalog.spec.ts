@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CONTEXT_RADIUS,
   groupSuggestions,
+  mainPhaseTeams,
   pickSeason,
   tableContext,
   type SuggestionRow,
@@ -80,6 +81,7 @@ describe('follow suggestions (T-622)', () => {
     id: string,
     display_order: number | null,
     team: { id: string; name: string; followers: number } | null,
+    stage_kinds: (string | null)[] = [null],
   ): SuggestionRow => ({
     id,
     name: id.toUpperCase(),
@@ -95,6 +97,7 @@ describe('follow suggestions (T-622)', () => {
     team_code: null,
     team_kind: team === null ? null : 'club',
     team_country_id: null,
+    stage_kinds: team === null ? null : stage_kinds,
     followers: team?.followers ?? null,
   });
 
@@ -130,6 +133,72 @@ describe('follow suggestions (T-622)', () => {
       followers: 9,
     });
     expect(pl?.season).toEqual({ id: 'pl-s', label: '2025/26' });
+  });
+
+  it('suggests only the teams of the main phase, never clubs out in the qualifiers', () => {
+    const rows = [
+      competition('ucl', 1, { id: 'aarhus', name: 'Aarhus', followers: 4 }, ['qualifying']),
+      competition('ucl', 1, { id: 'ararat', name: 'Ararat-Armenia', followers: 0 }, [
+        'qualifying',
+        'playoff',
+      ]),
+      competition('ucl', 1, { id: 'inter', name: 'Inter', followers: 0 }, ['league', 'knockout']),
+      // Came through the qualifiers into the league stage: suggested.
+      competition('ucl', 1, { id: 'bodo', name: 'Bodo/Glimt', followers: 0 }, [
+        'qualifying',
+        'league',
+      ]),
+      // A fixture with no stage beside a staged season does not count on its own.
+      competition('ucl', 1, { id: 'loose', name: 'Loose', followers: 0 }, [null]),
+    ];
+    const [ucl] = groupSuggestions(rows, 5);
+    expect(ucl?.teams.map((t) => t.id)).toEqual(['bodo', 'inter']);
+  });
+
+  it('counts group and knockout stages as the main phase too', () => {
+    expect(
+      mainPhaseTeams([
+        { id: 'g', stage_kinds: ['group'] },
+        { id: 'k', stage_kinds: ['knockout'] },
+        { id: 'p', stage_kinds: ['playoff'] },
+      ]).map((t) => t.id),
+    ).toEqual(['g', 'k']);
+  });
+
+  it('takes every team of a league whose fixtures carry no stage', () => {
+    expect(
+      mainPhaseTeams([
+        { id: 'a', stage_kinds: [null] },
+        { id: 'b', stage_kinds: [null] },
+      ]).map((t) => t.id),
+    ).toEqual(['a', 'b']);
+  });
+
+  it('suggests no one from a season still in its qualifiers', () => {
+    expect(
+      mainPhaseTeams([
+        { id: 'q', stage_kinds: ['qualifying'] },
+        { id: 'p', stage_kinds: ['qualifying', 'playoff'] },
+      ]),
+    ).toEqual([]);
+  });
+
+  it('breaks a tie in followers by table position, a team with none after, then by name', () => {
+    const rows = [
+      competition('pl', 1, { id: 'a', name: 'Arsenal', followers: 0 }),
+      competition('pl', 1, { id: 'b', name: 'Brentford', followers: 0 }),
+      competition('pl', 1, { id: 'c', name: 'Chelsea', followers: 0 }),
+      competition('pl', 1, { id: 'd', name: 'Derby', followers: 0 }),
+      competition('pl', 1, { id: 'e', name: 'Everton', followers: 2 }),
+    ];
+    const positions = new Map([
+      ['pl-s:c', 1],
+      ['pl-s:b', 2],
+      ['pl-s:a', 3],
+      ['pl-s:e', 20],
+    ]);
+    const [pl] = groupSuggestions(rows, 5, positions);
+    expect(pl?.teams.map((t) => t.id)).toEqual(['e', 'c', 'b', 'a', 'd']);
   });
 
   it('lists a competition with no season or no team as it is: no teams, never borrowed ones', () => {
