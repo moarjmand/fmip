@@ -53,7 +53,7 @@ as a decision entry when made.
 |---|---|---|---|
 | `[x]` T-610 | The moderation queue page: open reports grouped by member, the reporters, the assistant's suggestion when there is one, and a decision form (outcome, reason, sanction scope and days or permanent) | T-212, T-441 | A moderator decides without `curl`; the page states "nothing waiting", "cannot be shown" and "needs the role" as three different sentences |
 | `[x]` T-611 | One member's moderation history, with lifting a sanction by reason | T-610 | Reports, decisions and sanctions on one page; a lift carries a reason and the page shows the API's sentence |
-| `[ ]` T-612 | Contributors: the list, a grant, pause, resume and withdraw, each by reason | T-250 | The same four actions as the API, each reason required |
+| `[x]` T-612 | Contributors: the list, a grant, pause, resume and withdraw, each by reason | T-250 | The same four actions as the API, each reason required |
 | `[ ]` T-613 | Featured matches and the debate: open and close a panel, select and clear a story | T-253, T-143 | Both run from the admin area with a reason |
 
 ## E60 — A visual identity and a design system (waits on the maintainer)

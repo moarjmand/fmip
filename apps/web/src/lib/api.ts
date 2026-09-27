@@ -43,6 +43,7 @@ import type {
   CommunityAnalysesResponse,
   CommunityAnalysisWorkspace,
   CommunitySubmission,
+  ContributorListResponse,
   MatchCentre,
   MatchSummaryResponse,
   MatchViewing,
@@ -549,6 +550,16 @@ export function fetchMemberModerationHistory(
 ): Promise<ApiResult<MemberModerationHistory>> {
   return apiRequest<MemberModerationHistory>(
     `/admin/moderation/members/${encodeURIComponent(username)}`,
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/** `GET /admin/contributors` (T-250): candidates and grant holders. Needs the moderator or admin role. */
+export function fetchContributors(
+  cookie: string | undefined,
+): Promise<ApiResult<ContributorListResponse>> {
+  return apiRequest<ContributorListResponse>(
+    '/admin/contributors',
     cookie === undefined ? {} : { cookie },
   );
 }
