@@ -12,7 +12,7 @@ import {
 } from '@/lib/demonstration';
 import { BRAND_COLOURS } from '@/lib/brand-colours';
 import { pageMetadata, siteUrl } from '@/lib/seo';
-import { readTheme } from '@/lib/theme-cookie';
+import { readAppearance, readTheme } from '@/lib/theme-cookie';
 // The site font (T-601, D-089): Vazirmatn, self-hosted. The package's
 // @font-face rules point at woff2 files Next copies into its own static
 // assets, one per script subset by `unicode-range`, so a page downloads only
@@ -101,9 +101,20 @@ export default async function LocaleLayout({
   // a script after load, so the first paint is already light or dark as
   // chosen. `system` lets tokens.css follow the device.
   const theme = await readTheme();
+  // Text size, contrast and motion (T-621), the same way: `data-text-size`
+  // scales the root font size every rem follows, `data-contrast` and
+  // `data-motion` switch tokens.css and globals.css.
+  const appearance = await readAppearance();
 
   return (
-    <html lang={locale} dir={directionOf(locale)} data-theme={theme}>
+    <html
+      lang={locale}
+      dir={directionOf(locale)}
+      data-theme={theme}
+      data-text-size={appearance.text_size}
+      data-contrast={appearance.contrast}
+      data-motion={appearance.motion}
+    >
       <body>
         {/* First in the tab order (T-081): one key past the navigation to the content. */}
         <a
