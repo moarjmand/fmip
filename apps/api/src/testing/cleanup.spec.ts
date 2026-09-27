@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { withTriggersOff } from './cleanup';
+import { deleteRatedAccounts, withTriggersOff } from './cleanup';
 
 /**
  * The cleanup convention, made enforceable (`docs/03-project-map.md`).
@@ -99,5 +99,56 @@ describe('withTriggersOff', () => {
       "SET session_replication_role = 'origin'",
       'release',
     ]);
+  });
+});
+
+describe('deleteRatedAccounts', () => {
+  /** A pool whose account deletes fail with each of `failures` in turn, then succeed. */
+  const racingPool = (log: string[], failures: object[]) => ({
+    connect: async () => ({
+      query: async (sql: string) => {
+        log.push(sql.split(' WHERE')[0]!);
+        return undefined;
+      },
+      release: () => undefined,
+    }),
+    query: async (sql: string) => {
+      log.push(`pool: ${sql.split(' WHERE')[0]!}`);
+      const failure = failures.shift();
+      if (failure !== undefined) throw Object.assign(new Error('refused'), failure);
+      return undefined;
+    },
+  });
+  const late = { code: '23001', constraint: 'rating_snapshot_user_id_fkey' };
+  const ledger = { code: '23001', constraint: 'points_transaction_user_id_fkey' };
+
+  it('clears the rows a late recompute wrote and deletes the accounts again', async () => {
+    const log: string[] = [];
+    await deleteRatedAccounts(racingPool(log, [late, ledger]) as never, ['a']);
+    const round = [
+      "SET session_replication_role = 'replica'",
+      'DELETE FROM points_transaction',
+      'DELETE FROM rating_snapshot',
+      "SET session_replication_role = 'origin'",
+      'pool: DELETE FROM user_account',
+    ];
+    expect(log).toEqual([...round, ...round, ...round]);
+  });
+
+  it('throws any other refusal at once', async () => {
+    const log: string[] = [];
+    const other = { code: '23001', constraint: 'audit_log_actor_id_fkey' };
+    await expect(
+      deleteRatedAccounts(racingPool(log, [other]) as never, ['a']),
+    ).rejects.toMatchObject(other);
+    expect(log.filter((l) => l.startsWith('pool:'))).toHaveLength(1);
+  });
+
+  it('gives up after its attempts rather than looping for ever', async () => {
+    const log: string[] = [];
+    await expect(
+      deleteRatedAccounts(racingPool(log, [late, late, late]) as never, ['a'], 2),
+    ).rejects.toMatchObject(late);
+    expect(log.filter((l) => l.startsWith('pool:'))).toHaveLength(2);
   });
 });

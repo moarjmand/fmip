@@ -155,6 +155,16 @@ tests passed, and do not wrap it in one transaction: a `ROLLBACK` on the last
 statement puts back everything the earlier ones removed.
 `predictions/history.http.spec.ts` is the worked example.
 
+Delete the spec's settlements **before** those two tables, so no new recompute
+picks the members up, then delete the accounts with
+`deleteRatedAccounts(pool, ids)` (same file): a recompute already under way
+writes its rows after the settlements are gone, and the helper clears them
+again and repeats the account delete, a bounded number of times and only for
+those two constraints. The reputation http specs use it. A spec that asserts a
+member's rating or all-time board place from hand-written snapshots must use
+members with **no** settlements -- a parallel recompute writes a newer snapshot
+over the hand-written one otherwise (`period-leaderboard.http.spec.ts`).
+
 **`/health` is liveness, not readiness.** It reports that the process is serving
 HTTP and nothing else. It deliberately says nothing about Postgres or Redis: no
 client for either exists yet, and claiming a dependency check that never runs is
