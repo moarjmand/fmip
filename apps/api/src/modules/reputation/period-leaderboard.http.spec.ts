@@ -10,13 +10,21 @@ import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity
 import { computeRating, type RatingInput } from './internal/formula';
 import { LEADERBOARD_RULES_V1 } from './internal/leaderboard';
 import { ReputationModule } from './reputation.module';
-import { withTriggersOff } from '../../testing/cleanup';
+import { deleteRatedAccounts, withTriggersOff } from '../../testing/cleanup';
 
 // The friends, month and season boards (T-641). Settlements are written
 // straight into the store with chosen times -- in a month and in seasons no
 // other suite uses -- so each board's population is exactly this suite's
 // members, and each rating can be checked against `computeRating` over the
 // rows written. Needs the real schema.
+//
+// The all-time and friends boards read `rating_snapshot`, and those rows are
+// not this suite's alone to write: `POST /ratings/recompute` (run by other
+// suites in parallel) recomputes every recently settled member, and settlements
+// dated 2031 are the most recent in the database. So the members whose
+// snapshots are asserted -- eve, fay and gus -- settle nothing, and no recompute
+// ever picks them up; ann, ben, cat and dan, who do settle, are only asserted
+// on the period boards, which read settlements directly.
 const DATABASE_URL = process.env.DATABASE_URL;
 vi.setConfig({ testTimeout: 30_000, hookTimeout: 60_000 });
 
@@ -29,7 +37,8 @@ const MONTH = '2031-01';
 const SEASON_A = `t641a-${RUN}`;
 const SEASON_B = `t641b-${RUN}`;
 
-type Name = 'ann' | 'ben' | 'cat' | 'dan';
+type Name = 'ann' | 'ben' | 'cat' | 'dan' | 'eve' | 'fay' | 'gus';
+const MEMBERS: Name[] = ['ann', 'ben', 'cat', 'dan', 'eve', 'fay', 'gus'];
 
 function cookieValue(setCookie: string | string[] | undefined): string {
   const header = Array.isArray(setCookie) ? setCookie[0] : setCookie;
@@ -143,7 +152,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Period leade
     await app.getHttpAdapter().getInstance().ready();
     pool = new Pool({ connectionString: DATABASE_URL });
 
-    for (const name of ['ann', 'ben', 'cat', 'dan'] as Name[]) {
+    for (const name of MEMBERS) {
       const username = `pb_${RUN}${name}`;
       const registered = await app.inject({
         method: 'POST',
@@ -167,10 +176,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Period leade
     }
 
     // ann: public history. ben: friends only, and ann's friend. cat: private.
-    // dan: public, with too few settlements to be ranked.
+    // dan: public, with too few settlements to be ranked. eve, fay and gus
+    // settle nothing and hold only the snapshots below: fay is friends only and
+    // eve's friend, gus is private.
     for (const [name, visibility] of [
       ['ben', 'friends'],
       ['cat', 'private'],
+      ['fay', 'friends'],
+      ['gus', 'private'],
     ] as const) {
       await pool.query(
         `INSERT INTO privacy_setting (user_id, prediction_history_visibility) VALUES ($1, $2)
@@ -178,11 +191,16 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Period leade
         [users[name].id, visibility],
       );
     }
-    await pool.query(
-      `INSERT INTO friendship (low_id, high_id)
-       VALUES (LEAST($1::uuid, $2::uuid), GREATEST($1::uuid, $2::uuid))`,
-      [users.ann.id, users.ben.id],
-    );
+    for (const [one, other] of [
+      ['ann', 'ben'],
+      ['eve', 'fay'],
+    ] as const) {
+      await pool.query(
+        `INSERT INTO friendship (low_id, high_id)
+         VALUES (LEAST($1::uuid, $2::uuid), GREATEST($1::uuid, $2::uuid))`,
+        [users[one].id, users[other].id],
+      );
+    }
 
     await pool.query(
       `INSERT INTO season (id, competition_id, label, start_date, end_date)
@@ -198,11 +216,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Period leade
     await settle('dan', 'a', '2031-01-05T00:00:00.000Z', 5, 1);
     await settle('ann', 'b', '2031-02-02T00:00:00.000Z', 10, 1);
 
-    // All-time snapshots for the friends board, which reads snapshots as the global one does.
+    // All-time snapshots for the friends board, which reads snapshots as the
+    // global one does -- for members with no settlements, so no recompute
+    // anywhere writes a newer snapshot over these.
     for (const [name, settled, rating] of [
-      ['ann', 60, 70.5],
-      ['ben', 45, 64],
-      ['cat', 80, 90],
+      ['eve', 60, 70.5],
+      ['fay', 45, 64],
+      ['gus', 80, 90],
     ] as const) {
       await pool.query(
         `INSERT INTO rating_snapshot
@@ -224,7 +244,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Period leade
   afterAll(async () => {
     const ids = Object.values(users).map((u) => u.id);
     await withTriggersOff(pool, async (client) => {
-      await client.query(`DELETE FROM rating_snapshot WHERE user_id = ANY($1::uuid[])`, [ids]);
+      // Settlements first, so no recompute running in another suite picks
+      // ann, ben, cat or dan up again; `deleteRatedAccounts` then clears what
+      // one already wrote for them (points, snapshots) before the accounts go.
       await client.query(`DELETE FROM settlement WHERE fixture_id = ANY($1::uuid[])`, [fixtures]);
       await client.query(`DELETE FROM settlement_run WHERE fixture_id = ANY($1::uuid[])`, [
         fixtures,
@@ -238,7 +260,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Period leade
     await pool.query(`DELETE FROM user_prediction WHERE fixture_id = ANY($1::uuid[])`, [fixtures]);
     await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [fixtures]);
     await pool.query(`DELETE FROM season WHERE id = ANY($1::uuid[])`, [Object.values(seasons)]);
-    await pool.query(`DELETE FROM user_account WHERE id = ANY($1::uuid[])`, [ids]);
+    await deleteRatedAccounts(pool, ids);
     await pool.end();
     await app.close();
   });
@@ -294,11 +316,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Period leade
     // The all-time board shows current ratings, public by blueprint 7.2, as before.
     const allTime = await board('/leaderboard?limit=100');
     expect(allTime.period).toEqual({ kind: 'all' });
-    const ours = allTime.entries.filter((e) => e.username.startsWith(`pb_${RUN}`));
+    // gus's history is private and fay's friends only; both are on it.
+    const snapshotOnly = new Set([users.eve.username, users.fay.username, users.gus.username]);
+    const ours = allTime.entries.filter((e) => snapshotOnly.has(e.username));
     expect(ours.map((e) => e.username)).toEqual([
-      users.cat.username,
-      users.ann.username,
-      users.ben.username,
+      users.gus.username,
+      users.eve.username,
+      users.fay.username,
     ]);
   });
 
@@ -316,16 +340,16 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Period leade
     expect(anonymous.statusCode).toBe(401);
     expect((anonymous.json() as ApiError).error).toBe('unauthenticated');
 
-    // ann's friends: ann and ben, ranked among themselves; cat is nobody's friend here.
-    const friends = await board('/leaderboard?scope=friends', 'ann');
+    // eve's friends: eve and fay, ranked among themselves; gus is nobody's friend here.
+    const friends = await board('/leaderboard?scope=friends', 'eve');
     expect(friends.scope).toBe('friends');
-    expect(names(friends)).toEqual([users.ann.username, users.ben.username]);
+    expect(names(friends)).toEqual([users.eve.username, users.fay.username]);
     expect(friends.entries.map((e) => [e.rank, e.rating, e.settled_count])).toEqual([
       [1, 70.5, 60],
       [2, 64, 45],
     ]);
-    // cat has no friends: the board is cat alone.
-    expect(names(await board('/leaderboard?scope=friends', 'cat'))).toEqual([users.cat.username]);
+    // gus has no friends: the board is gus alone.
+    expect(names(await board('/leaderboard?scope=friends', 'gus'))).toEqual([users.gus.username]);
 
     // Friends and a month together: the month's ratings, among friends.
     const friendsMonth = await board(

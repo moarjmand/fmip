@@ -46,3 +46,49 @@ export async function withTriggersOff(
     client.release();
   }
 }
+
+/** The rows a rating recompute writes for a member; both hold the account with ON DELETE RESTRICT. */
+const RECOMPUTE_WRITES = new Set([
+  'points_transaction_user_id_fkey',
+  'rating_snapshot_user_id_fkey',
+]);
+
+/**
+ * Deletes accounts that have settled predictions, with the points lines and
+ * rating snapshots a recompute wrote for them.
+ *
+ * **Why this is more than two deletes.** `POST /ratings/recompute` recomputes
+ * every recently settled member, not only its caller's, so under a parallel
+ * run another suite writes snapshots and points for *this* suite's members.
+ * Deleting the spec's settlements first stops any new recompute picking them
+ * up, but one already under way read those settlements earlier and writes its
+ * rows after they are gone -- after this suite's own snapshot and points
+ * deletes, too, and the account delete is then refused (23001). Such a
+ * recompute writes at most once per member, so clearing both tables again and
+ * repeating the account delete converges; anything else, or a refusal that
+ * outlasts `attempts`, is a real failure and is thrown.
+ *
+ * Call it after the spec's settlements are deleted.
+ */
+export async function deleteRatedAccounts(
+  pool: Pool,
+  ids: readonly string[],
+  attempts = 5,
+): Promise<void> {
+  for (let attempt = 1; ; attempt += 1) {
+    await withTriggersOff(pool, async (client) => {
+      await client.query(`DELETE FROM points_transaction WHERE user_id = ANY($1::uuid[])`, [ids]);
+      await client.query(`DELETE FROM rating_snapshot WHERE user_id = ANY($1::uuid[])`, [ids]);
+    });
+    try {
+      await pool.query(`DELETE FROM user_account WHERE id = ANY($1::uuid[])`, [ids]);
+      return;
+    } catch (error) {
+      const { code, constraint } = error as { code?: string; constraint?: string };
+      const recomputeRace =
+        (code === '23001' || code === '23503') && RECOMPUTE_WRITES.has(constraint ?? '');
+      if (!recomputeRace || attempt >= attempts) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  }
+}
