@@ -60,19 +60,19 @@ as a decision entry when made.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-600 | The identity decided: name shown, mark, tone, primary colour, default theme | maintainer | A decision entry names each |
-| `[ ]` T-601 | A self-hosted Persian- and Arabic-capable font and the type scale | T-600 | `/ar` and `/en` render with it; no request leaves the site for a font |
-| `[ ]` T-602 | Tokens on `:root` for light and dark, and a theme a member can choose | T-600 | Every colour in the web app comes from a token; axe at zero |
-| `[ ]` T-603 | A small set of shared components replacing repeated Tailwind strings | T-602 | Buttons, fields, cards and notices from one place |
-| `[ ]` T-604 | The mark in the icons, the share cards and the manifest | T-600 | `make-icons.mjs` draws from the mark |
-| `[ ]` T-605 | Scores and the match centre, mobile first | T-603 | Usable at 360 px on a Saturday with every league playing |
+| `[x]` T-600 | The identity decided: name shown, mark, tone, primary colour, default theme | maintainer | A decision entry names each |
+| `[x]` T-601 | A self-hosted Persian- and Arabic-capable font and the type scale | T-600 | `/ar` and `/en` render with it; no request leaves the site for a font |
+| `[x]` T-602 | Tokens on `:root` for light and dark, and a theme a member can choose | T-600 | Every colour in the web app comes from a token; axe at zero |
+| `[x]` T-603 | A small set of shared components replacing repeated Tailwind strings | T-602 | Buttons, fields, cards and notices from one place |
+| `[x]` T-604 | The mark in the icons, the share cards and the manifest | T-600 | `make-icons.mjs` draws from the mark |
+| `[x]` T-605 | Scores and the match centre, mobile first | T-603 | Usable at 360 px on a Saturday with every league playing |
 
 ## E62 — Onboarding and a member's own controls
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-620 | First run: language, territory, time zone and favourite teams, once | — | Blueprint 2.3 and 7.1; a guest's choice survives until sign-up |
-| `[ ]` T-621 | Text size and contrast in Settings | T-602 | Blueprint 2.2 |
+| `[x]` T-621 | Text size and contrast in Settings | T-602 | Blueprint 2.2 |
 | `[x]` T-622 | Following with nothing followed says what to do next | — | Never an empty page that looks broken |
 
 ## E63 — Football pages, deeper
@@ -91,4 +91,4 @@ as a decision entry when made.
 | `[x]` T-640 | A member's rating over time, by competition, and their highest | — | Blueprint 9.3; recomputable from stored settlements (rule 8) |
 | `[x]` T-641 | Leaderboards among friends, by month and by season | T-640 | Blueprint 9.3 |
 | `[x]` T-642 | Search over articles, groups and members who allow it | — | Blueprint 2.2; a private profile is never a result |
-| `[ ]` T-643 | Achievements and group polls | maintainer | Their list and the poll rules are product behaviour to confirm first |
+| `[x]` T-643 | Achievements and group polls | maintainer | Their list and the poll rules are product behaviour to confirm first |

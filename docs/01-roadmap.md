@@ -144,6 +144,8 @@ from a comparison of the blueprint against what is built). The identity (E60)
 waits on the maintainer's answers; the console (E61) goes first because it
 needs nothing from anybody.
 
+**Where it stands (2026-09-28).** Every task in `04-tasks-phase-7.md` is built, merged and on the server (#305-#334): the web console for moderation, contributors and featured matches; knockout brackets, player comparison, team splits and scores filters; rating history, period leaderboards, wider search, achievements and group polls; the first-run flow; and the identity -- mark, self-hosted Vazirmatn, tokens with a light/dark/device theme, shared components, text size, contrast and motion settings, and a mobile-first scores page and match centre. The identity choices were delegated by the maintainer and are recorded as revisable (D-089 to D-092).
+
 ---
 
 ## Sequencing rule
