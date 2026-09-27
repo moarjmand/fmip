@@ -35,6 +35,7 @@ import type {
   FriendsResponse,
   GroupInvitesResponse,
   GroupJoinRequestsResponse,
+  GroupPollsResponse,
   GroupPredictionComparisonResponse,
   GroupResponse,
   GroupsResponse,
@@ -219,6 +220,20 @@ export function fetchGroupInvites(
 ): Promise<ApiResult<GroupInvitesResponse>> {
   return apiRequest<GroupInvitesResponse>(
     '/me/group-invites',
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/**
+ * A group's polls (T-643, D-091). Members only: the API answers 403 to anybody
+ * else, and the page asks only when the viewer is in the group.
+ */
+export function fetchGroupPolls(
+  slug: string,
+  cookie: string | undefined,
+): Promise<ApiResult<GroupPollsResponse>> {
+  return apiRequest<GroupPollsResponse>(
+    `/groups/${encodeURIComponent(slug)}/polls`,
     cookie === undefined ? {} : { cookie },
   );
 }

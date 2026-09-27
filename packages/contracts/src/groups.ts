@@ -162,3 +162,81 @@ export interface JoinGroupRequest {
 export interface SetGroupRoleRequest {
   role: GroupRole;
 }
+
+// ---------------------------------------------------------------------------
+// Group polls (blueprint 8.2, T-643, D-091). A member's question to their
+// group, answered as counts. Never a prediction product (rule 6): a poll is
+// not a forecast, a consensus or an analysis, and nothing reads it as one.
+// ---------------------------------------------------------------------------
+
+export const MAX_POLL_QUESTION = 200;
+export const MAX_POLL_OPTION = 80;
+export const MIN_POLL_OPTIONS = 2;
+export const MAX_POLL_OPTIONS = 6;
+/** How long a poll stays open, in hours: 7 days unless the creator says otherwise. */
+export const POLL_DEFAULT_HOURS = 7 * 24;
+export const POLL_MIN_HOURS = 1;
+export const POLL_MAX_HOURS = 30 * 24;
+/** Open polls one group may hold at once. */
+export const MAX_OPEN_POLLS = 3;
+export const MAX_POLL_REMOVAL_REASON = 500;
+
+export interface GroupPollOption {
+  id: string;
+  label: string;
+  /** How many members chose it; null while the viewer may not see results. */
+  votes: number | null;
+}
+
+/**
+ * One poll as a member of its group sees it. **Who voted is never here**: the
+ * results are counts only, and they are shown to a member who has voted, or to
+ * everybody in the group once the poll is closed.
+ */
+export interface GroupPoll {
+  id: string;
+  question: string;
+  /** In the creator's order. */
+  options: GroupPollOption[];
+  /** The creator's username; null once their account is gone. */
+  created_by: string | null;
+  created_at: string;
+  /** When it closes, or would have closed, by its own clock. */
+  closes_at: string;
+  /** Set when it was closed early. */
+  closed_at: string | null;
+  status: 'open' | 'closed';
+  /** The option the viewer chose, or null. */
+  my_vote: string | null;
+  /** Every vote cast; null while the viewer may not see results. */
+  total_votes: number | null;
+  /** The creator, or the group's owner, while it is open. */
+  may_close: boolean;
+  /** The group's owner or a moderator. */
+  may_remove: boolean;
+}
+
+/** `GET /groups/:slug/polls`: open polls first (closing soonest first), then the latest closed. */
+export interface GroupPollsResponse {
+  polls: GroupPoll[];
+}
+
+export interface GroupPollResponse {
+  poll: GroupPoll;
+}
+
+export interface CreateGroupPollRequest {
+  question: string;
+  options: string[];
+  /** From now, whole hours; `POLL_DEFAULT_HOURS` when absent. */
+  closes_in_hours?: number;
+}
+
+export interface GroupPollVoteRequest {
+  option_id: string;
+}
+
+/** Removing a poll is a moderation action, so it carries a reason (rule 10). */
+export interface RemoveGroupPollRequest {
+  reason: string;
+}

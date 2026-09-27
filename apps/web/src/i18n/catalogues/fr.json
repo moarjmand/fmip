@@ -1326,5 +1326,161 @@
     "source": "Start",
     "text": "",
     "status": "untranslated"
+  },
+  "groupPolls.title": {
+    "source": "Polls",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupPolls.unreachable": {
+    "source": "The polls cannot be shown right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupPolls.none": {
+    "source": "No polls yet. Ask the group something below.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupPolls.noNames": {
+    "source": "Polls show counts only. Who voted is never shown, to anyone.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupPolls.askedBy": {
+    "source": "Asked by",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupPolls.closes": {
+    "source": "Closes",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupPolls.closed": {
+    "source": "Closed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupPolls.yourAnswer": {
+    "source": "your answer",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupPolls.hiddenUntilVoted": {
+    "source": "The counts are shown once you have voted, or when the poll closes.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupPolls.vote": {
+    "source": "Vote",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupPolls.changeVote": {
+    "source": "Change my vote",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupPolls.withdraw": {
+    "source": "Take my vote back",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupPolls.close": {
+    "source": "Close the poll now",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupPolls.removeReason": {
+    "source": "Why remove it (recorded with the removal)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupPolls.remove": {
+    "source": "Remove poll",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupPolls.createTitle": {
+    "source": "Ask the group",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupPolls.question": {
+    "source": "Question",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupPolls.option": {
+    "source": "Option",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupPolls.optionsHint": {
+    "source": "Two to six answers; leave the rest empty.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupPolls.duration": {
+    "source": "Closes after",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupPolls.create": {
+    "source": "Ask",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupPolls.limitReached": {
+    "source": "This group has three open polls. A new one can be asked when one closes or is removed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupPolls.working": {
+    "source": "Working…",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupPolls.done.created": {
+    "source": "Asked.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupPolls.done.voted": {
+    "source": "Vote recorded.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupPolls.done.withdrawn": {
+    "source": "Vote taken back.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupPolls.done.closed": {
+    "source": "Closed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupPolls.done.removed": {
+    "source": "Removed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupPolls.voteCount": {
+    "source": {
+      "one": "{count} vote",
+      "other": "{count} votes"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "groupPolls.days": {
+    "source": {
+      "one": "{count} day",
+      "other": "{count} days"
+    },
+    "forms": {},
+    "status": "untranslated"
   }
 }
