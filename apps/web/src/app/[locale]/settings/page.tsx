@@ -19,6 +19,7 @@ import { sessionCookieHeader } from '@/lib/session';
 import type { Appearance } from '@/lib/appearance';
 import type { ThemePreference } from '@/lib/theme';
 import { readAppearance, readTheme } from '@/lib/theme-cookie';
+import { Notice } from '@/components/ui';
 
 // A member's own page: never indexed.
 export const metadata: Metadata = {
@@ -67,7 +68,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
     return (
       <main className="mx-auto flex max-w-md flex-col gap-4 p-8">
         <h1 className="text-2xl font-semibold">Settings</h1>
-        <p role="alert">The service is unreachable right now.</p>
+        <Notice tone="danger">The service is unreachable right now.</Notice>
       </main>
     );
   }
@@ -160,7 +161,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
             : 'You have not chosen a territory yet. Where a match can be watched depends on it, so you will be asked rather than guessed at.'}
         </p>
         {territories === null ? (
-          <p role="alert">The territory list could not be loaded right now.</p>
+          <Notice tone="danger">The territory list could not be loaded right now.</Notice>
         ) : (
           <ActionForm
             action={setTerritoryAction.bind(null, locale)}
@@ -181,7 +182,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
       </section>
 
       {following === null || teams === null || competitions === null ? (
-        <p role="alert">Following could not be loaded right now.</p>
+        <Notice tone="danger">Following could not be loaded right now.</Notice>
       ) : (
         <FollowingSection
           locale={locale}
