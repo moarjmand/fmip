@@ -72,11 +72,11 @@ function Section({
         <Translated locale={locale} message={SECTION_TITLE_KEY[type]} />
       </h2>
       {count === 0 ? (
-        <p className="text-sm opacity-70" data-testid="search-section-empty">
+        <p className="text-sm text-muted" data-testid="search-section-empty">
           <Translated locale={locale} message={SECTION_EMPTY_KEY[type]} />
         </p>
       ) : (
-        <ol className="flex flex-col divide-y divide-current/10">{children}</ol>
+        <ol className="flex flex-col divide-y divide-default">{children}</ol>
       )}
     </section>
   );
@@ -112,7 +112,7 @@ export default async function SearchPage({
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
-      <h1 className="border-s-4 border-s-current ps-4 text-2xl font-semibold" data-testid="title">
+      <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
         Search
       </h1>
 
@@ -127,17 +127,17 @@ export default async function SearchPage({
           defaultValue={term}
           placeholder="Team, competition, player, news, group or member"
           autoComplete="off"
-          className="grow rounded border border-current/30 bg-transparent px-3 py-2"
+          className="grow rounded border border-strong bg-transparent px-3 py-2"
           data-testid="search-input"
         />
-        <button type="submit" className="rounded border border-current/30 px-3 py-2">
+        <button type="submit" className="rounded border border-strong px-3 py-2">
           Search
         </button>
       </form>
 
       {result !== null && result.ok && (
         <p
-          className="text-sm opacity-80"
+          className="text-sm text-muted"
           data-testid="search-reading"
           data-reason={result.data.reason ?? 'read'}
         >
@@ -160,7 +160,7 @@ export default async function SearchPage({
       )}
 
       {ask === null ? (
-        <p className="text-sm opacity-70" data-testid="search-hint">
+        <p className="text-sm text-muted" data-testid="search-hint">
           {term === ''
             ? 'Type a name, an abbreviation, a headline or a spelling in another language.'
             : `Type at least ${MIN_QUERY_LENGTH} characters.`}
@@ -187,10 +187,10 @@ export default async function SearchPage({
                           {hit.name}
                         </Link>
                         {hit.secondary !== null && (
-                          <span className="text-sm opacity-70">{hit.secondary}</span>
+                          <span className="text-sm text-muted">{hit.secondary}</span>
                         )}
                         {matchNote(hit) !== null && (
-                          <span className="text-xs opacity-60" data-testid="search-alias">
+                          <span className="text-xs text-muted" data-testid="search-alias">
                             {matchNote(hit)}
                           </span>
                         )}
@@ -226,7 +226,7 @@ export default async function SearchPage({
                     >
                       {story.headline}
                     </Link>
-                    <span className="text-sm opacity-70">{story.source_name}</span>
+                    <span className="text-sm text-muted">{story.source_name}</span>
                   </li>
                 ))}
               </Section>
@@ -240,7 +240,7 @@ export default async function SearchPage({
                     <Link href={groupHref(locale, group.slug)} className="font-medium underline">
                       {group.name}
                     </Link>
-                    <span className="text-sm opacity-70">
+                    <span className="text-sm text-muted">
                       <Translated
                         locale={locale}
                         message={GROUP_VISIBILITY_KEY[group.visibility]}
@@ -262,7 +262,7 @@ export default async function SearchPage({
                     >
                       {member.display_name}
                     </Link>
-                    <span className="text-sm opacity-70">@{member.username}</span>
+                    <span className="text-sm text-muted">@{member.username}</span>
                   </li>
                 ))}
               </Section>

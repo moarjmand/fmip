@@ -11,7 +11,7 @@ function Report({ campaign }: { campaign: Campaign }) {
   const d = campaign.dispatch;
   if (d === null) {
     return (
-      <span className="text-sm opacity-70" data-testid="campaign-unsent">
+      <span className="text-sm text-muted" data-testid="campaign-unsent">
         Not sent yet.
       </span>
     );
@@ -38,21 +38,21 @@ export function CampaignsAdmin({
   return (
     <section className="flex flex-col gap-4" data-testid="campaigns">
       <h2 className="text-lg font-semibold">Campaigns</h2>
-      <p className="text-sm opacity-70">
+      <p className="text-sm text-muted">
         A title, a body and the page it opens, sent once to an audience through every member&apos;s
         own inbox, e-mail and push. Nobody receives the same campaign twice.
       </p>
       {campaigns.length === 0 ? (
-        <p className="text-sm opacity-70" data-testid="campaigns-empty">
+        <p className="text-sm text-muted" data-testid="campaigns-empty">
           No campaign yet.
         </p>
       ) : (
-        <ul className="flex flex-col divide-y divide-current/10" data-testid="campaign-list">
+        <ul className="flex flex-col divide-y divide-default" data-testid="campaign-list">
           {campaigns.map((campaign) => (
             <li key={campaign.id} className="flex flex-col gap-2 py-3" data-testid="campaign">
               <span className="font-medium">{campaign.title}</span>
               <span className="text-sm">{campaign.body}</span>
-              <span className="text-xs opacity-60">
+              <span className="text-xs text-muted">
                 opens {campaign.path} · audience {campaign.audience_name} ·{' '}
                 {campaign.created_by ?? 'somebody'} · {campaign.reason} · {campaign.created_at}
               </span>
@@ -80,7 +80,7 @@ export function CampaignsAdmin({
         <summary className="cursor-pointer text-sm underline">Create a campaign</summary>
         <div className="pt-3">
           {audiences.length === 0 ? (
-            <p className="text-sm opacity-70">Save an audience first.</p>
+            <p className="text-sm text-muted">Save an audience first.</p>
           ) : (
             <ActionForm
               action={createCampaignAction.bind(null, locale)}

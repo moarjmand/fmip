@@ -91,14 +91,14 @@ export default async function WelcomePage({
 
   return (
     <main className="mx-auto flex max-w-xl flex-col gap-6 p-8">
-      <h1 className="border-s-4 border-s-current ps-4 text-2xl font-semibold">
+      <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold">
         <Translated locale={locale} message="firstRun.title" />
       </h1>
       <p>
         <Translated locale={locale} message="firstRun.intro" />
       </p>
       {!signedIn && (
-        <p className="text-sm opacity-80" data-testid="first-run-guest">
+        <p className="text-sm text-muted" data-testid="first-run-guest">
           <Translated locale={locale} message="firstRun.guestNote" />
         </p>
       )}
@@ -114,7 +114,7 @@ export default async function WelcomePage({
                   <Translated locale={locale} message={STEP_KEY[s]} />
                 </span>
               ) : (
-                <Link href={stepHref(locale, s, next)} className="opacity-80">
+                <Link href={stepHref(locale, s, next)} className="text-muted">
                   <Translated locale={locale} message={STEP_KEY[s]} />
                 </Link>
               )}
@@ -188,7 +188,7 @@ function SaveButton({ locale }: { locale: string }) {
   return (
     <button
       type="submit"
-      className="self-start rounded border border-current px-4 py-2"
+      className="self-start rounded border border-strong px-4 py-2"
       data-testid="first-run-save"
     >
       <Translated locale={locale} message="firstRun.save" />
@@ -240,7 +240,7 @@ async function TerritoryStep({
   return (
     <>
       <Question locale={locale} message="firstRun.territory.question" />
-      <p className="text-sm opacity-80">
+      <p className="text-sm text-muted">
         <Translated locale={locale} message="firstRun.territory.hint" />
       </p>
       {territories === null ? (
@@ -256,7 +256,7 @@ async function TerritoryStep({
             id="first-run-territory"
             name="code"
             defaultValue={current}
-            className="rounded border border-current/30 bg-transparent px-3 py-2 text-start"
+            className="rounded border border-strong bg-transparent px-3 py-2 text-start"
           >
             {territoryOptions(
               locale,
@@ -326,7 +326,7 @@ async function TeamsStep({
   return (
     <>
       <Question locale={locale} message="firstRun.teams.question" />
-      <p className="text-sm opacity-80">
+      <p className="text-sm text-muted">
         <Translated locale={locale} message="firstRun.teams.hint" />
       </p>
       {teams === null ? (
@@ -348,9 +348,9 @@ async function TeamsStep({
               defaultValue={search}
               placeholder={placeholder.text}
               lang={placeholder.lang}
-              className="flex-1 rounded border border-current/30 bg-transparent px-3 py-2"
+              className="flex-1 rounded border border-strong bg-transparent px-3 py-2"
             />
-            <button type="submit" className="rounded border border-current/30 px-3 py-2">
+            <button type="submit" className="rounded border border-strong px-3 py-2">
               <Translated locale={locale} message="firstRun.teams.searchButton" />
             </button>
           </form>

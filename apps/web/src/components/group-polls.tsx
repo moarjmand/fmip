@@ -25,7 +25,7 @@ import { Translated } from '@/components/translated';
 /** How long a new poll may stay open, in days, as the form offers it. */
 export const POLL_DURATION_DAYS = [1, 3, 7, 14, 30] as const;
 
-const FIELD = 'rounded border border-current/30 bg-transparent px-3 py-2 text-sm text-start';
+const FIELD = 'rounded border border-strong bg-transparent px-3 py-2 text-sm text-start';
 
 /**
  * A group's polls on its page (blueprint 8.2, T-643, D-091). Members only:
@@ -61,7 +61,7 @@ export function GroupPollsSection({
   return (
     <div className="flex flex-col gap-4">
       {polls.length === 0 ? (
-        <p className="text-sm opacity-70" data-testid="group-polls-none">
+        <p className="text-sm text-muted" data-testid="group-polls-none">
           <Translated locale={locale} message="groupPolls.none" />
         </p>
       ) : (
@@ -73,11 +73,11 @@ export function GroupPollsSection({
           ))}
         </ul>
       )}
-      <p className="text-xs opacity-60">
+      <p className="text-xs text-muted">
         <Translated locale={locale} message="groupPolls.noNames" />
       </p>
       {open >= MAX_OPEN_POLLS ? (
-        <p className="text-sm opacity-70" data-testid="group-polls-limit">
+        <p className="text-sm text-muted" data-testid="group-polls-limit">
           <Translated locale={locale} message="groupPolls.limitReached" />
         </p>
       ) : (
@@ -103,7 +103,7 @@ function PollItem({
   return (
     <>
       <p className="font-semibold">{poll.question}</p>
-      <p className="text-xs opacity-60">
+      <p className="text-xs text-muted">
         {poll.created_by !== null && (
           <>
             <Translated locale={locale} message="groupPolls.askedBy" /> @{poll.created_by} ·{' '}
@@ -124,7 +124,7 @@ function PollItem({
                 <span className={option.id === poll.my_vote ? 'font-semibold' : undefined}>
                   {option.label}
                 </span>
-                <span className="tabular-nums opacity-70">
+                <span className="tabular-nums text-muted">
                   <Translated
                     locale={locale}
                     message="groupPolls.voteCount"
@@ -132,19 +132,19 @@ function PollItem({
                   />
                 </span>
                 {option.id === poll.my_vote && (
-                  <span className="text-xs opacity-60">
+                  <span className="text-xs text-muted">
                     (<Translated locale={locale} message="groupPolls.yourAnswer" />)
                   </span>
                 )}
               </li>
             ))}
           </ul>
-          <p className="text-xs opacity-60 tabular-nums">
+          <p className="text-xs text-muted tabular-nums">
             <Translated locale={locale} message="groupPolls.voteCount" count={poll.total_votes} />
           </p>
         </div>
       ) : (
-        <p className="text-xs opacity-60" data-testid="group-poll-hidden">
+        <p className="text-xs text-muted" data-testid="group-poll-hidden">
           <Translated locale={locale} message="groupPolls.hiddenUntilVoted" />
         </p>
       )}
@@ -242,7 +242,7 @@ function CreatePoll({ locale, slug }: { locale: string; slug: string }) {
           </legend>
           {Array.from({ length: MAX_POLL_OPTIONS }, (_, i) => (
             <label key={i} className="flex items-center gap-2">
-              <span className="w-20 shrink-0 opacity-70">
+              <span className="w-20 shrink-0 text-muted">
                 <Translated locale={locale} message="groupPolls.option" /> {i + 1}
               </span>
               <input

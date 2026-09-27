@@ -15,7 +15,7 @@ export function FirstRunOffer({ locale }: { locale: string }) {
   return (
     <aside
       aria-labelledby="first-run-offer"
-      className="flex flex-col gap-2 rounded border border-current/30 p-4"
+      className="flex flex-col gap-2 rounded border border-default p-4"
       data-testid="first-run-offer"
     >
       <p id="first-run-offer">

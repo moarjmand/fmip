@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
 import { BrandMark } from '@/components/brand-mark';
+import { BRAND_COLOURS } from '@/lib/brand-colours';
 import {
   nameSize,
   type MatchCardText,
@@ -11,13 +12,15 @@ import {
  * The pictures behind the share cards (T-520), for `next/og`'s
  * `ImageResponse`. Its renderer understands inline styles and flexbox only,
  * so nothing here uses the app's classes; every box with more than one child
- * says `display: flex`. The words come from `lib/share-card.ts`.
+ * says `display: flex`. The words come from `lib/share-card.ts`. Nor can it
+ * read a CSS variable, so the colours are the light tokens' values from
+ * `lib/brand-colours.ts` (T-602): a card is an image, drawn once, in light.
  */
 
-const INK = '#111827';
-const MUTED = '#4b5563';
-const PAPER = '#ffffff';
-const RULE = '#e5e7eb';
+const INK = BRAND_COLOURS.text;
+const MUTED = BRAND_COLOURS['text-muted'];
+const PAPER = BRAND_COLOURS.canvas;
+const RULE = BRAND_COLOURS.border;
 
 function Frame({ children }: { children: ReactElement | ReactElement[] }): ReactElement {
   return (

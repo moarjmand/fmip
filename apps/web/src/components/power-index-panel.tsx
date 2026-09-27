@@ -46,7 +46,7 @@ export function PowerIndexPanel({
     return (
       <section className="flex flex-col gap-2" data-testid="power-index" data-state="unavailable">
         <h2 className="text-lg font-semibold">Power Index</h2>
-        <p className="text-sm opacity-70" data-testid="power-index-none">
+        <p className="text-sm text-muted" data-testid="power-index-none">
           {power.unavailable_reason ?? 'No Power Index is available for this match.'}
         </p>
       </section>
@@ -63,7 +63,7 @@ export function PowerIndexPanel({
       <div className="flex items-end justify-between gap-4" data-testid="power-index-values">
         {[home, away].map((side) => (
           <div key={side.team.id} className="flex flex-col">
-            <span className="text-sm opacity-70">{side.team.name}</span>
+            <span className="text-sm text-muted">{side.team.name}</span>
             <span className="text-3xl font-semibold tabular-nums">{side.value.toFixed(1)}</span>
           </div>
         ))}
@@ -73,7 +73,7 @@ export function PowerIndexPanel({
         <SideBreakdown key={side.team.id} side={side} />
       ))}
 
-      <p className="text-xs opacity-60" data-testid="power-index-stamp">
+      <p className="text-xs text-muted" data-testid="power-index-stamp">
         Formula {home.formula_version}, computed {stamp}. 0–100 is this team&rsquo;s standing in its
         competition, not a probability.
       </p>
@@ -84,10 +84,10 @@ export function PowerIndexPanel({
 function SideBreakdown({ side }: { side: PowerIndex }) {
   const leading = leadingSentence(side);
   return (
-    <details className="rounded border border-current/15 p-2 text-sm">
+    <details className="rounded border border-default p-2 text-sm">
       <summary className="cursor-pointer">
         {side.team.name} — {side.value.toFixed(1)}
-        <span className="ms-2 text-xs opacity-60">
+        <span className="ms-2 text-xs text-muted">
           {Math.round(side.completeness * 100)}% measured
         </span>
       </summary>
@@ -105,25 +105,25 @@ function SideBreakdown({ side }: { side: PowerIndex }) {
             <li key={component.key} className="flex flex-col gap-1">
               <div className="flex justify-between gap-2">
                 <span>{POWER_INDEX_LABELS[component.key]}</span>
-                <span className="text-xs opacity-70">
+                <span className="text-xs text-muted">
                   {Math.round(component.weight * 100)}% of the index
                 </span>
               </div>
               {width === null ? (
                 // No bar at all: a zero-width one reads as "measured, and bad".
-                <span className="text-xs opacity-70" data-testid="power-index-absent">
+                <span className="text-xs text-muted" data-testid="power-index-absent">
                   Not available — {component.note ?? 'no source supplied it'}
                 </span>
               ) : (
                 <>
                   <div
-                    className="h-1.5 w-full rounded bg-current/10"
+                    className="h-1.5 w-full rounded bg-surface-raised"
                     role="img"
                     aria-label={`${POWER_INDEX_LABELS[component.key]}: ${componentSentence(component)}`}
                   >
-                    <div className="h-1.5 rounded bg-current/60" style={{ inlineSize: width }} />
+                    <div className="h-1.5 rounded bg-accent" style={{ inlineSize: width }} />
                   </div>
-                  <span className="text-xs opacity-70">
+                  <span className="text-xs text-muted">
                     {componentSentence(component)}
                     {component.state === 'limited' && component.note !== null
                       ? ` — ${component.note}`
@@ -136,7 +136,7 @@ function SideBreakdown({ side }: { side: PowerIndex }) {
         })}
       </ul>
 
-      <p className="mt-2 text-xs opacity-70" data-testid="power-index-completeness">
+      <p className="mt-2 text-xs text-muted" data-testid="power-index-completeness">
         {completenessSentence(side)}
       </p>
     </details>

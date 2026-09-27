@@ -113,9 +113,9 @@ export default async function ComparePlayersPage({
         defaultValue={term}
         placeholder="Another player’s name"
         autoComplete="off"
-        className="min-w-0 grow rounded border border-current/30 bg-transparent px-3 py-2"
+        className="min-w-0 grow rounded border border-strong bg-transparent px-3 py-2"
       />
-      <button type="submit" className="rounded border border-current/30 px-3 py-2">
+      <button type="submit" className="rounded border border-strong px-3 py-2">
         Find
       </button>
     </form>
@@ -126,7 +126,7 @@ export default async function ComparePlayersPage({
       search?.ok === true ? search.data.results.filter((h) => h.id !== pageA.person.id) : [];
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-6 p-4 sm:p-8">
-        <h1 className="border-s-4 border-s-current ps-4 text-2xl font-semibold" data-testid="title">
+        <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
           Compare players
         </h1>
         <p className="text-sm">
@@ -143,7 +143,7 @@ export default async function ComparePlayersPage({
         )}
         {picker}
         {ask === null ? (
-          <p className="text-sm opacity-70" data-testid="compare-hint">
+          <p className="text-sm text-muted" data-testid="compare-hint">
             {term === ''
               ? 'Type the name of the player to compare with.'
               : `Type at least ${MIN_QUERY_LENGTH} characters.`}
@@ -155,7 +155,7 @@ export default async function ComparePlayersPage({
         ) : hits.length === 0 ? (
           <p data-testid="compare-search-empty">No player matches “{term}”.</p>
         ) : (
-          <ol className="flex flex-col divide-y divide-current/10" data-testid="compare-candidates">
+          <ol className="flex flex-col divide-y divide-default" data-testid="compare-candidates">
             {hits.map((hit) => (
               <li key={hit.id} className="flex flex-wrap items-baseline gap-x-3 py-2">
                 <Link
@@ -165,7 +165,7 @@ export default async function ComparePlayersPage({
                   {hit.name}
                 </Link>
                 {hit.secondary !== null && (
-                  <span className="text-sm opacity-70">{hit.secondary}</span>
+                  <span className="text-sm text-muted">{hit.secondary}</span>
                 )}
               </li>
             ))}
@@ -181,11 +181,11 @@ export default async function ComparePlayersPage({
   const scope = resolveScope(readScope(query), scopes);
   const rows = compareRows(pageA.record, pageB.record, scope);
   const linkClass = (active: boolean): string =>
-    `rounded px-2 py-1 ${active ? 'bg-current/10 font-semibold' : 'underline'}`;
+    `rounded px-2 py-1 ${active ? 'bg-surface-raised font-semibold' : 'underline'}`;
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-4 sm:p-8">
-      <h1 className="border-s-4 border-s-current ps-4 text-2xl font-semibold" data-testid="title">
+      <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
         <bdi>{nameA}</bdi> v <bdi>{nameB}</bdi>
       </h1>
 
@@ -197,8 +197,8 @@ export default async function ComparePlayersPage({
                 {displayName(page.person)}
               </Link>
             </dt>
-            <dd className="opacity-80">{positionOf(page)}</dd>
-            <dd className="opacity-80">
+            <dd className="text-muted">{positionOf(page)}</dd>
+            <dd className="text-muted">
               {page.current_spell === null
                 ? 'No current team on record'
                 : page.current_spell.team.name}
@@ -239,7 +239,7 @@ export default async function ComparePlayersPage({
             className={linkClass(scope?.key === s.key)}
           >
             {scopeLabel(s)}
-            {!s.shared && <span className="ms-1 text-xs opacity-70">(one player only)</span>}
+            {!s.shared && <span className="ms-1 text-xs text-muted">(one player only)</span>}
           </Link>
         ))}
       </nav>
@@ -248,12 +248,12 @@ export default async function ComparePlayersPage({
         <h2 className="text-lg font-semibold">
           {scope === null ? 'Everything on record' : scopeLabel(scope)}
         </h2>
-        <p className="text-xs opacity-70">
+        <p className="text-xs text-muted">
           {nameA}: record {moduleState(pageA.record)} · {nameB}: record {moduleState(pageB.record)}
         </p>
         <table className="w-full table-fixed text-sm">
           <thead>
-            <tr className="border-b border-current/20">
+            <tr className="border-b border-default">
               <th scope="col" className="w-2/5 py-1 pe-2 text-start">
                 <span className="sr-only">Figure</span>
               </th>
@@ -271,14 +271,14 @@ export default async function ComparePlayersPage({
               return (
                 <tr
                   key={row.key}
-                  className="border-b border-current/10 align-top"
+                  className="border-b border-default align-top"
                   data-testid="compare-row"
                   data-lacking={row.lacking ?? 'none'}
                 >
                   <th scope="row" className="py-1 pe-2 text-start font-normal">
                     {row.label}
                     {note !== null && (
-                      <span className="block text-xs opacity-70" data-testid="compare-note">
+                      <span className="block text-xs text-muted" data-testid="compare-note">
                         {note}
                       </span>
                     )}
@@ -287,7 +287,7 @@ export default async function ComparePlayersPage({
                     <td
                       key={i}
                       className={`py-1 text-end ${i === 0 ? 'pe-2' : ''} ${
-                        c.value === null ? 'text-xs italic opacity-70' : 'tabular-nums'
+                        c.value === null ? 'text-xs italic text-muted' : 'tabular-nums'
                       }`}
                       data-coverage={c.coverage}
                     >
@@ -299,13 +299,13 @@ export default async function ComparePlayersPage({
             })}
           </tbody>
         </table>
-        <p className="text-xs opacity-60">
+        <p className="text-xs text-muted">
           Figures come from our line-ups and incidents. Player ratings and advanced statistics are
           not held for these players and are not shown.
         </p>
       </section>
 
-      <p className="text-xs opacity-60">
+      <p className="text-xs text-muted">
         {[pageA, pageB].map((page, i) => (
           <span key={page.person.id} className="block">
             {i === 0 ? nameA : nameB}:{' '}

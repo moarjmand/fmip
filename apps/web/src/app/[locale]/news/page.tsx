@@ -87,12 +87,12 @@ export default async function NewsPage({
   const filtered =
     q.country !== null || q.competition !== null || q.team !== null || q.language !== null;
   const linkClass = (active: boolean): string =>
-    `rounded px-2 py-1 ${active ? 'bg-current/10 font-semibold' : 'underline'}`;
+    `rounded px-2 py-1 ${active ? 'bg-surface-raised font-semibold' : 'underline'}`;
   const label = (key: Parameters<typeof t>[1]): string => t(resolved, key);
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
-      <h1 className="border-s-4 border-s-current ps-4 text-2xl font-semibold" data-testid="title">
+      <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
         <Translated locale={locale} message="news.title" />
       </h1>
 
@@ -127,7 +127,7 @@ export default async function NewsPage({
             <select
               name="country"
               defaultValue={q.country ?? ''}
-              className="rounded border border-current/30 px-2 py-1"
+              className="rounded border border-strong px-2 py-1"
             >
               <option value="">{label('news.filter.any')}</option>
               {countries.map((c) => (
@@ -144,7 +144,7 @@ export default async function NewsPage({
             <select
               name="competition"
               defaultValue={q.competition ?? ''}
-              className="rounded border border-current/30 px-2 py-1"
+              className="rounded border border-strong px-2 py-1"
             >
               <option value="">{label('news.filter.any')}</option>
               {competitions.map((c) => (
@@ -161,7 +161,7 @@ export default async function NewsPage({
             <select
               name="team"
               defaultValue={q.team ?? ''}
-              className="rounded border border-current/30 px-2 py-1"
+              className="rounded border border-strong px-2 py-1"
             >
               <option value="">{label('news.filter.any')}</option>
               {teams.map((team) => (
@@ -177,7 +177,7 @@ export default async function NewsPage({
           <select
             name="language"
             defaultValue={q.language ?? ''}
-            className="rounded border border-current/30 px-2 py-1"
+            className="rounded border border-strong px-2 py-1"
           >
             <option value="">{label('news.filter.any')}</option>
             {LANGUAGES.map((language) => (
@@ -187,7 +187,7 @@ export default async function NewsPage({
             ))}
           </select>
         </label>
-        <button type="submit" className="rounded border border-current px-3 py-1 font-medium">
+        <button type="submit" className="rounded border border-strong px-3 py-1 font-medium">
           <Translated locale={locale} message="news.filter.apply" />
         </button>
         {filtered && (
@@ -204,7 +204,7 @@ export default async function NewsPage({
           </Link>
         )}
         {(countries === null || competitions === null || teams === null) && (
-          <span role="status" className="opacity-70">
+          <span role="status" className="text-muted">
             <Translated locale={locale} message="news.filter.unavailable" />
           </span>
         )}
@@ -276,7 +276,7 @@ function Freshness({
   const stale = feedsStale(lastUpdatedAt);
   return (
     <p
-      className="text-sm opacity-80"
+      className="text-sm text-muted"
       data-testid="news-freshness"
       data-stale={stale ? 'true' : 'false'}
     >
@@ -356,7 +356,7 @@ function Story({
 }) {
   return (
     <article
-      className="flex flex-col gap-1 border-s-2 border-s-current/30 ps-4"
+      className="flex flex-col gap-1 border-s-2 border-s-default ps-4"
       data-testid="story"
       lang={card.language}
     >
@@ -365,7 +365,7 @@ function Story({
           {card.headline}
         </a>
       </h2>
-      <p className="text-sm opacity-80" data-testid="story-source">
+      <p className="text-sm text-muted" data-testid="story-source">
         <Translated locale={locale} message="news.readAt" />{' '}
         <a href={card.source.homepage_url} rel="noopener" className="underline">
           {card.source.name}
@@ -385,7 +385,10 @@ function Story({
         <ul className="flex flex-wrap gap-2 text-sm" data-testid="story-entities">
           {card.entities.map((entity) => (
             <li key={`${entity.entity_type}:${entity.entity_id}`}>
-              <Link href={entityHref(locale, entity)} className="rounded bg-current/10 px-2 py-0.5">
+              <Link
+                href={entityHref(locale, entity)}
+                className="rounded bg-surface-raised px-2 py-0.5"
+              >
                 {entity.entity_type === 'fixture' ? (
                   <Translated locale={locale} message="news.match" />
                 ) : (
@@ -403,7 +406,7 @@ function Story({
         {card.other_reports > 0 && (
           <>
             {' · '}
-            <span className="opacity-80" data-testid="story-others">
+            <span className="text-muted" data-testid="story-others">
               <Translated locale={locale} message="news.otherReports" count={card.other_reports} />
             </span>
           </>

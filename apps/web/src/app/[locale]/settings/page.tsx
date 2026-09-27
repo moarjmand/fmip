@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import { PRIVACY_VISIBILITIES } from '@fmip/contracts';
 import { ActionForm, type FieldOption } from '@/components/action-form';
 import { FollowingSection } from '@/components/following-section';
+import { ThemeSwitch } from '@/components/theme-switch';
+import { Translated } from '@/components/translated';
 import {
   fetchCompetitions,
   fetchFollowing,
@@ -13,6 +15,7 @@ import {
 import { territoryOptions, territoryValue } from '@/lib/territory';
 import { setTerritoryAction, updatePrivacyAction, updateProfileAction } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
+import { readTheme } from '@/lib/theme-cookie';
 
 // A member's own page: never indexed.
 export const metadata: Metadata = {
@@ -48,18 +51,19 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
   }
 
   const { profile, account, privacy, viewing_territory } = result.data;
-  const [following, teams, competitions, territories] = await Promise.all([
+  const [following, teams, competitions, territories, theme] = await Promise.all([
     fetchFollowing(cookie),
     fetchTeams(),
     fetchCompetitions(),
     fetchTerritories(),
+    readTheme(),
   ]);
 
   return (
     <main className="mx-auto flex max-w-md flex-col gap-10 p-8">
       <section className="flex flex-col gap-4">
         <h1 className="text-2xl font-semibold">Profile</h1>
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted">
           Signed in as @{account.username} ({account.email}
           {account.email_verified ? ', verified' : ', not yet verified'}).
         </p>
@@ -96,7 +100,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
 
       <section className="flex flex-col gap-4">
         <h2 className="text-xl font-semibold">Privacy</h2>
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted">
           Your username and display name are always public, because leaderboards show them.
         </p>
         <ActionForm
@@ -122,10 +126,21 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
         />
       </section>
 
+      <section id="appearance" className="flex flex-col gap-4" data-testid="appearance-section">
+        <h2 className="text-xl font-semibold">
+          <Translated locale={locale} message="theme.heading" />
+        </h2>
+        {/* T-602: the same switch as the header's, with room to say what "Device" means. */}
+        <p className="text-sm text-muted">
+          <Translated locale={locale} message="theme.hint" />
+        </p>
+        <ThemeSwitch locale={locale} current={theme} variant="full" />
+      </section>
+
       <section id="territory" className="flex flex-col gap-4" data-testid="territory-section">
         <h2 className="text-xl font-semibold">Viewing territory</h2>
         {/* T-312: chosen here and only here; nothing guesses it from an address (blueprint 11). */}
-        <p className="text-sm opacity-70" data-testid="territory-state">
+        <p className="text-sm text-muted" data-testid="territory-state">
           {viewing_territory.state === 'chosen'
             ? `Viewing options are shown for ${viewing_territory.territory.name}.`
             : 'You have not chosen a territory yet. Where a match can be watched depends on it, so you will be asked rather than guessed at.'}

@@ -35,22 +35,19 @@ function Lift({
           rows={2}
           required
           placeholder="Say why it is being lifted. This is recorded."
-          className="rounded border border-current/30 bg-transparent p-2"
+          className="rounded border border-strong bg-transparent p-2"
         />
       </label>
       <button
         type="submit"
         disabled={pending}
         data-testid={`moderation-lift-${sanction.id}`}
-        className="self-start rounded border border-current/30 px-3 py-1 text-sm disabled:opacity-50"
+        className="self-start rounded border border-strong px-3 py-1 text-sm disabled:opacity-50"
       >
         {pending ? 'Recording…' : 'Lift this restriction'}
       </button>
       {state !== null && (
-        <p
-          role="status"
-          className={state.ok ? 'text-sm' : 'text-sm text-red-800 dark:text-red-300'}
-        >
+        <p role="status" className={state.ok ? 'text-sm' : 'text-sm text-danger'}>
           {state.message}
         </p>
       )}
@@ -75,18 +72,18 @@ export function MemberModerationHistoryView({
       <section className="flex flex-col gap-2" data-testid="moderation-history-sanctions">
         <h2 className="text-lg font-semibold">Restrictions</h2>
         {history.sanctions.length === 0 ? (
-          <p className="text-sm opacity-70">None, now or before.</p>
+          <p className="text-sm text-muted">None, now or before.</p>
         ) : (
           <ul className="flex flex-col gap-3">
             {history.sanctions.map((sanction) => (
               <li
                 key={sanction.id}
-                className="flex flex-col gap-2 rounded border border-current/20 p-3 text-sm"
+                className="flex flex-col gap-2 rounded border border-default p-3 text-sm"
               >
                 <p>
                   <span className="font-medium">{sanction.scope}</span>
                   <span className="ms-2">{sanctionTerm(sanction)}</span>
-                  <span className="ms-2 opacity-70">
+                  <span className="ms-2 text-muted">
                     {sanction.active
                       ? 'in force'
                       : sanction.lifted_at !== null
@@ -106,17 +103,17 @@ export function MemberModerationHistoryView({
       <section className="flex flex-col gap-2" data-testid="moderation-history-decisions">
         <h2 className="text-lg font-semibold">Decisions</h2>
         {history.decisions.length === 0 ? (
-          <p className="text-sm opacity-70">No decision has been made about them.</p>
+          <p className="text-sm text-muted">No decision has been made about them.</p>
         ) : (
           <ul className="flex flex-col gap-2 text-sm">
             {history.decisions.map((decision) => (
               <li key={decision.id}>
                 <span className="font-medium">{decision.outcome}</span>
-                <span className="ms-2 opacity-70">
+                <span className="ms-2 text-muted">
                   by {decision.moderator},{' '}
                   <time dateTime={decision.created_at}>{decision.created_at}</time>
                 </span>
-                <p className="whitespace-pre-wrap opacity-80">{decision.reason}</p>
+                <p className="whitespace-pre-wrap text-muted">{decision.reason}</p>
               </li>
             ))}
           </ul>
@@ -126,19 +123,19 @@ export function MemberModerationHistoryView({
       <section className="flex flex-col gap-2" data-testid="moderation-history-reports">
         <h2 className="text-lg font-semibold">Reports about them</h2>
         {history.reports_about_them.length === 0 ? (
-          <p className="text-sm opacity-70">Nobody has reported them.</p>
+          <p className="text-sm text-muted">Nobody has reported them.</p>
         ) : (
           <ul className="flex flex-col gap-2 text-sm">
             {history.reports_about_them.map((report) => (
               <li key={report.id}>
                 <span className="font-medium">{report.reason}</span>
-                <span className="ms-2 opacity-70">
+                <span className="ms-2 text-muted">
                   by {report.reporter},{' '}
                   <time dateTime={report.created_at}>{report.created_at}</time>
                   {report.decision_id === null ? ', open' : ', answered'}
                 </span>
                 {report.detail !== null && (
-                  <p className="whitespace-pre-wrap opacity-80">{report.detail}</p>
+                  <p className="whitespace-pre-wrap text-muted">{report.detail}</p>
                 )}
               </li>
             ))}

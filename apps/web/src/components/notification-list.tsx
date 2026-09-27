@@ -28,11 +28,11 @@ function Row({ locale, notification }: { locale: string; notification: Notificat
   const body = (
     <span className="flex flex-col gap-1">
       <span className={unread ? 'font-medium' : ''}>{line}</span>
-      <time className="text-xs opacity-60" dateTime={notification.created_at}>
+      <time className="text-xs text-muted" dateTime={notification.created_at}>
         {notification.created_at}
       </time>
       {notification.held_reason !== null && (
-        <span className="text-xs opacity-70" data-testid="notification-held">
+        <span className="text-xs text-muted" data-testid="notification-held">
           Held: {notification.held_reason}
         </span>
       )}
@@ -41,7 +41,7 @@ function Row({ locale, notification }: { locale: string; notification: Notificat
 
   return (
     <li
-      className="flex items-start justify-between gap-3 rounded border border-current/20 p-3"
+      className="flex items-start justify-between gap-3 rounded border border-default p-3"
       data-testid={unread ? 'notification-unread' : 'notification-read'}
     >
       {href === null ? (
@@ -61,7 +61,7 @@ function Row({ locale, notification }: { locale: string; notification: Notificat
               await readOneAction(locale, notification.id);
             });
           }}
-          className="shrink-0 rounded border border-current/30 px-2 py-0.5 text-xs disabled:opacity-50"
+          className="shrink-0 rounded border border-strong px-2 py-0.5 text-xs disabled:opacity-50"
           data-testid={`notification-read-${notification.id}`}
         >
           Mark read
@@ -96,7 +96,7 @@ export function NotificationList({
 
   if (page.notifications.length === 0) {
     return (
-      <p className="text-sm opacity-70" data-testid="notifications-empty">
+      <p className="text-sm text-muted" data-testid="notifications-empty">
         Nothing yet. Things that happen to you and to what you wrote turn up here.
       </p>
     );
@@ -113,7 +113,7 @@ export function NotificationList({
               await readAllAction(locale);
             });
           }}
-          className="self-start rounded border border-current/30 px-3 py-1 text-sm disabled:opacity-50"
+          className="self-start rounded border border-strong px-3 py-1 text-sm disabled:opacity-50"
           data-testid="notifications-read-all"
         >
           Mark all {page.unread} read

@@ -84,7 +84,13 @@ export function LiveMatch({
   return (
     <>
       <p
-        className={`text-xs ${state === 'live' ? 'opacity-70' : 'font-medium'}`}
+        className={`text-xs ${
+          state === 'live'
+            ? 'text-muted'
+            : state === 'connecting'
+              ? 'font-medium'
+              : 'font-medium text-warning'
+        }`}
         data-testid="live-state"
         data-state={state}
         role={state === 'stale' || state === 'unavailable' ? 'status' : undefined}

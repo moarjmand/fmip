@@ -37,8 +37,8 @@ export function GroupPollForm({
         data-testid={`${testId}-submit`}
         className={
           quiet
-            ? 'self-start rounded border border-current/30 px-3 py-1 text-sm disabled:opacity-50'
-            : 'self-start rounded bg-[color:CanvasText] px-3 py-1 text-sm font-medium text-[color:Canvas] disabled:opacity-50'
+            ? 'self-start rounded border border-strong px-3 py-1 text-sm disabled:opacity-50'
+            : 'self-start rounded bg-accent px-3 py-1 text-sm font-medium text-on-accent disabled:opacity-50'
         }
       >
         {pending ? working : submit}
@@ -46,7 +46,7 @@ export function GroupPollForm({
       {state !== null && (
         <p
           role="status"
-          className={`text-sm ${state.ok ? 'opacity-70' : 'text-red-800 dark:text-red-300'}`}
+          className={`text-sm ${state.ok ? 'text-muted' : 'text-danger'}`}
           data-testid={`${testId}-result`}
         >
           {state.ok ? (state.message ?? '') : state.message}

@@ -42,8 +42,8 @@ function ActionButton({
         data-testid={testId}
         className={
           quiet
-            ? 'self-start rounded border border-current/30 px-3 py-1 text-sm disabled:opacity-50'
-            : 'self-start rounded bg-[color:CanvasText] px-3 py-1 text-sm font-medium text-[color:Canvas] disabled:opacity-50'
+            ? 'self-start rounded border border-strong px-3 py-1 text-sm disabled:opacity-50'
+            : 'self-start rounded bg-accent px-3 py-1 text-sm font-medium text-on-accent disabled:opacity-50'
         }
       >
         {pending ? 'Working…' : label}
@@ -51,7 +51,7 @@ function ActionButton({
       {state !== null && (
         <p
           role="status"
-          className={`text-sm ${state.ok ? 'opacity-70' : 'text-red-800 dark:text-red-300'}`}
+          className={`text-sm ${state.ok ? 'text-muted' : 'text-danger'}`}
           data-testid={`${testId}-result`}
         >
           {state.ok ? (state.message ?? 'Done.') : state.message}
@@ -123,7 +123,7 @@ export function FriendControls({
 
       {status === 'request_sent' && (
         <>
-          <p className="text-sm opacity-70" data-testid="friend-state">
+          <p className="text-sm text-muted" data-testid="friend-state">
             Friend request sent.
           </p>
           <ActionButton
@@ -138,7 +138,7 @@ export function FriendControls({
 
       {status === 'request_received' && (
         <>
-          <p className="text-sm opacity-70" data-testid="friend-state">
+          <p className="text-sm text-muted" data-testid="friend-state">
             @{username} asked to be your friend.
           </p>
           <ActionButton
@@ -158,7 +158,7 @@ export function FriendControls({
 
       {status === 'friends' && (
         <>
-          <p className="text-sm opacity-70" data-testid="friend-state">
+          <p className="text-sm text-muted" data-testid="friend-state">
             You are friends.
           </p>
           <ActionButton
@@ -173,7 +173,7 @@ export function FriendControls({
 
       {status === 'blocked' && (
         <>
-          <p className="text-sm opacity-70" data-testid="friend-state">
+          <p className="text-sm text-muted" data-testid="friend-state">
             You blocked @{username}. They are not told.
           </p>
           <ActionButton
@@ -187,7 +187,7 @@ export function FriendControls({
 
       {status === 'unavailable' && (
         <>
-          <p className="text-sm opacity-70" data-testid="friend-state">
+          <p className="text-sm text-muted" data-testid="friend-state">
             You cannot send @{username} a friend request.
           </p>
           {block}
