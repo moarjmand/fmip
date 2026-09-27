@@ -4,6 +4,7 @@ import type {
   CompetitionPage,
   CompetitionsResponse,
   CountriesResponse,
+  FollowSuggestionsResponse,
   PlayerPage,
   TeamPage,
   TeamsResponse,
@@ -54,6 +55,15 @@ export class CatalogController {
   @Get('competitions')
   async competitions(): Promise<CompetitionsResponse> {
     return { competitions: await this.catalog.competitions() };
+  }
+
+  /**
+   * What to follow next, for a member who follows nothing (T-622). Public: it
+   * names no member, only teams and how many follow them.
+   */
+  @Get('follow-suggestions')
+  followSuggestions(): Promise<FollowSuggestionsResponse> {
+    return this.catalog.followSuggestions();
   }
 
   /** The player page (blueprint 5.3, T-037). Public. */

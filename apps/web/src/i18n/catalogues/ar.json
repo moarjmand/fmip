@@ -1136,5 +1136,50 @@
     "source": "Nothing has happened around what you follow in the last week, and nothing is due in the next.",
     "text": "",
     "status": "untranslated"
+  },
+  "feed.nextSteps.title": {
+    "source": "Where to start",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feed.nextSteps.intro": {
+    "source": "Follow one of the competitions below, or a team that plays in it. Its matches, news and analysis will then appear on this page.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feed.nextSteps.ranked": {
+    "source": "Teams in this season, most followed first:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feed.nextSteps.noTeams": {
+    "source": "No fixture of this season names a team yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feed.nextSteps.follow": {
+    "source": "Follow",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feed.nextSteps.nothingHeld": {
+    "source": "The site holds no competitions yet, so there is nothing to suggest.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feed.nextSteps.unreachable": {
+    "source": "Suggestions cannot be loaded right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feed.nextSteps.search": {
+    "source": "Search for a team, a player or a competition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feed.nextSteps.everything": {
+    "source": "Choose from every team and competition in Settings",
+    "text": "",
+    "status": "untranslated"
   }
 }

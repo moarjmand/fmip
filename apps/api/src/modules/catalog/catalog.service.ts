@@ -4,13 +4,17 @@ import type {
   CompetitionSummary,
   CountrySummary,
   Covered,
+  FollowSuggestionsResponse,
   PlayerPage,
   SeasonSummary,
+  SuggestedCompetition,
+  SuggestedTeam,
   TableContext,
   TableRow,
   TeamPage,
   TeamSummary,
 } from '@fmip/contracts';
+import { SUGGESTED_TEAMS_PER_COMPETITION } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../database/database.module';
 import { derived } from '../fixtures/fixtures.service';
@@ -97,6 +101,44 @@ export class CatalogService {
          FROM competition WHERE is_active ORDER BY name`,
     );
     return rows;
+  }
+
+  /**
+   * What a member who follows nothing can follow next (T-622): every active
+   * competition with the teams of its season (current, else newest -- the
+   * same rule as `pickSeason`) that members follow most. Everything comes
+   * from stored rows; a competition with no season or no fixture yet is
+   * listed with no teams rather than given some from elsewhere.
+   */
+  async followSuggestions(): Promise<FollowSuggestionsResponse> {
+    const { rows } = await this.pool.query<SuggestionRow>(
+      `WITH picked AS (
+         SELECT DISTINCT ON (competition_id) competition_id, id, label
+           FROM season
+          ORDER BY competition_id, is_current DESC, start_date DESC, label DESC
+       ),
+       played AS (
+         SELECT DISTINCT pk.competition_id, fp.team_id
+           FROM picked pk
+           JOIN fixture f ON f.season_id = pk.id
+           JOIN fixture_participant fp ON fp.fixture_id = f.id
+       )
+       SELECT c.id, c.name, c.short_name, c.scope, c.country_id, c.display_order,
+              pk.id AS season_id, pk.label AS season_label,
+              t.id AS team_id, t.name AS team_name, t.short_name AS team_short_name,
+              t.code AS team_code, t.kind AS team_kind, t.country_id AS team_country_id,
+              (SELECT count(*) FROM followed_entity fe
+                WHERE fe.entity_type = 'team' AND fe.entity_id = t.id)::int AS followers
+         FROM competition c
+         LEFT JOIN picked pk ON pk.competition_id = c.id
+         LEFT JOIN played pl ON pl.competition_id = c.id
+         LEFT JOIN team t ON t.id = pl.team_id AND t.is_active
+        WHERE c.is_active`,
+    );
+    return {
+      competitions: groupSuggestions(rows, SUGGESTED_TEAMS_PER_COMPETITION),
+      ranked_by: 'followers',
+    };
   }
 
   /**
@@ -194,6 +236,78 @@ export function playsKnockoutBracket(competition: {
   scope: CompetitionPage['competition']['scope'];
 }): boolean {
   return competition.kind === 'cup' && competition.scope === 'continental';
+}
+
+/** One row of the suggestions query: a competition, its season, and one of its teams (or none). */
+export interface SuggestionRow {
+  id: string;
+  name: string;
+  short_name: string | null;
+  scope: CompetitionSummary['scope'];
+  country_id: string | null;
+  display_order: number | null;
+  season_id: string | null;
+  season_label: string | null;
+  team_id: string | null;
+  team_name: string | null;
+  team_short_name: string | null;
+  team_code: string | null;
+  team_kind: TeamSummary['kind'] | null;
+  team_country_id: string | null;
+  followers: number | null;
+}
+
+/**
+ * Pure, so the suggestion rule is one function (T-622): competitions in their
+ * scores-page order (a stated `display_order` first, then by name), each with
+ * at most `limit` teams, most followed first and then by name.
+ */
+export function groupSuggestions(
+  rows: readonly SuggestionRow[],
+  limit: number,
+): SuggestedCompetition[] {
+  const byCompetition = new Map<string, { row: SuggestionRow; teams: SuggestedTeam[] }>();
+  for (const row of rows) {
+    let entry = byCompetition.get(row.id);
+    if (entry === undefined) {
+      entry = { row, teams: [] };
+      byCompetition.set(row.id, entry);
+    }
+    if (row.team_id !== null && row.team_name !== null && row.team_kind !== null) {
+      entry.teams.push({
+        id: row.team_id,
+        name: row.team_name,
+        short_name: row.team_short_name,
+        code: row.team_code,
+        kind: row.team_kind,
+        country_id: row.team_country_id,
+        followers: row.followers ?? 0,
+      });
+    }
+  }
+  const byName = (a: string, b: string): number => a.localeCompare(b, 'en');
+  return [...byCompetition.values()]
+    .sort(
+      (a, b) =>
+        (a.row.display_order ?? Number.MAX_SAFE_INTEGER) -
+          (b.row.display_order ?? Number.MAX_SAFE_INTEGER) || byName(a.row.name, b.row.name),
+    )
+    .map(({ row, teams }) => ({
+      competition: {
+        id: row.id,
+        name: row.name,
+        short_name: row.short_name,
+        scope: row.scope,
+        country_id: row.country_id,
+      },
+      season:
+        row.season_id !== null && row.season_label !== null
+          ? { id: row.season_id, label: row.season_label }
+          : null,
+      teams: teams
+        .sort((a, b) => b.followers - a.followers || byName(a.name, b.name))
+        .slice(0, limit),
+    }));
 }
 
 /** A season still running: the current one, or one whose last day has not passed. */

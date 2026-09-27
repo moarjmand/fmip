@@ -230,6 +230,8 @@ export async function followAction(locale: string, formData: FormData): Promise<
     );
   }
   revalidatePath(`/${locale}/settings`);
+  // The Following page offers these buttons too when nothing is followed (T-622).
+  revalidatePath(`/${locale}/following`);
 }
 
 export async function unfollowAction(locale: string, formData: FormData): Promise<void> {

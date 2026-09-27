@@ -20,6 +20,7 @@ import type {
   CountriesResponse,
   FixtureEvaluationsResponse,
   FollowedEntity,
+  FollowSuggestionsResponse,
   FixtureNewsResponse,
   FollowingFeed,
   FollowingResponse,
@@ -383,6 +384,11 @@ export async function fetchCountries(): Promise<CountriesResponse['countries'] |
 /** `GET /me/feed` (T-333): the member's Following feed, in the API's order. */
 export function fetchFeed(cookie: string | undefined): Promise<ApiResult<FollowingFeed>> {
   return apiRequest<FollowingFeed>('/me/feed', { cookie });
+}
+
+/** `GET /follow-suggestions` (T-622): what a member who follows nothing can follow next. */
+export function fetchFollowSuggestions(): Promise<ApiResult<FollowSuggestionsResponse>> {
+  return apiRequest<FollowSuggestionsResponse>('/follow-suggestions');
 }
 
 export async function fetchFollowing(cookie: string | undefined): Promise<FollowedEntity[] | null> {
