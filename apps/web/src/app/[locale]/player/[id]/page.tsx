@@ -151,6 +151,29 @@ export default async function PlayerPage({
         )}
       </section>
 
+      <form
+        action={`${base}/compare`}
+        method="get"
+        role="search"
+        className="flex flex-wrap gap-2 text-sm"
+        data-testid="compare-with"
+      >
+        <label htmlFor="compare-with-term" className="w-full font-semibold">
+          Compare with…
+        </label>
+        <input
+          id="compare-with-term"
+          name="q"
+          type="search"
+          placeholder="Another player’s name"
+          autoComplete="off"
+          className="min-w-0 grow rounded border border-current/30 bg-transparent px-3 py-2"
+        />
+        <button type="submit" className="rounded border border-current/30 px-3 py-2">
+          Find
+        </button>
+      </form>
+
       <section className="flex flex-col gap-2" data-testid="career">
         <h2 className="text-lg font-semibold">Career</h2>
         {page.spells.length === 0 ? (
