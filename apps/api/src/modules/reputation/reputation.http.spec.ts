@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Test } from '@nestjs/testing';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
-import type { RatingHistoryResponse, RatingResponse } from '@fmip/contracts';
+import type { AchievementsResponse, RatingHistoryResponse, RatingResponse } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -26,6 +26,7 @@ const PL_2025 = '00000000-0000-4000-8000-000000000302';
 const HOME_TEAM = randomUUID();
 const AWAY_TEAM = randomUUID();
 const RUN = `${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
+const ROUND = `Rating test round ${RUN}`;
 
 function cookieValue(setCookie: string | string[] | undefined): string {
   const header = Array.isArray(setCookie) ? setCookie[0] : setCookie;
@@ -72,7 +73,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Performance 
   const fixtures: string[] = [];
 
   const inject = (
-    method: 'GET' | 'POST' | 'PUT',
+    method: 'GET' | 'POST' | 'PUT' | 'PATCH',
     url: string,
     cookie?: string,
     payload?: unknown,
@@ -88,8 +89,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Performance 
     const id = randomUUID();
     fixtures.push(id);
     await pool.query(
-      `INSERT INTO fixture (id, season_id, kickoff_at, status) VALUES ($1, $2, now() + interval '10 seconds', 'scheduled')`,
-      [id, PL_2025],
+      // One round of this run's own (T-643): no other fixture is in it, so
+      // predicting all four is a full matchday.
+      `INSERT INTO fixture (id, season_id, round, kickoff_at, status)
+       VALUES ($1, $2, $3, now() + interval '10 seconds', 'scheduled')`,
+      [id, PL_2025, ROUND],
     );
     await pool.query(
       `INSERT INTO fixture_participant (fixture_id, team_id, side) VALUES ($1, $2, 'home'), ($1, $3, 'away')`,
@@ -342,5 +346,63 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Performance 
     expect(body.users).toBeGreaterThanOrEqual(2);
     // fav is back on 1.0.0 (a change), ups is unchanged.
     expect(body.snapshots).toBeGreaterThanOrEqual(1);
+  });
+
+  it('derives achievements from the stored rows and follows the history visibility (T-643)', async () => {
+    const [fav, ups] = users;
+    const { rows } = await pool.query<{ first: Date; last: Date }>(
+      `SELECT min(s.settled_at) AS first, max(s.settled_at) AS last
+         FROM settlement s JOIN user_prediction p ON p.id = s.prediction_id
+        WHERE p.user_id = $1::uuid AND s.status = 'settled'`,
+      [fav!.id],
+    );
+    const response = await inject('GET', `/users/${fav!.username}/achievements`);
+    expect(response.statusCode).toBe(200);
+    const body = response.json() as AchievementsResponse;
+    if (body.kind !== 'visible') throw new Error('restricted');
+    expect(body.is_self).toBe(false);
+    expect(body.achievements.rules_version).toBe('achievements@1.0.0');
+    // Four settled, three right in a row at most, no exact score, one competition.
+    expect(body.achievements.earned).toEqual([
+      { kind: 'first_settled', earned_at: rows[0]!.first.toISOString(), round: null },
+      {
+        kind: 'full_matchday',
+        earned_at: rows[0]!.last.toISOString(),
+        round: {
+          competition: expect.objectContaining({ id: expect.any(String) }),
+          season_label: expect.any(String),
+          round: ROUND,
+        },
+      },
+    ]);
+    // Derived on read: asking again gives the same list.
+    const again = (
+      await inject('GET', `/users/${fav!.username}/achievements`)
+    ).json() as AchievementsResponse;
+    expect(again.kind === 'visible' && again.achievements.earned).toEqual(body.achievements.earned);
+
+    expect((await inject('GET', '/me/achievements')).statusCode).toBe(401);
+    expect((await inject('GET', `/users/nobody_${RUN}/achievements`)).statusCode).toBe(404);
+
+    expect(
+      (
+        await inject('PATCH', '/me/privacy', ups!.cookie, {
+          prediction_history_visibility: 'private',
+        })
+      ).statusCode,
+    ).toBe(200);
+    expect((await inject('GET', `/users/${ups!.username}/achievements`)).json()).toEqual({
+      kind: 'restricted',
+      username: ups!.username,
+      visibility: 'private',
+    });
+    const own = (
+      await inject('GET', '/me/achievements', ups!.cookie)
+    ).json() as AchievementsResponse;
+    expect(own.kind === 'visible' && own.is_self).toBe(true);
+    expect(own.kind === 'visible' && own.achievements.earned.map((a) => a.kind)).toEqual([
+      'first_settled',
+      'full_matchday',
+    ]);
   });
 });

@@ -358,6 +358,11 @@ export type {
   GrantStanding,
 } from './contributor';
 export type {
+  Achievement,
+  AchievementKind,
+  AchievementRound,
+  Achievements,
+  AchievementsResponse,
   CareerPoints,
   CareerPointsResponse,
   CompetitionRating,
@@ -378,7 +383,7 @@ export type {
   RatingResponse,
   RatingTier,
 } from './reputation';
-export { LEADERBOARD_PERIOD_KINDS, LEADERBOARD_SCOPES } from './reputation';
+export { ACHIEVEMENT_KINDS, LEADERBOARD_PERIOD_KINDS, LEADERBOARD_SCOPES } from './reputation';
 export type {
   AccountStatus,
   AdminOverview,

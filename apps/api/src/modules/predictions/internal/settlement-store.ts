@@ -23,6 +23,22 @@ export interface MemberSettledRecord extends SettledRecord {
   userId: string;
 }
 
+/** A member's prediction: where, and when its first version was submitted (T-643). */
+export interface PredictionFirst {
+  fixtureId: string;
+  competitionId: string;
+  firstSubmittedAt: string;
+}
+
+/** A round a member predicted in, with every fixture it holds, theirs or not (T-643). */
+export interface PredictedRound {
+  competition: { id: string; name: string };
+  seasonId: string;
+  seasonLabel: string;
+  round: string;
+  fixtures: { fixtureId: string; status: string }[];
+}
+
 export interface FixtureFinal {
   id: string;
   status: string;
@@ -345,6 +361,79 @@ export class PostgresSettlementStore {
         r.actual_home > r.actual_away ? 'home' : r.actual_home < r.actual_away ? 'away' : 'draw',
       competition: { id: r.competition_id, name: r.competition_name },
     }));
+  }
+
+  /**
+   * Every prediction of the member's with its competition and the time its
+   * first version was submitted, earliest first (achievements, T-643).
+   */
+  async predictionFirsts(userId: string): Promise<PredictionFirst[]> {
+    const { rows } = await this.pool.query<{
+      fixture_id: string;
+      competition_id: string;
+      submitted_at: Date;
+    }>(
+      `SELECT p.fixture_id, se.competition_id, v.submitted_at
+         FROM user_prediction p
+         JOIN prediction_version v ON v.prediction_id = p.id AND v.version_number = 1
+         JOIN fixture f ON f.id = p.fixture_id
+         JOIN season se ON se.id = f.season_id
+        WHERE p.user_id = $1::uuid
+        ORDER BY v.submitted_at, p.fixture_id`,
+      [userId],
+    );
+    return rows.map((r) => ({
+      fixtureId: r.fixture_id,
+      competitionId: r.competition_id,
+      firstSubmittedAt: r.submitted_at.toISOString(),
+    }));
+  }
+
+  /**
+   * Every round (one season, one `round` value) the member predicted at least
+   * one fixture of, with all of that round's fixtures and their status
+   * (achievements, T-643). A fixture without a round is in no round.
+   */
+  async predictedRounds(userId: string): Promise<PredictedRound[]> {
+    const { rows } = await this.pool.query<{
+      id: string;
+      status: string;
+      season_id: string;
+      round: string;
+      season_label: string;
+      competition_id: string;
+      competition_name: string;
+    }>(
+      `SELECT f.id, f.status, f.season_id, f.round, se.label AS season_label,
+              c.id AS competition_id, c.name AS competition_name
+         FROM fixture f
+         JOIN season se ON se.id = f.season_id
+         JOIN competition c ON c.id = se.competition_id
+        WHERE (f.season_id, f.round) IN (
+                SELECT pf.season_id, pf.round
+                  FROM user_prediction p
+                  JOIN fixture pf ON pf.id = p.fixture_id
+                 WHERE p.user_id = $1::uuid AND pf.round IS NOT NULL)
+        ORDER BY f.season_id, f.round, f.kickoff_at, f.id`,
+      [userId],
+    );
+    const rounds = new Map<string, PredictedRound>();
+    for (const r of rows) {
+      const key = `${r.season_id} ${r.round}`;
+      let round = rounds.get(key);
+      if (round === undefined) {
+        round = {
+          competition: { id: r.competition_id, name: r.competition_name },
+          seasonId: r.season_id,
+          seasonLabel: r.season_label,
+          round: r.round,
+          fixtures: [],
+        };
+        rounds.set(key, round);
+      }
+      round.fixtures.push({ fixtureId: r.id, status: r.status });
+    }
+    return [...rounds.values()];
   }
 
   /** Members with a prediction on the fixture. */
