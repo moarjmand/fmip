@@ -3,7 +3,7 @@
 import type { MatchCentre } from '@fmip/contracts';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { MatchCentreView } from '@/components/match-centre-view';
+import { MatchCentreView, type MatchSlots } from '@/components/match-centre-view';
 import { matchAnnouncements } from '@/lib/announce';
 import { INITIAL_CLOCK, type LiveClock, liveLabel, liveState } from '@/lib/live';
 
@@ -26,13 +26,16 @@ export function LiveMatch({
   initial,
   timeZone,
   locale,
-  panels,
+  slots,
 }: {
   initial: MatchCentre;
   timeZone: string;
   locale: string;
-  /** Server-rendered panels below the live modules: prediction (T-050), forecast (T-065). */
-  panels: React.ReactNode;
+  /**
+   * Server-rendered panels -- prediction (T-050), forecast (T-065) and the
+   * rest -- each placed by the view in its own section of the page (T-605).
+   */
+  slots: MatchSlots;
 }) {
   const [centre, setCentre] = useState(initial);
   const [clock, setClock] = useState<LiveClock>(INITIAL_CLOCK);
@@ -105,8 +108,13 @@ export function LiveMatch({
       >
         {announcement}
       </div>
-      <MatchCentreView centre={centre} timeZone={timeZone} locale={locale} now={now} />
-      {panels}
+      <MatchCentreView
+        centre={centre}
+        timeZone={timeZone}
+        locale={locale}
+        now={now}
+        slots={slots}
+      />
     </>
   );
 }

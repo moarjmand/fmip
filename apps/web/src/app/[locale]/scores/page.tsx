@@ -14,7 +14,7 @@ import {
 } from '@/lib/scores-filters';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
-import { Button, Notice, controlClasses } from '@/components/ui';
+import { Button, ButtonLink, Notice, controlClasses } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,8 +63,13 @@ export default async function ScoresPage({
   // A provider outage is named on the page (T-083), never hidden behind old numbers.
   const notice = feedNotice(ingestion, locale, q.timezone);
   const strip = dayStrip(q, locale);
+  // Every control is a thumb's target, 44px or more (T-605).
   const linkClass = (active: boolean): string =>
-    `rounded px-2 py-1 ${active ? 'bg-surface-raised font-semibold' : 'underline'}`;
+    `inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded px-3 ${
+      active ? 'bg-surface-raised font-semibold' : 'underline'
+    }`;
+  // The day steps, each a thumb-sized button.
+  const stepClass = 'inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1';
   const filters = q.filters ?? NO_FILTERS;
   const filtered = isFiltered(filters);
   const clearFiltersHref = pageHref(locale, q, { filters: NO_FILTERS });
@@ -95,7 +100,7 @@ export default async function ScoresPage({
         <select
           name={name}
           defaultValue={selected ?? ''}
-          className={`${inputClass} max-w-full`}
+          className={`${inputClass} min-h-11 max-w-full`}
           data-testid={`filter-${name}`}
         >
           <option value="">{all}</option>
@@ -109,12 +114,17 @@ export default async function ScoresPage({
     );
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-6 p-4 sm:p-8">
+    <main className="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-4 sm:gap-6 sm:p-8">
       <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
         Scores
       </h1>
 
-      <nav aria-label="Day" className="flex flex-wrap gap-1 text-sm" data-testid="day-strip">
+      {/* One row that scrolls inside itself on a phone, never the page (T-605). */}
+      <nav
+        aria-label="Day"
+        className="-mx-4 flex gap-1 overflow-x-auto px-4 text-sm sm:mx-0 sm:flex-wrap sm:px-0"
+        data-testid="day-strip"
+      >
         {strip.map((day) => (
           <Link
             key={day.date}
@@ -127,41 +137,50 @@ export default async function ScoresPage({
         ))}
       </nav>
 
+      {/* The day first, then the steps: on a phone the date and its button take
+          one row and the two steps the next, so neither is squeezed (T-605). */}
       <div className="flex flex-wrap items-end gap-2 text-sm" data-testid="date-picker">
-        <Link
-          href={pageHref(locale, q, { date: shiftDate(q.date, -1) })}
-          className="rounded px-2 py-1 underline"
-          data-testid="previous-day"
+        <form
+          method="get"
+          action={`/${locale}/scores`}
+          className="flex min-w-0 basis-full items-end gap-2 sm:basis-auto"
         >
-          Previous day
-        </Link>
-        <form method="get" action={`/${locale}/scores`} className="flex items-end gap-2">
           {hidden([zoneField, ...flagFields, ...filterParams(filters)])}
-          <label className="flex flex-col gap-1">
+          <label className="flex min-w-0 flex-1 flex-col gap-1">
             <span>Date</span>
             <input
               type="date"
               name="date"
               required
               defaultValue={q.date}
-              className={inputClass}
+              className={`${inputClass} min-h-11 w-full min-w-0`}
               data-testid="date-input"
             />
           </label>
-          <Button type="submit" className="font-medium">
+          <Button type="submit" className="min-h-11 shrink-0 font-medium">
             Show day
           </Button>
         </form>
-        <Link
+        {/* The arrows are bidi-mirrored characters, so they point the right way in RTL. */}
+        <ButtonLink
+          href={pageHref(locale, q, { date: shiftDate(q.date, -1) })}
+          className={stepClass}
+          data-testid="previous-day"
+        >
+          <span aria-hidden="true">‹</span>
+          <span>Previous day</span>
+        </ButtonLink>
+        <ButtonLink
           href={pageHref(locale, q, { date: shiftDate(q.date, 1) })}
-          className="rounded px-2 py-1 underline"
+          className={stepClass}
           data-testid="next-day"
         >
-          Next day
-        </Link>
+          <span>Next day</span>
+          <span aria-hidden="true">›</span>
+        </ButtonLink>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="filters">
+      <div className="flex flex-wrap items-center gap-x-1 gap-y-0 text-sm" data-testid="filters">
         <Link href={pageHref(locale, q, { live: false })} className={linkClass(!q.live)}>
           All
         </Link>
@@ -177,7 +196,7 @@ export default async function ScoresPage({
             Favourites only
           </Link>
         )}
-        <span className="ms-auto text-muted" data-testid="timezone">
+        <span className="w-full text-xs text-muted sm:ms-auto sm:w-auto" data-testid="timezone">
           Times in {q.timezone}
           {me === null && !q.explicitTimezone ? ' (sign in for your own zone)' : ''}
         </span>
@@ -187,7 +206,7 @@ export default async function ScoresPage({
         (filtered ||
           options.countries.length + options.competitions.length + options.stages.length > 0) && (
           <details open={filtered} className="text-sm" data-testid="more-filters">
-            <summary className="cursor-pointer font-medium">
+            <summary className="flex min-h-11 cursor-pointer items-center font-medium">
               Country, competition and stage{filtered ? ' (filtered)' : ''}
             </summary>
             <form
@@ -205,11 +224,14 @@ export default async function ScoresPage({
                 filters.competition,
               )}
               {select('stage', 'Stage', 'All stages', options.stages, filters.stage)}
-              <Button type="submit" className="font-medium">
+              <Button type="submit" className="min-h-11 font-medium">
                 Apply
               </Button>
               {filtered && (
-                <Link href={clearFiltersHref} className="px-2 py-1 underline">
+                <Link
+                  href={clearFiltersHref}
+                  className="inline-flex min-h-11 items-center px-2 underline"
+                >
                   Clear filters
                 </Link>
               )}

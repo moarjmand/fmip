@@ -196,11 +196,15 @@ export function Select({
 }: SelectProps) {
   const { id, hintId, errorId, control } = useDescription(givenId, hint, error, describedBy);
   return (
-    <div className={cx('flex flex-col gap-1', className)}>
+    <div className={cx('flex min-w-0 max-w-full flex-col gap-1', className)}>
       <Label htmlFor={id} hidden={hideLabel}>
         {label}
       </Label>
-      <select className={controlClasses(size, controlClassName)} {...control} {...rest}>
+      <select
+        className={controlClasses(size, cx('max-w-full', controlClassName))}
+        {...control}
+        {...rest}
+      >
         {children}
       </select>
       <Messages hint={hint} hintId={hintId} error={error} errorId={errorId} />

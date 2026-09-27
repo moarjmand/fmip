@@ -2,6 +2,7 @@ import type { ScoreCard } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
 import {
   apiQuery,
+  blockUpdatedLabel,
   dayStrip,
   formatKickoff,
   pageHref,
@@ -164,5 +165,24 @@ describe('card labels', () => {
         }),
       ),
     ).toBe('2 – 2');
+  });
+});
+
+describe('blockUpdatedLabel', () => {
+  it('says one time when every card in the block agrees', () => {
+    expect(blockUpdatedLabel([card({}), card({})], 'en', 'UTC')).toBe('Updated 10:00');
+  });
+
+  it('says the oldest and the newest when they differ, never the newest alone', () => {
+    const cards = [
+      card({ last_updated_at: '2025-01-05T16:31:00.000Z' }),
+      card({ last_updated_at: '2025-01-05T10:00:00.000Z' }),
+      card({ last_updated_at: '2025-01-05T14:05:00.000Z' }),
+    ];
+    expect(blockUpdatedLabel(cards, 'en', 'Asia/Tehran')).toBe('Updated between 13:30 and 20:01');
+  });
+
+  it('says nothing for an empty block', () => {
+    expect(blockUpdatedLabel([], 'en', 'UTC')).toBeNull();
   });
 });
