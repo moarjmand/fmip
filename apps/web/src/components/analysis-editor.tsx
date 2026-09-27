@@ -36,17 +36,17 @@ const DECISION_TEXT: Record<string, string> = {
 function Attempt({ submission }: { submission: CommunitySubmission }) {
   return (
     <li
-      className="flex flex-col gap-1 rounded border border-current/20 p-3"
+      className="flex flex-col gap-1 rounded border border-default p-3"
       data-testid="analysis-attempt"
     >
       <span className="text-sm font-medium">Attempt {submission.attempt}</span>
-      <time className="text-xs opacity-60" dateTime={submission.submitted_at}>
+      <time className="text-xs text-muted" dateTime={submission.submitted_at}>
         {submission.submitted_at}
       </time>
       {submission.review === null ? (
         // Said, not left blank. "Waiting" and "declined without a note" are
         // different things and an analyst should not have to guess which.
-        <span className="text-sm opacity-70" data-testid="analysis-attempt-waiting">
+        <span className="text-sm text-muted" data-testid="analysis-attempt-waiting">
           Waiting to be read.
         </span>
       ) : (
@@ -57,7 +57,7 @@ function Attempt({ submission }: { submission: CommunitySubmission }) {
           </span>
           {/* The reason, always: a decision with none cannot be reviewed, and
               the API refuses to record one without it. */}
-          <span className="whitespace-pre-wrap opacity-80">{submission.review.reason}</span>
+          <span className="whitespace-pre-wrap text-muted">{submission.review.reason}</span>
         </span>
       )}
     </li>
@@ -88,7 +88,7 @@ export function AnalysisEditor({
   return (
     <div className="flex flex-col gap-6">
       {workspace !== null && (
-        <p className="text-sm opacity-70" data-testid="analysis-state">
+        <p className="text-sm text-muted" data-testid="analysis-state">
           {STATE_TEXT[workspace.state]}
         </p>
       )}
@@ -99,16 +99,14 @@ export function AnalysisEditor({
           <select
             name="predicted_outcome"
             defaultValue={draft?.predicted_outcome ?? 'home'}
-            className="rounded border border-current/30 bg-transparent p-1"
+            className="rounded border border-strong bg-transparent p-1"
           >
             <option value="home">Home win</option>
             <option value="draw">Draw</option>
             <option value="away">Away win</option>
           </select>
           {fields.predicted_outcome !== undefined && (
-            <span className="text-xs text-red-800 dark:text-red-300">
-              {fields.predicted_outcome}
-            </span>
+            <span className="text-xs text-danger">{fields.predicted_outcome}</span>
           )}
         </label>
 
@@ -120,7 +118,7 @@ export function AnalysisEditor({
               min={0}
               name="predicted_home"
               defaultValue={draft?.predicted_home ?? ''}
-              className="w-24 rounded border border-current/30 bg-transparent p-1"
+              className="w-24 rounded border border-strong bg-transparent p-1"
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
@@ -130,12 +128,12 @@ export function AnalysisEditor({
               min={0}
               name="predicted_away"
               defaultValue={draft?.predicted_away ?? ''}
-              className="w-24 rounded border border-current/30 bg-transparent p-1"
+              className="w-24 rounded border border-strong bg-transparent p-1"
             />
           </label>
         </div>
         {fields.predicted_home !== undefined && (
-          <span className="text-xs text-red-800 dark:text-red-300">{fields.predicted_home}</span>
+          <span className="text-xs text-danger">{fields.predicted_home}</span>
         )}
 
         <label className="flex flex-col gap-1 text-sm">
@@ -146,10 +144,10 @@ export function AnalysisEditor({
             max={5}
             name="confidence"
             defaultValue={draft?.confidence ?? 3}
-            className="w-24 rounded border border-current/30 bg-transparent p-1"
+            className="w-24 rounded border border-strong bg-transparent p-1"
           />
           {fields.confidence !== undefined && (
-            <span className="text-xs text-red-800 dark:text-red-300">{fields.confidence}</span>
+            <span className="text-xs text-danger">{fields.confidence}</span>
           )}
         </label>
 
@@ -160,15 +158,15 @@ export function AnalysisEditor({
             rows={6}
             required
             defaultValue={draft?.reasoning ?? ''}
-            className="rounded border border-current/30 bg-transparent p-2"
+            className="rounded border border-strong bg-transparent p-2"
           />
           {/* The line between an analysis and a prediction, and the product
               already has predictions. */}
-          <span className="text-xs opacity-60">
+          <span className="text-xs text-muted">
             An analysis without reasoning is a prediction, and we already have those.
           </span>
           {fields.reasoning !== undefined && (
-            <span className="text-xs text-red-800 dark:text-red-300">{fields.reasoning}</span>
+            <span className="text-xs text-danger">{fields.reasoning}</span>
           )}
         </label>
 
@@ -185,7 +183,7 @@ export function AnalysisEditor({
               name={name}
               rows={3}
               defaultValue={draft?.[name] ?? ''}
-              className="rounded border border-current/30 bg-transparent p-2"
+              className="rounded border border-strong bg-transparent p-2"
             />
           </label>
         ))}
@@ -194,7 +192,7 @@ export function AnalysisEditor({
           type="submit"
           disabled={saving}
           data-testid="analysis-save"
-          className="self-start rounded border border-current/30 px-3 py-1 text-sm disabled:opacity-50"
+          className="self-start rounded border border-strong px-3 py-1 text-sm disabled:opacity-50"
         >
           {saving ? 'Saving…' : 'Save draft'}
         </button>
@@ -202,7 +200,7 @@ export function AnalysisEditor({
           <p
             role="status"
             data-testid="analysis-save-result"
-            className={saveState.ok ? 'text-sm' : 'text-sm text-red-800 dark:text-red-300'}
+            className={saveState.ok ? 'text-sm' : 'text-sm text-danger'}
           >
             {saveState.message}
           </p>
@@ -214,7 +212,7 @@ export function AnalysisEditor({
           type="submit"
           disabled={submitting || draft === null}
           data-testid="analysis-submit"
-          className="self-start rounded border border-current px-3 py-1 text-sm disabled:opacity-50"
+          className="self-start rounded border border-strong px-3 py-1 text-sm disabled:opacity-50"
         >
           {submitting ? 'Sending…' : 'Send for review'}
         </button>
@@ -222,7 +220,7 @@ export function AnalysisEditor({
           <p
             role="status"
             data-testid="analysis-submit-result"
-            className={submitState.ok ? 'text-sm' : 'text-sm text-red-800 dark:text-red-300'}
+            className={submitState.ok ? 'text-sm' : 'text-sm text-danger'}
           >
             {submitState.message}
           </p>
@@ -245,9 +243,9 @@ export function AnalysisEditor({
           <h2 className="text-lg font-semibold">Published</h2>
           <ul className="flex flex-col gap-2" data-testid="analysis-versions">
             {workspace.versions.map((version) => (
-              <li key={version.id} className="rounded border border-current/20 p-3 text-sm">
+              <li key={version.id} className="rounded border border-default p-3 text-sm">
                 <span className="font-medium">Version {version.version_number}</span>
-                <time className="ms-2 text-xs opacity-60" dateTime={version.published_at}>
+                <time className="ms-2 text-xs text-muted" dateTime={version.published_at}>
                   {version.published_at}
                 </time>
               </li>

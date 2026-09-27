@@ -23,27 +23,27 @@ export function AudiencesAdmin({ locale, audiences }: { locale: string; audience
   return (
     <section className="flex flex-col gap-4" data-testid="audiences">
       <h2 className="text-lg font-semibold">Audiences</h2>
-      <p className="text-sm opacity-70">
+      <p className="text-sm text-muted">
         A saved filter over members, and how many it reaches right now. An audience never changes;
         save a new one instead.
       </p>
       {audiences.length === 0 ? (
-        <p className="text-sm opacity-70" data-testid="audiences-empty">
+        <p className="text-sm text-muted" data-testid="audiences-empty">
           No audience saved yet.
         </p>
       ) : (
-        <ul className="flex flex-col divide-y divide-current/10" data-testid="audience-list">
+        <ul className="flex flex-col divide-y divide-default" data-testid="audience-list">
           {audiences.map((audience) => (
             <li key={audience.id} className="flex flex-col gap-1 py-2" data-testid="audience">
               <span className="font-medium">
                 {audience.name}{' '}
-                <span className="text-sm opacity-70">· {audience.size} members</span>
+                <span className="text-sm text-muted">· {audience.size} members</span>
               </span>
-              <span className="text-sm opacity-80">{describe(audience)}</span>
-              <span className="text-xs opacity-60">
+              <span className="text-sm text-muted">{describe(audience)}</span>
+              <span className="text-xs text-muted">
                 {audience.created_by ?? 'somebody'} · {audience.reason} · {audience.created_at}
               </span>
-              <code className="text-xs opacity-60">{audience.id}</code>
+              <code className="text-xs text-muted">{audience.id}</code>
             </li>
           ))}
         </ul>

@@ -145,7 +145,7 @@ export function LiveConversation({
 
   return (
     <p
-      className="text-sm opacity-70"
+      className="text-sm text-muted"
       data-testid="conversation-live"
       data-state={state}
       // Polite, because a connection changing is never more important than

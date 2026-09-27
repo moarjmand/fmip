@@ -69,14 +69,14 @@ function ReactionButton({
         aria-label={`${LABELS[reaction]}${count > 0 ? `, ${count}` : ''}${mine ? ', yours' : ''}`}
         data-testid={`panel-react-${postId}-${reaction}`}
         className={`rounded border px-2 py-0.5 text-xs disabled:opacity-50 ${
-          mine ? 'border-current' : 'border-current/30'
+          mine ? 'border-accent' : 'border-strong'
         }`}
       >
         <span aria-hidden="true">{GLYPHS[reaction]}</span> {LABELS[reaction]}
         {count > 0 && <span className="ms-1 tabular-nums">{count}</span>}
       </button>
       {state !== null && !state.ok && (
-        <p role="status" className="text-xs text-red-800 dark:text-red-300">
+        <p role="status" className="text-xs text-danger">
           {state.message}
         </p>
       )}
@@ -109,7 +109,7 @@ export function PanelReactions({
     const present = PANEL_REACTIONS.filter((reaction) => (counts.get(reaction) ?? 0) > 0);
     if (present.length === 0) return null;
     return (
-      <p className="flex flex-wrap gap-2 text-xs opacity-70" data-testid={`panel-tally-${postId}`}>
+      <p className="flex flex-wrap gap-2 text-xs text-muted" data-testid={`panel-tally-${postId}`}>
         {present.map((reaction) => (
           <span key={reaction}>
             <span aria-hidden="true">{GLYPHS[reaction]}</span> {LABELS[reaction]}{' '}
@@ -167,12 +167,12 @@ export function FollowButton({
         disabled={pending}
         aria-pressed={following}
         data-testid={`panel-follow-${username}`}
-        className="rounded border border-current/30 px-2 py-0.5 text-xs disabled:opacity-50"
+        className="rounded border border-strong px-2 py-0.5 text-xs disabled:opacity-50"
       >
         {pending ? 'Working…' : following ? 'Following' : 'Follow'}
       </button>
       {state !== null && !state.ok && (
-        <span role="status" className="ms-2 text-xs text-red-800 dark:text-red-300">
+        <span role="status" className="ms-2 text-xs text-danger">
           {state.message}
         </span>
       )}

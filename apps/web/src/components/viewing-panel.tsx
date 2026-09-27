@@ -119,7 +119,7 @@ export function ViewingPanel(props: Props) {
         <Highlights locale={locale} viewing={viewing} name={name} />
       )}
       {confirmed !== null && state !== 'ask' && (
-        <p className="text-xs opacity-70" data-testid="viewing-confirmed">
+        <p className="text-xs text-muted" data-testid="viewing-confirmed">
           {source !== null && (
             <>
               <Translated locale={locale} message="viewing.source" /> {source.name} {'· '}
@@ -168,7 +168,7 @@ export function TerritoryChooser({
   const name = nameOf(locale, viewing);
   if (signedIn) {
     return (
-      <p className="text-sm opacity-80" data-testid="viewing-territory">
+      <p className="text-sm text-muted" data-testid="viewing-territory">
         {chosen !== null && (
           <>
             <Translated locale={locale} message="viewing.in" /> {name} {'· '}
@@ -185,7 +185,7 @@ export function TerritoryChooser({
   }
   if (territories === null) {
     return (
-      <p className="text-sm opacity-80" data-testid="viewing-territory">
+      <p className="text-sm text-muted" data-testid="viewing-territory">
         {chosen !== null ? (
           <>
             <Translated locale={locale} message="viewing.in" /> {name}
@@ -261,13 +261,13 @@ function Option({
       data-access={option.access}
     >
       {name}
-      <span className="text-xs uppercase tracking-wide opacity-70">
+      <span className="text-xs uppercase tracking-wide text-muted">
         <Translated locale={locale} message={KIND_KEY[option.broadcaster.kind]} />
       </span>
       <span className="text-sm">
         <Translated locale={locale} message={ACCESS_KEY[option.access]} />
       </span>
-      <span className="text-sm opacity-70">
+      <span className="text-sm text-muted">
         <Translated locale={locale} message="viewing.kickoff" />{' '}
         <time dateTime={kickoffAt}>{formatDateTime(locale, kickoffAt, timeZone)}</time>
       </span>
@@ -340,7 +340,7 @@ function Highlights({
 function ViewingLine({ locale, viewing, status, signedIn, href }: Common) {
   if (viewing === null) {
     return (
-      <p className="text-xs opacity-70" data-testid="viewing-line" data-state="unreachable">
+      <p className="text-xs text-muted" data-testid="viewing-line" data-state="unreachable">
         <Translated locale={locale} message="viewing.unreachable" />
       </p>
     );
@@ -349,7 +349,7 @@ function ViewingLine({ locale, viewing, status, signedIn, href }: Common) {
   const name = nameOf(locale, viewing);
   const highlight = status === 'finished' ? viewing.highlights.data?.[0] : undefined;
   return (
-    <p className="text-xs opacity-80" data-testid="viewing-line" data-state={state}>
+    <p className="text-xs text-muted" data-testid="viewing-line" data-state={state}>
       {state === 'ask' && (
         <Link href={signedIn ? `/${locale}/settings#territory` : href} className="underline">
           <Translated locale={locale} message="viewing.choose" />

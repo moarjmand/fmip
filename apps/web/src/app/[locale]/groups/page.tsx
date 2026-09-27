@@ -30,14 +30,14 @@ const VISIBILITY: Record<string, string> = {
 
 function GroupRow({ group, locale }: { group: GroupSummary; locale: string }) {
   return (
-    <li className="flex flex-col gap-1 border-s-2 border-s-current/20 ps-3">
+    <li className="flex flex-col gap-1 border-s-2 border-s-default ps-3">
       <Link
         href={`/${locale}/groups/${encodeURIComponent(group.slug)}`}
         className="font-medium underline"
       >
         {group.name}
       </Link>
-      <p className="text-sm opacity-70">
+      <p className="text-sm text-muted">
         <Translated locale={locale} message="groups.memberCount" count={group.member_count} /> ·{' '}
         {VISIBILITY[group.visibility] ?? group.visibility}
       </p>
@@ -91,7 +91,7 @@ export default async function GroupsPage({
                 >
                   {invite.group.name}
                 </Link>
-                <p className="text-sm opacity-70">Invited by @{invite.invited_by}</p>
+                <p className="text-sm text-muted">Invited by @{invite.invited_by}</p>
               </li>
             ))}
           </ul>
@@ -105,7 +105,7 @@ export default async function GroupsPage({
             Your groups cannot be shown right now.
           </p>
         ) : mine.data.groups.length === 0 ? (
-          <p className="text-sm opacity-70" data-testid="my-groups-none">
+          <p className="text-sm text-muted" data-testid="my-groups-none">
             You are not in a group yet.
           </p>
         ) : (
@@ -129,7 +129,7 @@ export default async function GroupsPage({
             type="search"
             defaultValue={term}
             placeholder="Search groups"
-            className="rounded border border-current/30 bg-transparent px-3 py-1 text-sm text-start"
+            className="rounded border border-strong bg-transparent px-3 py-1 text-sm text-start"
             data-testid="group-search"
           />
           <button type="submit" className="text-sm underline">
@@ -142,7 +142,7 @@ export default async function GroupsPage({
             The directory is unreachable right now.
           </p>
         ) : found.data.groups.length === 0 ? (
-          <p className="text-sm opacity-70" data-testid="group-directory-none">
+          <p className="text-sm text-muted" data-testid="group-directory-none">
             {term === '' ? 'No groups yet.' : 'Nothing matches that.'}
           </p>
         ) : (
@@ -152,7 +152,7 @@ export default async function GroupsPage({
             ))}
           </ul>
         )}
-        <p className="text-sm opacity-70" data-testid="group-directory-note">
+        <p className="text-sm text-muted" data-testid="group-directory-note">
           Groups that are joined by invitation are not listed here.
         </p>
       </section>

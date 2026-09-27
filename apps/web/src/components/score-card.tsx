@@ -54,7 +54,7 @@ export function ScoreCard({
 
   return (
     <li
-      className="flex flex-col gap-1 rounded border border-current/20 p-3"
+      className="flex flex-col gap-1 rounded border border-default p-3"
       data-testid="score-card"
       data-fixture-id={card.id}
       data-status={card.status}
@@ -65,7 +65,7 @@ export function ScoreCard({
         data-testid="match-link"
       >
         <span
-          className={`w-16 shrink-0 text-sm ${card.status === 'live' ? 'font-semibold' : 'opacity-70'}`}
+          className={`w-16 shrink-0 text-sm ${card.status === 'live' ? 'font-semibold text-live' : 'text-muted'}`}
           data-testid="score-status"
         >
           {statusLabel(card, locale, timeZone, now)}
@@ -95,7 +95,7 @@ export function ScoreCard({
           . The score shown is the last known, not the current one.
         </p>
       )}
-      <div className="flex flex-wrap gap-x-3 text-xs opacity-70">
+      <div className="flex flex-wrap gap-x-3 text-xs text-muted">
         <span>{card.competition.name}</span>
         {stageBits.map((bit) => (
           <span key={bit}>{bit}</span>
@@ -127,7 +127,7 @@ export function ScoreCard({
         </ul>
       )}
 
-      <div className="flex flex-wrap gap-x-3 text-xs opacity-60" data-testid="card-labels">
+      <div className="flex flex-wrap gap-x-3 text-xs text-muted" data-testid="card-labels">
         <span>Scores: {COVERAGE_LABEL[card.coverage]}</span>
         <span>Forecast: not on this page yet</span>
         <span>Community: unsupported</span>

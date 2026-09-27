@@ -59,7 +59,7 @@ export function TimeZoneField({
         name="timezone"
         value={value}
         onChange={(event) => setValue(event.target.value)}
-        className="rounded border border-current/30 bg-transparent px-3 py-2 text-start"
+        className="rounded border border-strong bg-transparent px-3 py-2 text-start"
       >
         {zones.map((zone) => (
           <option key={zone} value={zone}>

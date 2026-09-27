@@ -44,8 +44,8 @@ function Distribution({
   return (
     <div className="grid grid-cols-3 gap-2 text-center" data-testid={testId}>
       {OUTCOME_KEYS.map((key) => (
-        <div key={key} className="flex flex-col rounded border border-current/20 p-2">
-          <span className="text-xs opacity-70">{labels[key]}</span>
+        <div key={key} className="flex flex-col rounded border border-default p-2">
+          <span className="text-xs text-muted">{labels[key]}</span>
           <span className="text-lg font-semibold">{percentages[key].toFixed(1)}%</span>
         </div>
       ))}
@@ -80,7 +80,7 @@ export function CommunityForecastPanel({
     return (
       <section className="flex flex-col gap-2" data-testid="consensus" data-state="unreachable">
         {heading}
-        <p className="text-sm opacity-70" role="alert">
+        <p className="text-sm text-muted" role="alert">
           The prediction service is unreachable right now, so what the community thinks cannot be
           shown.
         </p>
@@ -95,7 +95,7 @@ export function CommunityForecastPanel({
     return (
       <section className="flex flex-col gap-2" data-testid="consensus" data-state="not_supplied">
         {heading}
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted">
           Fewer than {MIN_CONSENSUS_SAMPLE} members have predicted this match, so there is no
           consensus to show yet.
         </p>
@@ -115,14 +115,14 @@ export function CommunityForecastPanel({
       data-state={consensus.coverage}
     >
       {heading}
-      <p className="text-xs opacity-60">
+      <p className="text-xs text-muted">
         What registered members predicted. Not the statistical model, and not the founder.
       </p>
 
       <div className="flex flex-col gap-1">
         <h3 className="text-sm font-medium">
           Every member, one vote{' '}
-          <span className="font-normal opacity-70">· {sample} predictions</span>
+          <span className="font-normal text-muted">· {sample} predictions</span>
         </h3>
         <Distribution
           percentages={crowdPercentages}
@@ -136,14 +136,14 @@ export function CommunityForecastPanel({
         <h3 className="text-sm font-medium">
           Weighted by Performance Rating
           {weighted !== null && (
-            <span className="font-normal opacity-70"> · {weighted.raters} rated members</span>
+            <span className="font-normal text-muted"> · {weighted.raters} rated members</span>
           )}
         </h3>
         {weightedPercentages === null ? (
           // Never the crowd distribution shown a second time under this label.
           // Blueprint 6.6 asks for two distributions because they answer
           // different questions; one answer twice is the disguise it forbids.
-          <p className="text-sm opacity-70" data-testid="consensus-weighted-absent">
+          <p className="text-sm text-muted" data-testid="consensus-weighted-absent">
             None of the members who predicted this match has an established rating yet, so there is
             nothing to weight by. This is not the same as the distribution above.
           </p>
@@ -168,7 +168,7 @@ export function CommunityForecastPanel({
                 <LtrNumeric>{signed(gap[key])}</LtrNumeric>
               </span>
             ))}{' '}
-            <span className="opacity-70">
+            <span className="text-muted">
               percentage points, community against model. These are two separate answers to the same
               question; the site does not average them.
             </span>
@@ -177,7 +177,7 @@ export function CommunityForecastPanel({
       )}
 
       {consensus.last_updated_at !== null && (
-        <p className="text-xs opacity-60" data-testid="consensus-updated">
+        <p className="text-xs text-muted" data-testid="consensus-updated">
           Last prediction{' '}
           <time dateTime={consensus.last_updated_at}>
             {consensus.last_updated_at.slice(0, 10)}{' '}
@@ -220,11 +220,11 @@ export function CommunityConsensusList({
   return (
     <section className="flex flex-col gap-2" data-testid="predictions-consensus">
       <h2 className="text-lg font-semibold">Community consensus</h2>
-      <p className="text-xs opacity-60">
+      <p className="text-xs text-muted">
         What registered members predicted. Not the statistical model, and not the founder.
       </p>
       {withConsensus.length === 0 ? (
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted">
           No match here has {MIN_CONSENSUS_SAMPLE} predictions yet, so there is no consensus to
           show.
         </p>
@@ -244,7 +244,7 @@ export function CommunityConsensusList({
                   {teams?.home ?? 'Home'} {percentages.home.toFixed(1)}%, draw{' '}
                   {percentages.draw.toFixed(1)}%, {teams?.away ?? 'Away'}{' '}
                   {percentages.away.toFixed(1)}%{' '}
-                  <span className="opacity-70">· {data.sample} predictions</span>
+                  <span className="text-muted">· {data.sample} predictions</span>
                 </p>
               </li>
             );

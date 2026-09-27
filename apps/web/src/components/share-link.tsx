@@ -26,7 +26,7 @@ export function ShareLink({
         {label}
       </button>
       {message !== null && (
-        <span role="status" className="text-xs opacity-80 break-all" data-testid="share-status">
+        <span role="status" className="text-xs text-muted break-all" data-testid="share-status">
           {message}
         </span>
       )}

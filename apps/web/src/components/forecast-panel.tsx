@@ -66,13 +66,13 @@ export function ForecastPanel({
     >
       <h2 className="text-lg font-semibold">
         Model forecast
-        <span className="ms-2 text-xs font-normal uppercase opacity-60">
+        <span className="ms-2 text-xs font-normal uppercase text-muted">
           {COVERAGE_LABEL[forecasts.coverage]}
         </span>
       </h2>
 
       {latest === null ? (
-        <p className="text-sm opacity-70" data-testid="forecast-none">
+        <p className="text-sm text-muted" data-testid="forecast-none">
           No forecast has been computed for this match yet.
         </p>
       ) : latest.probabilities === null ? (
@@ -82,7 +82,7 @@ export function ForecastPanel({
               ? UNAVAILABLE_LABEL[latest.unavailable_reason]
               : 'The model could not produce a forecast.'}
           </p>
-          <p className="text-xs opacity-70">
+          <p className="text-xs text-muted">
             Version {latest.version_number} · {KIND_LABEL[latest.kind]} · computed{' '}
             <time dateTime={latest.computed_at}>{stamp(latest.computed_at)}</time>
           </p>
@@ -103,7 +103,7 @@ export function ForecastPanel({
               return (
                 <li key={change.version.id} className="flex flex-col gap-0.5">
                   <div className="flex flex-wrap gap-x-2">
-                    <span className="opacity-70">
+                    <span className="text-muted">
                       v{change.version.version_number} ·{' '}
                       <time dateTime={change.version.computed_at}>
                         {stamp(change.version.computed_at)}
@@ -121,7 +121,7 @@ export function ForecastPanel({
                     </span>
                   </div>
                   {previous !== null && (
-                    <span className="opacity-60" data-testid="forecast-attribution">
+                    <span className="text-muted" data-testid="forecast-attribution">
                       {attribute(previous, change.version)}
                     </span>
                   )}
@@ -162,7 +162,7 @@ function Latest({
         {framing(p, home, away)}
       </p>
 
-      <ul className="flex flex-wrap gap-x-4 text-xs opacity-80">
+      <ul className="flex flex-wrap gap-x-4 text-xs text-muted">
         {version.expected_goals !== null && (
           <li>
             Expected goals {version.expected_goals.home.toFixed(2)} –{' '}
@@ -204,7 +204,7 @@ function Latest({
         </div>
       )}
 
-      <p className="text-xs opacity-70" data-testid="forecast-meta">
+      <p className="text-xs text-muted" data-testid="forecast-meta">
         Version {version.version_number} · {KIND_LABEL[version.kind]} · computed{' '}
         <time dateTime={version.computed_at}>{stamp(version.computed_at)}</time> · model{' '}
         {version.model_version} · data{' '}
@@ -216,9 +216,9 @@ function Latest({
 
 function Outcome({ label, value }: { label: string; value: number }) {
   return (
-    <div className="flex flex-col rounded border border-current/20 p-2">
+    <div className="flex flex-col rounded border border-default p-2">
       <span className="text-xl font-semibold tabular-nums">{value.toFixed(1)}%</span>
-      <span className="truncate text-xs opacity-70">{label}</span>
+      <span className="truncate text-xs text-muted">{label}</span>
     </div>
   );
 }
@@ -250,7 +250,7 @@ function Evaluation({
         scores 1.099 and 0.667).
         {last.pre_kickoff ? '' : ' Computed after kick-off, so excluded from performance figures.'}
       </p>
-      <p className="opacity-70">
+      <p className="text-muted">
         Evaluated <time dateTime={last.evaluated_at}>{stamp(last.evaluated_at)}</time>
       </p>
     </div>
@@ -289,11 +289,11 @@ export function ForecastList({
   return (
     <section className="flex flex-col gap-2" data-testid="predictions-model">
       <h2 className="text-lg font-semibold">Model forecasts</h2>
-      <p className="text-xs opacity-60">
+      <p className="text-xs text-muted">
         The statistical model. Not the founder&rsquo;s view, and not the community&rsquo;s.
       </p>
       {withForecast.length === 0 ? (
-        <p className="text-sm opacity-70">The model has no forecast for these matches.</p>
+        <p className="text-sm text-muted">The model has no forecast for these matches.</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {withForecast.map((entry) => {
@@ -316,7 +316,7 @@ export function ForecastList({
         </ul>
       )}
       {without > 0 && (
-        <p className="text-xs opacity-60" data-testid="model-missing">
+        <p className="text-xs text-muted" data-testid="model-missing">
           {without} of these {entries.length} matches {without === 1 ? 'has' : 'have'} no model
           forecast.
         </p>

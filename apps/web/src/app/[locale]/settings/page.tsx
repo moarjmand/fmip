@@ -63,7 +63,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
     <main className="mx-auto flex max-w-md flex-col gap-10 p-8">
       <section className="flex flex-col gap-4">
         <h1 className="text-2xl font-semibold">Profile</h1>
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted">
           Signed in as @{account.username} ({account.email}
           {account.email_verified ? ', verified' : ', not yet verified'}).
         </p>
@@ -100,7 +100,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
 
       <section className="flex flex-col gap-4">
         <h2 className="text-xl font-semibold">Privacy</h2>
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted">
           Your username and display name are always public, because leaderboards show them.
         </p>
         <ActionForm
@@ -140,7 +140,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
       <section id="territory" className="flex flex-col gap-4" data-testid="territory-section">
         <h2 className="text-xl font-semibold">Viewing territory</h2>
         {/* T-312: chosen here and only here; nothing guesses it from an address (blueprint 11). */}
-        <p className="text-sm opacity-70" data-testid="territory-state">
+        <p className="text-sm text-muted" data-testid="territory-state">
           {viewing_territory.state === 'chosen'
             ? `Viewing options are shown for ${viewing_territory.territory.name}.`
             : 'You have not chosen a territory yet. Where a match can be watched depends on it, so you will be asked rather than guessed at.'}

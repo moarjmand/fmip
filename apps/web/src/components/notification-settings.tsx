@@ -65,13 +65,13 @@ function MuteRow({ locale, mute }: { locale: string; mute: NotificationMute }) {
       : (mute.label ?? mute.target);
   return (
     <li
-      className="flex flex-wrap items-center justify-between gap-2 border-b border-current/10 py-2"
+      className="flex flex-wrap items-center justify-between gap-2 border-b border-default py-2"
       data-testid="notification-mute"
       data-scope={mute.scope}
     >
       <span className="flex flex-col">
         <span className="text-sm">{name}</span>
-        <span className="text-xs opacity-60">
+        <span className="text-xs text-muted">
           {mute.scope === 'team' && 'Team: nothing about its matches'}
           {mute.scope === 'competition' && 'Competition: nothing about its matches'}
           {mute.scope === 'category' && 'Category: nothing of these kinds'}
@@ -81,12 +81,12 @@ function MuteRow({ locale, mute }: { locale: string; mute: NotificationMute }) {
         <button
           type="submit"
           disabled={pending}
-          className="rounded border border-current/30 px-3 py-1 text-sm disabled:opacity-50"
+          className="rounded border border-strong px-3 py-1 text-sm disabled:opacity-50"
         >
           Unmute
         </button>
         {state !== null && !state.ok && (
-          <span role="status" className="ms-2 text-xs text-red-800 dark:text-red-300">
+          <span role="status" className="ms-2 text-xs text-danger">
             {state.message}
           </span>
         )}
@@ -116,7 +116,7 @@ function MuteForm({
     >
       <label htmlFor={id} className="flex flex-col gap-1 text-sm">
         <span>{label}</span>
-        <select id={id} name="target" className="rounded border border-current/30 px-2 py-1">
+        <select id={id} name="target" className="rounded border border-strong px-2 py-1">
           <option value="">Choose…</option>
           {options.map((option) => (
             <option key={option.value} value={option.value}>
@@ -128,15 +128,12 @@ function MuteForm({
       <button
         type="submit"
         disabled={pending}
-        className="rounded border border-current px-3 py-1 text-sm disabled:opacity-50"
+        className="rounded border border-strong px-3 py-1 text-sm disabled:opacity-50"
       >
         Silence
       </button>
       {state !== null && (
-        <span
-          role="status"
-          className={`text-xs ${state.ok ? '' : 'text-red-800 dark:text-red-300'}`}
-        >
+        <span role="status" className={`text-xs ${state.ok ? '' : 'text-danger'}`}>
           {state.ok ? (state.message ?? 'Done.') : state.message}
         </span>
       )}
@@ -162,10 +159,10 @@ function KindRow({
   const cap = NOTIFICATION_HOURLY_CAP[kind];
 
   return (
-    <li className="flex flex-wrap items-center justify-between gap-2 border-b border-current/10 py-2">
+    <li className="flex flex-wrap items-center justify-between gap-2 border-b border-default py-2">
       <span className="flex flex-col">
         <span className="text-sm">{KIND_LABEL[kind]}</span>
-        <span className="text-xs opacity-60">
+        <span className="text-xs text-muted">
           {/* Said out loud, because "Default" and "your choice that happens to
               match the default" behave differently the day a default changes. */}
           {chosen ? 'Your choice' : 'Default'}
@@ -181,13 +178,13 @@ function KindRow({
           aria-pressed={inProduct}
           data-testid={`notification-kind-${kind}`}
           className={`rounded border px-3 py-1 text-sm disabled:opacity-50 ${
-            inProduct ? 'border-current' : 'border-current/30'
+            inProduct ? 'border-accent' : 'border-strong'
           }`}
         >
           {inProduct ? 'On' : 'Off'}
         </button>
         {state !== null && !state.ok && (
-          <span role="status" className="ms-2 text-xs text-red-800 dark:text-red-300">
+          <span role="status" className="ms-2 text-xs text-danger">
             {state.message}
           </span>
         )}
@@ -232,13 +229,13 @@ export function NotificationSettingsForm({
 
       <section className="flex flex-col gap-3" data-testid="notification-mutes">
         <h2 className="text-lg font-semibold">What stays quiet</h2>
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted">
           Silence one team without silencing football. A silenced team or competition stops what is
           about its matches and nothing else; a silenced category stops every kind in it. The
           switches above are untouched.
         </p>
         {settings.mutes.length === 0 ? (
-          <p className="text-sm opacity-70" data-testid="no-mutes">
+          <p className="text-sm text-muted" data-testid="no-mutes">
             Nothing is silenced.
           </p>
         ) : (
@@ -249,7 +246,7 @@ export function NotificationSettingsForm({
           </ul>
         )}
         {teams === null ? (
-          <p role="status" className="text-sm opacity-70">
+          <p role="status" className="text-sm text-muted">
             The team list could not be loaded right now.
           </p>
         ) : (
@@ -261,7 +258,7 @@ export function NotificationSettingsForm({
           />
         )}
         {competitions === null ? (
-          <p role="status" className="text-sm opacity-70">
+          <p role="status" className="text-sm text-muted">
             The competition list could not be loaded right now.
           </p>
         ) : (
@@ -282,7 +279,7 @@ export function NotificationSettingsForm({
 
       <section className="flex flex-col gap-2">
         <h2 className="text-lg font-semibold">Quiet hours</h2>
-        <p className="text-sm opacity-70" data-testid="quiet-hours-explainer">
+        <p className="text-sm text-muted" data-testid="quiet-hours-explainer">
           Nothing is thrown away. A notification that arrives during your quiet hours waits until
           they end, and says so. Times are on your own clock ({settings.timezone}).
         </p>
@@ -293,7 +290,7 @@ export function NotificationSettingsForm({
               type="time"
               name="starts_at"
               defaultValue={settings.quiet_hours?.starts_at ?? ''}
-              className="rounded border border-current/30 bg-transparent p-1"
+              className="rounded border border-strong bg-transparent p-1"
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
@@ -302,26 +299,26 @@ export function NotificationSettingsForm({
               type="time"
               name="ends_at"
               defaultValue={settings.quiet_hours?.ends_at ?? ''}
-              className="rounded border border-current/30 bg-transparent p-1"
+              className="rounded border border-strong bg-transparent p-1"
             />
           </label>
           <button
             type="submit"
             disabled={quietPending}
             data-testid="quiet-hours-save"
-            className="rounded border border-current/30 px-3 py-1 text-sm disabled:opacity-50"
+            className="rounded border border-strong px-3 py-1 text-sm disabled:opacity-50"
           >
             Save
           </button>
           {/* Cleared by submitting both fields empty, rather than by a second
               button that would be a second thing to explain. */}
-          <span className="text-xs opacity-60">Leave both empty to clear them.</span>
+          <span className="text-xs text-muted">Leave both empty to clear them.</span>
         </form>
         {quietState !== null && (
           <p
             role="status"
             data-testid="quiet-hours-result"
-            className={quietState.ok ? 'text-sm' : 'text-sm text-red-800 dark:text-red-300'}
+            className={quietState.ok ? 'text-sm' : 'text-sm text-danger'}
           >
             {quietState.message}
           </p>

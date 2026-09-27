@@ -52,14 +52,14 @@ export function PredictionForm({
 
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex flex-col">
-          <span className="text-xs opacity-70">Exact score (optional)</span>
+          <span className="text-xs text-muted">Exact score (optional)</span>
           <span className="flex items-center gap-1">
             <input
               type="number"
               name="score_home"
               min={0}
               max={20}
-              className="w-14 border border-current/30 px-1"
+              className="w-14 border border-strong px-1"
               defaultValue={latest?.score?.home ?? ''}
               aria-label={`${home} goals`}
             />
@@ -69,18 +69,18 @@ export function PredictionForm({
               name="score_away"
               min={0}
               max={20}
-              className="w-14 border border-current/30 px-1"
+              className="w-14 border border-strong px-1"
               defaultValue={latest?.score?.away ?? ''}
               aria-label={`${away} goals`}
             />
           </span>
         </label>
         <label className="flex flex-col">
-          <span className="text-xs opacity-70">Confidence</span>
+          <span className="text-xs text-muted">Confidence</span>
           <select
             name="confidence"
             defaultValue={latest?.confidence ?? 3}
-            className="border border-current/30 px-1"
+            className="border border-strong px-1"
           >
             {[1, 2, 3, 4, 5].map((n) => (
               <option key={n} value={n}>
@@ -94,11 +94,11 @@ export function PredictionForm({
       {fieldError('confidence') && <p role="alert">{fieldError('confidence')}</p>}
 
       <fieldset className="flex flex-wrap gap-2">
-        <legend className="mb-1 text-xs opacity-70">Reasons (up to {MAX_REASON_TAGS})</legend>
+        <legend className="mb-1 text-xs text-muted">Reasons (up to {MAX_REASON_TAGS})</legend>
         {PREDICTION_REASON_TAGS.map((tag) => (
           <label
             key={tag}
-            className="flex items-center gap-1 rounded border border-current/20 px-2 py-1"
+            className="flex items-center gap-1 rounded border border-strong px-2 py-1"
           >
             <input
               type="checkbox"
@@ -113,12 +113,12 @@ export function PredictionForm({
       </fieldset>
 
       <label className="flex flex-col">
-        <span className="text-xs opacity-70">Why (optional, 280 characters)</span>
+        <span className="text-xs text-muted">Why (optional, 280 characters)</span>
         <textarea
           name="explanation"
           maxLength={280}
           rows={2}
-          className="border border-current/30 px-1"
+          className="border border-strong px-1"
           defaultValue={latest?.explanation ?? ''}
         />
         {fieldError('explanation') && <p role="alert">{fieldError('explanation')}</p>}
@@ -128,12 +128,12 @@ export function PredictionForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded border border-current px-3 py-1 font-medium"
+          className="rounded border border-strong px-3 py-1 font-medium"
         >
           {latest === null ? 'Submit prediction' : 'Update prediction'}
         </button>
         {latest !== null && (
-          <span className="text-xs opacity-70" data-testid="prediction-versions">
+          <span className="text-xs text-muted" data-testid="prediction-versions">
             Version {latest.version_number}, submitted{' '}
             <time dateTime={latest.submitted_at}>
               {latest.submitted_at.slice(0, 16).replace('T', ' ')}

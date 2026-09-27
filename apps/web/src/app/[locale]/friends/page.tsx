@@ -57,7 +57,7 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
         <h1 className="text-2xl font-semibold" data-testid="title">
           Friends
         </h1>
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted">
           Friends can see one another&rsquo;s friends-only profile and prediction history, and
           nothing more than that until you share it.
         </p>
@@ -70,7 +70,7 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
             Your requests cannot be listed right now.
           </p>
         ) : requests.data.incoming.length === 0 && requests.data.outgoing.length === 0 ? (
-          <p className="text-sm opacity-70" data-testid="requests-none">
+          <p className="text-sm text-muted" data-testid="requests-none">
             Nobody has asked to be your friend, and you have no request waiting for an answer.
           </p>
         ) : (
@@ -84,7 +84,7 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
                   >
                     {request.member.display_name}
                   </Link>{' '}
-                  <span className="opacity-70">
+                  <span className="text-muted">
                     @{request.member.username} · asked{' '}
                     {formatDateTime(locale, request.sent_at, zone)}
                   </span>
@@ -105,7 +105,7 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
                   >
                     {request.member.display_name}
                   </Link>{' '}
-                  <span className="opacity-70">
+                  <span className="text-muted">
                     @{request.member.username} · you asked{' '}
                     {formatDateTime(locale, request.sent_at, zone)}
                   </span>
@@ -128,7 +128,7 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
             Your friends cannot be listed right now.
           </p>
         ) : friends.data.friends.length === 0 ? (
-          <p className="text-sm opacity-70" data-testid="friends-none">
+          <p className="text-sm text-muted" data-testid="friends-none">
             You have no friends here yet. Open a member&rsquo;s profile to send a request.
           </p>
         ) : (
@@ -141,7 +141,7 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
                 >
                   {friend.member.display_name}
                 </Link>{' '}
-                <span className="opacity-70">
+                <span className="text-muted">
                   @{friend.member.username} · friends since{' '}
                   {formatDateTime(locale, friend.friends_since, zone)}
                   {friend.mutual_friends > 0 && (
@@ -176,7 +176,7 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
 
       <section className="flex flex-col gap-3" data-testid="block-list">
         <h2 className="text-lg font-semibold">Blocked</h2>
-        <p className="text-xs opacity-60">
+        <p className="text-xs text-muted">
           A blocked member cannot send you a friend request, and is not told. Lifting a block makes
           contact possible again; it does not restore a friendship the block ended.
         </p>
@@ -185,7 +185,7 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
             Your block list cannot be shown right now.
           </p>
         ) : blocks.data.blocked.length === 0 ? (
-          <p className="text-sm opacity-70" data-testid="blocks-none">
+          <p className="text-sm text-muted" data-testid="blocks-none">
             You have blocked nobody.
           </p>
         ) : (
@@ -193,7 +193,7 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
             <div key={entry.member.username} className="flex flex-col gap-1">
               <p className="text-sm">
                 {entry.member.display_name}{' '}
-                <span className="opacity-70">
+                <span className="text-muted">
                   @{entry.member.username} · blocked{' '}
                   {formatDateTime(locale, entry.blocked_at, zone)}
                 </span>

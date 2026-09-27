@@ -155,7 +155,7 @@ export default async function MatchPage({
         <Link href={`/${locale}/scores`} className="underline">
           ← Scores
         </Link>
-        <span className="ms-3 opacity-70" data-testid="timezone">
+        <span className="ms-3 text-muted" data-testid="timezone">
           Times in {timeZone}
         </span>
         {result.ok && (

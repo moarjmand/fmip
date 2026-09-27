@@ -107,7 +107,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         that, which makes this element the canary for a physical-property
         regression that slipped past lint.
       */}
-      <h1 className="border-s-4 border-s-current ps-4 text-2xl font-semibold" data-testid="title">
+      <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
         FMIP
       </h1>
       <p>
@@ -150,7 +150,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           <ul className="flex flex-col gap-1">
             {matches.map((card) => (
               <li key={card.id} className="flex flex-wrap items-baseline gap-x-3">
-                <span className="w-24 shrink-0 text-sm opacity-70">
+                <span className="w-24 shrink-0 text-sm text-muted">
                   {card.status === 'scheduled'
                     ? `${shortDay(card.kickoff_at, timeZone)} ${formatKickoff(locale, card.kickoff_at, timeZone)}`
                     : statusLabel(card, locale, timeZone)}
@@ -162,7 +162,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                     : 'v'}{' '}
                   {card.away.name}
                 </Link>
-                <span className="text-xs opacity-60">
+                <span className="text-xs text-muted">
                   {card.competition.short_name ?? card.competition.name}
                 </span>
               </li>
@@ -172,7 +172,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             <Link href={`/${locale}/scores`} className="underline">
               All scores
             </Link>{' '}
-            <span className="opacity-60">(times in {timeZone})</span>
+            <span className="text-muted">(times in {timeZone})</span>
           </p>
         </section>
       )}
@@ -191,7 +191,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               </li>
             ))}
           </ul>
-          <p className="text-xs opacity-70">
+          <p className="text-xs text-muted">
             The statistical model&rsquo;s forecasts ({modelView[0]?.modelVersion}). Not the
             founder&rsquo;s view, and not the community&rsquo;s.
           </p>
@@ -221,9 +221,9 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             <tbody>
               {tableRows.map((row) => (
                 <tr key={row.team.id}>
-                  <td className="pe-3 opacity-70">{row.position}</td>
+                  <td className="pe-3 text-muted">{row.position}</td>
                   <td className="pe-3">{row.team.name}</td>
-                  <td className="pe-3 opacity-70">{row.played}</td>
+                  <td className="pe-3 text-muted">{row.played}</td>
                   <td className="font-semibold">{row.points}</td>
                 </tr>
               ))}
@@ -246,10 +246,10 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           </ul>
         </section>
       )}
-      <p className="text-sm opacity-70">
+      <p className="text-sm text-muted">
         Locale: <code>{locale}</code>
       </p>
-      <p className="text-sm opacity-70">
+      <p className="text-sm text-muted">
         {health.reachable ? (
           <>
             API: <code>{health.report.status}</code>, up for{' '}

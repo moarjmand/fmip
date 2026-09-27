@@ -10,6 +10,7 @@ import {
   DEMONSTRATION_TITLE_TEMPLATE,
   isDemonstrationData,
 } from '@/lib/demonstration';
+import { BRAND_COLOURS } from '@/lib/brand-colours';
 import { pageMetadata, siteUrl } from '@/lib/seo';
 import { readTheme } from '@/lib/theme-cookie';
 // The site font (T-601, D-089): Vazirmatn, self-hosted. The package's
@@ -76,7 +77,7 @@ export async function generateMetadata({
 }
 
 export const viewport: Viewport = {
-  themeColor: '#0b6b3a',
+  themeColor: BRAND_COLOURS.accent,
   width: 'device-width',
   initialScale: 1,
 };

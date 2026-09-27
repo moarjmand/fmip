@@ -46,7 +46,7 @@ export function GroupComparison({
       <h2 className="text-lg font-semibold">What {groupName} called</h2>
 
       {calls.length === 0 ? (
-        <p className="text-sm opacity-70" data-testid="group-comparison-none">
+        <p className="text-sm text-muted" data-testid="group-comparison-none">
           Nobody here has called this match.
         </p>
       ) : (
@@ -64,17 +64,17 @@ export function GroupComparison({
               </Link>
               <span>{OUTCOME[call.version.outcome] ?? call.version.outcome}</span>
               {call.version.score !== null && (
-                <span className="opacity-70">
+                <span className="text-muted">
                   {call.version.score.home}–{call.version.score.away}
                 </span>
               )}
-              <span className="opacity-70">confidence {call.version.confidence}/5</span>
+              <span className="text-muted">confidence {call.version.confidence}/5</span>
               {call.revisions > 1 && (
-                <span className="opacity-70" data-testid={`revisions-${call.username}`}>
+                <span className="text-muted" data-testid={`revisions-${call.username}`}>
                   changed {call.revisions - 1}×
                 </span>
               )}
-              <span className="ms-auto opacity-70" data-testid={`verdict-${call.username}`}>
+              <span className="ms-auto text-muted" data-testid={`verdict-${call.username}`}>
                 {verdict(call)}
               </span>
             </li>
@@ -83,7 +83,7 @@ export function GroupComparison({
       )}
 
       {(silent > 0 || withheld > 0) && (
-        <p className="text-xs opacity-60" data-testid="group-comparison-absent">
+        <p className="text-xs text-muted" data-testid="group-comparison-absent">
           {silent > 0 && (
             <Translated locale={locale} message="groupComparison.silent" count={silent} />
           )}
@@ -95,7 +95,7 @@ export function GroupComparison({
       )}
 
       {!comparison.locked && (
-        <p className="text-xs opacity-60" data-testid="group-comparison-open">
+        <p className="text-xs text-muted" data-testid="group-comparison-open">
           This match has not kicked off. Calls can still change until it does.
         </p>
       )}

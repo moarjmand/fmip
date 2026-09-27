@@ -101,16 +101,16 @@ export default async function ComparePage({
       <section className="flex flex-col gap-2" data-testid="compare-ratings">
         <h2 className="text-lg font-semibold">Ratings</h2>
         <p className="text-sm">
-          <span className="opacity-70">You · </span>
+          <span className="text-muted">You · </span>
           {myRating.ok ? ratingLine(myRating.data.rating) : 'Your rating is unreachable right now.'}
         </p>
         <p className="text-sm">
-          <span className="opacity-70">@{name} · </span>
+          <span className="text-muted">@{name} · </span>
           {theirRating.ok
             ? ratingLine(theirRating.data.rating)
             : 'Their rating is unreachable right now.'}
         </p>
-        <p className="text-xs opacity-60">
+        <p className="text-xs text-muted">
           A Performance Rating is earned from settled predictions and adjusted for how hard each
           call was — it is not a count of how often somebody posts.
         </p>
@@ -141,7 +141,7 @@ export default async function ComparePage({
             </Link>
           </p>
         ) : matches.length === 0 ? (
-          <p className="text-sm opacity-70" data-testid="compare-none">
+          <p className="text-sm text-muted" data-testid="compare-none">
             You have not predicted any of the same matches yet.
           </p>
         ) : (
@@ -152,7 +152,7 @@ export default async function ComparePage({
                 : `Over ${settled} settled match${settled === 1 ? '' : 'es'} in common: both right ${counts.both}, only you ${counts.only_mine}, only @${name} ${counts.only_theirs}, neither ${counts.neither}.`}
             </p>
             {partial && (
-              <p className="text-xs opacity-60" data-testid="compare-window">
+              <p className="text-xs text-muted" data-testid="compare-window">
                 This is the most recent {COMPARE_WINDOW} predictions from each of you, not the whole
                 record.
               </p>
@@ -163,7 +163,7 @@ export default async function ComparePage({
                   <Link href={`/${locale}/match/${match.fixture.id}`} className="underline">
                     {match.fixture.home.name} v {match.fixture.away.name}
                   </Link>{' '}
-                  <span className="opacity-70">
+                  <span className="text-muted">
                     · you: {match.mine.latest.outcome} · @{name}: {match.theirs.latest.outcome}
                     {match.mine.settlement?.status === 'settled' &&
                     match.theirs.settlement?.status === 'settled'

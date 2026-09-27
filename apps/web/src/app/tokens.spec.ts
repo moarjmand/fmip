@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { BRAND_COLOURS } from '@/lib/brand-colours';
 
 /**
  * The colour tokens (T-602, D-089) keep their promises.
@@ -128,6 +129,14 @@ describe('the tokens themselves', () => {
   it('reach dark with the same values whether the device or the member chose it', () => {
     for (const [name, { value: dark }] of DARK) {
       expect(value(DARK_CHOSEN, name), name).toBe(dark);
+    }
+  });
+
+  it('are what the image renderers draw with: brand-colours.ts mirrors the light values', () => {
+    const entries = Object.entries(BRAND_COLOURS);
+    expect(entries.length).toBeGreaterThan(3);
+    for (const [name, colour] of entries) {
+      expect(colour, name).toBe(value(LIGHT, `--token-${name}`));
     }
   });
 

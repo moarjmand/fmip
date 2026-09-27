@@ -89,7 +89,7 @@ export default async function ProfilePage({
         <h1 className="text-2xl font-semibold" data-testid="profile-name">
           {view.display_name}
         </h1>
-        <p className="opacity-70">@{view.username}</p>
+        <p className="text-muted">@{view.username}</p>
         {invited}
         <p data-testid="profile-restricted">
           {view.visibility === 'friends'
@@ -132,8 +132,8 @@ export default async function ProfilePage({
           <h1 className="text-2xl font-semibold" data-testid="profile-name">
             {profile.display_name}
           </h1>
-          <p className="opacity-70">@{profile.username}</p>
-          <p className="text-sm opacity-70">
+          <p className="text-muted">@{profile.username}</p>
+          <p className="text-sm text-muted">
             Member since <time dateTime={profile.member_since}>{profile.member_since}</time>
           </p>
         </div>
@@ -175,17 +175,17 @@ export default async function ProfilePage({
           {profile.bio}
         </p>
       ) : (
-        <p className="text-sm opacity-70">No biography yet.</p>
+        <p className="text-sm text-muted">No biography yet.</p>
       )}
 
       <section className="flex flex-col gap-2">
         <h2 className="text-lg font-semibold">Favourite teams</h2>
         {profile.favourite_teams.length === 0 ? (
-          <p className="text-sm opacity-70">No favourite teams yet.</p>
+          <p className="text-sm text-muted">No favourite teams yet.</p>
         ) : (
           <ul className="flex flex-wrap gap-2" data-testid="favourite-teams">
             {profile.favourite_teams.map((team) => (
-              <li key={team} className="rounded border border-current/30 px-2 py-1 text-sm">
+              <li key={team} className="rounded border border-default px-2 py-1 text-sm">
                 {team}
               </li>
             ))}
@@ -200,30 +200,30 @@ export default async function ProfilePage({
             The rating cannot be shown right now.
           </p>
         ) : rating.data.rating === null ? (
-          <p className="text-sm opacity-70" data-testid="rating-none">
+          <p className="text-sm text-muted" data-testid="rating-none">
             No rating yet: a rating starts with the first settled prediction.
           </p>
         ) : (
           <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
             <div>
-              <dt className="text-xs uppercase opacity-60">Rating</dt>
+              <dt className="text-xs uppercase text-muted">Rating</dt>
               <dd className="text-2xl font-semibold tabular-nums" data-testid="rating-value">
                 {ratingLabel(rating.data.rating)}
               </dd>
             </div>
             <div>
-              <dt className="text-xs uppercase opacity-60">Tier</dt>
+              <dt className="text-xs uppercase text-muted">Tier</dt>
               <dd>{tierLabel(rating.data.rating.tier)}</dd>
             </div>
             <div>
-              <dt className="text-xs uppercase opacity-60">Status</dt>
+              <dt className="text-xs uppercase text-muted">Status</dt>
               <dd>{statusLabel(rating.data.rating)}</dd>
             </div>
             <div>
-              <dt className="text-xs uppercase opacity-60">Settled</dt>
+              <dt className="text-xs uppercase text-muted">Settled</dt>
               <dd className="tabular-nums">{rating.data.rating.settled_count}</dd>
             </div>
-            <dd className="col-span-full text-xs opacity-60">
+            <dd className="col-span-full text-xs text-muted">
               {rating.data.rating.formula_version} · computed{' '}
               <time dateTime={rating.data.rating.computed_at}>
                 {rating.data.rating.computed_at}
@@ -249,7 +249,7 @@ export default async function ProfilePage({
             The prediction history cannot be shown right now.
           </p>
         ) : history.data.kind === 'restricted' ? (
-          <p className="text-sm opacity-70" data-testid="history-restricted">
+          <p className="text-sm text-muted" data-testid="history-restricted">
             {history.data.visibility === 'friends'
               ? 'Prediction history is visible to friends only.'
               : 'Prediction history is private.'}

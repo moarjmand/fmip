@@ -57,7 +57,7 @@ export default async function LeaderboardPage({
   const cookie = await sessionCookieHeader();
   const result = await fetchLeaderboard(apiQuery(q), cookie);
   const linkClass = (active: boolean): string =>
-    `rounded px-2 py-1 ${active ? 'bg-current/10 font-semibold' : 'underline'}`;
+    `rounded px-2 py-1 ${active ? 'bg-surface-raised font-semibold' : 'underline'}`;
 
   const scopes = [
     { scope: 'everyone', label: 'Everyone' },
@@ -71,13 +71,13 @@ export default async function LeaderboardPage({
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
-      <h1 className="border-s-4 border-s-current ps-4 text-2xl font-semibold" data-testid="title">
+      <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
         Leaderboard
       </h1>
 
       <nav aria-label="Board" className="flex flex-col gap-2 text-sm">
         <div className="flex flex-wrap items-center gap-2" data-testid="scope-switcher">
-          <span className="opacity-70">Who:</span>
+          <span className="text-muted">Who:</span>
           {scopes.map(({ scope, label }) => (
             <Link
               key={scope}
@@ -90,7 +90,7 @@ export default async function LeaderboardPage({
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-2" data-testid="period-switcher">
-          <span className="opacity-70">When:</span>
+          <span className="text-muted">When:</span>
           {periods.map(({ period, label }) => (
             <Link
               key={period}
@@ -138,7 +138,7 @@ export default async function LeaderboardPage({
         <>
           {result.data.period.kind === 'month' && (
             <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="month-picker">
-              <span className="opacity-70">Month:</span>
+              <span className="text-muted">Month:</span>
               {pickerChoices(result.data.available_periods.months, result.data.period.month).map(
                 (month) => (
                   <Link
@@ -161,7 +161,7 @@ export default async function LeaderboardPage({
           )}
           {result.data.period.kind === 'season' && result.data.period.label !== null && (
             <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="season-picker">
-              <span className="opacity-70">Season:</span>
+              <span className="text-muted">Season:</span>
               {pickerChoices(result.data.available_periods.seasons, result.data.period.label).map(
                 (season) => (
                   <Link
@@ -184,7 +184,7 @@ export default async function LeaderboardPage({
           )}
 
           <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="min-sample">
-            <span className="opacity-70">Minimum settled predictions:</span>
+            <span className="text-muted">Minimum settled predictions:</span>
             {result.data.presets.map((preset) => (
               <Link
                 key={preset}
@@ -205,7 +205,7 @@ export default async function LeaderboardPage({
             )}
           </div>
 
-          <p className="text-sm opacity-70" data-testid="board-explainer">
+          <p className="text-sm text-muted" data-testid="board-explainer">
             {boardExplainer(result.data, locale)}
           </p>
 
@@ -223,7 +223,7 @@ export default async function LeaderboardPage({
             <div className="overflow-x-auto">
               <table className="w-full text-sm" data-testid="leaderboard">
                 <thead>
-                  <tr className="border-b border-current/20 text-start">
+                  <tr className="border-b border-default text-start">
                     <th scope="col" className="py-2 pe-3 text-start">
                       #
                     </th>
@@ -246,7 +246,7 @@ export default async function LeaderboardPage({
                 </thead>
                 <tbody>
                   {result.data.entries.map((entry) => (
-                    <tr key={entry.username} className="border-b border-current/10">
+                    <tr key={entry.username} className="border-b border-default">
                       <td className="py-2 pe-3 tabular-nums">{entry.rank}</td>
                       <td className="py-2 pe-3">
                         <Link
@@ -275,7 +275,7 @@ export default async function LeaderboardPage({
                 Previous
               </Link>
             )}
-            <span className="opacity-70">
+            <span className="text-muted">
               Page {q.page} of {pageCount(result.data.total)} · {result.data.total} ranked
             </span>
             {q.page < pageCount(result.data.total) && (
@@ -285,7 +285,7 @@ export default async function LeaderboardPage({
             )}
           </nav>
 
-          <p className="text-xs opacity-70">
+          <p className="text-xs text-muted">
             Formula {result.data.entries[0]?.formula_version ?? 'performance-rating'} · board rules{' '}
             {result.data.rules_version} · as of{' '}
             <time dateTime={result.data.generated_at}>{result.data.generated_at}</time>

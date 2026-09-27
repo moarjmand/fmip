@@ -130,7 +130,7 @@ export default async function FounderAnalysisPage({
           {fixture === null ? "Founder's analysis" : `${fixture.home.name} v ${fixture.away.name}`}
         </h1>
         {fixture !== null && (
-          <p className="text-sm opacity-70">
+          <p className="text-sm text-muted">
             {fixture.competition.name} · kick-off{' '}
             <time dateTime={fixture.kickoff_at}>
               {fixture.kickoff_at.slice(0, 10)} {formatKickoff(locale, fixture.kickoff_at, 'UTC')}{' '}
@@ -164,14 +164,14 @@ export default async function FounderAnalysisPage({
       {analysis !== null && (
         <section className="flex flex-col gap-2" data-testid="founder-versions">
           <h2 className="text-lg font-semibold">Published versions</h2>
-          <p className="text-xs opacity-70">
+          <p className="text-xs text-muted">
             An update is a new version. Earlier ones stay readable, because the record of what was
             said when is what makes this worth anything.
           </p>
           <ol className="flex flex-col gap-2 text-sm">
             {analysis.versions.map((version) => (
-              <li key={version.id} className="rounded border border-current/15 p-2">
-                <p className="text-xs opacity-70">
+              <li key={version.id} className="rounded border border-default p-2">
+                <p className="text-xs text-muted">
                   v{version.version_number} ·{' '}
                   <time dateTime={version.published_at}>
                     {version.published_at.slice(0, 10)}{' '}

@@ -46,7 +46,7 @@ export default async function MessagesPage({ params }: { params: Promise<{ local
         <h1 className="text-2xl font-semibold" data-testid="title">
           Messages
         </h1>
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted">
           You can open a conversation with a member you are friends with, from their profile.
         </p>
       </div>
@@ -58,7 +58,7 @@ export default async function MessagesPage({ params }: { params: Promise<{ local
       ) : result.data.conversations.length === 0 ? (
         // Stated, not vanished: a reader has to be able to tell "nobody has
         // written to you" from "the page did not ask".
-        <p className="text-sm opacity-70" data-testid="messages-none">
+        <p className="text-sm text-muted" data-testid="messages-none">
           You have no conversations yet.{' '}
           <Link href={`/${locale}/friends`} className="underline">
             Your friends
@@ -78,11 +78,11 @@ export default async function MessagesPage({ params }: { params: Promise<{ local
                   {conversationTitle(conversation, me.username)}
                 </Link>
                 {standing !== null && (
-                  <p className="text-xs opacity-60" data-testid="conversation-standing">
+                  <p className="text-xs text-muted" data-testid="conversation-standing">
                     {standing}
                   </p>
                 )}
-                <p className="text-sm opacity-70">
+                <p className="text-sm text-muted">
                   {last === null ? (
                     'Nothing said yet.'
                   ) : last.removed !== null ? (
@@ -91,7 +91,7 @@ export default async function MessagesPage({ params }: { params: Promise<{ local
                     (last.body ?? 'Shared a football card.')
                   )}
                 </p>
-                <p className="text-xs opacity-60">
+                <p className="text-xs text-muted">
                   {conversation.unread > 0 && (
                     <span data-testid="conversation-unread">{conversation.unread} unread · </span>
                   )}

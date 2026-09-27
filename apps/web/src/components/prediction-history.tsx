@@ -12,10 +12,10 @@ import {
 
 const TONE_CLASS: Record<SettlementTone, string> = {
   correct: 'font-semibold',
-  wrong: 'opacity-80',
-  void: 'italic opacity-70',
-  pending: 'opacity-70',
-  open: 'opacity-70',
+  wrong: 'text-muted',
+  void: 'italic text-muted',
+  pending: 'text-muted',
+  open: 'text-muted',
 };
 
 /**
@@ -41,7 +41,7 @@ export function PredictionHistory({
 }) {
   if (items.length === 0) {
     return (
-      <p className="text-sm opacity-70" data-testid="history-empty">
+      <p className="text-sm text-muted" data-testid="history-empty">
         {page > 1 ? 'No predictions on this page.' : 'No predictions yet.'}
       </p>
     );
@@ -50,7 +50,7 @@ export function PredictionHistory({
 
   return (
     <div className="flex flex-col gap-3" data-testid="prediction-history">
-      <ol className="flex flex-col divide-y divide-current/10">
+      <ol className="flex flex-col divide-y divide-default">
         {items.map(({ fixture, prediction }) => {
           const stands = settlementLabel(prediction);
           return (
@@ -59,7 +59,7 @@ export function PredictionHistory({
                 <Link href={`/${locale}/match/${fixture.id}`} className="font-medium underline">
                   {fixtureLabel(fixture)}
                 </Link>
-                <span className="text-xs opacity-70">
+                <span className="text-xs text-muted">
                   {fixture.competition.name} ·{' '}
                   <time dateTime={fixture.kickoff_at}>
                     {formatSubmitted(locale, fixture.kickoff_at, timeZone)}
@@ -67,11 +67,11 @@ export function PredictionHistory({
                 </span>
               </div>
               <p className="text-sm" data-testid="history-version">
-                <span className="me-2 rounded border border-current/30 px-1 text-xs">
+                <span className="me-2 rounded border border-default px-1 text-xs">
                   v{prediction.latest.version_number}
                 </span>
                 {versionLabel(prediction.latest)}
-                <span className="ms-2 text-xs opacity-70">
+                <span className="ms-2 text-xs text-muted">
                   submitted{' '}
                   <time dateTime={prediction.latest.submitted_at}>
                     {formatSubmitted(locale, prediction.latest.submitted_at, timeZone)}
@@ -81,7 +81,7 @@ export function PredictionHistory({
               <p className={`text-sm ${TONE_CLASS[stands.tone]}`} data-testid="history-settlement">
                 {stands.text}
                 {prediction.settlement?.actual != null && (
-                  <span className="ms-2 text-xs opacity-70">
+                  <span className="ms-2 text-xs text-muted">
                     full time{' '}
                     <Score
                       home={prediction.settlement.actual.home}
@@ -91,7 +91,7 @@ export function PredictionHistory({
                 )}
               </p>
               {prediction.versions.length > 1 && (
-                <details className="text-xs opacity-80">
+                <details className="text-xs text-muted">
                   <summary>
                     {prediction.versions.length - 1} earlier{' '}
                     {prediction.versions.length === 2 ? 'version' : 'versions'}
@@ -122,7 +122,7 @@ export function PredictionHistory({
               Newer
             </Link>
           )}
-          <span className="opacity-70">
+          <span className="text-muted">
             Page {page} of {pages} · {total} predictions
           </span>
           {page < pages && (

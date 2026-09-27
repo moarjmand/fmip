@@ -47,7 +47,7 @@ export function FollowNextSteps({
           {suggestions.data.competitions.map(({ competition, season, teams }) => (
             <li
               key={competition.id}
-              className="flex flex-col gap-2 border-s-2 border-s-current/30 ps-4"
+              className="flex flex-col gap-2 border-s-2 border-s-default ps-4"
               data-testid="next-steps-competition"
             >
               <div className="flex flex-wrap items-baseline gap-3">
@@ -56,7 +56,7 @@ export function FollowNextSteps({
                     {competition.name}
                   </Link>
                 </h3>
-                {season !== null && <span className="text-sm opacity-70">{season.label}</span>}
+                {season !== null && <span className="text-sm text-muted">{season.label}</span>}
                 <FollowButton
                   action={follow}
                   locale={locale}
@@ -66,12 +66,12 @@ export function FollowNextSteps({
                 />
               </div>
               {teams.length === 0 ? (
-                <p className="text-sm opacity-80" data-testid="next-steps-no-teams">
+                <p className="text-sm text-muted" data-testid="next-steps-no-teams">
                   <Translated locale={locale} message="feed.nextSteps.noTeams" />
                 </p>
               ) : (
                 <>
-                  <p className="text-sm opacity-80">
+                  <p className="text-sm text-muted">
                     <Translated locale={locale} message="feed.nextSteps.ranked" />
                   </p>
                   <ul className="flex flex-col gap-1">
@@ -84,7 +84,7 @@ export function FollowNextSteps({
                         <Link href={`/${locale}/team/${team.id}`} className="underline">
                           {team.name}
                         </Link>
-                        <span className="text-xs opacity-70">
+                        <span className="text-xs text-muted">
                           <Translated
                             locale={locale}
                             message="team.followerCount"

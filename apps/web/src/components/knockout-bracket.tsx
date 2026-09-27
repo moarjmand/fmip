@@ -29,13 +29,13 @@ export function KnockoutBracket({
           return (
             <li
               key={round.key}
-              className="flex flex-col gap-2 border-s-2 border-s-current/20 ps-3"
+              className="flex flex-col gap-2 border-s-2 border-s-default ps-3"
               data-testid="bracket-round"
               data-state={round.state}
             >
               <h3 className="font-semibold">
                 {ROUND_LABEL[round.key]}
-                <span className="ms-2 text-xs font-normal opacity-60">
+                <span className="ms-2 text-xs font-normal text-muted">
                   {round.legs === 2 ? 'Two legs' : 'One match'}
                 </span>
               </h3>
@@ -44,14 +44,14 @@ export function KnockoutBracket({
                   {round.ties.map((tie) => (
                     <li
                       key={tie.legs[0]!.fixture_id}
-                      className="flex min-w-0 flex-col gap-1 rounded border border-current/20 p-3 text-sm"
+                      className="flex min-w-0 flex-col gap-1 rounded border border-default p-3 text-sm"
                       data-testid="bracket-tie"
                     >
                       <p className="font-medium break-words">
                         <Link href={`/${locale}/team/${tie.teams[0].id}`} className="underline">
                           {tie.teams[0].name}
                         </Link>
-                        <span className="mx-1 opacity-60">v</span>
+                        <span className="mx-1 text-muted">v</span>
                         <Link href={`/${locale}/team/${tie.teams[1].id}`} className="underline">
                           {tie.teams[1].name}
                         </Link>
@@ -59,11 +59,11 @@ export function KnockoutBracket({
                       <ul className="flex flex-col gap-0.5">
                         {tie.legs.map((leg) => (
                           <li key={leg.fixture_id} className="flex flex-wrap gap-x-2">
-                            <span className="opacity-60">{legLabel(leg, round.legs)}</span>
+                            <span className="text-muted">{legLabel(leg, round.legs)}</span>
                             <Link href={`/${locale}/match/${leg.fixture_id}`} className="underline">
                               {legLine(leg)}
                             </Link>
-                            <span className="text-xs opacity-70">
+                            <span className="text-xs text-muted">
                               <time dateTime={leg.kickoff_at}>
                                 {formatFixtureDate(locale, leg.kickoff_at, timeZone)}
                               </time>
@@ -76,7 +76,7 @@ export function KnockoutBracket({
                       </ul>
                       <p
                         className={
-                          tie.winner === null ? 'text-xs opacity-70' : 'text-xs font-semibold'
+                          tie.winner === null ? 'text-xs text-muted' : 'text-xs font-semibold'
                         }
                         data-testid="bracket-outcome"
                       >
@@ -87,7 +87,7 @@ export function KnockoutBracket({
                 </ul>
               )}
               {note !== null && (
-                <p className="text-sm opacity-70" data-testid="bracket-note">
+                <p className="text-sm text-muted" data-testid="bracket-note">
                   {note}
                 </p>
               )}
