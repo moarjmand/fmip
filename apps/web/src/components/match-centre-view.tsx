@@ -472,7 +472,7 @@ export function MatchCentreView({
         <h2 className="text-lg font-semibold">Coverage for this season</h2>
         <ul className="flex flex-wrap gap-2 text-xs">
           {Object.entries(centre.coverage).map(([module, state]) => (
-            <li key={module} className="rounded border border-default px-2 py-1">
+            <li key={module} dir="auto" className="rounded border border-default px-2 py-1">
               {module.replace('_', ' ')}:{' '}
               {moduleState({ coverage: state, last_updated_at: null, data: null })}
             </li>
@@ -484,13 +484,31 @@ export function MatchCentreView({
         <h2 className="text-lg font-semibold">Not on this page yet</h2>
         <ul className="flex flex-wrap gap-2 text-xs text-muted">
           {NOT_YET.map(([name, why]) => (
-            <li key={name} className="rounded border border-default px-2 py-1">
+            <li key={name} dir="auto" className="rounded border border-default px-2 py-1">
               {name}: {why}
             </li>
           ))}
         </ul>
       </section>
     </div>
+  );
+}
+
+/** A module's title and its coverage tag, a gap between them in either direction. */
+const MODULE_HEADING = 'flex flex-wrap items-baseline gap-x-2 gap-y-1 text-lg font-semibold';
+
+/**
+ * A coverage state beside a heading, and every sentence that says why a
+ * module is empty, carry `dir="auto"` (T-605): the wording is English on
+ * every page today, and an English sentence in a right-to-left paragraph has
+ * its full stop resolved by the paragraph, so it rendered as ".Data for this
+ * module is delayed". With its own direction it reads as the sentence it is.
+ */
+function CoverageTag({ children }: { children: React.ReactNode }) {
+  return (
+    <span dir="auto" className="text-xs font-normal uppercase text-muted">
+      {children}
+    </span>
   );
 }
 
@@ -507,12 +525,12 @@ function Module<T>({
 }) {
   return (
     <section className="flex flex-col gap-2" data-testid={testId} data-coverage={module.coverage}>
-      <h2 className="text-lg font-semibold">
-        {title}
-        <span className="ms-2 text-xs font-normal uppercase text-muted">{moduleState(module)}</span>
+      <h2 className={MODULE_HEADING}>
+        <span>{title}</span>
+        <CoverageTag>{moduleState(module)}</CoverageTag>
       </h2>
       {module.data === null ? (
-        <p className="text-sm text-muted">
+        <p dir="auto" className="text-sm text-muted">
           {module.coverage === 'delayed'
             ? 'Data for this module is delayed.'
             : 'Not supplied for this match.'}
@@ -551,9 +569,13 @@ function Side({
   );
   return (
     <div className="flex flex-col gap-1">
-      <h3 className="font-medium">
-        {name}
-        {formation !== null ? <span className="ms-2 text-muted">{formation}</span> : null}
+      <h3 className="flex flex-wrap items-baseline gap-x-2 font-medium">
+        <bdi>{name}</bdi>
+        {formation !== null ? (
+          <span dir="ltr" className="text-muted">
+            {formation}
+          </span>
+        ) : null}
       </h3>
       <p className="text-xs text-muted">Coach: {coach ?? 'not supplied'}</p>
       <ul>
@@ -588,12 +610,14 @@ function Form({
 }) {
   return (
     <div className="flex flex-col gap-1" data-coverage={module.coverage}>
-      <h3 className="font-medium">
-        {name}
-        <span className="ms-2 text-xs font-normal uppercase text-muted">{moduleState(module)}</span>
+      <h3 className="flex flex-wrap items-baseline gap-x-2 font-medium">
+        <bdi>{name}</bdi>
+        <CoverageTag>{moduleState(module)}</CoverageTag>
       </h3>
       {module.data === null ? (
-        <p className="text-xs text-muted">No competitive results held.</p>
+        <p dir="auto" className="text-xs text-muted">
+          No competitive results held.
+        </p>
       ) : (
         <ul className="flex flex-col gap-1">
           {module.data.map((e) => (

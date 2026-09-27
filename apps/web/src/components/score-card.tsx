@@ -82,12 +82,12 @@ export function ScoreCard({
     >
       <Link
         href={`/${locale}/match/${card.id}`}
-        className="flex min-h-11 min-w-0 flex-col justify-center gap-0.5 py-2 ps-3 pe-12 hover:bg-surface-raised"
+        className="flex min-h-11 min-w-0 flex-col justify-center gap-0.5 py-2 ps-2 pe-11 hover:bg-surface-raised"
         data-testid="match-link"
       >
         <span className="flex min-w-0 items-center gap-2">
           <span
-            className={`w-16 shrink-0 text-xs leading-tight ${live ? 'font-semibold text-live' : 'text-muted'}`}
+            className={`w-12 shrink-0 text-xs leading-tight hyphens-auto [overflow-wrap:anywhere] ${live ? 'font-semibold text-live' : 'text-muted'}`}
             data-testid="score-status"
           >
             {statusLabel(card, locale, timeZone, now)}
@@ -115,7 +115,7 @@ export function ScoreCard({
           </span>
         </span>
         {rowBits.length > 0 && (
-          <span className="truncate ps-18 text-xs text-muted" data-testid="row-meta">
+          <span className="truncate ps-14 text-xs text-muted" data-testid="row-meta">
             {rowBits.join(' · ')}
           </span>
         )}

@@ -196,7 +196,7 @@ export function LiveScores({
               </ul>
             </section>
           ))}
-          <p className="text-xs text-muted">
+          <p dir="auto" className="text-xs text-muted">
             Snapshot <time dateTime={scores.generated_at}>{scores.generated_at}</time>.
           </p>
         </div>

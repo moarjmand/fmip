@@ -240,6 +240,20 @@ describe('the match centre', () => {
     expect(lineups).toContain('sm:grid-cols-2');
   });
 
+  it('gives a coverage tag its own gap and direction, and an empty module its own sentence', () => {
+    // A flex gap, not a margin: beside an English title in a right-to-left
+    // paragraph the margin landed on the far side and the two words touched.
+    expect(html).toMatch(
+      /<h2 class="flex flex-wrap items-baseline gap-x-2[^"]*"><span>Player statistics<\/span><span dir="auto"/,
+    );
+    expect(html).toContain(
+      '<p dir="auto" class="text-sm text-muted">Not supplied for this match.</p>',
+    );
+    expect(html).toContain(
+      '<p dir="auto" class="text-xs text-muted">No competitive results held.</p>',
+    );
+  });
+
   it('leaves a section out of the nav when the page has nothing for it', () => {
     const bare = renderToStaticMarkup(
       <MatchCentreView centre={centre} timeZone="UTC" locale="en" />,
