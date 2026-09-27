@@ -1,8 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import type { LeaderboardResponse, Rating, RatingHistory } from '@fmip/contracts';
+import type {
+  LeaderboardPeriod,
+  LeaderboardResponse,
+  Rating,
+  RatingHistory,
+} from '@fmip/contracts';
 import { ForecastService } from '../forecast/forecast.service';
 import { IdentityService } from '../identity/identity.service';
 import { SettlementService, type SettledRecord } from '../predictions/predictions.service';
+import { ProfileService } from '../profile/profile.service';
+import { periodBoard, type PeriodBoardRow } from './internal/period-board';
 import {
   RATING_FORMULA_V1,
   type RatingFormula,
@@ -14,8 +21,11 @@ import { CareerPointsService } from './career-points.service';
 import { ratingHistory } from './internal/history';
 import {
   LEADERBOARD_RULES_V1,
+  currentMonth,
+  monthBounds,
   type LeaderboardQuery,
   type LeaderboardRules,
+  type PeriodQuery,
 } from './internal/leaderboard';
 import { PostgresRatingStore, type SnapshotRow } from './internal/rating-store';
 
@@ -62,34 +72,49 @@ export class ReputationService {
     private readonly forecasts: ForecastService,
     private readonly identity: IdentityService,
     private readonly points: CareerPointsService,
+    private readonly profiles: ProfileService,
   ) {}
 
   /**
    * The board (blueprint 9.3, T-055): current ratings, ranked, behind the
    * minimum-sample filter. Reads snapshots only, so it is as reproducible as
    * they are; the tier is derived from the rating under the formula.
-   */
-  /**
-   * The board. `among` scopes it to a set of members -- a group (T-243) -- and
-   * scopes nothing else: same rules version, same floor, same formula, same
-   * tier. There is no second leaderboard here and there is deliberately no
-   * second method, because a second method is where a second formula begins.
+   *
+   * `among` scopes it to a set of members -- a group (T-243), the viewer and
+   * their friends (T-641) -- and scopes nothing else: same rules version, same
+   * floor, same formula, same tier. There is no second leaderboard here and
+   * there is deliberately no second method, because a second method is where
+   * a second formula begins.
+   *
+   * A month or season (T-641) changes only which settlements are rated: each
+   * member's rating is `computeRating` over the period's settlements, computed
+   * on read and written nowhere (`periodBoard`). Such a board says when a
+   * member predicted, so it is drawn only from members whose prediction
+   * history `viewerId` may read -- the rule `GET /users/:username/predictions`
+   * and the rating history (T-640) follow. The all-time board shows what
+   * blueprint 7.2 makes public (username and current rating), as before.
    */
   async leaderboard(
     query: LeaderboardQuery,
-    among: string[] | null = null,
+    options: {
+      among?: string[] | null;
+      viewerId?: string | null;
+      scope?: LeaderboardResponse['scope'];
+      now?: Date;
+    } = {},
   ): Promise<LeaderboardResponse> {
-    const page = await this.store.board(query.minSettled, query.limit, query.offset, among);
-    return {
-      rules_version: this.leaderboardRules.version,
-      min_settled: query.minSettled,
-      floor: this.leaderboardRules.floor,
-      presets: [...this.leaderboardRules.presets],
-      total: page.total,
-      limit: query.limit,
-      offset: query.offset,
-      generated_at: new Date().toISOString(),
-      entries: page.rows.map((r) => ({
+    const among = options.among ?? null;
+    const now = options.now ?? new Date();
+    const generatedAt = now.toISOString();
+    const available = await this.settlements.settledPeriods(PERIOD_CHOICES);
+    const period = resolvePeriod(query.period, available, now);
+
+    let total: number;
+    let entries: LeaderboardResponse['entries'];
+    if (period.kind === 'all') {
+      const page = await this.store.board(query.minSettled, query.limit, query.offset, among);
+      total = page.total;
+      entries = page.rows.map((r) => ({
         rank: r.rank,
         username: r.username,
         rating: r.rating,
@@ -99,8 +124,65 @@ export class ReputationService {
         established: r.established,
         formula_version: r.formulaVersion,
         computed_at: r.computedAt,
-      })),
+      }));
+    } else {
+      const rows = await this.periodRows(period, among, options.viewerId ?? null, query);
+      total = rows.length;
+      entries = rows.slice(query.offset, query.offset + query.limit).map((r) => ({
+        rank: r.rank,
+        username: r.username,
+        rating: r.result.rating,
+        tier: tierOf(r.result.rating, this.formula),
+        settled_count: r.result.settledCount,
+        provisional: r.result.provisional,
+        established: r.result.established,
+        formula_version: this.formula.version,
+        computed_at: generatedAt,
+      }));
+    }
+
+    return {
+      scope: options.scope ?? query.scope,
+      period,
+      available_periods: available,
+      rules_version: this.leaderboardRules.version,
+      min_settled: query.minSettled,
+      floor: this.leaderboardRules.floor,
+      presets: [...this.leaderboardRules.presets],
+      total,
+      limit: query.limit,
+      offset: query.offset,
+      generated_at: generatedAt,
+      entries,
     };
+  }
+
+  /** Every ranked row of a month or season board, before paging. */
+  private async periodRows(
+    period: Exclude<LeaderboardPeriod, { kind: 'all' }>,
+    among: string[] | null,
+    viewerId: string | null,
+    query: LeaderboardQuery,
+  ): Promise<PeriodBoardRow[]> {
+    if (period.kind === 'season' && period.label === null) return [];
+    const records = await this.settlements.settledInPeriod(
+      period.kind === 'month'
+        ? { among, from: period.from, to: period.to }
+        : { among, seasonLabel: period.label ?? '' },
+    );
+    if (records.length === 0) return [];
+    const members = await this.profiles.predictionHistoryAudience(
+      [...new Set(records.map((r) => r.userId))],
+      viewerId,
+    );
+    const inputs = await this.withDifficulty(records);
+    // `withDifficulty` keeps the records' order, so the zip is by position.
+    return periodBoard(
+      records.map((record, i) => ({ ...inputs[i]!, userId: record.userId })),
+      members,
+      query.minSettled,
+      this.formula,
+    );
   }
 
   /** The current rating, or null before the first settled prediction. Never computes. */
@@ -218,6 +300,39 @@ export class ReputationService {
       });
     }
     return inputs;
+  }
+}
+
+/** How many months and seasons the pickers offer. */
+const PERIOD_CHOICES = 36;
+
+/**
+ * The period a board ranks, with its defaults filled in: the current UTC month,
+ * or the newest season with a settled prediction (null when there is none).
+ *
+ * **What a season is (T-641).** A fixture belongs to exactly one `season` row,
+ * and a season row belongs to one competition; the label (`2025/26`, or
+ * `2026` for a calendar-year league) is the name every competition's edition
+ * of that season shares. A season board is therefore the settlements on
+ * fixtures whose season carries the label, in every competition -- the same
+ * way the backfill reads "a season by its label" (T-512) -- rather than a
+ * date range, because competitions' seasons do not start or end together and
+ * a range would cut one of them in half.
+ */
+export function resolvePeriod(
+  period: PeriodQuery,
+  available: { seasons: string[] },
+  now: Date,
+): LeaderboardPeriod {
+  switch (period.kind) {
+    case 'all':
+      return { kind: 'all' };
+    case 'month': {
+      const month = period.month ?? currentMonth(now);
+      return { kind: 'month', month, ...monthBounds(month) };
+    }
+    case 'season':
+      return { kind: 'season', label: period.label ?? available.seasons[0] ?? null };
   }
 }
 

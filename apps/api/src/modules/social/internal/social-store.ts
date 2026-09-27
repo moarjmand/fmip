@@ -67,6 +67,19 @@ export class SocialStore {
     return rowCount === 1;
   }
 
+  /** The ids of the viewer's active friends, and nothing else about them. */
+  async friendIds(viewerId: string): Promise<string[]> {
+    const { rows } = await this.pool.query<{ id: string }>(
+      `SELECT u.id
+         FROM friendship f
+         JOIN user_account u
+           ON u.id = CASE WHEN f.low_id = $1 THEN f.high_id ELSE f.low_id END
+        WHERE (f.low_id = $1 OR f.high_id = $1) AND u.status = 'active'`,
+      [viewerId],
+    );
+    return rows.map((r) => r.id);
+  }
+
   /**
    * The viewer's friends, each with the number of friends the two have in
    * common.

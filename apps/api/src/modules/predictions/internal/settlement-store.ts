@@ -18,6 +18,11 @@ export interface SettledRecord {
   competition: { id: string; name: string };
 }
 
+/** A settled record with whose it is, for a board over many members (T-641). */
+export interface MemberSettledRecord extends SettledRecord {
+  userId: string;
+}
+
 export interface FixtureFinal {
   id: string;
   status: string;
@@ -233,7 +238,60 @@ export class PostgresSettlementStore {
    * it is a settlement and not a void), oldest first.
    */
   async settledHistory(userId: string): Promise<SettledRecord[]> {
+    return (await this.settledRows({ userId })).map(({ userId: _owner, ...record }) => record);
+  }
+
+  /**
+   * The same current `settled` rows, for every member (or those in `among`),
+   * narrowed to a period (T-641): settled in `[from, to)`, or on a fixture in
+   * a season with this label, in any competition. Oldest first per member.
+   * One query shared with `settledHistory`, so a period board and a recompute
+   * read the same rows by the same rule.
+   */
+  settledInPeriod(filter: {
+    among: string[] | null;
+    from?: string;
+    to?: string;
+    seasonLabel?: string;
+  }): Promise<MemberSettledRecord[]> {
+    return this.settledRows(filter);
+  }
+
+  /** Months (`YYYY-MM`, UTC) with a settled prediction, newest first. */
+  async settledMonths(limit: number): Promise<string[]> {
+    const { rows } = await this.pool.query<{ month: string }>(
+      `SELECT to_char(date_trunc('month', s.settled_at AT TIME ZONE 'UTC'), 'YYYY-MM') AS month
+         FROM settlement s
+        WHERE s.status = 'settled'
+        GROUP BY 1 ORDER BY 1 DESC LIMIT $1`,
+      [limit],
+    );
+    return rows.map((r) => r.month);
+  }
+
+  /** Season labels with a settled prediction, the latest-starting first. */
+  async settledSeasons(limit: number): Promise<string[]> {
+    const { rows } = await this.pool.query<{ label: string }>(
+      `SELECT se.label
+         FROM settlement s
+         JOIN fixture f ON f.id = s.fixture_id
+         JOIN season se ON se.id = f.season_id
+        WHERE s.status = 'settled'
+        GROUP BY se.label ORDER BY max(se.start_date) DESC, se.label DESC LIMIT $1`,
+      [limit],
+    );
+    return rows.map((r) => r.label);
+  }
+
+  private async settledRows(filter: {
+    userId?: string;
+    among?: string[] | null;
+    from?: string;
+    to?: string;
+    seasonLabel?: string;
+  }): Promise<MemberSettledRecord[]> {
     const { rows } = await this.pool.query<{
+      user_id: string;
       id: string;
       fixture_id: string;
       kickoff_at: Date;
@@ -247,8 +305,8 @@ export class PostgresSettlementStore {
       competition_id: string;
       competition_name: string;
     }>(
-      `SELECT s.id, s.fixture_id, f.kickoff_at, s.settled_at, s.outcome_correct, s.score_predicted,
-              s.score_correct, s.confidence, s.actual_home, s.actual_away,
+      `SELECT p.user_id, s.id, s.fixture_id, f.kickoff_at, s.settled_at, s.outcome_correct,
+              s.score_predicted, s.score_correct, s.confidence, s.actual_home, s.actual_away,
               c.id AS competition_id, c.name AS competition_name
          FROM user_prediction p
          JOIN LATERAL (
@@ -258,11 +316,23 @@ export class PostgresSettlementStore {
          JOIN fixture f ON f.id = s.fixture_id
          JOIN season se ON se.id = f.season_id
          JOIN competition c ON c.id = se.competition_id
-        WHERE p.user_id = $1 AND s.status = 'settled'
-        ORDER BY s.settled_at, s.id`,
-      [userId],
+        WHERE s.status = 'settled'
+          AND ($1::uuid IS NULL OR p.user_id = $1::uuid)
+          AND ($2::uuid[] IS NULL OR p.user_id = ANY($2::uuid[]))
+          AND ($3::timestamptz IS NULL OR s.settled_at >= $3::timestamptz)
+          AND ($4::timestamptz IS NULL OR s.settled_at < $4::timestamptz)
+          AND ($5::text IS NULL OR se.label = $5::text)
+        ORDER BY p.user_id, s.settled_at, s.id`,
+      [
+        filter.userId ?? null,
+        filter.among ?? null,
+        filter.from ?? null,
+        filter.to ?? null,
+        filter.seasonLabel ?? null,
+      ],
     );
     return rows.map((r) => ({
+      userId: r.user_id,
       settlementId: r.id,
       fixtureId: r.fixture_id,
       kickoffAt: r.kickoff_at.toISOString(),

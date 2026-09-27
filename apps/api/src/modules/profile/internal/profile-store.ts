@@ -68,6 +68,15 @@ export class PostgresProfileStore {
     return rows[0] ?? null;
   }
 
+  /** The active members among `userIds`; an unknown or inactive id is simply absent. */
+  async findByUserIds(userIds: string[]): Promise<ProfileRow[]> {
+    if (userIds.length === 0) return [];
+    const { rows } = await this.pool.query<ProfileRow>(`${SELECT} AND u.id = ANY($1::uuid[])`, [
+      userIds,
+    ]);
+    return rows;
+  }
+
   /** Every territory a member may choose, by name. */
   async territories(): Promise<Territory[]> {
     const { rows } = await this.pool.query<Territory>(

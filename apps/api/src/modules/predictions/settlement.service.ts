@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import type { FixtureSettlementsResponse } from '@fmip/contracts';
 import { settleOne, verdictFor } from './internal/settle';
-import { PostgresSettlementStore, type SettledRecord } from './internal/settlement-store';
+import {
+  PostgresSettlementStore,
+  type MemberSettledRecord,
+  type SettledRecord,
+} from './internal/settlement-store';
 
-export type { SettledRecord } from './internal/settlement-store';
+export type { MemberSettledRecord, SettledRecord } from './internal/settlement-store';
 
 export type SettleOutcome =
   | { kind: 'settled'; runId: string; settled: number; voided: number; unchanged: number }
@@ -61,6 +65,25 @@ export class SettlementService {
   /** For the reputation boundary (T-053): a member's settled rows, oldest first. */
   settledHistory(userId: string): Promise<SettledRecord[]> {
     return this.store.settledHistory(userId);
+  }
+
+  /** The same records, over a month or a season, for a period board (T-641). */
+  settledInPeriod(filter: {
+    among: string[] | null;
+    from?: string;
+    to?: string;
+    seasonLabel?: string;
+  }): Promise<MemberSettledRecord[]> {
+    return this.store.settledInPeriod(filter);
+  }
+
+  /** The months and season labels a period board can be asked for, newest first. */
+  async settledPeriods(limit: number): Promise<{ months: string[]; seasons: string[] }> {
+    const [months, seasons] = await Promise.all([
+      this.store.settledMonths(limit),
+      this.store.settledSeasons(limit),
+    ]);
+    return { months, seasons };
   }
 
   predictors(fixtureId: string): Promise<string[]> {
