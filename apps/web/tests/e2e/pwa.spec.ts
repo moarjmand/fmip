@@ -1,7 +1,38 @@
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { chromium, devices, expect, test, type BrowserContext } from '@playwright/test';
+import { chromium, devices, expect, test, type BrowserContext, type Page } from '@playwright/test';
+
+/**
+ * Until the service worker is activated and this page is under its control.
+ *
+ * `navigator.serviceWorker.ready` is not that: it resolves as soon as the
+ * registration has an active worker, which includes one still *activating*
+ * (running `clients.claim()`), and it never rejects -- so a worker that failed
+ * to install hung the test until the test timeout, which named no step. The
+ * registration happens after hydration, so the first load is never controlled;
+ * a reload once the worker is activated is. Each wait is bounded and says what
+ * it was waiting for.
+ */
+async function controlledByServiceWorker(page: Page): Promise<void> {
+  await expect
+    .poll(
+      () =>
+        page.evaluate(async () => {
+          const registration = await navigator.serviceWorker.getRegistration();
+          return registration?.active?.state ?? 'none';
+        }),
+      { message: 'the service worker is activated', timeout: 15_000 },
+    )
+    .toBe('activated');
+  await page.reload();
+  await expect
+    .poll(() => page.evaluate(() => navigator.serviceWorker.controller !== null), {
+      message: 'the page is controlled by the service worker',
+      timeout: 15_000,
+    })
+    .toBe(true);
+}
 
 /**
  * Installability (T-082, D-042): the manifest with the fields Android needs,
@@ -12,6 +43,12 @@ import { chromium, devices, expect, test, type BrowserContext } from '@playwrigh
  */
 test.describe('progressive web app', () => {
   test('Chrome itself would offer to install it on a phone', async () => {
+    // A real Google Chrome with a fresh profile, a service worker installing
+    // its shell and Chrome's own install check: the default 30s was spent
+    // before the last wait could finish on a CI runner (run 36356718113 timed
+    // out with no step named). The waits below are each bounded; this is the
+    // budget for all of them together.
+    test.setTimeout(60_000);
     // Google Chrome (channel "chrome"), not Playwright's headless shell: only
     // the full browser runs the install-banner machinery that decides this,
     // and only outside incognito, hence a persistent context. The flag skips
@@ -40,17 +77,23 @@ test.describe('progressive web app', () => {
       });
       await page.goto('/en');
       // The decision needs a service worker in control of the page.
-      await page.evaluate(async () => {
-        await navigator.serviceWorker.ready;
-      });
-      await page.reload();
-      // Chrome fires beforeinstallprompt once every criterion is met.
-      await expect(page.locator('html')).toHaveAttribute('data-install-prompt', 'offered', {
-        timeout: 15_000,
-      });
+      await controlledByServiceWorker(page);
+      // Chrome's verdict, asked for rather than waited on: an empty list once
+      // every criterion is met on this load, the missing criterion otherwise.
       const cdp = await context.newCDPSession(page);
-      const { installabilityErrors } = await cdp.send('Page.getInstallabilityErrors');
-      expect(installabilityErrors).toEqual([]);
+      await expect
+        .poll(
+          async () =>
+            (await cdp.send('Page.getInstallabilityErrors')).installabilityErrors.map(
+              (e) => e.errorId,
+            ),
+          { message: 'Chrome finds nothing missing for an install', timeout: 15_000 },
+        )
+        .toEqual([]);
+      // ...and it offers the install to the page.
+      await expect(page.locator('html')).toHaveAttribute('data-install-prompt', 'offered', {
+        timeout: 10_000,
+      });
     } finally {
       await context.close();
     }
@@ -101,14 +144,19 @@ test.describe('progressive web app', () => {
     context,
   }) => {
     await page.goto('/en');
-    const scope = await page.evaluate(async () => {
-      const registration = await navigator.serviceWorker.ready;
-      return registration.scope;
-    });
+    // Activated, not merely `ready`: a navigation offline is answered only by
+    // a worker that is active, and the offline page only from a finished
+    // install. Waiting on the cache alone raced an install still in progress.
+    await controlledByServiceWorker(page);
+    const scope = await page.evaluate(
+      async () => (await navigator.serviceWorker.getRegistration())?.scope ?? '',
+    );
     expect(scope).toMatch(/\/$/);
-    // Let the install step finish caching the shell. Any cache: the worker's
-    // cache name carries a version that changes with the shell (sw.js).
-    await page.waitForFunction(async () => (await caches.match('/en/offline')) !== undefined);
+    // The shell is cached. Any cache: the worker's cache name carries a
+    // version that changes with the shell (sw.js).
+    expect(await page.evaluate(async () => (await caches.match('/en/offline')) !== undefined)).toBe(
+      true,
+    );
 
     await context.setOffline(true);
     await page.goto('/en/scores');
