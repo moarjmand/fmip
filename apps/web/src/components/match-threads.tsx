@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import type { GroupSummary } from '@fmip/contracts';
 import { openThreadAction } from '@/lib/thread-actions';
+import { Button, FormStatus, Notice } from '@/components/ui';
 
 /**
  * Opening a match thread from the match (blueprint 8.2, T-248).
@@ -32,22 +33,19 @@ function OpenThread({
 
   return (
     <form action={formAction} className="flex flex-col gap-1">
-      <button
+      <Button
         type="submit"
-        disabled={pending}
+        pending={pending}
+        pendingLabel="Working…"
         data-testid={`open-thread-${group.slug}`}
-        className="self-start rounded border border-strong px-3 py-1 text-sm disabled:opacity-50"
+        className="self-start"
       >
-        {pending ? 'Working…' : `Discuss in ${group.name}`}
-      </button>
+        {`Discuss in ${group.name}`}
+      </Button>
       {state !== null && !state.ok && (
-        <p
-          role="status"
-          className="text-sm text-danger"
-          data-testid={`open-thread-${group.slug}-result`}
-        >
+        <FormStatus ok={false} data-testid={`open-thread-${group.slug}-result`}>
           {state.message}
-        </p>
+        </FormStatus>
       )}
     </form>
   );
@@ -72,9 +70,9 @@ export function MatchThreads({
         // Stated, not vanished: "your groups could not be fetched" and "you are
         // in none" are different facts and a reader must be able to tell them
         // apart (rule 3).
-        <p role="alert" data-testid="match-threads-unreachable">
+        <Notice tone="danger" data-testid="match-threads-unreachable">
           Your groups cannot be shown right now.
-        </p>
+        </Notice>
       ) : groups.length === 0 ? (
         <p className="text-sm text-muted" data-testid="match-threads-none">
           A match thread happens inside a group. You are not in one yet.

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { Notification, NotificationsResponse } from '@fmip/contracts';
 import { notificationHref, notificationLine } from '@/lib/notification-links';
 import { readAllAction, readOneAction } from '@/lib/notification-actions';
+import { Button, Notice } from '@/components/ui';
 
 /**
  * The inbox, as a member reads it (blueprint 12.2, T-272).
@@ -53,19 +54,19 @@ function Row({ locale, notification }: { locale: string; notification: Notificat
         </Link>
       )}
       {unread && (
-        <button
-          type="button"
-          disabled={pending}
+        <Button
+          size="xs"
+          pending={pending}
           onClick={() => {
             start(async () => {
               await readOneAction(locale, notification.id);
             });
           }}
-          className="shrink-0 rounded border border-strong px-2 py-0.5 text-xs disabled:opacity-50"
+          className="shrink-0"
           data-testid={`notification-read-${notification.id}`}
         >
           Mark read
-        </button>
+        </Button>
       )}
     </li>
   );
@@ -88,9 +89,9 @@ export function NotificationList({
     // happened" are different facts and a reader must be able to tell them
     // apart.
     return (
-      <p role="alert" data-testid="notifications-unreachable">
+      <Notice tone="danger" data-testid="notifications-unreachable">
         Your notifications cannot be shown right now.
-      </p>
+      </Notice>
     );
   }
 
@@ -105,19 +106,18 @@ export function NotificationList({
   return (
     <div className="flex flex-col gap-3">
       {page.unread > 0 && (
-        <button
-          type="button"
-          disabled={pending}
+        <Button
+          pending={pending}
           onClick={() => {
             start(async () => {
               await readAllAction(locale);
             });
           }}
-          className="self-start rounded border border-strong px-3 py-1 text-sm disabled:opacity-50"
+          className="self-start"
           data-testid="notifications-read-all"
         >
           Mark all {page.unread} read
-        </button>
+        </Button>
       )}
       <ul className="flex flex-col gap-2">
         {page.notifications.map((notification) => (

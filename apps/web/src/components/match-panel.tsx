@@ -10,6 +10,7 @@ import type {
 } from '@fmip/contracts';
 import { FollowButton, PanelReactions } from '@/components/panel-social';
 import { postToPanelAction } from '@/lib/panel-actions';
+import { Button, Card, FormStatus, Notice, TextArea } from '@/components/ui';
 
 /**
  * The public match discussion (blueprint 10.2, T-251).
@@ -121,7 +122,7 @@ function Post({
     );
   }
   return (
-    <li className="flex flex-col gap-2 rounded border border-default p-3" data-testid="panel-post">
+    <Card as="li" padding="sm" data-testid="panel-post">
       <Standing
         author={post.author}
         follow={
@@ -150,7 +151,7 @@ function Post({
       <time className="text-xs text-muted" dateTime={post.created_at}>
         {post.created_at}
       </time>
-    </li>
+    </Card>
   );
 }
 
@@ -162,34 +163,17 @@ function Compose({ locale, fixtureId }: { locale: string; fixtureId: string }) {
 
   return (
     <form action={formAction} className="flex flex-col gap-2" data-testid="panel-compose">
-      <label className="flex flex-col gap-1 text-sm">
-        <span>Add to the discussion</span>
-        <textarea
-          name="body"
-          rows={3}
-          maxLength={4000}
-          required
-          className="rounded border border-strong bg-transparent p-2"
-        />
-      </label>
-      <button
-        type="submit"
-        disabled={pending}
-        className="self-start rounded border border-strong px-3 py-1 text-sm disabled:opacity-50"
-      >
-        {pending ? 'Posting…' : 'Post'}
-      </button>
+      <TextArea label="Add to the discussion" name="body" rows={3} maxLength={4000} required />
+      <Button type="submit" pending={pending} pendingLabel="Posting…" className="self-start">
+        Post
+      </Button>
       {state !== null && (
         // The refusal the API worded, shown as it came. The server decided; this
         // repeats the sentence rather than composing a second one that could
         // disagree with it.
-        <p
-          role="status"
-          data-testid="panel-compose-result"
-          className={state.ok ? 'text-sm' : 'text-sm text-danger'}
-        >
+        <FormStatus ok={state.ok} data-testid="panel-compose-result">
           {state.message}
-        </p>
+        </FormStatus>
       )}
     </form>
   );
@@ -232,9 +216,9 @@ export function MatchPanel({
         // Stated, not vanished: "the discussion could not be fetched" and "nobody
         // has posted" are different facts and a reader must be able to tell them
         // apart (rule 3).
-        <p role="alert" data-testid="panel-unreachable">
+        <Notice tone="danger" data-testid="panel-unreachable">
           The discussion cannot be shown right now.
-        </p>
+        </Notice>
       ) : page.state === 'none' ? (
         // Not the same as an empty discussion, and it must not read like one
         // (T-253). One is a match nobody opened a panel on; the other is one

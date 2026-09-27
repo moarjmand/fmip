@@ -12,19 +12,16 @@ import {
   setMutedAction,
   setPinnedAction,
 } from '@/lib/conversation-actions';
+import { Button, FormStatus, TextArea } from '@/components/ui';
 
 type BoundAction = (state: ActionState, formData: FormData) => Promise<ActionState>;
 
 function Result({ state, testId }: { state: ActionState; testId: string }) {
   if (state === null) return null;
   return (
-    <p
-      role="status"
-      className={`text-sm ${state.ok ? 'text-muted' : 'text-danger'}`}
-      data-testid={testId}
-    >
+    <FormStatus ok={state.ok} data-testid={testId}>
       {state.ok ? (state.message ?? 'Done.') : state.message}
-    </p>
+    </FormStatus>
   );
 }
 
@@ -72,25 +69,26 @@ export function Composer({
           <p className="text-sm text-muted">Sharing: {card.label}</p>
         </>
       )}
-      <label htmlFor="message-body" className="sr-only">
-        Your message
-      </label>
-      <textarea
+      <TextArea
+        label="Your message"
+        hideLabel
         id="message-body"
         name="body"
         rows={3}
         maxLength={4000}
         placeholder={card === undefined ? 'Write a message' : 'Say something about it (optional)'}
-        className="rounded border border-strong bg-transparent px-3 py-2 text-start"
       />
-      <button
+      <Button
         type="submit"
-        disabled={pending}
-        className="self-start rounded bg-accent px-4 py-2 text-sm font-medium text-on-accent disabled:opacity-50"
+        variant="primary"
+        size="md"
+        pending={pending}
+        pendingLabel="Sending…"
+        className="self-start text-sm"
         data-testid="composer-send"
       >
-        {pending ? 'Sending…' : 'Send'}
-      </button>
+        Send
+      </Button>
       <Result state={state} testId="composer-result" />
     </form>
   );
@@ -113,32 +111,30 @@ export function ConversationExits({
   const [muteState, muteAction, mutePending] = useActionState(mute, null);
   const [leaveState, leaveAction, leavePending] = useActionState(leave, null);
 
-  const button = 'self-start rounded border border-default px-3 py-1 text-sm disabled:opacity-50';
-
   return (
     <div className="flex flex-wrap items-start gap-3" data-testid="conversation-exits">
       <form action={muteAction} className="flex flex-col gap-1">
-        <button
+        <Button
           type="submit"
-          disabled={mutePending}
-          className={button}
+          pending={mutePending}
+          className="self-start"
           data-testid="conversation-mute"
         >
           {muted ? 'Unmute' : 'Mute'}
-        </button>
+        </Button>
         <Result state={muteState} testId="conversation-mute-result" />
       </form>
 
       {!left && (
         <form action={leaveAction} className="flex flex-col gap-1">
-          <button
+          <Button
             type="submit"
-            disabled={leavePending}
-            className={button}
+            pending={leavePending}
+            className="self-start"
             data-testid="conversation-leave"
           >
             Leave
-          </button>
+          </Button>
           <Result state={leaveState} testId="conversation-leave-result" />
         </form>
       )}
@@ -166,14 +162,16 @@ export function RemoveMessage({
 
   return (
     <form action={formAction} className="flex flex-col gap-1">
-      <button
+      <Button
         type="submit"
-        disabled={pending}
-        className="self-start text-xs underline text-muted disabled:opacity-30"
+        variant="ghost"
+        size="xs"
+        pending={pending}
+        className="self-start text-muted"
         data-testid="message-remove"
       >
         Remove
-      </button>
+      </Button>
       <Result state={state} testId="message-remove-result" />
     </form>
   );
@@ -186,14 +184,15 @@ export function StartConversation({ locale, username }: { locale: string; userna
 
   return (
     <form action={formAction} className="flex flex-col gap-1">
-      <button
+      <Button
         type="submit"
-        disabled={pending}
-        className="self-start rounded border border-strong px-3 py-1 text-sm disabled:opacity-50"
+        pending={pending}
+        pendingLabel="Opening…"
+        className="self-start"
         data-testid="start-conversation"
       >
-        {pending ? 'Opening…' : 'Message'}
-      </button>
+        Message
+      </Button>
       {/* The refusal is the API's, including the one that says you can message
           members you are friends with. */}
       <Result state={state} testId="start-conversation-result" />
@@ -251,10 +250,10 @@ function ReactionButton({
         {count > 0 ? ` ${count}` : ''}
       </button>
       {state !== null && !state.ok && (
-        <span role="status" className="text-xs text-danger">
+        <FormStatus ok={false} as="span" size="xs">
           {' '}
           {state.message}
-        </span>
+        </FormStatus>
       )}
     </form>
   );
@@ -341,19 +340,21 @@ export function PinMessage({
 
   return (
     <form action={formAction} className="inline">
-      <button
+      <Button
         type="submit"
-        disabled={pending}
-        className="text-xs underline text-muted disabled:opacity-30"
+        variant="ghost"
+        size="xs"
+        pending={pending}
+        className="text-muted"
         data-testid="message-pin"
       >
         {pinned ? 'Unpin' : 'Pin'}
-      </button>
+      </Button>
       {state !== null && !state.ok && (
-        <span role="status" className="text-xs text-danger">
+        <FormStatus ok={false} as="span" size="xs">
           {' '}
           {state.message}
-        </span>
+        </FormStatus>
       )}
     </form>
   );

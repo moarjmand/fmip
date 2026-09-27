@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import type { CommunityAnalysisWorkspace, CommunitySubmission } from '@fmip/contracts';
 import { saveAnalysisDraftAction, submitAnalysisAction } from '@/lib/analysis-actions';
+import { Button, FormStatus, Select, TextArea, TextField } from '@/components/ui';
 
 /**
  * The analyst's editor (blueprint 10.3, T-262).
@@ -94,81 +95,64 @@ export function AnalysisEditor({
       )}
 
       <form action={saveAction} className="flex flex-col gap-3" data-testid="analysis-form">
-        <label className="flex flex-col gap-1 text-sm">
-          <span>Your call</span>
-          <select
-            name="predicted_outcome"
-            defaultValue={draft?.predicted_outcome ?? 'home'}
-            className="rounded border border-strong bg-transparent p-1"
-          >
-            <option value="home">Home win</option>
-            <option value="draw">Draw</option>
-            <option value="away">Away win</option>
-          </select>
-          {fields.predicted_outcome !== undefined && (
-            <span className="text-xs text-danger">{fields.predicted_outcome}</span>
-          )}
-        </label>
+        <Select
+          label="Your call"
+          name="predicted_outcome"
+          size="sm"
+          defaultValue={draft?.predicted_outcome ?? 'home'}
+          error={fields.predicted_outcome}
+          className="self-start"
+        >
+          <option value="home">Home win</option>
+          <option value="draw">Draw</option>
+          <option value="away">Away win</option>
+        </Select>
 
         <div className="flex flex-wrap gap-3">
-          <label className="flex flex-col gap-1 text-sm">
-            <span>Home goals (optional)</span>
-            <input
-              type="number"
-              min={0}
-              name="predicted_home"
-              defaultValue={draft?.predicted_home ?? ''}
-              className="w-24 rounded border border-strong bg-transparent p-1"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span>Away goals (optional)</span>
-            <input
-              type="number"
-              min={0}
-              name="predicted_away"
-              defaultValue={draft?.predicted_away ?? ''}
-              className="w-24 rounded border border-strong bg-transparent p-1"
-            />
-          </label>
-        </div>
-        {fields.predicted_home !== undefined && (
-          <span className="text-xs text-danger">{fields.predicted_home}</span>
-        )}
-
-        <label className="flex flex-col gap-1 text-sm">
-          <span>Confidence, 1 to 5</span>
-          <input
+          <TextField
+            label="Home goals (optional)"
             type="number"
-            min={1}
-            max={5}
-            name="confidence"
-            defaultValue={draft?.confidence ?? 3}
-            className="w-24 rounded border border-strong bg-transparent p-1"
+            min={0}
+            name="predicted_home"
+            size="sm"
+            controlClassName="w-24"
+            defaultValue={draft?.predicted_home ?? ''}
+            error={fields.predicted_home}
           />
-          {fields.confidence !== undefined && (
-            <span className="text-xs text-danger">{fields.confidence}</span>
-          )}
-        </label>
+          <TextField
+            label="Away goals (optional)"
+            type="number"
+            min={0}
+            name="predicted_away"
+            size="sm"
+            controlClassName="w-24"
+            defaultValue={draft?.predicted_away ?? ''}
+          />
+        </div>
 
-        <label className="flex flex-col gap-1 text-sm">
-          <span>Reasoning</span>
-          <textarea
-            name="reasoning"
-            rows={6}
-            required
-            defaultValue={draft?.reasoning ?? ''}
-            className="rounded border border-strong bg-transparent p-2"
-          />
-          {/* The line between an analysis and a prediction, and the product
-              already has predictions. */}
-          <span className="text-xs text-muted">
-            An analysis without reasoning is a prediction, and we already have those.
-          </span>
-          {fields.reasoning !== undefined && (
-            <span className="text-xs text-danger">{fields.reasoning}</span>
-          )}
-        </label>
+        <TextField
+          label="Confidence, 1 to 5"
+          type="number"
+          min={1}
+          max={5}
+          name="confidence"
+          size="sm"
+          controlClassName="w-24"
+          defaultValue={draft?.confidence ?? 3}
+          error={fields.confidence}
+        />
+
+        <TextArea
+          label="Reasoning"
+          name="reasoning"
+          rows={6}
+          required
+          defaultValue={draft?.reasoning ?? ''}
+          // The line between an analysis and a prediction, and the product
+          // already has predictions.
+          hint="An analysis without reasoning is a prediction, and we already have those."
+          error={fields.reasoning}
+        />
 
         {(
           [
@@ -177,53 +161,46 @@ export function AnalysisEditor({
             ['form_and_context', 'Form and context (optional)'],
           ] as const
         ).map(([name, label]) => (
-          <label key={name} className="flex flex-col gap-1 text-sm">
-            <span>{label}</span>
-            <textarea
-              name={name}
-              rows={3}
-              defaultValue={draft?.[name] ?? ''}
-              className="rounded border border-strong bg-transparent p-2"
-            />
-          </label>
+          <TextArea
+            key={name}
+            label={label}
+            name={name}
+            rows={3}
+            defaultValue={draft?.[name] ?? ''}
+          />
         ))}
 
-        <button
+        <Button
           type="submit"
-          disabled={saving}
+          pending={saving}
+          pendingLabel="Saving…"
           data-testid="analysis-save"
-          className="self-start rounded border border-strong px-3 py-1 text-sm disabled:opacity-50"
+          className="self-start"
         >
-          {saving ? 'Saving…' : 'Save draft'}
-        </button>
+          Save draft
+        </Button>
         {saveState !== null && (
-          <p
-            role="status"
-            data-testid="analysis-save-result"
-            className={saveState.ok ? 'text-sm' : 'text-sm text-danger'}
-          >
+          <FormStatus ok={saveState.ok} data-testid="analysis-save-result">
             {saveState.message}
-          </p>
+          </FormStatus>
         )}
       </form>
 
       <form action={submitAction} className="flex flex-col gap-2">
-        <button
+        <Button
           type="submit"
-          disabled={submitting || draft === null}
+          pending={submitting}
+          pendingLabel="Sending…"
+          disabled={draft === null}
           data-testid="analysis-submit"
-          className="self-start rounded border border-strong px-3 py-1 text-sm disabled:opacity-50"
+          className="self-start"
         >
-          {submitting ? 'Sending…' : 'Send for review'}
-        </button>
+          Send for review
+        </Button>
         {submitState !== null && (
-          <p
-            role="status"
-            data-testid="analysis-submit-result"
-            className={submitState.ok ? 'text-sm' : 'text-sm text-danger'}
-          >
+          <FormStatus ok={submitState.ok} data-testid="analysis-submit-result">
             {submitState.message}
-          </p>
+          </FormStatus>
         )}
       </form>
 

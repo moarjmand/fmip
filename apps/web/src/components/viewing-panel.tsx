@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { MatchViewing, Territory, ViewingOption } from '@fmip/contracts';
 import { Translated } from '@/components/translated';
+import { Button, Select } from '@/components/ui';
 import { formatDateTime } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { type MessageKey, message } from '@/i18n/messages';
@@ -206,27 +207,21 @@ export function TerritoryChooser({
       {Object.entries(hidden).map(([key, value]) => (
         <input key={key} type="hidden" name={key} value={value} />
       ))}
-      <label className="flex flex-col gap-1">
-        <span>
-          <Translated locale={locale} message="viewing.askLabel" />
-        </span>
-        <select
-          name="territory"
-          defaultValue={chosen?.code ?? ''}
-          className="rounded border px-2 py-1"
-        >
-          {territoryOptions(locale, territories, text(locale, 'viewing.notChosen')).map(
-            (option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ),
-          )}
-        </select>
-      </label>
-      <button type="submit" className="rounded border px-3 py-1">
+      <Select
+        label={<Translated locale={locale} message="viewing.askLabel" />}
+        name="territory"
+        size="sm"
+        defaultValue={chosen?.code ?? ''}
+      >
+        {territoryOptions(locale, territories, text(locale, 'viewing.notChosen')).map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </Select>
+      <Button type="submit">
         <Translated locale={locale} message="viewing.askSubmit" />
-      </button>
+      </Button>
     </form>
   );
 }

@@ -4,6 +4,7 @@ import { useActionState } from 'react';
 import Link from 'next/link';
 import type { CommunitySubmission } from '@fmip/contracts';
 import { reviewAnalysisAction } from '@/lib/analysis-actions';
+import { Button, Card, FormStatus, Notice, TextArea } from '@/components/ui';
 
 /**
  * The editorial review queue (blueprint 10.3, T-262).
@@ -42,32 +43,27 @@ function Decide({
 
   return (
     <form action={formAction} className="flex flex-col gap-1">
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="sr-only">Why, for {label}</span>
-        <textarea
-          name="reason"
-          rows={2}
-          required
-          placeholder="Say why. This is recorded."
-          className="rounded border border-strong bg-transparent p-2"
-        />
-      </label>
-      <button
+      <TextArea
+        label={`Why, for ${label}`}
+        hideLabel
+        name="reason"
+        rows={2}
+        required
+        placeholder="Say why. This is recorded."
+      />
+      <Button
         type="submit"
-        disabled={pending}
+        pending={pending}
+        pendingLabel="Recording…"
         data-testid={`analysis-decide-${decision}-${submission}`}
-        className="self-start rounded border border-strong px-3 py-1 text-sm disabled:opacity-50"
+        className="self-start"
       >
-        {pending ? 'Recording…' : label}
-      </button>
+        {label}
+      </Button>
       {state !== null && (
-        <p
-          role="status"
-          className={state.ok ? 'text-sm' : 'text-sm text-danger'}
-          data-testid={`analysis-decide-result-${submission}`}
-        >
+        <FormStatus ok={state.ok} data-testid={`analysis-decide-result-${submission}`}>
           {state.message}
-        </p>
+        </FormStatus>
       )}
     </form>
   );
@@ -91,9 +87,9 @@ export function AnalysisQueue({
     // waiting" are different facts, and a reviewer who saw the second when the
     // first was true would go home.
     return (
-      <p role="alert" data-testid="analysis-queue-unreachable">
+      <Notice tone="danger" data-testid="analysis-queue-unreachable">
         The review queue cannot be shown right now.
-      </p>
+      </Notice>
     );
   }
 
@@ -108,11 +104,7 @@ export function AnalysisQueue({
   return (
     <ul className="flex flex-col gap-4" data-testid="analysis-queue">
       {submissions.map((submission, index) => (
-        <li
-          key={submission.id}
-          className="flex flex-col gap-3 rounded border border-default p-4"
-          data-testid="analysis-queue-item"
-        >
+        <Card as="li" key={submission.id} data-testid="analysis-queue-item">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <span className="text-sm">
               {/* Who wrote it, linked: a reviewer deciding blind is a reviewer
@@ -174,7 +166,7 @@ export function AnalysisQueue({
               />
             ))}
           </div>
-        </li>
+        </Card>
       ))}
     </ul>
   );

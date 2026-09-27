@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { ContributorCandidate, GrantStanding } from '@fmip/contracts';
 import type { ActionState } from '@/lib/auth-actions';
 import { contributorEventAction, grantContributorAction } from '@/lib/contributor-actions';
+import { Button, Card, FormStatus, Notice, TextArea, TextField } from '@/components/ui';
 
 /**
  * Contributors (blueprint 9.4, T-612).
@@ -45,29 +46,24 @@ function ReasonForm({
   return (
     <form action={formAction} className="flex flex-col gap-1">
       {children}
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="sr-only">Why, for {label}</span>
-        <textarea
-          name="reason"
-          rows={2}
-          required
-          placeholder="Say why. The member can read it."
-          className="rounded border border-strong bg-transparent p-2"
-        />
-      </label>
-      <button
+      <TextArea
+        label={`Why, for ${label}`}
+        hideLabel
+        name="reason"
+        rows={2}
+        required
+        placeholder="Say why. The member can read it."
+      />
+      <Button
         type="submit"
-        disabled={pending}
+        pending={pending}
+        pendingLabel="Recording…"
         data-testid={testId}
-        className="self-start rounded border border-strong px-3 py-1 text-sm disabled:opacity-50"
+        className="self-start"
       >
-        {pending ? 'Recording…' : label}
-      </button>
-      {state !== null && (
-        <p role="status" className={state.ok ? 'text-sm' : 'text-sm text-danger'}>
-          {state.message}
-        </p>
-      )}
+        {label}
+      </Button>
+      {state !== null && <FormStatus ok={state.ok}>{state.message}</FormStatus>}
     </form>
   );
 }
@@ -75,10 +71,7 @@ function ReasonForm({
 function Candidate({ locale, entry }: { locale: string; entry: ContributorCandidate }) {
   const { eligibility, grant } = entry;
   return (
-    <li
-      className="flex flex-col gap-3 rounded border border-default p-4"
-      data-testid="contributor-entry"
-    >
+    <Card as="li" data-testid="contributor-entry">
       <p>
         <Link
           href={`/${locale}/u/${encodeURIComponent(entry.username)}`}
@@ -150,7 +143,7 @@ function Candidate({ locale, entry }: { locale: string; entry: ContributorCandid
           ))
         )}
       </div>
-    </li>
+    </Card>
   );
 }
 
@@ -165,9 +158,9 @@ export function ContributorsAdmin({
 }) {
   if (!reachable) {
     return (
-      <p role="alert" data-testid="contributors-unreachable">
+      <Notice tone="danger" data-testid="contributors-unreachable">
         The contributor list cannot be shown right now.
-      </p>
+      </Notice>
     );
   }
   return (
@@ -179,14 +172,7 @@ export function ContributorsAdmin({
           label="Grant"
           testId="contributor-grant-by-username"
         >
-          <label className="flex flex-col gap-1 text-sm">
-            Username
-            <input
-              name="username"
-              required
-              className="rounded border border-strong bg-transparent p-2"
-            />
-          </label>
+          <TextField label="Username" name="username" required />
         </ReasonForm>
       </section>
 

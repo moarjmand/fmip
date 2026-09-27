@@ -3,6 +3,7 @@ import { BrandMark } from '@/components/brand-mark';
 import { Translated } from '@/components/translated';
 import { LanguagePicker } from '@/components/language-picker';
 import { ThemeSwitch } from '@/components/theme-switch';
+import { controlClasses } from '@/components/ui';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { attribute } from '@/i18n/messages';
 import { fetchMe } from '@/lib/api';
@@ -63,7 +64,7 @@ export async function SiteHeader({ locale, theme }: { locale: string; theme: The
             placeholder={search.text}
             lang={search.lang}
             autoComplete="off"
-            className="w-32 rounded border border-strong bg-transparent px-2 py-1 text-sm sm:w-48"
+            className={controlClasses('sm', 'w-32 sm:w-48')}
             data-testid="nav-search"
           />
         </form>

@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react';
 import type { ActionState } from '@/lib/auth-actions';
+import { Button, Checkbox, FormStatus, Select, TextArea, TextField } from '@/components/ui';
 
 export interface FieldOption {
   value: string;
@@ -43,99 +44,72 @@ export function ActionForm({ action, fields, submitLabel, testId }: Props) {
   return (
     <form action={formAction} className="flex flex-col gap-4" data-testid={testId} noValidate>
       {state !== null && (
-        <p
-          role="status"
-          className={`rounded border px-3 py-2 text-sm ${
-            state.ok ? 'border-success text-success' : 'border-danger text-danger'
-          }`}
-        >
+        <FormStatus ok={state.ok} boxed>
           {state.ok ? (state.message ?? 'Done.') : state.message}
-        </p>
+        </FormStatus>
       )}
 
       {fields.map((field) => {
-        const id = `field-${field.name}`;
-        const error = fieldErrors[field.name];
-        const describedBy = error ? `${id}-error` : field.hint ? `${id}-hint` : undefined;
         const common = {
-          id,
+          id: `field-${field.name}`,
           name: field.name,
+          label: field.label,
           required: field.required,
-          'aria-invalid': error ? true : undefined,
-          'aria-describedby': describedBy,
-          className:
-            'rounded border border-default bg-transparent px-3 py-2 text-start focus:outline-2',
+          hint: field.hint,
+          error: fieldErrors[field.name],
         };
 
-        if (field.type === 'hidden') {
-          return (
-            <input key={field.name} type="hidden" name={field.name} value={field.defaultValue} />
-          );
+        switch (field.type) {
+          case 'hidden':
+            return (
+              <input key={field.name} type="hidden" name={field.name} value={field.defaultValue} />
+            );
+          case 'checkbox':
+            return <Checkbox key={field.name} {...common} defaultChecked={field.defaultChecked} />;
+          case 'textarea':
+            return (
+              <TextArea
+                key={field.name}
+                {...common}
+                rows={4}
+                defaultValue={field.defaultValue}
+                maxLength={field.maxLength}
+              />
+            );
+          case 'select':
+            return (
+              <Select key={field.name} {...common} defaultValue={field.defaultValue}>
+                {(field.options ?? []).map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
+            );
+          default:
+            return (
+              <TextField
+                key={field.name}
+                {...common}
+                type={field.type ?? 'text'}
+                defaultValue={field.defaultValue}
+                autoComplete={field.autoComplete}
+                maxLength={field.maxLength}
+              />
+            );
         }
-
-        return (
-          <div key={field.name} className="flex flex-col gap-1">
-            {field.type === 'checkbox' ? (
-              <label className="flex items-center gap-2">
-                <input
-                  {...common}
-                  type="checkbox"
-                  defaultChecked={field.defaultChecked}
-                  className="size-4"
-                />
-                <span>{field.label}</span>
-              </label>
-            ) : (
-              <>
-                <label htmlFor={id} className="text-sm font-medium">
-                  {field.label}
-                </label>
-                {field.type === 'textarea' ? (
-                  <textarea
-                    {...common}
-                    rows={4}
-                    defaultValue={field.defaultValue}
-                    maxLength={field.maxLength}
-                  />
-                ) : field.type === 'select' ? (
-                  <select {...common} defaultValue={field.defaultValue}>
-                    {(field.options ?? []).map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    {...common}
-                    type={field.type ?? 'text'}
-                    defaultValue={field.defaultValue}
-                    autoComplete={field.autoComplete}
-                    maxLength={field.maxLength}
-                  />
-                )}
-              </>
-            )}
-            {error ? (
-              <p id={`${id}-error`} className="text-sm text-danger">
-                {error}
-              </p>
-            ) : field.hint ? (
-              <p id={`${id}-hint`} className="text-sm text-muted">
-                {field.hint}
-              </p>
-            ) : null}
-          </div>
-        );
       })}
 
-      <button
+      <Button
         type="submit"
-        disabled={pending}
-        className="self-start rounded bg-accent px-4 py-2 font-medium text-on-accent disabled:opacity-50"
+        variant="primary"
+        size="md"
+        pending={pending}
+        pendingLabel="Working…"
+        className="self-start"
       >
-        {pending ? 'Working…' : submitLabel}
-      </button>
+        {submitLabel}
+      </Button>
     </form>
   );
 }

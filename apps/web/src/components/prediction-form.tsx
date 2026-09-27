@@ -5,6 +5,7 @@ import { useActionState } from 'react';
 import type { ActionState } from '@/lib/auth-actions';
 import { OUTCOME_LABEL, REASON_TAG_LABEL } from '@/lib/prediction-form';
 import { ShareLink } from './share-link';
+import { Button, FormStatus, TextArea, controlClasses } from '@/components/ui';
 
 /**
  * The member's prediction on the match centre (blueprint 6.6, T-050):
@@ -47,7 +48,7 @@ export function PredictionForm({
             {outcome === 'home' ? home : outcome === 'away' ? away : OUTCOME_LABEL.draw}
           </label>
         ))}
-        {fieldError('outcome') && <p role="alert">{fieldError('outcome')}</p>}
+        {fieldError('outcome') && <FormStatus ok={false}>{fieldError('outcome')}</FormStatus>}
       </fieldset>
 
       <div className="flex flex-wrap items-end gap-3">
@@ -59,7 +60,7 @@ export function PredictionForm({
               name="score_home"
               min={0}
               max={20}
-              className="w-14 border border-strong px-1"
+              className={controlClasses('sm', 'w-14')}
               defaultValue={latest?.score?.home ?? ''}
               aria-label={`${home} goals`}
             />
@@ -69,7 +70,7 @@ export function PredictionForm({
               name="score_away"
               min={0}
               max={20}
-              className="w-14 border border-strong px-1"
+              className={controlClasses('sm', 'w-14')}
               defaultValue={latest?.score?.away ?? ''}
               aria-label={`${away} goals`}
             />
@@ -80,7 +81,7 @@ export function PredictionForm({
           <select
             name="confidence"
             defaultValue={latest?.confidence ?? 3}
-            className="border border-strong px-1"
+            className={controlClasses('sm')}
           >
             {[1, 2, 3, 4, 5].map((n) => (
               <option key={n} value={n}>
@@ -90,8 +91,8 @@ export function PredictionForm({
           </select>
         </label>
       </div>
-      {fieldError('score') && <p role="alert">{fieldError('score')}</p>}
-      {fieldError('confidence') && <p role="alert">{fieldError('confidence')}</p>}
+      {fieldError('score') && <FormStatus ok={false}>{fieldError('score')}</FormStatus>}
+      {fieldError('confidence') && <FormStatus ok={false}>{fieldError('confidence')}</FormStatus>}
 
       <fieldset className="flex flex-wrap gap-2">
         <legend className="mb-1 text-xs text-muted">Reasons (up to {MAX_REASON_TAGS})</legend>
@@ -109,29 +110,25 @@ export function PredictionForm({
             {REASON_TAG_LABEL[tag]}
           </label>
         ))}
-        {fieldError('reason_tags') && <p role="alert">{fieldError('reason_tags')}</p>}
+        {fieldError('reason_tags') && (
+          <FormStatus ok={false}>{fieldError('reason_tags')}</FormStatus>
+        )}
       </fieldset>
 
-      <label className="flex flex-col">
-        <span className="text-xs text-muted">Why (optional, 280 characters)</span>
-        <textarea
-          name="explanation"
-          maxLength={280}
-          rows={2}
-          className="border border-strong px-1"
-          defaultValue={latest?.explanation ?? ''}
-        />
-        {fieldError('explanation') && <p role="alert">{fieldError('explanation')}</p>}
-      </label>
+      <TextArea
+        label="Why (optional, 280 characters)"
+        name="explanation"
+        maxLength={280}
+        rows={2}
+        size="sm"
+        defaultValue={latest?.explanation ?? ''}
+        error={fieldError('explanation')}
+      />
 
       <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded border border-strong px-3 py-1 font-medium"
-        >
+        <Button type="submit" variant="primary" pending={pending}>
           {latest === null ? 'Submit prediction' : 'Update prediction'}
-        </button>
+        </Button>
         {latest !== null && (
           <span className="text-xs text-muted" data-testid="prediction-versions">
             Version {latest.version_number}, submitted{' '}
@@ -143,9 +140,9 @@ export function PredictionForm({
         )}
       </div>
       {state !== null && (
-        <p role={state.ok ? 'status' : 'alert'} data-testid="prediction-state">
+        <FormStatus ok={state.ok} data-testid="prediction-state">
           {state.message}
-        </p>
+        </FormStatus>
       )}
       {state !== null && state.ok && shareUrl !== undefined && (
         <p className="text-sm">

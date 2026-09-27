@@ -4,6 +4,7 @@ import { useActionState } from 'react';
 import type { PanelReaction, PanelReactionTally } from '@fmip/contracts';
 import { PANEL_REACTIONS } from '@fmip/contracts';
 import { setFollowAction, setPanelReactionAction } from '@/lib/panel-social-actions';
+import { Button, FormStatus } from '@/components/ui';
 
 /**
  * Reacting to a panel post, and following a contributor (blueprint 10.2,
@@ -60,25 +61,24 @@ function ReactionButton({
 
   return (
     <form action={formAction}>
-      <button
+      <Button
         type="submit"
-        disabled={pending}
+        size="xs"
+        pending={pending}
         // The label carries the state, because a coloured border does not reach
         // a screen reader and neither does a bold count.
         aria-pressed={mine}
+        selected={mine}
         aria-label={`${LABELS[reaction]}${count > 0 ? `, ${count}` : ''}${mine ? ', yours' : ''}`}
         data-testid={`panel-react-${postId}-${reaction}`}
-        className={`rounded border px-2 py-0.5 text-xs disabled:opacity-50 ${
-          mine ? 'border-accent' : 'border-strong'
-        }`}
       >
         <span aria-hidden="true">{GLYPHS[reaction]}</span> {LABELS[reaction]}
         {count > 0 && <span className="ms-1 tabular-nums">{count}</span>}
-      </button>
+      </Button>
       {state !== null && !state.ok && (
-        <p role="status" className="text-xs text-danger">
+        <FormStatus ok={false} size="xs">
           {state.message}
-        </p>
+        </FormStatus>
       )}
     </form>
   );
@@ -162,19 +162,20 @@ export function FollowButton({
 
   return (
     <form action={formAction} className="inline">
-      <button
+      <Button
         type="submit"
-        disabled={pending}
+        size="xs"
+        pending={pending}
+        pendingLabel="Working…"
         aria-pressed={following}
         data-testid={`panel-follow-${username}`}
-        className="rounded border border-strong px-2 py-0.5 text-xs disabled:opacity-50"
       >
-        {pending ? 'Working…' : following ? 'Following' : 'Follow'}
-      </button>
+        {following ? 'Following' : 'Follow'}
+      </Button>
       {state !== null && !state.ok && (
-        <span role="status" className="ms-2 text-xs text-danger">
+        <FormStatus ok={false} as="span" size="xs" className="ms-2">
           {state.message}
-        </span>
+        </FormStatus>
       )}
     </form>
   );

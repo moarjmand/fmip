@@ -1,6 +1,7 @@
 'use client';
 
 import { type ReactNode, useEffect, useState } from 'react';
+import { controlClasses } from '@/components/ui';
 
 /**
  * The time zone step's field (T-620). The server renders the stored zone (or
@@ -59,7 +60,7 @@ export function TimeZoneField({
         name="timezone"
         value={value}
         onChange={(event) => setValue(event.target.value)}
-        className="rounded border border-strong bg-transparent px-3 py-2 text-start"
+        className={controlClasses()}
       >
         {zones.map((zone) => (
           <option key={zone} value={zone}>
