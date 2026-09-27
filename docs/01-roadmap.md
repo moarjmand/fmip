@@ -129,6 +129,21 @@ on; the daily channel post, off until the channel exists. What is left is
 measured on real match days (T-501, T-504), earned by the candidate's own
 record (T-535), or the maintainer's: the channel (T-524) and the plan.
 
+## Phase 7 — A face, a console, and the rest of the blueprint
+
+- A visual identity and a design system: a mark, tokens, a chosen theme, and a
+  font that renders Persian and Arabic.
+- The operator's console on the web: moderation, contributors, featured
+  matches and the debate without `curl`.
+- Onboarding, deeper football pages (brackets, player comparison), and the
+  reputation and search surfaces the blueprint promises and Phase 3 left
+  partial.
+
+**Planned in `04-tasks-phase-7.md`** (2026-09-27, at the maintainer's request,
+from a comparison of the blueprint against what is built). The identity (E60)
+waits on the maintainer's answers; the console (E61) goes first because it
+needs nothing from anybody.
+
 ---
 
 ## Sequencing rule
