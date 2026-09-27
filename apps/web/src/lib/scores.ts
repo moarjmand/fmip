@@ -1,6 +1,7 @@
 import type { ScoreCard } from '@fmip/contracts';
 import { isBehind } from './live';
 import { formatDate, formatTime } from '@/i18n/format';
+import { filterParams, readFilterSelection, type ScoresFilterSelection } from './scores-filters';
 
 /**
  * The scores page's pure helpers (T-031): which day the page shows, the
@@ -56,6 +57,8 @@ export interface ScoresPageQuery {
   explicitTimezone: boolean;
   live: boolean;
   favourites: boolean;
+  /** Country, competition and stage (T-633); absent means none. */
+  filters?: ScoresFilterSelection;
 }
 
 type Params = Record<string, string | string[] | undefined>;
@@ -99,6 +102,7 @@ export function readScoresQuery(
     explicitTimezone,
     live: flag(params.live),
     favourites: flag(params.favourites),
+    filters: readFilterSelection(params),
   };
 }
 
@@ -114,7 +118,7 @@ export function apiQuery(q: ScoresPageQuery): string {
 export function pageHref(
   locale: string,
   q: ScoresPageQuery,
-  over: Partial<Pick<ScoresPageQuery, 'date' | 'live' | 'favourites'>> = {},
+  over: Partial<Pick<ScoresPageQuery, 'date' | 'live' | 'favourites' | 'filters'>> = {},
 ): string {
   const next = { ...q, ...over };
   const p = new URLSearchParams();
@@ -122,6 +126,7 @@ export function pageHref(
   if (next.explicitTimezone) p.set('tz', next.timezone);
   if (next.live) p.set('live', '1');
   if (next.favourites) p.set('favourites', '1');
+  if (next.filters !== undefined) for (const [k, v] of filterParams(next.filters)) p.set(k, v);
   const query = p.toString();
   return `/${locale}/scores${query === '' ? '' : `?${query}`}`;
 }
