@@ -1,8 +1,11 @@
 import { TERRITORY_CODE, type SetViewingTerritoryRequest } from '@fmip/contracts';
 import {
+  CONTRAST_PREFERENCES,
   type FollowRequest,
+  MOTION_PREFERENCES,
   PRIVACY_VISIBILITIES,
   type PrivacyVisibility,
+  TEXT_SIZE_PREFERENCES,
   THEME_PREFERENCES,
   type UpdatePreferencesRequest,
   type UpdatePrivacyRequest,
@@ -89,13 +92,32 @@ export function validateUpdatePrivacy(body: unknown): Validated<UpdatePrivacyReq
 }
 
 /** `PUT /me/following/:type/:id` body: an optional favourite flag, nothing else. */
+/**
+ * A field that must be one of a fixed list (T-621): its value when it is,
+ * `undefined` when the body leaves it out, and a message in `fields` when it
+ * is present but not one of them.
+ */
+function oneOf<T extends string>(
+  body: Record<string, unknown>,
+  name: string,
+  allowed: readonly T[],
+  fields: Record<string, string>,
+): T | undefined {
+  if (!(name in body)) return undefined;
+  const raw = body[name];
+  const found = allowed.find((known) => known === raw);
+  if (found === undefined) fields[name] = `must be one of ${allowed.join(', ')}`;
+  return found;
+}
+
 /** The same rules registration applies (identity's validation), kept here for this boundary. */
 export const LANGUAGE_TAG = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
 const TIMEZONES = new Set<string>([...Intl.supportedValuesOf('timeZone'), 'UTC']);
 
 /**
  * `PATCH /me/preferences` (T-620): language and time zone, each optional, and
- * the colour theme (T-602), one of `THEME_PREFERENCES`. Nothing else.
+ * the colour theme (T-602), one of `THEME_PREFERENCES`, and text size,
+ * contrast and motion (T-621), each one of its own list. Nothing else.
  */
 export function validateUpdatePreferences(body: unknown): Validated<UpdatePreferencesRequest> {
   if (!isRecord(body)) return { ok: false, fields: { body: 'must be a JSON object' } };
@@ -120,6 +142,12 @@ export function validateUpdatePreferences(body: unknown): Validated<UpdatePrefer
     if (theme === undefined) fields.theme = `must be one of ${THEME_PREFERENCES.join(', ')}`;
     else value.theme = theme;
   }
+  const textSize = oneOf(body, 'text_size', TEXT_SIZE_PREFERENCES, fields);
+  if (textSize !== undefined) value.text_size = textSize;
+  const contrast = oneOf(body, 'contrast', CONTRAST_PREFERENCES, fields);
+  if (contrast !== undefined) value.contrast = contrast;
+  const motion = oneOf(body, 'motion', MOTION_PREFERENCES, fields);
+  if (motion !== undefined) value.motion = motion;
   if (Object.keys(fields).length > 0) return { ok: false, fields };
   return { ok: true, value };
 }

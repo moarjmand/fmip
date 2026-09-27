@@ -2,8 +2,9 @@
 
 import { apiRequest } from './api';
 import { sessionCookieHeader } from './session';
+import { APPEARANCE_KEYS, type Appearance, parseAppearance } from './appearance';
 import { parseTheme } from './theme';
-import { writeTheme } from './theme-cookie';
+import { writeAppearance, writeTheme } from './theme-cookie';
 
 /**
  * The theme switch (T-602): a plain form post, so it works before any script
@@ -23,5 +24,27 @@ export async function setThemeAction(formData: FormData): Promise<void> {
   const cookie = await sessionCookieHeader();
   if (cookie !== undefined) {
     await apiRequest('/me/preferences', { method: 'PATCH', body: { theme }, cookie });
+  }
+}
+
+/**
+ * Text size, contrast or motion (T-621), the same way: the pressed button's
+ * name says which preference and its value the choice. Whichever of the three
+ * the form carries goes to this browser's cookie and, for a member, to the
+ * account; a name or value that is not one of theirs changes nothing.
+ */
+export async function setAppearanceAction(formData: FormData): Promise<void> {
+  const body: Partial<Appearance> = {};
+  for (const key of APPEARANCE_KEYS) {
+    const value = parseAppearance(key, formData.get(key));
+    if (value === undefined) continue;
+    await writeAppearance(key, value);
+    Object.assign(body, { [key]: value });
+  }
+  if (Object.keys(body).length === 0) return;
+
+  const cookie = await sessionCookieHeader();
+  if (cookie !== undefined) {
+    await apiRequest('/me/preferences', { method: 'PATCH', body, cookie });
   }
 }

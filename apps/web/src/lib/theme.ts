@@ -1,4 +1,5 @@
 import { THEME_PREFERENCES, type ThemePreference } from '@fmip/contracts';
+import { reconcilePreference } from './appearance';
 
 /**
  * The colour theme (T-602, D-089): light, dark, or `system`, which follows
@@ -39,7 +40,5 @@ export function reconcileTheme(
   account: ThemePreference,
   browser: ThemePreference | undefined,
 ): { cookie?: ThemePreference; account?: ThemePreference } {
-  if (account !== DEFAULT_THEME) return account === browser ? {} : { cookie: account };
-  if (browser !== undefined && browser !== DEFAULT_THEME) return { account: browser };
-  return {};
+  return reconcilePreference(account, browser, DEFAULT_THEME);
 }

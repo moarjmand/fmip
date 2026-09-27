@@ -119,8 +119,17 @@ export type {
   ViewingRights,
   ViewingSource,
 } from './viewing';
-export { PRIVACY_VISIBILITIES, THEME_PREFERENCES } from './profile';
+export {
+  CONTRAST_PREFERENCES,
+  MOTION_PREFERENCES,
+  PRIVACY_VISIBILITIES,
+  TEXT_SIZE_PREFERENCES,
+  THEME_PREFERENCES,
+} from './profile';
 export type {
+  ContrastPreference,
+  MotionPreference,
+  TextSizePreference,
   OwnProfile,
   PrivacySettings,
   PrivacyVisibility,
