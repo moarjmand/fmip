@@ -522,9 +522,21 @@ export function fetchRatingHistory(
   );
 }
 
-/** `GET /leaderboard?${query}` (T-055): ranked current ratings behind the minimum-sample filter. Public. */
-export function fetchLeaderboard(query: string): Promise<ApiResult<LeaderboardResponse>> {
-  return apiRequest<LeaderboardResponse>(`/leaderboard?${query}`);
+/**
+ * `GET /leaderboard?${query}` (T-055): ranked ratings behind the minimum-sample
+ * filter. Public; T-641: the friends board needs the session (401 without
+ * one), and a month or season board is drawn from the members whose
+ * prediction history this viewer may read, so the cookie goes along when
+ * there is one.
+ */
+export function fetchLeaderboard(
+  query: string,
+  cookie?: string,
+): Promise<ApiResult<LeaderboardResponse>> {
+  return apiRequest<LeaderboardResponse>(
+    `/leaderboard?${query}`,
+    cookie === undefined ? {} : { cookie },
+  );
 }
 
 /** `GET /fixtures/:id`: the match centre payload (T-033). Public. */

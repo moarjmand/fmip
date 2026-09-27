@@ -23,6 +23,7 @@ import type { FastifyRequest } from 'fastify';
 import { GroupsService } from '../groups/groups.service';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { ProfileService } from '../profile/profile.service';
+import { SocialService } from '../social/social.service';
 import { CareerPointsService } from './career-points.service';
 import { ContributorService } from './contributor.service';
 import { parseLeaderboardQuery } from './internal/leaderboard';
@@ -49,6 +50,7 @@ export class ReputationController {
     private readonly groups: GroupsService,
     private readonly contributors: ContributorService,
     private readonly profiles: ProfileService,
+    private readonly social: SocialService,
   ) {}
 
   @Get('me/rating')
@@ -113,9 +115,20 @@ export class ReputationController {
     };
   }
 
-  /** Public (blueprint 9.3). The minimum-sample filter has a floor; below it is a 400, not a bigger board. */
+  /**
+   * Public (blueprint 9.3). The minimum-sample filter has a floor; below it is a 400, not a bigger board.
+   *
+   * T-641: `scope=friends` is the viewer and their accepted friends, and needs
+   * a session (401 without one: there is no one to be friends with);
+   * `period=month|season` rates each member over that period's settlements
+   * only. The session is read when there is one, because a period board is
+   * drawn from the members whose prediction history the viewer may read.
+   */
   @Get('leaderboard')
-  async leaderboard(@Query() query: unknown): Promise<LeaderboardResponse> {
+  async leaderboard(
+    @Query() query: unknown,
+    @Req() request: FastifyRequest,
+  ): Promise<LeaderboardResponse> {
     const parsed = parseLeaderboardQuery(
       isRecord(query) ? query : {},
       this.reputation.leaderboardRules,
@@ -128,7 +141,15 @@ export class ReputationController {
       };
       throw new BadRequestException(error);
     }
-    return this.reputation.leaderboard(parsed.query);
+    const viewer = await this.identity.authenticate(
+      parseCookies(request.headers.cookie)[SESSION_COOKIE],
+    );
+    if (parsed.query.scope === 'friends') {
+      if (viewer === null) throw new UnauthorizedException(UNAUTHENTICATED);
+      const among = [viewer.id, ...(await this.social.friendIds(viewer.id))];
+      return this.reputation.leaderboard(parsed.query, { among, viewerId: viewer.id });
+    }
+    return this.reputation.leaderboard(parsed.query, { viewerId: viewer?.id ?? null });
   }
 
   /**
@@ -157,11 +178,11 @@ export class ReputationController {
       isRecord(query) ? query : {},
       this.reputation.leaderboardRules,
     );
-    if (!parsed.ok) {
+    if (!parsed.ok || parsed.query.scope !== 'everyone') {
       throw new BadRequestException({
         error: 'validation',
         message: 'The request is not valid.',
-        fields: parsed.fields,
+        fields: parsed.ok ? { scope: 'A group board is drawn from the group.' } : parsed.fields,
       } satisfies ApiError);
     }
 
@@ -173,7 +194,11 @@ export class ReputationController {
         message: 'Who is in this group is shown to its members.',
       } satisfies ApiError);
     }
-    return this.reputation.leaderboard(parsed.query, audience.members);
+    return this.reputation.leaderboard(parsed.query, {
+      among: audience.members,
+      viewerId: viewer.id,
+      scope: 'group',
+    });
   }
 
   @Get('me/points')

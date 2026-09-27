@@ -102,6 +102,31 @@ export class ProfileService {
     };
   }
 
+  /**
+   * `predictionHistoryAccess` for many members at once (T-641): of `userIds`,
+   * the active members whose prediction history `viewerId` may read, by id,
+   * with their usernames. The same `canView` rule on the same setting, so a
+   * month or season board -- which says when a member predicted -- shows
+   * exactly the members whose history the viewer could open.
+   */
+  async predictionHistoryAudience(
+    userIds: string[],
+    viewerId: string | null,
+  ): Promise<Map<string, string>> {
+    const visible = new Map<string, string>();
+    for (const row of await this.store.findByUserIds(userIds)) {
+      const areFriends =
+        viewerId !== null &&
+        viewerId !== row.user_id &&
+        row.prediction_history_visibility === 'friends'
+          ? await this.friendships.areFriends(viewerId, row.user_id)
+          : false;
+      if (canView(row.prediction_history_visibility, row.user_id, viewerId, areFriends))
+        visible.set(row.user_id, row.username);
+    }
+    return visible;
+  }
+
   async own(userId: string): Promise<OwnProfile | null> {
     const row = await this.store.findByUserId(userId);
     const account = await this.identity.userById(userId);

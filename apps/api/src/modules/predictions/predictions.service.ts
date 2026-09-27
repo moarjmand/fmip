@@ -12,7 +12,12 @@ export {
   parseHistoryQuery,
   type HistoryQuery,
 } from './internal/history-query';
-export { SettlementService, type SettleOutcome, type SettledRecord } from './settlement.service';
+export {
+  SettlementService,
+  type MemberSettledRecord,
+  type SettleOutcome,
+  type SettledRecord,
+} from './settlement.service';
 export { outcomeOf, settleOne, verdictFor, type Verdict } from './internal/settle';
 
 export interface Submitter {

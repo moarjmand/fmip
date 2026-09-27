@@ -359,7 +359,10 @@ export type {
   CompetitionRating,
   EligibilityResponse,
   LeaderboardEntry,
+  LeaderboardPeriod,
+  LeaderboardPeriodKind,
   LeaderboardResponse,
+  LeaderboardScope,
   PointsReason,
   PointsTransaction,
   PrivilegeEligibility,
@@ -371,6 +374,7 @@ export type {
   RatingResponse,
   RatingTier,
 } from './reputation';
+export { LEADERBOARD_PERIOD_KINDS, LEADERBOARD_SCOPES } from './reputation';
 export type {
   AccountStatus,
   AdminOverview,
