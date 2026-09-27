@@ -1,4 +1,4 @@
-import { SEARCH_ENTITY_TYPES, type SearchEntityType } from '@fmip/contracts';
+import { SEARCH_TYPES, type SearchType } from '@fmip/contracts';
 
 /**
  * Parsing of `GET /search` parameters (T-038). Pure, so the limits are
@@ -11,7 +11,7 @@ export const MAX_LIMIT = 25;
 
 export interface SearchQuery {
   q: string;
-  types: SearchEntityType[];
+  types: SearchType[];
   limit: number;
 }
 
@@ -35,17 +35,17 @@ export function parseSearchQuery(raw: Record<string, unknown>): ParsedSearchQuer
   if (q.length < QUERY_MIN_LENGTH) fields.q = `Type at least ${QUERY_MIN_LENGTH} characters.`;
   else if (q.length > QUERY_MAX_LENGTH) fields.q = `At most ${QUERY_MAX_LENGTH} characters.`;
 
-  let types: SearchEntityType[] = [...SEARCH_ENTITY_TYPES];
+  let types: SearchType[] = [...SEARCH_TYPES];
   const rawTypes = first(raw.types);
   if (rawTypes !== undefined) {
     const wanted = rawTypes
       .split(',')
       .map((t) => t.trim())
       .filter((t) => t !== '');
-    const unknown = wanted.filter((t) => !(SEARCH_ENTITY_TYPES as readonly string[]).includes(t));
+    const unknown = wanted.filter((t) => !(SEARCH_TYPES as readonly string[]).includes(t));
     if (unknown.length > 0 || wanted.length === 0)
-      fields.types = `Must be a comma-separated subset of ${SEARCH_ENTITY_TYPES.join(', ')}.`;
-    else types = SEARCH_ENTITY_TYPES.filter((t) => wanted.includes(t));
+      fields.types = `Must be a comma-separated subset of ${SEARCH_TYPES.join(', ')}.`;
+    else types = SEARCH_TYPES.filter((t) => wanted.includes(t));
   }
 
   let limit = DEFAULT_LIMIT;

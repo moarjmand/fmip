@@ -11,7 +11,11 @@ describe('parseSearchQuery', () => {
   it('needs a query of at least two characters and defaults the rest', () => {
     expect(parseSearchQuery({ q: 'Man Utd' })).toEqual({
       ok: true,
-      query: { q: 'Man Utd', types: ['team', 'competition', 'person'], limit: DEFAULT_LIMIT },
+      query: {
+        q: 'Man Utd',
+        types: ['team', 'competition', 'person', 'story', 'group', 'member'],
+        limit: DEFAULT_LIMIT,
+      },
     });
     expect(parseSearchQuery({})).toMatchObject({ ok: false, fields: { q: expect.any(String) } });
     expect(parseSearchQuery({ q: ' x ' }).ok).toBe(false);
@@ -28,7 +32,12 @@ describe('parseSearchQuery', () => {
       ok: true,
       query: { types: ['team', 'person'] },
     });
+    expect(parseSearchQuery({ q: 'salah', types: 'member,story,team' })).toMatchObject({
+      ok: true,
+      query: { types: ['team', 'story', 'member'] },
+    });
     expect(parseSearchQuery({ q: 'salah', types: 'person,match' }).ok).toBe(false);
+    expect(parseSearchQuery({ q: 'salah', types: 'user' }).ok).toBe(false);
     expect(parseSearchQuery({ q: 'salah', types: ',' }).ok).toBe(false);
   });
 

@@ -79,16 +79,16 @@ as a decision entry when made.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-630 | Knockout brackets for the three UEFA cups | — | Blueprint 5.1; a tie not yet drawn is stated, never invented |
-| `[ ]` T-631 | Two players compared | — | Blueprint 5.3; a figure one of them lacks is a coverage state |
+| `[x]` T-630 | Knockout brackets for the three UEFA cups | — | Blueprint 5.1; a tie not yet drawn is stated, never invented |
+| `[x]` T-631 | Two players compared | — | Blueprint 5.3; a figure one of them lacks is a coverage state |
 | `[ ]` T-632 | A team's figures home and away and by competition | — | Blueprint 5.2 |
-| `[ ]` T-633 | The scores page: a date picker and filters by country and stage | T-504 | Blueprint 4.1 |
+| `[x]` T-633 | The scores page: a date picker and filters by country and stage | T-504 | Blueprint 4.1 |
 
 ## E64 — Reputation and discovery, completed
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-640 | A member's rating over time, by competition, and their highest | — | Blueprint 9.3; recomputable from stored settlements (rule 8) |
+| `[x]` T-640 | A member's rating over time, by competition, and their highest | — | Blueprint 9.3; recomputable from stored settlements (rule 8) |
 | `[ ]` T-641 | Leaderboards among friends, by month and by season | T-640 | Blueprint 9.3 |
 | `[ ]` T-642 | Search over articles, groups and members who allow it | — | Blueprint 2.2; a private profile is never a result |
 | `[ ]` T-643 | Achievements and group polls | maintainer | Their list and the poll rules are product behaviour to confirm first |

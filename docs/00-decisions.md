@@ -3122,6 +3122,43 @@ season's teams*: a position has no scale between leagues or seasons; the raw
 rating does. *Fitting on the published version's expected goals*: the term
 would then correct a model it will never be added to.
 
+## D-087 — Search widens to stories, groups and members on the same trigrams; only what may be found is a result
+
+**Status:** decided · **Date:** 2026-09-27 · **Task:** T-642 · **Follows:** D-039, D-061
+
+**The problem.** Blueprint 2.2 puts articles and users in the global search.
+D-039 kept search to the catalog and left articles, groups and members to "a
+`tsvector` or the external index revisited". T-642 needs them, and its
+acceptance is that a private profile is never a result.
+
+**The decision.** `GET /search` gains three kinds -- `story`, `group`,
+`member` -- matched exactly as the catalog is: `search_key()` on both sides,
+trigram word similarity or prefix, the same threshold. No `tsvector` (a
+headline is one line, not prose, and stemming needs one language where the
+product has eight) and no index service. Each kind is its own list in the
+response, `null` when it was not asked for; the catalog's `results` and
+`SEARCH_ENTITY_TYPES` are unchanged, so `/ask` reads and answers exactly as
+before. Who can be found is decided in the SQL, never filtered afterwards:
+
+- a **story** is its promoted original from a source not dropped, headline
+  and link only (D-061), the newest version in each language;
+- a **group** is `public` or `discoverable`; `invite_only` never, for anyone;
+- a **member** has an `active` account and a **public** profile (no
+  `privacy_setting` row is public). `friends` is not found even by a friend:
+  otherwise a stranger could tell a friends-only member from nobody. A
+  signed-in viewer never finds anyone on either side of a block
+  (`users_blocked()`); a private member does not find themselves.
+
+**Limits, stated.** No index serves the new kinds (the catalog's GIN indexes
+are not used by `word_similarity()` calls either); at today's volumes a scan
+is fine. If headline search grows slow, the remedy is a GIN index on
+`search_key(headline)` and the `<%` operator, in a new migration.
+
+**Rejected.** *A "discoverable" profile switch*: a new privacy setting is
+product behaviour to decide first; public-only needs none. *One mixed,
+ranked list*: a story's headline and a club's name score on different
+scales, and a section per kind is what the page shows.
+
 ## D-088 — A guest's first-run choices live in a cookie and reach the account at sign-up
 
 **Status:** decided · **Date:** 2026-09-27 · **Task:** T-620

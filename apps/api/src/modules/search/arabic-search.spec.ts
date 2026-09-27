@@ -5,6 +5,7 @@ import type { SearchResponse } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
+import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
 import { SearchModule } from './search.module';
 
 // Searching in Arabic script (T-152).
@@ -64,7 +65,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
 
       const moduleRef = await Test.createTestingModule({
         imports: [DatabaseModule, SearchModule],
-      }).compile();
+      })
+        // Identity only reads the session here; the secret is the test's own.
+        .overrideProvider(IDENTITY_OPTIONS)
+        .useValue({ ...DEFAULT_IDENTITY_OPTIONS, sessionSecret: 'test-secret-'.repeat(4) })
+        .compile();
       app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
       await app.init();
       await app.getHttpAdapter().getInstance().ready();

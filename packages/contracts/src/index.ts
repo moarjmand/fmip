@@ -132,7 +132,7 @@ export type {
   UpdatePrivacyRequest,
   UpdateProfileRequest,
 } from './profile';
-export { KNOCKOUT_ROUNDS } from './catalog';
+export { KNOCKOUT_ROUNDS, TEAM_AVERAGE_METRICS } from './catalog';
 export type {
   CompetitionPage,
   CompetitionSummary,
@@ -158,9 +158,14 @@ export type {
   StageSummary,
   TableContext,
   TableRow,
+  TeamAverageMetric,
   TeamCompetition,
+  TeamCompetitionSplits,
   TeamFixture,
   TeamPage,
+  TeamPageFixture,
+  TeamSplitRecord,
+  TeamStatAverage,
   TeamSummary,
   TeamsResponse,
 } from './catalog';
@@ -379,8 +384,17 @@ export type {
   SetCoverageRequest,
   SetUserStatusRequest,
 } from './admin';
-export { SEARCH_ENTITY_TYPES } from './search';
-export type { SearchEntityType, SearchResponse, SearchResult } from './search';
+export { SEARCH_COMMUNITY_TYPES, SEARCH_ENTITY_TYPES, SEARCH_TYPES } from './search';
+export type {
+  GroupSearchResult,
+  MemberSearchResult,
+  SearchCommunityType,
+  SearchEntityType,
+  SearchResponse,
+  SearchResult,
+  SearchType,
+  StorySearchResult,
+} from './search';
 
 // The social graph (blueprint 8.1, T-200). Contact only: nothing here imports a
 // prediction, a forecast or an analysis.
