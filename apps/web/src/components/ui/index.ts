@@ -12,3 +12,4 @@ export { Checkbox, Radio, Select, TextArea, TextField, controlClasses } from './
 export type { ChoiceProps, FieldSize, SelectProps, TextAreaProps, TextFieldProps } from './field';
 export { FormStatus, Notice } from './notice';
 export type { FormStatusProps, NoticeProps, NoticeTone } from './notice';
+export { inlineTargetClasses } from './target';

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { MatchViewing, Territory, ViewingOption } from '@fmip/contracts';
 import { Translated } from '@/components/translated';
-import { Button, Notice, Select } from '@/components/ui';
+import { Button, Notice, Select, inlineTargetClasses } from '@/components/ui';
 import { formatDateTime } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { type MessageKey, message } from '@/i18n/messages';
@@ -346,7 +346,10 @@ function ViewingLine({ locale, viewing, status, signedIn, href }: Common) {
   return (
     <p className="text-xs text-muted" data-testid="viewing-line" data-state={state}>
       {state === 'ask' && (
-        <Link href={signedIn ? `/${locale}/settings#territory` : href} className="underline">
+        <Link
+          href={signedIn ? `/${locale}/settings#territory` : href}
+          className={inlineTargetClasses('underline')}
+        >
           <Translated locale={locale} message="viewing.choose" />
         </Link>
       )}
@@ -366,7 +369,7 @@ function ViewingLine({ locale, viewing, status, signedIn, href }: Common) {
           {' · '}
           <Link
             href={withTerritory(href, carriedTerritory(viewing, signedIn))}
-            className="underline"
+            className={inlineTargetClasses('underline')}
           >
             <Translated locale={locale} message="viewing.matchCentre" />
           </Link>
@@ -375,7 +378,11 @@ function ViewingLine({ locale, viewing, status, signedIn, href }: Common) {
       {highlight !== undefined && (
         <>
           {' · '}
-          <a href={highlight.url} rel="noopener noreferrer" className="underline">
+          <a
+            href={highlight.url}
+            rel="noopener noreferrer"
+            className={inlineTargetClasses('underline')}
+          >
             <Translated locale={locale} message="viewing.highlightsPage" />
           </a>
         </>

@@ -15,7 +15,7 @@ import { apiQuery, dayStrip, readScoresQuery } from '@/lib/scores';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { readTerritoryQuery, watchHref, withTerritory } from '@/lib/viewing';
-import { Notice } from '@/components/ui';
+import { Notice, inlineTargetClasses } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -149,7 +149,7 @@ export default async function WatchPage({
                   return (
                     <li key={card.id} className="flex flex-col gap-1" data-testid="watch-card">
                       <p className="flex flex-wrap items-baseline gap-x-3">
-                        <Link href={href} className="font-medium underline">
+                        <Link href={href} className={inlineTargetClasses('font-medium underline')}>
                           {card.home.name} v {card.away.name}
                         </Link>
                         <time dateTime={card.kickoff_at} className="text-sm text-muted">

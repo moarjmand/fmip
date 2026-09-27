@@ -20,7 +20,7 @@ import { pageMetadata, playerJsonLd } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { JsonLd } from '@/components/json-ld';
 import { ltrIsolate } from '@/components/score';
-import { Button, Notice, controlClasses } from '@/components/ui';
+import { Button, Notice, controlClasses, inlineTargetClasses } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -319,7 +319,10 @@ export default async function PlayerPage({
                 className="flex flex-wrap items-baseline gap-x-3 py-2"
                 data-testid="player-match"
               >
-                <Link href={`/${locale}/match/${m.fixture.id}`} className="font-medium underline">
+                <Link
+                  href={`/${locale}/match/${m.fixture.id}`}
+                  className={inlineTargetClasses('font-medium underline')}
+                >
                   {m.fixture.home.short_name ?? m.fixture.home.name}
                   {m.fixture.score === null
                     ? ' v '
@@ -340,7 +343,7 @@ export default async function PlayerPage({
                   {' · '}
                   <Link
                     href={`/${locale}/competition/${m.fixture.competition.id}?season=${m.fixture.season.id}`}
-                    className="underline"
+                    className={inlineTargetClasses('underline')}
                   >
                     {m.fixture.competition.short_name ?? m.fixture.competition.name}
                   </Link>
