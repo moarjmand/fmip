@@ -162,11 +162,13 @@ export class IngestStore {
    * Finished fixtures of one competition, kicked off in `[fromIso, beforeIso)`,
    * whose detail has never been asked for (T-102), newest first: what a season
    * backfill leaves behind, since it writes the fixture list and nothing else.
+   * A `null` start reaches every season of the competition, the past ones a
+   * `--season` backfill loaded included (T-536).
    */
   async detailBacklog(
     provider: Provider,
     competitionId: string,
-    fromIso: string,
+    fromIso: string | null,
     beforeIso: string,
     limit: number,
   ): Promise<{ externalId: string; fixtureId: string; kickoffAt: string }[]> {
@@ -181,7 +183,7 @@ export class IngestStore {
          JOIN provider_mapping pm
            ON pm.internal_id = f.id AND pm.entity_type = 'fixture' AND pm.provider = $1
         WHERE s.competition_id = $2 AND f.status = 'finished'
-          AND f.kickoff_at >= $3 AND f.kickoff_at < $4
+          AND ($3::timestamptz IS NULL OR f.kickoff_at >= $3) AND f.kickoff_at < $4
           AND NOT EXISTS (SELECT 1 FROM fixture_detail_fetch d WHERE d.fixture_id = f.id)
         ORDER BY f.kickoff_at DESC
         LIMIT $5`,

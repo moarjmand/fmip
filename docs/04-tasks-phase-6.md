@@ -190,6 +190,7 @@ about football -- a chat, a channel -- and let one member bring another.
 | `[x]` T-533 | European cup matches on one scale: clubs of two leagues forecast from Club Elo and each side's domestic strength | T-531, T-060 | In shadow until the season's cup results show it calibrated; its limits stated in the model's docs |
 | `[~]` T-534 | Line-ups and absences in expected goals: the T-112 measurement as an additive term | T-531, T-112, T-103 | Fitted on our own recorded matches, since the history holds no line-ups; in shadow |
 | `[ ]` T-535 | Promotion: the candidate replaces the published version only on the evaluation | T-531 | A decision entry with the numbers; stored forecasts keep their version (rule 5) |
+| `[x]` T-536 | The detail backlog reaches past seasons: a `--season` backfill's matches get their line-ups and incidents | T-102, T-512 | The post-match backlog asks every season of a polled competition, newest first; a spec proves a match before the polled season is owed |
 
 **What v2 has to beat.** The first backtest (T-062, 2024/25 Premier League, 320
 forecasts) gave log loss 1.0170 against the market's 0.9811 and uniform's
@@ -458,3 +459,12 @@ now choose the grid's heaviest ridge; a further pass is possible, but the second
 bought a fifth of the first's gain, and each pass spends the unseen season
 once more.
 
+**T-536, the past seasons' details (2026-09-27).** The detail backlog was
+bounded by the polled season's start, so the past seasons loaded for the model
+(T-512) were never asked about: on production, 7,164 finished matches of
+2023/24 to 2025/26 had no incident and no line-up, while every current-season
+match had its detail. The backlog now reaches every season of a polled
+competition, newest first, so the current season still comes first and the
+past seasons follow at `INGESTION_BACKLOG_BATCH` a half hour -- about a day and
+a half at 120, one request each, as `05-data-providers.md` projected. T-534's
+fit waits for them.

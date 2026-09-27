@@ -444,7 +444,8 @@ projection.
 
 **Past seasons, and what they cost (2026-09-26).** A past season is one
 request per competition for its whole fixture list (`backfill.js --season`),
-then one per finished match for its details through the post-match backlog.
+then one per finished match for its details through the post-match backlog
+(which reaches past seasons since T-536).
 Loading 2023/24 to 2025/26 for Iran's league and the three UEFA cups, and
 2025/26 for the eleven domestic leagues, took 27 list requests and put about
 7,400 matches in the backlog: at `INGESTION_BACKLOG_BATCH=120` (the
