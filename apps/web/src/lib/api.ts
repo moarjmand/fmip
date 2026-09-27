@@ -21,6 +21,7 @@ import type {
   FirstRunResponse,
   FixtureEvaluationsResponse,
   FollowedEntity,
+  FollowSuggestionsResponse,
   FixtureNewsResponse,
   FollowingFeed,
   FollowingResponse,
@@ -393,6 +394,11 @@ export async function fetchFirstRun(
   if (cookie === undefined) return null;
   const result = await apiRequest<FirstRunResponse>('/me/first-run', { cookie });
   return result.ok ? result.data.first_run : null;
+}
+
+/** `GET /follow-suggestions` (T-622): what a member who follows nothing can follow next. */
+export function fetchFollowSuggestions(): Promise<ApiResult<FollowSuggestionsResponse>> {
+  return apiRequest<FollowSuggestionsResponse>('/follow-suggestions');
 }
 
 export async function fetchFollowing(cookie: string | undefined): Promise<FollowedEntity[] | null> {

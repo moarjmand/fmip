@@ -48,6 +48,42 @@ export interface CompetitionsResponse {
   competitions: CompetitionSummary[];
 }
 
+/** How many teams `GET /follow-suggestions` names under each competition. */
+export const SUGGESTED_TEAMS_PER_COMPETITION = 5;
+
+/** A team suggested to follow, with the count it was ranked by. */
+export interface SuggestedTeam extends TeamSummary {
+  /** Members following it now. The ranking's only input besides the name. */
+  followers: number;
+}
+
+export interface SuggestedCompetition {
+  competition: CompetitionSummary;
+  /**
+   * The season the teams come from: the current one, else the newest; `null`
+   * when the competition holds no season yet, and then `teams` is empty.
+   */
+  season: { id: string; label: string } | null;
+  /**
+   * Up to `SUGGESTED_TEAMS_PER_COMPETITION` teams that play in that season,
+   * most followed first, then by name. Empty when no fixture of that season
+   * names a team yet -- never filled from anywhere else.
+   */
+  teams: SuggestedTeam[];
+}
+
+/**
+ * `GET /follow-suggestions` (T-622): what a member who follows nothing can
+ * follow next, from what the site holds -- every active competition in its
+ * scores-page order (T-504), each with the teams of its season that members
+ * follow most. Public: it names no member.
+ */
+export interface FollowSuggestionsResponse {
+  competitions: SuggestedCompetition[];
+  /** The ranking, in words a page can repeat: followers, then name. */
+  ranked_by: 'followers';
+}
+
 // ---------------------------------------------------------------------------
 // Competition page (blueprint 5.1, T-035): overview, season selector, table,
 // fixtures and results, statistical leaders. Every module carries its

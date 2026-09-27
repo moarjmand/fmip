@@ -3,10 +3,17 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import type { FeedItem, FeedSignal, MatchViewing } from '@fmip/contracts';
 import { BriefingPanel } from '@/components/briefing';
+import { FollowNextSteps } from '@/components/follow-next-steps';
 import { Translated } from '@/components/translated';
 import { ViewingPanel } from '@/components/viewing-panel';
 import { formatDateTime } from '@/i18n/format';
-import { fetchBriefing, fetchFeed, fetchMe, fetchViewingBatch } from '@/lib/api';
+import {
+  fetchBriefing,
+  fetchFeed,
+  fetchFollowSuggestions,
+  fetchMe,
+  fetchViewingBatch,
+} from '@/lib/api';
 import {
   KIND_KEY,
   REASON_KEY,
@@ -61,6 +68,9 @@ export default async function FollowingPage({ params }: { params: Promise<{ loca
     fixtureIds.length > 0
       ? await fetchViewingBatch(fixtureIds.slice(0, 100), undefined, cookie)
       : null;
+  // Nothing followed (T-622): the page says what to do next, from what the site holds.
+  const nothingFollowed = result.ok && result.data.reason === 'nothing_followed';
+  const suggestions = nothingFollowed ? await fetchFollowSuggestions() : null;
   const answers = new Map<string, MatchViewing>(
     viewing !== null && viewing.ok ? viewing.data.fixtures.map((v) => [v.fixture_id, v]) : [],
   );
@@ -122,6 +132,8 @@ export default async function FollowingPage({ params }: { params: Promise<{ loca
               <Translated locale={locale} message={REASON_KEY[result.data.reason]} />
             </p>
           )}
+
+          {suggestions !== null && <FollowNextSteps locale={locale} suggestions={suggestions} />}
 
           {result.data.items.length > 0 && (
             <ol className="flex flex-col gap-4" data-testid="feed-items">
