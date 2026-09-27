@@ -1,4 +1,5 @@
 import type { ChatHealth, LiveHealth } from '@fmip/contracts';
+import { Notice } from '@/components/ui';
 
 /**
  * The two live paths, on the operator's page (T-236).
@@ -25,9 +26,9 @@ export function HealthPanel({ live, chat }: { live: LiveHealth | null; chat: Cha
       <div className="flex flex-col gap-1">
         <h3 className="text-sm font-semibold">Scores stream</h3>
         {live === null ? (
-          <p className="text-sm" role="alert" data-testid="health-live-unreachable">
+          <Notice tone="danger" data-testid="health-live-unreachable">
             The live path could not be asked.
-          </p>
+          </Notice>
         ) : (
           <ul className="text-sm" data-testid="health-live">
             <li>Readers attached: {live.stream_subscribers}</li>
@@ -39,9 +40,9 @@ export function HealthPanel({ live, chat }: { live: LiveHealth | null; chat: Cha
       <div className="flex flex-col gap-1">
         <h3 className="text-sm font-semibold">Chat</h3>
         {chat === null ? (
-          <p className="text-sm" role="alert" data-testid="health-chat-unreachable">
+          <Notice tone="danger" data-testid="health-chat-unreachable">
             The chat layer could not be asked.
-          </p>
+          </Notice>
         ) : (
           <>
             <ul className="text-sm" data-testid="health-chat">

@@ -7,6 +7,7 @@ import {
   componentSentence,
   leadingSentence,
 } from '@/lib/power-index';
+import { Notice } from '@/components/ui';
 
 /**
  * The Power Index on the match centre (T-114, blueprint 6.1).
@@ -35,9 +36,9 @@ export function PowerIndexPanel({
     return (
       <section className="flex flex-col gap-2" data-testid="power-index" data-state="unreachable">
         <h2 className="text-lg font-semibold">Power Index</h2>
-        <p role="alert" className="text-sm">
+        <Notice tone="danger">
           The Power Index service could not be reached, so no index can be shown.
-        </p>
+        </Notice>
       </section>
     );
   }

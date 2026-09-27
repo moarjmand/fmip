@@ -5,6 +5,7 @@ import { formatDateTime } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { type MessageKey, message } from '@/i18n/messages';
 import { writeBriefingAction } from '@/lib/briefing-actions';
+import { Notice } from '@/components/ui';
 
 /**
  * The member's briefing on the Following page (E43, T-431): a machine's
@@ -51,9 +52,9 @@ export function BriefingPanel({
         <Translated locale={locale} message="briefing.title" />
       </h2>
       {briefing === null && (
-        <p role="alert">
+        <Notice tone="danger">
           <Translated locale={locale} message="briefing.unreachable" />
-        </p>
+        </Notice>
       )}
       {briefing !== null && prose === null && briefing.reason !== null && (
         <p className="text-sm text-muted" data-testid="briefing-reason">

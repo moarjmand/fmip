@@ -3,6 +3,7 @@ import { formatDate } from '@/i18n/format';
 import type { MessageKey } from '@/i18n/messages';
 import type { ApiResult } from '@/lib/api';
 import { Translated } from '@/components/translated';
+import { Notice } from '@/components/ui';
 
 /** The catalogue key naming each achievement; a new kind is a type error here until it has one. */
 export const ACHIEVEMENT_LABEL_KEY: Record<AchievementKind, MessageKey> = {
@@ -34,9 +35,9 @@ export function AchievementsSection({
 }) {
   if (!result.ok) {
     return (
-      <p role="alert" className="text-sm" data-testid="achievements-unreachable">
+      <Notice tone="danger" data-testid="achievements-unreachable">
         <Translated locale={locale} message="achievements.unreachable" />
-      </p>
+      </Notice>
     );
   }
   const view = result.data;

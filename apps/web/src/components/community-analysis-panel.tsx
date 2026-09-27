@@ -1,4 +1,5 @@
 import type { CommunityAnalysesResponse, CommunityAnalysis } from '@fmip/contracts';
+import { Notice } from '@/components/ui';
 
 /**
  * Published community analysis on the match page (blueprint 10.3, T-263).
@@ -126,9 +127,9 @@ export function CommunityAnalysisPanel({
       {!reachable || analyses === null ? (
         // Stated, not vanished: "could not be fetched" and "nobody has written
         // one" are different facts.
-        <p role="alert" data-testid="community-analysis-unreachable">
+        <Notice tone="danger" data-testid="community-analysis-unreachable">
           Contributor analysis cannot be shown right now.
-        </p>
+        </Notice>
       ) : analyses.analyses.length === 0 ? (
         <p className="text-sm text-muted" data-testid="community-analysis-empty">
           No contributor has published an analysis of this match.

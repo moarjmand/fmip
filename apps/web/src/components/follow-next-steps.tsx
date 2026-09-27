@@ -3,6 +3,7 @@ import type { FollowSuggestionsResponse } from '@fmip/contracts';
 import { Translated } from '@/components/translated';
 import type { ApiResult } from '@/lib/api';
 import { followAction } from '@/lib/auth-actions';
+import { Notice } from '@/components/ui';
 
 /**
  * What a member who follows nothing does next (T-622): never an empty page
@@ -35,9 +36,9 @@ export function FollowNextSteps({
       </p>
 
       {!suggestions.ok ? (
-        <p role="alert" data-testid="next-steps-unreachable">
+        <Notice tone="danger" data-testid="next-steps-unreachable">
           <Translated locale={locale} message="feed.nextSteps.unreachable" />
-        </p>
+        </Notice>
       ) : suggestions.data.competitions.length === 0 ? (
         <p role="status" data-testid="next-steps-nothing-held">
           <Translated locale={locale} message="feed.nextSteps.nothingHeld" />

@@ -17,6 +17,7 @@ import { attribute } from '@/lib/forecast-diff';
 import { COVERAGE_LABEL } from '@/lib/match';
 import { formatKickoff } from '@/lib/scores';
 import { Score, ltrIsolate } from '@/components/score';
+import { Notice } from '@/components/ui';
 
 /**
  * The model forecast on the match centre (T-065, blueprint 6.1–6.4): the
@@ -50,9 +51,9 @@ export function ForecastPanel({
     return (
       <section className="flex flex-col gap-2" data-testid="forecast" data-coverage="unreachable">
         <h2 className="text-lg font-semibold">Model forecast</h2>
-        <p role="alert" className="text-sm">
+        <Notice tone="danger">
           The forecast service could not be reached, so no forecast can be shown.
-        </p>
+        </Notice>
       </section>
     );
   }
