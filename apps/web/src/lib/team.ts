@@ -4,7 +4,7 @@ import type {
   TableContext,
   TeamAverageMetric,
   TeamCompetitionSplits,
-  TeamFixture,
+  TeamPageFixture,
   TeamSplitRecord,
   TeamStatAverage,
 } from '@fmip/contracts';
@@ -67,20 +67,50 @@ export function contextLine(locale: string, context: TableContext): string {
   return `${position} of ${context.total} · ${context.points} pts`;
 }
 
-/** The match from the team's side: the opponent, home or away, and the result letter once played. */
+/**
+ * The match from the team's side: the opponent, home or away, and the result
+ * letter once played. The score is the latest we hold (after extra time where
+ * played), so the letter agrees with the home / away figures (T-632); a
+ * shoot-out decides the tie, not the match -- a level score is D, with the
+ * shoot-out said beside it.
+ */
 export function fromTeamSide(
-  fixture: TeamFixture,
+  fixture: TeamPageFixture,
   teamId: string,
-): { opponent: string; home: boolean; result: 'W' | 'D' | 'L' | null } {
+): {
+  opponent: string;
+  home: boolean;
+  result: 'W' | 'D' | 'L' | null;
+  shootout: 'won' | 'lost' | null;
+} {
   const home = fixture.home.id === teamId;
   const opponent = home ? fixture.away : fixture.home;
   let result: 'W' | 'D' | 'L' | null = null;
+  let shootout: 'won' | 'lost' | null = null;
   if (fixture.status === 'finished' && fixture.score !== null) {
     const mine = home ? fixture.score.home : fixture.score.away;
     const theirs = home ? fixture.score.away : fixture.score.home;
     result = mine > theirs ? 'W' : mine === theirs ? 'D' : 'L';
+    const pens = fixture.penalties;
+    if (result === 'D' && pens !== null && pens.home !== pens.away) {
+      shootout = (home ? pens.home > pens.away : pens.away > pens.home) ? 'won' : 'lost';
+    }
   }
-  return { opponent: opponent.short_name ?? opponent.name, home, result };
+  return { opponent: opponent.short_name ?? opponent.name, home, result, shootout };
+}
+
+/** "aet", and "won 4–3 on penalties" from the team's side, for the match line; null when neither. */
+export function afterTimeNote(fixture: TeamPageFixture, teamId: string): string | null {
+  const { shootout } = fromTeamSide(fixture, teamId);
+  const parts: string[] = [];
+  if (fixture.status === 'finished' && fixture.after_extra_time) parts.push('aet');
+  if (shootout !== null && fixture.penalties !== null) {
+    const home = fixture.home.id === teamId;
+    const mine = home ? fixture.penalties.home : fixture.penalties.away;
+    const theirs = home ? fixture.penalties.away : fixture.penalties.home;
+    parts.push(`${shootout} ${mine}–${theirs} on penalties`);
+  }
+  return parts.length === 0 ? null : parts.join(', ');
 }
 
 // ---------------------------------------------------------------------------

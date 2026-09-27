@@ -3,7 +3,7 @@ import {
   TEAM_AVERAGE_METRICS,
   type SquadPlayer,
   type TeamAverageMetric,
-  type TeamFixture,
+  type TeamPageFixture,
   type TeamPage,
 } from '@fmip/contracts';
 import { Pool } from 'pg';
@@ -110,7 +110,7 @@ export class PostgresTeamStore {
   async fixtures(
     teamId: string,
     seasonIds: string[],
-  ): Promise<{ fixtures: TeamFixture[]; lastUpdatedAt: string | null }> {
+  ): Promise<{ fixtures: TeamPageFixture[]; lastUpdatedAt: string | null }> {
     if (seasonIds.length === 0) return { fixtures: [], lastUpdatedAt: null };
     const { rows } = await this.pool.query<{
       id: string;
@@ -132,6 +132,9 @@ export class PostgresTeamStore {
       away_short_name: string | null;
       score_home: number | null;
       score_away: number | null;
+      extra_time: boolean;
+      pen_home: number | null;
+      pen_away: number | null;
       updated_at: Date;
     }>(
       `SELECT f.id, f.kickoff_at, f.status, f.round, f.stage_id, st.name AS stage_name,
@@ -139,7 +142,11 @@ export class PostgresTeamStore {
               se.id AS season_id, se.label AS season_label,
               h.team_id AS home_id, th.name AS home_name, th.short_name AS home_short_name,
               a.team_id AS away_id, ta.name AS away_name, ta.short_name AS away_short_name,
-              COALESCE(ft.home, cur.home) AS score_home, COALESCE(ft.away, cur.away) AS score_away,
+              -- The latest score, so extra time counts, as the bracket and the
+              -- splits read it (T-632); the shoot-out beside it, never in it.
+              COALESCE(cur.home, ft.home) AS score_home, COALESCE(cur.away, ft.away) AS score_away,
+              et.id IS NOT NULL AS extra_time,
+              pen.home AS pen_home, pen.away AS pen_away,
               GREATEST(f.updated_at, ft.updated_at, cur.updated_at) AS updated_at
          FROM fixture f
          JOIN fixture_participant me ON me.fixture_id = f.id AND me.team_id = $1
@@ -152,6 +159,8 @@ export class PostgresTeamStore {
          JOIN team ta ON ta.id = a.team_id
          LEFT JOIN fixture_score ft ON ft.fixture_id = f.id AND ft.kind = 'full_time'
          LEFT JOIN fixture_score cur ON cur.fixture_id = f.id AND cur.kind = 'current'
+         LEFT JOIN fixture_score et ON et.fixture_id = f.id AND et.kind = 'extra_time'
+         LEFT JOIN fixture_score pen ON pen.fixture_id = f.id AND pen.kind = 'penalties'
         WHERE f.season_id = ANY($2::uuid[])
         ORDER BY f.kickoff_at, f.id`,
       [teamId, seasonIds],
@@ -180,6 +189,11 @@ export class PostgresTeamStore {
         score:
           r.score_home !== null && r.score_away !== null
             ? { home: r.score_home, away: r.score_away }
+            : null,
+        after_extra_time: r.extra_time,
+        penalties:
+          r.pen_home !== null && r.pen_away !== null
+            ? { home: r.pen_home, away: r.pen_away }
             : null,
       })),
     };

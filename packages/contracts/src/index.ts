@@ -160,6 +160,7 @@ export type {
   TeamCompetitionSplits,
   TeamFixture,
   TeamPage,
+  TeamPageFixture,
   TeamSplitRecord,
   TeamStatAverage,
   TeamSummary,

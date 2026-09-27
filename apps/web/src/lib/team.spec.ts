@@ -1,13 +1,14 @@
 import type {
   SquadPlayer,
   TeamCompetitionSplits,
-  TeamFixture,
+  TeamPageFixture,
   TeamStatAverage,
 } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
 import {
   SPLITS_FOOTNOTE,
   averageCell,
+  afterTimeNote,
   averageNote,
   contextLine,
   fromTeamSide,
@@ -27,7 +28,7 @@ const player = (
   since: '2024-07-01',
 });
 
-const fixture = (over: Partial<TeamFixture> = {}): TeamFixture => ({
+const fixture = (over: Partial<TeamPageFixture> = {}): TeamPageFixture => ({
   id: 'f1',
   kickoff_at: '2025-09-01T15:00:00.000Z',
   status: 'finished',
@@ -38,6 +39,8 @@ const fixture = (over: Partial<TeamFixture> = {}): TeamFixture => ({
   home: { id: 'a', name: 'Test Alpha', short_name: 'ALP' },
   away: { id: 'b', name: 'Test Beta', short_name: null },
   score: { home: 2, away: 0 },
+  after_extra_time: false,
+  penalties: null,
   ...over,
 });
 
@@ -65,10 +68,37 @@ describe('labels', () => {
       opponent: 'Test Beta',
       home: true,
       result: 'W',
+      shootout: null,
     });
-    expect(fromTeamSide(fixture(), 'b')).toEqual({ opponent: 'ALP', home: false, result: 'L' });
+    expect(fromTeamSide(fixture(), 'b')).toEqual({
+      opponent: 'ALP',
+      home: false,
+      result: 'L',
+      shootout: null,
+    });
     expect(fromTeamSide(fixture({ score: { home: 1, away: 1 } }), 'b').result).toBe('D');
     expect(fromTeamSide(fixture({ status: 'scheduled', score: null }), 'a').result).toBeNull();
+  });
+
+  it('reads the result after extra time: 1–1 at ninety, 2–1 aet is a win (T-632)', () => {
+    // The API sends the latest score, as the bracket and the figures read it.
+    const aet = fixture({ score: { home: 2, away: 1 }, after_extra_time: true });
+    expect(fromTeamSide(aet, 'a')).toMatchObject({ result: 'W', shootout: null });
+    expect(fromTeamSide(aet, 'b').result).toBe('L');
+    expect(afterTimeNote(aet, 'a')).toBe('aet');
+    expect(afterTimeNote(fixture(), 'a')).toBeNull();
+  });
+
+  it('shows a tie settled on penalties as a draw, with who won the shoot-out beside it', () => {
+    const pens = fixture({
+      score: { home: 2, away: 2 },
+      after_extra_time: true,
+      penalties: { home: 3, away: 4 },
+    });
+    expect(fromTeamSide(pens, 'a')).toMatchObject({ result: 'D', shootout: 'lost' });
+    expect(fromTeamSide(pens, 'b')).toMatchObject({ result: 'D', shootout: 'won' });
+    expect(afterTimeNote(pens, 'a')).toBe('aet, lost 3–4 on penalties');
+    expect(afterTimeNote(pens, 'b')).toBe('aet, won 4–3 on penalties');
   });
 
   it('spells the table position by the locale’s ordinal rules', () => {

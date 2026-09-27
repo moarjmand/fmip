@@ -125,6 +125,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('team page sp
       ['current', 2, 2],
       ['penalties', 3, 4],
     ]);
+    // Cup: 1-1 after ninety minutes, alpha win 2-1 after extra time at home.
+    await fixture(CUP_SEASON, TEAMS.alpha, TEAMS.beta, '2025-10-20T19:00:00Z', [
+      ['full_time', 1, 1],
+      ['extra_time', 1, 0],
+      ['current', 2, 1],
+    ]);
     // A cup match alpha is not in.
     await fixture(CUP_SEASON, TEAMS.beta, TEAMS.gamma, '2025-10-02T19:00:00Z', [
       ['full_time', 5, 0],
@@ -199,8 +205,20 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('team page sp
       goals_for: 2,
       goals_against: 2,
     });
-    expect(cup.home.played).toBe(0);
+    expect(cup.home).toMatchObject({ played: 1, won: 1, goals_for: 2, goals_against: 1 });
     expect(cup.penalty_shootouts).toBe(1);
     expect(cup.averages.every((a) => a.coverage === 'not_supplied')).toBe(true);
+  });
+
+  it('lists results with the score after extra time, so the list agrees with the figures', async () => {
+    const p = await page();
+    const cupResults = p.results.filter((f) => f.competition.id === CUP);
+    // Newest first: the extra-time win, then the tie won on penalties.
+    expect(cupResults.map((f) => [f.score, f.after_extra_time, f.penalties])).toEqual([
+      [{ home: 2, away: 1 }, true, null],
+      [{ home: 2, away: 2 }, true, { home: 3, away: 4 }],
+    ]);
+    const league = p.results.find((f) => f.competition.id === LEAGUE)!;
+    expect(league).toMatchObject({ after_extra_time: false, penalties: null });
   });
 });

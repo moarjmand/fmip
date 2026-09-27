@@ -238,6 +238,18 @@ export interface TeamFixture extends SeasonFixture {
   season: { id: string; label: string };
 }
 
+/** A fixture on the team page's own lists (T-632): the extra time and the shoot-out said. */
+export interface TeamPageFixture extends TeamFixture {
+  /**
+   * `score` is the latest we hold: after extra time where it was played, as
+   * the bracket reads it (T-632), so the result letter agrees with the
+   * team's figures. True when an extra-time score is on record.
+   */
+  after_extra_time: boolean;
+  /** The shoot-out, when there was one; it decides the tie, not the match (a draw). */
+  penalties: { home: number; away: number } | null;
+}
+
 /** Where the team stands: its row and up to two neighbours either side. */
 export interface TableContext {
   position: number;
@@ -357,11 +369,11 @@ export interface TeamPage {
   /** Competitions with a current season, or one the team still has matches in. */
   competitions: TeamCompetition[];
   /** The soonest match not yet finished, and the most recent finished one. */
-  next_match: TeamFixture | null;
-  previous_match: TeamFixture | null;
+  next_match: TeamPageFixture | null;
+  previous_match: TeamPageFixture | null;
   /** Not finished, soonest first; finished, newest first. Across the seasons above. */
-  fixtures: TeamFixture[];
-  results: TeamFixture[];
+  fixtures: TeamPageFixture[];
+  results: TeamPageFixture[];
   /** Open player spells. Derived from our own records: `not_supplied` when none. */
   squad: Covered<SquadPlayer[]>;
   /**

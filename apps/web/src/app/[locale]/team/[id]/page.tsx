@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { formatNumber } from '@/i18n/format';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import type { MatchViewing, TeamCompetitionSplits, TeamFixture } from '@fmip/contracts';
+import type { MatchViewing, TeamCompetitionSplits, TeamPageFixture } from '@fmip/contracts';
 import { FounderAnalysisFeed } from '@/components/founder-analysis';
 import { fetchFounderFeed, fetchMe, fetchTeam, fetchViewingBatch } from '@/lib/api';
 import { formatFixtureDate } from '@/lib/competition';
@@ -16,6 +16,7 @@ import {
   SPLIT_RECORD_ROWS,
   SPLITS_FOOTNOTE,
   averageCell,
+  afterTimeNote,
   averageNote,
   contextLine,
   fromTeamSide,
@@ -429,12 +430,13 @@ function MatchLine({
   locale,
   timeZone,
 }: {
-  fixture: TeamFixture;
+  fixture: TeamPageFixture;
   teamId: string;
   locale: string;
   timeZone: string;
 }) {
   const side = fromTeamSide(fixture, teamId);
+  const note = afterTimeNote(fixture, teamId);
   const opponentId = fixture.home.id === teamId ? fixture.away.id : fixture.home.id;
   return (
     <div className="flex flex-wrap items-baseline gap-x-3 text-sm" data-testid="match-line">
@@ -454,6 +456,11 @@ function MatchLine({
           <Score home={fixture.score.home} away={fixture.score.away} />
         )}
       </Link>
+      {note !== null && (
+        <span className="text-xs opacity-70" data-testid="after-time-note">
+          {note}
+        </span>
+      )}
       <span className="text-xs opacity-70">
         <time dateTime={fixture.kickoff_at}>
           {formatFixtureDate(locale, fixture.kickoff_at, timeZone)}
