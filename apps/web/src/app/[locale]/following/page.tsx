@@ -79,7 +79,7 @@ export default async function FollowingPage({ params }: { params: Promise<{ loca
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="border-s-4 border-s-current ps-4 text-2xl font-semibold" data-testid="title">
+        <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
           <Translated locale={locale} message="feed.title" />
         </h1>
         <Link href={`/${locale}/settings`} className="text-sm underline">
@@ -99,7 +99,7 @@ export default async function FollowingPage({ params }: { params: Promise<{ loca
         </p>
       ) : (
         <>
-          <p className="text-sm opacity-80" data-testid="feed-showing">
+          <p className="text-sm text-muted" data-testid="feed-showing">
             <Translated locale={locale} message="feed.showing" />{' '}
             <time dateTime={result.data.showing.since}>{when(result.data.showing.since)}</time>
             {' – '}
@@ -174,12 +174,12 @@ function Item({
 }) {
   return (
     <article
-      className="flex flex-col gap-1 border-s-2 border-s-current/30 ps-4"
+      className="flex flex-col gap-1 border-s-2 border-s-default ps-4"
       data-testid="feed-item"
       data-kind={item.kind}
       data-rank={item.rank}
     >
-      <p className="text-xs uppercase tracking-wide opacity-70">
+      <p className="text-xs uppercase tracking-wide text-muted">
         <Translated locale={locale} message={KIND_KEY[item.kind]} />
         {' · '}
         <time dateTime={item.at}>{when(item.at)}</time>
@@ -207,23 +207,27 @@ function Item({
         />
       )}
       {item.kind === 'story' && (
-        <p className="text-sm opacity-80">
+        <p className="text-sm text-muted">
           <Translated locale={locale} message="news.readAt" /> {item.source_name}
         </p>
       )}
       {item.kind === 'founder_analysis' && (
-        <p className="text-sm opacity-80">
+        <p className="text-sm text-muted">
           <Translated locale={locale} message="feed.analysisCall" /> {item.predicted_outcome}
         </p>
       )}
       {item.kind === 'panel_post' && <p className="text-sm">{item.excerpt}</p>}
       <ul className="flex flex-wrap gap-2 text-xs" data-testid="feed-because">
         {item.because.map((signal, index) => (
-          <li key={index} className="rounded bg-current/10 px-2 py-0.5" data-signal={signal.kind}>
+          <li
+            key={index}
+            className="rounded bg-surface-raised px-2 py-0.5"
+            data-signal={signal.kind}
+          >
             <Signal signal={signal} locale={locale} />
           </li>
         ))}
-        <li className="opacity-70" data-testid="feed-rank">
+        <li className="text-muted" data-testid="feed-rank">
           <Translated locale={locale} message="feed.rank" /> {item.rank}
         </li>
       </ul>

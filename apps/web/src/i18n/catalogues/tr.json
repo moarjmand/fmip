@@ -64,6 +64,36 @@
     "text": "",
     "status": "untranslated"
   },
+  "theme.label": {
+    "source": "Theme",
+    "text": "",
+    "status": "untranslated"
+  },
+  "theme.light": {
+    "source": "Light",
+    "text": "",
+    "status": "untranslated"
+  },
+  "theme.dark": {
+    "source": "Dark",
+    "text": "",
+    "status": "untranslated"
+  },
+  "theme.system": {
+    "source": "Device",
+    "text": "",
+    "status": "untranslated"
+  },
+  "theme.heading": {
+    "source": "Appearance",
+    "text": "",
+    "status": "untranslated"
+  },
+  "theme.hint": {
+    "source": "Device follows the light or dark setting of your phone or computer. Your choice is kept in this browser and on your account, so signing in elsewhere brings it with you.",
+    "text": "",
+    "status": "untranslated"
+  },
   "language.name.en": {
     "source": "English",
     "text": "",

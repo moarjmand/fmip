@@ -128,7 +128,7 @@ export default async function AdminPage({
 
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-10 p-8">
-      <h1 className="border-s-4 border-s-current ps-4 text-2xl font-semibold" data-testid="title">
+      <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
         Administration
       </h1>
 
@@ -177,7 +177,7 @@ export default async function AdminPage({
           </li>
         </ul>
         <h3 className="font-medium">Backfill the current seasons</h3>
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted">
           The scheduled job asks for a window around now, which is all a running deployment needs. A
           season that was licensed part-way through needs its earlier matches once, or the league
           table will keep refusing to write because it disagrees with the matches held here. Run
@@ -201,12 +201,12 @@ export default async function AdminPage({
       <section className="flex flex-col gap-2" data-testid="admin-freshness">
         <h2 className="text-lg font-semibold">Live-data freshness (current seasons)</h2>
         {data.freshness.length === 0 ? (
-          <p className="text-sm opacity-70">No current season.</p>
+          <p className="text-sm text-muted">No current season.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-current/20">
+                <tr className="border-b border-default">
                   <th scope="col" className="py-1 pe-2 text-start">
                     Season
                   </th>
@@ -226,7 +226,7 @@ export default async function AdminPage({
               </thead>
               <tbody>
                 {data.freshness.map((row) => (
-                  <tr key={row.season.id} className="border-b border-current/10">
+                  <tr key={row.season.id} className="border-b border-default">
                     <td className="py-1 pe-2">
                       {row.competition.name} {row.season.label}
                     </td>
@@ -249,7 +249,7 @@ export default async function AdminPage({
       <section className="flex flex-col gap-3" data-testid="admin-coverage">
         <h2 className="text-lg font-semibold">Coverage (current seasons)</h2>
         {data.coverage.length === 0 ? (
-          <p className="text-sm opacity-70">No coverage declared for any current season.</p>
+          <p className="text-sm text-muted">No coverage declared for any current season.</p>
         ) : (
           <ul className="text-sm">
             {data.coverage.map((row) => (
@@ -273,7 +273,7 @@ export default async function AdminPage({
 
       <section className="flex flex-col gap-2" data-testid="admin-rating">
         <h2 className="text-lg font-semibold">Rating configuration in force</h2>
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted">
           Read-only: a change is a new version in code (D-035, D-036), which keeps every stored
           rating explainable.
         </p>
@@ -281,7 +281,7 @@ export default async function AdminPage({
           {(['formula', 'points', 'eligibility', 'leaderboard'] as const).map((key) => (
             <pre
               key={key}
-              className="overflow-x-auto rounded border border-current/20 p-2 text-xs"
+              className="overflow-x-auto rounded border border-default p-2 text-xs"
               data-testid={`rating-${key}`}
             >
               {JSON.stringify(data.rating[key], null, 2)}
@@ -304,23 +304,23 @@ export default async function AdminPage({
             type="search"
             defaultValue={q}
             placeholder="Username, e-mail or display name"
-            className="grow rounded border border-current/30 bg-transparent px-3 py-2"
+            className="grow rounded border border-strong bg-transparent px-3 py-2"
             data-testid="user-search"
           />
-          <button type="submit" className="rounded border border-current/30 px-3 py-2">
+          <button type="submit" className="rounded border border-strong px-3 py-2">
             Search
           </button>
         </form>
         {users === null ? (
-          <p className="text-sm opacity-70">Type at least two characters to search.</p>
+          <p className="text-sm text-muted">Type at least two characters to search.</p>
         ) : !users.ok ? (
           <p role="alert" className="text-sm">
             The search could not be run right now.
           </p>
         ) : users.data.users.length === 0 ? (
-          <p className="text-sm opacity-70">No member matches “{q}”.</p>
+          <p className="text-sm text-muted">No member matches “{q}”.</p>
         ) : (
-          <ul className="flex flex-col divide-y divide-current/10">
+          <ul className="flex flex-col divide-y divide-default">
             {users.data.users.map((user) => (
               <li key={user.id} className="flex flex-col gap-2 py-3" data-testid="admin-user">
                 <p className="text-sm">
@@ -361,15 +361,15 @@ export default async function AdminPage({
             The audit log could not be read right now.
           </p>
         ) : audit.data.records.length === 0 ? (
-          <p className="text-sm opacity-70">No administrative action recorded yet.</p>
+          <p className="text-sm text-muted">No administrative action recorded yet.</p>
         ) : (
-          <ol className="flex flex-col divide-y divide-current/10 text-sm">
+          <ol className="flex flex-col divide-y divide-default text-sm">
             {audit.data.records.map((record) => (
               <li key={record.id} className="py-2" data-testid="audit-record">
                 <time dateTime={record.created_at}>{record.created_at}</time> · @
                 {record.actor.username} · {record.action} · {record.target_type} {record.target_id}{' '}
                 — {record.reason}
-                <span className="block text-xs opacity-70">
+                <span className="block text-xs text-muted">
                   {JSON.stringify(record.previous)} → {JSON.stringify(record.next)}
                 </span>
               </li>

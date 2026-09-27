@@ -91,17 +91,17 @@ export default async function CompetitionPage({
     <main className="mx-auto flex max-w-3xl flex-col gap-8 p-8">
       <JsonLd data={competitionJsonLd(locale, page)} />
       <header className="flex flex-col gap-1" data-testid="competition-header">
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted">
           {c.country !== null ? `${c.country.name} · ` : ''}
           {KIND_LABEL[c.kind] ?? c.kind}
           {c.tier !== null ? ` · Tier ${c.tier}` : ''}
           {c.gender === 'women' ? ' · Women' : ''}
         </p>
-        <h1 className="border-s-4 border-s-current ps-4 text-2xl font-semibold" data-testid="title">
+        <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
           {c.localised_name ?? c.name}
         </h1>
         {c.localised_name !== null && (
-          <p className="text-sm opacity-70" data-testid="canonical-name">
+          <p className="text-sm text-muted" data-testid="canonical-name">
             {c.name}
           </p>
         )}
@@ -116,7 +116,7 @@ export default async function CompetitionPage({
               href={seasonHref(locale, c.id, season)}
               aria-current={season.id === page.season.id ? 'true' : undefined}
               className={`rounded px-2 py-1 ${
-                season.id === page.season.id ? 'bg-current/10 font-semibold' : 'underline'
+                season.id === page.season.id ? 'bg-surface-raised font-semibold' : 'underline'
               }`}
             >
               {season.label}
@@ -139,7 +139,7 @@ export default async function CompetitionPage({
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-current/20">
+                <tr className="border-b border-default">
                   <th scope="col" className="py-1 pe-2 text-start">
                     #
                   </th>
@@ -158,11 +158,7 @@ export default async function CompetitionPage({
               </thead>
               <tbody>
                 {rows.map((row) => (
-                  <tr
-                    key={row.team.id}
-                    className="border-b border-current/10"
-                    data-testid="table-row"
-                  >
+                  <tr key={row.team.id} className="border-b border-default" data-testid="table-row">
                     <td className="py-1 pe-2 tabular-nums">{row.position}</td>
                     <td className="py-1 pe-2">
                       <Link href={`/${locale}/team/${row.team.id}`} className="underline">
@@ -199,7 +195,7 @@ export default async function CompetitionPage({
       <section className="flex flex-col gap-2" data-testid="results">
         <h2 className="text-lg font-semibold">Results</h2>
         {page.results.length === 0 ? (
-          <p className="text-sm opacity-70">No results stored for this season.</p>
+          <p className="text-sm text-muted">No results stored for this season.</p>
         ) : (
           <FixtureList fixtures={page.results} locale={locale} timeZone={timeZone} />
         )}
@@ -208,7 +204,7 @@ export default async function CompetitionPage({
       <section className="flex flex-col gap-2" data-testid="fixtures">
         <h2 className="text-lg font-semibold">Fixtures</h2>
         {page.fixtures.length === 0 ? (
-          <p className="text-sm opacity-70">No fixtures scheduled for this season.</p>
+          <p className="text-sm text-muted">No fixtures scheduled for this season.</p>
         ) : (
           <FixtureList fixtures={page.fixtures} locale={locale} timeZone={timeZone} />
         )}
@@ -219,13 +215,13 @@ export default async function CompetitionPage({
           <ol className="flex flex-col gap-1 text-sm">
             {leaders.map((leader, index) => (
               <li key={leader.person.id} className="flex gap-3">
-                <span className="w-6 tabular-nums opacity-60">{index + 1}</span>
+                <span className="w-6 tabular-nums text-muted">{index + 1}</span>
                 <span className="grow">
                   <Link href={`/${locale}/player/${leader.person.id}`} className="underline">
                     {leader.person.name}
                   </Link>
                   {leader.team !== null && (
-                    <span className="ms-2 text-xs opacity-70">{leader.team.name}</span>
+                    <span className="ms-2 text-xs text-muted">{leader.team.name}</span>
                   )}
                 </span>
                 <span className="tabular-nums font-semibold">{leader.goals}</span>
@@ -238,18 +234,18 @@ export default async function CompetitionPage({
       <section className="flex flex-col gap-2" data-testid="coverage">
         <h2 className="text-lg font-semibold">Coverage for this season</h2>
         {Object.keys(page.coverage).length === 0 ? (
-          <p className="text-sm opacity-70">No coverage declared for this season.</p>
+          <p className="text-sm text-muted">No coverage declared for this season.</p>
         ) : (
           <ul className="flex flex-wrap gap-2 text-xs">
             {Object.entries(page.coverage).map(([module, state]) => (
-              <li key={module} className="rounded border border-current/20 px-2 py-1">
+              <li key={module} className="rounded border border-default px-2 py-1">
                 {module.replace('_', ' ')}:{' '}
                 {moduleState({ coverage: state, last_updated_at: null, data: null })}
               </li>
             ))}
           </ul>
         )}
-        <p className="text-xs opacity-60">
+        <p className="text-xs text-muted">
           {page.last_updated_at === null ? (
             'No fixture data stored yet.'
           ) : (
@@ -278,10 +274,10 @@ function Module<T>({
     <section className="flex flex-col gap-2" data-testid={testId}>
       <h2 className="text-lg font-semibold">
         {title}
-        <span className="ms-2 text-xs font-normal uppercase opacity-60">{moduleState(module)}</span>
+        <span className="ms-2 text-xs font-normal uppercase text-muted">{moduleState(module)}</span>
       </h2>
       {module.data === null || module.data.length === 0 ? (
-        <p className="text-sm opacity-70" data-testid={`${testId}-empty`}>
+        <p className="text-sm text-muted" data-testid={`${testId}-empty`}>
           {module.coverage === 'delayed'
             ? 'Data for this module is behind; nothing is shown rather than something stale.'
             : 'Not supplied for this season.'}
@@ -290,7 +286,7 @@ function Module<T>({
         children(module.data)
       )}
       {module.last_updated_at !== null && (
-        <p className="text-xs opacity-60">
+        <p className="text-xs text-muted">
           Updated <time dateTime={module.last_updated_at}>{module.last_updated_at}</time>
         </p>
       )}
@@ -308,7 +304,7 @@ function FixtureList({
   timeZone: string;
 }) {
   return (
-    <ul className="flex flex-col divide-y divide-current/10 text-sm">
+    <ul className="flex flex-col divide-y divide-default text-sm">
       {fixtures.map((fixture) => (
         <li
           key={fixture.id}
@@ -318,7 +314,7 @@ function FixtureList({
           <Link href={`/${locale}/match/${fixture.id}`} className="font-medium underline">
             {fixtureLine(fixture)}
           </Link>
-          <span className="text-xs opacity-70">
+          <span className="text-xs text-muted">
             <time dateTime={fixture.kickoff_at}>
               {formatFixtureDate(locale, fixture.kickoff_at, timeZone)}
             </time>

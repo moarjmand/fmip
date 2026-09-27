@@ -36,14 +36,14 @@ function OpenThread({
         type="submit"
         disabled={pending}
         data-testid={`open-thread-${group.slug}`}
-        className="self-start rounded border border-current/30 px-3 py-1 text-sm disabled:opacity-50"
+        className="self-start rounded border border-strong px-3 py-1 text-sm disabled:opacity-50"
       >
         {pending ? 'Working…' : `Discuss in ${group.name}`}
       </button>
       {state !== null && !state.ok && (
         <p
           role="status"
-          className="text-sm text-red-800 dark:text-red-300"
+          className="text-sm text-danger"
           data-testid={`open-thread-${group.slug}-result`}
         >
           {state.message}
@@ -76,7 +76,7 @@ export function MatchThreads({
           Your groups cannot be shown right now.
         </p>
       ) : groups.length === 0 ? (
-        <p className="text-sm opacity-70" data-testid="match-threads-none">
+        <p className="text-sm text-muted" data-testid="match-threads-none">
           A match thread happens inside a group. You are not in one yet.
         </p>
       ) : (

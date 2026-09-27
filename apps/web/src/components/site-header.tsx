@@ -2,11 +2,13 @@ import Link from 'next/link';
 import { BrandMark } from '@/components/brand-mark';
 import { Translated } from '@/components/translated';
 import { LanguagePicker } from '@/components/language-picker';
+import { ThemeSwitch } from '@/components/theme-switch';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { attribute } from '@/i18n/messages';
 import { fetchMe } from '@/lib/api';
 import { logoutAction } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
+import type { ThemePreference } from '@/lib/theme';
 
 /**
  * The one navigation bar. Reads the session server-side; when the API is
@@ -18,13 +20,13 @@ import { sessionCookieHeader } from '@/lib/session';
  * English stands in and is marked `lang="en"`, rather than being shown as
  * though somebody had translated it.
  */
-export async function SiteHeader({ locale }: { locale: string }) {
+export async function SiteHeader({ locale, theme }: { locale: string; theme: ThemePreference }) {
   const me = await fetchMe(await sessionCookieHeader());
   const href = (path: string) => `/${locale}${path}`;
   const search = attribute(isLocale(locale) ? locale : DEFAULT_LOCALE, 'nav.search');
 
   return (
-    <header className="border-b border-current/20">
+    <header className="border-b border-default">
       <nav
         aria-label="Primary"
         className="mx-auto flex max-w-3xl flex-wrap items-center gap-4 px-8 py-3 text-sm"
@@ -61,7 +63,7 @@ export async function SiteHeader({ locale }: { locale: string }) {
             placeholder={search.text}
             lang={search.lang}
             autoComplete="off"
-            className="w-32 rounded border border-current/30 bg-transparent px-2 py-1 text-sm sm:w-48"
+            className="w-32 rounded border border-strong bg-transparent px-2 py-1 text-sm sm:w-48"
             data-testid="nav-search"
           />
         </form>
@@ -104,6 +106,8 @@ export async function SiteHeader({ locale }: { locale: string }) {
         )}
         {/* Nothing until a second language is finished (T-306); see the component. */}
         <LanguagePicker />
+        {/* Light, dark or the device's own, on every page (T-602). */}
+        <ThemeSwitch locale={locale} current={theme} variant="compact" />
       </nav>
     </header>
   );

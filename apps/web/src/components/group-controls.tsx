@@ -41,8 +41,8 @@ function ActionButton({
         data-testid={testId}
         className={
           quiet
-            ? 'self-start rounded border border-current/30 px-3 py-1 text-sm disabled:opacity-50'
-            : 'self-start rounded bg-[color:CanvasText] px-3 py-1 text-sm font-medium text-[color:Canvas] disabled:opacity-50'
+            ? 'self-start rounded border border-strong px-3 py-1 text-sm disabled:opacity-50'
+            : 'self-start rounded bg-accent px-3 py-1 text-sm font-medium text-on-accent disabled:opacity-50'
         }
       >
         {pending ? 'Working…' : label}
@@ -50,7 +50,7 @@ function ActionButton({
       {state !== null && (
         <p
           role="status"
-          className={`text-sm ${state.ok ? 'opacity-70' : 'text-red-800 dark:text-red-300'}`}
+          className={`text-sm ${state.ok ? 'text-muted' : 'text-danger'}`}
           data-testid={`${testId}-result`}
         >
           {state.ok ? (state.message ?? 'Done.') : state.message}
@@ -77,21 +77,21 @@ function AskToJoin({ locale, slug }: { locale: string; slug: string }) {
         name="note"
         rows={2}
         maxLength={300}
-        className="rounded border border-current/30 bg-transparent px-3 py-2 text-sm text-start"
+        className="rounded border border-strong bg-transparent px-3 py-2 text-sm text-start"
         data-testid="group-note"
       />
       <button
         type="submit"
         disabled={pending}
         data-testid="group-ask"
-        className="self-start rounded bg-[color:CanvasText] px-3 py-1 text-sm font-medium text-[color:Canvas] disabled:opacity-50"
+        className="self-start rounded bg-accent px-3 py-1 text-sm font-medium text-on-accent disabled:opacity-50"
       >
         {pending ? 'Working…' : 'Ask to join'}
       </button>
       {state !== null && (
         <p
           role="status"
-          className={`text-sm ${state.ok ? 'opacity-70' : 'text-red-800 dark:text-red-300'}`}
+          className={`text-sm ${state.ok ? 'text-muted' : 'text-danger'}`}
           data-testid="group-ask-result"
         >
           {state.ok ? (state.message ?? 'Done.') : state.message}
@@ -132,7 +132,7 @@ export function GroupControls({
 }) {
   if (standing === 'owner') {
     return (
-      <p className="text-sm opacity-70" data-testid="group-owner-note">
+      <p className="text-sm text-muted" data-testid="group-owner-note">
         You own this group. Hand it to somebody else before you can leave it.
       </p>
     );
@@ -170,7 +170,7 @@ export function GroupControls({
   if (standing === 'requested') {
     return (
       <div className="flex flex-col gap-2">
-        <p className="text-sm opacity-70" data-testid="group-requested">
+        <p className="text-sm text-muted" data-testid="group-requested">
           You have asked to join. Somebody who runs the group will answer.
         </p>
         <ActionButton
@@ -201,7 +201,7 @@ export function GroupControls({
     // No button. This group is joined by invitation, and a control that would
     // always be refused is a worse answer than the sentence.
     return (
-      <p className="text-sm opacity-70" data-testid="group-invite-only">
+      <p className="text-sm text-muted" data-testid="group-invite-only">
         This group is joined by invitation.
       </p>
     );
@@ -211,7 +211,7 @@ export function GroupControls({
     // Deliberately not why. A member under a sanction hears about it from the
     // surface that owns that conversation, not from every group page.
     return (
-      <p className="text-sm opacity-70" data-testid="group-unavailable">
+      <p className="text-sm text-muted" data-testid="group-unavailable">
         You cannot join this group at the moment.
       </p>
     );
@@ -221,7 +221,7 @@ export function GroupControls({
   // failing test; until somebody fixes it, a reader is told the truth rather
   // than shown whichever branch happened to be last.
   return (
-    <p className="text-sm opacity-70" data-testid="group-standing-unknown">
+    <p className="text-sm text-muted" data-testid="group-standing-unknown">
       There is nothing to do here yet.
     </p>
   );

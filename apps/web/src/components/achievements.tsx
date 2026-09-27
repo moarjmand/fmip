@@ -42,7 +42,7 @@ export function AchievementsSection({
   const view = result.data;
   if (view.kind === 'restricted') {
     return (
-      <p className="text-sm opacity-70" data-testid="achievements-restricted">
+      <p className="text-sm text-muted" data-testid="achievements-restricted">
         <Translated
           locale={locale}
           message={
@@ -57,7 +57,7 @@ export function AchievementsSection({
   const { earned } = view.achievements;
   if (earned.length === 0) {
     return (
-      <p className="text-sm opacity-70" data-testid="achievements-none">
+      <p className="text-sm text-muted" data-testid="achievements-none">
         <Translated locale={locale} message="achievements.none" />
       </p>
     );
@@ -75,12 +75,12 @@ export function AchievementsSection({
               <Translated locale={locale} message={ACHIEVEMENT_LABEL_KEY[achievement.kind]} />
             </span>
             {achievement.round !== null && (
-              <span className="opacity-70">
+              <span className="text-muted">
                 {achievement.round.competition.name} · {achievement.round.season_label} ·{' '}
                 {achievement.round.round}
               </span>
             )}
-            <time dateTime={achievement.earned_at} className="text-xs opacity-60">
+            <time dateTime={achievement.earned_at} className="text-xs text-muted">
               {formatDate(locale, achievement.earned_at, 'UTC', {
                 day: 'numeric',
                 month: 'short',
@@ -90,7 +90,7 @@ export function AchievementsSection({
           </li>
         ))}
       </ul>
-      <p className="text-xs opacity-60">
+      <p className="text-xs text-muted">
         <Translated locale={locale} message="achievements.note" />
       </p>
     </div>

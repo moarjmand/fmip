@@ -56,13 +56,13 @@ export function BriefingPanel({
         </p>
       )}
       {briefing !== null && prose === null && briefing.reason !== null && (
-        <p className="text-sm opacity-80" data-testid="briefing-reason">
+        <p className="text-sm text-muted" data-testid="briefing-reason">
           <Translated locale={locale} message={REASON_KEY[briefing.reason]} />
         </p>
       )}
       {prose !== null && (
         <>
-          <p className="text-xs opacity-70" data-testid="briefing-label">
+          <p className="text-xs text-muted" data-testid="briefing-label">
             <Translated locale={locale} message="briefing.label" />
           </p>
           <div className="flex flex-col gap-2" lang={prose.language} data-testid="briefing-text">
@@ -70,7 +70,7 @@ export function BriefingPanel({
               <p key={index}>{paragraph}</p>
             ))}
           </div>
-          <p className="text-xs opacity-70" data-testid="briefing-meta">
+          <p className="text-xs text-muted" data-testid="briefing-meta">
             <Translated locale={locale} message="briefing.window" />{' '}
             <time dateTime={prose.since}>{formatDateTime(locale, prose.since, timeZone)}</time>
             {' – '}

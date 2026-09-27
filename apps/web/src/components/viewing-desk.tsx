@@ -55,7 +55,7 @@ export function ViewingDesk({
     <section className="flex flex-col gap-6 border-t pt-4" data-testid="viewing-desk">
       <div className="flex flex-col gap-1">
         <h2 className="text-lg font-semibold">{t('viewing.desk.title')}</h2>
-        <p className="text-sm opacity-80">{t('viewing.desk.lead')}</p>
+        <p className="text-sm text-muted">{t('viewing.desk.lead')}</p>
       </div>
 
       <div className="flex flex-col gap-2" data-testid="desk-coverage">
@@ -95,7 +95,7 @@ export function ViewingDesk({
       <div className="flex flex-col gap-2" data-testid="desk-listing">
         <h3 className="font-semibold">{t('viewing.desk.listing')}</h3>
         {broadcasters.length === 0 ? (
-          <p className="text-sm opacity-70">{t('viewing.desk.noBroadcasters')}</p>
+          <p className="text-sm text-muted">{t('viewing.desk.noBroadcasters')}</p>
         ) : (
           <ActionForm
             action={listOptionAction.bind(null, locale, fixtureId)}

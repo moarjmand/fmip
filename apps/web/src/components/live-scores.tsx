@@ -81,7 +81,13 @@ export function LiveScores({
   return (
     <>
       <p
-        className={`text-xs ${state === 'live' ? 'opacity-70' : 'font-medium'}`}
+        className={`text-xs ${
+          state === 'live'
+            ? 'text-muted'
+            : state === 'connecting'
+              ? 'font-medium'
+              : 'font-medium text-warning'
+        }`}
         data-testid="live-state"
         data-state={state}
         role={state === 'stale' || state === 'unavailable' ? 'status' : undefined}
@@ -98,7 +104,7 @@ export function LiveScores({
       </div>
 
       {scores.total === 0 ? (
-        <p className="opacity-70" data-testid="scores-empty">
+        <p className="text-muted" data-testid="scores-empty">
           No fixtures on this day.
         </p>
       ) : shown.total === 0 && isFiltered(filters) ? (
@@ -134,7 +140,7 @@ export function LiveScores({
             >
               <h2 className="text-lg font-semibold">
                 {group.country !== null && (
-                  <span className="me-2 text-sm font-normal uppercase opacity-60">
+                  <span className="me-2 text-sm font-normal uppercase text-muted">
                     {group.country.name}
                   </span>
                 )}
@@ -159,7 +165,7 @@ export function LiveScores({
               </ul>
             </section>
           ))}
-          <p className="text-xs opacity-60">
+          <p className="text-xs text-muted">
             Snapshot <time dateTime={scores.generated_at}>{scores.generated_at}</time>.
           </p>
         </>

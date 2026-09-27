@@ -68,13 +68,13 @@ export function MatchSummaryPanel({
         </p>
       )}
       {summary !== null && data === null && summary.reason !== null && (
-        <p className="text-sm opacity-80" data-testid="match-summary-reason">
+        <p className="text-sm text-muted" data-testid="match-summary-reason">
           <Translated locale={locale} message={REASON_KEY[summary.reason]} />
         </p>
       )}
       {data !== null && (
         <>
-          <p className="text-xs opacity-70" data-testid="match-summary-label">
+          <p className="text-xs text-muted" data-testid="match-summary-label">
             <Translated locale={locale} message="summary.label" />
           </p>
           <div
@@ -86,7 +86,7 @@ export function MatchSummaryPanel({
               <p key={index}>{paragraph}</p>
             ))}
           </div>
-          <p className="text-xs opacity-70" data-testid="match-summary-meta">
+          <p className="text-xs text-muted" data-testid="match-summary-meta">
             <Translated locale={locale} message="summary.model" /> {data.model} {'· '}
             <Translated locale={locale} message="summary.version" /> {data.version_number} {'· '}
             <Translated locale={locale} message="summary.written" />{' '}

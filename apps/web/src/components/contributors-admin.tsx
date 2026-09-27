@@ -52,22 +52,19 @@ function ReasonForm({
           rows={2}
           required
           placeholder="Say why. The member can read it."
-          className="rounded border border-current/30 bg-transparent p-2"
+          className="rounded border border-strong bg-transparent p-2"
         />
       </label>
       <button
         type="submit"
         disabled={pending}
         data-testid={testId}
-        className="self-start rounded border border-current/30 px-3 py-1 text-sm disabled:opacity-50"
+        className="self-start rounded border border-strong px-3 py-1 text-sm disabled:opacity-50"
       >
         {pending ? 'Recording…' : label}
       </button>
       {state !== null && (
-        <p
-          role="status"
-          className={state.ok ? 'text-sm' : 'text-sm text-red-800 dark:text-red-300'}
-        >
+        <p role="status" className={state.ok ? 'text-sm' : 'text-sm text-danger'}>
           {state.message}
         </p>
       )}
@@ -79,7 +76,7 @@ function Candidate({ locale, entry }: { locale: string; entry: ContributorCandid
   const { eligibility, grant } = entry;
   return (
     <li
-      className="flex flex-col gap-3 rounded border border-current/20 p-4"
+      className="flex flex-col gap-3 rounded border border-default p-4"
       data-testid="contributor-entry"
     >
       <p>
@@ -95,13 +92,13 @@ function Candidate({ locale, entry }: { locale: string; entry: ContributorCandid
         <p className="font-medium">
           Computed: {eligibility.qualifies ? 'meets all four requirements' : 'does not qualify yet'}
         </p>
-        <p className="opacity-70">
+        <p className="text-muted">
           rating {eligibility.rating ?? 'none yet'}, {eligibility.settled_count} settled, e-mail{' '}
           {eligibility.email_verified ? 'verified' : 'not verified'}
           {eligibility.under_sanction ? ', under a restriction now' : ''}
         </p>
         {eligibility.shortfalls.length > 0 && (
-          <ul className="list-disc ps-5 opacity-80">
+          <ul className="list-disc ps-5 text-muted">
             {eligibility.shortfalls.map((shortfall) => (
               <li key={shortfall.requirement}>{shortfall.message}</li>
             ))}
@@ -118,9 +115,9 @@ function Candidate({ locale, entry }: { locale: string; entry: ContributorCandid
               Decided: {grant.standing}, granted by {grant.granted_by} on{' '}
               <time dateTime={grant.granted_at}>{grant.granted_at}</time>
             </p>
-            <p className="whitespace-pre-wrap opacity-80">{grant.reason}</p>
+            <p className="whitespace-pre-wrap text-muted">{grant.reason}</p>
             {grant.history.length > 0 && (
-              <ul className="ps-3 opacity-80">
+              <ul className="ps-3 text-muted">
                 {grant.history.map((event) => (
                   <li key={`${event.kind}-${event.at}`}>
                     {event.kind} by {event.actor}, <time dateTime={event.at}>{event.at}</time>:{' '}
@@ -187,14 +184,14 @@ export function ContributorsAdmin({
             <input
               name="username"
               required
-              className="rounded border border-current/30 bg-transparent p-2"
+              className="rounded border border-strong bg-transparent p-2"
             />
           </label>
         </ReasonForm>
       </section>
 
       {entries.length === 0 ? (
-        <p className="text-sm opacity-70" data-testid="contributors-empty">
+        <p className="text-sm text-muted" data-testid="contributors-empty">
           Nobody qualifies or holds a grant yet.
         </p>
       ) : (

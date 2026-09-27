@@ -12,6 +12,14 @@ import type { AuthUser } from './identity';
 export const PRIVACY_VISIBILITIES = ['public', 'friends', 'private'] as const;
 export type PrivacyVisibility = (typeof PRIVACY_VISIBILITIES)[number];
 
+/**
+ * The colour theme a member chose (T-602, D-089): `system` follows the
+ * device's light or dark setting, which is also what a guest gets until they
+ * choose.
+ */
+export const THEME_PREFERENCES = ['light', 'dark', 'system'] as const;
+export type ThemePreference = (typeof THEME_PREFERENCES)[number];
+
 export interface PrivacySettings {
   profile_visibility: PrivacyVisibility;
   prediction_history_visibility: PrivacyVisibility;
@@ -49,6 +57,8 @@ export interface OwnProfile {
   viewing_territory: ViewingTerritory;
   /** Whether the first-run flow has been finished or dismissed (T-620). */
   first_run: FirstRunState;
+  /** The colour theme the member chose (T-602); `system` until they choose. */
+  theme: ThemePreference;
 }
 
 /**
@@ -65,12 +75,14 @@ export interface FirstRunResponse {
 
 /**
  * `PATCH /me/preferences` (T-620): the language and time zone chosen at
- * registration, changed afterwards. Only the fields present change; each is
- * validated as registration validates it (a BCP 47 tag, an IANA zone).
+ * registration, changed afterwards, and the colour theme (T-602). Only the
+ * fields present change; each is validated as registration validates it (a
+ * BCP 47 tag, an IANA zone), the theme as one of `THEME_PREFERENCES`.
  */
 export interface UpdatePreferencesRequest {
   preferred_language?: string;
   timezone?: string;
+  theme?: ThemePreference;
 }
 
 /** `PATCH /me/profile`. Only the fields present change; `null` clears. */

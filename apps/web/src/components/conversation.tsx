@@ -22,11 +22,11 @@ import { formatDateTime } from '@/i18n/format';
  * out backwards (T-153, rule 7).
  */
 export function FootballCard({ card, locale }: { card: SharedCard; locale: string }) {
-  const frame = 'rounded border border-current/20 p-3 text-sm';
+  const frame = 'rounded border border-default p-3 text-sm';
 
   if (card.kind === 'gone') {
     return (
-      <p className={`${frame} opacity-70`} data-testid="card-gone">
+      <p className={`${frame} text-muted`} data-testid="card-gone">
         Something was shared here that no longer exists.
       </p>
     );
@@ -42,7 +42,7 @@ export function FootballCard({ card, locale }: { card: SharedCard; locale: strin
         <span className="font-medium">
           {card.home} v {card.away}
         </span>
-        <span className="opacity-70">
+        <span className="text-muted">
           {card.score === null ? (
             card.status
           ) : (
@@ -53,7 +53,7 @@ export function FootballCard({ card, locale }: { card: SharedCard; locale: strin
           )}
         </span>
         {/* Rule 4: a live surface says when it last changed. */}
-        <span className="text-xs opacity-60">
+        <span className="text-xs text-muted">
           Updated <time dateTime={card.last_updated_at}>{card.last_updated_at.slice(0, 16)}</time>
         </span>
       </Link>
@@ -84,7 +84,7 @@ export function FootballCard({ card, locale }: { card: SharedCard; locale: strin
         </span>
         {/* A shared prediction is always attributed: it is one member's call, and
             never any of the three prediction products (rule 6). */}
-        <span className="opacity-70">
+        <span className="text-muted">
           @{card.by} says {card.outcome} · confidence {card.confidence}
         </span>
       </div>
@@ -97,7 +97,7 @@ export function FootballCard({ card, locale }: { card: SharedCard; locale: strin
   // somebody's prediction. `conversation.spec.ts` fails before that can ship;
   // this says something true if it ever gets past.
   return (
-    <p className={`${frame} opacity-70`} data-testid="card-unknown">
+    <p className={`${frame} text-muted`} data-testid="card-unknown">
       Something was shared here that this page cannot show yet.
     </p>
   );
@@ -116,7 +116,7 @@ export function MessageRow({
 }) {
   return (
     <li className="flex flex-col gap-1" data-testid="message">
-      <p className="text-xs opacity-60">
+      <p className="text-xs text-muted">
         <span className="font-medium">@{message.author}</span> ·{' '}
         <time dateTime={message.created_at}>
           {formatDateTime(locale, message.created_at, timeZone)}
@@ -126,7 +126,7 @@ export function MessageRow({
       {message.removed !== null ? (
         // A tombstone rather than a hole: the conversation around it still
         // reads, and a reader can tell who took it down.
-        <p className="text-sm italic opacity-60" data-testid="message-removed">
+        <p className="text-sm italic text-muted" data-testid="message-removed">
           {message.removed.by === 'moderator'
             ? 'Removed by a moderator.'
             : 'The author removed this.'}
@@ -144,19 +144,19 @@ export function MessageRow({
         // parsed once, and the two could disagree about who was named --
         // especially after somebody renames themselves, which is exactly what
         // storing the mention was meant to survive (T-225).
-        <p className="text-xs opacity-60" data-testid="message-mentions">
+        <p className="text-xs text-muted" data-testid="message-mentions">
           Mentioned {message.mentions.map((username) => `@${username}`).join(', ')}
         </p>
       )}
 
       {message.pinned && (
-        <p className="text-xs opacity-60" data-testid="message-pinned">
+        <p className="text-xs text-muted" data-testid="message-pinned">
           Pinned in this conversation
         </p>
       )}
 
       {isMine && message.removed === null && (
-        <span className="text-xs opacity-50" data-testid="message-mine">
+        <span className="text-xs text-muted" data-testid="message-mine">
           Yours
         </span>
       )}
@@ -196,7 +196,7 @@ export function ConversationHeader({
           <Link href={`/${locale}/match/${match.id}`} className="underline">
             {match.home} v {match.away}
           </Link>
-          <span className="opacity-70"> · {threadStanding(conversation)}</span>
+          <span className="text-muted"> · {threadStanding(conversation)}</span>
           {conversation.group !== null && (
             <>
               {' · '}
@@ -210,7 +210,7 @@ export function ConversationHeader({
           )}
         </p>
       )}
-      <p className="text-sm opacity-70">
+      <p className="text-sm text-muted">
         {others.map((member) => (
           <Link
             key={member.username}
@@ -223,7 +223,7 @@ export function ConversationHeader({
         {conversation.muted && <span data-testid="conversation-muted"> · muted</span>}
         {conversation.left && <span data-testid="conversation-left"> · you have left</span>}
       </p>
-      <p className="text-xs opacity-60">
+      <p className="text-xs text-muted">
         Blocking and reporting live on a member&rsquo;s profile, where they work the same way
         everywhere else in the product.
       </p>

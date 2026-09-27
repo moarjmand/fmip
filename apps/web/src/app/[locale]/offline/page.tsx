@@ -15,7 +15,7 @@ export default async function OfflinePage({ params }: { params: Promise<{ locale
   const { locale } = await params;
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-4 p-8">
-      <h1 className="border-s-4 border-s-current ps-4 text-2xl font-semibold" data-testid="title">
+      <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
         You are offline
       </h1>
       <p role="status" data-testid="offline-message">

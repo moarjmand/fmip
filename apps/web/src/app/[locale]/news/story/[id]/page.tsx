@@ -92,10 +92,10 @@ export default async function StoryPage({
       </p>
 
       <article className="flex flex-col gap-3" lang={story.language}>
-        <h1 className="border-s-4 border-s-current ps-4 text-2xl font-semibold" data-testid="title">
+        <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
           {story.headline}
         </h1>
-        <p className="text-sm opacity-80" data-testid="story-source">
+        <p className="text-sm text-muted" data-testid="story-source">
           <Translated locale={locale} message="news.readAt" />{' '}
           <a href={story.source.homepage_url} rel="noopener" className="underline">
             {story.source.name}
@@ -133,7 +133,7 @@ export default async function StoryPage({
           </p>
         )}
 
-        <p className="text-sm opacity-80" data-testid="story-updated">
+        <p className="text-sm text-muted" data-testid="story-updated">
           <Translated locale={locale} message="story.updated" />{' '}
           <time dateTime={page.updated_at}>{when(page.updated_at)}</time>
         </p>
@@ -149,7 +149,7 @@ export default async function StoryPage({
               <Link
                 href={storyHref(locale, id, v.language)}
                 aria-current={v.language === story.language ? 'true' : undefined}
-                className={`rounded px-2 py-1 ${v.language === story.language ? 'bg-current/10 font-semibold' : 'underline'}`}
+                className={`rounded px-2 py-1 ${v.language === story.language ? 'bg-surface-raised font-semibold' : 'underline'}`}
                 lang={v.language}
                 data-origin={v.origin}
                 data-review-state={v.review_state ?? ''}
@@ -162,7 +162,7 @@ export default async function StoryPage({
           ))}
         </ul>
         {/* Blueprint 3.3: language and translation status, per version (T-304). Nothing here is machine-translated. */}
-        <p className="opacity-80">
+        <p className="text-muted">
           <Translated locale={locale} message="story.translationStatus" />
         </p>
       </section>
@@ -172,7 +172,7 @@ export default async function StoryPage({
           <Translated locale={locale} message="story.corrections" />
         </h2>
         {page.corrections.length === 0 ? (
-          <p className="opacity-80" data-testid="story-no-corrections">
+          <p className="text-muted" data-testid="story-no-corrections">
             <Translated locale={locale} message="story.noCorrections" />
           </p>
         ) : (
@@ -191,7 +191,7 @@ export default async function StoryPage({
           <Translated locale={locale} message="story.about" />
         </h2>
         {named.length === 0 && match === null ? (
-          <p className="opacity-80" data-testid="story-no-entities">
+          <p className="text-muted" data-testid="story-no-entities">
             <Translated locale={locale} message="story.noEntities" />
           </p>
         ) : (
@@ -208,7 +208,7 @@ export default async function StoryPage({
             <Link href={entityHref(locale, match)} className="underline">
               <Translated locale={locale} message="story.matchCentre" />
             </Link>{' '}
-            <span className="opacity-80">
+            <span className="text-muted">
               <Translated locale={locale} message="story.matchProducts" />
             </span>
           </p>
@@ -220,7 +220,7 @@ export default async function StoryPage({
           <Translated locale={locale} message="story.otherReports" />
         </h2>
         {page.reports.length === 0 ? (
-          <p className="opacity-80" data-testid="story-no-reports">
+          <p className="text-muted" data-testid="story-no-reports">
             <Translated locale={locale} message="story.noOtherReports" />
           </p>
         ) : (
@@ -234,12 +234,12 @@ export default async function StoryPage({
         )}
       </section>
 
-      <p className="text-sm opacity-80" data-testid="story-not-yet">
+      <p className="text-sm text-muted" data-testid="story-not-yet">
         <Translated locale={locale} message="story.notYet" />
       </p>
 
       <p
-        className="text-sm opacity-80"
+        className="text-sm text-muted"
         data-testid="story-freshness"
         data-stale={feedsStale(page.last_updated_at) ? 'true' : 'false'}
       >
@@ -258,7 +258,7 @@ export default async function StoryPage({
 
 function EntityChip({ entity, locale }: { entity: NewsEntity; locale: string }) {
   return (
-    <Link href={entityHref(locale, entity)} className="rounded bg-current/10 px-2 py-0.5">
+    <Link href={entityHref(locale, entity)} className="rounded bg-surface-raised px-2 py-0.5">
       {entity.localised_name ?? entity.name}
     </Link>
   );
@@ -276,7 +276,7 @@ function Report({
 }) {
   return (
     <article
-      className="flex flex-col gap-1 border-s-2 border-s-current/30 ps-3"
+      className="flex flex-col gap-1 border-s-2 border-s-default ps-3"
       lang={report.language}
     >
       <h3 className="font-semibold">
@@ -284,7 +284,7 @@ function Report({
           {report.headline}
         </a>
       </h3>
-      <p className="opacity-80">
+      <p className="text-muted">
         <Translated locale={locale} message="news.readAt" />{' '}
         <a href={report.source.homepage_url} rel="noopener" className="underline">
           {report.source.name}

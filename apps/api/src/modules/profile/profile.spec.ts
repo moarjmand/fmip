@@ -100,3 +100,24 @@ describe('validateUpdatePreferences (T-620)', () => {
     });
   });
 });
+
+describe('validateUpdatePreferences: the theme (T-602)', () => {
+  it('takes light, dark or system, alone or beside the other fields', () => {
+    for (const theme of ['light', 'dark', 'system'] as const) {
+      expect(validateUpdatePreferences({ theme })).toEqual({ ok: true, value: { theme } });
+    }
+    expect(validateUpdatePreferences({ theme: 'dark', timezone: 'UTC' })).toEqual({
+      ok: true,
+      value: { timezone: 'UTC', theme: 'dark' },
+    });
+  });
+
+  it('refuses anything else, including a different case, and says what it takes', () => {
+    for (const theme of ['Dark', 'sepia', '', null, 1, ['dark']]) {
+      expect(validateUpdatePreferences({ theme })).toEqual({
+        ok: false,
+        fields: { theme: 'must be one of light, dark, system' },
+      });
+    }
+  });
+});

@@ -119,7 +119,7 @@ export type {
   ViewingRights,
   ViewingSource,
 } from './viewing';
-export { PRIVACY_VISIBILITIES } from './profile';
+export { PRIVACY_VISIBILITIES, THEME_PREFERENCES } from './profile';
 export type {
   OwnProfile,
   PrivacySettings,
@@ -128,6 +128,7 @@ export type {
   PublicProfile,
   FirstRunResponse,
   FirstRunState,
+  ThemePreference,
   UpdatePreferencesRequest,
   UpdatePrivacyRequest,
   UpdateProfileRequest,

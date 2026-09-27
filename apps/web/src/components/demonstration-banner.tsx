@@ -35,7 +35,7 @@ export async function DemonstrationBanner() {
     <aside
       role="note"
       data-testid="demonstration-banner"
-      className="border-b-2 border-current bg-current/10 px-4 py-2 text-sm font-medium"
+      className="border-b-2 border-warning bg-surface-raised px-4 py-2 text-sm font-medium"
     >
       {DEMONSTRATION_NOTICE}
     </aside>

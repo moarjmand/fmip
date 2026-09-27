@@ -61,7 +61,7 @@ export function MatchCentreView({
   return (
     <div className="flex flex-col gap-8">
       <header className="flex flex-col gap-2" data-testid="match-header">
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted">
           <Link
             href={`/${locale}/competition/${f.competition.id}?season=${f.season.id}`}
             className="underline"
@@ -110,7 +110,7 @@ export function MatchCentreView({
             . The score and minute shown are the last known, not the current ones.
           </p>
         )}
-        <ul className="flex flex-wrap gap-x-4 text-xs opacity-70">
+        <ul className="flex flex-wrap gap-x-4 text-xs text-muted">
           {f.scores.half_time !== null && (
             <li>
               HT <Score home={f.scores.half_time.home} away={f.scores.half_time.away} />
@@ -153,7 +153,7 @@ export function MatchCentreView({
           <ol className="flex flex-col gap-1 text-sm">
             {incidents.map((i) => (
               <li key={i.id} className="flex gap-3">
-                <span className="w-14 shrink-0 tabular-nums opacity-70">
+                <span className="w-14 shrink-0 tabular-nums text-muted">
                   {minuteLabel(i.minute, i.added_time)}
                 </span>
                 <span className="w-24 shrink-0">{INCIDENT_LABEL[i.kind]}</span>
@@ -186,17 +186,17 @@ export function MatchCentreView({
           <table className="w-full text-sm">
             <tbody>
               {rows.map((row) => (
-                <tr key={row.metric} className="border-t border-current/10">
+                <tr key={row.metric} className="border-t border-default">
                   <td className="py-1 text-end tabular-nums">{statValue(row.metric, row.home)}</td>
-                  <th scope="row" className="px-3 py-1 text-center font-normal opacity-70">
+                  <th scope="row" className="px-3 py-1 text-center font-normal text-muted">
                     {STAT_LABEL[row.metric]}
                   </th>
                   <td className="py-1 tabular-nums">{statValue(row.metric, row.away)}</td>
                 </tr>
               ))}
               {xgNotice(rows.map((row) => row.metric)) === null ? null : (
-                <tr className="border-t border-current/10" data-testid="xg-not-supplied">
-                  <td colSpan={3} className="py-1 text-center opacity-70">
+                <tr className="border-t border-default" data-testid="xg-not-supplied">
+                  <td colSpan={3} className="py-1 text-center text-muted">
                     {xgNotice(rows.map((row) => row.metric))}
                   </td>
                 </tr>
@@ -252,7 +252,7 @@ export function MatchCentreView({
                       .map((a) => (
                         <li key={a.id}>
                           <Link href={`/${locale}/player/${a.id}`}>{a.name}</Link>{' '}
-                          <span className="opacity-70">{absenceLine(a)}</span>
+                          <span className="text-muted">{absenceLine(a)}</span>
                         </li>
                       ))}
                   </ul>
@@ -284,14 +284,14 @@ export function MatchCentreView({
                     <caption className="text-start font-medium">{team}</caption>
                     <thead>
                       <tr>
-                        <th scope="col" className="py-1 text-start font-normal opacity-70">
+                        <th scope="col" className="py-1 text-start font-normal text-muted">
                           Player
                         </th>
                         {PLAYER_COLUMNS.map(([metric, label]) => (
                           <th
                             key={metric}
                             scope="col"
-                            className="px-2 py-1 text-end font-normal opacity-70"
+                            className="px-2 py-1 text-end font-normal text-muted"
                           >
                             {label}
                           </th>
@@ -300,7 +300,7 @@ export function MatchCentreView({
                     </thead>
                     <tbody>
                       {rows.map((player) => (
-                        <tr key={player.id} className="border-t border-current/10">
+                        <tr key={player.id} className="border-t border-default">
                           <th scope="row" className="py-1 text-start font-normal">
                             <Link href={`/${locale}/player/${player.id}`}>{player.name}</Link>
                           </th>
@@ -316,7 +316,7 @@ export function MatchCentreView({
                 </div>
               );
             })}
-            <p className="opacity-70">{PLAYER_XG_NOTICE}</p>
+            <p className="text-muted">{PLAYER_XG_NOTICE}</p>
           </div>
         )}
       </Module>
@@ -334,14 +334,14 @@ export function MatchCentreView({
           <ul className="flex flex-col gap-1 text-sm">
             {meetings.map((m) => (
               <li key={m.fixture_id} className="flex flex-wrap gap-x-3">
-                <time dateTime={m.kickoff_at} className="opacity-70">
+                <time dateTime={m.kickoff_at} className="text-muted">
                   {m.kickoff_at.slice(0, 10)}
                 </time>
                 <span>
                   {m.home.name} <Score home={m.full_time.home} away={m.full_time.away} />{' '}
                   {m.away.name}
                 </span>
-                <span className="opacity-70">
+                <span className="text-muted">
                   {m.competition.name}
                   {m.venue !== null ? ` · ${m.venue}` : ''}
                 </span>
@@ -355,7 +355,7 @@ export function MatchCentreView({
         <h2 className="text-lg font-semibold">Coverage for this season</h2>
         <ul className="flex flex-wrap gap-2 text-xs">
           {Object.entries(centre.coverage).map(([module, state]) => (
-            <li key={module} className="rounded border border-current/20 px-2 py-1">
+            <li key={module} className="rounded border border-default px-2 py-1">
               {module.replace('_', ' ')}:{' '}
               {moduleState({ coverage: state, last_updated_at: null, data: null })}
             </li>
@@ -365,9 +365,9 @@ export function MatchCentreView({
 
       <section className="flex flex-col gap-2" data-testid="not-yet">
         <h2 className="text-lg font-semibold">Not on this page yet</h2>
-        <ul className="flex flex-wrap gap-2 text-xs opacity-70">
+        <ul className="flex flex-wrap gap-2 text-xs text-muted">
           {NOT_YET.map(([name, why]) => (
-            <li key={name} className="rounded border border-current/20 px-2 py-1">
+            <li key={name} className="rounded border border-default px-2 py-1">
               {name}: {why}
             </li>
           ))}
@@ -392,10 +392,10 @@ function Module<T>({
     <section className="flex flex-col gap-2" data-testid={testId} data-coverage={module.coverage}>
       <h2 className="text-lg font-semibold">
         {title}
-        <span className="ms-2 text-xs font-normal uppercase opacity-60">{moduleState(module)}</span>
+        <span className="ms-2 text-xs font-normal uppercase text-muted">{moduleState(module)}</span>
       </h2>
       {module.data === null ? (
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted">
           {module.coverage === 'delayed'
             ? 'Data for this module is delayed.'
             : 'Not supplied for this match.'}
@@ -436,9 +436,9 @@ function Side({
     <div className="flex flex-col gap-1">
       <h3 className="font-medium">
         {name}
-        {formation !== null ? <span className="ms-2 opacity-70">{formation}</span> : null}
+        {formation !== null ? <span className="ms-2 text-muted">{formation}</span> : null}
       </h3>
-      <p className="text-xs opacity-70">Coach: {coach ?? 'not supplied'}</p>
+      <p className="text-xs text-muted">Coach: {coach ?? 'not supplied'}</p>
       <ul>
         {starters.map((p) => (
           <li key={p.id}>{line(p)}</li>
@@ -446,8 +446,8 @@ function Side({
       </ul>
       {bench.length > 0 && (
         <>
-          <p className="mt-1 text-xs uppercase opacity-60">Bench</p>
-          <ul className="opacity-80">
+          <p className="mt-1 text-xs uppercase text-muted">Bench</p>
+          <ul className="text-muted">
             {bench.map((p) => (
               <li key={p.id}>{line(p)}</li>
             ))}
@@ -473,10 +473,10 @@ function Form({
     <div className="flex flex-col gap-1" data-coverage={module.coverage}>
       <h3 className="font-medium">
         {name}
-        <span className="ms-2 text-xs font-normal uppercase opacity-60">{moduleState(module)}</span>
+        <span className="ms-2 text-xs font-normal uppercase text-muted">{moduleState(module)}</span>
       </h3>
       {module.data === null ? (
-        <p className="text-xs opacity-70">No competitive results held.</p>
+        <p className="text-xs text-muted">No competitive results held.</p>
       ) : (
         <ul className="flex flex-col gap-1">
           {module.data.map((e) => (
@@ -485,7 +485,7 @@ function Form({
               <span>
                 {e.goals_for}–{e.goals_against} {e.home ? 'v' : 'at'} {e.opponent.name}
               </span>
-              <span className="opacity-70">
+              <span className="text-muted">
                 {e.competition.name} ·{' '}
                 <time dateTime={e.kickoff_at}>{formatKickoff(locale, e.kickoff_at, timeZone)}</time>{' '}
                 {e.kickoff_at.slice(0, 10)}

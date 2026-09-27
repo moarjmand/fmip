@@ -39,7 +39,7 @@ function Signature({
   locale: string;
 }) {
   return (
-    <p className="text-xs opacity-60" data-testid="founder-signature">
+    <p className="text-xs text-muted" data-testid="founder-signature">
       Written by {author} · published{' '}
       <time dateTime={publishedAt}>
         {publishedAt.slice(0, 10)} {formatKickoff(locale, publishedAt, timeZone)}
@@ -70,7 +70,7 @@ export function FounderAnalysisPanel({
     return (
       <section className="flex flex-col gap-2" data-testid="founder-analysis" data-state="none">
         <h2 className="text-lg font-semibold">Founder&rsquo;s analysis</h2>
-        <p className="text-sm opacity-70">The founder has not written an analysis of this match.</p>
+        <p className="text-sm text-muted">The founder has not written an analysis of this match.</p>
       </section>
     );
   }
@@ -84,7 +84,7 @@ export function FounderAnalysisPanel({
   return (
     <section className="flex flex-col gap-3" data-testid="founder-analysis" data-state="available">
       <h2 className="text-lg font-semibold">Founder&rsquo;s analysis</h2>
-      <p className="text-xs opacity-60">
+      <p className="text-xs text-muted">
         One person&rsquo;s view, signed. Not the statistical model, and not the community.
       </p>
 
@@ -96,7 +96,7 @@ export function FounderAnalysisPanel({
             <Score home={current.predicted_score.home} away={current.predicted_score.away} />
           </>
         ) : null}{' '}
-        <span className="opacity-70">· confidence {current.confidence}/5</span>
+        <span className="text-muted">· confidence {current.confidence}/5</span>
       </p>
 
       <p className="text-sm whitespace-pre-line">{current.reasoning}</p>
@@ -105,7 +105,7 @@ export function FounderAnalysisPanel({
         text === null ? null : (
           <div key={label} className="flex flex-col gap-0.5">
             <h3 className="text-sm font-medium">{label}</h3>
-            <p className="text-sm whitespace-pre-line opacity-90">{text}</p>
+            <p className="text-sm whitespace-pre-line text-muted">{text}</p>
           </div>
         ),
       )}
@@ -119,7 +119,7 @@ export function FounderAnalysisPanel({
       />
 
       {analysis.analysis.versions.length > 1 && (
-        <details className="text-xs opacity-70">
+        <details className="text-xs text-muted">
           <summary className="cursor-pointer">
             {analysis.analysis.versions.length} versions — what was said before
           </summary>
@@ -170,7 +170,7 @@ export function FounderAnalysisFeed({
             <Link href={`/${locale}/match/${entry.fixture.id}`} className="text-sm underline">
               {entry.fixture.home.name} v {entry.fixture.away.name}
             </Link>
-            <p className="text-xs opacity-70">
+            <p className="text-xs text-muted">
               {entry.fixture.competition.name} ·{' '}
               <time dateTime={entry.fixture.kickoff_at}>
                 {entry.fixture.kickoff_at.slice(0, 10)}{' '}
@@ -191,9 +191,9 @@ export function FounderAnalysisFeed({
                   <Score home={entry.predicted_score.home} away={entry.predicted_score.away} />
                 </>
               ) : null}{' '}
-              <span className="opacity-70">· confidence {entry.confidence}/5</span>
+              <span className="text-muted">· confidence {entry.confidence}/5</span>
             </p>
-            <p className="text-sm opacity-90">{entry.excerpt}</p>
+            <p className="text-sm text-muted">{entry.excerpt}</p>
             <Signature
               author={entry.author.display_name}
               publishedAt={entry.published_at}

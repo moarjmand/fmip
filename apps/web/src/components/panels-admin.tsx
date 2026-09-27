@@ -34,22 +34,19 @@ function ReasonForm({
           rows={2}
           required
           placeholder="Say why. This is recorded."
-          className="rounded border border-current/30 bg-transparent p-2"
+          className="rounded border border-strong bg-transparent p-2"
         />
       </label>
       <button
         type="submit"
         disabled={pending}
         data-testid={testId}
-        className="self-start rounded border border-current/30 px-3 py-1 text-sm disabled:opacity-50"
+        className="self-start rounded border border-strong px-3 py-1 text-sm disabled:opacity-50"
       >
         {pending ? 'Recording…' : label}
       </button>
       {state !== null && (
-        <p
-          role="status"
-          className={state.ok ? 'text-sm' : 'text-sm text-red-800 dark:text-red-300'}
-        >
+        <p role="status" className={state.ok ? 'text-sm' : 'text-sm text-danger'}>
           {state.message}
         </p>
       )}
@@ -90,7 +87,7 @@ export function PanelsAdmin({
             <input
               name="match"
               required
-              className="rounded border border-current/30 bg-transparent p-2"
+              className="rounded border border-strong bg-transparent p-2"
             />
           </label>
         </ReasonForm>
@@ -99,13 +96,13 @@ export function PanelsAdmin({
       <section className="flex flex-col gap-2" data-testid="panels-open">
         <h2 className="text-lg font-semibold">Open now</h2>
         {open.length === 0 ? (
-          <p className="text-sm opacity-70">No match is featured right now.</p>
+          <p className="text-sm text-muted">No match is featured right now.</p>
         ) : (
           <ul className="flex flex-col gap-4">
             {open.map((panel) => (
               <li
                 key={panel.fixture_id}
-                className="flex flex-col gap-2 rounded border border-current/20 p-4 text-sm"
+                className="flex flex-col gap-2 rounded border border-default p-4 text-sm"
               >
                 <p>
                   <Link
@@ -114,12 +111,12 @@ export function PanelsAdmin({
                   >
                     {panel.home} – {panel.away}
                   </Link>
-                  <span className="ms-2 opacity-70">
+                  <span className="ms-2 text-muted">
                     kick-off <time dateTime={panel.kickoff_at}>{panel.kickoff_at}</time>,{' '}
                     {panel.posts} post{panel.posts === 1 ? '' : 's'}
                   </span>
                 </p>
-                <p className="opacity-80">
+                <p className="text-muted">
                   Opened by {panel.opened_by}: {panel.reason}
                 </p>
                 <ReasonForm
@@ -136,7 +133,7 @@ export function PanelsAdmin({
       <section className="flex flex-col gap-2" data-testid="panels-closed">
         <h2 className="text-lg font-semibold">Closed</h2>
         {closed.length === 0 ? (
-          <p className="text-sm opacity-70">None yet.</p>
+          <p className="text-sm text-muted">None yet.</p>
         ) : (
           <ul className="flex flex-col gap-2 text-sm">
             {closed.map((panel) => (
@@ -144,7 +141,7 @@ export function PanelsAdmin({
                 <Link href={`/${locale}/match/${panel.fixture_id}`} className="underline">
                   {panel.home} – {panel.away}
                 </Link>
-                <span className="ms-2 opacity-70">
+                <span className="ms-2 text-muted">
                   closed by {panel.closed_by ?? 'unknown'}: {panel.close_reason ?? ''}
                 </span>
               </li>

@@ -52,7 +52,7 @@ export default async function NotificationsPage({
 
       {/* T-330: with no provider, this page is the only place a notification exists. Said, not assumed. */}
       {result.ok && result.data.delivery.in_product_only && (
-        <p className="text-sm opacity-70" data-testid="delivery-in-product-only">
+        <p className="text-sm text-muted" data-testid="delivery-in-product-only">
           Notifications appear here only. E-mail and push are not set up on this deployment, so
           nothing is on its way to your inbox or your phone.
         </p>

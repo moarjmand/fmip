@@ -50,7 +50,7 @@ export function RelatedNews({
       <h2 className="text-lg font-semibold">
         <Translated locale={locale} message="news.related.title" />
       </h2>
-      <p className="text-xs opacity-70" data-testid="related-news-freshness">
+      <p className="text-xs text-muted" data-testid="related-news-freshness">
         {read === null ? (
           <Translated locale={locale} message="news.neverRead" />
         ) : (
@@ -76,7 +76,7 @@ export function RelatedNews({
         )}
       </p>
       {state === 'nothing_linked' && (
-        <p className="text-sm opacity-80" data-testid="related-news-nothing">
+        <p className="text-sm text-muted" data-testid="related-news-nothing">
           <Translated locale={locale} message="news.related.nothing" />
         </p>
       )}
@@ -85,14 +85,14 @@ export function RelatedNews({
           {news.stories.data.map((card) => (
             <li
               key={card.story_id}
-              className="flex flex-col gap-0.5 border-s-2 border-s-current/30 ps-3"
+              className="flex flex-col gap-0.5 border-s-2 border-s-default ps-3"
               lang={card.language}
               data-testid="related-story"
             >
               <a href={card.url} rel="noopener" className="font-medium underline">
                 {card.headline}
               </a>
-              <p className="text-xs opacity-80">
+              <p className="text-xs text-muted">
                 <Translated locale={locale} message="news.readAt" />{' '}
                 <a href={card.source.homepage_url} rel="noopener" className="underline">
                   {card.source.name}

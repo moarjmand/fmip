@@ -138,6 +138,7 @@ export class ProfileService {
       privacy: toPrivacy(row),
       viewing_territory: await this.store.viewingTerritory(userId),
       first_run: await this.store.firstRun(userId),
+      theme: await this.store.theme(userId),
     };
   }
 
@@ -160,6 +161,7 @@ export class ProfileService {
     await this.store.setPreferences(userId, {
       language: patch.preferred_language,
       timezone: patch.timezone,
+      theme: patch.theme,
     });
     return this.own(userId);
   }

@@ -19,6 +19,7 @@ import { stepHref } from './first-run';
 import { applyGuestChoices } from './first-run-actions';
 import { afterRegistration, readInviter } from './invite';
 import { applyApiSetCookie, sessionCookieHeader } from './session';
+import { reconcileThemeAtSignIn } from './theme-cookie';
 
 /**
  * What a form gets back. `null` before the first submit; `ok: true` for an
@@ -71,6 +72,8 @@ export async function registerAction(
   await applyApiSetCookie(result.setCookie);
   // A guest's first-run choices become the account's (T-620).
   const firstRunDone = await applyGuestChoices(result.setCookie, 'sign_up');
+  // So is the theme this browser chose (T-602).
+  await reconcileThemeAtSignIn(result.setCookie);
   // Through a member's invite link, the new member lands on the inviter's
   // profile and its friend-request control; nothing is sent for them (T-522).
   const inviter = readInviter(text(formData, 'invited_by') || undefined);
@@ -95,6 +98,8 @@ export async function loginAction(
   await applyApiSetCookie(result.setCookie);
   // Choices made as a guest reach an account that never did the first run (T-620).
   await applyGuestChoices(result.setCookie, 'sign_in');
+  // The account's theme reaches this browser, or this browser's an account that never chose (T-602).
+  await reconcileThemeAtSignIn(result.setCookie);
   redirect(`/${locale}/u/${encodeURIComponent(result.data.user.username)}`);
 }
 

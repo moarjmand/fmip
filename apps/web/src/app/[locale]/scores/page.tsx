@@ -63,12 +63,12 @@ export default async function ScoresPage({
   const notice = feedNotice(ingestion, locale, q.timezone);
   const strip = dayStrip(q, locale);
   const linkClass = (active: boolean): string =>
-    `rounded px-2 py-1 ${active ? 'bg-current/10 font-semibold' : 'underline'}`;
+    `rounded px-2 py-1 ${active ? 'bg-surface-raised font-semibold' : 'underline'}`;
   const filters = q.filters ?? NO_FILTERS;
   const filtered = isFiltered(filters);
   const clearFiltersHref = pageHref(locale, q, { filters: NO_FILTERS });
   const options = result.ok ? filterOptions(result.data) : null;
-  const inputClass = 'rounded border border-current/30 bg-transparent px-2 py-1';
+  const inputClass = 'rounded border border-strong bg-transparent px-2 py-1';
   // What a form must carry besides its own fields, so submitting it keeps the view.
   const hidden = (fields: [string, string | null | false][]) =>
     fields.map(([name, value]) =>
@@ -109,7 +109,7 @@ export default async function ScoresPage({
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-4 sm:p-8">
-      <h1 className="border-s-4 border-s-current ps-4 text-2xl font-semibold" data-testid="title">
+      <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
         Scores
       </h1>
 
@@ -176,7 +176,7 @@ export default async function ScoresPage({
             Favourites only
           </Link>
         )}
-        <span className="ms-auto opacity-70" data-testid="timezone">
+        <span className="ms-auto text-muted" data-testid="timezone">
           Times in {q.timezone}
           {me === null && !q.explicitTimezone ? ' (sign in for your own zone)' : ''}
         </span>
