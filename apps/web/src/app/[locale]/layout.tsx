@@ -61,7 +61,15 @@ export async function generateMetadata({
       : {}),
     // Installability (T-082): the manifest, the icons and the iOS home-screen title.
     manifest: '/manifest.webmanifest',
-    icons: { icon: '/icons/icon-192.png', apple: '/icons/apple-touch-icon.png' },
+    // The mark itself as the favicon where a browser draws SVG, the PNG drawn
+    // from it where it does not (T-604).
+    icons: {
+      icon: [
+        { url: '/icons/mark.svg', type: 'image/svg+xml' },
+        { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+      ],
+      apple: '/icons/apple-touch-icon.png',
+    },
     appleWebApp: { capable: true, title: 'FMIP', statusBarStyle: 'default' },
   };
 }

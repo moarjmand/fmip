@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!--
+    The FMIP mark (T-604, D-089). The source of the app icons: after an edit,
+    run `node scripts/make-icons.mjs` and mirror the change in
+    `src/components/brand-mark.tsx`. Only a full-size first rect and then
+    rects and circles with hex fills: that is what the script can draw.
+  -->
+  <rect x="0" y="0" width="64" height="64" rx="14" fill="#0b6b3a"/>
+  <rect x="17" y="13" width="10" height="38" fill="#ffffff"/>
+  <rect x="17" y="13" width="29" height="9" fill="#ffffff"/>
+  <rect x="17" y="28" width="19" height="8" fill="#ffffff"/>
+  <circle cx="42" cy="45" r="6" fill="#ffffff"/>
+</svg>

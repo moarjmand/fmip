@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { BrandMark } from '@/components/brand-mark';
 import { Translated } from '@/components/translated';
 import { LanguagePicker } from '@/components/language-picker';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
@@ -28,7 +29,8 @@ export async function SiteHeader({ locale }: { locale: string }) {
         aria-label="Primary"
         className="mx-auto flex max-w-3xl flex-wrap items-center gap-4 px-8 py-3 text-sm"
       >
-        <Link href={href('')} className="font-semibold">
+        <Link href={href('')} className="flex items-center gap-2 font-semibold">
+          <BrandMark size={20} className="shrink-0" />
           FMIP
         </Link>
         <Link href={href('/scores')} data-testid="nav-scores">

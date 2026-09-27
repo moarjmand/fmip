@@ -106,11 +106,9 @@ test.describe('progressive web app', () => {
       return registration.scope;
     });
     expect(scope).toMatch(/\/$/);
-    // Let the install step finish caching the shell.
-    await page.waitForFunction(async () => {
-      const cache = await caches.open('fmip-shell-v1');
-      return (await cache.match('/en/offline')) !== undefined;
-    });
+    // Let the install step finish caching the shell. Any cache: the worker's
+    // cache name carries a version that changes with the shell (sw.js).
+    await page.waitForFunction(async () => (await caches.match('/en/offline')) !== undefined);
 
     await context.setOffline(true);
     await page.goto('/en/scores');

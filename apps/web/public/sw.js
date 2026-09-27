@@ -5,7 +5,7 @@
  * network; when that fails the offline page is shown. Only the offline page,
  * the manifest, the icons and Next's immutable static assets are cached.
  */
-const VERSION = 'fmip-shell-v2';
+const VERSION = 'fmip-shell-v3';
 const OFFLINE_PATH = '/en/offline';
 const SHELL = [OFFLINE_PATH, '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png'];
 
