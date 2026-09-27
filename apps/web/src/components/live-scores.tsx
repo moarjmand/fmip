@@ -6,7 +6,35 @@ import { useEffect, useState } from 'react';
 import { ScoreCard } from '@/components/score-card';
 import { scoresAnnouncements } from '@/lib/announce';
 import { INITIAL_CLOCK, type LiveClock, liveLabel, liveState } from '@/lib/live';
+import { blockUpdatedLabel } from '@/lib/scores';
 import { applyFilters, isFiltered, type ScoresFilterSelection } from '@/lib/scores-filters';
+
+/**
+ * A block's heading stays at the top of the screen while its matches scroll
+ * under it (T-605), on the page's own colour so nothing shows through.
+ */
+const HEADING =
+  'sticky top-0 z-10 flex min-h-11 min-w-0 items-center gap-2 bg-canvas text-base font-semibold';
+/** One surface per block, a hairline between rows. */
+const LIST = 'flex flex-col divide-y rounded border border-default bg-surface';
+
+/** When this block's cards last changed, once for the block (rule 4). */
+function Updated({
+  cards,
+  locale,
+  timeZone,
+}: {
+  cards: Parameters<typeof blockUpdatedLabel>[0];
+  locale: string;
+  timeZone: string;
+}) {
+  const label = blockUpdatedLabel(cards, locale, timeZone);
+  return label === null ? null : (
+    <p className="pb-1 text-xs text-muted" data-testid="block-updated">
+      {label}
+    </p>
+  );
+}
 
 /**
  * The scores list that stays current (T-032). Renders the server's snapshot
@@ -115,11 +143,12 @@ export function LiveScores({
           </Link>
         </p>
       ) : (
-        <>
+        <div className="flex flex-col gap-4">
           {shown.pinned.length > 0 && (
-            <section className="flex flex-col gap-2" data-testid="pinned">
-              <h2 className="text-lg font-semibold">Your favourites</h2>
-              <ul className="flex flex-col gap-2">
+            <section className="flex flex-col" data-testid="pinned">
+              <h2 className={HEADING}>Your favourites</h2>
+              <Updated cards={shown.pinned} locale={locale} timeZone={timeZone} />
+              <ul className={LIST}>
                 {shown.pinned.map((card) => (
                   <ScoreCard
                     key={card.id}
@@ -127,6 +156,7 @@ export function LiveScores({
                     timeZone={timeZone}
                     locale={locale}
                     now={now}
+                    showCompetition
                   />
                 ))}
               </ul>
@@ -135,24 +165,25 @@ export function LiveScores({
           {shown.groups.map((group) => (
             <section
               key={group.competition.id}
-              className="flex flex-col gap-2"
+              className="flex flex-col"
               data-testid="competition-group"
             >
-              <h2 className="text-lg font-semibold">
+              <h2 className={HEADING}>
                 {group.country !== null && (
-                  <span className="me-2 text-sm font-normal uppercase text-muted">
+                  <span className="shrink-0 text-xs font-normal uppercase text-muted">
                     {group.country.name}
                   </span>
                 )}
                 <Link
                   href={`/${locale}/competition/${group.competition.id}`}
-                  className="underline"
+                  className="flex min-h-11 min-w-0 items-center underline"
                   data-testid="competition-link"
                 >
-                  {group.competition.name}
+                  <bdi className="truncate">{group.competition.name}</bdi>
                 </Link>
               </h2>
-              <ul className="flex flex-col gap-2">
+              <Updated cards={group.fixtures} locale={locale} timeZone={timeZone} />
+              <ul className={LIST}>
                 {group.fixtures.map((card) => (
                   <ScoreCard
                     key={card.id}
@@ -168,7 +199,7 @@ export function LiveScores({
           <p className="text-xs text-muted">
             Snapshot <time dateTime={scores.generated_at}>{scores.generated_at}</time>.
           </p>
-        </>
+        </div>
       )}
     </>
   );

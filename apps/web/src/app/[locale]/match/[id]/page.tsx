@@ -151,16 +151,16 @@ export default async function MatchPage({
     : [null, null, null, null, null, null, null, null, null, null, null, null, null];
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
-      <p className="text-sm">
-        <Link href={`/${locale}/scores`} className="underline">
+    <main className="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-4 sm:gap-6 sm:p-8">
+      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+        <Link href={`/${locale}/scores`} className="inline-flex min-h-11 items-center underline">
           ← Scores
         </Link>
-        <span className="ms-3 text-muted" data-testid="timezone">
+        <span className="text-muted" data-testid="timezone">
           Times in {timeZone}
         </span>
         {result.ok && (
-          <span className="ms-3">
+          <span>
             <ShareLink
               url={canonicalUrl(locale, `/match/${result.data.fixture.id}`)}
               title={`${result.data.fixture.home.name} v ${result.data.fixture.away.name}`}
@@ -184,108 +184,10 @@ export default async function MatchPage({
             initial={result.data}
             timeZone={timeZone}
             locale={locale}
-            panels={
-              <>
-                <ViewingPanel
-                  locale={locale}
-                  timeZone={timeZone}
-                  viewing={viewing !== null && viewing.ok ? viewing.data : null}
-                  kickoffAt={result.data.fixture.kickoff_at}
-                  status={result.data.fixture.status}
-                  variant="panel"
-                  signedIn={me !== null}
-                  href={`/${locale}/match/${result.data.fixture.id}`}
-                  hidden={tzParam === undefined ? {} : { tz: tzParam }}
-                  territories={territories}
-                />
-                {editor && desk !== null && desk.ok && (
-                  <ViewingDesk
-                    locale={locale}
-                    fixtureId={result.data.fixture.id}
-                    seasonId={result.data.fixture.season.id}
-                    seasonLabel={result.data.fixture.season.label}
-                    viewing={viewing !== null && viewing.ok ? viewing.data : null}
-                    broadcasters={desk.data.broadcasters}
-                  />
-                )}
-                <PredictionSection
-                  locale={locale}
-                  fixture={result.data.fixture}
-                  me={me}
-                  current={prediction}
-                />
-                {/* Outside any `me !== null` guard, and deliberately: reading
-                    the public discussion is open to everybody, and a guard here
-                    would have made it private without anybody deciding to. */}
-                <MatchPanel
-                  locale={locale}
-                  fixtureId={result.data.fixture.id}
-                  page={panel !== null && panel.ok ? panel.data : null}
-                  permission={
-                    panelPermission !== null && panelPermission.ok ? panelPermission.data : null
-                  }
-                  reachable={panel !== null && panel.ok}
-                  me={me?.username ?? null}
-                  followed={
-                    followed !== null && followed.ok
-                      ? followed.data.following.map((f) => f.username)
-                      : []
-                  }
-                />
-                {me !== null && (
-                  <MatchThreads
-                    locale={locale}
-                    groups={groups !== null && groups.ok ? groups.data.groups : []}
-                    reachable={groups !== null && groups.ok}
-                    fixtureId={result.data.fixture.id}
-                  />
-                )}
-                <FounderAnalysisPanel
-                  analysis={founder !== null && founder.ok ? founder.data : null}
-                  home={result.data.fixture.home.name}
-                  away={result.data.fixture.away.name}
-                  timeZone={timeZone}
-                  locale={locale}
-                />
-                <CommunityForecastPanel
-                  consensus={consensus !== null && consensus.ok ? consensus.data : null}
-                  home={result.data.fixture.home.name}
-                  away={result.data.fixture.away.name}
-                  timeZone={timeZone}
-                  locale={locale}
-                  // Three numbers, pulled out here so the community panel never
-                  // holds a forecast (rule 6). The comparison blueprint 4.2 asks
-                  // for is a difference between two labelled answers, never a
-                  // blend of them.
-                  model={
-                    forecasts !== null && forecasts.ok
-                      ? (forecasts.data.latest?.probabilities ?? null)
-                      : null
-                  }
-                />
-                {/* Below the founder's analysis and visibly not it: a fourth
-                    signed opinion, named as one (rule 6, T-263). */}
-                <CommunityAnalysisPanel
-                  analyses={
-                    communityAnalyses !== null && communityAnalyses.ok
-                      ? communityAnalyses.data
-                      : null
-                  }
-                  reachable={communityAnalyses !== null && communityAnalyses.ok}
-                />
-                <PowerIndexPanel
-                  power={power !== null && power.ok ? power.data : null}
-                  timeZone={timeZone}
-                  locale={locale}
-                />
-                <ForecastPanel
-                  forecasts={forecasts !== null && forecasts.ok ? forecasts.data : null}
-                  evaluations={evaluations !== null && evaluations.ok ? evaluations.data : null}
-                  home={result.data.fixture.home.name}
-                  away={result.data.fixture.away.name}
-                  timeZone={timeZone}
-                  locale={locale}
-                />
+            slots={{
+              // Each product in its own section with its own name: the model, the
+              // founder and the community are never one panel (rule 6, T-605).
+              summary: (
                 <MatchSummaryPanel
                   locale={locale}
                   timeZone={timeZone}
@@ -294,13 +196,133 @@ export default async function MatchPage({
                   summary={summary !== null && summary.ok ? summary.data : null}
                   editor={editor}
                 />
+              ),
+              forecast: (
+                <>
+                  <ForecastPanel
+                    forecasts={forecasts !== null && forecasts.ok ? forecasts.data : null}
+                    evaluations={evaluations !== null && evaluations.ok ? evaluations.data : null}
+                    home={result.data.fixture.home.name}
+                    away={result.data.fixture.away.name}
+                    timeZone={timeZone}
+                    locale={locale}
+                  />
+                  <PowerIndexPanel
+                    power={power !== null && power.ok ? power.data : null}
+                    timeZone={timeZone}
+                    locale={locale}
+                  />
+                </>
+              ),
+              analysis: (
+                <FounderAnalysisPanel
+                  analysis={founder !== null && founder.ok ? founder.data : null}
+                  home={result.data.fixture.home.name}
+                  away={result.data.fixture.away.name}
+                  timeZone={timeZone}
+                  locale={locale}
+                />
+              ),
+              community: (
+                <>
+                  <PredictionSection
+                    locale={locale}
+                    fixture={result.data.fixture}
+                    me={me}
+                    current={prediction}
+                  />
+                  <CommunityForecastPanel
+                    consensus={consensus !== null && consensus.ok ? consensus.data : null}
+                    home={result.data.fixture.home.name}
+                    away={result.data.fixture.away.name}
+                    timeZone={timeZone}
+                    locale={locale}
+                    // Three numbers, pulled out here so the community panel never
+                    // holds a forecast (rule 6). The comparison blueprint 4.2 asks
+                    // for is a difference between two labelled answers, never a
+                    // blend of them.
+                    model={
+                      forecasts !== null && forecasts.ok
+                        ? (forecasts.data.latest?.probabilities ?? null)
+                        : null
+                    }
+                  />
+                  {/* Below the founder's analysis and visibly not it: a fourth
+                    signed opinion, named as one (rule 6, T-263). */}
+                  <CommunityAnalysisPanel
+                    analyses={
+                      communityAnalyses !== null && communityAnalyses.ok
+                        ? communityAnalyses.data
+                        : null
+                    }
+                    reachable={communityAnalyses !== null && communityAnalyses.ok}
+                  />
+                </>
+              ),
+              discussion: (
+                <>
+                  {/* Outside any `me !== null` guard, and deliberately: reading
+                    the public discussion is open to everybody, and a guard here
+                    would have made it private without anybody deciding to. */}
+                  <MatchPanel
+                    locale={locale}
+                    fixtureId={result.data.fixture.id}
+                    page={panel !== null && panel.ok ? panel.data : null}
+                    permission={
+                      panelPermission !== null && panelPermission.ok ? panelPermission.data : null
+                    }
+                    reachable={panel !== null && panel.ok}
+                    me={me?.username ?? null}
+                    followed={
+                      followed !== null && followed.ok
+                        ? followed.data.following.map((f) => f.username)
+                        : []
+                    }
+                  />
+                  {me !== null && (
+                    <MatchThreads
+                      locale={locale}
+                      groups={groups !== null && groups.ok ? groups.data.groups : []}
+                      reachable={groups !== null && groups.ok}
+                      fixtureId={result.data.fixture.id}
+                    />
+                  )}
+                </>
+              ),
+              watch: (
+                <>
+                  <ViewingPanel
+                    locale={locale}
+                    timeZone={timeZone}
+                    viewing={viewing !== null && viewing.ok ? viewing.data : null}
+                    kickoffAt={result.data.fixture.kickoff_at}
+                    status={result.data.fixture.status}
+                    variant="panel"
+                    signedIn={me !== null}
+                    href={`/${locale}/match/${result.data.fixture.id}`}
+                    hidden={tzParam === undefined ? {} : { tz: tzParam }}
+                    territories={territories}
+                  />
+                  {editor && desk !== null && desk.ok && (
+                    <ViewingDesk
+                      locale={locale}
+                      fixtureId={result.data.fixture.id}
+                      seasonId={result.data.fixture.season.id}
+                      seasonLabel={result.data.fixture.season.label}
+                      viewing={viewing !== null && viewing.ok ? viewing.data : null}
+                      broadcasters={desk.data.broadcasters}
+                    />
+                  )}
+                </>
+              ),
+              news: (
                 <RelatedNews
                   locale={locale}
                   timeZone={timeZone}
                   news={news !== null && news.ok ? news.data : null}
                 />
-              </>
-            }
+              ),
+            }}
           />
         </>
       )}

@@ -85,6 +85,9 @@ describe('TextArea and Select', () => {
     );
     expect(attr(select, 'select', 'aria-describedby')).toBe('scope-hint');
     expect(select).toContain('<option value="a">A</option>');
+    // A long option never widens a phone's page (T-605): the select fits its row.
+    expect(attr(select, 'select', 'class')).toContain('max-w-full');
+    expect(select).toMatch(/^<div class="flex min-w-0 max-w-full flex-col gap-1">/);
   });
 });
 

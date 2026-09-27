@@ -210,3 +210,23 @@ export const COVERAGE_LABEL = {
   not_supplied: 'not supplied',
   delayed: 'data delayed',
 } as const;
+
+/**
+ * The freshness line of one block of cards (T-605). A phone has no room for
+ * "Updated 20:31" on every row, so the list says it once per competition --
+ * and it must stay true for every row it covers (rule 4): one time when the
+ * cards agree, else the oldest and the newest, never the newest alone, which
+ * would make an older row look current. A row that is behind still says so
+ * on the row itself.
+ */
+export function blockUpdatedLabel(
+  cards: readonly Pick<ScoreCard, 'last_updated_at'>[],
+  locale: string,
+  timeZone: string,
+): string | null {
+  const times = cards.map((c) => Date.parse(c.last_updated_at)).filter((t) => !Number.isNaN(t));
+  if (times.length === 0) return null;
+  const oldest = formatTime(locale, Math.min(...times), timeZone);
+  const newest = formatTime(locale, Math.max(...times), timeZone);
+  return oldest === newest ? `Updated ${oldest}` : `Updated between ${oldest} and ${newest}`;
+}
