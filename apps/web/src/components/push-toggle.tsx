@@ -53,7 +53,7 @@ export function PushToggle({ locale, push }: { locale: string; push: PushState }
 
   if (push.state !== 'configured') {
     return (
-      <p className="text-sm opacity-70" data-testid="push-absent">
+      <p className="text-sm text-muted" data-testid="push-absent">
         This deployment has no push channel, so nothing reaches a device; notifications stay in your
         inbox{push.email ? ' and your e-mail' : ''}.
       </p>
@@ -114,7 +114,7 @@ export function PushToggle({ locale, push }: { locale: string; push: PushState }
 
   return (
     <div className="flex flex-col gap-2" data-testid="push-toggle" data-phase={phase}>
-      <p className="text-sm opacity-70">
+      <p className="text-sm text-muted">
         A push is the same notification your inbox has, shown by this browser even when the site is
         closed.{' '}
         {push.devices === 0
@@ -131,7 +131,7 @@ export function PushToggle({ locale, push }: { locale: string; push: PushState }
           type="button"
           onClick={phase === 'on' ? turnOff : turnOn}
           disabled={pending || phase === 'working'}
-          className="w-fit rounded border border-current/30 px-3 py-2"
+          className="w-fit rounded border border-strong px-3 py-2"
           data-testid="push-switch"
         >
           {phase === 'on' ? 'Turn push off on this device' : 'Turn push on for this device'}

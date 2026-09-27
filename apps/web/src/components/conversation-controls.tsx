@@ -20,7 +20,7 @@ function Result({ state, testId }: { state: ActionState; testId: string }) {
   return (
     <p
       role="status"
-      className={`text-sm ${state.ok ? 'opacity-70' : 'text-red-800 dark:text-red-300'}`}
+      className={`text-sm ${state.ok ? 'text-muted' : 'text-danger'}`}
       data-testid={testId}
     >
       {state.ok ? (state.message ?? 'Done.') : state.message}
@@ -57,7 +57,7 @@ export function Composer({
 
   if (disabled !== undefined) {
     return (
-      <p className="text-sm opacity-70" data-testid="composer-closed">
+      <p className="text-sm text-muted" data-testid="composer-closed">
         {disabled}
       </p>
     );
@@ -69,7 +69,7 @@ export function Composer({
         <>
           <input type="hidden" name="card_kind" value={card.kind} />
           <input type="hidden" name="card_id" value={card.id} />
-          <p className="text-sm opacity-70">Sharing: {card.label}</p>
+          <p className="text-sm text-muted">Sharing: {card.label}</p>
         </>
       )}
       <label htmlFor="message-body" className="sr-only">
@@ -81,12 +81,12 @@ export function Composer({
         rows={3}
         maxLength={4000}
         placeholder={card === undefined ? 'Write a message' : 'Say something about it (optional)'}
-        className="rounded border border-current/30 bg-transparent px-3 py-2 text-start"
+        className="rounded border border-strong bg-transparent px-3 py-2 text-start"
       />
       <button
         type="submit"
         disabled={pending}
-        className="self-start rounded bg-[color:CanvasText] px-4 py-2 text-sm font-medium text-[color:Canvas] disabled:opacity-50"
+        className="self-start rounded bg-accent px-4 py-2 text-sm font-medium text-on-accent disabled:opacity-50"
         data-testid="composer-send"
       >
         {pending ? 'Sending…' : 'Send'}
@@ -113,8 +113,7 @@ export function ConversationExits({
   const [muteState, muteAction, mutePending] = useActionState(mute, null);
   const [leaveState, leaveAction, leavePending] = useActionState(leave, null);
 
-  const button =
-    'self-start rounded border border-current/30 px-3 py-1 text-sm disabled:opacity-50';
+  const button = 'self-start rounded border border-default px-3 py-1 text-sm disabled:opacity-50';
 
   return (
     <div className="flex flex-wrap items-start gap-3" data-testid="conversation-exits">
@@ -170,7 +169,7 @@ export function RemoveMessage({
       <button
         type="submit"
         disabled={pending}
-        className="self-start text-xs underline opacity-60 disabled:opacity-30"
+        className="self-start text-xs underline text-muted disabled:opacity-30"
         data-testid="message-remove"
       >
         Remove
@@ -190,7 +189,7 @@ export function StartConversation({ locale, username }: { locale: string; userna
       <button
         type="submit"
         disabled={pending}
-        className="self-start rounded border border-current/30 px-3 py-1 text-sm disabled:opacity-50"
+        className="self-start rounded border border-strong px-3 py-1 text-sm disabled:opacity-50"
         data-testid="start-conversation"
       >
         {pending ? 'Opening…' : 'Message'}
@@ -244,7 +243,7 @@ function ReactionButton({
         disabled={pending}
         aria-pressed={mine}
         className={`rounded-full border px-2 py-0.5 text-xs disabled:opacity-50 ${
-          mine ? 'border-current' : 'border-current/30 opacity-70'
+          mine ? 'border-accent' : 'border-strong text-muted'
         }`}
         data-testid={`reaction-${reaction}`}
       >
@@ -252,7 +251,7 @@ function ReactionButton({
         {count > 0 ? ` ${count}` : ''}
       </button>
       {state !== null && !state.ok && (
-        <span role="status" className="text-xs text-red-800 dark:text-red-300">
+        <span role="status" className="text-xs text-danger">
           {' '}
           {state.message}
         </span>
@@ -299,7 +298,7 @@ export function Reactions({
       ))}
       {unused.length > 0 && (
         <details className="inline">
-          <summary className="cursor-pointer text-xs opacity-60">React</summary>
+          <summary className="cursor-pointer text-xs text-muted">React</summary>
           <div className="mt-1 flex flex-wrap gap-2">
             {unused.map((reaction) => (
               <ReactionButton
@@ -345,13 +344,13 @@ export function PinMessage({
       <button
         type="submit"
         disabled={pending}
-        className="text-xs underline opacity-60 disabled:opacity-30"
+        className="text-xs underline text-muted disabled:opacity-30"
         data-testid="message-pin"
       >
         {pinned ? 'Unpin' : 'Pin'}
       </button>
       {state !== null && !state.ok && (
-        <span role="status" className="text-xs text-red-800 dark:text-red-300">
+        <span role="status" className="text-xs text-danger">
           {' '}
           {state.message}
         </span>

@@ -111,23 +111,23 @@ export default async function TeamPage({
     <main className="mx-auto flex max-w-3xl flex-col gap-8 p-8">
       <JsonLd data={teamJsonLd(locale, t)} />
       <header className="flex flex-col gap-1" data-testid="team-header">
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted">
           {t.country !== null ? `${t.country.name} · ` : ''}
           {t.kind === 'national' ? 'National team' : 'Club'}
           {t.gender === 'women' ? ' · Women' : ''}
           {t.founded_year !== null ? ` · Founded ${t.founded_year}` : ''}
         </p>
-        <h1 className="border-s-4 border-s-current ps-4 text-2xl font-semibold" data-testid="title">
+        <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
           {t.localised_name ?? t.name}
         </h1>
         {t.localised_name !== null && (
           // The name it is a name for. Shown, not hidden: a page that showed
           // only the localised name would have lost the entity (rule 1).
-          <p className="text-sm opacity-70" data-testid="canonical-name">
+          <p className="text-sm text-muted" data-testid="canonical-name">
             {t.name}
           </p>
         )}
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted">
           {t.venue !== null
             ? `${t.venue.name}${t.venue.city !== null ? `, ${t.venue.city}` : ''}${
                 t.venue.capacity !== null ? ` · ${formatNumber(locale, t.venue.capacity)}` : ''
@@ -151,7 +151,7 @@ export default async function TeamPage({
       <section className="flex flex-col gap-3" data-testid="competitions">
         <h2 className="text-lg font-semibold">Competitions</h2>
         {page.competitions.length === 0 ? (
-          <p className="text-sm opacity-70">No current competition on record.</p>
+          <p className="text-sm text-muted">No current competition on record.</p>
         ) : (
           page.competitions.map((entry) => (
             <div key={entry.season.id} className="flex flex-col gap-1" data-testid="competition">
@@ -162,13 +162,13 @@ export default async function TeamPage({
                 >
                   {entry.competition.name}
                 </Link>{' '}
-                <span className="text-sm opacity-70">{entry.season.label}</span>
-                <span className="ms-2 text-xs font-normal uppercase opacity-60">
+                <span className="text-sm text-muted">{entry.season.label}</span>
+                <span className="ms-2 text-xs font-normal uppercase text-muted">
                   {moduleState(entry.context)}
                 </span>
               </h3>
               {entry.context.data === null ? (
-                <p className="text-sm opacity-70">No table position to show.</p>
+                <p className="text-sm text-muted">No table position to show.</p>
               ) : (
                 <>
                   <p className="text-sm" data-testid="context-line">
@@ -180,7 +180,7 @@ export default async function TeamPage({
                         {entry.context.data.rows.map((row) => (
                           <tr
                             key={row.team.id}
-                            className={`border-b border-current/10 ${
+                            className={`border-b border-default ${
                               row.team.id === t.id ? 'font-semibold' : ''
                             }`}
                           >
@@ -215,13 +215,13 @@ export default async function TeamPage({
       <section className="flex flex-col gap-3" data-testid="splits">
         <h2 className="text-lg font-semibold">Home and away</h2>
         {page.splits.length === 0 ? (
-          <p className="text-sm opacity-70">No current competition on record.</p>
+          <p className="text-sm text-muted">No current competition on record.</p>
         ) : (
           <>
             {page.splits.map((entry) => (
               <SplitsTable key={entry.season.id} splits={entry} locale={locale} />
             ))}
-            <p className="text-xs opacity-70" data-testid="splits-footnote">
+            <p className="text-xs text-muted" data-testid="splits-footnote">
               {SPLITS_FOOTNOTE}
             </p>
           </>
@@ -232,7 +232,7 @@ export default async function TeamPage({
         <div className="flex flex-col gap-1">
           <h2 className="text-lg font-semibold">Next match</h2>
           {page.next_match === null ? (
-            <p className="text-sm opacity-70">No match scheduled.</p>
+            <p className="text-sm text-muted">No match scheduled.</p>
           ) : (
             <MatchLine
               fixture={page.next_match}
@@ -245,7 +245,7 @@ export default async function TeamPage({
         <div className="flex flex-col gap-1">
           <h2 className="text-lg font-semibold">Previous match</h2>
           {page.previous_match === null ? (
-            <p className="text-sm opacity-70">No result on record.</p>
+            <p className="text-sm text-muted">No result on record.</p>
           ) : (
             <MatchLine
               fixture={page.previous_match}
@@ -260,9 +260,9 @@ export default async function TeamPage({
       <section className="flex flex-col gap-2" data-testid="fixtures">
         <h2 className="text-lg font-semibold">Fixtures</h2>
         {page.fixtures.length === 0 ? (
-          <p className="text-sm opacity-70">No fixtures scheduled.</p>
+          <p className="text-sm text-muted">No fixtures scheduled.</p>
         ) : (
-          <ul className="flex flex-col divide-y divide-current/10">
+          <ul className="flex flex-col divide-y divide-default">
             {page.fixtures.map((fixture) => (
               <li key={fixture.id} className="flex flex-col gap-1 py-2">
                 <MatchLine fixture={fixture} teamId={t.id} locale={locale} timeZone={timeZone} />
@@ -285,9 +285,9 @@ export default async function TeamPage({
       <section className="flex flex-col gap-2" data-testid="results">
         <h2 className="text-lg font-semibold">Results</h2>
         {page.results.length === 0 ? (
-          <p className="text-sm opacity-70">No results on record.</p>
+          <p className="text-sm text-muted">No results on record.</p>
         ) : (
-          <ul className="flex flex-col divide-y divide-current/10">
+          <ul className="flex flex-col divide-y divide-default">
             {page.results.map((fixture) => (
               <li key={fixture.id} className="py-2">
                 <MatchLine fixture={fixture} teamId={t.id} locale={locale} timeZone={timeZone} />
@@ -300,29 +300,29 @@ export default async function TeamPage({
       <section className="flex flex-col gap-2" data-testid="squad">
         <h2 className="text-lg font-semibold">
           Squad
-          <span className="ms-2 text-xs font-normal uppercase opacity-60">
+          <span className="ms-2 text-xs font-normal uppercase text-muted">
             {moduleState(page.squad)}
           </span>
         </h2>
         {page.squad.data === null ? (
-          <p className="text-sm opacity-70" data-testid="squad-empty">
+          <p className="text-sm text-muted" data-testid="squad-empty">
             No squad on record for this team.
           </p>
         ) : (
           groupSquad(page.squad.data).map((group) => (
             <div key={group.position} className="flex flex-col gap-1">
-              <h3 className="text-sm font-medium opacity-80">{group.label}</h3>
+              <h3 className="text-sm font-medium text-muted">{group.label}</h3>
               <ul className="flex flex-col text-sm">
                 {group.players.map((player) => (
                   <li key={player.person.id} className="flex gap-3" data-testid="player">
-                    <span className="w-8 text-end tabular-nums opacity-60">
+                    <span className="w-8 text-end tabular-nums text-muted">
                       {player.shirt_number ?? '–'}
                     </span>
                     <span>
                       <Link href={`/${locale}/player/${player.person.id}`} className="underline">
                         {player.person.name}
                       </Link>
-                      {player.on_loan && <span className="ms-2 text-xs opacity-70">on loan</span>}
+                      {player.on_loan && <span className="ms-2 text-xs text-muted">on loan</span>}
                     </span>
                   </li>
                 ))}
@@ -332,7 +332,7 @@ export default async function TeamPage({
         )}
       </section>
 
-      <p className="text-xs opacity-60">
+      <p className="text-xs text-muted">
         {page.last_updated_at === null ? (
           'No fixture data stored yet.'
         ) : (
@@ -356,16 +356,16 @@ function SplitsTable({ splits, locale }: { splits: TeamCompetitionSplits; locale
   return (
     <div className="flex flex-col gap-1" data-testid="splits-competition">
       <h3 className="font-medium">
-        {splits.competition.name} <span className="text-sm opacity-70">{splits.season.label}</span>
+        {splits.competition.name} <span className="text-sm text-muted">{splits.season.label}</span>
       </h3>
       {played === 0 ? (
-        <p className="text-sm opacity-70" data-testid="splits-empty">
+        <p className="text-sm text-muted" data-testid="splits-empty">
           No finished match on record yet.
         </p>
       ) : (
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-current/20 text-xs opacity-70">
+            <tr className="border-b border-default text-xs text-muted">
               <th scope="col" className="py-1 pe-2 text-start font-normal">
                 <span className="sr-only">Figure</span>
               </th>
@@ -378,7 +378,7 @@ function SplitsTable({ splits, locale }: { splits: TeamCompetitionSplits; locale
           </thead>
           <tbody>
             {SPLIT_RECORD_ROWS.map((row) => (
-              <tr key={row.key} className="border-b border-current/10">
+              <tr key={row.key} className="border-b border-default">
                 <th scope="row" className="py-1 pe-2 text-start font-normal">
                   {row.label}
                 </th>
@@ -394,13 +394,13 @@ function SplitsTable({ splits, locale }: { splits: TeamCompetitionSplits; locale
               return (
                 <tr
                   key={average.metric}
-                  className="border-b border-current/10"
+                  className="border-b border-default"
                   data-testid="splits-average"
                   data-coverage={average.coverage}
                 >
                   <th scope="row" className="py-1 pe-2 text-start font-normal">
                     {METRIC_LABEL[average.metric]}
-                    <span className="block text-xs opacity-60">
+                    <span className="block text-xs text-muted">
                       {note === null ? 'Per match' : note}
                     </span>
                   </th>
@@ -416,7 +416,7 @@ function SplitsTable({ splits, locale }: { splits: TeamCompetitionSplits; locale
         </table>
       )}
       {notes.map((note) => (
-        <p key={note} className="text-xs opacity-70">
+        <p key={note} className="text-xs text-muted">
           {note}
         </p>
       ))}
@@ -445,7 +445,7 @@ function MatchLine({
           {side.result}
         </span>
       )}
-      <span className="opacity-70">{side.home ? 'v' : 'at'}</span>
+      <span className="text-muted">{side.home ? 'v' : 'at'}</span>
       <Link href={`/${locale}/team/${opponentId}`} className="underline">
         {side.opponent}
       </Link>
@@ -457,11 +457,11 @@ function MatchLine({
         )}
       </Link>
       {note !== null && (
-        <span className="text-xs opacity-70" data-testid="after-time-note">
+        <span className="text-xs text-muted" data-testid="after-time-note">
           {note}
         </span>
       )}
-      <span className="text-xs opacity-70">
+      <span className="text-xs text-muted">
         <time dateTime={fixture.kickoff_at}>
           {formatFixtureDate(locale, fixture.kickoff_at, timeZone)}
         </time>

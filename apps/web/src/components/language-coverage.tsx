@@ -16,12 +16,12 @@ export function LanguageCoverage({ locale }: { locale: string }) {
   return (
     <section className="flex flex-col gap-3" data-testid="admin-languages">
       <h2 className="text-lg font-semibold">Languages</h2>
-      <p className="text-sm opacity-70">
+      <p className="text-sm text-muted">
         From the translators&rsquo; files in <code>src/i18n/catalogues/</code>. A language is
         offered to readers at {threshold}% and not before; below that it still routes, so a
         translator can see their work in place.
       </p>
-      <ul className="divide-y divide-current/10">
+      <ul className="divide-y divide-default">
         {rows.map((row) => (
           <li
             key={row.locale}
@@ -34,12 +34,12 @@ export function LanguageCoverage({ locale }: { locale: string }) {
               {row.autonym}
             </a>
             {row.locale !== locale && row.autonym !== row.name && (
-              <span className="text-sm opacity-70">{row.name}</span>
+              <span className="text-sm text-muted">{row.name}</span>
             )}
             <span className="text-sm" data-testid="language-percent">
               {row.percent}%
             </span>
-            <span className="text-sm opacity-70">
+            <span className="text-sm text-muted">
               {row.coverage.translated + row.coverage.reviewed} of {row.coverage.total} done
               {row.coverage.reviewed > 0 ? `, ${row.coverage.reviewed} reviewed` : ''}
               {row.coverage.untranslated > 0 ? `, ${row.coverage.untranslated} to go` : ''}

@@ -81,7 +81,7 @@ export default async function GroupPage({
         <h1 className="text-2xl font-semibold" data-testid="group-name">
           {group.name}
         </h1>
-        <p className="text-sm opacity-70" data-testid="group-visibility">
+        <p className="text-sm text-muted" data-testid="group-visibility">
           <Translated locale={locale} message="groups.memberCount" count={group.member_count} /> ·{' '}
           {VISIBILITY[group.visibility] ?? group.visibility}
         </p>
@@ -106,7 +106,7 @@ export default async function GroupPage({
           // Found, not read. Saying so is the point of the middle visibility;
           // an empty list would have said "nobody", which of a group is never
           // true.
-          <p className="text-sm opacity-70" data-testid="group-members-hidden">
+          <p className="text-sm text-muted" data-testid="group-members-hidden">
             Who is in this group is shown to its members.
           </p>
         ) : (
@@ -119,7 +119,7 @@ export default async function GroupPage({
                 >
                   {member.display_name}
                 </Link>{' '}
-                <span className="opacity-70">
+                <span className="text-muted">
                   @{member.username}
                   {member.role === 'member' ? '' : ` · ${member.role}`}
                 </span>
@@ -141,7 +141,7 @@ export default async function GroupPage({
             // have no board at all — and saying which filter produced that is
             // the difference between an honest absence and a page that looks
             // like nobody is here.
-            <p className="text-sm opacity-70" data-testid="group-board-none">
+            <p className="text-sm text-muted" data-testid="group-board-none">
               Nobody in this group has settled {board.data.min_settled} predictions yet, so there is
               nobody to rank. That is the same filter the whole product uses.
             </p>
@@ -150,7 +150,7 @@ export default async function GroupPage({
               <ol className="flex flex-col gap-2">
                 {board.data.entries.map((entry) => (
                   <li key={entry.username} className="flex items-baseline gap-3 text-sm">
-                    <span className="w-6 text-end opacity-70">{entry.rank}</span>
+                    <span className="w-6 text-end text-muted">{entry.rank}</span>
                     <Link
                       href={`/${locale}/u/${encodeURIComponent(entry.username)}`}
                       className="underline"
@@ -158,19 +158,19 @@ export default async function GroupPage({
                       @{entry.username}
                     </Link>
                     <span className="ms-auto tabular-nums">{ratingLabel(entry)}</span>
-                    <span className="opacity-70">{tierLabel(entry.tier)}</span>
-                    <span className="opacity-70">{statusLabel(entry)}</span>
+                    <span className="text-muted">{tierLabel(entry.tier)}</span>
+                    <span className="text-muted">{statusLabel(entry)}</span>
                   </li>
                 ))}
               </ol>
               {board.data.total > board.data.entries.length && (
-                <p className="text-sm opacity-70" data-testid="group-board-more">
+                <p className="text-sm text-muted" data-testid="group-board-more">
                   Showing {board.data.entries.length} of {board.data.total} ranked members.
                 </p>
               )}
             </>
           )}
-          <p className="text-sm opacity-70" data-testid="group-board-note">
+          <p className="text-sm text-muted" data-testid="group-board-note">
             Ranked among this group&rsquo;s members by the same rating as the{' '}
             <Link href={`/${locale}/leaderboard`} className="underline">
               global board
@@ -188,7 +188,7 @@ export default async function GroupPage({
               The queue cannot be shown right now.
             </p>
           ) : queue.data.requests.length === 0 ? (
-            <p className="text-sm opacity-70" data-testid="group-queue-none">
+            <p className="text-sm text-muted" data-testid="group-queue-none">
               Nobody is waiting.
             </p>
           ) : (
@@ -202,7 +202,7 @@ export default async function GroupPage({
                     >
                       {request.display_name}
                     </Link>{' '}
-                    <span className="opacity-70">@{request.username}</span>
+                    <span className="text-muted">@{request.username}</span>
                   </p>
                   {request.note !== null && <p className="text-sm">{request.note}</p>}
                   <JoinRequestControls
@@ -217,7 +217,7 @@ export default async function GroupPage({
         </section>
       )}
 
-      <p className="text-sm opacity-70">
+      <p className="text-sm text-muted">
         Blocking and reporting live on a member’s profile, where they work the same way everywhere
         else in the product.
       </p>

@@ -31,7 +31,7 @@ export function HealthPanel({ live, chat }: { live: LiveHealth | null; chat: Cha
         ) : (
           <ul className="text-sm" data-testid="health-live">
             <li>Readers attached: {live.stream_subscribers}</li>
-            <li className="opacity-70">Checked at {live.checked_at}</li>
+            <li className="text-muted">Checked at {live.checked_at}</li>
           </ul>
         )}
       </div>
@@ -63,9 +63,9 @@ export function HealthPanel({ live, chat }: { live: LiveHealth | null; chat: Cha
                     'Delivery time: nothing delivered yet'
                   : `Delivery time: ${chat.latency_ms.p50} ms typical, ${chat.latency_ms.p95} ms slow, over ${chat.latency_ms.samples} messages`}
               </li>
-              <li className="opacity-70">Checked at {chat.checked_at}</li>
+              <li className="text-muted">Checked at {chat.checked_at}</li>
             </ul>
-            <p className="text-sm opacity-70" data-testid="health-chat-scope">
+            <p className="text-sm text-muted" data-testid="health-chat-scope">
               These numbers are one instance — {chat.instance}. Sockets live on the process that
               accepted them, so a deployment with more than one has a separate answer for each.
             </p>

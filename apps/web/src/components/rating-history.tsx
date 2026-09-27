@@ -45,7 +45,7 @@ export function RatingHistorySection({
   const view = result.data;
   if (view.kind === 'restricted') {
     return (
-      <p className="text-sm opacity-70" data-testid="rating-history-restricted">
+      <p className="text-sm text-muted" data-testid="rating-history-restricted">
         {view.visibility === 'friends'
           ? 'The rating history is visible to friends only.'
           : 'The rating history is private.'}
@@ -55,7 +55,7 @@ export function RatingHistorySection({
   const history = view.history;
   if (history === null) {
     return (
-      <p className="text-sm opacity-70" data-testid="rating-history-none">
+      <p className="text-sm text-muted" data-testid="rating-history-none">
         Nothing has settled yet, so there is no rating to follow over time.
       </p>
     );
@@ -101,7 +101,7 @@ export function RatingHistorySection({
             <circle cx={lastPoint.x} cy={lastPoint.y} r={4} fill="currentColor" />
           )}
         </svg>
-        <figcaption className="flex justify-between text-xs opacity-60" aria-hidden="true">
+        <figcaption className="flex justify-between text-xs text-muted" aria-hidden="true">
           <span>{day(history.points[0]?.date ?? '')}</span>
           <span>0–100</span>
           <span>{day(history.points.at(-1)?.date ?? '')}</span>
@@ -142,7 +142,7 @@ export function RatingHistorySection({
         <h3 className="font-semibold">By competition</h3>
         <table className="w-full text-sm" data-testid="rating-by-competition">
           <thead>
-            <tr className="text-xs uppercase opacity-60">
+            <tr className="text-xs uppercase text-muted">
               <th scope="col" className="text-start font-normal">
                 Competition
               </th>
@@ -168,14 +168,14 @@ export function RatingHistorySection({
                 <td className="text-end tabular-nums">
                   {entry.rating.toFixed(1)}
                   {entry.provisional ? (
-                    <span className="ms-1 text-xs opacity-60">provisional</span>
+                    <span className="ms-1 text-xs text-muted">provisional</span>
                   ) : null}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        <p className="text-xs opacity-60">
+        <p className="text-xs text-muted">
           Each competition is rated on its own predictions under {history.formula_version}.
         </p>
       </div>

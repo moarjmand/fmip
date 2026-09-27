@@ -26,7 +26,7 @@ export async function SiteHeader({ locale, theme }: { locale: string; theme: The
   const search = attribute(isLocale(locale) ? locale : DEFAULT_LOCALE, 'nav.search');
 
   return (
-    <header className="border-b border-current/20">
+    <header className="border-b border-default">
       <nav
         aria-label="Primary"
         className="mx-auto flex max-w-3xl flex-wrap items-center gap-4 px-8 py-3 text-sm"
@@ -63,7 +63,7 @@ export async function SiteHeader({ locale, theme }: { locale: string; theme: The
             placeholder={search.text}
             lang={search.lang}
             autoComplete="off"
-            className="w-32 rounded border border-current/30 bg-transparent px-2 py-1 text-sm sm:w-48"
+            className="w-32 rounded border border-strong bg-transparent px-2 py-1 text-sm sm:w-48"
             data-testid="nav-search"
           />
         </form>

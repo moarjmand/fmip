@@ -85,22 +85,22 @@ export default async function PlayerPage({
   const age = ageOn(p.date_of_birth, new Date());
   const base = `/${locale}/player/${p.id}`;
   const linkClass = (active: boolean): string =>
-    `rounded px-2 py-1 ${active ? 'bg-current/10 font-semibold' : 'underline'}`;
+    `rounded px-2 py-1 ${active ? 'bg-surface-raised font-semibold' : 'underline'}`;
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-8 p-8">
       <JsonLd data={playerJsonLd(locale, page)} />
       <header className="flex flex-col gap-1" data-testid="player-header">
-        <h1 className="border-s-4 border-s-current ps-4 text-2xl font-semibold" data-testid="title">
+        <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
           {p.localised_name ?? p.known_as ?? p.full_name}
         </h1>
         {p.localised_name !== null && (
-          <p className="text-sm opacity-70" data-testid="canonical-name">
+          <p className="text-sm text-muted" data-testid="canonical-name">
             {p.known_as ?? p.full_name}
           </p>
         )}
-        {p.known_as !== null && <p className="text-sm opacity-70">{p.full_name}</p>}
-        <dl className="flex flex-wrap gap-x-4 text-sm opacity-80" data-testid="identity">
+        {p.known_as !== null && <p className="text-sm text-muted">{p.full_name}</p>}
+        <dl className="flex flex-wrap gap-x-4 text-sm text-muted" data-testid="identity">
           {p.nationality !== null && (
             <div>
               <dt className="sr-only">Nationality</dt>
@@ -133,7 +133,7 @@ export default async function PlayerPage({
       <section className="flex flex-col gap-2" data-testid="current-team">
         <h2 className="text-lg font-semibold">Current team</h2>
         {page.current_spell === null ? (
-          <p className="text-sm opacity-70">No current team on record.</p>
+          <p className="text-sm text-muted">No current team on record.</p>
         ) : (
           <p className="text-sm">
             <Link href={`/${locale}/team/${page.current_spell.team.id}`} className="underline">
@@ -167,9 +167,9 @@ export default async function PlayerPage({
           type="search"
           placeholder="Another player’s name"
           autoComplete="off"
-          className="min-w-0 grow rounded border border-current/30 bg-transparent px-3 py-2"
+          className="min-w-0 grow rounded border border-strong bg-transparent px-3 py-2"
         />
-        <button type="submit" className="rounded border border-current/30 px-3 py-2">
+        <button type="submit" className="rounded border border-strong px-3 py-2">
           Find
         </button>
       </form>
@@ -177,9 +177,9 @@ export default async function PlayerPage({
       <section className="flex flex-col gap-2" data-testid="career">
         <h2 className="text-lg font-semibold">Career</h2>
         {page.spells.length === 0 ? (
-          <p className="text-sm opacity-70">No spells on record.</p>
+          <p className="text-sm text-muted">No spells on record.</p>
         ) : (
-          <ul className="flex flex-col divide-y divide-current/10 text-sm">
+          <ul className="flex flex-col divide-y divide-default text-sm">
             {page.spells.map((spell) => (
               <li
                 key={`${spell.team.id}-${spell.start_date}`}
@@ -188,8 +188,8 @@ export default async function PlayerPage({
                 <Link href={`/${locale}/team/${spell.team.id}`} className="underline">
                   {spell.team.name}
                 </Link>
-                <span className="opacity-70">{spellPeriod(locale, spell)}</span>
-                <span className="text-xs opacity-70">
+                <span className="text-muted">{spellPeriod(locale, spell)}</span>
+                <span className="text-xs text-muted">
                   {spell.shirt_number !== null ? `No. ${spell.shirt_number}` : ''}
                   {spell.position !== null ? ` · ${POSITION_LABEL[spell.position]}` : ''}
                   {spell.on_loan ? ' · loan' : ''}
@@ -225,12 +225,12 @@ export default async function PlayerPage({
       <section className="flex flex-col gap-2" data-testid="record">
         <h2 className="text-lg font-semibold">
           Record
-          <span className="ms-2 text-xs font-normal uppercase opacity-60">
+          <span className="ms-2 text-xs font-normal uppercase text-muted">
             {moduleState(page.record)}
           </span>
         </h2>
         {shownRecord.length === 0 ? (
-          <p className="text-sm opacity-70" data-testid="record-empty">
+          <p className="text-sm text-muted" data-testid="record-empty">
             {page.record.data === null
               ? 'No line-ups on record for this player, so there are no statistics to show.'
               : 'Nothing on record for this season.'}
@@ -239,7 +239,7 @@ export default async function PlayerPage({
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-current/20">
+                <tr className="border-b border-default">
                   <th scope="col" className="py-1 pe-2 text-start">
                     Season
                   </th>
@@ -260,7 +260,7 @@ export default async function PlayerPage({
                 {shownRecord.map((row) => (
                   <tr
                     key={`${row.season.id}-${row.competition.id}-${row.team.id}`}
-                    className="border-b border-current/10"
+                    className="border-b border-default"
                     data-testid="record-row"
                   >
                     <td className="py-1 pe-2">{row.season.label}</td>
@@ -293,7 +293,7 @@ export default async function PlayerPage({
                 ))}
               </tbody>
             </table>
-            <p className="mt-1 text-xs opacity-60">
+            <p className="mt-1 text-xs text-muted">
               Minutes, advanced statistics and availability are not held for this player and are not
               shown.
             </p>
@@ -304,14 +304,14 @@ export default async function PlayerPage({
       <section className="flex flex-col gap-2" data-testid="recent-matches">
         <h2 className="text-lg font-semibold">
           Recent matches
-          <span className="ms-2 text-xs font-normal uppercase opacity-60">
+          <span className="ms-2 text-xs font-normal uppercase text-muted">
             {moduleState(page.recent_matches)}
           </span>
         </h2>
         {shownMatches.length === 0 ? (
-          <p className="text-sm opacity-70">No matches on record.</p>
+          <p className="text-sm text-muted">No matches on record.</p>
         ) : (
-          <ul className="flex flex-col divide-y divide-current/10 text-sm">
+          <ul className="flex flex-col divide-y divide-default text-sm">
             {shownMatches.map((m) => (
               <li
                 key={m.fixture.id}
@@ -325,14 +325,14 @@ export default async function PlayerPage({
                     : ` ${ltrIsolate(`${m.fixture.score.home}–${m.fixture.score.away}`)} `}
                   {m.fixture.away.short_name ?? m.fixture.away.name}
                 </Link>
-                <span className="opacity-80">{roleLabel(m)}</span>
+                <span className="text-muted">{roleLabel(m)}</span>
                 {m.goals > 0 && <span>{m.goals === 1 ? '1 goal' : `${m.goals} goals`}</span>}
                 {m.assists > 0 && (
                   <span>{m.assists === 1 ? '1 assist' : `${m.assists} assists`}</span>
                 )}
                 {m.yellow_cards > 0 && <span>Yellow card</span>}
                 {m.red_cards > 0 && <span>Red card</span>}
-                <span className="text-xs opacity-70">
+                <span className="text-xs text-muted">
                   <time dateTime={m.fixture.kickoff_at}>
                     {formatFixtureDate(locale, m.fixture.kickoff_at, timeZone)}
                   </time>
@@ -350,7 +350,7 @@ export default async function PlayerPage({
         )}
       </section>
 
-      <p className="text-xs opacity-60">
+      <p className="text-xs text-muted">
         {page.last_updated_at === null ? (
           'No match data stored for this player yet.'
         ) : (

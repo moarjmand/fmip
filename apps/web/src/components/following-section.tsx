@@ -33,15 +33,15 @@ export function FollowingSection({ locale, following, teams, competitions }: Pro
   return (
     <section className="flex flex-col gap-4" data-testid="following-section">
       <h2 className="text-xl font-semibold">Following</h2>
-      <p className="text-sm opacity-70">
+      <p className="text-sm text-muted">
         Favourites are pinned first on the scores page and shown on your profile. Everything you
         follow feeds your Following views.
       </p>
 
       {following.length === 0 ? (
-        <p className="text-sm opacity-70">You are not following anything yet.</p>
+        <p className="text-sm text-muted">You are not following anything yet.</p>
       ) : (
-        <ul className="flex flex-col divide-y divide-current/20">
+        <ul className="flex flex-col divide-y divide-default">
           {following.map((item) => (
             <li
               key={`${item.entity_type}:${item.entity_id}`}
@@ -55,7 +55,7 @@ export function FollowingSection({ locale, following, teams, competitions }: Pro
                   </span>
                 )}
                 {item.name}
-                <span className="ms-2 text-xs uppercase opacity-60">
+                <span className="ms-2 text-xs uppercase text-muted">
                   {TYPE_LABEL[item.entity_type]}
                 </span>
               </span>
@@ -89,7 +89,7 @@ export function FollowingSection({ locale, following, teams, competitions }: Pro
             id="follow-team"
             name="entity_id"
             required
-            className="rounded border border-current/30 bg-transparent px-3 py-2 text-start"
+            className="rounded border border-strong bg-transparent px-3 py-2 text-start"
           >
             <option value="">Choose a team…</option>
             {unfollowedTeams.map((team) => (
@@ -113,7 +113,7 @@ export function FollowingSection({ locale, following, teams, competitions }: Pro
             id="follow-competition"
             name="entity_id"
             required
-            className="rounded border border-current/30 bg-transparent px-3 py-2 text-start"
+            className="rounded border border-strong bg-transparent px-3 py-2 text-start"
           >
             <option value="">Choose a competition…</option>
             {unfollowedCompetitions.map((competition) => (

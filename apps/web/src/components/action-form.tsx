@@ -46,9 +46,7 @@ export function ActionForm({ action, fields, submitLabel, testId }: Props) {
         <p
           role="status"
           className={`rounded border px-3 py-2 text-sm ${
-            state.ok
-              ? 'border-green-700/40 text-green-800 dark:text-green-300'
-              : 'border-red-700/40 text-red-800 dark:text-red-300'
+            state.ok ? 'border-success text-success' : 'border-danger text-danger'
           }`}
         >
           {state.ok ? (state.message ?? 'Done.') : state.message}
@@ -66,7 +64,7 @@ export function ActionForm({ action, fields, submitLabel, testId }: Props) {
           'aria-invalid': error ? true : undefined,
           'aria-describedby': describedBy,
           className:
-            'rounded border border-current/30 bg-transparent px-3 py-2 text-start focus:outline-2',
+            'rounded border border-default bg-transparent px-3 py-2 text-start focus:outline-2',
         };
 
         if (field.type === 'hidden') {
@@ -119,11 +117,11 @@ export function ActionForm({ action, fields, submitLabel, testId }: Props) {
               </>
             )}
             {error ? (
-              <p id={`${id}-error`} className="text-sm text-red-800 dark:text-red-300">
+              <p id={`${id}-error`} className="text-sm text-danger">
                 {error}
               </p>
             ) : field.hint ? (
-              <p id={`${id}-hint`} className="text-sm opacity-70">
+              <p id={`${id}-hint`} className="text-sm text-muted">
                 {field.hint}
               </p>
             ) : null}
@@ -134,7 +132,7 @@ export function ActionForm({ action, fields, submitLabel, testId }: Props) {
       <button
         type="submit"
         disabled={pending}
-        className="self-start rounded bg-[color:CanvasText] px-4 py-2 font-medium text-[color:Canvas] disabled:opacity-50"
+        className="self-start rounded bg-accent px-4 py-2 font-medium text-on-accent disabled:opacity-50"
       >
         {pending ? 'Working…' : submitLabel}
       </button>

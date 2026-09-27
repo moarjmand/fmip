@@ -60,7 +60,7 @@ export default async function NotificationSettingsPage({
         {push.ok ? (
           <PushToggle locale={locale} push={push.data} />
         ) : (
-          <p className="text-sm opacity-70" data-testid="push-unreachable">
+          <p className="text-sm text-muted" data-testid="push-unreachable">
             Whether push is available could not be read right now.
           </p>
         )}

@@ -31,25 +31,25 @@ function Analysis({ analysis }: { analysis: CommunityAnalysis }) {
 
   return (
     <li
-      className="flex flex-col gap-2 rounded border border-current/20 p-4"
+      className="flex flex-col gap-2 rounded border border-default p-4"
       data-testid="community-analysis"
     >
       <span className="flex flex-wrap items-baseline gap-2 text-sm">
         <span className="font-medium">{analysis.author.display_name}</span>
-        <span className="text-xs opacity-70">@{analysis.author.username}</span>
+        <span className="text-xs text-muted">@{analysis.author.username}</span>
         {analysis.author.rating === null ? (
           // Said, not left blank: "not rated yet" and "rated badly" are
           // different facts and a missing number reads as neither (rule 3).
-          <span className="text-xs opacity-70" data-testid="community-analysis-unrated">
+          <span className="text-xs text-muted" data-testid="community-analysis-unrated">
             Not rated yet
           </span>
         ) : (
-          <span className="text-xs opacity-70" data-testid="community-analysis-rating">
+          <span className="text-xs text-muted" data-testid="community-analysis-rating">
             Rating {analysis.author.rating}
           </span>
         )}
         <span
-          className="rounded border border-current/30 px-1 text-xs"
+          className="rounded border border-default px-1 text-xs"
           data-testid={
             analysis.author.approved ? 'community-analysis-approved' : 'community-analysis-former'
           }
@@ -68,7 +68,7 @@ function Analysis({ analysis }: { analysis: CommunityAnalysis }) {
             {current.predicted_home}–{current.predicted_away}
           </span>
         )}
-        <span className="ms-2 opacity-70">confidence {current.confidence}/5</span>
+        <span className="ms-2 text-muted">confidence {current.confidence}/5</span>
       </p>
 
       <p className="whitespace-pre-wrap text-sm">{current.reasoning}</p>
@@ -83,12 +83,12 @@ function Analysis({ analysis }: { analysis: CommunityAnalysis }) {
         current[field] === null ? null : (
           <p key={field} className="text-sm">
             <span className="font-medium">{label}:</span>{' '}
-            <span className="whitespace-pre-wrap opacity-80">{current[field]}</span>
+            <span className="whitespace-pre-wrap text-muted">{current[field]}</span>
           </p>
         ),
       )}
 
-      <span className="flex flex-wrap gap-2 text-xs opacity-60">
+      <span className="flex flex-wrap gap-2 text-xs text-muted">
         <time dateTime={current.published_at}>{current.published_at}</time>
         {current.version_number > 1 && (
           // A correction is a new version that says what changed. Getting
@@ -117,7 +117,7 @@ export function CommunityAnalysisPanel({
         <h2 className="text-lg font-semibold">Analysis from approved contributors</h2>
         {/* The heading names who is speaking, and this line says what it is not.
             Four signed opinions on one page, each legible as itself (rule 6). */}
-        <p className="text-xs opacity-60">
+        <p className="text-xs text-muted">
           Written by members the platform approved. Not the founder&rsquo;s analysis, not the
           statistical model, and not the community consensus.
         </p>
@@ -130,7 +130,7 @@ export function CommunityAnalysisPanel({
           Contributor analysis cannot be shown right now.
         </p>
       ) : analyses.analyses.length === 0 ? (
-        <p className="text-sm opacity-70" data-testid="community-analysis-empty">
+        <p className="text-sm text-muted" data-testid="community-analysis-empty">
           No contributor has published an analysis of this match.
         </p>
       ) : (

@@ -53,9 +53,14 @@
  *   text-danger  text-warning  text-success  text-live
  *   bg-accent  bg-accent-strong  bg-danger  ...
  *   border-default  border-strong  (and border-accent, border-danger, ...)
- *   outline-focus  ring-focus
+ *   outline-focus  ring-focus  divide-default
+ *
+ * Tailwind's own palette is cleared, so a palette class (red 800, gray 100)
+ * is not a class at all; `raw-colours.spec.ts` also refuses one in the source,
+ * where a silent no-op would otherwise hide it.
  */
 @theme inline {
+  --color-*: initial;
   --color-canvas: var(--token-canvas);
   --color-surface: var(--token-surface);
   --color-surface-raised: var(--token-surface-raised);
@@ -95,6 +100,18 @@ body {
  * the theme, fix every select at once; a utility can still override them.
  */
 @layer base {
+  /*
+   * A bare `border` or `divide-y` draws in the hairline token, not in the
+   * text colour Tailwind defaults to; a class names another edge when one is
+   * meant (`border-strong` on a field, `border-accent` on a chosen option).
+   */
+  *,
+  ::before,
+  ::after,
+  ::backdrop {
+    border-color: var(--token-border);
+  }
+
   option,
   optgroup {
     background-color: var(--token-canvas);

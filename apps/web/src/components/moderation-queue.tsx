@@ -48,7 +48,7 @@ function Suggest({ locale, report }: { locale: string; report: QueuedReport }) {
         type="submit"
         disabled={pending}
         data-testid={`moderation-suggest-${report.id}`}
-        className="self-start rounded border border-current/30 px-2 py-0.5 text-xs disabled:opacity-50"
+        className="self-start rounded border border-strong px-2 py-0.5 text-xs disabled:opacity-50"
       >
         {pending ? 'Asking…' : report.suggestion === null ? 'Ask for a suggestion' : 'Ask again'}
       </button>
@@ -72,22 +72,22 @@ function ReportItem({
 }) {
   return (
     <li
-      className="flex flex-col gap-1 border-s-2 border-s-current/20 ps-3 text-sm"
+      className="flex flex-col gap-1 border-s-2 border-s-default ps-3 text-sm"
       data-testid="moderation-report"
     >
       <p>
         <span className="font-medium">{report.reason}</span>
-        <span className="ms-2 opacity-70">
+        <span className="ms-2 text-muted">
           by{' '}
           <Link href={`/${locale}/u/${encodeURIComponent(report.reporter)}`} className="underline">
             {report.reporter}
           </Link>
         </span>
-        <time className="ms-2 text-xs opacity-60" dateTime={report.created_at}>
+        <time className="ms-2 text-xs text-muted" dateTime={report.created_at}>
           {report.created_at}
         </time>
       </p>
-      {report.detail !== null && <p className="whitespace-pre-wrap opacity-80">{report.detail}</p>}
+      {report.detail !== null && <p className="whitespace-pre-wrap text-muted">{report.detail}</p>}
       {report.suggestion !== null ? (
         <p className="text-xs" data-testid="moderation-suggestion">
           <span className="font-medium">
@@ -138,7 +138,7 @@ function Decide({ locale, subject }: { locale: string; subject: QueueSubject }) 
           <legend className="font-medium">Restriction</legend>
           <label className="flex flex-col gap-1">
             What it restricts
-            <select name="scope" className="rounded border border-current/30 bg-transparent p-1">
+            <select name="scope" className="rounded border border-strong bg-transparent p-1">
               {SANCTION_SCOPES.map((scope) => (
                 <option key={scope} value={scope}>
                   {SCOPE_LABELS[scope]}
@@ -154,7 +154,7 @@ function Decide({ locale, subject }: { locale: string; subject: QueueSubject }) 
               min={1}
               defaultValue={7}
               disabled={permanent}
-              className="w-24 rounded border border-current/30 bg-transparent p-1"
+              className="w-24 rounded border border-strong bg-transparent p-1"
             />
           </label>
           <label className="flex items-center gap-2">
@@ -176,14 +176,14 @@ function Decide({ locale, subject }: { locale: string; subject: QueueSubject }) 
           rows={2}
           required
           placeholder="Say why. This is recorded with your name."
-          className="rounded border border-current/30 bg-transparent p-2"
+          className="rounded border border-strong bg-transparent p-2"
         />
       </label>
       <button
         type="submit"
         disabled={pending}
         data-testid={`moderation-decide-${subject.username}`}
-        className="self-start rounded border border-current/30 px-3 py-1 text-sm disabled:opacity-50"
+        className="self-start rounded border border-strong px-3 py-1 text-sm disabled:opacity-50"
       >
         {pending
           ? 'Recording…'
@@ -192,7 +192,7 @@ function Decide({ locale, subject }: { locale: string; subject: QueueSubject }) 
       {state !== null && (
         <p
           role="status"
-          className={state.ok ? 'text-sm' : 'text-sm text-red-800 dark:text-red-300'}
+          className={state.ok ? 'text-sm' : 'text-sm text-danger'}
           data-testid={`moderation-decide-result-${subject.username}`}
         >
           {state.message}
@@ -235,7 +235,7 @@ export function ModerationQueue({
 
   if (subjects.length === 0) {
     return (
-      <p className="text-sm opacity-70" data-testid="moderation-queue-empty">
+      <p className="text-sm text-muted" data-testid="moderation-queue-empty">
         No report is waiting.
       </p>
     );
@@ -245,7 +245,7 @@ export function ModerationQueue({
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm opacity-80" data-testid="moderation-queue-count">
+      <p className="text-sm text-muted" data-testid="moderation-queue-count">
         {openTotal} open report{openTotal === 1 ? '' : 's'}
         {shown < openTotal ? `; the oldest ${shown} are shown` : ''}.{' '}
         {assistant.state === 'absent'
@@ -256,7 +256,7 @@ export function ModerationQueue({
         {subjects.map((subject) => (
           <li
             key={`${subject.subject_type}:${subject.subject_id}`}
-            className="flex flex-col gap-3 rounded border border-current/20 p-4"
+            className="flex flex-col gap-3 rounded border border-default p-4"
             data-testid="moderation-queue-subject"
           >
             <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -267,7 +267,7 @@ export function ModerationQueue({
                 >
                   {subject.display_name}
                 </Link>
-                <span className="ms-2 text-sm opacity-70">@{subject.username}</span>
+                <span className="ms-2 text-sm text-muted">@{subject.username}</span>
                 <Link
                   href={`/${locale}/admin/moderation/${encodeURIComponent(subject.username)}`}
                   className="ms-2 text-sm underline"
@@ -282,7 +282,7 @@ export function ModerationQueue({
                   </span>
                 )}
               </span>
-              <span className="text-xs opacity-60">
+              <span className="text-xs text-muted">
                 waiting since <time dateTime={subject.waiting_since}>{subject.waiting_since}</time>
               </span>
             </div>

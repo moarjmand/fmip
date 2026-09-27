@@ -28,7 +28,7 @@ export function PredictionSection({
     <section className="flex flex-col gap-2" data-testid="prediction">
       <h2 className="text-lg font-semibold">
         Your prediction
-        <span className="ms-2 text-xs font-normal uppercase opacity-60">
+        <span className="ms-2 text-xs font-normal uppercase text-muted">
           {locked ? 'locked at kick-off' : 'open until kick-off'}
         </span>
       </h2>
@@ -42,7 +42,7 @@ export function PredictionSection({
         </p>
       ) : locked ? (
         current === null ? (
-          <p className="text-sm opacity-70" data-testid="prediction-none">
+          <p className="text-sm text-muted" data-testid="prediction-none">
             You did not predict this match before kick-off.
           </p>
         ) : (
@@ -64,7 +64,7 @@ export function PredictionSection({
           />
         </>
       )}
-      <p className="text-xs opacity-60">
+      <p className="text-xs text-muted">
         Community distribution and settlement arrive with the predictions release (E5); your
         prediction is never blended with the model forecast (rule 6).
       </p>
@@ -83,12 +83,12 @@ function Final({ prediction, home, away }: { prediction: Prediction; home: strin
         {v.score !== null ? ` · ${v.score.home}–${v.score.away}` : ''} · confidence {v.confidence}/5
       </p>
       {v.reason_tags.length > 0 && (
-        <p className="text-xs opacity-70">
+        <p className="text-xs text-muted">
           {v.reason_tags.map((t) => REASON_TAG_LABEL[t]).join(', ')}
         </p>
       )}
       {v.explanation !== null && <p className="text-xs">{v.explanation}</p>}
-      <p className="text-xs opacity-70">
+      <p className="text-xs text-muted">
         Final version {v.version_number} of {prediction.versions.length}, submitted{' '}
         <time dateTime={v.submitted_at}>{v.submitted_at.slice(0, 16).replace('T', ' ')}</time> UTC.
         Settlement arrives with T-052.

@@ -49,21 +49,21 @@ function Decide({
           rows={2}
           required
           placeholder="Say why. This is recorded."
-          className="rounded border border-current/30 bg-transparent p-2"
+          className="rounded border border-strong bg-transparent p-2"
         />
       </label>
       <button
         type="submit"
         disabled={pending}
         data-testid={`analysis-decide-${decision}-${submission}`}
-        className="self-start rounded border border-current/30 px-3 py-1 text-sm disabled:opacity-50"
+        className="self-start rounded border border-strong px-3 py-1 text-sm disabled:opacity-50"
       >
         {pending ? 'Recording…' : label}
       </button>
       {state !== null && (
         <p
           role="status"
-          className={state.ok ? 'text-sm' : 'text-sm text-red-800 dark:text-red-300'}
+          className={state.ok ? 'text-sm' : 'text-sm text-danger'}
           data-testid={`analysis-decide-result-${submission}`}
         >
           {state.message}
@@ -99,7 +99,7 @@ export function AnalysisQueue({
 
   if (submissions.length === 0) {
     return (
-      <p className="text-sm opacity-70" data-testid="analysis-queue-empty">
+      <p className="text-sm text-muted" data-testid="analysis-queue-empty">
         Nothing is waiting to be read.
       </p>
     );
@@ -110,7 +110,7 @@ export function AnalysisQueue({
       {submissions.map((submission, index) => (
         <li
           key={submission.id}
-          className="flex flex-col gap-3 rounded border border-current/20 p-4"
+          className="flex flex-col gap-3 rounded border border-default p-4"
           data-testid="analysis-queue-item"
         >
           <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -127,12 +127,12 @@ export function AnalysisQueue({
               {submission.attempt > 1 && (
                 // The second attempt is a different situation from the first,
                 // and a reviewer should know which one they are reading.
-                <span className="ms-2 opacity-70" data-testid="analysis-queue-attempt">
+                <span className="ms-2 text-muted" data-testid="analysis-queue-attempt">
                   attempt {submission.attempt}
                 </span>
               )}
             </span>
-            <time className="text-xs opacity-60" dateTime={submission.submitted_at}>
+            <time className="text-xs text-muted" dateTime={submission.submitted_at}>
               {submission.submitted_at}
             </time>
           </div>
@@ -144,7 +144,7 @@ export function AnalysisQueue({
                 {submission.predicted_home}–{submission.predicted_away}
               </span>
             )}
-            <span className="ms-2 opacity-70">confidence {submission.confidence}/5</span>
+            <span className="ms-2 text-muted">confidence {submission.confidence}/5</span>
           </p>
 
           <p className="whitespace-pre-wrap text-sm">{submission.reasoning}</p>
@@ -158,7 +158,7 @@ export function AnalysisQueue({
             submission[field] === null ? null : (
               <p key={field} className="text-sm">
                 <span className="font-medium">{label}:</span>{' '}
-                <span className="whitespace-pre-wrap opacity-80">{submission[field]}</span>
+                <span className="whitespace-pre-wrap text-muted">{submission[field]}</span>
               </p>
             ),
           )}

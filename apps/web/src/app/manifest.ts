@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { DEFAULT_LOCALE } from '@/i18n/locales';
+import { BRAND_COLOURS } from '@/lib/brand-colours';
 
 /**
  * The web app manifest (T-082, D-042): what a phone needs to install the
@@ -18,8 +19,8 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: '/',
     display: 'standalone',
     orientation: 'portrait',
-    background_color: '#0b6b3a',
-    theme_color: '#0b6b3a',
+    background_color: BRAND_COLOURS.accent,
+    theme_color: BRAND_COLOURS.accent,
     lang: DEFAULT_LOCALE,
     icons: [
       { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },

@@ -137,7 +137,7 @@ export default async function ConversationPage({
           type="search"
           defaultValue={term}
           placeholder="Search this conversation"
-          className="rounded border border-current/30 bg-transparent px-3 py-1 text-sm text-start"
+          className="rounded border border-strong bg-transparent px-3 py-1 text-sm text-start"
           data-testid="conversation-search"
         />
         <button type="submit" className="text-sm underline">
@@ -151,7 +151,7 @@ export default async function ConversationPage({
       </form>
 
       {term !== '' && (
-        <p className="text-sm opacity-70" data-testid="conversation-search-note">
+        <p className="text-sm text-muted" data-testid="conversation-search-note">
           {found !== null && found.ok ? (
             <>
               <Translated
@@ -198,7 +198,7 @@ export default async function ConversationPage({
       )}
 
       {shown.length === 0 ? (
-        <p className="text-sm opacity-70" data-testid="conversation-empty">
+        <p className="text-sm text-muted" data-testid="conversation-empty">
           {term === '' ? 'Nothing has been said yet.' : 'Nothing matches that here.'}
         </p>
       ) : (

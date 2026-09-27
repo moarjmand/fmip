@@ -92,11 +92,11 @@ export default async function PredictionsPage({
         <h1 className="text-2xl font-semibold" data-testid="title">
           Predictions
         </h1>
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted">
           Three separate answers to the same question, and the leaderboard of who gets them right.
           The site never averages them or presents one as another.
         </p>
-        <p className="text-sm opacity-70" data-testid="predictions-day">
+        <p className="text-sm text-muted" data-testid="predictions-day">
           Matches on {q.date}, times in {q.timezone}.{' '}
           <Link href={`/${locale}/scores`} className="underline">
             All scores
@@ -110,7 +110,7 @@ export default async function PredictionsPage({
           listed.
         </p>
       ) : shown.length === 0 ? (
-        <p className="text-sm opacity-70" data-testid="predictions-empty">
+        <p className="text-sm text-muted" data-testid="predictions-empty">
           No matches on this day.
         </p>
       ) : (
@@ -136,7 +136,7 @@ export default async function PredictionsPage({
           ) : (
             <section className="flex flex-col gap-2" data-testid="predictions-founder">
               <h2 className="text-lg font-semibold">Founder&rsquo;s analysis</h2>
-              <p className="text-sm opacity-70">
+              <p className="text-sm text-muted">
                 {founder.ok
                   ? 'The founder has not published an analysis recently. These are written for selected matches, not for every fixture.'
                   : 'The analysis service is unreachable right now.'}
@@ -153,25 +153,25 @@ export default async function PredictionsPage({
 
       <section className="flex flex-col gap-2" data-testid="predictions-leaderboard">
         <h2 className="text-lg font-semibold">Prediction leaderboard</h2>
-        <p className="text-xs opacity-60">
+        <p className="text-xs text-muted">
           Ranked by Performance Rating, which is earned from settled predictions — never bought with
           activity.
         </p>
         {!leaderboard.ok ? (
-          <p className="text-sm opacity-70">The leaderboard is unreachable right now.</p>
+          <p className="text-sm text-muted">The leaderboard is unreachable right now.</p>
         ) : leaderboard.data.entries.length === 0 ? (
-          <p className="text-sm opacity-70">
+          <p className="text-sm text-muted">
             Nobody has enough settled predictions for a rating yet.
           </p>
         ) : (
           <ol className="flex flex-col gap-1">
             {leaderboard.data.entries.map((entry) => (
               <li key={entry.username} className="text-sm">
-                <span className="opacity-70">{entry.rank}.</span>{' '}
+                <span className="text-muted">{entry.rank}.</span>{' '}
                 <Link href={`/${locale}/u/${entry.username}`} className="underline">
                   {entry.username}
                 </Link>{' '}
-                <span className="opacity-70">
+                <span className="text-muted">
                   · {entry.rating.toFixed(1)} from {entry.settled_count} settled
                   {entry.provisional ? ', provisional' : ''}
                 </span>

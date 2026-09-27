@@ -64,8 +64,8 @@ function Standing({
   follow: React.ReactNode;
 }) {
   return (
-    <span className="flex flex-wrap items-center gap-2 text-xs opacity-80">
-      <span className="font-medium opacity-100">{author.display_name}</span>
+    <span className="flex flex-wrap items-center gap-2 text-xs text-muted">
+      <span className="font-medium text-fg">{author.display_name}</span>
       <span>@{author.username}</span>
       {author.rating === null || author.tier === null ? (
         // Said, not left blank. "Not rated yet" and "rated badly" are different
@@ -78,7 +78,7 @@ function Standing({
       )}
       <span
         data-testid={author.approved ? 'panel-author-approved' : 'panel-author-former'}
-        className="rounded border border-current/30 px-1"
+        className="rounded border border-default px-1"
       >
         {author.approved ? 'Approved contributor' : 'Formerly approved'}
       </span>
@@ -111,7 +111,7 @@ function Post({
     // it" is a different fact from "a moderator took it down".
     return (
       <li
-        className="rounded border border-current/20 p-3 text-sm opacity-60"
+        className="rounded border border-default p-3 text-sm text-muted"
         data-testid="panel-post-removed"
       >
         {post.removed === 'author'
@@ -121,10 +121,7 @@ function Post({
     );
   }
   return (
-    <li
-      className="flex flex-col gap-2 rounded border border-current/20 p-3"
-      data-testid="panel-post"
-    >
+    <li className="flex flex-col gap-2 rounded border border-default p-3" data-testid="panel-post">
       <Standing
         author={post.author}
         follow={
@@ -150,7 +147,7 @@ function Post({
         mine={mine}
         signedIn={me !== null}
       />
-      <time className="text-xs opacity-60" dateTime={post.created_at}>
+      <time className="text-xs text-muted" dateTime={post.created_at}>
         {post.created_at}
       </time>
     </li>
@@ -172,13 +169,13 @@ function Compose({ locale, fixtureId }: { locale: string; fixtureId: string }) {
           rows={3}
           maxLength={4000}
           required
-          className="rounded border border-current/30 bg-transparent p-2"
+          className="rounded border border-strong bg-transparent p-2"
         />
       </label>
       <button
         type="submit"
         disabled={pending}
-        className="self-start rounded border border-current/30 px-3 py-1 text-sm disabled:opacity-50"
+        className="self-start rounded border border-strong px-3 py-1 text-sm disabled:opacity-50"
       >
         {pending ? 'Posting…' : 'Post'}
       </button>
@@ -189,7 +186,7 @@ function Compose({ locale, fixtureId }: { locale: string; fixtureId: string }) {
         <p
           role="status"
           data-testid="panel-compose-result"
-          className={state.ok ? 'text-sm' : 'text-sm text-red-800 dark:text-red-300'}
+          className={state.ok ? 'text-sm' : 'text-sm text-danger'}
         >
           {state.message}
         </p>
@@ -243,11 +240,11 @@ export function MatchPanel({
         // (T-253). One is a match nobody opened a panel on; the other is one
         // where nobody has spoken yet, and only the second is something a
         // reader can act on.
-        <p className="text-sm opacity-70" data-testid="panel-none">
+        <p className="text-sm text-muted" data-testid="panel-none">
           Nobody has opened a discussion on this match.
         </p>
       ) : page.posts.length === 0 ? (
-        <p className="text-sm opacity-70" data-testid="panel-empty">
+        <p className="text-sm text-muted" data-testid="panel-empty">
           {page.state === 'closed'
             ? 'This discussion is closed, and nothing was posted on it.'
             : 'Nobody has posted about this match yet.'}
@@ -270,7 +267,7 @@ export function MatchPanel({
           {page.cursor !== null && (
             // The count, so a first page never implies the whole discussion is
             // this short.
-            <p className="text-sm opacity-70" data-testid="panel-more">
+            <p className="text-sm text-muted" data-testid="panel-more">
               Showing {page.posts.length} of {page.total} posts.
             </p>
           )}
@@ -281,11 +278,11 @@ export function MatchPanel({
         <Compose locale={locale} fixtureId={fixtureId} />
       ) : permission !== null && permission.refusal !== null ? (
         <div className="flex flex-col gap-1" data-testid="panel-refusal">
-          <p className="text-sm opacity-70">{REFUSALS[permission.refusal]}</p>
+          <p className="text-sm text-muted">{REFUSALS[permission.refusal]}</p>
           {permission.refusal === 'not_approved' &&
             (permission.shortfalls.length > 0 ? (
               <ul
-                className="list-inside list-disc text-sm opacity-70"
+                className="list-inside list-disc text-sm text-muted"
                 data-testid="panel-shortfalls"
               >
                 {permission.shortfalls.map((shortfall) => (
@@ -298,7 +295,7 @@ export function MatchPanel({
               // need a rating of 70" to a member who has 82 would be worse than
               // saying nothing.
               permission.qualifies && (
-                <p className="text-sm opacity-70" data-testid="panel-qualifies">
+                <p className="text-sm text-muted" data-testid="panel-qualifies">
                   You meet every requirement. Approval is a person&rsquo;s decision and has not been
                   made yet.
                 </p>

@@ -89,14 +89,14 @@ export default async function WatchPage({
   const strip = dayStrip(q, locale);
   const guestTerritory = me === null ? territory : undefined;
   const linkClass = (active: boolean): string =>
-    `rounded px-2 py-1 ${active ? 'bg-current/10 font-semibold' : 'underline'}`;
+    `rounded px-2 py-1 ${active ? 'bg-surface-raised font-semibold' : 'underline'}`;
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
-      <h1 className="border-s-4 border-s-current ps-4 text-2xl font-semibold" data-testid="title">
+      <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
         <Translated locale={locale} message="viewing.pageTitle" />
       </h1>
-      <p className="text-sm opacity-80">
+      <p className="text-sm text-muted">
         <Translated locale={locale} message="viewing.pageLead" />
       </p>
 
@@ -111,7 +111,7 @@ export default async function WatchPage({
             {day.label}
           </Link>
         ))}
-        <span className="ms-auto opacity-70" data-testid="timezone">
+        <span className="ms-auto text-muted" data-testid="timezone">
           Times in {q.timezone}
         </span>
       </nav>
@@ -130,7 +130,7 @@ export default async function WatchPage({
           <Translated locale={locale} message="viewing.unreachable" />
         </p>
       ) : cards.length === 0 ? (
-        <p className="opacity-70" data-testid="watch-empty">
+        <p className="text-muted" data-testid="watch-empty">
           <Translated locale={locale} message="viewing.noMatches" />
         </p>
       ) : (
@@ -151,7 +151,7 @@ export default async function WatchPage({
                         <Link href={href} className="font-medium underline">
                           {card.home.name} v {card.away.name}
                         </Link>
-                        <time dateTime={card.kickoff_at} className="text-sm opacity-70">
+                        <time dateTime={card.kickoff_at} className="text-sm text-muted">
                           {formatDateTime(locale, card.kickoff_at, q.timezone)}
                         </time>
                       </p>

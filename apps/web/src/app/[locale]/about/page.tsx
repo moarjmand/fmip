@@ -40,7 +40,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
-      <h1 className="border-s-4 border-s-current ps-4 text-2xl font-semibold" data-testid="title">
+      <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
         What FMIP is
       </h1>
 
@@ -55,7 +55,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
         {names.length > 0 ? (
           <p data-testid="about-competitions">Covered now: {names.join(', ')}.</p>
         ) : (
-          <p className="text-sm opacity-70">The list of competitions could not be read just now.</p>
+          <p className="text-sm text-muted">The list of competitions could not be read just now.</p>
         )}
       </section>
 
@@ -77,7 +77,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
             only by members whose ratings are established.
           </li>
         </ul>
-        <p className="text-sm opacity-80">
+        <p className="text-sm text-muted">
           The three are shown side by side and never blended into one number.
         </p>
       </section>
@@ -113,7 +113,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
           Create an account
         </Link>
       </p>
-      <p className="text-sm opacity-70">
+      <p className="text-sm text-muted">
         Predicting needs an account with a verified e-mail address.
       </p>
     </main>
