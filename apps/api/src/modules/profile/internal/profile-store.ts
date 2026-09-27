@@ -5,6 +5,7 @@ import type {
   PrivacyVisibility,
   PublicProfile,
   Territory,
+  ThemePreference,
   ViewingTerritory,
 } from '@fmip/contracts';
 import { Pool } from 'pg';
@@ -120,19 +121,33 @@ export class PostgresProfileStore {
     );
   }
 
-  /** Language and time zone after registration (T-620); `undefined` leaves a column alone. */
+  /**
+   * Language and time zone after registration (T-620), and the colour theme
+   * (T-602); `undefined` leaves a column alone.
+   */
   async setPreferences(
     userId: string,
-    patch: { language?: string; timezone?: string },
+    patch: { language?: string; timezone?: string; theme?: ThemePreference },
   ): Promise<void> {
-    if (patch.language === undefined && patch.timezone === undefined) return;
+    if (patch.language === undefined && patch.timezone === undefined && patch.theme === undefined)
+      return;
     await this.pool.query(
       `UPDATE user_account
           SET preferred_language = COALESCE($2, preferred_language),
-              timezone = COALESCE($3, timezone)
+              timezone = COALESCE($3, timezone),
+              theme = COALESCE($4, theme)
         WHERE id = $1`,
-      [userId, patch.language ?? null, patch.timezone ?? null],
+      [userId, patch.language ?? null, patch.timezone ?? null, patch.theme ?? null],
     );
+  }
+
+  /** The colour theme the member chose (T-602); `system` when there is no such account row. */
+  async theme(userId: string): Promise<ThemePreference> {
+    const { rows } = await this.pool.query<{ theme: ThemePreference }>(
+      `SELECT theme FROM user_account WHERE id = $1`,
+      [userId],
+    );
+    return rows[0]?.theme ?? 'system';
   }
 
   /** Sets or clears the choice; `unknown` when the code is not a territory. */

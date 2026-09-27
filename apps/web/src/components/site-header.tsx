@@ -2,11 +2,13 @@ import Link from 'next/link';
 import { BrandMark } from '@/components/brand-mark';
 import { Translated } from '@/components/translated';
 import { LanguagePicker } from '@/components/language-picker';
+import { ThemeSwitch } from '@/components/theme-switch';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { attribute } from '@/i18n/messages';
 import { fetchMe } from '@/lib/api';
 import { logoutAction } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
+import type { ThemePreference } from '@/lib/theme';
 
 /**
  * The one navigation bar. Reads the session server-side; when the API is
@@ -18,7 +20,7 @@ import { sessionCookieHeader } from '@/lib/session';
  * English stands in and is marked `lang="en"`, rather than being shown as
  * though somebody had translated it.
  */
-export async function SiteHeader({ locale }: { locale: string }) {
+export async function SiteHeader({ locale, theme }: { locale: string; theme: ThemePreference }) {
   const me = await fetchMe(await sessionCookieHeader());
   const href = (path: string) => `/${locale}${path}`;
   const search = attribute(isLocale(locale) ? locale : DEFAULT_LOCALE, 'nav.search');
@@ -104,6 +106,8 @@ export async function SiteHeader({ locale }: { locale: string }) {
         )}
         {/* Nothing until a second language is finished (T-306); see the component. */}
         <LanguagePicker />
+        {/* Light, dark or the device's own, on every page (T-602). */}
+        <ThemeSwitch locale={locale} current={theme} variant="compact" />
       </nav>
     </header>
   );

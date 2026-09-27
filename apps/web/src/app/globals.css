@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './tokens.css';
 
 /*
  * The type (T-601, D-089). One family for every locale: Vazirmatn draws Latin
@@ -41,20 +42,49 @@
  * stylelint.config.mjs.
  */
 
-:root {
-  color-scheme: light dark;
+/*
+ * The colour tokens as Tailwind classes (T-602). `inline`, so a class reads
+ * the token itself (`var(--token-surface)`) and follows the theme wherever
+ * the attribute or the device switches it. The values, and the contrast of
+ * each pair, are in tokens.css.
+ *
+ *   bg-canvas  bg-surface  bg-surface-raised
+ *   text-fg  text-muted  text-accent  text-on-accent
+ *   text-danger  text-warning  text-success  text-live
+ *   bg-accent  bg-accent-strong  bg-danger  ...
+ *   border-default  border-strong  (and border-accent, border-danger, ...)
+ *   outline-focus  ring-focus
+ */
+@theme inline {
+  --color-canvas: var(--token-canvas);
+  --color-surface: var(--token-surface);
+  --color-surface-raised: var(--token-surface-raised);
+  --color-fg: var(--token-text);
+  --color-muted: var(--token-text-muted);
+  --color-accent: var(--token-accent);
+  --color-accent-strong: var(--token-accent-strong);
+  --color-on-accent: var(--token-on-accent);
+  --color-focus: var(--token-focus);
+  --color-danger: var(--token-danger);
+  --color-warning: var(--token-warning);
+  --color-success: var(--token-success);
+  --color-live: var(--token-live);
+  --border-color-default: var(--token-border);
+  --border-color-strong: var(--token-border-strong);
 }
 
 /*
- * The page's colours are the scheme's own, said out loud: a body with no
+ * The page's colours are the theme's, said out loud: a body with no
  * background is painted by the browser in the scheme's colour, but read as
  * white by anything that computes contrast -- which is how light text on a
  * dark page passed as "unknown" rather than being checked at all.
+ * `accent-color` gives checkboxes, radios and range inputs the green.
  */
 body {
   min-block-size: 100dvh;
-  background-color: Canvas;
-  color: CanvasText;
+  background-color: var(--token-canvas);
+  color: var(--token-text);
+  accent-color: var(--token-accent);
 }
 
 /*
@@ -62,23 +92,26 @@ body {
  * its own background. A select styled `bg-transparent` left that to the
  * default white while the options inherited the dark scheme's light text: an
  * open list with nothing readable in it. The page's own colours, which follow
- * the scheme, fix every select at once; a utility can still override them.
+ * the theme, fix every select at once; a utility can still override them.
  */
 @layer base {
   option,
   optgroup {
-    background-color: Canvas;
-    color: CanvasText;
+    background-color: var(--token-canvas);
+    color: var(--token-text);
   }
 }
 
 /*
  * Keyboard focus is always visible (T-081, D-041): a two-pixel ring in the
- * current text colour, offset so it never merges with a border. Mouse clicks
- * do not show it (:focus-visible), keyboards and switch devices do.
+ * focus token, offset so it never merges with a border. It sits on the page
+ * rather than on the control, so it is measured against the canvas and the
+ * surfaces (16:1 or better in both themes); the current text colour it used
+ * before vanished around a button with light text. Mouse clicks do not show
+ * it (:focus-visible), keyboards and switch devices do.
  */
 :focus-visible {
-  outline: 2px solid currentColor;
+  outline: 2px solid var(--token-focus);
   outline-offset: 2px;
 }
 

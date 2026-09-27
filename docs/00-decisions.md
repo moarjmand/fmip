@@ -3249,3 +3249,44 @@ files committed*: equivalent at run time, but a binary to vendor and update by
 hand where a versioned package already carries the same files and licence.
 *A new brand colour*: `#0b6b3a` is already the theme colour, the manifest and
 the icons, and passes AA on white; changing it buys nothing measurable.
+
+## D-090 — Colour tokens on `:root`, a theme chosen by cookie and kept on the account
+
+**Status:** decided, delegated · **Date:** 2026-09-28 · **Tasks:** T-602 · **Follows:** D-089, D-041
+
+**The decision.**
+
+- **Tokens.** Fifteen semantic colours as CSS custom properties,
+  `apps/web/src/app/tokens.css`: canvas, surface, surface-raised, text,
+  text-muted, border, border-strong, accent, accent-strong, on-accent, focus,
+  danger, warning, success, live. Light on `:root`; dark under
+  `prefers-color-scheme: dark` unless `data-theme="light"`, and again under
+  `data-theme="dark"`. `globals.css` maps them to Tailwind with `@theme inline`
+  (`bg-surface`, `text-muted`, `border-default`, ...), so a class reads the
+  token and follows the theme. The values keep D-089's greens; every text role
+  is AA (4.5:1) on the page and both surfaces in both themes, a field's edge
+  and the focus ring 3:1 or better, and `tokens.spec.ts` recomputes each pair.
+- **The focus ring** is the focus token (near-black on light, near-white on
+  dark), no longer `currentColor`, which vanished around a button with light
+  text on the page's own light background.
+- **Where the choice lives.** The cookie `fmip_theme` (`light` | `dark` |
+  `system`, a year) is what a page renders with, for a guest and a member
+  alike: the locale layout reads it and writes `data-theme` on `<html>`, so
+  the first paint is the chosen theme with no script and no flash. The layout
+  was already dynamic (the header reads the session), so this costs no static
+  rendering. A member's choice is also `user_account.theme` (additive column,
+  constant default `system`, no backfill), written through
+  `PATCH /me/preferences`; at sign-in the account's own choice reaches the
+  browser, and an account that never chose takes the browser's.
+- **Image renderers** (share cards, the manifest) cannot read a CSS variable;
+  where they need a colour it comes from one exported constants object that
+  mirrors the light tokens, held to them by a spec. That object and
+  `tokens.css` are the only places a colour value is written.
+
+**Rejected.** *An inline script that sets the attribute before paint*: it
+works on a static page, but the layout is already server-rendered per request
+and a script is one more thing a strict CSP must allow. *CSS `light-dark()`*:
+one declaration per token instead of three blocks, but Safari before 17.5
+ignores it, which would leave those readers with no colours at all. *The
+account as the only store*: a guest could not choose, and a member's first
+page after sign-in would render before the choice was known.

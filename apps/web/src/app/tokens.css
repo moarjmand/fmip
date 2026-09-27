@@ -1,0 +1,116 @@
+/*
+ * The colour tokens (T-602, D-089). Every colour the web app paints comes
+ * from one of these, through the Tailwind classes `globals.css` maps them to
+ * (`bg-surface`, `text-muted`, `border-default` and the rest); no component
+ * names a colour of its own. This file is the only place a colour value is
+ * written, apart from `src/lib/brand-colours.ts`, which mirrors the light
+ * values for the image renderers that cannot read a CSS variable (the share
+ * cards, the manifest) -- `src/app/tokens.spec.ts` holds the two together.
+ *
+ * Three ways to reach dark, one set of values:
+ *   - `:root` alone is light;
+ *   - with `data-theme="system"` (or none) on <html>, the device decides,
+ *     through `prefers-color-scheme`;
+ *   - `data-theme="light"` or `"dark"` is a member's or guest's choice and
+ *     wins over the device. The attribute is rendered on the server from the
+ *     theme cookie, so the first paint is already the right one.
+ * The two dark blocks carry the same declarations; the spec refuses a drift.
+ *
+ * Contrast is WCAG 2 (AA: 4.5:1 for text, 3:1 for large text, UI component
+ * boundaries and focus indicators). Each figure below is measured against
+ * canvas / surface / surface-raised, in that order, and the spec recomputes
+ * every one of them from the values here, so a figure that goes stale fails.
+ * Muted text keeps AA on every background (D-041).
+ */
+
+:root {
+  color-scheme: light;
+
+  /* The page. */
+  --token-canvas: #ffffff;
+  /* Panels and cards, a step off the page. */
+  --token-surface: #f9fafb;
+  /* Chips, highlighted rows, hover and the skip link: a step further. */
+  --token-surface-raised: #f3f4f6;
+
+  /* Body text: 17.74 / 16.98 / 16.12. */
+  --token-text: #111827;
+  /* Secondary text: 7.56 / 7.23 / 6.87. */
+  --token-text-muted: #4b5563;
+
+  /* Hairlines between things; decorative, so no minimum (1.47:1 on canvas). */
+  --token-border: #d1d5db;
+  /* The edge of a field or control, which must be seen: 4.83 / 4.63 / 4.39. */
+  --token-border-strong: #6b7280;
+
+  /* The green (D-089 `green-700`): 6.61 / 6.32 / 6.00. */
+  --token-accent: #0b6b3a;
+  /* Pressed or hover on the green (`green-900`): 12.53 / 11.99 / 11.39. */
+  --token-accent-strong: #063c21;
+  /* Text on the green: 6.61 on accent, 12.53 on accent-strong. */
+  --token-on-accent: #ffffff;
+
+  /* The keyboard focus ring: 17.74 / 16.98 / 16.12. */
+  --token-focus: #111827;
+
+  /* An error, a refusal: 6.47 / 6.19 / 5.88. */
+  --token-danger: #b91c1c;
+  /* A caution, a stale figure: 7.09 / 6.78 / 6.44. */
+  --token-warning: #92400e;
+  /* Done, saved: the green, 6.61 / 6.32 / 6.00. */
+  --token-success: #0b6b3a;
+  /* A match in play: 6.57 / 6.29 / 5.97. */
+  --token-live: #b42318;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --token-canvas: #121212;
+    --token-surface: #1a1a1d;
+    --token-surface-raised: #26262b;
+    /* 16.00 / 14.83 / 12.86. */
+    --token-text: #ededed;
+    /* 7.46 / 6.91 / 6.00. */
+    --token-text-muted: #a3a3a8;
+    /* 1.66:1 on canvas, decorative. */
+    --token-border: #3a3a40;
+    /* 5.54 / 5.14 / 4.45. */
+    --token-border-strong: #8b8b93;
+    /* D-089 `green-300`: 8.86 / 8.22 / 7.12. */
+    --token-accent: #4cc88a;
+    /* 10.99 / 10.19 / 8.83. */
+    --token-accent-strong: #7ad9a8;
+    /* 8.86 on accent, 10.99 on accent-strong. */
+    --token-on-accent: #121212;
+    /* 16.00 / 14.83 / 12.86. */
+    --token-focus: #ededed;
+    /* 6.77 / 6.28 / 5.44. */
+    --token-danger: #f87171;
+    /* 11.22 / 10.40 / 9.02. */
+    --token-warning: #fbbf24;
+    /* 8.86 / 8.22 / 7.12. */
+    --token-success: #4cc88a;
+    /* 7.36 / 6.82 / 5.91. */
+    --token-live: #ff7a6b;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --token-canvas: #121212;
+  --token-surface: #1a1a1d;
+  --token-surface-raised: #26262b;
+  --token-text: #ededed;
+  --token-text-muted: #a3a3a8;
+  --token-border: #3a3a40;
+  --token-border-strong: #8b8b93;
+  --token-accent: #4cc88a;
+  --token-accent-strong: #7ad9a8;
+  --token-on-accent: #121212;
+  --token-focus: #ededed;
+  --token-danger: #f87171;
+  --token-warning: #fbbf24;
+  --token-success: #4cc88a;
+  --token-live: #ff7a6b;
+}
