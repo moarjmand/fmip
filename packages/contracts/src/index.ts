@@ -129,7 +129,7 @@ export type {
   UpdatePrivacyRequest,
   UpdateProfileRequest,
 } from './profile';
-export { KNOCKOUT_ROUNDS } from './catalog';
+export { KNOCKOUT_ROUNDS, TEAM_AVERAGE_METRICS } from './catalog';
 export type {
   CompetitionPage,
   CompetitionSummary,
@@ -155,9 +155,13 @@ export type {
   StageSummary,
   TableContext,
   TableRow,
+  TeamAverageMetric,
   TeamCompetition,
+  TeamCompetitionSplits,
   TeamFixture,
   TeamPage,
+  TeamSplitRecord,
+  TeamStatAverage,
   TeamSummary,
   TeamsResponse,
 } from './catalog';

@@ -1,7 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { SquadPlayer, TeamFixture, TeamPage } from '@fmip/contracts';
+import {
+  TEAM_AVERAGE_METRICS,
+  type SquadPlayer,
+  type TeamAverageMetric,
+  type TeamFixture,
+  type TeamPage,
+} from '@fmip/contracts';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
+import type { SplitFixture } from './team-splits';
 
 export interface TeamSeason {
   competition: { id: string; name: string; short_name: string | null };
@@ -176,6 +183,61 @@ export class PostgresTeamStore {
             : null,
       })),
     };
+  }
+
+  /**
+   * The team's finished fixtures in the given seasons for the splits (T-632):
+   * its side, the latest score (after extra time where played, as the
+   * bracket reads it), whether a shoot-out is recorded, and its own
+   * `fixture_stat` rows for the averaged metrics.
+   */
+  async splitFixtures(teamId: string, seasonIds: string[]): Promise<SplitFixture[]> {
+    if (seasonIds.length === 0) return [];
+    const { rows } = await this.pool.query<{
+      season_id: string;
+      side: 'home' | 'away';
+      score_home: number | null;
+      score_away: number | null;
+      penalties: boolean;
+      stats: Record<string, string> | null;
+      updated_at: Date;
+    }>(
+      `SELECT f.season_id, me.side,
+              COALESCE(cur.home, ft.home) AS score_home, COALESCE(cur.away, ft.away) AS score_away,
+              pen.id IS NOT NULL AS penalties,
+              (SELECT jsonb_object_agg(fs.metric, fs.value::text)
+                 FROM fixture_stat fs
+                WHERE fs.participant_id = me.id AND fs.metric = ANY($3::text[])) AS stats,
+              GREATEST(f.updated_at, ft.updated_at, cur.updated_at) AS updated_at
+         FROM fixture f
+         JOIN fixture_participant me ON me.fixture_id = f.id AND me.team_id = $1
+         LEFT JOIN fixture_score ft ON ft.fixture_id = f.id AND ft.kind = 'full_time'
+         LEFT JOIN fixture_score cur ON cur.fixture_id = f.id AND cur.kind = 'current'
+         LEFT JOIN fixture_score pen ON pen.fixture_id = f.id AND pen.kind = 'penalties'
+        WHERE f.season_id = ANY($2::uuid[]) AND f.status = 'finished'
+        ORDER BY f.kickoff_at, f.id`,
+      [teamId, seasonIds, [...TEAM_AVERAGE_METRICS]],
+    );
+    return rows.map((r) => {
+      const stats: SplitFixture['stats'] = {};
+      for (const [metric, value] of Object.entries(r.stats ?? {}))
+        stats[metric as TeamAverageMetric] = Number(value);
+      const mineIsHome = r.side === 'home';
+      return {
+        season_id: r.season_id,
+        side: r.side,
+        score:
+          r.score_home !== null && r.score_away !== null
+            ? {
+                for: mineIsHome ? r.score_home : r.score_away,
+                against: mineIsHome ? r.score_away : r.score_home,
+              }
+            : null,
+        penalties: r.penalties,
+        stats,
+        updated_at: r.updated_at.toISOString(),
+      };
+    });
   }
 
   /** Open spells: the squad as our records have it, by position, shirt number, name. */

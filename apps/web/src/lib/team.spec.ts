@@ -1,6 +1,19 @@
-import type { SquadPlayer, TeamFixture } from '@fmip/contracts';
+import type {
+  SquadPlayer,
+  TeamCompetitionSplits,
+  TeamFixture,
+  TeamStatAverage,
+} from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
-import { contextLine, fromTeamSide, groupSquad } from './team';
+import {
+  SPLITS_FOOTNOTE,
+  averageCell,
+  averageNote,
+  contextLine,
+  fromTeamSide,
+  groupSquad,
+  splitNotes,
+} from './team';
 
 const player = (
   name: string,
@@ -70,5 +83,71 @@ describe('labels', () => {
     expect(contextLine('fr', { position: 3, total: 20, points: 45, rows: [] })).toBe(
       '3rd of 20 · 45 pts',
     );
+  });
+});
+
+// T-632: the home / away / total table's cells and notes.
+const average = (over: Partial<TeamStatAverage> = {}): TeamStatAverage => ({
+  metric: 'shots',
+  coverage: 'available',
+  matches_with_figure: { home: 2, away: 2, total: 4 },
+  home: 12.5,
+  away: 9,
+  total: 10.75,
+  ...over,
+});
+
+const record = {
+  played: 0,
+  won: 0,
+  drawn: 0,
+  lost: 0,
+  goals_for: 0,
+  goals_against: 0,
+  clean_sheets: 0,
+};
+const splits = (over: Partial<TeamCompetitionSplits> = {}): TeamCompetitionSplits => ({
+  competition: { id: 'c', name: 'Test Cup', short_name: null },
+  season: { id: 's', label: '2025/26', is_current: true },
+  home: record,
+  away: record,
+  total: record,
+  penalty_shootouts: 0,
+  finished_without_score: 0,
+  averages: [],
+  last_updated_at: null,
+  ...over,
+});
+
+describe('home and away figures', () => {
+  it('prints an average to one decimal, a percentage as one, and a dash for a missing split', () => {
+    expect(averageCell('en', average(), 'home')).toBe('12.5');
+    expect(averageCell('en', average(), 'away')).toBe('9.0');
+    expect(averageCell('en', average(), 'total')).toBe('10.8');
+    const possession = average({ metric: 'possession_pct', home: 54.25 });
+    expect(averageCell('en', possession, 'home')).toBe('54.3%');
+    expect(averageCell('en', average({ away: null }), 'away')).toBe('–');
+  });
+
+  it('says why an average row is short, and nothing when it is complete', () => {
+    expect(averageNote(average(), 4)).toBeNull();
+    expect(averageNote(average({ coverage: 'not_supplied' }), 4)).toBe(
+      'Not supplied for these matches',
+    );
+    expect(
+      averageNote(
+        average({ coverage: 'limited', matches_with_figure: { home: 2, away: 1, total: 3 } }),
+        4,
+      ),
+    ).toBe('Held for 3 of 4 matches; no average where a match lacks it');
+  });
+
+  it('names shoot-outs and unscored matches only when there are some', () => {
+    expect(splitNotes(splits())).toEqual([]);
+    expect(splitNotes(splits({ penalty_shootouts: 1, finished_without_score: 2 }))).toEqual([
+      '1 match went to penalties, counted as a draw.',
+      '2 finished matches have no score on record and are not counted.',
+    ]);
+    expect(SPLITS_FOOTNOTE).toMatch(/penalties counts as a draw/);
   });
 });
