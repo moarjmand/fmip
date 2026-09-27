@@ -75,6 +75,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('follow sugge
         `Suggest Beta ${RUN}`,
         `Suggest Gamma ${RUN}`,
         `Suggest Old ${RUN}`,
+        ENGLAND,
       ],
     );
     await pool.query(
