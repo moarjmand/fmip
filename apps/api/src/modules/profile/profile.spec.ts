@@ -121,3 +121,46 @@ describe('validateUpdatePreferences: the theme (T-602)', () => {
     }
   });
 });
+
+describe('validateUpdatePreferences: text size, contrast and motion (T-621)', () => {
+  it('takes each of its own values, alone or together with the theme', () => {
+    for (const text_size of ['default', 'large', 'larger'] as const) {
+      expect(validateUpdatePreferences({ text_size })).toEqual({ ok: true, value: { text_size } });
+    }
+    for (const contrast of ['system', 'standard', 'more'] as const) {
+      expect(validateUpdatePreferences({ contrast })).toEqual({ ok: true, value: { contrast } });
+    }
+    for (const motion of ['system', 'reduce'] as const) {
+      expect(validateUpdatePreferences({ motion })).toEqual({ ok: true, value: { motion } });
+    }
+    expect(
+      validateUpdatePreferences({
+        theme: 'dark',
+        text_size: 'larger',
+        contrast: 'more',
+        motion: 'reduce',
+      }),
+    ).toEqual({
+      ok: true,
+      value: { theme: 'dark', text_size: 'larger', contrast: 'more', motion: 'reduce' },
+    });
+  });
+
+  it('refuses anything else, field by field, and says what each takes', () => {
+    for (const bad of ['Large', 'huge', '', null, 2, ['large']]) {
+      expect(validateUpdatePreferences({ text_size: bad, contrast: bad, motion: bad })).toEqual({
+        ok: false,
+        fields: {
+          text_size: 'must be one of default, large, larger',
+          contrast: 'must be one of system, standard, more',
+          motion: 'must be one of system, reduce',
+        },
+      });
+    }
+    // A good field beside a bad one is not half-applied: the whole body is refused.
+    expect(validateUpdatePreferences({ text_size: 'large', contrast: 'high' })).toEqual({
+      ok: false,
+      fields: { contrast: 'must be one of system, standard, more' },
+    });
+  });
+});

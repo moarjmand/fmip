@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { PRIVACY_VISIBILITIES } from '@fmip/contracts';
 import { ActionForm, type FieldOption } from '@/components/action-form';
+import { AppearanceSwitch } from '@/components/appearance-switch';
 import { FollowingSection } from '@/components/following-section';
 import { ThemeSwitch } from '@/components/theme-switch';
 import { Translated } from '@/components/translated';
@@ -15,7 +16,9 @@ import {
 import { territoryOptions, territoryValue } from '@/lib/territory';
 import { setTerritoryAction, updatePrivacyAction, updateProfileAction } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
-import { readTheme } from '@/lib/theme-cookie';
+import type { Appearance } from '@/lib/appearance';
+import type { ThemePreference } from '@/lib/theme';
+import { readAppearance, readTheme } from '@/lib/theme-cookie';
 
 // A member's own page: never indexed.
 export const metadata: Metadata = {
@@ -38,10 +41,29 @@ const visibilityOptions: FieldOption[] = PRIVACY_VISIBILITIES.map((value) => ({
 export default async function SettingsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const cookie = await sessionCookieHeader();
-  const result = await fetchOwnProfile(cookie);
+  // A guest (no session, or one the API no longer knows) has no account to
+  // set, but the appearance is this browser's and theirs to choose (blueprint
+  // 2.2 global controls, T-621, D-092) -- with or without the API.
+  const result = cookie === undefined ? null : await fetchOwnProfile(cookie);
 
-  if (!result.ok) {
-    if (result.status === 401) redirect(`/${locale}/login`);
+  if (result === null || !result.ok) {
+    if (result === null || result.status === 401) {
+      const [theme, appearance] = await Promise.all([readTheme(), readAppearance()]);
+      return (
+        <main className="mx-auto flex max-w-md flex-col gap-10 p-8">
+          <h1 className="text-2xl font-semibold">
+            <Translated locale={locale} message="nav.settings" />
+          </h1>
+          <p className="text-sm text-muted" data-testid="settings-guest">
+            <Translated locale={locale} message="appearance.guest" />{' '}
+            <Link href={`/${locale}/login`} className="underline">
+              <Translated locale={locale} message="nav.signIn" />
+            </Link>
+          </p>
+          <AppearanceSection locale={locale} theme={theme} appearance={appearance} />
+        </main>
+      );
+    }
     return (
       <main className="mx-auto flex max-w-md flex-col gap-4 p-8">
         <h1 className="text-2xl font-semibold">Settings</h1>
@@ -51,12 +73,13 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
   }
 
   const { profile, account, privacy, viewing_territory } = result.data;
-  const [following, teams, competitions, territories, theme] = await Promise.all([
+  const [following, teams, competitions, territories, theme, appearance] = await Promise.all([
     fetchFollowing(cookie),
     fetchTeams(),
     fetchCompetitions(),
     fetchTerritories(),
     readTheme(),
+    readAppearance(),
   ]);
 
   return (
@@ -126,16 +149,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
         />
       </section>
 
-      <section id="appearance" className="flex flex-col gap-4" data-testid="appearance-section">
-        <h2 className="text-xl font-semibold">
-          <Translated locale={locale} message="theme.heading" />
-        </h2>
-        {/* T-602: the same switch as the header's, with room to say what "Device" means. */}
-        <p className="text-sm text-muted">
-          <Translated locale={locale} message="theme.hint" />
-        </p>
-        <ThemeSwitch locale={locale} current={theme} variant="full" />
-      </section>
+      <AppearanceSection locale={locale} theme={theme} appearance={appearance} />
 
       <section id="territory" className="flex flex-col gap-4" data-testid="territory-section">
         <h2 className="text-xl font-semibold">Viewing territory</h2>
@@ -177,5 +191,40 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
         />
       )}
     </main>
+  );
+}
+
+/**
+ * Settings -> Appearance, for a member and a guest alike: the theme (T-602)
+ * and text size, contrast and motion (blueprint 2.2, T-621). Every choice is
+ * this browser's cookie, rendered on <html> by the layout, and a member's is
+ * kept on the account as well.
+ */
+function AppearanceSection({
+  locale,
+  theme,
+  appearance,
+}: {
+  locale: string;
+  theme: ThemePreference;
+  appearance: Appearance;
+}) {
+  return (
+    <section id="appearance" className="flex flex-col gap-4" data-testid="appearance-section">
+      <h2 className="text-xl font-semibold">
+        <Translated locale={locale} message="theme.heading" />
+      </h2>
+      {/* T-602: the same switch as the header's, with room to say what "Device" means. */}
+      <p className="text-sm text-muted">
+        <Translated locale={locale} message="theme.hint" />
+      </p>
+      <ThemeSwitch locale={locale} current={theme} variant="full" />
+      <p className="text-sm text-muted">
+        <Translated locale={locale} message="appearance.hint" />
+      </p>
+      <AppearanceSwitch locale={locale} preference="text_size" current={appearance.text_size} />
+      <AppearanceSwitch locale={locale} preference="contrast" current={appearance.contrast} />
+      <AppearanceSwitch locale={locale} preference="motion" current={appearance.motion} />
+    </section>
   );
 }

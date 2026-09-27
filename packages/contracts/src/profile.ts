@@ -20,6 +20,24 @@ export type PrivacyVisibility = (typeof PRIVACY_VISIBILITIES)[number];
 export const THEME_PREFERENCES = ['light', 'dark', 'system'] as const;
 export type ThemePreference = (typeof THEME_PREFERENCES)[number];
 
+/**
+ * The accessibility preferences (blueprint 2.2, T-621), kept like the theme.
+ * Text size scales every rem-based size on the page; `default` is the
+ * browser's own. Contrast `more` raises every text role to WCAG AAA (7:1);
+ * `system` follows the device's `prefers-contrast`. Motion `reduce` stops
+ * animations and transitions whatever the device says; `system` follows its
+ * `prefers-reduced-motion`. The first value of each is what an account that
+ * never chose holds.
+ */
+export const TEXT_SIZE_PREFERENCES = ['default', 'large', 'larger'] as const;
+export type TextSizePreference = (typeof TEXT_SIZE_PREFERENCES)[number];
+
+export const CONTRAST_PREFERENCES = ['system', 'standard', 'more'] as const;
+export type ContrastPreference = (typeof CONTRAST_PREFERENCES)[number];
+
+export const MOTION_PREFERENCES = ['system', 'reduce'] as const;
+export type MotionPreference = (typeof MOTION_PREFERENCES)[number];
+
 export interface PrivacySettings {
   profile_visibility: PrivacyVisibility;
   prediction_history_visibility: PrivacyVisibility;
@@ -59,6 +77,12 @@ export interface OwnProfile {
   first_run: FirstRunState;
   /** The colour theme the member chose (T-602); `system` until they choose. */
   theme: ThemePreference;
+  /** Text size (T-621); `default` until they choose. */
+  text_size: TextSizePreference;
+  /** Contrast (T-621); `system` (the device's) until they choose. */
+  contrast: ContrastPreference;
+  /** Motion (T-621); `system` (the device's) until they choose. */
+  motion: MotionPreference;
 }
 
 /**
@@ -75,14 +99,18 @@ export interface FirstRunResponse {
 
 /**
  * `PATCH /me/preferences` (T-620): the language and time zone chosen at
- * registration, changed afterwards, and the colour theme (T-602). Only the
- * fields present change; each is validated as registration validates it (a
- * BCP 47 tag, an IANA zone), the theme as one of `THEME_PREFERENCES`.
+ * registration, changed afterwards, and the colour theme (T-602), and text size,
+ * contrast and motion (T-621). Only the fields present change; each is
+ * validated as registration validates it (a BCP 47 tag, an IANA zone), the
+ * others as one of their own list.
  */
 export interface UpdatePreferencesRequest {
   preferred_language?: string;
   timezone?: string;
   theme?: ThemePreference;
+  text_size?: TextSizePreference;
+  contrast?: ContrastPreference;
+  motion?: MotionPreference;
 }
 
 /** `PATCH /me/profile`. Only the fields present change; `null` clears. */

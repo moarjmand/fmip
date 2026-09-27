@@ -21,6 +21,22 @@
  * canvas / surface / surface-raised, in that order, and the spec recomputes
  * every one of them from the values here, so a figure that goes stale fails.
  * Muted text keeps AA on every background (D-041).
+ *
+ * More contrast (T-621, blueprint 2.2) is a second set of values for each
+ * theme, in which every text role is WCAG AAA (7:1) on the page and both
+ * surfaces: muted text comes close to body text, the hairline becomes a
+ * visible edge, the green goes darker on light and lighter on dark, and the
+ * dark backgrounds go to black. It applies when `data-contrast="more"` is
+ * chosen, or when nothing was chosen (`system`) and the device asks for it
+ * (`prefers-contrast: more`); `standard` keeps the values above whatever the
+ * device says. The order of the blocks is what makes this work:
+ *   1. light, `:root`;
+ *   2. light and more, specificity 0-2-0, which beats 1 and nothing else;
+ *   3. the two ways to dark, 0-2-0 and later, so they beat 2;
+ *   4. dark and more, 0-3-0, four ways (chosen or device dark, times chosen
+ *      or device contrast), which beat 3.
+ * Blocks of one kind carry the same declarations; the spec refuses a drift,
+ * and recomputes the figures written against the first of each kind.
  */
 
 :root {
@@ -61,6 +77,60 @@
   --token-success: #0b6b3a;
   /* A match in play: 6.57 / 6.29 / 5.97. */
   --token-live: #b42318;
+}
+
+/* More contrast on light (T-621): every text role 7:1 or better. Chosen... */
+:root[data-contrast='more'] {
+  color-scheme: light;
+  --token-canvas: #ffffff;
+  --token-surface: #f9fafb;
+  --token-surface-raised: #f3f4f6;
+  /* Body text: 20.13 / 19.27 / 18.30. */
+  --token-text: #030712;
+  /* Secondary text, close to body text: 10.31 / 9.86 / 9.37. */
+  --token-text-muted: #374151;
+  /* The hairline, now an edge you can see: 4.83 / 4.63 / 4.39. */
+  --token-border: #6b7280;
+  /* A field's edge: 14.68 / 14.05 / 13.34. */
+  --token-border-strong: #1f2937;
+  /* The green: 9.22 / 8.82 / 8.37. */
+  --token-accent: #05532b;
+  /* Pressed or hover on the green: 15.59 / 14.92 / 14.17. */
+  --token-accent-strong: #032a16;
+  /* Text on the green: 9.22 on accent, 15.59 on accent-strong. */
+  --token-on-accent: #ffffff;
+  /* The focus ring: 20.13 / 19.27 / 18.30. */
+  --token-focus: #030712;
+  /* An error: 8.31 / 7.95 / 7.55. */
+  --token-danger: #991b1b;
+  /* A caution: 9.07 / 8.68 / 8.24. */
+  --token-warning: #78350f;
+  /* Done, saved: 9.22 / 8.82 / 8.37. */
+  --token-success: #05532b;
+  /* A match in play: 8.96 / 8.58 / 8.14. */
+  --token-live: #8f1c13;
+}
+
+/* ...or not chosen, and the device asks for it: the same values. */
+@media (prefers-contrast: more) {
+  :root:not([data-contrast='standard']) {
+    color-scheme: light;
+    --token-canvas: #ffffff;
+    --token-surface: #f9fafb;
+    --token-surface-raised: #f3f4f6;
+    --token-text: #030712;
+    --token-text-muted: #374151;
+    --token-border: #6b7280;
+    --token-border-strong: #1f2937;
+    --token-accent: #05532b;
+    --token-accent-strong: #032a16;
+    --token-on-accent: #ffffff;
+    --token-focus: #030712;
+    --token-danger: #991b1b;
+    --token-warning: #78350f;
+    --token-success: #05532b;
+    --token-live: #8f1c13;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -113,4 +183,102 @@
   --token-warning: #fbbf24;
   --token-success: #4cc88a;
   --token-live: #ff7a6b;
+}
+
+/* More contrast on dark (T-621): dark chosen, more chosen. */
+:root[data-theme='dark'][data-contrast='more'] {
+  color-scheme: dark;
+  --token-canvas: #000000;
+  --token-surface: #0f0f11;
+  --token-surface-raised: #1a1a1d;
+  /* Body text: 20.12 / 18.34 / 16.64. */
+  --token-text: #fafafa;
+  /* Secondary text, close to body text: 14.21 / 12.96 / 11.75. */
+  --token-text-muted: #d4d4d8;
+  /* The hairline, now an edge you can see: 3.98 / 3.63 / 3.29. */
+  --token-border: #6b6b73;
+  /* A field's edge: 10.19 / 9.29 / 8.42. */
+  --token-border-strong: #b4b4bb;
+  /* The green: 12.32 / 11.23 / 10.19. */
+  --token-accent: #7ad9a8;
+  /* Pressed or hover on the green: 15.59 / 14.22 / 12.89. */
+  --token-accent-strong: #b0ebcb;
+  /* Text on the green: 12.32 on accent, 15.59 on accent-strong. */
+  --token-on-accent: #000000;
+  /* The focus ring: 20.12 / 18.34 / 16.64. */
+  --token-focus: #fafafa;
+  /* An error: 11.06 / 10.09 / 9.15. */
+  --token-danger: #fca5a5;
+  /* A caution: 14.56 / 13.28 / 12.04. */
+  --token-warning: #fcd34d;
+  /* Done, saved: 12.32 / 11.23 / 10.19. */
+  --token-success: #7ad9a8;
+  /* A match in play: 11.59 / 10.57 / 9.58. */
+  --token-live: #ffaba1;
+}
+
+/* The device's dark, more chosen. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light'])[data-contrast='more'] {
+    color-scheme: dark;
+    --token-canvas: #000000;
+    --token-surface: #0f0f11;
+    --token-surface-raised: #1a1a1d;
+    --token-text: #fafafa;
+    --token-text-muted: #d4d4d8;
+    --token-border: #6b6b73;
+    --token-border-strong: #b4b4bb;
+    --token-accent: #7ad9a8;
+    --token-accent-strong: #b0ebcb;
+    --token-on-accent: #000000;
+    --token-focus: #fafafa;
+    --token-danger: #fca5a5;
+    --token-warning: #fcd34d;
+    --token-success: #7ad9a8;
+    --token-live: #ffaba1;
+  }
+}
+
+/* Dark chosen, contrast not chosen and the device asks for more. */
+@media (prefers-contrast: more) {
+  :root[data-theme='dark']:not([data-contrast='standard']) {
+    color-scheme: dark;
+    --token-canvas: #000000;
+    --token-surface: #0f0f11;
+    --token-surface-raised: #1a1a1d;
+    --token-text: #fafafa;
+    --token-text-muted: #d4d4d8;
+    --token-border: #6b6b73;
+    --token-border-strong: #b4b4bb;
+    --token-accent: #7ad9a8;
+    --token-accent-strong: #b0ebcb;
+    --token-on-accent: #000000;
+    --token-focus: #fafafa;
+    --token-danger: #fca5a5;
+    --token-warning: #fcd34d;
+    --token-success: #7ad9a8;
+    --token-live: #ffaba1;
+  }
+}
+
+/* The device's dark, and the device asks for more. */
+@media (prefers-color-scheme: dark) and (prefers-contrast: more) {
+  :root:not([data-theme='light']):not([data-contrast='standard']) {
+    color-scheme: dark;
+    --token-canvas: #000000;
+    --token-surface: #0f0f11;
+    --token-surface-raised: #1a1a1d;
+    --token-text: #fafafa;
+    --token-text-muted: #d4d4d8;
+    --token-border: #6b6b73;
+    --token-border-strong: #b4b4bb;
+    --token-accent: #7ad9a8;
+    --token-accent-strong: #b0ebcb;
+    --token-on-accent: #000000;
+    --token-focus: #fafafa;
+    --token-danger: #fca5a5;
+    --token-warning: #fcd34d;
+    --token-success: #7ad9a8;
+    --token-live: #ffaba1;
+  }
 }

@@ -94,6 +94,66 @@
     "text": "",
     "status": "untranslated"
   },
+  "appearance.device": {
+    "source": "Device",
+    "text": "",
+    "status": "untranslated"
+  },
+  "appearance.textSize.label": {
+    "source": "Text size",
+    "text": "",
+    "status": "untranslated"
+  },
+  "appearance.textSize.default": {
+    "source": "Standard",
+    "text": "",
+    "status": "untranslated"
+  },
+  "appearance.textSize.large": {
+    "source": "Large",
+    "text": "",
+    "status": "untranslated"
+  },
+  "appearance.textSize.larger": {
+    "source": "Larger",
+    "text": "",
+    "status": "untranslated"
+  },
+  "appearance.contrast.label": {
+    "source": "Contrast",
+    "text": "",
+    "status": "untranslated"
+  },
+  "appearance.contrast.standard": {
+    "source": "Standard",
+    "text": "",
+    "status": "untranslated"
+  },
+  "appearance.contrast.more": {
+    "source": "More",
+    "text": "",
+    "status": "untranslated"
+  },
+  "appearance.motion.label": {
+    "source": "Motion",
+    "text": "",
+    "status": "untranslated"
+  },
+  "appearance.motion.reduce": {
+    "source": "Reduced",
+    "text": "",
+    "status": "untranslated"
+  },
+  "appearance.hint": {
+    "source": "Larger text makes every size on the page bigger. More contrast darkens secondary text and edges so all text reaches the highest readability standard. Reduced motion stops animations. Device follows the setting of your phone or computer.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "appearance.guest": {
+    "source": "Sign in to change your profile, privacy, following and viewing territory. Your appearance choices are kept in this browser, and on your account once you sign in.",
+    "text": "",
+    "status": "untranslated"
+  },
   "language.name.en": {
     "source": "English",
     "text": "",

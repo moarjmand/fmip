@@ -12,7 +12,7 @@ import { MODEL_CLIENT, ModelClient } from '../forecast/forecast.service';
 import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
 import { ReputationModule } from './reputation.module';
 import { ReputationService } from './reputation.service';
-import { withTriggersOff } from '../../testing/cleanup';
+import { deleteRatedAccounts, withTriggersOff } from '../../testing/cleanup';
 
 // The acceptance criterion is "rating recomputable from stored records
 // alone": settlements and forecast versions are written, the rating is
@@ -165,12 +165,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Performance 
     // Seven tables named twice each: fourteen statements that existed only
     // because the setting was per table rather than per session.
     await withTriggersOff(pool, async (client) => {
-      await client.query(`DELETE FROM points_transaction WHERE user_id = ANY($1::uuid[])`, [
-        users.map((u) => u.id),
-      ]);
-      await client.query(`DELETE FROM rating_snapshot WHERE user_id = ANY($1::uuid[])`, [
-        users.map((u) => u.id),
-      ]);
+      // Settlements first, so no recompute running in another suite picks
+      // these members up again; `deleteRatedAccounts` then clears what one
+      // already under way writes (points, snapshots) before the accounts go.
       await client.query(`DELETE FROM settlement WHERE fixture_id = ANY($1::uuid[])`, [fixtures]);
       await client.query(`DELETE FROM settlement_run WHERE fixture_id = ANY($1::uuid[])`, [
         fixtures,
@@ -185,7 +182,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Performance 
         fixtures,
       ]);
     });
-    await pool.query(`DELETE FROM user_account WHERE username LIKE $1`, [`rt_${RUN}%`]);
+    const accounts = await pool.query<{ id: string }>(
+      `SELECT id FROM user_account WHERE username LIKE $1`,
+      [`rt_${RUN}%`],
+    );
+    await deleteRatedAccounts(
+      pool,
+      accounts.rows.map((r) => r.id),
+    );
     await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [fixtures]);
     await pool.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [[HOME_TEAM, AWAY_TEAM]]);
     await pool.end();
