@@ -268,6 +268,13 @@ export function ModerationQueue({
                   {subject.display_name}
                 </Link>
                 <span className="ms-2 text-sm opacity-70">@{subject.username}</span>
+                <Link
+                  href={`/${locale}/admin/moderation/${encodeURIComponent(subject.username)}`}
+                  className="ms-2 text-sm underline"
+                  data-testid="moderation-history-link"
+                >
+                  History
+                </Link>
                 {subject.active_sanctions > 0 && (
                   <span className="ms-2 text-sm" data-testid="moderation-active-sanctions">
                     {subject.active_sanctions} restriction

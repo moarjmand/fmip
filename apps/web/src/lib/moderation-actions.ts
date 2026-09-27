@@ -118,3 +118,24 @@ export async function suggestModerationAction(
       return { ok: false, message: 'The language model did not answer. Decide without it.' };
   }
 }
+
+export async function liftSanctionAction(
+  locale: string,
+  username: string,
+  sanctionId: string,
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const reason = String(formData.get('reason') ?? '').trim();
+  if (reason === '') {
+    return { ok: false, message: 'Say why it is being lifted. This is recorded.' };
+  }
+  const outcome = await post<unknown>(
+    `/admin/moderation/sanctions/${encodeURIComponent(sanctionId)}/lift`,
+    { reason },
+  );
+  if (!outcome.ok) return outcome;
+  revalidatePath(`/${locale}/admin/moderation/${encodeURIComponent(username)}`);
+  revalidatePath(`/${locale}/admin/moderation`);
+  return { ok: true, message: 'Lifted; the member can use it again now.' };
+}
