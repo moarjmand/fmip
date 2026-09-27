@@ -16,11 +16,13 @@ import type {
   CareerPointsResponse,
   EligibilityResponse,
   LeaderboardResponse,
+  RatingHistoryResponse,
   RatingResponse,
 } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { GroupsService } from '../groups/groups.service';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
+import { ProfileService } from '../profile/profile.service';
 import { CareerPointsService } from './career-points.service';
 import { ContributorService } from './contributor.service';
 import { parseLeaderboardQuery } from './internal/leaderboard';
@@ -46,6 +48,7 @@ export class ReputationController {
     private readonly identity: IdentityService,
     private readonly groups: GroupsService,
     private readonly contributors: ContributorService,
+    private readonly profiles: ProfileService,
   ) {}
 
   @Get('me/rating')
@@ -70,6 +73,44 @@ export class ReputationController {
     const user = await this.identity.userByUsername(username.toLowerCase());
     if (user === null) throw new NotFoundException(NO_USER);
     return { username: user.username, rating: await this.reputation.current(user.id) };
+  }
+
+  @Get('me/rating/history')
+  async myHistory(@Req() request: FastifyRequest): Promise<RatingHistoryResponse> {
+    const user = await this.viewer(request);
+    return {
+      kind: 'visible',
+      username: user.username,
+      is_self: true,
+      history: await this.reputation.history(user.id),
+    };
+  }
+
+  /**
+   * The rating over time and by competition (blueprint 9.3, T-640). Unlike the
+   * current rating it says when and where the member predicted, so it follows
+   * `prediction_history_visibility`, asked of the profile boundary exactly as
+   * `GET /users/:username/predictions` asks it: a viewer who may not see the
+   * history gets the restricted shape, not a thinner trajectory.
+   */
+  @Get('users/:username/rating/history')
+  async theirHistory(
+    @Param('username') username: string,
+    @Req() request: FastifyRequest,
+  ): Promise<RatingHistoryResponse> {
+    const viewer = await this.identity.authenticate(
+      parseCookies(request.headers.cookie)[SESSION_COOKIE],
+    );
+    const access = await this.profiles.predictionHistoryAccess(username, viewer?.id ?? null);
+    if (access.kind === 'unknown') throw new NotFoundException(NO_USER);
+    if (access.kind === 'restricted')
+      return { kind: 'restricted', username: access.username, visibility: access.visibility };
+    return {
+      kind: 'visible',
+      username: access.username,
+      is_self: access.isSelf,
+      history: await this.reputation.history(access.userId),
+    };
   }
 
   /** Public (blueprint 9.3). The minimum-sample filter has a floor; below it is a 400, not a bigger board. */

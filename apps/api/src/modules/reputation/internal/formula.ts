@@ -94,6 +94,31 @@ export function inputsHash(inputs: readonly RatingInput[], formula: RatingFormul
   return hash.digest('hex');
 }
 
+/** The order the formula reads settlements in: settled time, then settlement id. */
+export function byRatingOrder(a: RatingInput, b: RatingInput): number {
+  return a.settledAt.localeCompare(b.settledAt) || a.settlementId.localeCompare(b.settlementId);
+}
+
+/**
+ * The rating after each settlement, oldest first (T-640): step `k` is exactly
+ * `computeRating` over the first `k` settlements in rating order. Only the
+ * last `window` of them are handed over, which is what `computeRating` would
+ * keep anyway, so a long history does not cost a full sort per step. There is
+ * no second formula here: every number comes out of `computeRating`.
+ */
+export function ratingTrajectory<T extends RatingInput>(
+  history: readonly T[],
+  formula: RatingFormula = RATING_FORMULA_V1,
+): { input: T; settledTotal: number; result: RatingResult }[] {
+  const ordered = [...history].sort(byRatingOrder);
+  return ordered.map((input, index) => {
+    const upTo = index + 1;
+    const result = computeRating(ordered.slice(Math.max(0, upTo - formula.window), upTo), formula);
+    // Never null: the slice holds at least this settlement.
+    return { input, settledTotal: upTo, result: result as RatingResult };
+  });
+}
+
 /**
  * Computes a rating over settled predictions (oldest first). Null when there
  * is nothing settled: a rating of 0 would look like a judgement.
@@ -102,10 +127,7 @@ export function computeRating(
   history: readonly RatingInput[],
   formula: RatingFormula = RATING_FORMULA_V1,
 ): RatingResult | null {
-  const ordered = [...history].sort(
-    (a, b) =>
-      a.settledAt.localeCompare(b.settledAt) || a.settlementId.localeCompare(b.settlementId),
-  );
+  const ordered = [...history].sort(byRatingOrder);
   const inputs = ordered.slice(-formula.window);
   const n = inputs.length;
   if (n === 0) return null;

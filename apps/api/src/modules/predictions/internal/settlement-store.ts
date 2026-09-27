@@ -14,6 +14,8 @@ export interface SettledRecord {
   scoreCorrect: boolean | null;
   confidence: number;
   actualOutcome: 'home' | 'draw' | 'away';
+  /** The fixture's competition, for the rating's per-competition breakdown (T-640). */
+  competition: { id: string; name: string };
 }
 
 export interface FixtureFinal {
@@ -242,15 +244,20 @@ export class PostgresSettlementStore {
       confidence: number;
       actual_home: number;
       actual_away: number;
+      competition_id: string;
+      competition_name: string;
     }>(
       `SELECT s.id, s.fixture_id, f.kickoff_at, s.settled_at, s.outcome_correct, s.score_predicted,
-              s.score_correct, s.confidence, s.actual_home, s.actual_away
+              s.score_correct, s.confidence, s.actual_home, s.actual_away,
+              c.id AS competition_id, c.name AS competition_name
          FROM user_prediction p
          JOIN LATERAL (
            SELECT * FROM settlement st
             WHERE st.prediction_id = p.id ORDER BY st.settled_at DESC, st.id DESC LIMIT 1
          ) s ON true
          JOIN fixture f ON f.id = s.fixture_id
+         JOIN season se ON se.id = f.season_id
+         JOIN competition c ON c.id = se.competition_id
         WHERE p.user_id = $1 AND s.status = 'settled'
         ORDER BY s.settled_at, s.id`,
       [userId],
@@ -266,6 +273,7 @@ export class PostgresSettlementStore {
       confidence: r.confidence,
       actualOutcome:
         r.actual_home > r.actual_away ? 'home' : r.actual_home < r.actual_away ? 'away' : 'draw',
+      competition: { id: r.competition_id, name: r.competition_name },
     }));
   }
 
