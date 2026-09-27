@@ -19,6 +19,7 @@ const PAGES = [
 ];
 const MUTED = () =>
   getComputedStyle(document.documentElement).getPropertyValue('--token-text-muted').trim();
+const ROOT_FONT_SIZE = () => getComputedStyle(document.documentElement).fontSize;
 
 async function choose(page: Page, cookies: Record<string, string>, baseURL: string | undefined) {
   await page
@@ -62,9 +63,10 @@ test('a guest sets each in Settings, it says which is on, and it lasts', async (
     'aria-pressed',
     'true',
   );
-  expect(await page.evaluate(() => getComputedStyle(document.documentElement).fontSize)).toBe(
-    '20px',
-  );
+  // Polled, not read once: the attribute can land a frame before the style
+  // settles (under reduced motion every property, font-size included, has a
+  // 0.01ms transition, and a read inside that frame sees the old size).
+  await expect.poll(() => page.evaluate(ROOT_FONT_SIZE)).toBe('20px');
 
   expect(await page.evaluate(MUTED)).toBe('#4b5563');
   await page.getByTestId('appearance-contrast-more').click();
@@ -82,11 +84,14 @@ test('a guest sets each in Settings, it says which is on, and it lasts', async (
   await expect(html).toHaveAttribute('data-contrast', 'more');
   await expect(html).toHaveAttribute('data-motion', 'reduce');
 
-  await page.getByTestId('appearance-text_size-default').click();
+  // The text size group's own button: contrast has a "Standard" too.
+  await size.getByTestId('appearance-text_size-default').click();
   await expect(html).toHaveAttribute('data-text-size', 'default');
-  expect(await page.evaluate(() => getComputedStyle(document.documentElement).fontSize)).toBe(
-    '16px',
+  await expect(size.getByTestId('appearance-text_size-default')).toHaveAttribute(
+    'aria-pressed',
+    'true',
   );
+  await expect.poll(() => page.evaluate(ROOT_FONT_SIZE)).toBe('16px');
 });
 
 test.describe('contrast nobody chose follows the device', () => {
