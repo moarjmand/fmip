@@ -129,13 +129,14 @@ export type {
   UpdatePrivacyRequest,
   UpdateProfileRequest,
 } from './profile';
-export { KNOCKOUT_ROUNDS } from './catalog';
+export { KNOCKOUT_ROUNDS, SUGGESTED_TEAMS_PER_COMPETITION } from './catalog';
 export type {
   CompetitionPage,
   CompetitionSummary,
   CompetitionsResponse,
   CountriesResponse,
   CountrySummary,
+  FollowSuggestionsResponse,
   FormResult,
   KnockoutBracket,
   KnockoutLeg,
@@ -153,6 +154,8 @@ export type {
   SquadPlayer,
   SquadPosition,
   StageSummary,
+  SuggestedCompetition,
+  SuggestedTeam,
   TableContext,
   TableRow,
   TeamCompetition,

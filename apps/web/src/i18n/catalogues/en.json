@@ -244,5 +244,14 @@
   },
   "feed.signal.fresh": "new today",
   "feed.reason.nothingFollowed": "You follow nothing yet. Follow a team, a competition or a contributor and what happens around them will appear here.",
-  "feed.reason.nothingInWindow": "Nothing has happened around what you follow in the last week, and nothing is due in the next."
+  "feed.reason.nothingInWindow": "Nothing has happened around what you follow in the last week, and nothing is due in the next.",
+  "feed.nextSteps.title": "Where to start",
+  "feed.nextSteps.intro": "Follow one of the competitions below, or a team that plays in it. Its matches, news and analysis will then appear on this page.",
+  "feed.nextSteps.ranked": "Teams in this season, most followed first:",
+  "feed.nextSteps.noTeams": "No fixture of this season names a team yet.",
+  "feed.nextSteps.follow": "Follow",
+  "feed.nextSteps.nothingHeld": "The site holds no competitions yet, so there is nothing to suggest.",
+  "feed.nextSteps.unreachable": "Suggestions cannot be loaded right now.",
+  "feed.nextSteps.search": "Search for a team, a player or a competition",
+  "feed.nextSteps.everything": "Choose from every team and competition in Settings"
 }
