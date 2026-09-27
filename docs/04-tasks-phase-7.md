@@ -71,9 +71,9 @@ as a decision entry when made.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-620 | First run: language, territory, time zone and favourite teams, once | — | Blueprint 2.3 and 7.1; a guest's choice survives until sign-up |
+| `[x]` T-620 | First run: language, territory, time zone and favourite teams, once | — | Blueprint 2.3 and 7.1; a guest's choice survives until sign-up |
 | `[ ]` T-621 | Text size and contrast in Settings | T-602 | Blueprint 2.2 |
-| `[ ]` T-622 | Following with nothing followed says what to do next | — | Never an empty page that looks broken |
+| `[x]` T-622 | Following with nothing followed says what to do next | — | Never an empty page that looks broken |
 
 ## E63 — Football pages, deeper
 
@@ -81,7 +81,7 @@ as a decision entry when made.
 |---|---|---|---|
 | `[x]` T-630 | Knockout brackets for the three UEFA cups | — | Blueprint 5.1; a tie not yet drawn is stated, never invented |
 | `[x]` T-631 | Two players compared | — | Blueprint 5.3; a figure one of them lacks is a coverage state |
-| `[ ]` T-632 | A team's figures home and away and by competition | — | Blueprint 5.2 |
+| `[x]` T-632 | A team's figures home and away and by competition | — | Blueprint 5.2 |
 | `[x]` T-633 | The scores page: a date picker and filters by country and stage | T-504 | Blueprint 4.1 |
 
 ## E64 — Reputation and discovery, completed
@@ -89,6 +89,6 @@ as a decision entry when made.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-640 | A member's rating over time, by competition, and their highest | — | Blueprint 9.3; recomputable from stored settlements (rule 8) |
-| `[ ]` T-641 | Leaderboards among friends, by month and by season | T-640 | Blueprint 9.3 |
-| `[ ]` T-642 | Search over articles, groups and members who allow it | — | Blueprint 2.2; a private profile is never a result |
+| `[x]` T-641 | Leaderboards among friends, by month and by season | T-640 | Blueprint 9.3 |
+| `[x]` T-642 | Search over articles, groups and members who allow it | — | Blueprint 2.2; a private profile is never a result |
 | `[ ]` T-643 | Achievements and group polls | maintainer | Their list and the poll rules are product behaviour to confirm first |
