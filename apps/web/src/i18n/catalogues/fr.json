@@ -55,7 +55,7 @@
     "status": "untranslated"
   },
   "nav.searchLabel": {
-    "source": "Search teams, competitions and players",
+    "source": "Search teams, competitions, players, news, groups and members",
     "text": "",
     "status": "untranslated"
   },
@@ -596,6 +596,81 @@
   },
   "search.reason.failed": {
     "source": "The language model could not be reached, so this is a keyword search.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "search.section.team": {
+    "source": "Teams",
+    "text": "",
+    "status": "untranslated"
+  },
+  "search.section.competition": {
+    "source": "Competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "search.section.person": {
+    "source": "Players",
+    "text": "",
+    "status": "untranslated"
+  },
+  "search.section.story": {
+    "source": "News",
+    "text": "",
+    "status": "untranslated"
+  },
+  "search.section.group": {
+    "source": "Groups",
+    "text": "",
+    "status": "untranslated"
+  },
+  "search.section.member": {
+    "source": "Members",
+    "text": "",
+    "status": "untranslated"
+  },
+  "search.empty.team": {
+    "source": "No team matches.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "search.empty.competition": {
+    "source": "No competition matches.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "search.empty.person": {
+    "source": "No player matches.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "search.empty.story": {
+    "source": "No story's headline matches.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "search.empty.group": {
+    "source": "No group that can be found matches. Invite-only groups are never listed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "search.empty.member": {
+    "source": "No member with a public profile matches. Private and friends-only profiles are never listed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "search.group.public": {
+    "source": "Open to join",
+    "text": "",
+    "status": "untranslated"
+  },
+  "search.group.discoverable": {
+    "source": "Ask to join",
+    "text": "",
+    "status": "untranslated"
+  },
+  "search.communityUnreachable": {
+    "source": "News, groups and members cannot be searched right now.",
     "text": "",
     "status": "untranslated"
   },

@@ -446,9 +446,13 @@ export function fetchScores(
   return apiRequest<ScoresResponse>(`/scores?${query}`, cookie === undefined ? {} : { cookie });
 }
 
-/** `GET /search?${query}` (T-038): teams, competitions and people by name or alias. Public. */
-export function fetchSearch(query: string): Promise<ApiResult<SearchResponse>> {
-  return apiRequest<SearchResponse>(`/search?${query}`);
+/**
+ * `GET /search?${query}` (T-038, T-642): teams, competitions and people by
+ * name or alias, and stories, findable groups and public members. Public; the
+ * session (if any) only hides members on either side of a block.
+ */
+export function fetchSearch(query: string, cookie?: string): Promise<ApiResult<SearchResponse>> {
+  return apiRequest<SearchResponse>(`/search?${query}`, cookie === undefined ? {} : { cookie });
 }
 
 /**

@@ -381,8 +381,17 @@ export type {
   SetCoverageRequest,
   SetUserStatusRequest,
 } from './admin';
-export { SEARCH_ENTITY_TYPES } from './search';
-export type { SearchEntityType, SearchResponse, SearchResult } from './search';
+export { SEARCH_COMMUNITY_TYPES, SEARCH_ENTITY_TYPES, SEARCH_TYPES } from './search';
+export type {
+  GroupSearchResult,
+  MemberSearchResult,
+  SearchCommunityType,
+  SearchEntityType,
+  SearchResponse,
+  SearchResult,
+  SearchType,
+  StorySearchResult,
+} from './search';
 
 // The social graph (blueprint 8.1, T-200). Contact only: nothing here imports a
 // prediction, a forecast or an analysis.

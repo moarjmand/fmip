@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import type { AskResponse } from '@fmip/contracts';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
+import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
 import {
   AbsentIntelligence,
   type Completion,
@@ -76,6 +77,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ask', () => 
     const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, AskModule] })
       .overrideProvider(LANGUAGE_MODEL)
       .useValue(intelligence)
+      // The search module reads sessions (T-642); the secret is the test's own.
+      .overrideProvider(IDENTITY_OPTIONS)
+      .useValue({ ...DEFAULT_IDENTITY_OPTIONS, sessionSecret: 'test-secret-'.repeat(4) })
       .compile();
     const application = moduleRef.createNestApplication<NestFastifyApplication>(
       new FastifyAdapter(),
