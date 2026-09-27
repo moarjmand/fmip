@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import { PRIVACY_VISIBILITIES } from '@fmip/contracts';
 import { ActionForm, type FieldOption } from '@/components/action-form';
 import { FollowingSection } from '@/components/following-section';
+import { ThemeSwitch } from '@/components/theme-switch';
+import { Translated } from '@/components/translated';
 import {
   fetchCompetitions,
   fetchFollowing,
@@ -13,6 +15,7 @@ import {
 import { territoryOptions, territoryValue } from '@/lib/territory';
 import { setTerritoryAction, updatePrivacyAction, updateProfileAction } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
+import { readTheme } from '@/lib/theme-cookie';
 
 // A member's own page: never indexed.
 export const metadata: Metadata = {
@@ -48,11 +51,12 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
   }
 
   const { profile, account, privacy, viewing_territory } = result.data;
-  const [following, teams, competitions, territories] = await Promise.all([
+  const [following, teams, competitions, territories, theme] = await Promise.all([
     fetchFollowing(cookie),
     fetchTeams(),
     fetchCompetitions(),
     fetchTerritories(),
+    readTheme(),
   ]);
 
   return (
@@ -120,6 +124,17 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
           submitLabel="Save privacy settings"
           testId="privacy-form"
         />
+      </section>
+
+      <section id="appearance" className="flex flex-col gap-4" data-testid="appearance-section">
+        <h2 className="text-xl font-semibold">
+          <Translated locale={locale} message="theme.heading" />
+        </h2>
+        {/* T-602: the same switch as the header's, with room to say what "Device" means. */}
+        <p className="text-sm text-muted">
+          <Translated locale={locale} message="theme.hint" />
+        </p>
+        <ThemeSwitch locale={locale} current={theme} variant="full" />
       </section>
 
       <section id="territory" className="flex flex-col gap-4" data-testid="territory-section">

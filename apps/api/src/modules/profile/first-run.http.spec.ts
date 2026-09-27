@@ -135,6 +135,38 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('first run', 
     });
   });
 
+  it('keeps the theme on the account (T-602): system until chosen, then the choice', async () => {
+    const before = await app.inject({ method: 'GET', url: '/me/profile', headers: { cookie } });
+    expect(before.json<OwnProfile>().theme).toBe('system');
+
+    const dark = await app.inject({
+      method: 'PATCH',
+      url: '/me/preferences',
+      headers: { cookie },
+      payload: { theme: 'dark' },
+    });
+    expect(dark.statusCode).toBe(200);
+    expect(dark.json<OwnProfile>().theme).toBe('dark');
+
+    const bad = await app.inject({
+      method: 'PATCH',
+      url: '/me/preferences',
+      headers: { cookie },
+      payload: { theme: 'sepia' },
+    });
+    expect(bad.statusCode).toBe(400);
+    expect(Object.keys(bad.json<{ fields: Record<string, string> }>().fields)).toEqual(['theme']);
+
+    // Another preference leaves the theme alone.
+    const zone = await app.inject({
+      method: 'PATCH',
+      url: '/me/preferences',
+      headers: { cookie },
+      payload: { timezone: 'UTC' },
+    });
+    expect(zone.json<OwnProfile>().theme).toBe('dark');
+  });
+
   it('ends once, and a second end keeps the first moment', async () => {
     const first = await app.inject({ method: 'PUT', url: '/me/first-run', headers: { cookie } });
     expect(first.statusCode).toBe(200);

@@ -11,6 +11,7 @@ import {
   isDemonstrationData,
 } from '@/lib/demonstration';
 import { pageMetadata, siteUrl } from '@/lib/seo';
+import { readTheme } from '@/lib/theme-cookie';
 // The site font (T-601, D-089): Vazirmatn, self-hosted. The package's
 // @font-face rules point at woff2 files Next copies into its own static
 // assets, one per script subset by `unicode-range`, so a page downloads only
@@ -95,13 +96,18 @@ export default async function LocaleLayout({
     notFound();
   }
 
+  // The theme this browser chose (T-602), rendered here rather than applied by
+  // a script after load, so the first paint is already light or dark as
+  // chosen. `system` lets tokens.css follow the device.
+  const theme = await readTheme();
+
   return (
-    <html lang={locale} dir={directionOf(locale)}>
+    <html lang={locale} dir={directionOf(locale)} data-theme={theme}>
       <body>
         {/* First in the tab order (T-081): one key past the navigation to the content. */}
         <a
           href="#content"
-          className="sr-only focus:not-sr-only focus:fixed focus:start-2 focus:top-2 focus:z-50 focus:rounded focus:bg-current/10 focus:px-3 focus:py-2"
+          className="sr-only focus:not-sr-only focus:fixed focus:start-2 focus:top-2 focus:z-50 focus:rounded focus:bg-surface-raised focus:px-3 focus:py-2"
           data-testid="skip-link"
         >
           {/* Through `Translated` like every other label: on `/es` this is
@@ -113,7 +119,7 @@ export default async function LocaleLayout({
             deployment's football is fixture data, a reader meets that fact
             before they meet a score (T-087). */}
         <DemonstrationBanner />
-        <SiteHeader locale={locale} />
+        <SiteHeader locale={locale} theme={theme} />
         <div id="content" tabIndex={-1} className="outline-none">
           {children}
         </div>

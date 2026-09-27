@@ -3,6 +3,7 @@ import {
   type FollowRequest,
   PRIVACY_VISIBILITIES,
   type PrivacyVisibility,
+  THEME_PREFERENCES,
   type UpdatePreferencesRequest,
   type UpdatePrivacyRequest,
   type UpdateProfileRequest,
@@ -92,7 +93,10 @@ export function validateUpdatePrivacy(body: unknown): Validated<UpdatePrivacyReq
 export const LANGUAGE_TAG = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
 const TIMEZONES = new Set<string>([...Intl.supportedValuesOf('timeZone'), 'UTC']);
 
-/** `PATCH /me/preferences` (T-620): language and time zone, each optional, nothing else. */
+/**
+ * `PATCH /me/preferences` (T-620): language and time zone, each optional, and
+ * the colour theme (T-602), one of `THEME_PREFERENCES`. Nothing else.
+ */
 export function validateUpdatePreferences(body: unknown): Validated<UpdatePreferencesRequest> {
   if (!isRecord(body)) return { ok: false, fields: { body: 'must be a JSON object' } };
   const fields: Record<string, string> = {};
@@ -109,6 +113,12 @@ export function validateUpdatePreferences(body: unknown): Validated<UpdatePrefer
     if (typeof raw !== 'string' || !TIMEZONES.has(raw.trim())) {
       fields.timezone = 'must be an IANA time zone such as Asia/Tehran';
     } else value.timezone = raw.trim();
+  }
+  if ('theme' in body) {
+    const raw = body.theme;
+    const theme = THEME_PREFERENCES.find((known) => known === raw);
+    if (theme === undefined) fields.theme = `must be one of ${THEME_PREFERENCES.join(', ')}`;
+    else value.theme = theme;
   }
   if (Object.keys(fields).length > 0) return { ok: false, fields };
   return { ok: true, value };
