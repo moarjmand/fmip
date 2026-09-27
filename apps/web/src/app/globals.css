@@ -133,6 +133,33 @@ body {
 }
 
 /*
+ * The header's Menu (T-605, `components/site-header.tsx`). On a phone it is
+ * a disclosure whose panel drops below the bar. From `sm` it is no box at
+ * all: the <details>, its content slot and the panel are `display: contents`,
+ * so every link and control inside lays out in the bar itself, and the
+ * summary is hidden. Only where the browser can style the content slot of a
+ * closed <details> (`::details-content`); a browser that cannot keeps the
+ * Menu, which still works, rather than hiding links it could not show.
+ */
+@media (width >= 40rem) {
+  @supports selector(::details-content) {
+    .site-menu,
+    .site-menu::details-content,
+    .site-menu-panel {
+      display: contents;
+    }
+
+    .site-menu::details-content {
+      content-visibility: visible;
+    }
+
+    .site-menu > summary {
+      display: none;
+    }
+  }
+}
+
+/*
  * Text size (T-621, blueprint 2.2). Every size above, and Tailwind's spacing,
  * is in rem, so the root's font size scales the whole page as one: a
  * percentage of the browser's own setting, which a reader may already have
