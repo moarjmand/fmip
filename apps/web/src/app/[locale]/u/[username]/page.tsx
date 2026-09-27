@@ -1,13 +1,16 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { AchievementsSection } from '@/components/achievements';
 import { StartConversation } from '@/components/conversation-controls';
 import { FriendControls } from '@/components/friend-controls';
 import { ShareLink } from '@/components/share-link';
 import { PredictionHistory } from '@/components/prediction-history';
 import { RatingHistorySection } from '@/components/rating-history';
+import { Translated } from '@/components/translated';
 import { directionOf } from '@/i18n/locales';
 import {
+  fetchAchievements,
   fetchFriendStatus,
   fetchMe,
   fetchPredictionHistory,
@@ -103,11 +106,12 @@ export default async function ProfilePage({
 
   const { profile } = view;
   const page = readHistoryPage(query);
-  const [me, rating, history, ratingHistory] = await Promise.all([
+  const [me, rating, history, ratingHistory, achievements] = await Promise.all([
     fetchMe(cookie),
     fetchRating(profile.username),
     fetchPredictionHistory(profile.username, historyQuery(page), cookie),
     fetchRatingHistory(profile.username, cookie),
+    fetchAchievements(profile.username, cookie),
   ]);
   const timeZone = me?.timezone ?? 'UTC';
   const pageHref = (p: number): string =>
@@ -240,6 +244,13 @@ export default async function ProfilePage({
           direction={directionOf(locale)}
           result={ratingHistory}
         />
+      </section>
+
+      <section className="flex flex-col gap-2" data-testid="achievements">
+        <h2 className="text-lg font-semibold">
+          <Translated locale={locale} message="achievements.title" />
+        </h2>
+        <AchievementsSection locale={locale} result={achievements} />
       </section>
 
       <section className="flex flex-col gap-2">

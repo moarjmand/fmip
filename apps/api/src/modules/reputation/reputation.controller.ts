@@ -12,6 +12,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type {
+  AchievementsResponse,
   ApiError,
   CareerPointsResponse,
   EligibilityResponse,
@@ -112,6 +113,42 @@ export class ReputationController {
       username: access.username,
       is_self: access.isSelf,
       history: await this.reputation.history(access.userId),
+    };
+  }
+
+  @Get('me/achievements')
+  async myAchievements(@Req() request: FastifyRequest): Promise<AchievementsResponse> {
+    const user = await this.viewer(request);
+    return {
+      kind: 'visible',
+      username: user.username,
+      is_self: true,
+      achievements: await this.reputation.achievements(user.id),
+    };
+  }
+
+  /**
+   * A member's achievements (T-643, D-090). They say when and where the
+   * member predicted, so they follow `prediction_history_visibility` exactly
+   * as the rating history above does.
+   */
+  @Get('users/:username/achievements')
+  async theirAchievements(
+    @Param('username') username: string,
+    @Req() request: FastifyRequest,
+  ): Promise<AchievementsResponse> {
+    const viewer = await this.identity.authenticate(
+      parseCookies(request.headers.cookie)[SESSION_COOKIE],
+    );
+    const access = await this.profiles.predictionHistoryAccess(username, viewer?.id ?? null);
+    if (access.kind === 'unknown') throw new NotFoundException(NO_USER);
+    if (access.kind === 'restricted')
+      return { kind: 'restricted', username: access.username, visibility: access.visibility };
+    return {
+      kind: 'visible',
+      username: access.username,
+      is_self: access.isSelf,
+      achievements: await this.reputation.achievements(access.userId),
     };
   }
 

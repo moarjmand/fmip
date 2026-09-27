@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type {
+  Achievements,
   LeaderboardPeriod,
   LeaderboardResponse,
   Rating,
@@ -18,6 +19,7 @@ import {
   tierOf,
 } from './internal/formula';
 import { CareerPointsService } from './career-points.service';
+import { deriveAchievements } from './internal/achievements';
 import { ratingHistory } from './internal/history';
 import {
   LEADERBOARD_RULES_V1,
@@ -207,6 +209,29 @@ export class ReputationService {
       records.map((record, i) => ({ ...inputs[i]!, competition: record.competition })),
       new Date().toISOString(),
       this.formula,
+    );
+  }
+
+  /**
+   * The member's achievements (T-643, D-090), derived on read from their
+   * stored settlements and predictions and written nowhere. Read by the
+   * profile only: nothing here feeds the rating, a board or eligibility.
+   */
+  async achievements(userId: string): Promise<Achievements> {
+    const facts = await this.settlements.achievementFacts(userId);
+    return deriveAchievements(
+      {
+        settlements: facts.settlements.map((r) => ({
+          settlementId: r.settlementId,
+          fixtureId: r.fixtureId,
+          settledAt: r.settledAt,
+          outcomeCorrect: r.outcomeCorrect,
+          scoreCorrect: r.scoreCorrect,
+        })),
+        predictions: facts.predictions,
+        rounds: facts.rounds,
+      },
+      new Date().toISOString(),
     );
   }
 

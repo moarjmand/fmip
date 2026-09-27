@@ -4,10 +4,17 @@ import { settleOne, verdictFor } from './internal/settle';
 import {
   PostgresSettlementStore,
   type MemberSettledRecord,
+  type PredictedRound,
+  type PredictionFirst,
   type SettledRecord,
 } from './internal/settlement-store';
 
-export type { MemberSettledRecord, SettledRecord } from './internal/settlement-store';
+export type {
+  MemberSettledRecord,
+  PredictedRound,
+  PredictionFirst,
+  SettledRecord,
+} from './internal/settlement-store';
 
 export type SettleOutcome =
   | { kind: 'settled'; runId: string; settled: number; voided: number; unchanged: number }
@@ -84,6 +91,24 @@ export class SettlementService {
       this.store.settledSeasons(limit),
     ]);
     return { months, seasons };
+  }
+
+  /**
+   * What achievements are derived from (T-643): the member's current settled
+   * rows (the same query as `settledHistory`), each prediction's first
+   * submission, and the rounds they predicted in.
+   */
+  async achievementFacts(userId: string): Promise<{
+    settlements: SettledRecord[];
+    predictions: PredictionFirst[];
+    rounds: PredictedRound[];
+  }> {
+    const [settlements, predictions, rounds] = await Promise.all([
+      this.store.settledHistory(userId),
+      this.store.predictionFirsts(userId),
+      this.store.predictedRounds(userId),
+    ]);
+    return { settlements, predictions, rounds };
   }
 
   predictors(fixtureId: string): Promise<string[]> {

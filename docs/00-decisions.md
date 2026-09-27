@@ -3249,3 +3249,94 @@ files committed*: equivalent at run time, but a binary to vendor and update by
 hand where a versioned package already carries the same files and licence.
 *A new brand colour*: `#0b6b3a` is already the theme colour, the manifest and
 the icons, and passes AA on white; changing it buys nothing measurable.
+
+---
+
+## D-090 — Achievements are derived and change nothing; a group poll is a member's question with counts, not a second voice
+
+**Status:** decided, delegated · **Date:** 2026-09-28 · **Tasks:** T-643 · **Follows:** D-059, D-060
+
+**Who decided.** The maintainer delegated these product rules to the agent
+(T-643: "their list and the poll rules are product behaviour to confirm
+first"). Each is revisable: an achievement is a rule in a pure function and a
+poll limit is a constant or a row, so a change is a new entry here, not a
+backfill.
+
+### Achievements
+
+- **Derived, never stored.** An achievement is computed on read from the
+  member's stored predictions and current settlements
+  (`deriveAchievements`, `apps/api/src/modules/reputation/internal/achievements.ts`),
+  exactly as T-640's rating history is. There is no table and no mutable
+  state, so there is nothing to backfill or keep in step: the same rows give
+  the same list, and a settlement later voided takes its milestone with it
+  (rule 8's discipline, applied to milestones). Rules are versioned
+  (`achievements@1.0.0`) and the version is in every answer.
+- **They change nothing.** Like Career Points (blueprint 9.2: points "cannot by
+  themselves unlock expert status"), an achievement is never read by the
+  Performance Rating, any board, contributor eligibility or any privilege. The
+  profile says so beside the list.
+- **The initial list, conservative on purpose:**
+
+  | Kind | Earned when | `earned_at` |
+  |---|---|---|
+  | `first_settled`, `settled_10`, `settled_50`, `settled_100` | the 1st / 10th / 50th / 100th settled prediction | that settlement |
+  | `first_exact_score`, `exact_scores_5` | the 1st / 5th settled prediction with the exact score right | that settlement |
+  | `streak_5`, `streak_10` | the first run of 5 / 10 correct outcomes in a row, counted as the `streak_5` / `streak_10` Career Points reasons count it (settlement order; voids neither break nor extend) | the settlement completing the run |
+  | `full_matchday` | a round (one season, one `round` value) none of whose fixtures is still scheduled, live or suspended, with **at least two** finished fixtures, every one of which the member predicted and had settled. Fixtures that settle void (postponed, abandoned, cancelled, awarded) are neither required nor counted. Predictions are refused after kick-off by the database, so "all before kick-off" holds by construction | the last of those settlements, for the first round to complete |
+  | `competitions_5` | a prediction in a fifth different competition, settled or not | the first submission of the first prediction in the fifth |
+
+  Each is earned once, the first time. No notification is sent (not in T-643).
+- **Visibility.** `GET /users/:username/achievements` follows
+  `prediction_history_visibility` through `ProfileService.predictionHistoryAccess`,
+  like the rating history, because an achievement says when and where a member
+  predicted. `GET /me/achievements` is always the member's own.
+
+### Group polls
+
+- **Where.** A poll belongs to one group. There are no polls in direct
+  messages. Any current member of the group may create one.
+- **Shape.** A question of 1-200 characters, 2-6 distinct options of 1-80
+  characters each, single choice. It closes at a time chosen at creation:
+  7 days by default, at least 1 hour and at most 30 days ahead.
+- **Votes.** One per member per poll, changeable (and withdrawable) until the
+  poll closes; only current members vote. A vote already cast stays counted if
+  the voter leaves the group, because the result is a record of what was asked
+  and answered.
+- **Results.** Visible to group members only, as a count per option and a
+  total, and only to a member who has voted or once the poll is closed; before
+  that a member sees the question and the options. **Who voted is never
+  shown**, to anybody, including the creator and the group's staff. There is no
+  anonymous toggle in this version, because there is nothing to toggle: votes
+  are only ever counts.
+- **Closing early.** The creator or the group's owner may close a poll before
+  its time. Closing is final.
+- **Removal.** The group's owner or a moderator may remove a poll with a
+  reason. The removal writes an `audit_log` row (actor, time, reason, and the
+  poll as it was: question, options, counts, status) in the same transaction
+  (rule 10), and a removed poll is no longer shown. The group has no separate
+  "administrator" role (T-240: owner, moderator, member); "admin" here is the
+  owner.
+- **Reports.** Group content is not a report subject: `REPORT_SUBJECTS` is
+  still `['member']`, and it grows only with a surface that enforces the new
+  value (see `packages/contracts/src/moderation.ts`). A poll is handled like
+  every other thing a member writes in a group: the group's staff remove it,
+  and a member reports the **member** who wrote it through the existing path.
+- **Limits.** At most **3 open polls per group** at once (a fourth is refused
+  until one closes or is removed), and creating polls is under the same hourly
+  ceiling mechanism as every other write (`rate_limit` row `group_poll_create`,
+  10 an hour). A member under a `groups` sanction cannot create a poll
+  (the sanction stops making things in groups, T-240); voting is not refused.
+- **Separate from the three prediction products (rule 6).** A poll is a
+  member's question to their group. It is never labelled or shown as a
+  prediction, a consensus or a forecast, and it is never read by the
+  community consensus.
+
+**Rejected.** *An `achievement` table written by a job*: a second place for a
+fact already derivable from settlements, and one more thing to backfill when a
+rule changes. *Achievements that unlock anything*: activity is not skill
+(blueprint 9). *Showing who voted*: in a small group a count per name is a
+roll call, and a poll that exposes a vote gets fewer honest answers. *Polls in
+direct messages*: two people do not need a poll. *A new report subject for
+polls*: nothing else a member writes in a group is one, and a subject nobody
+enforces is a promise to the moderation team that is not kept.

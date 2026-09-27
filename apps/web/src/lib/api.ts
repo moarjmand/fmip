@@ -1,4 +1,5 @@
 import type {
+  AchievementsResponse,
   AdminOverview,
   AudiencesResponse,
   CampaignsResponse,
@@ -524,6 +525,21 @@ export function fetchRatingHistory(
 ): Promise<ApiResult<RatingHistoryResponse>> {
   return apiRequest<RatingHistoryResponse>(
     `/users/${encodeURIComponent(username)}/rating/history`,
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/**
+ * `GET /users/:username/achievements` (T-643): milestones derived from the
+ * member's stored predictions and settlements. Follows prediction-history
+ * visibility, so the viewer's session goes with it.
+ */
+export function fetchAchievements(
+  username: string,
+  cookie: string | undefined,
+): Promise<ApiResult<AchievementsResponse>> {
+  return apiRequest<AchievementsResponse>(
+    `/users/${encodeURIComponent(username)}/achievements`,
     cookie === undefined ? {} : { cookie },
   );
 }

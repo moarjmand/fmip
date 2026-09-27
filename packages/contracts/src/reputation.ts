@@ -133,6 +133,65 @@ export interface CareerPointsResponse {
 }
 
 // ---------------------------------------------------------------------------
+// Achievements (blueprint 9.2, T-643, D-090): milestones derived on read from
+// the member's stored predictions and settlements, written nowhere. Like
+// Career Points they measure taking part and never feed the rating, a board
+// or a privilege.
+// ---------------------------------------------------------------------------
+
+/** Every achievement there is, in the order a profile lists them. */
+export const ACHIEVEMENT_KINDS = [
+  'first_settled',
+  'settled_10',
+  'settled_50',
+  'settled_100',
+  'first_exact_score',
+  'exact_scores_5',
+  'streak_5',
+  'streak_10',
+  'full_matchday',
+  'competitions_5',
+] as const;
+export type AchievementKind = (typeof ACHIEVEMENT_KINDS)[number];
+
+/** The round that completed a `full_matchday`. */
+export interface AchievementRound {
+  competition: { id: string; name: string };
+  season_label: string;
+  /** The competition's own words for the round, e.g. "Regular Season - 3". */
+  round: string;
+}
+
+export interface Achievement {
+  kind: AchievementKind;
+  /**
+   * ISO 8601: the stored time of what earned it -- the settlement for a
+   * settled-prediction milestone, the first submission of the prediction for
+   * `competitions_5`, the last settlement of the round for `full_matchday`.
+   */
+  earned_at: string;
+  /** Only on `full_matchday`: the first round that earned it. Null otherwise. */
+  round: AchievementRound | null;
+}
+
+export interface Achievements {
+  rules_version: string;
+  /** Earliest first; an achievement is earned once, the first time. */
+  earned: Achievement[];
+  /** ISO 8601, when this was derived (on read). */
+  computed_at: string;
+}
+
+/**
+ * `GET /users/:username/achievements`, `GET /me/achievements`. Follows the
+ * member's prediction-history visibility, because an achievement says when
+ * and where they predicted.
+ */
+export type AchievementsResponse =
+  | { kind: 'visible'; username: string; is_self: boolean; achievements: Achievements }
+  | { kind: 'restricted'; username: string; visibility: 'friends' | 'private' };
+
+// ---------------------------------------------------------------------------
 // Leaderboards (blueprint 9.3, T-055): members ranked by their current
 // rating, behind a minimum-sample filter so one lucky result cannot rank
 // above established performers.
