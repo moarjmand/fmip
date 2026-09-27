@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { MatchViewing, Territory, ViewingOption } from '@fmip/contracts';
 import { Translated } from '@/components/translated';
-import { Button, Select } from '@/components/ui';
+import { Button, Notice, Select } from '@/components/ui';
 import { formatDateTime } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { type MessageKey, message } from '@/i18n/messages';
@@ -65,9 +65,9 @@ export function ViewingPanel(props: Props) {
         <h2 className="text-lg font-semibold">
           <Translated locale={locale} message="viewing.title" />
         </h2>
-        <p role="alert">
+        <Notice tone="danger">
           <Translated locale={locale} message="viewing.unreachable" />
-        </p>
+        </Notice>
       </section>
     );
   }

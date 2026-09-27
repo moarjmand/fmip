@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ActionForm } from '@/components/action-form';
 import { resetPasswordAction } from '@/lib/auth-actions';
+import { Notice } from '@/components/ui';
 
 export const metadata: Metadata = { title: 'Reset password · FMIP' };
 
@@ -19,10 +20,10 @@ export default async function ResetPasswordPage({
     return (
       <main className="mx-auto flex max-w-md flex-col gap-4 p-8">
         <h1 className="text-2xl font-semibold">Reset password</h1>
-        <p role="alert">
+        <Notice tone="warning">
           This page needs the link from your e-mail.{' '}
           <Link href={`/${locale}/forgot-password`}>Request a new one</Link>.
-        </p>
+        </Notice>
       </main>
     );
   }

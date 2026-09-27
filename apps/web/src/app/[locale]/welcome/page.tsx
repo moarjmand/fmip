@@ -12,6 +12,7 @@ import { readGuestChoices } from '@/lib/first-run-cookie';
 import { offeredLocales } from '@/lib/language-picker';
 import { sessionCookieHeader } from '@/lib/session';
 import { territoryOptions } from '@/lib/territory';
+import { Button, Notice, Select, controlClasses } from '@/components/ui';
 
 // A reader's own choices: never indexed.
 export const metadata: Metadata = {
@@ -162,12 +163,12 @@ export default async function WelcomePage({
           </Link>
         ) : null}
         <form action={finish} className="contents">
-          <button type="submit" className="underline" data-testid="first-run-finish">
+          <Button type="submit" variant="ghost" size="md" data-testid="first-run-finish">
             <Translated
               locale={locale}
               message={following === undefined ? 'firstRun.skipAndFinish' : 'firstRun.later'}
             />
-          </button>
+          </Button>
         </form>
       </div>
     </main>
@@ -186,13 +187,15 @@ function Question({ locale, message: key }: { locale: string; message: MessageKe
 
 function SaveButton({ locale }: { locale: string }) {
   return (
-    <button
+    <Button
       type="submit"
-      className="self-start rounded border border-strong px-4 py-2"
+      variant="primary"
+      size="md"
+      className="self-start"
       data-testid="first-run-save"
     >
       <Translated locale={locale} message="firstRun.save" />
-    </button>
+    </Button>
   );
 }
 
@@ -244,19 +247,16 @@ async function TerritoryStep({
         <Translated locale={locale} message="firstRun.territory.hint" />
       </p>
       {territories === null ? (
-        <p role="alert" data-testid="first-run-territory-unreachable">
+        <Notice tone="danger" data-testid="first-run-territory-unreachable">
           <Translated locale={locale} message="firstRun.territory.unreachable" />
-        </p>
+        </Notice>
       ) : (
         <form action={save} className="flex flex-col gap-3">
-          <label htmlFor="first-run-territory" className="text-sm font-medium">
-            <Translated locale={locale} message="firstRun.step.territory" />
-          </label>
-          <select
+          <Select
+            label={<Translated locale={locale} message="firstRun.step.territory" />}
             id="first-run-territory"
             name="code"
             defaultValue={current}
-            className="rounded border border-strong bg-transparent px-3 py-2 text-start"
           >
             {territoryOptions(
               locale,
@@ -267,7 +267,7 @@ async function TerritoryStep({
                 {option.label}
               </option>
             ))}
-          </select>
+          </Select>
           <SaveButton locale={locale} />
         </form>
       )}
@@ -330,9 +330,9 @@ async function TeamsStep({
         <Translated locale={locale} message="firstRun.teams.hint" />
       </p>
       {teams === null ? (
-        <p role="alert" data-testid="first-run-teams-unreachable">
+        <Notice tone="danger" data-testid="first-run-teams-unreachable">
           <Translated locale={locale} message="firstRun.teams.unreachable" />
-        </p>
+        </Notice>
       ) : (
         <>
           <form method="get" className="flex flex-wrap items-end gap-2" role="search">
@@ -348,11 +348,11 @@ async function TeamsStep({
               defaultValue={search}
               placeholder={placeholder.text}
               lang={placeholder.lang}
-              className="flex-1 rounded border border-strong bg-transparent px-3 py-2"
+              className={controlClasses('md', 'flex-1')}
             />
-            <button type="submit" className="rounded border border-strong px-3 py-2">
+            <Button type="submit" size="md">
               <Translated locale={locale} message="firstRun.teams.searchButton" />
-            </button>
+            </Button>
           </form>
 
           {listed.length === 0 ? (

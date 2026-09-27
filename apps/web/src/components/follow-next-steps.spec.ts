@@ -36,7 +36,8 @@ describe('the Following page when nothing is followed', () => {
     ]) {
       expect(STEPS, `no stated state for ${testId}`).toContain(`data-testid="${testId}"`);
     }
-    expect(STEPS).toContain('role="alert" data-testid="next-steps-unreachable"');
+    // A danger notice is an alert (components/ui/notice.tsx, T-603).
+    expect(STEPS).toContain('<Notice tone="danger" data-testid="next-steps-unreachable"');
   });
 
   it('follows through the existing action, and the page it is on refreshes', () => {

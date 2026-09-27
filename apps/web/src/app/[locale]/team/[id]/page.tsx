@@ -28,6 +28,7 @@ import { JsonLd } from '@/components/json-ld';
 import { Score } from '@/components/score';
 import { Translated } from '@/components/translated';
 import { ViewingPanel } from '@/components/viewing-panel';
+import { Notice } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -79,9 +80,9 @@ export default async function TeamPage({
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-4 p-8">
         <h1 className="text-2xl font-semibold">Team</h1>
-        <p role="alert" data-testid="team-unreachable">
+        <Notice tone="danger" data-testid="team-unreachable">
           The service is unreachable right now, so this team cannot be shown.
-        </p>
+        </Notice>
       </main>
     );
   }

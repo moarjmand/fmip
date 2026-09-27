@@ -5,6 +5,7 @@ import { AnalysisQueue } from '@/components/analysis-queue';
 import { fetchAnalysisQueue, fetchMe } from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { Notice } from '@/components/ui';
 
 export async function generateMetadata({
   params,
@@ -59,9 +60,9 @@ export default async function AnalysisReviewsPage({
       ) : (
         // Said plainly rather than shown as an empty queue: "you may not read
         // this" and "nothing is waiting" are different facts.
-        <p role="alert" data-testid="analysis-queue-forbidden">
+        <Notice tone="warning" data-testid="analysis-queue-forbidden">
           Reviewing analysis needs the editor or administrator role.
-        </p>
+        </Notice>
       )}
     </main>
   );

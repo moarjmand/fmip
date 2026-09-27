@@ -18,6 +18,7 @@ import { moduleState } from '@/lib/match';
 import { competitionJsonLd, pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { JsonLd } from '@/components/json-ld';
+import { Notice } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,9 +78,9 @@ export default async function CompetitionPage({
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-4 p-8">
         <h1 className="text-2xl font-semibold">Competition</h1>
-        <p role="alert" data-testid="competition-unreachable">
+        <Notice tone="danger" data-testid="competition-unreachable">
           The service is unreachable right now, so this competition cannot be shown.
-        </p>
+        </Notice>
       </main>
     );
   }

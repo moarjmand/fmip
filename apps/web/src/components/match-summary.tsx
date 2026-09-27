@@ -5,6 +5,7 @@ import { formatDateTime } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { type MessageKey, message } from '@/i18n/messages';
 import { regenerateSummaryAction } from '@/lib/summary-actions';
+import { Notice } from '@/components/ui';
 
 /**
  * The match summary on the match centre (E41, T-413): what a language model
@@ -63,9 +64,9 @@ export function MatchSummaryPanel({
         <Translated locale={locale} message="summary.title" />
       </h2>
       {summary === null && (
-        <p role="alert">
+        <Notice tone="danger">
           <Translated locale={locale} message="summary.unreachable" />
-        </p>
+        </Notice>
       )}
       {summary !== null && data === null && summary.reason !== null && (
         <p className="text-sm text-muted" data-testid="match-summary-reason">

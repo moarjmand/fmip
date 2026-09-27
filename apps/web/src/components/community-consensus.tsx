@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { formatKickoff } from '@/lib/scores';
 import { LtrNumeric } from '@/components/score';
 import { type Triple, difference, sharesToPercentages, signed } from '@/lib/triple';
+import { Notice } from '@/components/ui';
 
 /**
  * The community forecast on the match centre (blueprint 4.2, T-135).
@@ -80,10 +81,10 @@ export function CommunityForecastPanel({
     return (
       <section className="flex flex-col gap-2" data-testid="consensus" data-state="unreachable">
         {heading}
-        <p className="text-sm text-muted" role="alert">
+        <Notice tone="danger">
           The prediction service is unreachable right now, so what the community thinks cannot be
           shown.
-        </p>
+        </Notice>
       </section>
     );
   }

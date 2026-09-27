@@ -9,6 +9,7 @@ import {
   chartSummary,
   dayInstant,
 } from '@/lib/rating-history';
+import { Notice } from '@/components/ui';
 
 /**
  * A member's rating over time, by competition, and their highest (blueprint
@@ -37,9 +38,9 @@ export function RatingHistorySection({
 
   if (!result.ok) {
     return (
-      <p role="alert" className="text-sm" data-testid="rating-history-unreachable">
+      <Notice tone="danger" data-testid="rating-history-unreachable">
         The rating history cannot be shown right now.
-      </p>
+      </Notice>
     );
   }
   const view = result.data;

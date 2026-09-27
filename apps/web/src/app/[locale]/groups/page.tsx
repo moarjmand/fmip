@@ -6,6 +6,7 @@ import { fetchGroupInvites, fetchGroups, fetchMe, fetchMyGroups } from '@/lib/ap
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { Translated } from '@/components/translated';
+import { Button, Notice, TextField } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -101,9 +102,9 @@ export default async function GroupsPage({
       <section className="flex flex-col gap-2" data-testid="my-groups">
         <h2 className="text-lg font-semibold">Yours</h2>
         {!mine.ok ? (
-          <p role="alert" data-testid="my-groups-unreachable">
+          <Notice tone="danger" data-testid="my-groups-unreachable">
             Your groups cannot be shown right now.
-          </p>
+          </Notice>
         ) : mine.data.groups.length === 0 ? (
           <p className="text-sm text-muted" data-testid="my-groups-none">
             You are not in a group yet.
@@ -120,27 +121,26 @@ export default async function GroupsPage({
       <section className="flex flex-col gap-3" data-testid="group-directory">
         <h2 className="text-lg font-semibold">Find a group</h2>
         <form action={`/${locale}/groups`} className="flex items-center gap-2">
-          <label htmlFor="group-search" className="sr-only">
-            Search groups
-          </label>
-          <input
+          <TextField
+            label="Search groups"
+            hideLabel
             id="group-search"
             name="q"
             type="search"
+            size="sm"
             defaultValue={term}
             placeholder="Search groups"
-            className="rounded border border-strong bg-transparent px-3 py-1 text-sm text-start"
             data-testid="group-search"
           />
-          <button type="submit" className="text-sm underline">
+          <Button type="submit" variant="ghost" size="sm">
             Search
-          </button>
+          </Button>
         </form>
 
         {!found.ok ? (
-          <p role="alert" data-testid="group-directory-unreachable">
+          <Notice tone="danger" data-testid="group-directory-unreachable">
             The directory is unreachable right now.
-          </p>
+          </Notice>
         ) : found.data.groups.length === 0 ? (
           <p className="text-sm text-muted" data-testid="group-directory-none">
             {term === '' ? 'No groups yet.' : 'Nothing matches that.'}

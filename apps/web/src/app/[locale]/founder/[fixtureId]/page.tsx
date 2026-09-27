@@ -6,6 +6,7 @@ import { fetchFounderAnalysis, fetchMatchCentre, fetchMe } from '@/lib/api';
 import { publishAnalysisAction } from '@/lib/founder-actions';
 import { formatKickoff } from '@/lib/scores';
 import { sessionCookieHeader } from '@/lib/session';
+import { Notice } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -139,19 +140,19 @@ export default async function FounderAnalysisPage({
           </p>
         )}
         {me === null && (
-          <p role="alert" className="text-sm" data-testid="founder-signed-out">
+          <Notice tone="warning" data-testid="founder-signed-out">
             You are not signed in, so publishing will be refused.
-          </p>
+          </Notice>
         )}
       </div>
 
       {kickedOff ? (
         // The database refuses it anyway; saying so here saves the founder
         // writing something that cannot be published.
-        <p role="alert" className="text-sm" data-testid="founder-locked">
+        <Notice tone="warning" data-testid="founder-locked">
           This match has started. An analysis cannot be published or updated after kick-off — the
           record of what was said, and when, is the point of it.
-        </p>
+        </Notice>
       ) : (
         <ActionForm
           action={publishAnalysisAction.bind(null, locale, fixtureId)}

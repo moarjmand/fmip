@@ -23,6 +23,7 @@ import { inviteUrl } from '@/lib/invite';
 import { historyQuery, readHistoryPage } from '@/lib/prediction-history';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { Notice } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,7 +69,9 @@ export default async function ProfilePage({
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-4 p-8">
         <h1 className="text-2xl font-semibold">@{name}</h1>
-        <p role="alert">The service is unreachable right now, so this profile cannot be shown.</p>
+        <Notice tone="danger">
+          The service is unreachable right now, so this profile cannot be shown.
+        </Notice>
       </main>
     );
   }
@@ -200,9 +203,7 @@ export default async function ProfilePage({
       <section className="flex flex-col gap-2" data-testid="rating">
         <h2 className="text-lg font-semibold">Performance Rating</h2>
         {!rating.ok ? (
-          <p role="alert" className="text-sm">
-            The rating cannot be shown right now.
-          </p>
+          <Notice tone="danger">The rating cannot be shown right now.</Notice>
         ) : rating.data.rating === null ? (
           <p className="text-sm text-muted" data-testid="rating-none">
             No rating yet: a rating starts with the first settled prediction.
@@ -256,9 +257,9 @@ export default async function ProfilePage({
       <section className="flex flex-col gap-2">
         <h2 className="text-lg font-semibold">Predictions</h2>
         {!history.ok ? (
-          <p role="alert" className="text-sm" data-testid="history-unreachable">
+          <Notice tone="danger" data-testid="history-unreachable">
             The prediction history cannot be shown right now.
-          </p>
+          </Notice>
         ) : history.data.kind === 'restricted' ? (
           <p className="text-sm text-muted" data-testid="history-restricted">
             {history.data.visibility === 'friends'

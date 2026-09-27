@@ -24,6 +24,7 @@ import {
 } from '@/lib/search';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { Button, Notice, TextField } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -117,22 +118,21 @@ export default async function SearchPage({
       </h1>
 
       <form action={`/${locale}/search`} method="get" className="flex gap-2" role="search">
-        <label htmlFor="search-term" className="sr-only">
-          Team, competition, player, news, group or member
-        </label>
-        <input
+        <TextField
+          label="Team, competition, player, news, group or member"
+          hideLabel
           id="search-term"
           name="q"
           type="search"
           defaultValue={term}
           placeholder="Team, competition, player, news, group or member"
           autoComplete="off"
-          className="grow rounded border border-strong bg-transparent px-3 py-2"
+          className="grow"
           data-testid="search-input"
         />
-        <button type="submit" className="rounded border border-strong px-3 py-2">
+        <Button type="submit" size="md">
           Search
-        </button>
+        </Button>
       </form>
 
       {result !== null && result.ok && (
@@ -168,9 +168,9 @@ export default async function SearchPage({
       ) : (
         <>
           {result === null || !result.ok ? (
-            <p role="alert" data-testid="search-unreachable">
+            <Notice tone="danger" data-testid="search-unreachable">
               The service is unreachable right now, so nothing can be searched.
-            </p>
+            </Notice>
           ) : (
             <div className="flex flex-col gap-6" data-testid="search-results">
               {entitySections(result.data.interpretation.data?.types ?? null).map((type) => {
@@ -207,9 +207,9 @@ export default async function SearchPage({
           found.data.stories === null ||
           found.data.groups === null ||
           found.data.members === null ? (
-            <p role="alert" data-testid="search-community-unreachable">
+            <Notice tone="danger" data-testid="search-community-unreachable">
               <Translated locale={locale} message="search.communityUnreachable" />
-            </p>
+            </Notice>
           ) : (
             <div className="flex flex-col gap-6" data-testid="search-community">
               <Section locale={locale} type="story" count={found.data.stories.length}>

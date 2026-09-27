@@ -5,6 +5,7 @@ import { PanelsAdmin } from '@/components/panels-admin';
 import { fetchMe, fetchPanels } from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { Notice } from '@/components/ui';
 
 export async function generateMetadata({
   params,
@@ -49,9 +50,9 @@ export default async function PanelsPage({ params }: { params: Promise<{ locale:
           reachable={result.ok}
         />
       ) : (
-        <p role="alert" data-testid="panels-forbidden">
+        <Notice tone="warning" data-testid="panels-forbidden">
           Featuring a match needs the moderator or administrator role.
-        </p>
+        </Notice>
       )}
     </main>
   );

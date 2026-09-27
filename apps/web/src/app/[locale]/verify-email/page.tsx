@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { apiRequest } from '@/lib/api';
+import { Notice } from '@/components/ui';
 
 export const metadata: Metadata = { title: 'Verify e-mail · FMIP' };
 export const dynamic = 'force-dynamic';
@@ -33,17 +34,19 @@ export default async function VerifyEmailPage({
     <main className="mx-auto flex max-w-md flex-col gap-4 p-8">
       <h1 className="text-2xl font-semibold">E-mail verification</h1>
       {result === null ? (
-        <p role="alert">This page needs the link from your e-mail.</p>
+        <Notice tone="warning">This page needs the link from your e-mail.</Notice>
       ) : result.ok ? (
         <p role="status" data-testid="verify-result">
           Your e-mail address is verified. You can now submit predictions.
         </p>
       ) : result.status === 0 ? (
-        <p role="alert">The service is unreachable right now. Open the link again in a moment.</p>
+        <Notice tone="danger">
+          The service is unreachable right now. Open the link again in a moment.
+        </Notice>
       ) : (
-        <p role="alert" data-testid="verify-result">
+        <Notice tone="danger" data-testid="verify-result">
           {result.error?.message ?? 'This link is invalid, has expired, or was already used.'}
-        </p>
+        </Notice>
       )}
       <p className="text-sm">
         <Link href={`/${locale}`}>Back to FMIP</Link>

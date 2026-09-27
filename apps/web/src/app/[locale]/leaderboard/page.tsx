@@ -15,6 +15,7 @@ import {
 } from '@/lib/leaderboard';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { Notice } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -113,7 +114,7 @@ export default async function LeaderboardPage({
             to see your friends&apos; board: it ranks you and the members you are friends with.
           </p>
         ) : result.status === 400 ? (
-          <p role="alert" data-testid="leaderboard-invalid">
+          <Notice tone="warning" data-testid="leaderboard-invalid">
             That filter is not one the board accepts.{' '}
             <Link
               href={pageHref(locale, q, {
@@ -128,11 +129,11 @@ export default async function LeaderboardPage({
               Show the default board
             </Link>
             .
-          </p>
+          </Notice>
         ) : (
-          <p role="alert" data-testid="leaderboard-unreachable">
+          <Notice tone="danger" data-testid="leaderboard-unreachable">
             The service is unreachable right now, so the leaderboard cannot be shown.
-          </p>
+          </Notice>
         )
       ) : (
         <>

@@ -14,6 +14,7 @@ import {
 } from '@/lib/scores-filters';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { Button, Notice, controlClasses } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,7 +69,7 @@ export default async function ScoresPage({
   const filtered = isFiltered(filters);
   const clearFiltersHref = pageHref(locale, q, { filters: NO_FILTERS });
   const options = result.ok ? filterOptions(result.data) : null;
-  const inputClass = 'rounded border border-strong bg-transparent px-2 py-1';
+  const inputClass = controlClasses('sm');
   // What a form must carry besides its own fields, so submitting it keeps the view.
   const hidden = (fields: [string, string | null | false][]) =>
     fields.map(([name, value]) =>
@@ -147,9 +148,9 @@ export default async function ScoresPage({
               data-testid="date-input"
             />
           </label>
-          <button type="submit" className={`${inputClass} font-medium`}>
+          <Button type="submit" className="font-medium">
             Show day
-          </button>
+          </Button>
         </form>
         <Link
           href={pageHref(locale, q, { date: shiftDate(q.date, 1) })}
@@ -204,9 +205,9 @@ export default async function ScoresPage({
                 filters.competition,
               )}
               {select('stage', 'Stage', 'All stages', options.stages, filters.stage)}
-              <button type="submit" className={`${inputClass} font-medium`}>
+              <Button type="submit" className="font-medium">
                 Apply
-              </button>
+              </Button>
               {filtered && (
                 <Link href={clearFiltersHref} className="px-2 py-1 underline">
                   Clear filters
@@ -217,11 +218,11 @@ export default async function ScoresPage({
         )}
 
       {!result.ok ? (
-        <p role="alert" data-testid="scores-unreachable">
+        <Notice tone="danger" data-testid="scores-unreachable">
           {result.status === 401
             ? 'Sign in to filter by your favourites.'
             : 'The scores service is unreachable right now, so nothing can be shown for this day.'}
-        </p>
+        </Notice>
       ) : (
         <>
           {notice !== null && (

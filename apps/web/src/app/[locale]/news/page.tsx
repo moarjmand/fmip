@@ -27,6 +27,7 @@ import {
 } from '@/lib/news';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { Button, Notice, controlClasses } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -124,11 +125,7 @@ export default async function NewsPage({
         {countries !== null && (
           <label className="flex flex-col gap-1">
             <Translated locale={locale} message="news.filter.country" />
-            <select
-              name="country"
-              defaultValue={q.country ?? ''}
-              className="rounded border border-strong px-2 py-1"
-            >
+            <select name="country" defaultValue={q.country ?? ''} className={controlClasses('sm')}>
               <option value="">{label('news.filter.any')}</option>
               {countries.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -144,7 +141,7 @@ export default async function NewsPage({
             <select
               name="competition"
               defaultValue={q.competition ?? ''}
-              className="rounded border border-strong px-2 py-1"
+              className={controlClasses('sm')}
             >
               <option value="">{label('news.filter.any')}</option>
               {competitions.map((c) => (
@@ -158,11 +155,7 @@ export default async function NewsPage({
         {teams !== null && (
           <label className="flex flex-col gap-1">
             <Translated locale={locale} message="news.filter.team" />
-            <select
-              name="team"
-              defaultValue={q.team ?? ''}
-              className="rounded border border-strong px-2 py-1"
-            >
+            <select name="team" defaultValue={q.team ?? ''} className={controlClasses('sm')}>
               <option value="">{label('news.filter.any')}</option>
               {teams.map((team) => (
                 <option key={team.id} value={team.id}>
@@ -174,11 +167,7 @@ export default async function NewsPage({
         )}
         <label className="flex flex-col gap-1">
           <Translated locale={locale} message="news.filter.language" />
-          <select
-            name="language"
-            defaultValue={q.language ?? ''}
-            className="rounded border border-strong px-2 py-1"
-          >
+          <select name="language" defaultValue={q.language ?? ''} className={controlClasses('sm')}>
             <option value="">{label('news.filter.any')}</option>
             {LANGUAGES.map((language) => (
               <option key={language} value={language}>
@@ -187,9 +176,9 @@ export default async function NewsPage({
             ))}
           </select>
         </label>
-        <button type="submit" className="rounded border border-strong px-3 py-1 font-medium">
+        <Button type="submit" className="font-medium">
           <Translated locale={locale} message="news.filter.apply" />
-        </button>
+        </Button>
         {filtered && (
           <Link
             href={pageHref(locale, q, {
@@ -211,9 +200,9 @@ export default async function NewsPage({
       </form>
 
       {!result.ok ? (
-        <p role="alert" data-testid="news-unreachable">
+        <Notice tone="danger" data-testid="news-unreachable">
           <Translated locale={locale} message="news.unreachable" />
-        </p>
+        </Notice>
       ) : (
         <>
           <Freshness

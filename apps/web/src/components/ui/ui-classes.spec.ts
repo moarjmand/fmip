@@ -25,10 +25,16 @@ function files(dir: string): string[] {
   });
 }
 
-const RETIRED: [name: string, pattern: RegExp][] = [
+const RETIRED: [name: string, pattern: RegExp, instead: string][] = [
   // The secondary button, the most repeated string in the app before T-603.
-  ['the secondary button', /rounded border border-strong px-3 py-1 text-sm/],
-  ['the primary button', /rounded bg-accent px-/],
+  ['the secondary button', /rounded border border-strong px-3 py-1 text-sm/, '<Button>'],
+  ['the primary button', /rounded bg-accent px-/, '<Button variant="primary">'],
+  ['the search-row button', /rounded border border-strong px-3 py-2/, '<Button size="md">'],
+  [
+    'a field',
+    /border border-strong bg-transparent/,
+    '<TextField>, <TextArea>, <Select>, or controlClasses()',
+  ],
 ];
 
 describe('the shared components are the only place their class strings live', () => {
@@ -43,17 +49,22 @@ describe('the shared components are the only place their class strings live', ()
     expect(sources.some((source) => source.path.startsWith('components/ui/'))).toBe(false);
   });
 
-  for (const [name, pattern] of RETIRED) {
+  for (const [name, pattern, instead] of RETIRED) {
     it(`no file outside components/ui writes ${name} out by hand`, () => {
       const found = sources.flatMap(({ path, lines }) =>
         lines.flatMap((line, index) => (pattern.test(line) ? [`${path}:${index + 1}`] : [])),
       );
-      expect(found, `use <Button> from '@/components/ui' instead`).toEqual([]);
+      expect(found, `use ${instead} from '@/components/ui' instead`).toEqual([]);
     });
   }
 
   it('still recognises the strings it refuses', () => {
-    expect('self-start rounded border border-strong px-3 py-1 text-sm').toMatch(RETIRED[0]![1]);
-    expect('rounded bg-accent px-4 py-2').toMatch(RETIRED[1]![1]);
+    const samples = [
+      'self-start rounded border border-strong px-3 py-1 text-sm disabled:opacity-50',
+      'self-start rounded bg-accent px-4 py-2 font-medium text-on-accent',
+      'rounded border border-strong px-3 py-2',
+      'grow rounded border border-strong bg-transparent px-3 py-2',
+    ];
+    RETIRED.forEach(([name, pattern], index) => expect(samples[index], name).toMatch(pattern));
   });
 });

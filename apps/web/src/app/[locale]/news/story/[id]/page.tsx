@@ -15,6 +15,7 @@ import {
 } from '@/lib/news';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { Notice } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,9 +71,9 @@ export default async function StoryPage({
   if (!result.ok) {
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
-        <p role="alert" data-testid="story-unreachable">
+        <Notice tone="danger" data-testid="story-unreachable">
           <Translated locale={locale} message="news.unreachable" />
-        </p>
+        </Notice>
       </main>
     );
   }

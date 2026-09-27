@@ -25,6 +25,7 @@ import {
 } from '@/lib/feed';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { Notice } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -94,9 +95,9 @@ export default async function FollowingPage({ params }: { params: Promise<{ loca
       />
 
       {!result.ok ? (
-        <p role="alert" data-testid="feed-unreachable">
+        <Notice tone="danger" data-testid="feed-unreachable">
           <Translated locale={locale} message="feed.unreachable" />
-        </p>
+        </Notice>
       ) : (
         <>
           <p className="text-sm text-muted" data-testid="feed-showing">

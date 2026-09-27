@@ -5,6 +5,7 @@ import { MemberModerationHistoryView } from '@/components/member-moderation-hist
 import { fetchMe, fetchMemberModerationHistory } from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { Notice } from '@/components/ui';
 
 export async function generateMetadata({
   params,
@@ -57,17 +58,17 @@ export default async function MemberModerationPage({
       {result.ok ? (
         <MemberModerationHistoryView locale={locale} history={result.data} />
       ) : result.status === 403 ? (
-        <p role="alert" data-testid="moderation-history-forbidden">
+        <Notice tone="warning" data-testid="moderation-history-forbidden">
           A member&apos;s moderation history needs the moderator or administrator role.
-        </p>
+        </Notice>
       ) : result.status === 404 ? (
-        <p role="alert" data-testid="moderation-history-missing">
+        <Notice tone="warning" data-testid="moderation-history-missing">
           There is no member with that username.
-        </p>
+        </Notice>
       ) : (
-        <p role="alert" data-testid="moderation-history-unreachable">
+        <Notice tone="danger" data-testid="moderation-history-unreachable">
           This history cannot be shown right now.
-        </p>
+        </Notice>
       )}
     </main>
   );

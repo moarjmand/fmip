@@ -20,6 +20,7 @@ import {
 } from '@/lib/player-compare';
 import { MIN_QUERY_LENGTH, readSearchTerm } from '@/lib/search';
 import { pageMetadata } from '@/lib/seo';
+import { Button, Notice, controlClasses } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -85,9 +86,9 @@ export default async function ComparePlayersPage({
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4 sm:p-8">
         <h1 className="text-2xl font-semibold">Compare players</h1>
-        <p role="alert" data-testid="compare-unreachable">
+        <Notice tone="danger" data-testid="compare-unreachable">
           The service is unreachable right now, so these players cannot be compared.
-        </p>
+        </Notice>
       </main>
     );
   }
@@ -113,11 +114,11 @@ export default async function ComparePlayersPage({
         defaultValue={term}
         placeholder="Another player’s name"
         autoComplete="off"
-        className="min-w-0 grow rounded border border-strong bg-transparent px-3 py-2"
+        className={controlClasses('md', 'min-w-0 grow')}
       />
-      <button type="submit" className="rounded border border-strong px-3 py-2">
+      <Button type="submit" size="md">
         Find
-      </button>
+      </Button>
     </form>
   );
 
@@ -149,9 +150,9 @@ export default async function ComparePlayersPage({
               : `Type at least ${MIN_QUERY_LENGTH} characters.`}
           </p>
         ) : search === null || !search.ok ? (
-          <p role="alert" data-testid="compare-search-unreachable">
+          <Notice tone="danger" data-testid="compare-search-unreachable">
             The service is unreachable right now, so no player can be searched.
-          </p>
+          </Notice>
         ) : hits.length === 0 ? (
           <p data-testid="compare-search-empty">No player matches “{term}”.</p>
         ) : (

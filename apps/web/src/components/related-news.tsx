@@ -3,6 +3,7 @@ import type { FixtureNewsResponse } from '@fmip/contracts';
 import { Translated } from '@/components/translated';
 import { formatDateTime } from '@/i18n/format';
 import { feedsStale, storyHref } from '@/lib/news';
+import { Notice } from '@/components/ui';
 
 /**
  * Related news on the match centre (blueprint 4.2, T-145): the stories the
@@ -32,9 +33,9 @@ export function RelatedNews({
         <h2 className="text-lg font-semibold">
           <Translated locale={locale} message="news.related.title" />
         </h2>
-        <p role="alert">
+        <Notice tone="danger">
           <Translated locale={locale} message="news.unreachable" />
-        </p>
+        </Notice>
       </section>
     );
   }

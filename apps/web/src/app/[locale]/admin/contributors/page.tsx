@@ -5,6 +5,7 @@ import { ContributorsAdmin } from '@/components/contributors-admin';
 import { fetchContributors, fetchMe } from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { Notice } from '@/components/ui';
 
 export async function generateMetadata({
   params,
@@ -53,9 +54,9 @@ export default async function ContributorsPage({
           reachable={result.ok}
         />
       ) : (
-        <p role="alert" data-testid="contributors-forbidden">
+        <Notice tone="warning" data-testid="contributors-forbidden">
           Deciding on contributors needs the moderator or administrator role.
-        </p>
+        </Notice>
       )}
     </main>
   );

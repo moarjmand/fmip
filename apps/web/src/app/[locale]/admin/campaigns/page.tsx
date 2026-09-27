@@ -6,6 +6,7 @@ import { CampaignsAdmin } from '@/components/campaigns-admin';
 import { fetchAudiences, fetchCampaigns } from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { Notice } from '@/components/ui';
 
 export async function generateMetadata({
   params,
@@ -44,9 +45,9 @@ export default async function AdminCampaignsPage({
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-4 p-8">
         <h1 className="text-2xl font-semibold">Campaigns</h1>
-        <p role="alert" data-testid="campaigns-unreachable">
+        <Notice tone="danger" data-testid="campaigns-unreachable">
           Campaigns cannot be shown right now.
-        </p>
+        </Notice>
       </main>
     );
   }
@@ -65,9 +66,9 @@ export default async function AdminCampaignsPage({
         campaigns={campaigns.ok ? campaigns.data.campaigns : []}
       />
       {!campaigns.ok && (
-        <p role="alert" data-testid="campaign-list-unreachable">
+        <Notice tone="danger" data-testid="campaign-list-unreachable">
           The campaign list could not be read right now.
-        </p>
+        </Notice>
       )}
     </main>
   );

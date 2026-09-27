@@ -7,6 +7,7 @@ import { Translated } from '@/components/translated';
 import { fetchBlocks, fetchFriendRequests, fetchFriends, fetchMe } from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { Notice } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,9 +67,7 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
       <section className="flex flex-col gap-3" data-testid="friend-requests">
         <h2 className="text-lg font-semibold">Requests</h2>
         {!requests.ok ? (
-          <p role="alert" className="text-sm">
-            Your requests cannot be listed right now.
-          </p>
+          <Notice tone="danger">Your requests cannot be listed right now.</Notice>
         ) : requests.data.incoming.length === 0 && requests.data.outgoing.length === 0 ? (
           <p className="text-sm text-muted" data-testid="requests-none">
             Nobody has asked to be your friend, and you have no request waiting for an answer.
@@ -124,9 +123,7 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
       <section className="flex flex-col gap-3" data-testid="friend-list">
         <h2 className="text-lg font-semibold">Your friends</h2>
         {!friends.ok ? (
-          <p role="alert" className="text-sm">
-            Your friends cannot be listed right now.
-          </p>
+          <Notice tone="danger">Your friends cannot be listed right now.</Notice>
         ) : friends.data.friends.length === 0 ? (
           <p className="text-sm text-muted" data-testid="friends-none">
             You have no friends here yet. Open a member&rsquo;s profile to send a request.
@@ -181,9 +178,7 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
           contact possible again; it does not restore a friendship the block ended.
         </p>
         {!blocks.ok ? (
-          <p role="alert" className="text-sm">
-            Your block list cannot be shown right now.
-          </p>
+          <Notice tone="danger">Your block list cannot be shown right now.</Notice>
         ) : blocks.data.blocked.length === 0 ? (
           <p className="text-sm text-muted" data-testid="blocks-none">
             You have blocked nobody.
