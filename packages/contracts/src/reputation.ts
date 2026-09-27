@@ -133,7 +133,7 @@ export interface CareerPointsResponse {
 }
 
 // ---------------------------------------------------------------------------
-// Achievements (blueprint 9.2, T-643, D-090): milestones derived on read from
+// Achievements (blueprint 9.2, T-643, D-091): milestones derived on read from
 // the member's stored predictions and settlements, written nowhere. Like
 // Career Points they measure taking part and never feed the rating, a board
 // or a privilege.

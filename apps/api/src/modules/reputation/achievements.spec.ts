@@ -32,7 +32,7 @@ const kinds = (f: AchievementFacts) => deriveAchievements(f, NOW).earned.map((a)
 const earnedAt = (f: AchievementFacts, kind: string) =>
   deriveAchievements(f, NOW).earned.find((a) => a.kind === kind)?.earned_at;
 
-describe('achievements (T-643, D-090)', () => {
+describe('achievements (T-643, D-091)', () => {
   it('earns nothing from nothing, and says which rules and when', () => {
     const result = deriveAchievements(facts({}), NOW);
     expect(result).toEqual({ rules_version: 'achievements@1.0.0', earned: [], computed_at: NOW });

@@ -128,7 +128,7 @@ export class ReputationController {
   }
 
   /**
-   * A member's achievements (T-643, D-090). They say when and where the
+   * A member's achievements (T-643, D-091). They say when and where the
    * member predicted, so they follow `prediction_history_visibility` exactly
    * as the rating history above does.
    */

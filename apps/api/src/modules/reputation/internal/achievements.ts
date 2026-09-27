@@ -2,7 +2,7 @@ import type { Achievement, AchievementKind, Achievements } from '@fmip/contracts
 import { ACHIEVEMENT_KINDS } from '@fmip/contracts';
 
 /**
- * Achievements (blueprint 9.2, T-643, D-090), version 1: milestones derived on
+ * Achievements (blueprint 9.2, T-643, D-091), version 1: milestones derived on
  * read from what is already stored -- the member's current settlements, their
  * predictions' first submissions and the fixtures of the rounds they predicted
  * in. Nothing is written, so there is nothing to keep in step: the same rows

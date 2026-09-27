@@ -213,7 +213,7 @@ export class ReputationService {
   }
 
   /**
-   * The member's achievements (T-643, D-090), derived on read from their
+   * The member's achievements (T-643, D-091), derived on read from their
    * stored settlements and predictions and written nowhere. Read by the
    * profile only: nothing here feeds the rating, a board or eligibility.
    */

@@ -19,7 +19,7 @@ export const ACHIEVEMENT_LABEL_KEY: Record<AchievementKind, MessageKey> = {
 };
 
 /**
- * A member's achievements on their profile (blueprint 9.2, T-643, D-090).
+ * A member's achievements on their profile (blueprint 9.2, T-643, D-091).
  * Every one is the API's, derived from stored predictions and settlements;
  * this lists them with the date each was earned and says in words when there
  * are none, when they are restricted and when they cannot be fetched (rule 3).

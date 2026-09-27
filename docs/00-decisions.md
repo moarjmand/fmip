@@ -3252,7 +3252,7 @@ the icons, and passes AA on white; changing it buys nothing measurable.
 
 ---
 
-## D-090 — Achievements are derived and change nothing; a group poll is a member's question with counts, not a second voice
+## D-091 — Achievements are derived and change nothing; a group poll is a member's question with counts, not a second voice
 
 **Status:** decided, delegated · **Date:** 2026-09-28 · **Tasks:** T-643 · **Follows:** D-059, D-060
 

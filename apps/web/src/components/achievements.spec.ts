@@ -6,7 +6,7 @@ import { EN } from '@/i18n/messages';
 import { ACHIEVEMENT_LABEL_KEY } from './achievements';
 
 /**
- * Achievements on a profile (blueprint 9.2, T-643, D-090) keep three promises.
+ * Achievements on a profile (blueprint 9.2, T-643, D-091) keep three promises.
  *
  * **Every kind has words in the catalogue**, so a new achievement cannot reach
  * the page as a bare identifier. **None, restricted and unreachable are each a
