@@ -572,10 +572,13 @@ export class IngestionJobsService {
   }
 
   /**
-   * Finished fixtures of the polled seasons whose detail was never asked for,
-   * newest first, older than the window the recent sweep covers. The span is
-   * the season's own, or the recordings' on the replay source, as for a
-   * backfill.
+   * Finished fixtures of the polled competitions whose detail was never asked
+   * for, newest first, older than the window the recent sweep covers. Every
+   * season of the competition, not only the polled one: a past season loaded
+   * for the model (T-512) is a fixture list with nothing after the whistle,
+   * and its line-ups are what the line-up term trains on (T-534, T-536). The
+   * current season comes first because it is the newest. On the replay source
+   * the span is the recordings', as for a backfill.
    */
   private async detailBacklog(
     source: JobSource,
@@ -596,7 +599,7 @@ export class IngestionJobsService {
       const rows = await this.store.detailBacklog(
         source.provider,
         target.competitionId,
-        replay ? REPLAY_QUERY.from : target.seasonStart,
+        replay ? REPLAY_QUERY.from : null,
         before,
         this.backlogBatch,
       );

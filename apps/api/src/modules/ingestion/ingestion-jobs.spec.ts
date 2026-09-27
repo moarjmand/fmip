@@ -6,6 +6,7 @@ import { DatabaseModule } from '../../database/database.module';
 import { CoverageService } from './coverage.service';
 import { IngestionJobsService } from './ingestion-jobs.service';
 import { IngestionModule } from './ingestion.module';
+import { IngestStore, type RefResolver } from './internal/ingest-store';
 
 // The scheduled jobs against the real schema, on the replay source (D-049):
 // the real API-Football adapter, its committed recordings, the real entity
@@ -440,6 +441,38 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
     // Once: a match asked about is not asked about again outside the window.
     const second = await jobs.postMatch(weeksLater);
     expect(second.itemsSeen).toBe(0);
+  });
+
+  /**
+   * A past season loaded for the model (T-512) starts before the polled
+   * season, so a backlog bounded by the polled season's start never reached
+   * it: 7,164 finished matches on production had no line-up (T-536).
+   */
+  it('reaches a finished match of any season when the backlog has no start', async () => {
+    // The backlog query resolves nothing.
+    const unused: RefResolver = {
+      resolve: () => Promise.reject(new Error('not used')),
+      link: () => Promise.reject(new Error('not used')),
+    };
+    const store = new IngestStore(pool, unused);
+    const { rows } = await pool.query<{ id: string }>(
+      `SELECT id FROM fixture WHERE season_id = $1`,
+      [SEASON],
+    );
+    const fixtureId = rows[0]?.id ?? '';
+    await pool.query(`DELETE FROM fixture_detail_fetch WHERE fixture_id = $1`, [fixtureId]);
+    try {
+      const owed = async (fromIso: string | null) =>
+        (await store.detailBacklog('api_football', competitionId, fromIso, '2030-01-01', 50)).map(
+          (r) => r.fixtureId,
+        );
+
+      // Bounded by a later season's start, as the polled season bounded it.
+      expect(await owed('2024-08-16')).not.toContain(fixtureId);
+      expect(await owed(null)).toContain(fixtureId);
+    } finally {
+      await store.markDetailFetched('api_football', fixtureId);
+    }
   });
 
   it('records a coverage state for every module, computed from what arrived (T-027)', async () => {
