@@ -46,6 +46,8 @@ import type {
   MatchCentre,
   MatchSummaryResponse,
   MatchViewing,
+  MemberModerationHistory,
+  ModerationQueueResponse,
   DebateListResponse,
   MatchPanelPage,
   NewsSectionResponse,
@@ -526,6 +528,27 @@ export function fetchMyAnalysis(
 ): Promise<ApiResult<CommunityAnalysisWorkspace>> {
   return apiRequest<CommunityAnalysisWorkspace>(
     `/me/analyses/${encodeURIComponent(fixtureId)}`,
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/** `GET /admin/moderation/queue` (T-212): open reports grouped by member. Needs the moderator or admin role. */
+export function fetchModerationQueue(
+  cookie: string | undefined,
+): Promise<ApiResult<ModerationQueueResponse>> {
+  return apiRequest<ModerationQueueResponse>(
+    '/admin/moderation/queue',
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/** `GET /admin/moderation/members/:username` (T-212): everything about one member before deciding. */
+export function fetchMemberModerationHistory(
+  username: string,
+  cookie: string | undefined,
+): Promise<ApiResult<MemberModerationHistory>> {
+  return apiRequest<MemberModerationHistory>(
+    `/admin/moderation/members/${encodeURIComponent(username)}`,
     cookie === undefined ? {} : { cookie },
   );
 }
