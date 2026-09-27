@@ -6,6 +6,7 @@ import { fetchConversations, fetchMe } from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { formatDateTime } from '@/i18n/format';
+import { Notice } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,9 +53,9 @@ export default async function MessagesPage({ params }: { params: Promise<{ local
       </div>
 
       {!result.ok ? (
-        <p role="alert" data-testid="messages-unreachable">
+        <Notice tone="danger" data-testid="messages-unreachable">
           Your conversations cannot be listed right now.
-        </p>
+        </Notice>
       ) : result.data.conversations.length === 0 ? (
         // Stated, not vanished: a reader has to be able to tell "nobody has
         // written to you" from "the page did not ask".

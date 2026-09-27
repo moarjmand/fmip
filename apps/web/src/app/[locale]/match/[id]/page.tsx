@@ -40,6 +40,7 @@ import { isTimeZone } from '@/lib/scores';
 import { canonicalUrl, matchJsonLd, pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { readTerritoryQuery } from '@/lib/viewing';
+import { Notice } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -172,9 +173,9 @@ export default async function MatchPage({
           <h1 className="text-2xl font-semibold" data-testid="title">
             Match
           </h1>
-          <p role="alert" data-testid="match-unreachable">
+          <Notice tone="danger" data-testid="match-unreachable">
             The match service is unreachable right now, so this match cannot be shown.
-          </p>
+          </Notice>
         </>
       ) : (
         <>

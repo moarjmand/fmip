@@ -14,6 +14,7 @@ import { ratingLabel, statusLabel, tierLabel } from '@/lib/leaderboard';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { Translated } from '@/components/translated';
+import { Notice } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,9 +64,9 @@ export default async function GroupPage({
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-4 p-8">
         <h1 className="text-2xl font-semibold">A group</h1>
-        <p role="alert" data-testid="group-unreachable">
+        <Notice tone="danger" data-testid="group-unreachable">
           This group cannot be shown right now.
-        </p>
+        </Notice>
       </main>
     );
   }
@@ -157,9 +158,9 @@ export default async function GroupPage({
         <section className="flex flex-col gap-3" data-testid="group-board">
           <h2 className="text-lg font-semibold">The board</h2>
           {!board.ok ? (
-            <p role="alert" data-testid="group-board-unreachable">
+            <Notice tone="danger" data-testid="group-board-unreachable">
               The board cannot be shown right now.
-            </p>
+            </Notice>
           ) : board.data.entries.length === 0 ? (
             // The floor does not bend for a small group (D-037), so a group can
             // have no board at all — and saying which filter produced that is
@@ -208,9 +209,9 @@ export default async function GroupPage({
         <section className="flex flex-col gap-3" data-testid="group-queue">
           <h2 className="text-lg font-semibold">Asking to join</h2>
           {queue === null || !queue.ok ? (
-            <p role="alert" data-testid="group-queue-unreachable">
+            <Notice tone="danger" data-testid="group-queue-unreachable">
               The queue cannot be shown right now.
-            </p>
+            </Notice>
           ) : queue.data.requests.length === 0 ? (
             <p className="text-sm text-muted" data-testid="group-queue-none">
               Nobody is waiting.

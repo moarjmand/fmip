@@ -20,6 +20,7 @@ import { pageMetadata, playerJsonLd } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { JsonLd } from '@/components/json-ld';
 import { ltrIsolate } from '@/components/score';
+import { Button, Notice, controlClasses } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,9 +69,9 @@ export default async function PlayerPage({
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-4 p-8">
         <h1 className="text-2xl font-semibold">Player</h1>
-        <p role="alert" data-testid="player-unreachable">
+        <Notice tone="danger" data-testid="player-unreachable">
           The service is unreachable right now, so this player cannot be shown.
-        </p>
+        </Notice>
       </main>
     );
   }
@@ -167,11 +168,11 @@ export default async function PlayerPage({
           type="search"
           placeholder="Another player’s name"
           autoComplete="off"
-          className="min-w-0 grow rounded border border-strong bg-transparent px-3 py-2"
+          className={controlClasses('md', 'min-w-0 grow')}
         />
-        <button type="submit" className="rounded border border-strong px-3 py-2">
+        <Button type="submit" size="md">
           Find
-        </button>
+        </Button>
       </form>
 
       <section className="flex flex-col gap-2" data-testid="career">

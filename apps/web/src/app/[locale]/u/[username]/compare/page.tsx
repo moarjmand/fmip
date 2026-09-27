@@ -7,6 +7,7 @@ import { COMPARE_WINDOW, compared, settledCount, tally, truncated } from '@/lib/
 import { ratingLabel, statusLabel, tierLabel } from '@/lib/leaderboard';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { Notice } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -120,9 +121,9 @@ export default async function ComparePage({
         <h2 className="text-lg font-semibold">Matches you both predicted</h2>
 
         {!both ? (
-          <p role="alert" className="text-sm">
+          <Notice tone="danger">
             One of the two histories is unreachable right now, so there is nothing to compare.
-          </p>
+          </Notice>
         ) : theirs?.kind === 'restricted' ? (
           <p className="text-sm" data-testid="compare-restricted">
             {theirs.visibility === 'friends'

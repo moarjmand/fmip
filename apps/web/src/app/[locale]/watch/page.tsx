@@ -15,6 +15,7 @@ import { apiQuery, dayStrip, readScoresQuery } from '@/lib/scores';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { readTerritoryQuery, watchHref, withTerritory } from '@/lib/viewing';
+import { Notice } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -126,9 +127,9 @@ export default async function WatchPage({
       />
 
       {!scores.ok ? (
-        <p role="alert" data-testid="watch-unreachable">
+        <Notice tone="danger" data-testid="watch-unreachable">
           <Translated locale={locale} message="viewing.unreachable" />
-        </p>
+        </Notice>
       ) : cards.length === 0 ? (
         <p className="text-muted" data-testid="watch-empty">
           <Translated locale={locale} message="viewing.noMatches" />

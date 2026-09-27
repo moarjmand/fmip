@@ -5,6 +5,7 @@ import { ModerationQueue } from '@/components/moderation-queue';
 import { fetchMe, fetchModerationQueue } from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { Notice } from '@/components/ui';
 
 export async function generateMetadata({
   params,
@@ -55,9 +56,9 @@ export default async function ModerationPage({ params }: { params: Promise<{ loc
         />
       ) : (
         // "You may not see this" and "nothing is waiting" are different facts.
-        <p role="alert" data-testid="moderation-queue-forbidden">
+        <Notice tone="warning" data-testid="moderation-queue-forbidden">
           The moderation queue needs the moderator or administrator role.
-        </p>
+        </Notice>
       )}
     </main>
   );

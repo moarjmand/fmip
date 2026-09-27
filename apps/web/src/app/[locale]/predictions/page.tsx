@@ -15,6 +15,7 @@ import {
 import { apiQuery, readScoresQuery } from '@/lib/scores';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { Notice } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -105,10 +106,10 @@ export default async function PredictionsPage({
       </div>
 
       {!scores.ok ? (
-        <p role="alert" data-testid="predictions-unreachable">
+        <Notice tone="danger" data-testid="predictions-unreachable">
           The scores service is unreachable right now, so the matches to predict on cannot be
           listed.
-        </p>
+        </Notice>
       ) : shown.length === 0 ? (
         <p className="text-sm text-muted" data-testid="predictions-empty">
           No matches on this day.

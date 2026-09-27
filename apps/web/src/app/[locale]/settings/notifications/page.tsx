@@ -12,6 +12,7 @@ import {
 } from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { Notice } from '@/components/ui';
 
 export async function generateMetadata({
   params,
@@ -77,9 +78,9 @@ export default async function NotificationSettingsPage({
         // Stated, not a blank page. A form that silently showed the defaults
         // would let a member "change" something that was never saved, and they
         // would find out weeks later by not being told something.
-        <p role="alert" data-testid="settings-unreachable">
+        <Notice tone="danger" data-testid="settings-unreachable">
           Your settings cannot be shown right now.
-        </p>
+        </Notice>
       )}
     </main>
   );

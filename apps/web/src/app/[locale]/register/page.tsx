@@ -7,6 +7,7 @@ import { readGuestChoices } from '@/lib/first-run-cookie';
 import { readInviter } from '@/lib/invite';
 import { registerAction } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
+import { Notice } from '@/components/ui';
 
 export const metadata: Metadata = { title: 'Register · FMIP' };
 export const dynamic = 'force-dynamic';
@@ -34,7 +35,9 @@ export default async function RegisterPage({
       <main className="mx-auto flex max-w-md flex-col gap-4 p-8">
         <h1 className="text-2xl font-semibold">Register</h1>
         {/* Rule 3: an empty country list would look like a form with a bug, so say what happened. */}
-        <p role="alert">The service is unreachable right now, so registration is unavailable.</p>
+        <Notice tone="danger">
+          The service is unreachable right now, so registration is unavailable.
+        </Notice>
       </main>
     );
   }
@@ -44,7 +47,9 @@ export default async function RegisterPage({
       <main className="mx-auto flex max-w-md flex-col gap-4 p-8">
         <h1 className="text-2xl font-semibold">Register</h1>
         {/* A required list with nothing in it is a form nobody can submit (D-078). */}
-        <p role="alert">Registration is not open yet: no country has been set up to choose from.</p>
+        <Notice tone="warning">
+          Registration is not open yet: no country has been set up to choose from.
+        </Notice>
       </main>
     );
   }

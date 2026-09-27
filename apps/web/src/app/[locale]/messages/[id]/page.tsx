@@ -21,6 +21,7 @@ import { markReadAction } from '@/lib/conversation-actions';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { Translated } from '@/components/translated';
+import { Button, Notice, TextField } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -80,9 +81,9 @@ export default async function ConversationPage({
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-4 p-8">
         <h1 className="text-2xl font-semibold">A conversation</h1>
-        <p role="alert" data-testid="conversation-unreachable">
+        <Notice tone="danger" data-testid="conversation-unreachable">
           This conversation cannot be shown right now.
-        </p>
+        </Notice>
       </main>
     );
   }
@@ -122,27 +123,26 @@ export default async function ConversationPage({
             groupName={thread.group?.name ?? 'this group'}
           />
         ) : (
-          <p role="alert" data-testid="group-comparison-unreachable" className="text-sm">
+          <Notice tone="danger" data-testid="group-comparison-unreachable">
             What the group called cannot be shown right now.
-          </p>
+          </Notice>
         ))}
 
       <form action={`/${locale}/messages/${id}`} className="flex items-center gap-2">
-        <label htmlFor="conversation-search" className="sr-only">
-          Search this conversation
-        </label>
-        <input
+        <TextField
+          label="Search this conversation"
+          hideLabel
           id="conversation-search"
           name="q"
           type="search"
+          size="sm"
           defaultValue={term}
           placeholder="Search this conversation"
-          className="rounded border border-strong bg-transparent px-3 py-1 text-sm text-start"
           data-testid="conversation-search"
         />
-        <button type="submit" className="text-sm underline">
+        <Button type="submit" variant="ghost" size="sm">
           Search
-        </button>
+        </Button>
         {term !== '' && (
           <Link href={`/${locale}/messages/${id}`} className="text-sm underline">
             Clear

@@ -16,6 +16,7 @@ import {
 import { moduleState } from '@/lib/match';
 import { sessionCookieHeader } from '@/lib/session';
 import { Translated } from '@/components/translated';
+import { Button, Notice, TextField } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,9 +62,9 @@ export default async function AdminPage({
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-4 p-8">
         <h1 className="text-2xl font-semibold">Administration</h1>
-        <p role="alert">
+        <Notice tone="danger">
           <Translated locale={locale} message="common.unreachable" />
-        </p>
+        </Notice>
       </main>
     );
   }
@@ -295,28 +296,25 @@ export default async function AdminPage({
       <section className="flex flex-col gap-3" data-testid="admin-users">
         <h2 className="text-lg font-semibold">Members</h2>
         <form action={`/${locale}/admin`} method="get" role="search" className="flex gap-2">
-          <label htmlFor="admin-user-search" className="sr-only">
-            Search members
-          </label>
-          <input
+          <TextField
+            label="Search members"
+            hideLabel
             id="admin-user-search"
             name="q"
             type="search"
             defaultValue={q}
             placeholder="Username, e-mail or display name"
-            className="grow rounded border border-strong bg-transparent px-3 py-2"
+            className="grow"
             data-testid="user-search"
           />
-          <button type="submit" className="rounded border border-strong px-3 py-2">
+          <Button type="submit" size="md">
             Search
-          </button>
+          </Button>
         </form>
         {users === null ? (
           <p className="text-sm text-muted">Type at least two characters to search.</p>
         ) : !users.ok ? (
-          <p role="alert" className="text-sm">
-            The search could not be run right now.
-          </p>
+          <Notice tone="danger">The search could not be run right now.</Notice>
         ) : users.data.users.length === 0 ? (
           <p className="text-sm text-muted">No member matches “{q}”.</p>
         ) : (
@@ -357,9 +355,7 @@ export default async function AdminPage({
       <section className="flex flex-col gap-2" data-testid="admin-audit">
         <h2 className="text-lg font-semibold">Audit log</h2>
         {!audit.ok ? (
-          <p role="alert" className="text-sm">
-            The audit log could not be read right now.
-          </p>
+          <Notice tone="danger">The audit log could not be read right now.</Notice>
         ) : audit.data.records.length === 0 ? (
           <p className="text-sm text-muted">No administrative action recorded yet.</p>
         ) : (
