@@ -4,6 +4,7 @@ import { GroupsModule } from '../groups/groups.module';
 import { IdentityModule } from '../identity/identity.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { PredictionsModule } from '../predictions/predictions.module';
+import { ProfileModule } from '../profile/profile.module';
 import { CareerPointsService } from './career-points.service';
 import { ContributorController } from './contributor.controller';
 import { ContributorService } from './contributor.service';
@@ -30,7 +31,15 @@ import { ReputationService } from './reputation.service';
  * rule of which is here -- stays here.
  */
 @Module({
-  imports: [IdentityModule, PredictionsModule, ForecastModule, GroupsModule, NotificationsModule],
+  imports: [
+    IdentityModule,
+    PredictionsModule,
+    ForecastModule,
+    GroupsModule,
+    NotificationsModule,
+    // Rating history follows prediction-history visibility (T-640).
+    ProfileModule,
+  ],
   controllers: [ReputationController, ContributorController],
   providers: [
     ReputationService,

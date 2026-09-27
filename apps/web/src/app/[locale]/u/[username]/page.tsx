@@ -5,12 +5,15 @@ import { StartConversation } from '@/components/conversation-controls';
 import { FriendControls } from '@/components/friend-controls';
 import { ShareLink } from '@/components/share-link';
 import { PredictionHistory } from '@/components/prediction-history';
+import { RatingHistorySection } from '@/components/rating-history';
+import { directionOf } from '@/i18n/locales';
 import {
   fetchFriendStatus,
   fetchMe,
   fetchPredictionHistory,
   fetchProfile,
   fetchRating,
+  fetchRatingHistory,
 } from '@/lib/api';
 import { ratingLabel, statusLabel, tierLabel } from '@/lib/leaderboard';
 import { inviteUrl } from '@/lib/invite';
@@ -100,10 +103,11 @@ export default async function ProfilePage({
 
   const { profile } = view;
   const page = readHistoryPage(query);
-  const [me, rating, history] = await Promise.all([
+  const [me, rating, history, ratingHistory] = await Promise.all([
     fetchMe(cookie),
     fetchRating(profile.username),
     fetchPredictionHistory(profile.username, historyQuery(page), cookie),
+    fetchRatingHistory(profile.username, cookie),
   ]);
   const timeZone = me?.timezone ?? 'UTC';
   const pageHref = (p: number): string =>
@@ -227,6 +231,15 @@ export default async function ProfilePage({
             </dd>
           </dl>
         )}
+      </section>
+
+      <section className="flex flex-col gap-2" data-testid="rating-over-time">
+        <h2 className="text-lg font-semibold">Rating over time</h2>
+        <RatingHistorySection
+          locale={locale}
+          direction={directionOf(locale)}
+          result={ratingHistory}
+        />
       </section>
 
       <section className="flex flex-col gap-2">

@@ -63,6 +63,7 @@ import type {
   PredictionHistoryResponse,
   PredictionResponse,
   ProfileView,
+  RatingHistoryResponse,
   RatingResponse,
   ScoresResponse,
   SearchResponse,
@@ -490,6 +491,21 @@ export function fetchPredictionHistory(
 /** `GET /users/:username/rating` (T-053): the current rating, null before the first settlement. Public. */
 export function fetchRating(username: string): Promise<ApiResult<RatingResponse>> {
   return apiRequest<RatingResponse>(`/users/${encodeURIComponent(username)}/rating`);
+}
+
+/**
+ * `GET /users/:username/rating/history` (T-640): the rating over time, by
+ * competition, and the highest. Follows prediction-history visibility, so the
+ * viewer's session goes with it.
+ */
+export function fetchRatingHistory(
+  username: string,
+  cookie: string | undefined,
+): Promise<ApiResult<RatingHistoryResponse>> {
+  return apiRequest<RatingHistoryResponse>(
+    `/users/${encodeURIComponent(username)}/rating/history`,
+    cookie === undefined ? {} : { cookie },
+  );
 }
 
 /** `GET /leaderboard?${query}` (T-055): ranked current ratings behind the minimum-sample filter. Public. */

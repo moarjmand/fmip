@@ -43,6 +43,59 @@ export interface RatingResponse {
 }
 
 // ---------------------------------------------------------------------------
+// Rating over time, by competition, and the highest (blueprint 9.3, T-640).
+// Every number is recomputed from the member's current stored settlements
+// under the formula in force (rule 8); nothing here is read from a second
+// store or produced by a second formula.
+// ---------------------------------------------------------------------------
+
+/** The rating as it stood at the end of one UTC day on which something settled. */
+export interface RatingHistoryPoint {
+  /** YYYY-MM-DD, UTC. */
+  date: string;
+  /** ISO 8601, the last settlement counted in this point. */
+  settled_at: string;
+  rating: number;
+  /** Every settled prediction up to and including this point (not only the formula's window). */
+  settled_total: number;
+  provisional: boolean;
+}
+
+/** One competition's settled predictions, rated on their own under the same formula. */
+export interface CompetitionRating {
+  competition: { id: string; name: string };
+  settled_count: number;
+  outcome_correct: number;
+  score_correct: number;
+  rating: number;
+  provisional: boolean;
+}
+
+export interface RatingHistory {
+  formula_version: string;
+  /** Every settled prediction; equals the sum of `by_competition[].settled_count`. */
+  settled_total: number;
+  /** Oldest first, one point per UTC day with a settlement. */
+  points: RatingHistoryPoint[];
+  /** The highest rating after any single settlement, and when it was first reached. */
+  highest: { rating: number; date: string; settled_at: string; provisional: boolean };
+  /** Most settled first, then by name. */
+  by_competition: CompetitionRating[];
+  /** ISO 8601, when this was computed. */
+  computed_at: string;
+}
+
+/**
+ * `GET /users/:username/rating/history`, `GET /me/rating/history`. Follows the
+ * member's prediction-history visibility, because a trajectory and a
+ * per-competition breakdown say when and where they predicted. `history` is
+ * null until the first settled prediction.
+ */
+export type RatingHistoryResponse =
+  | { kind: 'visible'; username: string; is_self: boolean; history: RatingHistory | null }
+  | { kind: 'restricted'; username: string; visibility: 'friends' | 'private' };
+
+// ---------------------------------------------------------------------------
 // Career Points (blueprint 9.2, T-054): participation and achievement as a
 // ledger, kept apart from the rating and never an input to privileges.
 // ---------------------------------------------------------------------------

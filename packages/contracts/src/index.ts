@@ -341,6 +341,7 @@ export type {
 export type {
   CareerPoints,
   CareerPointsResponse,
+  CompetitionRating,
   EligibilityResponse,
   LeaderboardEntry,
   LeaderboardResponse,
@@ -349,6 +350,9 @@ export type {
   PrivilegeEligibility,
   Rating,
   RatingComponents,
+  RatingHistory,
+  RatingHistoryPoint,
+  RatingHistoryResponse,
   RatingResponse,
   RatingTier,
 } from './reputation';

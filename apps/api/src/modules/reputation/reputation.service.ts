@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { LeaderboardResponse, Rating } from '@fmip/contracts';
+import type { LeaderboardResponse, Rating, RatingHistory } from '@fmip/contracts';
 import { ForecastService } from '../forecast/forecast.service';
 import { IdentityService } from '../identity/identity.service';
 import { SettlementService, type SettledRecord } from '../predictions/predictions.service';
@@ -11,6 +11,7 @@ import {
   tierOf,
 } from './internal/formula';
 import { CareerPointsService } from './career-points.service';
+import { ratingHistory } from './internal/history';
 import {
   LEADERBOARD_RULES_V1,
   type LeaderboardQuery,
@@ -108,6 +109,23 @@ export class ReputationService {
     if (user === null) return null;
     const latest = await this.store.latest(userId);
     return latest === null ? null : toRating(user.username, latest);
+  }
+
+  /**
+   * The rating over time, by competition, and the highest (blueprint 9.3,
+   * T-640), recomputed from the same stored settlements and forecasts a
+   * recompute reads, through the same formula; nothing is written. Null
+   * before the first settled prediction.
+   */
+  async history(userId: string): Promise<RatingHistory | null> {
+    const records = await this.settlements.settledHistory(userId);
+    const inputs = await this.withDifficulty(records);
+    // `withDifficulty` keeps the records' order, so the zip is by position.
+    return ratingHistory(
+      records.map((record, i) => ({ ...inputs[i]!, competition: record.competition })),
+      new Date().toISOString(),
+      this.formula,
+    );
   }
 
   /**

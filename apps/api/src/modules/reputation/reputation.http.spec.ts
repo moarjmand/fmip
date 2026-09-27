@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Test } from '@nestjs/testing';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
-import type { RatingResponse } from '@fmip/contracts';
+import type { RatingHistoryResponse, RatingResponse } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -282,6 +282,32 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Performance 
       [fav!.id],
     );
     expect(rows[0]?.n).toBe('1');
+  });
+
+  it('the history ends on the stored rating and its competitions add up (T-640)', async () => {
+    const [fav] = users;
+    const stored = (await inject('GET', '/me/rating', fav!.cookie)).json() as RatingResponse;
+    const response = await inject('GET', `/users/${fav!.username}/rating/history`);
+    expect(response.statusCode).toBe(200);
+    const body = response.json() as RatingHistoryResponse;
+    expect(body.kind).toBe('visible');
+    if (body.kind !== 'visible' || body.history === null) throw new Error('no history');
+    expect(body.history.points.at(-1)?.rating).toBe(stored.rating?.rating);
+    expect(body.history.settled_total).toBe(4);
+    expect(body.history.by_competition.reduce((n, c) => n + c.settled_count, 0)).toBe(4);
+    expect(body.history.highest.rating).toBeGreaterThanOrEqual(stored.rating!.rating);
+    // Reading the history writes nothing.
+    const { rows } = await pool.query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM rating_snapshot WHERE user_id = $1`,
+      [fav!.id],
+    );
+    expect(rows[0]?.n).toBe('1');
+    const mine = (
+      await inject('GET', '/me/rating/history', fav!.cookie)
+    ).json() as RatingHistoryResponse;
+    expect(mine.kind === 'visible' && mine.is_self).toBe(true);
+    expect((await inject('GET', `/users/nobody_${RUN}/rating/history`)).statusCode).toBe(404);
+    expect((await inject('GET', '/me/rating/history')).statusCode).toBe(401);
   });
 
   it('a new formula version is a new snapshot over the same records, and the old one stays', async () => {
