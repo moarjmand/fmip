@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Covered, SeasonFixture } from '@fmip/contracts';
 import { FounderAnalysisFeed } from '@/components/founder-analysis';
+import { KnockoutBracket } from '@/components/knockout-bracket';
 import { fetchCompetition, fetchFounderFeed, fetchMe } from '@/lib/api';
 import {
   KIND_LABEL,
@@ -53,7 +54,8 @@ export async function generateMetadata({
  * The competition page (blueprint 5.1, T-035): overview, season selector,
  * league table, results and fixtures, top scorers — each module with its
  * coverage from the API, an unreachable API said out loud. Team names become
- * links with the team page (T-036).
+ * links with the team page (T-036). A continental cup adds its knockout
+ * rounds after the table (T-630).
  */
 export default async function CompetitionPage({
   params,
@@ -189,6 +191,10 @@ export default async function CompetitionPage({
           </div>
         )}
       </Module>
+
+      {page.bracket !== null && (
+        <KnockoutBracket bracket={page.bracket} locale={locale} timeZone={timeZone} />
+      )}
 
       <section className="flex flex-col gap-2" data-testid="results">
         <h2 className="text-lg font-semibold">Results</h2>

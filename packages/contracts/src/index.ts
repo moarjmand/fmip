@@ -129,6 +129,7 @@ export type {
   UpdatePrivacyRequest,
   UpdateProfileRequest,
 } from './profile';
+export { KNOCKOUT_ROUNDS } from './catalog';
 export type {
   CompetitionPage,
   CompetitionSummary,
@@ -136,6 +137,12 @@ export type {
   CountriesResponse,
   CountrySummary,
   FormResult,
+  KnockoutBracket,
+  KnockoutLeg,
+  KnockoutRound,
+  KnockoutRoundKey,
+  KnockoutTeam,
+  KnockoutTie,
   Leader,
   PlayerMatch,
   PlayerPage,

@@ -108,6 +108,81 @@ export interface SeasonFixture {
   score: { home: number; away: number } | null;
 }
 
+// ---------------------------------------------------------------------------
+// Knockout bracket (blueprint 5.1, T-630): the UEFA cups' rounds after the
+// league stage, built from stored fixtures only. A round nobody has drawn is
+// said to be undrawn; a tie is never invented to fill it.
+// ---------------------------------------------------------------------------
+
+/** The knockout rounds in the order they are played. */
+export const KNOCKOUT_ROUNDS = [
+  'round_of_32',
+  'knockout_playoff',
+  'round_of_16',
+  'quarter_final',
+  'semi_final',
+  'final',
+] as const;
+export type KnockoutRoundKey = (typeof KNOCKOUT_ROUNDS)[number];
+
+export interface KnockoutTeam {
+  id: string;
+  name: string;
+  short_name: string | null;
+}
+
+export interface KnockoutLeg {
+  fixture_id: string;
+  /** 1 or 2 in a two-legged tie; 1 for a single match. */
+  leg: number;
+  kickoff_at: string;
+  status: string;
+  home: KnockoutTeam;
+  away: KnockoutTeam;
+  /** The score after extra time when one was played; null until there is one. */
+  score: { home: number; away: number } | null;
+  /** Whether our records hold an extra-time score for this match. */
+  after_extra_time: boolean;
+  /** The shoot-out, when there was one. */
+  penalties: { home: number; away: number } | null;
+}
+
+export interface KnockoutTie {
+  /** The two teams, the first leg's hosts first. */
+  teams: [KnockoutTeam, KnockoutTeam];
+  /** Every match of the tie our records hold, in kick-off order. */
+  legs: KnockoutLeg[];
+  /**
+   * Goals over the whole tie, in the order of `teams`; null until every leg
+   * the round plays is finished. Null for a single-match round.
+   */
+  aggregate: [number, number] | null;
+  /** Null until the finished legs decide the tie. */
+  winner: KnockoutTeam | null;
+  /** How the tie was decided; null while it is not. */
+  decided_by: 'score' | 'aggregate' | 'penalties' | null;
+}
+
+export interface KnockoutRound {
+  key: KnockoutRoundKey;
+  /**
+   * `drawn` — at least one tie of the round is in our records;
+   * `not_drawn` — the season is still running and nothing of this round exists yet;
+   * `not_supplied` — the round should exist (a later one does, or the season is over)
+   * but our records hold none of its matches.
+   */
+  state: 'drawn' | 'not_drawn' | 'not_supplied';
+  /** Matches per tie: 2, or 1 for the final. */
+  legs: 1 | 2;
+  /** Ties the round has in the format; more than `ties.length` means some are not known yet. */
+  expected_ties: number;
+  ties: KnockoutTie[];
+}
+
+export interface KnockoutBracket {
+  rounds: KnockoutRound[];
+}
+
 /** `GET /competitions/:id?season=`. */
 export interface CompetitionPage {
   competition: {
@@ -140,6 +215,11 @@ export interface CompetitionPage {
   fixtures: SeasonFixture[];
   /** Top goalscorers from recorded goals. */
   leaders: Covered<Leader[]>;
+  /**
+   * The knockout rounds for a continental cup (T-630); null for a
+   * competition that does not play them.
+   */
+  bracket: KnockoutBracket | null;
   /** The season's declared coverage per module. */
   coverage: Record<string, CoverageState>;
   /** Newest change to any fixture of the season; null when none is stored. */
