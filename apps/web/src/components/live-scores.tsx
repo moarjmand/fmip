@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { ScoreCard } from '@/components/score-card';
 import { scoresAnnouncements } from '@/lib/announce';
 import { INITIAL_CLOCK, type LiveClock, liveLabel, liveState } from '@/lib/live';
+import { applyFilters, isFiltered, type ScoresFilterSelection } from '@/lib/scores-filters';
 
 /**
  * The scores list that stays current (T-032). Renders the server's snapshot
@@ -13,25 +14,37 @@ import { INITIAL_CLOCK, type LiveClock, liveLabel, liveState } from '@/lib/live'
  * browser never talks to the API, D-027). Every event replaces the whole
  * picture: the server sends full snapshots, so a reconnect can never leave a
  * stale card in place. The freshness line says exactly what is known.
+ * The page's country / competition / stage filters (T-633) are applied to
+ * every snapshot here, so the stream stays the same question for everyone
+ * looking at the day.
  */
 export function LiveScores({
   initial,
   streamQuery,
   timeZone,
   locale,
+  filters,
+  clearFiltersHref,
 }: {
   initial: ScoresResponse;
   streamQuery: string;
   timeZone: string;
   locale: string;
+  filters: ScoresFilterSelection;
+  /** The same day with the country / competition / stage filters removed. */
+  clearFiltersHref: string;
 }) {
   const [scores, setScores] = useState(initial);
   const [clock, setClock] = useState<LiveClock>(INITIAL_CLOCK);
   const [now, setNow] = useState(() => Date.now());
   // What the last snapshot changed, in words, for the polite live region (T-081).
   const [announcement, setAnnouncement] = useState('');
+  const filterKey = JSON.stringify(filters);
 
   useEffect(() => {
+    // Keyed on the selection's value, not the object, so a re-render with the
+    // same filters never reopens the stream.
+    const selection = JSON.parse(filterKey) as ScoresFilterSelection;
     const source = new EventSource(`/api/scores/stream?${streamQuery}`);
     const stamp = (snapshot: boolean): void =>
       setClock((c) => ({
@@ -42,7 +55,10 @@ export function LiveScores({
     source.addEventListener('snapshot', (event) => {
       const next = JSON.parse((event as MessageEvent<string>).data) as ScoresResponse;
       setScores((previous) => {
-        const said = scoresAnnouncements(previous, next);
+        const said = scoresAnnouncements(
+          applyFilters(previous, selection),
+          applyFilters(next, selection),
+        );
         if (said.length > 0) setAnnouncement(said.join(' '));
         return next;
       });
@@ -57,9 +73,10 @@ export function LiveScores({
       clearInterval(tick);
       source.close();
     };
-  }, [streamQuery]);
+  }, [streamQuery, filterKey]);
 
   const state = liveState(clock, now);
+  const shown = applyFilters(scores, filters);
 
   return (
     <>
@@ -84,13 +101,20 @@ export function LiveScores({
         <p className="opacity-70" data-testid="scores-empty">
           No fixtures on this day.
         </p>
+      ) : shown.total === 0 && isFiltered(filters) ? (
+        <p data-testid="scores-filtered-empty">
+          No match on this day fits these filters.{' '}
+          <Link href={clearFiltersHref} className="underline" data-testid="clear-filters">
+            Clear filters
+          </Link>
+        </p>
       ) : (
         <>
-          {scores.pinned.length > 0 && (
+          {shown.pinned.length > 0 && (
             <section className="flex flex-col gap-2" data-testid="pinned">
               <h2 className="text-lg font-semibold">Your favourites</h2>
               <ul className="flex flex-col gap-2">
-                {scores.pinned.map((card) => (
+                {shown.pinned.map((card) => (
                   <ScoreCard
                     key={card.id}
                     card={card}
@@ -102,7 +126,7 @@ export function LiveScores({
               </ul>
             </section>
           )}
-          {scores.groups.map((group) => (
+          {shown.groups.map((group) => (
             <section
               key={group.competition.id}
               className="flex flex-col gap-2"

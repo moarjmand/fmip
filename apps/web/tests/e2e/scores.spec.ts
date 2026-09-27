@@ -42,6 +42,32 @@ test.describe('scores page', () => {
     await expect(live).toHaveAttribute('href', /live=1/);
   });
 
+  test('picks any date with a plain GET form and steps a day either way', async ({ page }) => {
+    await page.goto('/en/scores?date=2087-01-07&tz=Asia/Tehran&live=1&country=intl&stage=knockout');
+
+    const picker = page.getByTestId('date-picker');
+    await expect(page.getByTestId('date-input')).toHaveValue('2087-01-07');
+    await expect(picker.getByTestId('previous-day')).toHaveAttribute('href', /date=2087-01-06/);
+    await expect(picker.getByTestId('next-day')).toHaveAttribute('href', /date=2087-01-08/);
+    // Filters travel with every link, so a filtered view is an address to share.
+    await expect(picker.getByTestId('next-day')).toHaveAttribute('href', /country=intl/);
+    await expect(picker.getByTestId('next-day')).toHaveAttribute('href', /stage=knockout/);
+    const live = page.getByTestId('filters').getByRole('link', { name: 'All' });
+    await expect(live).toHaveAttribute('href', /country=intl&stage=knockout/);
+
+    await page.getByTestId('date-input').fill('2087-03-14');
+    await picker.getByRole('button', { name: 'Show day' }).click();
+    await expect(page).toHaveURL(/date=2087-03-14/);
+    await expect(page).toHaveURL(/tz=Asia%2FTehran/);
+    await expect(page).toHaveURL(/live=1/);
+    await expect(page).toHaveURL(/country=intl/);
+    await expect(page.getByTestId('date-input')).toHaveValue('2087-03-14');
+
+    // Without an API there is no day to derive countries or stages from,
+    // so none is offered rather than an empty list that looks like a choice.
+    await expect(page.getByTestId('more-filters')).toHaveCount(0);
+  });
+
   test('mirrors under the rtl pseudo-locale', async ({ page }) => {
     await page.goto('/x-rtl/scores');
 
