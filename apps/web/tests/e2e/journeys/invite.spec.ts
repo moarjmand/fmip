@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { type Member, member, registerAndVerify } from './members';
+import { type Member, leaveFirstRun, member, registerAndVerify } from './members';
 
 /**
  * T-522: a member's invite link. The new member registers through it, lands
@@ -33,6 +33,8 @@ test('a friend who registers through an invite link is offered, not signed up fo
   await form.getByLabel('I accept the platform rules.').check();
   await form.getByRole('button', { name: 'Create account' }).click();
 
+  // The first run comes first (T-620), then the inviter's profile it was carrying.
+  await leaveFirstRun(guest, `/en/u/${INVITER.username}?invited=1`);
   await expect(guest).toHaveURL(new RegExp(`/en/u/${INVITER.username}\\?invited=1$`));
   await expect(guest.getByTestId('invited-note')).toBeVisible();
   // Offered, not done: the control still offers to add, and the inviter has no request.

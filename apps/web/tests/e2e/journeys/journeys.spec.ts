@@ -1,5 +1,5 @@
 import { type Page, expect, test } from '@playwright/test';
-import { verifyLink } from './members';
+import { leaveFirstRun, verifyLink } from './members';
 
 /**
  * The blueprint's essential user journeys, the slices of them Phase 1 ships
@@ -63,8 +63,14 @@ test.describe('blueprint journeys', () => {
     await form.getByLabel('Country or territory').selectOption({ label: 'England' });
     await form.getByLabel('I accept the platform rules.').check();
     await form.getByRole('button', { name: 'Create account' }).click();
+    // The first run is offered once (T-620): skip a step, then "Not now" lands
+    // where registration was going, and the homepage does not offer it again.
+    await leaveFirstRun(page, `/en/u/${USERNAME}`, { skipFirst: true });
     await expect(page).toHaveURL(new RegExp(`/en/u/${USERNAME}$`));
     await expect(page.getByTestId('profile-name')).toHaveText('Journey Tester');
+    await page.goto('/en');
+    await expect(page.getByTestId('title')).toBeVisible();
+    await expect(page.getByTestId('first-run-offer')).toHaveCount(0);
 
     // Signed in but not verified: the form is there, the requirement is named.
     await page.goto(`/en/match/${OPEN_MATCH}`);
