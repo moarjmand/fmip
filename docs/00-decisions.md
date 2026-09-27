@@ -3122,7 +3122,7 @@ season's teams*: a position has no scale between leagues or seasons; the raw
 rating does. *Fitting on the published version's expected goals*: the term
 would then correct a model it will never be added to.
 
-## D-087 — A guest's first-run choices live in a cookie and reach the account at sign-up
+## D-088 — A guest's first-run choices live in a cookie and reach the account at sign-up
 
 **Status:** decided · **Date:** 2026-09-27 · **Task:** T-620
 
