@@ -56,6 +56,7 @@ import type {
   PushState,
   NotificationsResponse,
   OwnProfile,
+  PanelListResponse,
   PanelPermission,
   PlayerPage,
   PowerIndexResponse,
@@ -562,6 +563,11 @@ export function fetchContributors(
     '/admin/contributors',
     cookie === undefined ? {} : { cookie },
   );
+}
+
+/** `GET /admin/panels` (T-253): featured-match discussions, open and closed. Needs the moderator or admin role. */
+export function fetchPanels(cookie: string | undefined): Promise<ApiResult<PanelListResponse>> {
+  return apiRequest<PanelListResponse>('/admin/panels', cookie === undefined ? {} : { cookie });
 }
 
 /** What is waiting to be read, oldest first. Needs the editor or admin role. */

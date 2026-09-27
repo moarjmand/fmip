@@ -145,6 +145,9 @@ export default async function AdminPage({
         <Link href={`/${locale}/admin/contributors`} className="underline">
           Contributors
         </Link>
+        <Link href={`/${locale}/admin/panels`} className="underline">
+          Featured matches
+        </Link>
       </nav>
 
       <HealthPanel live={live} chat={chat} />
