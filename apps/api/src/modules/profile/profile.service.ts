@@ -5,8 +5,10 @@ import type {
   FavouriteIds,
   FollowedEntity,
   FollowedEntityType,
+  FirstRunState,
   OwnProfile,
   ProfileView,
+  UpdatePreferencesRequest,
   UpdatePrivacyRequest,
   UpdateProfileRequest,
 } from '@fmip/contracts';
@@ -135,7 +137,31 @@ export class ProfileService {
       account,
       privacy: toPrivacy(row),
       viewing_territory: await this.store.viewingTerritory(userId),
+      first_run: await this.store.firstRun(userId),
     };
+  }
+
+  // --- the first-run flow (T-620) ----------------------------------------
+
+  firstRun(userId: string): Promise<FirstRunState> {
+    return this.store.firstRun(userId);
+  }
+
+  /** Finished or dismissed: either way it is not offered again. Idempotent. */
+  async completeFirstRun(userId: string): Promise<FirstRunState> {
+    await this.store.completeFirstRun(userId);
+    return this.store.firstRun(userId);
+  }
+
+  async updatePreferences(
+    userId: string,
+    patch: UpdatePreferencesRequest,
+  ): Promise<OwnProfile | null> {
+    await this.store.setPreferences(userId, {
+      language: patch.preferred_language,
+      timezone: patch.timezone,
+    });
+    return this.own(userId);
   }
 
   // --- the viewing territory (T-312) -------------------------------------

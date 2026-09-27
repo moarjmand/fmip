@@ -57,7 +57,32 @@ export function member(run: string, slug: string, displayName: string): Member {
   return { username, displayName, email: `${username}@example.test`, password: PASSWORD };
 }
 
-/** Register through the form, then verify from the message. */
+/**
+ * A new member is offered the first run once, straight after registration
+ * (T-620), carrying where they were going as `next`. This asserts that
+ * hand-off and leaves the flow the way a member in a hurry would: "Not now"
+ * ends it (it is not offered again) and lands on `next`. With `skipFirst`,
+ * the language step is skipped first, so the skip control is walked too.
+ */
+export async function leaveFirstRun(
+  page: Page,
+  next: string,
+  { skipFirst = false }: { skipFirst?: boolean } = {},
+): Promise<void> {
+  const escaped = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  await expect(page).toHaveURL(
+    new RegExp(`/en/welcome\\?step=language&next=${escaped(encodeURIComponent(next))}$`),
+  );
+  await expect(page.getByTestId('first-run-steps')).toBeVisible();
+  if (skipFirst) {
+    await page.getByTestId('first-run-skip').click();
+    await expect(page).toHaveURL(/\/en\/welcome\?step=territory&next=/);
+  }
+  await page.getByTestId('first-run-finish').click();
+  await expect(page).toHaveURL(new RegExp(`${escaped(next)}$`));
+}
+
+/** Register through the form, leave the first run, then verify from the message. */
 export async function registerAndVerify(page: Page, who: Member): Promise<void> {
   await page.goto('/en/register');
   const form = page.getByTestId('register-form');
@@ -68,7 +93,7 @@ export async function registerAndVerify(page: Page, who: Member): Promise<void> 
   await form.getByLabel('Country or territory').selectOption({ label: 'England' });
   await form.getByLabel('I accept the platform rules.').check();
   await form.getByRole('button', { name: 'Create account' }).click();
-  await expect(page).toHaveURL(new RegExp(`/en/u/${who.username}$`));
+  await leaveFirstRun(page, `/en/u/${who.username}`);
 
   await page.goto(verifyLink(who.email));
   await expect(page.getByTestId('verify-result')).toBeVisible();

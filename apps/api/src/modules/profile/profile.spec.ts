@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { validateUpdatePrivacy, validateUpdateProfile } from './internal/validation';
+import {
+  validateUpdatePreferences,
+  validateUpdatePrivacy,
+  validateUpdateProfile,
+} from './internal/validation';
 import { canView } from './internal/visibility';
 
 const OWNER = 'owner';
@@ -65,6 +69,34 @@ describe('validateUpdatePrivacy', () => {
     expect(validateUpdatePrivacy({ prediction_history_visibility: 'secret' })).toEqual({
       ok: false,
       fields: { prediction_history_visibility: 'must be one of public, friends, private' },
+    });
+  });
+});
+
+describe('validateUpdatePreferences (T-620)', () => {
+  it('takes a language tag and an IANA zone, trimmed, and nothing it was not given', () => {
+    expect(validateUpdatePreferences({ timezone: ' Asia/Tehran ' })).toEqual({
+      ok: true,
+      value: { timezone: 'Asia/Tehran' },
+    });
+    expect(validateUpdatePreferences({ preferred_language: 'pt-BR', timezone: 'UTC' })).toEqual({
+      ok: true,
+      value: { preferred_language: 'pt-BR', timezone: 'UTC' },
+    });
+    expect(validateUpdatePreferences({})).toEqual({ ok: true, value: {} });
+  });
+
+  it('refuses what registration refuses, field by field', () => {
+    expect(validateUpdatePreferences({ timezone: 'Mars/Olympus', preferred_language: 7 })).toEqual({
+      ok: false,
+      fields: {
+        preferred_language: 'must be a language tag such as en',
+        timezone: 'must be an IANA time zone such as Asia/Tehran',
+      },
+    });
+    expect(validateUpdatePreferences(null)).toEqual({
+      ok: false,
+      fields: { body: 'must be a JSON object' },
     });
   });
 });

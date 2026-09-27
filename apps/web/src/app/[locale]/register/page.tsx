@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ActionForm, type Field } from '@/components/action-form';
 import { fetchCountries, fetchMe } from '@/lib/api';
+import { readGuestChoices } from '@/lib/first-run-cookie';
 import { readInviter } from '@/lib/invite';
 import { registerAction } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
@@ -25,6 +26,8 @@ export default async function RegisterPage({
 
   const countries = await fetchCountries();
   const timezones = Intl.supportedValuesOf('timeZone');
+  // The zone a guest confirmed in the first run (T-620) is this form's default.
+  const guest = await readGuestChoices();
 
   if (countries === null) {
     return (
@@ -100,7 +103,7 @@ export default async function RegisterPage({
       label: 'Time zone',
       type: 'select',
       required: true,
-      defaultValue: 'UTC',
+      defaultValue: guest.timezone ?? 'UTC',
       options: ['UTC', ...timezones].map((tz) => ({ value: tz, label: tz })),
     },
     {

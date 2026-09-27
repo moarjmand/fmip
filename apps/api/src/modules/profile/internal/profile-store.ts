@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type {
+  FirstRunState,
   PrivacySettings,
   PrivacyVisibility,
   PublicProfile,
@@ -99,6 +100,39 @@ export class PostgresProfileStore {
     );
     const territory = rows[0];
     return territory === undefined ? { state: 'not_chosen' } : { state: 'chosen', territory };
+  }
+
+  /** The first-run flow (T-620): `pending` until finished or dismissed. */
+  async firstRun(userId: string): Promise<FirstRunState> {
+    const { rows } = await this.pool.query<{ at: Date | null }>(
+      `SELECT first_run_done_at AS at FROM user_account WHERE id = $1`,
+      [userId],
+    );
+    const at = rows[0]?.at ?? null;
+    return at === null ? { state: 'pending' } : { state: 'done', at: at.toISOString() };
+  }
+
+  /** Records the end of the flow once; a second call keeps the first moment. */
+  async completeFirstRun(userId: string): Promise<void> {
+    await this.pool.query(
+      `UPDATE user_account SET first_run_done_at = COALESCE(first_run_done_at, now()) WHERE id = $1`,
+      [userId],
+    );
+  }
+
+  /** Language and time zone after registration (T-620); `undefined` leaves a column alone. */
+  async setPreferences(
+    userId: string,
+    patch: { language?: string; timezone?: string },
+  ): Promise<void> {
+    if (patch.language === undefined && patch.timezone === undefined) return;
+    await this.pool.query(
+      `UPDATE user_account
+          SET preferred_language = COALESCE($2, preferred_language),
+              timezone = COALESCE($3, timezone)
+        WHERE id = $1`,
+      [userId, patch.language ?? null, patch.timezone ?? null],
+    );
   }
 
   /** Sets or clears the choice; `unknown` when the code is not a territory. */

@@ -1,12 +1,15 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { DEFAULT_LOCALE, localeFromPathname } from '@/i18n/locales';
+import { FIRST_RUN_COOKIE, parseGuestChoices } from '@/lib/first-run';
 
 /**
  * Next 16 renamed this convention from `middleware` to `proxy`.
  *
  * Every page lives under a locale segment. A request without one is redirected
  * to the default locale rather than served, so a page never renders at a URL
- * that does not say what language it is in.
+ * that does not say what language it is in. A guest who chose a language in
+ * the first run (T-620) is sent to that one instead; a member's language
+ * reaches them through the flow's own redirect.
  */
 export function proxy(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
@@ -16,7 +19,8 @@ export function proxy(request: NextRequest): NextResponse {
   }
 
   const url = request.nextUrl.clone();
-  url.pathname = `/${DEFAULT_LOCALE}${pathname === '/' ? '' : pathname}`;
+  const chosen = parseGuestChoices(request.cookies.get(FIRST_RUN_COOKIE)?.value).language;
+  url.pathname = `/${chosen ?? DEFAULT_LOCALE}${pathname === '/' ? '' : pathname}`;
 
   return NextResponse.redirect(url);
 }

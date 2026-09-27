@@ -24,7 +24,11 @@ const PAGES = [
   '/en/team/00000000-0000-4000-8000-000000000601',
   '/en/player/00000000-0000-4000-8000-000000000701',
   '/en/offline',
+  '/en/welcome',
+  '/en/welcome?step=timezone',
+  '/en/welcome?step=teams',
   '/x-rtl/scores',
+  '/x-rtl/welcome?step=territory',
 ];
 
 test.describe('accessibility', () => {

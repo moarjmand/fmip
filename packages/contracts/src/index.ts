@@ -126,6 +126,9 @@ export type {
   PrivacyVisibility,
   ProfileView,
   PublicProfile,
+  FirstRunResponse,
+  FirstRunState,
+  UpdatePreferencesRequest,
   UpdatePrivacyRequest,
   UpdateProfileRequest,
 } from './profile';

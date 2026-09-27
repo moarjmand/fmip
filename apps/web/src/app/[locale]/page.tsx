@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { FirstRunOffer } from '@/components/first-run-offer';
 import { JsonLd } from '@/components/json-ld';
 import { FounderAnalysisFeed } from '@/components/founder-analysis';
 import {
   fetchApiHealth,
   fetchCompetition,
+  fetchFirstRun,
   fetchForecastList,
   fetchFounderFeed,
   fetchMe,
@@ -21,6 +23,7 @@ import {
 } from '@/lib/home';
 import { dateIn, formatKickoff, shiftDate, statusLabel } from '@/lib/scores';
 import { rootTitle } from '@/lib/demonstration';
+import { readGuestChoices } from '@/lib/first-run-cookie';
 import { pageMetadata, websiteJsonLd } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 
@@ -57,10 +60,19 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     fetchMe(cookie),
   ]);
 
+  // The first run (T-620): offered once to a member, and to a guest until they
+  // finish it or say not now; a guest's confirmed zone is used for their times.
+  const guest = me === null ? await readGuestChoices() : null;
+  const firstRun = me === null ? null : await fetchFirstRun(cookie);
+  const offerFirstRun =
+    guest !== null
+      ? guest.done !== true && guest.dismissed !== true
+      : firstRun?.state === 'pending';
+
   // Blueprint 2.3 (T-526): the homepage is made of answers the product already
   // gives, each block shown only when it has something real in it (rule 3).
-  // Times are the member's zone, or UTC for a guest, and say which.
-  const timeZone = me?.timezone ?? 'UTC';
+  // Times are the member's zone, else the zone a guest chose, else UTC, and say which.
+  const timeZone = me?.timezone ?? guest?.timezone ?? 'UTC';
   const today = dateIn(timeZone, new Date());
   const [scores, news] = await Promise.all([
     fetchScores(
@@ -105,6 +117,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         </Link>
         .
       </p>
+      {offerFirstRun && <FirstRunOffer locale={locale} />}
       {me === null && (
         <p data-testid="first-visit">
           New here?{' '}
