@@ -148,12 +148,45 @@ export interface LeaderboardEntry {
   provisional: boolean;
   established: boolean;
   formula_version: string;
-  /** ISO 8601, when this member's current snapshot was computed. */
+  /**
+   * ISO 8601: when this member's current snapshot was computed, or, on a
+   * month or season board, when the period rating was computed (on read).
+   */
   computed_at: string;
 }
 
-/** `GET /leaderboard?min_settled=&limit=&offset=`. */
+/**
+ * Who a board is drawn from (T-641): every member, or the signed-in viewer
+ * and their accepted friends. `group` is the group board (T-243), which has
+ * its own route.
+ */
+export const LEADERBOARD_SCOPES = ['everyone', 'friends'] as const;
+export type LeaderboardScope = (typeof LEADERBOARD_SCOPES)[number];
+
+export const LEADERBOARD_PERIOD_KINDS = ['all', 'month', 'season'] as const;
+export type LeaderboardPeriodKind = (typeof LEADERBOARD_PERIOD_KINDS)[number];
+
+/**
+ * Which settlements a board ranks (T-641).
+ *
+ * - `all`: the current rating, from the stored snapshots.
+ * - `month`: the rating computed over the settlements made in one calendar
+ *   month, UTC (`from` inclusive, `to` exclusive).
+ * - `season`: the rating computed over the settlements of fixtures in every
+ *   competition's season with this label (e.g. `2025/26`); `null` when no
+ *   season has a settled prediction yet.
+ */
+export type LeaderboardPeriod =
+  | { kind: 'all' }
+  | { kind: 'month'; month: string; from: string; to: string }
+  | { kind: 'season'; label: string | null };
+
+/** `GET /leaderboard?scope=&period=&month=&season=&min_settled=&limit=&offset=`. */
 export interface LeaderboardResponse {
+  scope: LeaderboardScope | 'group';
+  period: LeaderboardPeriod;
+  /** Months (`YYYY-MM`) and season labels with settled predictions, newest first: the pickers. */
+  available_periods: { months: string[]; seasons: string[] };
   /** name@semver of the leaderboard rules (floor, presets, page sizes). */
   rules_version: string;
   /** The filter applied: at least this many settled predictions to be ranked. */

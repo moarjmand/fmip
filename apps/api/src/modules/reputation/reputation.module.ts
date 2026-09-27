@@ -5,6 +5,7 @@ import { IdentityModule } from '../identity/identity.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { PredictionsModule } from '../predictions/predictions.module';
 import { ProfileModule } from '../profile/profile.module';
+import { SocialModule } from '../social/social.module';
 import { CareerPointsService } from './career-points.service';
 import { ContributorController } from './contributor.controller';
 import { ContributorService } from './contributor.service';
@@ -39,6 +40,8 @@ import { ReputationService } from './reputation.service';
     NotificationsModule,
     // Rating history follows prediction-history visibility (T-640).
     ProfileModule,
+    // The friends board (T-641) asks who the viewer's friends are, nothing else.
+    SocialModule,
   ],
   controllers: [ReputationController, ContributorController],
   providers: [

@@ -259,6 +259,15 @@ export class SocialService {
   areFriends(a: string, b: string): Promise<boolean> {
     return this.store.areFriends(a, b);
   }
+
+  /**
+   * The ids of the viewer's accepted friends (active accounts only), for the
+   * friends leaderboard (T-641). Ids rather than members, so the board ranks
+   * a population without this boundary deciding anything about ratings.
+   */
+  friendIds(viewerId: string): Promise<string[]> {
+    return this.store.friendIds(viewerId);
+  }
 }
 
 interface Codeful {

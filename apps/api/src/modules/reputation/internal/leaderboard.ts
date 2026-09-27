@@ -1,3 +1,4 @@
+import type { LeaderboardScope } from '@fmip/contracts';
 import { RATING_FORMULA_V1 } from './formula';
 
 /**
@@ -25,10 +26,42 @@ export const LEADERBOARD_RULES_V1: LeaderboardRules = {
   maxLimit: 100,
 };
 
+/**
+ * Which settlements a board ranks (T-641). `month` is `YYYY-MM`, UTC; a
+ * missing month means the current one. `season` is a season label; `null`
+ * means the newest season with a settled prediction.
+ */
+export type PeriodQuery =
+  | { kind: 'all' }
+  | { kind: 'month'; month: string | null }
+  | { kind: 'season'; label: string | null };
+
 export interface LeaderboardQuery {
   minSettled: number;
   limit: number;
   offset: number;
+  scope: LeaderboardScope;
+  period: PeriodQuery;
+}
+
+/** `2026-09` from 2000-01 to 2999-12, or null. */
+export function monthOf(value: string): string | null {
+  const match = /^(2\d{3})-(0[1-9]|1[0-2])$/.exec(value);
+  return match === null ? null : value;
+}
+
+/** A month's bounds, UTC: `from` inclusive, `to` exclusive. */
+export function monthBounds(month: string): { from: string; to: string } {
+  const [year, index] = month.split('-').map(Number) as [number, number];
+  return {
+    from: new Date(Date.UTC(year, index - 1, 1)).toISOString(),
+    to: new Date(Date.UTC(year, index, 1)).toISOString(),
+  };
+}
+
+/** The calendar month `now` falls in, UTC. */
+export function currentMonth(now: Date): string {
+  return now.toISOString().slice(0, 7);
 }
 
 export type ParsedLeaderboardQuery =
@@ -45,9 +78,11 @@ function integer(value: string): number | null {
 }
 
 /**
- * Parses `min_settled`, `limit` and `offset`, naming every bad field at once.
- * Absent fields take the rules' defaults; a `min_settled` under the floor is
- * refused rather than raised, so the caller learns the rule.
+ * Parses `min_settled`, `limit`, `offset`, `scope`, `period`, `month` and
+ * `season`, naming every bad field at once. Absent fields take the rules'
+ * defaults; a `min_settled` under the floor is refused rather than raised, so
+ * the caller learns the rule -- on a month or season board exactly as on the
+ * all-time one (D-037, D-060).
  */
 export function parseLeaderboardQuery(
   raw: Record<string, unknown>,
@@ -81,7 +116,37 @@ export function parseLeaderboardQuery(
     else offset = n;
   }
 
+  let scope: LeaderboardScope = 'everyone';
+  const sc = first(raw.scope);
+  if (sc !== undefined) {
+    if (sc === 'everyone' || sc === 'friends') scope = sc;
+    else fields.scope = 'Must be everyone or friends.';
+  }
+
+  let period: PeriodQuery = { kind: 'all' };
+  const per = first(raw.period);
+  const mon = first(raw.month);
+  const sea = first(raw.season);
+  if (per === undefined || per === 'all') {
+    if (mon !== undefined) fields.month = 'Only with period=month.';
+    if (sea !== undefined) fields.season = 'Only with period=season.';
+  } else if (per === 'month') {
+    const month = mon === undefined ? null : monthOf(mon);
+    if (mon !== undefined && month === null) fields.month = 'Must be a month as YYYY-MM.';
+    if (sea !== undefined) fields.season = 'Only with period=season.';
+    period = { kind: 'month', month };
+  } else if (per === 'season') {
+    // A label is bound as a parameter and compared, never interpreted; this
+    // only keeps the error honest for something no season could be called.
+    if (sea !== undefined && !/^[0-9A-Za-z/ ._-]{1,32}$/.test(sea))
+      fields.season = 'Must be a season label such as 2025/26.';
+    if (mon !== undefined) fields.month = 'Only with period=month.';
+    period = { kind: 'season', label: sea ?? null };
+  } else {
+    fields.period = 'Must be all, month or season.';
+  }
+
   return Object.keys(fields).length > 0
     ? { ok: false, fields }
-    : { ok: true, query: { minSettled, limit, offset } };
+    : { ok: true, query: { minSettled, limit, offset, scope, period } };
 }
