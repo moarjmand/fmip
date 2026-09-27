@@ -303,5 +303,41 @@
   "firstRun.skipAndFinish": "Skip and finish",
   "firstRun.later": "Not now",
   "firstRun.offer.text": "Make FMIP yours: choose a language, where you watch from, your time zone and your favourite teams. Every step can be skipped.",
-  "firstRun.offer.start": "Start"
+  "firstRun.offer.start": "Start",
+  "groupPolls.title": "Polls",
+  "groupPolls.unreachable": "The polls cannot be shown right now.",
+  "groupPolls.none": "No polls yet. Ask the group something below.",
+  "groupPolls.noNames": "Polls show counts only. Who voted is never shown, to anyone.",
+  "groupPolls.askedBy": "Asked by",
+  "groupPolls.closes": "Closes",
+  "groupPolls.closed": "Closed",
+  "groupPolls.yourAnswer": "your answer",
+  "groupPolls.hiddenUntilVoted": "The counts are shown once you have voted, or when the poll closes.",
+  "groupPolls.vote": "Vote",
+  "groupPolls.changeVote": "Change my vote",
+  "groupPolls.withdraw": "Take my vote back",
+  "groupPolls.close": "Close the poll now",
+  "groupPolls.removeReason": "Why remove it (recorded with the removal)",
+  "groupPolls.remove": "Remove poll",
+  "groupPolls.createTitle": "Ask the group",
+  "groupPolls.question": "Question",
+  "groupPolls.option": "Option",
+  "groupPolls.optionsHint": "Two to six answers; leave the rest empty.",
+  "groupPolls.duration": "Closes after",
+  "groupPolls.create": "Ask",
+  "groupPolls.limitReached": "This group has three open polls. A new one can be asked when one closes or is removed.",
+  "groupPolls.working": "Working…",
+  "groupPolls.done.created": "Asked.",
+  "groupPolls.done.voted": "Vote recorded.",
+  "groupPolls.done.withdrawn": "Vote taken back.",
+  "groupPolls.done.closed": "Closed.",
+  "groupPolls.done.removed": "Removed.",
+  "groupPolls.voteCount": {
+    "one": "{count} vote",
+    "other": "{count} votes"
+  },
+  "groupPolls.days": {
+    "one": "{count} day",
+    "other": "{count} days"
+  }
 }

@@ -2,7 +2,14 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { GroupControls, JoinRequestControls } from '@/components/group-controls';
-import { fetchGroup, fetchGroupLeaderboard, fetchGroupRequests, fetchMe } from '@/lib/api';
+import { GroupPollsSection } from '@/components/group-polls';
+import {
+  fetchGroup,
+  fetchGroupLeaderboard,
+  fetchGroupPolls,
+  fetchGroupRequests,
+  fetchMe,
+} from '@/lib/api';
 import { ratingLabel, statusLabel, tierLabel } from '@/lib/leaderboard';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
@@ -70,6 +77,9 @@ export default async function GroupPage({
   // is the same question, asked once, rather than a 403 fetched on purpose.
   const board = group.members === null ? null : await fetchGroupLeaderboard(slug, cookie);
   const queue = decides ? await fetchGroupRequests(slug, cookie) : null;
+  // Polls are for the people in the group (T-643, D-091), so only they ask.
+  const inside = decides || group.standing === 'member';
+  const polls = inside ? await fetchGroupPolls(slug, cookie) : null;
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
@@ -128,6 +138,20 @@ export default async function GroupPage({
           </ul>
         )}
       </section>
+
+      {polls !== null && (
+        <section className="flex flex-col gap-3" data-testid="group-polls">
+          <h2 className="text-lg font-semibold">
+            <Translated locale={locale} message="groupPolls.title" />
+          </h2>
+          <GroupPollsSection
+            locale={locale}
+            slug={group.slug}
+            timeZone={me.timezone}
+            result={polls}
+          />
+        </section>
+      )}
 
       {board !== null && (
         <section className="flex flex-col gap-3" data-testid="group-board">
