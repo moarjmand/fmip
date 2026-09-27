@@ -63,3 +63,32 @@ describe('the moderation queue page', () => {
     expect(ADMIN).toContain('/admin/moderation`');
   });
 });
+
+const HISTORY = readFileSync(join(HERE, 'member-moderation-history.tsx'), 'utf8');
+const HISTORY_PAGE = readFileSync(
+  join(HERE, '..', 'app', '[locale]', 'admin', 'moderation', '[username]', 'page.tsx'),
+  'utf8',
+);
+
+describe("one member's moderation history (T-611)", () => {
+  it('shows reports, decisions and restrictions on one page', () => {
+    for (const part of ['reports', 'decisions', 'sanctions']) {
+      expect(HISTORY).toContain(`data-testid="moderation-history-${part}"`);
+    }
+    expect(QUEUE).toContain('data-testid="moderation-history-link"');
+  });
+
+  it('lifts only a restriction in force, and only with a reason', () => {
+    expect(HISTORY).toContain('{sanction.active && (');
+    expect(HISTORY).toContain('name="reason"');
+    expect(ACTIONS).toContain('/lift`');
+    expect(ACTIONS).toContain('Say why it is being lifted');
+  });
+
+  it('never shows a refusal or a missing member as a clean record', () => {
+    for (const state of ['forbidden', 'missing', 'unreachable']) {
+      expect(HISTORY_PAGE).toContain(`data-testid="moderation-history-${state}"`);
+    }
+    expect(HISTORY_PAGE).not.toMatch(/hasRole|'moderator'/);
+  });
+});
