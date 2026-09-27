@@ -28,7 +28,7 @@ import { JsonLd } from '@/components/json-ld';
 import { Score } from '@/components/score';
 import { Translated } from '@/components/translated';
 import { ViewingPanel } from '@/components/viewing-panel';
-import { Notice } from '@/components/ui';
+import { Notice, inlineTargetClasses } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -447,10 +447,13 @@ function MatchLine({
         </span>
       )}
       <span className="text-muted">{side.home ? 'v' : 'at'}</span>
-      <Link href={`/${locale}/team/${opponentId}`} className="underline">
+      <Link href={`/${locale}/team/${opponentId}`} className={inlineTargetClasses('underline')}>
         {side.opponent}
       </Link>
-      <Link href={`/${locale}/match/${fixture.id}`} className="font-medium underline">
+      <Link
+        href={`/${locale}/match/${fixture.id}`}
+        className={inlineTargetClasses('font-medium underline')}
+      >
         {fixture.score === null ? (
           'Match centre'
         ) : (
@@ -469,7 +472,7 @@ function MatchLine({
         {' · '}
         <Link
           href={`/${locale}/competition/${fixture.competition.id}?season=${fixture.season.id}`}
-          className="underline"
+          className={inlineTargetClasses('underline')}
         >
           {fixture.competition.short_name ?? fixture.competition.name}
         </Link>
