@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from 'react';
 import type { PushState } from '@fmip/contracts';
 import { subscribePushAction, unsubscribePushAction } from '@/lib/push-actions';
+import { Button } from '@/components/ui';
 
 /**
  * Push on this device (T-330, D-074). The browser owns the subscription: it
@@ -127,15 +128,15 @@ export function PushToggle({ locale, push }: { locale: string; push: PushState }
         </p>
       )}
       {(phase === 'off' || phase === 'on' || phase === 'working') && (
-        <button
-          type="button"
+        <Button
+          size="md"
           onClick={phase === 'on' ? turnOff : turnOn}
-          disabled={pending || phase === 'working'}
-          className="w-fit rounded border border-strong px-3 py-2"
+          pending={pending || phase === 'working'}
+          className="w-fit"
           data-testid="push-switch"
         >
           {phase === 'on' ? 'Turn push off on this device' : 'Turn push on for this device'}
-        </button>
+        </Button>
       )}
       {message !== null && (
         <p className="text-sm" role="status" data-testid="push-message">

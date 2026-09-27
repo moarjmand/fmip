@@ -12,6 +12,7 @@ import {
   leaveGroupAction,
   withdrawGroupRequestAction,
 } from '@/lib/group-actions';
+import { Button, FormStatus, TextArea } from '@/components/ui';
 
 type BoundAction = (state: ActionState, formData: FormData) => Promise<ActionState>;
 
@@ -35,26 +36,20 @@ function ActionButton({
 
   return (
     <form action={formAction} className="flex flex-col gap-1">
-      <button
+      <Button
         type="submit"
-        disabled={pending}
+        variant={quiet ? 'secondary' : 'primary'}
+        pending={pending}
+        pendingLabel="Working…"
         data-testid={testId}
-        className={
-          quiet
-            ? 'self-start rounded border border-strong px-3 py-1 text-sm disabled:opacity-50'
-            : 'self-start rounded bg-accent px-3 py-1 text-sm font-medium text-on-accent disabled:opacity-50'
-        }
+        className="self-start"
       >
-        {pending ? 'Working…' : label}
-      </button>
+        {label}
+      </Button>
       {state !== null && (
-        <p
-          role="status"
-          className={`text-sm ${state.ok ? 'text-muted' : 'text-danger'}`}
-          data-testid={`${testId}-result`}
-        >
+        <FormStatus ok={state.ok} data-testid={`${testId}-result`}>
           {state.ok ? (state.message ?? 'Done.') : state.message}
-        </p>
+        </FormStatus>
       )}
     </form>
   );
@@ -69,33 +64,28 @@ function AskToJoin({ locale, slug }: { locale: string; slug: string }) {
 
   return (
     <form action={formAction} className="flex flex-col gap-2" data-testid="group-ask-form">
-      <label htmlFor="group-note" className="text-sm">
-        Say something to whoever decides (optional)
-      </label>
-      <textarea
+      <TextArea
+        label="Say something to whoever decides (optional)"
         id="group-note"
         name="note"
         rows={2}
         maxLength={300}
-        className="rounded border border-strong bg-transparent px-3 py-2 text-sm text-start"
         data-testid="group-note"
       />
-      <button
+      <Button
         type="submit"
-        disabled={pending}
+        variant="primary"
+        pending={pending}
+        pendingLabel="Working…"
         data-testid="group-ask"
-        className="self-start rounded bg-accent px-3 py-1 text-sm font-medium text-on-accent disabled:opacity-50"
+        className="self-start"
       >
-        {pending ? 'Working…' : 'Ask to join'}
-      </button>
+        Ask to join
+      </Button>
       {state !== null && (
-        <p
-          role="status"
-          className={`text-sm ${state.ok ? 'text-muted' : 'text-danger'}`}
-          data-testid="group-ask-result"
-        >
+        <FormStatus ok={state.ok} data-testid="group-ask-result">
           {state.ok ? (state.message ?? 'Done.') : state.message}
-        </p>
+        </FormStatus>
       )}
     </form>
   );

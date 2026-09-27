@@ -11,6 +11,17 @@ import {
   type QueuedReport,
 } from '@fmip/contracts';
 import { decideModerationAction, suggestModerationAction } from '@/lib/moderation-actions';
+import {
+  Button,
+  Card,
+  Checkbox,
+  FormStatus,
+  Notice,
+  Radio,
+  Select,
+  TextArea,
+  TextField,
+} from '@/components/ui';
 
 /**
  * The moderation queue (blueprint 10.4 and 16, T-610).
@@ -44,18 +55,20 @@ function Suggest({ locale, report }: { locale: string; report: QueuedReport }) {
   );
   return (
     <form action={formAction} className="flex flex-col gap-1">
-      <button
+      <Button
         type="submit"
-        disabled={pending}
+        size="xs"
+        pending={pending}
+        pendingLabel="Asking…"
         data-testid={`moderation-suggest-${report.id}`}
-        className="self-start rounded border border-strong px-2 py-0.5 text-xs disabled:opacity-50"
+        className="self-start"
       >
-        {pending ? 'Asking…' : report.suggestion === null ? 'Ask for a suggestion' : 'Ask again'}
-      </button>
+        {report.suggestion === null ? 'Ask for a suggestion' : 'Ask again'}
+      </Button>
       {state !== null && (
-        <p role="status" className="text-xs">
+        <FormStatus ok={state.ok} size="xs">
           {state.message}
-        </p>
+        </FormStatus>
       )}
     </form>
   );
@@ -117,16 +130,14 @@ function Decide({ locale, subject }: { locale: string; subject: QueueSubject }) 
       <fieldset className="flex flex-col gap-1 text-sm">
         <legend className="font-medium">Decision</legend>
         {MODERATION_OUTCOMES.map((value) => (
-          <label key={value} className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="outcome"
-              value={value}
-              checked={outcome === value}
-              onChange={() => setOutcome(value)}
-            />
-            {OUTCOME_LABELS[value]}
-          </label>
+          <Radio
+            key={value}
+            label={OUTCOME_LABELS[value]}
+            name="outcome"
+            value={value}
+            checked={outcome === value}
+            onChange={() => setOutcome(value)}
+          />
         ))}
       </fieldset>
 
@@ -136,65 +147,50 @@ function Decide({ locale, subject }: { locale: string; subject: QueueSubject }) 
           data-testid="moderation-sanction"
         >
           <legend className="font-medium">Restriction</legend>
-          <label className="flex flex-col gap-1">
-            What it restricts
-            <select name="scope" className="rounded border border-strong bg-transparent p-1">
-              {SANCTION_SCOPES.map((scope) => (
-                <option key={scope} value={scope}>
-                  {SCOPE_LABELS[scope]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1">
-            Days
-            <input
-              type="number"
-              name="days"
-              min={1}
-              defaultValue={7}
-              disabled={permanent}
-              className="w-24 rounded border border-strong bg-transparent p-1"
-            />
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              name="permanent"
-              checked={permanent}
-              onChange={(event) => setPermanent(event.target.checked)}
-            />
-            Permanent
-          </label>
+          <Select label="What it restricts" name="scope" size="sm">
+            {SANCTION_SCOPES.map((scope) => (
+              <option key={scope} value={scope}>
+                {SCOPE_LABELS[scope]}
+              </option>
+            ))}
+          </Select>
+          <TextField
+            label="Days"
+            type="number"
+            name="days"
+            min={1}
+            defaultValue={7}
+            disabled={permanent}
+            size="sm"
+            controlClassName="w-24"
+          />
+          <Checkbox
+            label="Permanent"
+            name="permanent"
+            checked={permanent}
+            onChange={(event) => setPermanent(event.target.checked)}
+          />
         </fieldset>
       )}
 
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium">Why</span>
-        <textarea
-          name="reason"
-          rows={2}
-          required
-          placeholder="Say why. This is recorded with your name."
-          className="rounded border border-strong bg-transparent p-2"
-        />
-      </label>
-      <button
+      <TextArea
+        label="Why"
+        name="reason"
+        rows={2}
+        required
+        placeholder="Say why. This is recorded with your name."
+      />
+      <Button
         type="submit"
-        disabled={pending}
+        pending={pending}
+        pendingLabel="Recording…"
         data-testid={`moderation-decide-${subject.username}`}
-        className="self-start rounded border border-strong px-3 py-1 text-sm disabled:opacity-50"
+        className="self-start"
       >
-        {pending
-          ? 'Recording…'
-          : `Decide on ${subject.reports.length} report${subject.reports.length === 1 ? '' : 's'}`}
-      </button>
+        {`Decide on ${subject.reports.length} report${subject.reports.length === 1 ? '' : 's'}`}
+      </Button>
       {state !== null && (
-        <p
-          role="status"
-          className={state.ok ? 'text-sm' : 'text-sm text-danger'}
-          data-testid={`moderation-decide-result-${subject.username}`}
-        >
+        <FormStatus ok={state.ok} data-testid={`moderation-decide-result-${subject.username}`}>
           {state.message}
           {!state.ok && state.fields !== undefined && (
             <span className="block">
@@ -203,7 +199,7 @@ function Decide({ locale, subject }: { locale: string; subject: QueueSubject }) 
                 .join('; ')}
             </span>
           )}
-        </p>
+        </FormStatus>
       )}
     </form>
   );
@@ -227,9 +223,9 @@ export function ModerationQueue({
     // "Cannot be shown" and "nothing waiting" are different facts; a moderator
     // shown the second when the first was true would go home.
     return (
-      <p role="alert" data-testid="moderation-queue-unreachable">
+      <Notice tone="danger" data-testid="moderation-queue-unreachable">
         The moderation queue cannot be shown right now.
-      </p>
+      </Notice>
     );
   }
 
@@ -254,9 +250,9 @@ export function ModerationQueue({
       </p>
       <ul className="flex flex-col gap-4" data-testid="moderation-queue">
         {subjects.map((subject) => (
-          <li
+          <Card
+            as="li"
             key={`${subject.subject_type}:${subject.subject_id}`}
-            className="flex flex-col gap-3 rounded border border-default p-4"
             data-testid="moderation-queue-subject"
           >
             <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -292,7 +288,7 @@ export function ModerationQueue({
               ))}
             </ul>
             <Decide locale={locale} subject={subject} />
-          </li>
+          </Card>
         ))}
       </ul>
     </div>

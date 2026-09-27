@@ -1,5 +1,6 @@
 import type { CompetitionSummary, FollowedEntity, TeamSummary } from '@fmip/contracts';
 import { followAction, unfollowAction } from '@/lib/auth-actions';
+import { Button, Select } from '@/components/ui';
 
 interface Props {
   locale: string;
@@ -63,16 +64,16 @@ export function FollowingSection({ locale, following, teams, competitions }: Pro
                 <input type="hidden" name="entity_type" value={item.entity_type} />
                 <input type="hidden" name="entity_id" value={item.entity_id} />
                 <input type="hidden" name="favourite" value={item.favourite ? 'false' : 'true'} />
-                <button type="submit" className="text-sm underline">
+                <Button type="submit" variant="ghost" size="sm">
                   {item.favourite ? 'Unpin' : 'Make favourite'}
-                </button>
+                </Button>
               </form>
               <form action={unfollow} className="contents">
                 <input type="hidden" name="entity_type" value={item.entity_type} />
                 <input type="hidden" name="entity_id" value={item.entity_id} />
-                <button type="submit" className="text-sm underline">
+                <Button type="submit" variant="ghost" size="sm">
                   Unfollow
-                </button>
+                </Button>
               </form>
             </li>
           ))}
@@ -82,15 +83,7 @@ export function FollowingSection({ locale, following, teams, competitions }: Pro
       <div className="grid gap-4 sm:grid-cols-2">
         <form action={follow} className="flex flex-col gap-2">
           <input type="hidden" name="entity_type" value="team" />
-          <label htmlFor="follow-team" className="text-sm font-medium">
-            Follow a team
-          </label>
-          <select
-            id="follow-team"
-            name="entity_id"
-            required
-            className="rounded border border-strong bg-transparent px-3 py-2 text-start"
-          >
+          <Select label="Follow a team" id="follow-team" name="entity_id" required>
             <option value="">Choose a team…</option>
             {unfollowedTeams.map((team) => (
               <option key={team.id} value={team.id}>
@@ -98,33 +91,25 @@ export function FollowingSection({ locale, following, teams, competitions }: Pro
                 {team.kind === 'national' ? ' (national team)' : ''}
               </option>
             ))}
-          </select>
-          <button type="submit" className="self-start text-sm underline">
+          </Select>
+          <Button type="submit" variant="ghost" size="sm" className="self-start">
             Follow
-          </button>
+          </Button>
         </form>
 
         <form action={follow} className="flex flex-col gap-2">
           <input type="hidden" name="entity_type" value="competition" />
-          <label htmlFor="follow-competition" className="text-sm font-medium">
-            Follow a competition
-          </label>
-          <select
-            id="follow-competition"
-            name="entity_id"
-            required
-            className="rounded border border-strong bg-transparent px-3 py-2 text-start"
-          >
+          <Select label="Follow a competition" id="follow-competition" name="entity_id" required>
             <option value="">Choose a competition…</option>
             {unfollowedCompetitions.map((competition) => (
               <option key={competition.id} value={competition.id}>
                 {competition.name}
               </option>
             ))}
-          </select>
-          <button type="submit" className="self-start text-sm underline">
+          </Select>
+          <Button type="submit" variant="ghost" size="sm" className="self-start">
             Follow
-          </button>
+          </Button>
         </form>
       </div>
     </section>

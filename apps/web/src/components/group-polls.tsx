@@ -21,11 +21,10 @@ import {
 } from '@/lib/group-poll-actions';
 import { GroupPollForm } from '@/components/group-poll-form';
 import { Translated } from '@/components/translated';
+import { Notice, Radio, TextField, controlClasses } from '@/components/ui';
 
 /** How long a new poll may stay open, in days, as the form offers it. */
 export const POLL_DURATION_DAYS = [1, 3, 7, 14, 30] as const;
-
-const FIELD = 'rounded border border-strong bg-transparent px-3 py-2 text-sm text-start';
 
 /**
  * A group's polls on its page (blueprint 8.2, T-643, D-091). Members only:
@@ -50,9 +49,9 @@ export function GroupPollsSection({
 }) {
   if (!result.ok) {
     return (
-      <p role="alert" className="text-sm" data-testid="group-polls-unreachable">
+      <Notice tone="danger" data-testid="group-polls-unreachable">
         <Translated locale={locale} message="groupPolls.unreachable" />
-      </p>
+      </Notice>
     );
   }
   const { polls } = result.data;
@@ -164,16 +163,14 @@ function PollItem({
           <fieldset className="flex flex-col gap-1 text-sm">
             <legend className="sr-only">{poll.question}</legend>
             {poll.options.map((option) => (
-              <label key={option.id} className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="option_id"
-                  value={option.id}
-                  defaultChecked={option.id === poll.my_vote}
-                  required
-                />
-                {option.label}
-              </label>
+              <Radio
+                key={option.id}
+                label={option.label}
+                name="option_id"
+                value={option.id}
+                defaultChecked={option.id === poll.my_vote}
+                required
+              />
             ))}
           </fieldset>
         </GroupPollForm>
@@ -208,10 +205,12 @@ function PollItem({
           testId="group-poll-remove"
           quiet
         >
-          <label className="flex flex-col gap-1 text-sm">
-            <Translated locale={locale} message="groupPolls.removeReason" />
-            <input name="reason" required maxLength={MAX_POLL_REMOVAL_REASON} className={FIELD} />
-          </label>
+          <TextField
+            label={<Translated locale={locale} message="groupPolls.removeReason" />}
+            name="reason"
+            required
+            maxLength={MAX_POLL_REMOVAL_REASON}
+          />
         </GroupPollForm>
       )}
     </>
@@ -232,10 +231,12 @@ function CreatePoll({ locale, slug }: { locale: string; slug: string }) {
         working={<Translated locale={locale} message="groupPolls.working" />}
         testId="group-poll-new"
       >
-        <label className="flex flex-col gap-1 text-sm">
-          <Translated locale={locale} message="groupPolls.question" />
-          <input name="question" required maxLength={MAX_POLL_QUESTION} className={FIELD} />
-        </label>
+        <TextField
+          label={<Translated locale={locale} message="groupPolls.question" />}
+          name="question"
+          required
+          maxLength={MAX_POLL_QUESTION}
+        />
         <fieldset className="flex flex-col gap-1 text-sm">
           <legend>
             <Translated locale={locale} message="groupPolls.optionsHint" />
@@ -249,14 +250,14 @@ function CreatePoll({ locale, slug }: { locale: string; slug: string }) {
                 name="option"
                 required={i < 2}
                 maxLength={MAX_POLL_OPTION}
-                className={`${FIELD} grow`}
+                className={controlClasses('sm', 'grow')}
               />
             </label>
           ))}
         </fieldset>
         <label className="flex items-center gap-2 text-sm">
           <Translated locale={locale} message="groupPolls.duration" />
-          <select name="days" defaultValue={String(defaultDays)} className={FIELD}>
+          <select name="days" defaultValue={String(defaultDays)} className={controlClasses('sm')}>
             {POLL_DURATION_DAYS.map((days) => (
               <option key={days} value={days}>
                 {plural(resolved, 'groupPolls.days', days).text}

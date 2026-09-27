@@ -11,6 +11,7 @@ import {
   unfriendAction,
   withdrawFriendRequestAction,
 } from '@/lib/friend-actions';
+import { Button, FormStatus } from '@/components/ui';
 
 type BoundAction = (state: ActionState, formData: FormData) => Promise<ActionState>;
 
@@ -36,26 +37,20 @@ function ActionButton({
 
   return (
     <form action={formAction} className="flex flex-col gap-1">
-      <button
+      <Button
         type="submit"
-        disabled={pending}
+        variant={quiet ? 'secondary' : 'primary'}
+        pending={pending}
+        pendingLabel="Working…"
         data-testid={testId}
-        className={
-          quiet
-            ? 'self-start rounded border border-strong px-3 py-1 text-sm disabled:opacity-50'
-            : 'self-start rounded bg-accent px-3 py-1 text-sm font-medium text-on-accent disabled:opacity-50'
-        }
+        className="self-start"
       >
-        {pending ? 'Working…' : label}
-      </button>
+        {label}
+      </Button>
       {state !== null && (
-        <p
-          role="status"
-          className={`text-sm ${state.ok ? 'text-muted' : 'text-danger'}`}
-          data-testid={`${testId}-result`}
-        >
+        <FormStatus ok={state.ok} data-testid={`${testId}-result`}>
           {state.ok ? (state.message ?? 'Done.') : state.message}
-        </p>
+        </FormStatus>
       )}
     </form>
   );

@@ -14,6 +14,7 @@ import {
   setQuietHoursAction,
   unmuteAction,
 } from '@/lib/notification-actions';
+import { Button, FormStatus, Select, TextField } from '@/components/ui';
 
 /**
  * Choosing what arrives, and when (blueprint 12.2, T-273).
@@ -78,17 +79,13 @@ function MuteRow({ locale, mute }: { locale: string; mute: NotificationMute }) {
         </span>
       </span>
       <form action={formAction}>
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded border border-strong px-3 py-1 text-sm disabled:opacity-50"
-        >
+        <Button type="submit" pending={pending}>
           Unmute
-        </button>
+        </Button>
         {state !== null && !state.ok && (
-          <span role="status" className="ms-2 text-xs text-danger">
+          <FormStatus ok={false} as="span" size="xs" className="ms-2">
             {state.message}
-          </span>
+          </FormStatus>
         )}
       </form>
     </li>
@@ -114,28 +111,21 @@ function MuteForm({
       className="flex flex-wrap items-end gap-2"
       data-testid={`mute-${scope}`}
     >
-      <label htmlFor={id} className="flex flex-col gap-1 text-sm">
-        <span>{label}</span>
-        <select id={id} name="target" className="rounded border border-strong px-2 py-1">
-          <option value="">Choose…</option>
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </label>
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded border border-strong px-3 py-1 text-sm disabled:opacity-50"
-      >
+      <Select label={label} id={id} name="target" size="sm">
+        <option value="">Choose…</option>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </Select>
+      <Button type="submit" pending={pending}>
         Silence
-      </button>
+      </Button>
       {state !== null && (
-        <span role="status" className={`text-xs ${state.ok ? '' : 'text-danger'}`}>
+        <FormStatus ok={state.ok} as="span" size="xs">
           {state.ok ? (state.message ?? 'Done.') : state.message}
-        </span>
+        </FormStatus>
       )}
     </form>
   );
@@ -170,23 +160,21 @@ function KindRow({
         </span>
       </span>
       <form action={formAction}>
-        <button
+        <Button
           type="submit"
-          disabled={pending}
+          pending={pending}
           // The state is in the label and in `aria-pressed`, not only in a
           // border: a border does not reach a screen reader.
           aria-pressed={inProduct}
+          selected={inProduct}
           data-testid={`notification-kind-${kind}`}
-          className={`rounded border px-3 py-1 text-sm disabled:opacity-50 ${
-            inProduct ? 'border-accent' : 'border-strong'
-          }`}
         >
           {inProduct ? 'On' : 'Off'}
-        </button>
+        </Button>
         {state !== null && !state.ok && (
-          <span role="status" className="ms-2 text-xs text-danger">
+          <FormStatus ok={false} as="span" size="xs" className="ms-2">
             {state.message}
-          </span>
+          </FormStatus>
         )}
       </form>
     </li>
@@ -284,44 +272,31 @@ export function NotificationSettingsForm({
           they end, and says so. Times are on your own clock ({settings.timezone}).
         </p>
         <form action={quietAction} className="flex flex-wrap items-end gap-3">
-          <label className="flex flex-col gap-1 text-sm">
-            <span>From</span>
-            <input
-              type="time"
-              name="starts_at"
-              defaultValue={settings.quiet_hours?.starts_at ?? ''}
-              className="rounded border border-strong bg-transparent p-1"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span>Until</span>
-            <input
-              type="time"
-              name="ends_at"
-              defaultValue={settings.quiet_hours?.ends_at ?? ''}
-              className="rounded border border-strong bg-transparent p-1"
-            />
-          </label>
-          <button
-            type="submit"
-            disabled={quietPending}
-            data-testid="quiet-hours-save"
-            className="rounded border border-strong px-3 py-1 text-sm disabled:opacity-50"
-          >
+          <TextField
+            label="From"
+            type="time"
+            name="starts_at"
+            size="sm"
+            defaultValue={settings.quiet_hours?.starts_at ?? ''}
+          />
+          <TextField
+            label="Until"
+            type="time"
+            name="ends_at"
+            size="sm"
+            defaultValue={settings.quiet_hours?.ends_at ?? ''}
+          />
+          <Button type="submit" pending={quietPending} data-testid="quiet-hours-save">
             Save
-          </button>
+          </Button>
           {/* Cleared by submitting both fields empty, rather than by a second
               button that would be a second thing to explain. */}
           <span className="text-xs text-muted">Leave both empty to clear them.</span>
         </form>
         {quietState !== null && (
-          <p
-            role="status"
-            data-testid="quiet-hours-result"
-            className={quietState.ok ? 'text-sm' : 'text-sm text-danger'}
-          >
+          <FormStatus ok={quietState.ok} data-testid="quiet-hours-result">
             {quietState.message}
-          </p>
+          </FormStatus>
         )}
       </section>
     </div>

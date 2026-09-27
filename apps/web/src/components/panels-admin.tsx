@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { PanelRecord } from '@fmip/contracts';
 import type { ActionState } from '@/lib/auth-actions';
 import { closePanelAction, openPanelAction } from '@/lib/panel-admin-actions';
+import { Button, Card, FormStatus, Notice, TextArea, TextField } from '@/components/ui';
 
 /**
  * Featured matches (blueprint 10.2, T-613): which fixtures have a public
@@ -27,29 +28,24 @@ function ReasonForm({
   return (
     <form action={formAction} className="flex flex-col gap-1">
       {children}
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="sr-only">Why, for {label}</span>
-        <textarea
-          name="reason"
-          rows={2}
-          required
-          placeholder="Say why. This is recorded."
-          className="rounded border border-strong bg-transparent p-2"
-        />
-      </label>
-      <button
+      <TextArea
+        label={`Why, for ${label}`}
+        hideLabel
+        name="reason"
+        rows={2}
+        required
+        placeholder="Say why. This is recorded."
+      />
+      <Button
         type="submit"
-        disabled={pending}
+        pending={pending}
+        pendingLabel="Recording…"
         data-testid={testId}
-        className="self-start rounded border border-strong px-3 py-1 text-sm disabled:opacity-50"
+        className="self-start"
       >
-        {pending ? 'Recording…' : label}
-      </button>
-      {state !== null && (
-        <p role="status" className={state.ok ? 'text-sm' : 'text-sm text-danger'}>
-          {state.message}
-        </p>
-      )}
+        {label}
+      </Button>
+      {state !== null && <FormStatus ok={state.ok}>{state.message}</FormStatus>}
     </form>
   );
 }
@@ -65,9 +61,9 @@ export function PanelsAdmin({
 }) {
   if (!reachable) {
     return (
-      <p role="alert" data-testid="panels-unreachable">
+      <Notice tone="danger" data-testid="panels-unreachable">
         The featured matches cannot be shown right now.
-      </p>
+      </Notice>
     );
   }
   const open = panels.filter((panel) => panel.closed_at === null);
@@ -82,14 +78,7 @@ export function PanelsAdmin({
           label="Open the discussion"
           testId="panel-open"
         >
-          <label className="flex flex-col gap-1 text-sm">
-            The match page&apos;s address, or the match id
-            <input
-              name="match"
-              required
-              className="rounded border border-strong bg-transparent p-2"
-            />
-          </label>
+          <TextField label="The match page's address, or the match id" name="match" required />
         </ReasonForm>
       </section>
 
@@ -100,10 +89,7 @@ export function PanelsAdmin({
         ) : (
           <ul className="flex flex-col gap-4">
             {open.map((panel) => (
-              <li
-                key={panel.fixture_id}
-                className="flex flex-col gap-2 rounded border border-default p-4 text-sm"
-              >
+              <Card as="li" key={panel.fixture_id} className="text-sm">
                 <p>
                   <Link
                     href={`/${locale}/match/${panel.fixture_id}`}
@@ -124,7 +110,7 @@ export function PanelsAdmin({
                   label="Close the discussion"
                   testId={`panel-close-${panel.fixture_id}`}
                 />
-              </li>
+              </Card>
             ))}
           </ul>
         )}

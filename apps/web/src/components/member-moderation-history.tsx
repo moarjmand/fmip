@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import type { MemberModerationHistory, Sanction } from '@fmip/contracts';
 import { liftSanctionAction } from '@/lib/moderation-actions';
+import { Button, FormStatus, TextArea } from '@/components/ui';
 
 /**
  * Everything about one member's standing, on one page (T-611).
@@ -28,29 +29,24 @@ function Lift({
   );
   return (
     <form action={formAction} className="flex flex-col gap-1">
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="sr-only">Why it is being lifted</span>
-        <textarea
-          name="reason"
-          rows={2}
-          required
-          placeholder="Say why it is being lifted. This is recorded."
-          className="rounded border border-strong bg-transparent p-2"
-        />
-      </label>
-      <button
+      <TextArea
+        label="Why it is being lifted"
+        hideLabel
+        name="reason"
+        rows={2}
+        required
+        placeholder="Say why it is being lifted. This is recorded."
+      />
+      <Button
         type="submit"
-        disabled={pending}
+        pending={pending}
+        pendingLabel="Recording…"
         data-testid={`moderation-lift-${sanction.id}`}
-        className="self-start rounded border border-strong px-3 py-1 text-sm disabled:opacity-50"
+        className="self-start"
       >
-        {pending ? 'Recording…' : 'Lift this restriction'}
-      </button>
-      {state !== null && (
-        <p role="status" className={state.ok ? 'text-sm' : 'text-sm text-danger'}>
-          {state.message}
-        </p>
-      )}
+        Lift this restriction
+      </Button>
+      {state !== null && <FormStatus ok={state.ok}>{state.message}</FormStatus>}
     </form>
   );
 }
