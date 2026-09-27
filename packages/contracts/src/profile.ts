@@ -47,6 +47,30 @@ export interface OwnProfile {
   privacy: PrivacySettings;
   /** Where the member chose to be shown viewing options for (T-312); `not_chosen` until they do. */
   viewing_territory: ViewingTerritory;
+  /** Whether the first-run flow has been finished or dismissed (T-620). */
+  first_run: FirstRunState;
+}
+
+/**
+ * The first-run flow (blueprint 2.3 and 7.1, T-620): language, territory,
+ * time zone and favourite teams, offered once. `pending` until the member
+ * finishes or dismisses it; `done` keeps the first moment and never moves.
+ */
+export type FirstRunState = { state: 'pending' } | { state: 'done'; at: string };
+
+/** `GET`/`PUT /me/first-run`. `PUT` takes no body: it records that the flow is over. */
+export interface FirstRunResponse {
+  first_run: FirstRunState;
+}
+
+/**
+ * `PATCH /me/preferences` (T-620): the language and time zone chosen at
+ * registration, changed afterwards. Only the fields present change; each is
+ * validated as registration validates it (a BCP 47 tag, an IANA zone).
+ */
+export interface UpdatePreferencesRequest {
+  preferred_language?: string;
+  timezone?: string;
 }
 
 /** `PATCH /me/profile`. Only the fields present change; `null` clears. */

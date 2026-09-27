@@ -18,6 +18,7 @@ import type {
   ConversationSearchResponse,
   ConversationsResponse,
   CountriesResponse,
+  FirstRunResponse,
   FixtureEvaluationsResponse,
   FollowedEntity,
   FixtureNewsResponse,
@@ -383,6 +384,15 @@ export async function fetchCountries(): Promise<CountriesResponse['countries'] |
 /** `GET /me/feed` (T-333): the member's Following feed, in the API's order. */
 export function fetchFeed(cookie: string | undefined): Promise<ApiResult<FollowingFeed>> {
   return apiRequest<FollowingFeed>('/me/feed', { cookie });
+}
+
+/** `GET /me/first-run` (T-620): `null` for a guest or when the API cannot be reached. */
+export async function fetchFirstRun(
+  cookie: string | undefined,
+): Promise<FirstRunResponse['first_run'] | null> {
+  if (cookie === undefined) return null;
+  const result = await apiRequest<FirstRunResponse>('/me/first-run', { cookie });
+  return result.ok ? result.data.first_run : null;
 }
 
 export async function fetchFollowing(cookie: string | undefined): Promise<FollowedEntity[] | null> {

@@ -16,6 +16,7 @@ import {
   type ApiError,
   FOLLOWED_ENTITY_TYPES,
   type FavouriteIds,
+  type FirstRunResponse,
   type FollowedEntityType,
   type FollowingResponse,
   type OwnProfile,
@@ -29,6 +30,7 @@ import {
   type Validated,
   validateFollow,
   validateSetTerritory,
+  validateUpdatePreferences,
   validateUpdatePrivacy,
   validateUpdateProfile,
 } from './internal/validation';
@@ -108,6 +110,39 @@ export class ProfileController {
     const own = await this.profiles.updateProfile(userId, unwrap(validateUpdateProfile(body)));
     if (own === null) throw new UnauthorizedException(UNAUTHENTICATED);
     return own;
+  }
+
+  /** Language and time zone after registration (T-620); absent fields are left alone. */
+  @Patch('me/preferences')
+  async updatePreferences(
+    @Body() body: unknown,
+    @Req() request: FastifyRequest,
+  ): Promise<OwnProfile> {
+    const userId = await this.requireViewer(request);
+    const own = await this.profiles.updatePreferences(
+      userId,
+      unwrap(validateUpdatePreferences(body)),
+    );
+    if (own === null) throw new UnauthorizedException(UNAUTHENTICATED);
+    return own;
+  }
+
+  // --- the first-run flow (T-620, blueprint 2.3 and 7.1) ----------------
+
+  @Get('me/first-run')
+  async firstRun(@Req() request: FastifyRequest): Promise<FirstRunResponse> {
+    return { first_run: await this.profiles.firstRun(await this.requireViewer(request)) };
+  }
+
+  /**
+   * The flow is over -- finished or dismissed, which are the same answer to
+   * "offer it again?". Idempotent: the first moment is kept.
+   */
+  @Put('me/first-run')
+  async completeFirstRun(@Req() request: FastifyRequest): Promise<FirstRunResponse> {
+    return {
+      first_run: await this.profiles.completeFirstRun(await this.requireViewer(request)),
+    };
   }
 
   // --- the viewing territory (T-312, blueprint 11) ----------------------

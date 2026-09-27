@@ -3,6 +3,7 @@ import {
   type FollowRequest,
   PRIVACY_VISIBILITIES,
   type PrivacyVisibility,
+  type UpdatePreferencesRequest,
   type UpdatePrivacyRequest,
   type UpdateProfileRequest,
 } from '@fmip/contracts';
@@ -87,6 +88,32 @@ export function validateUpdatePrivacy(body: unknown): Validated<UpdatePrivacyReq
 }
 
 /** `PUT /me/following/:type/:id` body: an optional favourite flag, nothing else. */
+/** The same rules registration applies (identity's validation), kept here for this boundary. */
+export const LANGUAGE_TAG = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
+const TIMEZONES = new Set<string>([...Intl.supportedValuesOf('timeZone'), 'UTC']);
+
+/** `PATCH /me/preferences` (T-620): language and time zone, each optional, nothing else. */
+export function validateUpdatePreferences(body: unknown): Validated<UpdatePreferencesRequest> {
+  if (!isRecord(body)) return { ok: false, fields: { body: 'must be a JSON object' } };
+  const fields: Record<string, string> = {};
+  const value: UpdatePreferencesRequest = {};
+
+  if ('preferred_language' in body) {
+    const raw = body.preferred_language;
+    if (typeof raw !== 'string' || !LANGUAGE_TAG.test(raw.trim())) {
+      fields.preferred_language = 'must be a language tag such as en';
+    } else value.preferred_language = raw.trim();
+  }
+  if ('timezone' in body) {
+    const raw = body.timezone;
+    if (typeof raw !== 'string' || !TIMEZONES.has(raw.trim())) {
+      fields.timezone = 'must be an IANA time zone such as Asia/Tehran';
+    } else value.timezone = raw.trim();
+  }
+  if (Object.keys(fields).length > 0) return { ok: false, fields };
+  return { ok: true, value };
+}
+
 /** `PUT /me/territory`: a two-letter code (any case) or `null` to clear. Nothing else. */
 export function validateSetTerritory(body: unknown): Validated<SetViewingTerritoryRequest> {
   if (!isRecord(body) || !('code' in body)) {

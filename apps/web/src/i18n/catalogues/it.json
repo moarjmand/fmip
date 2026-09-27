@@ -1061,5 +1061,150 @@
     "source": "Nothing has happened around what you follow in the last week, and nothing is due in the next.",
     "text": "",
     "status": "untranslated"
+  },
+  "firstRun.title": {
+    "source": "Make FMIP yours",
+    "text": "",
+    "status": "untranslated"
+  },
+  "firstRun.intro": {
+    "source": "Four short questions, each one skippable. You can change every answer later in Settings.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "firstRun.guestNote": {
+    "source": "You are not signed in, so your answers are kept in this browser and saved to your account when you register or sign in.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "firstRun.steps": {
+    "source": "Steps",
+    "text": "",
+    "status": "untranslated"
+  },
+  "firstRun.step.language": {
+    "source": "Language",
+    "text": "",
+    "status": "untranslated"
+  },
+  "firstRun.step.territory": {
+    "source": "Territory",
+    "text": "",
+    "status": "untranslated"
+  },
+  "firstRun.step.timezone": {
+    "source": "Time zone",
+    "text": "",
+    "status": "untranslated"
+  },
+  "firstRun.step.teams": {
+    "source": "Favourite teams",
+    "text": "",
+    "status": "untranslated"
+  },
+  "firstRun.language.question": {
+    "source": "Which language should FMIP use?",
+    "text": "",
+    "status": "untranslated"
+  },
+  "firstRun.language.onlyOne": {
+    "source": "FMIP speaks English for now. Other languages are offered here once their translation is finished, and not before.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "firstRun.territory.question": {
+    "source": "Where do you watch from?",
+    "text": "",
+    "status": "untranslated"
+  },
+  "firstRun.territory.hint": {
+    "source": "Rights are sold by country, so this decides which viewing options you are shown. It is the country you are in, not the team you support.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "firstRun.territory.notChosen": {
+    "source": "Not chosen",
+    "text": "",
+    "status": "untranslated"
+  },
+  "firstRun.territory.unreachable": {
+    "source": "The territory list cannot be loaded right now. Skip this step and choose later in Settings.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "firstRun.timezone.question": {
+    "source": "Which time zone should kick-off times be shown in?",
+    "text": "",
+    "status": "untranslated"
+  },
+  "firstRun.timezone.browser": {
+    "source": "Your device reports the time zone",
+    "text": "",
+    "status": "untranslated"
+  },
+  "firstRun.timezone.confirm": {
+    "source": "It is selected below: save to confirm it, or choose another.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "firstRun.teams.question": {
+    "source": "Which teams are your favourites?",
+    "text": "",
+    "status": "untranslated"
+  },
+  "firstRun.teams.hint": {
+    "source": "Favourites are pinned first on the scores page and followed on your Following page.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "firstRun.teams.search": {
+    "source": "Search teams",
+    "text": "",
+    "status": "untranslated"
+  },
+  "firstRun.teams.searchButton": {
+    "source": "Search",
+    "text": "",
+    "status": "untranslated"
+  },
+  "firstRun.teams.none": {
+    "source": "No team matches that search.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "firstRun.teams.unreachable": {
+    "source": "The team list cannot be loaded right now. Skip this step and choose later in Settings.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "firstRun.save": {
+    "source": "Save and continue",
+    "text": "",
+    "status": "untranslated"
+  },
+  "firstRun.skip": {
+    "source": "Skip this step",
+    "text": "",
+    "status": "untranslated"
+  },
+  "firstRun.skipAndFinish": {
+    "source": "Skip and finish",
+    "text": "",
+    "status": "untranslated"
+  },
+  "firstRun.later": {
+    "source": "Not now",
+    "text": "",
+    "status": "untranslated"
+  },
+  "firstRun.offer.text": {
+    "source": "Make FMIP yours: choose a language, where you watch from, your time zone and your favourite teams. Every step can be skipped.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "firstRun.offer.start": {
+    "source": "Start",
+    "text": "",
+    "status": "untranslated"
   }
 }

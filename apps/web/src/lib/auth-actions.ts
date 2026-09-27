@@ -15,6 +15,8 @@ import type {
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { type ApiResult, apiRequest } from './api';
+import { stepHref } from './first-run';
+import { applyGuestChoices } from './first-run-actions';
 import { afterRegistration, readInviter } from './invite';
 import { applyApiSetCookie, sessionCookieHeader } from './session';
 
@@ -67,10 +69,14 @@ export async function registerAction(
   if (!result.ok) return failure(result);
 
   await applyApiSetCookie(result.setCookie);
+  // A guest's first-run choices become the account's (T-620).
+  const firstRunDone = await applyGuestChoices(result.setCookie, 'sign_up');
   // Through a member's invite link, the new member lands on the inviter's
   // profile and its friend-request control; nothing is sent for them (T-522).
   const inviter = readInviter(text(formData, 'invited_by') || undefined);
-  redirect(afterRegistration(locale, result.data.user.username, inviter));
+  const destination = afterRegistration(locale, result.data.user.username, inviter);
+  // A new member is offered the first run once, and then goes where they were going.
+  redirect(firstRunDone ? destination : stepHref(locale, 'language', destination));
 }
 
 export async function loginAction(
@@ -87,6 +93,8 @@ export async function loginAction(
   if (!result.ok) return failure(result);
 
   await applyApiSetCookie(result.setCookie);
+  // Choices made as a guest reach an account that never did the first run (T-620).
+  await applyGuestChoices(result.setCookie, 'sign_in');
   redirect(`/${locale}/u/${encodeURIComponent(result.data.user.username)}`);
 }
 

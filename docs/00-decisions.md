@@ -3121,3 +3121,29 @@ for a few thousand matches. *The line-up component's position among the
 season's teams*: a position has no scale between leagues or seasons; the raw
 rating does. *Fitting on the published version's expected goals*: the term
 would then correct a model it will never be added to.
+
+## D-087 — A guest's first-run choices live in a cookie and reach the account at sign-up
+
+**Status:** decided · **Date:** 2026-09-27 · **Task:** T-620
+
+**The problem.** Blueprint 2.3 encourages a guest to choose a language,
+territory and favourite teams; T-620's acceptance is that the choice survives
+until sign-up. Storing anything about a visitor on the server would be a
+record of someone who never agreed to one.
+
+**The decision.** A guest's answers are kept in one first-party, HttpOnly
+cookie (`fmip_first_run`, a year), read field by field and never trusted
+whole. At **sign-up** every answer is applied to the new account through the
+endpoints Settings already uses (`PATCH /me/preferences`, `PUT /me/territory`,
+`PUT /me/following/team/:id` as a favourite, `PUT /me/first-run`). At
+**sign-in** they are applied only to an account whose own first run is still
+pending: a member who already chose is never overwritten by what a browser
+remembers, and favourites are only ever added. The cookie is then cleared.
+Whether the flow is done is `user_account.first_run_done_at`, set once; the
+column is nullable with no backfill, so an account older than it is offered
+the flow once too, and one click dismisses it.
+
+**Rejected.** *A server-side guest record keyed by a random id*: the same
+information, plus a table of anonymous visitors to retain and delete.
+*Applying at every sign-in*: a shared or old browser would silently change a
+member's settings.
