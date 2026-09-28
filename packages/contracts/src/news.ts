@@ -233,3 +233,47 @@ export interface FixtureNewsResponse {
   stories: Covered<NewsStoryCard[]>;
   reason: FixtureNewsReason | null;
 }
+
+// ---------------------------------------------------------------------------
+// Saved articles (blueprint 3.3 and 2.1, T-842): a member's own list, under
+// Following. Private: only `/me/saved-articles` reads or writes it.
+// ---------------------------------------------------------------------------
+
+/** The most stories one member's list holds; saving another is refused until one is removed. */
+export const SAVED_ARTICLES_LIMIT = 500;
+
+/**
+ * What became of a saved story's report.
+ *
+ * - `available`: the publisher's headline and the link to their original,
+ *   read now under the source's rights (D-061) -- nothing is copied at save.
+ * - `source_dropped`: the publisher was dropped and took their items with
+ *   them (D-061); the list names them and says so, rather than keeping a
+ *   dead link or a copy of their words.
+ * - `unavailable`: the report is no longer held for another reason.
+ */
+export type SavedArticleState = 'available' | 'source_dropped' | 'unavailable';
+
+export interface SavedArticle {
+  story_id: string;
+  saved_at: string;
+  state: SavedArticleState;
+  /** Headline and link only (D-061); all four null unless `available`. */
+  headline: string | null;
+  url: string | null;
+  language: string | null;
+  published_at: string | null;
+  source: {
+    id: string;
+    name: string;
+    /** Null once dropped: the list does not send a reader to a publisher who asked to leave. */
+    homepage_url: string | null;
+    dropped_at: string | null;
+  };
+}
+
+/** `GET /me/saved-articles`, and the answer to saving or removing one: newest saved first. */
+export interface SavedArticlesResponse {
+  saved: SavedArticle[];
+  limit: number;
+}

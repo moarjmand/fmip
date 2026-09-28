@@ -1,5 +1,6 @@
 import type {
   AchievementsResponse,
+  SavedArticlesResponse,
   ActivityReport,
   AdminAlertsReport,
   AdminOverview,
@@ -490,6 +491,17 @@ export async function fetchTeams(): Promise<TeamsResponse['teams'] | null> {
 export async function fetchCompetitions(): Promise<CompetitionsResponse['competitions'] | null> {
   const result = await apiRequest<CompetitionsResponse>('/competitions');
   return result.ok ? result.data.competitions : null;
+}
+
+/**
+ * `GET /me/saved-articles` (T-842): the member's own saved list. Only asked
+ * with a session; `null` for a guest, so a page need not ask at all.
+ */
+export async function fetchSavedArticles(
+  cookie: string | undefined,
+): Promise<ApiResult<SavedArticlesResponse> | null> {
+  if (cookie === undefined) return null;
+  return apiRequest<SavedArticlesResponse>('/me/saved-articles', { cookie });
 }
 
 /** `GET /news${query}` (T-143); the session (if any) is what makes `following` answerable. */

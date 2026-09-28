@@ -83,9 +83,14 @@ export default async function FollowingPage({ params }: { params: Promise<{ loca
         <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
           <Translated locale={locale} message="feed.title" />
         </h1>
-        <Link href={`/${locale}/settings`} className="text-sm underline">
-          <Translated locale={locale} message="feed.manage" />
-        </Link>
+        <span className="flex flex-wrap gap-4 text-sm">
+          <Link href={`/${locale}/following/saved`} className="underline" data-testid="saved-link">
+            <Translated locale={locale} message="saved.title" />
+          </Link>
+          <Link href={`/${locale}/settings`} className="underline">
+            <Translated locale={locale} message="feed.manage" />
+          </Link>
+        </span>
       </div>
 
       <BriefingPanel
