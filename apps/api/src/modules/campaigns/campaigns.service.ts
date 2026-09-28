@@ -25,8 +25,12 @@ import {
  * first member is told, and the notification's dedupe key is the second
  * guard, so nobody is reached twice however the send is retried. The
  * carrier then takes what left the inbox out by e-mail and push with this
- * module's composer: the campaign's title and body, opening its path.
+ * module's composer: the campaign's title and body, opening its path --
+ * every page of it in the same send, bounded (T-837).
  */
+/** How many campaigns' words the composer keeps before it starts again. */
+const WORDS_KEPT = 16;
+
 export type SendResult =
   | { outcome: 'sent'; dispatch: CampaignDispatch }
   | { outcome: 'already_sent' }
@@ -35,6 +39,8 @@ export type SendResult =
 @Injectable()
 export class CampaignsService implements OnModuleInit {
   private readonly log = new Logger('Campaigns');
+  /** Campaigns' words already read by the composer, by id (immutable rows). */
+  private readonly words = new Map<string, CampaignRow>();
 
   constructor(
     private readonly store: PostgresCampaignStore,
@@ -94,8 +100,8 @@ export class CampaignsService implements OnModuleInit {
   /**
    * Send once. The claim first; then every member the audience reaches now,
    * one at a time through the inbox, each outcome a row; then the result and
-   * the audit row; then the carrier, so what left the inbox leaves the
-   * building without waiting for its next pass.
+   * the audit row; then the carrier, drained rather than one page, so what
+   * left the inbox leaves the building without waiting for the timer.
    */
   async send(campaignId: string, actorId: string, reason: string): Promise<SendResult> {
     const row = await this.store.campaign(campaignId);
@@ -131,7 +137,16 @@ export class CampaignsService implements OnModuleInit {
       campaign_id: campaignId,
       ...tally,
     });
-    if (reached.length > 0) await this.notifications.carry({ userIds: reached });
+    // Every page, not the first (T-837): one `carry()` is a hundred, and the
+    // rest used to wait for the timer's hundred every five minutes. Bounded;
+    // whatever a bound leaves, the timer drains on its next tick.
+    if (reached.length > 0) {
+      const drained = await this.notifications.drain({ userIds: reached });
+      this.log.log(
+        `campaign carried id=${campaignId} carried=${String(drained.carried)} stopped=${drained.stopped}`,
+        { event: 'campaign.carried', campaign_id: campaignId, ...drained },
+      );
+    }
     const sent = await this.store.campaign(campaignId);
     const dispatch = sent === null ? null : dispatchOf(sent);
     if (dispatch === null) throw new Error('dispatch vanished after send');
@@ -140,13 +155,29 @@ export class CampaignsService implements OnModuleInit {
 
   /** The carrier's words for a campaign: its title and body, opening its path. */
   private async compose(due: DueNotification): Promise<OutboundMessages | null> {
-    const row = await this.store.campaign(due.subject_id);
+    const row = await this.campaignFor(due.subject_id);
     if (row === null) return null;
     const path = `/${due.locale}${row.path}`;
     return {
       email: { to: due.email, subject: row.title, text: `${row.body}\n\n${path}` },
       push: { userId: due.user_id, title: row.title, body: row.body, url: path },
     };
+  }
+
+  /**
+   * A campaign's words for the composer, read once per campaign rather than
+   * once per member (T-837: a 10,000-member send composes 10,000 times). Safe
+   * to keep because a campaign's title, body and path never change (D-075);
+   * only a few are kept, and only one that exists.
+   */
+  private async campaignFor(id: string): Promise<CampaignRow | null> {
+    const known = this.words.get(id);
+    if (known !== undefined) return known;
+    const row = await this.store.campaign(id);
+    if (row === null) return null;
+    if (this.words.size >= WORDS_KEPT) this.words.clear();
+    this.words.set(id, row);
+    return row;
   }
 
   private async audienceOf(row: AudienceRow): Promise<Audience> {
