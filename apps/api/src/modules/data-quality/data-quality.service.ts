@@ -52,8 +52,9 @@ export function findingsOf(rows: CheckRows, now: Date): Finding[] {
  * Data-quality checks over the stored feed (T-820, D-097). Public surface:
  *
  * - `sweep()`: every check over the stored data, on the `data-quality`
- *   schedule. Reads first, outside a transaction; then records the findings
- *   and resolves the ones no longer found, under one lock.
+ *   schedule, or over one season's for a test. Reads first, outside a
+ *   transaction; then records the findings and resolves the ones no longer
+ *   found, under one lock.
  * - `recordTable()`: the standings job's comparison of the provider's table
  *   with ours, which is the one check that needs the provider's answer -- so
  *   it rides on the request that job already makes, never a new one.
@@ -68,11 +69,20 @@ export class DataQualityService {
 
   constructor(private readonly store: DataQualityStore) {}
 
-  async sweep(now: Date = new Date()): Promise<WriteOutcome & { findings: number }> {
-    const rows = await this.store.read(now);
+  /**
+   * `seasonId` narrows the sweep to one season: it reads only that season's
+   * fixtures and resolves only that season's findings. The schedule never
+   * passes one; a test does, so it judges its own fixtures and not the rows
+   * suites running beside it are writing and deleting.
+   */
+  async sweep(
+    now: Date = new Date(),
+    seasonId: string | null = null,
+  ): Promise<WriteOutcome & { findings: number }> {
+    const rows = await this.store.read(now, seasonId);
     const findings = findingsOf(rows, now);
     const outcome = await this.store.locked((client) =>
-      this.store.record(client, SWEPT_CHECKS, null, findings, now),
+      this.store.record(client, SWEPT_CHECKS, seasonId, findings, now),
     );
     if (outcome.opened > 0 || outcome.resolved > 0) {
       this.log.log(
