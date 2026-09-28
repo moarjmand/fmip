@@ -1,12 +1,20 @@
 import { Test } from '@nestjs/testing';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
-import type { WatchdogReport } from '@fmip/contracts';
+import type {
+  AdminAlertsReport,
+  NotificationSettings,
+  NotificationsResponse,
+  WatchdogReport,
+} from '@fmip/contracts';
 import { QueueEvents } from 'bullmq';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
 import { withTriggersOff } from '../../testing/cleanup';
 import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { AdminAlertsService, alertDedupeKey } from './admin-alerts.service';
+import { PostgresAlertCursor } from './internal/alert-cursor';
 import {
   LiveProbes,
   WATCHED_QUEUES,
@@ -65,6 +73,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the watchdog
   let watchdog: WatchdogService;
   let admin = '';
   let member = '';
+  let adminId = '';
+  let memberId = '';
 
   const get = (cookie?: string) =>
     app.inject({
@@ -117,6 +127,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the watchdog
     const m = await register(`wd_${RUN}m`);
     admin = a.cookie;
     member = m.cookie;
+    adminId = a.id;
+    memberId = m.id;
     await pool.query(
       `INSERT INTO user_role (user_id, role, granted_by, reason) VALUES ($1, 'admin', $1, 'watchdog test')`,
       [a.id],
@@ -232,7 +244,173 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the watchdog
         level: 'ok',
         incident: null,
       });
+      // The worker delivered both alerts to the administrator (T-802).
+      const delivered = await pool.query<{ subject_id: string }>(
+        `SELECT subject_id FROM notification WHERE user_id = $1 AND kind = 'system_alert'`,
+        [adminId],
+      );
+      expect(delivered.rows.map((r) => Number(r.subject_id)).sort((x, y) => x - y)).toEqual(
+        expect.arrayContaining(alerts.map((a) => a.id)),
+      );
       await queue.obliterate({ force: true });
     }, 60_000);
+  });
+
+  describe('alerts to administrators (T-802)', () => {
+    const alertsOf = (userId: string) =>
+      pool
+        .query<{ subject_id: string; n: string }>(
+          `SELECT subject_id, count(*)::text AS n FROM notification
+            WHERE user_id = $1 AND kind = 'system_alert' GROUP BY subject_id`,
+          [userId],
+        )
+        .then(({ rows }) => new Map(rows.map((r) => [Number(r.subject_id), Number(r.n)])));
+
+    /** A clock that only moves forward, ahead of the ticks above. */
+    let clock = Date.now() + 10 * 60_000;
+    const later = (): Date => {
+      clock += 60_000;
+      return new Date(clock);
+    };
+
+    /** One incident: a raised and a recovered event, written by real ticks. */
+    async function incident(): Promise<number[]> {
+      // Quiet first, whatever the tests above left open.
+      let now = later();
+      seen = quiet(now);
+      await watchdog.tick(now);
+      now = later();
+      seen = {
+        ...quiet(now),
+        live: { inProgress: 1, oldestChangeAt: new Date(now.getTime() - 50 * 60_000), behind: 1 },
+      };
+      const raised = await watchdog.tick(now);
+      now = later();
+      seen = quiet(now);
+      const recovered = await watchdog.tick(now);
+      return [...(raised?.events ?? []), ...(recovered?.events ?? [])]
+        .filter((e) => e.alert)
+        .map((e) => e.id);
+    }
+
+    it('the alerts report is closed to guests and members', async () => {
+      const at = (cookie?: string) =>
+        app.inject({
+          method: 'GET',
+          url: '/admin/health/alerts',
+          headers: cookie === undefined ? {} : { cookie: `fmip_session=${cookie}` },
+        });
+      expect((await at()).statusCode).toBe(401);
+      expect((await at(member)).statusCode).toBe(403);
+      expect((await at(admin)).statusCode).toBe(200);
+    });
+
+    it('concurrent deliveries write each alert once for every administrator', async () => {
+      const ids = await incident();
+      expect(ids).toHaveLength(2);
+      const alerts = app.get(AdminAlertsService);
+      const runs = await Promise.all([alerts.deliver(), alerts.deliver(), alerts.deliver()]);
+      // Whoever ran, the two events were delivered once between them.
+      expect(runs.reduce((sum, run) => sum + (run?.delivered ?? 0), 0)).toBe(2);
+      const got = await alertsOf(adminId);
+      for (const id of ids) expect(got.get(id)).toBe(1);
+      // A member without the role is told nothing.
+      expect((await alertsOf(memberId)).size).toBe(0);
+      // Again: nothing new.
+      expect((await alerts.deliver())?.delivered).toBe(0);
+    });
+
+    it('a second delivery holding the lock skips rather than reading the same cursor', async () => {
+      const cursor = app.get(PostgresAlertCursor);
+      let release: () => void = () => undefined;
+      const held = cursor.withCursor(
+        () =>
+          new Promise<string>((resolve) => {
+            release = () => resolve('first');
+          }),
+      );
+      // Give the first transaction time to take the lock.
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      expect(await cursor.withCursor(() => Promise.resolve('second'))).toBeNull();
+      release();
+      expect(await held).toBe('first');
+    });
+
+    it('a delivery interrupted before its commit is repeated without a second notification', async () => {
+      const ids = await incident();
+      // As if a run wrote the first alert and died before moving the cursor.
+      await app.get(NotificationsService).emit({
+        userId: adminId,
+        kind: 'system_alert',
+        subjectType: 'watchdog_event',
+        subjectId: String(ids[0]),
+        dedupeKey: alertDedupeKey(ids[0] ?? 0),
+      });
+      await app.get(AdminAlertsService).deliver();
+      const got = await alertsOf(adminId);
+      for (const id of ids) expect(got.get(id)).toBe(1);
+    });
+
+    it('ignores quiet hours, says what changed, and opens the administration area', async () => {
+      await pool.query(
+        `INSERT INTO quiet_hours (user_id, starts_at, ends_at)
+         SELECT $1, ((now() AT TIME ZONE 'Europe/London') - interval '1 hour')::time,
+                    ((now() AT TIME ZONE 'Europe/London') + interval '1 hour')::time
+         ON CONFLICT (user_id) DO UPDATE SET starts_at = EXCLUDED.starts_at, ends_at = EXCLUDED.ends_at`,
+        [adminId],
+      );
+      const [raised] = await incident();
+      await app.get(AdminAlertsService).deliver();
+      const inbox = await app.inject({
+        method: 'GET',
+        url: '/me/notifications',
+        headers: { cookie: `fmip_session=${admin}` },
+      });
+      const found = (inbox.json() as NotificationsResponse).notifications.find(
+        (n) => n.kind === 'system_alert' && n.subject_id === String(raised),
+      );
+      expect(found).toMatchObject({
+        subject_type: 'watchdog_event',
+        held_reason: null,
+        headline: expect.stringMatching(/^System alert: live_feed is failing/) as string,
+      });
+      await pool.query(`DELETE FROM quiet_hours WHERE user_id = $1`, [adminId]);
+    });
+
+    it('the kind is in an administrator’s settings and nobody else’s', async () => {
+      const kinds = async (cookie: string) =>
+        (
+          (
+            await app.inject({
+              method: 'GET',
+              url: '/me/notification-settings',
+              headers: { cookie: `fmip_session=${cookie}` },
+            })
+          ).json() as NotificationSettings
+        ).preferences.map((p) => p.kind);
+      expect(await kinds(admin)).toContain('system_alert');
+      expect(await kinds(member)).not.toContain('system_alert');
+    });
+
+    it('the report says the inbox is the only channel, and never counts a send that was not', async () => {
+      const report = (
+        await app.inject({
+          method: 'GET',
+          url: '/admin/health/alerts',
+          headers: { cookie: `fmip_session=${admin}` },
+        })
+      ).json() as AdminAlertsReport;
+      expect(report.channels).toEqual({ push: 'absent', email: 'absent', in_product_only: true });
+      expect(report.administrators).toBeGreaterThanOrEqual(1);
+      expect(report.pending).toBe(0);
+      expect(report.alerts.length).toBeGreaterThanOrEqual(2);
+      const newest = report.alerts[0];
+      expect(newest?.inbox).toBeGreaterThanOrEqual(1);
+      // With no channel nothing is claimed, so nothing is sent: it is pending in the inbox only.
+      expect(newest?.push.sent).toBe(0);
+      expect(newest?.email.sent).toBe(0);
+      expect(report.cursor.last_event_id).toBe(newest?.event.id);
+      expect(report.cursor.advanced_at).not.toBeNull();
+    });
   });
 });

@@ -2,7 +2,11 @@ import { randomUUID } from 'node:crypto';
 import { Test } from '@nestjs/testing';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import type { NotificationSettings, NotificationsResponse } from '@fmip/contracts';
-import { NOTIFICATION_DEFAULTS, NOTIFICATION_KINDS } from '@fmip/contracts';
+import {
+  ADMIN_ONLY_NOTIFICATION_KINDS,
+  NOTIFICATION_DEFAULTS,
+  NOTIFICATION_KINDS,
+} from '@fmip/contracts';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
@@ -251,7 +255,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the inbox', 
   describe('the settings say what is in force and whose decision it was', () => {
     it('returns every kind, with the documented default and `chosen: false`', async () => {
       const body = await settings(owner);
-      expect(body.preferences).toHaveLength(NOTIFICATION_KINDS.length);
+      // Every kind a member can receive; an administrator's are not offered (T-802).
+      expect(body.preferences.map((p) => p.kind)).toEqual(
+        NOTIFICATION_KINDS.filter((kind) => !ADMIN_ONLY_NOTIFICATION_KINDS.includes(kind)),
+      );
       for (const preference of body.preferences) {
         expect(preference.chosen).toBe(false);
         // The visible form of "a missing row means the documented default".

@@ -10,6 +10,7 @@ import {
   NOTIFICATION_CATEGORY_OF,
   NOTIFICATION_DEFAULTS,
   NOTIFICATION_HOURLY_CAP,
+  QUIET_HOURS_EXEMPT,
   isNotificationKind,
   notificationLine,
   notificationPath,
@@ -21,9 +22,10 @@ import {
   type MuteRow,
   PostgresNotificationsStore,
   type NewNotification,
+  type SubjectOutcomes,
 } from './internal/notifications-store';
 
-export type { DueNotification } from './internal/notifications-store';
+export type { DueNotification, SubjectOutcomes } from './internal/notifications-store';
 
 /** What a carrier composes for one due notification: a message per channel, or `null` for a channel it has nothing for. */
 export interface OutboundMessages {
@@ -188,8 +190,11 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
       // disturbed, not whether they are told: dropping a moderation decision
       // because it landed at two in the morning would be the product deciding a
       // member did not need to know. The row exists now and surfaces when their
-      // window ends.
-      const quietUntil = await this.store.quietUntil(request.userId);
+      // window ends. The one exception is an administrator's system alert,
+      // which is the pager for an outage (T-802, D-096).
+      const quietUntil = QUIET_HOURS_EXEMPT.includes(request.kind)
+        ? null
+        : await this.store.quietUntil(request.userId);
 
       const entry: NewNotification = {
         userId: request.userId,
@@ -291,6 +296,11 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
         url: path ?? `/${due.locale}/notifications`,
       },
     };
+  }
+
+  /** Where the notifications of one kind about each subject went, per channel (T-802). */
+  outcomesFor(kind: NotificationKind, subjectIds: string[]): Promise<Map<string, SubjectOutcomes>> {
+    return this.store.outcomesFor(kind, subjectIds);
   }
 
   /** The inbox itself (T-272). Only what is deliverable now; held ones wait. */
