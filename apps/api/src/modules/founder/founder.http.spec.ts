@@ -127,6 +127,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
           [id, HOME, AWAY],
         );
       }
+      // The member follows the home side, the founder the away side (T-833).
+      await pool.query(
+        `INSERT INTO followed_entity (user_id, entity_type, entity_id)
+         VALUES ($1, 'team', $2), ($3, 'team', $4)`,
+        [member.id, HOME, founder.id, AWAY],
+      );
     });
 
     afterAll(async () => {
@@ -207,6 +213,21 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect(body.analysis?.versions.map((v) => v.version_number)).toEqual([2, 1]);
       expect(body.analysis?.author.display_name).toBe('The Founder');
       expect(body.analysis?.versions[1]?.confidence).toBe(4);
+    });
+
+    it("tells the match's followers once, however often it is revised, and not its author (T-833)", async () => {
+      const told = async (userId: string) =>
+        (
+          await pool.query<{ kind: string; subject_type: string; subject_id: string }>(
+            `SELECT kind, subject_type, subject_id FROM notification
+              WHERE user_id = $1 AND kind = 'founder_analysis_published'`,
+            [userId],
+          )
+        ).rows;
+      expect(await told(member.id)).toEqual([
+        { kind: 'founder_analysis_published', subject_type: 'fixture', subject_id: FIXTURE },
+      ]);
+      expect(await told(founder.id)).toEqual([]);
     });
 
     it('writes an audit row for every editorial act, in the same transaction', async () => {

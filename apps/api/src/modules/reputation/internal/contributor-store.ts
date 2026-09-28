@@ -90,6 +90,36 @@ export class PostgresContributorStore {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
 
   /** The four requirements' inputs for one member, or null if there is no such member. */
+  /**
+   * Record the verdict just computed for a member, and say whether it changed
+   * (T-833): the new verdict and how many times they have now qualified, or
+   * null when it is the verdict already recorded. One statement, so two
+   * recomputes racing cannot both see the same transition.
+   */
+  async recordVerdict(
+    userId: string,
+    qualifies: boolean,
+    rulesVersion: string,
+  ): Promise<{ qualifies: boolean; timesQualified: number } | null> {
+    const { rows } = await this.pool.query<{ qualifies: boolean; times_qualified: number }>(
+      `INSERT INTO contributor_eligibility_state (user_id, qualifies, rules_version, times_qualified)
+       VALUES ($1, $2, $3, CASE WHEN $2 THEN 1 ELSE 0 END)
+       ON CONFLICT (user_id) DO UPDATE
+          SET qualifies = EXCLUDED.qualifies,
+              rules_version = EXCLUDED.rules_version,
+              times_qualified = contributor_eligibility_state.times_qualified
+                                + CASE WHEN EXCLUDED.qualifies THEN 1 ELSE 0 END,
+              changed_at = now()
+        WHERE contributor_eligibility_state.qualifies IS DISTINCT FROM EXCLUDED.qualifies
+       RETURNING qualifies, times_qualified`,
+      [userId, qualifies, rulesVersion],
+    );
+    const row = rows[0];
+    return row === undefined
+      ? null
+      : { qualifies: row.qualifies, timesQualified: row.times_qualified };
+  }
+
   async factsFor(userId: string, windowDays: number): Promise<EligibilityFacts | null> {
     const { rows } = await this.pool.query<FactRow>(
       `SELECT ${factColumns('$2')}

@@ -2,11 +2,19 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 import type { MatchIncident, MatchState, Side } from './match-events';
+import type { TeamNewsState } from './team-news';
 
 /** A reading of one match with what the line and the audience need. */
 export interface MatchReading {
   fixtureId: string;
   state: MatchState;
+  teams: { home: string; away: string };
+}
+
+/** A reading of one match's team news (T-832). */
+export interface TeamNewsReading {
+  fixtureId: string;
+  state: TeamNewsState;
   teams: { home: string; away: string };
 }
 
@@ -87,6 +95,66 @@ export class MatchAlertsStore {
             ? null
             : { home: row.score_home, away: row.score_away },
         incidents: list,
+      },
+    };
+  }
+
+  /**
+   * The match's team news as stored now (T-832): the starters per side and
+   * the players listed `out`, or null when there is no such fixture or no two
+   * sides yet.
+   */
+  async teamNews(fixtureId: string): Promise<TeamNewsReading | null> {
+    const { rows } = await this.pool.query<{
+      status: string;
+      home: string | null;
+      away: string | null;
+      starters_home: number;
+      starters_away: number;
+    }>(
+      `SELECT f.status,
+              home_team.name AS home,
+              away_team.name AS away,
+              (SELECT count(*)::int FROM lineup l
+                WHERE l.participant_id = hp.id AND l.role = 'starter') AS starters_home,
+              (SELECT count(*)::int FROM lineup l
+                WHERE l.participant_id = ap.id AND l.role = 'starter') AS starters_away
+         FROM fixture f
+         LEFT JOIN fixture_participant hp ON hp.fixture_id = f.id AND hp.side = 'home'
+         LEFT JOIN team home_team ON home_team.id = hp.team_id
+         LEFT JOIN fixture_participant ap ON ap.fixture_id = f.id AND ap.side = 'away'
+         LEFT JOIN team away_team ON away_team.id = ap.team_id
+        WHERE f.id = $1`,
+      [fixtureId],
+    );
+    const row = rows[0];
+    if (row === undefined || row.home === null || row.away === null) return null;
+    const out = await this.pool.query<{
+      person_id: string;
+      name: string | null;
+      side: Side | null;
+      kind: string | null;
+    }>(
+      `SELECT a.person_id, coalesce(person.known_as, person.full_name) AS name, p.side, a.kind
+         FROM fixture_absence a
+         LEFT JOIN fixture_participant p ON p.id = a.participant_id
+         LEFT JOIN person ON person.id = a.person_id
+        WHERE a.fixture_id = $1 AND a.status = 'out'
+        ORDER BY p.side, name, a.person_id`,
+      [fixtureId],
+    );
+    return {
+      fixtureId,
+      teams: { home: row.home, away: row.away },
+      state: {
+        status: row.status,
+        starters: { home: row.starters_home, away: row.starters_away },
+        out: out.rows.map((r) => ({
+          personId: r.person_id,
+          name: r.name,
+          side: r.side,
+          reason: r.kind,
+        })),
       },
     };
   }
