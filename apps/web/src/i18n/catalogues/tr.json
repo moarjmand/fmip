@@ -1747,5 +1747,45 @@
     },
     "forms": {},
     "status": "untranslated"
+  },
+  "notifications.match.heading": {
+    "source": "Match alerts",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notifications.match.intro": {
+    "source": "For the matches of the teams and competitions you follow. Alerts from the same minute arrive together, a goal taken off the board is corrected, and nothing arrives twice.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notifications.match.kickoff": {
+    "source": "Kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notifications.match.goal": {
+    "source": "Goals, and a correction when one is taken off the board",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notifications.match.redCard": {
+    "source": "Red cards",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notifications.match.halfTime": {
+    "source": "Half-time",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notifications.match.fullTime": {
+    "source": "Full-time, with the result",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notifications.match.quiet": {
+    "source": "To silence one team or one competition, or every match alert at once, use What stays quiet below. Quiet hours hold match alerts too.",
+    "text": "",
+    "status": "untranslated"
   }
 }
