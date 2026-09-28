@@ -50,6 +50,11 @@ for (const theme of ['light', 'dark'] as const) {
           await expect(
             page.getByTestId('score-card').first().or(page.getByTestId('match-header')),
           ).toBeVisible();
+          // The competition context (T-840) is on every match page, so its
+          // lines are measured with the rest.
+          if (path.includes('/match/')) {
+            await expect(page.getByTestId('competition-context')).toBeVisible();
+          }
           expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
 
           const builder = new AxeBuilder({ page }).withTags(TAGS);
@@ -102,7 +107,15 @@ test('the match centre reaches each section through its nav, without script', as
   await page.goto(`/en/match/${PLAYED_MATCH}`);
   const nav = page.getByTestId('section-nav');
   await expect(nav).toBeVisible();
-  for (const name of ['Timeline', 'Stats', 'Line-ups', 'Model forecast', 'Community', 'Watch']) {
+  for (const name of [
+    'Timeline',
+    'Stats',
+    'Competition',
+    'Line-ups',
+    'Model forecast',
+    'Community',
+    'Watch',
+  ]) {
     await expect(nav.getByRole('link', { name, exact: true })).toBeVisible();
   }
   await nav.getByRole('link', { name: 'Line-ups', exact: true }).click();

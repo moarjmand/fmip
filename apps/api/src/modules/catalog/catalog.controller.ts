@@ -1,6 +1,7 @@
 import { Controller, Get, NotFoundException, Param, Query } from '@nestjs/common';
 import type {
   ApiError,
+  CompetitionContext,
   CompetitionPage,
   CompetitionsResponse,
   CountriesResponse,
@@ -15,6 +16,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NO_COMPETITION: ApiError = { error: 'not_found', message: 'No such competition.' };
 const NO_TEAM: ApiError = { error: 'not_found', message: 'No such team.' };
 const NO_PLAYER: ApiError = { error: 'not_found', message: 'No such player.' };
+const NO_FIXTURE: ApiError = { error: 'not_found', message: 'No such fixture.' };
 const NO_SEASON: ApiError = {
   error: 'not_found',
   message: 'No such season of this competition.',
@@ -82,6 +84,18 @@ export class CatalogController {
     const outcome = await this.catalog.team(id.toLowerCase(), localeOf(locale));
     if (outcome.kind === 'unknown_team') throw new NotFoundException(NO_TEAM);
     return outcome.page;
+  }
+
+  /**
+   * The match centre's competition context (blueprint 4.2, T-840): the
+   * table or group before kick-off, or the knockout tie. Public.
+   */
+  @Get('fixtures/:id/competition-context')
+  async competitionContext(@Param('id') id: string): Promise<CompetitionContext> {
+    if (!UUID.test(id)) throw new NotFoundException(NO_FIXTURE);
+    const context = await this.catalog.competitionContext(id.toLowerCase());
+    if (context === null) throw new NotFoundException(NO_FIXTURE);
+    return context;
   }
 
   /** The competition page (blueprint 5.1, T-035). Public. `?season=` selects a season. */
