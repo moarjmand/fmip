@@ -1,0 +1,10 @@
+{
+  "source": "465a0f534f6db840a1755bbb4e8ea39be2499e3475e2c77907470cd8a131fd7f",
+  "script": "6495b44a39d73ad84dd455250aeb9dcfb0cbe5f0a48adde44adb6353b780ba52",
+  "icons": {
+    "icon-192.png": "dbea523441c56abc81d707361dcb07a744b8518ed2b00a275b1fa6599ff4d789",
+    "icon-512.png": "bee7d402c14be3b17de2f55412200f2c7df0b861eb875eb8af0a293ac62d548a",
+    "icon-maskable-512.png": "de9360dde7d8107468a0574ccb7f0a4b451ae53ccb3a68953f25b33ca118deb7",
+    "apple-touch-icon.png": "e86a76e2b91d30026c4ac05ee4abdf4dc419a4efbd7d4d20b1091f39f06232e4"
+  }
+}
