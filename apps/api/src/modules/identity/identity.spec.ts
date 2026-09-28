@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { clientIpOf, refusalMessage, subjectOf } from './internal/auth-rate-limit';
 import { clearSessionCookie, parseCookies, serializeSessionCookie } from './internal/cookies';
 import { hashPassword, verifyPassword } from './internal/password';
 import { hashToken, isWellFormedToken, newToken, sessionSecretFromEnv } from './internal/tokens';
@@ -134,5 +135,33 @@ describe('validateLogin', () => {
       ok: false,
       fields: { identifier: 'required', password: 'required' },
     });
+  });
+});
+
+describe('rate limits before signing in (T-810)', () => {
+  it('reads the forwarded address only when it is one', () => {
+    expect(clientIpOf({ 'x-fmip-client-ip': '203.0.113.7' })).toBe('203.0.113.7');
+    expect(clientIpOf({ 'x-fmip-client-ip': '2001:DB8::1' })).toBe('2001:db8::1');
+    expect(clientIpOf({})).toBeNull();
+    expect(clientIpOf({ 'x-fmip-client-ip': '' })).toBeNull();
+    expect(clientIpOf({ 'x-fmip-client-ip': 'unknown' })).toBeNull();
+    expect(clientIpOf({ 'x-fmip-client-ip': '203.0.113.7, 10.0.0.1' })).toBeNull();
+  });
+
+  it('hashes subjects, keyed and kept apart by kind', () => {
+    const secret = 's'.repeat(32);
+    const ip = subjectOf('ip', '203.0.113.7', secret);
+    expect(ip).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(ip).not.toContain('203');
+    expect(subjectOf('ip', '203.0.113.7', secret)).toBe(ip);
+    expect(subjectOf('account', '203.0.113.7', secret)).not.toBe(ip);
+    expect(subjectOf('ip', '203.0.113.7', 't'.repeat(32))).not.toBe(ip);
+  });
+
+  it('says when to try again, in whole minutes, and nothing about an account', () => {
+    expect(refusalMessage(1)).toBe('Too many attempts. Try again in 1 minute.');
+    expect(refusalMessage(60)).toBe('Too many attempts. Try again in 1 minute.');
+    expect(refusalMessage(61)).toBe('Too many attempts. Try again in 2 minutes.');
+    expect(refusalMessage(3600)).toBe('Too many attempts. Try again in 60 minutes.');
   });
 });
