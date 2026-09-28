@@ -1,0 +1,30 @@
+# systemd unit for the VPS (T-805, D-101). Install with fmip-restore-drill.timer:
+#
+#     sudo cp scripts/backup/fmip-restore-drill.{service,timer} /etc/systemd/system/
+#     sudo systemctl daemon-reload
+#     sudo systemctl enable --now fmip-restore-drill.timer
+#     systemctl list-timers fmip-restore-drill.timer
+#
+# Restores the newest off-provider dump into a throwaway container, checks it
+# against its manifest and the live database, records the verdict in
+# `backup_run` for the API's watchdog, and removes what it made
+# (docs/07-backups.md).
+
+[Unit]
+Description=FMIP monthly restore drill (off-provider dump into a throwaway postgres)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+# As fmip, like fmip-backup.service: rclone reads its config from
+# /home/fmip/.config/rclone/rclone.conf, and a unit without User= has no $HOME.
+User=fmip
+WorkingDirectory=/opt/fmip
+ExecStart=/usr/bin/bash scripts/backup/restore-drill.sh --scheduled
+# A restore of a few hundred megabytes takes minutes; an hour means it is stuck,
+# and the exit on timeout is recorded as a failed drill by the script's trap.
+TimeoutStartSec=1h
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
