@@ -111,6 +111,15 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.model.outcome == 'success' }}
         run: pnpm typecheck
 
+      # The PWA icons redrawn from the mark and compared byte for byte with
+      # the committed ones and their manifest. Here rather than in vitest: the
+      # rasterising is seconds of CPU on a runner that is also running every
+      # other suite, which is what made brand-mark.spec.ts time out. The spec
+      # checks the committed files against the manifest instead.
+      - name: Icons drawn from the mark
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @fmip/web icons:check
+
       # The schema the tests run against is the one the migrations produce, and
       # the seed is what the resolver's integration tests resolve against. Both
       # run through the real package scripts, so a migration that node-pg-migrate

@@ -16,6 +16,10 @@
 #                            (unset = local only, and the script says so)
 #   BACKUP_KEEP_REMOTE_DAYS  remote copies older than this go     (default 90)
 #   BACKUP_RCLONE_CONFIG     rclone.conf with the remote          (default ~/.config/rclone/rclone.conf)
+#
+# Every run, pass or fail, ends with a row in the `backup_run` table (T-805),
+# which the API's watchdog reads for its `backup` condition. BACKUP_RECORD=off
+# skips that (a rehearsal against a database without the table).
 
 set -euo pipefail
 
@@ -31,6 +35,8 @@ set -a
 # shellcheck disable=SC1090
 . <(tr -d '\r' < ./.env)
 set +a
+# shellcheck source=scripts/backup/lib.sh
+. scripts/backup/lib.sh
 
 BACKUP_DIR="${BACKUP_DIR:-./backups}"
 BACKUP_KEEP_LOCAL_DAYS="${BACKUP_KEEP_LOCAL_DAYS:-7}"
@@ -42,11 +48,24 @@ NAME="fmip-$STAMP"
 mkdir -p "$BACKUP_DIR"
 DUMP="$BACKUP_DIR/$NAME.dump"
 MANIFEST="$BACKUP_DIR/$NAME.manifest"
+STARTED="$(utc_now)"
+STEP='start'
+
+# A run that stops early still says so where the API can read it (T-805):
+# the watchdog then raises `backup` at once rather than after 26 quiet hours.
+on_exit() {
+  local status=$?
+  if [ "$status" -ne 0 ]; then
+    record_run backup false "$NAME.dump" "backup.sh stopped with status $status during: $STEP" "$STARTED" || true
+  fi
+}
+trap on_exit EXIT
 
 psql_src() {
   docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tA -v ON_ERROR_STOP=1 "$@"
 }
 
+STEP='pg_dump'
 echo "==> pg_dump $POSTGRES_DB -> $DUMP"
 # Custom format: compressed, restorable table by table, and pg_restore can
 # list its contents. --no-owner/--no-privileges so a restore into a database
@@ -54,6 +73,7 @@ echo "==> pg_dump $POSTGRES_DB -> $DUMP"
 docker compose exec -T postgres pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
   --format=custom --compress=6 --no-owner --no-privileges > "$DUMP"
 
+STEP='manifest'
 echo "==> manifest $MANIFEST"
 # Exact row counts of every table in the application schemas, captured right
 # after the dump. The drill recomputes them on the restored copy; a mismatch
@@ -78,21 +98,8 @@ TABLES="$(grep -c '^rows ' "$MANIFEST")"
 ROWS="$(awk '/^rows /{s+=$3} END{print s+0}' "$MANIFEST")"
 echo "    $TABLES tables, $ROWS rows, $(grep -c '^migration ' "$MANIFEST") migrations, $(grep '^size ' "$MANIFEST" | cut -d' ' -f2) bytes"
 
-# --- off-provider copy --------------------------------------------------------
-host_path() {
-  # Docker Desktop on Windows wants a Windows path in -v; everywhere else the
-  # path is fine as it is.
-  if command -v cygpath > /dev/null 2>&1; then cygpath -w "$1"; else printf '%s' "$1"; fi
-}
-
-rclone() {
-  # Path conversion off: the container-side paths must stay POSIX.
-  MSYS_NO_PATHCONV=1 docker run --rm \
-    -v "$(host_path "$(cd "$BACKUP_DIR" && pwd)"):/data" \
-    -v "$(host_path "$BACKUP_RCLONE_CONFIG"):/config/rclone/rclone.conf:ro" \
-    rclone/rclone:1 "$@"
-}
-
+# --- off-provider copy (rclone() is in lib.sh) --------------------------------
+STEP='off-provider copy'
 if [ -n "${BACKUP_RCLONE_REMOTE:-}" ]; then
   if [ ! -f "$BACKUP_RCLONE_CONFIG" ]; then
     echo "ERROR: BACKUP_RCLONE_REMOTE is set but $BACKUP_RCLONE_CONFIG does not exist" >&2
@@ -112,13 +119,20 @@ if [ -n "${BACKUP_RCLONE_REMOTE:-}" ]; then
   echo "    verified $REMOTE_SIZE bytes on the remote"
   echo "==> prune remote copies older than $BACKUP_KEEP_REMOTE_DAYS days"
   rclone delete --min-age "${BACKUP_KEEP_REMOTE_DAYS}d" "$BACKUP_RCLONE_REMOTE/"
+  COPIES="off-provider copy verified, $REMOTE_SIZE bytes"
 else
   echo "WARNING: BACKUP_RCLONE_REMOTE is not set; this copy exists only on this machine." >&2
   echo "         A backup on the same provider as the database is not a backup (D-032)." >&2
+  COPIES='local only, BACKUP_RCLONE_REMOTE is not set'
 fi
 
+STEP='local prune'
 echo "==> prune local copies older than $BACKUP_KEEP_LOCAL_DAYS days"
 find "$BACKUP_DIR" -maxdepth 1 -name 'fmip-*.dump' -mtime "+$BACKUP_KEEP_LOCAL_DAYS" -print -delete
 find "$BACKUP_DIR" -maxdepth 1 -name 'fmip-*.manifest' -mtime "+$BACKUP_KEEP_LOCAL_DAYS" -print -delete
+
+STEP='record'
+echo "==> record"
+record_run backup true "$NAME.dump" "$TABLES tables, $ROWS rows; $COPIES" "$STARTED"
 
 echo "OK $NAME"

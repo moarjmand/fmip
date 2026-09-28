@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Pool } from 'pg';
 import type {
   FounderAnalysesResponse,
@@ -6,6 +6,7 @@ import type {
   FounderAnalysisVersion,
 } from '@fmip/contracts';
 import { PG_POOL } from '../../database/database.module';
+import { NotificationsService } from '../notifications/notifications.service';
 import { FounderStore, type NewVersion } from './internal/founder-store';
 
 // The module's public surface. Other modules import from this file only.
@@ -36,8 +37,12 @@ export type PublishOutcome =
 @Injectable()
 export class FounderAnalysisService {
   private readonly store: FounderStore;
+  private readonly log = new Logger(FounderAnalysisService.name);
 
-  constructor(@Inject(PG_POOL) pool: Pool) {
+  constructor(
+    @Inject(PG_POOL) pool: Pool,
+    private readonly notifications: NotificationsService,
+  ) {
     this.store = new FounderStore(pool);
   }
 
@@ -58,11 +63,42 @@ export class FounderAnalysisService {
 
   async publish(input: NewVersion): Promise<PublishOutcome> {
     if (!(await this.store.fixtureExists(input.fixtureId))) return { kind: 'unknown_fixture' };
+    let version: FounderAnalysisVersion;
     try {
-      return { kind: 'published', version: await this.store.publish(input) };
+      version = await this.store.publish(input);
     } catch (error: unknown) {
       if ((error as { code?: string }).code === ANALYSIS_LOCKED) return { kind: 'locked' };
       throw error;
+    }
+    // The first version only: a revision is the same analysis (T-833).
+    if (version.version_number === 1) await this.tellFollowers(input.fixtureId, input.authorId);
+    return { kind: 'published', version };
+  }
+
+  /**
+   * "The founder published an analysis of a match you follow" (T-833,
+   * D-100), to everyone following either team or the competition, once per
+   * match however often it is revised. Sourceless: it is the platform's
+   * editorial, not one member reaching another. Never fails the
+   * publication, which is already committed.
+   */
+  private async tellFollowers(fixtureId: string, authorId: string): Promise<void> {
+    try {
+      const followers = await this.store.followers(fixtureId, authorId);
+      await this.notifications.emitMany(
+        followers.map((userId) => ({
+          userId,
+          kind: 'founder_analysis_published' as const,
+          subjectType: 'fixture' as const,
+          subjectId: fixtureId,
+          dedupeKey: `founder_analysis:${fixtureId}`,
+        })),
+      );
+    } catch (error) {
+      this.log.error(
+        `founder_analysis.notify_failed fixture=${fixtureId}`,
+        error instanceof Error ? error.stack : String(error),
+      );
     }
   }
 }

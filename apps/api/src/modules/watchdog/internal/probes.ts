@@ -51,8 +51,8 @@ async function orUnreadable<T>(read: () => Promise<T>): Promise<T | Unreadable> 
  * The health views as the watchdog reads them (T-801): the ingestion view's
  * runs and budget (T-071, T-501), the live fixtures' last change (D-045), the
  * BullMQ failed sets, the model service's health check, the delivery
- * channels and their recorded outcomes (T-330), and the backup -- which the
- * API cannot read yet (T-805), and says so.
+ * channels and their recorded outcomes (T-330), and what the backup and the
+ * restore drill recorded in `backup_run` from the host (T-805).
  */
 @Injectable()
 export class LiveProbes implements WatchdogProbes, OnApplicationShutdown {
@@ -68,35 +68,38 @@ export class LiveProbes implements WatchdogProbes, OnApplicationShutdown {
 
   async observe(now: Date): Promise<Observations> {
     const hourAgo = new Date(now.getTime() - HOUR_MS);
-    const [ingest, live, budget, queues, model, delivery, dataQuality] = await Promise.all([
-      orUnreadable(async () => {
-        const rows = await this.runs.jobCompletions();
-        return rows.map((r) => ({ ...r, job: r.job as string }));
-      }),
-      orUnreadable(() => this.store.liveFixtures(now, LIVE_FEED_THRESHOLD.degraded * 1000)),
-      orUnreadable(async () => {
-        const health = await this.runs.ingestionHealth(now);
-        return { requestsToday: health.requests_today, budget: health.request_budget };
-      }),
-      Promise.all(WATCHED_QUEUES.map((name) => this.failedSince(name, hourAgo))),
-      this.model(),
-      orUnreadable(async () => {
-        const channels = this.delivery.describe();
-        const outcomes = await this.store.deliveryOutcomes(hourAgo);
-        return {
-          email:
-            channels.email.state === 'configured'
-              ? { configured: true as const, ...outcomes.email }
-              : { configured: false as const },
-          push:
-            channels.push.state === 'configured'
-              ? { configured: true as const, ...outcomes.push }
-              : { configured: false as const },
-        };
-      }),
-      orUnreadable(() => this.dataQuality.liveContradictions(now)),
-    ]);
-    return { ingest, live, budget, queues, model, delivery, dataQuality, backup: undefined };
+    const [ingest, live, budget, queues, model, delivery, dataQuality, backups] = await Promise.all(
+      [
+        orUnreadable(async () => {
+          const rows = await this.runs.jobCompletions();
+          return rows.map((r) => ({ ...r, job: r.job as string }));
+        }),
+        orUnreadable(() => this.store.liveFixtures(now, LIVE_FEED_THRESHOLD.degraded * 1000)),
+        orUnreadable(async () => {
+          const health = await this.runs.ingestionHealth(now);
+          return { requestsToday: health.requests_today, budget: health.request_budget };
+        }),
+        Promise.all(WATCHED_QUEUES.map((name) => this.failedSince(name, hourAgo))),
+        this.model(),
+        orUnreadable(async () => {
+          const channels = this.delivery.describe();
+          const outcomes = await this.store.deliveryOutcomes(hourAgo);
+          return {
+            email:
+              channels.email.state === 'configured'
+                ? { configured: true as const, ...outcomes.email }
+                : { configured: false as const },
+            push:
+              channels.push.state === 'configured'
+                ? { configured: true as const, ...outcomes.push }
+                : { configured: false as const },
+          };
+        }),
+        orUnreadable(() => this.dataQuality.liveContradictions(now)),
+        orUnreadable(() => this.store.backupRuns()),
+      ],
+    );
+    return { ingest, live, budget, queues, model, delivery, dataQuality, backups };
   }
 
   private async model(): Promise<Observations['model']> {

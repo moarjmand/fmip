@@ -20,6 +20,7 @@ import {
   setQuietHoursAction,
   unmuteAction,
 } from '@/lib/notification-actions';
+import { isSectionedKind, type SectionedKind } from '@/lib/notification-sections';
 import { Button, FormStatus, Select, TextField } from '@/components/ui';
 
 /**
@@ -38,9 +39,12 @@ import { Button, FormStatus, Select, TextField } from '@/components/ui';
 /**
  * A sentence per kind, so a member is choosing about a thing and not a slug.
  * The match alerts are not here: they have a section of their own, worded
- * through the catalogues (`match-alert-settings.tsx`, T-831).
+ * through the catalogues (`match-alert-settings.tsx`, T-831), and so do the
+ * sectioned kinds (`kind-section.tsx`, T-832).
  */
-const KIND_LABEL: Record<Exclude<NotificationKind, MatchAlertKind>, string> = {
+type ListedKind = Exclude<NotificationKind, MatchAlertKind | SectionedKind>;
+
+const KIND_LABEL: Record<ListedKind, string> = {
   prediction_settled: 'When a prediction of mine is settled',
   rating_changed: 'When my Performance Rating changes',
   career_points_awarded: 'When I earn Career Points',
@@ -60,19 +64,19 @@ const KIND_LABEL: Record<Exclude<NotificationKind, MatchAlertKind>, string> = {
   system_alert: 'When the watchdog raises or clears a system alert (at any hour)',
 };
 
-/** The kinds this list offers: every one but the match alerts, which have their own section. */
+/** The kinds this list offers: every one but those with a section of their own. */
 function isListedHere(
   preference: NotificationPreference,
-): preference is NotificationPreference & { kind: Exclude<NotificationKind, MatchAlertKind> } {
-  return !isMatchAlertKind(preference.kind);
+): preference is NotificationPreference & { kind: ListedKind } {
+  return !isMatchAlertKind(preference.kind) && !isSectionedKind(preference.kind);
 }
 
 /** The categories a member can silence as one (T-331), named in words. */
 const CATEGORY_LABEL: Record<NotificationCategory, string> = {
-  football: 'Football: my predictions, my rating and my points',
-  social: 'Social: friends, messages, mentions, groups and reactions',
-  account: 'My account: moderation and contributor decisions',
-  match: 'Match alerts: kick-off, goals, red cards, half-time and full-time',
+  football: "Football: my predictions, my rating and my points, and the founder's analyses",
+  social: "Social: friends, friends' predictions, messages, mentions, groups and reactions",
+  account: 'My account: moderation and contributor decisions, and reviews of my analyses',
+  match: 'Match alerts: team news, line-ups, kick-off, goals, red cards, half-time and full-time',
 };
 
 function MuteRow({ locale, mute }: { locale: string; mute: NotificationMute }) {
@@ -210,11 +214,14 @@ export function NotificationSettingsForm({
   teams,
   competitions,
   matchAlerts,
+  sections,
 }: {
   locale: string;
   settings: NotificationSettings;
   /** The match-alert section, rendered on the server with its catalogue words (T-831). */
   matchAlerts?: ReactNode;
+  /** The other sections of their own, rendered on the server the same way (T-832). */
+  sections?: ReactNode;
   /** What can be silenced; `null` when the list could not be loaded, which the section says. */
   teams: { id: string; name: string }[] | null;
   competitions: { id: string; name: string }[] | null;
@@ -243,6 +250,8 @@ export function NotificationSettingsForm({
       </section>
 
       {matchAlerts}
+
+      {sections}
 
       <section className="flex flex-col gap-3" data-testid="notification-mutes">
         <h2 className="text-lg font-semibold">What stays quiet</h2>

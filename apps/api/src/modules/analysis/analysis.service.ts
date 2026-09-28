@@ -192,8 +192,11 @@ export class AnalysisService {
     if (owner !== null) {
       await this.notifications.emit({
         userId: owner.authorId,
-        kind: 'contributor_grant_changed',
-        subjectType: 'fixture',
+        // Its own kind and subject since T-833 (D-100): it opens the draft,
+        // where the decision and its reason are, and a team mute does not
+        // silence the answer to a submission.
+        kind: 'analysis_reviewed',
+        subjectType: 'analysis_draft',
         subjectId: owner.fixtureId,
         // Sourceless, like a moderation decision and for the same reason: the
         // decision is the platform's, and naming the reviewer would hand an

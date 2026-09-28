@@ -1,0 +1,16 @@
+# Runs fmip-restore-drill.service on the first Monday of each month at 04:40 UTC
+# (D-032's monthly drill, T-805): an hour after the daily backup (03:30 plus up
+# to ten minutes of jitter), so the dump it restores is that morning's.
+# Persistent catches up a drill missed while the machine was down.
+# See docs/07-backups.md.
+
+[Unit]
+Description=Monthly FMIP restore drill (first Monday)
+
+[Timer]
+OnCalendar=Mon *-*-01..07 04:40:00 UTC
+Persistent=true
+RandomizedDelaySec=5m
+
+[Install]
+WantedBy=timers.target

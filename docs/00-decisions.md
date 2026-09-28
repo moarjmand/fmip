@@ -3831,3 +3831,226 @@ unexploitable cross-site today; rejected because the fix is one option.
 there is none. `text/plain` stays parsed by Fastify as a string, which no
 controller accepts as a body (each reads fields from an object), and the
 security spec checks every console write with a form body.
+
+## D-100 — Team news, line-ups and a friend's prediction: opt-in, once each, and never the pick
+**Status:** Accepted · 2026-09-28 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-832 adds three notification kinds.
+
+- `match_availability` and `match_lineups` are match alerts (the `match`
+  category, D-098's batch and carrier, a push and an inbox row, never an
+  e-mail), raised inside the line-ups job, which reads each match before and
+  after it writes the line-up or the availability answer
+  (`MatchAlertsService.teamNewsBefore/After`, `internal/team-news.ts`). The
+  line-ups are announced when **both sides first have starters stored**, for
+  a match that is scheduled or live -- not one already announced before this
+  shipped, not a correction, not a line-up that arrives with the post-match
+  detail. A player is announced the first time the provider lists them
+  `out` for a scheduled match; `doubtful` is not announced (it is not news a
+  follower can act on), a player dropped from the list is not announced as
+  fit (the feed never says "fit", T-103), and a player with no name is not
+  announced as somebody. Each is a `match_alert` row keyed
+  `<fixture>:lineups` or `<fixture>:out:<person>`, the notification's dedupe
+  key, so a retry, a second process or a player listed, dropped and listed
+  again reaches nobody twice. A long-term absentee is named once per match.
+  They open the match at its line-ups (`#lineups`).
+- `friend_predicted` (the `social` category): when a member makes their
+  **first** prediction on a match, each friend who follows either team or the
+  competition, or has predicted the match too, is told -- only where the
+  predictor's own `prediction_history_visibility`, asked of the profile
+  boundary per recipient exactly as D-063 asks it, lets that friend read the
+  prediction. It is sourced (the friend's name, so a block applies), keyed
+  `friend_predicted:<fixture>:<friend>` so a revision is the same news, and
+  says **that** they predicted, never **what**: the plan does not say whether
+  a pick should reach a friend before kick-off, and a notification is not the
+  place to decide it, so the pick stays where the member's own setting
+  already shows it. It opens the match. It is written from
+  `PredictionsService.submit` and never fails the prediction.
+
+**Defaults.** All three **off** (the E83 row says opt-in). Team news and
+line-ups arrive for every followed match and most of them nobody is waiting
+on; a friend's activity is not something the product interrupts anybody
+with unless they asked. Each is a switch in Settings → Notifications: the
+first two in the match-alert section, the third in its own "Friends'
+predictions" section, both worded through the catalogues.
+
+**Alternatives considered.** Announcing the line-ups when one side arrives:
+half a line-up is the question, not the answer. One alert per match listing
+every absentee: its key would have to change whenever the list did, and
+then a list that grew by one player would repeat the rest. Including the
+pick for a friend whose history is public: defensible, but a second rule
+about when a pick may be seen, which D-063 declined to add; the friend can
+open the profile. Telling followers who are not friends: that is a feed, not
+a notification, and the blueprint's line is about friends (8.1).
+
+**Consequences.** `notificationPath` takes the kind (optional), so a fixture
+notification can open a region of the match page; the kind lists of
+`notification`, `notification_preference` and `match_alert` are widened by
+`1764780000000_lineup-friend-alerts.sql`, which reads each constraint as it
+stands.
+
+## D-100, continued (T-833) — Editorial notifications: the founder's analysis to its match's followers, a review to its author, a newly eligible member to administrators
+**Status:** Accepted · 2026-09-28 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-833 adds three notification kinds, each a consequence of a
+write that already happens, each deep-linking where the plan says.
+
+- `founder_analysis_published` (category `football`): the **first** version
+  of the founder's analysis of a match is announced to everyone following
+  either team or the competition, the author excepted, keyed
+  `founder_analysis:<fixture>` so a revision is the same analysis. Written
+  from `FounderAnalysisService.publish` after the version commits, sourceless
+  (the platform's editorial, not one member reaching another), and never
+  failing the publication. Opens the match at the founder's analysis
+  (`/match/<id>#analysis`). Only the founder's analysis: a community
+  analysis is not announced to followers (rule 6 keeps the two apart, and
+  the plan names only the founder's).
+- `analysis_reviewed` (category `account`): the decision on a community
+  analysis submission, to its author, once per submission
+  (`analysis_review:<submission>`, the key it already had). It replaces the
+  `contributor_grant_changed` notification the review used to send, whose
+  words ("Your contributor approval changed") were about something else. Its
+  subject is new, `analysis_draft` (the fixture's id), so it opens the
+  analyst's editor (`/analyses/<fixture>`), where the decision and its reason
+  sit beside the draft (T-262), and so a team mute -- which silences what is
+  about that team's matches -- never silences the answer to a submission.
+- `contributor_eligible` (category `account`, **administrators only**, like
+  `system_alert`): a member who newly meets the four measurable requirements
+  (blueprint 9.4, `eligibilityFor`) is announced to every administrator, the
+  member excepted. The verdict is asked after every
+  `ReputationService.recompute` of an existing member -- eligibility can move
+  without the rating (a sanction ageing out, an address verified) -- and
+  `contributor_eligibility_state` keeps the last one, so only a **transition**
+  to qualifying is announced, in one statement that two recomputes racing
+  cannot both win. `times_qualified` is in the dedupe key
+  (`contributor_eligible:<member>:<n>`): a member who drops below and
+  qualifies again is announced again, once. A member who already holds a
+  grant in any standing is not announced -- a person has decided about them.
+  The line names the member by username (read at display time, like a
+  watchdog alert's); it opens the contributors page (`/admin/contributors`),
+  where the requirements and the decision are. It grants nothing (T-250).
+  Quiet hours hold it: it is a queue, not a pager.
+
+**Defaults.** All three **on**. The founder writes a handful a week and a
+follower of the match came for exactly that; an analyst who submitted is
+waiting for the answer (it was on before, under the other kind); the
+administrator who approves contributors is the one person who must know
+somebody is waiting. Each has a switch in Settings → Notifications, in a
+new "Analysis" section worded through the catalogues; the contributor switch
+is shown to administrators only, because the API offers it to nobody else.
+
+**No replay, and one exception to it.** Nothing is backfilled: analyses
+already published and reviews already decided are not announced. The
+eligibility state starts empty, so a member who qualified before this
+shipped and holds no grant is announced once, at their next recompute --
+the thresholds live in code (D-059), and seeding the state in SQL would be a
+second copy of them. They are exactly the members the contributors page
+already shows as waiting, so the notice is late news, not wrong news.
+
+**Alternatives considered.** A poller over `contributor_eligibility_input`:
+it would need the thresholds in SQL or every member read each pass, and
+would announce on its own interval rather than when the recompute changed
+the answer. Announcing every revision of the founder's analysis: a revision
+is the same analysis, and the page shows the newest. Keeping the review under
+`contributor_grant_changed`: a member who switched off grant changes would
+stop hearing about their analyses, and the sentence was wrong.
+
+**Consequences.** `notificationPath` routes `analysis_draft` and, by kind, a
+`contributor_eligible` member and a `founder_analysis_published` fixture;
+`1764790000000_editorial-notifications.sql` widens the kind and subject lists
+as they stand and creates `contributor_eligibility_state`.
+
+## D-101 — The restore drill runs itself monthly, and both runs are rows the watchdog reads
+**Status:** Accepted · 2026-09-28 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-805 puts D-032's monthly drill on a systemd timer beside the
+backup's: `fmip-restore-drill.timer`, the first Monday of each month at
+04:40 UTC (an hour after the daily 03:30 backup), running
+`restore-drill.sh --scheduled` as `fmip`. That run takes the newest dump and
+manifest from the off-provider remote (the local copy only when no remote is
+set, and says so), fails if the dump is more than 48 hours old, runs the
+existing manifest checks (checksum, every migration, every table's exact row
+count, the forecast CHECK and trigger) and then compares the restored copy
+with the live database: the same migrations (or an earlier prefix, for a
+deploy after the dump), and six key tables' counts within 10 % (never under
+100 rows). Its container and downloads are removed on exit.
+
+The API learns of both scripts through a table, `backup_run` (migration
+`1764770000000_backup-run`): each run, pass or fail, ends by appending one row
+(kind, start, finish, ok, dump name, what failed) through `psql` in the
+postgres container, which is how the scripts already reach the database. The
+watchdog (D-095) reads it:
+
+- `backup`: 26 / 50 h since the newest successful backup as before, and now
+  at least `degraded` when the newest run failed, `failing` when runs exist
+  and none succeeded.
+- `restore_drill` (new): 35 / 70 days since the newest drill that passed;
+  `failing` when the newest drill failed, whatever its age.
+- Both `unknown` when nothing was ever recorded (a laptop, a server without
+  the timers), never `ok` by default.
+
+**Why.** A table is the simplest record the API can already read: no new
+mount, no file format, no second writer to trust, and the history comes for
+free. A status file mounted read-only into the api container was the other
+candidate; it needs a compose change on the server, holds only the newest
+result, and a stale file looks exactly like a fresh one. A failed newest
+backup raising at once, rather than after the age catches up, is the exit
+criterion ("a failed backup reaches an administrator's device within
+minutes"). The comparison with live exists because a manifest proves a dump
+is whole, not that it is ours or recent. The first Monday stays D-032's day;
+thresholds of five and ten weeks allow one missed drill before failing.
+
+**Alternatives considered.** The drill as a BullMQ job inside the API: the
+API would need the Docker socket to start a throwaway Postgres, which is
+root on the host. A drill restoring into a second database inside the live
+container: it shares the disk and the memory with production during the
+restore. Counting a drill of the local copy as a pass when a remote is set:
+the local copy is not the one in doubt.
+
+**Consequences.** The maintainer installs `fmip-restore-drill.{service,timer}`
+once (`07-backups.md`, "Schedule") and records the first timed run in the
+handoff. `check-setup.sh` has a `Restore drill` line. T-804's System page
+shows both conditions through the watchdog report. A threshold change is a
+one-line change in `apps/api/src/modules/watchdog/internal/conditions.ts` and
+an edit here.
+
+---
+
+## D-102 — Activity counts: what is counted, per UTC day, from rows the product already keeps
+**Status:** Accepted · 2026-09-28 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-807's Activity page (`GET /admin/activity`, admin role) counts
+per UTC calendar day, over 30 days by default (at most 90): registrations
+(`user_account.created_at`), verifications (`email_verified_at`), sign-ins
+(`session.created_at`), active members (distinct members who started a
+session or submitted a prediction version that day), deletions
+(`retired_username.retired_at`), predictions, prediction changes (versions
+after the first), settlements (settled or voided), rating snapshots, direct
+messages, group posts (messages in groups and their match threads), match
+panel posts, group polls, reports, notifications written, and push and
+e-mail deliveries sent and failed (`notification_delivery.carried_at`).
+Every figure is a `count(*)` or a `count(DISTINCT ...)` computed in the
+database; the answer carries numbers and day labels only.
+
+**Why.** E80 says "counts, not tracking": nothing new is recorded about a
+member to produce these numbers, so each one is a column the product already
+writes for its own work. "Active" is the one definition with a choice in it:
+signing in or predicting are the two acts that leave a dated row per act
+(`session.last_seen_at` is only the newest visit, so a daily "seen" count
+would need a new record of each visit, which is tracking). UTC days, because
+the server's day is the one every other admin count uses (T-803).
+
+**What deletion does to the counts.** D-094 keeps a deleted account's
+tombstone, predictions, settlements, messages and reports, unnamed: they
+keep counting. It erases the address with its verification time and the
+sessions: those are not reconstructed, so a past day's verifications and
+sign-ins can fall after a deletion, and the page says so.
+
+**Alternatives considered.** A daily rollup table written by a job: faster on
+a large database, but a second copy of the same facts that can drift, and
+unnecessary at this size (one statement over indexed timestamp columns). A
+page-view or visit counter: new tracking, refused by E80.
+
+**Consequences.** Adding a count is a line in
+`apps/api/src/modules/activity/internal/activity-store.ts`, a name in
+`ACTIVITY_METRICS` and its words in `apps/web/src/lib/activity.ts`.

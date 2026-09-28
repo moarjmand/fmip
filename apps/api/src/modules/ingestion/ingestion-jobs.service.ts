@@ -444,6 +444,8 @@ export class IngestionJobsService {
       let written = 0;
       const refused: string[] = [];
       const unresolved = new Set<string>();
+      // Who this run's team news reached (T-832): carried at its end.
+      const told = new Set<string>();
 
       for (const candidate of candidates) {
         const result = await source.adapter.getLineup(candidate.externalId);
@@ -452,6 +454,7 @@ export class IngestionJobsService {
           continue;
         }
         seen += 1;
+        const before = await this.alerts.teamNewsBefore(candidate.fixtureId);
         const write = await this.store.saveLineup(
           source.provider,
           candidate.fixtureId,
@@ -459,6 +462,7 @@ export class IngestionJobsService {
         );
         written += write.changed;
         for (const id of write.unresolved) unresolved.add(id);
+        if (before !== null) for (const id of await this.alerts.teamNewsAfter(before)) told.add(id);
       }
 
       const asked: string[] = [];
@@ -473,6 +477,7 @@ export class IngestionJobsService {
         }
         seen += 1;
         asked.push(due.fixtureId);
+        const before = await this.alerts.teamNewsBefore(due.fixtureId);
         const write = await this.store.saveAvailability(
           source.provider,
           due.fixtureId,
@@ -480,11 +485,14 @@ export class IngestionJobsService {
         );
         written += write.changed;
         for (const id of write.unresolved) unresolved.add(id);
+        if (before !== null) for (const id of await this.alerts.teamNewsAfter(before)) told.add(id);
       }
 
       written += await this.coverage.recomputeMany(
         await this.coverage.seasonsOf([...candidates.map((c) => c.fixtureId), ...asked]),
       );
+      // One push per member for the run's team news (T-832, D-098's batch).
+      await this.alerts.deliver([...told]);
       return this.report('lineups', source.provider, seen, written, refused, unresolved);
     });
   }
