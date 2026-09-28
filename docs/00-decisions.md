@@ -3426,3 +3426,90 @@ warnings and the live marker were below 7:1 too. *Honouring
 for more everywhere may want this site's standard look, as a theme choice
 wins over the device. *A redirect for guests with the controls in the
 header*: four switches crowd the one row the header has at 360px.
+
+---
+
+## D-094 — Deleting an account leaves an anonymous tombstone: records stay, the person goes, the username is retired
+
+**Status:** decided, delegated (N-3 in `04-tasks-phase-8.md`) · **Date:** 2026-09-28 · **Tasks:** T-812 · **Follows:** D-057, D-053, D-025
+
+`13-policy.md` §4 promised that a member can delete their account and that
+their predictions stay "as records without your name". N-3 asked what else
+deletion removes. The plan's proposal is adopted and made exact.
+
+**The decision.**
+
+- **The `user_account` row stays, as a tombstone.** Predictions, settlements,
+  rating snapshots, points, reports, moderation decisions, grants and the
+  audit trail hold the account with ON DELETE RESTRICT, and rule 8 needs the
+  settlements. So deletion *anonymises* rather than deletes: `status =
+  'deleted'`, username `deleted_` + 12 hex digits, display name `Deleted
+  member`, e-mail `deleted-<id>@deleted.invalid` (unverified), every
+  preference back to its default. Every public read already filters
+  `status = 'active'` (profile, boards, period boards, predictions on a
+  match, search, following feed), so a deleted member disappears from them
+  with no further change. Country and the registration dates stay: they are
+  NOT NULL, coarse, and T-807's counts need the dates.
+- **Removed:** credentials, sessions, e-mail tokens, roles, the profile
+  (biography, avatar), followed entities, notification preferences, mutes and
+  quiet hours, push subscriptions, rate windows, member briefings, member
+  follows and friendships and friend requests and blocks **in both
+  directions**, group memberships, group invitations (sent and received) and
+  join requests, and unsubmitted community-analysis drafts. Privacy is set to
+  private as a second fence.
+- **Kept, without a name:** predictions, prediction versions, settlements,
+  rating snapshots and points (rule 8 -- other members' ratings never read
+  them, and the member's own rating remains recomputable from them, it is
+  simply shown nowhere); messages in direct and group conversations and
+  public match-panel posts, shown as **"a deleted member"** (the member leaves
+  every conversation; reactions and poll votes stay as counts); notifications
+  already sent to the member (the delivery record T-807 counts; unreachable
+  without a session).
+- **Taken down:** published community analysis. Its versions are immutable,
+  so the public read (`/fixtures/:id/community-analyses`) and the review queue
+  drop an author whose status is `deleted`. A live contributor grant is
+  withdrawn with an event, so no post calls the tombstone approved.
+- **Kept for the audit:** reports the member filed (their words included --
+  a decision was, or will be, made on them), sanctions and appeals.
+- **The username is retired permanently, not reserved for a period.** It is
+  copied into `retired_username` -- the string and a date, deliberately
+  without the account id, so it cannot be joined back to the tombstone -- and
+  a trigger refuses it (and any `deleted_…` name) to every account that is
+  not deleted, as a unique violation, so registration answers "already
+  taken". A 90-day reservation was the alternative; a username is how other
+  members recognise someone in old messages, mentions and screenshots, and
+  impersonation (§4) does not expire.
+- **Groups (D-057, exactly one owner).** A group the member owns passes to its
+  longest-standing moderator, else its longest-standing member. A group with
+  nobody else in it is deleted; if a conversation in it holds messages --
+  which are removed by tombstone, never deleted -- it is **closed** instead:
+  made invite-only, with the tombstone as its nominal owner, so nobody can
+  find it or get in and what former members wrote is kept.
+- **One transaction, one audit row.** `POST /auth/account/delete` takes the
+  password and the username typed again, and runs every step above in one
+  transaction with an `audit_log` row: actor the member, action
+  `account.delete`, reason `self-service deletion`, previous `{status:
+  'active'}`, next `{status: 'deleted'}` plus counts (groups handed over,
+  deleted, closed; analyses taken down; grants withdrawn). The audit row keeps
+  no copy of the username or address -- that would keep what was deleted.
+- **Final.** A trigger refuses setting a deleted account back to any other
+  status; the admin status control treats a deleted account as unknown.
+- **Admin deletion (for abuse)** is the same store call with the
+  administrator as actor and their reason. It is not exposed as an endpoint
+  in T-812: the console's suspension already stops an abusive account, and
+  deleting someone else's account is a heavier act that should arrive with
+  its own task and UI.
+
+**The policy text.** `13-policy.md` §4 now lists exactly the above. It
+describes what leaving does; it does not change what is allowed, so under
+§4's own "Changes" rule it needs no new acceptance and the version stays
+`platform-rules@1.0.0`.
+
+**Rejected.** *Deleting the row and cascading*: RESTRICT foreign keys and
+immutable tables refuse it, and removing predictions would change consensus
+counts and the record other members' results sit beside. *Keeping the
+username on the tombstone*: every message would still carry the name.
+*Deleting messages and panel posts*: the conversations around them would read
+as non sequiturs, and the message schema already chose tombstones over holes. *Refusing
+deletion while the member owns a group* (D-057's original wording): it makes
+leaving depend on an admin chore the member may be unable to do.
