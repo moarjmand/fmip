@@ -11,6 +11,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type { ApiError, AuthUser, TranslationRequest } from '@fmip/contracts';
+import { ROLE_REFUSALS } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { PostgresTranslationsAdminStore } from './internal/translations-admin-store';
@@ -18,10 +19,6 @@ import { PostgresTranslationsAdminStore } from './internal/translations-admin-st
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const LANGUAGE = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
-const NOT_AN_EDITOR: ApiError = {
-  error: 'validation',
-  message: 'This needs the editor or administrator role.',
-};
 const NO_ARTICLE: ApiError = { error: 'not_found', message: 'No such article.' };
 const MAX_TEXT = 2000;
 
@@ -49,7 +46,7 @@ export class TranslationsAdminController {
       this.identity.hasRole(user.id, 'editor'),
       this.identity.hasRole(user.id, 'admin'),
     ]);
-    if (!isEditor && !isAdmin) throw new ForbiddenException(NOT_AN_EDITOR);
+    if (!isEditor && !isAdmin) throw new ForbiddenException(ROLE_REFUSALS.editor);
     return user;
   }
 

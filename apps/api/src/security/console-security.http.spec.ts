@@ -133,120 +133,103 @@ const CONSOLE: Record<string, ConsoleRoute> = {
   'POST /admin/campaigns/:id/send': { roles: ADMIN, until: 'T-905', reason: { without: {} } },
 
   // Moderation (T-212, T-441, T-610, T-611).
-  'GET /admin/moderation/queue': { roles: MODERATION, until: 'T-906' },
-  'GET /admin/moderation/members/:username': { roles: MODERATION, until: 'T-906' },
+  'GET /admin/moderation/queue': { roles: MODERATION },
+  'GET /admin/moderation/members/:username': { roles: MODERATION },
   'POST /admin/moderation/decisions': {
     roles: MODERATION,
-    until: 'T-906',
     reason: { without: { report_ids: [UUID_A], outcome: 'no_action' } },
   },
   'POST /admin/moderation/sanctions/:id/lift': {
     roles: MODERATION,
-    until: 'T-906',
     reason: { without: {} },
   },
   'POST /admin/moderation/reports/:id/suggest': {
     roles: MODERATION,
-    until: 'T-906',
     reason: {
       none: 'Asks the assistant for a suggestion on a report; it decides nothing and changes no member.',
     },
   },
 
   // Contributors (T-250, T-612).
-  'GET /admin/contributors': { roles: MODERATION, until: 'T-906' },
-  'GET /admin/contributors/:username': { roles: MODERATION, until: 'T-906' },
-  'POST /admin/contributors': { roles: MODERATION, until: 'T-906', reason: { without: {} } },
+  'GET /admin/contributors': { roles: MODERATION },
+  'GET /admin/contributors/:username': { roles: MODERATION },
+  'POST /admin/contributors': { roles: MODERATION, reason: { without: {} } },
   'POST /admin/contributors/:username/pause': {
     roles: MODERATION,
-    until: 'T-906',
     reason: { without: {} },
   },
   'POST /admin/contributors/:username/resume': {
     roles: MODERATION,
-    until: 'T-906',
     reason: { without: {} },
   },
   'POST /admin/contributors/:username/withdraw': {
     roles: MODERATION,
-    until: 'T-906',
     reason: { without: {} },
   },
 
   // Featured-match panels (T-253, T-613).
-  'GET /admin/panels': { roles: MODERATION, until: 'T-906' },
-  'POST /admin/fixtures/:id/panel': { roles: MODERATION, until: 'T-906', reason: { without: {} } },
+  'GET /admin/panels': { roles: MODERATION },
+  'POST /admin/fixtures/:id/panel': { roles: MODERATION, reason: { without: {} } },
   'POST /admin/fixtures/:id/panel/close': {
     roles: MODERATION,
-    until: 'T-906',
     reason: { without: {} },
   },
 
   // Editorial: analysis reviews, debates, translations, viewing, summaries.
-  'GET /admin/analysis-reviews': { roles: EDITORIAL, until: 'T-906' },
+  'GET /admin/analysis-reviews': { roles: EDITORIAL },
   'POST /admin/analysis-reviews/:submissionId': {
     roles: EDITORIAL,
-    until: 'T-906',
     reason: { without: { decision: 'approved' } },
   },
-  'GET /admin/debates': { roles: EDITORIAL, until: 'T-906' },
-  'POST /admin/stories/:id/debate': { roles: EDITORIAL, until: 'T-906', reason: { without: {} } },
+  'GET /admin/debates': { roles: EDITORIAL },
+  'POST /admin/stories/:id/debate': { roles: EDITORIAL, reason: { without: {} } },
   'POST /admin/stories/:id/debate/clear': {
     roles: EDITORIAL,
-    until: 'T-906',
     reason: { without: {} },
   },
   'POST /admin/articles/:id/translations': {
     roles: EDITORIAL,
-    until: 'T-906',
     reason: {
       none: 'Adds a translation, which is content under its translator, audited with who and when; nothing is overridden.',
     },
   },
   'POST /admin/articles/:id/translations/:language/review': {
     roles: EDITORIAL,
-    until: 'T-906',
     reason: {
       none: "A reviewer's approval of a translation is the decision itself, audited with who and when.",
     },
   },
-  'GET /admin/viewing/broadcasters': { roles: EDITORIAL, until: 'T-906' },
+  'GET /admin/viewing/broadcasters': { roles: EDITORIAL },
   'POST /admin/viewing/broadcasters': {
     roles: EDITORIAL,
-    until: 'T-906',
     reason: { none: 'Adds a broadcaster to the directory; removals carry a reason (T-312).' },
   },
-  'GET /admin/viewing/coverage': { roles: EDITORIAL, until: 'T-906' },
+  'GET /admin/viewing/coverage': { roles: EDITORIAL },
   'PUT /admin/viewing/coverage': {
     roles: EDITORIAL,
-    until: 'T-906',
     reason: {
       none: 'Records where a broadcaster shows a season; removals carry a reason (T-312).',
     },
   },
   'POST /admin/fixtures/:id/viewing-options': {
     roles: EDITORIAL,
-    until: 'T-906',
     reason: { none: 'Adds a way to watch a match; its removal carries a reason (T-312).' },
   },
   'POST /admin/fixtures/:id/viewing-options/:optionId/remove': {
     roles: EDITORIAL,
-    until: 'T-906',
     reason: { without: {} },
   },
   'PUT /admin/fixtures/:id/highlight': {
     roles: EDITORIAL,
-    until: 'T-906',
     reason: {
       none: 'Adds a highlight link for a territory; its removal carries a reason (T-312).',
     },
   },
   'POST /admin/fixtures/:id/highlight/:territory/remove': {
     roles: EDITORIAL,
-    until: 'T-906',
     reason: { without: {} },
   },
-  'POST /admin/fixtures/:id/summary': { roles: EDITORIAL, until: 'T-906', reason: { without: {} } },
+  'POST /admin/fixtures/:id/summary': { roles: EDITORIAL, reason: { without: {} } },
 };
 
 /**

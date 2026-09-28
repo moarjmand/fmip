@@ -25,15 +25,12 @@ import type {
   ReviewAnalysisRequest,
   SaveAnalysisDraftRequest,
 } from '@fmip/contracts';
+import { ROLE_REFUSALS } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { AnalysisService, type WorkOutcome } from './analysis.service';
 
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
-const NOT_A_REVIEWER: ApiError = {
-  error: 'validation',
-  message: 'Reviewing analysis needs the editor or administrator role.',
-};
 
 const OUTCOMES = new Set(['home', 'draw', 'away']);
 const DECISIONS = new Set(['approved', 'changes_requested', 'rejected']);
@@ -76,7 +73,7 @@ export class AnalysisController {
       this.identity.hasRole(user.id, 'editor'),
       this.identity.hasRole(user.id, 'admin'),
     ]);
-    if (!isEditor && !isAdmin) throw new ForbiddenException(NOT_A_REVIEWER);
+    if (!isEditor && !isAdmin) throw new ForbiddenException(ROLE_REFUSALS.editor);
     return user;
   }
 
