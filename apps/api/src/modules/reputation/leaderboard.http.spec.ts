@@ -183,9 +183,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Leaderboard'
     expect(first.total).toBeGreaterThanOrEqual(2);
     expect(second.total).toBeGreaterThanOrEqual(2);
 
-    const beyond = (
-      await get('/leaderboard?offset=1000000')
-    ).json() as LeaderboardResponse;
+    const beyond = (await get('/leaderboard?offset=1000000')).json() as LeaderboardResponse;
     expect(beyond.entries).toEqual([]);
     expect(beyond.total).toBeGreaterThanOrEqual(2);
 
