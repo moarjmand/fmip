@@ -9,6 +9,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type { ApiError, FailureCountsReport } from '@fmip/contracts';
+import { ROLE_REFUSALS } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityModule } from '../identity/identity.module';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
@@ -17,10 +18,6 @@ import { FailureCountsStore } from './internal/failure-counts-store';
 import { MAX_WINDOW_HOURS, windowHours } from './internal/summarise';
 
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
-const NOT_ADMIN: ApiError = {
-  error: 'unauthenticated',
-  message: 'The administration area needs the admin role.',
-};
 
 /**
  * `GET /admin/health/failures?hours=` (T-803): 5xx responses per route and
@@ -44,7 +41,8 @@ export class FailureCountsController {
       parseCookies(request.headers.cookie)[SESSION_COOKIE],
     );
     if (user === null) throw new UnauthorizedException(UNAUTHENTICATED);
-    if (!(await this.identity.hasRole(user.id, 'admin'))) throw new ForbiddenException(NOT_ADMIN);
+    if (!(await this.identity.hasRole(user.id, 'admin')))
+      throw new ForbiddenException(ROLE_REFUSALS.administrator);
     const window = windowHours(hours);
     if (window === null) {
       const error: ApiError = {

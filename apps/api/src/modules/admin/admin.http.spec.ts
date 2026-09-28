@@ -112,7 +112,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('administrati
     expect((await inject('GET', '/admin/overview')).statusCode).toBe(401);
     const forbidden = await inject('GET', '/admin/overview', member.cookie);
     expect(forbidden.statusCode).toBe(403);
-    expect((forbidden.json() as ApiError).message).toContain('admin role');
+    expect((forbidden.json() as ApiError).error).toBe('forbidden');
+    expect((forbidden.json() as ApiError).message).toContain('administrator role');
     expect((await inject('GET', `/admin/users?q=${RUN}`, member.cookie)).statusCode).toBe(403);
   });
 
