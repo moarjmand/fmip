@@ -1,4 +1,5 @@
 import type {
+  DeleteAccountRequest,
   ForgotPasswordRequest,
   LoginRequest,
   RegisterRequest,
@@ -161,4 +162,24 @@ export function validateResetPassword(body: unknown): Validated<ResetPasswordReq
 
   if (Object.keys(fields).length > 0) return { ok: false, fields };
   return { ok: true, value: { token: body.token as string, password: password as string } };
+}
+
+/**
+ * `POST /auth/account/delete` (T-812). Shape only: whether the password is
+ * right and whether `confirm` is the member's own username are the service's
+ * questions, because only the service knows who is asking.
+ */
+export function validateDeleteAccount(body: unknown): Validated<DeleteAccountRequest> {
+  const fields: Record<string, string> = {};
+  if (!isRecord(body)) return { ok: false, fields: { body: 'must be a JSON object' } };
+
+  const password = str(body.password);
+  if (password === undefined || password === '' || password.length > PASSWORD_MAX_LENGTH) {
+    fields.password = 'required';
+  }
+  const confirm = str(body.confirm)?.trim().toLowerCase();
+  if (confirm === undefined || confirm === '' || confirm.length > 254) fields.confirm = 'required';
+
+  if (Object.keys(fields).length > 0) return { ok: false, fields };
+  return { ok: true, value: { password: password as string, confirm: confirm as string } };
 }

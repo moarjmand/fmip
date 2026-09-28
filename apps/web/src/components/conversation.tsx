@@ -1,6 +1,12 @@
 import Link from 'next/link';
 import { conversationTitle, threadStanding } from '@/lib/conversation-title';
-import type { ConversationSummary, Message, SharedCard } from '@fmip/contracts';
+import {
+  isDeletedMember,
+  type ConversationSummary,
+  type Message,
+  type SharedCard,
+} from '@fmip/contracts';
+import { Translated } from '@/components/translated';
 import { Score } from '@/components/score';
 import { formatDateTime } from '@/i18n/format';
 
@@ -117,7 +123,13 @@ export function MessageRow({
   return (
     <li className="flex flex-col gap-1" data-testid="message">
       <p className="text-xs text-muted">
-        <span className="font-medium">@{message.author}</span> ·{' '}
+        {/* A deleted account's words stay, under no name (T-812, D-094). */}
+        {isDeletedMember(message.author) ? (
+          <Translated locale={locale} message="account.deletedMember" className="font-medium" />
+        ) : (
+          <span className="font-medium">@{message.author}</span>
+        )}{' '}
+        ·{' '}
         <time dateTime={message.created_at}>
           {formatDateTime(locale, message.created_at, timeZone)}
         </time>

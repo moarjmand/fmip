@@ -322,6 +322,8 @@ export class PostgresAnalysisStore {
             ORDER BY rs.computed_at DESC, rs.id DESC LIMIT 1
          ) rating ON true
         WHERE r.submission_id IS NULL
+          -- Nobody reviews a deleted member's work (T-812): it could never be published.
+          AND author.status <> 'deleted'
         ORDER BY s.submitted_at
         LIMIT $1`,
       [limit],
@@ -347,6 +349,9 @@ export class PostgresAnalysisStore {
             ORDER BY rs.computed_at DESC, rs.id DESC LIMIT 1
          ) rating ON true
         WHERE a.fixture_id = $1
+          -- A deleted member's analysis is taken down (T-812, D-094); its
+          -- versions are immutable, so the read is where it stops.
+          AND author.status <> 'deleted'
           AND EXISTS (SELECT 1 FROM community_analysis_version v WHERE v.analysis_id = a.id)
         ORDER BY a.created_at DESC`,
       [fixtureId],

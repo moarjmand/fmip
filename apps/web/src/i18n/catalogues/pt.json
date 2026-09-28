@@ -159,6 +159,66 @@
     "text": "",
     "status": "untranslated"
   },
+  "account.delete.heading": {
+    "source": "Delete my account",
+    "text": "",
+    "status": "untranslated"
+  },
+  "account.delete.removed": {
+    "source": "Deleting your account signs you out on every device and removes your e-mail address, password, display name, biography, preferences, follows, friendships, blocks, group memberships and invitations, and your push subscriptions.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "account.delete.kept": {
+    "source": "Your messages and match panel posts stay where they were written, shown as by a deleted member. Your published community analysis is taken down. Your predictions and their settlements stay as records without your name, because other members' ratings were computed against them. Reports you made are kept for the moderation record.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "account.delete.username": {
+    "source": "Your username is retired: nobody can register it after you. A group you own passes to its longest-standing moderator, or member; a group with nobody else in it is closed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "account.delete.final": {
+    "source": "This cannot be undone.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "account.delete.password": {
+    "source": "Your password",
+    "text": "",
+    "status": "untranslated"
+  },
+  "account.delete.confirm": {
+    "source": "Type your username to confirm",
+    "text": "",
+    "status": "untranslated"
+  },
+  "account.delete.confirmHint": {
+    "source": "Type {username} exactly as it is written here.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "account.delete.submit": {
+    "source": "Delete my account",
+    "text": "",
+    "status": "untranslated"
+  },
+  "account.deleted.title": {
+    "source": "Your account was deleted",
+    "text": "",
+    "status": "untranslated"
+  },
+  "account.deleted.body": {
+    "source": "Your account was deleted and every session was signed out. Your predictions remain as records without your name.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "account.deletedMember": {
+    "source": "A deleted member",
+    "text": "",
+    "status": "untranslated"
+  },
   "language.name.en": {
     "source": "English",
     "text": "",

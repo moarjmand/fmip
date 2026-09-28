@@ -15,6 +15,7 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from './identity.service';
 import {
   type Validated,
+  validateDeleteAccount,
   validateForgotPassword,
   validateLogin,
   validateRegister,
@@ -126,6 +127,39 @@ export class IdentityController {
     const user = await this.identity.authenticate(sessionTokenOf(request));
     if (user === null) throw new UnauthorizedException(UNAUTHENTICATED);
     return { user };
+  }
+
+  /**
+   * Delete my account (T-812, D-094). Needs the session, the password and the
+   * username typed again; answers 204 and clears the cookie. A wrong password
+   * or confirmation is a validation error on that field, so the form says
+   * which one.
+   */
+  @Post('account/delete')
+  @HttpCode(204)
+  async deleteAccount(
+    @Body() body: unknown,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<void> {
+    const user = await this.identity.authenticate(sessionTokenOf(request));
+    if (user === null) throw new UnauthorizedException(UNAUTHENTICATED);
+    const input = unwrap(validateDeleteAccount(body));
+
+    const outcome = await this.identity.deleteAccount(user.id, input);
+    if (outcome === 'unknown') throw new UnauthorizedException(UNAUTHENTICATED);
+    if (outcome !== 'deleted') {
+      const error: ApiError = {
+        error: 'validation',
+        message: 'The account was not deleted.',
+        fields:
+          outcome === 'wrong_password'
+            ? { password: 'is not right' }
+            : { confirm: 'must be your username' },
+      };
+      throw new BadRequestException(error);
+    }
+    void reply.header('set-cookie', this.identity.clearedSessionCookie());
   }
 
   @Post('verify-email')
