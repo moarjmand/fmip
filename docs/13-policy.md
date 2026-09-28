@@ -131,7 +131,8 @@ your username typed again. It happens at once and cannot be undone.
 - **Removed:** your e-mail address, password, display name, biography,
   preferences, every signed-in session, push subscriptions, the teams and
   members you follow and who follows you, friendships, friend requests, blocks,
-  group memberships and group invitations, and your unsubmitted analysis drafts.
+  group memberships and group invitations, your unsubmitted analysis drafts,
+  and the news stories you saved.
 - **Kept, without your name:** your predictions and their settlements, which are
   what other people's ratings were computed against, and your rating history,
   which is shown nowhere. Messages you wrote in conversations and posts on a

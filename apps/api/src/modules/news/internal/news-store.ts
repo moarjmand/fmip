@@ -324,7 +324,7 @@ export class PostgresNewsStore {
 
   /**
    * Moves an article into a story, drops the story it leaves when that one is
-   * now empty, and promotes the target's original -- one transaction, so no
+   * now empty (moving any saves of it onto the target, T-842), and promotes the target's original -- one transaction, so no
    * reader sees a story with nothing in it or a cluster with no original.
    */
   async moveToStory(articleId: string, storyId: string): Promise<void> {
@@ -337,6 +337,17 @@ export class PostgresNewsStore {
       );
       const from = rows[0]!.story_id;
       await client.query(`UPDATE article SET story_id = $2 WHERE id = $1`, [articleId, storyId]);
+      // A member who saved the story being emptied keeps it, as the story it
+      // joined (T-842); the delete below would otherwise take their row with it.
+      await client.query(
+        `INSERT INTO saved_article (user_id, story_id, article_id, source_id, saved_at)
+         SELECT sa.user_id, $2, sa.article_id, sa.source_id, sa.saved_at
+           FROM saved_article sa
+          WHERE sa.story_id = $1
+            AND NOT EXISTS (SELECT 1 FROM article WHERE story_id = $1)
+         ON CONFLICT (user_id, story_id) DO NOTHING`,
+        [from, storyId],
+      );
       await client.query(
         `DELETE FROM story WHERE id = $1 AND NOT EXISTS (SELECT 1 FROM article WHERE story_id = $1)`,
         [from],

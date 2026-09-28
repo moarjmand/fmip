@@ -573,6 +573,7 @@ export {
   FIXTURE_NEWS_LIMIT,
   NEWS_PAGE_SIZE,
   NEWS_SECTIONS,
+  SAVED_ARTICLES_LIMIT,
   TRENDING_WINDOW_HOURS,
   isNewsSection,
 } from './news';
@@ -591,6 +592,9 @@ export type {
   NewsReport,
   NewsSectionResponse,
   NewsStoryCard,
+  SavedArticle,
+  SavedArticleState,
+  SavedArticlesResponse,
   ReviewState,
   StoryPage,
   StoryVersion,

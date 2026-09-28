@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { NEWS_SECTIONS, type NewsStoryCard } from '@fmip/contracts';
 import { ActionForm } from '@/components/action-form';
+import { SaveArticle } from '@/components/save-article';
 import { Translated } from '@/components/translated';
 import { formatDateTime } from '@/i18n/format';
 import { DEFAULT_LOCALE, type Locale, UNFINISHED_LOCALES, isLocale } from '@/i18n/locales';
@@ -12,6 +13,7 @@ import {
   fetchDebates,
   fetchMe,
   fetchNewsSection,
+  fetchSavedArticles,
   fetchTeams,
 } from '@/lib/api';
 import { clearDebateAction, selectDebateAction } from '@/lib/debate-actions';
@@ -75,13 +77,20 @@ export default async function NewsPage({
   const resolved: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
   const q = readNewsQuery(query);
   const cookie = await sessionCookieHeader();
-  const [me, result, countries, competitions, teams] = await Promise.all([
+  const [me, result, countries, competitions, teams, savedList] = await Promise.all([
     fetchMe(cookie),
     fetchNewsSection(apiQuery(q), locale, cookie),
     fetchCountries(),
     fetchCompetitions(),
     fetchTeams(),
+    fetchSavedArticles(cookie),
   ]);
+  // T-842: a member's save control knows what is saved; a guest gets none,
+  // and an unreachable list offers none rather than a wrong state.
+  const saved =
+    me !== null && savedList !== null && savedList.ok
+      ? new Set(savedList.data.saved.map((s) => s.story_id))
+      : null;
   // The session carries no roles; an editor is whoever the editor's list answers.
   const editor = me !== null && (await fetchDebates(cookie)).ok;
   const timeZone = me?.timezone ?? 'UTC';
@@ -230,6 +239,17 @@ export default async function NewsPage({
               {result.data.stories.data.map((card) => (
                 <li key={card.story_id}>
                   <Story card={card} locale={locale} timeZone={timeZone} />
+                  {saved !== null && (
+                    <div className="mt-1 ps-4">
+                      <SaveArticle
+                        locale={locale}
+                        storyId={card.story_id}
+                        headline={card.headline}
+                        language={card.language}
+                        saved={saved.has(card.story_id)}
+                      />
+                    </div>
+                  )}
                   {editor && <EditorControls card={card} locale={locale} label={label} />}
                 </li>
               ))}
