@@ -116,6 +116,11 @@ describe('the data-quality page', () => {
 
   it('is linked from the administration area, and uses logical properties only', () => {
     expect(ADMIN).toContain('/admin/data-quality`');
+    const system = readFileSync(
+      join(HERE, '..', 'app', '[locale]', 'admin', 'system', 'page.tsx'),
+      'utf8',
+    );
+    expect(system).toContain('/admin/data-quality`');
     const view = readFileSync(join(HERE, 'data-quality-admin.tsx'), 'utf8');
     expect(view).not.toMatch(/\b(ml|mr|pl|pr|left|right)-/);
   });

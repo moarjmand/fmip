@@ -1,6 +1,9 @@
 import type {
   AchievementsResponse,
+  AdminAlertsReport,
   AdminOverview,
+  FailureCountsReport,
+  WatchdogReport,
   AudiencesResponse,
   CampaignsResponse,
   AdminUsersResponse,
@@ -95,6 +98,35 @@ export type ApiHealth = { reachable: true; report: HealthReport } | { reachable:
 /** `GET /admin/overview` (T-070): the operator's view; 401/403 come back as results. */
 export function fetchAdminOverview(cookie: string | undefined): Promise<ApiResult<AdminOverview>> {
   return apiRequest<AdminOverview>('/admin/overview', cookie === undefined ? {} : { cookie });
+}
+
+/** `GET /admin/health/watchdog` (T-801): every condition, its threshold and state, and the newest transitions. */
+export function fetchWatchdog(cookie: string | undefined): Promise<ApiResult<WatchdogReport>> {
+  return apiRequest<WatchdogReport>(
+    '/admin/health/watchdog',
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/** `GET /admin/health/failures?hours=` (T-803): 5xx per route and failed jobs per queue, per hour. */
+export function fetchFailureCounts(
+  hours: number,
+  cookie: string | undefined,
+): Promise<ApiResult<FailureCountsReport>> {
+  return apiRequest<FailureCountsReport>(
+    `/admin/health/failures?hours=${String(hours)}`,
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/** `GET /admin/health/alerts` (T-802): the channels the alerts leave by, and where each went. */
+export function fetchAdminAlerts(
+  cookie: string | undefined,
+): Promise<ApiResult<AdminAlertsReport>> {
+  return apiRequest<AdminAlertsReport>(
+    '/admin/health/alerts',
+    cookie === undefined ? {} : { cookie },
+  );
 }
 
 /** `GET /admin/audiences` (T-332): saved filters with their live sizes. */
