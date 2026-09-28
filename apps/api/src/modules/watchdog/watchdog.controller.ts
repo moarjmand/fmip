@@ -1,7 +1,8 @@
 import { Controller, ForbiddenException, Get, Req, UnauthorizedException } from '@nestjs/common';
-import type { ApiError, WatchdogReport } from '@fmip/contracts';
+import type { AdminAlertsReport, ApiError, WatchdogReport } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
+import { AdminAlertsService } from './admin-alerts.service';
 import { WatchdogService } from './watchdog.service';
 
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
@@ -21,15 +22,32 @@ export class WatchdogController {
   constructor(
     private readonly watchdog: WatchdogService,
     private readonly identity: IdentityService,
+    private readonly alerts: AdminAlertsService,
   ) {}
 
-  @Get('watchdog')
-  async report(@Req() request: FastifyRequest): Promise<WatchdogReport> {
+  private async admin(request: FastifyRequest): Promise<void> {
     const user = await this.identity.authenticate(
       parseCookies(request.headers.cookie)[SESSION_COOKIE],
     );
     if (user === null) throw new UnauthorizedException(UNAUTHENTICATED);
     if (!(await this.identity.hasRole(user.id, 'admin'))) throw new ForbiddenException(NOT_ADMIN);
+  }
+
+  @Get('watchdog')
+  async report(@Req() request: FastifyRequest): Promise<WatchdogReport> {
+    await this.admin(request);
     return this.watchdog.report(new Date());
+  }
+
+  /**
+   * `GET /admin/health/alerts` (T-802): which channels carry the alerts, how
+   * many administrators they are written for, the cursor, and where each
+   * recent alert went -- so a deployment whose only channel is the inbox says
+   * so, and nothing reads "sent" that was not.
+   */
+  @Get('alerts')
+  async alertsReport(@Req() request: FastifyRequest): Promise<AdminAlertsReport> {
+    await this.admin(request);
+    return this.alerts.report(new Date());
   }
 }

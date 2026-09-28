@@ -13,7 +13,7 @@ import { EN } from '@/i18n/messages';
 import { MatchAlertSettings } from './match-alert-settings';
 
 /**
- * The match-alert controls (T-831, D-096): a section of their own in
+ * The match-alert controls (T-831, D-098): a section of their own in
  * Settings → Notifications, one switch per kind with the value the API says
  * is in force, worded through the catalogues, and silenced as a whole or per
  * team or competition by the mutes T-331 built.

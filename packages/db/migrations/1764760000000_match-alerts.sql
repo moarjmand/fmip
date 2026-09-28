@@ -1,5 +1,5 @@
 -- Up Migration
--- T-830 (blueprint 12.2, D-096): match alerts. Two things:
+-- T-830 (blueprint 12.2, D-098): match alerts. Two things:
 --
 -- 1. Five notification kinds and one mute category, `match`. The kind lists
 --    are CHECK constraints that several tasks widen, so this migration does
@@ -71,7 +71,7 @@ CREATE TABLE match_alert (
 CREATE INDEX match_alert_fixture_idx ON match_alert (fixture_id);
 
 COMMENT ON TABLE match_alert IS
-  'Match events the live ingestion saw (T-830, D-096): the key a notification dedupes on, and the line it reads. Append-only; a correction is a row naming the goal it withdraws.';
+  'Match events the live ingestion saw (T-830, D-098): the key a notification dedupes on, and the line it reads. Append-only; a correction is a row naming the goal it withdraws.';
 
 -- Down Migration
 

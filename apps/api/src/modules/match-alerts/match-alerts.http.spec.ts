@@ -18,7 +18,7 @@ import { INGESTION_SOURCES, type IngestionSources } from '../ingestion/internal/
 import { NotificationsService, WEB_ORIGIN } from '../notifications/notifications.service';
 
 /**
- * Match alerts through the live job (T-830, D-096), against the real schema:
+ * Match alerts through the live job (T-830, D-098), against the real schema:
  * the real jobs, writers, alert derivation, notifications and carrier, with a
  * scripted provider in place of the network and a capturing push channel.
  *

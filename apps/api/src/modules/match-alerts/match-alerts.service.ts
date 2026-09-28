@@ -12,7 +12,7 @@ import { batchBody, deriveMatchEvents, eventLine, keyEvents } from './internal/m
 const PUSH_TITLE = 'FMIP';
 
 /**
- * Match alerts (blueprint 12.2, T-830, D-096).
+ * Match alerts (blueprint 12.2, T-830, D-098).
  *
  * The live ingestion hands over two readings of a match -- before and after
  * one write -- and this turns the difference into events (`match-events.ts`),
@@ -156,7 +156,7 @@ export function composeBatch(due: DueNotification[]): OutboundMessages | null {
   const body = batchBody(lines);
   return {
     // E-mail is not for a minute-by-minute stream: a match alert is a push
-    // and an inbox row (D-096).
+    // and an inbox row (D-098).
     email: null,
     push: {
       userId: first.user_id,

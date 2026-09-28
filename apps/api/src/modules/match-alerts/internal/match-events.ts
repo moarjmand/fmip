@@ -2,7 +2,7 @@ import type { MatchAlertKind } from '@fmip/contracts';
 
 /**
  * What a match alert is, as pure functions over two readings of one match
- * (T-830, D-096): the state before a live write and the state after it.
+ * (T-830, D-098): the state before a live write and the state after it.
  *
  * **Derived from the change, not from the state.** A kick-off is a match that
  * *was* scheduled and *is* live; a goal is a side's count going up. Reading
@@ -54,7 +54,7 @@ export type MatchEvent =
 /** An event with its key: what `match_alert` and the dedupe index hold. */
 export interface KeyedEvent {
   key: string;
-  /** The notification kind; a correction is a `match_goal` (D-096). */
+  /** The notification kind; a correction is a `match_goal` (D-098). */
   kind: MatchAlertKind;
   event: MatchEvent;
   /** For a correction, the key of the goal it withdraws. */

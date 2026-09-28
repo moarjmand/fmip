@@ -5,19 +5,19 @@ import { Translated } from '@/components/translated';
 import type { MessageKey } from '@/i18n/messages';
 
 /**
- * The match-alert switches (blueprint 12.2, T-831, D-096): one per kind, in
+ * The match-alert switches (blueprint 12.2, T-831, D-098): one per kind, in
  * the order a match happens, worded through the catalogues.
  *
  * **The values are the API's, not a copy of the defaults.** Each switch shows
  * what is in force and whether it is the member's own, exactly like the
  * general list; the defaults (kick-off, goals and full-time on; red cards and
- * half-time off) live in the contract and D-096.
+ * half-time off) live in the contract and D-098.
  *
  * **Per-team and per-competition are the mutes.** A member silences one team
  * or one competition under "What stays quiet", and every match alert at once
  * with the `match` category there. A per-team, per-kind switch (goals for
  * one team, not another) is deferred: the preference is per member per kind,
- * and a second table read on every alert is not justified yet (D-096).
+ * and a second table read on every alert is not justified yet (D-098).
  *
  * A server component, so the catalogue stays on the server; the switches
  * themselves are the client rows the rest of the page uses.
