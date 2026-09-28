@@ -452,8 +452,8 @@ export function notificationPath(
       // written from (T-432).
       return `/${locale}/following#briefing`;
     case 'watchdog_event':
-      // The administration area, where the conditions are shown (T-802).
-      return `/${locale}/admin`;
+      // The System page, where the conditions and incidents are (T-802, T-804).
+      return `/${locale}/admin/system`;
     case 'campaign':
       // The campaign chose its own in-app path (T-332); one that is not a
       // path opens nothing rather than somewhere else.

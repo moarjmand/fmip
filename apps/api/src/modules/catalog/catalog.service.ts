@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type {
+  CompetitionContext,
   CompetitionPage,
   CompetitionSummary,
   CountrySummary,
@@ -19,7 +20,8 @@ import { Pool } from 'pg';
 import { PG_POOL } from '../../database/database.module';
 import { derived } from '../fixtures/fixtures.service';
 import { StandingsService } from '../standings/standings.service';
-import { buildBracket } from './internal/bracket';
+import { buildBracket, tieOf } from './internal/bracket';
+import { contextTable, phaseOf } from './internal/competition-context';
 import { PostgresCompetitionStore } from './internal/competition-store';
 import { PostgresPlayerStore } from './internal/player-store';
 import { buildSplits } from './internal/team-splits';
@@ -244,6 +246,68 @@ export class CatalogService {
         followers,
         last_updated_at: lastUpdatedAt,
       },
+    };
+  }
+
+  /**
+   * The match centre's competition context (T-840, blueprint 4.2): the table
+   * or group as it stood before kick-off, or the knockout tie. Null for an
+   * unknown fixture.
+   */
+  async competitionContext(fixtureId: string): Promise<CompetitionContext | null> {
+    const f = await this.competitions_.fixtureContext(fixtureId);
+    if (f === null) return null;
+    const phase = phaseOf({
+      competitionKind: f.competition.kind,
+      stage: f.stage,
+      round: f.round,
+      groupName: f.groupName,
+    });
+
+    let table: CompetitionContext['table'] = null;
+    let knockout: CompetitionContext['knockout'] = null;
+    if (phase.kind === 'league') {
+      const before = await this.standings.tableBefore(f.season.id, f.kickoffAt);
+      table = contextTable(before, 'league', null, f.homeId, f.awayId);
+    } else if (phase.kind === 'group') {
+      // A group we cannot name is a group we cannot rank: said, not guessed.
+      table =
+        phase.stageId === null || phase.groupName === null
+          ? { coverage: 'not_supplied', last_updated_at: null, data: null }
+          : contextTable(
+              await this.standings.tableBefore(f.season.id, f.kickoffAt, {
+                stageId: phase.stageId,
+                name: phase.groupName,
+              }),
+              'group',
+              phase.groupName,
+              f.homeId,
+              f.awayId,
+            );
+    } else if (phase.kind === 'knockout') {
+      const found = tieOf(await this.competitions_.bracketFixtures(f.season.id), f.id, {
+        continental: playsKnockoutBracket(f.competition),
+        stageLegs: f.stage?.legs ?? null,
+      });
+      if (found !== null) {
+        knockout = {
+          round: f.round ?? f.stage?.name ?? null,
+          round_key: found.roundKey,
+          legs_expected: found.legs,
+          tie: found.tie,
+        };
+      }
+    }
+
+    return {
+      fixture_id: f.id,
+      competition: { id: f.competition.id, name: f.competition.name, kind: f.competition.kind },
+      season: f.season,
+      stage: f.stage === null ? null : { name: f.stage.name, kind: f.stage.kind },
+      round: f.round,
+      group_name: f.groupName,
+      table,
+      knockout,
     };
   }
 }
