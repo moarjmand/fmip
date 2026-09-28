@@ -633,6 +633,9 @@ export type {
   WatchdogThreshold,
   WatchdogUnit,
 } from './watchdog';
+// Data-quality checks over the stored feed (T-820).
+export { DATA_QUALITY_CHECKS } from './data-quality';
+export type { DataQualityCheck } from './data-quality';
 // API errors and job failures counted per hour (T-803).
 export { FAILURE_RETENTION_DAYS } from './failure-counts';
 export type {
