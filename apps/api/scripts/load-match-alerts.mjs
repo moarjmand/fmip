@@ -289,7 +289,8 @@ const outbound = {
     provider: 'capture',
     send: async (push) => {
       // A real Web Push send is an HTTPS request per device; --push-ms stands
-      // in for it, sent one after another as the carrier sends them.
+      // in for it, sent as the carrier sends them (since T-836, sixteen at a
+      // time: NOTIFICATION_SEND_CONCURRENCY).
       if (PUSH_MS > 0) await sleep(PUSH_MS);
       pushes.push({ at: performance.now(), userId: push.userId });
     },

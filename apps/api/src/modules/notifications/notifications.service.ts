@@ -24,6 +24,7 @@ import {
   type NewNotification,
   type SubjectOutcomes,
 } from './internal/notifications-store';
+import { inPool, sendConcurrencyFromEnv } from './internal/send-pool';
 
 export type { DueNotification, SubjectOutcomes } from './internal/notifications-store';
 
@@ -116,6 +117,8 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
   private readonly log = new Logger(NotificationsService.name);
   private readonly composers = new Map<NotificationKind, Composer>();
   private readonly batchComposers = new Map<NotificationKind, BatchComposer>();
+  /** How many messages `carry` sends at once (T-836, `NOTIFICATION_SEND_CONCURRENCY`). */
+  private readonly sendConcurrency = sendConcurrencyFromEnv();
   private timer: NodeJS.Timeout | null = null;
 
   constructor(
@@ -276,19 +279,38 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
     // A producer carries its own members at once (a briefing, a campaign);
     // the timer carries everyone's. The scope is who, never what.
     const due = await this.store.due(page, scope?.userIds ?? null);
-    let carried = 0;
-    // A member's batched kinds wait for the end of the pass and leave as one
-    // message (T-830); everything else leaves one by one, as before.
+    // A member's batched kinds leave as one message (T-830); everything else
+    // one by one. Each message is a task, and the tasks are sent concurrently,
+    // at most `sendConcurrency` at a time (T-836): a push is an HTTPS request
+    // to the browser's push service, and one after another a Saturday's
+    // kick-off was minutes of waiting on the network.
+    const tasks: (() => Promise<number>)[] = [];
     const batches = new Map<string, { compose: BatchComposer; items: DueNotification[] }>();
     for (const item of due) {
       const batch = isNotificationKind(item.kind) ? this.batchComposers.get(item.kind) : undefined;
-      if (batch !== undefined) {
-        const group = batches.get(item.user_id) ?? { compose: batch, items: [] };
-        group.items.push(item);
-        batches.set(item.user_id, group);
+      if (batch === undefined) {
+        tasks.push(() => this.carryOne(item));
         continue;
       }
-      if (!(await this.store.claimDelivery(item.id))) continue;
+      const group = batches.get(item.user_id) ?? { compose: batch, items: [] };
+      group.items.push(item);
+      batches.set(item.user_id, group);
+    }
+    for (const { compose, items } of batches.values()) {
+      tasks.push(() => this.carryBatch(compose, items));
+    }
+    const counts = await inPool(tasks, this.sendConcurrency);
+    return { due: due.length, carried: counts.reduce((sum, n) => sum + n, 0) };
+  }
+
+  /**
+   * One notification: claimed, composed, sent on every channel, recorded.
+   * Never throws: a fault is logged and the rest of the pass goes on. A claim
+   * that could not be recorded stays a claim -- at most once, never twice.
+   */
+  private async carryOne(item: DueNotification): Promise<number> {
+    try {
+      if (!(await this.store.claimDelivery(item.id))) return 0;
       let messages: OutboundMessages | null = null;
       try {
         const compose = isNotificationKind(item.kind) ? this.composers.get(item.kind) : undefined;
@@ -301,12 +323,26 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
       }
       const outcome = await this.delivery.deliver(messages?.email ?? null, messages?.push ?? null);
       await this.store.recordDelivery(item.id, outcome);
-      carried += 1;
+      return 1;
+    } catch (error) {
+      this.log.error(
+        `notification.carry_failed notification=${item.id}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+      return 0;
     }
-    for (const { compose, items } of batches.values()) {
-      const claimed: DueNotification[] = [];
-      for (const item of items) if (await this.store.claimDelivery(item.id)) claimed.push(item);
-      if (claimed.length === 0) continue;
+  }
+
+  /**
+   * One member's batched notifications: claimed in one statement (each row
+   * still its own claim), sent as one message, the outcome recorded on every
+   * row it carried. Never throws, like `carryOne`.
+   */
+  private async carryBatch(compose: BatchComposer, items: DueNotification[]): Promise<number> {
+    try {
+      const taken = await this.store.claimDeliveries(items.map((item) => item.id));
+      const claimed = items.filter((item) => taken.has(item.id));
+      if (claimed.length === 0) return 0;
       let messages: OutboundMessages | null = null;
       try {
         messages = compose(claimed);
@@ -318,10 +354,18 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
       }
       const outcome = await this.delivery.deliver(messages?.email ?? null, messages?.push ?? null);
       // One message, so one outcome, recorded on every notification it carried.
-      for (const item of claimed) await this.store.recordDelivery(item.id, outcome);
-      carried += claimed.length;
+      await this.store.recordDeliveries(
+        claimed.map((item) => item.id),
+        outcome,
+      );
+      return claimed.length;
+    } catch (error) {
+      this.log.error(
+        `notification.carry_failed member=${items[0]?.user_id ?? ''} batch=${String(items.length)}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+      return 0;
     }
-    return { due: due.length, carried };
   }
 
   /** The sentence and the route, as the inbox shows them; a route that cannot be opened is left out of the e-mail and sends the push to the inbox. */

@@ -229,8 +229,9 @@ and the push service's delivery to the device come on top and are not ours.
 `apps/api/scripts/load-match-alerts.mjs` (Node, the built API and its dev
 dependencies). It boots the ingestion module as the tests do. A scripted
 provider stands in for the network, and a capturing push channel stands in
-for Web Push. `--push-ms N` makes each send wait N ms, one after another, the
-way the carrier sends them. The script then:
+for Web Push. `--push-ms N` makes each send wait N ms, as the carrier
+sends them (one after another until T-836, sixteen at a time since). The
+script then:
 
 - creates C competitions of M simultaneous matches;
 - creates N members who follow `--teams-per-member` teams at random, and a
@@ -410,3 +411,40 @@ One more fix the run forced: `recordDelivery` writes
 back now and then (the Docker VM resyncing), the `carried_after_claim`
 check refused one record, and the exception stopped the whole carry, which
 left 4,019 kick-off pushes for the timer.
+
+### T-836: pushes sent concurrently
+
+Remedy 3 above. `NotificationsService.carry` now sends its messages through
+a bounded pool: at most `NOTIFICATION_SEND_CONCURRENCY` (16) at once. Each
+message claims, sends and records on its own, so at most 16 are in flight
+when a process stops, and the claim still makes each notification leave at
+most once. A member's batch is claimed and recorded in one statement each.
+A carry scoped to members reads its page member by member, so a burst is one
+push per member rather than two or three. A record that fails no longer
+stops the pass. The Web Push channel is unchanged: one request per device,
+and a gone endpoint is removed.
+
+**Record, 2026-09-28**, same machine and shape, `--queue`, each push held
+50 ms (`--push-ms 50`), 16 at a time:
+
+| Members | Tick | Live job | Notifications | Pushes | Push p50 / p95 / max | Left for the timer | Verdict |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 2,000 | kick-off (90) | 4.2 s | 7,756 | 2,009 | 15,432 / 20,793 / 21,415 | 0 | **pass** (was 509.7 s) |
+| 2,000 | 10 goals, ×3 | 3.1–4.1 s | 827–890 | 624–740 | 5,114–5,799 / 6,676–6,956 / ≤7,080 | 0 | pass (was 56–61 s) |
+| 10,000 | 10 goals, ×3 | 3.4–4.0 s | 4,142–4,336 | 3,177–3,631 | 12,574–14,760 / 19,113–23,625 / ≤24,553 | 0 | pass |
+| 10,000 | kick-off (90) | 4.1 s | 38,304 | 10,050 | 44,105 / 70,079 / 73,208 | 0 | fail, by 10 s |
+
+**Verdict.** Every target is met on this machine, with pushes that cost
+50 ms each:
+
+- a Saturday's kick-off of 90 matches at 2,000 members;
+- a goal burst at 10,000 members;
+- and the live job stays at 3–4 s throughout.
+
+The one run past the threshold is a kick-off of 90 matches at 10,000
+members (p95 70 s). Its floor is the sending itself: 10,050 pushes × 50 ms
+÷ 16 is 31 s, and claiming and recording ~38,000 notifications takes the
+rest. A higher `NOTIFICATION_SEND_CONCURRENCY` would lower it, at the cost
+of more open requests and more waiting for the database pool (10
+connections). The production server (2 shared vCPUs) is slower than this
+laptop, so the margins above are smaller there.
