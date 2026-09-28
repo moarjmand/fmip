@@ -31,7 +31,7 @@ export default defineConfig({
       name: 'chromium',
       use: CHROMIUM,
       // The web app alone: every page's honest state without an API.
-      testIgnore: /journeys\//,
+      testIgnore: /(journeys|budgets)\//,
     },
     // The blueprint journeys (T-080, D-043) need the API, the database and the
     // seed behind the web app: CI's "E2E journeys" job provides them and sets
@@ -39,6 +39,13 @@ export default defineConfig({
     // the suite is never a wall of failures.
     ...(process.env.E2E_API_URL
       ? [{ name: 'journeys', use: CHROMIUM, testMatch: /journeys\/.*\.spec\.ts$/ }]
+      : []),
+    // The server response budgets (T-808) need the same stack as the journeys:
+    // a budget measured against a page that cannot reach its API times an
+    // error page. CI runs this project as its own step, so an exceeded budget
+    // is named as one and not lost among the journeys.
+    ...(process.env.E2E_API_URL
+      ? [{ name: 'budgets', use: CHROMIUM, testMatch: /budgets\/.*\.spec\.ts$/ }]
       : []),
   ],
   webServer: {

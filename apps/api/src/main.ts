@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module';
+import { HTTP_APP_OPTIONS } from './http-options';
 import { FailureCountsService } from './modules/failure-counts/failure-counts.service';
 import {
   AllExceptionsFilter,
@@ -36,7 +37,7 @@ async function bootstrap(): Promise<void> {
       genReqId: (request: { headers: Record<string, string | string[] | undefined> }) =>
         requestIdFrom(request.headers['x-request-id']),
     }),
-    { logger },
+    { ...HTTP_APP_OPTIONS, logger },
   );
   // Every 5xx is also counted per route and hour (T-803).
   const failures = app.get(FailureCountsService);
