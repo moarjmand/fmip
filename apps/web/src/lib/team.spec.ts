@@ -26,6 +26,13 @@ const player = (
   position,
   on_loan: false,
   since: '2024-07-01',
+  minutes: {
+    coverage: 'not_supplied',
+    total: null,
+    matches: 0,
+    matches_with_minutes: 0,
+    supplied_minutes: 0,
+  },
 });
 
 const fixture = (over: Partial<TeamPageFixture> = {}): TeamPageFixture => ({

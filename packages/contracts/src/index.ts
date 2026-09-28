@@ -144,7 +144,13 @@ export type {
   UpdatePrivacyRequest,
   UpdateProfileRequest,
 } from './profile';
-export { KNOCKOUT_ROUNDS, SUGGESTED_TEAMS_PER_COMPETITION, TEAM_AVERAGE_METRICS } from './catalog';
+export {
+  KNOCKOUT_ROUNDS,
+  LEADERS_MINUTES_MAX,
+  LEADERS_MINUTES_PRESETS,
+  SUGGESTED_TEAMS_PER_COMPETITION,
+  TEAM_AVERAGE_METRICS,
+} from './catalog';
 export type {
   CompetitionPage,
   CompetitionSummary,
@@ -160,6 +166,7 @@ export type {
   KnockoutTeam,
   KnockoutTie,
   Leader,
+  LeadersFilter,
   PlayerMatch,
   PlayerPage,
   PlayerSeasonMinutes,
