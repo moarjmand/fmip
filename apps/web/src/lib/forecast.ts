@@ -43,6 +43,17 @@ export const FACTOR_LABEL: Record<ModelLeadingFactorKind, string> = {
   attack_vs_defence: 'Attack against defence',
 };
 
+/**
+ * The line the factor list adds when a version was computed without the Elo
+ * prior (T-920, D-111), read from the inputs stored with it, never from the
+ * source's state now. `null` when the prior was used, or when the version
+ * reported no inputs (an unavailable one has no factors to qualify).
+ */
+export function priorNote(version: Pick<ForecastVersion, 'inputs'>): string | null {
+  if (version.inputs === null || version.inputs.elo_used) return null;
+  return 'No Elo prior this time: the long-term ratings were not available when this version was computed, so team strength rests on results alone.';
+}
+
 export const UNAVAILABLE_LABEL: Record<ForecastUnavailableReason, string> = {
   team_not_mapped: 'The model does not know one of the teams yet.',
   no_history: 'The model has too little match history for one of the teams.',

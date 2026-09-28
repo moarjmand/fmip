@@ -70,8 +70,8 @@ export class LiveProbes implements WatchdogProbes, OnApplicationShutdown {
 
   async observe(now: Date): Promise<Observations> {
     const hourAgo = new Date(now.getTime() - HOUR_MS);
-    const [ingest, live, budget, queues, model, delivery, dataQuality, backups] = await Promise.all(
-      [
+    const [ingest, live, budget, queues, health, delivery, dataQuality, backups] =
+      await Promise.all([
         orUnreadable(async () => {
           const rows = await this.runs.jobCompletions();
           return rows.map((r) => ({ ...r, job: r.job as string }));
@@ -99,21 +99,31 @@ export class LiveProbes implements WatchdogProbes, OnApplicationShutdown {
         }),
         orUnreadable(() => this.dataQuality.liveContradictions(now)),
         orUnreadable(() => this.store.backupRuns()),
-      ],
-    );
-    return { ingest, live, budget, queues, model, delivery, dataQuality, backups };
+      ]);
+    const { model, elo } = health;
+    return { ingest, live, budget, queues, model, elo, delivery, dataQuality, backups };
   }
 
-  private async model(): Promise<Observations['model']> {
+  /** The model service's health check, and Club Elo's state it carries (T-920). */
+  private async model(): Promise<{
+    model: Observations['model'];
+    elo: NonNullable<Observations['elo']>;
+  }> {
     const url = (process.env.MODEL_SERVICE_URL ?? '').trim().toLowerCase();
-    if (url === '' || url === NO_MODEL_SERVICE) return { configured: false };
+    if (url === '' || url === NO_MODEL_SERVICE) {
+      return { model: { configured: false }, elo: { configured: false } };
+    }
     try {
       const health = await this.forecasts.modelHealth();
       return health.ok
-        ? { configured: true, ok: true }
-        : { configured: true, ok: false, reason: health.reason };
+        ? { model: { configured: true, ok: true }, elo: { source: health.eloSource } }
+        : {
+            model: { configured: true, ok: false, reason: health.reason },
+            elo: { unreadable: health.reason },
+          };
     } catch (error: unknown) {
-      return { configured: true, ok: false, reason: why(error).unreadable };
+      const reason = why(error).unreadable;
+      return { model: { configured: true, ok: false, reason }, elo: { unreadable: reason } };
     }
   }
 

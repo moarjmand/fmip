@@ -1,6 +1,7 @@
 """The FastAPI application.
 
-    GET  /health              liveness plus the model version and the candidate's, if any
+    GET  /health              liveness plus the model version and the candidate's, if any,
+                              and Club Elo's recorded state (T-920)
     POST /forecast            ForecastRequest -> Forecast | Unavailable
     POST /forecast/candidate  the same question to the candidate version (T-531), 404 without one
 
@@ -39,7 +40,7 @@ def create_app(
             raise RuntimeError(
                 "DATABASE_URL is not set; the model service reads the training store"
             )
-        source = PostgresTrainingSource(database_url)
+        source = PostgresTrainingSource(database_url, clubelo_refresh=clubelo_refresh())
 
     forecaster = Forecaster(source)
     if candidate is None and read_candidate:
@@ -51,10 +52,14 @@ def create_app(
 
     @app.get("/health", response_model=Health)
     def health() -> Health:
+        # The watchdog asks every minute; the source asks Club Elo when it is
+        # due, in the background, so a slow source never slows this answer.
+        source.ask_elo()
         return Health(
             model_version=BASELINE.id,
             candidate_version=candidate.id if candidate is not None else None,
             checked_at=datetime.now(UTC),
+            elo_source=source.elo_source(),
         )
 
     @app.post("/forecast", response_model=ForecastResponse)
@@ -69,3 +74,8 @@ def create_app(
         return shadow.forecast(request)
 
     return app
+
+
+def clubelo_refresh() -> bool:
+    """``MODEL_CLUBELO_REFRESH``: ``off`` stops the service asking Club Elo (D-111)."""
+    return os.environ.get("MODEL_CLUBELO_REFRESH", "on").strip().lower() != "off"

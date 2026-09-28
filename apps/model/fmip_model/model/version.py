@@ -16,6 +16,7 @@ import json
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from typing import Literal
 
 from .dixon_coles import DEFAULT_ELO_WEIGHT, DEFAULT_RIDGE, DEFAULT_XI, ELO_SCALE
 
@@ -28,6 +29,13 @@ class CrossLeague:
     team_ridge: float
     group_ridge: float
 
+
+#: Where a version's Elo prior comes from (T-922, D-111): Club Elo's snapshot
+#: of the fit date (D-029), or our own Elo computed from the training store
+#: (T-921). ``clubelo_then_own`` reads Club Elo and falls back to ours on a day
+#: Club Elo has no ratings for.
+EloPrior = Literal["clubelo", "own", "clubelo_then_own"]
+ELO_PRIORS: tuple[EloPrior, ...] = ("clubelo", "own", "clubelo_then_own")
 
 #: How far back the service fits from, unless a version says otherwise.
 DEFAULT_HISTORY_DAYS = 400
@@ -57,6 +65,8 @@ class ModelVersion:
     #: Whether, and with which constants, this version answers a match between
     #: clubs of different leagues (T-533). ``None``: it rates within one league.
     cross_league: CrossLeague | None = None
+    #: Where the Elo prior comes from (T-922). The published version reads Club Elo.
+    elo_prior: EloPrior = "clubelo"
 
     @property
     def id(self) -> str:
@@ -109,11 +119,16 @@ def load_candidate(path: Path = CANDIDATE_FILE) -> ModelVersion | None:
             group_ridge=float(cross["group_ridge"]),
         )
     )
+    raw_prior = str(body.get("elo_prior", BASELINE.elo_prior))
+    if raw_prior not in ELO_PRIORS:
+        raise ValueError(f"elo_prior must be one of {ELO_PRIORS}, not {raw_prior!r}")
+    elo_prior: EloPrior = raw_prior
     if (
         not per_division
         and history_days == BASELINE.history_days
         and cross_league is None
         and lineup_beta is None
+        and elo_prior == BASELINE.elo_prior
     ):
         return None
     return ModelVersion(
@@ -128,4 +143,5 @@ def load_candidate(path: Path = CANDIDATE_FILE) -> ModelVersion | None:
         per_division=per_division,
         lineup_beta=lineup_beta,
         cross_league=cross_league,
+        elo_prior=elo_prior,
     )
