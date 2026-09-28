@@ -254,6 +254,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('group thread
   it('refuses somebody outside the group, without pretending the group is gone', async () => {
     const refused = await post(`/groups/${slug}/threads`, { fixture_id: fixture }, outsider);
     expect(refused.statusCode).toBe(403);
+    expect(refused.json().error).toBe('forbidden');
     expect(refused.json().message).toMatch(/not in this group/);
     expect((await get(`/groups/${slug}/threads`, outsider)).statusCode).toBe(403);
   });

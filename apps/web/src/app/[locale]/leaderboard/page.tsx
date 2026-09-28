@@ -18,6 +18,7 @@ import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { Notice } from '@/components/ui';
 import { Translated } from '@/components/translated';
+import { MemberName } from '@/components/member-name';
 import { UNFINISHED_LOCALES } from '@/i18n/locales';
 
 /** The languages a board can be drawn by (T-844): the ones the site is offered in. */
@@ -322,12 +323,7 @@ export default async function LeaderboardPage({
                     <tr key={entry.username} className="border-b border-default">
                       <td className="py-2 pe-3 tabular-nums">{entry.rank}</td>
                       <td className="py-2 pe-3">
-                        <Link
-                          href={`/${locale}/u/${encodeURIComponent(entry.username)}`}
-                          className="underline"
-                        >
-                          @{entry.username}
-                        </Link>
+                        <MemberName locale={locale} member={entry} link className="underline" />
                       </td>
                       <td className="py-2 pe-3 text-end tabular-nums" data-testid="rating">
                         {ratingLabel(entry)}

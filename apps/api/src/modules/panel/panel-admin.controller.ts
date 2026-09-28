@@ -19,15 +19,12 @@ import type {
   PanelListResponse,
   PanelRecord,
 } from '@fmip/contracts';
+import { ROLE_REFUSALS } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { PostgresPanelAdminStore, type PanelFilter } from './internal/panel-admin-store';
 
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
-const NOT_AN_OPERATOR: ApiError = {
-  error: 'validation',
-  message: 'This needs the moderator or administrator role.',
-};
 const NO_MATCH: ApiError = { error: 'not_found', message: 'No such match.' };
 
 const DEFAULT_LIMIT = 50;
@@ -63,7 +60,7 @@ export class PanelAdminController {
       this.identity.hasRole(user.id, 'moderator'),
       this.identity.hasRole(user.id, 'admin'),
     ]);
-    if (!isModerator && !isAdmin) throw new ForbiddenException(NOT_AN_OPERATOR);
+    if (!isModerator && !isAdmin) throw new ForbiddenException(ROLE_REFUSALS.operator);
     return user;
   }
 

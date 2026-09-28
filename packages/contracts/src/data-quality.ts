@@ -62,6 +62,14 @@ export interface DataQualityFinding {
   last_seen_at: string;
   /** `null` until an administrator marks it reviewed, with a reason (audited). */
   reviewed: { at: string; by: string | null; reason: string } | null;
+  /**
+   * The newest time an administrator asked the feed again for the finding's
+   * fixture (T-913), or `null` if nobody has. `fetched_at` is `null` while it
+   * waits for the post-match job. `changed` says whether the answer changed
+   * anything stored. A finding still open after a fetch that changed nothing
+   * is "asked again on <date>, unchanged".
+   */
+  asked_again: { requested_at: string; fetched_at: string | null; changed: boolean | null } | null;
 }
 
 /**
@@ -76,9 +84,14 @@ export interface DataQualityCheckState {
   open: number;
 }
 
-/** Open findings per competition and check, for the page's summary. */
+/**
+ * Open findings per competition, season and check, for the page's summary.
+ * One row is also what a batch review marks (T-912).
+ */
 export interface DataQualityCount {
   competition: { id: string; name: string } | null;
+  /** `null` for a finding about no season (none of the checks writes one today). */
+  season: { id: string; label: string } | null;
   check: DataQualityCheck;
   open: number;
   reviewed: number;
@@ -94,9 +107,45 @@ export interface DataQualityReport {
   /** How many open findings there are in all; `findings` may be fewer. */
   open_total: number;
   resolved_last_day: number;
+  /** Re-asks of the feed waiting for the post-match job, and those it carried since 00:00 UTC (T-913). */
+  refetch: { pending: number; fetched_today: number };
 }
 
 /** `POST /admin/data-quality/:id/review`: marks an open finding reviewed. */
 export interface ReviewDataQualityFindingRequest {
   reason: string;
+}
+
+/**
+ * `POST /admin/data-quality/review-batch` (T-912): marks every open, not yet
+ * reviewed finding of one check in one season reviewed with one reason. One
+ * audit row names the check, the season, the count and the reason, and holds
+ * the finding ids as the previous value (rule 10).
+ */
+export interface ReviewDataQualityBatchRequest {
+  check: DataQualityCheck;
+  season_id: string;
+  reason: string;
+}
+
+export interface ReviewDataQualityBatchResponse {
+  /** How many findings this batch marked reviewed. */
+  reviewed: number;
+}
+
+/**
+ * `POST /admin/data-quality/refetch` (T-913, D-110): asks the feed again for
+ * one fixture's details, or for every fixture behind one check's open
+ * findings in one season. The post-match job carries the queue within its
+ * share of the day's request budget. The request and its reason are audited.
+ */
+export type RefetchDataQualityRequest =
+  | { fixture_id: string; reason: string }
+  | { check: DataQualityCheck; season_id: string; reason: string };
+
+export interface RefetchDataQualityResponse {
+  /** Fixtures newly queued by this request. */
+  queued: number;
+  /** Fixtures that were already waiting, and are not queued twice. */
+  already_queued: number;
 }

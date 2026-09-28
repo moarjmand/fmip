@@ -84,11 +84,14 @@ export interface FindingRow {
   reviewed_at: Date | null;
   reviewed_by: string | null;
   review_reason: string | null;
+  asked_again: { requested_at: string; fetched_at: string | null; changed: boolean | null } | null;
 }
 
 export interface CountRow {
   competition_id: string | null;
   competition_name: string | null;
+  season_id: string | null;
+  season_label: string | null;
   check_kind: DataQualityCheck;
   open: number;
   reviewed: number;
@@ -119,7 +122,13 @@ export class DataQualityStore {
               ${FIXTURE_REF('d.fixture_id')} AS fixture,
               ${FIXTURE_REF('d.related_fixture_id')} AS related_fixture,
               d.first_seen_at, d.last_seen_at,
-              d.reviewed_at, u.username AS reviewed_by, d.review_reason
+              d.reviewed_at, u.username AS reviewed_by, d.review_reason,
+              (SELECT jsonb_build_object('requested_at', r.requested_at,
+                                         'fetched_at', r.fetched_at, 'changed', r.changed)
+                 FROM fixture_refetch_request r
+                WHERE r.fixture_id = d.fixture_id
+                ORDER BY r.requested_at DESC, r.id DESC
+                LIMIT 1) AS asked_again
          FROM data_quality_finding d
          LEFT JOIN competition c ON c.id = d.competition_id
          LEFT JOIN season se ON se.id = d.season_id
@@ -133,17 +142,19 @@ export class DataQualityStore {
     return rows;
   }
 
-  /** Open findings per competition and check, and how many of them are reviewed. */
+  /** Open findings per competition, season and check, and how many of them are reviewed. */
   async counts(): Promise<CountRow[]> {
     const { rows } = await this.pool.query<CountRow>(
-      `SELECT d.competition_id, c.name AS competition_name, d.check_kind,
+      `SELECT d.competition_id, c.name AS competition_name,
+              d.season_id, se.label AS season_label, d.check_kind,
               count(*)::int AS open,
               (count(*) FILTER (WHERE d.reviewed_at IS NOT NULL))::int AS reviewed
          FROM data_quality_finding d
          LEFT JOIN competition c ON c.id = d.competition_id
+         LEFT JOIN season se ON se.id = d.season_id
         WHERE d.resolved_at IS NULL
-        GROUP BY d.competition_id, c.name, d.check_kind
-        ORDER BY c.name NULLS LAST, d.check_kind`,
+        GROUP BY d.competition_id, c.name, d.season_id, se.label, d.check_kind
+        ORDER BY c.name NULLS LAST, se.label DESC NULLS LAST, d.check_kind`,
     );
     return rows;
   }
@@ -218,6 +229,187 @@ export class DataQualityStore {
     } finally {
       client.release();
     }
+  }
+
+  /**
+   * Marks every open, not yet reviewed finding of one check in one season
+   * reviewed with one reason (T-912), and writes one audit row for the batch
+   * in the same transaction: the check, the season, the count and the reason,
+   * with the finding ids as the previous value (rule 10). Returns how many
+   * were marked; 0 writes nothing, not even the audit row.
+   *
+   * Only the rows open now are marked. A finding that resolves and is found
+   * again later is a new row (the partial unique index), so it is open and
+   * unreviewed again, not hidden by an earlier batch.
+   */
+  async reviewBatch(
+    check: DataQualityCheck,
+    seasonId: string,
+    actorId: string,
+    reason: string,
+    now: Date,
+  ): Promise<number> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const { rows } = await client.query<{ id: string }>(
+        `UPDATE data_quality_finding
+            SET reviewed_at = $3, reviewed_by = $4, review_reason = $5
+          WHERE resolved_at IS NULL AND reviewed_at IS NULL
+            AND check_kind = $1 AND season_id = $2
+          RETURNING id`,
+        [check, seasonId, now, actorId, reason],
+      );
+      if (rows.length === 0) {
+        await client.query('ROLLBACK');
+        return 0;
+      }
+      const ids = rows.map((r) => Number(r.id)).sort((a, b) => a - b);
+      await client.query(
+        `INSERT INTO audit_log (actor_id, action, target_type, target_id, reason, previous, next)
+         VALUES ($1, 'data_quality.review_batch', 'season', $2, $3, $4::jsonb, $5::jsonb)`,
+        [
+          actorId,
+          seasonId,
+          reason,
+          JSON.stringify({ check, season_id: seasonId, reviewed: false, finding_ids: ids }),
+          JSON.stringify({ check, season_id: seasonId, reviewed: true, count: ids.length }),
+        ],
+      );
+      await client.query('COMMIT');
+      return ids.length;
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Queues a re-ask of the feed (T-913, D-110) for one fixture, or for every
+   * fixture behind one check's open findings in one season, with one audit
+   * row in the same transaction naming the fixtures queued (rule 10). Only a
+   * fixture some provider has an id for can be asked about. A fixture already
+   * waiting is not queued twice. `null`: nothing to ask about.
+   */
+  async requestRefetch(
+    target: { fixtureId: string } | { check: DataQualityCheck; seasonId: string },
+    actorId: string,
+    reason: string,
+    now: Date,
+  ): Promise<{ queued: string[]; alreadyQueued: number } | null> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const byFixture = 'fixtureId' in target;
+      const { rows: askable } = await client.query<{ fixture_id: string }>(
+        byFixture
+          ? `SELECT f.id AS fixture_id FROM fixture f
+              WHERE f.id = $1
+                AND EXISTS (SELECT 1 FROM provider_mapping m
+                             WHERE m.entity_type = 'fixture' AND m.internal_id = f.id)`
+          : `SELECT DISTINCT d.fixture_id FROM data_quality_finding d
+              WHERE d.resolved_at IS NULL AND d.check_kind = $1 AND d.season_id = $2
+                AND d.fixture_id IS NOT NULL
+                AND EXISTS (SELECT 1 FROM provider_mapping m
+                             WHERE m.entity_type = 'fixture' AND m.internal_id = d.fixture_id)
+              ORDER BY d.fixture_id`,
+        byFixture ? [target.fixtureId] : [target.check, target.seasonId],
+      );
+      if (askable.length === 0) {
+        await client.query('ROLLBACK');
+        return null;
+      }
+      const check = byFixture ? null : target.check;
+      const seasonId = byFixture ? null : target.seasonId;
+      const { rows: queued } = await client.query<{ fixture_id: string }>(
+        `INSERT INTO fixture_refetch_request
+           (fixture_id, requested_by, requested_at, reason, check_kind, season_id)
+         SELECT f, $2, $3, $4, $5, $6 FROM unnest($1::uuid[]) AS f
+         ON CONFLICT (fixture_id) WHERE fetched_at IS NULL DO NOTHING
+         RETURNING fixture_id`,
+        [askable.map((r) => r.fixture_id), actorId, now, reason, check, seasonId],
+      );
+      const ids = queued.map((r) => r.fixture_id).sort();
+      if (ids.length > 0) {
+        await client.query(
+          `INSERT INTO audit_log (actor_id, action, target_type, target_id, reason, previous, next)
+           VALUES ($1, 'data_quality.refetch', $2, $3, $4, $5::jsonb, $6::jsonb)`,
+          [
+            actorId,
+            byFixture ? 'fixture' : 'season',
+            byFixture ? target.fixtureId : target.seasonId,
+            reason,
+            JSON.stringify({ queued: false, check, season_id: seasonId }),
+            JSON.stringify({ queued: true, check, season_id: seasonId, fixture_ids: ids }),
+          ],
+        );
+      }
+      await client.query('COMMIT');
+      return { queued: ids, alreadyQueued: askable.length - ids.length };
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Waiting re-asks of fixtures in these competitions that this provider has
+   * an id for, oldest request first: what the post-match job carries next.
+   */
+  async refetchesDue(
+    provider: string,
+    competitionIds: readonly string[],
+    limit: number,
+  ): Promise<{ id: string; fixtureId: string; externalId: string; competitionId: string }[]> {
+    if (limit <= 0 || competitionIds.length === 0) return [];
+    const { rows } = await this.pool.query<{
+      id: string;
+      fixtureId: string;
+      externalId: string;
+      competitionId: string;
+    }>(
+      `SELECT r.id::text AS id, r.fixture_id AS "fixtureId", m.external_id AS "externalId",
+              s.competition_id AS "competitionId"
+         FROM fixture_refetch_request r
+         JOIN fixture f ON f.id = r.fixture_id
+         JOIN season s ON s.id = f.season_id
+         -- One id per fixture: a fixture carrying two (fixture_mapped_twice) is asked once.
+         JOIN LATERAL (SELECT pm.external_id FROM provider_mapping pm
+                        WHERE pm.internal_id = f.id AND pm.entity_type = 'fixture'
+                          AND pm.provider = $1
+                        ORDER BY pm.external_id LIMIT 1) m ON true
+        WHERE r.fetched_at IS NULL AND s.competition_id = ANY($2::uuid[])
+        ORDER BY r.requested_at, r.id
+        LIMIT $3`,
+      [provider, competitionIds, limit],
+    );
+    return rows;
+  }
+
+  /** Records that the job asked the feed for a queued fixture, and whether the answer changed anything. */
+  async recordRefetch(id: string, changed: boolean): Promise<void> {
+    await this.pool.query(
+      `UPDATE fixture_refetch_request
+          SET fetched_at = GREATEST(now(), requested_at), changed = $2
+        WHERE id = $1 AND fetched_at IS NULL`,
+      [id, changed],
+    );
+  }
+
+  /** Re-asks still waiting, and those carried since `since`. */
+  async refetchCounts(since: Date): Promise<{ pending: number; fetched: number }> {
+    const { rows } = await this.pool.query<{ pending: number; fetched: number }>(
+      `SELECT (count(*) FILTER (WHERE fetched_at IS NULL))::int AS pending,
+              (count(*) FILTER (WHERE fetched_at >= $1))::int AS fetched
+         FROM fixture_refetch_request
+        WHERE fetched_at IS NULL OR fetched_at >= $1`,
+      [since],
+    );
+    return rows[0] ?? { pending: 0, fetched: 0 };
   }
 
   /**

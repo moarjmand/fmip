@@ -8,16 +8,13 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type { ApiError, AuthUser, SuggestionOutcome } from '@fmip/contracts';
+import { ROLE_REFUSALS } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { ModerationAssistService } from './moderation-assist.service';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
-const NOT_A_MODERATOR: ApiError = {
-  error: 'validation',
-  message: 'This needs the moderator or administrator role.',
-};
 const NO_REPORT: ApiError = { error: 'not_found', message: 'No such report.' };
 
 /**
@@ -54,7 +51,7 @@ export class ModerationAssistController {
       this.identity.hasRole(user.id, 'moderator'),
       this.identity.hasRole(user.id, 'admin'),
     ]);
-    if (!isModerator && !isAdmin) throw new ForbiddenException(NOT_A_MODERATOR);
+    if (!isModerator && !isAdmin) throw new ForbiddenException(ROLE_REFUSALS.moderator);
     return user;
   }
 }

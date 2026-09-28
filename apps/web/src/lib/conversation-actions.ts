@@ -6,6 +6,7 @@ import type { CardKind, Reaction, SendMessageResponse } from '@fmip/contracts';
 import { type ApiResult, apiRequest } from '@/lib/api';
 import type { ActionState } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
+import { failureState } from './action-failure';
 
 /**
  * Sending, reading and leaving a conversation (blueprint 8.3, T-224).
@@ -23,15 +24,8 @@ import { sessionCookieHeader } from '@/lib/session';
  * here.
  */
 
-const UNREACHABLE = 'The service is unreachable right now. Please try again shortly.';
-
 function failure(result: Extract<ApiResult<unknown>, { ok: false }>): ActionState {
-  if (result.status === 0) return { ok: false, message: UNREACHABLE };
-  return {
-    ok: false,
-    message: result.error?.message ?? `The request failed (HTTP ${result.status}).`,
-    ...(result.error?.fields ? { fields: result.error.fields } : {}),
-  };
+  return failureState(result);
 }
 
 function text(formData: FormData, name: string): string {

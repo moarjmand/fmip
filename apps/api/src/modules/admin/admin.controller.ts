@@ -20,6 +20,7 @@ import {
   type AuditResponse,
   COVERAGE_STATES,
   type CoverageState,
+  ROLE_REFUSALS,
   type SetCoverageRequest,
   type SetUserStatusRequest,
 } from '@fmip/contracts';
@@ -41,10 +42,6 @@ const PROVIDERS = ['api_football', 'football_data_org', 'highlightly'] as const;
 const REASON_MAX = 500;
 
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
-const NOT_ADMIN: ApiError = {
-  error: 'unauthenticated',
-  message: 'The administration area needs the admin role.',
-};
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -185,7 +182,8 @@ export class AdminController {
       parseCookies(request.headers.cookie)[SESSION_COOKIE],
     );
     if (user === null) throw new UnauthorizedException(UNAUTHENTICATED);
-    if (!(await this.identity.hasRole(user.id, 'admin'))) throw new ForbiddenException(NOT_ADMIN);
+    if (!(await this.identity.hasRole(user.id, 'admin')))
+      throw new ForbiddenException(ROLE_REFUSALS.administrator);
     return user;
   }
 }
