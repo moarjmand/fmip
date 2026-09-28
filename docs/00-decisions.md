@@ -4235,6 +4235,61 @@ them. `emitToAudience` is sourceless only and sends a capped kind through
 `emit`, because a block refusal or a per-member cap cannot be a condition of
 one statement.
 
+## D-109 — The past-season findings are our adoption lag, not the feed's gaps; coverage is judged on what is left after adoption and one re-ask
+**Status:** Accepted · 2026-09-28 (revisable under the standing delegation of 2026-09-26)
+
+**What T-910 found.** Of the 6,633 open findings on 2026-09-28 at 20:09 UTC
+(`lineup_not_eleven` 5,486, `goals_disagree` 1,147), 6,622 come from one
+cause. The feed supplied a player we have not adopted yet (D-079: people are
+adopted once the past-season backlog finishes). The writer leaves such a
+player out of a line-up or a timeline rather than write a blank (T-026). The
+other 11 are the feed's own answer. In 8 cup qualifiers settled after extra
+time, the score leaves out the extra-time goals the timeline carries. In 3
+current-season line-ups, one starter most likely had no id. The classes, their
+counts and example fixtures are in `05-data-providers.md`, "What the
+past-season findings are". No check and no parser is wrong, so T-911 is closed
+without a change.
+
+**Decision.**
+
+1. **A finding whose player is waiting in the queue is repaired, not
+   reviewed.** Adopting people (D-079) re-asks every fetched match within the
+   post-match budget, and the sweep resolves what then agrees. Bulk review
+   (T-912) is for findings that remain after that. Marking the adoption lag
+   reviewed would hide a gap that is ours to close.
+2. **What the feed answered is confirmed by asking again once** (T-913,
+   D-110), counted against the day's budget. That re-ask is the provider-side
+   sample T-910 did not take: this diagnosis read stored rows only and spent
+   no request. If the answer is unchanged, the finding is reviewed with the
+   reason "the feed's own answer, asked again on <date>". Nobody overrides a
+   stored value (N-3).
+3. **Coverage follows the remainder, not the raw count.** A past season's
+   `lineups` or `incidents` is proposed as `limited` (T-914) only when all
+   of these hold:
+   - Every finished match of the season has had its details fetched.
+   - No person from the season's provider is pending in `unresolved_entity`.
+   - At least **10%** of the season's finished matches still have an open
+     `lineup_not_eleven` finding (for `lineups`) or `goals_disagree` finding
+     (for `incidents`), after one re-ask.
+
+   The proposal names those counts. An administrator applies it through the
+   audited coverage write (T-070), and nothing is applied without a person.
+   Before those conditions hold, the season's coverage is not proposed at
+   all. Our own lag is not reported as the feed's gap.
+
+**Why 10%.** A season whose line-ups are "mostly incomplete" must never show
+as `available` (rule 3). One match in ten, left short after a re-ask, is
+already a line-up page that misleads often enough to say so. A handful of
+feed slips (class C and D: 11 in 4,684 fetched matches) is not a season's
+coverage, and is reviewed one by one instead.
+
+**Alternatives considered.** Reviewing the 2025/26 findings in bulk now: it
+would clear the page, but it would label 6,622 gaps we are about to close as
+accepted. Proposing `limited` from today's counts: 94% of 2025/26 matches
+would qualify, but the feed supplied every missing player. Adjusting
+`lineup_not_eleven` to ignore sides whose players are queued: it would hide the
+gap's size, and the check would then depend on the resolver's queue.
+
 ## D-110 — Re-asking the feed: an administrator queues it, the post-match job carries it within 5 % of the day's budget, and the next sweep decides
 **Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
 

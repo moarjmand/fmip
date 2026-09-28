@@ -1,13 +1,9 @@
 import Link from 'next/link';
 import { conversationTitle, threadStanding } from '@/lib/conversation-title';
-import {
-  isDeletedMember,
-  type ConversationSummary,
-  type Message,
-  type SharedCard,
-} from '@fmip/contracts';
-import { Translated } from '@/components/translated';
+import type { ConversationSummary, Message, SharedCard } from '@fmip/contracts';
+import { MemberName } from '@/components/member-name';
 import { Score } from '@/components/score';
+import { memberName } from '@/lib/member-name';
 import { formatDateTime } from '@/i18n/format';
 
 /**
@@ -91,7 +87,8 @@ export function FootballCard({ card, locale }: { card: SharedCard; locale: strin
         {/* A shared prediction is always attributed: it is one member's call, and
             never any of the three prediction products (rule 6). */}
         <span className="text-muted">
-          @{card.by} says {card.outcome} · confidence {card.confidence}
+          <MemberName locale={locale} member={{ username: card.by }} /> says {card.outcome} ·
+          confidence {card.confidence}
         </span>
       </div>
     );
@@ -124,11 +121,11 @@ export function MessageRow({
     <li className="flex flex-col gap-1" data-testid="message">
       <p className="text-xs text-muted">
         {/* A deleted account's words stay, under no name (T-812, D-094). */}
-        {isDeletedMember(message.author) ? (
-          <Translated locale={locale} message="account.deletedMember" className="font-medium" />
-        ) : (
-          <span className="font-medium">@{message.author}</span>
-        )}{' '}
+        <MemberName
+          locale={locale}
+          member={{ username: message.author }}
+          className="font-medium"
+        />{' '}
         ·{' '}
         <time dateTime={message.created_at}>
           {formatDateTime(locale, message.created_at, timeZone)}
@@ -157,7 +154,8 @@ export function MessageRow({
         // especially after somebody renames themselves, which is exactly what
         // storing the mention was meant to survive (T-225).
         <p className="text-xs text-muted" data-testid="message-mentions">
-          Mentioned {message.mentions.map((username) => `@${username}`).join(', ')}
+          Mentioned{' '}
+          {message.mentions.map((username) => memberName(locale, { username })).join(', ')}
         </p>
       )}
 
@@ -202,7 +200,7 @@ export function ConversationHeader({
           threads carry the same group and no members of their own, so titling
           by the group alone would have called them all the same thing — and a
           direct conversation with nobody left in it is still not a group. */}
-      <h1 className="text-2xl font-semibold">{conversationTitle(conversation, me)}</h1>
+      <h1 className="text-2xl font-semibold">{conversationTitle(conversation, me, locale)}</h1>
       {match !== null && (
         <p className="text-sm" data-testid="conversation-fixture">
           <Link href={`/${locale}/match/${match.id}`} className="underline">
@@ -224,13 +222,13 @@ export function ConversationHeader({
       )}
       <p className="text-sm text-muted">
         {others.map((member) => (
-          <Link
+          <MemberName
             key={member.username}
-            href={`/${locale}/u/${encodeURIComponent(member.username)}`}
+            locale={locale}
+            member={{ username: member.username }}
+            link
             className="underline"
-          >
-            @{member.username}
-          </Link>
+          />
         ))}
         {conversation.muted && <span data-testid="conversation-muted"> · muted</span>}
         {conversation.left && <span data-testid="conversation-left"> · you have left</span>}
