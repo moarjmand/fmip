@@ -146,6 +146,31 @@ needs nothing from anybody.
 
 **Where it stands (2026-09-28).** Every task in `04-tasks-phase-7.md` is built, merged and on the server (#305-#334): the web console for moderation, contributors and featured matches; knockout brackets, player comparison, team splits and scores filters; rating history, period leaderboards, wider search, achievements and group polls; the first-run flow; and the identity -- mark, self-hosted Vazirmatn, tokens with a light/dark/device theme, shared components, text size, contrast and motion settings, and a mobile-first scores page and match centre. The identity choices were delegated by the maintainer and are recorded as revisable (D-089 to D-092).
 
+## Phase 8 — Run it like a live product, and keep the promises still open
+
+- Watching the live server from inside the stack: a watchdog over the health
+  views, alerts to administrators' devices, counted API errors and job
+  failures, a System page and an Activity page in the console, the restore
+  drill on a timer, performance budgets in CI, and error pages that carry
+  their language.
+- Security and a member's account: rate limits on sign-in and recovery, an
+  inventory of every write's ceiling, and deleting an account as the
+  published rules promise.
+- The feed checked for contradictions, and the football pages fixed and
+  deepened: the player log's extra-time score, minutes in a player's season,
+  minimum-minute filters.
+- Match alerts for followed teams (blueprint 12.2), and the pages the
+  blueprint still promises: competition context and key players in the match
+  centre, saved articles, leaderboards by competition and by language.
+
+**Planned in `04-tasks-phase-8.md`** (2026-09-28, from a comparison of the
+blueprint, the published rules and a live server's needs against what is
+built). Five epics, twenty-eight tasks after this plan. Everything is buildable
+by an agent except an off-machine uptime check (T-806), which needs an
+account; six questions are listed under "Needs a decision" rather than
+planned as tasks. Phase 6's measurements (T-501, T-504, T-535) stay where
+they are.
+
 ---
 
 ## Sequencing rule
