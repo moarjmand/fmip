@@ -17,7 +17,7 @@ export interface NotificationRow {
   subject_type: string;
   subject_id: string;
   subject_label: string | null;
-  /** The subject's own words where it has them (a campaign's title); null elsewhere. */
+  /** The subject's own words where it has them (a campaign's title, a match alert's line); null elsewhere. */
   headline: string | null;
   source: string | null;
   created_at: Date;
@@ -43,7 +43,7 @@ export interface DueNotification {
   subject_label: string | null;
   /** Who caused it, by username; null for a sourceless kind. */
   source: string | null;
-  /** The subject's own words where it has them (a campaign's title); null elsewhere. */
+  /** The subject's own words where it has them (a campaign's title, a match alert's line); null elsewhere. */
   headline: string | null;
   /** The member's address, for the e-mail channel. */
   email: string;
@@ -116,6 +116,15 @@ export class PostgresNotificationsStore {
       [userId],
     );
     return new Set(rows.map((row) => row.kind));
+  }
+
+  /** The member's own choice for one kind, or null when they never made one (the default applies). */
+  async preference(userId: string, kind: string): Promise<boolean | null> {
+    const { rows } = await this.pool.query<{ in_product: boolean }>(
+      `SELECT in_product FROM notification_preference WHERE user_id = $1 AND kind = $2`,
+      [userId, kind],
+    );
+    return rows[0]?.in_product ?? null;
   }
 
   // --- mutes (T-331) ----------------------------------------------------
@@ -308,7 +317,7 @@ export class PostgresNotificationsStore {
                 WHEN 'campaign' THEN subject_campaign.path
                 ELSE NULL
               END AS subject_label,
-              subject_campaign.title AS headline,
+              coalesce(subject_campaign.title, subject_match_alert.line) AS headline,
               source.username AS source,
               n.created_at,
               n.read_at,
@@ -330,6 +339,10 @@ export class PostgresNotificationsStore {
                 ON n.subject_type = 'campaign'
                AND n.subject_id ~ '^[0-9a-f-]{36}$'
                AND subject_campaign.id = n.subject_id::uuid
+         -- A match alert's line (T-830), through the key it was deduplicated on.
+         LEFT JOIN match_alert subject_match_alert
+                ON n.subject_type = 'fixture'
+               AND subject_match_alert.event_key = n.dedupe_key
         WHERE n.user_id = $1 AND n.deliver_after <= now()
         ORDER BY n.created_at DESC
         LIMIT $2`,
@@ -393,7 +406,7 @@ export class PostgresNotificationsStore {
                 WHEN 'campaign' THEN subject_campaign.path
                 ELSE NULL
               END AS subject_label,
-              subject_campaign.title AS headline,
+              coalesce(subject_campaign.title, subject_match_alert.line) AS headline,
               source.username AS source,
               u.email,
               u.preferred_language AS locale
@@ -413,6 +426,10 @@ export class PostgresNotificationsStore {
                 ON n.subject_type = 'campaign'
                AND n.subject_id ~ '^[0-9a-f-]{36}$'
                AND subject_campaign.id = n.subject_id::uuid
+         -- A match alert's line (T-830), through the key it was deduplicated on.
+         LEFT JOIN match_alert subject_match_alert
+                ON n.subject_type = 'fixture'
+               AND subject_match_alert.event_key = n.dedupe_key
         WHERE n.deliver_after <= now()
           AND n.created_at >= now() - interval '1 day'
           AND d.notification_id IS NULL

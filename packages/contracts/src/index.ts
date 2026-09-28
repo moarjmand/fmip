@@ -311,6 +311,7 @@ export type {
 // nowhere else: "a missing preference row means the documented default" is only
 // true while the document and the code are the same thing.
 export {
+  MATCH_ALERT_KINDS,
   MUTE_SCOPES,
   NOTIFICATION_CATEGORIES,
   NOTIFICATION_CATEGORY_OF,
@@ -319,11 +320,13 @@ export {
   NOTIFICATION_KINDS,
   NOTIFICATION_TEXT,
   QUIET_HOURS_RULE,
+  isMatchAlertKind,
   isNotificationKind,
   notificationLine,
   notificationPath,
 } from './notifications';
 export type {
+  MatchAlertKind,
   MuteScope,
   Notification,
   NotificationCategory,

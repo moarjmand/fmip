@@ -13,6 +13,27 @@ import type { DeliveryHealth } from './health';
  * document and the code are the same thing.
  */
 
+/**
+ * Match alerts (blueprint 12.2, T-830, D-096): raised by the live ingestion
+ * when a followed team's or competition's match changes state. Kept as their
+ * own list so the settings page can give them a section of their own and the
+ * carrier can batch them per member. A disallowed goal is a `match_goal`
+ * too -- its correction -- so the member who turned goals off hears neither.
+ */
+export const MATCH_ALERT_KINDS = [
+  'match_kickoff',
+  'match_goal',
+  'match_red_card',
+  'match_half_time',
+  'match_full_time',
+] as const;
+
+export type MatchAlertKind = (typeof MATCH_ALERT_KINDS)[number];
+
+export function isMatchAlertKind(value: string): value is MatchAlertKind {
+  return (MATCH_ALERT_KINDS as readonly string[]).includes(value);
+}
+
 /** Every kind that can be emitted. Closed, and shared with the schema's CHECK. */
 export const NOTIFICATION_KINDS = [
   'prediction_settled',
@@ -32,6 +53,8 @@ export const NOTIFICATION_KINDS = [
   'briefing',
   // A message from the platform to an audience (T-332, D-075).
   'campaign',
+  // Match alerts (T-830, D-096).
+  ...MATCH_ALERT_KINDS,
 ] as const;
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
@@ -73,6 +96,15 @@ export const NOTIFICATION_DEFAULTS: Record<NotificationKind, boolean> = {
   // On, and a kind of its own so a member can turn campaigns off without
   // turning off what happens to their account (T-332).
   campaign: true,
+  // Match alerts (D-096): the moments a follower wants without asking --
+  // the start, every goal, the result -- are on; half-time and red cards,
+  // which double the pushes of an ordinary match for news the next goal or
+  // the result carries anyway, are for a member who asks.
+  match_kickoff: true,
+  match_goal: true,
+  match_red_card: false,
+  match_half_time: false,
+  match_full_time: true,
 };
 
 /**
@@ -160,8 +192,9 @@ export interface Notification {
    */
   subject_label: string | null;
   /**
-   * The subject's own words where it has them -- a campaign's title -- and
-   * null everywhere else, where the kind's sentence is the line (T-332).
+   * The subject's own words where it has them -- a campaign's title, a match
+   * alert's line with the teams and the score (T-830) -- and null everywhere
+   * else, where the kind's sentence is the line (T-332).
    */
   headline: string | null;
   /** Who caused it. Null for an event with no member behind it, like a settlement. */
@@ -223,7 +256,7 @@ export interface QuietHours {
  * from arriving in no category and being impossible to silence with its
  * neighbours.
  */
-export const NOTIFICATION_CATEGORIES = ['football', 'social', 'account'] as const;
+export const NOTIFICATION_CATEGORIES = ['football', 'social', 'account', 'match'] as const;
 export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
 
 export const NOTIFICATION_CATEGORY_OF: Record<NotificationKind, NotificationCategory> = {
@@ -242,6 +275,13 @@ export const NOTIFICATION_CATEGORY_OF: Record<NotificationKind, NotificationCate
   moderation_decision: 'account',
   contributor_granted: 'account',
   contributor_grant_changed: 'account',
+  // Their own category (T-830), so every match alert can be silenced as one
+  // without silencing predictions and ratings.
+  match_kickoff: 'match',
+  match_goal: 'match',
+  match_red_card: 'match',
+  match_half_time: 'match',
+  match_full_time: 'match',
 };
 
 export const MUTE_SCOPES = ['team', 'competition', 'category'] as const;
@@ -316,6 +356,13 @@ export const NOTIFICATION_TEXT: Record<NotificationKind, { text: string; named: 
   panel_reaction: { text: 'reacted to something you posted.', named: true },
   briefing: { text: 'Your briefing was written.', named: false },
   campaign: { text: 'A message from the platform.', named: false },
+  // The fallback only: a match alert's line is its headline, written when the
+  // event was seen, with the teams and the score (T-830).
+  match_kickoff: { text: 'A match you follow kicked off.', named: false },
+  match_goal: { text: 'A goal in a match you follow.', named: false },
+  match_red_card: { text: 'A red card in a match you follow.', named: false },
+  match_half_time: { text: 'Half-time in a match you follow.', named: false },
+  match_full_time: { text: 'Full-time in a match you follow.', named: false },
 };
 
 /**

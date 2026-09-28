@@ -10,6 +10,7 @@ import type {
   NormalisedFixture,
   NormalisedFixtureDetail,
   NormalisedLineup,
+  NormalisedLiveFixture,
   NormalisedStanding,
   Provider,
 } from '../normalised';
@@ -107,7 +108,7 @@ export interface StandingsQuery {
 export interface ProviderAdapter {
   readonly manifest: AdapterManifest;
   listFixtures(query: FixtureQuery): Promise<AdapterResult<NormalisedFixture[]>>;
-  getLive(query: LiveQuery): Promise<AdapterResult<NormalisedFixture[]>>;
+  getLive(query: LiveQuery): Promise<AdapterResult<NormalisedLiveFixture[]>>;
   getLineup(fixtureExternalId: string): Promise<AdapterResult<NormalisedLineup>>;
   getStandings(query: StandingsQuery): Promise<AdapterResult<NormalisedStanding[]>>;
   getFixtureDetail(fixtureExternalId: string): Promise<AdapterResult<NormalisedFixtureDetail>>;

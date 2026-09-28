@@ -3629,3 +3629,63 @@ since when, which is the operator's, not a visitor's.
 renders `WatchdogReport`; T-805 replaces the backup probe's `undefined` with
 the newest recorded backup. Changing a threshold is a one-line change in
 `apps/api/src/modules/watchdog/internal/conditions.ts` and an edit here.
+
+## D-096 — Match alerts: raised from the live job's own writes, one per member per event, one push per run
+**Status:** Accepted · 2026-09-28 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-830's match alerts are five notification kinds -- `match_kickoff`,
+`match_goal`, `match_red_card`, `match_half_time`, `match_full_time` -- in a
+mute category of their own, `match`, for members who follow either team or
+the competition. They are raised inside the ingestion jobs, not by a poller:
+the live job (every minute) and the post-match run read each match before
+and after they write it, and `MatchAlertsService` turns the difference into
+events. Kick-off is scheduled → live; a goal is a side's count going up, one
+event per step (`goal:home:2`), so two goals in one tick invent no order; a
+count going down is a withdrawn goal; a sending-off is a `red_card` or
+`second_yellow_card` incident, once per player; half-time only when the feed
+says the match is at the interval (API-Football's `HT`); full-time is live →
+finished. Each event is a row in `match_alert` with a key that is also the
+notification's dedupe key, so a retry, a replay or a second process reaches
+nobody twice. A withdrawn goal is a correction (`match_goal`, "Goal
+disallowed ...") sent only to the members who hold the goal it withdraws; a
+goal given again afterwards is a new occurrence (`#2`). The scorer is named
+only when the side's recorded goals equal its score and the match has no own
+goal. The live job writes the incidents the live list carries, and asks by
+id, at most every five minutes per match, about a match it holds as live
+that left the live list, so the result and its alert are not half an hour
+late. Emission goes through `NotificationsService.emit` (switches, mutes,
+quiet hours delay and never drop); a run's alerts are carried when the run
+ends, and one member's alerts of one run leave as one push. A match alert is
+a push and an inbox row, never an e-mail.
+
+**Defaults.** Kick-off, goals (with their corrections) and full-time on;
+red cards and half-time off. A follower wants the start, every goal and the
+result without asking; half-time and red cards roughly double the pushes of
+an ordinary match for news the next goal or the result carries anyway, so
+they are for a member who asks. This departs from the E83 row, which asked
+for goals off too: the maintainer's brief for T-830/T-831 names goals among
+the defaults, and a goal is the one thing a follower of a live match is
+certain to want.
+
+**Why.** The live job already knows the moment a score or a status changes,
+and a second reader polling the same tables would be late by its own
+interval and would have to guess what changed. A key per event rather than
+per score keeps "one per member per event" a unique index instead of a
+memory. One push per run is the frequency limit that fits a match: a goal
+and a red card in the same minute are one interruption. Quiet hours delay a
+match alert like any other notification (the product's rule, T-273), and the
+held alerts leave together when the window ends.
+
+**Alternatives considered.** A database trigger writing an outbox on every
+score or status change: every writer covered, but the derivation would live
+in SQL and the scorer and the lines with it. Per-team, per-kind overrides
+(goals for one team, not another): the preference table is per member per
+kind, and a second table read on every emit is a schema change the brief
+allowed deferring; a team or competition mute already silences one team or
+one competition. A match alert by e-mail: a minute-by-minute stream is not
+what e-mail is for.
+
+**Consequences.** `wants()` now reads a member's own "on" for a kind that is
+off by default (it used to read only an "off"). T-831 gives the kinds their
+own section in Settings → Notifications. T-832 (line-ups) can add a kind to
+the same derivation; T-834 measures the queue at a Saturday's load.

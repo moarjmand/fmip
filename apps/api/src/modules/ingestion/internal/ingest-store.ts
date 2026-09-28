@@ -54,6 +54,8 @@ export interface WriteResult {
   unresolved: string[];
   /** The season the fixture landed in, so the caller can recompute its coverage (T-027). */
   seasonId?: string;
+  /** The fixture written, for a caller with more to write about it (T-830). */
+  fixtureId?: string;
 }
 
 export const NOTHING: WriteResult = { changed: 0, unresolved: [] };
@@ -347,7 +349,7 @@ export class IngestStore {
           `created from ${provider} ${fixture.home.name} v ${fixture.away.name}`,
         );
       }
-      return { changed, unresolved, seasonId };
+      return { changed, unresolved, seasonId, fixtureId };
     } catch (error: unknown) {
       await client.query('ROLLBACK');
       throw error;
