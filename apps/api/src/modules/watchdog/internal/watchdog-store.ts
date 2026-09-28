@@ -8,7 +8,7 @@ import type {
 } from '@fmip/contracts';
 import type { Pool, PoolClient } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
-import type { Reading } from './conditions';
+import type { Reading, RunRecord } from './conditions';
 import { type StoredCondition, isAlert } from './transition';
 
 /**
@@ -298,5 +298,38 @@ export class WatchdogStore {
       email: { sent: Number(row?.email_sent ?? 0), failed: Number(row?.email_failed ?? 0) },
       push: { sent: Number(row?.push_sent ?? 0), failed: Number(row?.push_failed ?? 0) },
     };
+  }
+
+  /**
+   * What the backup and the restore drill recorded (T-805): per kind, the
+   * newest successful run and the newest run of any outcome. Written by
+   * `scripts/backup/*.sh` on the host through psql, never by the API.
+   */
+  async backupRuns(): Promise<{ backup: RunRecord; drill: RunRecord }> {
+    const { rows } = await this.pool.query<{
+      kind: 'backup' | 'restore_drill';
+      last_ok: Date | null;
+      newest_at: Date;
+      newest_ok: boolean;
+      newest_detail: string | null;
+    }>(
+      `SELECT kind,
+              max(finished_at) FILTER (WHERE ok) AS last_ok,
+              (array_agg(finished_at ORDER BY finished_at DESC, id DESC))[1] AS newest_at,
+              (array_agg(ok ORDER BY finished_at DESC, id DESC))[1] AS newest_ok,
+              (array_agg(detail ORDER BY finished_at DESC, id DESC))[1] AS newest_detail
+         FROM backup_run
+        GROUP BY kind`,
+    );
+    const of = (kind: 'backup' | 'restore_drill'): RunRecord => {
+      const row = rows.find((r) => r.kind === kind);
+      return row === undefined
+        ? { lastSucceededAt: null, newest: null }
+        : {
+            lastSucceededAt: row.last_ok,
+            newest: { at: row.newest_at, ok: row.newest_ok, detail: row.newest_detail },
+          };
+    };
+    return { backup: of('backup'), drill: of('restore_drill') };
   }
 }
