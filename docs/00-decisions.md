@@ -3517,7 +3517,8 @@ deletion removes. The plan's proposal is adopted and made exact.
   follows and friendships and friend requests and blocks **in both
   directions**, group memberships, group invitations (sent and received) and
   join requests, and unsubmitted community-analysis drafts. Privacy is set to
-  private as a second fence.
+  private as a second fence. (T-842 added saved articles to this list: a
+  member's own reading list is personal data like a follow.)
 - **Kept, without a name:** predictions, prediction versions, settlements,
   rating snapshots and points (rule 8 -- other members' ratings never read
   them, and the member's own rating remains recomputable from them, it is

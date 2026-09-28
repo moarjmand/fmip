@@ -55,6 +55,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Deleting an 
   let direct = '';
   let secondSession = '';
   let analysisId = '';
+  // T-842: a saved article, which deletion removes with the member's data.
+  let savedSource = '';
+  let savedStory = '';
   const before = new Map<Name, number>();
 
   const inject = (
@@ -209,6 +212,26 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Deleting an 
        VALUES ($1, $2, 'key', 'auth')`,
       [id('gone'), `https://push.example.test/${RUN}`],
     );
+    savedSource = (
+      await pool.query<{ id: string }>(
+        // Licensed: no feed, so no ingestion spec ever reads it.
+        `INSERT INTO news_source (name, homepage_url, kind, rights, language)
+         VALUES ($1, 'https://news.example.test', 'licensed', 'headline', 'en') RETURNING id`,
+        [`Deletion Test Source ${RUN}`],
+      )
+    ).rows[0]!.id;
+    // One statement, so no other spec's sweep of empty stories can see it half made.
+    savedStory = (
+      await pool.query<{ story_id: string }>(
+        `WITH s AS (INSERT INTO story DEFAULT VALUES RETURNING id),
+              a AS (INSERT INTO article (source_id, story_id, external_id, url)
+                    SELECT $2, s.id, $3, 'https://news.example.test/saved' FROM s
+                    RETURNING id, story_id)
+         INSERT INTO saved_article (user_id, story_id, article_id, source_id)
+         SELECT $1, a.story_id, a.id, $2 FROM a RETURNING story_id`,
+        [id('gone'), savedSource, `saved-${RUN}`],
+      )
+    ).rows[0]!.story_id;
     await pool.query(
       `INSERT INTO member_follow (follower_id, followed_id) VALUES ($1, $2), ($2, $1)`,
       [id('gone'), id('keeper')],
@@ -393,6 +416,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Deleting an 
       await c.query(`DELETE FROM retired_username WHERE username LIKE $1`, [`ad\\_${RUN}%`]);
     });
     await deleteRatedAccounts(pool, ids);
+    await pool.query(`DELETE FROM news_source WHERE id = $1`, [savedSource]);
+    await pool.query(`DELETE FROM story WHERE id = $1`, [savedStory]);
     await pool.query(`DELETE FROM fixture_participant WHERE fixture_id = ANY($1::uuid[])`, [
       fixtures,
     ]);
@@ -488,7 +513,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Deleting an 
       expect(row.display_name).toBe('Deleted member');
       expect(row.email).toBe(`deleted-${members.gone.id}@deleted.invalid`);
       expect(row.email_verified_at).toBeNull();
-      for (const table of ['profile', 'followed_entity', 'push_subscription', 'member_briefing'])
+      for (const table of [
+        'profile',
+        'followed_entity',
+        'push_subscription',
+        'member_briefing',
+        'saved_article',
+      ])
         expect(
           await count(`SELECT count(*)::text AS n FROM ${table} WHERE user_id = $1`, [
             members.gone.id,

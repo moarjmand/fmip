@@ -4,7 +4,8 @@ import { notFound } from 'next/navigation';
 import type { NewsEntity, NewsReport, StoryPage as StoryPageData } from '@fmip/contracts';
 import { Translated } from '@/components/translated';
 import { formatDateTime } from '@/i18n/format';
-import { fetchMe, fetchStory } from '@/lib/api';
+import { fetchMe, fetchSavedArticles, fetchStory } from '@/lib/api';
+import { SaveArticle } from '@/components/save-article';
 import {
   VERSION_STATUS_KEY,
   entityHref,
@@ -64,7 +65,11 @@ export default async function StoryPage({
   if (!UUID.test(id)) notFound();
   const q = readStoryQuery(query);
   const cookie = await sessionCookieHeader();
-  const [me, result] = await Promise.all([fetchMe(cookie), fetchStory(id, q.language, locale)]);
+  const [me, result, savedList] = await Promise.all([
+    fetchMe(cookie),
+    fetchStory(id, q.language, locale),
+    fetchSavedArticles(cookie),
+  ]);
   if (!result.ok && result.status === 404) notFound();
   const timeZone = me?.timezone ?? 'UTC';
 
@@ -234,6 +239,24 @@ export default async function StoryPage({
           </ol>
         )}
       </section>
+
+      {me !== null && savedList !== null && savedList.ok ? (
+        <div data-testid="story-save">
+          <SaveArticle
+            locale={locale}
+            storyId={story.story_id}
+            headline={story.headline}
+            language={story.language}
+            saved={savedList.data.saved.some((s) => s.story_id === story.story_id)}
+          />
+        </div>
+      ) : me === null ? (
+        <p className="text-sm text-muted" data-testid="story-save-sign-in">
+          <Link href={`/${locale}/login`} className="underline">
+            <Translated locale={locale} message="saved.signIn" />
+          </Link>
+        </p>
+      ) : null}
 
       <p className="text-sm text-muted" data-testid="story-not-yet">
         <Translated locale={locale} message="story.notYet" />

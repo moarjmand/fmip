@@ -6,6 +6,7 @@ import { PostgresDebateAdminStore } from './internal/debate-admin-store';
 import { PostgresNewsReadStore } from './internal/news-read-store';
 import { FetchTransport, NEWS_TRANSPORT } from './internal/news-transport';
 import { PostgresNewsStore } from './internal/news-store';
+import { PostgresSavedArticlesStore } from './internal/saved-articles-store';
 import { NewsClusteringService } from './news-clustering.service';
 import { NewsIngestionService } from './news-ingestion.service';
 import { NewsSchedulerService } from './news-scheduler.service';
@@ -13,6 +14,7 @@ import { DebateAdminController } from './debate-admin.controller';
 import { PostgresTranslationsAdminStore } from './internal/translations-admin-store';
 import { TranslationsAdminController } from './translations-admin.controller';
 import { NewsController } from './news.controller';
+import { SavedArticlesController } from './saved-articles.controller';
 
 /**
  * News (blueprint 3.3, E14): publishers' feeds read as headline and link
@@ -25,12 +27,18 @@ import { NewsController } from './news.controller';
  */
 @Module({
   imports: [IdentityModule, ProfileModule, FailureCountsModule],
-  controllers: [NewsController, DebateAdminController, TranslationsAdminController],
+  controllers: [
+    NewsController,
+    DebateAdminController,
+    TranslationsAdminController,
+    SavedArticlesController,
+  ],
   providers: [
     PostgresNewsStore,
     PostgresNewsReadStore,
     PostgresDebateAdminStore,
     PostgresTranslationsAdminStore,
+    PostgresSavedArticlesStore,
     NewsClusteringService,
     NewsIngestionService,
     NewsSchedulerService,
