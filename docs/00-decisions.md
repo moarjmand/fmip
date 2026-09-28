@@ -4278,4 +4278,10 @@ you may not do this -- and the sentence already names the role. *Reusing
 `unauthenticated`*: it is the 401's, and tells a signed-in member to sign in.
 
 **Consequences.** The web reads the code rather than a message's words; a
-403 shows "you may not do this", never a validation message.
+403 shows "you may not do this", never a validation message
+(`apps/web/src/lib/action-failure.ts`). CI holds the rule two ways: the
+console security spec calls every route as a member with no role, and
+`forbidden-code.spec.ts` reads every `ForbiddenException` in the source,
+because most refusals need a state (a group, a sanction) a probe cannot
+reach. The chat socket's upgrade refusal is a bare 403 on the socket, not
+an `ApiError`, and is outside the rule.
