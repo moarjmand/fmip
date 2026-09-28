@@ -1,8 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import type { CoverageState, MatchCentre, ScoresFilters, ScoresResponse } from '@fmip/contracts';
+import type {
+  CoverageState,
+  KeyPlayers,
+  MatchCentre,
+  ScoresFilters,
+  ScoresResponse,
+} from '@fmip/contracts';
 import { ProfileService } from '../profile/profile.service';
 import { arrange, onlyFollowed } from './internal/arrange';
 import { covered, derived } from './internal/covered';
+import { availabilityOf, keyPlayersSide, pickKeyPlayers } from './internal/key-players';
+import { PostgresKeyPlayersStore, type TeamSeason } from './internal/key-players-store';
 import { FORM_WINDOW, PostgresMatchCentreStore } from './internal/match-centre-store';
 import { PostgresScoresStore } from './internal/scores-store';
 
@@ -32,6 +40,7 @@ export class FixturesService {
     private readonly store: PostgresScoresStore,
     private readonly centre: PostgresMatchCentreStore,
     private readonly profiles: ProfileService,
+    private readonly keyPlayers_: PostgresKeyPlayersStore,
   ) {}
 
   async scores(filters: ScoresFilters, viewerId: string | null): Promise<ScoresOutcome> {
@@ -132,6 +141,40 @@ export class FixturesService {
       },
       head_to_head: derived(meetings, FORM_WINDOW, meetings[0]?.kickoff_at ?? null),
       coverage,
+    };
+  }
+
+  /**
+   * The match centre's key players (T-841, blueprint 4.2): per side, the
+   * players with the most minutes in this competition's season before the
+   * match (`pickKeyPlayers`), with their season figures and what the provider
+   * said about this match (T-103). Null for an unknown fixture.
+   */
+  async keyPlayers(fixtureId: string): Promise<KeyPlayers | null> {
+    const fixture = await this.keyPlayers_.fixture(fixtureId);
+    if (fixture === null) return null;
+    const [home, away, absences] = await Promise.all([
+      this.keyPlayers_.teamSeason(fixture.season.id, fixture.home.id, fixture.kickoffAt),
+      this.keyPlayers_.teamSeason(fixture.season.id, fixture.away.id, fixture.kickoffAt),
+      this.centre.availability(fixtureId),
+    ]);
+    const side = (team: { id: string; name: string }, season: TeamSeason) =>
+      keyPlayersSide(
+        team,
+        season,
+        pickKeyPlayers(season.players).map((p) => ({
+          ...p,
+          availability: availabilityOf(p.id, absences.rows, absences.askedAt),
+        })),
+        season.lastUpdatedAt,
+      );
+    return {
+      fixture_id: fixture.id,
+      competition: fixture.competition,
+      season: fixture.season,
+      home: side(fixture.home, home),
+      away: side(fixture.away, away),
+      availability_asked_at: absences.askedAt,
     };
   }
 }

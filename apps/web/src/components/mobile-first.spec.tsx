@@ -198,6 +198,7 @@ describe('the match centre', () => {
         discussion: <p>TALK</p>,
         watch: <p>TV</p>,
         news: <p>NEWS</p>,
+        players: <p>PLAYERS</p>,
       }}
     />,
   );

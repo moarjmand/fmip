@@ -111,9 +111,10 @@ export function moduleState<T>(module: Covered<T>): string {
  * Blueprint 4.2 modules that are not built yet, named on the page (rule 3).
  * The list only ever gets shorter: the founder's analysis (T-132), the
  * community forecast (T-135), the discussion (T-251), Watch and highlights
- * (T-314) and related news (T-145) left it the day they reached the page.
+ * (T-314), related news (T-145) and the key players (T-841) left it the day
+ * they reached the page. Empty now, and the page then leaves the list out.
  */
-export const NOT_YET = [['Key players', 'unsupported']] as const;
+export const NOT_YET: readonly (readonly [name: string, why: string])[] = [];
 
 /** How an absence reads (T-103): "Out" or "Doubtful", then the provider's reason. */
 export function absenceLine(absence: MatchAbsence): string {
