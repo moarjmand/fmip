@@ -380,8 +380,9 @@ export interface ApiRequestInit {
   /** The `Cookie` header to forward, e.g. from `sessionCookieHeader()`. */
   cookie?: string;
   /**
-   * The reader's address, from `readerAddress()`, on the account forms only:
-   * the API keys its per-address rate limits on it (T-810, D-093).
+   * The reader's address, from `readerAddress()`, on the account forms and
+   * on `/ask`: the API keys its per-address rate limits on it (T-810, D-093,
+   * T-838).
    */
   clientIp?: string;
 }
@@ -960,9 +961,20 @@ export function fetchMatchSummary(fixtureId: string): Promise<ApiResult<MatchSum
   return apiRequest<MatchSummaryResponse>(`/fixtures/${fixtureId}/summary`);
 }
 
-/** Search as a question (E42, T-421): read by the model when there is one, answered by the search either way. */
-export function fetchAsk(question: string): Promise<ApiResult<AskResponse>> {
-  return apiRequest<AskResponse>(`/ask?q=${encodeURIComponent(question)}`);
+/**
+ * Search as a question (E42, T-421): read by the model when there is one,
+ * answered by the search either way. The session and the reader's address
+ * are forwarded because the API limits the model's questions per member and,
+ * for a guest, per address (T-838); past either it answers 429.
+ */
+export function fetchAsk(
+  question: string,
+  reader: { cookie?: string; clientIp?: string } = {},
+): Promise<ApiResult<AskResponse>> {
+  return apiRequest<AskResponse>(`/ask?q=${encodeURIComponent(question)}`, {
+    ...(reader.cookie === undefined ? {} : { cookie: reader.cookie }),
+    ...(reader.clientIp === undefined ? {} : { clientIp: reader.clientIp }),
+  });
 }
 
 /** The member's briefing (E43): the feed's window as a document, and the prose over it or the reason there is none. */

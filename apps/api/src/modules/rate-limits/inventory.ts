@@ -21,7 +21,10 @@ export interface CeilingDefinition {
   subject: RateLimitSubject;
   enforced: RateLimitEnforcement;
   what: string;
-  /** `METHOD /path` as the router registers it. */
+  /**
+   * `METHOD /path` as the router registers it: writes, and the one read whose
+   * work is a model call (`GET /ask`, T-838).
+   */
   routes: readonly string[];
 }
 
@@ -152,6 +155,25 @@ export const CEILINGS: readonly CeilingDefinition[] = [
     enforced: 'api',
     what: 'Push endpoints registered: every notification is sent to each one.',
     routes: ['POST /me/push-subscriptions'],
+  },
+
+  // Not a write, and the one read with a ceiling (T-838, D-103's gap): every
+  // question is a model call, and the route is public. A member is counted
+  // in `rate_window`, a guest in `auth_rate_window` under their address's
+  // HMAC; both before the model is called.
+  {
+    action: 'ask',
+    subject: 'member',
+    enforced: 'api',
+    what: "A member's questions to the search: each is a call to the language model.",
+    routes: ['GET /ask'],
+  },
+  {
+    action: 'ask_ip',
+    subject: 'address',
+    enforced: 'api',
+    what: "A signed-out reader's questions to the search from one network address: each is a call to the language model.",
+    routes: ['GET /ask'],
   },
 ];
 

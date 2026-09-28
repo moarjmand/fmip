@@ -5,8 +5,10 @@ import {
   SECTION_TITLE_KEY,
   apiQuery,
   communityQuery,
+  entityQuery,
   entitySections,
   groupHref,
+  keywordsAsAsked,
   matchNote,
   memberHref,
   ofType,
@@ -76,5 +78,30 @@ describe('search helpers', () => {
   it('notes the alias that matched', () => {
     expect(matchNote({ matched_on: 'alias', alias: 'Man Utd' })).toBe('also known as Man Utd');
     expect(matchNote({ matched_on: 'name', alias: null })).toBeNull();
+  });
+});
+
+describe('keywords instead of a refused question (T-838)', () => {
+  it('asks the keyword search for the catalog kinds only, and nothing for a short term', () => {
+    expect(entityQuery('Inter')).toBe('q=Inter&types=team,competition,person&limit=20');
+    expect(entityQuery('x')).toBeNull();
+  });
+
+  it('gives the rows in the shape /ask answers with, read by no model and with no reason', () => {
+    const hit: SearchResult = {
+      type: 'team',
+      id: 'a',
+      name: 'Inter',
+      secondary: 'Italy',
+      matched_on: 'name',
+      alias: null,
+      score: 1,
+    };
+    expect(keywordsAsAsked('Inter', { results: [hit] })).toEqual({
+      question: 'Inter',
+      interpretation: { coverage: 'not_supplied', last_updated_at: null, data: null },
+      reason: null,
+      results: [hit],
+    });
   });
 });

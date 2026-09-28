@@ -14,8 +14,10 @@ import {
   TYPE_LABEL,
   apiQuery,
   communityQuery,
+  entityQuery,
   entitySections,
   groupHref,
+  keywordsAsAsked,
   matchNote,
   memberHref,
   ofType,
@@ -23,7 +25,7 @@ import {
   resultHref,
 } from '@/lib/search';
 import { pageMetadata } from '@/lib/seo';
-import { sessionCookieHeader } from '@/lib/session';
+import { readerAddress, sessionCookieHeader } from '@/lib/session';
 import { Button, Notice, TextField } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
@@ -103,13 +105,23 @@ export default async function SearchPage({
   const community = communityQuery(term);
   // Read by the model when there is one (T-421); the search's own rows either
   // way. The session only hides members on either side of a block.
-  const [result, found] =
+  const [cookie, clientIp] = await Promise.all([sessionCookieHeader(), readerAddress()]);
+  const [asked, found] =
     ask === null || community === null
       ? [null, null]
-      : await Promise.all([
-          fetchAsk(term),
-          sessionCookieHeader().then((cookie) => fetchSearch(community, cookie)),
-        ]);
+      : await Promise.all([fetchAsk(term, { cookie, clientIp }), fetchSearch(community, cookie)]);
+  // Past the ceiling on the model's questions (T-838) the question is searched
+  // as keywords instead -- no model, no ceiling -- and the refusal's sentence
+  // is shown beside the rows, so a shared address never leaves a reader
+  // without a search.
+  const limited = asked !== null && !asked.ok && asked.status === 429 ? asked : null;
+  const keywords = limited === null ? null : entityQuery(term);
+  const result =
+    keywords === null
+      ? asked
+      : await fetchSearch(keywords, cookie).then((plain) =>
+          plain.ok ? { ...plain, data: keywordsAsAsked(term, plain.data) } : plain,
+        );
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
@@ -157,6 +169,13 @@ export default async function SearchPage({
             <Translated locale={locale} message={REASON_KEY[result.data.reason]} />
           ) : null}
         </p>
+      )}
+
+      {limited !== null && (
+        <Notice tone="warning" data-testid="search-limited">
+          {limited.error?.message ?? 'Too many questions have been asked in the last hour.'} This is
+          a keyword search instead.
+        </Notice>
       )}
 
       {ask === null ? (
