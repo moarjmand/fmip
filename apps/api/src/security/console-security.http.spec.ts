@@ -71,13 +71,6 @@ interface ConsoleRoute {
    * no reason. Omitted for a read.
    */
   reason?: { without: Record<string, unknown> } | { none: string };
-  /**
-   * D-108: a refusal is `403 forbidden`. A row marked here still answers its
-   * module's old code until the named task moves its controller to the shared
-   * refusal; the mark is checked both ways, so a route that already answers
-   * `forbidden` with its mark still on fails until the mark is dropped.
-   */
-  until?: 'T-906';
 }
 
 const UUID_A = '00000000-0000-4000-8000-00000000dead';
@@ -254,6 +247,14 @@ const PUBLIC_WRITES = new Set([
   'POST /auth/password/reset',
 ]);
 
+/** A 403 is `forbidden`, carrying a sentence and nothing else (D-108). */
+function expectForbidden(who: string, response: { statusCode: number; body: string }): void {
+  expect(response.statusCode, `${who}: ${response.body}`).toBe(403);
+  const error = JSON.parse(response.body) as ApiError;
+  expect(Object.keys(error).sort()).toEqual(['error', 'message']);
+  expect(error.error, `${who}: ${response.body}`).toBe('forbidden');
+}
+
 /** `'POST /admin/x'` → its method and path. */
 function parts(route: string): { method: string; path: string } {
   const [method = '', path = ''] = route.split(' ');
@@ -423,20 +424,6 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       const url = concrete(path);
       const body = method === 'GET' ? undefined : {};
 
-      /** A 403 is `forbidden` and nothing else (D-108), bar a row still marked `until`. */
-      const expectForbidden = (who: string, response: { statusCode: number; body: string }) => {
-        expect(response.statusCode, `${who}: ${response.body}`).toBe(403);
-        const error = JSON.parse(response.body) as ApiError;
-        expect(Object.keys(error).sort()).toEqual(['error', 'message']);
-        if (row.until === undefined)
-          expect(error.error, `${who}: ${response.body}`).toBe('forbidden');
-        else
-          expect(
-            error.error,
-            `${who}: this route answers forbidden now; drop its until: '${row.until}'`,
-          ).not.toBe('forbidden');
-      };
-
       it('refuses a guest with 401 unauthenticated and a member without the role with 403 forbidden, saying only that', async () => {
         const guest = await inject(method, url, undefined, body);
         expect(guest.statusCode, guest.body).toBe(401);
@@ -537,13 +524,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       const { method, path } = parts(route);
       const url = concrete(path);
 
-      it(`refuses a guest (401), a member (403) and every role but ${row.roles.join(', ')} (403)`, async () => {
+      it(`refuses a guest (401), a member and every role but ${row.roles.join(', ')} (403 forbidden)`, async () => {
         expect((await inject(method, url, undefined, {})).statusCode).toBe(401);
-        expect((await inject(method, url, 'member', {})).statusCode).toBe(403);
-        for (const role of ROLES.filter((r) => !row.roles.includes(r))) {
-          const response = await inject(method, url, role, {});
-          expect(response.statusCode, `${role}: ${response.body}`).toBe(403);
-        }
+        expectForbidden('member', await inject(method, url, 'member', {}));
+        for (const role of ROLES.filter((r) => !row.roles.includes(r)))
+          expectForbidden(role, await inject(method, url, role, {}));
       });
     });
 
