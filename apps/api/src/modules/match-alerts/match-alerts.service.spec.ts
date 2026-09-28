@@ -6,43 +6,40 @@ import { MatchAlertsService } from './match-alerts.service';
 /**
  * Carrying a run's alerts (T-834): a pass reads a page (500 for match
  * alerts), so a run that told more members than that passes again until they
- * have nothing due -- and stops when a pass finds less than a page, or can
- * claim nothing.
+ * have nothing due. Since T-901 that loop is the notifications' `drain`
+ * (its passes are proven in `drain.spec.ts`); here, that the run hands it
+ * its members, its page and its bound, and that a failed drain stays inside
+ * the run.
  */
-function service(passes: { due: number; carried: number }[]) {
-  const calls: { userIds: string[] }[] = [];
+function service(drain: () => Promise<unknown> = () => Promise.resolve()) {
+  const calls: unknown[][] = [];
   const notifications = {
-    carry: (scope: { userIds: string[] }) => {
-      calls.push(scope);
-      return Promise.resolve(passes[calls.length - 1] ?? { due: 0, carried: 0 });
+    drain: (...args: unknown[]) => {
+      calls.push(args);
+      return drain();
     },
   } as unknown as NotificationsService;
   return { alerts: new MatchAlertsService({} as MatchAlertsStore, notifications), calls };
 }
 
 describe('delivering what a run raised', () => {
-  it('passes again while a full page was due, then stops at a short one', async () => {
-    const { alerts, calls } = service([
-      { due: 500, carried: 500 },
-      { due: 500, carried: 500 },
-      { due: 37, carried: 37 },
-    ]);
+  it('drains those members in pages of 500, bounded by passes rather than time', async () => {
+    const { alerts, calls } = service();
     await alerts.deliver(['a', 'b']);
-    expect(calls).toHaveLength(3);
-    expect(calls.every((c) => c.userIds.join() === 'a,b')).toBe(true);
+    expect(calls).toHaveLength(1);
+    const [scope, bounds, , page] = calls[0]!;
+    expect(scope).toEqual({ userIds: ['a', 'b'] });
+    expect(bounds).toEqual({ maxPasses: 200, maxMs: Number.POSITIVE_INFINITY });
+    expect(page).toBe(500);
   });
 
-  it('stops when a pass claims nothing, so a stuck page cannot hold the job', async () => {
-    const { alerts, calls } = service([
-      { due: 500, carried: 0 },
-      { due: 500, carried: 0 },
-    ]);
-    await alerts.deliver(['a']);
-    expect(calls).toHaveLength(1);
+  it('a drain that fails is logged, not thrown into the run', async () => {
+    const { alerts } = service(() => Promise.reject(new Error('database away')));
+    await expect(alerts.deliver(['a'])).resolves.toBeUndefined();
   });
 
   it('carries nothing for nobody', async () => {
-    const { alerts, calls } = service([]);
+    const { alerts, calls } = service();
     await alerts.deliver([]);
     expect(calls).toHaveLength(0);
   });
@@ -91,9 +88,9 @@ function expansion(pending: PendingAlert[], options: { failOn?: string } = {}) {
         delayed: audience.filter((id) => id === 'f3'),
       });
     },
-    carry: (scope: { userIds: string[] }) => {
+    drain: (scope: { userIds: string[] }) => {
       log.carried.push(scope.userIds);
-      return Promise.resolve({ due: 0, carried: 0 });
+      return Promise.resolve({ passes: 1, carried: 0, stopped: 'drained' });
     },
   } as unknown as NotificationsService;
   return { alerts: new MatchAlertsService(store, notifications), log };
@@ -135,7 +132,7 @@ describe('expanding pending events', () => {
     // The followers of one match are read once per expansion.
     expect(log.followersAsked).toBe(1);
     expect(log.expanded).toEqual(['x:goal', 'x:red', 'x:goal-void']);
-    // One carry, after every event: one push per member, not per event.
+    // One drain, after every event: one push per member, not per event.
     expect(log.carried).toEqual([['f1', 'f2']]);
     expect(log.claimedWith.every((keys) => keys.length === 3)).toBe(true);
   });
@@ -151,7 +148,7 @@ describe('expanding pending events', () => {
   it('an event a stopped worker had claimed carries its whole audience, since some may be written already', async () => {
     const { alerts, log } = expansion([{ ...goal, retried: true }]);
     await alerts.expandPending(['x:goal'], true);
-    // f3's is held by quiet hours; carry() sends only what is due and unclaimed.
+    // f3's is held by quiet hours; the drain sends only what is due and unclaimed.
     expect(log.carried).toEqual([['f1', 'f2', 'f3']]);
   });
 

@@ -4234,3 +4234,55 @@ The watchdog watches the new queue's failed jobs, and failure counts count
 them. `emitToAudience` is sourceless only and sends a capped kind through
 `emit`, because a block refusal or a per-member cap cannot be a condition of
 one statement.
+
+## D-106 — Carrying a burst: claims and outcomes set-based, and the send pool sized for the server
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision (T-901).** The carrier claims a page and records a page, one
+statement each. What is carried, to whom, and the "at most once" rule stay
+as D-074 and T-330 made them.
+
+- **The claim is a page.** `claimDue(page, members)` selects the due page
+  (past its hold, created within a day, no claim yet, ordered by member when
+  scoped) and inserts every claim in the same statement. It returns the page
+  and marks what this carrier won. The claim is still
+  `notification_delivery`'s key, written before any send, so racing carriers
+  never send one twice.
+- **The plan is pinned.** "No claim yet" is a probe of the claim's key per
+  candidate, written as a scalar subquery so it is never flattened into a
+  join. The statement runs in its own transaction with `SET LOCAL
+  enable_seqscan = off`. A burst is planned on statistics that have not seen
+  it, and the planner's own choice scanned the claim table once per
+  candidate, 3 to 12 s a page.
+- **The outcomes are a page.** Each message's outcome is collected, and the
+  page's are written with one `UPDATE ... FROM unnest(...)`. If Postgres
+  refuses it, each row is written on its own.
+- **A drain claims the next page while this one sends.** It does so only
+  when this page was full and the bounds allow another pass. A page that was
+  claimed is always sent. Match alerts deliver through the drain, in pages
+  of 500 bounded by 200 passes.
+
+**Why.** T-836 left about three round trips per notification around the
+sends, and a kick-off of 90 matches at 10,000 members at p95 70 s. Now it
+is two statements a page, and 53 s (docs/08-load-test.md, "T-901").
+
+**What it costs.** A process that stops mid-page leaves that page's
+unsent claims unsent. That is at most a page (100, or 500 for match alerts),
+where it was the sixteen messages in flight. It is still "at most once,
+never twice": a claimed notification is never sent again, and its outcome
+stays empty, which T-802's counts show as pending.
+
+**Alternatives considered.** An index for the claim (migration
+`1764890000000` was reserved for it): the plans showed the scan was the
+planner's choice on stale statistics, not a missing index, so an index
+would not have changed it. Neither did `ANALYZE` after each burst, which
+would only be a guess at when the statistics are stale enough. Nor
+autovacuum settings on `notification`, since the burst is carried within the
+minute and autovacuum wakes once a minute at best. A cursor over the pages,
+so a page never re-reads what earlier pages claimed: better asymptotically,
+but it changes `carry`'s contract for every producer, and the pinned probe
+made the claims a small part of the minute.
+
+**Consequences.** No migration. `claimDelivery`, `claimDeliveries`,
+`recordDelivery`, `recordDeliveries` and `due` are replaced by `claimDue`
+and `recordOutcomes`. `drain` takes the page size.

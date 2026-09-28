@@ -373,11 +373,14 @@ export class MatchAlertsService implements OnModuleInit, OnApplicationShutdown {
       // One pass left everyone past the first page for the five-minute timer:
       // at a Saturday's load that was hours (T-834, docs/08-load-test.md). So
       // pass again until these members have nothing due; each pass claims
-      // what it sends, so it shrinks.
-      for (let pass = 0; pass < MAX_DELIVERY_PASSES; pass += 1) {
-        const { due, carried } = await this.notifications.carry({ userIds }, CARRY_PAGE);
-        if (due < CARRY_PAGE || carried === 0) break;
-      }
+      // what it sends, so it shrinks. The drain claims the next page while
+      // this one sends (T-901); no time bound here, the passes bound it.
+      await this.notifications.drain(
+        { userIds },
+        { maxPasses: MAX_DELIVERY_PASSES, maxMs: Number.POSITIVE_INFINITY },
+        Date.now,
+        CARRY_PAGE,
+      );
     } catch (error) {
       this.log.error(
         `match_alert.deliver_failed members=${String(userIds.length)}`,

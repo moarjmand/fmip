@@ -449,6 +449,67 @@ of more open requests and more waiting for the database pool (10
 connections). The production server (2 shared vCPUs) is slower than this
 laptop, so the margins above are smaller there.
 
+### T-901: the carry set-based
+
+D-106. What T-836 left was the carrying: about three round trips per
+notification (a claim, then a record, per message) around the sends.
+
+- **One claim statement a page.** `claimDue` selects the due page and
+  inserts its claims in one statement (a CTE with `INSERT ... ON CONFLICT DO
+  NOTHING RETURNING`) and returns the page with what this carrier won. A
+  second carrier that read the same page waits on those keys and wins none,
+  so a notification still leaves at most once (`carry.http.spec.ts` races
+  two carriers over one page of 60).
+- **One record statement a page.** `recordOutcomes` writes every outcome of
+  the page with one `UPDATE ... FROM unnest(...)`. If Postgres refuses it,
+  each row is recorded on its own, so one bad row does not lose the page.
+- **The next page is claimed while this one sends.** `drain` overlaps them;
+  match alerts' `deliver` is now a drain in pages of 500, bounded by passes.
+
+**What the measurement found: the claim scanned.** With the claim and record
+set-based, the first 10,000-member kick-off was *slower* (p95 82–92 s).
+Postgres's log (`log_min_duration_statement`, `auto_explain`) showed why: the
+page statements took 3 to 12 s each at the start of the burst. The planner
+had not seen the 38,000 rows written a second earlier (autovacuum had not
+analysed them), so it expected about 80 candidates and a claim table of a
+few rows. It chose a nested loop that scanned the whole claim table once per
+candidate (37.8 million rows removed by the join filter on one page). Then,
+with the candidates' own columns re-joined to `notification`, a second one
+(19 million).
+
+The fix is in the statement, not an index. "No claim yet" is a probe of the
+claim's primary key per candidate. It is written as a scalar subquery, which
+Postgres does not flatten into a join. The page carries the columns the rest
+of the statement reads, so nothing joins back. The statement runs in its own
+transaction with `SET LOCAL enable_seqscan = off`, so the probe is the
+primary key's index whatever the statistics say. After that, no page
+statement was over 1.5 s. Across a burst they took about 12 s in all, and
+the overlap with the sends hides most of it. **No index was needed**, so
+migration `1764890000000` is not used.
+
+**Record, 2026-09-29**, same machine and shape, `--queue`, `--push-ms 50`,
+16 at a time. Another session's load runs shared the machine and its
+Postgres for part of the evening. Runs taken while it was busy were 10–25 %
+slower, and the ones below were taken when it was quiet.
+
+| Members | Tick | Live job | Notifications | Pushes | Push p50 / p95 / max | Left for the timer | Verdict |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 2,000 | kick-off (90) | 3.7 s | 7,756 | 2,011 | 12,211 / 15,943 / 16,382 | 0 | pass (was 20.8 s) |
+| 2,000 | 10 goals, ×3 | 2.6–2.9 s | 827–890 | 625–740 | 4,400–4,634 / 5,611–5,957 / ≤6,084 | 0 | pass |
+| 10,000 | 10 goals, ×3 | 2.7–3.4 s | 4,142–4,336 | 3,175–3,630 | 10,677–11,614 / 16,412–18,218 / ≤18,971 | 0 | pass (was 19–24 s) |
+| 10,000 | kick-off (90) | 3.9–4.1 s | 38,304 | 10,051 | 34,361–34,741 / 53,011–53,231 / ≤55,403 | 0 | **pass** (was 70 s) |
+
+Two 10,000-member runs, both within a second of each other. **Every target
+is met on this laptop**, the kick-off at 10,000 members included. The live
+job stays at 3–4 s, so no live tick is skipped. A kick-off's page statements
+are now 77 claims and 77 records, where they were about 115,000 round trips.
+
+What is left in the kick-off's 53 s: about 10 s writing the 90 events'
+audiences (T-835's statements) before the first push, and then the sends
+themselves. 10,051 pushes × 50 ms ÷ 16 is 31 s, and the carry takes 43 s,
+because each page of 500 notifications is about 130 messages, a little over
+eight rounds of 16. The pool size is T-902's question.
+
 ## Every carrier drains (T-837)
 
 That task. `NotificationsService.drain(scope)` carries page after page

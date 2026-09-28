@@ -5,9 +5,10 @@
  * milliseconds, and the carrier used to wait for each before starting the
  * next: 7,000 kick-off pushes at 50 ms each were six minutes. Sixteen at a
  * time keeps a Saturday within the minute and stays well inside what one
- * process should hold open towards a handful of push services; each message
- * also takes a database connection for its claim and its record, and the
- * pool waits rather than fails when they are all in use.
+ * process should hold open towards a handful of push services. Since T-901
+ * the claim and the record are one statement a page, so a message takes a
+ * database connection only when its channel does (the Web Push channel reads
+ * the member's devices).
  */
 export const DEFAULT_SEND_CONCURRENCY = 16;
 const MAX_SEND_CONCURRENCY = 256;
