@@ -4318,3 +4318,50 @@ the store and the clock.
   hour; a fit without the prior says so (`elo_used`).
 - **Not read by the published model.** `dixon-coles-elo@0.1.0` is unchanged
   (rule 5, D-082). T-922's candidate is the first version to read it.
+
+**T-922: candidate `dixon-coles-elo@0.5.0`, in shadow.** It is 0.4.0 unchanged
+(its per-division constants and its cross-league fit) plus one new setting,
+`elo_prior: own`. The prior is always our own Elo, read by the division's
+training names. A version now names its prior: `clubelo` (the published
+version's, D-029), `own`, or `clubelo_then_own`. Nothing else changes, and
+`dixon-coles-elo@0.1.0` stays the published version.
+
+*The backtest* (`python -m fmip_model.backtest.elo_prior`, 2026-09-29,
+report in `apps/model/reports/dixon-coles-elo-0.5.0/`). For each of the ten
+divisions, the 2025/26 season was walked forward with the same weekly fit
+dates and the candidate's own constants. Each variant was scored only on
+the matches that every variant which ran had forecast. Log loss (lower is
+better):
+
+| Division | Matches | No prior | Club Elo, last cached | Own Elo |
+|---|---|---|---|---|
+| B1 | 303 | 1.0385 | not run | 1.0353 |
+| D1 | 305 | 0.9796 | not run | 0.9762 |
+| E0 | 378 | 1.0486 | not run | 1.0300 |
+| F1 | 305 | 1.0056 | not run | 1.0045 |
+| I1 | 377 | 0.9978 | not run | 0.9972 |
+| N1 | 305 | 0.9889 | not run | 0.9869 |
+| P1 | 304 | 0.9271 | not run | 0.9275 |
+| SC0 | 227 | 0.9884 | not run | 0.9864 |
+| SP1 | 377 | 0.9834 | not run | 0.9824 |
+| T1 | 304 | 0.9956 | not run | 0.9979 |
+| **Pooled** | 3,185 | **0.9965** | not run | **0.9933** |
+
+Our own Elo is better than no prior in eight divisions of ten, and by 0.0032
+pooled. It is worse in P1 (0.0004) and T1 (0.0023). This run was made on the
+laptop. It used a training store built for the purpose from football-data.co.uk
+2023/24 to 2026/27. That store has no aliases and none of our own records, so
+there each club is rated from its own division's results alone. On the
+server, the bridge and our cup records also link clubs across leagues.
+
+*Club Elo could not be compared here.* The laptop holds no Club Elo snapshot,
+and the API answered 502. The server holds the snapshots loaded before
+2026-09-25. There, the same command scores the "last cached" variant
+(`06-session-handoff.md`, Production). The task's rule is "Club Elo when it
+answers and ours when it does not, or ours always, whichever the backtest
+favours". With no Club Elo evidence, 0.5.0 takes the choice that needs
+none: ours, always. That is also the choice that keeps the prior within
+D-014. If the server run shows Club Elo's ratings ahead of ours, the next
+version is `clubelo_then_own`, as 0.5.1 with its own record. 0.5.0 is not
+edited (rule 5, D-082). Promotion is T-535's evaluation (D-120), never this
+table.

@@ -200,6 +200,21 @@ class Forecaster:
             ),
         )
 
+    def _prior(self, division: str, fit_date: date) -> dict[str, float]:
+        """The Elo prior this version fits with (T-922, D-111), by the division's names.
+
+        Club Elo's snapshot for the published version (D-029); our own Elo
+        (T-921) for a version that reads it, always or on a day Club Elo has
+        no ratings for. Empty when neither has any: the fit then says
+        ``elo_used: false``.
+        """
+        prior = self.version.elo_prior
+        if prior != "own":
+            club_elo = dict(self.source.elo(fit_date))
+            if club_elo or prior == "clubelo":
+                return club_elo
+        return dict(self.source.own_elo(fit_date, division))
+
     def _joint_fit_for(self, fit_date: date) -> CachedFit | None:
         key = (CROSS_LEAGUE, fit_date)
         if key in self._fits:
@@ -241,7 +256,7 @@ class Forecaster:
         if len(matches) < MIN_HISTORY:
             return None
 
-        elo = dict(self.source.elo(fit_date))
+        elo = self._prior(division, fit_date)
         xi, ridge = self.version.constants_for(division)
         model = fit(
             matches,

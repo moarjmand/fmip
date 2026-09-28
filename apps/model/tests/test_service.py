@@ -8,6 +8,7 @@ from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import numpy as np
+import pytest
 from fastapi.testclient import TestClient
 
 from fmip_model.model.dixon_coles import MatchObservation
@@ -29,7 +30,9 @@ FROZEN_NOW = datetime(2025, 3, 1, 12, 0, tzinfo=UTC)
 
 
 class FakeSource(TrainingSource):
-    def __init__(self, seasons: int = 4, with_elo: bool = False) -> None:
+    def __init__(
+        self, seasons: int = 4, with_elo: bool = False, with_own_elo: bool = False
+    ) -> None:
         rng = np.random.default_rng(3)
         self._matches: list[MatchObservation] = []
         day = date(2023, 8, 1)
@@ -47,6 +50,9 @@ class FakeSource(TrainingSource):
                     )
                     day += timedelta(days=4)
         self.with_elo = with_elo
+        self.with_own_elo = with_own_elo
+        self.club_elo_calls = 0
+        self.own_elo_calls = 0
         self.alias_calls = 0
         self.match_calls = 0
 
@@ -61,7 +67,14 @@ class FakeSource(TrainingSource):
         return [m for m in self._matches if since <= m.date <= until]
 
     def elo(self, day: date) -> Mapping[str, float]:
+        self.club_elo_calls += 1
         return {t: 1700.0 + 200 * (ATTACK[t] - DEFENCE[t]) for t in TEAMS} if self.with_elo else {}
+
+    def own_elo(self, day: date, division: str) -> Mapping[str, float]:
+        self.own_elo_calls += 1
+        if not self.with_own_elo or division != "E0":
+            return {}
+        return {t: 1500.0 + 150 * (ATTACK[t] - DEFENCE[t]) for t in TEAMS}
 
 
 def client(source: TrainingSource) -> TestClient:
@@ -256,3 +269,55 @@ def test_the_candidate_file_names_only_what_changes(tmp_path: Path) -> None:
     assert version.constants_for("E0") == (0.002, 0.003)
     assert version.constants_for("SP1") == (BASELINE.xi, BASELINE.ridge)
     assert version.history_days == 1100
+
+
+def test_the_published_version_reads_club_elo_only_and_a_candidate_reads_ours() -> None:
+    """T-922, D-111: the prior a version fits with is the version's, never a fallback of its own."""
+    own = replace(BASELINE, version="0.5.0", elo_prior="own")
+    source = FakeSource(with_elo=False, with_own_elo=True)
+    app = TestClient(create_app(source, candidate=own))
+
+    published = app.post("/forecast", json=request()).json()
+    shadow = app.post("/forecast/candidate", json=request()).json()
+    # Club Elo silent: the published model fits without a prior, and says so...
+    assert published["inputs"]["elo_used"] is False
+    # ...while the candidate fits with our own Elo, never asking Club Elo.
+    assert shadow["inputs"]["elo_used"] is True
+    assert shadow["inputs"]["model_version"] == "dixon-coles-elo@0.5.0"
+    assert source.club_elo_calls == 1  # the published fit's, not the candidate's
+
+
+def test_club_elo_then_ours_reads_ours_only_on_a_day_club_elo_has_nothing() -> None:
+    fallback = replace(BASELINE, version="0.5.1", elo_prior="clubelo_then_own")
+    answering = FakeSource(with_elo=True, with_own_elo=True)
+    Forecaster(answering, version=fallback, clock=lambda: FROZEN_NOW).forecast(
+        ForecastRequest.model_validate(request())
+    )
+    assert (answering.club_elo_calls, answering.own_elo_calls) == (1, 0)
+
+    silent = FakeSource(with_elo=False, with_own_elo=True)
+    answer = Forecaster(silent, version=fallback, clock=lambda: FROZEN_NOW).forecast(
+        ForecastRequest.model_validate(request())
+    )
+    assert (silent.club_elo_calls, silent.own_elo_calls) == (1, 1)
+    assert answer.inputs.elo_used is True  # type: ignore[union-attr]
+
+
+def test_the_candidate_file_names_its_prior_and_refuses_an_unknown_one(tmp_path: Path) -> None:
+    only_prior = tmp_path / "prior.json"
+    only_prior.write_text(json.dumps({"version": "0.5.0", "elo_prior": "own"}))
+    version = load_candidate(only_prior)
+    assert version is not None and version.elo_prior == "own"
+    assert BASELINE.elo_prior == "clubelo"
+    wrong = tmp_path / "wrong.json"
+    wrong.write_text(json.dumps({"version": "0.5.0", "elo_prior": "fivethirtyeight"}))
+    with pytest.raises(ValueError, match="elo_prior"):
+        load_candidate(wrong)
+
+
+def test_the_committed_candidate_is_0_5_0_with_our_own_elo() -> None:
+    candidate = load_candidate()
+    assert candidate is not None
+    assert candidate.id == "dixon-coles-elo@0.5.0"
+    assert candidate.elo_prior == "own"
+    assert candidate.cross_league is not None  # 0.4.0's cup fit, carried unchanged
