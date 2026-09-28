@@ -2,11 +2,13 @@ import {
   Inject,
   Injectable,
   Logger,
+  Optional,
   type OnApplicationShutdown,
   type OnModuleInit,
 } from '@nestjs/common';
 import type { ChannelPostHealth, ChannelPostState, ScoresFilters } from '@fmip/contracts';
 import { Queue, Worker, type ConnectionOptions } from 'bullmq';
+import { FailureCountsService } from '../failure-counts/failure-counts.service';
 import { FixturesService } from '../fixtures/fixtures.service';
 import { ForecastService } from '../forecast/forecast.service';
 import { CHANNEL_POST_CONFIG, ChannelRefusal, type ChannelPostConfig } from './channel-post.port';
@@ -71,6 +73,8 @@ export class ChannelPostService implements OnModuleInit, OnApplicationShutdown {
     private readonly store: PostgresChannelPostStore,
     private readonly fixtures: FixturesService,
     private readonly forecasts: ForecastService,
+    /** Counts the worker's failed jobs (T-803); absent in the unit tests that build this by hand. */
+    @Optional() private readonly failures?: FailureCountsService,
   ) {}
 
   /** Whether this instance runs the jobs at all. Read once; changing it needs a restart. */
@@ -118,6 +122,7 @@ export class ChannelPostService implements OnModuleInit, OnApplicationShutdown {
         error: error.message,
       });
     });
+    this.failures?.watch(this.worker, CHANNEL_POST_QUEUE);
     await this.queue.upsertJobScheduler(
       CHANNEL_POST_JOB,
       { pattern: CHANNEL_POST_SCHEDULE, tz: 'UTC' },
