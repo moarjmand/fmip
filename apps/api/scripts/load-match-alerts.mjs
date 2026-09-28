@@ -29,9 +29,20 @@
 // carries. It needs REDIS_URL pointing at a throwaway Redis (the queue is
 // emptied). A tick then reports `job_ms` (the live job alone) and
 // `alerts_done_ms` (until the worker has nothing left).
+//
+// `--push-reads` (T-902) makes the captured push use the database as the Web
+// Push channel does: it reads the member's devices before the send and
+// touches them after, through the API's own `pg` pool (10 connections). Each
+// tick then reports `api_pool`: the most requests waiting for a connection,
+// and the share of 10 ms samples in which any waited. With it,
+// `NOTIFICATION_SEND_CONCURRENCY` can be sized against the pool on the
+// numbers (docs/08-load-test.md, "T-902"). The members have no devices, so
+// both statements find nothing; they cost what a device's would, less the
+// rows.
 import { createRequire } from 'node:module';
 import { randomUUID } from 'node:crypto';
 import { performance } from 'node:perf_hooks';
+import { clearInterval, setInterval } from 'node:timers';
 
 const require = createRequire(import.meta.url);
 const args = Object.fromEntries(
@@ -56,6 +67,7 @@ const TICKS = Number(args.ticks ?? 5);
 const GOALS_PER_TICK = Number(args['goals-per-tick'] ?? 10);
 const PUSH_MS = Number(args['push-ms'] ?? 0);
 const QUEUE = args.queue === 'true';
+const PUSH_READS = args['push-reads'] === 'true';
 const MAX_DRAIN_PASSES = Number(args['max-drain-passes'] ?? 500);
 const PROVIDER = 'highlightly';
 const RUN = `t834${Date.now().toString(36)}`;
@@ -70,7 +82,8 @@ require('reflect-metadata');
 const pg = require('pg');
 const { Test } = require('@nestjs/testing');
 const dist = (path) => require(`../dist/${path}`);
-const { DatabaseModule } = dist('database/database.module');
+const { DatabaseModule, PG_POOL } = dist('database/database.module');
+const { sendConcurrencyFromEnv } = dist('modules/notifications/internal/send-pool');
 const { IngestionModule } = dist('modules/ingestion/ingestion.module');
 const { IngestionJobsService } = dist('modules/ingestion/ingestion-jobs.service');
 const { INGESTION_SOURCES } = dist('modules/ingestion/internal/sources');
@@ -283,6 +296,8 @@ const adapter = {
 // --- the carrier, captured -------------------------------------------------------
 
 const pushes = []; // { at, userId }
+// The API's own pool, once the module is compiled (--push-reads).
+let apiPool = null;
 const outbound = {
   email: null,
   push: {
@@ -290,12 +305,48 @@ const outbound = {
     send: async (push) => {
       // A real Web Push send is an HTTPS request per device; --push-ms stands
       // in for it, sent as the carrier sends them (since T-836, sixteen at a
-      // time: NOTIFICATION_SEND_CONCURRENCY).
+      // time: NOTIFICATION_SEND_CONCURRENCY). With --push-reads, the
+      // channel's own statements around it (T-902).
+      if (PUSH_READS) {
+        await apiPool.query(
+          `SELECT id, endpoint, p256dh, auth FROM push_subscription WHERE user_id = $1 ORDER BY created_at`,
+          [push.userId],
+        );
+      }
       if (PUSH_MS > 0) await sleep(PUSH_MS);
+      if (PUSH_READS) {
+        await apiPool.query(
+          `UPDATE push_subscription SET last_used_at = now() WHERE user_id = $1`,
+          [push.userId],
+        );
+      }
       pushes.push({ at: performance.now(), userId: push.userId });
     },
   },
 };
+
+// How the API's pool held up during a tick: the most requests waiting for a
+// connection, and the share of 10 ms samples in which any waited (T-902).
+function samplePool() {
+  if (apiPool === null) return () => null;
+  let samples = 0;
+  let waited = 0;
+  let most = 0;
+  const timer = setInterval(() => {
+    samples += 1;
+    const waiting = apiPool.waitingCount;
+    if (waiting > 0) waited += 1;
+    most = Math.max(most, waiting);
+  }, 10);
+  return () => {
+    clearInterval(timer);
+    return {
+      size: apiPool.options.max,
+      waiting_max: most,
+      waiting_share: samples === 0 ? 0 : Math.round((waited / samples) * 1000) / 1000,
+    };
+  };
+}
 
 async function dbCounters() {
   const { rows } = await pool.query(
@@ -337,6 +388,7 @@ async function main() {
   await moduleRef.init();
   const jobs = moduleRef.get(IngestionJobsService);
   const notifications = moduleRef.get(NotificationsService);
+  apiPool = moduleRef.get(PG_POOL);
 
   // With --queue (T-835), the alerts go through BullMQ as in production: the
   // live job records and hands over, and a worker in this process expands
@@ -395,6 +447,7 @@ async function main() {
     const had = await counts();
     const before = await dbCounters();
     const pushesBefore = pushes.length;
+    const stopSampling = samplePool();
     const started = performance.now();
     const report = await jobs.live();
     const ended = performance.now();
@@ -402,6 +455,7 @@ async function main() {
     // handed over; the alerts are done when the worker has nothing left.
     if (queue !== null) await settle();
     const settled = performance.now();
+    const apiPoolDuringTick = stopSampling();
     const after = await dbCounters();
     const tickPushes = pushes.slice(pushesBefore);
     const timer = await drain();
@@ -423,6 +477,7 @@ async function main() {
       push_from_tick_start_ms: stats(tickPushes.map((p) => p.at - started)),
       pushes_left_for_the_timer: timer.pushes,
       timer_passes: timer.passes,
+      api_pool: apiPoolDuringTick,
       db: minus(after, before),
     });
   }
@@ -459,6 +514,8 @@ async function main() {
           goal_ticks: TICKS,
           goals_per_tick: GOALS_PER_TICK,
           push_ms: PUSH_MS,
+          push_reads: PUSH_READS,
+          send_concurrency: sendConcurrencyFromEnv(),
           queue: QUEUE,
         },
         set_up_ms: setUpMs,
