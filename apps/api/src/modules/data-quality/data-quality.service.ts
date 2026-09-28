@@ -34,7 +34,7 @@ export function findingsOf(rows: CheckRows, now: Date): Finding[] {
 }
 
 /**
- * Data-quality checks over the stored feed (T-820, D-096). Public surface:
+ * Data-quality checks over the stored feed (T-820, D-097). Public surface:
  *
  * - `sweep()`: every check over the stored data, on the `data-quality`
  *   schedule. Reads first, outside a transaction; then records the findings

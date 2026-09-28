@@ -6,7 +6,7 @@ import { DataQualityService } from './data-quality.service';
 export const DATA_QUALITY_QUEUE = 'data-quality';
 export const DATA_QUALITY_JOB = 'sweep';
 /**
- * Every five minutes, in UTC (D-096): the live job writes every minute, and a
+ * Every five minutes, in UTC (D-097): the live job writes every minute, and a
  * contradiction in a live match should reach the watchdog within a few of
  * them, while a sweep over every stored fixture each minute would be most of
  * the database's work for nothing new.

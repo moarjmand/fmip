@@ -3630,7 +3630,7 @@ renders `WatchdogReport`; T-805 replaces the backup probe's `undefined` with
 the newest recorded backup. Changing a threshold is a one-line change in
 `apps/api/src/modules/watchdog/internal/conditions.ts` and an edit here.
 
-## D-096 — Data-quality checks: a sweep every five minutes over stored rows, findings that resolve, a watchdog condition for live matches
+## D-097 — Data-quality checks: a sweep every five minutes over stored rows, findings that resolve, a watchdog condition for live matches
 **Status:** Accepted · 2026-09-28 (revisable under the standing delegation of 2026-09-26)
 
 **Decision.** T-820's checks read only what ingestion has stored -- no

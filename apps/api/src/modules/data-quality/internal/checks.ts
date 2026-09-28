@@ -180,7 +180,7 @@ export function goalsDisagree(row: GoalsRow): Finding | null {
  * Minutes after kick-off at which a match still `live` is a finding. Ninety
  * minutes, a fifteen-minute interval, stoppage time, extra time with its
  * break and a shoot-out come to about two and three-quarter hours; three
- * hours is past all of it (D-096).
+ * hours is past all of it (D-097).
  */
 export const LIVE_OVERRUN_MINUTES = 180;
 
@@ -255,7 +255,7 @@ export function fixtureMappedTwice(row: MappingRow): Finding | null {
   );
 }
 
-/** Two fixtures this close with the same home and away teams are one match (D-096). */
+/** Two fixtures this close with the same home and away teams are one match (D-097). */
 export const DUPLICATE_WINDOW_DAYS = 3;
 
 export interface PairRow extends FixtureRef {

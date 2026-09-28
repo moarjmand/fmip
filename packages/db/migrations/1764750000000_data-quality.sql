@@ -1,5 +1,5 @@
 -- Up Migration
--- T-820: data-quality findings over the stored feed (E82, D-096).
+-- T-820: data-quality findings over the stored feed (E82, D-097).
 --
 -- One row per thing a check found wrong, naming the check and what it is
 -- about (a fixture, one side of one, a pair of fixtures, a team in a season's
