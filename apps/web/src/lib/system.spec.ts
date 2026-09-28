@@ -91,6 +91,7 @@ describe('the words', () => {
   it('names the conditions, and falls back to the key for a new one', () => {
     expect(conditionName('ingest:live')).toBe('Ingestion: live job');
     expect(conditionName('jobs:news')).toBe('Failed jobs: news queue');
+    expect(conditionName('data_quality')).toBe('Live match data contradicting itself');
     expect(conditionName('something_new')).toBe('something_new');
   });
 

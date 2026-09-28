@@ -3,6 +3,7 @@ import { IdentityModule } from '../identity/identity.module';
 import { ProfileModule } from '../profile/profile.module';
 import { FixturesService } from './fixtures.service';
 import { FixtureChangeFeed } from './internal/change-feed';
+import { PostgresKeyPlayersStore } from './internal/key-players-store';
 import { PostgresMatchCentreStore } from './internal/match-centre-store';
 import { PostgresScoresStore } from './internal/scores-store';
 import { MatchCentreController } from './match-centre.controller';
@@ -21,6 +22,7 @@ import { DEFAULT_STREAM_OPTIONS, STREAM_OPTIONS, StreamController } from './stre
     FixturesService,
     PostgresScoresStore,
     PostgresMatchCentreStore,
+    PostgresKeyPlayersStore,
     FixtureChangeFeed,
     // Provided here so a test can override the timings.
     { provide: STREAM_OPTIONS, useValue: DEFAULT_STREAM_OPTIONS },

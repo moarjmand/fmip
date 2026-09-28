@@ -87,6 +87,16 @@ export default async function AdminSystemPage({ params }: { params: Promise<{ lo
       </h1>
 
       <WatchdogSection report={watchdog.ok ? watchdog.data : null} />
+      <p className="text-sm">
+        Findings behind the data-quality condition, by competition:{' '}
+        <Link
+          href={`/${locale}/admin/data-quality`}
+          className="underline"
+          data-testid="system-data-quality-link"
+        >
+          Data quality
+        </Link>
+      </p>
       <AlertsSection report={alerts.ok ? alerts.data : null} />
       <FailuresSection
         day={day.ok ? day.data : null}

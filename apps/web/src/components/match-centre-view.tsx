@@ -21,7 +21,15 @@ import { Score } from '@/components/score';
 
 /** The server-rendered panels the page slots between the live modules (T-605). */
 export type MatchSlot =
-  'summary' | 'context' | 'forecast' | 'analysis' | 'community' | 'discussion' | 'watch' | 'news';
+  | 'summary'
+  | 'context'
+  | 'players'
+  | 'forecast'
+  | 'analysis'
+  | 'community'
+  | 'discussion'
+  | 'watch'
+  | 'news';
 export type MatchSlots = Partial<Record<MatchSlot, React.ReactNode>>;
 
 /** The sections this view always has, whatever the page passes. */
@@ -39,6 +47,7 @@ export const SECTIONS: readonly [
   ['stats', 'Stats'],
   ['context', 'Competition'],
   ['lineups', 'Line-ups'],
+  ['players', 'Key players'],
   ['forecast', 'Model forecast'],
   ['analysis', "Founder's analysis"],
   ['community', 'Community'],
@@ -464,6 +473,8 @@ export function MatchCentreView({
         </Module>
       </Region>
 
+      <Region id="players">{slots.players}</Region>
+
       <Region id="forecast">{slots.forecast}</Region>
       <Region id="analysis">{slots.analysis}</Region>
       <Region id="community">{slots.community}</Region>
@@ -483,16 +494,18 @@ export function MatchCentreView({
         </ul>
       </section>
 
-      <section className="flex flex-col gap-2" data-testid="not-yet">
-        <h2 className="text-lg font-semibold">Not on this page yet</h2>
-        <ul className="flex flex-wrap gap-2 text-xs text-muted">
-          {NOT_YET.map(([name, why]) => (
-            <li key={name} dir="auto" className="rounded border border-default px-2 py-1">
-              {name}: {why}
-            </li>
-          ))}
-        </ul>
-      </section>
+      {NOT_YET.length > 0 && (
+        <section className="flex flex-col gap-2" data-testid="not-yet">
+          <h2 className="text-lg font-semibold">Not on this page yet</h2>
+          <ul className="flex flex-wrap gap-2 text-xs text-muted">
+            {NOT_YET.map(([name, why]) => (
+              <li key={name} dir="auto" className="rounded border border-default px-2 py-1">
+                {name}: {why}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

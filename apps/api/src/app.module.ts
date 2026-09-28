@@ -33,6 +33,7 @@ import { CampaignsModule } from './modules/campaigns/campaigns.module';
 import { ChannelPostModule } from './modules/channel-post/channel-post.module';
 import { WatchdogModule } from './modules/watchdog/watchdog.module';
 import { FailureCountsModule } from './modules/failure-counts/failure-counts.module';
+import { DataQualityModule } from './modules/data-quality/data-quality.module';
 
 /**
  * The remaining modules from `docs/02-architecture.md` are registered here as
@@ -75,6 +76,7 @@ import { FailureCountsModule } from './modules/failure-counts/failure-counts.mod
     ChannelPostModule,
     WatchdogModule,
     FailureCountsModule,
+    DataQualityModule,
     AdminModule,
   ],
 })
