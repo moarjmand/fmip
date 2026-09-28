@@ -258,7 +258,7 @@
   "story.matchProducts": "for the model forecast, the founder's analysis and the community consensus, kept apart there.",
   "story.otherReports": "Other reports of this story",
   "story.noOtherReports": "No other publisher has reported this story.",
-  "story.notYet": "Sharing is not built yet.",
+  "story.notYet": "Save and share are not built yet.",
   "story.version.publisher": "the publisher's own words",
   "story.version.translated": "translated by a fluent speaker, awaiting review",
   "story.version.reviewed": "translated and reviewed by two fluent speakers",
@@ -405,6 +405,32 @@
   "notifications.editorial.founder": "The founder publishes an analysis of a match you follow",
   "notifications.editorial.reviewed": "An analysis I submitted is reviewed",
   "notifications.editorial.eligible": "A member newly meets the contributor requirements (administrators)",
+  "minutes.total": {
+    "one": "{count} minute",
+    "other": "{count} minutes"
+  },
+  "minutes.atLeast": {
+    "one": "at least {count} minute",
+    "other": "at least {count} minutes"
+  },
+  "minutes.covers": {
+    "one": "{with} of {count} match",
+    "other": "{with} of {count} matches"
+  },
+  "minutes.notSupplied": "minutes not supplied",
+  "minutes.noneRecorded": "no minutes recorded",
+  "competition.leaders.filter": "Minimum minutes",
+  "competition.leaders.anyMinutes": "Any",
+  "competition.leaders.floor": {
+    "one": "Only scorers whose recorded minutes reach {count} minute.",
+    "other": "Only scorers whose recorded minutes reach {count} minutes."
+  },
+  "competition.leaders.unproven": {
+    "one": "{count} scorer is left out because the feed did not send minutes for every match they played, so the record cannot show they reached it.",
+    "other": "{count} scorers are left out because the feed did not send minutes for every match they played, so the record cannot show they reached it."
+  },
+  "competition.leaders.noneReach": "No scorer's recorded minutes reach this floor.",
+  "team.squad.minutes": "Minutes are for this team in the competitions above, from the feed's per-player figures: \"at least\" where some matches have none.",
   "saved.title": "Saved",
   "saved.intro": "Stories you saved, newest first. Only you can see this list, and it goes when your account does. Each is the publisher's headline and a link to their original.",
   "saved.empty": "You have not saved a story yet. Save one from News or from a story's page.",

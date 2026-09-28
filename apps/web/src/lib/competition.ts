@@ -1,4 +1,5 @@
 import type { FormResult, SeasonFixture, SeasonSummary } from '@fmip/contracts';
+import { LEADERS_MINUTES_MAX } from '@fmip/contracts';
 import { formatDate } from '@/i18n/format';
 
 /**
@@ -26,9 +27,43 @@ export function seasonHref(
   return season.is_current ? base : `${base}?season=${encodeURIComponent(season.id)}`;
 }
 
-/** The `GET /competitions/:id` query string, empty for the default season. */
-export function competitionQuery(seasonId: string | null): string {
-  return seasonId === null ? '' : `?season=${encodeURIComponent(seasonId)}`;
+/**
+ * `?min_minutes=` (T-824): a whole number of minutes the API accepts; zero,
+ * anything else, or nothing means no floor -- a malformed value is dropped
+ * here rather than sent on to be refused.
+ */
+export function readMinMinutesParam(params: SearchParams): number | null {
+  const raw = Array.isArray(params.min_minutes) ? params.min_minutes[0] : params.min_minutes;
+  if (raw === undefined || !/^\d{1,5}$/.test(raw)) return null;
+  const n = Number(raw);
+  return n === 0 || n > LEADERS_MINUTES_MAX ? null : n;
+}
+
+/** The `GET /competitions/:id` query string, empty for the default season and no floor. */
+export function competitionQuery(
+  seasonId: string | null,
+  minMinutes: number | null = null,
+): string {
+  const query = new URLSearchParams();
+  if (seasonId !== null) query.set('season', seasonId);
+  if (minMinutes !== null) query.set('min_minutes', String(minMinutes));
+  const text = query.toString();
+  return text === '' ? '' : `?${text}`;
+}
+
+/**
+ * The page with the leaders under a floor (T-824), keeping the season; null
+ * is no floor. The fragment brings the reader back to the leaders.
+ */
+export function leadersHref(
+  locale: string,
+  competitionId: string,
+  season: Pick<SeasonSummary, 'id' | 'is_current'>,
+  minMinutes: number | null,
+): string {
+  const base = `/${locale}/competition/${encodeURIComponent(competitionId)}`;
+  const query = competitionQuery(season.is_current ? null : season.id, minMinutes);
+  return `${base}${query}#leaders`;
 }
 
 /** "ALP 3–1 BET" after the match, "ALP v BET" before; short names when there are any. */

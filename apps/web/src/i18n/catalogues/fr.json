@@ -1176,7 +1176,7 @@
     "status": "untranslated"
   },
   "story.notYet": {
-    "source": "Sharing is not built yet.",
+    "source": "Save and share are not built yet.",
     "text": "",
     "status": "untranslated"
   },
@@ -1835,6 +1835,76 @@
   },
   "notifications.editorial.eligible": {
     "source": "A member newly meets the contributor requirements (administrators)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "minutes.total": {
+    "source": {
+      "one": "{count} minute",
+      "other": "{count} minutes"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "minutes.atLeast": {
+    "source": {
+      "one": "at least {count} minute",
+      "other": "at least {count} minutes"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "minutes.covers": {
+    "source": {
+      "one": "{with} of {count} match",
+      "other": "{with} of {count} matches"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "minutes.notSupplied": {
+    "source": "minutes not supplied",
+    "text": "",
+    "status": "untranslated"
+  },
+  "minutes.noneRecorded": {
+    "source": "no minutes recorded",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competition.leaders.filter": {
+    "source": "Minimum minutes",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competition.leaders.anyMinutes": {
+    "source": "Any",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competition.leaders.floor": {
+    "source": {
+      "one": "Only scorers whose recorded minutes reach {count} minute.",
+      "other": "Only scorers whose recorded minutes reach {count} minutes."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "competition.leaders.unproven": {
+    "source": {
+      "one": "{count} scorer is left out because the feed did not send minutes for every match they played, so the record cannot show they reached it.",
+      "other": "{count} scorers are left out because the feed did not send minutes for every match they played, so the record cannot show they reached it."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "competition.leaders.noneReach": {
+    "source": "No scorer's recorded minutes reach this floor.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "team.squad.minutes": {
+    "source": "Minutes are for this team in the competitions above, from the feed's per-player figures: \"at least\" where some matches have none.",
     "text": "",
     "status": "untranslated"
   },

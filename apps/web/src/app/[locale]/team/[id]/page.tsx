@@ -25,6 +25,7 @@ import {
 } from '@/lib/team';
 import { readTerritoryQuery, withTerritory } from '@/lib/viewing';
 import { JsonLd } from '@/components/json-ld';
+import { MinutesFigure } from '@/components/minutes-figure';
 import { Score } from '@/components/score';
 import { Translated } from '@/components/translated';
 import { ViewingPanel } from '@/components/viewing-panel';
@@ -315,21 +316,31 @@ export default async function TeamPage({
               <h3 className="text-sm font-medium text-muted">{group.label}</h3>
               <ul className="flex flex-col text-sm">
                 {group.players.map((player) => (
-                  <li key={player.person.id} className="flex gap-3" data-testid="player">
+                  <li
+                    key={player.person.id}
+                    className="flex flex-wrap items-baseline gap-x-3"
+                    data-testid="player"
+                  >
                     <span className="w-8 text-end tabular-nums text-muted">
                       {player.shirt_number ?? '–'}
                     </span>
-                    <span>
+                    <span className="grow">
                       <Link href={`/${locale}/player/${player.person.id}`} className="underline">
                         {player.person.name}
                       </Link>
                       {player.on_loan && <span className="ms-2 text-xs text-muted">on loan</span>}
                     </span>
+                    <MinutesFigure locale={locale} minutes={player.minutes} className="text-sm" />
                   </li>
                 ))}
               </ul>
             </div>
           ))
+        )}
+        {page.squad.data !== null && (
+          <p className="text-xs text-muted" data-testid="squad-minutes-note">
+            <Translated locale={locale} message="team.squad.minutes" />
+          </p>
         )}
       </section>
 

@@ -119,8 +119,26 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('team page', 
     );
 
     // alpha: beat beta 2-0, drew with gamma 1-1, plays beta again next year.
-    await fixture(TEAMS.alpha, TEAMS.beta, '2025-09-01T15:00:00Z', [2, 0]);
-    await fixture(TEAMS.gamma, TEAMS.alpha, '2025-09-08T15:00:00Z', [1, 1]);
+    const first = await fixture(TEAMS.alpha, TEAMS.beta, '2025-09-01T15:00:00Z', [2, 0]);
+    const second = await fixture(TEAMS.gamma, TEAMS.alpha, '2025-09-08T15:00:00Z', [1, 1]);
+    // T-824: the keeper started both; the feed sent minutes for the first
+    // only. The striker is in no line-up of ours.
+    const alphaSide = await pool.query<{ id: string; fixture_id: string }>(
+      `SELECT id, fixture_id FROM fixture_participant WHERE fixture_id = ANY($1::uuid[]) AND team_id = $2`,
+      [[first, second], TEAMS.alpha],
+    );
+    for (const side of alphaSide.rows) {
+      await pool.query(
+        `INSERT INTO lineup (participant_id, person_id, role, shirt_number, position) VALUES ($1, $2, 'starter', 1, 'goalkeeper')`,
+        [side.id, KEEPER],
+      );
+      if (side.fixture_id === first) {
+        await pool.query(
+          `INSERT INTO fixture_player_stat (participant_id, person_id, metric, value) VALUES ($1, $2, 'minutes', 90)`,
+          [side.id, KEEPER],
+        );
+      }
+    }
     await fixture(TEAMS.beta, TEAMS.alpha, '2099-01-01T15:00:00Z', null);
     // A match alpha is not in.
     await fixture(TEAMS.beta, TEAMS.gamma, '2025-09-15T15:00:00Z', [3, 0]);
@@ -202,6 +220,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('team page', 
         position: 'goalkeeper',
         on_loan: false,
         since: '2024-07-01',
+        minutes: {
+          coverage: 'limited',
+          total: null,
+          matches: 2,
+          matches_with_minutes: 1,
+          supplied_minutes: 90,
+        },
       },
       {
         person: { id: STRIKER, name: `Test Striker ${RUN}` },
@@ -209,6 +234,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('team page', 
         position: 'forward',
         on_loan: true,
         since: '2025-01-15',
+        // No line-up names him: nothing on record, never a total of zero.
+        minutes: {
+          coverage: 'not_supplied',
+          total: null,
+          matches: 0,
+          matches_with_minutes: 0,
+          supplied_minutes: 0,
+        },
       },
     ]);
   });

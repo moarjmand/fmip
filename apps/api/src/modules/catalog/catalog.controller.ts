@@ -1,4 +1,11 @@
-import { Controller, Get, NotFoundException, Param, Query } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Query,
+} from '@nestjs/common';
 import type {
   ApiError,
   CompetitionContext,
@@ -10,6 +17,7 @@ import type {
   TeamPage,
   TeamsResponse,
 } from '@fmip/contracts';
+import { LEADERS_MINUTES_MAX } from '@fmip/contracts';
 import { CatalogService } from './catalog.service';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -33,6 +41,20 @@ const LOCALE = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
 function localeOf(value: unknown): string | null {
   const v = first(value);
   return v !== undefined && LOCALE.test(v) ? v : null;
+}
+
+/**
+ * `?min_minutes=` on the competition page (T-824): a whole number of minutes
+ * from 1 to `LEADERS_MINUTES_MAX`; absent or `0` is no floor. Anything else
+ * is a 400 naming the field, never a floor quietly guessed.
+ */
+export function minMinutesOf(value: unknown): { ok: true; value: number | null } | { ok: false } {
+  const v = first(value);
+  if (v === undefined) return { ok: true, value: null };
+  if (!/^\d{1,5}$/.test(v)) return { ok: false };
+  const n = Number(v);
+  if (n > LEADERS_MINUTES_MAX) return { ok: false };
+  return { ok: true, value: n === 0 ? null : n };
 }
 
 function first(value: unknown): string | undefined {
@@ -104,14 +126,24 @@ export class CatalogController {
     @Param('id') id: string,
     @Query('season') season: unknown,
     @Query('locale') locale: unknown,
+    @Query('min_minutes') minMinutes: unknown,
   ): Promise<CompetitionPage> {
     if (!UUID.test(id)) throw new NotFoundException(NO_COMPETITION);
     const wanted = first(season);
     if (wanted !== undefined && !UUID.test(wanted)) throw new NotFoundException(NO_SEASON);
+    const floor = minMinutesOf(minMinutes);
+    if (!floor.ok) {
+      throw new BadRequestException({
+        error: 'validation',
+        message: 'The request is not valid.',
+        fields: { min_minutes: `A whole number of minutes from 0 to ${LEADERS_MINUTES_MAX}.` },
+      } satisfies ApiError);
+    }
     const outcome = await this.catalog.competition(
       id.toLowerCase(),
       wanted?.toLowerCase() ?? null,
       localeOf(locale),
+      floor.value,
     );
     switch (outcome.kind) {
       case 'ok':
