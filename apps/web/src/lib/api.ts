@@ -42,6 +42,7 @@ import type {
   GroupsResponse,
   HealthReport,
   IngestionHealth,
+  KeyPlayers,
   LeaderboardResponse,
   LiveHealth,
   CommunityAnalysesResponse,
@@ -866,6 +867,11 @@ export function fetchFixtureNews(
   return apiRequest<FixtureNewsResponse>(
     `/fixtures/${fixtureId}/news?locale=${encodeURIComponent(locale)}`,
   );
+}
+
+/** `GET /fixtures/:id/key-players` (T-841): each side's most-used players by the stated rule. Public. */
+export function fetchKeyPlayers(fixtureId: string): Promise<ApiResult<KeyPlayers>> {
+  return apiRequest<KeyPlayers>(`/fixtures/${encodeURIComponent(fixtureId)}/key-players`);
 }
 
 /** The match summary (E41, T-413): what a model wrote from the record, or the reason there is none. */

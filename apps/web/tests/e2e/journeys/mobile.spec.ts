@@ -46,6 +46,8 @@ for (const theme of ['light', 'dark'] as const) {
       for (const path of PATHS) {
         test(`${path} does not scroll sideways and passes axe`, async ({ page }) => {
           await page.goto(path);
+          // The key players (T-841) are on every match page, so they are measured with the rest.
+          if (path.includes('/match/')) await expect(page.getByTestId('key-players')).toBeVisible();
           await expect(page.locator('html')).toHaveAttribute('data-text-size', size);
           await expect(
             page.getByTestId('score-card').first().or(page.getByTestId('match-header')),
@@ -105,6 +107,8 @@ test('the match centre reaches each section through its nav, without script', as
   for (const name of ['Timeline', 'Stats', 'Line-ups', 'Model forecast', 'Community', 'Watch']) {
     await expect(nav.getByRole('link', { name, exact: true })).toBeVisible();
   }
+  // The key players (T-841), their own section beside the line-ups.
+  await expect(nav.getByRole('link', { name: 'Key players', exact: true })).toBeVisible();
   await nav.getByRole('link', { name: 'Line-ups', exact: true }).click();
   await expect(page).toHaveURL(/#lineups$/);
   await expect(page.getByTestId('lineups')).toBeInViewport();

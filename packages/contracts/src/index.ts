@@ -271,6 +271,9 @@ export type {
   MatchTeam,
   PlayerMatchMetric,
 } from './match-centre';
+// The match centre's key players (blueprint 4.2, T-841): a stated rule, not a judgement.
+export { KEY_PLAYERS_PER_SIDE } from './key-players';
+export type { KeyPlayer, KeyPlayerAvailability, KeyPlayers, KeyPlayersSide } from './key-players';
 export { MAX_EXPLANATION_LENGTH, MAX_REASON_TAGS, PREDICTION_REASON_TAGS } from './predictions';
 export type {
   FixtureSettlementsResponse,

@@ -8,6 +8,7 @@ import { CommunityAnalysisPanel } from '@/components/community-analysis-panel';
 import { CommunityForecastPanel } from '@/components/community-consensus';
 import { FounderAnalysisPanel } from '@/components/founder-analysis';
 import { JsonLd } from '@/components/json-ld';
+import { KeyPlayersPanel } from '@/components/key-players';
 import { LiveMatch } from '@/components/live-match';
 import { MatchPanel } from '@/components/match-panel';
 import { MatchSummaryPanel } from '@/components/match-summary';
@@ -24,6 +25,7 @@ import {
   fetchFixtureNews,
   fetchFollowedMembers,
   fetchForecasts,
+  fetchKeyPlayers,
   fetchMatchCentre,
   fetchMatchPanel,
   fetchMatchSummary,
@@ -83,6 +85,9 @@ export default async function MatchPage({
 }) {
   const [{ locale, id }, query] = await Promise.all([params, searchParams]);
   if (!UUID.test(id)) notFound();
+  // The key players (T-841): asked at once, beside everything below, and
+  // awaited where their section is placed. An unknown match 404s below.
+  const keyPlayers = fetchKeyPlayers(id);
 
   const cookie = await sessionCookieHeader();
   const me = await fetchMe(cookie);
@@ -326,6 +331,15 @@ export default async function MatchPage({
                   locale={locale}
                   timeZone={timeZone}
                   news={news !== null && news.ok ? news.data : null}
+                />
+              ),
+              players: (
+                <KeyPlayersPanel
+                  players={await keyPlayers.then((r) => (r.ok ? r.data : null))}
+                  home={result.data.fixture.home.name}
+                  away={result.data.fixture.away.name}
+                  locale={locale}
+                  timeZone={timeZone}
                 />
               ),
             }}
