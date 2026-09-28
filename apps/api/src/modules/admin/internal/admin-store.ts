@@ -139,7 +139,11 @@ export class PostgresAdminStore {
     }));
   }
 
-  /** Changes an account's status and writes the audit row in the same transaction; null for an unknown account. */
+  /**
+   * Changes an account's status and writes the audit row in the same
+   * transaction; null for an unknown account. A deleted account is unknown
+   * here: deletion is final (T-812, D-094), and the database refuses it too.
+   */
   async setUserStatus(
     userId: string,
     status: Exclude<AccountStatus, 'deleted'>,
@@ -147,7 +151,7 @@ export class PostgresAdminStore {
   ): Promise<{ previous: AccountStatus; next: AccountStatus; auditId: string } | null> {
     return this.transaction(async (client) => {
       const current = await client.query<{ status: AccountStatus }>(
-        `SELECT status FROM user_account WHERE id = $1 FOR UPDATE`,
+        `SELECT status FROM user_account WHERE id = $1 AND status <> 'deleted' FOR UPDATE`,
         [userId],
       );
       const previous = current.rows[0]?.status;

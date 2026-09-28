@@ -68,9 +68,11 @@ export type {
   IngestionHealth,
   LiveHealth,
 } from './health';
+export { DELETED_USERNAME_PATTERN, isDeletedMember } from './identity';
 export type {
   ApiError,
   AuthUser,
+  DeleteAccountRequest,
   ForgotPasswordRequest,
   LoginRequest,
   RegisterRequest,

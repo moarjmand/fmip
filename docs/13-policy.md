@@ -125,9 +125,27 @@ you are told which and why.
 **Appeals.** Every decision can be appealed once, in writing, and the appeal is
 kept with the decision.
 
-**Leaving.** You can delete your account. Your predictions and their settlements
-are what other people's ratings were computed against, so they remain as records
-without your name on them.
+**Leaving.** You can delete your account, from Settings, with your password and
+your username typed again. It happens at once and cannot be undone.
+
+- **Removed:** your e-mail address, password, display name, biography,
+  preferences, every signed-in session, push subscriptions, the teams and
+  members you follow and who follows you, friendships, friend requests, blocks,
+  group memberships and group invitations, and your unsubmitted analysis drafts.
+- **Kept, without your name:** your predictions and their settlements, which are
+  what other people's ratings were computed against, and your rating history,
+  which is shown nowhere. Messages you wrote in conversations and posts on a
+  match panel stay where they are, shown as written by "a deleted member".
+- **Taken down:** community analysis you published.
+- **Kept for the moderation record:** reports you made, and any decision about
+  you.
+- **Your username** is retired: nobody can register it after you.
+- **A group you own** passes to its longest-standing moderator, or else its
+  longest-standing member. A group with nobody else in it is deleted, or closed
+  to new members if messages were written in it.
+
+The deletion is recorded (who asked and when), without a copy of what was
+removed.
 
 **Changes.** If these rules change in a way that affects what is allowed, you are
 told before the change applies, and asked to accept the new version.

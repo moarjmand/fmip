@@ -1,12 +1,13 @@
 'use client';
 
 import { useActionState } from 'react';
-import type {
-  MatchPanelPage,
-  PanelPermission,
-  PanelPost,
-  PanelReaction,
-  RatingTier,
+import {
+  isDeletedMember,
+  type MatchPanelPage,
+  type PanelPermission,
+  type PanelPost,
+  type PanelReaction,
+  type RatingTier,
 } from '@fmip/contracts';
 import { FollowButton, PanelReactions } from '@/components/panel-social';
 import { postToPanelAction } from '@/lib/panel-actions';
@@ -59,11 +60,22 @@ const TIER_LABEL: Record<RatingTier, string> = {
 function Standing({
   author,
   follow,
+  deletedMemberLabel,
 }: {
   author: PanelPost['author'];
   /** The control, when the viewer is a member who is not this author. */
   follow: React.ReactNode;
+  deletedMemberLabel: string;
 }) {
+  if (isDeletedMember(author.username)) {
+    // The post stays; the name, the standing and the follow control do not
+    // (T-812, D-094). A rating beside "a deleted member" would still be theirs.
+    return (
+      <span className="text-xs text-muted" data-testid="panel-author-deleted">
+        <span className="font-medium text-fg">{deletedMemberLabel}</span>
+      </span>
+    );
+  }
   return (
     <span className="flex flex-wrap items-center gap-2 text-xs text-muted">
       <span className="font-medium text-fg">{author.display_name}</span>
@@ -95,8 +107,10 @@ function Post({
   mine,
   me,
   followed,
+  deletedMemberLabel,
 }: {
   post: PanelPost;
+  deletedMemberLabel: string;
   locale: string;
   fixtureId: string;
   /** The viewer's own reactions on this post. Empty for a guest. */
@@ -125,11 +139,12 @@ function Post({
     <Card as="li" padding="sm" data-testid="panel-post">
       <Standing
         author={post.author}
+        deletedMemberLabel={deletedMemberLabel}
         follow={
           // A member, and not the author. Approval is deliberately not asked
           // about: following a contributor is what a reader of a panel does
           // next, and gating it would be a second, quieter approval (T-252).
-          me !== null && me !== post.author.username ? (
+          me !== null && me !== post.author.username && !isDeletedMember(post.author.username) ? (
             <FollowButton
               locale={locale}
               fixtureId={fixtureId}
@@ -187,10 +202,13 @@ export function MatchPanel({
   reachable,
   me,
   followed,
+  deletedMemberLabel,
 }: {
   locale: string;
   fixtureId: string;
   page: MatchPanelPage | null;
+  /** "A deleted member", resolved from the catalogue by the page (T-812). */
+  deletedMemberLabel: string;
   /** Null for a viewer whose permission could not be fetched, never for a guest. */
   permission: PanelPermission | null;
   /** False when the panel itself could not be fetched at all. */
@@ -245,6 +263,7 @@ export function MatchPanel({
                 mine={myReactions.get(post.id) ?? []}
                 me={viewer}
                 followed={follows}
+                deletedMemberLabel={deletedMemberLabel}
               />
             ))}
           </ul>
