@@ -1,0 +1,33 @@
+{
+  "about": "Performance budgets for the busiest pages (T-808). firstLoadJsGzipKB is checked by `pnpm --filter @fmip/web perf:bundle` against the build (CI: Verify); serverResponseMedianMs by the Playwright project `budgets` against the production build with the API and the seed behind it (CI: E2E journeys). What each number means, how it was set and how to raise one: docs/08-load-test.md, 'Page budgets'.",
+  "routes": [
+    {
+      "name": "home",
+      "appRoute": "/[locale]",
+      "path": "/en",
+      "firstLoadJsGzipKB": 220,
+      "serverResponseMedianMs": 200
+    },
+    {
+      "name": "scores",
+      "appRoute": "/[locale]/scores",
+      "path": "/en/scores",
+      "firstLoadJsGzipKB": 230,
+      "serverResponseMedianMs": 150
+    },
+    {
+      "name": "match centre",
+      "appRoute": "/[locale]/match/[id]",
+      "path": "/en/match/00000000-0000-4000-8000-000000000901",
+      "firstLoadJsGzipKB": 240,
+      "serverResponseMedianMs": 300
+    },
+    {
+      "name": "competition",
+      "appRoute": "/[locale]/competition/[id]",
+      "path": "/en/competition/00000000-0000-4000-8000-000000000201",
+      "firstLoadJsGzipKB": 220,
+      "serverResponseMedianMs": 150
+    }
+  ]
+}

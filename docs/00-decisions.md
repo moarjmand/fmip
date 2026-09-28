@@ -3801,6 +3801,37 @@ off by default (it used to read only an "off"). T-831 gives the kinds their
 own section in Settings → Notifications. T-832 (line-ups) can add a kind to
 the same derivation; T-834 measures the queue at a Saturday's load.
 
+## D-099 — The API takes JSON bodies only: a url-encoded body is refused before any handler
+**Status:** Accepted · 2026-09-28 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** The API's HTTP application is created with Nest's
+`bodyParser: false` (`apps/api/src/http-options.ts`, used by `main.ts`). That
+removes the one body parser Nest adds to Fastify's own --
+`application/x-www-form-urlencoded` -- so such a body is answered 415 before
+any controller runs. JSON is parsed by Fastify's own parser, with the same
+prototype- and constructor-poisoning refusal as before.
+
+**Why.** T-813's security tests found that a url-encoded body reached the
+controllers: `POST /admin/ingestion/backfill` with `reason=...` as a form
+body ran a backfill. A url-encoded body is what a plain HTML form sends, and
+a form needs no CORS preflight, so it is the shape of a cross-site request
+forgery. D-026's `SameSite=Lax` cookie already keeps a cross-*site* form from
+carrying a session, but "site" is the registrable domain: any page on a
+subdomain of it would be same-site. The API speaks JSON only -- the web app
+sends nothing else (`apps/web/src/lib/api.ts`), and no browser calls the API
+directly (D-027) -- so refusing the body costs nothing and closes the class
+rather than one route.
+
+**Alternatives.** An `Origin`/`Referer` check or a CSRF token on every write --
+more code on every path for the same result, and the API is not meant to be
+called from a browser at all (D-027). Leaving it -- the cookie makes it
+unexploitable cross-site today; rejected because the fix is one option.
+
+**Consequences.** A client that posts a form directly to the API gets 415;
+there is none. `text/plain` stays parsed by Fastify as a string, which no
+controller accepts as a body (each reads fields from an object), and the
+security spec checks every console write with a form body.
+
 ## D-100 — Team news, line-ups and a friend's prediction: opt-in, once each, and never the pick
 **Status:** Accepted · 2026-09-28 (revisable under the standing delegation of 2026-09-26)
 
@@ -3928,3 +3959,57 @@ stop hearing about their analyses, and the sentence was wrong.
 `contributor_eligible` member and a `founder_analysis_published` fixture;
 `1764790000000_editorial-notifications.sql` widens the kind and subject lists
 as they stand and creates `contributor_eligibility_state`.
+
+## D-101 — The restore drill runs itself monthly, and both runs are rows the watchdog reads
+**Status:** Accepted · 2026-09-28 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-805 puts D-032's monthly drill on a systemd timer beside the
+backup's: `fmip-restore-drill.timer`, the first Monday of each month at
+04:40 UTC (an hour after the daily 03:30 backup), running
+`restore-drill.sh --scheduled` as `fmip`. That run takes the newest dump and
+manifest from the off-provider remote (the local copy only when no remote is
+set, and says so), fails if the dump is more than 48 hours old, runs the
+existing manifest checks (checksum, every migration, every table's exact row
+count, the forecast CHECK and trigger) and then compares the restored copy
+with the live database: the same migrations (or an earlier prefix, for a
+deploy after the dump), and six key tables' counts within 10 % (never under
+100 rows). Its container and downloads are removed on exit.
+
+The API learns of both scripts through a table, `backup_run` (migration
+`1764770000000_backup-run`): each run, pass or fail, ends by appending one row
+(kind, start, finish, ok, dump name, what failed) through `psql` in the
+postgres container, which is how the scripts already reach the database. The
+watchdog (D-095) reads it:
+
+- `backup`: 26 / 50 h since the newest successful backup as before, and now
+  at least `degraded` when the newest run failed, `failing` when runs exist
+  and none succeeded.
+- `restore_drill` (new): 35 / 70 days since the newest drill that passed;
+  `failing` when the newest drill failed, whatever its age.
+- Both `unknown` when nothing was ever recorded (a laptop, a server without
+  the timers), never `ok` by default.
+
+**Why.** A table is the simplest record the API can already read: no new
+mount, no file format, no second writer to trust, and the history comes for
+free. A status file mounted read-only into the api container was the other
+candidate; it needs a compose change on the server, holds only the newest
+result, and a stale file looks exactly like a fresh one. A failed newest
+backup raising at once, rather than after the age catches up, is the exit
+criterion ("a failed backup reaches an administrator's device within
+minutes"). The comparison with live exists because a manifest proves a dump
+is whole, not that it is ours or recent. The first Monday stays D-032's day;
+thresholds of five and ten weeks allow one missed drill before failing.
+
+**Alternatives considered.** The drill as a BullMQ job inside the API: the
+API would need the Docker socket to start a throwaway Postgres, which is
+root on the host. A drill restoring into a second database inside the live
+container: it shares the disk and the memory with production during the
+restore. Counting a drill of the local copy as a pass when a remote is set:
+the local copy is not the one in doubt.
+
+**Consequences.** The maintainer installs `fmip-restore-drill.{service,timer}`
+once (`07-backups.md`, "Schedule") and records the first timed run in the
+handoff. `check-setup.sh` has a `Restore drill` line. T-804's System page
+shows both conditions through the watchdog report. A threshold change is a
+one-line change in `apps/api/src/modules/watchdog/internal/conditions.ts` and
+an edit here.

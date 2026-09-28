@@ -4,7 +4,8 @@ The database is the product: forecasts, evaluations, users, reputation. This
 is the runbook for keeping a copy of it somewhere the VPS provider cannot take
 away, and for proving, on a schedule, that the copy restores (T-072, D-032).
 
-Everything here is two scripts and two systemd units in `scripts/backup/`.
+Everything here is two scripts (and the `lib.sh` they share) and two pairs
+of systemd units in `scripts/backup/`.
 Nothing is installed on the host beyond Docker: `pg_dump` runs in the
 postgres container, `rclone` in its official image.
 
@@ -98,8 +99,58 @@ journalctl -u fmip-backup.service -n 50
 ```
 
 The unit assumes the checkout lives at `/opt/fmip`; edit `WorkingDirectory`
-if not. A failed run leaves a non-zero exit in `journalctl`; wiring that into
-the alerting of T-071 is that task's job.
+if not. A failed run leaves a non-zero exit in `journalctl` **and a row in
+`backup_run`** (below), which is how an administrator hears of it.
+
+`fmip-restore-drill.timer` runs the drill on the **first Monday of each month
+at 04:40 UTC** (plus up to five minutes of jitter), an hour after that
+morning's backup, from the off-provider copy (T-805, D-101):
+
+```bash
+sudo cp scripts/backup/fmip-restore-drill.{service,timer} /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now fmip-restore-drill.timer
+systemctl list-timers fmip-restore-drill.timer    # NEXT is a Monday, day 1-7
+# See what it would do without doing it, as the account the unit runs as:
+sudo -u fmip bash -lc 'cd /opt/fmip && bash scripts/backup/restore-drill.sh --scheduled --dry-run'
+# Run it now rather than waiting for the Monday (optional; takes minutes):
+sudo systemctl start fmip-restore-drill.service
+journalctl -u fmip-restore-drill.service -n 60
+```
+
+The service runs `restore-drill.sh --scheduled`, which downloads the newest
+dump and manifest from `BACKUP_RCLONE_REMOTE` into `BACKUP_DIR/drill-<pid>/`,
+fails if that dump is more than `BACKUP_DRILL_MAX_AGE_HOURS` (48) old, runs
+every check below, then compares the restored copy with the live database --
+the migrations must be live's (or an earlier prefix of them, if a deploy
+landed after the dump), and `user_account`, `user_prediction`, `settlement`,
+`forecast`, `fixture` and `message` must be within
+`BACKUP_DRILL_TOLERANCE_PCT` (10 %, never under 100 rows) of live. A whole dump
+of the wrong database, or of last spring's, passes the manifest; it does not
+pass this. The throwaway container and the downloaded files are removed
+whatever happens. With no remote set, it drills the newest local dump and the
+record says so.
+
+### Where the API reads it (`backup_run`)
+
+Both scripts end every run, pass or fail, by appending one row to the
+`backup_run` table (kind, start, finish, ok, the dump's name, and what failed)
+through `psql` in the postgres container -- the same way they already reach
+the database. A run that dies half way records the step it died in. The
+watchdog reads the table every minute (T-801, D-095, D-101):
+
+| Condition | Measured | `degraded` | `failing` |
+| --- | --- | --- | --- |
+| `backup` | since the newest successful backup | 26 h, **or the newest run failed** | 50 h, or no success on record |
+| `restore_drill` | since the newest drill that passed | 35 days | 70 days, **or the newest drill failed** |
+
+Both are `unknown` while nothing has been recorded on the deployment (a
+laptop, or a server whose timers are not installed), never `ok`. Leaving `ok`
+is an alert to every administrator (T-802), so **a failed backup or drill
+reaches an administrator's device within minutes**. It recovers when a later
+run succeeds. `BACKUP_RECORD=off` skips the row (a rehearsal against a
+database without the table); a row that cannot be written is a warning in
+the run's output, not a failed backup.
 
 Recovery point: up to 24 hours of data (one dump a day). That is accepted for
 Phase 1 — forecasts and evaluations are recomputable from the training store
@@ -123,6 +174,9 @@ only if all of these hold:
 ```bash
 bash scripts/backup/restore-drill.sh                       # newest local dump
 bash scripts/backup/restore-drill.sh backups/fmip-20260910T120000Z.dump
+bash scripts/backup/restore-drill.sh --offsite             # newest dump on the remote
+bash scripts/backup/restore-drill.sh --scheduled           # what the timer runs
+bash scripts/backup/restore-drill.sh --scheduled --dry-run # what it would do; does nothing
 ```
 
 Exit status 0 is the verdict; the last line reads `DRILL PASSED` or
@@ -141,19 +195,31 @@ it is current, `STALE` past 48 hours (the timer runs daily, so one missed run
 is still inside that), and a note whenever `BACKUP_RCLONE_REMOTE` is unset --
 a copy on the machine it is a backup of does not survive losing that machine.
 
+The `Restore drill` line reads the newest drill from `backup_run` and whether
+`fmip-restore-drill.timer` is enabled: `ON` with the age of the newest pass
+and the next run, `STALE` past 35 days, `FAILED` when the newest drill
+failed, `off` when neither a drill nor the timer exists.
+
 ### Monthly checklist
 
-Do this on the first Monday of the month, from the off-provider copy, not the
-local one — that is the copy whose existence is in doubt:
+`fmip-restore-drill.timer` does the drill itself on the first Monday of the
+month, from the off-provider copy, not the local one — that is the copy whose
+existence is in doubt. What is left for a person that Monday:
+
+- [ ] `journalctl -u fmip-restore-drill.service -n 60` ends in `DRILL PASSED`,
+      and the admin System page shows `restore_drill` `ok`. If it failed, the
+      steps below by hand find out where.
+- [ ] Note the date and the dump name in `docs/06-session-handoff.md` under
+      "Last restore drill".
+
+By hand (the timer's steps, for a failed run or a machine without the timer):
 
 - [ ] `rclone ls offsite:` (or the docker equivalent) shows yesterday's dump
       and manifest with plausible sizes.
 - [ ] Download both: `rclone copy offsite:fmip-<stamp>.dump ./restore/` and
       the manifest.
 - [ ] `bash scripts/backup/restore-drill.sh ./restore/fmip-<stamp>.dump`
-      prints `DRILL PASSED`.
-- [ ] Note the date and the dump name in `docs/06-session-handoff.md` under
-      "Last restore drill".
+      prints `DRILL PASSED` (and records it, so the watchdog recovers).
 
 If any step fails, that is the highest-priority task of the week, ahead of
 any feature.
