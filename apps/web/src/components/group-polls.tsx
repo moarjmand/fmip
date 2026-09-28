@@ -20,6 +20,7 @@ import {
   withdrawPollVoteAction,
 } from '@/lib/group-poll-actions';
 import { GroupPollForm } from '@/components/group-poll-form';
+import { MemberName } from '@/components/member-name';
 import { Translated } from '@/components/translated';
 import { Notice, Radio, TextField, controlClasses } from '@/components/ui';
 
@@ -105,7 +106,8 @@ function PollItem({
       <p className="text-xs text-muted">
         {poll.created_by !== null && (
           <>
-            <Translated locale={locale} message="groupPolls.askedBy" /> @{poll.created_by} ·{' '}
+            <Translated locale={locale} message="groupPolls.askedBy" />{' '}
+            <MemberName locale={locale} member={{ username: poll.created_by }} /> ·{' '}
           </>
         )}
         <Translated

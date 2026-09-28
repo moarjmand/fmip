@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { FriendControls } from '@/components/friend-controls';
+import { MemberHandle, MemberName } from '@/components/member-name';
 import { formatDateTime } from '@/i18n/format';
 import { Translated } from '@/components/translated';
 import { fetchBlocks, fetchFriendRequests, fetchFriends, fetchMe } from '@/lib/api';
@@ -77,14 +78,9 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
             {requests.data.incoming.map((request) => (
               <div key={`in-${request.member.username}`} className="flex flex-col gap-1">
                 <p className="text-sm">
-                  <Link
-                    href={`/${locale}/u/${encodeURIComponent(request.member.username)}`}
-                    className="underline"
-                  >
-                    {request.member.display_name}
-                  </Link>{' '}
+                  <MemberName locale={locale} member={request.member} link className="underline" />{' '}
                   <span className="text-muted">
-                    @{request.member.username} · asked{' '}
+                    <MemberHandle username={request.member.username} /> · asked{' '}
                     {formatDateTime(locale, request.sent_at, zone)}
                   </span>
                 </p>
@@ -98,14 +94,9 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
             {requests.data.outgoing.map((request) => (
               <div key={`out-${request.member.username}`} className="flex flex-col gap-1">
                 <p className="text-sm">
-                  <Link
-                    href={`/${locale}/u/${encodeURIComponent(request.member.username)}`}
-                    className="underline"
-                  >
-                    {request.member.display_name}
-                  </Link>{' '}
+                  <MemberName locale={locale} member={request.member} link className="underline" />{' '}
                   <span className="text-muted">
-                    @{request.member.username} · you asked{' '}
+                    <MemberHandle username={request.member.username} /> · you asked{' '}
                     {formatDateTime(locale, request.sent_at, zone)}
                   </span>
                 </p>
@@ -132,14 +123,9 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
           friends.data.friends.map((friend) => (
             <div key={friend.member.username} className="flex flex-col gap-1">
               <p className="text-sm">
-                <Link
-                  href={`/${locale}/u/${encodeURIComponent(friend.member.username)}`}
-                  className="underline"
-                >
-                  {friend.member.display_name}
-                </Link>{' '}
+                <MemberName locale={locale} member={friend.member} link className="underline" />{' '}
                 <span className="text-muted">
-                  @{friend.member.username} · friends since{' '}
+                  <MemberHandle username={friend.member.username} /> · friends since{' '}
                   {formatDateTime(locale, friend.friends_since, zone)}
                   {friend.mutual_friends > 0 && (
                     <>
@@ -187,9 +173,9 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
           blocks.data.blocked.map((entry) => (
             <div key={entry.member.username} className="flex flex-col gap-1">
               <p className="text-sm">
-                {entry.member.display_name}{' '}
+                <MemberName locale={locale} member={entry.member} />{' '}
                 <span className="text-muted">
-                  @{entry.member.username} · blocked{' '}
+                  <MemberHandle username={entry.member.username} /> · blocked{' '}
                   {formatDateTime(locale, entry.blocked_at, zone)}
                 </span>
               </p>

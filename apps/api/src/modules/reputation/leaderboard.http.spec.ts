@@ -177,13 +177,15 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Leaderboard'
     expect(first.entries[0]!.rank).toBe(1);
     expect(second.entries).toHaveLength(1);
     expect(second.entries[0]!.rank).toBe(2);
-    expect(second.total).toBe(first.total);
+    // Other specs share this database and rank members of their own, so the
+    // total may move between two requests: it counts the whole board, never
+    // just the page.
+    expect(first.total).toBeGreaterThanOrEqual(2);
+    expect(second.total).toBeGreaterThanOrEqual(2);
 
-    const beyond = (
-      await get(`/leaderboard?offset=${first.total + 5}`)
-    ).json() as LeaderboardResponse;
+    const beyond = (await get('/leaderboard?offset=1000000')).json() as LeaderboardResponse;
     expect(beyond.entries).toEqual([]);
-    expect(beyond.total).toBe(first.total);
+    expect(beyond.total).toBeGreaterThanOrEqual(2);
 
     expect((await get('/leaderboard?limit=0')).statusCode).toBe(400);
   });

@@ -104,6 +104,14 @@ const CONSOLE: Record<string, ConsoleRoute> = {
   // Data quality (T-640).
   'GET /admin/data-quality': { roles: ADMIN },
   'POST /admin/data-quality/:id/review': { roles: ADMIN, reason: { without: {} } },
+  'POST /admin/data-quality/refetch': {
+    roles: ADMIN,
+    reason: { without: { fixture_id: UUID_A } },
+  },
+  'POST /admin/data-quality/review-batch': {
+    roles: ADMIN,
+    reason: { without: { check: 'lineup_not_eleven', season_id: UUID_A } },
+  },
 
   // Campaigns (T-332).
   'GET /admin/audiences': { roles: ADMIN },

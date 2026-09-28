@@ -40,6 +40,7 @@ const PEOPLE = [
 ];
 
 interface Row {
+  id: string;
   check_kind: string;
   subject_key: string;
   fixture_id: string | null;
@@ -92,6 +93,20 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('data-quality
       url: `/admin/data-quality/${id}/review`,
       headers: { cookie: `fmip_session=${cookie}` },
       payload: { reason },
+    });
+  const reviewBatch = (payload: Record<string, unknown>, cookie = admin.cookie) =>
+    app.inject({
+      method: 'POST',
+      url: '/admin/data-quality/review-batch',
+      headers: { cookie: `fmip_session=${cookie}` },
+      payload,
+    });
+  const refetch = (payload: Record<string, unknown>, cookie = admin.cookie) =>
+    app.inject({
+      method: 'POST',
+      url: '/admin/data-quality/refetch',
+      headers: { cookie: `fmip_session=${cookie}` },
+      payload,
     });
   const fixtures: Record<string, string> = {};
 
@@ -426,5 +441,176 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('data-quality
     const reviewed = after.findings.find((f) => f.id === overrun.id);
     expect(reviewed?.reviewed).toMatchObject({ by: `dq_${RUN}a`, reason: why });
     expect((await dataQuality.liveContradictions(later)).open).toBe(before.open - 1);
+  });
+
+  it("a batch marks one check's open findings in one season reviewed, with one audit row naming them", async () => {
+    // A second short line-up in the season, so the batch is more than one finding.
+    const second = await fixture('lineup2', UNITED, MADRID, '2031-03-01T15:00:00Z', 'finished');
+    const starters = (fixtureId: string) =>
+      pool.query(
+        `INSERT INTO lineup (participant_id, person_id, role)
+         SELECT p.id, person, 'starter' FROM fixture_participant p, unnest($2::uuid[]) AS person
+          WHERE p.fixture_id = $1 AND p.side = 'away'`,
+        [fixtureId, PEOPLE.slice(0, 2)],
+      );
+    await starters(second);
+    await dataQuality.sweep(new Date(Date.now() + 80 * 60_000), SEASON);
+    const open = async (check: string) =>
+      (await mine()).filter((r) => r.check_kind === check && r.resolved_at === null);
+    const lineups = await open('lineup_not_eleven');
+    expect(lineups).toHaveLength(2);
+
+    const why = 'The feed supplied these players; asked again, unchanged.';
+    const batch = { check: 'lineup_not_eleven', season_id: SEASON };
+    expect((await reviewBatch(batch, member.cookie)).statusCode).toBe(403);
+    const refused = await reviewBatch({ check: 'no_such_check', season_id: 'x', reason: ' ' });
+    expect(refused.statusCode).toBe(400);
+    expect(Object.keys((refused.json() as { fields: object }).fields).sort()).toEqual([
+      'check',
+      'reason',
+      'season_id',
+    ]);
+
+    const response = await reviewBatch({ ...batch, reason: why });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ reviewed: 2 });
+    // Nothing left to review in that group: refused, and no second audit row.
+    expect((await reviewBatch({ ...batch, reason: why })).statusCode).toBe(404);
+
+    const { rows: audit } = await pool.query<{
+      target_type: string;
+      target_id: string;
+      reason: string;
+      previous: { check: string; finding_ids: number[] };
+      next: { count: number };
+    }>(
+      `SELECT target_type, target_id, reason, previous, next FROM audit_log
+        WHERE actor_id = $1 AND action = 'data_quality.review_batch'`,
+      [admin.id],
+    );
+    const ids = lineups.map((r) => Number(r.id)).sort((a, b) => a - b);
+    expect(audit).toEqual([
+      {
+        target_type: 'season',
+        target_id: SEASON,
+        reason: why,
+        previous: {
+          check: 'lineup_not_eleven',
+          season_id: SEASON,
+          reviewed: false,
+          finding_ids: ids,
+        },
+        next: { check: 'lineup_not_eleven', season_id: SEASON, reviewed: true, count: 2 },
+      },
+    ]);
+    // Only that check was marked, and the findings stay open until the data agrees.
+    const { rows: marked } = await pool.query<{ check_kind: string; reviewed: boolean }>(
+      `SELECT check_kind, reviewed_at IS NOT NULL AS reviewed FROM data_quality_finding
+        WHERE season_id = $1 AND resolved_at IS NULL AND check_kind IN ('lineup_not_eleven', 'goals_disagree')
+        ORDER BY check_kind`,
+      [SEASON],
+    );
+    expect(marked).toEqual([
+      { check_kind: 'goals_disagree', reviewed: false },
+      { check_kind: 'lineup_not_eleven', reviewed: true },
+      { check_kind: 'lineup_not_eleven', reviewed: true },
+    ]);
+    const report = (await get(admin.cookie)).json() as DataQualityReport;
+    expect(
+      report.counts.find((c) => c.check === 'lineup_not_eleven' && c.season?.id === SEASON),
+    ).toMatchObject({ season: { id: SEASON, label: '2030/31' }, open: 2, reviewed: 2 });
+
+    // It goes away, then comes back: open again and not reviewed, not hidden by the batch.
+    await pool.query(
+      `DELETE FROM lineup WHERE participant_id IN (SELECT id FROM fixture_participant WHERE fixture_id = $1)`,
+      [second],
+    );
+    await dataQuality.sweep(new Date(Date.now() + 85 * 60_000), SEASON);
+    await starters(second);
+    await dataQuality.sweep(new Date(Date.now() + 90 * 60_000), SEASON);
+    const again = (await open('lineup_not_eleven')).find((r) => r.fixture_id === second);
+    const { rows: reopened } = await pool.query<{ reviewed_at: Date | null }>(
+      `SELECT reviewed_at FROM data_quality_finding WHERE id = $1`,
+      [again?.id],
+    );
+    expect(reopened).toEqual([{ reviewed_at: null }]);
+  });
+
+  it('asks the feed again for a match or a class, audited, once while it waits, and says what it found', async () => {
+    // The line-up match is one the feed has an id for; the goals match is not.
+    await pool.query(
+      `INSERT INTO provider_mapping (provider, external_id, entity_type, internal_id)
+       VALUES ('api_football', $2, 'fixture', $1)`,
+      [fixtures.lineup, `dq-${RUN}-c`],
+    );
+    const why = 'The line-up looks short; ask the feed again.';
+    expect(
+      (await refetch({ fixture_id: fixtures.first, reason: why }, member.cookie)).statusCode,
+    ).toBe(403);
+    const refused = await refetch({ check: 'nope', reason: '' });
+    expect(refused.statusCode).toBe(400);
+    expect(Object.keys((refused.json() as { fields: object }).fields).sort()).toEqual([
+      'check',
+      'reason',
+      'season_id',
+    ]);
+    expect((await refetch({ fixture_id: 'x', reason: why })).statusCode).toBe(400);
+    // No provider id, nothing to ask.
+    expect((await refetch({ fixture_id: fixtures.goals, reason: why })).statusCode).toBe(404);
+    expect(
+      (await refetch({ check: 'goals_disagree', season_id: SEASON, reason: why })).statusCode,
+    ).toBe(404);
+
+    const one = await refetch({ fixture_id: fixtures.first, reason: why });
+    expect(one.statusCode).toBe(202);
+    expect(one.json()).toEqual({ queued: 1, already_queued: 0 });
+    // Waiting already: not queued twice.
+    expect((await refetch({ fixture_id: fixtures.first, reason: why })).statusCode).toBe(409);
+
+    // A class: every match behind the season's open line-up findings the feed can be asked about.
+    const cls = await refetch({ check: 'lineup_not_eleven', season_id: SEASON, reason: why });
+    expect(cls.statusCode).toBe(202);
+    expect(cls.json()).toEqual({ queued: 1, already_queued: 0 });
+
+    const { rows: audit } = await pool.query<{
+      target_type: string;
+      target_id: string;
+      reason: string;
+      next: { fixture_ids: string[]; check: string | null };
+    }>(
+      `SELECT target_type, target_id, reason, next FROM audit_log
+        WHERE actor_id = $1 AND action = 'data_quality.refetch' ORDER BY created_at, id`,
+      [admin.id],
+    );
+    expect(
+      audit.map((a) => [a.target_type, a.target_id, a.reason, a.next.fixture_ids, a.next.check]),
+    ).toEqual([
+      ['fixture', fixtures.first, why, [fixtures.first], null],
+      ['season', SEASON, why, [fixtures.lineup], 'lineup_not_eleven'],
+    ]);
+
+    const waiting = (await get(admin.cookie)).json() as DataQualityReport;
+    expect(waiting.refetch.pending).toBeGreaterThanOrEqual(2);
+    const lineup = async () =>
+      ((await get(admin.cookie)).json() as DataQualityReport).findings.find(
+        (f) => f.check === 'lineup_not_eleven' && f.fixture?.id === fixtures.lineup,
+      );
+    expect((await lineup())?.asked_again).toMatchObject({ fetched_at: null, changed: null });
+
+    // The post-match job's side: due in this competition, then asked and unchanged.
+    const due = await dataQuality.refetchesDue('api_football', [COMPETITION], 10);
+    expect(due.map((d) => d.fixtureId).sort()).toEqual([fixtures.first, fixtures.lineup].sort());
+    expect(await dataQuality.refetchesDue('api_football', [randomUUID()], 10)).toEqual([]);
+    const before = await dataQuality.refetchedSince();
+    for (const d of due) await dataQuality.recordRefetch(d.id, false);
+    expect(await dataQuality.refetchedSince()).toBe(before + 2);
+    expect(await dataQuality.refetchesDue('api_football', [COMPETITION], 10)).toEqual([]);
+    const asked = (await lineup())?.asked_again;
+    expect(asked?.changed).toBe(false);
+    expect(asked?.fetched_at).toEqual(expect.any(String));
+    // Still open: the answer did not make the data agree. It can be asked again now.
+    await dataQuality.sweep(new Date(Date.now() + 95 * 60_000), SEASON);
+    expect((await lineup())?.asked_again?.changed).toBe(false);
+    expect((await refetch({ fixture_id: fixtures.lineup, reason: why })).statusCode).toBe(202);
   });
 });
