@@ -13,6 +13,7 @@ const TYPE_LABEL: Record<FollowedEntity['entity_type'], string> = {
   team: 'Team',
   competition: 'Competition',
   person: 'Player',
+  fixture: 'Match',
 };
 
 /**
@@ -60,14 +61,17 @@ export function FollowingSection({ locale, following, teams, competitions }: Pro
                   {TYPE_LABEL[item.entity_type]}
                 </span>
               </span>
-              <form action={follow} className="contents">
-                <input type="hidden" name="entity_type" value={item.entity_type} />
-                <input type="hidden" name="entity_id" value={item.entity_id} />
-                <input type="hidden" name="favourite" value={item.favourite ? 'false' : 'true'} />
-                <Button type="submit" variant="ghost" size="sm">
-                  {item.favourite ? 'Unpin' : 'Make favourite'}
-                </Button>
-              </form>
+              {/* A match is followed, never pinned (D-116). */}
+              {item.entity_type !== 'fixture' && (
+                <form action={follow} className="contents">
+                  <input type="hidden" name="entity_type" value={item.entity_type} />
+                  <input type="hidden" name="entity_id" value={item.entity_id} />
+                  <input type="hidden" name="favourite" value={item.favourite ? 'false' : 'true'} />
+                  <Button type="submit" variant="ghost" size="sm">
+                    {item.favourite ? 'Unpin' : 'Make favourite'}
+                  </Button>
+                </form>
+              )}
               <form action={unfollow} className="contents">
                 <input type="hidden" name="entity_type" value={item.entity_type} />
                 <input type="hidden" name="entity_id" value={item.entity_id} />

@@ -256,8 +256,9 @@ export class MatchAlertsStore {
   }
 
   /**
-   * Who follows this match: either team, or its competition (blueprint 12.1).
-   * A deleted account follows nothing.
+   * Who follows this match: either team, its competition, or the match itself
+   * while its follow is open (blueprint 12.1, D-116). One row per member,
+   * however many of those they follow. A deleted account follows nothing.
    */
   async followers(fixtureId: string): Promise<string[]> {
     const { rows } = await this.pool.query<{ user_id: string }>(
@@ -270,6 +271,7 @@ export class MatchAlertsStore {
                AND fe.entity_id = (SELECT s.competition_id
                                      FROM fixture f JOIN season s ON s.id = f.season_id
                                     WHERE f.id = $1))
+           OR (fe.entity_type = 'fixture' AND fe.entity_id = $1 AND fixture_follow_open($1))
         ORDER BY fe.user_id`,
       [fixtureId],
     );

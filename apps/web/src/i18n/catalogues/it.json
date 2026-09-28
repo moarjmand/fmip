@@ -1754,7 +1754,7 @@
     "status": "untranslated"
   },
   "notifications.match.intro": {
-    "source": "For the matches of the teams and competitions you follow. Alerts from the same minute arrive together, a goal taken off the board is corrected, and nothing arrives twice.",
+    "source": "For the matches you follow, and the matches of the teams and competitions you follow. Alerts from the same minute arrive together, a goal taken off the board is corrected, and nothing arrives twice.",
     "text": "",
     "status": "untranslated"
   },
@@ -1795,6 +1795,41 @@
   },
   "notifications.match.quiet": {
     "source": "To silence one team or one competition, or every match alert at once, use What stays quiet below. Quiet hours hold match alerts too.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "match.follow.start": {
+    "source": "Follow this match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "match.follow.stop": {
+    "source": "Stop following",
+    "text": "",
+    "status": "untranslated"
+  },
+  "match.follow.note": {
+    "source": "Its alerts reach you under your match alert settings, once each even if you follow its teams too. The follow ends by itself three hours after full-time.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "match.follow.following": {
+    "source": "You follow this match. The follow ends by itself three hours after full-time.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "match.follow.over": {
+    "source": "This match is over, so it can no longer be followed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "match.follow.signIn": {
+    "source": "Sign in to follow this match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "match.follow.unreachable": {
+    "source": "Whether you follow this match cannot be checked right now.",
     "text": "",
     "status": "untranslated"
   },

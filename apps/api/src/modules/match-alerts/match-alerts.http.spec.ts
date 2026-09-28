@@ -17,6 +17,7 @@ import { IngestionJobsService } from '../ingestion/ingestion-jobs.service';
 import { IngestionModule } from '../ingestion/ingestion.module';
 import { INGESTION_SOURCES, type IngestionSources } from '../ingestion/internal/sources';
 import { NotificationsService, WEB_ORIGIN } from '../notifications/notifications.service';
+import { MatchAlertsStore } from './internal/match-alerts-store';
 import { MATCH_ALERTS_QUEUE, MatchAlertsService } from './match-alerts.service';
 
 /**
@@ -24,12 +25,15 @@ import { MATCH_ALERTS_QUEUE, MatchAlertsService } from './match-alerts.service';
  * the real jobs, writers, alert derivation, notifications and carrier, with a
  * scripted provider in place of the network and a capturing push channel.
  *
- * One match, followed by seven members in seven ways, is played tick by tick:
+ * One match, followed by nine members in nine ways, is played tick by tick:
  * kick-off, a goal and a red card in the same minute, the same answer again
  * (a retry), the goal taken off the board, the half-time interval, and the
  * match leaving the live list at the whistle. What each member hears is what
  * their follows, switches, mutes and quiet hours allow -- once per event, one
- * push per tick, and a correction only to those told of the goal.
+ * push per tick, and a correction only to those told of the goal. T-945
+ * (D-116) adds a member following the match itself, and one following it
+ * four ways at once (the match, both teams and the competition), who still
+ * hears each event once; the match follow ends three hours after full-time.
  */
 const DATABASE_URL = process.env.DATABASE_URL;
 const REDIS_URL = process.env.REDIS_URL;
@@ -54,6 +58,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
     let pool: Pool;
     let jobs: IngestionJobsService;
     let notifications: NotificationsService;
+    let store: MatchAlertsStore;
     let close: () => Promise<void>;
     const pushes: OutboundPush[] = [];
     const members = new Map<string, string>();
@@ -165,7 +170,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       members.set(label, id);
       return id;
     }
-    const follow = (userId: string, type: 'team' | 'competition', entity: string) =>
+    const follow = (userId: string, type: 'team' | 'competition' | 'fixture', entity: string) =>
       pool.query(
         `INSERT INTO followed_entity (user_id, entity_type, entity_id) VALUES ($1, $2, $3)`,
         [userId, type, entity],
@@ -252,6 +257,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       close = () => app.close();
       jobs = app.get(IngestionJobsService);
       notifications = app.get(NotificationsService);
+      store = app.get(MatchAlertsStore, { strict: false });
 
       // Seven members, seven ways of following the match.
       await follow(await member('home'), 'team', HOME); // the defaults
@@ -274,6 +280,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       const noGoals = await member('nogoals');
       await follow(noGoals, 'team', HOME);
       await notifications.setPreference(noGoals, 'match_goal', false);
+      // T-945: the match itself, and the match four ways at once.
+      await follow(await member('match'), 'fixture', FIXTURE);
+      const every = await member('every');
+      await follow(every, 'fixture', FIXTURE);
+      await follow(every, 'team', HOME);
+      await follow(every, 'team', AWAY);
+      await follow(every, 'competition', COMPETITION);
     });
 
     afterAll(async () => {
@@ -306,6 +319,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect(await heard('home')).toEqual([line]);
       expect(await heard('comp')).toEqual([line]);
       expect(await heard('nogoals')).toEqual([line]);
+      expect(await heard('match')).toEqual([line]);
+      expect(await heard('every')).toEqual([line]);
+      expect(pushesTo('every')).toHaveLength(1);
       for (const label of ['muted', 'cat', 'none']) expect(await heard(label)).toEqual([]);
       // Held by quiet hours, so written and not yet in the inbox or on a device.
       expect(await heard('asleep')).toEqual([]);
@@ -329,6 +345,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect((await heard('home')).slice(1)).toEqual([scored]);
       expect((await heard('comp')).slice(1)).toEqual([scored, red]);
       expect((await heard('nogoals')).slice(1)).toEqual([]);
+      expect((await heard('match')).slice(1)).toEqual([scored]);
+      // Following the match, both teams and the competition: told once.
+      expect((await heard('every')).slice(1)).toEqual([scored]);
+      expect(pushesTo('every')).toHaveLength(2);
       const burst = pushesTo('comp').slice(before);
       expect(burst).toHaveLength(1);
       expect(burst[0]?.body).toBe(
@@ -366,7 +386,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       // The member asleep was told of the goal too (held, not dropped), so the
       // correction waits beside it.
       expect(rows.map((r) => r.user_id).sort()).toEqual(
-        [members.get('home'), members.get('comp'), members.get('asleep')].sort(),
+        ['home', 'comp', 'asleep', 'match', 'every'].map((label) => members.get(label)).sort(),
       );
     });
 
@@ -405,6 +425,29 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         [members.get('asleep'), FIXTURE],
       );
       expect(held.rows[0]?.n).toBe(4);
+      expect((await heard('match')).at(-1)).toBe(full);
+      expect((await heard('every')).filter((l) => l === full)).toHaveLength(1);
+    });
+
+    it('a match follow ends three hours after full-time, and a team follow does not', async () => {
+      const match = members.get('match')!;
+      const every = members.get('every')!;
+      expect(await store.followers(FIXTURE)).toEqual(expect.arrayContaining([match, every]));
+      // Full-time (no periods recorded: two hours after kick-off) two hours ago: still open.
+      await pool.query(`UPDATE fixture SET kickoff_at = now() - interval '4 hours' WHERE id = $1`, [
+        FIXTURE,
+      ]);
+      expect(await store.followers(FIXTURE)).toContain(match);
+      // The last period ended three hours and a minute ago: closed.
+      await pool.query(
+        `INSERT INTO fixture_period (fixture_id, kind, sequence, started_at, ended_at)
+         VALUES ($1, 'second_half', 2, now() - interval '4 hours', now() - interval '181 minutes')`,
+        [FIXTURE],
+      );
+      const after = await store.followers(FIXTURE);
+      expect(after).not.toContain(match);
+      // Still a follower through the teams and the competition, and once.
+      expect(after.filter((id) => id === every)).toEqual([every]);
     });
   },
 );
