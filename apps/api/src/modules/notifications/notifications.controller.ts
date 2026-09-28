@@ -28,6 +28,7 @@ import type {
   SetQuietHoursRequest,
 } from '@fmip/contracts';
 import {
+  ADMIN_ONLY_NOTIFICATION_KINDS,
   MUTE_SCOPES,
   NOTIFICATION_DEFAULTS,
   NOTIFICATION_KINDS,
@@ -154,14 +155,19 @@ export class NotificationsController {
   @Get('me/notification-settings')
   async settings(@Req() request: FastifyRequest): Promise<NotificationSettings> {
     const user = await this.viewer(request);
-    const [muted, chosen, quiet, mutes] = await Promise.all([
+    const [muted, chosen, quiet, mutes, isAdmin] = await Promise.all([
       this.notifications.mutedKinds(user.id),
       this.notifications.chosenKinds(user.id),
       this.notifications.quietHours(user.id),
       this.notifications.mutes(user.id),
+      this.identity.hasRole(user.id, 'admin'),
     ]);
     return {
-      preferences: NOTIFICATION_KINDS.map((kind) => ({
+      // An administrator's kinds are offered to administrators only (T-802).
+      preferences: (isAdmin
+        ? NOTIFICATION_KINDS
+        : NOTIFICATION_KINDS.filter((kind) => !ADMIN_ONLY_NOTIFICATION_KINDS.includes(kind))
+      ).map((kind) => ({
         kind,
         in_product: chosen.has(kind) ? !muted.has(kind) : NOTIFICATION_DEFAULTS[kind],
         chosen: chosen.has(kind),

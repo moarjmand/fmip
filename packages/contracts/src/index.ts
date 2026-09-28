@@ -311,6 +311,7 @@ export type {
 // nowhere else: "a missing preference row means the documented default" is only
 // true while the document and the code are the same thing.
 export {
+  ADMIN_ONLY_NOTIFICATION_KINDS,
   MATCH_ALERT_KINDS,
   MUTE_SCOPES,
   NOTIFICATION_CATEGORIES,
@@ -319,6 +320,7 @@ export {
   NOTIFICATION_HOURLY_CAP,
   NOTIFICATION_KINDS,
   NOTIFICATION_TEXT,
+  QUIET_HOURS_EXEMPT,
   QUIET_HOURS_RULE,
   isMatchAlertKind,
   isNotificationKind,
@@ -627,6 +629,9 @@ export { AUDIENCE_FOLLOW_TYPES } from './campaigns';
 // The watchdog over the health views (T-801): conditions, thresholds, transitions.
 export { WATCHDOG_LEVELS } from './watchdog';
 export type {
+  AdminAlertsReport,
+  AlertChannelOutcomes,
+  AlertDelivery,
   WatchdogCondition,
   WatchdogEvent,
   WatchdogEventKind,

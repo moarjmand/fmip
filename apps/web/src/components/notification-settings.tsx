@@ -46,6 +46,8 @@ const KIND_LABEL: Record<NotificationKind, string> = {
   panel_reaction: 'When somebody reacts to something I posted',
   briefing: 'When a briefing of mine is written',
   campaign: 'When the platform sends a message to members like me',
+  // Offered to administrators only; the API leaves it out for everyone else (T-802).
+  system_alert: 'When the watchdog raises or clears a system alert (at any hour)',
   // Match alerts (T-830): for matches of the teams and competitions I follow.
   match_kickoff: 'When a match I follow kicks off',
   match_goal: 'When a goal is scored in a match I follow, or taken off the board',

@@ -160,6 +160,18 @@ export class PostgresIdentityStore {
     return (rowCount ?? 0) > 0;
   }
 
+  /** Active accounts holding a role, oldest grant first. */
+  async holdersOf(role: string): Promise<string[]> {
+    const { rows } = await this.pool.query<{ user_id: string }>(
+      `SELECT r.user_id FROM user_role r
+         JOIN user_account u ON u.id = r.user_id
+        WHERE r.role = $1 AND u.status = 'active'
+        ORDER BY r.granted_at, r.user_id`,
+      [role],
+    );
+    return rows.map((row) => row.user_id);
+  }
+
   async updateDisplayName(userId: string, displayName: string): Promise<void> {
     await this.pool.query(`UPDATE user_account SET display_name = $2 WHERE id = $1`, [
       userId,
