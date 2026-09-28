@@ -20,16 +20,13 @@ import type {
   DebateRecord,
   DebateSelectionRequest,
 } from '@fmip/contracts';
+import { ROLE_REFUSALS } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { PostgresDebateAdminStore, type DebateFilter } from './internal/debate-admin-store';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
-const NOT_AN_EDITOR: ApiError = {
-  error: 'validation',
-  message: 'This needs the editor or administrator role.',
-};
 const NO_STORY: ApiError = { error: 'not_found', message: 'No such story.' };
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
@@ -59,7 +56,7 @@ export class DebateAdminController {
       this.identity.hasRole(user.id, 'editor'),
       this.identity.hasRole(user.id, 'admin'),
     ]);
-    if (!isEditor && !isAdmin) throw new ForbiddenException(NOT_AN_EDITOR);
+    if (!isEditor && !isAdmin) throw new ForbiddenException(ROLE_REFUSALS.editor);
     return user;
   }
 

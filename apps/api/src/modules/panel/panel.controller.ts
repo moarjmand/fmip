@@ -146,7 +146,7 @@ export class PanelController {
       );
     }
     throw new ForbiddenException({
-      error: 'validation',
+      error: 'forbidden',
       message: REFUSAL_TEXT[outcome.refusal ?? 'not_approved'],
     } satisfies ApiError);
   }

@@ -10,6 +10,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type { ApiError, PowerIndexResponse } from '@fmip/contracts';
+import { ROLE_REFUSALS } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { PowerIndexService } from './power-index.service';
@@ -70,11 +71,7 @@ export class PowerIndexController {
     );
     if (user === null) throw new UnauthorizedException(UNAUTHENTICATED);
     if (!(await this.identity.hasRole(user.id, 'admin'))) {
-      const error: ApiError = {
-        error: 'unauthenticated',
-        message: 'Computing a Power Index needs the admin role.',
-      };
-      throw new ForbiddenException(error);
+      throw new ForbiddenException(ROLE_REFUSALS.administrator);
     }
   }
 }

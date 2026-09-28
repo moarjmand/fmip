@@ -20,15 +20,12 @@ import type {
   MemberModerationHistory,
   ModerationQueueResponse,
 } from '@fmip/contracts';
+import { ROLE_REFUSALS } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { ModerationService } from './moderation.service';
 
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
-const NOT_A_MODERATOR: ApiError = {
-  error: 'validation',
-  message: 'This needs the moderator or administrator role.',
-};
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
@@ -64,7 +61,7 @@ export class ModerationAdminController {
       this.identity.hasRole(user.id, 'moderator'),
       this.identity.hasRole(user.id, 'admin'),
     ]);
-    if (!isModerator && !isAdmin) throw new ForbiddenException(NOT_A_MODERATOR);
+    if (!isModerator && !isAdmin) throw new ForbiddenException(ROLE_REFUSALS.moderator);
     return user;
   }
 

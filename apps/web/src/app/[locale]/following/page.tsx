@@ -192,7 +192,7 @@ function Item({
       </p>
       <h2 className="text-lg font-semibold">
         <Link href={feedItemHref(locale, item)} className="underline" data-testid="feed-item-link">
-          {feedItemTitle(item)}
+          {feedItemTitle(item, locale)}
         </Link>
       </h2>
       {item.kind === 'fixture' && item.score !== null && (

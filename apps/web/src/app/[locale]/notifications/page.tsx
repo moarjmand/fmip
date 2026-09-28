@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { NotificationList } from '@/components/notification-list';
+import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
+import { t } from '@/i18n/messages';
 import { fetchMe, fetchNotifications } from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
@@ -62,6 +64,7 @@ export default async function NotificationsPage({
         locale={locale}
         page={result.ok ? result.data : null}
         reachable={result.ok}
+        deletedMemberLabel={t(isLocale(locale) ? locale : DEFAULT_LOCALE, 'account.deletedMember')}
       />
     </main>
   );

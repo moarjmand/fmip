@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
   DATA_QUALITY_CHECKS,
+  type DataQualityCheck,
   type DataQualityFinding,
   type DataQualityFixtureRef,
   type DataQualityReport,
@@ -58,7 +59,11 @@ export function findingsOf(rows: CheckRows, now: Date): Finding[] {
  * - `recordTable()`: the standings job's comparison of the provider's table
  *   with ours, which is the one check that needs the provider's answer -- so
  *   it rides on the request that job already makes, never a new one.
- * - `report()` and `review()`: the admin page (T-821).
+ * - `report()` and `review()`: the admin page (T-821); `reviewBatch()`
+ *   (T-912).
+ * - `requestRefetch()`: an administrator asks the feed again (T-913, D-110);
+ *   `refetchesDue()`, `recordRefetch()` and `refetchedSince()` are how the
+ *   post-match job carries that queue within its share of the budget.
  * - `liveContradictions()`: what the watchdog's `data_quality` condition reads.
  *
  * Nothing here corrects data. A finding names the fixture and the check.
@@ -110,11 +115,12 @@ export class DataQualityService {
 
   /** `GET /admin/data-quality` (T-821): each check's last run, counts, and the open findings. */
   async report(now: Date = new Date()): Promise<DataQualityReport> {
-    const [runs, counts, findings, resolved] = await Promise.all([
+    const [runs, counts, findings, resolved, refetch] = await Promise.all([
       this.store.checkRuns(),
       this.store.counts(),
       this.store.openFindings(REPORT_FINDINGS),
       this.store.resolvedSince(new Date(now.getTime() - DAY_MS)),
+      this.store.refetchCounts(utcDayStart(now)),
     ]);
     const openByCheck = new Map<string, number>();
     for (const c of counts)
@@ -135,6 +141,7 @@ export class DataQualityService {
           c.competition_id === null
             ? null
             : { id: c.competition_id, name: c.competition_name ?? '' },
+        season: c.season_id === null ? null : { id: c.season_id, label: c.season_label ?? '' },
         check: c.check_kind,
         open: c.open,
         reviewed: c.reviewed,
@@ -142,6 +149,7 @@ export class DataQualityService {
       findings: findings.map(findingOf),
       open_total: counts.reduce((sum, c) => sum + c.open, 0),
       resolved_last_day: resolved,
+      refetch: { pending: refetch.pending, fetched_today: refetch.fetched },
     };
   }
 
@@ -153,6 +161,54 @@ export class DataQualityService {
     now: Date = new Date(),
   ): Promise<ReviewOutcome> {
     return this.store.review(id, actorId, reason, now);
+  }
+
+  /**
+   * Marks every open, unreviewed finding of one check in one season reviewed
+   * with one reason, audited as one batch (T-912). Returns how many.
+   */
+  reviewBatch(
+    check: DataQualityCheck,
+    seasonId: string,
+    actorId: string,
+    reason: string,
+    now: Date = new Date(),
+  ): Promise<number> {
+    return this.store.reviewBatch(check, seasonId, actorId, reason, now);
+  }
+
+  /**
+   * Queues a re-ask of the feed for one fixture, or for every fixture behind
+   * one check's open findings in one season, audited with the reason (T-913).
+   * `null`: no such fixture, or nothing in that class the feed can be asked
+   * about.
+   */
+  requestRefetch(
+    target: { fixtureId: string } | { check: DataQualityCheck; seasonId: string },
+    actorId: string,
+    reason: string,
+    now: Date = new Date(),
+  ): Promise<{ queued: string[]; alreadyQueued: number } | null> {
+    return this.store.requestRefetch(target, actorId, reason, now);
+  }
+
+  /** The post-match job's next re-asks: waiting, in these competitions, with this provider's id. */
+  refetchesDue(
+    provider: string,
+    competitionIds: readonly string[],
+    limit: number,
+  ): Promise<{ id: string; fixtureId: string; externalId: string; competitionId: string }[]> {
+    return this.store.refetchesDue(provider, competitionIds, limit);
+  }
+
+  /** The job asked the feed for a queued fixture; `changed` is whether the answer changed a stored row. */
+  recordRefetch(id: string, changed: boolean): Promise<void> {
+    return this.store.recordRefetch(id, changed);
+  }
+
+  /** Re-asks the job carried since 00:00 UTC of `now`'s day: the share already spent. */
+  async refetchedSince(now: Date = new Date()): Promise<number> {
+    return (await this.store.refetchCounts(utcDayStart(now))).fetched;
   }
 
   /**
@@ -184,6 +240,14 @@ export class DataQualityService {
 const REPORT_FINDINGS = 200;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+function utcDayStart(now: Date): Date {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+}
+
+function iso(value: string | null): string | null {
+  return value === null ? null : new Date(value).toISOString();
+}
+
 function fixtureOf(json: FindingRow['fixture']): DataQualityFixtureRef | null {
   if (json === null) return null;
   return { ...json, kickoff_at: new Date(json.kickoff_at).toISOString() };
@@ -211,6 +275,14 @@ function findingOf(row: FindingRow): DataQualityFinding {
             at: row.reviewed_at.toISOString(),
             by: row.reviewed_by,
             reason: row.review_reason ?? '',
+          },
+    asked_again:
+      row.asked_again === null
+        ? null
+        : {
+            requested_at: iso(row.asked_again.requested_at) ?? '',
+            fetched_at: iso(row.asked_again.fetched_at),
+            changed: row.asked_again.changed,
           },
   };
 }

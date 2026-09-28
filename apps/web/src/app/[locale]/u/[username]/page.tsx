@@ -3,7 +3,10 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AchievementsSection } from '@/components/achievements';
 import { StartConversation } from '@/components/conversation-controls';
+import { isDeletedMember } from '@fmip/contracts';
 import { FriendControls } from '@/components/friend-controls';
+import { MemberHandle, MemberName } from '@/components/member-name';
+import { memberName } from '@/lib/member-name';
 import { ShareLink } from '@/components/share-link';
 import { PredictionHistory } from '@/components/prediction-history';
 import { RatingHistorySection } from '@/components/rating-history';
@@ -37,7 +40,7 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path: `/u/${encodeURIComponent(name)}`,
-    title: `@${name} · FMIP`,
+    title: `${memberName(locale, { username: name })} · FMIP`,
   });
 }
 
@@ -68,10 +71,22 @@ export default async function ProfilePage({
     if (result.status === 404) notFound();
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-4 p-8">
-        <h1 className="text-2xl font-semibold">@{name}</h1>
+        <h1 className="text-2xl font-semibold">{memberName(locale, { username: name })}</h1>
         <Notice tone="danger">
           The service is unreachable right now, so this profile cannot be shown.
         </Notice>
+      </main>
+    );
+  }
+
+  if (isDeletedMember(name)) {
+    // A tombstone (T-812, T-908): the account is gone, so there is no name,
+    // no handle, and nothing to befriend or message.
+    return (
+      <main className="mx-auto flex max-w-3xl flex-col gap-4 p-8">
+        <h1 className="text-2xl font-semibold" data-testid="profile-name">
+          <MemberName locale={locale} member={{ username: name }} />
+        </h1>
       </main>
     );
   }
@@ -84,8 +99,8 @@ export default async function ProfilePage({
     friendStatus !== 'self' &&
     friendStatus !== 'friends' ? (
       <p role="status" data-testid="invited-note">
-        You joined through @{name}&rsquo;s invitation. Send them a friend request below if you like;
-        nothing has been sent.
+        You joined through {memberName(locale, { username: name })}&rsquo;s invitation. Send them a
+        friend request below if you like; nothing has been sent.
       </p>
     ) : null;
 
@@ -93,9 +108,9 @@ export default async function ProfilePage({
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-4 p-8">
         <h1 className="text-2xl font-semibold" data-testid="profile-name">
-          {view.display_name}
+          <MemberName locale={locale} member={view} />
         </h1>
-        <p className="text-muted">@{view.username}</p>
+        <MemberHandle username={view.username} className="text-muted" />
         {invited}
         <p data-testid="profile-restricted">
           {view.visibility === 'friends'
@@ -137,9 +152,9 @@ export default async function ProfilePage({
         )}
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold" data-testid="profile-name">
-            {profile.display_name}
+            <MemberName locale={locale} member={profile} />
           </h1>
-          <p className="text-muted">@{profile.username}</p>
+          <MemberHandle username={profile.username} className="text-muted" />
           <p className="text-sm text-muted">
             Member since <time dateTime={profile.member_since}>{profile.member_since}</time>
           </p>

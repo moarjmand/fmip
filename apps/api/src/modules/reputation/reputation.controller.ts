@@ -20,6 +20,7 @@ import type {
   RatingHistoryResponse,
   RatingResponse,
 } from '@fmip/contracts';
+import { ROLE_REFUSALS } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { GroupsService } from '../groups/groups.service';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
@@ -238,7 +239,7 @@ export class ReputationController {
     if (!audience.ok) {
       if (audience.reason === 'not_found') throw new NotFoundException(NO_GROUP);
       throw new ForbiddenException({
-        error: 'validation',
+        error: 'forbidden',
         message: 'Who is in this group is shown to its members.',
       } satisfies ApiError);
     }
@@ -309,11 +310,7 @@ export class ReputationController {
   ): Promise<{ users: number; snapshots: number }> {
     const user = await this.viewer(request);
     if (!(await this.identity.hasRole(user.id, 'admin'))) {
-      const error: ApiError = {
-        error: 'unauthenticated',
-        message: 'Recomputing every rating needs the admin role.',
-      };
-      throw new ForbiddenException(error);
+      throw new ForbiddenException(ROLE_REFUSALS.administrator);
     }
     return this.reputation.recomputeDue();
   }

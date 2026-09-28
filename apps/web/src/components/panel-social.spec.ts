@@ -82,7 +82,8 @@ describe('the browser decides nothing', () => {
     expect(ACTIONS).not.toMatch(/may_post|qualifies|approved|fetchPanelPermission/);
     // The sentence the API sent, shown as it came. One invented here could
     // disagree with the one derived from what the database refused.
-    expect(ACTIONS).toContain('result.error?.message');
+    // Through the shared failure (T-907), which passes the API's sentence on.
+    expect(ACTIONS).toContain('failureState(result)');
   });
 
   it('uses PUT and DELETE, because both are idempotent', () => {

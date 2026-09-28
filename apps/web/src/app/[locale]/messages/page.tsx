@@ -76,7 +76,7 @@ export default async function MessagesPage({ params }: { params: Promise<{ local
                   href={`/${locale}/messages/${conversation.id}`}
                   className="text-sm font-medium underline"
                 >
-                  {conversationTitle(conversation, me.username)}
+                  {conversationTitle(conversation, me.username, locale)}
                 </Link>
                 {standing !== null && (
                   <p className="text-xs text-muted" data-testid="conversation-standing">

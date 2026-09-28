@@ -17,6 +17,7 @@ import type {
   FixtureEvaluationsResponse,
   ModelPerformanceResponse,
 } from '@fmip/contracts';
+import { ROLE_REFUSALS } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { EvaluationService } from './evaluation.service';
@@ -56,11 +57,7 @@ export class EvaluationController {
     );
     if (user === null) throw new UnauthorizedException(UNAUTHENTICATED);
     if (!(await this.identity.hasRole(user.id, 'admin'))) {
-      const error: ApiError = {
-        error: 'unauthenticated',
-        message: 'Evaluating a fixture needs the admin role.',
-      };
-      throw new ForbiddenException(error);
+      throw new ForbiddenException(ROLE_REFUSALS.administrator);
     }
     if (!UUID.test(fixtureId)) throw new NotFoundException(NO_FIXTURE);
 

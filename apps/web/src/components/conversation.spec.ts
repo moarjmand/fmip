@@ -85,7 +85,10 @@ describe('the way out is on the surface it belongs to', () => {
     // Re-implementing them here would give one member two block buttons that
     // could disagree.
     expect(CARD).toMatch(/Blocking and reporting/);
-    expect(CARD).toContain('/u/${encodeURIComponent(member.username)}');
+    // Through `MemberName` (T-908), which links a live member's profile and
+    // no deleted one's.
+    expect(CARD).toContain('member={{ username: member.username }}');
+    expect(CARD).toMatch(/member=\{\{ username: member\.username \}\}\s+link/);
   });
 });
 

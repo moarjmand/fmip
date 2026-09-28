@@ -6,6 +6,7 @@ import { apiRequest } from './api';
 import type { ActionState } from './auth-actions';
 import { formToSubmission } from './prediction-form';
 import { sessionCookieHeader } from './session';
+import { failureState } from './action-failure';
 
 /**
  * Submits (or resubmits) the member's prediction for a fixture (T-050). The
@@ -27,17 +28,7 @@ export async function submitPredictionAction(
     { method: 'PUT', body: formToSubmission(formData), cookie },
   );
   if (!result.ok) {
-    if (result.status === 0) {
-      return {
-        ok: false,
-        message: 'The service is unreachable right now. Please try again shortly.',
-      };
-    }
-    return {
-      ok: false,
-      message: result.error?.message ?? `The request failed (HTTP ${result.status}).`,
-      ...(result.error?.fields ? { fields: result.error.fields } : {}),
-    };
+    return failureState(result);
   }
   revalidatePath(`/${locale}/match/${fixtureId}`);
   const v = result.data.prediction.latest;

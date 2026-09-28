@@ -5,7 +5,11 @@ import { describe, expect, it, vi } from 'vitest';
 import type { DataQualityFinding, DataQualityReport } from '@fmip/contracts';
 import { DATA_QUALITY_CHECKS } from '@fmip/contracts';
 
-vi.mock('@/lib/data-quality-actions', () => ({ reviewFindingAction: vi.fn() }));
+vi.mock('@/lib/data-quality-actions', () => ({
+  reviewFindingAction: vi.fn(),
+  reviewBatchAction: vi.fn(),
+  refetchAction: vi.fn(),
+}));
 const { CHECK_LABEL, DataQualityAdmin } = await import('./data-quality-admin');
 
 /** The data-quality page (T-821): open findings by check and competition, linked, reviewable. */
@@ -37,6 +41,7 @@ const finding = (over: Partial<DataQualityFinding>): DataQualityFinding => ({
   first_seen_at: NOW,
   last_seen_at: NOW,
   reviewed: null,
+  asked_again: null,
   ...over,
 });
 const report = (over: Partial<DataQualityReport> = {}): DataQualityReport => ({
@@ -47,7 +52,22 @@ const report = (over: Partial<DataQualityReport> = {}): DataQualityReport => ({
     freshness: 'current' as const,
     open: 0,
   })),
-  counts: [{ competition: PL, check: 'goals_disagree', open: 2, reviewed: 1 }],
+  counts: [
+    {
+      competition: PL,
+      season: { id: 's-1', label: '2026-27' },
+      check: 'goals_disagree',
+      open: 2,
+      reviewed: 1,
+    },
+    {
+      competition: PL,
+      season: { id: 's-1', label: '2026-27' },
+      check: 'lineup_not_eleven',
+      open: 3,
+      reviewed: 3,
+    },
+  ],
   findings: [
     finding({}),
     finding({
@@ -60,6 +80,7 @@ const report = (over: Partial<DataQualityReport> = {}): DataQualityReport => ({
   ],
   open_total: 2,
   resolved_last_day: 4,
+  refetch: { pending: 3, fetched_today: 7 },
   ...over,
 });
 const html = (r: DataQualityReport | null) =>
@@ -89,6 +110,49 @@ describe('the data-quality page', () => {
     expect(out).toContain('Asked the provider.');
     expect(ACTIONS).toContain('/review`');
     expect(ACTIONS).toContain("reason === ''");
+  });
+
+  it('offers a batch review per check and season only where some are still waiting', () => {
+    const out = html(report());
+    expect(out).toContain('Premier League 2026-27 · Goals in the timeline disagree with the score');
+    expect(out).toContain('data-testid="batch-review-goals_disagree-s-1"');
+    expect(out).toContain('Review all 1 with one reason');
+    // Every lineup finding of that season is reviewed already: nothing to batch.
+    expect(out).not.toContain('data-testid="batch-review-lineup_not_eleven-s-1"');
+    expect(ACTIONS).toContain("'/admin/data-quality/review-batch'");
+    expect(ACTIONS).toContain('season_id: seasonId');
+  });
+
+  it('asks the feed again for a match or a class, and says what the last ask found', () => {
+    const out = html(
+      report({
+        findings: [
+          finding({}),
+          finding({
+            id: 3,
+            asked_again: {
+              requested_at: '2026-09-28T10:00:00.000Z',
+              fetched_at: '2026-09-28T10:30:00.000Z',
+              changed: false,
+            },
+          }),
+          finding({
+            id: 4,
+            asked_again: { requested_at: NOW, fetched_at: null, changed: null },
+          }),
+        ],
+      }),
+    );
+    expect(out).toContain('data-testid="finding-refetch-1"');
+    expect(out).toContain('Asked again on <time');
+    expect(out).toContain('2026-09-28 10:30 UTC</time>, unchanged.');
+    expect(out).toContain('waiting for the feed.');
+    // Not offered twice while an ask is waiting.
+    expect(out).not.toContain('data-testid="finding-refetch-4"');
+    expect(out).toContain('data-testid="batch-refetch-goals_disagree-s-1"');
+    expect(out).toContain('3 matches waiting to be');
+    expect(out).toContain('7 asked since 00:00 UTC');
+    expect(ACTIONS).toContain("'/admin/data-quality/refetch'");
   });
 
   it('says a check not run lately, rather than showing no findings as a clean bill', () => {

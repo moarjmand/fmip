@@ -458,6 +458,91 @@ feed's own records also train the model where the free sources do not reach
 |---|---|---|
 | Our own records of API-Football | Finished matches, line-ups and player ratings as the product recorded them | The plan's terms forbid reselling the data and say nothing about models; the maintainer allowed training on it (D-083). Copied from our tables, never fetched by the model. |
 
+## What the past-season findings are (T-910, 2026-09-28)
+
+The data-quality sweep (T-820) opened its first findings at 08:30 UTC on
+2026-09-28. The plan counted 2,447 of them. By 20:07 UTC the past-season
+detail backlog had fetched more matches, and there were **6,633 open, none
+reviewed, none yet resolved**: `lineup_not_eleven` **5,486** and
+`goals_disagree` **1,147**. No other check has an open finding. This
+diagnosis read only stored rows on the server (read-only SQL). It spent
+**no provider request** and marked no finding.
+
+| Class | Check | Open | Cause | Whose | Example fixture |
+|---|---|---|---|---|---|
+| A. Players not yet adopted | `lineup_not_eleven` | 5,483 | The feed supplied the player. The resolver queued them (`unresolved_entity`, 3,780 people pending, every one first seen since the past-season backlog started on 2026-09-27 16:30). The writer leaves out a player it cannot place (T-026), so the side is stored short | Ours, by design: D-079's adoption waits for the backlog | `08d6d7cc-b5ef-4d88-9776-fe3322cd6977` (Belgian Pro League 2025/26, away side with 8 starters) |
+| B. Scorers not yet adopted | `goals_disagree` | 1,139 | As A, for the goal's scorer: the incident is left out, so the timeline is short of the score. All 1,139 timelines are *below* the score, and 1,131 of those fixtures also have a short line-up. The other 8 have eleven starters and a short bench (a substitute scored) | Ours, by design, as A | `22ef4f85-834b-49a0-a752-c6f63e0920c1` (La Liga 2025/26, timeline 1-0, score 2-0) |
+| C. Extra-time goals missing from the feed's score | `goals_disagree` | 8 | 2026/27 cup qualifiers settled after extra time. In 7, the stored `current` equals the 90-minute `full_time`, and there is no `extra_time` row beside `penalties`. The timeline carries the extra-time goals (minutes 95 to 120), so it is 2 goals *above* the score. In the eighth, `full_time` 4-0 is larger than `current` 2-0, and `extra_time` is 0-2. The adapter maps `goals`, `score.fulltime` and `score.extratime` one to one, and `upsertScores` writes what it was given | The feed (inferred from stored rows, not yet confirmed against the provider's answer) | `0c6353d5-7f04-4fda-8908-73bfd81407b5` (UECL 2026/27, timeline 1-3, score 0-2, penalties 3-4); `c46dbe02-2a2e-45f5-a9bd-3356c0f25a5e` (UEL 2026/27) |
+| D. A current-season side with ten starters | `lineup_not_eleven` | 3 | Fetched on 2026-09-26, before any person in the queue was pending, so no player was queued. The adapter leaves out a line-up entry without a player id or name (`lineupPlayers`), so the feed most likely listed one starter without an id | The feed (inferred) | `e2e5fdc9-9050-4adb-8da0-b0c64650bf50` (Persian Gulf Pro League 2026/27) |
+
+By competition and season (open findings at 20:09 UTC; class C is the
+2026/27 cup rows' `goals_disagree`, and one Belgian extra-time match is class B):
+
+| Competition | Season | `lineup_not_eleven` | `goals_disagree` |
+|---|---|---|---|
+| Belgian Pro League | 2025/26 | 402 | 85 |
+| Bundesliga | 2025/26 | 341 | 82 |
+| Championship | 2025/26 | 736 | 153 |
+| Eredivisie | 2025/26 | 393 | 103 |
+| La Liga | 2025/26 | 480 | 99 |
+| Ligue 1 | 2025/26 | 340 | 84 |
+| Persian Gulf Pro League | 2025/26 | 206 | 36 |
+| Persian Gulf Pro League | 2026/27 | 2 | 0 |
+| Premier League | 2025/26 | 343 | 69 |
+| Primeira Liga | 2025/26 | 381 | 79 |
+| Scottish Premiership | 2025/26 | 356 | 80 |
+| Serie A | 2025/26 | 411 | 70 |
+| Süper Lig | 2025/26 | 423 | 85 |
+| UEFA Champions League | 2025/26 | 200 | 30 |
+| UEFA Champions League | 2026/27 | 1 | 2 |
+| UEFA Conference League | 2025/26 | 246 | 49 |
+| UEFA Conference League | 2026/27 | 0 | 5 |
+| UEFA Europa League | 2025/26 | 225 | 35 |
+| UEFA Europa League | 2026/27 | 0 | 1 |
+| **Total** | | **5,486** | **1,147** |
+
+Seasons 2023/24 and 2024/25 (Iran and the three cups) have no findings
+because none of their matches' details had been fetched yet.
+
+**The evidence for A and B.** Current seasons, whose people were adopted on
+2026-09-26, have 3 short sides in 1,152 fetched matches. The 2025/26 seasons,
+whose players are still queued, have a short side in 3,310 of 3,532 fetched
+matches. No side anywhere has more than eleven starters, so the feed never
+over-supplied. Sides are short by 15,068 starter places in total, and the most
+common shortfall is one or two players. That fits players who left the
+competition before the current season and so were never adopted. It does not
+fit a feed that drops whole line-ups.
+
+**Nothing of ours is wrong in the checks or the parser (T-911).** Each
+finding reports a real difference between what we store and what the page
+would show. A and B are the gap D-079 already names ("every one of them had
+been left out of what it arrived in"), and D-079 already repairs it: adopting
+people deletes the provider's `fixture_detail_fetch` rows, so the post-match
+job asks those matches again within its budget. The findings then resolve on
+the next sweep. The own-goal and shoot-out readings in `goals_disagree` did
+not cause any of these findings. Every shoot-out fixture among them is in
+class C, and its extra goals are at minutes other than 120 or are not
+penalties.
+
+**What each class needs (D-109).**
+
+- **A and B** need the people adopted (`catalog.mjs --adopt-people`, D-079)
+  once the backlog has fetched the last past season (2023/24 and 2024/25 for
+  Iran and the three cups had no details fetched at 20:07). Adoption then
+  re-asks every fetched match. They are **not** reviewed in bulk, and they do
+  **not** make a season's coverage `limited`, because the feed supplied the
+  players. A review would hide a gap that is ours to close.
+- **C and D** are the feed's own answer. They are sampled against the
+  provider's answer by the first re-ask of the fixture (T-913), which is
+  counted against the day's budget. If the re-ask leaves them unchanged, they
+  are reviewed with the reason "the feed's own answer, asked again on <date>"
+  (T-912). Class C's score is the one the page shows, so the match page shows
+  the feed's 90-minute score for those eight ties. No person corrects a stored
+  score (N-3).
+- **What remains after adoption and one re-ask** is the feed's. A past
+  season's line-up or incident coverage is proposed as `limited` from that
+  remainder (T-914), with the thresholds D-109 states.
+
 ## Historical training data (free)
 
 | Source | Contents | Licence posture |
