@@ -22,11 +22,15 @@ const TEAMS = { alpha: randomUUID(), beta: randomUUID(), gamma: randomUUID() };
 const KEEPER = randomUUID();
 const STRIKER = randomUUID();
 const FAN = randomUUID();
+const COACH = randomUUID();
+const OLD_COACH = randomUUID();
 
 describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('team page', () => {
   let app: NestFastifyApplication;
   let pool: Pool;
   const fixtures: string[] = [];
+  let latestAlphaLineup = '';
+  let latestBetaLineup = '';
 
   async function fixture(
     home: string,
@@ -102,6 +106,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('team page', 
       [KEEPER, STRIKER],
     );
     await pool.query(
+      `INSERT INTO person (id, full_name, known_as) VALUES ($1, 'Test Coach ${RUN}', NULL), ($2, 'Test Old Coach ${RUN}', NULL)`,
+      [COACH, OLD_COACH],
+    );
+    await pool.query(
       `INSERT INTO player_spell (person_id, team_id, start_date, end_date, shirt_number, position, on_loan) VALUES
          ($1, $3, DATE '2024-07-01', NULL, 1, 'goalkeeper', false),
          ($2, $3, DATE '2025-01-15', NULL, 9, 'forward', true),
@@ -141,7 +149,26 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('team page', 
     }
     await fixture(TEAMS.beta, TEAMS.alpha, '2099-01-01T15:00:00Z', null);
     // A match alpha is not in.
-    await fixture(TEAMS.beta, TEAMS.gamma, '2025-09-15T15:00:00Z', [3, 0]);
+    const betaGamma = await fixture(TEAMS.beta, TEAMS.gamma, '2025-09-15T15:00:00Z', [3, 0]);
+    // T-944: alpha's first line-up named the old coach, its latest the new
+    // one. Beta's first side named a coach, but its latest line-up names
+    // none: the old one is not carried forward. Gamma has no line-up at all.
+    await pool.query(
+      `UPDATE fixture_participant SET coach_id = CASE WHEN fixture_id = $1 THEN $3::uuid ELSE $4::uuid END
+        WHERE fixture_id = ANY(ARRAY[$1, $2]::uuid[]) AND team_id = $5`,
+      [first, second, OLD_COACH, COACH, TEAMS.alpha],
+    );
+    await pool.query(
+      `UPDATE fixture_participant SET coach_id = $2 WHERE fixture_id = $1 AND team_id = $3`,
+      [first, OLD_COACH, TEAMS.beta],
+    );
+    await pool.query(
+      `INSERT INTO lineup (participant_id, person_id, role, shirt_number, position)
+       SELECT id, $2, 'starter', 9, 'forward' FROM fixture_participant WHERE fixture_id = $1 AND team_id = $3`,
+      [betaGamma, STRIKER, TEAMS.beta],
+    );
+    latestAlphaLineup = second;
+    latestBetaLineup = betaGamma;
   });
 
   afterAll(async () => {
@@ -151,7 +178,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('team page', 
     await pool.query(`DELETE FROM player_spell WHERE person_id = ANY($1::uuid[])`, [
       [KEEPER, STRIKER],
     ]);
-    await pool.query(`DELETE FROM person WHERE id = ANY($1::uuid[])`, [[KEEPER, STRIKER]]);
+    await pool.query(`DELETE FROM person WHERE id = ANY($1::uuid[])`, [
+      [KEEPER, STRIKER, COACH, OLD_COACH],
+    ]);
     await pool.query(`DELETE FROM stage WHERE id = $1`, [STAGE]);
     await pool.query(`DELETE FROM season WHERE id = $1`, [SEASON]);
     await pool.query(`DELETE FROM competition WHERE id = $1`, [COMPETITION]);
@@ -291,5 +320,31 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('team page', 
       404,
     );
     expect((await app.inject({ method: 'GET', url: `/teams/not-an-id` })).statusCode).toBe(404);
+  });
+
+  it('names the coach on the latest line-up, and says so when there is none (T-944)', async () => {
+    const page = async (id: string) =>
+      (await app.inject({ method: 'GET', url: `/teams/${id}` })).json() as TeamPage;
+
+    const alpha = await page(TEAMS.alpha);
+    expect(alpha.manager.coach.coverage).toBe('available');
+    expect(alpha.manager.coach.data).toEqual({ id: COACH, name: `Test Coach ${RUN}` });
+    expect(alpha.manager.coach.last_updated_at).not.toBeNull();
+    expect(alpha.manager.lineup_fixture).toEqual({
+      id: latestAlphaLineup,
+      kickoff_at: '2025-09-08T15:00:00.000Z',
+    });
+
+    // The latest line-up names no coach: not supplied, never the old one.
+    const beta = await page(TEAMS.beta);
+    expect(beta.manager.coach.coverage).toBe('not_supplied');
+    expect(beta.manager.coach.data).toBeNull();
+    expect(beta.manager.lineup_fixture?.id).toBe(latestBetaLineup);
+
+    const gamma = await page(TEAMS.gamma);
+    expect(gamma.manager).toEqual({
+      coach: { coverage: 'not_supplied', last_updated_at: null, data: null },
+      lineup_fixture: null,
+    });
   });
 });

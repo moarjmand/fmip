@@ -1,12 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import type { CoverageState, Covered, TableRow } from '@fmip/contracts';
 import { covered } from '../fixtures/fixtures.service';
-import { PostgresStandingsStore, type Scorer } from './internal/standings-store';
+import { PostgresStandingsStore, type BoardRow, type Scorer } from './internal/standings-store';
 import { rankTable } from './internal/table';
 
 // The module's public surface. Other modules import from this file only.
 export { FORM_WINDOW, rankTable, type Result } from './internal/table';
-export type { Scorer } from './internal/standings-store';
+export type { BoardRow, Scorer } from './internal/standings-store';
+
+/** The boards beyond goals as the standings boundary knows them (T-943): no minutes yet. */
+export interface Boards {
+  assists: Covered<BoardRow<{ assists: number }>[]>;
+  clean_sheets: Covered<BoardRow<{ clean_sheets: number; starts_in_goal: number }>[]>;
+  cards: Covered<BoardRow<{ yellow_cards: number; red_cards: number }>[]>;
+}
 
 export const LEADERS_LIMIT = 10;
 
@@ -76,4 +83,54 @@ export class StandingsService {
     ]);
     return covered(leaders, leaders.length === 0, declared, lastUpdatedAt);
   }
+
+  /**
+   * Assists, clean sheets and cards for a season (T-943, D-118), every row,
+   * each its own module:
+   *
+   * - assists under the declared `incidents` state; `not_supplied` when the
+   *   season's goals name no assist at all, since a list of nobody would
+   *   read as a season without assists;
+   * - cards under the declared `incidents` state;
+   * - clean sheets under the declared `lineups` state, `limited` when some
+   *   finished sides could not be judged (no line-up naming one starting
+   *   goalkeeper), and `not_supplied` when none could. A season where every
+   *   judged keeper conceded is an empty list, not an absence.
+   */
+  async boards(seasonId: string): Promise<Boards> {
+    const [assisters, booked, keepers, incidents, lineups] = await Promise.all([
+      this.store.assisters(seasonId),
+      this.store.booked(seasonId),
+      this.store.keepers(seasonId),
+      this.store.declared(seasonId, 'incidents'),
+      this.store.declared(seasonId, 'lineups'),
+    ]);
+    return {
+      assists: covered(
+        assisters.rows,
+        assisters.assisted === 0,
+        incidents,
+        assisters.lastUpdatedAt,
+      ),
+      cards: covered(booked.rows, booked.rows.length === 0, incidents, booked.lastUpdatedAt),
+      clean_sheets: cleanSheetsModule(keepers, lineups),
+    };
+  }
+}
+
+/**
+ * The clean-sheets module's state (T-943): nothing judged is `not_supplied`
+ * (or `delayed` when declared so); every side judged takes the declared
+ * state as `covered` does; some sides unjudged is `limited` at best. The list
+ * may be empty while judged sides exist -- nobody has kept one yet.
+ */
+export function cleanSheetsModule<T>(
+  keepers: { rows: T[]; sides: number; judged: number; lastUpdatedAt: string | null },
+  declared: CoverageState | null,
+): Covered<T[]> {
+  if (keepers.judged === 0) return covered<T[]>(null, true, declared, keepers.lastUpdatedAt);
+  const whole = covered(keepers.rows, false, declared, keepers.lastUpdatedAt);
+  const coverage =
+    keepers.judged < keepers.sides && whole.coverage === 'available' ? 'limited' : whole.coverage;
+  return { ...whole, coverage };
 }

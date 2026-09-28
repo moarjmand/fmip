@@ -102,6 +102,28 @@ export interface ModelHealth {
   service: 'model';
   model_version: string;
   checked_at: string;
+  /** Club Elo as the training store recorded it (T-920); absent from an older service. */
+  elo_source?: ModelEloSource | null;
+}
+
+/**
+ * Club Elo's state (T-920, D-111): the newest load that succeeded and the
+ * newest that failed. `unanswered_since` is the newest success, else the
+ * oldest failure since, so days without an answer can be counted; null when
+ * the source was never asked.
+ */
+export interface ModelEloSource {
+  source: 'clubelo';
+  /** Whether the service asks Club Elo itself each day (`MODEL_CLUBELO_REFRESH`). */
+  refresh: boolean;
+  state: 'recorded' | 'unreadable';
+  /** ISO date of the newest snapshot that loaded. */
+  last_succeeded_day: string | null;
+  last_succeeded_at: string | null;
+  last_error: string | null;
+  last_error_at: string | null;
+  unanswered_since: string | null;
+  detail: string | null;
 }
 
 // ---------------------------------------------------------------------------

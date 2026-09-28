@@ -203,6 +203,8 @@
   "news.related.title": "Related news",
   "news.related.nothing": "No publisher has reported on this match or its sides in the week around it.",
   "news.related.window": "Stories from",
+  "news.entity.nothingTeam": "No publisher we read has reported on this team yet.",
+  "news.entity.nothingCompetition": "No publisher we read has reported on this competition yet.",
   "news.section.latest": "Latest",
   "news.section.trending": "Trending",
   "news.section.debate": "Debate",
@@ -430,6 +432,10 @@
     "other": "{count} scorers are left out because the feed did not send minutes for every match they played, so the record cannot show they reached it."
   },
   "competition.leaders.noneReach": "No scorer's recorded minutes reach this floor.",
+  "team.manager.label": "Manager",
+  "team.manager.named": "named on the line-up for",
+  "team.manager.noCoach": "No manager shown: the team's latest line-up names no coach.",
+  "team.manager.noLineup": "No manager shown: no line-up of this team is stored yet.",
   "team.squad.minutes": "Minutes are for this team in the competitions above, from the feed's per-player figures: \"at least\" where some matches have none.",
   "saved.title": "Saved",
   "saved.intro": "Stories you saved, newest first. Only you can see this list, and it goes when your account does. Each is the publisher's headline and a link to their original.",
@@ -447,5 +453,28 @@
   "leaderboard.competition.all": "All competitions",
   "leaderboard.language.label": "Language:",
   "leaderboard.language.all": "All languages",
-  "leaderboard.language.note": "A member's language is the one they chose for FMIP in Settings. It is not public, so this board shows only members whose prediction history you may see."
+  "leaderboard.language.note": "A member's language is the one they chose for FMIP in Settings. It is not public, so this board shows only members whose prediction history you may see.",
+  "competition.boards.assists": "Assists",
+  "competition.boards.cleanSheets": "Clean sheets",
+  "competition.boards.cards": "Cards",
+  "competition.boards.noAssists": "No goal of this season names an assist yet.",
+  "competition.boards.noCleanSheets": "No goalkeeper on our line-ups has kept a clean sheet yet this season.",
+  "competition.boards.noCards": "No card is recorded for this season yet.",
+  "competition.boards.noneReach": "No player's recorded minutes reach this floor.",
+  "competition.boards.unproven": {
+    "one": "{count} player is left out because the feed did not send minutes for every match they played, so the record cannot show they reached the floor.",
+    "other": "{count} players are left out because the feed did not send minutes for every match they played, so the record cannot show they reached the floor."
+  },
+  "competition.boards.startsInGoal": {
+    "one": "{count} start in goal",
+    "other": "{count} starts in goal"
+  },
+  "competition.boards.red": {
+    "one": "{count} red",
+    "other": "{count} red"
+  },
+  "competition.boards.yellow": {
+    "one": "{count} yellow",
+    "other": "{count} yellow"
+  }
 }

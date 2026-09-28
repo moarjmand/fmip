@@ -234,6 +234,22 @@ export interface FixtureNewsResponse {
   reason: FixtureNewsReason | null;
 }
 
+/** The most stories a team or competition page lists (T-944). */
+export const ENTITY_NEWS_LIMIT = 5;
+
+/**
+ * `GET /teams/:id/news` and `GET /competitions/:id/news` (T-944, D-119): the
+ * news page's latest cards for stories the news boundary linked to the team
+ * or competition, newest first. `not_supplied` with `feeds_unread` until the
+ * feeds have been read at all, as on the match page; then `available`,
+ * possibly empty with `nothing_linked`.
+ */
+export interface EntityNewsResponse {
+  entity: { type: 'team' | 'competition'; id: string };
+  stories: Covered<NewsStoryCard[]>;
+  reason: FixtureNewsReason | null;
+}
+
 // ---------------------------------------------------------------------------
 // Saved articles (blueprint 3.3 and 2.1, T-842): a member's own list, under
 // Following. Private: only `/me/saved-articles` reads or writes it.

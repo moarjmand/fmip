@@ -162,7 +162,14 @@ export class ModelClient {
         message: 'health response does not match the contract',
       };
     }
-    return { ok: true, data: body as unknown as ModelHealth };
+    // Club Elo's state (T-920) is an addition: a shape this API does not know
+    // is reported as absent, never as a failed health check.
+    const elo = body.elo_source;
+    const eloSource =
+      isRecord(elo) && elo.source === 'clubelo' && typeof elo.refresh === 'boolean'
+        ? (elo as unknown as ModelHealth['elo_source'])
+        : null;
+    return { ok: true, data: { ...(body as unknown as ModelHealth), elo_source: eloSource } };
   }
 
   async forecast(request: ModelForecastRequest): Promise<ModelCallResult<ModelForecastResponse>> {

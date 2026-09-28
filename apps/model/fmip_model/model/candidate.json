@@ -1,8 +1,9 @@
 {
   "name": "dixon-coles-elo",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "history_days": 1100,
-  "source": "T-532, two tuning passes on the server 2026-09-26 (grids xi 0.002-0.012 x ridge 0.003-0.03, then xi 0.0005-0.003 x ridge 0.03-0.3), no Club Elo. Per division the pair with the lower 2024/25 log loss across both passes, adopted only where it beat 0.1.0 on 2025/26 by 0.002; E1 keeps the published pair. 2025/26, 3,735 forecasts: 0.1.0 1.0192, 0.2.0 1.0110, 0.3.0 1.0087. Cross-league (T-533, D-085): the joint fit over every division and our own cup records, tuned on 2024/25's 905 cup matches in two passes (xi 0.0005-0.004, team ridge 0.05-8, group ridge 0.001-0.1) and scored once on 2025/26's 929: log loss 0.9727 (uniform 1.0986, base rates 1.0402; 0.9292 between held leagues, 0.9868 with an outsider).",
+  "elo_prior": "own",
+  "source": "T-922, D-111: 0.4.0 (per-division constants and the cross-league fit unchanged) with our own Elo (T-921, own-elo@1.0.0) as its prior, always. Backtest 2026-09-29 on football-data.co.uk 2023/24-2026/27, ten divisions, 2025/26 walked forward with the same fit dates, 3,185 matches: no prior 0.9965, own Elo 0.9933 (better in 8 of 10 divisions; E0 1.0486 -> 1.0300). Club Elo could not be compared locally (no cached snapshot; API 502): the server run of python -m fmip_model.backtest.elo_prior decides whether a later version reads Club Elo first (reports/dixon-coles-elo-0.5.0).",
   "per_division": {
     "E0": {
       "xi": 0.002,
@@ -47,7 +48,7 @@
   },
   "cross_league": {
     "xi": 0.0005,
-    "team_ridge": 4.0,
+    "team_ridge": 4,
     "group_ridge": 0.001
   }
 }
