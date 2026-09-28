@@ -5,6 +5,7 @@ import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { t } from '@/i18n/messages';
 import { ForecastPanel } from '@/components/forecast-panel';
 import { CommunityAnalysisPanel } from '@/components/community-analysis-panel';
+import { CompetitionContextPanel } from '@/components/competition-context';
 import { CommunityForecastPanel } from '@/components/community-consensus';
 import { FounderAnalysisPanel } from '@/components/founder-analysis';
 import { JsonLd } from '@/components/json-ld';
@@ -21,6 +22,7 @@ import { ViewingDesk } from '@/components/viewing-desk';
 import { ViewingPanel } from '@/components/viewing-panel';
 import {
   fetchBroadcasters,
+  fetchCompetitionContext,
   fetchEvaluations,
   fetchFixtureNews,
   fetchFollowedMembers,
@@ -115,6 +117,9 @@ export default async function MatchPage({
 
   const result = await fetchMatchCentre(id);
   if (!result.ok && result.status === 404) notFound();
+  // The competition context (T-840): asked now, beside the panels below, and
+  // awaited where its section is placed.
+  const competitionContext = result.ok ? fetchCompetitionContext(id) : Promise.resolve(null);
   // The forecast (T-065), the Power Index (T-114) and, once the match is over,
   // its evaluation (T-066).
   const [
@@ -202,6 +207,15 @@ export default async function MatchPage({
                   status={result.data.fixture.status}
                   summary={summary !== null && summary.ok ? summary.data : null}
                   editor={editor}
+                />
+              ),
+              context: (
+                <CompetitionContextPanel
+                  context={await competitionContext.then((r) =>
+                    r !== null && r.ok ? r.data : null,
+                  )}
+                  locale={locale}
+                  timeZone={timeZone}
                 />
               ),
               forecast: (

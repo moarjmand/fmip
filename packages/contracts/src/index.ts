@@ -185,6 +185,13 @@ export type {
   TeamSummary,
   TeamsResponse,
 } from './catalog';
+// The match centre's competition context (blueprint 4.2, T-840).
+export type {
+  CompetitionContext,
+  CompetitionContextTable,
+  CompetitionContextTie,
+  ContextStanding,
+} from './competition-context';
 // The Following feed (blueprint 12.1, T-333): ranked from qualified signals,
 // never raw volume, and saying what it is showing.
 export { FEED_RANKING_VERSION, FEED_SIGNALS } from './following-feed';
@@ -314,6 +321,7 @@ export type {
 // nowhere else: "a missing preference row means the documented default" is only
 // true while the document and the code are the same thing.
 export {
+  ADMIN_ONLY_NOTIFICATION_KINDS,
   MUTE_SCOPES,
   NOTIFICATION_CATEGORIES,
   NOTIFICATION_CATEGORY_OF,
@@ -321,6 +329,7 @@ export {
   NOTIFICATION_HOURLY_CAP,
   NOTIFICATION_KINDS,
   NOTIFICATION_TEXT,
+  QUIET_HOURS_EXEMPT,
   QUIET_HOURS_RULE,
   isNotificationKind,
   notificationLine,
@@ -627,6 +636,9 @@ export { AUDIENCE_FOLLOW_TYPES } from './campaigns';
 // The watchdog over the health views (T-801): conditions, thresholds, transitions.
 export { WATCHDOG_LEVELS } from './watchdog';
 export type {
+  AdminAlertsReport,
+  AlertChannelOutcomes,
+  AlertDelivery,
   WatchdogCondition,
   WatchdogEvent,
   WatchdogEventKind,

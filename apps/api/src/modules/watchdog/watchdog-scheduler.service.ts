@@ -1,6 +1,7 @@
 import { Injectable, Logger, type OnApplicationShutdown, type OnModuleInit } from '@nestjs/common';
 import { Queue, Worker } from 'bullmq';
 import { FailureCountsService } from '../failure-counts/failure-counts.service';
+import { AdminAlertsService } from './admin-alerts.service';
 import { WATCHDOG_QUEUE } from './internal/probes';
 import { WatchdogService } from './watchdog.service';
 
@@ -10,7 +11,8 @@ export const WATCHDOG_SCHEDULE = '* * * * *';
 
 /**
  * The watchdog's BullMQ queue and worker (T-801): a job scheduler that runs
- * `WatchdogService.tick` every minute.
+ * `WatchdogService.tick` every minute, then delivers the alerts the tick
+ * wrote, and any a previous run left behind, to administrators (T-802).
  *
  * It runs where the ingestion schedule runs (`INGESTION_SCHEDULE=on`): the
  * process that polls is the one that watches, so a test, a CI run or a second
@@ -27,6 +29,7 @@ export class WatchdogSchedulerService implements OnModuleInit, OnApplicationShut
   constructor(
     private readonly watchdog: WatchdogService,
     private readonly failures: FailureCountsService,
+    private readonly alerts: AdminAlertsService,
   ) {}
 
   static enabled(env: NodeJS.ProcessEnv = process.env): boolean {
@@ -56,10 +59,21 @@ export class WatchdogSchedulerService implements OnModuleInit, OnApplicationShut
     const connection = { url, maxRetriesPerRequest: null };
     const name = options.queueName ?? WATCHDOG_QUEUE;
     this.queue = new Queue(name, { connection });
-    this.worker = new Worker(name, async () => this.watchdog.tick(new Date()), {
-      connection,
-      concurrency: 1,
-    });
+    this.worker = new Worker(
+      name,
+      async () => {
+        const tick = await this.watchdog.tick(new Date());
+        // After the tick has committed, so the events it wrote are readable;
+        // a delivery that throws fails the job, which is counted (T-803) and
+        // retried by the next tick from the cursor.
+        const delivered = await this.alerts.deliver();
+        return { tick, delivered };
+      },
+      {
+        connection,
+        concurrency: 1,
+      },
+    );
     this.worker.on('failed', (job, error) => {
       this.log.error('watchdog tick threw', {
         event: 'watchdog.tick_threw',

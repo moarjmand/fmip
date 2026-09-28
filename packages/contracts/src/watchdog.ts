@@ -104,3 +104,50 @@ export interface WatchdogReport {
   /** The newest events first, at most fifty. */
   events: WatchdogEvent[];
 }
+
+/**
+ * What one channel did with one alert across every administrator it was
+ * written for (T-802). `pending`: written, not yet carried. `absent` is the
+ * channel not existing on this deployment, which is stated, never counted
+ * as sent.
+ */
+export interface AlertChannelOutcomes {
+  sent: number;
+  failed: number;
+  /** The channel exists and the administrator has nowhere on it (no device). */
+  skipped: number;
+  absent: number;
+  pending: number;
+}
+
+/** One `raised` or `recovered` event and where it reached. */
+export interface AlertDelivery {
+  event: WatchdogEvent;
+  /** Inbox notifications written for it: one per administrator who has the kind on. */
+  inbox: number;
+  push: AlertChannelOutcomes;
+  email: AlertChannelOutcomes;
+}
+
+/**
+ * `GET /admin/health/alerts` (T-802): how the watchdog's alerts reach the
+ * administrators. The inbox always; push and e-mail when this deployment
+ * has them (`channels`) and the administrator has a device or an address.
+ */
+export interface AdminAlertsReport {
+  generated_at: string;
+  /** Which channels exist beside the inbox; `in_product_only` means the inbox is all there is. */
+  channels: {
+    push: 'configured' | 'absent';
+    email: 'configured' | 'absent';
+    in_product_only: boolean;
+  };
+  /** Active accounts holding the `admin` role: who an alert is written for. */
+  administrators: number;
+  /** The newest alert event delivered, and when the cursor last moved (`null` before the first delivery). */
+  cursor: { last_event_id: number; advanced_at: string | null };
+  /** Alert events after the cursor, not yet delivered. Above zero for long means delivery is stuck. */
+  pending: number;
+  /** The newest delivered alerts first, at most twenty. */
+  alerts: AlertDelivery[];
+}

@@ -191,6 +191,7 @@ describe('the match centre', () => {
       timeZone="Asia/Tehran"
       locale="en"
       slots={{
+        context: <p>TABLE</p>,
         forecast: <p>MODEL</p>,
         analysis: <p>FOUNDER</p>,
         community: <p>CROWD</p>,
