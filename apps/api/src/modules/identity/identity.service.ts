@@ -319,6 +319,11 @@ export class IdentityService {
     return this.store.hasRole(userId, role);
   }
 
+  /** The ids of the active accounts holding a role: who an administrator's alert is for (T-802). */
+  holdersOf(role: UserRole): Promise<string[]> {
+    return this.store.holdersOf(role);
+  }
+
   /** display_name lives on the account; the profile boundary changes it through here. */
   async updateDisplayName(userId: string, displayName: string): Promise<void> {
     await this.store.updateDisplayName(userId, displayName);

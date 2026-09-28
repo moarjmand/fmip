@@ -216,6 +216,27 @@ export class WatchdogStore {
     return rows.map(eventOf);
   }
 
+  /** The newest alert events at or before a cursor, newest first: what T-802 delivered. */
+  async alertsUpTo(lastId: number, limit: number): Promise<WatchdogEvent[]> {
+    const { rows } = await this.pool.query<EventRow>(
+      `SELECT ${EVENT_COLUMNS} FROM watchdog_event
+        WHERE id <= $1 AND kind IN ('raised', 'recovered')
+        ORDER BY id DESC LIMIT $2`,
+      [lastId, limit],
+    );
+    return rows.map(eventOf);
+  }
+
+  /** How many alert events are after a cursor: not delivered yet. */
+  async alertsPendingAfter(lastId: number): Promise<number> {
+    const { rows } = await this.pool.query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM watchdog_event
+        WHERE id > $1 AND kind IN ('raised', 'recovered')`,
+      [lastId],
+    );
+    return Number(rows[0]?.n ?? 0);
+  }
+
   /**
    * Matches in progress: how many, when the longest-unchanged one last
    * changed, and how many have been unchanged for `behindAfterMs` or more.

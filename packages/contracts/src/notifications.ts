@@ -32,6 +32,8 @@ export const NOTIFICATION_KINDS = [
   'briefing',
   // A message from the platform to an audience (T-332, D-075).
   'campaign',
+  // A watchdog incident opened or closed, to administrators only (T-802, D-096).
+  'system_alert',
 ] as const;
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
@@ -73,7 +75,18 @@ export const NOTIFICATION_DEFAULTS: Record<NotificationKind, boolean> = {
   // On, and a kind of its own so a member can turn campaigns off without
   // turning off what happens to their account (T-332).
   campaign: true,
+  // On: an administrator who wants the pager off says so, and the inbox still
+  // shows the condition on the System page either way (T-802).
+  system_alert: true,
 };
+
+/**
+ * Kinds only an administrator can receive (T-802). They are left out of a
+ * member's settings -- a switch for a thing that can never happen to you is
+ * noise -- and only the watchdog's alert delivery emits them, to the holders
+ * of the `admin` role.
+ */
+export const ADMIN_ONLY_NOTIFICATION_KINDS: readonly NotificationKind[] = ['system_alert'];
 
 /**
  * How many of one kind a member is told about in an hour (T-273).
@@ -116,6 +129,16 @@ export const NOTIFICATION_HOURLY_CAP: Partial<Record<NotificationKind, number>> 
  */
 export const QUIET_HOURS_RULE = 'delay' as const;
 
+/**
+ * The one exception to `QUIET_HOURS_RULE`, argued for (T-802, D-096): an
+ * administrator's system alert is the pager for an outage, and an outage at
+ * two in the morning that waits until eight is six hours of a broken product
+ * nobody was told about. The alert is still one per incident and per
+ * recovery, never a stream, and an administrator who does not want it at
+ * night turns the kind off, which the settings page offers like any other.
+ */
+export const QUIET_HOURS_EXEMPT: readonly NotificationKind[] = ['system_alert'];
+
 /** What a notification points at, so the inbox can open it (T-272). */
 export type NotificationSubject =
   | 'fixture'
@@ -129,7 +152,9 @@ export type NotificationSubject =
   /** The member's own briefing (T-432): `subject_id` is the `member_briefing` row. */
   | 'briefing'
   /** A campaign (T-332): `subject_id` is the campaign, `subject_label` the path it opens, `headline` its title. */
-  | 'campaign';
+  | 'campaign'
+  /** A watchdog transition (T-802): `subject_id` is the `watchdog_event` id, `headline` what changed. */
+  | 'watchdog_event';
 
 /**
  * One notification, as its recipient sees it.
@@ -242,6 +267,7 @@ export const NOTIFICATION_CATEGORY_OF: Record<NotificationKind, NotificationCate
   moderation_decision: 'account',
   contributor_granted: 'account',
   contributor_grant_changed: 'account',
+  system_alert: 'account',
 };
 
 export const MUTE_SCOPES = ['team', 'competition', 'category'] as const;
@@ -316,6 +342,7 @@ export const NOTIFICATION_TEXT: Record<NotificationKind, { text: string; named: 
   panel_reaction: { text: 'reacted to something you posted.', named: true },
   briefing: { text: 'Your briefing was written.', named: false },
   campaign: { text: 'A message from the platform.', named: false },
+  system_alert: { text: 'The watchdog raised or cleared a system alert.', named: false },
 };
 
 /**
@@ -377,6 +404,9 @@ export function notificationPath(
       // The briefing lives on the Following page, above the feed it was
       // written from (T-432).
       return `/${locale}/following#briefing`;
+    case 'watchdog_event':
+      // The System page, where the conditions and incidents are (T-802, T-804).
+      return `/${locale}/admin/system`;
     case 'campaign':
       // The campaign chose its own in-app path (T-332); one that is not a
       // path opens nothing rather than somewhere else.

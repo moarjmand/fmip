@@ -247,7 +247,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('campaigns', 
 
     const inbox = await pool.query<{ kind: string; headline: string | null }>(
       `SELECT n.kind, c.title AS headline FROM notification n
-         JOIN campaign c ON c.id = n.subject_id::uuid
+         JOIN campaign c ON c.id::text = n.subject_id
         WHERE n.user_id = $1 AND n.kind = 'campaign'`,
       [ids.get(fan)],
     );
