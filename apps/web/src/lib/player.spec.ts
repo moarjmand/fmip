@@ -5,6 +5,7 @@ import {
   appearances,
   filterMatches,
   filterRecord,
+  minutesText,
   readSeasonFilter,
   roleLabel,
   seasonsOf,
@@ -25,6 +26,13 @@ const row = (seasonId: string, competition: string): PlayerSeasonRecord => ({
   assists: 0,
   yellow_cards: 0,
   red_cards: 0,
+  minutes: {
+    coverage: 'available',
+    total: 270,
+    matches: 5,
+    matches_with_minutes: 5,
+    supplied_minutes: 270,
+  },
 });
 
 const match = (seasonId: string, role: PlayerMatch['role'], cameOn = false): PlayerMatch => ({
@@ -121,5 +129,27 @@ describe('the match log after extra time (T-822)', () => {
     // The player played for the away side, which won the shoot-out.
     expect(afterTimeNote(m.fixture, m.team.id)).toBe('aet, won 4–3 on penalties');
     expect(afterTimeNote(base.fixture, base.team.id)).toBeNull();
+  });
+});
+
+describe('minutesText (T-823)', () => {
+  const m = (coverage: 'available' | 'limited' | 'not_supplied', withMinutes: number) => ({
+    coverage,
+    total: coverage === 'available' ? 270 : null,
+    matches: 5,
+    matches_with_minutes: withMinutes,
+    supplied_minutes: withMinutes === 0 ? 0 : 200,
+  });
+
+  it('shows the total only when it is whole', () => {
+    expect(minutesText(m('available', 5))).toEqual({ text: '270', note: null });
+  });
+
+  it('shows a partial season as "at least", with the matches it covers', () => {
+    expect(minutesText(m('limited', 4))).toEqual({ text: 'at least 200', note: '4 of 5 matches' });
+  });
+
+  it('says not supplied when the feed sent none', () => {
+    expect(minutesText(m('not_supplied', 0))).toEqual({ text: 'not supplied', note: null });
   });
 });

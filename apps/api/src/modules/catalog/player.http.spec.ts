@@ -21,6 +21,7 @@ const TEAMS = { alpha: randomUUID(), beta: randomUUID() };
 const PLAYER = randomUUID();
 const PROVIDER = randomUUID();
 const BYSTANDER = randomUUID();
+const TIMED = randomUUID();
 
 describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('player page', () => {
   let app: NestFastifyApplication;
@@ -86,8 +87,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('player page'
       `INSERT INTO person (id, full_name, known_as, date_of_birth, nationality_id, height_cm, preferred_foot) VALUES
          ($1, 'Test Player ${RUN}', 'Player', DATE '2000-02-29', $4, 181, 'left'),
          ($2, 'Test Provider ${RUN}', NULL, NULL, NULL, NULL, NULL),
-         ($3, 'Test Bystander ${RUN}', NULL, NULL, NULL, NULL, NULL)`,
-      [PLAYER, PROVIDER, BYSTANDER, ENGLAND],
+         ($3, 'Test Bystander ${RUN}', NULL, NULL, NULL, NULL, NULL),
+         ($5, 'Test Timed ${RUN}', NULL, NULL, NULL, NULL, NULL)`,
+      [PLAYER, PROVIDER, BYSTANDER, ENGLAND, TIMED],
     );
     await pool.query(
       `INSERT INTO player_spell (person_id, team_id, start_date, end_date, shirt_number, position, on_loan) VALUES
@@ -130,7 +132,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('player page'
       [PLAYER, PROVIDER],
     ]);
     await pool.query(`DELETE FROM person WHERE id = ANY($1::uuid[])`, [
-      [PLAYER, PROVIDER, BYSTANDER],
+      [PLAYER, PROVIDER, BYSTANDER, TIMED],
     ]);
     await pool.query(`DELETE FROM stage WHERE id = $1`, [STAGE]);
     await pool.query(`DELETE FROM season WHERE id = $1`, [SEASON]);
@@ -182,6 +184,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('player page'
         assists: 0,
         yellow_cards: 1,
         red_cards: 0,
+        // Two matches played, and the feed sent minutes for neither (T-823).
+        minutes: {
+          coverage: 'not_supplied',
+          total: null,
+          matches: 2,
+          matches_with_minutes: 0,
+          supplied_minutes: 0,
+        },
       },
     ]);
     expect(page.recent_matches.coverage).toBe('available');
@@ -256,6 +266,58 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('player page'
     expect(page.recent_matches.data![2]!.fixture).toMatchObject({
       after_extra_time: false,
       penalties: null,
+    });
+  });
+
+  it('carries minutes whole only when every match played has them (T-823)', async () => {
+    const minutes = async (participant: string, value: number) =>
+      pool.query(
+        `INSERT INTO fixture_player_stat (participant_id, person_id, metric, value)
+         VALUES ($1, $2, 'minutes', $3)`,
+        [participant, TIMED, value],
+      );
+    const lineup = async (participant: string, role: 'starter' | 'bench') =>
+      pool.query(
+        `INSERT INTO lineup (participant_id, person_id, role, shirt_number, position)
+         VALUES ($1, $2, $3, 20, 'defender')`,
+        [participant, TIMED, role],
+      );
+    const record = async () =>
+      ((await app.inject({ method: 'GET', url: `/players/${TIMED}` })).json() as PlayerPage).record
+        .data![0]!.minutes;
+
+    // A start with 90, on from the bench with 25, and an unused substitute:
+    // two matches played, both with minutes.
+    const start = await fixture('2025-11-01T15:00:00Z', [0, 0]);
+    await lineup(start.alpha, 'starter');
+    await minutes(start.alpha, 90);
+    const sub = await fixture('2025-11-08T15:00:00Z', [0, 0]);
+    await lineup(sub.alpha, 'bench');
+    await pool.query(
+      `INSERT INTO incident (fixture_id, participant_id, person_id, related_person_id, kind, minute, sequence)
+       VALUES ($1, $2, $3, $4, 'substitution', 65, 1)`,
+      [sub.id, sub.alpha, PROVIDER, TIMED],
+    );
+    await minutes(sub.alpha, 25);
+    const unused = await fixture('2025-11-15T15:00:00Z', [0, 0]);
+    await lineup(unused.alpha, 'bench');
+    expect(await record()).toEqual({
+      coverage: 'available',
+      total: 115,
+      matches: 2,
+      matches_with_minutes: 2,
+      supplied_minutes: 115,
+    });
+
+    // Another start the feed sent no minutes for: the 115 is no longer the season.
+    const silent = await fixture('2025-11-22T15:00:00Z', [0, 0]);
+    await lineup(silent.alpha, 'starter');
+    expect(await record()).toEqual({
+      coverage: 'limited',
+      total: null,
+      matches: 3,
+      matches_with_minutes: 2,
+      supplied_minutes: 115,
     });
   });
 });

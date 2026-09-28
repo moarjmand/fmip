@@ -125,15 +125,24 @@ export function scopeLabel(scope: Pick<CompareScope, 'season' | 'competition'>):
   return `${scope.season.label} · ${scope.competition.short_name ?? scope.competition.name}`;
 }
 
-/** One side of one figure: a number with the coverage it came under, or a coverage state and why. */
+/**
+ * One side of one figure: a number with the coverage it came under, or a
+ * coverage state and why. `partial` (minutes only, T-823): the number is the
+ * sum over the matches that carry minutes, `counted` of `of` played, so it
+ * reads "at least", never as the whole.
+ */
 export type CompareCell =
-  | { coverage: Exclude<CoverageState, 'not_supplied'>; value: number }
+  | {
+      coverage: Exclude<CoverageState, 'not_supplied'>;
+      value: number;
+      partial?: { counted: number; of: number };
+    }
   | { coverage: 'not_supplied'; value: null; reason: string };
 
 export const REASON = {
   noLineups: 'No line-ups on record',
   notInScope: 'Nothing on record in this competition and season',
-  minutes: 'Minutes are not held',
+  minutes: 'No minutes from the feed',
 } as const;
 
 type Totals = Pick<
@@ -141,8 +150,20 @@ type Totals = Pick<
   'starts' | 'sub_appearances' | 'goals' | 'assists' | 'yellow_cards' | 'red_cards'
 >;
 
+/** Minutes over the scope (T-823): matches played, how many carry minutes, and their sum. */
+export interface MinutesTotals {
+  matches: number;
+  withMinutes: number;
+  supplied: number;
+}
+
 type Side =
-  | { held: true; coverage: Exclude<CoverageState, 'not_supplied'>; totals: Totals }
+  | {
+      held: true;
+      coverage: Exclude<CoverageState, 'not_supplied'>;
+      totals: Totals;
+      minutes: MinutesTotals;
+    }
   | { held: false; reason: string };
 
 /**
@@ -169,7 +190,11 @@ export function sideTotals(record: PlayerPage['record'], scope: CompareScope | n
     yellow_cards: 0,
     red_cards: 0,
   };
+  const minutes: MinutesTotals = { matches: 0, withMinutes: 0, supplied: 0 };
   for (const r of rows) {
+    minutes.matches += r.minutes.matches;
+    minutes.withMinutes += r.minutes.matches_with_minutes;
+    minutes.supplied += r.minutes.supplied_minutes;
     totals.starts += r.starts;
     totals.sub_appearances += r.sub_appearances;
     totals.goals += r.goals;
@@ -177,7 +202,7 @@ export function sideTotals(record: PlayerPage['record'], scope: CompareScope | n
     totals.yellow_cards += r.yellow_cards;
     totals.red_cards += r.red_cards;
   }
-  return { held: true, coverage: record.coverage, totals };
+  return { held: true, coverage: record.coverage, totals, minutes };
 }
 
 export interface CompareRow {
@@ -193,7 +218,7 @@ const FIGURES: readonly { key: string; label: string; read: ((t: Totals) => numb
   { key: 'appearances', label: 'Appearances', read: (t) => t.starts + t.sub_appearances },
   { key: 'starts', label: 'Starts', read: (t) => t.starts },
   { key: 'sub_appearances', label: 'Off the bench', read: (t) => t.sub_appearances },
-  // The player page carries no minutes (T-037): named, not guessed from starts.
+  // Minutes come from the feed, not from starts (T-823): `minutesCell`.
   { key: 'minutes', label: 'Minutes', read: null },
   { key: 'goals', label: 'Goals', read: (t) => t.goals },
   { key: 'assists', label: 'Assists', read: (t) => t.assists },
@@ -202,9 +227,27 @@ const FIGURES: readonly { key: string; label: string; read: ((t: Totals) => numb
 ];
 
 function cell(side: Side, read: ((t: Totals) => number) | null): CompareCell {
-  if (read === null) return { coverage: 'not_supplied', value: null, reason: REASON.minutes };
   if (!side.held) return { coverage: 'not_supplied', value: null, reason: side.reason };
+  if (read === null) return minutesCell(side.coverage, side.minutes);
   return { coverage: side.coverage, value: read(side.totals) };
+}
+
+/**
+ * Minutes for one side (T-823): the sum when every match played carries
+ * them; the sum marked partial -- "at least", `limited` -- when only some
+ * do; not supplied when none do. A player who never came on has 0, whole.
+ */
+export function minutesCell(
+  coverage: Exclude<CoverageState, 'not_supplied'>,
+  m: MinutesTotals,
+): CompareCell {
+  if (m.withMinutes >= m.matches) return { coverage, value: m.supplied };
+  if (m.withMinutes === 0) return { coverage: 'not_supplied', value: null, reason: REASON.minutes };
+  return {
+    coverage: 'limited',
+    value: m.supplied,
+    partial: { counted: m.withMinutes, of: m.matches },
+  };
 }
 
 /** The figures side by side, each cell a number or a coverage state, never a stand-in zero. */
@@ -230,9 +273,10 @@ export function compareRows(
   });
 }
 
-/** What a cell reads as: the number, or the coverage state's name ("not supplied"). */
+/** What a cell reads as: the number ("at least" when partial), or the coverage state's name. */
 export function cellText(c: CompareCell): string {
-  return c.value === null ? COVERAGE_LABEL[c.coverage] : String(c.value);
+  if (c.value === null) return COVERAGE_LABEL[c.coverage];
+  return c.partial === undefined ? String(c.value) : `at least ${c.value}`;
 }
 
 /**
@@ -240,7 +284,12 @@ export function cellText(c: CompareCell): string {
  * Null when both sides have it.
  */
 export function rowNote(row: CompareRow, nameA: string, nameB: string): string | null {
-  if (row.lacking === null) return null;
+  if (row.lacking === null) {
+    const partial = [partialNote(row.a, nameA), partialNote(row.b, nameB)].filter(
+      (n): n is string => n !== null,
+    );
+    return partial.length === 0 ? null : partial.join(' ');
+  }
   if (row.lacking === 'both') {
     const reasons = new Set([row.a, row.b].map((c) => (c.value === null ? c.reason : '')));
     return reasons.size === 1
@@ -250,6 +299,12 @@ export function rowNote(row: CompareRow, nameA: string, nameB: string): string |
   return row.lacking === 'a'
     ? `${nameA}: ${reasonOf(row.a)}, so this is not a comparison.`
     : `${nameB}: ${reasonOf(row.b)}, so this is not a comparison.`;
+}
+
+/** "Ann: minutes for 7 of 9 matches played; the rest were not supplied." (T-823) */
+function partialNote(c: CompareCell, name: string): string | null {
+  if (c.value === null || c.partial === undefined) return null;
+  return `${name}: minutes for ${c.partial.counted} of ${c.partial.of} matches played; the rest were not supplied.`;
 }
 
 function reasonOf(c: CompareCell): string {

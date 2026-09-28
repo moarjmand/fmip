@@ -1,4 +1,10 @@
-import type { PlayerMatch, PlayerPage, PlayerSeasonRecord, PlayerSpell } from '@fmip/contracts';
+import type {
+  PlayerMatch,
+  PlayerPage,
+  PlayerSeasonMinutes,
+  PlayerSeasonRecord,
+  PlayerSpell,
+} from '@fmip/contracts';
 import { formatDate } from '@/i18n/format';
 
 /**
@@ -79,6 +85,25 @@ export function filterMatches(
 /** Appearances as the sum of starts and substitute appearances. */
 export function appearances(row: Pick<PlayerSeasonRecord, 'starts' | 'sub_appearances'>): number {
   return row.starts + row.sub_appearances;
+}
+
+/**
+ * A season's minutes as the record table shows them (T-823): the total when
+ * every match played has minutes; "at least" the supplied sum, with how many
+ * matches it covers, when only some do -- never the partial sum on its own;
+ * "not supplied" when none do.
+ */
+export function minutesText(minutes: PlayerSeasonMinutes): { text: string; note: string | null } {
+  if (minutes.coverage === 'available' && minutes.total !== null) {
+    return { text: String(minutes.total), note: null };
+  }
+  if (minutes.coverage === 'limited') {
+    return {
+      text: `at least ${minutes.supplied_minutes}`,
+      note: `${minutes.matches_with_minutes} of ${minutes.matches} matches`,
+    };
+  }
+  return { text: 'not supplied', note: null };
 }
 
 /** "Started" / "Came on" / "Unused sub". */

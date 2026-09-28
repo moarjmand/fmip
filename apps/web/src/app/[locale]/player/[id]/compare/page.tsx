@@ -301,8 +301,9 @@ export default async function ComparePlayersPage({
           </tbody>
         </table>
         <p className="text-xs text-muted">
-          Figures come from our line-ups and incidents. Player ratings and advanced statistics are
-          not held for these players and are not shown.
+          Figures come from our line-ups and incidents, minutes from the feed&rsquo;s own match
+          statistics. Player ratings and advanced statistics are not held for these players and are
+          not shown.
         </p>
       </section>
 

@@ -451,6 +451,34 @@ export interface PlayerSeasonRecord {
   assists: number;
   yellow_cards: number;
   red_cards: number;
+  /** Minutes played, from the feed's per-player statistics (T-823). */
+  minutes: PlayerSeasonMinutes;
+}
+
+/**
+ * Minutes in one season row (T-823), from the feed's per-match `minutes`
+ * (`fixture_player_stat`), never estimated from starts. The matches that
+ * should carry minutes are the ones the player played: a start, a
+ * substitution on, or minutes above zero on record.
+ *
+ * - `available`: every one of them has minutes, and `total` is their sum
+ *   (zero when the player was only an unused substitute).
+ * - `limited`: some do and some do not; `total` is null, because the sum of
+ *   the matches that have them is smaller than the season and must not be
+ *   read as it. `supplied_minutes` is that sum, for a reader told it is
+ *   "at least" and over how many matches.
+ * - `not_supplied`: the player played and the feed sent minutes for none of
+ *   those matches.
+ */
+export interface PlayerSeasonMinutes {
+  coverage: 'available' | 'limited' | 'not_supplied';
+  total: number | null;
+  /** Matches the player played in (see above). */
+  matches: number;
+  /** Of those, how many carry the feed's minutes. */
+  matches_with_minutes: number;
+  /** The sum over `matches_with_minutes`: the whole season only when `available`. */
+  supplied_minutes: number;
 }
 
 export interface PlayerMatch {
