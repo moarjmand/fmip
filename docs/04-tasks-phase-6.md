@@ -473,7 +473,7 @@ fit waits for them.
 **T-537 done on 2026-09-28.** A `post_match` run opened at 2026-09-27 16:30 UTC
 was still `running` when the API was redeployed, and the partial unique index
 that keeps two ticks of a job apart then skipped every later tick: the detail
-backlog stood still for about eleven hours with no failed run to show for it.
+backlog stood still for about twenty-one hours with no failed run to show for it.
 The row was closed by hand on the server; `IngestRunsService.start` now closes
 an open run older than two hours as failed and starts again, so a deploy or a
 crash costs at most two hours of one job.
