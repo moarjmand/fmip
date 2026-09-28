@@ -497,6 +497,11 @@ export class PostgresNotificationsStore {
    * configured must not send a member everything they were told last month.
    * Oldest first, a page at a time, with the label and the source resolved
    * as the inbox resolves them, because the route and the sentence need them.
+   *
+   * **Scoped to members, a page is whole members** (T-836): ordered by member
+   * first, so a member's batch is cut by a page boundary at most once per
+   * page rather than wherever their rows fall in time -- a burst to thousands
+   * of members is one push each, not two or three.
    */
   async due(limit = 100, userIds: string[] | null = null): Promise<DueNotification[]> {
     const { rows } = await this.pool.query<DueNotification>(
@@ -544,7 +549,7 @@ export class PostgresNotificationsStore {
           AND n.created_at >= now() - interval '1 day'
           AND d.notification_id IS NULL
           AND ($2::uuid[] IS NULL OR n.user_id = ANY($2::uuid[]))
-        ORDER BY n.deliver_after, n.created_at
+        ORDER BY CASE WHEN $2::uuid[] IS NULL THEN NULL ELSE n.user_id END, n.deliver_after, n.created_at
         LIMIT $1`,
       [limit, userIds],
     );
@@ -562,6 +567,23 @@ export class PostgresNotificationsStore {
       [notificationId],
     );
     return rowCount === 1;
+  }
+
+  /**
+   * The same claim for several notifications in one statement (T-836): one
+   * member's batch. Each row is still its own claim; the ones returned are
+   * the ones this carrier won.
+   */
+  async claimDeliveries(notificationIds: string[]): Promise<Set<string>> {
+    if (notificationIds.length === 0) return new Set();
+    const { rows } = await this.pool.query<{ notification_id: string }>(
+      `INSERT INTO notification_delivery (notification_id)
+       SELECT unnest($1::uuid[])
+       ON CONFLICT DO NOTHING
+       RETURNING notification_id`,
+      [notificationIds],
+    );
+    return new Set(rows.map((row) => row.notification_id));
   }
 
   /**
@@ -626,6 +648,17 @@ export class PostgresNotificationsStore {
           SET email = $2, push = $3, carried_at = greatest(now(), claimed_at)
         WHERE notification_id = $1`,
       [notificationId, outcome.email, outcome.push],
+    );
+  }
+
+  /** One outcome on several notifications, one statement (T-836): a batch sent as one message. */
+  async recordDeliveries(notificationIds: string[], outcome: DeliveryRecord): Promise<void> {
+    if (notificationIds.length === 0) return;
+    await this.pool.query(
+      `UPDATE notification_delivery
+          SET email = $2, push = $3, carried_at = greatest(now(), claimed_at)
+        WHERE notification_id = ANY($1::uuid[])`,
+      [notificationIds, outcome.email, outcome.push],
     );
   }
 }
