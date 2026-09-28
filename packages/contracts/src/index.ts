@@ -68,13 +68,14 @@ export type {
   IngestionHealth,
   LiveHealth,
 } from './health';
-export { DELETED_USERNAME_PATTERN, isDeletedMember } from './identity';
+export { DELETED_USERNAME_PATTERN, ROLE_REFUSALS, forbidden, isDeletedMember } from './identity';
 export type {
   ApiError,
   AuthUser,
   DeleteAccountRequest,
   ForgotPasswordRequest,
   LoginRequest,
+  RefusedRole,
   RegisterRequest,
   ResetPasswordRequest,
   SessionResponse,
@@ -671,6 +672,10 @@ export type {
   DataQualityFinding,
   DataQualityFixtureRef,
   DataQualityReport,
+  RefetchDataQualityRequest,
+  RefetchDataQualityResponse,
+  ReviewDataQualityBatchRequest,
+  ReviewDataQualityBatchResponse,
   ReviewDataQualityFindingRequest,
 } from './data-quality';
 // API errors and job failures counted per hour (T-803).

@@ -538,7 +538,7 @@ campaign through `CampaignsService.send`, with capturing e-mail and push
 channels. In the suite it sends to 1,000 members: ten pages, enough to prove
 the send drains past the first. With `FMIP_CAMPAIGN_SCALE_MEMBERS=10000` it
 sends to 10,000; that is the measured run below. The 10,000 run is not in
-the suite. It is about 100,000 queries over four to seven minutes, and
+the suite. Before T-903 it was about 100,000 queries over four to seven minutes, and
 beside the other suites on the one database it pushed their 5-second tests
 over the limit. The spec checks:
 
@@ -573,11 +573,53 @@ FMIP_CAMPAIGN_SCALE_MEMBERS=10000 DATABASE_URL=... pnpm exec vitest run \
   src/modules/campaigns/campaign-scale.http.spec.ts --silent=false
 ```
 
-**What is left.** Emission is now the larger half: about six round trips per
-member, one member at a time. T-835's `emitToAudience` (one statement per
-audience) would apply here too. Campaigns stay on `emit` for now, because
-`send` records each member's outcome row. The carry is about three round
-trips per notification, with the sends one after another; T-836's bounded
-push pool applies to it too. The runs above were before T-835's
-`greatest(now(), claimed_at)` fix. One earlier attempt, inside the full
-suite, died on that clock step, and the rest waited for the timer.
+### T-903: emission set-based (D-107)
+
+The runs above spent most of the send on emission: `emit()` one member at a
+time, about six round trips each, and then one outcome row per member.
+`CampaignsService.send` now does what match alerts do (T-835). It takes the
+audience in pages of 500 (`EMIT_PAGE`), and each page is two statements:
+
+- `NotificationsService.emitToAudience` writes the page's notifications,
+  with the same rules as `emit` (the kind's switch, the category, team and
+  competition mutes, quiet hours holding and never dropping, the dedupe
+  key). It returns whom it wrote, now or held.
+- `PostgresCampaignStore.recordPage` writes the page's `campaign_send` rows
+  and returns the count of each outcome. A member written now is `sent`, and
+  one held is `delayed`. A member the inbox did not write is `duplicate` if
+  they already hold this campaign's notification (its dedupe key), and
+  `muted` otherwise. A page the inbox could not write at all is `failed`,
+  and the next page is still sent.
+
+Each member is in exactly one page. Nobody is reached twice: the dispatch
+claim comes first, and the notification's dedupe key and `campaign_send`'s
+primary key are second and third guards (D-075). The campaign-scale spec is
+unchanged. `campaigns.http.spec.ts` now also covers a `delayed` and a
+`duplicate` member, and checks that the report's counts equal the rows.
+
+These runs were on 2026-09-29, on the same machine, against a scratch
+database of their own (migrated and seeded), with
+`FMIP_CAMPAIGN_SCALE_MEMBERS=10000`:
+
+| Run | Emit (20 pages, 40 statements) | Carry (drain) | Carried per second | Whole send |
+| --- | --- | --- | --- | --- |
+| 1 | 16.7 s | 30.3 s | 331 | 46.9 s |
+| 2 ¹ | 12.9 s | 24.9 s | 401 | 37.9 s |
+| 3 | 9.9 s | 24.1 s | 416 | 34.0 s |
+| 4 | 10.2 s | 24.6 s | 406 | 34.8 s |
+
+¹ With timing around each statement (removed again). Each page's inbox
+statement took 0.4 to 1.0 s for 500 members, and its outcome statement took
+50 to 180 ms.
+
+**Before:** 132 to 346 s of emission. **Now:** 10 to 17 s, and the whole
+send, carriage included, finishes in under a minute. The 1,000-member suite
+run takes 2.3 s to emit and 4.5 s in all. The carry also ran about four
+times faster than in the runs above, because T-836's send pool now applies
+to it.
+
+**What is left.** Emission now runs at about 1 ms a member, nearly all of it
+inside the inbox's one statement: the per-member checks (switch, mutes,
+quiet hours) and the block-guard trigger on each row. That statement is
+T-835's and is shared with match alerts, so tuning it belongs there.
+Carriage is now the larger half of the send.

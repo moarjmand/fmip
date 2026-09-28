@@ -75,7 +75,7 @@ export class PanelSocialController {
     if (outcome === 'ok') return;
     if (outcome === 'no_post') throw new NotFoundException(NO_POST);
     throw new ForbiddenException({
-      error: 'validation',
+      error: 'forbidden',
       message: 'That post has been removed, so there is nothing to react to.',
     } satisfies ApiError);
   }
@@ -155,14 +155,14 @@ export class PanelSocialController {
     if (outcome === 'no_member') throw new NotFoundException(NO_MEMBER);
     if (outcome === 'self') {
       throw new ForbiddenException({
-        error: 'validation',
+        error: 'forbidden',
         message: 'That is your own account.',
       } satisfies ApiError);
     }
     // One sentence for both directions. Which of them blocked the other is not
     // something either should be able to learn here.
     throw new ForbiddenException({
-      error: 'validation',
+      error: 'forbidden',
       message: 'You cannot follow that member.',
     } satisfies ApiError);
   }

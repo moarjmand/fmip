@@ -270,6 +270,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the match pa
       const error = response.json() as ApiError;
       // Not a bare 403 and not a hidden box: the member has to be able to learn
       // there is something to ask about.
+      expect(error.error).toBe('forbidden');
       expect(error.message).toMatch(/approved contributor grant/i);
       expect(error.message).toMatch(/reading is open/i);
     });

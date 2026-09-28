@@ -45,6 +45,53 @@ export function backlogBatch(raw: string | undefined): number {
     : DETAIL_BACKLOG_BATCH;
 }
 /**
+ * The re-ask queue (T-913, D-110): an administrator asks the feed again for a
+ * fixture behind a data-quality finding, and the post-match job carries the
+ * queue within its own share of the day's request budget.
+ *
+ * - `INGESTION_REFETCH_SHARE`: the percent of `API_FOOTBALL_DAILY_BUDGET` the
+ *   queue may spend in a UTC day. Default 5 (350 of 7,000), at most 10, and 0
+ *   turns the queue off.
+ * - At most `REFETCH_BATCH` re-asks per post-match run (every 30 minutes).
+ * - None while the day's requests are at or past `REFETCH_HEADROOM_PERCENT` of
+ *   the budget. That is below the watchdog's `degraded` at 80 %, and 70 % plus
+ *   a share of at most 10 % stays below it, so the queue alone never raises
+ *   the budget condition.
+ * - With no budget of its own (the replay source, a test), at most
+ *   `UNBUDGETED_REFETCHES_PER_DAY` a day.
+ */
+export const REFETCH_SHARE_PERCENT = 5;
+export const MAX_REFETCH_SHARE_PERCENT = 10;
+export const REFETCH_BATCH = 20;
+export const REFETCH_HEADROOM_PERCENT = 70;
+export const UNBUDGETED_REFETCHES_PER_DAY = 100;
+
+/** The share this deployment asked for, or the default for anything that is not 0 to 10. */
+export function refetchShare(raw: string | undefined): number {
+  const text = (raw ?? '').trim();
+  const value = Number(text);
+  return text !== '' && Number.isInteger(value) && value >= 0 && value <= MAX_REFETCH_SHARE_PERCENT
+    ? value
+    : REFETCH_SHARE_PERCENT;
+}
+
+/** How many queued re-asks one post-match run may carry now. Pure. */
+export function refetchAllowance(seen: {
+  budget: number | null;
+  sharePercent: number;
+  requestsToday: number;
+  refetchedToday: number;
+}): number {
+  if (seen.sharePercent <= 0) return 0;
+  if (seen.budget === null) {
+    return Math.max(0, Math.min(REFETCH_BATCH, UNBUDGETED_REFETCHES_PER_DAY - seen.refetchedToday));
+  }
+  if (seen.requestsToday * 100 >= seen.budget * REFETCH_HEADROOM_PERCENT) return 0;
+  const perDay = Math.floor((seen.budget * seen.sharePercent) / 100);
+  return Math.max(0, Math.min(REFETCH_BATCH, perDay - seen.refetchedToday));
+}
+
+/**
  * Availability (T-103): matches kicking off within three days are asked about,
  * each again once its last answer is three hours old, at most ten per run of
  * the five-minute line-ups job -- a weekend's sixty matches cost about twenty
@@ -180,6 +227,7 @@ export class IngestionJobsService {
   private readonly log = new Logger('Ingestion');
   private readonly store: IngestStore;
   private readonly backlogBatch = backlogBatch(process.env.INGESTION_BACKLOG_BATCH);
+  private readonly refetchShare = refetchShare(process.env.INGESTION_REFETCH_SHARE);
   /** When the live job last asked for a match that left the live list, by fixture id. */
   private readonly leftLiveListAskedAt = new Map<string, number>();
 
@@ -512,7 +560,11 @@ export class IngestionJobsService {
         'finished',
         'live',
       ]);
-      const candidates = [...recent, ...(await this.detailBacklog(source, targets, now, recent))];
+      const owed = [...recent, ...(await this.detailBacklog(source, targets, now, recent))];
+      // What an administrator asked the feed again for (T-913), within its share.
+      const refetches = await this.refetchesDue(source, targets, owed);
+      const candidates = [...owed, ...refetches];
+      const refetchOf = new Map(refetches.map((r) => [r.fixtureId, r.requestId]));
       let seen = 0;
       let written = 0;
       const refused: string[] = [];
@@ -536,6 +588,10 @@ export class IngestionJobsService {
         written += detail.written;
         for (const id of detail.unresolved) unresolved.add(id);
         if (before !== null) for (const id of await this.alerts.after(before)) raised.add(id);
+        const requestId = refetchOf.get(candidate.fixtureId);
+        if (requestId !== undefined) {
+          await this.dataQuality.recordRefetch(requestId, detail.written > 0);
+        }
       }
       written += await this.coverage.recomputeMany(
         await this.coverage.seasonsOf(candidates.map((c) => c.fixtureId)),
@@ -750,6 +806,50 @@ export class IngestionJobsService {
       .sort((a, b) => b.kickoffAt.localeCompare(a.kickoffAt))
       .slice(0, this.backlogBatch)
       .map(({ externalId, fixtureId, target }) => ({ externalId, fixtureId, target }));
+  }
+
+  /**
+   * The queued re-asks this run may carry (T-913, D-110): within the share of
+   * the day's budget, oldest request first, for fixtures of the polled
+   * competitions (any season) this provider has an id for. A fixture this run
+   * already asks about for another reason waits for the next run, so it is
+   * never asked twice in one run. The day is the provider's (UTC), not the
+   * run's `now`.
+   */
+  private async refetchesDue(
+    source: JobSource,
+    targets: PollTarget[],
+    taken: { fixtureId: string }[],
+  ): Promise<{ externalId: string; fixtureId: string; target: PollTarget; requestId: string }[]> {
+    const clock = new Date();
+    const allowance = refetchAllowance({
+      budget: this.sources.dailyBudget ?? null,
+      sharePercent: this.refetchShare,
+      requestsToday: await this.runs.requestsToday(source.provider, clock),
+      refetchedToday: await this.dataQuality.refetchedSince(clock),
+    });
+    if (allowance === 0 || targets.length === 0) return [];
+    const byCompetition = new Map(targets.map((t) => [t.competitionId, t]));
+    const busy = new Set(taken.map((c) => c.fixtureId));
+    const due = await this.dataQuality.refetchesDue(
+      source.provider,
+      [...byCompetition.keys()],
+      allowance + busy.size,
+    );
+    const out: { externalId: string; fixtureId: string; target: PollTarget; requestId: string }[] =
+      [];
+    for (const row of due) {
+      const target = byCompetition.get(row.competitionId);
+      if (target === undefined || busy.has(row.fixtureId)) continue;
+      out.push({
+        externalId: row.externalId,
+        fixtureId: row.fixtureId,
+        target,
+        requestId: row.id,
+      });
+      if (out.length === allowance) break;
+    }
+    return out;
   }
 
   /** The polled competitions' matches that are owed a fresh availability answer. */

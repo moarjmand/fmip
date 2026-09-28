@@ -64,9 +64,15 @@ describe("the feed page's helpers", () => {
   });
 
   it('names an item and keys it apart from another kind about the same match', () => {
-    expect(feedItemTitle(fixture)).toBe('Liverpool – Everton');
-    expect(feedItemTitle(story)).toBe('Liverpool name their side');
-    expect(feedItemTitle(post)).toBe('Ana on Liverpool – Everton');
+    expect(feedItemTitle(fixture, 'en')).toBe('Liverpool – Everton');
+    expect(feedItemTitle(story, 'en')).toBe('Liverpool name their side');
+    expect(feedItemTitle(post, 'en')).toBe('Ana on Liverpool – Everton');
+    // A deleted author is named from the catalogue, not by the stored name (T-908).
+    const gone = {
+      ...post,
+      author: { username: 'deleted_0123456789ab', display_name: 'Deleted member' },
+    } as typeof post;
+    expect(feedItemTitle(gone, 'en')).toBe('A deleted member on Liverpool – Everton');
     expect(new Set([fixture, story, analysis, post].map(feedItemKey)).size).toBe(4);
   });
 

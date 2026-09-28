@@ -101,7 +101,7 @@ export class FounderAnalysisController {
     if (user === null) throw new UnauthorizedException(UNAUTHENTICATED);
     if (!(await this.identity.hasRole(user.id, 'founder'))) {
       throw new ForbiddenException({
-        error: 'unauthenticated',
+        error: 'forbidden',
         message: "Publishing the founder's analysis needs the founder role.",
       } satisfies ApiError);
     }

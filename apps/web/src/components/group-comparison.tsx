@@ -1,5 +1,5 @@
-import Link from 'next/link';
 import type { GroupPredictionCall, GroupPredictionComparison } from '@fmip/contracts';
+import { MemberName } from '@/components/member-name';
 import { Translated } from '@/components/translated';
 
 /**
@@ -56,12 +56,7 @@ export function GroupComparison({
               key={call.username}
               className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm"
             >
-              <Link
-                href={`/${locale}/u/${encodeURIComponent(call.username)}`}
-                className="underline"
-              >
-                {call.display_name}
-              </Link>
+              <MemberName locale={locale} member={call} link className="underline" />
               <span>{OUTCOME[call.version.outcome] ?? call.version.outcome}</span>
               {call.version.score !== null && (
                 <span className="text-muted">

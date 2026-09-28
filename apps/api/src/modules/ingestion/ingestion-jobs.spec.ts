@@ -475,6 +475,37 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
     }
   });
 
+  /**
+   * T-913: an administrator asked the feed again about a match already
+   * detailed. The post-match job carries the queue within its share, through
+   * the same writer, and records whether the answer changed anything.
+   */
+  it('carries a queued re-ask of a match it already detailed, once, and records the outcome', async () => {
+    const { rows } = await pool.query<{ id: string }>(
+      `SELECT id FROM fixture WHERE season_id = $1`,
+      [SEASON],
+    );
+    const fixtureId = rows[0]?.id;
+    const weeksLater = new Date('2023-09-01T12:00:00Z');
+    expect((await jobs.postMatch(weeksLater)).itemsSeen, 'nothing owed before the ask').toBe(0);
+
+    await pool.query(
+      `INSERT INTO fixture_refetch_request (fixture_id, reason) VALUES ($1, 'goals disagree')`,
+      [fixtureId],
+    );
+    const asked = await jobs.postMatch(weeksLater);
+    expect(asked.itemsSeen).toBe(1);
+    expect(asked.itemsWritten).toBe(0);
+    const { rows: request } = await pool.query<{ fetched: boolean; changed: boolean | null }>(
+      `SELECT fetched_at IS NOT NULL AS fetched, changed FROM fixture_refetch_request
+        WHERE fixture_id = $1`,
+      [fixtureId],
+    );
+    expect(request).toEqual([{ fetched: true, changed: false }]);
+    // Carried: not asked again.
+    expect((await jobs.postMatch(weeksLater)).itemsSeen).toBe(0);
+  });
+
   it('records a coverage state for every module, computed from what arrived (T-027)', async () => {
     const { rows } = await pool.query<{ module: string; state: string; provider: string | null }>(
       `SELECT module, state, provider FROM coverage_profile WHERE season_id = $1 ORDER BY module`,

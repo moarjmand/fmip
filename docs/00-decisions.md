@@ -4286,3 +4286,203 @@ made the claims a small part of the minute.
 **Consequences.** No migration. `claimDelivery`, `claimDeliveries`,
 `recordDelivery`, `recordDeliveries` and `due` are replaced by `claimDue`
 and `recordOutcomes`. `drain` takes the page size.
+
+## D-107 — Campaign emission is one statement per audience page, like match alerts
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-903 changes how a campaign's notifications and outcome rows
+are written, not who is told or what the report says (D-075).
+
+- **A page at a time.** `CampaignsService.send` takes the audience in pages
+  of 500 (`EMIT_PAGE`). Each page is one `NotificationsService.emitToAudience`
+  statement for its notifications (T-835, D-105: the same rules as `emit`),
+  then one `PostgresCampaignStore.recordPage` statement for its
+  `campaign_send` rows, which returns the page's count of each outcome.
+- **The outcomes keep their meaning.** Written now is `sent`, held by quiet
+  hours is `delayed`. A member the inbox did not write is `duplicate` when
+  they already hold this campaign's notification (its dedupe key), and
+  `muted` otherwise. `emit` checked the mutes before the key, so a member who
+  is both muted and already told now reads `duplicate`. That member cannot
+  exist while the dispatch claim comes first.
+- **A failed page is `failed`, and the send goes on.** `emitToAudience`
+  returns `null` when its statement fails. Every member of that page is
+  recorded `failed` and the next page is still sent, as a failed `emit` used
+  to fail one member and not the send.
+- **Nobody twice.** The dispatch claim is still first. The notification's
+  dedupe key and `campaign_send`'s primary key are the second and third
+  guards (D-075's "claimed once").
+
+**Why.** T-837 measured a 10,000-member send at 132 to 346 s of emission,
+about six round trips per member. With T-903 it is 10 to 17 s, and the whole
+send, carriage included, takes under a minute (docs/08-load-test.md, "T-903").
+
+**Alternatives considered.** One statement for the whole audience: fewer
+round trips, but one long statement and one 10,000-element array per
+send, and a single failure would fail everyone. Pages of 500 keep each
+statement short and a failure local. Keeping `emit` and batching only the
+outcome rows: emission was the larger cost, so that would remove the smaller
+half. Recording outcomes in the same statement as the notifications: the
+inbox's statement belongs to the notifications module and campaigns may not
+reach into its internals.
+
+**Consequences.** `recordSend` is gone. `recordPage` reads `notification`
+by the dedupe key to tell a duplicate from a mute. The remaining emission
+cost, about 1 ms a member, is inside `emitToAudience`, which is shared with
+match alerts.
+
+---
+
+## D-108 — A `forbidden` error code: 401 is "who are you", 403 is "not you"
+**Status:** Accepted · 2026-09-28 (revisable under the standing delegation of 2026-09-26) · **Tasks:** T-904, T-905, T-906, T-907
+
+**Context.** `ApiError` had no code for "signed in, but not allowed". A 403
+carried `error: 'unauthenticated'` in six admin modules and
+`error: 'validation'` in about fifteen others, each with its own sentence
+(`NOT_ADMIN`, `NOT_AN_EDITOR`, `NOT_A_REVIEWER`, ...). A client could not tell a
+refusal from a bad form by the code, and "unauthenticated" told a signed-in
+member to sign in.
+
+**Decision.**
+
+- **`forbidden` is the code of every 403**, and only of a 403. The request
+  was understood and the caller is known; they may not do this.
+- **`unauthenticated` stays the 401** (no session, or an expired one), and
+  **`email_unverified` stays its own code**, because its answer is different:
+  verify, then try again. `locked` and `rate_limited` are unchanged.
+- **One refusal body per role**, in `packages/contracts` (`ROLE_REFUSALS`):
+  `administrator`, `editor` (or administrator), `moderator` (or
+  administrator) and `operator` (a featured-match panel's operator: a
+  moderator or administrator). Every role-gated controller answers one of
+  these, never a sentence of its own. A member-facing 403 (not your group,
+  not the founder, a blocked member) uses `forbidden(message)` with its own
+  sentence, since what it refuses differs.
+- A refusal carries `error` and `message` only: no fields, no data.
+
+**Migration in steps.** T-904 adds the code, the bodies and the assertion in
+`console-security.http.spec.ts` (every `/admin` route: a member and every
+non-entitled role get `403 forbidden`), with the routes still on their old
+code marked for the task that moves them. T-905 moves the admin-only
+controllers, T-906 the editor, moderator and operator ones, and T-907 the
+member-facing 403s, after which the assertion runs over the whole router and
+a 403 with any other code fails CI.
+
+**Rejected.** *Keeping `validation` for a refusal*: it says "fix the input",
+and nothing the caller sends can fix a missing role. *A code per role*
+(`not_admin`, `not_editor`, ...): the client's answer is the same for each --
+you may not do this -- and the sentence already names the role. *Reusing
+`unauthenticated`*: it is the 401's, and tells a signed-in member to sign in.
+
+**Consequences.** The web reads the code rather than a message's words; a
+403 shows "you may not do this", never a validation message
+(`apps/web/src/lib/action-failure.ts`). CI holds the rule two ways: the
+console security spec calls every route as a member with no role, and
+`forbidden-code.spec.ts` reads every `ForbiddenException` in the source,
+because most refusals need a state (a group, a sanction) a probe cannot
+reach. The chat socket's upgrade refusal is a bare 403 on the socket, not
+an `ApiError`, and is outside the rule.
+
+## D-109 — The past-season findings are our adoption lag, not the feed's gaps; coverage is judged on what is left after adoption and one re-ask
+**Status:** Accepted · 2026-09-28 (revisable under the standing delegation of 2026-09-26)
+
+**What T-910 found.** Of the 6,633 open findings on 2026-09-28 at 20:09 UTC
+(`lineup_not_eleven` 5,486, `goals_disagree` 1,147), 6,622 come from one
+cause. The feed supplied a player we have not adopted yet (D-079: people are
+adopted once the past-season backlog finishes). The writer leaves such a
+player out of a line-up or a timeline rather than write a blank (T-026). The
+other 11 are the feed's own answer. In 8 cup qualifiers settled after extra
+time, the score leaves out the extra-time goals the timeline carries. In 3
+current-season line-ups, one starter most likely had no id. The classes, their
+counts and example fixtures are in `05-data-providers.md`, "What the
+past-season findings are". No check and no parser is wrong, so T-911 is closed
+without a change.
+
+**Decision.**
+
+1. **A finding whose player is waiting in the queue is repaired, not
+   reviewed.** Adopting people (D-079) re-asks every fetched match within the
+   post-match budget, and the sweep resolves what then agrees. Bulk review
+   (T-912) is for findings that remain after that. Marking the adoption lag
+   reviewed would hide a gap that is ours to close.
+2. **What the feed answered is confirmed by asking again once** (T-913,
+   D-110), counted against the day's budget. That re-ask is the provider-side
+   sample T-910 did not take: this diagnosis read stored rows only and spent
+   no request. If the answer is unchanged, the finding is reviewed with the
+   reason "the feed's own answer, asked again on <date>". Nobody overrides a
+   stored value (N-3).
+3. **Coverage follows the remainder, not the raw count.** A past season's
+   `lineups` or `incidents` is proposed as `limited` (T-914) only when all
+   of these hold:
+   - Every finished match of the season has had its details fetched.
+   - No person from the season's provider is pending in `unresolved_entity`.
+   - At least **10%** of the season's finished matches still have an open
+     `lineup_not_eleven` finding (for `lineups`) or `goals_disagree` finding
+     (for `incidents`), after one re-ask.
+
+   The proposal names those counts. An administrator applies it through the
+   audited coverage write (T-070), and nothing is applied without a person.
+   Before those conditions hold, the season's coverage is not proposed at
+   all. Our own lag is not reported as the feed's gap.
+
+**Why 10%.** A season whose line-ups are "mostly incomplete" must never show
+as `available` (rule 3). One match in ten, left short after a re-ask, is
+already a line-up page that misleads often enough to say so. A handful of
+feed slips (class C and D: 11 in 4,684 fetched matches) is not a season's
+coverage, and is reviewed one by one instead.
+
+**Alternatives considered.** Reviewing the 2025/26 findings in bulk now: it
+would clear the page, but it would label 6,622 gaps we are about to close as
+accepted. Proposing `limited` from today's counts: 94% of 2025/26 matches
+would qualify, but the feed supplied every missing player. Adjusting
+`lineup_not_eleven` to ignore sides whose players are queued: it would hide the
+gap's size, and the check would then depend on the resolver's queue.
+
+## D-110 — Re-asking the feed: an administrator queues it, the post-match job carries it within 5 % of the day's budget, and the next sweep decides
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-913 lets a person ask the licensed feed again. No value is
+ever corrected by hand (N-3).
+
+- **Who.** Administrators only, from the data-quality page or
+  `POST /admin/data-quality/refetch`. One fixture (`fixture_id`), or every
+  fixture behind one check's open findings in one season (`check`,
+  `season_id`). A reason is required. One `audit_log` row per request
+  (`data_quality.refetch`, on the fixture or the season) names the fixtures
+  queued (rule 10). Only a fixture some provider holds an id for can be
+  queued. One request waits per fixture (a partial unique index), so asking
+  twice while one waits is a 409, not a second request.
+- **From which budget.** The post-match job carries the queue after its own
+  recent matches and backlog, oldest request first, through the same writer
+  as every other detail. It carries at most **5 %** of
+  `API_FOOTBALL_DAILY_BUDGET` a UTC day (`INGESTION_REFETCH_SHARE`, 0 to 10;
+  350 of 7,000) and at most **20** a run. It carries none while the day's
+  recorded requests are at **70 %** of the budget or more. 70 % plus a share
+  of at most 10 % is below the watchdog's `degraded` at 80 %, so the queue
+  never raises the budget condition by itself (`refetch-share.spec.ts` walks
+  a day at every share and budget). The ceiling itself stays
+  `BudgetedTransport`'s. A fixture the run already asks about for another
+  reason waits for the next run, so it is never asked twice in one run.
+- **How it resolves a finding.** The job records when it asked and whether
+  the answer changed any stored row (`fixture_refetch_request.changed`). The
+  sweep then judges the stored data as always. If the data now agrees, the
+  finding resolves. If not, it stays open, and the page says "asked again on
+  <date>, unchanged", or that the answer changed and still disagrees. Per
+  D-109, an unchanged answer is the feed's own, and is then reviewed with
+  that reason (T-912).
+
+**Why 5 %.** On a Saturday the plan projects about 4,000 of 7,000 requests
+(`05-data-providers.md`, T-501). 350 more keeps such a day near 4,350, well
+under the 7,000 ceiling, and the past-season classes D-109 names for a
+re-ask come to 11 fixtures. A class of a whole season's line-ups (700
+fixtures) takes two days at that pace. That is the right pace for a
+correction nobody is waiting on live.
+
+**Alternatives considered.** Deleting `fixture_detail_fetch` rows so the
+backlog asks again, as adoption does (D-079): it has no reason, no audit and
+no outcome, and it spends the backlog's batch rather than a stated share. A
+separate BullMQ job for the queue: a second writer of fixture details, and a
+second place the budget would have to be counted.
+
+**Consequences.** `1764840000000_fixture-refetch-request.sql` adds
+`fixture_refetch_request`. `DataQualityFinding.asked_again` and
+`DataQualityReport.refetch` are in the contract. `INGESTION_REFETCH_SHARE` is
+in `.env.example` and forwarded by the production compose file.

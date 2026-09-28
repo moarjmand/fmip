@@ -6,7 +6,8 @@ import { PG_POOL } from '../../../database/database.module';
 /**
  * Campaign rows (T-332, D-075): every statement in one place. Audiences and
  * campaigns are immutable; a dispatch is claimed by its primary key before
- * any member is told; a send row per member says what the inbox did.
+ * any member is told; a send row per member says what the inbox did,
+ * written a page at a time (T-903).
  */
 export interface AudienceRow {
   id: string;
@@ -194,12 +195,39 @@ export class PostgresCampaignStore {
     return rowCount === 1;
   }
 
-  async recordSend(campaignId: string, userId: string, outcome: SendOutcome): Promise<void> {
-    await this.pool.query(
-      `INSERT INTO campaign_send (campaign_id, user_id, outcome) VALUES ($1, $2, $3)
-       ON CONFLICT DO NOTHING`,
-      [campaignId, userId, outcome],
+  /**
+   * One audience page's outcome rows, in one statement (T-903, D-107). The
+   * inbox already wrote the page's notifications in one statement of its own
+   * (`emitToAudience`), and said who it wrote: `sent` or `delayed` here. A
+   * member it did not write was either `muted` -- their switch, a category,
+   * team or competition mute -- or already had this campaign's notification,
+   * which is `duplicate`; the dedupe key tells the two apart. `failed` is a
+   * page the inbox could not write at all. Returns the page's count of each.
+   */
+  async recordPage(
+    campaignId: string,
+    userIds: string[],
+    outcomes: (SendOutcome | null)[],
+  ): Promise<Partial<Record<SendOutcome, number>>> {
+    if (userIds.length === 0) return {};
+    const { rows } = await this.pool.query<{ outcome: SendOutcome; n: number }>(
+      `WITH page AS (
+         SELECT a.user_id,
+                coalesce(a.outcome, CASE WHEN EXISTS (
+                           SELECT 1 FROM notification n
+                            WHERE n.user_id = a.user_id AND n.kind = 'campaign'
+                              AND n.dedupe_key = $1::text)
+                         THEN 'duplicate' ELSE 'muted' END) AS outcome
+           FROM unnest($2::uuid[], $3::text[]) AS a (user_id, outcome)
+       ), recorded AS (
+         INSERT INTO campaign_send (campaign_id, user_id, outcome)
+         SELECT $1::uuid, user_id, outcome FROM page
+         ON CONFLICT DO NOTHING
+       )
+       SELECT outcome, count(*)::int AS n FROM page GROUP BY outcome`,
+      [campaignId, userIds, outcomes],
     );
+    return Object.fromEntries(rows.map((row) => [row.outcome, row.n]));
   }
 
   async finishDispatch(

@@ -1,4 +1,5 @@
 import type { ConversationSummary } from '@fmip/contracts';
+import { memberName } from '@/lib/member-name';
 
 /**
  * What to call a conversation in a list (T-244).
@@ -14,12 +15,18 @@ import type { ConversationSummary } from '@fmip/contracts';
  * fixture no longer resolves says the group and that a match is missing, rather
  * than naming a match the product cannot see (rule 3).
  */
-export function conversationTitle(conversation: ConversationSummary, viewer: string): string {
+export function conversationTitle(
+  conversation: ConversationSummary,
+  viewer: string,
+  locale: string,
+): string {
   switch (conversation.kind) {
     case 'direct': {
+      // A deleted member is named from the catalogue, never by the stored
+      // "Deleted member" (T-908).
       const others = conversation.members
         .filter((member) => member.username !== viewer)
-        .map((member) => member.display_name);
+        .map((member) => memberName(locale, member));
       return others.length === 0 ? 'A conversation' : others.join(', ');
     }
     case 'group':

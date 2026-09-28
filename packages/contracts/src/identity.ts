@@ -104,9 +104,36 @@ export interface ApiError {
     // too often. Its own kind rather than a `validation` error because the
     // answer is different: wait, rather than fix the input.
     | 'rate_limited'
+    // T-904 (D-108): signed in, but not allowed. Always a 403. `unauthenticated`
+    // is "who are you" and stays the 401; `email_unverified` stays its own code
+    // because its answer is different (verify, then try again).
+    | 'forbidden'
     | 'internal';
   message: string;
   /** On an `internal` error: the request id to quote when reporting it (T-071). */
   request_id?: string;
   fields?: Record<string, string>;
 }
+
+/** The roles a console refusal names (D-108). Each admits an administrator too. */
+export type RefusedRole = 'administrator' | 'editor' | 'moderator' | 'operator';
+
+/**
+ * A 403's body: signed in, and not allowed (D-108). A refusal says only that,
+ * and which role would be allowed; it never carries fields or data.
+ */
+export function forbidden(message: string): ApiError {
+  return { error: 'forbidden', message };
+}
+
+/**
+ * The one refusal body per role (T-904, D-108), so every controller gated on
+ * a role answers the same sentence rather than its own. `operator` is the
+ * featured-match panel's operator: a moderator or an administrator.
+ */
+export const ROLE_REFUSALS: Readonly<Record<RefusedRole, ApiError>> = {
+  administrator: forbidden('This needs the administrator role.'),
+  editor: forbidden('This needs the editor or administrator role.'),
+  moderator: forbidden('This needs the moderator or administrator role.'),
+  operator: forbidden('Operating a match panel needs the moderator or administrator role.'),
+};

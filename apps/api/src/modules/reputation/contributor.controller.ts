@@ -21,15 +21,12 @@ import type {
   GrantContributorRequest,
   GrantEventRequest,
 } from '@fmip/contracts';
+import { ROLE_REFUSALS } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { ContributorService, type GrantOutcome } from './contributor.service';
 
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
-const NOT_A_MODERATOR: ApiError = {
-  error: 'validation',
-  message: 'This needs the moderator or administrator role.',
-};
 
 /** The rules an approved contributor accepts (`13-policy.md` §5). */
 const CONTRIBUTOR_RULES = 'contributor-rules@1.0.0';
@@ -73,7 +70,7 @@ export class ContributorController {
       this.identity.hasRole(user.id, 'moderator'),
       this.identity.hasRole(user.id, 'admin'),
     ]);
-    if (!isModerator && !isAdmin) throw new ForbiddenException(NOT_A_MODERATOR);
+    if (!isModerator && !isAdmin) throw new ForbiddenException(ROLE_REFUSALS.moderator);
     return user;
   }
 

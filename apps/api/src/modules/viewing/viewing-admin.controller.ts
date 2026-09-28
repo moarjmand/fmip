@@ -33,6 +33,7 @@ import type {
 } from '@fmip/contracts';
 import {
   BROADCASTER_KINDS,
+  ROLE_REFUSALS,
   TERRITORY_CODE,
   VIEWING_ACCESS,
   VIEWING_COVERAGE_STATES,
@@ -47,10 +48,6 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const HTTP_URL = /^https?:\/\/\S+$/;
 const MAX_TEXT = 2000;
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
-const NOT_AN_EDITOR: ApiError = {
-  error: 'validation',
-  message: 'This needs the editor or administrator role.',
-};
 const NO_FIXTURE: ApiError = { error: 'not_found', message: 'No such fixture.' };
 const NO_SEASON: ApiError = { error: 'not_found', message: 'No such season.' };
 const NO_BROADCASTER: ApiError = { error: 'not_found', message: 'No such broadcaster.' };
@@ -90,7 +87,7 @@ export class ViewingAdminController {
       this.identity.hasRole(user.id, 'editor'),
       this.identity.hasRole(user.id, 'admin'),
     ]);
-    if (!isEditor && !isAdmin) throw new ForbiddenException(NOT_AN_EDITOR);
+    if (!isEditor && !isAdmin) throw new ForbiddenException(ROLE_REFUSALS.editor);
     return user;
   }
 

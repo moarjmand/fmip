@@ -7,6 +7,7 @@ import { type MessageKey, t } from '@/i18n/messages';
 import { type ApiResult, apiRequest } from '@/lib/api';
 import type { ActionState } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
+import { failureMessage, isRefused } from './action-failure';
 
 /**
  * Group polls (T-643, D-091): asking, voting, closing and removing. Server
@@ -16,15 +17,13 @@ import { sessionCookieHeader } from '@/lib/session';
  * included.
  */
 
-const UNREACHABLE = 'The service is unreachable right now. Please try again shortly.';
-
 function failure(result: Extract<ApiResult<unknown>, { ok: false }>): ActionState {
-  if (result.status === 0) return { ok: false, message: UNREACHABLE };
-  const fields = result.error?.fields;
+  const fields = isRefused(result) ? undefined : result.error?.fields;
   const detail = fields === undefined ? '' : ` ${Object.values(fields).join(' ')}`;
   return {
     ok: false,
-    message: `${result.error?.message ?? `The request failed (HTTP ${result.status}).`}${detail}`,
+    message: `${failureMessage(result)}${detail}`,
+    ...(isRefused(result) ? { refused: true as const } : {}),
   };
 }
 

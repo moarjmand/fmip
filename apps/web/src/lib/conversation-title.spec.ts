@@ -52,14 +52,31 @@ describe('what a conversation is called', () => {
         ],
       },
       'me',
+      'en',
     );
     expect(title).toBe('Ada Lovelace');
+  });
+
+  it('names a deleted member from the catalogue, never by the stored name (T-908)', () => {
+    const title = conversationTitle(
+      {
+        ...base,
+        members: [
+          { username: 'me', display_name: 'Me' },
+          { username: 'deleted_0123456789ab', display_name: 'Deleted member' },
+        ],
+      },
+      'me',
+      'en',
+    );
+    expect(title).toBe('A deleted member');
   });
 
   it('names a group room by its group', () => {
     const title = conversationTitle(
       { ...base, kind: 'group', group: { slug: 'terrace', name: 'The Open Terrace' } },
       'me',
+      'en',
     );
     expect(title).toBe('The Open Terrace');
   });
@@ -76,6 +93,7 @@ describe('what a conversation is called', () => {
         fixture: match,
       },
       'me',
+      'en',
     );
     expect(title).toBe('Liverpool v Esteghlal · The Open Terrace');
   });
@@ -84,6 +102,7 @@ describe('what a conversation is called', () => {
     const title = conversationTitle(
       { ...base, kind: 'group_thread', group: { slug: 'terrace', name: 'The Open Terrace' } },
       'me',
+      'en',
     );
     expect(title).toBe('The Open Terrace · a match');
   });
