@@ -4278,6 +4278,57 @@ by the dedupe key to tell a duplicate from a mute. The remaining emission
 cost, about 1 ms a member, is inside `emitToAudience`, which is shared with
 match alerts.
 
+---
+
+## D-108 — A `forbidden` error code: 401 is "who are you", 403 is "not you"
+**Status:** Accepted · 2026-09-28 (revisable under the standing delegation of 2026-09-26) · **Tasks:** T-904, T-905, T-906, T-907
+
+**Context.** `ApiError` had no code for "signed in, but not allowed". A 403
+carried `error: 'unauthenticated'` in six admin modules and
+`error: 'validation'` in about fifteen others, each with its own sentence
+(`NOT_ADMIN`, `NOT_AN_EDITOR`, `NOT_A_REVIEWER`, ...). A client could not tell a
+refusal from a bad form by the code, and "unauthenticated" told a signed-in
+member to sign in.
+
+**Decision.**
+
+- **`forbidden` is the code of every 403**, and only of a 403. The request
+  was understood and the caller is known; they may not do this.
+- **`unauthenticated` stays the 401** (no session, or an expired one), and
+  **`email_unverified` stays its own code**, because its answer is different:
+  verify, then try again. `locked` and `rate_limited` are unchanged.
+- **One refusal body per role**, in `packages/contracts` (`ROLE_REFUSALS`):
+  `administrator`, `editor` (or administrator), `moderator` (or
+  administrator) and `operator` (a featured-match panel's operator: a
+  moderator or administrator). Every role-gated controller answers one of
+  these, never a sentence of its own. A member-facing 403 (not your group,
+  not the founder, a blocked member) uses `forbidden(message)` with its own
+  sentence, since what it refuses differs.
+- A refusal carries `error` and `message` only: no fields, no data.
+
+**Migration in steps.** T-904 adds the code, the bodies and the assertion in
+`console-security.http.spec.ts` (every `/admin` route: a member and every
+non-entitled role get `403 forbidden`), with the routes still on their old
+code marked for the task that moves them. T-905 moves the admin-only
+controllers, T-906 the editor, moderator and operator ones, and T-907 the
+member-facing 403s, after which the assertion runs over the whole router and
+a 403 with any other code fails CI.
+
+**Rejected.** *Keeping `validation` for a refusal*: it says "fix the input",
+and nothing the caller sends can fix a missing role. *A code per role*
+(`not_admin`, `not_editor`, ...): the client's answer is the same for each --
+you may not do this -- and the sentence already names the role. *Reusing
+`unauthenticated`*: it is the 401's, and tells a signed-in member to sign in.
+
+**Consequences.** The web reads the code rather than a message's words; a
+403 shows "you may not do this", never a validation message
+(`apps/web/src/lib/action-failure.ts`). CI holds the rule two ways: the
+console security spec calls every route as a member with no role, and
+`forbidden-code.spec.ts` reads every `ForbiddenException` in the source,
+because most refusals need a state (a group, a sanction) a probe cannot
+reach. The chat socket's upgrade refusal is a bare 403 on the socket, not
+an `ApiError`, and is outside the rule.
+
 ## D-109 — The past-season findings are our adoption lag, not the feed's gaps; coverage is judged on what is left after adoption and one re-ask
 **Status:** Accepted · 2026-09-28 (revisable under the standing delegation of 2026-09-26)
 

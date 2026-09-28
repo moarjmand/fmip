@@ -15,6 +15,7 @@ import {
 import {
   type ApiError,
   DATA_QUALITY_CHECKS,
+  ROLE_REFUSALS,
   type DataQualityCheck,
   type DataQualityReport,
   type RefetchDataQualityResponse,
@@ -25,10 +26,6 @@ import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/ident
 import { DataQualityService } from './data-quality.service';
 
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
-const NOT_ADMIN: ApiError = {
-  error: 'unauthenticated',
-  message: 'The administration area needs the admin role.',
-};
 const MAX_REASON = 500;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -64,7 +61,8 @@ export class DataQualityController {
       parseCookies(request.headers.cookie)[SESSION_COOKIE],
     );
     if (user === null) throw new UnauthorizedException(UNAUTHENTICATED);
-    if (!(await this.identity.hasRole(user.id, 'admin'))) throw new ForbiddenException(NOT_ADMIN);
+    if (!(await this.identity.hasRole(user.id, 'admin')))
+      throw new ForbiddenException(ROLE_REFUSALS.administrator);
     return user.id;
   }
 

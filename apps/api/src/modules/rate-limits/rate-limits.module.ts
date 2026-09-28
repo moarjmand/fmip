@@ -7,16 +7,13 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type { ApiError, RateLimitsReport } from '@fmip/contracts';
+import { ROLE_REFUSALS } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityModule } from '../identity/identity.module';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { RateLimitsService } from './rate-limits.service';
 
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
-const NOT_ADMIN: ApiError = {
-  error: 'unauthenticated',
-  message: 'The administration area needs the admin role.',
-};
 
 /**
  * `GET /admin/rate-limits` (T-811): every ceiling with its number as the
@@ -37,7 +34,8 @@ export class RateLimitsController {
       parseCookies(request.headers.cookie)[SESSION_COOKIE],
     );
     if (user === null) throw new UnauthorizedException(UNAUTHENTICATED);
-    if (!(await this.identity.hasRole(user.id, 'admin'))) throw new ForbiddenException(NOT_ADMIN);
+    if (!(await this.identity.hasRole(user.id, 'admin')))
+      throw new ForbiddenException(ROLE_REFUSALS.administrator);
     return this.limits.report(new Date());
   }
 }

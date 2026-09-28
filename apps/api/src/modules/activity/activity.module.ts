@@ -8,7 +8,12 @@ import {
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ACTIVITY_MAX_DAYS, type ActivityReport, type ApiError } from '@fmip/contracts';
+import {
+  ACTIVITY_MAX_DAYS,
+  ROLE_REFUSALS,
+  type ActivityReport,
+  type ApiError,
+} from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityModule } from '../identity/identity.module';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
@@ -17,10 +22,6 @@ import { ActivityStore } from './internal/activity-store';
 import { windowDays } from './internal/series';
 
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
-const NOT_ADMIN: ApiError = {
-  error: 'unauthenticated',
-  message: 'The administration area needs the admin role.',
-};
 
 /**
  * `GET /admin/activity?days=` (T-807): how many registrations, sign-ins,
@@ -44,7 +45,8 @@ export class ActivityController {
       parseCookies(request.headers.cookie)[SESSION_COOKIE],
     );
     if (user === null) throw new UnauthorizedException(UNAUTHENTICATED);
-    if (!(await this.identity.hasRole(user.id, 'admin'))) throw new ForbiddenException(NOT_ADMIN);
+    if (!(await this.identity.hasRole(user.id, 'admin')))
+      throw new ForbiddenException(ROLE_REFUSALS.administrator);
     const window = windowDays(days);
     if (window === null) {
       const error: ApiError = {

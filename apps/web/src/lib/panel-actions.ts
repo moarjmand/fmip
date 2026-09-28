@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { apiRequest } from '@/lib/api';
 import type { ActionState } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
+import { failureState } from './action-failure';
 
 /**
  * Posting on a public match panel (T-251).
@@ -36,16 +37,7 @@ export async function postToPanelAction(
   });
 
   if (!result.ok) {
-    if (result.status === 0) {
-      return {
-        ok: false,
-        message: 'The service is unreachable right now. Please try again shortly.',
-      };
-    }
-    return {
-      ok: false,
-      message: result.error?.message ?? `The request failed (HTTP ${result.status}).`,
-    };
+    return failureState(result);
   }
 
   // The panel is a server component reading a public document, so the page has

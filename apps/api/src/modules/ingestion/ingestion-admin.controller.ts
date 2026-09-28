@@ -9,6 +9,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type { ApiError } from '@fmip/contracts';
+import { ROLE_REFUSALS } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { IngestionJobsService, type JobReport } from './ingestion-jobs.service';
@@ -16,10 +17,6 @@ import { PostgresRunStore } from './internal/run-store';
 
 const MAX_REASON = 300;
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
-const NOT_AN_ADMIN: ApiError = {
-  error: 'validation',
-  message: 'This needs the administrator role.',
-};
 
 /**
  * `POST /admin/ingestion/backfill` (T-030): the season's fixtures from its
@@ -56,7 +53,7 @@ export class IngestionAdminController {
     );
     if (user === null) throw new UnauthorizedException(UNAUTHENTICATED);
     if (!(await this.identity.hasRole(user.id, 'admin'))) {
-      throw new ForbiddenException(NOT_AN_ADMIN);
+      throw new ForbiddenException(ROLE_REFUSALS.administrator);
     }
     const reason = typeof body?.reason === 'string' ? body.reason.trim() : '';
     if (reason === '') {

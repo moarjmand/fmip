@@ -23,8 +23,9 @@ import { withTriggersOff } from '../testing/cleanup';
  *
  * For every row, and so for every page of the console:
  *
- * - a guest gets **401**, and a member without a role **403**;
- * - every role that is *not* in the row gets **403** too -- a moderator is
+ * - a guest gets **401** `unauthenticated`, and a member without a role
+ *   **403** `forbidden` (D-108);
+ * - every role that is *not* in the row gets **403** `forbidden` too -- a moderator is
  *   not an editor, an editor is not an administrator;
  * - a refusal is a refusal, not data: its body is an `ApiError` and nothing
  *   else;
@@ -82,7 +83,10 @@ const CONSOLE: Record<string, ConsoleRoute> = {
   // The operator's overview, members, coverage and the audit log (T-070, T-600).
   'GET /admin/overview': { roles: ADMIN },
   'GET /admin/users': { roles: ADMIN },
-  'POST /admin/users/:id/status': { roles: ADMIN, reason: { without: { status: 'suspended' } } },
+  'POST /admin/users/:id/status': {
+    roles: ADMIN,
+    reason: { without: { status: 'suspended' } },
+  },
   'PUT /admin/coverage/:seasonId/:module': {
     roles: ADMIN,
     reason: { without: { state: 'not_supplied' } },
@@ -132,7 +136,10 @@ const CONSOLE: Record<string, ConsoleRoute> = {
     roles: MODERATION,
     reason: { without: { report_ids: [UUID_A], outcome: 'no_action' } },
   },
-  'POST /admin/moderation/sanctions/:id/lift': { roles: MODERATION, reason: { without: {} } },
+  'POST /admin/moderation/sanctions/:id/lift': {
+    roles: MODERATION,
+    reason: { without: {} },
+  },
   'POST /admin/moderation/reports/:id/suggest': {
     roles: MODERATION,
     reason: {
@@ -144,14 +151,26 @@ const CONSOLE: Record<string, ConsoleRoute> = {
   'GET /admin/contributors': { roles: MODERATION },
   'GET /admin/contributors/:username': { roles: MODERATION },
   'POST /admin/contributors': { roles: MODERATION, reason: { without: {} } },
-  'POST /admin/contributors/:username/pause': { roles: MODERATION, reason: { without: {} } },
-  'POST /admin/contributors/:username/resume': { roles: MODERATION, reason: { without: {} } },
-  'POST /admin/contributors/:username/withdraw': { roles: MODERATION, reason: { without: {} } },
+  'POST /admin/contributors/:username/pause': {
+    roles: MODERATION,
+    reason: { without: {} },
+  },
+  'POST /admin/contributors/:username/resume': {
+    roles: MODERATION,
+    reason: { without: {} },
+  },
+  'POST /admin/contributors/:username/withdraw': {
+    roles: MODERATION,
+    reason: { without: {} },
+  },
 
   // Featured-match panels (T-253, T-613).
   'GET /admin/panels': { roles: MODERATION },
   'POST /admin/fixtures/:id/panel': { roles: MODERATION, reason: { without: {} } },
-  'POST /admin/fixtures/:id/panel/close': { roles: MODERATION, reason: { without: {} } },
+  'POST /admin/fixtures/:id/panel/close': {
+    roles: MODERATION,
+    reason: { without: {} },
+  },
 
   // Editorial: analysis reviews, debates, translations, viewing, summaries.
   'GET /admin/analysis-reviews': { roles: EDITORIAL },
@@ -161,7 +180,10 @@ const CONSOLE: Record<string, ConsoleRoute> = {
   },
   'GET /admin/debates': { roles: EDITORIAL },
   'POST /admin/stories/:id/debate': { roles: EDITORIAL, reason: { without: {} } },
-  'POST /admin/stories/:id/debate/clear': { roles: EDITORIAL, reason: { without: {} } },
+  'POST /admin/stories/:id/debate/clear': {
+    roles: EDITORIAL,
+    reason: { without: {} },
+  },
   'POST /admin/articles/:id/translations': {
     roles: EDITORIAL,
     reason: {
@@ -233,6 +255,14 @@ const PUBLIC_WRITES = new Set([
   'POST /auth/password/reset',
 ]);
 
+/** A 403 is `forbidden`, carrying a sentence and nothing else (D-108). */
+function expectForbidden(who: string, response: { statusCode: number; body: string }): void {
+  expect(response.statusCode, `${who}: ${response.body}`).toBe(403);
+  const error = JSON.parse(response.body) as ApiError;
+  expect(Object.keys(error).sort()).toEqual(['error', 'message']);
+  expect(error.error, `${who}: ${response.body}`).toBe('forbidden');
+}
+
 /** `'POST /admin/x'` → its method and path. */
 function parts(route: string): { method: string; path: string } {
   const [method = '', path = ''] = route.split(' ');
@@ -259,7 +289,7 @@ const RUN = `${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
 const ENGLAND = '00000000-0000-4000-8000-000000000101';
 const PASSWORD = 'correct horse battery staple';
 
-type Who = 'member' | 'other' | 'target' | Role;
+type Who = 'member' | 'other' | 'target' | 'prober' | Role;
 interface Account {
   id: string;
   username: string;
@@ -327,7 +357,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       await app.getHttpAdapter().getInstance().ready();
       pool = new Pool({ connectionString: DATABASE_URL });
 
-      for (const who of ['member', 'other', 'target', ...ROLES] as Who[]) {
+      for (const who of ['member', 'other', 'target', 'prober', ...ROLES] as Who[]) {
         const username = `sec_${RUN}_${who.slice(0, 3)}`;
         const registered = await inject('POST', '/auth/register', undefined, {
           username,
@@ -402,23 +432,18 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       const url = concrete(path);
       const body = method === 'GET' ? undefined : {};
 
-      it('refuses a guest with 401 and a member without the role with 403, saying only that', async () => {
+      it('refuses a guest with 401 unauthenticated and a member without the role with 403 forbidden, saying only that', async () => {
         const guest = await inject(method, url, undefined, body);
         expect(guest.statusCode, guest.body).toBe(401);
-        const member = await inject(method, url, 'member', body);
-        expect(member.statusCode, member.body).toBe(403);
-        for (const refused of [guest, member]) {
-          const error = refused.json() as ApiError;
-          expect(Object.keys(error).sort()).toEqual(['error', 'message']);
-        }
+        const error = guest.json() as ApiError;
+        expect(Object.keys(error).sort()).toEqual(['error', 'message']);
+        expect(error.error).toBe('unauthenticated');
+        expectForbidden('member', await inject(method, url, 'member', body));
       });
 
-      it(`is refused (403) to every role but ${row.roles.join(' and ')}`, async () => {
-        for (const role of ROLES.filter((r) => !row.roles.includes(r))) {
-          const response = await inject(method, url, role, body);
-          expect(response.statusCode, `${role}: ${response.body}`).toBe(403);
-          expect(Object.keys(response.json() as ApiError).sort()).toEqual(['error', 'message']);
-        }
+      it(`is refused (403 forbidden) to every role but ${row.roles.join(' and ')}`, async () => {
+        for (const role of ROLES.filter((r) => !row.roles.includes(r)))
+          expectForbidden(role, await inject(method, url, role, body));
       });
 
       it(`lets ${row.roles.join(' and ')} past the gate`, async () => {
@@ -507,13 +532,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       const { method, path } = parts(route);
       const url = concrete(path);
 
-      it(`refuses a guest (401), a member (403) and every role but ${row.roles.join(', ')} (403)`, async () => {
+      it(`refuses a guest (401), a member and every role but ${row.roles.join(', ')} (403 forbidden)`, async () => {
         expect((await inject(method, url, undefined, {})).statusCode).toBe(401);
-        expect((await inject(method, url, 'member', {})).statusCode).toBe(403);
-        for (const role of ROLES.filter((r) => !row.roles.includes(r))) {
-          const response = await inject(method, url, role, {});
-          expect(response.statusCode, `${role}: ${response.body}`).toBe(403);
-        }
+        expectForbidden('member', await inject(method, url, 'member', {}));
+        for (const role of ROLES.filter((r) => !row.roles.includes(r)))
+          expectForbidden(role, await inject(method, url, role, {}));
       });
     });
 
@@ -780,6 +803,41 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         );
         expect(rows[0]?.status).toBe('active');
       });
+    });
+
+    /**
+     * T-907 (D-108): the whole router, as a member with no role. Every route
+     * but getting into and out of an account is called with an empty body by
+     * an account of its own (`prober`, so nothing it changes reaches the
+     * accounts above), and any 403 that comes back must be `forbidden`, or
+     * `email_unverified` for an account not yet verified. The refusals a
+     * probe cannot reach are held to the same rule in `forbidden-code.spec.ts`.
+     */
+    describe('every 403 the router answers is forbidden', () => {
+      it('as a member with no role, on every route', async () => {
+        const wrong: string[] = [];
+        let refused = 0;
+        for (const route of routes) {
+          const { method, path } = parts(route);
+          if (method === 'HEAD' || method === 'OPTIONS' || PUBLIC_WRITES.has(route)) continue;
+          // A live stream answers 200 and stays open; it refuses nobody signed in.
+          if (path.endsWith('/stream')) continue;
+          const response = await inject(
+            method,
+            concrete(path),
+            'prober',
+            method === 'GET' ? undefined : {},
+          );
+          if (response.statusCode !== 403) continue;
+          refused += 1;
+          const code = (JSON.parse(response.body) as ApiError).error;
+          if (code !== 'forbidden' && code !== 'email_unverified')
+            wrong.push(`${route} -> ${response.body}`);
+        }
+        // Not vacuous: every /admin route alone refuses this member.
+        expect(refused).toBeGreaterThan(Object.keys(CONSOLE).length);
+        expect(wrong, '403s with another code: answer forbidden (D-108)').toEqual([]);
+      }, 300_000);
     });
   },
 );

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { type ApiResult, apiRequest } from '@/lib/api';
 import type { ActionState } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
+import { failureState } from './action-failure';
 
 /**
  * Groups: joining, asking, invitations and who runs one (blueprint 8.2, T-242).
@@ -15,14 +16,8 @@ import { sessionCookieHeader } from '@/lib/session';
  * refusals, whose wording is written not to say more than it should.
  */
 
-const UNREACHABLE = 'The service is unreachable right now. Please try again shortly.';
-
 function failure(result: Extract<ApiResult<unknown>, { ok: false }>): ActionState {
-  if (result.status === 0) return { ok: false, message: UNREACHABLE };
-  return {
-    ok: false,
-    message: result.error?.message ?? `The request failed (HTTP ${result.status}).`,
-  };
+  return failureState(result);
 }
 
 /**

@@ -155,6 +155,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the social g
   it('gates reaching a member on a verified e-mail, and never gates getting away from one', async () => {
     const reaching = await post(`/me/friend-requests/${ada}`, dev);
     expect(reaching.statusCode).toBe(403);
+    // D-108: an unverified account keeps its own code; it is not `forbidden`.
     expect(reaching.json().error).toBe('email_unverified');
 
     // The same unverified member can block. A product that made somebody verify

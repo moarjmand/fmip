@@ -11,6 +11,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type { ApiError, FixtureSettlementsResponse, SettlementRunResponse } from '@fmip/contracts';
+import { ROLE_REFUSALS } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { SettlementService } from './settlement.service';
@@ -82,11 +83,7 @@ export class SettlementController {
       throw new UnauthorizedException(error);
     }
     if (!(await this.identity.hasRole(user.id, 'admin'))) {
-      const error: ApiError = {
-        error: 'unauthenticated',
-        message: 'Settlement needs the admin role.',
-      };
-      throw new ForbiddenException(error);
+      throw new ForbiddenException(ROLE_REFUSALS.administrator);
     }
   }
 }

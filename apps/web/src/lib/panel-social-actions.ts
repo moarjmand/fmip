@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { apiRequest } from '@/lib/api';
 import type { ActionState } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
+import { failureState } from './action-failure';
 
 /**
  * Reacting to a panel post, and following a contributor (T-252).
@@ -25,18 +26,7 @@ async function send(
 ): Promise<ActionState> {
   const result = await apiRequest(path, { method, cookie: await sessionCookieHeader() });
   if (!result.ok) {
-    if (result.status === 0) {
-      return {
-        ok: false,
-        message: 'The service is unreachable right now. Please try again shortly.',
-      };
-    }
-    // The sentence the API sent, shown as it came. It is the one derived from
-    // what the database actually refused.
-    return {
-      ok: false,
-      message: result.error?.message ?? `The request failed (HTTP ${result.status}).`,
-    };
+    return failureState(result);
   }
   revalidatePath(revalidate);
   return { ok: true };

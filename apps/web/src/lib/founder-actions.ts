@@ -5,6 +5,7 @@ import type { FounderAnalysisVersion } from '@fmip/contracts';
 import { apiRequest } from '@/lib/api';
 import type { ActionState } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
+import { failureState } from './action-failure';
 
 /**
  * Publishing the founder's analysis (T-131).
@@ -60,17 +61,7 @@ export async function publishAnalysisAction(
   );
 
   if (!result.ok) {
-    if (result.status === 0) {
-      return {
-        ok: false,
-        message: 'The service is unreachable right now. Please try again shortly.',
-      };
-    }
-    return {
-      ok: false,
-      message: result.error?.message ?? `The request failed (HTTP ${result.status}).`,
-      ...(result.error?.fields ? { fields: result.error.fields } : {}),
-    };
+    return failureState(result);
   }
 
   revalidatePath(`/${locale}/founder/${fixtureId}`);

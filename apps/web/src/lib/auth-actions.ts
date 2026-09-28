@@ -30,7 +30,13 @@ import { reconcileThemeAtSignIn } from './theme-cookie';
 export type ActionState =
   | null
   | { ok: true; message?: string }
-  | { ok: false; message: string; fields?: Record<string, string> };
+  | {
+      ok: false;
+      message: string;
+      fields?: Record<string, string>;
+      /** T-907 (D-108): the API answered `forbidden` -- not a form to fix. */
+      refused?: true;
+    };
 
 function text(formData: FormData, name: string): string {
   const value = formData.get(name);

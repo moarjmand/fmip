@@ -262,7 +262,7 @@ export class ConversationsController {
         // ask to join; pretending it is not there would answer a different
         // question than the one they asked (T-244).
         throw new ForbiddenException({
-          error: 'validation',
+          error: 'forbidden',
           message: 'You are not in this group.',
         } satisfies ApiError);
       case 'email_unverified':
@@ -296,7 +296,7 @@ export class ConversationsController {
         } satisfies ApiError);
       case 'restricted':
         throw new ForbiddenException({
-          error: 'validation',
+          error: 'forbidden',
           message:
             'A moderation restriction stops you sending messages. Your account standing says why, and how to appeal.',
         } satisfies ApiError);
@@ -391,12 +391,12 @@ function unwrapThreads<T>(outcome: ConversationOutcome<T>): T {
       } satisfies ApiError);
     case 'not_a_member':
       throw new ForbiddenException({
-        error: 'validation',
+        error: 'forbidden',
         message: 'You are not in this group.',
       } satisfies ApiError);
     case 'restricted':
       throw new ForbiddenException({
-        error: 'validation',
+        error: 'forbidden',
         message: 'That is not something you can do at the moment.',
       } satisfies ApiError);
     case 'rate_limited':
