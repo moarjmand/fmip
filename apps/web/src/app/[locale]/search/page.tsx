@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { AskReason, SearchType } from '@fmip/contracts';
 import type { ReactNode } from 'react';
+import { MemberHandle, MemberName } from '@/components/member-name';
 import { Translated } from '@/components/translated';
 import type { MessageKey } from '@/i18n/messages';
 import { fetchAsk, fetchSearch } from '@/lib/api';
@@ -19,7 +20,6 @@ import {
   groupHref,
   keywordsAsAsked,
   matchNote,
-  memberHref,
   ofType,
   readSearchTerm,
   resultHref,
@@ -275,13 +275,13 @@ export default async function SearchPage({
                     className="flex flex-wrap items-baseline gap-x-3 py-2"
                     data-testid="search-member"
                   >
-                    <Link
-                      href={memberHref(locale, member.username)}
+                    <MemberName
+                      locale={locale}
+                      member={member}
+                      link
                       className="font-medium underline"
-                    >
-                      {member.display_name}
-                    </Link>
-                    <span className="text-sm text-muted">@{member.username}</span>
+                    />
+                    <MemberHandle username={member.username} className="text-sm text-muted" />
                   </li>
                 ))}
               </Section>

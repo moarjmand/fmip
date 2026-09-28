@@ -20,10 +20,18 @@ import { Button, Notice } from '@/components/ui';
  * smallest scale rule 3 applies at and the easiest place to let it slide.
  */
 
-function Row({ locale, notification }: { locale: string; notification: Notification }) {
+function Row({
+  locale,
+  notification,
+  deletedMemberLabel,
+}: {
+  locale: string;
+  notification: Notification;
+  deletedMemberLabel: string;
+}) {
   const [pending, start] = useTransition();
   const href = notificationHref(locale, notification);
-  const line = notificationLine(notification);
+  const line = notificationLine(notification, deletedMemberLabel);
   const unread = notification.read_at === null;
 
   const body = (
@@ -76,8 +84,11 @@ export function NotificationList({
   locale,
   page,
   reachable,
+  deletedMemberLabel,
 }: {
   locale: string;
+  /** `account.deletedMember` in the reader's language, from the server (T-908). */
+  deletedMemberLabel: string;
   page: NotificationsResponse | null;
   /** False when the inbox could not be fetched at all. */
   reachable: boolean;
@@ -121,7 +132,12 @@ export function NotificationList({
       )}
       <ul className="flex flex-col gap-2">
         {page.notifications.map((notification) => (
-          <Row key={notification.id} locale={locale} notification={notification} />
+          <Row
+            key={notification.id}
+            locale={locale}
+            notification={notification}
+            deletedMemberLabel={deletedMemberLabel}
+          />
         ))}
       </ul>
     </div>

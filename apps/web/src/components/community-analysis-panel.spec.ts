@@ -87,7 +87,8 @@ describe('what each analysis carries', () => {
     // Blueprint 10.3: published analysis is labelled with the author's name and
     // rating. On a page with four opinions it is the only thing telling one
     // analyst's call from another's.
-    expect(PANEL).toContain('analysis.author.display_name');
+    // Through `MemberName`, so a deleted author is "a deleted member" (T-908).
+    expect(PANEL).toContain('<MemberName locale={locale} member={analysis.author}');
     expect(PANEL).toContain('data-testid="community-analysis-rating"');
     expect(PANEL).toContain('data-testid="community-analysis-unrated"');
   });

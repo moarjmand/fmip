@@ -5,6 +5,7 @@ import type { GroupSummary } from '@fmip/contracts';
 import { fetchGroupInvites, fetchGroups, fetchMe, fetchMyGroups } from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { MemberName } from '@/components/member-name';
 import { Translated } from '@/components/translated';
 import { Button, Notice, TextField } from '@/components/ui';
 
@@ -92,7 +93,9 @@ export default async function GroupsPage({
                 >
                   {invite.group.name}
                 </Link>
-                <p className="text-sm text-muted">Invited by @{invite.invited_by}</p>
+                <p className="text-sm text-muted">
+                  Invited by <MemberName locale={locale} member={{ username: invite.invited_by }} />
+                </p>
               </li>
             ))}
           </ul>

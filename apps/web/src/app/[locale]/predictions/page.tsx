@@ -4,6 +4,7 @@ import { MAX_CONSENSUS_FIXTURES } from '@fmip/contracts';
 import { CommunityConsensusList } from '@/components/community-consensus';
 import { FounderAnalysisFeed } from '@/components/founder-analysis';
 import { ForecastList } from '@/components/forecast-panel';
+import { MemberName } from '@/components/member-name';
 import {
   fetchConsensusList,
   fetchForecastList,
@@ -169,9 +170,7 @@ export default async function PredictionsPage({
             {leaderboard.data.entries.map((entry) => (
               <li key={entry.username} className="text-sm">
                 <span className="text-muted">{entry.rank}.</span>{' '}
-                <Link href={`/${locale}/u/${entry.username}`} className="underline">
-                  {entry.username}
-                </Link>{' '}
+                <MemberName locale={locale} member={entry} link className="underline" />{' '}
                 <span className="text-muted">
                   · {entry.rating.toFixed(1)} from {entry.settled_count} settled
                   {entry.provisional ? ', provisional' : ''}
