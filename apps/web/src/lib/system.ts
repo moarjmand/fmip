@@ -157,6 +157,8 @@ export function conditionName(key: string): string {
       return `Delivery: ${target ?? '?'}`;
     case 'backup':
       return 'Backup';
+    case 'data_quality':
+      return 'Live match data contradicting itself';
     default:
       return key;
   }
