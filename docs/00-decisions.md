@@ -4289,3 +4289,54 @@ accepted. Proposing `limited` from today's counts: 94% of 2025/26 matches
 would qualify, but the feed supplied every missing player. Adjusting
 `lineup_not_eleven` to ignore sides whose players are queued: it would hide the
 gap's size, and the check would then depend on the resolver's queue.
+
+## D-110 — Re-asking the feed: an administrator queues it, the post-match job carries it within 5 % of the day's budget, and the next sweep decides
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-913 lets a person ask the licensed feed again. No value is
+ever corrected by hand (N-3).
+
+- **Who.** Administrators only, from the data-quality page or
+  `POST /admin/data-quality/refetch`. One fixture (`fixture_id`), or every
+  fixture behind one check's open findings in one season (`check`,
+  `season_id`). A reason is required. One `audit_log` row per request
+  (`data_quality.refetch`, on the fixture or the season) names the fixtures
+  queued (rule 10). Only a fixture some provider holds an id for can be
+  queued. One request waits per fixture (a partial unique index), so asking
+  twice while one waits is a 409, not a second request.
+- **From which budget.** The post-match job carries the queue after its own
+  recent matches and backlog, oldest request first, through the same writer
+  as every other detail. It carries at most **5 %** of
+  `API_FOOTBALL_DAILY_BUDGET` a UTC day (`INGESTION_REFETCH_SHARE`, 0 to 10;
+  350 of 7,000) and at most **20** a run. It carries none while the day's
+  recorded requests are at **70 %** of the budget or more. 70 % plus a share
+  of at most 10 % is below the watchdog's `degraded` at 80 %, so the queue
+  never raises the budget condition by itself (`refetch-share.spec.ts` walks
+  a day at every share and budget). The ceiling itself stays
+  `BudgetedTransport`'s. A fixture the run already asks about for another
+  reason waits for the next run, so it is never asked twice in one run.
+- **How it resolves a finding.** The job records when it asked and whether
+  the answer changed any stored row (`fixture_refetch_request.changed`). The
+  sweep then judges the stored data as always. If the data now agrees, the
+  finding resolves. If not, it stays open, and the page says "asked again on
+  <date>, unchanged", or that the answer changed and still disagrees. Per
+  D-109, an unchanged answer is the feed's own, and is then reviewed with
+  that reason (T-912).
+
+**Why 5 %.** On a Saturday the plan projects about 4,000 of 7,000 requests
+(`05-data-providers.md`, T-501). 350 more keeps such a day near 4,350, well
+under the 7,000 ceiling, and the past-season classes D-109 names for a
+re-ask come to 11 fixtures. A class of a whole season's line-ups (700
+fixtures) takes two days at that pace. That is the right pace for a
+correction nobody is waiting on live.
+
+**Alternatives considered.** Deleting `fixture_detail_fetch` rows so the
+backlog asks again, as adoption does (D-079): it has no reason, no audit and
+no outcome, and it spends the backlog's batch rather than a stated share. A
+separate BullMQ job for the queue: a second writer of fixture details, and a
+second place the budget would have to be counted.
+
+**Consequences.** `1764840000000_fixture-refetch-request.sql` adds
+`fixture_refetch_request`. `DataQualityFinding.asked_again` and
+`DataQualityReport.refetch` are in the contract. `INGESTION_REFETCH_SHARE` is
+in `.env.example` and forwarded by the production compose file.

@@ -17,6 +17,7 @@ import {
   DATA_QUALITY_CHECKS,
   type DataQualityCheck,
   type DataQualityReport,
+  type RefetchDataQualityResponse,
   type ReviewDataQualityBatchResponse,
 } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
@@ -45,7 +46,9 @@ const REASON_FIELD = `Say why, in at most ${MAX_REASON} characters. This is reco
  * /admin/data-quality/:id/review` (marks one reviewed, with a reason and an
  * audit row), and `POST /admin/data-quality/review-batch` (every open,
  * unreviewed finding of one check in one season, one reason, one audit row:
- * T-912). Admin role only. Reviewing corrects nothing: the finding stays
+ * T-912), and `POST /admin/data-quality/refetch` (asks the feed again for one
+ * fixture, or for every fixture behind one check's findings in a season,
+ * audited: T-913, D-110). Admin role only. Reviewing corrects nothing: the finding stays
  * open until the data stops contradicting itself, and the watchdog stops
  * counting it.
  */
@@ -69,6 +72,69 @@ export class DataQualityController {
   async report(@Req() request: FastifyRequest): Promise<DataQualityReport> {
     await this.admin(request);
     return this.dataQuality.report(new Date());
+  }
+
+  /**
+   * Queues a re-ask of the feed: `{ fixture_id, reason }` for one fixture, or
+   * `{ check, season_id, reason }` for every fixture behind that check's open
+   * findings in that season. The post-match job carries it within its share
+   * of the day's budget; the finding resolves on the next sweep if the answer
+   * agrees. 404: nothing the feed can be asked about. 409: all already waiting.
+   */
+  @Post('refetch')
+  @HttpCode(202)
+  async refetch(
+    @Body() body: unknown,
+    @Req() request: FastifyRequest,
+  ): Promise<RefetchDataQualityResponse> {
+    const actor = await this.admin(request);
+    const raw = (body ?? {}) as { fixture_id?: unknown; check?: unknown; season_id?: unknown };
+    const reason = reasonOf(body);
+    const badReason = reason === '' || reason.length > MAX_REASON;
+    const byFixture = raw.fixture_id !== undefined;
+    const fixtureId =
+      typeof raw.fixture_id === 'string' && UUID.test(raw.fixture_id) ? raw.fixture_id : null;
+    const check = DATA_QUALITY_CHECKS.includes(raw.check as DataQualityCheck)
+      ? (raw.check as DataQualityCheck)
+      : null;
+    const seasonId =
+      typeof raw.season_id === 'string' && UUID.test(raw.season_id) ? raw.season_id : null;
+    const fields: Record<string, string> = {
+      ...(byFixture && fixtureId === null ? { fixture_id: 'A fixture id.' } : {}),
+      ...(!byFixture && check === null
+        ? { check: 'One of the data-quality checks, or a fixture_id instead.' }
+        : {}),
+      ...(!byFixture && seasonId === null ? { season_id: 'A season id.' } : {}),
+      ...(badReason ? { reason: REASON_FIELD } : {}),
+    };
+    if (Object.keys(fields).length > 0) {
+      throw new BadRequestException({
+        error: 'validation',
+        message: 'The request is not valid.',
+        fields,
+      } satisfies ApiError);
+    }
+    const outcome = await this.dataQuality.requestRefetch(
+      byFixture ? { fixtureId: fixtureId! } : { check: check!, seasonId: seasonId! },
+      actor,
+      reason,
+      new Date(),
+    );
+    if (outcome === null) {
+      throw new NotFoundException({
+        error: 'not_found',
+        message: byFixture
+          ? 'No fixture with that id that the feed can be asked about.'
+          : 'No open finding of that check in that season names a fixture the feed can be asked about.',
+      } satisfies ApiError);
+    }
+    if (outcome.queued.length === 0) {
+      throw new ConflictException({
+        error: 'conflict',
+        message: 'The feed is already due to be asked again about all of these.',
+      } satisfies ApiError);
+    }
+    return { queued: outcome.queued.length, already_queued: outcome.alreadyQueued };
   }
 
   @Post('review-batch')

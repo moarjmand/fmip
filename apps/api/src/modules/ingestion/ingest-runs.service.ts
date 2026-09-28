@@ -214,6 +214,11 @@ export class IngestRunsService {
     });
   }
 
+  /** The provider requests recorded by runs since 00:00 UTC of `now`'s day (T-501). */
+  requestsToday(provider: string, now: Date = new Date()): Promise<number> {
+    return this.store.requestsSince(provider, utcMidnight(now));
+  }
+
   async ingestionHealth(now: Date = new Date()): Promise<IngestionHealth> {
     // The provider the fixtures job would ask, which is the only one whose
     // mappings decide whether anything is fetched at all.
