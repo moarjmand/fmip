@@ -68,6 +68,24 @@ COMMENT ON TABLE data_quality_finding IS
 COMMENT ON COLUMN data_quality_finding.subject_key IS
   'What the finding is about, stable across sweeps within one check: a fixture id, a fixture id and side, two fixture ids, or a season and team.';
 
+-- When each check last ran, so that "no findings" can be told apart from "not
+-- checked lately" (rule 4): the admin page and the watchdog read it.
+CREATE TABLE data_quality_check_run (
+  check_kind text PRIMARY KEY,
+  checked_at timestamptz NOT NULL,
+  CONSTRAINT data_quality_check_run_check_kind CHECK (
+    check_kind IN (
+      'finished_without_score', 'goals_disagree', 'live_overrun',
+      'lineup_not_eleven', 'fixture_mapped_twice', 'duplicate_fixture',
+      'table_disagrees'
+    )
+  )
+);
+
+COMMENT ON TABLE data_quality_check_run IS
+  'The newest run of each data-quality check (T-820), one row per check, rewritten by every run.';
+
 -- Down Migration
 
+DROP TABLE data_quality_check_run;
 DROP TABLE data_quality_finding;

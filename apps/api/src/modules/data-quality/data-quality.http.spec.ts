@@ -167,6 +167,22 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('data-quality
     expect(rows.find((r) => r.check_kind === 'lineup_not_eleven')?.team_id).toBe(LIVERPOOL);
   });
 
+  it('a sweep stamps every swept check as run, and not the table it did not compare', async () => {
+    const { rows } = await pool.query<{ check_kind: string }>(
+      `SELECT check_kind FROM data_quality_check_run WHERE checked_at >= now() - interval '1 hour'`,
+    );
+    expect(rows.map((r) => r.check_kind).sort()).toEqual(
+      expect.arrayContaining([
+        'duplicate_fixture',
+        'finished_without_score',
+        'fixture_mapped_twice',
+        'goals_disagree',
+        'lineup_not_eleven',
+        'live_overrun',
+      ]),
+    );
+  });
+
   it('a second sweep writes no second row: it moves last_seen_at on', async () => {
     const before = await mine();
     const later = new Date(Date.now() + 5 * 60_000);

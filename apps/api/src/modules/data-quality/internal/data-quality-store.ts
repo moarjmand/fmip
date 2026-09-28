@@ -169,7 +169,8 @@ export class DataQualityStore {
    * Records what one run of some checks found, over one scope: every finding
    * is opened or has its `last_seen_at` moved on (never a second row, by the
    * partial unique index), and every unresolved finding of those checks in
-   * that scope that was not found this time is resolved.
+   * that scope that was not found this time is resolved. Each check's
+   * `checked_at` moves on, so no findings is never read as not checked.
    *
    * `seasonId` narrows the scope to one season (the standings job compares
    * one season's table at a time); `null` is every season (a sweep).
@@ -218,6 +219,13 @@ export class DataQualityStore {
                 SELECT 1 FROM unnest($3::text[], $5::text[]) AS seen(c, k)
                  WHERE seen.c = d.check_kind AND seen.k = d.subject_key)`,
       [checks, seasonId, findings.map((f) => f.check), now, findings.map((f) => f.subjectKey)],
+    );
+    await client.query(
+      `INSERT INTO data_quality_check_run (check_kind, checked_at)
+       SELECT unnest($1::text[]), $2::timestamptz
+       ON CONFLICT (check_kind)
+       DO UPDATE SET checked_at = GREATEST(data_quality_check_run.checked_at, EXCLUDED.checked_at)`,
+      [checks, now],
     );
     return { opened, seen: findings.length - opened, resolved: resolved.rowCount ?? 0 };
   }
