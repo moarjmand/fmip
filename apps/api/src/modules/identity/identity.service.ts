@@ -1,5 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { AuthUser, LoginRequest, RegisterRequest } from '@fmip/contracts';
+import type {
+  AuthUser,
+  DeleteAccountRequest,
+  LoginRequest,
+  RegisterRequest,
+} from '@fmip/contracts';
+import { PostgresAccountDeletionStore } from './internal/account-deletion-store';
 import {
   type AuthRateCheck,
   AuthRateLimiter,
@@ -51,6 +57,16 @@ export type RegisterOutcome =
   | { kind: 'conflict'; fields: Record<string, string> }
   | { kind: 'invalid'; fields: Record<string, string> };
 
+export type DeleteAccountOutcome =
+  | 'deleted'
+  | 'wrong_password'
+  | 'wrong_confirmation'
+  /** No active account behind the id: already deleted, or never was. */
+  | 'unknown';
+
+/** The audit reason of a member deleting their own account (D-094). */
+export const SELF_SERVICE_DELETION = 'self-service deletion';
+
 export type LoginOutcome =
   { kind: 'signed_in'; user: AuthUser; sessionToken: string } | { kind: 'refused' } | Limited;
 
@@ -91,6 +107,7 @@ export type UserRole = 'admin' | 'founder' | 'moderator' | 'editor';
 export class IdentityService {
   constructor(
     private readonly store: PostgresIdentityStore,
+    private readonly deletion: PostgresAccountDeletionStore,
     @Inject(MAILER) private readonly mailer: Mailer,
     @Inject(IDENTITY_OPTIONS) private readonly options: IdentityOptions,
     private readonly limits: AuthRateLimiter,
@@ -252,6 +269,31 @@ export class IdentityService {
       );
     }
     return true;
+  }
+
+  /**
+   * Deletes the signed-in member's account (T-812, D-094), confirmed by their
+   * password and their username typed again. Everything happens in one
+   * transaction with its audit row (actor: the member); the sessions go with
+   * it, so the cookie that asked is dead when this returns `deleted`.
+   *
+   * The password is checked before the confirmation, so a wrong username
+   * never tells a stranger at an unlocked screen whether the password was
+   * right.
+   */
+  async deleteAccount(userId: string, input: DeleteAccountRequest): Promise<DeleteAccountOutcome> {
+    const found = await this.deletion.credentialsOf(userId);
+    const storedHash = found?.passwordHash ?? (await decoyHash());
+    const matches = await verifyPassword(input.password, storedHash);
+    if (found === null) return 'unknown';
+    if (found.passwordHash === null || !matches) return 'wrong_password';
+    if (input.confirm !== found.username) return 'wrong_confirmation';
+
+    const done = await this.deletion.delete(userId, {
+      actorId: userId,
+      reason: SELF_SERVICE_DELETION,
+    });
+    return done === null ? 'unknown' : 'deleted';
   }
 
   /** For other boundaries that hold a user id and need the account as the API describes it. */

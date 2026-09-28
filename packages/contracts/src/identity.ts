@@ -65,6 +65,29 @@ export interface ResetPasswordRequest {
 }
 
 /**
+ * `POST /auth/account/delete` (T-812, D-094). The member's password, and their
+ * username typed again as the confirmation. Answers 204 and clears the session
+ * cookie; every session of the account is gone with it.
+ */
+export interface DeleteAccountRequest {
+  password: string;
+  /** Must equal the member's username exactly. */
+  confirm: string;
+}
+
+/**
+ * The username a deleted account is left with (D-094): `deleted_` and twelve
+ * hex digits. No live account can hold one (the database refuses it), so a
+ * reader that meets it -- a message's author, a panel post's -- shows "a
+ * deleted member" and links nowhere.
+ */
+export const DELETED_USERNAME_PATTERN = /^deleted_[0-9a-f]{12}$/;
+
+export function isDeletedMember(username: string): boolean {
+  return DELETED_USERNAME_PATTERN.test(username);
+}
+
+/**
  * The error body every `apps/api` endpoint uses. `fields` names the offending
  * request fields for validation and conflict errors.
  */

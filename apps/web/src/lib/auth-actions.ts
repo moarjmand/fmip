@@ -1,6 +1,7 @@
 'use server';
 
 import type {
+  DeleteAccountRequest,
   FollowRequest,
   FollowingResponse,
   LoginRequest,
@@ -120,6 +121,32 @@ export async function logoutAction(locale: string): Promise<void> {
   // only a way to look signed in without being so.
   await applyApiSetCookie(result.setCookie ?? 'fmip_session=; Max-Age=0');
   redirect(`/${locale}`);
+}
+
+/**
+ * Settings -> Delete my account (T-812, D-094). The password and the username
+ * typed again go to the API, which decides both; a wrong one comes back as a
+ * field error on that field. On success every session is already gone, so our
+ * copy of the cookie is cleared and the member lands on the page that says so.
+ */
+export async function deleteAccountAction(
+  locale: string,
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const body: DeleteAccountRequest = {
+    password: text(formData, 'password'),
+    confirm: text(formData, 'confirm'),
+  };
+  const result = await apiRequest<null>('/auth/account/delete', {
+    method: 'POST',
+    body,
+    cookie: await sessionCookieHeader(),
+  });
+  if (!result.ok) return failure(result);
+
+  await applyApiSetCookie(result.setCookie ?? 'fmip_session=; Max-Age=0');
+  redirect(`/${locale}/account-deleted`);
 }
 
 export async function forgotPasswordAction(

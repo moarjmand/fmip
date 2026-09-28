@@ -14,7 +14,14 @@ import {
   fetchTerritories,
 } from '@/lib/api';
 import { territoryOptions, territoryValue } from '@/lib/territory';
-import { setTerritoryAction, updatePrivacyAction, updateProfileAction } from '@/lib/auth-actions';
+import {
+  deleteAccountAction,
+  setTerritoryAction,
+  updatePrivacyAction,
+  updateProfileAction,
+} from '@/lib/auth-actions';
+import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
+import { interpolate, t } from '@/i18n/messages';
 import { sessionCookieHeader } from '@/lib/session';
 import type { Appearance } from '@/lib/appearance';
 import type { ThemePreference } from '@/lib/theme';
@@ -191,7 +198,59 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
           competitions={competitions}
         />
       )}
+
+      <DeleteAccountSection locale={locale} username={account.username} />
     </main>
+  );
+}
+
+/**
+ * Settings -> Delete my account (T-812, D-094). Last on the page, and the only
+ * section that says in full what it will do before it does it: what goes,
+ * what stays and why, and that it is final. The password and the username
+ * typed again are both checked by the API.
+ */
+function DeleteAccountSection({ locale, username }: { locale: string; username: string }) {
+  const lang = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  return (
+    <section id="delete-account" className="flex flex-col gap-4" data-testid="delete-account">
+      <h2 className="text-xl font-semibold">
+        <Translated locale={locale} message="account.delete.heading" />
+      </h2>
+      <p className="text-sm text-muted">
+        <Translated locale={locale} message="account.delete.removed" />
+      </p>
+      <p className="text-sm text-muted">
+        <Translated locale={locale} message="account.delete.kept" />
+      </p>
+      <p className="text-sm text-muted">
+        <Translated locale={locale} message="account.delete.username" />
+      </p>
+      <Notice tone="danger">
+        <Translated locale={locale} message="account.delete.final" />
+      </Notice>
+      <ActionForm
+        action={deleteAccountAction.bind(null, locale)}
+        fields={[
+          {
+            name: 'password',
+            label: t(lang, 'account.delete.password'),
+            type: 'password',
+            required: true,
+            autoComplete: 'current-password',
+          },
+          {
+            name: 'confirm',
+            label: t(lang, 'account.delete.confirm'),
+            required: true,
+            autoComplete: 'off',
+            hint: interpolate(t(lang, 'account.delete.confirmHint'), { username }),
+          },
+        ]}
+        submitLabel={t(lang, 'account.delete.submit')}
+        testId="delete-account-form"
+      />
+    </section>
   );
 }
 

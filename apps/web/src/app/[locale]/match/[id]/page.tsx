@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
+import { t } from '@/i18n/messages';
 import { ForecastPanel } from '@/components/forecast-panel';
 import { CommunityAnalysisPanel } from '@/components/community-analysis-panel';
 import { CommunityForecastPanel } from '@/components/community-consensus';
@@ -267,6 +269,10 @@ export default async function MatchPage({
                   <MatchPanel
                     locale={locale}
                     fixtureId={result.data.fixture.id}
+                    deletedMemberLabel={t(
+                      isLocale(locale) ? locale : DEFAULT_LOCALE,
+                      'account.deletedMember',
+                    )}
                     page={panel !== null && panel.ok ? panel.data : null}
                     permission={
                       panelPermission !== null && panelPermission.ok ? panelPermission.data : null
