@@ -183,10 +183,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('data-quality
     );
   });
 
-  it('a second sweep writes no second row: it moves last_seen_at on', async () => {
+  it('a second sweep writes no second row, and moves last_seen_at on at most hourly', async () => {
     const before = await mine();
-    const later = new Date(Date.now() + 5 * 60_000);
-    await dataQuality.sweep(later);
+    await dataQuality.sweep(new Date(Date.now() + 5 * 60_000));
+    const soon = await mine();
+    expect(soon.map((r) => r.subject_key)).toEqual(before.map((r) => r.subject_key));
+    expect(soon.map((r) => r.last_seen_at)).toEqual(before.map((r) => r.last_seen_at));
+
+    await dataQuality.sweep(new Date(Date.now() + 61 * 60_000));
     const after = await mine();
     expect(after.map((r) => r.subject_key)).toEqual(before.map((r) => r.subject_key));
     for (const row of after) {
@@ -201,7 +205,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('data-quality
       `INSERT INTO fixture_score (fixture_id, kind, home, away) VALUES ($1, 'full_time', 2, 2)`,
       [fixtures.noScore],
     );
-    const outcome = await dataQuality.sweep(new Date(Date.now() + 10 * 60_000));
+    const outcome = await dataQuality.sweep(new Date(Date.now() + 70 * 60_000));
     expect(outcome.resolved).toBeGreaterThanOrEqual(1);
     const rows = await mine();
     const noScore = rows.filter((r) => r.fixture_id === fixtures.noScore);
@@ -218,7 +222,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('data-quality
 
   it('the same subject found again after it was resolved is a new row', async () => {
     await pool.query(`DELETE FROM fixture_score WHERE fixture_id = $1`, [fixtures.noScore]);
-    await dataQuality.sweep(new Date(Date.now() + 15 * 60_000));
+    await dataQuality.sweep(new Date(Date.now() + 75 * 60_000));
     const noScore = (await mine()).filter((r) => r.fixture_id === fixtures.noScore);
     expect(noScore.map((r) => r.resolved_at === null)).toEqual([false, true]);
   });

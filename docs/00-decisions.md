@@ -3642,8 +3642,10 @@ of one, a pair, a team in a season's table), with `first_seen_at`,
 `last_seen_at` and `resolved_at`; a partial unique index keeps one unresolved
 row per (check, subject), so a sweep that sees the same problem moves
 `last_seen_at` on and never writes a second row, and a sweep that no longer
-sees it resolves it. Nothing is corrected automatically. The checks and the
-numbers the plan left open:
+sees it resolves it; an unchanged finding's row is rewritten at most hourly, and
+`data_quality_check_run` says exactly when each check last ran. Nothing is
+corrected automatically. The checks and
+the numbers the plan left open:
 
 - `finished_without_score`: `finished` with no `full_time` row.
 - `goals_disagree`: the goal incidents per side against `current` (live), or

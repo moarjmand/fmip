@@ -21,6 +21,13 @@ import {
  */
 export const DATA_QUALITY_LOCK = 820_820;
 
+/**
+ * How stale `last_seen_at` may be while a finding is unchanged: a sweep that
+ * sees it again rewrites the row only when its detail changed or this long
+ * has passed since it was last written.
+ */
+export const LAST_SEEN_RESOLUTION_SECONDS = 60 * 60;
+
 /** The rows each check reads. One statement per check, over stored data only. */
 export interface CheckRows {
   scores: ScoreKindsRow[];
@@ -194,6 +201,12 @@ export class DataQualityStore {
          ON CONFLICT (check_kind, subject_key) WHERE resolved_at IS NULL
          DO UPDATE SET last_seen_at = GREATEST(data_quality_finding.last_seen_at, EXCLUDED.last_seen_at),
                        detail = EXCLUDED.detail
+               -- An unchanged finding is rewritten at most hourly: thousands of
+               -- them every five minutes would be write traffic for nothing
+               -- (data_quality_check_run says exactly when the check last ran).
+               WHERE data_quality_finding.detail IS DISTINCT FROM EXCLUDED.detail
+                  OR data_quality_finding.last_seen_at
+                       <= EXCLUDED.last_seen_at - make_interval(secs => $10::int)
          RETURNING (xmax = 0) AS inserted`,
         [
           findings.map((f) => f.check),
@@ -205,6 +218,7 @@ export class DataQualityStore {
           findings.map((f) => f.competitionId),
           findings.map((f) => f.detail),
           now,
+          LAST_SEEN_RESOLUTION_SECONDS,
         ],
       );
       opened = rows.filter((r) => r.inserted).length;
