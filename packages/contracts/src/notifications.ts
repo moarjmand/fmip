@@ -1,4 +1,5 @@
 import type { DeliveryHealth } from './health';
+import { isDeletedMember } from './identity';
 /**
  * In-product notifications (blueprint 12.2, T-270).
  *
@@ -456,16 +457,24 @@ export const NOTIFICATION_TEXT: Record<NotificationKind, { text: string; named: 
  * source did not resolve falls back to "Somebody" rather than rendering a
  * gap: an account can be deleted after it caused something, and a sentence
  * starting with a space is worse than an honest indefinite (rule 3).
+ *
+ * A source that resolved to a deleted account's tombstone username is never
+ * shown (T-908, D-094): it is `deletedMember`, which the web passes from its
+ * catalogue (`account.deletedMember`) and an e-mail or a push leaves as the
+ * English default, as it leaves the rest of the line.
  */
 export function notificationLine(
   notification: Pick<Notification, 'kind' | 'source'> & { headline?: string | null },
+  deletedMember = 'A deleted member',
 ): string {
   if (notification.headline !== undefined && notification.headline !== null) {
     return notification.headline;
   }
   const entry = NOTIFICATION_TEXT[notification.kind];
   if (!entry.named) return entry.text;
-  return `${notification.source ?? 'Somebody'} ${entry.text}`;
+  const source = notification.source;
+  const who = source === null ? 'Somebody' : isDeletedMember(source) ? deletedMember : source;
+  return `${who} ${entry.text}`;
 }
 
 /**

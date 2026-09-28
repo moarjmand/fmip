@@ -219,6 +219,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
           everyone,
         ]);
         await client.query(`DELETE FROM rate_window WHERE user_id = ANY($1::uuid[])`, [everyone]);
+        // Another spec's rating snapshot may have ranked these members.
+        await client.query(`DELETE FROM rating_snapshot WHERE user_id = ANY($1::uuid[])`, [
+          everyone,
+        ]);
       } finally {
         await client.query(`SET session_replication_role = 'origin'`);
         client.release();

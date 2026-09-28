@@ -6,6 +6,7 @@ import type {
   FollowingFeedReason,
 } from '@fmip/contracts';
 import type { MessageKey } from '@/i18n/messages';
+import { memberName } from '@/lib/member-name';
 
 /** Each kind of item, named in words. Total, so a fifth kind fails the build until it has one. */
 export const KIND_KEY: Record<FeedItemBody['kind'], MessageKey> = {
@@ -65,7 +66,7 @@ export function feedItemHref(locale: string, item: FeedItem): string {
 }
 
 /** The line that names an item: the two teams, the headline, or the author. */
-export function feedItemTitle(item: FeedItem): string {
+export function feedItemTitle(item: FeedItem, locale: string): string {
   switch (item.kind) {
     case 'fixture':
       return `${item.home.name} – ${item.away.name}`;
@@ -74,7 +75,7 @@ export function feedItemTitle(item: FeedItem): string {
     case 'founder_analysis':
       return `${item.home.name} – ${item.away.name}`;
     case 'panel_post':
-      return `${item.author.display_name} on ${item.home.name} – ${item.away.name}`;
+      return `${memberName(locale, item.author)} on ${item.home.name} – ${item.away.name}`;
   }
 }
 
