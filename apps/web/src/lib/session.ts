@@ -4,7 +4,7 @@ import { cookies, headers } from 'next/headers';
 import { clientIpFrom } from './client-ip';
 import { SESSION_COOKIE, parseSessionSetCookie } from './set-cookie';
 
-/** The reader's address for the API's rate limits on the account forms (T-810), if known. */
+/** The reader's address for the API's rate limits on the account forms (T-810) and `/ask` (T-838), if known. */
 export async function readerAddress(): Promise<string | undefined> {
   return clientIpFrom((await headers()).get('cf-connecting-ip'));
 }

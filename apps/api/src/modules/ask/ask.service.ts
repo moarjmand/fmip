@@ -40,6 +40,15 @@ export class AskService {
     private readonly intelligence: IntelligenceService,
   ) {}
 
+  /**
+   * Whether a question would be put to the model at all. Without one, `/ask`
+   * is the keyword search and costs nothing, so its ceilings do not apply
+   * (T-838).
+   */
+  usesModel(): boolean {
+    return !this.intelligence.describe().absent;
+  }
+
   async ask(question: string): Promise<AskResponse> {
     if (this.intelligence.describe().absent) return this.keywords(question, 'no_model');
     const answer = await this.intelligence.complete({

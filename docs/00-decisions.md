@@ -4125,6 +4125,54 @@ own task rather than widened into this one.
 reason in `inventory.ts` and a line in `02-architecture.md`. A new ceiling is
 a `rate_limit` row plus an inventory entry (a test fails on either alone).
 
+---
+
+## D-104 — `GET /ask` is limited: a member per account, a guest per address, and a refusal still searches
+**Status:** Accepted · 2026-09-28 (revisable under the standing delegation of 2026-09-26) · **Tasks:** T-838 · **Follows:** D-093, D-103
+
+**Decision.** The gap D-103 recorded is closed with two `rate_limit` rows,
+both counted by the API before the model is called:
+
+- **`ask`, 60 an hour per member**, in `rate_window` (`RateLimitsService.take`),
+  for a request that carries a session.
+- **`ask_ip`, 120 an hour per network address** for a signed-out reader, in
+  `auth_rate_window` under the address's HMAC (`IdentityService.takeForAddress`),
+  the address being Cloudflare's as the web app forwards it in
+  `X-Fmip-Client-IP` -- now on `/ask` as well as the account forms -- and
+  accepted only when it is a well-formed IP (D-093).
+
+Past either, the answer is 429 `rate_limited` with `Retry-After` (the end of
+the hour) and a sentence, the model is not called, and the refusal is counted
+for the day in `rate_refusal`. A guest with no forwarded address is not
+limited (as on the account forms: never one bucket for everybody), and a
+deployment with no model is not limited at all, because its `/ask` is the
+keyword search and costs nothing. `GET /ask` is the one read in the
+inventory; the security spec now requires a ceiling's routes to exist and an
+exemption's to be writes.
+
+**The search page, refused, still searches.** It asks `GET /search` for the
+catalog's kinds -- no model, no ceiling -- and shows the refusal's sentence
+above the rows. A reader behind a shared address (a household, an office, a
+carrier's NAT) loses the reading of the question, never the search.
+
+**Why these numbers.** A question is a short call (at most 300 tokens back)
+and search is how the site is navigated, so a member gets ten times the
+briefing's six; one a minute for an hour is past what a person searching does.
+An address is shared, so it gets twice a member's, and the fallback makes a
+refusal cheap for whoever else is behind it.
+
+**Rejected.** *Limiting per address for members too*: a member is known, and
+a shared address would refuse members for a guest's traffic. *A 200 with the
+keyword fallback from the API instead of 429*: the task and the other
+ceilings answer 429, and the page can fall back without the API pretending
+the question was read. *Limiting the keyword search*: it calls no model.
+
+**Consequences.** A request that reaches the origin without Cloudflare can
+choose its own address and so its own counter (as D-093 says); the members'
+ceiling and the model's own plan limit hold regardless.
+
+---
+
 ## D-105 — Match alerts leave the live job: recorded in the run, written per event in one statement by a queued worker
 **Status:** Accepted · 2026-09-28 (revisable under the standing delegation of 2026-09-26)
 

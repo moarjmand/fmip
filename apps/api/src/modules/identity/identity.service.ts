@@ -21,6 +21,10 @@ import { hashToken, newToken } from './internal/tokens';
 // The module's public surface. Other modules import from this file only.
 export { SESSION_COOKIE, parseCookies } from './internal/cookies';
 export { clientIpOf, refusalMessage } from './internal/auth-rate-limit';
+export type { AuthRateOutcome } from './internal/auth-rate-limit';
+
+/** The per-address ceilings other modules count a signed-out reader against (T-838). */
+export type AddressRateAction = Extract<AuthRateCheck['action'], 'ask_ip'>;
 
 export interface IdentityOptions {
   /** Keys the HMAC of every session and e-mail token. */
@@ -390,6 +394,22 @@ export class IdentityService {
         `The link works once and expires in ${Math.round(this.options.verifyEmailTtlSeconds / 3600)} hours.`,
       ].join('\n'),
     });
+  }
+
+  /**
+   * One request by a signed-out reader against a per-address ceiling another
+   * module owns (T-838: `GET /ask`). Counted in `auth_rate_window` under the
+   * address's HMAC, exactly like the account forms' addresses (D-093), and a
+   * refusal is counted for the day by the same statement. No address -- the
+   * web app forwarded none, or it was not a well-formed IP -- is not limited,
+   * never one bucket shared by everybody.
+   */
+  async takeForAddress(
+    clientIp: string | null,
+    action: AddressRateAction,
+  ): Promise<AuthRateOutcome> {
+    if (clientIp === null) return { ok: true };
+    return this.limits.take(this.checks(clientIp, action));
   }
 
   /**

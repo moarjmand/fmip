@@ -566,9 +566,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         );
       });
 
-      it('every route the inventory names is still a write the router has', () => {
-        const named = [...CEILINGS.flatMap((c) => c.routes), ...Object.keys(EXEMPT)];
-        expect(named.filter((r) => !routes.has(r) || !isWrite(r))).toEqual([]);
+      it('every route the inventory names is still a route the router has, and every exemption a write', () => {
+        // A ceiling may hold a read whose work is a model call (`GET /ask`,
+        // T-838); an exemption is only ever a write's.
+        const limited = CEILINGS.flatMap((c) => c.routes);
+        expect(limited.filter((r) => !routes.has(r))).toEqual([]);
+        expect(Object.keys(EXEMPT).filter((r) => !routes.has(r) || !isWrite(r))).toEqual([]);
       });
 
       it('no route is both limited and exempt, and every exemption says why', () => {
