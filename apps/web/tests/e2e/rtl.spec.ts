@@ -91,4 +91,22 @@ test.describe('layout mirrors under rtl', () => {
       paddingRight: ACCENT_PADDING,
     });
   });
+
+  // T-809: the not-found page is inside the locale layout, so it mirrors too.
+  for (const path of ['/ar/no-such-page', '/x-rtl/no-such-page']) {
+    test(`${path}'s not-found is right-to-left, its accent on the right`, async ({ page }) => {
+      await page.goto(path);
+
+      await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+      await expect(page.getByTestId('error-not-found')).toBeVisible();
+      const style = await page.getByTestId('title').evaluate((el) => {
+        const computed = getComputedStyle(el);
+        return {
+          borderLeftWidth: computed.borderLeftWidth,
+          borderRightWidth: computed.borderRightWidth,
+        };
+      });
+      expect(style).toEqual({ borderLeftWidth: '0px', borderRightWidth: ACCENT_WIDTH });
+    });
+  }
 });
