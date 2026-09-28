@@ -141,10 +141,10 @@ product already states.*
 | `[x]` T-832 | Line-up and availability alerts, and "a friend predicted an important match" (8.1), opt-in | T-830 | A friend's prediction is sent only if that friend's visibility allows the recipient to see it (D-063) |
 | `[x]` T-833 | Editorial notifications: founder analysis published for a followed match or team; a community analysis's review status to its author; a member becoming eligible for contributor review, to administrators (18.3) | T-250, T-261, T-271 | Each deep-links to the analysis, the draft or the admin contributors page |
 | `[x]` T-834 | The match-alert load measured: a Saturday of goals across fifteen competitions through the notification queue, with the delivery time recorded beside `08-load-test.md` | T-830 | A goal reaches a device within the stated time at the measured load, or the gap is written down with its cause |
-| `[ ]` T-835 | Match alerts off the live job: each event's notifications written by one set-based insert in a BullMQ job, so a large burst never delays the next live tick | T-834 | At 10,000 following members a goal burst reaches devices within 60 s (p95) in the T-834 script, and no live tick is skipped |
-| `[ ]` T-836 | Pushes sent concurrently with a bounded pool, and a kick-off of every match on a Saturday carried within the target | T-835 | The T-834 kick-off run of 90 matches at 2,000 members is within 60 s (p95) with a 50 ms push |
-| `[ ]` T-837 | Every carrier drains what is due, not one page: campaigns and the notification timer loop until nothing is due, bounded per pass | T-834 | A campaign to 10,000 members is carried in one pass of minutes, not hours; tested |
-| `[ ]` T-838 | `GET /ask` limited for guests by the reader's address (D-103), and for members by account | T-811 | A guest over the ceiling gets 429 with Retry-After; the model is never called past it |
+| `[x]` T-835 | Match alerts off the live job: each event's notifications written by one set-based insert in a BullMQ job, so a large burst never delays the next live tick | T-834 | At 10,000 following members a goal burst reaches devices within 60 s (p95) in the T-834 script, and no live tick is skipped |
+| `[x]` T-836 | Pushes sent concurrently with a bounded pool, and a kick-off of every match on a Saturday carried within the target | T-835 | The T-834 kick-off run of 90 matches at 2,000 members is within 60 s (p95) with a 50 ms push |
+| `[x]` T-837 | Every carrier drains what is due, not one page: campaigns and the notification timer loop until nothing is due, bounded per pass | T-834 | A campaign to 10,000 members is carried in one pass of minutes, not hours; tested |
+| `[x]` T-838 | `GET /ask` limited for guests by the reader's address (D-103), and for members by account | T-811 | A guest over the ceiling gets 429 with Retry-After; the model is never called past it |
 
 ## E84 — The rest of the blueprint's pages
 
