@@ -8,10 +8,14 @@ import type {
 } from '@fmip/contracts';
 import { QueueEvents } from 'bullmq';
 import { Pool } from 'pg';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
 import { withTriggersOff } from '../../testing/cleanup';
-import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
+import {
+  DEFAULT_IDENTITY_OPTIONS,
+  IDENTITY_OPTIONS,
+  IdentityService,
+} from '../identity/identity.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AdminAlertsService, alertDedupeKey } from './admin-alerts.service';
 import { PostgresAlertCursor } from './internal/alert-cursor';
@@ -125,6 +129,17 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the watchdog
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
     watchdog = app.get(WatchdogService);
+    // The alerts go to every administrator in the database, and in CI that
+    // includes the ones other suites create and delete while this one runs:
+    // a notification for an account deleted mid-delivery fails its foreign
+    // key, the delivery stops at that event (as it should), and this suite's
+    // counts are off by the other suite's timing. The real query still runs;
+    // its answer is narrowed to this suite's administrator.
+    const identity = app.get(IdentityService);
+    const holdersOf = identity.holdersOf.bind(identity);
+    vi.spyOn(identity, 'holdersOf').mockImplementation(async (role) =>
+      (await holdersOf(role)).filter((id) => id === adminId),
+    );
     pool = new Pool({ connectionString: DATABASE_URL });
     await clearWatchdog(pool);
     const a = await register(`wd_${RUN}a`);
@@ -407,7 +422,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the watchdog
         })
       ).json() as AdminAlertsReport;
       expect(report.channels).toEqual({ push: 'absent', email: 'absent', in_product_only: true });
-      expect(report.administrators).toBeGreaterThanOrEqual(1);
+      expect(report.administrators).toBe(1);
       expect(report.pending).toBe(0);
       expect(report.alerts.length).toBeGreaterThanOrEqual(2);
       const newest = report.alerts[0];
