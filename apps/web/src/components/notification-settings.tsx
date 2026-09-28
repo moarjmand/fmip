@@ -48,6 +48,7 @@ const KIND_LABEL: Record<ListedKind, string> = {
   prediction_settled: 'When a prediction of mine is settled',
   rating_changed: 'When my Performance Rating changes',
   career_points_awarded: 'When I earn Career Points',
+  achievement_unlocked: 'When I earn an achievement (once each)',
   friend_request: 'When somebody sends me a friend request',
   friend_accepted: 'When somebody accepts my friend request',
   message_received: 'When somebody sends me a message',

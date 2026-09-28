@@ -46,6 +46,9 @@ export const NOTIFICATION_KINDS = [
   'prediction_settled',
   'rating_changed',
   'career_points_awarded',
+  // The first time an achievement (D-091) is derived for the member, once
+  // (T-946, D-117).
+  'achievement_unlocked',
   'friend_request',
   'friend_accepted',
   'message_received',
@@ -97,6 +100,9 @@ export const NOTIFICATION_DEFAULTS: Record<NotificationKind, boolean> = {
   prediction_settled: true,
   rating_changed: true,
   career_points_awarded: false,
+  // On (T-946, D-117): each achievement happens once in a member's life, and
+  // an opt-out is one switch.
+  achievement_unlocked: true,
   friend_request: true,
   friend_accepted: true,
   message_received: true,
@@ -327,6 +333,7 @@ export const NOTIFICATION_CATEGORY_OF: Record<NotificationKind, NotificationCate
   prediction_settled: 'football',
   rating_changed: 'football',
   career_points_awarded: 'football',
+  achievement_unlocked: 'football',
   friend_request: 'social',
   friend_accepted: 'social',
   message_received: 'social',
@@ -412,6 +419,8 @@ export const NOTIFICATION_TEXT: Record<NotificationKind, { text: string; named: 
   prediction_settled: { text: 'A prediction of yours was settled.', named: false },
   rating_changed: { text: 'Your Performance Rating changed.', named: false },
   career_points_awarded: { text: 'You earned Career Points.', named: false },
+  // Which one is on the profile it opens; an achievement changes nothing (D-091).
+  achievement_unlocked: { text: 'You earned an achievement.', named: false },
   friend_request: { text: 'sent you a friend request.', named: true },
   friend_accepted: { text: 'accepted your friend request.', named: true },
   message_received: { text: 'sent you a message.', named: true },
@@ -515,7 +524,11 @@ export function notificationPath(
       // A member waiting for contributor review opens the queue it is in,
       // where the four requirements and the decision are (T-833).
       if (notification.kind === 'contributor_eligible') return `/${locale}/admin/contributors`;
-      return label === null ? null : `/${locale}/u/${encodeURIComponent(label)}`;
+      if (label === null) return null;
+      // An achievement opens the member's own list of them (T-946).
+      return `/${locale}/u/${encodeURIComponent(label)}${
+        notification.kind === 'achievement_unlocked' ? '#achievements' : ''
+      }`;
     case 'group':
       return label === null ? null : `/${locale}/groups/${encodeURIComponent(label)}`;
     case 'conversation':

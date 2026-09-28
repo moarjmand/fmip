@@ -4434,3 +4434,64 @@ second place the budget would have to be counted.
 `fixture_refetch_request`. `DataQualityFinding.asked_again` and
 `DataQualityReport.refetch` are in the contract. `INGESTION_REFETCH_SHARE` is
 in `.env.example` and forwarded by the production compose file.
+
+## D-117 — An achievement unlock is told once, the first time it is derived, and never taken back
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-946 makes an achievement (D-091) a notification (blueprint
+12.2).
+
+- **When.** After every rating recompute (after each settlement, and in the
+  job's pass over recently settled members), the reputation boundary derives
+  the member's achievements exactly as the profile does. It records each one
+  it has not seen before in `achievement_unlocked`: the member, the kind, the
+  stored time that earned it, and when it was first derived. For each new
+  one it emits `achievement_unlocked`, keyed `achievement_unlocked:<member>:<kind>`,
+  with the member as the subject. The notification opens their profile at
+  the list (`/u/<username>#achievements`) and says "You earned an
+  achievement."
+- **Told once, and what was told is not lost.** A row is one per member and
+  kind (the primary key), and a recomputation never deletes one. The plan's
+  "only for achievements that cannot be lost" is read this way: the
+  achievement on the profile stays derived and can still be withdrawn by a
+  corrected settlement (D-091 is unchanged), but the unlock that was told is
+  a fact that is kept. An achievement that a correction removes and a later
+  settlement restores is therefore not told twice, and one lost and earned
+  again later is not told again either. The notification is never withdrawn:
+  it was true when it was sent.
+- **Only when it is news.** An achievement first derived more than **three
+  days** after the stored time that earned it is recorded with `told` false
+  and no notification. That covers every achievement earned before T-946, on
+  the job's first pass after the deploy (so there is no backfill and no
+  flood), and one the job reached late.
+- **The existing controls.** `achievement_unlocked` is a kind in the
+  `football` category, on by default, and appears in the general list in
+  Settings → Notifications ("When I earn an achievement (once each)"). The
+  member's switch, the `football` category mute and quiet hours apply as they
+  do to `prediction_settled`. A member who switched it off is still recorded,
+  so switching it back on does not replay old unlocks.
+- **A deleted member is never told.** The insert reads the account and
+  records nothing for a tombstone (`status = 'deleted'`), so nothing is
+  emitted.
+- **Achievements still change nothing.** `achievement_unlocked` is read only
+  by the job that writes it. The profile, the rating, the boards and
+  eligibility read nothing new.
+
+**At most once.** The row is written before the notification. If the write
+of the notification then fails (`emit` never throws, and logs the fault),
+that member is not told of that achievement. A second tell on a retry would
+break the rule this decision exists for, and nothing depends on the
+notification existing.
+
+**Alternatives considered.** Storing achievements as rows and notifying on
+insert: D-091 keeps them derived, and a stored copy would drift from the
+settlements. Telling on every first appearance, without the record: a
+correction that removes and restores would tell twice. Telling only the kinds
+that no correction can remove (`competitions_5` alone): true to the letter of
+the plan, but it would leave nine of ten achievements silent, and the
+acceptance test for a removed-and-restored achievement would describe nothing.
+
+**Consequences.** `1764880000000_achievement-unlocked.sql` widens the kind
+lists and adds `achievement_unlocked`. The kind is in `NOTIFICATION_KINDS`,
+`NOTIFICATION_DEFAULTS`, `NOTIFICATION_CATEGORY_OF` and `NOTIFICATION_TEXT`,
+and `notificationPath` opens `#achievements`. No new route, write or setting.
