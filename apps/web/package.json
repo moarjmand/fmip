@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "e2e": "playwright test",
+    "perf:bundle": "node scripts/perf-budgets.mjs",
     "i18n:catalogues": "node scripts/i18n-catalogues.mjs",
     "i18n:catalogues:check": "node scripts/i18n-catalogues.mjs --check"
   },
