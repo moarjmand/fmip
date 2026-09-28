@@ -167,21 +167,22 @@ changes what its manifests mean fails CI instead of quietly moving the
 measurement.
 
 **How the budgets were set (2026-09-28).** First-load JavaScript is
-deterministic for a given build, so its budget is the measured size plus
-about 10 % headroom: a change that adds a library to a page fails, a small
-component does not. Server response is not deterministic, so its budget is
-several times the median measured on the maintainer's machine (home 50 ms,
-scores 31 ms, match centre 76 ms, competition 39 ms): wide enough that a
-shared CI runner does not fail it on a bad minute, narrow enough that a page
-which starts waiting on something slow -- an unindexed query, a call made
-per row, a timeout -- does.
+deterministic for a given build (the CI runner's Linux build measured the
+same bytes as the maintainer's Windows one), so its budget is the measured
+size plus about 10 % headroom: a change that adds a library to a page fails,
+a small component does not. Server response is not deterministic, so its
+budget is about four to seven times the median CI measured on the first run
+(GitHub's `ubuntu-latest`, PR #355), with 150 ms as the floor: wide enough
+that a shared runner does not fail it on a bad minute, narrow enough that a
+page which starts waiting on something slow -- an unindexed query, a call
+made per row, a timeout -- does.
 
-| Route | First-load JS measured / budget (gzip kB) | Server response median measured / budget (ms) |
+| Route | First-load JS measured / budget (gzip kB) | Server response median, CI / laptop / budget (ms) |
 | --- | --- | --- |
-| home `/en` | 200.3 / 220 | 50 / 250 |
-| scores `/en/scores` | 210.1 / 230 | 31 / 250 |
-| match centre `/en/match/…0901` | 218.5 / 240 | 76 / 400 |
-| competition `/en/competition/…0201` | 200.3 / 220 | 39 / 250 |
+| home `/en` | 200.3 / 220 | 38 / 50 / 200 |
+| scores `/en/scores` | 210.1 / 230 | 21 / 31 / 150 |
+| match centre `/en/match/…0901` | 218.5 / 240 | 77 / 76 / 300 |
+| competition `/en/competition/…0201` | 200.3 / 220 | 29 / 39 / 150 |
 
 **Running them locally.** After `pnpm exec turbo run build --filter=@fmip/web`:
 `pnpm --filter @fmip/web perf:bundle`. For the response budgets, start the

@@ -6,28 +6,28 @@
       "appRoute": "/[locale]",
       "path": "/en",
       "firstLoadJsGzipKB": 220,
-      "serverResponseMedianMs": 250
+      "serverResponseMedianMs": 200
     },
     {
       "name": "scores",
       "appRoute": "/[locale]/scores",
       "path": "/en/scores",
       "firstLoadJsGzipKB": 230,
-      "serverResponseMedianMs": 250
+      "serverResponseMedianMs": 150
     },
     {
       "name": "match centre",
       "appRoute": "/[locale]/match/[id]",
       "path": "/en/match/00000000-0000-4000-8000-000000000901",
       "firstLoadJsGzipKB": 240,
-      "serverResponseMedianMs": 400
+      "serverResponseMedianMs": 300
     },
     {
       "name": "competition",
       "appRoute": "/[locale]/competition/[id]",
       "path": "/en/competition/00000000-0000-4000-8000-000000000201",
       "firstLoadJsGzipKB": 220,
-      "serverResponseMedianMs": 250
+      "serverResponseMedianMs": 150
     }
   ]
 }
