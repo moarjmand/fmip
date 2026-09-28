@@ -332,6 +332,7 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
       subject_type: due.subject_type as NotificationSubject,
       subject_id: due.subject_id,
       subject_label: due.subject_label,
+      kind: due.kind,
     });
     return {
       email: {

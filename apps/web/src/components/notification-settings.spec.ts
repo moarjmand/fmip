@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { NOTIFICATION_HOURLY_CAP, NOTIFICATION_KINDS, isMatchAlertKind } from '@fmip/contracts';
+import { isSectionedKind } from '@/lib/notification-sections';
 
 /**
  * Choosing what arrives, and when (T-273).
@@ -15,6 +16,7 @@ import { NOTIFICATION_HOURLY_CAP, NOTIFICATION_KINDS, isMatchAlertKind } from '@
 const HERE = __dirname;
 const FORM = readFileSync(join(HERE, 'notification-settings.tsx'), 'utf8');
 const MATCH = readFileSync(join(HERE, 'match-alert-settings.tsx'), 'utf8');
+const SECTIONS = readFileSync(join(HERE, 'kind-section.tsx'), 'utf8');
 const ACTIONS = readFileSync(join(HERE, '..', 'lib', 'notification-actions.ts'), 'utf8');
 const PAGE = readFileSync(
   join(HERE, '..', 'app', '[locale]', 'settings', 'notifications', 'page.tsx'),
@@ -24,14 +26,17 @@ const PAGE = readFileSync(
 describe('every kind is offered, and named in words', () => {
   it('has a sentence for each, so nobody chooses about a slug', () => {
     for (const kind of NOTIFICATION_KINDS) {
-      // The match alerts are worded in their own section (T-831).
-      const source = isMatchAlertKind(kind) ? MATCH : FORM;
+      // The match alerts are worded in their own section (T-831), and so are
+      // the sectioned kinds (T-832).
+      const source = isMatchAlertKind(kind) ? MATCH : isSectionedKind(kind) ? SECTIONS : FORM;
       expect(source, `no label for ${kind}`).toContain(`${kind}:`);
     }
     // Keyed by the contract's union, so a kind added without a label does not
     // compile.
-    expect(FORM).toContain('Record<Exclude<NotificationKind, MatchAlertKind>, string>');
+    expect(FORM).toContain('Exclude<NotificationKind, MatchAlertKind | SectionedKind>');
+    expect(FORM).toContain('Record<ListedKind, string>');
     expect(MATCH).toContain('Record<MatchAlertKind, MessageKey>');
+    expect(SECTIONS).toContain('Record<SectionedKind, MessageKey>');
   });
 
   it('renders what the API sent rather than a second copy of the defaults', () => {

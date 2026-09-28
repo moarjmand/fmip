@@ -3800,3 +3800,60 @@ what e-mail is for.
 off by default (it used to read only an "off"). T-831 gives the kinds their
 own section in Settings → Notifications. T-832 (line-ups) can add a kind to
 the same derivation; T-834 measures the queue at a Saturday's load.
+
+## D-099 — Team news, line-ups and a friend's prediction: opt-in, once each, and never the pick
+**Status:** Accepted · 2026-09-28 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-832 adds three notification kinds.
+
+- `match_availability` and `match_lineups` are match alerts (the `match`
+  category, D-098's batch and carrier, a push and an inbox row, never an
+  e-mail), raised inside the line-ups job, which reads each match before and
+  after it writes the line-up or the availability answer
+  (`MatchAlertsService.teamNewsBefore/After`, `internal/team-news.ts`). The
+  line-ups are announced when **both sides first have starters stored**, for
+  a match that is scheduled or live -- not one already announced before this
+  shipped, not a correction, not a line-up that arrives with the post-match
+  detail. A player is announced the first time the provider lists them
+  `out` for a scheduled match; `doubtful` is not announced (it is not news a
+  follower can act on), a player dropped from the list is not announced as
+  fit (the feed never says "fit", T-103), and a player with no name is not
+  announced as somebody. Each is a `match_alert` row keyed
+  `<fixture>:lineups` or `<fixture>:out:<person>`, the notification's dedupe
+  key, so a retry, a second process or a player listed, dropped and listed
+  again reaches nobody twice. A long-term absentee is named once per match.
+  They open the match at its line-ups (`#lineups`).
+- `friend_predicted` (the `social` category): when a member makes their
+  **first** prediction on a match, each friend who follows either team or the
+  competition, or has predicted the match too, is told -- only where the
+  predictor's own `prediction_history_visibility`, asked of the profile
+  boundary per recipient exactly as D-063 asks it, lets that friend read the
+  prediction. It is sourced (the friend's name, so a block applies), keyed
+  `friend_predicted:<fixture>:<friend>` so a revision is the same news, and
+  says **that** they predicted, never **what**: the plan does not say whether
+  a pick should reach a friend before kick-off, and a notification is not the
+  place to decide it, so the pick stays where the member's own setting
+  already shows it. It opens the match. It is written from
+  `PredictionsService.submit` and never fails the prediction.
+
+**Defaults.** All three **off** (the E83 row says opt-in). Team news and
+line-ups arrive for every followed match and most of them nobody is waiting
+on; a friend's activity is not something the product interrupts anybody
+with unless they asked. Each is a switch in Settings → Notifications: the
+first two in the match-alert section, the third in its own "Friends'
+predictions" section, both worded through the catalogues.
+
+**Alternatives considered.** Announcing the line-ups when one side arrives:
+half a line-up is the question, not the answer. One alert per match listing
+every absentee: its key would have to change whenever the list did, and
+then a list that grew by one player would repeat the rest. Including the
+pick for a friend whose history is public: defensible, but a second rule
+about when a pick may be seen, which D-063 declined to add; the friend can
+open the profile. Telling followers who are not friends: that is a feed, not
+a notification, and the blueprint's line is about friends (8.1).
+
+**Consequences.** `notificationPath` takes the kind (optional), so a fixture
+notification can open a region of the match page; the kind lists of
+`notification`, `notification_preference` and `match_alert` are widened by
+`1764780000000_lineup-friend-alerts.sql`, which reads each constraint as it
+stands.

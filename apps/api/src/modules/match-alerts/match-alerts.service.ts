@@ -1,12 +1,18 @@
 import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
+import type { MatchAlertKind } from '@fmip/contracts';
 import { MATCH_ALERT_KINDS, notificationLine, notificationPath } from '@fmip/contracts';
 import {
   type DueNotification,
   NotificationsService,
   type OutboundMessages,
 } from '../notifications/notifications.service';
-import { MatchAlertsStore, type MatchReading } from './internal/match-alerts-store';
+import {
+  MatchAlertsStore,
+  type MatchReading,
+  type TeamNewsReading,
+} from './internal/match-alerts-store';
 import { batchBody, deriveMatchEvents, eventLine, keyEvents } from './internal/match-events';
+import { deriveTeamNews, keyTeamNews, teamNewsLine } from './internal/team-news';
 
 /** The push's title, as every notification's is. */
 const PUSH_TITLE = 'FMIP';
@@ -66,43 +72,101 @@ export class MatchAlertsService implements OnModuleInit {
       if (events.length === 0) return [];
       const keyed = keyEvents(before.fixtureId, events, await this.store.history(before.fixtureId));
 
-      const told = new Set<string>();
-      let followers: string[] | null = null;
-      for (const entry of keyed) {
-        const line = eventLine(entry.event, after.teams, after.state);
-        // Recorded before anyone is told, so a second process racing this
-        // one loses here rather than at every member's dedupe index.
-        const recorded = await this.store.record({
-          key: entry.key,
-          fixtureId: before.fixtureId,
-          kind: entry.kind,
-          withdraws: entry.withdraws,
-          line,
-        });
-        if (!recorded) continue;
-        const audience =
-          entry.withdraws === null
-            ? (followers ??= await this.store.followers(before.fixtureId))
-            : await this.store.toldOf(entry.withdraws);
-        const outcomes = await this.notifications.emitMany(
-          audience.map((userId) => ({
-            userId,
-            kind: entry.kind,
-            subjectType: 'fixture' as const,
-            subjectId: before.fixtureId,
-            dedupeKey: entry.key,
-          })),
-        );
-        outcomes.forEach((outcome, index) => {
-          const userId = audience[index];
-          if (outcome === 'sent' && userId !== undefined) told.add(userId);
-        });
-      }
-      return [...told];
+      return await this.announce(
+        before.fixtureId,
+        keyed.map((entry) => ({
+          ...entry,
+          line: eventLine(entry.event, after.teams, after.state),
+        })),
+      );
     } catch (error) {
       this.fault('derive', before.fixtureId, error);
       return [];
     }
+  }
+
+  /** A match's team news before the line-ups job writes it (T-832); null when it cannot be read. */
+  async teamNewsBefore(fixtureId: string): Promise<TeamNewsReading | null> {
+    try {
+      return await this.store.teamNews(fixtureId);
+    } catch (error) {
+      this.fault('read', fixtureId, error);
+      return null;
+    }
+  }
+
+  /**
+   * After the line-ups job's write (T-832, D-099): the line-ups announced
+   * and each player newly listed out, recorded and emitted like any match
+   * alert. Returns the members whose notification was written for now.
+   */
+  async teamNewsAfter(before: TeamNewsReading): Promise<string[]> {
+    try {
+      const after = await this.store.teamNews(before.fixtureId);
+      if (after === null) return [];
+      const events = deriveTeamNews(before.state, after.state);
+      if (events.length === 0) return [];
+      const keyed = keyTeamNews(
+        before.fixtureId,
+        events,
+        await this.store.history(before.fixtureId),
+      );
+      return await this.announce(
+        before.fixtureId,
+        keyed.map((entry) => ({
+          key: entry.key,
+          kind: entry.kind,
+          withdraws: null,
+          line: teamNewsLine(entry.event, after.teams),
+        })),
+      );
+    } catch (error) {
+      this.fault('team_news', before.fixtureId, error);
+      return [];
+    }
+  }
+
+  /**
+   * Record each event once and tell its audience: the match's followers, or
+   * for a correction the members told of the goal it withdraws. Returns the
+   * members whose notification was written for now (not held by quiet hours).
+   */
+  private async announce(
+    fixtureId: string,
+    entries: { key: string; kind: MatchAlertKind; withdraws: string | null; line: string }[],
+  ): Promise<string[]> {
+    const told = new Set<string>();
+    let followers: string[] | null = null;
+    for (const entry of entries) {
+      // Recorded before anyone is told, so a second process racing this
+      // one loses here rather than at every member's dedupe index.
+      const recorded = await this.store.record({
+        key: entry.key,
+        fixtureId,
+        kind: entry.kind,
+        withdraws: entry.withdraws,
+        line: entry.line,
+      });
+      if (!recorded) continue;
+      const audience =
+        entry.withdraws === null
+          ? (followers ??= await this.store.followers(fixtureId))
+          : await this.store.toldOf(entry.withdraws);
+      const outcomes = await this.notifications.emitMany(
+        audience.map((userId) => ({
+          userId,
+          kind: entry.kind,
+          subjectType: 'fixture' as const,
+          subjectId: fixtureId,
+          dedupeKey: entry.key,
+        })),
+      );
+      outcomes.forEach((outcome, index) => {
+        const userId = audience[index];
+        if (outcome === 'sent' && userId !== undefined) told.add(userId);
+      });
+    }
+    return [...told];
   }
 
   /**
@@ -140,17 +204,20 @@ export function composeBatch(due: DueNotification[]): OutboundMessages | null {
   if (first === undefined) return null;
   const lines = due.map((item) =>
     notificationLine({
-      kind: item.kind as (typeof MATCH_ALERT_KINDS)[number],
+      kind: item.kind as MatchAlertKind,
       source: null,
       headline: item.headline,
     }),
   );
   const oneMatch = due.every((item) => item.subject_id === first.subject_id);
+  // All of one kind about one match opens that kind's part of it (T-832).
+  const oneKind = due.every((item) => item.kind === first.kind);
   const path = oneMatch
     ? notificationPath(first.locale, {
         subject_type: 'fixture',
         subject_id: first.subject_id,
         subject_label: null,
+        ...(oneKind ? { kind: first.kind } : {}),
       })
     : null;
   const body = batchBody(lines);

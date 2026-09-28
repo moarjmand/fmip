@@ -100,6 +100,35 @@ export class PredictionLockedError extends Error {
 export class PostgresPredictionStore {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
 
+  /**
+   * Of `userIds`, the live accounts that follow either team or the
+   * competition of this match, or have predicted it themselves (T-832).
+   */
+  async interested(fixtureId: string, userIds: string[]): Promise<string[]> {
+    if (userIds.length === 0) return [];
+    const { rows } = await this.pool.query<{ id: string }>(
+      `SELECT u.id
+         FROM user_account u
+        WHERE u.id = ANY($2::uuid[])
+          AND u.status <> 'deleted'
+          AND (EXISTS (SELECT 1 FROM user_prediction p
+                        WHERE p.user_id = u.id AND p.fixture_id = $1)
+               OR EXISTS (SELECT 1 FROM followed_entity fe
+                           WHERE fe.user_id = u.id
+                             AND ((fe.entity_type = 'team'
+                                   AND fe.entity_id IN (SELECT team_id FROM fixture_participant
+                                                         WHERE fixture_id = $1))
+                                  OR (fe.entity_type = 'competition'
+                                      AND fe.entity_id = (SELECT s.competition_id
+                                                            FROM fixture f
+                                                            JOIN season s ON s.id = f.season_id
+                                                           WHERE f.id = $1)))))
+        ORDER BY u.id`,
+      [fixtureId, userIds],
+    );
+    return rows.map((row) => row.id);
+  }
+
   async fixtureLock(fixtureId: string): Promise<FixtureLock | null> {
     const { rows } = await this.pool.query<{ id: string; kickoff_at: Date; status: string }>(
       `SELECT id, kickoff_at, status FROM fixture WHERE id = $1`,

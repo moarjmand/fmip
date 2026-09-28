@@ -59,13 +59,17 @@ describe('the match-alert section', () => {
     expect(html).toContain(EN['notifications.match.goal']);
   });
 
-  it('shows the defaults as defaults: kick-off, goals and full-time on; red cards and half-time off', () => {
+  it('shows the defaults as defaults: kick-off, goals and full-time on; the rest off', () => {
     const html = renderToStaticMarkup(<MatchAlertSettings locale="en" settings={settings()} />);
     expect(switchOf(html, 'match_kickoff').pressed).toBe('true');
     expect(switchOf(html, 'match_goal').pressed).toBe('true');
     expect(switchOf(html, 'match_full_time').pressed).toBe('true');
     expect(switchOf(html, 'match_red_card').pressed).toBe('false');
     expect(switchOf(html, 'match_half_time').pressed).toBe('false');
+    // Team news and line-ups are opt-in (T-832, D-099).
+    expect(switchOf(html, 'match_availability').pressed).toBe('false');
+    expect(switchOf(html, 'match_lineups').pressed).toBe('false');
+    expect(html).toContain(EN['notifications.match.lineups']);
     expect(switchOf(html, 'match_goal').row).toContain('Default');
   });
 

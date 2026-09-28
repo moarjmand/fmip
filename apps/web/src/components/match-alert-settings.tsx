@@ -10,8 +10,9 @@ import type { MessageKey } from '@/i18n/messages';
  *
  * **The values are the API's, not a copy of the defaults.** Each switch shows
  * what is in force and whether it is the member's own, exactly like the
- * general list; the defaults (kick-off, goals and full-time on; red cards and
- * half-time off) live in the contract and D-098.
+ * general list; the defaults (kick-off, goals and full-time on; red cards,
+ * half-time, team news and line-ups off) live in the contract, D-098 and
+ * D-099.
  *
  * **Per-team and per-competition are the mutes.** A member silences one team
  * or one competition under "What stays quiet", and every match alert at once
@@ -23,6 +24,8 @@ import type { MessageKey } from '@/i18n/messages';
  * themselves are the client rows the rest of the page uses.
  */
 const LABEL: Record<MatchAlertKind, MessageKey> = {
+  match_availability: 'notifications.match.availability',
+  match_lineups: 'notifications.match.lineups',
   match_kickoff: 'notifications.match.kickoff',
   match_goal: 'notifications.match.goal',
   match_red_card: 'notifications.match.redCard',
