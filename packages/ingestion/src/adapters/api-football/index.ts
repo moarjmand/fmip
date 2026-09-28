@@ -13,6 +13,7 @@ import type {
   NormalisedFixture,
   NormalisedFixtureDetail,
   NormalisedLineup,
+  NormalisedLiveFixture,
   NormalisedStanding,
 } from '../../normalised';
 import type {
@@ -30,6 +31,7 @@ import type {
 } from '../_contract';
 import {
   isRecord,
+  liveExtras,
   mapFixture,
   mapIncidents,
   mapLineup,
@@ -176,15 +178,18 @@ class ApiFootballAdapter implements ProviderAdapter {
    * the ids asked for. An empty id list means "everything live", which is how
    * the bake-off finds matches to follow. A fixture not in play is absent.
    */
-  async getLive(query: LiveQuery): Promise<AdapterResult<NormalisedFixture[]>> {
+  async getLive(query: LiveQuery): Promise<AdapterResult<NormalisedLiveFixture[]>> {
     const wanted = new Set(query.fixtureExternalIds);
     const result = await this.call('/fixtures', { live: 'all' });
     if (!result.ok) return { ok: false, error: result.error, requests: 1 };
-    const data: NormalisedFixture[] = [];
+    const data: NormalisedLiveFixture[] = [];
     for (const item of result.data.response) {
       const fixture = mapFixture(item, result.receivedAt);
       if (fixture !== null && (wanted.size === 0 || wanted.has(fixture.externalId))) {
-        data.push(fixture);
+        // The live list carries each match's events and its phase, so the
+        // minute-by-minute job learns a scorer or a red card without a
+        // detail request (T-830).
+        data.push({ ...fixture, ...liveExtras(item, fixture) });
       }
     }
     return { ok: true, data, requests: 1, fetchedAt: result.receivedAt };

@@ -48,6 +48,12 @@ const KIND_LABEL: Record<NotificationKind, string> = {
   campaign: 'When the platform sends a message to members like me',
   // Offered to administrators only; the API leaves it out for everyone else (T-802).
   system_alert: 'When the watchdog raises or clears a system alert (at any hour)',
+  // Match alerts (T-830): for matches of the teams and competitions I follow.
+  match_kickoff: 'When a match I follow kicks off',
+  match_goal: 'When a goal is scored in a match I follow, or taken off the board',
+  match_red_card: 'When a player is sent off in a match I follow',
+  match_half_time: 'At half-time in a match I follow',
+  match_full_time: 'At full-time in a match I follow',
 };
 
 /** The categories a member can silence as one (T-331), named in words. */
@@ -55,6 +61,7 @@ const CATEGORY_LABEL: Record<NotificationCategory, string> = {
   football: 'Football: my predictions, my rating and my points',
   social: 'Social: friends, messages, mentions, groups and reactions',
   account: 'My account: moderation and contributor decisions',
+  match: 'Match alerts: kick-off, goals, red cards, half-time and full-time',
 };
 
 function MuteRow({ locale, mute }: { locale: string; mute: NotificationMute }) {

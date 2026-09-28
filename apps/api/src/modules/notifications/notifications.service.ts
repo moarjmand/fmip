@@ -42,6 +42,14 @@ export interface CarryReport {
 /** A producer's own words for its kind, richer than the sentence: the briefing sends its prose (T-432). */
 export type Composer = (due: DueNotification) => Promise<OutboundMessages | null>;
 
+/**
+ * Several due notifications of one member, carried as one message (T-830):
+ * a match alert burst -- a goal and a red card in the same minute, three
+ * matches scoring at once -- is one push, not three. Given the member's due
+ * notifications of the registered kinds, oldest first.
+ */
+export type BatchComposer = (due: DueNotification[]) => OutboundMessages | null;
+
 /** The web origin an e-mail's link is built on; the same `WEB_BASE_URL` identity uses. */
 export const WEB_ORIGIN = Symbol('WEB_ORIGIN');
 
@@ -107,6 +115,7 @@ export type EmitOutcome =
 export class NotificationsService implements OnModuleInit, OnModuleDestroy {
   private readonly log = new Logger(NotificationsService.name);
   private readonly composers = new Map<NotificationKind, Composer>();
+  private readonly batchComposers = new Map<NotificationKind, BatchComposer>();
   private timer: NodeJS.Timeout | null = null;
 
   constructor(
@@ -138,6 +147,15 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Kinds carried together per member (T-830): every due notification of
+   * these kinds for one member in one pass leaves as one message, composed
+   * by `compose`. Each is still its own row, claimed and recorded on its own.
+   */
+  registerBatch(kinds: readonly NotificationKind[], compose: BatchComposer): void {
+    for (const kind of kinds) this.batchComposers.set(kind, compose);
+  }
+
+  /**
    * Whether this member would receive this kind.
    *
    * The defaults are overlaid here rather than stored per member, so changing
@@ -145,12 +163,16 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
    * the documented default; a stored row is their own decision and wins.
    */
   async wants(userId: string, kind: NotificationKind): Promise<boolean> {
-    const [muted, categories] = await Promise.all([
-      this.store.mutedKinds(userId),
+    const [chosen, categories] = await Promise.all([
+      this.store.preference(userId, kind),
       this.store.mutedCategories(userId),
     ]);
-    if (muted.has(kind) || categories.has(NOTIFICATION_CATEGORY_OF[kind])) return false;
-    return NOTIFICATION_DEFAULTS[kind];
+    if (categories.has(NOTIFICATION_CATEGORY_OF[kind])) return false;
+    // Their own choice either way, then the default. Until T-830 only an
+    // "off" was read here, so a kind that is off by default (a panel
+    // reaction, a red card) could be switched on in Settings and still never
+    // arrive.
+    return chosen ?? NOTIFICATION_DEFAULTS[kind];
   }
 
   /**
@@ -255,7 +277,17 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
     // the timer carries everyone's. The scope is who, never what.
     const due = await this.store.due(100, scope?.userIds ?? null);
     let carried = 0;
+    // A member's batched kinds wait for the end of the pass and leave as one
+    // message (T-830); everything else leaves one by one, as before.
+    const batches = new Map<string, { compose: BatchComposer; items: DueNotification[] }>();
     for (const item of due) {
+      const batch = isNotificationKind(item.kind) ? this.batchComposers.get(item.kind) : undefined;
+      if (batch !== undefined) {
+        const group = batches.get(item.user_id) ?? { compose: batch, items: [] };
+        group.items.push(item);
+        batches.set(item.user_id, group);
+        continue;
+      }
       if (!(await this.store.claimDelivery(item.id))) continue;
       let messages: OutboundMessages | null = null;
       try {
@@ -270,6 +302,24 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
       const outcome = await this.delivery.deliver(messages?.email ?? null, messages?.push ?? null);
       await this.store.recordDelivery(item.id, outcome);
       carried += 1;
+    }
+    for (const { compose, items } of batches.values()) {
+      const claimed: DueNotification[] = [];
+      for (const item of items) if (await this.store.claimDelivery(item.id)) claimed.push(item);
+      if (claimed.length === 0) continue;
+      let messages: OutboundMessages | null = null;
+      try {
+        messages = compose(claimed);
+      } catch (error) {
+        this.log.error(
+          `notification.compose_failed kind=${claimed[0]?.kind ?? ''} batch=${String(claimed.length)}`,
+          error instanceof Error ? error.stack : String(error),
+        );
+      }
+      const outcome = await this.delivery.deliver(messages?.email ?? null, messages?.push ?? null);
+      // One message, so one outcome, recorded on every notification it carried.
+      for (const item of claimed) await this.store.recordDelivery(item.id, outcome);
+      carried += claimed.length;
     }
     return { due: due.length, carried };
   }

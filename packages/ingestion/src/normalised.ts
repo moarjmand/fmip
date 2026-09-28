@@ -155,6 +155,21 @@ export interface NormalisedFixture {
   lastUpdatedAt: string;
 }
 
+/**
+ * One entry of a provider's live list (T-830): the fixture, and what the same
+ * answer carried beside it when it carries more. API-Football's live list
+ * includes each match's events and says when the match is at the half-time
+ * interval, so the minute-by-minute job learns a scorer or a red card without
+ * spending a detail request; a provider whose live list is the fixture alone
+ * leaves both absent, which is "not said", never "none".
+ */
+export interface NormalisedLiveFixture extends NormalisedFixture {
+  /** Every incident so far, in provider order; absent when the live list does not carry them. */
+  incidents?: NormalisedIncident[];
+  /** True during the half-time interval; absent when the provider does not say. */
+  halfTimeBreak?: boolean;
+}
+
 export interface NormalisedIncident {
   fixtureExternalId: string;
   /** Order within the fixture, from 1. The only ordering that survives two events in one minute. */

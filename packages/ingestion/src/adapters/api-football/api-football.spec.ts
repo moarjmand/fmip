@@ -4,6 +4,7 @@ import { checkAdapterContract, loadScenarios } from '../../harness/contract-chec
 import { createApiFootballAdapter } from './index';
 import {
   absenceKind,
+  liveExtras,
   mapAvailability,
   mapFixture,
   mapIncidents,
@@ -295,5 +296,38 @@ describe('mapping rules', () => {
       [4, 'var', 'away', null],
     ]);
     expect(incidents[2]?.relatedPlayer).toEqual({ externalId: '5', name: 'On' });
+  });
+});
+
+describe('the live list carries events and the half-time interval (T-830)', () => {
+  it("maps each recorded element's events and says which are at half-time", () => {
+    const scenario = loadScenarios(FIXTURES_DIR).find((s) => s.name === 'live-all-now');
+    const body = scenario?.requests[0]?.body as {
+      response: { fixture: { status: { short: string } }; events?: unknown[] }[];
+    };
+    expect(body.response.some((item) => item.fixture.status.short === 'HT')).toBe(true);
+    for (const item of body.response) {
+      const fixture = mapFixture(item, '2026-09-10T19:07:41.492Z');
+      if (fixture === null) continue;
+      const extras = liveExtras(item, fixture);
+      expect(extras.halfTimeBreak).toBe(item.fixture.status.short === 'HT');
+      // Every element of this recording carries its events array.
+      expect(extras.incidents).toBeDefined();
+      expect(extras.incidents?.length ?? 0).toBeLessThanOrEqual(item.events?.length ?? 0);
+    }
+  });
+
+  it('leaves incidents absent, not empty, when the element has no events array', () => {
+    const item = {
+      fixture: { id: 1, date: '2026-09-10T19:00:00+00:00', status: { short: '1H', elapsed: 3 } },
+      league: { id: 39, name: 'Premier League', season: 2026, round: 'Regular Season - 4' },
+      teams: { home: { id: 44, name: 'Burnley' }, away: { id: 50, name: 'Manchester City' } },
+      goals: { home: 0, away: 0 },
+      score: {},
+    };
+    const fixture = mapFixture(item, '2026-09-10T19:05:00Z');
+    expect(fixture).not.toBeNull();
+    if (fixture === null) return;
+    expect(liveExtras(item, fixture)).toEqual({ halfTimeBreak: false });
   });
 });

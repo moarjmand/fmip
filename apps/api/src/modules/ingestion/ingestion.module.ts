@@ -3,6 +3,7 @@ import { DataQualityModule } from '../data-quality/data-quality.module';
 import { FailureCountsModule } from '../failure-counts/failure-counts.module';
 import { ForecastModule } from '../forecast/forecast.module';
 import { IdentityModule } from '../identity/identity.module';
+import { MatchAlertsModule } from '../match-alerts/match-alerts.module';
 import { StandingsModule } from '../standings/standings.module';
 import { CoverageService } from './coverage.service';
 import { IngestRunsService } from './ingest-runs.service';
@@ -33,12 +34,15 @@ import { INGESTION_SOURCES, resolveSources } from './internal/sources';
  * `DatabaseModule`.
  */
 @Module({
+  // Match alerts (T-830): the live and post-match jobs hand it each match's
+  // state before and after a write; it imports nothing of ingestion's.
   imports: [
     StandingsModule,
     ForecastModule,
     IdentityModule,
     FailureCountsModule,
     DataQualityModule,
+    MatchAlertsModule,
   ],
   controllers: [IngestionController, IngestionAdminController],
   providers: [

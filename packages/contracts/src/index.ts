@@ -322,6 +322,7 @@ export type {
 // true while the document and the code are the same thing.
 export {
   ADMIN_ONLY_NOTIFICATION_KINDS,
+  MATCH_ALERT_KINDS,
   MUTE_SCOPES,
   NOTIFICATION_CATEGORIES,
   NOTIFICATION_CATEGORY_OF,
@@ -331,11 +332,13 @@ export {
   NOTIFICATION_TEXT,
   QUIET_HOURS_EXEMPT,
   QUIET_HOURS_RULE,
+  isMatchAlertKind,
   isNotificationKind,
   notificationLine,
   notificationPath,
 } from './notifications';
 export type {
+  MatchAlertKind,
   MuteScope,
   Notification,
   NotificationCategory,

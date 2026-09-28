@@ -278,6 +278,27 @@ export function mapIncidents(
   return out;
 }
 
+/**
+ * What one element of the live list (`/fixtures?live=all`) carries beyond the
+ * fixture (T-830): its `events`, when the element has the array, and whether
+ * the match is at the half-time interval (`HT`). An element with no `events`
+ * array leaves `incidents` absent -- "not said", never "none" -- so a match
+ * whose events the provider left out does not read as a match without goals.
+ */
+export function liveExtras(
+  item: unknown,
+  fixture: NormalisedFixture,
+): { incidents?: NormalisedIncident[]; halfTimeBreak: boolean } {
+  const it = rec(item);
+  const short = rec(rec(it.fixture).status).short;
+  return {
+    halfTimeBreak: short === 'HT',
+    ...(Array.isArray(it.events)
+      ? { incidents: mapIncidents(it.events, fixture.externalId, fixture.home.externalId) }
+      : {}),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Lineups
 // ---------------------------------------------------------------------------

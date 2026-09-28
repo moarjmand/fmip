@@ -3,6 +3,7 @@ import { Pool } from 'pg';
 import type { AdapterResult, NormalisedStanding, Provider, ProviderAdapter } from '@fmip/ingestion';
 import { PG_POOL } from '../../database/database.module';
 import { DataQualityService, type TableComparison } from '../data-quality/data-quality.service';
+import { MatchAlertsService } from '../match-alerts/match-alerts.service';
 import { StandingsService } from '../standings/standings.service';
 import { CoverageService } from './coverage.service';
 import { IngestRunsService } from './ingest-runs.service';
@@ -52,6 +53,14 @@ export function backlogBatch(raw: string | undefined): number {
 export const AVAILABILITY_WINDOW_HOURS = 72;
 export const AVAILABILITY_STALE_HOURS = 3;
 export const AVAILABILITY_BATCH = 10;
+/**
+ * A match we hold as live that is missing from the provider's live list has
+ * usually just finished (API-Football's list drops a match at the whistle).
+ * The live job asks for its detail by id, at most once per this many minutes
+ * per match, so the full-time result -- and its alert -- arrives within a
+ * minute or two rather than at the next half-hourly post-match run (T-830).
+ */
+export const LEFT_LIVE_LIST_RETRY_MINUTES = 5;
 
 /** What one job run did. Returned so a caller (a test, the scheduler) can assert on it. */
 export interface JobReport {
@@ -171,6 +180,8 @@ export class IngestionJobsService {
   private readonly log = new Logger('Ingestion');
   private readonly store: IngestStore;
   private readonly backlogBatch = backlogBatch(process.env.INGESTION_BACKLOG_BATCH);
+  /** When the live job last asked for a match that left the live list, by fixture id. */
+  private readonly leftLiveListAskedAt = new Map<string, number>();
 
   constructor(
     @Inject(PG_POOL) pool: Pool,
@@ -180,6 +191,7 @@ export class IngestionJobsService {
     private readonly coverage: CoverageService,
     resolver: EntityResolverService,
     private readonly dataQuality: DataQualityService,
+    private readonly alerts: MatchAlertsService,
   ) {
     this.store = new IngestStore(pool, resolver);
   }
@@ -329,6 +341,9 @@ export class IngestionJobsService {
       const seasons = new Set<string>();
 
       const known: { target: PollTarget; externalIds: string[] }[] = [];
+      // What we hold for each id asked about, so a match's state before this
+      // tick can be read for its alerts (T-830).
+      const held = new Map<string, { fixtureId: string; status: string; target: PollTarget }>();
       for (const target of targets) {
         const ids = await this.store.fixtureExternalIds(
           source.provider,
@@ -337,8 +352,10 @@ export class IngestionJobsService {
           to,
         );
         known.push({ target, externalIds: ids.map((k) => k.externalId) });
+        for (const k of ids) held.set(k.externalId, { ...k, target });
       }
       const question = liveQuestion(known);
+      const told = new Set<string>();
 
       if (question.externalIds.length > 0) {
         const result = await source.adapter.getLive({ fixtureExternalIds: question.externalIds });
@@ -346,17 +363,69 @@ export class IngestionJobsService {
           refused.push(`${question.seasonLabels.join(', ')}: ${describe(result.error)}`);
         } else {
           seen += result.data.length;
+          const answered = new Set<string>();
           for (const fixture of result.data) {
             const target = question.targetOf.get(fixture.externalId);
             if (target === undefined) continue;
+            answered.add(fixture.externalId);
+            const heldId = held.get(fixture.externalId)?.fixtureId;
+            const before = heldId === undefined ? null : await this.alerts.before(heldId);
             const write = await this.store.saveFixture(source.provider, target, fixture, 'live');
             written += write.changed;
             if (write.seasonId !== undefined) seasons.add(write.seasonId);
             for (const id of write.unresolved) unresolved.add(id);
+            // The live list's own events, where it carries them (T-830): a
+            // scorer or a red card within the minute, not the half hour.
+            if (fixture.incidents !== undefined && write.fixtureId !== undefined) {
+              const saved = await this.store.saveIncidents(
+                source.provider,
+                write.fixtureId,
+                fixture.incidents,
+              );
+              written += saved.changed;
+              for (const id of saved.unresolved) unresolved.add(id);
+            }
+            if (before !== null) {
+              const hints =
+                fixture.halfTimeBreak === undefined ? {} : { halfTimeBreak: fixture.halfTimeBreak };
+              for (const id of await this.alerts.after(before, hints)) told.add(id);
+            }
+          }
+
+          // A match we hold as live that the list no longer carries has
+          // usually ended: ask for it by id, so its result is not half an
+          // hour late (T-830).
+          for (const [externalId, match] of held) {
+            if (match.status !== 'live' || answered.has(externalId)) continue;
+            const last = this.leftLiveListAskedAt.get(match.fixtureId);
+            if (
+              last !== undefined &&
+              now.getTime() - last < LEFT_LIVE_LIST_RETRY_MINUTES * 60 * 1000
+            ) {
+              continue;
+            }
+            this.leftLiveListAskedAt.set(match.fixtureId, now.getTime());
+            const before = await this.alerts.before(match.fixtureId);
+            const detail = await this.ingestDetail(source, {
+              externalId,
+              fixtureId: match.fixtureId,
+              target: match.target,
+            });
+            if (detail.refused !== undefined) {
+              refused.push(detail.refused);
+              continue;
+            }
+            seen += 1;
+            written += detail.written;
+            seasons.add(match.target.seasonId);
+            for (const id of detail.unresolved) unresolved.add(id);
+            if (before !== null) for (const id of await this.alerts.after(before)) told.add(id);
           }
         }
       }
       written += await this.coverage.recomputeMany([...seasons]);
+      // Everything this tick raised leaves now, one push per member (T-830).
+      await this.alerts.deliver([...told]);
       return this.report('live', source.provider, seen, written, refused, unresolved);
     });
   }
@@ -438,50 +507,78 @@ export class IngestionJobsService {
       const refused: string[] = [];
       const unresolved = new Set<string>();
 
+      const watched = new Set(recent.map((c) => c.fixtureId));
+      const told = new Set<string>();
       for (const candidate of candidates) {
-        const result = await source.adapter.getFixtureDetail(candidate.externalId);
-        if (!result.ok) {
-          refused.push(`${candidate.externalId}: ${describe(result.error)}`);
+        // A recent match's alerts (T-830): a full-time or a red card the live
+        // list did not carry. A backlog match is long over and raises none,
+        // so it is not read twice for nothing.
+        const before = watched.has(candidate.fixtureId)
+          ? await this.alerts.before(candidate.fixtureId)
+          : null;
+        const detail = await this.ingestDetail(source, candidate);
+        if (detail.refused !== undefined) {
+          refused.push(detail.refused);
           continue;
         }
         seen += 1;
-        await this.store.markDetailFetched(source.provider, candidate.fixtureId);
-        const detail = result.data;
-        const writes: WriteResult[] = [
-          await this.store.saveFixture(
-            source.provider,
-            candidate.target,
-            detail.fixture,
-            'post_match',
-          ),
-          await this.store.savePeriods(candidate.fixtureId, detail.periods),
-          await this.store.saveIncidents(source.provider, candidate.fixtureId, detail.incidents),
-          await this.store.saveStatistics(candidate.fixtureId, detail.statistics),
-        ];
-        if (detail.lineup !== null) {
-          writes.push(
-            await this.store.saveLineup(source.provider, candidate.fixtureId, detail.lineup),
-          );
-        }
-        if (detail.playerStatistics !== null) {
-          writes.push(
-            await this.store.savePlayerStatistics(
-              source.provider,
-              candidate.fixtureId,
-              detail.playerStatistics,
-            ),
-          );
-        }
-        for (const write of writes) {
-          written += write.changed;
-          for (const id of write.unresolved) unresolved.add(id);
-        }
+        written += detail.written;
+        for (const id of detail.unresolved) unresolved.add(id);
+        if (before !== null) for (const id of await this.alerts.after(before)) told.add(id);
       }
       written += await this.coverage.recomputeMany(
         await this.coverage.seasonsOf(candidates.map((c) => c.fixtureId)),
       );
+      await this.alerts.deliver([...told]);
       return this.report('post_match', source.provider, seen, written, refused, unresolved);
     });
+  }
+
+  /**
+   * One fixture's detail, asked for by id and written: the fixture, its
+   * periods, incidents, statistics, line-up and player statistics. Shared by
+   * the post-match run and the live job's ask about a match that left the
+   * live list (T-830), so there is one writer for a detail.
+   */
+  private async ingestDetail(
+    source: JobSource,
+    candidate: { externalId: string; fixtureId: string; target: PollTarget },
+  ): Promise<{ refused?: string; written: number; unresolved: string[] }> {
+    const result = await source.adapter.getFixtureDetail(candidate.externalId);
+    if (!result.ok) {
+      return {
+        refused: `${candidate.externalId}: ${describe(result.error)}`,
+        written: 0,
+        unresolved: [],
+      };
+    }
+    await this.store.markDetailFetched(source.provider, candidate.fixtureId);
+    const detail = result.data;
+    const writes: WriteResult[] = [
+      await this.store.saveFixture(source.provider, candidate.target, detail.fixture, 'post_match'),
+      await this.store.savePeriods(candidate.fixtureId, detail.periods),
+      await this.store.saveIncidents(source.provider, candidate.fixtureId, detail.incidents),
+      await this.store.saveStatistics(candidate.fixtureId, detail.statistics),
+    ];
+    if (detail.lineup !== null) {
+      writes.push(await this.store.saveLineup(source.provider, candidate.fixtureId, detail.lineup));
+    }
+    if (detail.playerStatistics !== null) {
+      writes.push(
+        await this.store.savePlayerStatistics(
+          source.provider,
+          candidate.fixtureId,
+          detail.playerStatistics,
+        ),
+      );
+    }
+    let written = 0;
+    const unresolved: string[] = [];
+    for (const write of writes) {
+      written += write.changed;
+      unresolved.push(...write.unresolved);
+    }
+    return { written, unresolved };
   }
 
   /**
