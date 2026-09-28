@@ -1,4 +1,5 @@
 import type { CommunityAnalysesResponse, CommunityAnalysis } from '@fmip/contracts';
+import { MemberHandle, MemberName } from '@/components/member-name';
 import { Notice } from '@/components/ui';
 
 /**
@@ -24,7 +25,7 @@ const OUTCOME_LABEL: Record<CommunityAnalysis['versions'][number]['predicted_out
   away: 'Away win',
 };
 
-function Analysis({ analysis }: { analysis: CommunityAnalysis }) {
+function Analysis({ locale, analysis }: { locale: string; analysis: CommunityAnalysis }) {
   // The newest version is what is current; the earlier ones stay in the record
   // and are not shown here, because a reader wants what the analyst says now.
   const current = analysis.versions[0];
@@ -36,8 +37,8 @@ function Analysis({ analysis }: { analysis: CommunityAnalysis }) {
       data-testid="community-analysis"
     >
       <span className="flex flex-wrap items-baseline gap-2 text-sm">
-        <span className="font-medium">{analysis.author.display_name}</span>
-        <span className="text-xs text-muted">@{analysis.author.username}</span>
+        <MemberName locale={locale} member={analysis.author} className="font-medium" />
+        <MemberHandle username={analysis.author.username} className="text-xs text-muted" />
         {analysis.author.rating === null ? (
           // Said, not left blank: "not rated yet" and "rated badly" are
           // different facts and a missing number reads as neither (rule 3).
@@ -105,9 +106,11 @@ function Analysis({ analysis }: { analysis: CommunityAnalysis }) {
 }
 
 export function CommunityAnalysisPanel({
+  locale,
   analyses,
   reachable,
 }: {
+  locale: string;
   analyses: CommunityAnalysesResponse | null;
   /** False when the analyses could not be fetched at all. */
   reachable: boolean;
@@ -137,7 +140,7 @@ export function CommunityAnalysisPanel({
       ) : (
         <ul className="flex flex-col gap-3">
           {analyses.analyses.map((analysis) => (
-            <Analysis key={analysis.id} analysis={analysis} />
+            <Analysis key={analysis.id} locale={locale} analysis={analysis} />
           ))}
         </ul>
       )}

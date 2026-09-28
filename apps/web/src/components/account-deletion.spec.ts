@@ -75,8 +75,8 @@ describe('a deleted member', () => {
   });
 
   it('is named "a deleted member" in a conversation, never by the tombstone', () => {
-    expect(CONVERSATION).toContain('isDeletedMember(message.author)');
-    expect(CONVERSATION).toContain('message="account.deletedMember"');
+    // Through `MemberName`, which asks `isDeletedMember` (T-908, `member-names.spec.ts`).
+    expect(CONVERSATION).toContain('member={{ username: message.author }}');
   });
 
   it('keeps a panel post with no name, standing or follow control', () => {

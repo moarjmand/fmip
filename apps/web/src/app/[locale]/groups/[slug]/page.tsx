@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { GroupControls, JoinRequestControls } from '@/components/group-controls';
 import { GroupPollsSection } from '@/components/group-polls';
+import { MemberHandle, MemberName } from '@/components/member-name';
 import {
   fetchGroup,
   fetchGroupLeaderboard,
@@ -124,14 +125,9 @@ export default async function GroupPage({
           <ul className="flex flex-col gap-2">
             {group.members.map((member) => (
               <li key={member.username} className="text-sm">
-                <Link
-                  href={`/${locale}/u/${encodeURIComponent(member.username)}`}
-                  className="underline"
-                >
-                  {member.display_name}
-                </Link>{' '}
+                <MemberName locale={locale} member={member} link className="underline" />{' '}
                 <span className="text-muted">
-                  @{member.username}
+                  <MemberHandle username={member.username} />
                   {member.role === 'member' ? '' : ` · ${member.role}`}
                 </span>
               </li>
@@ -176,12 +172,7 @@ export default async function GroupPage({
                 {board.data.entries.map((entry) => (
                   <li key={entry.username} className="flex items-baseline gap-3 text-sm">
                     <span className="w-6 text-end text-muted">{entry.rank}</span>
-                    <Link
-                      href={`/${locale}/u/${encodeURIComponent(entry.username)}`}
-                      className="underline"
-                    >
-                      @{entry.username}
-                    </Link>
+                    <MemberName locale={locale} member={entry} link className="underline" />
                     <span className="ms-auto tabular-nums">{ratingLabel(entry)}</span>
                     <span className="text-muted">{tierLabel(entry.tier)}</span>
                     <span className="text-muted">{statusLabel(entry)}</span>
@@ -221,13 +212,8 @@ export default async function GroupPage({
               {queue.data.requests.map((request) => (
                 <li key={request.username} className="flex flex-col gap-2">
                   <p className="text-sm">
-                    <Link
-                      href={`/${locale}/u/${encodeURIComponent(request.username)}`}
-                      className="underline"
-                    >
-                      {request.display_name}
-                    </Link>{' '}
-                    <span className="text-muted">@{request.username}</span>
+                    <MemberName locale={locale} member={request} link className="underline" />{' '}
+                    <MemberHandle username={request.username} className="text-muted" />
                   </p>
                   {request.note !== null && <p className="text-sm">{request.note}</p>}
                   <JoinRequestControls

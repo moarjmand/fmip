@@ -271,6 +271,7 @@ export default async function MatchPage({
                   {/* Below the founder's analysis and visibly not it: a fourth
                     signed opinion, named as one (rule 6, T-263). */}
                   <CommunityAnalysisPanel
+                    locale={locale}
                     analyses={
                       communityAnalyses !== null && communityAnalyses.ok
                         ? communityAnalyses.data
