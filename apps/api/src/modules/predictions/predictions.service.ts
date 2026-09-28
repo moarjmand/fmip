@@ -1,5 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import type { GroupPredictionCall, Prediction, PredictionHistoryItem } from '@fmip/contracts';
+import { NotificationsService } from '../notifications/notifications.service';
+import { ProfileService } from '../profile/profile.service';
+import { SocialService } from '../social/social.service';
+import { friendAlerts } from './internal/friend-alerts';
 import type { HistoryQuery } from './internal/history-query';
 import { PostgresPredictionStore, PredictionLockedError } from './internal/prediction-store';
 import { validateSubmission } from './internal/validation';
@@ -45,7 +49,14 @@ export class PredictionsService {
   /** Replaceable so the lock can be tested at a chosen instant (T-051). */
   clock: () => Date = () => new Date();
 
-  constructor(private readonly store: PostgresPredictionStore) {}
+  private readonly log = new Logger(PredictionsService.name);
+
+  constructor(
+    private readonly store: PostgresPredictionStore,
+    private readonly notifications: NotificationsService,
+    private readonly social: SocialService,
+    private readonly profiles: ProfileService,
+  ) {}
 
   /** A member's predictions, newest kick-off first, with versions and settlement (T-056). */
   history(
@@ -81,6 +92,8 @@ export class PredictionsService {
     if (!validated.ok) return { kind: 'invalid', fields: validated.fields };
     try {
       const prediction = await this.store.submit(who.id, fixtureId, validated.value);
+      // A first prediction only: a revision is the same news (T-832).
+      if (prediction.versions.length === 1) await this.tellFriends(who.id, fixtureId);
       return { kind: 'submitted', prediction };
     } catch (error: unknown) {
       // The database clock is the authority (T-051): a request that crossed
@@ -89,6 +102,33 @@ export class PredictionsService {
         return { kind: 'locked', locksAt: fixture.kickoffAt.toISOString() };
       }
       throw error;
+    }
+  }
+
+  /**
+   * "A friend predicted a match you follow" (blueprint 8.1, T-832, D-100):
+   * to each friend who follows the match or predicted it, and may read this
+   * member's predictions by the member's own setting (D-063). Never the pick.
+   * Never fails the prediction: it is already written.
+   */
+  private async tellFriends(predictorId: string, fixtureId: string): Promise<void> {
+    try {
+      const alerts = await friendAlerts(
+        {
+          friendIds: (userId) => this.social.friendIds(userId),
+          interested: (fixture, userIds) => this.store.interested(fixture, userIds),
+          mayRead: async (predictor, viewer) =>
+            (await this.profiles.predictionHistoryAudience([predictor], viewer)).has(predictor),
+        },
+        predictorId,
+        fixtureId,
+      );
+      await this.notifications.emitMany(alerts);
+    } catch (error) {
+      this.log.error(
+        `friend_predicted.failed fixture=${fixtureId} member=${predictorId}`,
+        error instanceof Error ? error.stack : String(error),
+      );
     }
   }
 

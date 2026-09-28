@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { GroupsModule } from '../groups/groups.module';
 import { IdentityModule } from '../identity/identity.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { ProfileModule } from '../profile/profile.module';
+import { SocialModule } from '../social/social.module';
 import { HistoryController } from './history.controller';
 import { PostgresPredictionStore } from './internal/prediction-store';
 import { PostgresSettlementStore } from './internal/settlement-store';
@@ -21,7 +23,8 @@ import { SettlementService } from './settlement.service';
  * inherit. Groups answers `audience()` and ranks and scores nothing.
  */
 @Module({
-  imports: [IdentityModule, ProfileModule, GroupsModule],
+  // Social and notifications tell a member's friends they predicted (T-832).
+  imports: [IdentityModule, ProfileModule, GroupsModule, SocialModule, NotificationsModule],
   controllers: [PredictionsController, SettlementController, HistoryController],
   providers: [
     PredictionsService,

@@ -93,6 +93,7 @@ const CONSOLE: Record<string, ConsoleRoute> = {
   'GET /admin/health/failures': { roles: ADMIN },
   'GET /admin/health/watchdog': { roles: ADMIN },
   'GET /admin/health/alerts': { roles: ADMIN },
+  'GET /admin/activity': { roles: ADMIN },
 
   // Data quality (T-640).
   'GET /admin/data-quality': { roles: ADMIN },

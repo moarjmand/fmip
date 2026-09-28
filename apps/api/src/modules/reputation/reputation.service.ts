@@ -19,6 +19,7 @@ import {
   tierOf,
 } from './internal/formula';
 import { CareerPointsService } from './career-points.service';
+import { ContributorService } from './contributor.service';
 import { deriveAchievements } from './internal/achievements';
 import { ratingHistory } from './internal/history';
 import {
@@ -75,6 +76,7 @@ export class ReputationService {
     private readonly identity: IdentityService,
     private readonly points: CareerPointsService,
     private readonly profiles: ProfileService,
+    private readonly contributors: ContributorService,
   ) {}
 
   /**
@@ -293,6 +295,15 @@ export class ReputationService {
    * the newest snapshot writes nothing; otherwise a snapshot is added.
    */
   async recompute(userId: string): Promise<RecomputeOutcome> {
+    const outcome = await this.recomputeRating(userId);
+    // Eligibility can move without the rating (a sanction ageing out, an
+    // address verified), so it is asked after every recompute of a member
+    // who exists; administrators hear only of a transition (T-833, D-100).
+    if (outcome.kind !== 'unknown_user') await this.contributors.noteEligibility(userId);
+    return outcome;
+  }
+
+  private async recomputeRating(userId: string): Promise<RecomputeOutcome> {
     const user = await this.identity.userById(userId);
     if (user === null) return { kind: 'unknown_user' };
     // Points ride along: the same settlements feed both, and the ledger is idempotent.
