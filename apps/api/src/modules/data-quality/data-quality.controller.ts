@@ -12,7 +12,13 @@ import {
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
-import type { ApiError, DataQualityReport } from '@fmip/contracts';
+import {
+  type ApiError,
+  DATA_QUALITY_CHECKS,
+  type DataQualityCheck,
+  type DataQualityReport,
+  type ReviewDataQualityBatchResponse,
+} from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { DataQualityService } from './data-quality.service';
@@ -23,13 +29,23 @@ const NOT_ADMIN: ApiError = {
   message: 'The administration area needs the admin role.',
 };
 const MAX_REASON = 500;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function reasonOf(body: unknown): string {
+  const raw = (body as { reason?: unknown } | null)?.reason;
+  return typeof raw === 'string' ? raw.trim() : '';
+}
+
+const REASON_FIELD = `Say why, in at most ${MAX_REASON} characters. This is recorded.`;
 
 /**
  * The data-quality findings for administrators (T-821): `GET
  * /admin/data-quality` (each check's newest run, open findings per
  * competition and check, the open findings themselves) and `POST
  * /admin/data-quality/:id/review` (marks one reviewed, with a reason and an
- * audit row). Admin role only. Reviewing corrects nothing: the finding stays
+ * audit row), and `POST /admin/data-quality/review-batch` (every open,
+ * unreviewed finding of one check in one season, one reason, one audit row:
+ * T-912). Admin role only. Reviewing corrects nothing: the finding stays
  * open until the data stops contradicting itself, and the watchdog stops
  * counting it.
  */
@@ -55,6 +71,42 @@ export class DataQualityController {
     return this.dataQuality.report(new Date());
   }
 
+  @Post('review-batch')
+  @HttpCode(200)
+  async reviewBatch(
+    @Body() body: unknown,
+    @Req() request: FastifyRequest,
+  ): Promise<ReviewDataQualityBatchResponse> {
+    const actor = await this.admin(request);
+    const raw = (body ?? {}) as { check?: unknown; season_id?: unknown };
+    const check = DATA_QUALITY_CHECKS.includes(raw.check as DataQualityCheck)
+      ? (raw.check as DataQualityCheck)
+      : null;
+    const seasonId =
+      typeof raw.season_id === 'string' && UUID.test(raw.season_id) ? raw.season_id : null;
+    const reason = reasonOf(body);
+    const badReason = reason === '' || reason.length > MAX_REASON;
+    if (check === null || seasonId === null || badReason) {
+      throw new BadRequestException({
+        error: 'validation',
+        message: 'The request is not valid.',
+        fields: {
+          ...(check === null ? { check: 'One of the data-quality checks.' } : {}),
+          ...(seasonId === null ? { season_id: 'A season id.' } : {}),
+          ...(badReason ? { reason: REASON_FIELD } : {}),
+        },
+      } satisfies ApiError);
+    }
+    const reviewed = await this.dataQuality.reviewBatch(check, seasonId, actor, reason, new Date());
+    if (reviewed === 0) {
+      throw new NotFoundException({
+        error: 'not_found',
+        message: 'No open finding of that check in that season is waiting for review.',
+      } satisfies ApiError);
+    }
+    return { reviewed };
+  }
+
   @Post(':id/review')
   @HttpCode(200)
   async review(
@@ -64,17 +116,14 @@ export class DataQualityController {
   ): Promise<{ reviewed: true }> {
     const actor = await this.admin(request);
     const id = /^[1-9][0-9]{0,15}$/.test(rawId) ? Number(rawId) : null;
-    const raw = (body as { reason?: unknown } | null)?.reason;
-    const reason = typeof raw === 'string' ? raw.trim() : '';
+    const reason = reasonOf(body);
     if (id === null || reason === '' || reason.length > MAX_REASON) {
       const error: ApiError = {
         error: 'validation',
         message: 'The request is not valid.',
         fields: {
           ...(id === null ? { id: 'A finding id.' } : {}),
-          ...(reason === '' || reason.length > MAX_REASON
-            ? { reason: `Say why, in at most ${MAX_REASON} characters. This is recorded.` }
-            : {}),
+          ...(reason === '' || reason.length > MAX_REASON ? { reason: REASON_FIELD } : {}),
         },
       };
       throw new BadRequestException(error);

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
   DATA_QUALITY_CHECKS,
+  type DataQualityCheck,
   type DataQualityFinding,
   type DataQualityFixtureRef,
   type DataQualityReport,
@@ -135,6 +136,7 @@ export class DataQualityService {
           c.competition_id === null
             ? null
             : { id: c.competition_id, name: c.competition_name ?? '' },
+        season: c.season_id === null ? null : { id: c.season_id, label: c.season_label ?? '' },
         check: c.check_kind,
         open: c.open,
         reviewed: c.reviewed,
@@ -153,6 +155,20 @@ export class DataQualityService {
     now: Date = new Date(),
   ): Promise<ReviewOutcome> {
     return this.store.review(id, actorId, reason, now);
+  }
+
+  /**
+   * Marks every open, unreviewed finding of one check in one season reviewed
+   * with one reason, audited as one batch (T-912). Returns how many.
+   */
+  reviewBatch(
+    check: DataQualityCheck,
+    seasonId: string,
+    actorId: string,
+    reason: string,
+    now: Date = new Date(),
+  ): Promise<number> {
+    return this.store.reviewBatch(check, seasonId, actorId, reason, now);
   }
 
   /**

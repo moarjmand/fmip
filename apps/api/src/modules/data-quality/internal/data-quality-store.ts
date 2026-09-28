@@ -89,6 +89,8 @@ export interface FindingRow {
 export interface CountRow {
   competition_id: string | null;
   competition_name: string | null;
+  season_id: string | null;
+  season_label: string | null;
   check_kind: DataQualityCheck;
   open: number;
   reviewed: number;
@@ -133,17 +135,19 @@ export class DataQualityStore {
     return rows;
   }
 
-  /** Open findings per competition and check, and how many of them are reviewed. */
+  /** Open findings per competition, season and check, and how many of them are reviewed. */
   async counts(): Promise<CountRow[]> {
     const { rows } = await this.pool.query<CountRow>(
-      `SELECT d.competition_id, c.name AS competition_name, d.check_kind,
+      `SELECT d.competition_id, c.name AS competition_name,
+              d.season_id, se.label AS season_label, d.check_kind,
               count(*)::int AS open,
               (count(*) FILTER (WHERE d.reviewed_at IS NOT NULL))::int AS reviewed
          FROM data_quality_finding d
          LEFT JOIN competition c ON c.id = d.competition_id
+         LEFT JOIN season se ON se.id = d.season_id
         WHERE d.resolved_at IS NULL
-        GROUP BY d.competition_id, c.name, d.check_kind
-        ORDER BY c.name NULLS LAST, d.check_kind`,
+        GROUP BY d.competition_id, c.name, d.season_id, se.label, d.check_kind
+        ORDER BY c.name NULLS LAST, se.label DESC NULLS LAST, d.check_kind`,
     );
     return rows;
   }
@@ -212,6 +216,61 @@ export class DataQualityStore {
       );
       await client.query('COMMIT');
       return 'reviewed';
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Marks every open, not yet reviewed finding of one check in one season
+   * reviewed with one reason (T-912), and writes one audit row for the batch
+   * in the same transaction: the check, the season, the count and the reason,
+   * with the finding ids as the previous value (rule 10). Returns how many
+   * were marked; 0 writes nothing, not even the audit row.
+   *
+   * Only the rows open now are marked. A finding that resolves and is found
+   * again later is a new row (the partial unique index), so it is open and
+   * unreviewed again, not hidden by an earlier batch.
+   */
+  async reviewBatch(
+    check: DataQualityCheck,
+    seasonId: string,
+    actorId: string,
+    reason: string,
+    now: Date,
+  ): Promise<number> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const { rows } = await client.query<{ id: string }>(
+        `UPDATE data_quality_finding
+            SET reviewed_at = $3, reviewed_by = $4, review_reason = $5
+          WHERE resolved_at IS NULL AND reviewed_at IS NULL
+            AND check_kind = $1 AND season_id = $2
+          RETURNING id`,
+        [check, seasonId, now, actorId, reason],
+      );
+      if (rows.length === 0) {
+        await client.query('ROLLBACK');
+        return 0;
+      }
+      const ids = rows.map((r) => Number(r.id)).sort((a, b) => a - b);
+      await client.query(
+        `INSERT INTO audit_log (actor_id, action, target_type, target_id, reason, previous, next)
+         VALUES ($1, 'data_quality.review_batch', 'season', $2, $3, $4::jsonb, $5::jsonb)`,
+        [
+          actorId,
+          seasonId,
+          reason,
+          JSON.stringify({ check, season_id: seasonId, reviewed: false, finding_ids: ids }),
+          JSON.stringify({ check, season_id: seasonId, reviewed: true, count: ids.length }),
+        ],
+      );
+      await client.query('COMMIT');
+      return ids.length;
     } catch (error) {
       await client.query('ROLLBACK').catch(() => undefined);
       throw error;

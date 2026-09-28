@@ -671,6 +671,8 @@ export type {
   DataQualityFinding,
   DataQualityFixtureRef,
   DataQualityReport,
+  ReviewDataQualityBatchRequest,
+  ReviewDataQualityBatchResponse,
   ReviewDataQualityFindingRequest,
 } from './data-quality';
 // API errors and job failures counted per hour (T-803).
