@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import type { MatchAlertKind } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 import type { MatchIncident, MatchState, Side } from './match-events';
@@ -9,6 +10,17 @@ export interface MatchReading {
   fixtureId: string;
   state: MatchState;
   teams: { home: string; away: string };
+}
+
+/** An event recorded and not yet expanded to its audience (T-835). */
+export interface PendingAlert {
+  key: string;
+  fixtureId: string;
+  kind: MatchAlertKind;
+  /** For a correction, the goal it withdraws. */
+  withdraws: string | null;
+  /** Claimed before by a worker that did not finish it. */
+  retried: boolean;
 }
 
 /** A reading of one match's team news (T-832). */
@@ -23,7 +35,7 @@ export interface TeamNewsReading {
  *
  * It reads the fixture tables the ingestion writes and the follow table the
  * following boundary writes; it writes only `match_alert`. The notifications
- * themselves go through `NotificationsService.emit`, which applies the
+ * themselves go through `NotificationsService.emitToAudience`, which applies the
  * preferences, the mutes and the quiet hours.
  */
 @Injectable()
@@ -183,6 +195,64 @@ export class MatchAlertsStore {
       [entry.key, entry.fixtureId, entry.kind, entry.withdraws, entry.line],
     );
     return rowCount === 1;
+  }
+
+  /**
+   * Claims the oldest pending event for expansion (T-835), or null when none
+   * is claimable: one of `keys` (the events a job was handed), or any event
+   * pending for more than two minutes (its job was lost with a process).
+   * `SKIP LOCKED`, so two workers never wait on each other; a lease older
+   * than two minutes is a worker that died, and is taken over. A correction
+   * is not claimable while the goal it withdraws is pending, so its audience
+   * -- the members told of that goal -- is complete. An event more than a
+   * day old is not news any more and is left alone, as `due` leaves a
+   * notification that old.
+   *
+   * `retried` says the event was claimed before: a worker got some way into
+   * it and stopped, so some of its notifications may be written and not yet
+   * carried.
+   */
+  async claimPending(keys: string[]): Promise<PendingAlert | null> {
+    const { rows } = await this.pool.query<PendingAlert>(
+      `WITH picked AS (
+         SELECT a.event_key, a.claimed_at FROM match_alert a
+          WHERE a.expanded_at IS NULL
+            AND a.created_at > now() - interval '1 day'
+            AND (a.event_key = ANY($1::text[]) OR a.created_at < now() - interval '2 minutes')
+            AND (a.claimed_at IS NULL OR a.claimed_at < now() - interval '2 minutes')
+            AND NOT EXISTS (SELECT 1 FROM match_alert w
+                             WHERE w.event_key = a.withdraws AND w.expanded_at IS NULL)
+          ORDER BY a.created_at, a.event_key
+          LIMIT 1
+            FOR UPDATE SKIP LOCKED
+       )
+       UPDATE match_alert m SET claimed_at = now()
+         FROM picked
+        WHERE m.event_key = picked.event_key
+       RETURNING m.event_key AS key, m.fixture_id AS "fixtureId", m.kind, m.withdraws,
+                 picked.claimed_at IS NOT NULL AS retried`,
+      [keys],
+    );
+    return rows[0] ?? null;
+  }
+
+  /** Marks an event's notifications written (T-835): it is never expanded again. */
+  async markExpanded(eventKey: string): Promise<void> {
+    await this.pool.query(`UPDATE match_alert SET expanded_at = now() WHERE event_key = $1`, [
+      eventKey,
+    ]);
+  }
+
+  /**
+   * Gives a claimed event back (T-835): its lease is made already expired,
+   * so a retry need not wait it out, and still reads as claimed before.
+   */
+  async release(eventKey: string): Promise<void> {
+    await this.pool.query(
+      `UPDATE match_alert SET claimed_at = now() - interval '2 minutes'
+        WHERE event_key = $1 AND expanded_at IS NULL`,
+      [eventKey],
+    );
   }
 
   /**

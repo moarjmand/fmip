@@ -23,6 +23,12 @@
 //     node apps/api/scripts/load-match-alerts.mjs --competitions 15 --matches 6 \
 //       --members 10000 --teams-per-member 2 --competition-share 0.3 \
 //       --ticks 5 --goals-per-tick 10 --push-ms 0
+//
+// `--queue` (T-835) sends the alerts through BullMQ as production does: the
+// live job records and hands over, and a worker in this process expands and
+// carries. It needs REDIS_URL pointing at a throwaway Redis (the queue is
+// emptied). A tick then reports `job_ms` (the live job alone) and
+// `alerts_done_ms` (until the worker has nothing left).
 import { createRequire } from 'node:module';
 import { randomUUID } from 'node:crypto';
 import { performance } from 'node:perf_hooks';
@@ -49,6 +55,7 @@ const COMPETITION_SHARE = Number(args['competition-share'] ?? 0.3);
 const TICKS = Number(args.ticks ?? 5);
 const GOALS_PER_TICK = Number(args['goals-per-tick'] ?? 10);
 const PUSH_MS = Number(args['push-ms'] ?? 0);
+const QUEUE = args.queue === 'true';
 const MAX_DRAIN_PASSES = Number(args['max-drain-passes'] ?? 500);
 const PROVIDER = 'highlightly';
 const RUN = `t834${Date.now().toString(36)}`;
@@ -69,6 +76,10 @@ const { IngestionJobsService } = dist('modules/ingestion/ingestion-jobs.service'
 const { INGESTION_SOURCES } = dist('modules/ingestion/internal/sources');
 const { OUTBOUND_DELIVERY } = dist('modules/delivery/delivery.port');
 const { NotificationsService, WEB_ORIGIN } = dist('modules/notifications/notifications.service');
+const { MATCH_ALERTS_QUEUE, MatchAlertsService } = dist(
+  'modules/match-alerts/match-alerts.service',
+);
+const { Queue } = require('bullmq');
 
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 4 });
 
@@ -326,6 +337,32 @@ async function main() {
   const jobs = moduleRef.get(IngestionJobsService);
   const notifications = moduleRef.get(NotificationsService);
 
+  // With --queue (T-835), the alerts go through BullMQ as in production: the
+  // live job records and hands over, and a worker in this process expands
+  // and carries. Needs REDIS_URL, a throwaway Redis: the queue is emptied.
+  let queue = null;
+  if (QUEUE) {
+    const url = process.env.REDIS_URL;
+    if (!url) throw new Error('--queue needs REDIS_URL (a throwaway Redis)');
+    queue = new Queue(MATCH_ALERTS_QUEUE, { connection: { url, maxRetriesPerRequest: null } });
+    await queue.obliterate({ force: true });
+    await moduleRef.get(MatchAlertsService).start(url);
+  }
+  const fixtureIds = matches.map((m) => m.id);
+  async function settle() {
+    for (;;) {
+      const counts = await queue.getJobCounts('waiting', 'active', 'delayed', 'prioritized');
+      const busy = Object.values(counts).reduce((n, c) => n + c, 0);
+      const { rows } = await pool.query(
+        `SELECT count(*)::int AS n FROM match_alert
+          WHERE fixture_id = ANY($1::uuid[]) AND expanded_at IS NULL`,
+        [fixtureIds],
+      );
+      if (busy === 0 && rows[0].n === 0) return;
+      await sleep(25);
+    }
+  }
+
   // What a tick did not carry leaves on the five-minute timer, one `carry()`
   // a pass. Drained after every tick, so each tick is measured on its own and
   // the report says how many timer passes -- five minutes each -- it needed.
@@ -360,6 +397,10 @@ async function main() {
     const started = performance.now();
     const report = await jobs.live();
     const ended = performance.now();
+    // Through the queue (T-835), the tick ends when it has recorded and
+    // handed over; the alerts are done when the worker has nothing left.
+    if (queue !== null) await settle();
+    const settled = performance.now();
     const after = await dbCounters();
     const tickPushes = pushes.slice(pushesBefore);
     const timer = await drain();
@@ -374,6 +415,7 @@ async function main() {
       goals: scored.size,
       job_ms: Math.round(ended - started),
       job_partial: report.partial ?? null,
+      alerts_done_ms: Math.round(settled - started),
       alerts_recorded: made.alerts,
       notifications_written: made.notifications,
       pushes_in_tick: tickPushes.length,
@@ -394,6 +436,10 @@ async function main() {
   const written = ticks.reduce((n, t) => n + t.notifications_written, 0);
 
   await moduleRef.close();
+  if (queue !== null) {
+    await queue.obliterate({ force: true });
+    await queue.close();
+  }
   await tearDown();
   await pool.end();
 
@@ -412,6 +458,7 @@ async function main() {
           goal_ticks: TICKS,
           goals_per_tick: GOALS_PER_TICK,
           push_ms: PUSH_MS,
+          queue: QUEUE,
         },
         set_up_ms: setUpMs,
         ticks,

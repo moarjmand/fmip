@@ -8,6 +8,7 @@ import type {
   NormalisedLiveFixture,
   ProviderAdapter,
 } from '@fmip/ingestion';
+import { Queue } from 'bullmq';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
@@ -16,6 +17,7 @@ import { IngestionJobsService } from '../ingestion/ingestion-jobs.service';
 import { IngestionModule } from '../ingestion/ingestion.module';
 import { INGESTION_SOURCES, type IngestionSources } from '../ingestion/internal/sources';
 import { NotificationsService, WEB_ORIGIN } from '../notifications/notifications.service';
+import { MATCH_ALERTS_QUEUE, MatchAlertsService } from './match-alerts.service';
 
 /**
  * Match alerts through the live job (T-830, D-098), against the real schema:
@@ -30,6 +32,7 @@ import { NotificationsService, WEB_ORIGIN } from '../notifications/notifications
  * push per tick, and a correction only to those told of the goal.
  */
 const DATABASE_URL = process.env.DATABASE_URL;
+const REDIS_URL = process.env.REDIS_URL;
 const RUN = `${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
 const ENGLAND = '00000000-0000-4000-8000-000000000101';
 const PROVIDER = 'highlightly' as const;
@@ -402,6 +405,345 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         [members.get('asleep'), FIXTURE],
       );
       expect(held.rows[0]?.n).toBe(4);
+    });
+  },
+);
+
+/**
+ * Match alerts through the queue (T-835), against the real schema and a
+ * real Redis: the live job → `match_alert` → a BullMQ job → a worker's
+ * set-based insert → the carrier.
+ *
+ * Two API instances share the database and the queue, as two processes
+ * would: A runs the live job, and both run a worker. The live job must only
+ * record and hand over; the workers must write each follower's notification
+ * once and send each once, however they race, and a worker that stopped
+ * part-way must be made good without anybody hearing twice.
+ */
+describe.skipIf(!DATABASE_URL || !REDIS_URL)(
+  'match alerts through the queue',
+  { timeout: 60_000 },
+  () => {
+    const COMPETITION = randomUUID();
+    const SEASON = randomUUID();
+    const HOME = randomUUID();
+    const AWAY = randomUUID();
+    const FIXTURE = randomUUID();
+    const X = (name: string): string => `t835-${RUN}-${name}`;
+    let pool: Pool;
+    let queue: Queue;
+    const members = new Map<string, string>();
+    const startedAt = new Date();
+    const kickoff = new Date(Date.now() - 5 * 60_000).toISOString();
+    let score: [number, number] = [0, 0];
+
+    const liveFixture = (): NormalisedLiveFixture => ({
+      externalId: X('fixture'),
+      competition: { externalId: X('competition'), name: 'Queue League' },
+      season: { label: '2026/27', startYear: 2026 },
+      stage: null,
+      round: null,
+      kickoffAt: kickoff,
+      status: 'live',
+      minute: 30,
+      home: { externalId: X('home'), name: 'Queue Home' },
+      away: { externalId: X('away'), name: 'Queue Away' },
+      venue: null,
+      referee: null,
+      scores: {
+        current: { home: score[0], away: score[1] },
+        halfTime: null,
+        fullTime: null,
+        extraTime: null,
+        penalties: null,
+        aggregate: null,
+      },
+      lastUpdatedAt: new Date().toISOString(),
+    });
+    const ok = <T>(data: T): AdapterResult<T> => ({
+      ok: true,
+      data,
+      requests: 1,
+      fetchedAt: new Date().toISOString(),
+    });
+    const unsupported = <T>(): AdapterResult<T> => ({
+      ok: false,
+      error: { kind: 'unsupported', message: 'not scripted' },
+      requests: 0,
+    });
+    const adapter = {
+      manifest: {} as ProviderAdapter['manifest'],
+      listFixtures: () => Promise.resolve(unsupported()),
+      getLive: () => Promise.resolve(ok([liveFixture()])),
+      getLineup: () => Promise.resolve(unsupported()),
+      getStandings: () => Promise.resolve(unsupported()),
+      getFixtureDetail: () => Promise.resolve(unsupported()),
+      getAvailability: () => Promise.resolve(unsupported()),
+    } as unknown as ProviderAdapter;
+    const sources: IngestionSources = {
+      kind: 'live',
+      reason: null,
+      forJob: () => ({ provider: PROVIDER, adapter }),
+    };
+
+    interface Instance {
+      jobs: IngestionJobsService;
+      alerts: MatchAlertsService;
+      notifications: NotificationsService;
+      pushes: OutboundPush[];
+      close: () => Promise<void>;
+    }
+    let a: Instance;
+    let b: Instance;
+    const sent: OutboundPush[] = [];
+
+    async function boot(): Promise<Instance> {
+      const pushes: OutboundPush[] = [];
+      const moduleRef = await Test.createTestingModule({
+        imports: [DatabaseModule, IngestionModule],
+      })
+        .overrideProvider(INGESTION_SOURCES)
+        .useValue(sources)
+        .overrideProvider(OUTBOUND_DELIVERY)
+        .useValue({
+          email: null,
+          push: {
+            provider: 'capture',
+            send: (push: OutboundPush) => {
+              pushes.push(push);
+              sent.push(push);
+              return Promise.resolve();
+            },
+          },
+        })
+        .overrideProvider(WEB_ORIGIN)
+        .useValue('http://web.test')
+        .compile();
+      await moduleRef.init();
+      return {
+        jobs: moduleRef.get(IngestionJobsService),
+        alerts: moduleRef.get(MatchAlertsService),
+        notifications: moduleRef.get(NotificationsService),
+        pushes,
+        close: () => moduleRef.close(),
+      };
+    }
+
+    async function member(label: string): Promise<string> {
+      const { rows } = await pool.query<{ id: string }>(
+        `INSERT INTO user_account
+           (username, display_name, email, country_id, preferred_language, timezone,
+            accepted_rules_at, email_verified_at)
+         VALUES ($1, $1, $1 || '@example.test', $2, 'en', 'Europe/London', now(), now())
+         RETURNING id`,
+        [`mq${label}${RUN}`, ENGLAND],
+      );
+      members.set(label, rows[0]!.id);
+      return rows[0]!.id;
+    }
+    const follow = (userId: string, type: 'team' | 'competition', entity: string) =>
+      pool.query(
+        `INSERT INTO followed_entity (user_id, entity_type, entity_id) VALUES ($1, $2, $3)`,
+        [userId, type, entity],
+      );
+    const map = (entityType: string, externalId: string, internalId: string) =>
+      pool.query(
+        `INSERT INTO provider_mapping (provider, entity_type, external_id, internal_id)
+         VALUES ($1, $2, $3, $4)`,
+        [PROVIDER, entityType, externalId, internalId],
+      );
+
+    // Both instances' pushes, in the order they were sent.
+    const pushes = (): OutboundPush[] => sent;
+    const pushesTo = (label: string): OutboundPush[] =>
+      pushes().filter((p) => p.userId === members.get(label));
+    /** Per dedupe key, who holds it, sorted. */
+    const holders = async (keyLike: string): Promise<string[]> => {
+      const { rows } = await pool.query<{ user_id: string }>(
+        `SELECT user_id FROM notification WHERE subject_id = $1 AND dedupe_key LIKE $2`,
+        [FIXTURE, keyLike],
+      );
+      const label = (id: string) => [...members].find(([, v]) => v === id)?.[0] ?? id;
+      return rows.map((r) => label(r.user_id)).sort();
+    };
+    const pending = async (): Promise<number> => {
+      const { rows } = await pool.query<{ n: number }>(
+        `SELECT count(*)::int AS n FROM match_alert WHERE fixture_id = $1 AND expanded_at IS NULL`,
+        [FIXTURE],
+      );
+      return rows[0]!.n;
+    };
+    async function until(what: string, check: () => Promise<boolean>): Promise<void> {
+      const deadline = Date.now() + 20_000;
+      while (!(await check())) {
+        if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+    }
+
+    beforeAll(async () => {
+      delete process.env.INGESTION_SCHEDULE;
+      pool = new Pool({ connectionString: DATABASE_URL });
+      queue = new Queue(MATCH_ALERTS_QUEUE, {
+        connection: { url: REDIS_URL, maxRetriesPerRequest: null },
+      });
+      await queue.obliterate({ force: true });
+
+      await pool.query(
+        `INSERT INTO competition (id, country_id, name, kind, scope, gender, age_group, tier)
+         VALUES ($1, $2, $3, 'league', 'domestic', 'men', 'senior', 9)`,
+        [COMPETITION, ENGLAND, `Queue League ${RUN}`],
+      );
+      await pool.query(
+        `INSERT INTO season (id, competition_id, label, start_date, end_date, is_current)
+         VALUES ($1, $2, '2026/27', DATE '2026-08-01', DATE '2027-05-31', true)`,
+        [SEASON, COMPETITION],
+      );
+      await pool.query(
+        `INSERT INTO team (id, name, kind, gender)
+         VALUES ($1, 'Queue Home', 'club', 'men'), ($2, 'Queue Away', 'club', 'men')`,
+        [HOME, AWAY],
+      );
+      await pool.query(
+        `INSERT INTO fixture (id, season_id, kickoff_at, status) VALUES ($1, $2, $3, 'scheduled')`,
+        [FIXTURE, SEASON, kickoff],
+      );
+      await pool.query(
+        `INSERT INTO fixture_participant (fixture_id, team_id, side)
+         VALUES ($1, $2, 'home'), ($1, $3, 'away')`,
+        [FIXTURE, HOME, AWAY],
+      );
+      await map('competition', X('competition'), COMPETITION);
+      await map('team', X('home'), HOME);
+      await map('team', X('away'), AWAY);
+      await map('fixture', X('fixture'), FIXTURE);
+
+      a = await boot();
+      b = await boot();
+      await follow(await member('home'), 'team', HOME);
+      await follow(await member('comp'), 'competition', COMPETITION);
+      const muted = await member('muted');
+      await follow(muted, 'team', AWAY);
+      await a.notifications.mute(muted, 'team', AWAY);
+      await member('none');
+
+      // A fills the queue; nobody works it yet.
+      await a.alerts.start(REDIS_URL!, { worker: false });
+    });
+
+    afterAll(async () => {
+      await a?.close();
+      await b?.close();
+      await queue?.obliterate({ force: true });
+      await queue?.close();
+      await pool.query(`DELETE FROM user_account WHERE username LIKE $1`, [`mq%${RUN}`]);
+      await pool.query(`DELETE FROM fixture WHERE id = $1`, [FIXTURE]);
+      await pool.query(`DELETE FROM provider_mapping WHERE provider = $1 AND external_id LIKE $2`, [
+        PROVIDER,
+        `t835-${RUN}-%`,
+      ]);
+      await pool.query(`DELETE FROM ingest_run WHERE provider = $1 AND started_at >= $2`, [
+        PROVIDER,
+        startedAt,
+      ]);
+      await pool.query(`DELETE FROM team WHERE id IN ($1, $2)`, [HOME, AWAY]);
+      await pool.query(`DELETE FROM season WHERE id = $1`, [SEASON]);
+      await pool.query(`DELETE FROM competition WHERE id = $1`, [COMPETITION]);
+      await pool.end();
+    });
+
+    it('the live job records the kick-off and hands it to the queue; nobody is told in the tick', async () => {
+      await a.jobs.live();
+      const { rows } = await pool.query<{ event_key: string; expanded_at: Date | null }>(
+        `SELECT event_key, expanded_at FROM match_alert WHERE fixture_id = $1`,
+        [FIXTURE],
+      );
+      expect(rows).toEqual([{ event_key: `${FIXTURE}:kickoff`, expanded_at: null }]);
+      expect(await holders('%')).toEqual([]);
+      expect(pushes()).toEqual([]);
+      const waiting = await queue.getWaiting();
+      expect(waiting.some((job) => job.data.events?.includes(`${FIXTURE}:kickoff`))).toBe(true);
+    });
+
+    it('two workers take it: one notification and one push per follower the switches allow', async () => {
+      a.alerts.startWorker(REDIS_URL!);
+      b.alerts.startWorker(REDIS_URL!);
+      await until('the kick-off to be carried', async () => (await pending()) === 0);
+      await until('two pushes', () => Promise.resolve(pushes().length >= 2));
+      expect(await holders(`${FIXTURE}:kickoff`)).toEqual(['comp', 'home']);
+      expect(pushesTo('home')).toHaveLength(1);
+      expect(pushesTo('comp')).toHaveLength(1);
+      expect(pushes()).toHaveLength(2);
+      expect(pushesTo('home')[0]?.body).toBe('Kick-off: Queue Home v Queue Away.');
+    });
+
+    it('a goal through the queue, with the workers running: once each', async () => {
+      score = [1, 0];
+      const before = pushes().length;
+      await a.jobs.live();
+      await until('the goal to be carried', async () => (await pending()) === 0);
+      await until('two more pushes', () => Promise.resolve(pushes().length >= before + 2));
+      expect(await holders(`${FIXTURE}:goal:%`)).toEqual(['comp', 'home']);
+      expect(
+        pushes()
+          .slice(before)
+          .map((p) => p.body),
+      ).toEqual([
+        'Goal for Queue Home: Queue Home 1–0 Queue Away.',
+        'Goal for Queue Home: Queue Home 1–0 Queue Away.',
+      ]);
+    });
+
+    it('a worker that stopped part-way, then three expansions racing: written once, sent once', async () => {
+      const key = `${FIXTURE}:full-time`;
+      await pool.query(
+        `INSERT INTO match_alert (event_key, fixture_id, kind, line)
+         VALUES ($1, $2, 'match_full_time', 'Full-time: Queue Home 1–0 Queue Away.')`,
+        [key, FIXTURE],
+      );
+      // The stopped worker: it wrote one member's notification, carried
+      // nothing, and its lease ran out.
+      await a.notifications.emitToAudience(
+        { kind: 'match_full_time', subjectType: 'fixture', subjectId: FIXTURE, dedupeKey: key },
+        [members.get('home')!],
+      );
+      await pool.query(
+        `UPDATE match_alert SET claimed_at = now() - interval '3 minutes' WHERE event_key = $1`,
+        [key],
+      );
+      const before = pushes().length;
+      const runs = await Promise.all([
+        a.alerts.expandPending([key], true),
+        b.alerts.expandPending([key], true),
+        a.alerts.expandPending([key], true),
+      ]);
+      expect(runs.map((r) => r.events).sort()).toEqual([0, 0, 1]);
+      expect(await holders(key)).toEqual(['comp', 'home']);
+      // The member the stopped worker wrote is carried too, and once.
+      const carried = pushes().slice(before);
+      expect(carried.map((p) => p.userId).sort()).toEqual(
+        [members.get('comp'), members.get('home')].sort(),
+      );
+      const { rows } = await pool.query<{ n: number; carried: number }>(
+        `SELECT count(*)::int AS n, count(d.carried_at)::int AS carried
+           FROM notification n JOIN notification_delivery d ON d.notification_id = n.id
+          WHERE n.dedupe_key = $1`,
+        [key],
+      );
+      expect(rows[0]).toEqual({ n: 2, carried: 2 });
+      expect(await pending()).toBe(0);
+    });
+
+    it('the same events handed over again reach nobody twice', async () => {
+      const count = pushes().length;
+      await a.alerts.dispatch([`${FIXTURE}:kickoff`, `${FIXTURE}:full-time`]);
+      await new Promise((resolve) => setTimeout(resolve, 1_000));
+      await until('the queue to drain', async () => {
+        const counts = await queue.getJobCounts('waiting', 'active', 'delayed');
+        return (counts.waiting ?? 0) + (counts.active ?? 0) + (counts.delayed ?? 0) === 0;
+      });
+      expect(pushes().length).toBe(count);
+      expect(await holders(`${FIXTURE}:kickoff`)).toEqual(['comp', 'home']);
     });
   },
 );
