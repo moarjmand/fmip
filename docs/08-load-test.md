@@ -198,3 +198,158 @@ the measured / budget table above. Lowering one after a page gets lighter is
 the same edit and needs no reason. A new route is budgeted by adding an
 entry: `appRoute` as `.next/server/app` lays it out, `path` a real address of
 it in the seed.
+
+## Match alerts (T-834)
+
+The second live path: a goal becomes a push (T-830, D-098). The live job
+reads the provider every minute, writes the score, derives the events,
+writes one notification per follower (`NotificationsService.emit`: the
+switches, the mutes, the hourly cap, quiet hours), and at the end of the run
+carries what it raised, one push per member (`MatchAlertsService.deliver`
+→ `carry`). Everything happens inside the live job's run.
+
+### The threshold
+
+**A goal's push leaves within 60 seconds of the live tick that first sees
+the goal.** That is one live-job interval. A push that takes longer is late
+by more than the tick that found it, and the live job is also what keeps the
+scores current: the next tick cannot start while this one runs (the
+`ingest_run` lock skips it). Time is measured from the start of the tick to
+the moment the push is handed to the push service. The provider's own delay
+and the push service's delivery to the device come on top and are not ours.
+
+### The tool
+
+`apps/api/scripts/load-match-alerts.mjs` (Node, the built API and its dev
+dependencies). It boots the ingestion module as the tests do. A scripted
+provider stands in for the network, and a capturing push channel stands in
+for Web Push. `--push-ms N` makes each send wait N ms, one after another, the
+way the carrier sends them. The script then:
+
+- creates C competitions of M simultaneous matches;
+- creates N members who follow `--teams-per-member` teams at random, and a
+  `--competition-share` of them a competition as well;
+- plays a kick-off tick (every match at once, three o'clock);
+- plays G goal ticks, each a burst of `--goals-per-tick` goals in different
+  matches, through the real `IngestionJobsService.live`.
+
+After each tick it drains what the tick did not carry with the timer's own
+`carry()`. It reports per tick:
+
+- the job's duration;
+- the alerts and notifications written;
+- the pushes carried in the tick, and their time from the tick's start;
+- the pushes left for the five-minute timer, and how many passes it took;
+- the database's work (`pg_stat_database`: transactions, rows inserted and
+  fetched).
+
+**Scratch database only.** The script refuses a database named `fmip` and
+deletes what it made. It also deletes the provider's `ingest_run` rows from
+the last day, so never point it at a database whose runs matter.
+
+```bash
+# A scratch database in the compose Postgres, migrated and seeded.
+docker exec fmip-postgres-1 psql -U fmip -d postgres -c "CREATE DATABASE fmip_load"
+DATABASE_URL=postgresql://fmip:...@localhost:5432/fmip_load pnpm --filter @fmip/db migrate up
+DATABASE_URL=... pnpm --filter @fmip/db seed
+pnpm exec turbo run build --filter=@fmip/api
+
+# A Saturday: fifteen competitions of six matches, 2,000 members, three bursts of ten goals.
+DATABASE_URL=... SESSION_SECRET=... MODEL_SERVICE_URL=http://127.0.0.1:8000 \
+  node apps/api/scripts/load-match-alerts.mjs --competitions 15 --matches 6 \
+  --members 2000 --teams-per-member 2 --competition-share 0.3 --ticks 3 --goals-per-tick 10
+
+docker exec fmip-postgres-1 psql -U fmip -d postgres -c "DROP DATABASE fmip_load"
+```
+
+### The record
+
+2026-09-28, the maintainer's Windows machine (8 logical cores), Postgres in
+Docker on the same host, a fresh migrated and seeded scratch database. Shape
+in every run:
+
+- 15 competitions × 6 simultaneous matches (90 matches, 180 clubs);
+- each member follows 2 clubs, and 30 % of members also follow one competition;
+- goal ticks are bursts of 10 goals in 10 different matches.
+
+Times are milliseconds from the tick's start to the push handed to the carrier.
+
+**Before the fix in this change**, 2,000 members:
+
+- A tick carried at most one page: 100 notifications, whatever it raised.
+  88 of 7,756 kick-off notifications were carried in the tick, and 78 to 97
+  of each goal burst's ~850.
+- The rest waited for the five-minute timer, which also carries 100 a pass:
+  9,483 pushes needed 100 passes, **about eight hours**.
+
+**`deliver` now passes again until the run's members have nothing due**
+(at most 500 passes). With that change:
+
+| Members | Push send | Tick | Notifications | Pushed in the tick | Push p50 / p95 / max | Left for the timer | Job | Verdict |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2,000 | instant | kick-off (90) | 7,756 | 7,284 ¹ | 81,989 / 102,624 / 104,525 | 0 | 104.5 s | **fail** |
+| 2,000 | instant | 10 goals, ×3 | 827–890 | 789–873 | 9,714–12,699 / 11,804–15,146 / ≤15,377 | 0 | 12–15 s | pass |
+| 2,000 | 50 ms each | kick-off (90) | 7,756 | 7,280 | 296,647 / 509,650 / 532,849 | 0 | 533 s | **fail** |
+| 2,000 | 50 ms each | 10 goals, ×2 | 827–890 | 789–869 | 33,335–35,737 / 56,140–60,933 / ≤63,653 | 0 | 59–64 s | **at the limit** |
+| 10,000 | instant | kick-off (90) | 38,304 | 38,304 | 462,898 / 610,625 / 621,998 | 0 | 622 s | **fail** |
+| 10,000 | instant | 10 goals, ×3 | 4,142–4,336 | 4,142–4,336 | 50,132–51,515 / 62,534–68,378 / ≤69,992 | 0 | 64–70 s | **fail** |
+
+¹ Fewer pushes than notifications because a member's alerts of one run leave
+as one push (the batch, D-098).
+
+Database work for one burst of ten goals:
+
+- **2,000 members:** ~7,000 transactions, ~1,700 rows inserted.
+- **10,000 members:** ~31,000 transactions, ~8,500 rows inserted, 0.2–0.5 M
+  rows fetched.
+
+That is about seven round trips per member told, and no single statement is
+slow.
+
+**Verdict.** The stated time holds for a burst of goals up to about 2,000
+members on this machine, with pushes that cost nothing to send. It does not
+hold:
+
+- at 10,000 members;
+- once each Web Push request takes ~50 ms;
+- for a three o'clock kick-off at any of these sizes.
+
+The production server (2 shared vCPUs) will be slower than this laptop, not
+faster.
+
+### The gap, and its cause
+
+**Cause.** The work is linear in the number of members told, and it is done
+one member at a time inside the live job:
+
+- **Writing:** `emit` makes about five queries per member per event (the
+  switch, the mutes, the hourly cap, the quiet hours, the insert).
+- **Carrying:** about three per member (the claim, the send, the record).
+- **Sending:** the pushes go one after another.
+
+At ~12 ms per member told, 4,300 members is about a minute, and a kick-off
+of 90 matches is 38,000 members told at once. **While that runs, the live
+job cannot start its next tick, so the scores are late too.** The alerts
+delay the product's primary job, not only themselves.
+
+**What would close it, in order:**
+
+1. **Take the alerts out of the live job's run.** Record the event, then
+   emit and carry it from a BullMQ job. The scores keep their minute
+   whatever the audience.
+2. **Emit a match alert as one statement per event.** An `INSERT ... SELECT`
+   over the followers, with the switches, mutes, cap and quiet hours as
+   joins, instead of a loop over members.
+3. **Send pushes concurrently,** with a bounded pool, and claim and record
+   deliveries in bulk.
+
+Each of these is a change to the notification path's shape and has its own
+task. Until the first one lands, a Saturday's peak is safe to about 2,000
+following members.
+
+**Not match alerts, found on the way.** A campaign is carried the same way,
+with one `carry()` for its audience (`campaigns.service.ts`). So is
+everything the five-minute timer carries. Each pass is 100 notifications, so
+a campaign to 10,000 members would reach its first hundred at once and the
+rest over about eight hours. That is left for its own task: the loop added
+here is the match alerts' only.
