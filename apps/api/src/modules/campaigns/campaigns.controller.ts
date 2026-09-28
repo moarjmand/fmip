@@ -26,16 +26,12 @@ import type {
   CreateCampaignRequest,
   SendCampaignRequest,
 } from '@fmip/contracts';
-import { AUDIENCE_FOLLOW_TYPES } from '@fmip/contracts';
+import { AUDIENCE_FOLLOW_TYPES, ROLE_REFUSALS } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { CampaignsService } from './campaigns.service';
 
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
-const NOT_AN_ADMIN: ApiError = {
-  error: 'unauthenticated',
-  message: 'This needs the administrator role.',
-};
 const NO_CAMPAIGN: ApiError = { error: 'not_found', message: 'No such campaign.' };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -113,7 +109,7 @@ export class CampaignsController {
     );
     if (user === null) throw new UnauthorizedException(UNAUTHENTICATED);
     if (!(await this.identity.hasRole(user.id, 'admin'))) {
-      throw new ForbiddenException(NOT_AN_ADMIN);
+      throw new ForbiddenException(ROLE_REFUSALS.administrator);
     }
     return user;
   }

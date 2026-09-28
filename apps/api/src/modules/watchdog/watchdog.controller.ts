@@ -1,15 +1,12 @@
 import { Controller, ForbiddenException, Get, Req, UnauthorizedException } from '@nestjs/common';
 import type { AdminAlertsReport, ApiError, WatchdogReport } from '@fmip/contracts';
+import { ROLE_REFUSALS } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { AdminAlertsService } from './admin-alerts.service';
 import { WatchdogService } from './watchdog.service';
 
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
-const NOT_ADMIN: ApiError = {
-  error: 'unauthenticated',
-  message: 'The administration area needs the admin role.',
-};
 
 /**
  * `GET /admin/health/watchdog` (T-801): every condition with its threshold
@@ -30,7 +27,8 @@ export class WatchdogController {
       parseCookies(request.headers.cookie)[SESSION_COOKIE],
     );
     if (user === null) throw new UnauthorizedException(UNAUTHENTICATED);
-    if (!(await this.identity.hasRole(user.id, 'admin'))) throw new ForbiddenException(NOT_ADMIN);
+    if (!(await this.identity.hasRole(user.id, 'admin')))
+      throw new ForbiddenException(ROLE_REFUSALS.administrator);
   }
 
   @Get('watchdog')

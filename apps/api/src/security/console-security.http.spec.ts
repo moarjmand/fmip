@@ -77,7 +77,7 @@ interface ConsoleRoute {
    * refusal; the mark is checked both ways, so a route that already answers
    * `forbidden` with its mark still on fails until the mark is dropped.
    */
-  until?: 'T-905' | 'T-906';
+  until?: 'T-906';
 }
 
 const UUID_A = '00000000-0000-4000-8000-00000000dead';
@@ -88,49 +88,45 @@ const UUID_A = '00000000-0000-4000-8000-00000000dead';
  */
 const CONSOLE: Record<string, ConsoleRoute> = {
   // The operator's overview, members, coverage and the audit log (T-070, T-600).
-  'GET /admin/overview': { roles: ADMIN, until: 'T-905' },
-  'GET /admin/users': { roles: ADMIN, until: 'T-905' },
+  'GET /admin/overview': { roles: ADMIN },
+  'GET /admin/users': { roles: ADMIN },
   'POST /admin/users/:id/status': {
     roles: ADMIN,
-    until: 'T-905',
     reason: { without: { status: 'suspended' } },
   },
   'PUT /admin/coverage/:seasonId/:module': {
     roles: ADMIN,
-    until: 'T-905',
     reason: { without: { state: 'not_supplied' } },
   },
-  'GET /admin/audit': { roles: ADMIN, until: 'T-905' },
-  'POST /admin/ingestion/backfill': { roles: ADMIN, until: 'T-905', reason: { without: {} } },
+  'GET /admin/audit': { roles: ADMIN },
+  'POST /admin/ingestion/backfill': { roles: ADMIN, reason: { without: {} } },
 
   // The System page (T-801 to T-804).
-  'GET /admin/health/failures': { roles: ADMIN, until: 'T-905' },
-  'GET /admin/health/watchdog': { roles: ADMIN, until: 'T-905' },
-  'GET /admin/health/alerts': { roles: ADMIN, until: 'T-905' },
-  'GET /admin/activity': { roles: ADMIN, until: 'T-905' },
-  'GET /admin/rate-limits': { roles: ADMIN, until: 'T-905' },
+  'GET /admin/health/failures': { roles: ADMIN },
+  'GET /admin/health/watchdog': { roles: ADMIN },
+  'GET /admin/health/alerts': { roles: ADMIN },
+  'GET /admin/activity': { roles: ADMIN },
+  'GET /admin/rate-limits': { roles: ADMIN },
 
   // Data quality (T-640).
-  'GET /admin/data-quality': { roles: ADMIN, until: 'T-905' },
-  'POST /admin/data-quality/:id/review': { roles: ADMIN, until: 'T-905', reason: { without: {} } },
+  'GET /admin/data-quality': { roles: ADMIN },
+  'POST /admin/data-quality/:id/review': { roles: ADMIN, reason: { without: {} } },
 
   // Campaigns (T-332).
-  'GET /admin/audiences': { roles: ADMIN, until: 'T-905' },
+  'GET /admin/audiences': { roles: ADMIN },
   'POST /admin/audiences': {
     roles: ADMIN,
-    until: 'T-905',
     reason: { without: { name: 'Security probe', filter: {} } },
   },
-  'GET /admin/campaigns': { roles: ADMIN, until: 'T-905' },
-  'GET /admin/campaigns/:id': { roles: ADMIN, until: 'T-905' },
+  'GET /admin/campaigns': { roles: ADMIN },
+  'GET /admin/campaigns/:id': { roles: ADMIN },
   'POST /admin/campaigns': {
     roles: ADMIN,
-    until: 'T-905',
     reason: {
       without: { audience_id: UUID_A, path: '/en/scores', title: 'Probe', body: 'Probe' },
     },
   },
-  'POST /admin/campaigns/:id/send': { roles: ADMIN, until: 'T-905', reason: { without: {} } },
+  'POST /admin/campaigns/:id/send': { roles: ADMIN, reason: { without: {} } },
 
   // Moderation (T-212, T-441, T-610, T-611).
   'GET /admin/moderation/queue': { roles: MODERATION },
