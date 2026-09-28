@@ -5,7 +5,10 @@ import { describe, expect, it, vi } from 'vitest';
 import type { DataQualityFinding, DataQualityReport } from '@fmip/contracts';
 import { DATA_QUALITY_CHECKS } from '@fmip/contracts';
 
-vi.mock('@/lib/data-quality-actions', () => ({ reviewFindingAction: vi.fn() }));
+vi.mock('@/lib/data-quality-actions', () => ({
+  reviewFindingAction: vi.fn(),
+  reviewBatchAction: vi.fn(),
+}));
 const { CHECK_LABEL, DataQualityAdmin } = await import('./data-quality-admin');
 
 /** The data-quality page (T-821): open findings by check and competition, linked, reviewable. */
@@ -47,7 +50,22 @@ const report = (over: Partial<DataQualityReport> = {}): DataQualityReport => ({
     freshness: 'current' as const,
     open: 0,
   })),
-  counts: [{ competition: PL, check: 'goals_disagree', open: 2, reviewed: 1 }],
+  counts: [
+    {
+      competition: PL,
+      season: { id: 's-1', label: '2026-27' },
+      check: 'goals_disagree',
+      open: 2,
+      reviewed: 1,
+    },
+    {
+      competition: PL,
+      season: { id: 's-1', label: '2026-27' },
+      check: 'lineup_not_eleven',
+      open: 3,
+      reviewed: 3,
+    },
+  ],
   findings: [
     finding({}),
     finding({
@@ -89,6 +107,17 @@ describe('the data-quality page', () => {
     expect(out).toContain('Asked the provider.');
     expect(ACTIONS).toContain('/review`');
     expect(ACTIONS).toContain("reason === ''");
+  });
+
+  it('offers a batch review per check and season only where some are still waiting', () => {
+    const out = html(report());
+    expect(out).toContain('Premier League 2026-27 · Goals in the timeline disagree with the score');
+    expect(out).toContain('data-testid="batch-review-goals_disagree-s-1"');
+    expect(out).toContain('Review all 1 with one reason');
+    // Every lineup finding of that season is reviewed already: nothing to batch.
+    expect(out).not.toContain('data-testid="batch-review-lineup_not_eleven-s-1"');
+    expect(ACTIONS).toContain("'/admin/data-quality/review-batch'");
+    expect(ACTIONS).toContain('season_id: seasonId');
   });
 
   it('says a check not run lately, rather than showing no findings as a clean bill', () => {

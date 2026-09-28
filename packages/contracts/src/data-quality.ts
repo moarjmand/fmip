@@ -76,9 +76,14 @@ export interface DataQualityCheckState {
   open: number;
 }
 
-/** Open findings per competition and check, for the page's summary. */
+/**
+ * Open findings per competition, season and check, for the page's summary.
+ * One row is also what a batch review marks (T-912).
+ */
 export interface DataQualityCount {
   competition: { id: string; name: string } | null;
+  /** `null` for a finding about no season (none of the checks writes one today). */
+  season: { id: string; label: string } | null;
   check: DataQualityCheck;
   open: number;
   reviewed: number;
@@ -99,4 +104,21 @@ export interface DataQualityReport {
 /** `POST /admin/data-quality/:id/review`: marks an open finding reviewed. */
 export interface ReviewDataQualityFindingRequest {
   reason: string;
+}
+
+/**
+ * `POST /admin/data-quality/review-batch` (T-912): marks every open, not yet
+ * reviewed finding of one check in one season reviewed with one reason. One
+ * audit row names the check, the season, the count and the reason, and holds
+ * the finding ids as the previous value (rule 10).
+ */
+export interface ReviewDataQualityBatchRequest {
+  check: DataQualityCheck;
+  season_id: string;
+  reason: string;
+}
+
+export interface ReviewDataQualityBatchResponse {
+  /** How many findings this batch marked reviewed. */
+  reviewed: number;
 }

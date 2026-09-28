@@ -4,18 +4,20 @@ import { useActionState } from 'react';
 import Link from 'next/link';
 import type {
   DataQualityCheck,
+  DataQualityCount,
   DataQualityFinding,
   DataQualityFixtureRef,
   DataQualityReport,
 } from '@fmip/contracts';
-import { reviewFindingAction } from '@/lib/data-quality-actions';
+import { reviewBatchAction, reviewFindingAction } from '@/lib/data-quality-actions';
 import { Button, Card, FormStatus, Notice, TextArea } from '@/components/ui';
 
 /**
  * Data-quality findings over the stored feed (T-820, T-821): when each check
  * last ran, open findings per competition and check, and each open finding
  * with links to the match or team it names. A finding can be marked reviewed
- * with a reason (audited); nothing here edits the feed.
+ * with a reason (audited), one at a time or every open one of a check in a
+ * season at once (T-912, one audit row per batch); nothing here edits the feed.
  */
 
 export const CHECK_LABEL: Record<DataQualityCheck, string> = {
@@ -75,6 +77,54 @@ function ReviewForm({ locale, id }: { locale: string; id: number }) {
       </Button>
       {state !== null && <FormStatus ok={state.ok}>{state.message}</FormStatus>}
     </form>
+  );
+}
+
+/**
+ * Every open, unreviewed finding of one check in one season, reviewed with one
+ * reason. Shown only where there is something left to review in the group.
+ */
+function BatchReviewForm({
+  locale,
+  count,
+  seasonId,
+}: {
+  locale: string;
+  count: DataQualityCount;
+  seasonId: string;
+}) {
+  const [state, formAction, pending] = useActionState(
+    reviewBatchAction.bind(null, locale, count.check, seasonId),
+    null,
+  );
+  const waiting = count.open - count.reviewed;
+  const testId = `batch-review-${count.check}-${seasonId}`;
+  return (
+    <details className="w-full text-sm" data-testid={testId}>
+      <summary className="cursor-pointer underline">Review all {waiting} with one reason</summary>
+      <form action={formAction} className="mt-1 flex flex-col gap-1">
+        <TextArea
+          label={`Why all ${waiting} are reviewed`}
+          hideLabel
+          name="reason"
+          rows={2}
+          required
+          placeholder="Say what was checked, or who was asked. This is recorded once for the batch."
+        />
+        <Button
+          type="submit"
+          size="sm"
+          variant="secondary"
+          pending={pending}
+          pendingLabel="Recording…"
+          data-testid={`${testId}-submit`}
+          className="self-start"
+        >
+          Mark {waiting} reviewed
+        </Button>
+        {state !== null && <FormStatus ok={state.ok}>{state.message}</FormStatus>}
+      </form>
+    </details>
   );
 }
 
@@ -177,23 +227,26 @@ export function DataQualityAdmin({
       </section>
 
       <section className="flex flex-col gap-2" data-testid="data-quality-by-competition">
-        <h2 className="text-lg font-semibold">Open, by competition</h2>
+        <h2 className="text-lg font-semibold">Open, by competition and season</h2>
         {report.counts.length === 0 ? (
           <p className="text-sm text-muted">No open findings.</p>
         ) : (
           <ul className="flex flex-col gap-1 text-sm">
             {report.counts.map((c) => (
               <li
-                key={`${c.competition?.id ?? 'none'}:${c.check}`}
-                className="flex flex-wrap justify-between gap-x-4"
+                key={`${c.competition?.id ?? 'none'}:${c.season?.id ?? 'none'}:${c.check}`}
+                className="flex flex-wrap justify-between gap-x-4 gap-y-1"
               >
                 <span>
-                  {c.competition === null ? 'No competition' : c.competition.name} ·{' '}
-                  {CHECK_LABEL[c.check]}
+                  {c.competition === null ? 'No competition' : c.competition.name}
+                  {c.season !== null && ` ${c.season.label}`} · {CHECK_LABEL[c.check]}
                 </span>
                 <span className="tabular-nums text-muted">
                   {c.open} open{c.reviewed > 0 ? `, ${c.reviewed} reviewed` : ''}
                 </span>
+                {c.season !== null && c.open > c.reviewed && (
+                  <BatchReviewForm locale={locale} count={c} seasonId={c.season.id} />
+                )}
               </li>
             ))}
           </ul>
