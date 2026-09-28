@@ -26,8 +26,24 @@ export function requestIdFrom(header: string | string[] | undefined): string {
   return raw !== undefined && /^[A-Za-z0-9._-]{8,128}$/.test(raw) ? raw : randomUUID();
 }
 
-/** Access log after every response, with method, route, status, duration and the id. */
-export function registerAccessLog(fastify: FastifyInstance, logger: JsonLogger): void {
+/** A 5xx as T-803 counts it: the route template, never the URL, and the request id. */
+export interface ServerErrorSeen {
+  method: string;
+  route: string | undefined;
+  status: number;
+  requestId: string;
+}
+
+/**
+ * Access log after every response, with method, route, status, duration and
+ * the id. `onServerError` is told about every 5xx (T-803's counts); it must
+ * not throw, and nothing it does delays the response, which is already sent.
+ */
+export function registerAccessLog(
+  fastify: FastifyInstance,
+  logger: JsonLogger,
+  onServerError?: (seen: ServerErrorSeen) => void,
+): void {
   fastify.addHook('onRequest', (request, reply, done) => {
     void reply.header(REQUEST_ID_HEADER, request.id);
     done();
@@ -42,6 +58,14 @@ export function registerAccessLog(fastify: FastifyInstance, logger: JsonLogger):
       status,
       duration_ms: Math.round(reply.elapsedTime),
     });
+    if (status >= 500 && onServerError !== undefined) {
+      onServerError({
+        method: request.method,
+        route: request.routeOptions.url,
+        status,
+        requestId: request.id,
+      });
+    }
     done();
   });
 }

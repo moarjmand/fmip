@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { FailureCountsModule } from '../failure-counts/failure-counts.module';
 import { IdentityModule } from '../identity/identity.module';
 import { ProfileModule } from '../profile/profile.module';
 import { PostgresDebateAdminStore } from './internal/debate-admin-store';
@@ -23,7 +24,7 @@ import { NewsController } from './news.controller';
  * provider so a spec can script every response.
  */
 @Module({
-  imports: [IdentityModule, ProfileModule],
+  imports: [IdentityModule, ProfileModule, FailureCountsModule],
   controllers: [NewsController, DebateAdminController, TranslationsAdminController],
   providers: [
     PostgresNewsStore,

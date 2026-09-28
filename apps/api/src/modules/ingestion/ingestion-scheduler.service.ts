@@ -1,5 +1,6 @@
 import { Injectable, Logger, type OnApplicationShutdown, type OnModuleInit } from '@nestjs/common';
 import { Queue, Worker, type ConnectionOptions, type JobSchedulerTemplateOptions } from 'bullmq';
+import { FailureCountsService } from '../failure-counts/failure-counts.service';
 import { ForecastTriggersService } from '../forecast/forecast-triggers.service';
 import { IngestionJobsService } from './ingestion-jobs.service';
 import { INGEST_JOBS, type IngestJob } from './internal/sources';
@@ -72,6 +73,7 @@ export class IngestionSchedulerService implements OnModuleInit, OnApplicationShu
   constructor(
     private readonly jobs: IngestionJobsService,
     private readonly forecasts: ForecastTriggersService,
+    private readonly failures: FailureCountsService,
   ) {}
 
   /** Whether this process schedules. Read once; changing it needs a restart. */
@@ -110,6 +112,8 @@ export class IngestionSchedulerService implements OnModuleInit, OnApplicationShu
         error: error.message,
       });
     });
+    // Failed and stalled jobs are counted per hour (T-803).
+    this.failures.watch(this.worker, INGESTION_QUEUE);
 
     for (const name of INGEST_JOBS) {
       await this.queue.upsertJobScheduler(
