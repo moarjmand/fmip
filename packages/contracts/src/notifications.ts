@@ -23,9 +23,9 @@ import type { DeliveryHealth } from './health';
  * an hour before (T-832), then the match itself.
  */
 export const MATCH_ALERT_KINDS = [
-  // A player the provider says will miss the match (T-832, D-099).
+  // A player the provider says will miss the match (T-832, D-100).
   'match_availability',
-  // Both line-ups announced (T-832, D-099).
+  // Both line-ups announced (T-832, D-100).
   'match_lineups',
   'match_kickoff',
   'match_goal',
@@ -55,7 +55,7 @@ export const NOTIFICATION_KINDS = [
   'contributor_granted',
   'contributor_grant_changed',
   'panel_reaction',
-  // A friend predicted a match the member follows or predicted (T-832, D-099).
+  // A friend predicted a match the member follows or predicted (T-832, D-100).
   'friend_predicted',
   // The member's briefing was written (Phase 5, T-432).
   'briefing',
@@ -100,7 +100,7 @@ export const NOTIFICATION_DEFAULTS: Record<NotificationKind, boolean> = {
   contributor_granted: true,
   contributor_grant_changed: true,
   panel_reaction: false,
-  // Opt-in (T-832, D-099): a friend's activity is not something the product
+  // Opt-in (T-832, D-100): a friend's activity is not something the product
   // interrupts anybody with unless they asked.
   friend_predicted: false,
   // A member asked for it, so they hear that it exists; the inbox is where a
@@ -112,7 +112,7 @@ export const NOTIFICATION_DEFAULTS: Record<NotificationKind, boolean> = {
   // On: an administrator who wants the pager off says so, and the inbox still
   // shows the condition on the System page either way (T-802).
   system_alert: true,
-  // Team news and line-ups are opt-in (T-832, D-099): they arrive for every
+  // Team news and line-ups are opt-in (T-832, D-100): they arrive for every
   // followed match, most of them nobody is waiting on.
   match_availability: false,
   match_lineups: false,
@@ -399,7 +399,7 @@ export const NOTIFICATION_TEXT: Record<NotificationKind, { text: string; named: 
   contributor_grant_changed: { text: 'Your contributor approval changed.', named: false },
   panel_reaction: { text: 'reacted to something you posted.', named: true },
   // Never what they predicted: that the friend predicted is all this says,
-  // and their own visibility decides whether it is sent at all (T-832, D-099).
+  // and their own visibility decides whether it is sent at all (T-832, D-100).
   friend_predicted: { text: 'predicted a match you follow or predicted.', named: true },
   briefing: { text: 'Your briefing was written.', named: false },
   campaign: { text: 'A message from the platform.', named: false },

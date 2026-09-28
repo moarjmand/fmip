@@ -106,7 +106,7 @@ export class PredictionsService {
   }
 
   /**
-   * "A friend predicted a match you follow" (blueprint 8.1, T-832, D-099):
+   * "A friend predicted a match you follow" (blueprint 8.1, T-832, D-100):
    * to each friend who follows the match or predicted it, and may read this
    * member's predictions by the member's own setting (D-063). Never the pick.
    * Never fails the prediction: it is already written.

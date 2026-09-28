@@ -3801,7 +3801,7 @@ off by default (it used to read only an "off"). T-831 gives the kinds their
 own section in Settings → Notifications. T-832 (line-ups) can add a kind to
 the same derivation; T-834 measures the queue at a Saturday's load.
 
-## D-099 — Team news, line-ups and a friend's prediction: opt-in, once each, and never the pick
+## D-100 — Team news, line-ups and a friend's prediction: opt-in, once each, and never the pick
 **Status:** Accepted · 2026-09-28 (revisable under the standing delegation of 2026-09-26)
 
 **Decision.** T-832 adds three notification kinds.

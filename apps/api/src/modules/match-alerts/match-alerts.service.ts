@@ -96,7 +96,7 @@ export class MatchAlertsService implements OnModuleInit {
   }
 
   /**
-   * After the line-ups job's write (T-832, D-099): the line-ups announced
+   * After the line-ups job's write (T-832, D-100): the line-ups announced
    * and each player newly listed out, recorded and emitted like any match
    * alert. Returns the members whose notification was written for now.
    */

@@ -2,7 +2,7 @@ import type { MatchAlertKind } from '@fmip/contracts';
 import type { Side } from './match-events';
 
 /**
- * Team news as match alerts (T-832, D-099): the line-ups announced, and a
+ * Team news as match alerts (T-832, D-100): the line-ups announced, and a
  * player the provider says will miss the match. Pure functions over two
  * readings of one match -- before and after the line-ups job wrote it --
  * in the manner of `match-events.ts`.

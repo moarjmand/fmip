@@ -12,7 +12,7 @@ import type { MessageKey } from '@/i18n/messages';
  * what is in force and whether it is the member's own, exactly like the
  * general list; the defaults (kick-off, goals and full-time on; red cards,
  * half-time, team news and line-ups off) live in the contract, D-098 and
- * D-099.
+ * D-100.
  *
  * **Per-team and per-competition are the mutes.** A member silences one team
  * or one competition under "What stays quiet", and every match alert at once

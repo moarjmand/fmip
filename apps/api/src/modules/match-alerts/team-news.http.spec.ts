@@ -17,7 +17,7 @@ import { INGESTION_SOURCES, type IngestionSources } from '../ingestion/internal/
 import { NotificationsService, WEB_ORIGIN } from '../notifications/notifications.service';
 
 /**
- * Team news and line-up alerts through the line-ups job (T-832, D-099),
+ * Team news and line-up alerts through the line-ups job (T-832, D-100),
  * against the real schema: the real job, writers, derivation, notifications
  * and carrier, with a scripted provider and a capturing push channel.
  *

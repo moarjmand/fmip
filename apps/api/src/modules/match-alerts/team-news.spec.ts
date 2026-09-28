@@ -7,7 +7,7 @@ import {
   teamNewsLine,
 } from './internal/team-news';
 
-/** T-832, D-099: team news and line-ups derived from two readings, keyed once. */
+/** T-832, D-100: team news and line-ups derived from two readings, keyed once. */
 const FIXTURE = '11111111-1111-4111-8111-111111111111';
 const TEAMS = { home: 'Arsenal', away: 'Chelsea' };
 

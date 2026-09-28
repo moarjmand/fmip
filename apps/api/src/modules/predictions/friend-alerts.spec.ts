@@ -3,7 +3,7 @@ import { NOTIFICATION_DEFAULTS, NOTIFICATION_TEXT, notificationLine } from '@fmi
 import { type FriendAlertPorts, friendAlertKey, friendAlerts } from './internal/friend-alerts';
 
 /**
- * "A friend predicted a match you follow" (T-832, D-099): to the friends who
+ * "A friend predicted a match you follow" (T-832, D-100): to the friends who
  * care about the match, only where the predictor's own visibility lets them
  * read the prediction (D-063), one per friend per match, and never the pick.
  */

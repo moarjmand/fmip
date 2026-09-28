@@ -1,5 +1,5 @@
 -- Up Migration
--- T-832 (blueprint 8.1 and 12.2, D-099): three notification kinds.
+-- T-832 (blueprint 8.1 and 12.2, D-100): three notification kinds.
 --
 --   match_availability  a player the provider says will miss a followed match
 --   match_lineups       both line-ups of a followed match announced

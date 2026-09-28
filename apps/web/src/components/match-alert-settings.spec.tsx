@@ -66,7 +66,7 @@ describe('the match-alert section', () => {
     expect(switchOf(html, 'match_full_time').pressed).toBe('true');
     expect(switchOf(html, 'match_red_card').pressed).toBe('false');
     expect(switchOf(html, 'match_half_time').pressed).toBe('false');
-    // Team news and line-ups are opt-in (T-832, D-099).
+    // Team news and line-ups are opt-in (T-832, D-100).
     expect(switchOf(html, 'match_availability').pressed).toBe('false');
     expect(switchOf(html, 'match_lineups').pressed).toBe('false');
     expect(html).toContain(EN['notifications.match.lineups']);

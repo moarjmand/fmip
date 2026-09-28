@@ -11,7 +11,7 @@ import { PredictionsModule } from './predictions.module';
 
 /**
  * "A friend predicted a match you follow" through `PUT /fixtures/:id/prediction`
- * (T-832, D-099), against the real schema. Who hears it: a friend who
+ * (T-832, D-100), against the real schema. Who hears it: a friend who
  * switched it on and follows either team or predicted the match -- only when
  * the predictor's own history visibility lets that friend read it (D-063),
  * once per friend per match however often the prediction is revised, and

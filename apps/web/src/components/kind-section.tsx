@@ -66,7 +66,7 @@ export const SECTION_LABEL: Record<SectionedKind, MessageKey> = {
   friend_predicted: 'notifications.friends.predicted',
 };
 
-/** Friends' predictions (blueprint 8.1, T-832, D-099): opt-in, and never the pick. */
+/** Friends' predictions (blueprint 8.1, T-832, D-100): opt-in, and never the pick. */
 export function FriendAlertSettings({
   locale,
   settings,

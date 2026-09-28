@@ -1,5 +1,5 @@
 /**
- * "A friend predicted a match you follow" (blueprint 8.1, T-832, D-099), as
+ * "A friend predicted a match you follow" (blueprint 8.1, T-832, D-100), as
  * a function over three questions so the rule can be tested without a
  * database: who the predictor's friends are, which of them care about this
  * match, and whether each may read the predictor's predictions.
