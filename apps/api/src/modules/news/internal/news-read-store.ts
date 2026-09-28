@@ -363,6 +363,20 @@ export class PostgresNewsReadStore {
     return { window: { since, until }, page };
   }
 
+  /**
+   * Whether a team or competition exists (T-944), so its news answers 404
+   * for an id that is neither rather than an empty list about nothing.
+   */
+  async entityExists(type: 'team' | 'competition', id: string): Promise<boolean> {
+    const { rows } = await this.pool.query<{ found: boolean }>(
+      type === 'team'
+        ? `SELECT EXISTS (SELECT 1 FROM team WHERE id = $1) AS found`
+        : `SELECT EXISTS (SELECT 1 FROM competition WHERE id = $1) AS found`,
+      [id],
+    );
+    return rows[0]?.found === true;
+  }
+
   private async page(q: Query, select: string, limit: number): Promise<StoryPage_> {
     const { rows } = await this.pool.query<CardRow>(`${q.storyCard()} ${select}`, q.params);
     const more = rows.length > limit;

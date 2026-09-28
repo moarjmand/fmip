@@ -12,6 +12,7 @@ from ..model.lineups import adjusted
 from ..model.poisson import outcome_from_matrix, score_matrix
 from ..model.version import BASELINE, ModelVersion
 from .contract import (
+    EloSourceState,
     ExpectedGoals,
     Forecast,
     ForecastRequest,
@@ -44,6 +45,18 @@ class TrainingSource:
     def every_match(self, since: date, until: date) -> Sequence[tuple[str, MatchObservation]]:
         """Every division's matches, clubs named by catalogue id (T-533)."""
         raise NotImplementedError
+
+    def own_elo(self, day: date, division: str) -> Mapping[str, float]:
+        """Our own Elo as of ``day`` (T-921), by the division's training names; empty if none."""
+        return {}
+
+    def elo_source(self) -> EloSourceState | None:
+        """Club Elo's recorded state (T-920); ``None`` for a source that keeps no loads."""
+        return None
+
+    def ask_elo(self) -> None:
+        """Ask Club Elo for the latest snapshot if it is due; never blocks, never raises."""
+        return None
 
 
 @dataclass
@@ -168,7 +181,7 @@ class Forecaster:
                 ScorelineProbability(home=s.home, away=s.away, probability=round(s.probability, 4))
                 for s in outcome.most_likely
             ],
-            leading_factors=leading_factors(cached.model, home, away),
+            leading_factors=leading_factors(cached.model, home, away, elo_used=cached.elo_used),
             inputs=ModelInputs(
                 model_version=self.version.id,
                 fit_date=cached.fit_date,
@@ -186,6 +199,21 @@ class Forecaster:
                 ),
             ),
         )
+
+    def _prior(self, division: str, fit_date: date) -> dict[str, float]:
+        """The Elo prior this version fits with (T-922, D-111), by the division's names.
+
+        Club Elo's snapshot for the published version (D-029); our own Elo
+        (T-921) for a version that reads it, always or on a day Club Elo has
+        no ratings for. Empty when neither has any: the fit then says
+        ``elo_used: false``.
+        """
+        prior = self.version.elo_prior
+        if prior != "own":
+            club_elo = dict(self.source.elo(fit_date))
+            if club_elo or prior == "clubelo":
+                return club_elo
+        return dict(self.source.own_elo(fit_date, division))
 
     def _joint_fit_for(self, fit_date: date) -> CachedFit | None:
         key = (CROSS_LEAGUE, fit_date)
@@ -228,7 +256,7 @@ class Forecaster:
         if len(matches) < MIN_HISTORY:
             return None
 
-        elo = dict(self.source.elo(fit_date))
+        elo = self._prior(division, fit_date)
         xi, ridge = self.version.constants_for(division)
         model = fit(
             matches,
@@ -260,8 +288,13 @@ def matches_per_team(matches: Sequence[MatchObservation]) -> dict[str, int]:
     return per_team
 
 
-def leading_factors(model: FittedModel, home: str, away: str) -> list[LeadingFactor]:
-    """The three terms of the expected-goals difference, largest first."""
+def leading_factors(
+    model: FittedModel, home: str, away: str, *, elo_used: bool = True
+) -> list[LeadingFactor]:
+    """The three terms of the expected-goals difference, largest first.
+
+    The strength note names the Elo prior only when the fit had one (T-920).
+    """
     strength = model.strength(home) - model.strength(away)
     attack_edge = model.attack[home] - model.attack[away]
     defence_edge = model.defence[away] - model.defence[home]  # positive: away concedes more
@@ -274,7 +307,14 @@ def leading_factors(model: FittedModel, home: str, away: str) -> list[LeadingFac
             factor="team_strength",
             favours=favours(strength),  # type: ignore[arg-type]
             magnitude=round(strength, 3),
-            note="net strength (attack minus defence) from recent results and the Elo prior",
+            note=(
+                "net strength (attack minus defence) from recent results and the Elo prior"
+                if elo_used
+                else (
+                    "net strength (attack minus defence) from recent results; "
+                    "no Elo prior this time"
+                )
+            ),
         ),
         LeadingFactor(
             factor="home_advantage",
