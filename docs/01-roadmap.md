@@ -171,6 +171,8 @@ account; six questions are listed under "Needs a decision" rather than
 planned as tasks. Phase 6's measurements (T-501, T-504, T-535) stay where
 they are.
 
+
+**Where it stands (2026-09-28).** Every agent-doable task in `04-tasks-phase-8.md` is built, merged and on the server (#338-#374): the watchdog, admin alerts, failure counts and the System, Activity and data-quality pages; a monthly restore drill on a timer (first drill passed); performance budgets and console security tests in CI; sign-in and per-write rate limits with an inventory; account deletion; error pages; match, line-up, friend and editorial notifications, moved off the live job and measured; saved articles; minutes, competition context and key players; leaderboards by competition and language. What remains is the maintainer's: an uptime check from outside the server (T-806, N-1) and the decisions N-2 to N-6.
 ---
 
 ## Sequencing rule
