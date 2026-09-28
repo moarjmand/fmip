@@ -43,6 +43,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('campaigns', 
   const fan = `cp_${RUN}f`;
   const quiet = `cp_${RUN}q`;
   const other = `cp_${RUN}o`;
+  const sleeper = `cp_${RUN}s`;
+  const told = `cp_${RUN}t`;
   const mails: OutboundEmail[] = [];
   const pushes: OutboundPush[] = [];
   const channels: OutboundDelivery = {
@@ -111,14 +113,38 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('campaigns', 
     await app.getHttpAdapter().getInstance().ready();
     pool = new Pool({ connectionString: DATABASE_URL });
     for (const name of [admin, fan, quiet, other]) await register(name);
+    // Two more who never sign in: written directly, since hashing a password is the slow part.
+    for (const name of [sleeper, told]) {
+      const { rows } = await pool.query<{ id: string }>(
+        `INSERT INTO user_account
+           (username, display_name, email, country_id, preferred_language, timezone,
+            accepted_rules_at, email_verified_at)
+         VALUES ($1, $1, $1 || '@example.test', $2, 'en', 'Europe/London', now(), now())
+         RETURNING id`,
+        [name, ENGLAND],
+      );
+      ids.set(name, rows[0]!.id);
+    }
     await pool.query(
       `INSERT INTO user_role (user_id, role, granted_by, reason) VALUES ($1, 'admin', $1, 'campaign spec')`,
       [ids.get(admin)],
     );
-    // The fan and the quiet member follow Liverpool; the quiet one turned campaigns off.
+    // The fan, the quiet member, the sleeper and the told one follow
+    // Liverpool; the quiet one turned campaigns off, the sleeper is inside
+    // their quiet hours, and the told one is given the campaign's
+    // notification before the send (T-903: every outcome, a page at a time).
     await pool.query(
-      `INSERT INTO followed_entity (user_id, entity_type, entity_id) VALUES ($1, 'team', $3), ($2, 'team', $3)`,
-      [ids.get(fan), ids.get(quiet), LIVERPOOL],
+      `INSERT INTO followed_entity (user_id, entity_type, entity_id)
+       SELECT unnest($1::uuid[]), 'team', $2`,
+      [[ids.get(fan), ids.get(quiet), ids.get(sleeper), ids.get(told)], LIVERPOOL],
+    );
+    await pool.query(
+      `INSERT INTO quiet_hours (user_id, starts_at, ends_at)
+       SELECT $1,
+              ((now() AT TIME ZONE u.timezone) - interval '1 hour')::time,
+              ((now() AT TIME ZONE u.timezone) + interval '1 hour')::time
+         FROM user_account u WHERE u.id = $1`,
+      [ids.get(sleeper)],
     );
     await pool.query(
       `INSERT INTO notification_preference (user_id, kind, in_product) VALUES ($1, 'campaign', false)`,
@@ -225,6 +251,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('campaigns', 
   });
 
   it('sends once: every reached member has one inbox row, a muted member is counted and not reached, and the second send is refused', async () => {
+    await pool.query(
+      `INSERT INTO notification (user_id, kind, subject_type, subject_id, dedupe_key)
+       VALUES ($1, 'campaign', 'campaign', $2, $2)`,
+      [ids.get(told), ids.get('campaign')],
+    );
     const sent = await post(admin, `/admin/campaigns/${ids.get('campaign')}/send`, {
       reason: 'go',
     });
@@ -234,14 +265,51 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('campaigns', 
     expect(dispatch.finished_at).not.toBeNull();
     expect(dispatch.reached).toBeGreaterThanOrEqual(1);
     expect(dispatch.muted).toBeGreaterThanOrEqual(1);
+    expect(dispatch.delayed).toBeGreaterThanOrEqual(1);
+    expect(dispatch.duplicate).toBeGreaterThanOrEqual(1);
+    expect(dispatch.failed).toBe(0);
+    const all = await pool.query<{ outcome: string; n: number }>(
+      `SELECT outcome, count(*)::int AS n FROM campaign_send WHERE campaign_id = $1 GROUP BY outcome`,
+      [ids.get('campaign')],
+    );
+    const counts = Object.fromEntries(all.rows.map((r) => [r.outcome, r.n]));
+    // The report is the rows: one per member reached, each counted once.
+    expect({
+      reached: counts.sent ?? 0,
+      delayed: counts.delayed ?? 0,
+      muted: counts.muted ?? 0,
+      duplicate: counts.duplicate ?? 0,
+      failed: counts.failed ?? 0,
+    }).toEqual({
+      reached: dispatch.reached,
+      delayed: dispatch.delayed,
+      muted: dispatch.muted,
+      duplicate: dispatch.duplicate,
+      failed: dispatch.failed,
+    });
 
     const rows = await pool.query<{ user_id: string; outcome: string }>(
       `SELECT user_id, outcome FROM campaign_send WHERE campaign_id = $1 AND user_id = ANY($2::uuid[])`,
-      [ids.get('campaign'), [ids.get(fan), ids.get(quiet), ids.get(other)]],
+      [
+        ids.get('campaign'),
+        [ids.get(fan), ids.get(quiet), ids.get(other), ids.get(sleeper), ids.get(told)],
+      ],
     );
     const byUser = new Map(rows.rows.map((r) => [r.user_id, r.outcome]));
     expect(byUser.get(ids.get(fan)!)).toBe('sent');
     expect(byUser.get(ids.get(quiet)!)).toBe('muted');
+    expect(byUser.get(ids.get(sleeper)!)).toBe('delayed');
+    expect(byUser.get(ids.get(told)!)).toBe('duplicate');
+    // Held, not carried: the sleeper's row waits for the end of their window.
+    expect(mails.filter((m) => m.to === `${sleeper}@example.test`)).toHaveLength(0);
+    expect(
+      (
+        await pool.query(
+          `SELECT 1 FROM notification WHERE user_id = $1 AND kind = 'campaign' AND deliver_after > now()`,
+          [ids.get(sleeper)],
+        )
+      ).rowCount,
+    ).toBe(1);
     // Not in the audience: never a row.
     expect(byUser.has(ids.get(other)!)).toBe(false);
 
