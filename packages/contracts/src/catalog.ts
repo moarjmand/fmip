@@ -164,6 +164,56 @@ export const LEADERS_MINUTES_PRESETS = [450, 900, 1800] as const;
 /** The largest `?min_minutes=` accepted: more than any season holds. */
 export const LEADERS_MINUTES_MAX = 10000;
 
+/**
+ * One row of a board beyond goals (T-943, D-118): who, for which team, and
+ * their season minutes under the same rule as the scorers (T-824).
+ */
+export interface BoardPlayer {
+  person: { id: string; name: string };
+  /** The team the row counts for; null when the participant is unknown. */
+  team: { id: string; name: string } | null;
+  minutes: PlayerSeasonMinutes;
+}
+
+/** Assists: the scorer's assist on a goal or penalty goal, as the feed records it. */
+export interface AssistLeader extends BoardPlayer {
+  assists: number;
+}
+
+/**
+ * Clean sheets: a goalkeeper who started a finished match in goal, was
+ * neither substituted nor sent off, and whose side conceded nothing by the
+ * latest score (after extra time where it was played; a shoot-out is not
+ * conceding).
+ */
+export interface CleanSheetLeader extends BoardPlayer {
+  clean_sheets: number;
+  /** Finished matches this keeper started in goal for the team. */
+  starts_in_goal: number;
+}
+
+/** Cards: a second yellow counts as a red, as on the player page; ranked by reds, then yellows. */
+export interface CardLeader extends BoardPlayer {
+  yellow_cards: number;
+  red_cards: number;
+}
+
+/**
+ * The competition page's boards beyond goals (T-943, D-118). Each is its own
+ * module with its own coverage: a season whose goals carry no assist is
+ * `not_supplied` for assists, never a board of zeros; clean sheets are
+ * `limited` when some finished matches have no line-up naming a starting
+ * goalkeeper. `leaders_filter`'s floor applies to every board; `unproven`
+ * counts, per board, the players left out because their minutes cannot show
+ * it.
+ */
+export interface LeaderBoards {
+  assists: Covered<AssistLeader[]>;
+  clean_sheets: Covered<CleanSheetLeader[]>;
+  cards: Covered<CardLeader[]>;
+  unproven: { assists: number; clean_sheets: number; cards: number };
+}
+
 export interface SeasonFixture {
   id: string;
   kickoff_at: string;
@@ -284,6 +334,8 @@ export interface CompetitionPage {
   /** Top goalscorers from recorded goals, behind `leaders_filter` when one is asked for. */
   leaders: Covered<Leader[]>;
   leaders_filter: LeadersFilter;
+  /** Assists, clean sheets and cards, each its own module (T-943). */
+  boards: LeaderBoards;
   /**
    * The knockout rounds for a continental cup (T-630); null for a
    * competition that does not play them.

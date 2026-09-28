@@ -453,5 +453,28 @@
   "leaderboard.competition.all": "All competitions",
   "leaderboard.language.label": "Language:",
   "leaderboard.language.all": "All languages",
-  "leaderboard.language.note": "A member's language is the one they chose for FMIP in Settings. It is not public, so this board shows only members whose prediction history you may see."
+  "leaderboard.language.note": "A member's language is the one they chose for FMIP in Settings. It is not public, so this board shows only members whose prediction history you may see.",
+  "competition.boards.assists": "Assists",
+  "competition.boards.cleanSheets": "Clean sheets",
+  "competition.boards.cards": "Cards",
+  "competition.boards.noAssists": "No goal of this season names an assist yet.",
+  "competition.boards.noCleanSheets": "No goalkeeper on our line-ups has kept a clean sheet yet this season.",
+  "competition.boards.noCards": "No card is recorded for this season yet.",
+  "competition.boards.noneReach": "No player's recorded minutes reach this floor.",
+  "competition.boards.unproven": {
+    "one": "{count} player is left out because the feed did not send minutes for every match they played, so the record cannot show they reached the floor.",
+    "other": "{count} players are left out because the feed did not send minutes for every match they played, so the record cannot show they reached the floor."
+  },
+  "competition.boards.startsInGoal": {
+    "one": "{count} start in goal",
+    "other": "{count} starts in goal"
+  },
+  "competition.boards.red": {
+    "one": "{count} red",
+    "other": "{count} red"
+  },
+  "competition.boards.yellow": {
+    "one": "{count} yellow",
+    "other": "{count} yellow"
+  }
 }
