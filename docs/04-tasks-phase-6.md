@@ -191,6 +191,7 @@ about football -- a chat, a channel -- and let one member bring another.
 | `[~]` T-534 | Line-ups and absences in expected goals: the T-112 measurement as an additive term | T-531, T-112, T-103 | Fitted on our own recorded matches, since the history holds no line-ups; in shadow |
 | `[ ]` T-535 | Promotion: the candidate replaces the published version only on the evaluation | T-531 | A decision entry with the numbers; stored forecasts keep their version (rule 5) |
 | `[x]` T-536 | The detail backlog reaches past seasons: a `--season` backfill's matches get their line-ups and incidents | T-102, T-512 | The post-match backlog asks every season of a polled competition, newest first; a spec proves a match before the polled season is owed |
+| `[x]` T-537 | A run left open by a stopped process no longer holds its job's lock | T-071 | A run open for more than two hours is closed as failed (`abandoned: ...`) when the next tick of that job starts; a spec proves the reclaim and that a fresh open run still blocks |
 
 **What v2 has to beat.** The first backtest (T-062, 2024/25 Premier League, 320
 forecasts) gave log loss 1.0170 against the market's 0.9811 and uniform's
@@ -468,3 +469,11 @@ competition, newest first, so the current season still comes first and the
 past seasons follow at `INGESTION_BACKLOG_BATCH` a half hour -- about a day and
 a half at 120, one request each, as `05-data-providers.md` projected. T-534's
 fit waits for them.
+
+**T-537 done on 2026-09-28.** A `post_match` run opened at 2026-09-27 16:30 UTC
+was still `running` when the API was redeployed, and the partial unique index
+that keeps two ticks of a job apart then skipped every later tick: the detail
+backlog stood still for about twenty-one hours with no failed run to show for it.
+The row was closed by hand on the server; `IngestRunsService.start` now closes
+an open run older than two hours as failed and starts again, so a deploy or a
+crash costs at most two hours of one job.

@@ -27,6 +27,16 @@ export interface JobCompletion {
 export const FAILURE_WINDOW_MS = 24 * 60 * 60 * 1000;
 export const RECENT_RUNS = 20;
 
+/**
+ * How long a run may stay open before it counts as abandoned (T-537). Far
+ * beyond the longest real run -- a season backfill or a backlog batch takes
+ * minutes -- so only a run whose process is gone is ever reclaimed.
+ */
+export const STALE_RUN_MS = 2 * 60 * 60 * 1000;
+
+/** Postgres unique violation: the "already running" lock on `ingest_run`. */
+const UNIQUE_VIOLATION = '23505';
+
 export interface RunOutcome {
   status: Exclude<IngestRunStatus, 'running'>;
   itemsSeen: number;
@@ -54,8 +64,37 @@ export class IngestRunsService {
     @Inject(INGESTION_SOURCES) private readonly sources: IngestionSources,
   ) {}
 
-  start(provider: string, job: string, scope: string | null = null): Promise<string> {
-    return this.store.start(provider, job, scope);
+  /**
+   * Opens a run. The partial unique index on `(provider, job)` while a run is
+   * open refuses a second one, which is the lock; a run open for longer than
+   * `STALE_RUN_MS` is one whose process stopped, so it is closed as failed and
+   * the start tried once more (T-537).
+   */
+  async start(
+    provider: string,
+    job: string,
+    scope: string | null = null,
+    now: Date = new Date(),
+  ): Promise<string> {
+    try {
+      return await this.store.start(provider, job, scope);
+    } catch (error: unknown) {
+      if ((error as { code?: string }).code !== UNIQUE_VIOLATION) throw error;
+      const closed = await this.store.closeStale(
+        provider,
+        job,
+        new Date(now.getTime() - STALE_RUN_MS),
+        `abandoned: still open after ${STALE_RUN_MS / 3_600_000} hours; the process running it stopped`,
+      );
+      if (closed === 0) throw error;
+      this.log.warn(`closed an abandoned run: ${provider} ${job}`, {
+        event: 'ingest.stale_run_closed',
+        provider,
+        job,
+        closed,
+      });
+      return this.store.start(provider, job, scope);
+    }
   }
 
   async finish(id: string, outcome: RunOutcome): Promise<IngestRun | null> {
