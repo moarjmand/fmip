@@ -16,6 +16,14 @@ import { deriveTeamNews, keyTeamNews, teamNewsLine } from './internal/team-news'
 
 /** The push's title, as every notification's is. */
 const PUSH_TITLE = 'FMIP';
+/** The page one `carry()` pass reads (`NotificationsService.carry`'s `due(100)`). */
+const CARRY_PAGE = 100;
+/**
+ * A bound on one run's passes, so a carrier that keeps finding work cannot
+ * hold the live job forever: 500 pages is 50,000 notifications, far past a
+ * Saturday (T-834); whatever is left leaves on the timer.
+ */
+const MAX_DELIVERY_PASSES = 500;
 
 /**
  * Match alerts (blueprint 12.2, T-830, D-098).
@@ -177,7 +185,15 @@ export class MatchAlertsService implements OnModuleInit {
   async deliver(userIds: string[]): Promise<void> {
     if (userIds.length === 0) return;
     try {
-      await this.notifications.carry({ userIds });
+      // A pass carries at most a page of due notifications (100). One pass
+      // left everyone past the first hundred for the five-minute timer, which
+      // also carries a hundred a pass: at a Saturday's load that was hours
+      // (T-834, docs/08-load-test.md). So pass again until this run's members
+      // have nothing due; each pass claims what it sends, so it shrinks.
+      for (let pass = 0; pass < MAX_DELIVERY_PASSES; pass += 1) {
+        const { due, carried } = await this.notifications.carry({ userIds });
+        if (due < CARRY_PAGE || carried === 0) break;
+      }
     } catch (error) {
       this.log.error(
         `match_alert.deliver_failed members=${String(userIds.length)}`,
