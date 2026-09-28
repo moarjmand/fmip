@@ -124,6 +124,32 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingest runs'
     logLog.mockRestore();
   });
 
+  it('reclaims a run its process abandoned, and still refuses a fresh one (T-537)', async () => {
+    const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    const { rows: stale } = await pool.query<{ id: string }>(
+      `INSERT INTO ingest_run (provider, job, scope, started_at)
+       VALUES ('football_data_org', 'post_match', 'stale:test', now() - interval '3 hours')
+       RETURNING id`,
+    );
+    ids.push(stale[0]!.id);
+
+    const fresh = await runs.start('football_data_org', 'post_match', 'stale:test');
+    ids.push(fresh);
+    const { rows } = await pool.query<{ status: string; error: string | null }>(
+      `SELECT status, error FROM ingest_run WHERE id = $1`,
+      [stale[0]!.id],
+    );
+    expect(rows[0]?.status).toBe('failed');
+    expect(rows[0]?.error).toMatch(/^abandoned/);
+
+    // The run just opened is not stale: the lock still holds against it.
+    await expect(runs.start('football_data_org', 'post_match', 'stale:test')).rejects.toMatchObject(
+      { code: '23505' },
+    );
+    await runs.finish(fresh, { status: 'succeeded', itemsSeen: 0, itemsWritten: 0 });
+    warn.mockRestore();
+  });
+
   it('records the requests a run sent, and sums a provider’s day (T-501)', async () => {
     const store = app.get(PostgresRunStore);
     const transport = new CountingTransport({

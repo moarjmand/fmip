@@ -62,6 +62,21 @@ export class PostgresRunStore {
     );
   }
 
+  /**
+   * Closes the open runs of `(provider, job)` that started before `before`, as
+   * failed (T-537). A run is open only while its process works on it; a process
+   * that stops mid-run -- a deploy, a crash -- leaves the row `running`, and
+   * the lock index then skips every later tick of that job for good.
+   */
+  async closeStale(provider: string, job: string, before: Date, error: string): Promise<number> {
+    const { rowCount } = await this.pool.query(
+      `UPDATE ingest_run SET status = 'failed', finished_at = now(), error = $4
+        WHERE provider = $1 AND job = $2 AND status = 'running' AND started_at < $3`,
+      [provider, job, before, error],
+    );
+    return rowCount ?? 0;
+  }
+
   async finish(
     id: string,
     outcome: {
