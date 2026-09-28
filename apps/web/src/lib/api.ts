@@ -35,6 +35,7 @@ import type {
   FollowingFeed,
   FollowingResponse,
   ForecastListResponse,
+  ForecastSummaryListResponse,
   ForecastVersionsResponse,
   FounderAnalysesResponse,
   FounderAnalysisResponse,
@@ -776,6 +777,18 @@ export function fetchFounderFeed(
  */
 export function fetchForecastList(fixtureIds: string[]): Promise<ApiResult<ForecastListResponse>> {
   return apiRequest<ForecastListResponse>(`/forecasts?fixtures=${fixtureIds.join(',')}`);
+}
+
+/**
+ * `GET /forecasts/pre-kickoff?fixtures=` (T-940, D-114): the model's latest
+ * version computed before each kick-off, as a summary, for the scores card.
+ */
+export function fetchForecastSummaries(
+  fixtureIds: string[],
+): Promise<ApiResult<ForecastSummaryListResponse>> {
+  return apiRequest<ForecastSummaryListResponse>(
+    `/forecasts/pre-kickoff?fixtures=${fixtureIds.join(',')}`,
+  );
 }
 
 export function fetchConsensusList(

@@ -4434,3 +4434,51 @@ second place the budget would have to be counted.
 `fixture_refetch_request`. `DataQualityFinding.asked_again` and
 `DataQualityReport.refetch` are in the contract. `INGESTION_REFETCH_SHARE` is
 in `.env.example` and forwarded by the production compose file.
+
+## D-114 — The scores card summarises the model's latest pre-kick-off version, the community's totals at D-052's floor, and viewing in the viewer's own territory
+
+**Date:** 2026-09-29 · **Task:** T-940 · **Status:** accepted
+
+Blueprint 4.1 asks each match on the scores list for a model forecast
+summary, community prediction totals and where it can be watched. All three
+existed on the match centre; the card said "not on this page yet". Putting
+them on a list of up to a few hundred matches needed three judgements.
+
+**Which forecast version.** The latest *published* version computed before
+kick-off (`computed_at < kickoff_at`, the evaluation's own `pre_kickoff`
+test, T-066). Before a match that is simply the latest version. Once it has
+started, a version recomputed during or after the match is not the forecast
+the match was played against, and a list that swapped to it would quietly
+show a number fitted with knowledge of the game. The card names the version
+and its computation time, and says "the statistical model". An unavailable
+version shows its reason; no pre-kick-off version is said in words, never an
+empty bar. `GET /forecasts/pre-kickoff?fixtures=` answers a *summary*
+(probabilities, version, kind, model, time, reason), not the full version:
+the inputs, factors and scorelines stay on the match centre.
+
+**What "community totals" are, and the floor.** The crowd counts (how many
+members' standing predictions picked home, draw, away) and the sample, from
+`GET /consensus?fixtures=`, and only when the consensus is published at all:
+D-052's five predictors. Below it the card says "not published until 5
+members have predicted this match". Counts rather than percentages, so the
+community's line cannot be read as a second set of model probabilities; the
+weighted distribution stays on the match centre, where there is room to
+explain it. The two lines are two components fed from two endpoints and two
+maps; nothing averages or relabels them (rule 6, `three-products.spec.ts`).
+
+**Whose territory.** The member's stored one (T-312), through
+`GET /viewing?fixture=`. A guest, or a member who has not chosen, is asked
+("choose your territory", linking to Watch), and nothing is inferred. The
+scores page does not ask the viewing boundary for a guest at all.
+
+**Keeping the list fast.** The page asks each product once per 50 shown
+matches, all in parallel, after the scores snapshot (never a request per
+card), and reduces the answers on the server to a few values per card before
+they reach the client. The SSE stream stays scores only: a match the stream
+adds after load says its lines were not loaded. The T-808 budgets in
+`apps/web/perf-budgets.json` are unchanged.
+
+**Alternatives considered.** Adding the three to `ScoreCard` on `GET /scores`:
+one payload holding two prediction products, which T-136 already refused
+(rule 6), and a heavier stream on every snapshot. Showing the latest version
+whatever its time: simpler, and wrong for every match in play.

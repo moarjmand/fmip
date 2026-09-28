@@ -83,13 +83,14 @@ test('a match row is one thumb-sized line, and its details open in place', async
   expect(Math.abs((await top('home-team')) - status)).toBeLessThan(12);
   expect(Math.abs((await top('away-team')) - status)).toBeLessThan(12);
 
-  // The labels for what the page does not hold are there, one press away.
+  // The labels, the model's and the community's lines are there, one press away.
   await expect(row.getByTestId('card-labels')).toBeHidden();
   const toggle = row.locator('summary');
   expect((await toggle.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
   await toggle.click();
   await expect(row.getByTestId('card-labels')).toBeVisible();
-  await expect(row.getByTestId('card-labels')).toContainText('Forecast: not on this page yet');
+  // T-940: the model's line is there too, with a figure or the reason it has none.
+  await expect(row.getByTestId('card-forecast')).toContainText('Model forecast:');
   expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
 
   // Each competition says once when its matches last changed.

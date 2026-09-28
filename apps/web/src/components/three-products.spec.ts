@@ -97,6 +97,37 @@ describe('the three products stay three on the page', () => {
     expect(page).not.toMatch(/source:\s*'(model|founder|community)'/);
   });
 
+  it('keeps the scores card two lines from two components (T-940)', () => {
+    // The card is the smallest place the model and the community meet, which
+    // makes one "prediction" line with a source label the tempting design.
+    const forecast = source('score-card-forecast.tsx');
+    const community = source('score-card-community.tsx');
+    expect(forecast).not.toMatch(/CardCommunity|Consensus|FounderAnalysis/);
+    expect(community).not.toMatch(
+      /CardForecast|ForecastSummary|ModelProbabilities|FounderAnalysis/,
+    );
+    for (const text of [forecast, community]) {
+      expect(text).not.toMatch(/source\s*[:?]/);
+      expect(text).not.toMatch(/'model'\s*\|\s*'community'/);
+    }
+    // Each line names whose it is.
+    expect(forecast).toContain('Model forecast:');
+    expect(forecast).toContain('the statistical model');
+    expect(community).toContain('Community predictions:');
+    expect(community).toContain('not the model');
+
+    const card = source('score-card.tsx');
+    expect(card).toContain('<CardForecastSummary');
+    expect(card).toContain('<CardCommunityTotals');
+    expect(card).not.toMatch(/<PredictionLine|<ProductLine/);
+
+    // Three maps the page fills from three endpoints, never one of both.
+    const lib = readFileSync(join(COMPONENTS, '..', 'lib', 'score-card-products.ts'), 'utf8');
+    expect(lib).not.toMatch(/function (average|blend|merge|combine)/);
+    expect(lib).toMatch(/forecast: Record<string, CardForecast>/);
+    expect(lib).toMatch(/community: Record<string, CardCommunity>/);
+  });
+
   it('never averages the three into one number', () => {
     // Blueprint 4.2 asks the community forecast to be shown "and comparison
     // with the model". Comparison is a difference; the failure is an average,

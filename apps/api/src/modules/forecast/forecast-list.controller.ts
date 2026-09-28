@@ -1,5 +1,10 @@
 import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
-import { type ApiError, type ForecastListResponse, MAX_FORECAST_FIXTURES } from '@fmip/contracts';
+import {
+  type ApiError,
+  type ForecastListResponse,
+  type ForecastSummaryListResponse,
+  MAX_FORECAST_FIXTURES,
+} from '@fmip/contracts';
 import { ForecastService } from './forecast.service';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -23,6 +28,16 @@ export class ForecastListController {
   @Get()
   async list(@Query('fixtures') fixtures?: string): Promise<ForecastListResponse> {
     return { fixtures: await this.forecasts.latestFor(parseFixtures(fixtures)) };
+  }
+
+  /**
+   * `GET /forecasts/pre-kickoff?fixtures=<id>,<id>` (T-940, D-114): the latest
+   * version computed before each match's kick-off, as a summary, for the
+   * scores card. Same cap and the same refusal of a malformed id.
+   */
+  @Get('pre-kickoff')
+  async preKickoff(@Query('fixtures') fixtures?: string): Promise<ForecastSummaryListResponse> {
+    return { fixtures: await this.forecasts.preKickoffFor(parseFixtures(fixtures)) };
   }
 }
 
