@@ -4235,6 +4235,49 @@ them. `emitToAudience` is sourceless only and sends a capped kind through
 `emit`, because a block refusal or a per-member cap cannot be a condition of
 one statement.
 
+## D-107 — Campaign emission is one statement per audience page, like match alerts
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-903 changes how a campaign's notifications and outcome rows
+are written, not who is told or what the report says (D-075).
+
+- **A page at a time.** `CampaignsService.send` takes the audience in pages
+  of 500 (`EMIT_PAGE`). Each page is one `NotificationsService.emitToAudience`
+  statement for its notifications (T-835, D-105: the same rules as `emit`),
+  then one `PostgresCampaignStore.recordPage` statement for its
+  `campaign_send` rows, which returns the page's count of each outcome.
+- **The outcomes keep their meaning.** Written now is `sent`, held by quiet
+  hours is `delayed`. A member the inbox did not write is `duplicate` when
+  they already hold this campaign's notification (its dedupe key), and
+  `muted` otherwise. `emit` checked the mutes before the key, so a member who
+  is both muted and already told now reads `duplicate`. That member cannot
+  exist while the dispatch claim comes first.
+- **A failed page is `failed`, and the send goes on.** `emitToAudience`
+  returns `null` when its statement fails. Every member of that page is
+  recorded `failed` and the next page is still sent, as a failed `emit` used
+  to fail one member and not the send.
+- **Nobody twice.** The dispatch claim is still first. The notification's
+  dedupe key and `campaign_send`'s primary key are the second and third
+  guards (D-075's "claimed once").
+
+**Why.** T-837 measured a 10,000-member send at 132 to 346 s of emission,
+about six round trips per member. With T-903 it is 10 to 17 s, and the whole
+send, carriage included, takes under a minute (docs/08-load-test.md, "T-903").
+
+**Alternatives considered.** One statement for the whole audience: fewer
+round trips, but one long statement and one 10,000-element array per
+send, and a single failure would fail everyone. Pages of 500 keep each
+statement short and a failure local. Keeping `emit` and batching only the
+outcome rows: emission was the larger cost, so that would remove the smaller
+half. Recording outcomes in the same statement as the notifications: the
+inbox's statement belongs to the notifications module and campaigns may not
+reach into its internals.
+
+**Consequences.** `recordSend` is gone. `recordPage` reads `notification`
+by the dedupe key to tell a duplicate from a mute. The remaining emission
+cost, about 1 ms a member, is inside `emitToAudience`, which is shared with
+match alerts.
+
 ---
 
 ## D-108 — A `forbidden` error code: 401 is "who are you", 403 is "not you"

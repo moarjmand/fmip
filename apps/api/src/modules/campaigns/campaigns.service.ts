@@ -2,7 +2,6 @@ import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import type { Audience, AudienceFilter, Campaign, CampaignDispatch } from '@fmip/contracts';
 import {
   type DueNotification,
-  type EmitOutcome,
   NotificationsService,
   type OutboundMessages,
 } from '../notifications/notifications.service';
@@ -18,10 +17,13 @@ import {
  * Campaigns (T-332, D-075): an audience is a saved query, a send is a row.
  *
  * A send tells every active member the audience reaches through the inbox's
- * own `emit()`, so their preference for the `campaign` kind, their quiet
- * hours and a category mute apply exactly as they do to everything else --
- * a member who turned campaigns off is `muted` in the report, not reached
- * around the side. The dispatch is claimed by its primary key before the
+ * own rules (`emitToAudience`, the same as `emit()`), so their preference for
+ * the `campaign` kind, their quiet hours and a category mute apply exactly as
+ * they do to everything else -- a member who turned campaigns off is `muted`
+ * in the report, not reached around the side. A page of the audience at a
+ * time, one statement for its notifications and one for its outcome rows
+ * (T-903, D-107), as match alerts are (T-835): a member at a time was about
+ * six round trips each, minutes for 10,000. The dispatch is claimed by its primary key before the
  * first member is told, and the notification's dedupe key is the second
  * guard, so nobody is reached twice however the send is retried. The
  * carrier then takes what left the inbox out by e-mail and push with this
@@ -30,6 +32,11 @@ import {
  */
 /** How many campaigns' words the composer keeps before it starts again. */
 const WORDS_KEPT = 16;
+/**
+ * Members per emission page (T-903): two statements each, with arrays small
+ * enough that each page's write is a short statement of its own.
+ */
+export const EMIT_PAGE = 500;
 
 export type SendResult =
   | { outcome: 'sent'; dispatch: CampaignDispatch }
@@ -99,7 +106,7 @@ export class CampaignsService implements OnModuleInit {
 
   /**
    * Send once. The claim first; then every member the audience reaches now,
-   * one at a time through the inbox, each outcome a row; then the result and
+   * a page at a time through the inbox, each outcome a row; then the result and
    * the audit row; then the carrier, drained rather than one page, so what
    * left the inbox leaves the building without waiting for the timer.
    */
@@ -115,21 +122,19 @@ export class CampaignsService implements OnModuleInit {
     }
     const tally: Tally = { reached: 0, delayed: 0, muted: 0, duplicate: 0, failed: 0 };
     const reached: string[] = [];
-    for (const userId of members) {
-      const outcome = sendOutcomeOf(
-        await this.notifications.emit({
-          userId,
-          kind: 'campaign',
-          subjectType: 'campaign',
-          subjectId: campaignId,
-          dedupeKey: campaignId,
-        }),
+    for (let start = 0; start < members.length; start += EMIT_PAGE) {
+      const page = members.slice(start, start + EMIT_PAGE);
+      const written = await this.notifications.emitToAudience(
+        { kind: 'campaign', subjectType: 'campaign', subjectId: campaignId, dedupeKey: campaignId },
+        page,
       );
-      await this.store.recordSend(campaignId, userId, outcome);
-      if (outcome === 'sent') {
-        tally.reached += 1;
-        reached.push(userId);
-      } else tally[outcome] += 1;
+      const counted = await this.store.recordPage(campaignId, page, outcomesOf(page, written));
+      tally.reached += counted.sent ?? 0;
+      tally.delayed += counted.delayed ?? 0;
+      tally.muted += counted.muted ?? 0;
+      tally.duplicate += counted.duplicate ?? 0;
+      tally.failed += counted.failed ?? 0;
+      if (written !== null) reached.push(...written.now);
     }
     await this.store.finishDispatch(campaignId, actorId, reason, tally);
     this.log.log(`campaign sent id=${campaignId} audience=${members.length}`, {
@@ -193,17 +198,21 @@ export class CampaignsService implements OnModuleInit {
   }
 }
 
-/** The inbox's outcome in the campaign's words; capped and blocked cannot happen to a sourceless, uncapped kind. */
-function sendOutcomeOf(outcome: EmitOutcome): SendOutcome {
-  switch (outcome) {
-    case 'sent':
-    case 'delayed':
-    case 'muted':
-    case 'duplicate':
-      return outcome;
-    default:
-      return 'failed';
-  }
+/**
+ * Each page member's outcome as far as the inbox said it (T-903): `sent` and
+ * `delayed` for those it wrote, `failed` for the whole page when it could
+ * write nothing (`null`), and `null` for the rest -- muted, or already told,
+ * which the store tells apart by the dedupe key. Capped and blocked cannot
+ * happen to a sourceless, uncapped kind.
+ */
+export function outcomesOf(
+  page: string[],
+  written: { now: string[]; delayed: string[] } | null,
+): (SendOutcome | null)[] {
+  if (written === null) return page.map(() => 'failed');
+  const now = new Set(written.now);
+  const delayed = new Set(written.delayed);
+  return page.map((userId) => (now.has(userId) ? 'sent' : delayed.has(userId) ? 'delayed' : null));
 }
 
 function dispatchOf(row: CampaignRow): CampaignDispatch | null {

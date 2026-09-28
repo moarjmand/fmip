@@ -25,9 +25,10 @@ import { CampaignsService } from './campaigns.service';
  * `docs/08-load-test.md`.
  *
  * **1,000 members in the suite, 10,000 on demand.** Ten pages already prove
- * the send drains past the first; the 10,000 run takes four to seven minutes
+ * the send drains past the first; the 10,000 run took four to seven minutes
  * and ~100,000 queries, which beside 180 other suites sharing one database
- * pushed their 5-second tests over. Run it with
+ * pushed their 5-second tests over. Since T-903 emission is set-based (two
+ * statements per 500 members) and the run is 35 to 50 seconds. Run it with
  * `FMIP_CAMPAIGN_SCALE_MEMBERS=10000` (see `docs/08-load-test.md`).
  */
 const DATABASE_URL = process.env.DATABASE_URL;
