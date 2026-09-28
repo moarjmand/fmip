@@ -92,6 +92,8 @@ describe('the words', () => {
     expect(conditionName('ingest:live')).toBe('Ingestion: live job');
     expect(conditionName('jobs:news')).toBe('Failed jobs: news queue');
     expect(conditionName('data_quality')).toBe('Live match data contradicting itself');
+    expect(conditionName('backup')).toBe('Backup');
+    expect(conditionName('restore_drill')).toBe('Restore drill (monthly)');
     expect(conditionName('something_new')).toBe('something_new');
   });
 

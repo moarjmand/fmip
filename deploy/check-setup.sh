@@ -340,6 +340,40 @@ else
   fi
 fi
 
+# The restore drill (T-805): whether the monthly timer is installed, and what
+# the newest drill recorded in backup_run -- the same record the watchdog's
+# `restore_drill` condition reads. A timer on a machine without systemd (a
+# laptop) is simply not reported as on.
+drill_timer='timer off'
+if command -v systemctl >/dev/null 2>&1 &&
+  [ "$(systemctl is-enabled fmip-restore-drill.timer 2>/dev/null || true)" = 'enabled' ]; then
+  drill_next="$(systemctl show -p NextElapseUSecRealtime --value fmip-restore-drill.timer 2>/dev/null || true)"
+  drill_timer="timer on${drill_next:+, next $drill_next}"
+fi
+drill_last=''
+if [ -z "${SETUP_CHECK_API:-}" ] && [ -n "${POSTGRES_USER:-}" ]; then
+  drill_last="$(docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "${POSTGRES_DB:-fmip}" -tA -F '|' -c \
+    "SELECT CASE WHEN ok THEN 'passed' ELSE 'FAILED' END, (extract(epoch FROM now() - finished_at) / 86400)::int, coalesce(subject, '')
+       FROM backup_run WHERE kind = 'restore_drill' ORDER BY finished_at DESC, id DESC LIMIT 1" 2>/dev/null | tr -d '\r' || true)"
+fi
+if [ -n "$drill_last" ]; then
+  IFS='|' read -r drill_outcome drill_days drill_dump <<<"$drill_last"
+  if [ "$drill_outcome" = 'FAILED' ]; then
+    row 'Restore drill' 'FAILED' "${drill_days}d ago on $drill_dump, $drill_timer"
+    notes+=("Restore drill: the newest drill failed. That is the week's first task: journalctl -u fmip-restore-drill -n 100, then the checklist in docs/07-backups.md.")
+  elif [ "$drill_days" -gt 35 ]; then
+    row 'Restore drill' 'STALE' "passed ${drill_days}d ago, $drill_timer"
+    notes+=('Restore drill: no drill has passed for more than five weeks. systemctl status fmip-restore-drill.timer (docs/07-backups.md).')
+  else
+    row 'Restore drill' 'ON' "passed ${drill_days}d ago on $drill_dump, $drill_timer"
+  fi
+else
+  row 'Restore drill' "$([ "$drill_timer" = 'timer off' ] && echo off || echo ON)" "no drill recorded yet, $drill_timer"
+fi
+if [ "$drill_timer" = 'timer off' ]; then
+  notes+=('Restore drill: install scripts/backup/fmip-restore-drill.timer so the off-provider copy is restored and checked every month (docs/07-backups.md).')
+fi
+
 if [ "$(value_of demonstration_data)" = 'on' ]; then
   row 'Demonstration data' 'ON' 'seeded fixtures are labelled as such -- turn off on a real deployment'
 fi

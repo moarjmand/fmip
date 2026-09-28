@@ -9,7 +9,9 @@ import {
   MODEL_SERVICE_THRESHOLD,
   QUEUE_FAILURE_THRESHOLD,
   REQUEST_BUDGET_THRESHOLD,
+  RESTORE_DRILL_THRESHOLD,
   type Reading,
+  type RunRecord,
   backup,
   dataQuality,
   deliveryChannel,
@@ -19,6 +21,7 @@ import {
   modelService,
   queueFailures,
   requestBudget,
+  restoreDrill,
 } from './internal/conditions';
 import { type Observations, readingsOf } from './internal/readings';
 import { type StoredCondition, isAlert, step } from './internal/transition';
@@ -199,16 +202,113 @@ describe('delivery:<channel>', () => {
   });
 });
 
+const NONE: RunRecord = { lastSucceededAt: null, newest: null };
+const passed = (at: Date): RunRecord => ({
+  lastSucceededAt: at,
+  newest: { at, ok: true, detail: null },
+});
+
 describe('backup', () => {
-  it('is unknown while the API has no backup record to read (T-805)', () => {
+  it('is unknown when the record cannot be read, or nothing was ever recorded here', () => {
     expect(backup(undefined, NOW)).toMatchObject({ level: 'unknown', observed: null });
+    expect(backup(NONE, NOW)).toMatchObject({ level: 'unknown', observed: null });
+    expect(backup(NONE, NOW).note).toMatch(/fmip-backup\.timer/);
   });
 
   it('is measured from the newest successful backup: 26 hours degraded, 50 failing', () => {
-    expect(backup(ago(3600), NOW).level).toBe('ok');
-    expect(backup(ago(BACKUP_THRESHOLD.degraded), NOW).level).toBe('degraded');
-    expect(backup(ago(BACKUP_THRESHOLD.failing), NOW).level).toBe('failing');
-    expect(backup(null, NOW).level).toBe('failing');
+    expect(backup(passed(ago(3600)), NOW)).toMatchObject({ level: 'ok', observed: 3600 });
+    expect(backup(passed(ago(BACKUP_THRESHOLD.degraded)), NOW).level).toBe('degraded');
+    expect(backup(passed(ago(BACKUP_THRESHOLD.failing)), NOW).level).toBe('failing');
+  });
+
+  it('is failing when runs are on record and none succeeded', () => {
+    const seen: RunRecord = {
+      lastSucceededAt: null,
+      newest: { at: ago(60), ok: false, detail: 'backup.sh stopped with status 1 during: pg_dump' },
+    };
+    expect(backup(seen, NOW)).toMatchObject({ level: 'failing', observed: null });
+    expect(backup(seen, NOW).note).toMatch(/pg_dump/);
+  });
+
+  it('a newest run that failed is degraded at once, not when the age catches up (T-805)', () => {
+    const seen = (lastOk: Date): RunRecord => ({
+      lastSucceededAt: lastOk,
+      newest: { at: ago(60), ok: false, detail: 'during: off-provider copy' },
+    });
+    expect(backup(seen(ago(3600)), NOW)).toMatchObject({ level: 'degraded', observed: 3600 });
+    expect(backup(seen(ago(3600)), NOW).note).toMatch(/newest backup failed: during: off-provider/);
+    expect(backup(seen(ago(BACKUP_THRESHOLD.failing)), NOW).level).toBe('failing');
+  });
+
+  it('keeps a long failure detail to a readable note', () => {
+    const seen: RunRecord = {
+      lastSucceededAt: ago(60),
+      newest: { at: ago(10), ok: false, detail: 'x'.repeat(2000) },
+    };
+    expect(backup(seen, NOW).note?.length).toBeLessThan(400);
+  });
+});
+
+describe('restore_drill', () => {
+  const DAY = 24 * 3600;
+
+  it('is unknown when the record cannot be read, or no drill was ever recorded here', () => {
+    expect(restoreDrill(undefined, NOW)).toMatchObject({ key: 'restore_drill', level: 'unknown' });
+    expect(restoreDrill(NONE, NOW)).toMatchObject({ level: 'unknown', observed: null });
+    expect(restoreDrill(NONE, NOW).note).toMatch(/fmip-restore-drill\.timer/);
+  });
+
+  it('is measured from the newest drill that passed: degraded past 35 days, failing past 70', () => {
+    expect(RESTORE_DRILL_THRESHOLD).toEqual({
+      unit: 'seconds',
+      degraded: 35 * DAY,
+      failing: 70 * DAY,
+    });
+    expect(restoreDrill(passed(ago(7 * DAY)), NOW)).toMatchObject({
+      level: 'ok',
+      observed: 7 * DAY,
+    });
+    expect(restoreDrill(passed(ago(35 * DAY)), NOW).level).toBe('degraded');
+    expect(restoreDrill(passed(ago(70 * DAY)), NOW).level).toBe('failing');
+  });
+
+  it('is failing when the newest drill failed, however recent the last pass', () => {
+    const seen: RunRecord = {
+      lastSucceededAt: ago(28 * DAY),
+      newest: { at: ago(60), ok: false, detail: 'offsite; row counts differ from the manifest' },
+    };
+    expect(restoreDrill(seen, NOW)).toMatchObject({ level: 'failing', observed: 28 * DAY });
+    expect(restoreDrill(seen, NOW).note).toMatch(/row counts differ/);
+    expect(
+      restoreDrill(
+        { lastSucceededAt: null, newest: { at: ago(60), ok: false, detail: null } },
+        NOW,
+      ),
+    ).toMatchObject({ level: 'failing', observed: null });
+  });
+
+  it('an unreadable record makes both backup conditions unknown with the reason', () => {
+    const readings = readingsOf(
+      {
+        ingest: [],
+        live: { inProgress: 0, oldestChangeAt: null, behind: 0 },
+        budget: { requestsToday: 0, budget: null },
+        queues: [],
+        model: { configured: false },
+        delivery: { email: { configured: false }, push: { configured: false } },
+        dataQuality: { open: 0, sweptAt: ago(60) },
+        backups: { unreadable: 'relation "backup_run" does not exist' },
+      },
+      new Map(),
+      NOW,
+      [],
+    );
+    for (const key of ['backup', 'restore_drill']) {
+      expect(readings.find((r) => r.key === key)).toMatchObject({
+        level: 'unknown',
+        note: 'relation "backup_run" does not exist',
+      });
+    }
   });
 });
 
@@ -373,7 +473,7 @@ describe('readingsOf', () => {
     model: { configured: true, ok: true },
     delivery: { email: { configured: false }, push: { configured: true, sent: 5, failed: 0 } },
     dataQuality: { open: 0, sweptAt: ago(60) },
-    backup: undefined,
+    backups: { backup: NONE, drill: NONE },
     ...over,
   });
 
@@ -389,6 +489,7 @@ describe('readingsOf', () => {
       'delivery:push',
       'data_quality',
       'backup',
+      'restore_drill',
     ]);
   });
 
