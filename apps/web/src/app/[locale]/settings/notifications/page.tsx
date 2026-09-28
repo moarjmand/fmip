@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { MatchAlertSettings } from '@/components/match-alert-settings';
 import { NotificationSettingsForm } from '@/components/notification-settings';
 import { PushToggle } from '@/components/push-toggle';
 import {
@@ -73,6 +74,7 @@ export default async function NotificationSettingsPage({
           settings={result.data}
           teams={teams}
           competitions={competitions}
+          matchAlerts={<MatchAlertSettings locale={locale} settings={result.data} />}
         />
       ) : (
         // Stated, not a blank page. A form that silently showed the defaults

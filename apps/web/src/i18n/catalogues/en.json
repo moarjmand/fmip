@@ -386,5 +386,13 @@
   "groupPolls.days": {
     "one": "{count} day",
     "other": "{count} days"
-  }
+  },
+  "notifications.match.heading": "Match alerts",
+  "notifications.match.intro": "For the matches of the teams and competitions you follow. Alerts from the same minute arrive together, a goal taken off the board is corrected, and nothing arrives twice.",
+  "notifications.match.kickoff": "Kick-off",
+  "notifications.match.goal": "Goals, and a correction when one is taken off the board",
+  "notifications.match.redCard": "Red cards",
+  "notifications.match.halfTime": "Half-time",
+  "notifications.match.fullTime": "Full-time, with the result",
+  "notifications.match.quiet": "To silence one team or one competition, or every match alert at once, use What stays quiet below. Quiet hours hold match alerts too."
 }

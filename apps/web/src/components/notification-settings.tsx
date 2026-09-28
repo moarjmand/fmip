@@ -1,13 +1,19 @@
 'use client';
 
-import { useActionState } from 'react';
+import { type ReactNode, useActionState } from 'react';
 import type {
+  MatchAlertKind,
   NotificationCategory,
   NotificationKind,
   NotificationMute,
+  NotificationPreference,
   NotificationSettings,
 } from '@fmip/contracts';
-import { NOTIFICATION_CATEGORIES, NOTIFICATION_HOURLY_CAP } from '@fmip/contracts';
+import {
+  NOTIFICATION_CATEGORIES,
+  NOTIFICATION_HOURLY_CAP,
+  isMatchAlertKind,
+} from '@fmip/contracts';
 import {
   muteAction,
   setNotificationPreferenceAction,
@@ -29,8 +35,12 @@ import { Button, FormStatus, Select, TextField } from '@/components/ui';
  * looking at.
  */
 
-/** A sentence per kind, so a member is choosing about a thing and not a slug. */
-const KIND_LABEL: Record<NotificationKind, string> = {
+/**
+ * A sentence per kind, so a member is choosing about a thing and not a slug.
+ * The match alerts are not here: they have a section of their own, worded
+ * through the catalogues (`match-alert-settings.tsx`, T-831).
+ */
+const KIND_LABEL: Record<Exclude<NotificationKind, MatchAlertKind>, string> = {
   prediction_settled: 'When a prediction of mine is settled',
   rating_changed: 'When my Performance Rating changes',
   career_points_awarded: 'When I earn Career Points',
@@ -46,13 +56,14 @@ const KIND_LABEL: Record<NotificationKind, string> = {
   panel_reaction: 'When somebody reacts to something I posted',
   briefing: 'When a briefing of mine is written',
   campaign: 'When the platform sends a message to members like me',
-  // Match alerts (T-830): for matches of the teams and competitions I follow.
-  match_kickoff: 'When a match I follow kicks off',
-  match_goal: 'When a goal is scored in a match I follow, or taken off the board',
-  match_red_card: 'When a player is sent off in a match I follow',
-  match_half_time: 'At half-time in a match I follow',
-  match_full_time: 'At full-time in a match I follow',
 };
+
+/** The kinds this list offers: every one but the match alerts, which have their own section. */
+function isListedHere(
+  preference: NotificationPreference,
+): preference is NotificationPreference & { kind: Exclude<NotificationKind, MatchAlertKind> } {
+  return !isMatchAlertKind(preference.kind);
+}
 
 /** The categories a member can silence as one (T-331), named in words. */
 const CATEGORY_LABEL: Record<NotificationCategory, string> = {
@@ -138,14 +149,17 @@ function MuteForm({
   );
 }
 
-function KindRow({
+/** One kind's switch. Exported for the match-alert section, which words its own labels (T-831). */
+export function KindRow({
   locale,
   kind,
+  label,
   inProduct,
   chosen,
 }: {
   locale: string;
   kind: NotificationKind;
+  label: ReactNode;
   inProduct: boolean;
   chosen: boolean;
 }) {
@@ -158,7 +172,7 @@ function KindRow({
   return (
     <li className="flex flex-wrap items-center justify-between gap-2 border-b border-default py-2">
       <span className="flex flex-col">
-        <span className="text-sm">{KIND_LABEL[kind]}</span>
+        <span className="text-sm">{label}</span>
         <span className="text-xs text-muted">
           {/* Said out loud, because "Default" and "your choice that happens to
               match the default" behave differently the day a default changes. */}
@@ -193,9 +207,12 @@ export function NotificationSettingsForm({
   settings,
   teams,
   competitions,
+  matchAlerts,
 }: {
   locale: string;
   settings: NotificationSettings;
+  /** The match-alert section, rendered on the server with its catalogue words (T-831). */
+  matchAlerts?: ReactNode;
   /** What can be silenced; `null` when the list could not be loaded, which the section says. */
   teams: { id: string; name: string }[] | null;
   competitions: { id: string; name: string }[] | null;
@@ -210,17 +227,20 @@ export function NotificationSettingsForm({
       <section className="flex flex-col gap-2">
         <h2 className="text-lg font-semibold">What arrives</h2>
         <ul className="flex flex-col" data-testid="notification-kinds">
-          {settings.preferences.map((preference) => (
+          {settings.preferences.filter(isListedHere).map((preference) => (
             <KindRow
               key={preference.kind}
               locale={locale}
               kind={preference.kind}
+              label={KIND_LABEL[preference.kind]}
               inProduct={preference.in_product}
               chosen={preference.chosen}
             />
           ))}
         </ul>
       </section>
+
+      {matchAlerts}
 
       <section className="flex flex-col gap-3" data-testid="notification-mutes">
         <h2 className="text-lg font-semibold">What stays quiet</h2>

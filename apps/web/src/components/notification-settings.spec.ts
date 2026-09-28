@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { NOTIFICATION_HOURLY_CAP, NOTIFICATION_KINDS } from '@fmip/contracts';
+import { NOTIFICATION_HOURLY_CAP, NOTIFICATION_KINDS, isMatchAlertKind } from '@fmip/contracts';
 
 /**
  * Choosing what arrives, and when (T-273).
@@ -14,6 +14,7 @@ import { NOTIFICATION_HOURLY_CAP, NOTIFICATION_KINDS } from '@fmip/contracts';
  */
 const HERE = __dirname;
 const FORM = readFileSync(join(HERE, 'notification-settings.tsx'), 'utf8');
+const MATCH = readFileSync(join(HERE, 'match-alert-settings.tsx'), 'utf8');
 const ACTIONS = readFileSync(join(HERE, '..', 'lib', 'notification-actions.ts'), 'utf8');
 const PAGE = readFileSync(
   join(HERE, '..', 'app', '[locale]', 'settings', 'notifications', 'page.tsx'),
@@ -23,17 +24,20 @@ const PAGE = readFileSync(
 describe('every kind is offered, and named in words', () => {
   it('has a sentence for each, so nobody chooses about a slug', () => {
     for (const kind of NOTIFICATION_KINDS) {
-      expect(FORM, `no label for ${kind}`).toContain(`${kind}:`);
+      // The match alerts are worded in their own section (T-831).
+      const source = isMatchAlertKind(kind) ? MATCH : FORM;
+      expect(source, `no label for ${kind}`).toContain(`${kind}:`);
     }
     // Keyed by the contract's union, so a kind added without a label does not
     // compile.
-    expect(FORM).toContain('Record<NotificationKind, string>');
+    expect(FORM).toContain('Record<Exclude<NotificationKind, MatchAlertKind>, string>');
+    expect(MATCH).toContain('Record<MatchAlertKind, MessageKey>');
   });
 
   it('renders what the API sent rather than a second copy of the defaults', () => {
     // The copy in the browser is the one that goes stale, and the one a member
     // is looking at.
-    expect(FORM).toContain('settings.preferences.map');
+    expect(FORM).toContain('settings.preferences.filter(isListedHere).map');
     expect(FORM).not.toContain('NOTIFICATION_DEFAULTS');
   });
 
