@@ -4055,3 +4055,72 @@ page-view or visit counter: new tracking, refused by E80.
 **Consequences.** Adding a count is a line in
 `apps/api/src/modules/activity/internal/activity-store.ts`, a name in
 `ACTIVITY_METRICS` and its words in `apps/web/src/lib/activity.ts`.
+
+---
+
+## D-103 — The rate-limit inventory: every write has a ceiling or a stated reason, and three gaps closed
+**Status:** Accepted · 2026-09-28 (revisable under the standing delegation of 2026-09-26) · **Tasks:** T-811 · **Follows:** D-054, D-093
+
+**Decision.** Every write the API takes (any method but `GET`, `HEAD`,
+`OPTIONS`) is listed in `apps/api/src/modules/rate-limits/inventory.ts`,
+either under the `rate_limit` ceiling that holds it or with the reason it
+needs none, and the console security spec fails on a write the router has
+that the list does not cover. The console (`/admin/...`) is exempt as a
+class: role-gated and audited. The list is written out in
+`02-architecture.md`, "Rate limits", and a unit test holds the section to the
+file. The inventory found three writes that needed a ceiling and had none:
+
+- **`POST /me/briefing`**, a language-model call on every press, from a plan
+  the briefing, "ask", the moderation assistant and the match summaries
+  share: `briefing`, **6 an hour** per member.
+- **`POST /me/push-subscriptions`**, an https endpoint the member names, to
+  which every notification of theirs is then POSTed: `push_subscription`,
+  **10 an hour** per member.
+- **`POST /auth/account/delete`**, which checks the password: held to the
+  sign-in ceilings (`login_failure_account` against the account's username,
+  `login_failure_ip`), counted before the check and given back when the
+  password is right, so the lock is the sign-in's own. Without it a session
+  left open was an unlimited way to guess the password it was opened with.
+
+The two new ceilings are counted in `rate_window` by the API before the work
+(`RateLimitsService.take`), not by a trigger: the briefing's cost is the model
+call, which comes before any insert, and the push registration is an upsert
+only the API writes. Refusals are counted per ceiling per UTC day in
+`rate_refusal` -- the ceiling and the day, never the member, address or
+identifier -- for 30 days, and the System page shows the last seven next to
+each ceiling's number as the table has it now (`GET /admin/rate-limits`). A
+trigger's refusal rolls its own count back with the refused insert, so those
+are counted by a response hook on a 429 from a route one trigger ceiling holds.
+
+**Why these numbers.** A member asks for a briefing a few times a day, and a
+briefing covers a day of their feed; six an hour is far above that and far
+below what drains a shared model allowance. A member turns push on in each
+browser they use, once; ten an hour leaves room for turning it off and on
+again, and stops the one thing an unlimited list of endpoints allows, the
+server sending each notification to as many addresses as a member cares to
+name.
+
+**Deliberately unlimited, and said so.** Reporting and appealing stay
+unlimited (T-213: the exit is never gated; reporting is limited by target).
+Blocking too: it protects the caller and reaches nobody. Every other write
+without a ceiling is bounded by a key (one row per member and target), is the
+caller's own setting or state, answers something already limited, or is
+role-gated; the inventory gives each its reason.
+
+**Rejected.** *A total cap on push devices per member*: a rate is what this
+task asked for, and ten an hour already makes a flood slow; a cap is a
+product decision about how many browsers a member may use. *Counting
+refusals per route instead of per ceiling*: sign-in has two ceilings on one
+route, and which one refused (one identifier or one address) is the thing an
+operator needs to know. *A trigger for the briefing*: it would refuse only
+after the model had been paid.
+
+**Not a write, so not in the inventory, and a gap:** `GET /ask` calls the
+language model for guests and members with no ceiling. A guest has no member
+id and the web app forwards the reader's address only on the account forms,
+so a limit there needs the address on that request too; it is left for its
+own task rather than widened into this one.
+
+**Consequences.** A new write fails CI until it is given a ceiling or a
+reason in `inventory.ts` and a line in `02-architecture.md`. A new ceiling is
+a `rate_limit` row plus an inventory entry (a test fails on either alone).

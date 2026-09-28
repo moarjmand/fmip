@@ -10,6 +10,7 @@ import {
   Put,
   Query,
   Req,
+  Res,
   UnauthorizedException,
   BadRequestException,
 } from '@nestjs/common';
@@ -35,9 +36,10 @@ import {
   type MuteScope,
   isNotificationKind,
 } from '@fmip/contracts';
-import type { FastifyRequest } from 'fastify';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 import { DeliveryService } from '../delivery/delivery.service';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
+import { RateLimitsService, refuseOverRate } from '../rate-limits/rate-limits.service';
 import { NotificationsService } from './notifications.service';
 
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
@@ -67,6 +69,7 @@ export class NotificationsController {
     private readonly notifications: NotificationsService,
     private readonly identity: IdentityService,
     private readonly delivery: DeliveryService,
+    private readonly limits: RateLimitsService,
   ) {}
 
   private async viewer(request: FastifyRequest): Promise<AuthUser> {
@@ -306,6 +309,7 @@ export class NotificationsController {
   async subscribe(
     @Req() request: FastifyRequest,
     @Body() body: PushSubscriptionRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<void> {
     const user = await this.viewer(request);
     const endpoint = typeof body?.endpoint === 'string' ? body.endpoint.trim() : '';
@@ -317,6 +321,12 @@ export class NotificationsController {
         message:
           'A push subscription is an https endpoint and two keys, as the browser hands them out.',
       } satisfies ApiError);
+    }
+    // Every notification is sent to each endpoint registered, so how many a
+    // member may register is held to a ceiling (T-811, D-103).
+    const taken = await this.limits.take(user.id, 'push_subscription');
+    if (!taken.ok) {
+      refuseOverRate(reply, taken, 'You have registered a lot of devices in the last hour.');
     }
     const agent = request.headers['user-agent'];
     await this.delivery.registerDevice(

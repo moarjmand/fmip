@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { DeliveryModule } from '../delivery/delivery.module';
 import { IdentityModule } from '../identity/identity.module';
+import { RateLimitsModule } from '../rate-limits/rate-limits.module';
 import { PostgresNotificationsStore } from './internal/notifications-store';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsService, WEB_ORIGIN } from './notifications.service';
@@ -19,11 +20,11 @@ import { NotificationsService, WEB_ORIGIN } from './notifications.service';
  * resolved by whoever reads the inbox (T-272).
  */
 @Module({
-  // Identity (who is asking) and delivery (whether anything can leave the
-  // product, T-330), and nothing else about the product. Neither imports a
-  // producer, so importing them here cannot be the cycle this module exists
-  // to avoid.
-  imports: [IdentityModule, DeliveryModule],
+  // Identity (who is asking), delivery (whether anything can leave the
+  // product, T-330) and the rate limits (a push registration's ceiling,
+  // T-811), and nothing else about the product. None imports a producer, so
+  // importing them here cannot be the cycle this module exists to avoid.
+  imports: [IdentityModule, DeliveryModule, RateLimitsModule],
   controllers: [NotificationsController],
   providers: [
     NotificationsService,

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { FollowingFeedModule } from '../following-feed/following-feed.module';
 import { IdentityModule } from '../identity/identity.module';
 import { IntelligenceModule } from '../intelligence/intelligence.module';
+import { RateLimitsModule } from '../rate-limits/rate-limits.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { BriefingsController } from './briefings.controller';
 import { BriefingsService } from './briefings.service';
@@ -15,7 +16,13 @@ import { PostgresBriefingStore } from './internal/briefing-store';
  * through the delivery port, which says when nothing can carry it (T-330).
  */
 @Module({
-  imports: [FollowingFeedModule, IdentityModule, IntelligenceModule, NotificationsModule],
+  imports: [
+    FollowingFeedModule,
+    IdentityModule,
+    IntelligenceModule,
+    NotificationsModule,
+    RateLimitsModule,
+  ],
   controllers: [BriefingsController],
   providers: [PostgresBriefingStore, BriefingsService],
 })

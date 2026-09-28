@@ -155,3 +155,87 @@ No message broker beyond Redis. No Kubernetes. No microservice mesh. No GraphQL.
 No event sourcing. Each of these can be introduced later behind the existing
 module boundaries if a real need appears — and none of them is needed to serve
 the Phase 1 scope well.
+
+
+---
+
+## Rate limits
+
+Every write the API takes -- any method but `GET`, `HEAD` and `OPTIONS` -- is
+held by a ceiling or has a stated reason it needs none (T-811, D-103). The
+authority is `apps/api/src/modules/rate-limits/inventory.ts`: the console
+security spec collects the router's routes from Fastify's `onRoute` hook and
+fails on a write the inventory does not cover and on an entry that is no
+longer a route, a unit test fails when this section misses a route the
+inventory names, and `GET /admin/rate-limits` reports it on the admin System
+page with each ceiling's number as the table has it now and its refusals per
+UTC day.
+
+**How a ceiling works.** The numbers are rows in `rate_limit` (per hour; an
+administrator changes one with an `UPDATE`, and a missing row means *not
+limited*). A member's count is a fixed hourly window in `rate_window` (T-213);
+a signed-out attempt's is in `auth_rate_window`, keyed by an HMAC of the
+address or the identifier typed (T-810, D-093). A *trigger* ceiling refuses
+the insert itself, so no caller can route around it; an *API* ceiling is
+counted before the work, where the work is the cost (a model call) or has no
+insert to hang a trigger on (a failed sign-in). A refusal is 429
+`rate_limited` with `Retry-After`. Each refusal is counted per ceiling per UTC
+day in `rate_refusal` (the ceiling and the day only; kept 30 days): by the
+statement that refuses, for an API ceiling, and by the response hook
+(`refusal-counter.ts`) for a trigger ceiling, whose own count is rolled back
+with the refused insert.
+
+**The console** (`/admin/...`) is not rate limited: every route there is
+role-gated (the security spec's `CONSOLE` table) and every write is audited
+with a reason; the caller is an operator.
+
+**Not a write, and not limited:** `GET /ask` asks the language model for a
+guest as well as a member. It is outside this inventory, which is of writes;
+it is recorded as a gap for its own task (D-103).
+
+### The ceilings
+
+| Ceiling | Per hour (as shipped) | Counted per | Enforced by | Writes it holds |
+| --- | --- | --- | --- | --- |
+| `login_failure_account` | 10 | identifier | API | `POST /auth/login`, `POST /auth/account/delete` |
+| `login_failure_ip` | 50 | address | API | `POST /auth/login`, `POST /auth/account/delete` |
+| `register_account` | 5 | identifier | API | `POST /auth/register` |
+| `register_ip` | 20 | address | API | `POST /auth/register` |
+| `password_forgot_account` | 3 | identifier | API | `POST /auth/password/forgot` |
+| `password_forgot_ip` | 20 | address | API | `POST /auth/password/forgot` |
+| `email_token_ip` | 60 | address | API | `POST /auth/verify-email`, `POST /auth/password/reset` |
+| `friend_request` | 20 | member | trigger | `POST /me/friend-requests/:username` |
+| `message` | 200 | member | trigger | `POST /me/conversations/:id/messages` |
+| `group_create` | 5 | member | trigger | `POST /groups` |
+| `group_invite` | 50 | member | trigger | `POST /groups/:slug/invites/:username` |
+| `group_join_request` | 20 | member | trigger | `POST /groups/:slug/requests` |
+| `group_thread` | 20 | member | trigger | `POST /groups/:slug/threads` |
+| `group_poll_create` | 10 | member | trigger | `POST /groups/:slug/polls` |
+| `panel_post` | 30 | member | trigger | `POST /fixtures/:id/panel` |
+| `briefing` | 6 | member | API | `POST /me/briefing` |
+| `push_subscription` | 10 | member | API | `POST /me/push-subscriptions` |
+
+### Writes without a ceiling, and why
+
+- `POST /auth/logout`: Ends the caller's own session; nothing is created.
+- `PATCH /me/profile`, `PATCH /me/preferences`, `PATCH /me/privacy`, `PUT /me/territory`, `PUT /me/first-run`, `PUT /me/notification-settings/:kind`, `PUT /me/quiet-hours`, `DELETE /me/quiet-hours`, `PUT /me/notification-mutes/:scope/:target`, `DELETE /me/notification-mutes/:scope/:target`: Overwrites the caller's own setting in place: a repeat replaces rather than adds, and reaches nobody.
+- `DELETE /me/push-subscriptions`, `DELETE /me/following/:type/:id`, `DELETE /me/saved-articles/:storyId`, `DELETE /me/blocks/:username`, `DELETE /me/friends/:username`, `DELETE /members/:username/follow`, `DELETE /panel-posts/:postId/reactions/:reaction`, `DELETE /fixtures/:id/panel/:postId`, `DELETE /me/conversations/:id/messages/:messageId`, `DELETE /me/conversations/:id/messages/:messageId/reactions/:reaction`, `DELETE /me/conversations/:id/messages/:messageId/pin`, `DELETE /groups/:slug/invites/:username`, `DELETE /me/group-requests/:slug`, `DELETE /groups/:slug/polls/:pollId/vote`: Removes the caller's own row, or one they are entitled to remove; a removal can only happen as often as something was added, and the adding is what is limited.
+- `POST /me/notifications/read`, `POST /me/notifications/:id/read`, `POST /me/conversations/:id/read`, `POST /me/conversations/:id/mute`, `DELETE /me/conversations/:id/mute`, `POST /me/conversations/:id/leave`, `DELETE /groups/:slug/members/me`: Changes only the caller's own state (read, muted, left, withdrawn); a repeat is a no-op and reaches nobody.
+- `PUT /me/following/:type/:id`: One row per member and followed team, competition or player (a primary key); bounded by the catalogue, and reaches nobody.
+- `PUT /me/saved-articles/:storyId`: One row per member and story (a primary key); bounded by the stories, and reaches nobody.
+- `POST /me/rating/recompute`: Recomputes the caller's own rating from stored rows (rule 8); a snapshot is written only when the value changed, so a repeat writes nothing.
+- `POST /me/points/award`: Awards the caller's settlements not yet counted; a repeat finds none and adds nothing.
+- `PUT /fixtures/:fixtureId/prediction`: One prediction per member per match, replaced in place until kick-off; the friends it tells are told once per match (a dedupe key).
+- `PUT /me/analyses/:fixtureId`: One draft per member per match, overwritten in place; nobody reads it until it is submitted.
+- `POST /me/analyses/:fixtureId/submit`: One submission of a draft waits for its decision: a second attempt while one is pending is refused (already_decided), so the review queue grows by at most one per member per match.
+- `POST /reports`: Deliberately unlimited (T-213): reporting is limited by target instead -- one open report per subject (T-210) -- because a member harassed by twenty accounts must be able to report twenty.
+- `POST /me/sanctions/:id/appeal`: Deliberately unlimited (T-213): an appeal is the way out of a sanction, and the exit is never gated; only the sanctioned member can write, on their own sanction, and each note is length-capped.
+- `POST /me/blocks/:username`: Deliberately unlimited: a block protects the caller, reaches nobody, and is one row per pair.
+- `POST /me/friend-requests/:username/accept`, `DELETE /me/friend-requests/:username`, `POST /me/group-invites/:slug/accept`, `DELETE /me/group-invites/:slug`, `POST /groups/:slug/requests/:username/accept`, `DELETE /groups/:slug/requests/:username`: Answers an invitation or request that already exists; each can be answered once, so it is bounded by the ceiling on sending them.
+- `PUT /members/:username/follow`, `PUT /panel-posts/:postId/reactions/:reaction`, `PUT /me/conversations/:id/messages/:messageId/reactions/:reaction`: One row per member and target at most (a primary key), added or removed; a repeat changes nothing, and any notice it raises is deduplicated per member and target.
+- `POST /me/conversations/direct/:username`: Friends only, and one direct conversation per pair (a unique index): a repeat returns the same conversation. The messages in it are what is limited.
+- `POST /me/conversations/:id/messages/:messageId/pin`: A participant's mark on a message already sent, one per message; bounded by the messages, which are limited.
+- `PATCH /groups/:slug`, `DELETE /groups/:slug`, `PUT /groups/:slug/members/:username/role`, `DELETE /groups/:slug/members/:username`, `POST /groups/:slug/polls/:pollId/close`, `POST /groups/:slug/polls/:pollId/removal`: A group owner's or moderator's decision on their own group's members or settings; bounded by the group's membership, and never reaches anyone outside it.
+- `POST /groups/:slug/members`: Joins an open group: one membership per member and group (a primary key), and joining tells nobody.
+- `PUT /groups/:slug/polls/:pollId/vote`: One vote per member per poll, replaced in place; reaches nobody.
+- `POST /fixtures/:fixtureId/forecasts`, `POST /fixtures/:fixtureId/power-index`, `POST /fixtures/:fixtureId/evaluations`, `POST /fixtures/:fixtureId/settle`, `POST /settlements/run`, `POST /ratings/recompute`, `POST /fixtures/:fixtureId/founder-analysis`: Role-gated (the security spec, GATED_ELSEWHERE): only an administrator or the founder can call it, and the caller is the operator.

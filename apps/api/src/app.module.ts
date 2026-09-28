@@ -35,6 +35,7 @@ import { WatchdogModule } from './modules/watchdog/watchdog.module';
 import { FailureCountsModule } from './modules/failure-counts/failure-counts.module';
 import { DataQualityModule } from './modules/data-quality/data-quality.module';
 import { ActivityModule } from './modules/activity/activity.module';
+import { RateLimitsModule } from './modules/rate-limits/rate-limits.module';
 
 /**
  * The remaining modules from `docs/02-architecture.md` are registered here as
@@ -79,6 +80,7 @@ import { ActivityModule } from './modules/activity/activity.module';
     FailureCountsModule,
     DataQualityModule,
     ActivityModule,
+    RateLimitsModule,
     AdminModule,
   ],
 })
