@@ -157,6 +157,8 @@ services:
       # Postgres, reached by service name (D-028).
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       MODEL_PORT: 8000
+      # T-920, D-111: the service asks Club Elo for yesterday's snapshot, at most every 6 h.
+      MODEL_CLUBELO_REFRESH: ${MODEL_CLUBELO_REFRESH:-on}
     # No `ports`: the model service is internal (D-009). The api reaches it as
     # http://model:8000 over the compose network and nothing else does.
     depends_on:
