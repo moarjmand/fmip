@@ -325,6 +325,11 @@ export interface ApiRequestInit {
   body?: unknown;
   /** The `Cookie` header to forward, e.g. from `sessionCookieHeader()`. */
   cookie?: string;
+  /**
+   * The reader's address, from `readerAddress()`, on the account forms only:
+   * the API keys its per-address rate limits on it (T-810, D-093).
+   */
+  clientIp?: string;
 }
 
 export async function apiRequest<T>(
@@ -339,6 +344,7 @@ export async function apiRequest<T>(
   };
   if (init.body !== undefined) headers['content-type'] = 'application/json';
   if (init.cookie !== undefined) headers.cookie = init.cookie;
+  if (init.clientIp !== undefined) headers['x-fmip-client-ip'] = init.clientIp;
 
   let response: Response;
   try {

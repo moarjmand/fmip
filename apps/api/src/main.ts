@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module';
+import { FailureCountsService } from './modules/failure-counts/failure-counts.service';
 import {
   AllExceptionsFilter,
   registerAccessLog,
@@ -37,7 +38,11 @@ async function bootstrap(): Promise<void> {
     }),
     { logger },
   );
-  registerAccessLog(app.getHttpAdapter().getInstance(), logger);
+  // Every 5xx is also counted per route and hour (T-803).
+  const failures = app.get(FailureCountsService);
+  registerAccessLog(app.getHttpAdapter().getInstance(), logger, (seen) => {
+    void failures.recordHttpError(seen);
+  });
   app.useGlobalFilters(new AllExceptionsFilter(logger));
 
   // Lets Nest run its shutdown hooks on SIGTERM, which is how Docker stops a

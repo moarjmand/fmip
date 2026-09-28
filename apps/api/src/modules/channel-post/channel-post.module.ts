@@ -1,5 +1,6 @@
 import { Controller, Get, Module } from '@nestjs/common';
 import type { ChannelPostHealth } from '@fmip/contracts';
+import { FailureCountsModule } from '../failure-counts/failure-counts.module';
 import { FixturesModule } from '../fixtures/fixtures.module';
 import { ForecastModule } from '../forecast/forecast.module';
 import {
@@ -32,7 +33,7 @@ export class ChannelPostHealthController {
  * once; half a configuration stops the process at boot.
  */
 @Module({
-  imports: [FixturesModule, ForecastModule],
+  imports: [FixturesModule, ForecastModule, FailureCountsModule],
   controllers: [ChannelPostHealthController],
   providers: [
     ChannelPostService,

@@ -69,6 +69,36 @@
     "text": "",
     "status": "untranslated"
   },
+  "error.notFound.title": {
+    "source": "Page not found",
+    "text": "",
+    "status": "untranslated"
+  },
+  "error.notFound.body": {
+    "source": "There is no page at this address. It may have moved, or the link may be mistyped.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "error.failed.title": {
+    "source": "This page could not be shown",
+    "text": "",
+    "status": "untranslated"
+  },
+  "error.failed.body": {
+    "source": "Something went wrong while building this page. Trying again usually works; the rest of the site is still here.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "error.failed.retry": {
+    "source": "Try again",
+    "text": "",
+    "status": "untranslated"
+  },
+  "error.toScores": {
+    "source": "Go to scores",
+    "text": "",
+    "status": "untranslated"
+  },
   "theme.label": {
     "source": "Theme",
     "text": "",

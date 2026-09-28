@@ -6,6 +6,12 @@ import type {
   RegisterRequest,
 } from '@fmip/contracts';
 import { PostgresAccountDeletionStore } from './internal/account-deletion-store';
+import {
+  type AuthRateCheck,
+  AuthRateLimiter,
+  type AuthRateOutcome,
+  subjectOf,
+} from './internal/auth-rate-limit';
 import { clearSessionCookie, serializeSessionCookie } from './internal/cookies';
 import { PostgresIdentityStore, toAuthUser } from './internal/identity-store';
 import { MAILER, type Mailer } from './internal/mailer';
@@ -14,6 +20,7 @@ import { hashToken, newToken } from './internal/tokens';
 
 // The module's public surface. Other modules import from this file only.
 export { SESSION_COOKIE, parseCookies } from './internal/cookies';
+export { clientIpOf, refusalMessage } from './internal/auth-rate-limit';
 
 export interface IdentityOptions {
   /** Keys the HMAC of every session and e-mail token. */
@@ -38,8 +45,15 @@ export const DEFAULT_IDENTITY_OPTIONS: Omit<
   resetPasswordTtlSeconds: 60 * 60,
 };
 
+/** A request refused by a rate limit (T-810): when to try again, and nothing else. */
+export interface Limited {
+  kind: 'limited';
+  retryAfterSeconds: number;
+}
+
 export type RegisterOutcome =
   | { kind: 'created'; user: AuthUser; sessionToken: string }
+  | Limited
   | { kind: 'conflict'; fields: Record<string, string> }
   | { kind: 'invalid'; fields: Record<string, string> };
 
@@ -53,10 +67,11 @@ export type DeleteAccountOutcome =
 /** The audit reason of a member deleting their own account (D-094). */
 export const SELF_SERVICE_DELETION = 'self-service deletion';
 
-export interface Login {
-  user: AuthUser;
-  sessionToken: string;
-}
+export type LoginOutcome =
+  { kind: 'signed_in'; user: AuthUser; sessionToken: string } | { kind: 'refused' } | Limited;
+
+/** A yes/no outcome that a rate limit can also refuse. */
+export type Checked = boolean | Limited;
 
 /**
  * The roles `user_role` can grant (migration `..._identity`, `editor` added in
@@ -83,6 +98,10 @@ export type UserRole = 'admin' | 'founder' | 'moderator' | 'editor';
  *     address is known.
  *   - A password reset revokes every session of the account.
  *   - E-mail tokens are single-use, decided by the database.
+ *   - Signing in, signing up, asking for a reset e-mail and using an e-mailed
+ *     link are rate limited per network address and per identifier typed
+ *     (T-810, D-093), and the refusal is checked before the password is: it
+ *     says when to try again and is the same whether or not an account exists.
  */
 @Injectable()
 export class IdentityService {
@@ -91,9 +110,19 @@ export class IdentityService {
     private readonly deletion: PostgresAccountDeletionStore,
     @Inject(MAILER) private readonly mailer: Mailer,
     @Inject(IDENTITY_OPTIONS) private readonly options: IdentityOptions,
+    private readonly limits: AuthRateLimiter,
   ) {}
 
-  async register(input: RegisterRequest, userAgent: string | null): Promise<RegisterOutcome> {
+  async register(
+    input: RegisterRequest,
+    userAgent: string | null,
+    clientIp: string | null = null,
+  ): Promise<RegisterOutcome> {
+    const taken = await this.limits.take(
+      this.checks(clientIp, 'register_ip', input.email, 'register_account'),
+    );
+    if (!taken.ok) return limited(taken);
+
     const created = await this.store.createUser({
       username: input.username,
       displayName: input.display_name,
@@ -118,7 +147,22 @@ export class IdentityService {
     return { kind: 'created', user, sessionToken };
   }
 
-  async login(input: LoginRequest, userAgent: string | null): Promise<Login | null> {
+  async login(
+    input: LoginRequest,
+    userAgent: string | null,
+    clientIp: string | null = null,
+  ): Promise<LoginOutcome> {
+    // Counted before the password is checked and given back on success, so a
+    // burst of parallel guesses cannot all be checked before any is counted.
+    const checks = this.checks(
+      clientIp,
+      'login_failure_ip',
+      input.identifier,
+      'login_failure_account',
+    );
+    const taken = await this.limits.take(checks);
+    if (!taken.ok) return limited(taken);
+
     const found = await this.store.findForLogin(input.identifier);
 
     // Verify against something even when there is nothing, so the response
@@ -126,10 +170,11 @@ export class IdentityService {
     const storedHash = found?.passwordHash ?? (await decoyHash());
     const matches = await verifyPassword(input.password, storedHash);
 
-    if (found === null || found.passwordHash === null || !matches) return null;
+    if (found === null || found.passwordHash === null || !matches) return { kind: 'refused' };
 
+    await this.limits.giveBack(checks);
     const sessionToken = await this.startSession(found.user.id, userAgent);
-    return { user: toAuthUser(found.user), sessionToken };
+    return { kind: 'signed_in', user: toAuthUser(found.user), sessionToken };
   }
 
   /** The user behind a session cookie value, or `null`. */
@@ -144,17 +189,32 @@ export class IdentityService {
     await this.store.revokeSession(this.hash(sessionToken));
   }
 
-  async verifyEmail(token: string): Promise<boolean> {
+  async verifyEmail(token: string, clientIp: string | null = null): Promise<Checked> {
+    const taken = await this.limits.take(this.checks(clientIp, 'email_token_ip'));
+    if (!taken.ok) return limited(taken);
+
     const userId = await this.store.consumeEmailToken(this.hash(token), 'verify_email');
     if (userId === null) return false;
     await this.store.markEmailVerified(userId);
     return true;
   }
 
-  /** Always resolves the same way; whether mail was sent is not revealed. */
-  async requestPasswordReset(email: string): Promise<void> {
+  /**
+   * Always resolves the same way; whether mail was sent is not revealed. The
+   * limit is counted on the address typed, so it refuses a known and an
+   * unknown address alike.
+   */
+  async requestPasswordReset(
+    email: string,
+    clientIp: string | null = null,
+  ): Promise<{ kind: 'accepted' } | Limited> {
+    const taken = await this.limits.take(
+      this.checks(clientIp, 'password_forgot_ip', email, 'password_forgot_account'),
+    );
+    if (!taken.ok) return limited(taken);
+
     const user = await this.store.findByEmail(email);
-    if (user === null) return;
+    if (user === null) return { kind: 'accepted' };
 
     const token = newToken();
     await this.store.createEmailToken(
@@ -176,15 +236,38 @@ export class IdentityService {
         'If it was not you, nothing has changed and you can ignore this message.',
       ].join('\n'),
     });
+    return { kind: 'accepted' };
   }
 
-  /** Sets the new password and signs the account out everywhere. */
-  async resetPassword(token: string, password: string): Promise<boolean> {
+  /**
+   * Sets the new password and signs the account out everywhere. The failed
+   * sign-ins counted against the account's username and address are
+   * forgotten: whoever reset it has proved they hold the mailbox, and must
+   * not stay locked out by guesses somebody else made.
+   */
+  async resetPassword(
+    token: string,
+    password: string,
+    clientIp: string | null = null,
+  ): Promise<Checked> {
+    const taken = await this.limits.take(this.checks(clientIp, 'email_token_ip'));
+    if (!taken.ok) return limited(taken);
+
     const userId = await this.store.consumeEmailToken(this.hash(token), 'reset_password');
     if (userId === null) return false;
 
     await this.store.setPassword(userId, await hashPassword(password));
     await this.store.revokeAllSessions(userId);
+
+    const user = await this.store.findById(userId);
+    if (user !== null) {
+      await this.limits.clear(
+        [user.username, user.email].map((identifier) => ({
+          action: 'login_failure_account' as const,
+          subject: subjectOf('account', identifier.toLowerCase(), this.options.sessionSecret),
+        })),
+      );
+    }
     return true;
   }
 
@@ -285,6 +368,31 @@ export class IdentityService {
     });
   }
 
+  /**
+   * The counters one request takes from: the address's when the web app named
+   * one, and the identifier's when there is one. No address means no
+   * per-address ceiling, never one shared bucket for everybody.
+   */
+  private checks(
+    clientIp: string | null,
+    ipAction: AuthRateCheck['action'],
+    identifier?: string,
+    accountAction?: AuthRateCheck['action'],
+  ): AuthRateCheck[] {
+    const secret = this.options.sessionSecret;
+    const checks: AuthRateCheck[] = [];
+    if (clientIp !== null) {
+      checks.push({ action: ipAction, subject: subjectOf('ip', clientIp, secret) });
+    }
+    if (identifier !== undefined && accountAction !== undefined) {
+      checks.push({
+        action: accountAction,
+        subject: subjectOf('account', identifier.trim().toLowerCase(), secret),
+      });
+    }
+    return checks;
+  }
+
   private hash(token: string): string {
     return hashToken(token, this.options.sessionSecret);
   }
@@ -292,4 +400,8 @@ export class IdentityService {
   private expiry(seconds: number): Date {
     return new Date(Date.now() + seconds * 1000);
   }
+}
+
+function limited(outcome: Extract<AuthRateOutcome, { ok: false }>): Limited {
+  return { kind: 'limited', retryAfterSeconds: outcome.retryAfterSeconds };
 }

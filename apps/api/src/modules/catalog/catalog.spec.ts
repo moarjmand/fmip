@@ -8,6 +8,7 @@ import {
   tableContext,
   type SuggestionRow,
 } from './catalog.service';
+import { seasonMinutes } from './internal/player-store';
 
 const season = (id: string, is_current: boolean) => ({
   id,
@@ -214,5 +215,30 @@ describe('follow suggestions (T-622)', () => {
       season: null,
       teams: [],
     });
+  });
+});
+
+describe('seasonMinutes (T-823)', () => {
+  it('is the whole season only when every match played carries minutes', () => {
+    expect(seasonMinutes(3, 3, 250)).toEqual({
+      coverage: 'available',
+      total: 250,
+      matches: 3,
+      matches_with_minutes: 3,
+      supplied_minutes: 250,
+    });
+  });
+
+  it('never gives a partial sum as the total', () => {
+    const partial = seasonMinutes(3, 2, 180);
+    expect(partial).toMatchObject({ coverage: 'limited', total: null, supplied_minutes: 180 });
+  });
+
+  it('says not supplied when the feed sent minutes for none of the matches played', () => {
+    expect(seasonMinutes(2, 0, 0)).toMatchObject({ coverage: 'not_supplied', total: null });
+  });
+
+  it('is zero, and whole, for a player named only as an unused substitute', () => {
+    expect(seasonMinutes(0, 0, 0)).toMatchObject({ coverage: 'available', total: 0 });
   });
 });

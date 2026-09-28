@@ -1,5 +1,6 @@
 import { Injectable, Logger, type OnApplicationShutdown, type OnModuleInit } from '@nestjs/common';
 import { Queue, Worker, type ConnectionOptions } from 'bullmq';
+import { FailureCountsService } from '../failure-counts/failure-counts.service';
 import { NewsIngestionService } from './news-ingestion.service';
 
 export const NEWS_QUEUE = 'news';
@@ -23,7 +24,10 @@ export class NewsSchedulerService implements OnModuleInit, OnApplicationShutdown
   private queue: Queue | null = null;
   private worker: Worker | null = null;
 
-  constructor(private readonly ingestion: NewsIngestionService) {}
+  constructor(
+    private readonly ingestion: NewsIngestionService,
+    private readonly failures: FailureCountsService,
+  ) {}
 
   static enabled(env: NodeJS.ProcessEnv = process.env): boolean {
     return (env.INGESTION_SCHEDULE ?? 'off').trim().toLowerCase() === 'on';
@@ -59,6 +63,8 @@ export class NewsSchedulerService implements OnModuleInit, OnApplicationShutdown
         error: error.message,
       });
     });
+    // Failed and stalled jobs are counted per hour (T-803).
+    this.failures.watch(this.worker, NEWS_QUEUE);
     await this.queue.upsertJobScheduler(
       NEWS_JOB,
       { pattern: NEWS_SCHEDULE, tz: 'UTC' },

@@ -5,6 +5,7 @@ import {
   Controller,
   Get,
   HttpCode,
+  HttpException,
   Post,
   Req,
   Res,
@@ -12,7 +13,14 @@ import {
 } from '@nestjs/common';
 import type { ApiError, SessionResponse } from '@fmip/contracts';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { IdentityService, SESSION_COOKIE, parseCookies } from './identity.service';
+import {
+  IdentityService,
+  type Limited,
+  SESSION_COOKIE,
+  clientIpOf,
+  parseCookies,
+  refusalMessage,
+} from './identity.service';
 import {
   type Validated,
   validateDeleteAccount,
@@ -43,6 +51,24 @@ function userAgentOf(request: FastifyRequest): string | null {
   return typeof value === 'string' && value !== '' ? value : null;
 }
 
+/**
+ * A rate-limit refusal (T-810): 429, `Retry-After` in seconds, and a sentence
+ * that says when to try again. It names no account, so it reads the same
+ * whether or not the identifier typed belongs to one.
+ */
+function refuse(reply: FastifyReply, outcome: Limited): never {
+  void reply.header('retry-after', String(outcome.retryAfterSeconds));
+  const body: ApiError = {
+    error: 'rate_limited',
+    message: refusalMessage(outcome.retryAfterSeconds),
+  };
+  throw new HttpException(body, 429);
+}
+
+function isLimited(value: unknown): value is Limited {
+  return typeof value === 'object' && value !== null && (value as Limited).kind === 'limited';
+}
+
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
 const INVALID_TOKEN: ApiError = {
   error: 'invalid_token',
@@ -66,8 +92,13 @@ export class IdentityController {
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<SessionResponse> {
     const input = unwrap(validateRegister(body));
-    const outcome = await this.identity.register(input, userAgentOf(request));
+    const outcome = await this.identity.register(
+      input,
+      userAgentOf(request),
+      clientIpOf(request.headers),
+    );
 
+    if (outcome.kind === 'limited') refuse(reply, outcome);
     if (outcome.kind === 'invalid') {
       const error: ApiError = {
         error: 'validation',
@@ -98,9 +129,14 @@ export class IdentityController {
   ): Promise<SessionResponse> {
     const input = unwrap(validateLogin(body));
     // Whatever cookie arrived is not consulted: a login mints a fresh session.
-    const login = await this.identity.login(input, userAgentOf(request));
+    const login = await this.identity.login(
+      input,
+      userAgentOf(request),
+      clientIpOf(request.headers),
+    );
 
-    if (login === null) {
+    if (login.kind === 'limited') refuse(reply, login);
+    if (login.kind === 'refused') {
       const error: ApiError = {
         error: 'unauthenticated',
         message: 'The identifier or password is not right.',
@@ -164,27 +200,42 @@ export class IdentityController {
 
   @Post('verify-email')
   @HttpCode(200)
-  async verifyEmail(@Body() body: unknown): Promise<{ verified: true }> {
+  async verifyEmail(
+    @Body() body: unknown,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<{ verified: true }> {
     const { token } = unwrap(validateToken(body));
-    if (!(await this.identity.verifyEmail(token))) throw new BadRequestException(INVALID_TOKEN);
+    const verified = await this.identity.verifyEmail(token, clientIpOf(request.headers));
+    if (isLimited(verified)) refuse(reply, verified);
+    if (!verified) throw new BadRequestException(INVALID_TOKEN);
     return { verified: true };
   }
 
   @Post('password/forgot')
   @HttpCode(202)
-  async forgotPassword(@Body() body: unknown): Promise<{ accepted: true }> {
+  async forgotPassword(
+    @Body() body: unknown,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<{ accepted: true }> {
     const { email } = unwrap(validateForgotPassword(body));
-    await this.identity.requestPasswordReset(email);
+    const outcome = await this.identity.requestPasswordReset(email, clientIpOf(request.headers));
+    if (outcome.kind === 'limited') refuse(reply, outcome);
     return { accepted: true };
   }
 
   @Post('password/reset')
   @HttpCode(200)
-  async resetPassword(@Body() body: unknown): Promise<{ reset: true }> {
+  async resetPassword(
+    @Body() body: unknown,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<{ reset: true }> {
     const { token, password } = unwrap(validateResetPassword(body));
-    if (!(await this.identity.resetPassword(token, password))) {
-      throw new BadRequestException(INVALID_TOKEN);
-    }
+    const reset = await this.identity.resetPassword(token, password, clientIpOf(request.headers));
+    if (isLimited(reset)) refuse(reply, reset);
+    if (!reset) throw new BadRequestException(INVALID_TOKEN);
     return { reset: true };
   }
 }

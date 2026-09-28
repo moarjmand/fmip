@@ -1,14 +1,17 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import type { PlayerSeasonMinutes } from '@fmip/contracts';
 import { fetchMe, fetchPlayer } from '@/lib/api';
 import { formatFixtureDate } from '@/lib/competition';
 import { moduleState } from '@/lib/match';
+import { afterTimeNote } from '@/lib/team';
 import {
   FOOT_LABEL,
   POSITION_LABEL,
   ageOn,
   appearances,
+  minutesText,
   filterMatches,
   filterRecord,
   readSeasonFilter,
@@ -250,7 +253,7 @@ export default async function PlayerPage({
                   <th scope="col" className="py-1 pe-2 text-start">
                     Team
                   </th>
-                  {['Apps', 'Starts', 'Goals', 'Assists', 'Yellow', 'Red'].map((h) => (
+                  {['Apps', 'Starts', 'Minutes', 'Goals', 'Assists', 'Yellow', 'Red'].map((h) => (
                     <th key={h} scope="col" className="py-1 pe-2 text-end">
                       {h}
                     </th>
@@ -278,14 +281,13 @@ export default async function PlayerPage({
                         {row.team.name}
                       </Link>
                     </td>
-                    {[
-                      appearances(row),
-                      row.starts,
-                      row.goals,
-                      row.assists,
-                      row.yellow_cards,
-                      row.red_cards,
-                    ].map((n, i) => (
+                    {[appearances(row), row.starts].map((n, i) => (
+                      <td key={i} className="py-1 pe-2 text-end tabular-nums">
+                        {n}
+                      </td>
+                    ))}
+                    <MinutesCell minutes={row.minutes} />
+                    {[row.goals, row.assists, row.yellow_cards, row.red_cards].map((n, i) => (
                       <td key={i} className="py-1 pe-2 text-end tabular-nums">
                         {n}
                       </td>
@@ -295,8 +297,9 @@ export default async function PlayerPage({
               </tbody>
             </table>
             <p className="mt-1 text-xs text-muted">
-              Minutes, advanced statistics and availability are not held for this player and are not
-              shown.
+              Minutes are the feed&rsquo;s own, per match: &ldquo;at least&rdquo; marks a season
+              where some matches came without them, &ldquo;not supplied&rdquo; one where none did.
+              Advanced statistics and availability are not held for this player and are not shown.
             </p>
           </div>
         )}
@@ -329,6 +332,12 @@ export default async function PlayerPage({
                     : ` ${ltrIsolate(`${m.fixture.score.home}–${m.fixture.score.away}`)} `}
                   {m.fixture.away.short_name ?? m.fixture.away.name}
                 </Link>
+                {/* After extra time, and a shoot-out from the player's side (T-822). */}
+                {afterTimeNote(m.fixture, m.team.id) !== null && (
+                  <span className="text-xs text-muted" data-testid="after-time-note">
+                    {afterTimeNote(m.fixture, m.team.id)}
+                  </span>
+                )}
                 <span className="text-muted">{roleLabel(m)}</span>
                 {m.goals > 0 && <span>{m.goals === 1 ? '1 goal' : `${m.goals} goals`}</span>}
                 {m.assists > 0 && (
@@ -364,5 +373,20 @@ export default async function PlayerPage({
         )}
       </p>
     </main>
+  );
+}
+
+/** A season's minutes (T-823): whole, "at least" with the matches it covers, or not supplied. */
+function MinutesCell({ minutes }: { minutes: PlayerSeasonMinutes }) {
+  const { text, note } = minutesText(minutes);
+  return (
+    <td
+      className={`py-1 pe-2 text-end ${minutes.coverage === 'not_supplied' ? 'text-xs italic text-muted' : 'tabular-nums'}`}
+      data-coverage={minutes.coverage}
+      data-testid="record-minutes"
+    >
+      {text}
+      {note !== null && <span className="block text-xs text-muted">{note}</span>}
+    </td>
   );
 }

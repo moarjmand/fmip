@@ -9,6 +9,7 @@ import {
   type IdentityOptions,
 } from './identity.service';
 import { PostgresAccountDeletionStore } from './internal/account-deletion-store';
+import { AuthRateLimiter } from './internal/auth-rate-limit';
 import { PostgresIdentityStore } from './internal/identity-store';
 import { DeliveryMailer } from './internal/delivery-mailer';
 import { MAILER } from './internal/mailer';
@@ -38,6 +39,7 @@ export function identityOptionsFromEnv(env: NodeJS.ProcessEnv = process.env): Id
     IdentityService,
     PostgresIdentityStore,
     PostgresAccountDeletionStore,
+    AuthRateLimiter,
     { provide: IDENTITY_OPTIONS, useFactory: (): IdentityOptions => identityOptionsFromEnv() },
     {
       provide: MAILER,

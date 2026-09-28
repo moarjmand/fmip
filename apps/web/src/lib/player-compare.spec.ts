@@ -40,6 +40,13 @@ function row(
     assists: 1,
     yellow_cards: 1,
     red_cards: 0,
+    minutes: {
+      coverage: 'available',
+      total: 300,
+      matches: 4,
+      matches_with_minutes: 4,
+      supplied_minutes: 300,
+    },
     ...overrides,
   };
 }
@@ -146,14 +153,71 @@ describe('compareRows', () => {
     );
   });
 
-  it('never invents minutes: both sides say they are not held', () => {
-    const minutes = compareRows(a, a, null).find((r) => r.key === 'minutes');
-    expect(minutes).toMatchObject({
-      a: { coverage: 'not_supplied', value: null },
-      b: { coverage: 'not_supplied', value: null },
-      lacking: 'both',
+  it('puts minutes side by side when the feed supplied them for every match (T-823)', () => {
+    const b = record([
+      row(S25, LEAGUE, {
+        minutes: {
+          coverage: 'available',
+          total: 0,
+          matches: 0,
+          matches_with_minutes: 0,
+          supplied_minutes: 0,
+        },
+      }),
+    ]);
+    const minutes = compareRows(a, b, null).find((r) => r.key === 'minutes');
+    expect(minutes).toMatchObject({ a: { value: 300 }, b: { value: 0 }, lacking: null });
+    expect(rowNote(minutes!, 'Ann', 'Bea')).toBeNull();
+  });
+
+  it('never invents minutes: not supplied only where the feed sent none', () => {
+    const none = record([
+      row(S25, LEAGUE, {
+        minutes: {
+          coverage: 'not_supplied',
+          total: null,
+          matches: 4,
+          matches_with_minutes: 0,
+          supplied_minutes: 0,
+        },
+      }),
+    ]);
+    const one = compareRows(a, none, null).find((r) => r.key === 'minutes');
+    expect(one).toMatchObject({ a: { value: 300 }, b: { value: null }, lacking: 'b' });
+    expect(rowNote(one!, 'Ann', 'Bea')).toBe(
+      'Bea: no minutes from the feed, so this is not a comparison.',
+    );
+    const both = compareRows(none, none, null).find((r) => r.key === 'minutes');
+    expect(rowNote(both!, 'Ann', 'Bea')).toBe('No minutes from the feed for either player.');
+  });
+
+  it('marks a partial season "at least", limited, never a smaller number as whole', () => {
+    // Two teams in one season: one row whole, one with a match missing minutes.
+    const moved = record([
+      row(S25, LEAGUE),
+      row(S25, LEAGUE, {
+        team: { id: 't2', name: 'T2' },
+        minutes: {
+          coverage: 'limited',
+          total: null,
+          matches: 3,
+          matches_with_minutes: 2,
+          supplied_minutes: 150,
+        },
+      }),
+    ]);
+    const minutes = compareRows(moved, a, null).find((r) => r.key === 'minutes');
+    expect(minutes?.a).toEqual({
+      coverage: 'limited',
+      value: 450,
+      partial: { counted: 6, of: 7 },
     });
-    expect(rowNote(minutes!, 'Ann', 'Bea')).toBe('Minutes are not held for either player.');
+    expect(cellText(minutes!.a)).toBe('at least 450');
+    expect(cellText(minutes!.b)).toBe('300');
+    expect(minutes?.lacking).toBeNull();
+    expect(rowNote(minutes!, 'Ann', 'Bea')).toBe(
+      'Ann: minutes for 6 of 7 matches played; the rest were not supplied.',
+    );
   });
 
   it('carries a limited record’s coverage onto its numbers', () => {

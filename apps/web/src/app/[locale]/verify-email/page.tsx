@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { apiRequest } from '@/lib/api';
+import { readerAddress } from '@/lib/session';
 import { Notice } from '@/components/ui';
 
 export const metadata: Metadata = { title: 'Verify e-mail · FMIP' };
@@ -28,6 +29,7 @@ export default async function VerifyEmailPage({
       : await apiRequest<{ verified: true }>('/auth/verify-email', {
           method: 'POST',
           body: { token },
+          clientIp: await readerAddress(),
         });
 
   return (

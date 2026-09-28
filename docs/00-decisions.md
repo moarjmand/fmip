@@ -3429,6 +3429,67 @@ header*: four switches crowd the one row the header has at 360px.
 
 ---
 
+## D-093 — Sign-in rate limits: per address and per identifier typed, on `rate_limit`, the address from CF-Connecting-IP
+
+**Status:** decided, delegated · **Date:** 2026-09-28 · **Tasks:** T-810 · **Follows:** D-026, D-054, T-213
+
+**The decision.**
+
+- **The ceilings** (rows in `rate_limit`, per hour, changeable with an UPDATE):
+  failed sign-ins 10 per identifier typed and 50 per network address;
+  registrations 5 per e-mail address and 20 per network address; reset
+  e-mails 3 per e-mail address and 20 per network address; the two e-mailed
+  links (verify, reset) 60 per network address. A successful sign-in is not
+  counted (it is counted first and given back, so parallel guesses cannot all
+  be checked before any is counted). A password reset forgets the failed
+  sign-ins against the account's username and e-mail.
+- **The counter** is `auth_rate_window`: the fixed hourly window of T-213,
+  keyed by an HMAC (SESSION_SECRET, D-026) of the address or of the
+  identifier, so the table holds neither in clear. The check is a query the
+  identity service makes before the password is verified, not a trigger,
+  because a failed sign-in inserts nothing.
+- **Per identifier typed, not per account found.** A username and an e-mail
+  that name the same account are two counters. Resolving to the account would
+  let the lock on one reveal that the other is the same person; counting the
+  string typed makes a refusal identical for an account that exists and one
+  that does not, at the cost of twice the guesses per account.
+- **The refusal** is 429 `rate_limited`, `Retry-After` in seconds (the end of
+  the hour) and "Too many attempts. Try again in N minutes." -- no account is
+  named, and the web forms show the sentence as they show any API error.
+- **The address** is Cloudflare's `CF-Connecting-IP`, read by the web app and
+  forwarded to the API as `X-Fmip-Client-IP` on the account forms only; the
+  API accepts it only when it is a well-formed IP, and Caddy drops a reader's
+  copy on the one route that reaches the API without the web app (the chat
+  socket). `X-Forwarded-For` is not used: past Caddy its entry is a
+  Cloudflare edge, and a limit keyed on that would lock everyone out
+  together. Without the header (local development, tests, a deployment
+  without Cloudflare) the per-address ceilings do not apply and the
+  per-identifier ones still do.
+
+**Why these numbers.** Addresses are shared -- a household, an office, a
+mobile carrier's NAT, which is common where this product's readers are -- so
+the per-address ceilings count only failures on sign-in and sit far above
+what one person does; the tight ceilings are per identifier, where ten wrong
+passwords an hour is generous to a person and useless to a guesser. Three
+reset e-mails an hour keeps a mailbox from being flooded. The e-mailed links
+carry 256 random bits, so their ceiling is only against a flood.
+
+**Rejected.** *Redis counters* (D-026's original plan): Redis is optional at
+run time here, and a safety rule that stops when an optional dependency is
+missing is not one (the argument of T-213). *A lock keyed per account found*:
+see above. *`X-Forwarded-For`*: see above. *Per (identifier, address)*: a
+guesser spread over many addresses would never be refused.
+
+**Consequences.** Anyone can lock an identifier out of signing in for up to an
+hour by typing ten wrong passwords for it; the account's owner can still ask
+for a reset e-mail, and the reset lifts the lock. A request that reaches the
+origin without Cloudflare can choose its own `CF-Connecting-IP`, and so its own
+per-address counter; the per-identifier ceilings hold regardless. Restricting
+the origin to Cloudflare's addresses would close that and is an operations
+step, not code.
+
+---
+
 ## D-094 — Deleting an account leaves an anonymous tombstone: records stay, the person goes, the username is retired
 
 **Status:** decided, delegated (N-3 in `04-tasks-phase-8.md`) · **Date:** 2026-09-28 · **Tasks:** T-812 · **Follows:** D-057, D-053, D-025
