@@ -5,6 +5,8 @@ import {
   fixtureLine,
   formLine,
   formatFixtureDate,
+  leadersHref,
+  readMinMinutesParam,
   readSeasonParam,
   seasonHref,
 } from './competition';
@@ -38,6 +40,29 @@ describe('season selection', () => {
     );
     expect(competitionQuery(null)).toBe('');
     expect(competitionQuery(ID)).toBe(`?season=${ID}`);
+  });
+});
+
+describe('the minutes floor on the leaders (T-824)', () => {
+  it('reads a whole number of minutes and drops anything else', () => {
+    expect(readMinMinutesParam({})).toBeNull();
+    expect(readMinMinutesParam({ min_minutes: '900' })).toBe(900);
+    expect(readMinMinutesParam({ min_minutes: ['450', '900'] })).toBe(450);
+    expect(readMinMinutesParam({ min_minutes: '0' })).toBeNull();
+    expect(readMinMinutesParam({ min_minutes: '-5' })).toBeNull();
+    expect(readMinMinutesParam({ min_minutes: '12.5' })).toBeNull();
+    expect(readMinMinutesParam({ min_minutes: '10001' })).toBeNull();
+  });
+
+  it('puts the floor in the URL, keeping an older season', () => {
+    expect(competitionQuery(null, 900)).toBe('?min_minutes=900');
+    expect(competitionQuery(ID, 900)).toBe(`?season=${ID}&min_minutes=900`);
+    expect(leadersHref('en', 'c1', { id: ID, is_current: true }, 450)).toBe(
+      '/en/competition/c1?min_minutes=450#leaders',
+    );
+    expect(leadersHref('en', 'c1', { id: ID, is_current: false }, null)).toBe(
+      `/en/competition/c1?season=${ID}#leaders`,
+    );
   });
 });
 

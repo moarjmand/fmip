@@ -34,6 +34,19 @@ export function seasonMinutes(
 }
 
 /**
+ * Minutes for a player no line-up of ours names (T-824): nothing on record,
+ * which is `not_supplied` with no matches -- never a total of zero, which
+ * would say the player sat out a season we simply do not hold.
+ */
+export const NO_LINEUPS: PlayerSeasonMinutes = {
+  coverage: 'not_supplied',
+  total: null,
+  matches: 0,
+  matches_with_minutes: 0,
+  supplied_minutes: 0,
+};
+
+/**
  * SQL for the player page (T-037). Reads only; everything comes from
  * line-ups, incidents and spells, and minutes from the feed's per-player
  * statistics (T-823).
@@ -208,6 +221,64 @@ export class PostgresPlayerStore {
         Number(r.supplied_minutes),
       ),
     }));
+  }
+
+  /**
+   * Minutes per person over the given seasons (T-824), counted exactly as
+   * `record` counts them -- the matches played, how many carry the feed's
+   * minutes, their sum -- and turned into a state by `seasonMinutes`. With a
+   * `teamId`, only that team's line-ups count (the squad); without, every
+   * team's (a competition's leaders). A person no line-up names is absent
+   * from the map; the caller says `NO_LINEUPS`.
+   */
+  async minutesByPerson(
+    seasonIds: string[],
+    personIds: string[],
+    teamId: string | null,
+  ): Promise<Map<string, PlayerSeasonMinutes>> {
+    if (seasonIds.length === 0 || personIds.length === 0) return new Map();
+    const { rows } = await this.pool.query<{
+      person_id: string;
+      matches_played: string;
+      matches_with_minutes: string;
+      supplied_minutes: string;
+    }>(
+      `WITH lined AS (
+         SELECT l.person_id, l.role,
+                EXISTS (SELECT 1 FROM incident s
+                         WHERE s.fixture_id = f.id AND s.kind = 'substitution'
+                           AND s.related_person_id = l.person_id) AS came_on,
+                m.value AS minutes
+           FROM lineup l
+           JOIN fixture_participant p ON p.id = l.participant_id
+           JOIN fixture f ON f.id = p.fixture_id
+           LEFT JOIN fixture_player_stat m
+             ON m.participant_id = p.id AND m.person_id = l.person_id AND m.metric = 'minutes'
+          WHERE f.season_id = ANY($1::uuid[]) AND l.person_id = ANY($2::uuid[])
+            AND ($3::uuid IS NULL OR p.team_id = $3::uuid)
+       ), named AS (
+         SELECT lined.*,
+                (lined.role = 'starter' OR lined.came_on OR COALESCE(lined.minutes, 0) > 0) AS played
+           FROM lined
+       )
+       SELECT person_id,
+              count(*) FILTER (WHERE played)::text AS matches_played,
+              count(*) FILTER (WHERE played AND minutes IS NOT NULL)::text AS matches_with_minutes,
+              COALESCE(sum(minutes) FILTER (WHERE played), 0)::text AS supplied_minutes
+         FROM named
+        GROUP BY person_id`,
+      [seasonIds, personIds, teamId],
+    );
+    return new Map(
+      rows.map((r) => [
+        r.person_id,
+        seasonMinutes(
+          Number(r.matches_played),
+          Number(r.matches_with_minutes),
+          Number(r.supplied_minutes),
+        ),
+      ]),
+    );
   }
 
   /** The last `limit` matches the player was named for, newest kick-off first. */

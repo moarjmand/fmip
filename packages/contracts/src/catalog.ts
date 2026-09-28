@@ -132,7 +132,37 @@ export interface Leader {
   /** The team the goals were scored for; null when the participant is unknown. */
   team: { id: string; name: string } | null;
   goals: number;
+  /**
+   * The scorer's minutes in this season of the competition, for every team
+   * (T-824), under T-823's rule: a total only when every match played
+   * carries the feed's minutes.
+   */
+  minutes: PlayerSeasonMinutes;
 }
+
+/**
+ * The minimum-minutes filter on the leaders (T-824), `?min_minutes=` on
+ * `GET /competitions/:id`. A scorer is listed under a floor only when the
+ * record shows the floor was reached: an `available` total at or above it,
+ * or a `limited` season whose supplied minutes alone reach it (they are "at
+ * least"). A scorer whose record cannot show it -- `limited` below the
+ * floor, or `not_supplied` -- is left out and counted in `unproven`, never
+ * treated as short and never as long enough.
+ */
+export interface LeadersFilter {
+  /** The floor applied; null when none was asked for. */
+  min_minutes: number | null;
+  /** Scorers left out because their recorded minutes cannot show the floor. */
+  unproven: number;
+  /** The floors the page offers as links. */
+  presets: number[];
+}
+
+/** The floors offered on the competition page (T-824): five, ten and twenty full matches. */
+export const LEADERS_MINUTES_PRESETS = [450, 900, 1800] as const;
+
+/** The largest `?min_minutes=` accepted: more than any season holds. */
+export const LEADERS_MINUTES_MAX = 10000;
 
 export interface SeasonFixture {
   id: string;
@@ -251,8 +281,9 @@ export interface CompetitionPage {
   results: SeasonFixture[];
   /** Everything not finished, soonest first. */
   fixtures: SeasonFixture[];
-  /** Top goalscorers from recorded goals. */
+  /** Top goalscorers from recorded goals, behind `leaders_filter` when one is asked for. */
   leaders: Covered<Leader[]>;
+  leaders_filter: LeadersFilter;
   /**
    * The knockout rounds for a continental cup (T-630); null for a
    * competition that does not play them.
@@ -312,6 +343,11 @@ export interface SquadPlayer {
   on_loan: boolean;
   /** ISO 8601 date the spell began. */
   since: string;
+  /**
+   * Minutes for this team in the seasons the page covers (T-824), under
+   * T-823's rule. `matches` zero means no line-up of ours names the player.
+   */
+  minutes: PlayerSeasonMinutes;
 }
 
 /**
