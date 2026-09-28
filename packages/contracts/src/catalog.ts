@@ -454,7 +454,11 @@ export interface PlayerSeasonRecord {
 }
 
 export interface PlayerMatch {
-  fixture: TeamFixture;
+  /**
+   * The latest score, after extra time where it was played, and the
+   * shoot-out beside it -- as the team page reads it (T-822).
+   */
+  fixture: TeamPageFixture;
   team: { id: string; name: string };
   role: 'starter' | 'bench';
   /** For a bench role: whether a substitution brought the player on. */

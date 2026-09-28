@@ -179,6 +179,9 @@ export class PostgresPlayerStore {
       away_short_name: string | null;
       score_home: number | null;
       score_away: number | null;
+      extra_time: boolean;
+      pen_home: number | null;
+      pen_away: number | null;
       team_id: string;
       team_name: string;
       role: 'starter' | 'bench';
@@ -194,7 +197,11 @@ export class PostgresPlayerStore {
               se.id AS season_id, se.label AS season_label,
               h.team_id AS home_id, th.name AS home_name, th.short_name AS home_short_name,
               a.team_id AS away_id, ta.name AS away_name, ta.short_name AS away_short_name,
-              COALESCE(ft.home, cur.home) AS score_home, COALESCE(ft.away, cur.away) AS score_away,
+              -- The latest score, so extra time counts, as the team page reads
+              -- it (T-632, T-822); the shoot-out beside it, never in it.
+              COALESCE(cur.home, ft.home) AS score_home, COALESCE(cur.away, ft.away) AS score_away,
+              et.id IS NOT NULL AS extra_time,
+              pen.home AS pen_home, pen.away AS pen_away,
               me.team_id, tm.name AS team_name, l.role,
               EXISTS (SELECT 1 FROM incident s WHERE s.fixture_id = f.id AND s.kind = 'substitution'
                         AND s.related_person_id = $1) AS came_on,
@@ -222,6 +229,8 @@ export class PostgresPlayerStore {
          JOIN team ta ON ta.id = a.team_id
          LEFT JOIN fixture_score ft ON ft.fixture_id = f.id AND ft.kind = 'full_time'
          LEFT JOIN fixture_score cur ON cur.fixture_id = f.id AND cur.kind = 'current'
+         LEFT JOIN fixture_score et ON et.fixture_id = f.id AND et.kind = 'extra_time'
+         LEFT JOIN fixture_score pen ON pen.fixture_id = f.id AND pen.kind = 'penalties'
         WHERE l.person_id = $1
         ORDER BY f.kickoff_at DESC, f.id
         LIMIT $2`,
@@ -252,6 +261,11 @@ export class PostgresPlayerStore {
           score:
             r.score_home !== null && r.score_away !== null
               ? { home: r.score_home, away: r.score_away }
+              : null,
+          after_extra_time: r.extra_time,
+          penalties:
+            r.pen_home !== null && r.pen_away !== null
+              ? { home: r.pen_home, away: r.pen_away }
               : null,
         },
         team: { id: r.team_id, name: r.team_name },
