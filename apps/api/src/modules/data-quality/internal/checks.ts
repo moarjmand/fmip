@@ -358,3 +358,34 @@ export const SWEPT_CHECKS: readonly DataQualityCheck[] = [
   'fixture_mapped_twice',
   'duplicate_fixture',
 ];
+
+/**
+ * How often each check runs, in seconds: the sweep every five minutes, the
+ * table with the hourly standings job. A check whose newest run is older than
+ * three of its intervals is `stale`, and "no findings" from it is not a
+ * clean bill (rule 4).
+ */
+export const SWEEP_INTERVAL_SECONDS = 5 * 60;
+export const TABLE_INTERVAL_SECONDS = 60 * 60;
+export const STALE_AFTER_INTERVALS = 3;
+
+export function checkFreshness(
+  check: DataQualityCheck,
+  checkedAt: Date | null,
+  now: Date,
+): 'current' | 'stale' | 'never_run' {
+  if (checkedAt === null) return 'never_run';
+  const interval = check === 'table_disagrees' ? TABLE_INTERVAL_SECONDS : SWEEP_INTERVAL_SECONDS;
+  return now.getTime() - checkedAt.getTime() > STALE_AFTER_INTERVALS * interval * 1000
+    ? 'stale'
+    : 'current';
+}
+
+/**
+ * What the watchdog's `data_quality` condition counts (T-821, D-096): open
+ * findings nobody has reviewed, about a match that is live or kicked off in
+ * the last six hours, open for at least ten minutes (two sweeps) -- so a
+ * score that arrives one tick before its goal event is not an alert.
+ */
+export const LIVE_HORIZON_MINUTES = 6 * 60;
+export const LIVE_MIN_AGE_MINUTES = 10;

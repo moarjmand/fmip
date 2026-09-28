@@ -293,6 +293,53 @@ export function deliveryChannel(
 }
 
 /**
+ * Data-quality findings about a live match (T-821, D-096): open, unreviewed
+ * findings about a match live or kicked off in the last six hours, open for
+ * ten minutes or more (the data-quality boundary counts them). One is a match
+ * whose page contradicts itself right now; three is a feed doing it widely.
+ *
+ * `unknown` when the sweep has never run or its newest run is older than
+ * three of its five-minute intervals: no findings from a sweep that stopped is
+ * not a clean bill (rule 4). A sweep that keeps failing is `jobs:data-quality`.
+ */
+export const DATA_QUALITY_THRESHOLD: WatchdogThreshold = {
+  unit: 'count',
+  degraded: 1,
+  failing: 3,
+};
+export const DATA_QUALITY_STALE_SECONDS = 15 * MINUTE;
+
+export function dataQuality(seen: { open: number; sweptAt: Date | null }, now: Date): Reading {
+  const threshold = DATA_QUALITY_THRESHOLD;
+  if (seen.sweptAt === null) {
+    return {
+      key: 'data_quality',
+      level: 'unknown',
+      observed: null,
+      threshold,
+      note: 'the data-quality checks have not run yet',
+    };
+  }
+  const age = Math.round((now.getTime() - seen.sweptAt.getTime()) / 1000);
+  if (age > DATA_QUALITY_STALE_SECONDS) {
+    return {
+      key: 'data_quality',
+      level: 'unknown',
+      observed: null,
+      threshold,
+      note: `the newest data-quality sweep is ${Math.floor(age / MINUTE)} minutes old`,
+    };
+  }
+  return {
+    key: 'data_quality',
+    level: levelOf(seen.open, threshold),
+    observed: seen.open,
+    threshold,
+    note: 'open, unreviewed findings about a match live or kicked off in the last six hours',
+  };
+}
+
+/**
  * Seconds since the newest successful backup. The backup runs daily
  * (D-032), so `degraded` at 26 hours (one missed day, with slack for a slow
  * one) and `failing` at 50 (two).

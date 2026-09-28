@@ -10,6 +10,7 @@ import type {
   AuditResponse,
   BroadcastersResponse,
   BlocksResponse,
+  DataQualityReport,
   ChatHealth,
   CommunityConsensusResponse,
   CompetitionPage,
@@ -653,6 +654,16 @@ export function fetchContributors(
 /** `GET /admin/panels` (T-253): featured-match discussions, open and closed. Needs the moderator or admin role. */
 export function fetchPanels(cookie: string | undefined): Promise<ApiResult<PanelListResponse>> {
   return apiRequest<PanelListResponse>('/admin/panels', cookie === undefined ? {} : { cookie });
+}
+
+/** Data-quality findings over the stored feed (T-821). Needs the admin role. */
+export function fetchDataQuality(
+  cookie: string | undefined,
+): Promise<ApiResult<DataQualityReport>> {
+  return apiRequest<DataQualityReport>(
+    '/admin/data-quality',
+    cookie === undefined ? {} : { cookie },
+  );
 }
 
 /** What is waiting to be read, oldest first. Needs the editor or admin role. */

@@ -1,6 +1,8 @@
 import { Injectable, type OnApplicationShutdown } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { CHANNEL_POST_QUEUE } from '../../channel-post/channel-post.service';
+import { DATA_QUALITY_QUEUE } from '../../data-quality/data-quality-scheduler.service';
+import { DataQualityService } from '../../data-quality/data-quality.service';
 import { DeliveryService } from '../../delivery/delivery.service';
 import { NO_MODEL_SERVICE } from '../../forecast/forecast.module';
 import { ForecastService } from '../../forecast/forecast.service';
@@ -15,7 +17,13 @@ import { WatchdogStore } from './watchdog-store';
 export const WATCHDOG_QUEUE = 'watchdog';
 
 /** Every BullMQ queue this API runs a worker for. */
-export const WATCHED_QUEUES = [INGESTION_QUEUE, NEWS_QUEUE, CHANNEL_POST_QUEUE, WATCHDOG_QUEUE];
+export const WATCHED_QUEUES = [
+  INGESTION_QUEUE,
+  NEWS_QUEUE,
+  CHANNEL_POST_QUEUE,
+  DATA_QUALITY_QUEUE,
+  WATCHDOG_QUEUE,
+];
 
 const HOUR_MS = 60 * 60 * 1000;
 /** Each queue keeps its newest 50 failed jobs (`removeOnFail: 50`); read them all. */
@@ -55,11 +63,12 @@ export class LiveProbes implements WatchdogProbes, OnApplicationShutdown {
     private readonly forecasts: ForecastService,
     private readonly delivery: DeliveryService,
     private readonly store: WatchdogStore,
+    private readonly dataQuality: DataQualityService,
   ) {}
 
   async observe(now: Date): Promise<Observations> {
     const hourAgo = new Date(now.getTime() - HOUR_MS);
-    const [ingest, live, budget, queues, model, delivery] = await Promise.all([
+    const [ingest, live, budget, queues, model, delivery, dataQuality] = await Promise.all([
       orUnreadable(async () => {
         const rows = await this.runs.jobCompletions();
         return rows.map((r) => ({ ...r, job: r.job as string }));
@@ -85,8 +94,9 @@ export class LiveProbes implements WatchdogProbes, OnApplicationShutdown {
               : { configured: false as const },
         };
       }),
+      orUnreadable(() => this.dataQuality.liveContradictions(now)),
     ]);
-    return { ingest, live, budget, queues, model, delivery, backup: undefined };
+    return { ingest, live, budget, queues, model, delivery, dataQuality, backup: undefined };
   }
 
   private async model(): Promise<Observations['model']> {

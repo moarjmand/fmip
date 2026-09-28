@@ -1,8 +1,10 @@
 import { Test } from '@nestjs/testing';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
+import type { DataQualityReport } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
+import { withTriggersOff } from '../../testing/cleanup';
 import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
 import { DataQualityModule } from './data-quality.module';
 import { DataQualityService } from './data-quality.service';
@@ -11,6 +13,7 @@ import { DataQualityService } from './data-quality.service';
 // SQL over the feed's tables, a problem is one row however many sweeps see
 // it, and a problem that goes away is resolved rather than deleted.
 const DATABASE_URL = process.env.DATABASE_URL;
+const ENGLAND = '00000000-0000-4000-8000-000000000101';
 const RUN = `${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
 const SEASON = '00000000-0000-4000-8000-000000000301';
 const LIVERPOOL = '00000000-0000-4000-8000-000000000602';
@@ -40,6 +43,43 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('data-quality
   let app: NestFastifyApplication;
   let pool: Pool;
   let dataQuality: DataQualityService;
+  let admin = { id: '', cookie: '' };
+  let member = { id: '', cookie: '' };
+
+  async function register(username: string): Promise<{ id: string; cookie: string }> {
+    const registered = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      payload: {
+        username,
+        display_name: 'Data Quality Tester',
+        email: `${username}@example.test`,
+        password: 'correct horse battery staple',
+        country_id: ENGLAND,
+        preferred_language: 'en',
+        timezone: 'Europe/London',
+        accept_rules: true,
+      },
+    });
+    const id = (registered.json() as { user: { id: string } }).user.id;
+    const header = registered.headers['set-cookie'];
+    const raw = Array.isArray(header) ? header[0] : header;
+    return { id, cookie: /^fmip_session=([^;]*)/.exec(raw ?? '')?.[1] ?? '' };
+  }
+
+  const get = (cookie?: string) =>
+    app.inject({
+      method: 'GET',
+      url: '/admin/data-quality',
+      headers: cookie === undefined ? {} : { cookie: `fmip_session=${cookie}` },
+    });
+  const review = (id: number | string, reason: unknown, cookie = admin.cookie) =>
+    app.inject({
+      method: 'POST',
+      url: `/admin/data-quality/${id}/review`,
+      headers: { cookie: `fmip_session=${cookie}` },
+      payload: { reason },
+    });
   const fixtures: Record<string, string> = {};
 
   /** A fixture of the seeded season, far from every other fixture of the same pair. */
@@ -80,12 +120,24 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('data-quality
       imports: [DatabaseModule, DataQualityModule],
     })
       .overrideProvider(IDENTITY_OPTIONS)
-      .useValue({ ...DEFAULT_IDENTITY_OPTIONS, sessionSecret: 'test-secret-'.repeat(4) })
+      .useValue({
+        ...DEFAULT_IDENTITY_OPTIONS,
+        sessionSecret: 'test-secret-'.repeat(4),
+        webBaseUrl: 'http://web.test',
+        cookieSecure: false,
+      })
       .compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
     await app.init();
+    await app.getHttpAdapter().getInstance().ready();
     dataQuality = app.get(DataQualityService);
     pool = new Pool({ connectionString: DATABASE_URL });
+    admin = await register(`dq_${RUN}a`);
+    member = await register(`dq_${RUN}m`);
+    await pool.query(
+      `INSERT INTO user_role (user_id, role, granted_by, reason) VALUES ($1, 'admin', $1, 'data-quality test')`,
+      [admin.id],
+    );
 
     // Kick-offs in 2031, ten days apart, so no two of these are one match
     // stored twice unless the test means them to be.
@@ -132,6 +184,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('data-quality
   });
 
   afterAll(async () => {
+    const accounts = [admin.id, member.id].filter((id) => id !== '');
+    // Audit rows are immutable and hold their actor; they go first, alone.
+    await withTriggersOff(pool, async (client) => {
+      await client.query(`DELETE FROM audit_log WHERE actor_id = ANY($1::uuid[])`, [accounts]);
+    });
+    await pool.query(`DELETE FROM user_account WHERE id = ANY($1::uuid[])`, [accounts]);
     await pool.query(`DELETE FROM provider_mapping WHERE external_id LIKE $1`, [`dq-${RUN}-%`]);
     // Findings on a fixture go with it (ON DELETE CASCADE).
     await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [Object.values(fixtures)]);
@@ -263,5 +321,81 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('data-quality
     );
     expect(second).toMatchObject({ opened: 0, resolved: 2 });
     expect(await open()).toEqual([]);
+  });
+
+  it('the page is closed to guests and to members without the admin role', async () => {
+    expect((await get()).statusCode).toBe(401);
+    expect((await get(member.cookie)).statusCode).toBe(403);
+    expect((await review(1, 'x', member.cookie)).statusCode).toBe(403);
+  });
+
+  it('lists open findings with our names and links, per competition, and when each check ran', async () => {
+    const response = await get(admin.cookie);
+    expect(response.statusCode).toBe(200);
+    const report = response.json() as DataQualityReport;
+    const goals = report.findings.find((f) => f.fixture?.id === fixtures.goals);
+    expect(goals).toMatchObject({
+      check: 'goals_disagree',
+      detail: 'the timeline has 0-0, the score is 1-0',
+      fixture: {
+        id: fixtures.goals,
+        home: 'Manchester United',
+        away: 'Liverpool',
+        kickoff_at: '2031-01-11T15:00:00.000Z',
+        status: 'finished',
+      },
+      season: { id: SEASON },
+      reviewed: null,
+    });
+    expect(goals?.competition?.name).toEqual(expect.any(String));
+    const pair = report.findings.find(
+      (f) =>
+        f.check === 'duplicate_fixture' &&
+        [fixtures.first, fixtures.second].includes(f.fixture?.id ?? ''),
+    );
+    expect(pair?.related_fixture?.home).toBe('Persepolis');
+    expect(
+      report.findings.find(
+        (f) => f.check === 'lineup_not_eleven' && f.fixture?.id === fixtures.lineup,
+      )?.team?.name,
+    ).toBe('Liverpool');
+    expect(report.checks.find((c) => c.check === 'goals_disagree')).toMatchObject({
+      freshness: 'current',
+    });
+    const count = report.counts.find(
+      (c) => c.check === 'goals_disagree' && c.competition?.id === goals?.competition?.id,
+    );
+    expect(count?.open).toBeGreaterThanOrEqual(1);
+    expect(report.open_total).toBeGreaterThanOrEqual(6);
+    expect(report.resolved_last_day).toBeGreaterThanOrEqual(1);
+    // Rule 2: no provider id reaches the page.
+    expect(response.body).not.toContain(`dq-${RUN}-`);
+  });
+
+  it('a finding is reviewed once, with a reason and an audit row; it stays open, and the watchdog stops counting it', async () => {
+    const report = (await get(admin.cookie)).json() as DataQualityReport;
+    const overrun = report.findings.find((f) => f.fixture?.id === fixtures.overrun)!;
+    const later = new Date(Date.now() + 20 * 60_000);
+    const before = await dataQuality.liveContradictions(later);
+    expect(before.open).toBeGreaterThanOrEqual(1);
+
+    expect((await review(overrun.id, '  ')).statusCode).toBe(400);
+    expect((await review('abc', 'why')).statusCode).toBe(400);
+    const why = 'The provider has not closed it; asked them.';
+    expect((await review(overrun.id, why)).statusCode).toBe(200);
+    expect((await review(overrun.id, 'again')).statusCode).toBe(409);
+    expect((await review(9_000_000_000, 'none such')).statusCode).toBe(404);
+
+    const { rows: audit } = await pool.query<{ action: string; reason: string; target_id: string }>(
+      `SELECT action, reason, target_id FROM audit_log WHERE actor_id = $1`,
+      [admin.id],
+    );
+    expect(audit).toEqual([
+      { action: 'data_quality.review', reason: why, target_id: String(overrun.id) },
+    ]);
+    const after = (await get(admin.cookie)).json() as DataQualityReport;
+    const reviewed = after.findings.find((f) => f.id === overrun.id);
+    expect(reviewed?.reviewed).toMatchObject({ by: `dq_${RUN}a`, reason: why });
+    expect((await dataQuality.liveContradictions(later)).open).toBe(before.open - 1);
   });
 });

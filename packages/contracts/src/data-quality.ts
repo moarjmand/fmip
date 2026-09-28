@@ -33,3 +33,70 @@ export const DATA_QUALITY_CHECKS: readonly DataQualityCheck[] = [
   'duplicate_fixture',
   'table_disagrees',
 ];
+
+/** A fixture a finding is about, named as the scores page names it. */
+export interface DataQualityFixtureRef {
+  id: string;
+  home: string;
+  away: string;
+  kickoff_at: string;
+  status: string;
+}
+
+/**
+ * One open finding (T-821): what the check found, where, since when, and
+ * whether an administrator has reviewed it. Resolved findings are history
+ * and are counted, not listed.
+ */
+export interface DataQualityFinding {
+  id: number;
+  check: DataQualityCheck;
+  detail: string;
+  competition: { id: string; name: string } | null;
+  season: { id: string; label: string } | null;
+  fixture: DataQualityFixtureRef | null;
+  /** The other fixture of a `duplicate_fixture` pair. */
+  related_fixture: DataQualityFixtureRef | null;
+  team: { id: string; name: string } | null;
+  first_seen_at: string;
+  last_seen_at: string;
+  /** `null` until an administrator marks it reviewed, with a reason (audited). */
+  reviewed: { at: string; by: string | null; reason: string } | null;
+}
+
+/**
+ * When a check last ran, and whether that is recent enough to trust "no
+ * findings" (rule 4): `never_run`, `stale` past three of its intervals, else
+ * `current`.
+ */
+export interface DataQualityCheckState {
+  check: DataQualityCheck;
+  checked_at: string | null;
+  freshness: 'current' | 'stale' | 'never_run';
+  open: number;
+}
+
+/** Open findings per competition and check, for the page's summary. */
+export interface DataQualityCount {
+  competition: { id: string; name: string } | null;
+  check: DataQualityCheck;
+  open: number;
+  reviewed: number;
+}
+
+/** `GET /admin/data-quality` (admin role only). */
+export interface DataQualityReport {
+  generated_at: string;
+  checks: DataQualityCheckState[];
+  counts: DataQualityCount[];
+  /** Open findings, newest first seen first, at most a page of them. */
+  findings: DataQualityFinding[];
+  /** How many open findings there are in all; `findings` may be fewer. */
+  open_total: number;
+  resolved_last_day: number;
+}
+
+/** `POST /admin/data-quality/:id/review`: marks an open finding reviewed. */
+export interface ReviewDataQualityFindingRequest {
+  reason: string;
+}

@@ -47,10 +47,178 @@ export interface WriteOutcome {
 
 const REF = 'f.id AS "fixtureId", f.season_id AS "seasonId", s.competition_id AS "competitionId"';
 
+/** A fixture as the admin page names it: our team names, never a provider's. */
+const FIXTURE_REF = (column: string) => `(
+  SELECT jsonb_build_object('id', f.id, 'home', th.name, 'away', ta.name,
+                            'kickoff_at', f.kickoff_at, 'status', f.status)
+    FROM fixture f
+    JOIN fixture_participant h ON h.fixture_id = f.id AND h.side = 'home'
+    JOIN team th ON th.id = h.team_id
+    JOIN fixture_participant a ON a.fixture_id = f.id AND a.side = 'away'
+    JOIN team ta ON ta.id = a.team_id
+   WHERE f.id = ${column})`;
+
+interface FixtureJson {
+  id: string;
+  home: string;
+  away: string;
+  kickoff_at: string;
+  status: string;
+}
+
+/** One open finding as the admin page reads it. */
+export interface FindingRow {
+  id: string;
+  check_kind: DataQualityCheck;
+  detail: string;
+  competition_id: string | null;
+  competition_name: string | null;
+  season_id: string | null;
+  season_label: string | null;
+  team_id: string | null;
+  team_name: string | null;
+  fixture: FixtureJson | null;
+  related_fixture: FixtureJson | null;
+  first_seen_at: Date;
+  last_seen_at: Date;
+  reviewed_at: Date | null;
+  reviewed_by: string | null;
+  review_reason: string | null;
+}
+
+export interface CountRow {
+  competition_id: string | null;
+  competition_name: string | null;
+  check_kind: DataQualityCheck;
+  open: number;
+  reviewed: number;
+}
+
+export type ReviewOutcome = 'reviewed' | 'not_found' | 'already_reviewed';
+
 /** Every statement the data-quality checks run: reads of the feed's tables, and their own table. */
 @Injectable()
 export class DataQualityStore {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
+
+  /** Each check's newest run. */
+  async checkRuns(): Promise<Map<DataQualityCheck, Date>> {
+    const { rows } = await this.pool.query<{ check_kind: DataQualityCheck; checked_at: Date }>(
+      `SELECT check_kind, checked_at FROM data_quality_check_run`,
+    );
+    return new Map(rows.map((r) => [r.check_kind, r.checked_at]));
+  }
+
+  /** Open findings with the names the page shows, newest first seen first. */
+  async openFindings(limit: number): Promise<FindingRow[]> {
+    const { rows } = await this.pool.query<FindingRow>(
+      `SELECT d.id, d.check_kind, d.detail,
+              c.id AS competition_id, c.name AS competition_name,
+              se.id AS season_id, se.label AS season_label,
+              t.id AS team_id, t.name AS team_name,
+              ${FIXTURE_REF('d.fixture_id')} AS fixture,
+              ${FIXTURE_REF('d.related_fixture_id')} AS related_fixture,
+              d.first_seen_at, d.last_seen_at,
+              d.reviewed_at, u.username AS reviewed_by, d.review_reason
+         FROM data_quality_finding d
+         LEFT JOIN competition c ON c.id = d.competition_id
+         LEFT JOIN season se ON se.id = d.season_id
+         LEFT JOIN team t ON t.id = d.team_id
+         LEFT JOIN user_account u ON u.id = d.reviewed_by
+        WHERE d.resolved_at IS NULL
+        ORDER BY d.first_seen_at DESC, d.id DESC
+        LIMIT $1`,
+      [limit],
+    );
+    return rows;
+  }
+
+  /** Open findings per competition and check, and how many of them are reviewed. */
+  async counts(): Promise<CountRow[]> {
+    const { rows } = await this.pool.query<CountRow>(
+      `SELECT d.competition_id, c.name AS competition_name, d.check_kind,
+              count(*)::int AS open,
+              (count(*) FILTER (WHERE d.reviewed_at IS NOT NULL))::int AS reviewed
+         FROM data_quality_finding d
+         LEFT JOIN competition c ON c.id = d.competition_id
+        WHERE d.resolved_at IS NULL
+        GROUP BY d.competition_id, c.name, d.check_kind
+        ORDER BY c.name NULLS LAST, d.check_kind`,
+    );
+    return rows;
+  }
+
+  async resolvedSince(since: Date): Promise<number> {
+    const { rows } = await this.pool.query<{ n: number }>(
+      `SELECT count(*)::int AS n FROM data_quality_finding WHERE resolved_at >= $1`,
+      [since],
+    );
+    return rows[0]?.n ?? 0;
+  }
+
+  /**
+   * The watchdog's count (T-821): open, unreviewed findings about a match
+   * that is live or kicked off since `horizon`, first seen before `seenBefore`.
+   */
+  async liveContradictions(horizon: Date, seenBefore: Date): Promise<number> {
+    const { rows } = await this.pool.query<{ n: number }>(
+      `SELECT count(*)::int AS n
+         FROM data_quality_finding d
+         JOIN fixture f ON f.id = d.fixture_id
+        WHERE d.resolved_at IS NULL
+          AND d.reviewed_at IS NULL
+          AND d.first_seen_at <= $2
+          AND (f.status = 'live' OR f.kickoff_at >= $1)`,
+      [horizon, seenBefore],
+    );
+    return rows[0]?.n ?? 0;
+  }
+
+  /**
+   * Marks an open finding reviewed, with the reason and an audit row in the
+   * same transaction (rule 10). A resolved or unknown finding is `not_found`;
+   * one already reviewed keeps its first review.
+   */
+  async review(id: number, actorId: string, reason: string, now: Date): Promise<ReviewOutcome> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const { rows } = await client.query<{ reviewed_at: Date | null; check_kind: string }>(
+        `SELECT reviewed_at, check_kind FROM data_quality_finding
+          WHERE id = $1 AND resolved_at IS NULL FOR UPDATE`,
+        [id],
+      );
+      const row = rows[0];
+      if (row === undefined || row.reviewed_at !== null) {
+        await client.query('ROLLBACK');
+        return row === undefined ? 'not_found' : 'already_reviewed';
+      }
+      await client.query(
+        `UPDATE data_quality_finding
+            SET reviewed_at = $2, reviewed_by = $3, review_reason = $4
+          WHERE id = $1`,
+        [id, now, actorId, reason],
+      );
+      await client.query(
+        `INSERT INTO audit_log (actor_id, action, target_type, target_id, reason, previous, next)
+         VALUES ($1, 'data_quality.review', 'data_quality_finding', $2, $3, $4::jsonb, $5::jsonb)`,
+        [
+          actorId,
+          String(id),
+          reason,
+          JSON.stringify({ check: row.check_kind, reviewed: false }),
+          JSON.stringify({ check: row.check_kind, reviewed: true }),
+        ],
+      );
+      await client.query('COMMIT');
+      return 'reviewed';
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
 
   /** The rows every swept check judges, read in parallel outside any transaction. */
   async read(now: Date): Promise<CheckRows> {
