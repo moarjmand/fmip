@@ -1,12 +1,19 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import type { Covered, SeasonFixture } from '@fmip/contracts';
+import type {
+  AssistLeader,
+  CardLeader,
+  CleanSheetLeader,
+  Covered,
+  SeasonFixture,
+} from '@fmip/contracts';
 import { FounderAnalysisFeed } from '@/components/founder-analysis';
 import { KnockoutBracket } from '@/components/knockout-bracket';
+import { EntityNews } from '@/components/related-news';
 import { MinutesFigure } from '@/components/minutes-figure';
 import { Translated } from '@/components/translated';
-import { fetchCompetition, fetchFounderFeed, fetchMe } from '@/lib/api';
+import { fetchCompetition, fetchEntityNews, fetchFounderFeed, fetchMe } from '@/lib/api';
 import {
   KIND_LABEL,
   competitionQuery,
@@ -73,10 +80,11 @@ export default async function CompetitionPage({
   if (!UUID.test(id)) notFound();
   const seasonParam = readSeasonParam(query);
   const minMinutes = readMinMinutesParam(query);
-  const [result, me, founder] = await Promise.all([
+  const [result, me, founder, news] = await Promise.all([
     fetchCompetition(id, competitionQuery(seasonParam, minMinutes), locale),
     fetchMe(await sessionCookieHeader()),
     fetchFounderFeed({ competition: id, limit: 3 }),
+    fetchEntityNews('competition', id, locale),
   ]);
   if (!result.ok) {
     if (result.status === 404) notFound();
@@ -303,6 +311,67 @@ export default async function CompetitionPage({
         )}
       </Module>
 
+      {BOARDS.map((board) => {
+        const boardModule = page.boards[board.key] as Covered<BoardPlayer[]>;
+        const floor = page.leaders_filter.min_minutes;
+        const unproven = page.boards.unproven[board.key];
+        return (
+          <Module
+            key={board.key}
+            title={<Translated locale={locale} message={board.title} />}
+            module={boardModule}
+            testId={board.testId}
+            empty={
+              boardModule.data === null ? undefined : floor !== null ? (
+                <Translated locale={locale} message="competition.boards.noneReach" />
+              ) : (
+                <Translated locale={locale} message={board.none} />
+              )
+            }
+            intro={
+              floor !== null && unproven > 0 ? (
+                <p className="text-sm text-muted" data-testid={`${board.testId}-unproven`}>
+                  <Translated
+                    locale={locale}
+                    message="competition.boards.unproven"
+                    count={unproven}
+                  />
+                </p>
+              ) : undefined
+            }
+          >
+            {(rows) => (
+              <ol className="flex flex-col gap-1 text-sm">
+                {rows.map((row, index) => (
+                  <li
+                    key={`${row.person.id}:${row.team?.id ?? ''}`}
+                    className="flex flex-wrap items-baseline gap-x-3"
+                  >
+                    <span className="w-6 tabular-nums text-muted">{index + 1}</span>
+                    <span className="grow">
+                      <Link href={`/${locale}/player/${row.person.id}`} className="underline">
+                        {row.person.name}
+                      </Link>
+                      {row.team !== null && (
+                        <span className="ms-2 text-xs text-muted">{row.team.name}</span>
+                      )}
+                      <MinutesFigure
+                        locale={locale}
+                        minutes={row.minutes}
+                        className="ms-2 text-xs text-muted"
+                      />
+                    </span>
+                    <BoardFigure locale={locale} row={row} board={board.key} />
+                  </li>
+                ))}
+              </ol>
+            )}
+          </Module>
+        );
+      })}
+
+      <EntityNews locale={locale} timeZone={timeZone} news={news.ok ? news.data : null} />
+
       <section className="flex flex-col gap-2" data-testid="coverage">
         <h2 className="text-lg font-semibold">Coverage for this season</h2>
         {Object.keys(page.coverage).length === 0 ? (
@@ -331,6 +400,76 @@ export default async function CompetitionPage({
   );
 }
 
+/** The boards beyond goals (T-943), in the order the page shows them. */
+const BOARDS = [
+  {
+    key: 'assists',
+    testId: 'board-assists',
+    title: 'competition.boards.assists',
+    none: 'competition.boards.noAssists',
+  },
+  {
+    key: 'clean_sheets',
+    testId: 'board-clean-sheets',
+    title: 'competition.boards.cleanSheets',
+    none: 'competition.boards.noCleanSheets',
+  },
+  {
+    key: 'cards',
+    testId: 'board-cards',
+    title: 'competition.boards.cards',
+    none: 'competition.boards.noCards',
+  },
+] as const;
+
+type BoardPlayer = AssistLeader | CleanSheetLeader | CardLeader;
+
+/** A board row's own figure: assists, clean sheets over starts in goal, or reds and yellows. */
+function BoardFigure({
+  locale,
+  row,
+  board,
+}: {
+  locale: string;
+  row: BoardPlayer;
+  board: (typeof BOARDS)[number]['key'];
+}) {
+  if (board === 'assists' && 'assists' in row) {
+    return <span className="tabular-nums font-semibold">{row.assists}</span>;
+  }
+  if (board === 'clean_sheets' && 'clean_sheets' in row) {
+    return (
+      <span className="flex items-baseline gap-2">
+        <span className="text-xs text-muted">
+          <Translated
+            locale={locale}
+            message="competition.boards.startsInGoal"
+            count={row.starts_in_goal}
+          />
+        </span>
+        <span className="tabular-nums font-semibold">{row.clean_sheets}</span>
+      </span>
+    );
+  }
+  if ('red_cards' in row) {
+    return (
+      <span className="flex items-baseline gap-3 tabular-nums">
+        <span>
+          <Translated locale={locale} message="competition.boards.red" count={row.red_cards} />
+        </span>
+        <span>
+          <Translated
+            locale={locale}
+            message="competition.boards.yellow"
+            count={row.yellow_cards}
+          />
+        </span>
+      </span>
+    );
+  }
+  return null;
+}
+
 function Module<T>({
   title,
   module,
@@ -339,7 +478,7 @@ function Module<T>({
   empty,
   children,
 }: {
-  title: string;
+  title: React.ReactNode;
   module: Covered<T[]>;
   testId: string;
   /** Above the list: a filter, and what it did (T-824). */

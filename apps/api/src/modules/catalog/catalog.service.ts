@@ -12,6 +12,7 @@ import type {
   SuggestedTeam,
   TableContext,
   TableRow,
+  TeamManager,
   TeamPage,
   TeamSummary,
 } from '@fmip/contracts';
@@ -185,21 +186,42 @@ export class CatalogService {
     const knockout = playsKnockoutBracket(competition);
     // Under a minutes floor every scorer is read, since the first ten by
     // goals may not be the first ten that reached it (T-824).
-    const [stages, { fixtures, lastUpdatedAt }, coverage, table, scorers, bracketFixtures] =
+    const [stages, { fixtures, lastUpdatedAt }, coverage, table, scorers, boards, bracketFixtures] =
       await Promise.all([
         this.competitions_.stages(selected.id),
         this.competitions_.fixtures(selected.id),
         this.competitions_.coverage(selected.id),
         this.standings.table(selected.id),
         this.standings.leaders(selected.id, minMinutes === null ? LEADERS_LIMIT : null),
+        this.standings.boards(selected.id),
         knockout ? this.competitions_.bracketFixtures(selected.id) : Promise.resolve(null),
       ]);
+    // The boards beyond goals (T-943) are read whole, so their minutes are
+    // read only for the rows each board can show without a floor.
+    const shown = <T extends { person: { id: string } }>(rows: T[] | null) =>
+      (rows ?? []).slice(0, minMinutes === null ? LEADERS_LIMIT : undefined);
     const minutes = await this.players_.minutesByPerson(
       [selected.id],
-      [...new Set((scorers.data ?? []).map((s) => s.person.id))],
+      [
+        ...new Set(
+          [
+            ...(scorers.data ?? []),
+            ...shown(boards.assists.data),
+            ...shown(boards.clean_sheets.data),
+            ...shown(boards.cards.data),
+          ].map((s) => s.person.id),
+        ),
+      ],
       null,
     );
     const filtered = leadersWithMinutes(scorers.data ?? [], minutes, minMinutes, LEADERS_LIMIT);
+    const board = <T extends { person: { id: string } }>(module: Covered<T[]>) => {
+      const result = leadersWithMinutes(shown(module.data), minutes, minMinutes, LEADERS_LIMIT);
+      return { module: leadersModule(module, result), unproven: result.unproven };
+    };
+    const assists = board(boards.assists);
+    const cleanSheets = board(boards.clean_sheets);
+    const cards = board(boards.cards);
     const results = fixtures.filter((f) => f.status === 'finished').reverse();
     const upcoming = fixtures.filter((f) => f.status !== 'finished');
     return {
@@ -217,6 +239,16 @@ export class CatalogService {
           unproven: filtered.unproven,
           presets: [...LEADERS_MINUTES_PRESETS],
         },
+        boards: {
+          assists: assists.module,
+          clean_sheets: cleanSheets.module,
+          cards: cards.module,
+          unproven: {
+            assists: assists.unproven,
+            clean_sheets: cleanSheets.unproven,
+            cards: cards.unproven,
+          },
+        },
         bracket:
           bracketFixtures === null
             ? null
@@ -233,13 +265,14 @@ export class CatalogService {
     if (team === null) return { kind: 'unknown_team' };
     const seasons = await this.teams_.seasons(id);
     const seasonIds = seasons.map((s) => s.season.id);
-    const [{ fixtures, lastUpdatedAt }, squad, followers, tables, splitFixtures] =
+    const [{ fixtures, lastUpdatedAt }, squad, followers, tables, splitFixtures, lineup] =
       await Promise.all([
         this.teams_.fixtures(id, seasonIds),
         this.teams_.squad(id),
         this.teams_.followers(id),
         Promise.all(seasons.map((s) => this.standings.table(s.season.id))),
         this.teams_.splitFixtures(id, seasonIds),
+        this.teams_.latestLineup(id),
       ]);
     // Minutes for this team over the seasons the page covers (T-824).
     const squadMinutes = await this.players_.minutesByPerson(
@@ -271,6 +304,7 @@ export class CatalogService {
           squad.lastUpdatedAt,
         ),
         splits: buildSplits(seasons, splitFixtures),
+        manager: managerOf(lineup),
         followers,
         last_updated_at: lastUpdatedAt,
       },
@@ -503,5 +537,33 @@ export function tableContext(table: Covered<TableRow[]>, teamId: string): Covere
       points: row.points,
       rows: rows.slice(Math.max(0, index - CONTEXT_RADIUS), index + CONTEXT_RADIUS + 1),
     },
+  };
+}
+
+/**
+ * The team page's manager (T-944, D-119): the coach named on the most recent
+ * stored line-up, `available` as a fact about that match; `not_supplied` when
+ * that line-up names none or the team has no line-up at all -- never an
+ * older coach carried forward, and never a spell's guess.
+ */
+export function managerOf(
+  lineup: {
+    fixture: { id: string; kickoff_at: string };
+    coach: { id: string; name: string } | null;
+    updatedAt: string;
+  } | null,
+): TeamManager {
+  if (lineup === null) {
+    return {
+      coach: { coverage: 'not_supplied', last_updated_at: null, data: null },
+      lineup_fixture: null,
+    };
+  }
+  return {
+    coach:
+      lineup.coach === null
+        ? { coverage: 'not_supplied', last_updated_at: lineup.updatedAt, data: null }
+        : { coverage: 'available', last_updated_at: lineup.updatedAt, data: lineup.coach },
+    lineup_fixture: lineup.fixture,
   };
 }

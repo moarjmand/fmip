@@ -31,6 +31,7 @@ import type {
   FixtureEvaluationsResponse,
   FollowedEntity,
   FollowSuggestionsResponse,
+  EntityNewsResponse,
   FixtureNewsResponse,
   FollowingFeed,
   FollowingResponse,
@@ -948,6 +949,17 @@ export function fetchFixtureNews(
 ): Promise<ApiResult<FixtureNewsResponse>> {
   return apiRequest<FixtureNewsResponse>(
     `/fixtures/${fixtureId}/news?locale=${encodeURIComponent(locale)}`,
+  );
+}
+
+/** `GET /teams/:id/news` or `GET /competitions/:id/news` (T-944): stories linked to the entity. Public. */
+export function fetchEntityNews(
+  type: 'team' | 'competition',
+  id: string,
+  locale: string,
+): Promise<ApiResult<EntityNewsResponse>> {
+  return apiRequest<EntityNewsResponse>(
+    `/${type === 'team' ? 'teams' : 'competitions'}/${encodeURIComponent(id)}/news?locale=${encodeURIComponent(locale)}`,
   );
 }
 

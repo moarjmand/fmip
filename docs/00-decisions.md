@@ -4566,3 +4566,89 @@ version is `clubelo_then_own`, as 0.5.1 with its own record. 0.5.0 is not
 edited (rule 5, D-082). Promotion is T-535's evaluation (D-120), never this
 table.
 
+## D-118 — Leaders beyond goals: assists, clean sheets and cards, each a stated rule
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-943 adds three boards to the competition page beside the
+scorers (blueprint 5.1). Each is its own `Covered` module in
+`CompetitionPage.boards`, computed from what the fixtures boundary already
+stores. No provider request is added.
+
+- **Assists.** A goal or penalty goal whose `related_person_id` names a
+  player is that player's assist, credited to the scoring side. Own goals
+  are nobody's. The board takes the season's declared `incidents` state.
+  When the season's goals name no assist at all, the board is
+  `not_supplied`: a list of nobody would read as a season without assists.
+- **Clean sheets.** A side of a finished match with a score is *judged* when
+  its line-up names exactly one starter at `goalkeeper`. That keeper keeps a
+  clean sheet when the other side's latest score is nil (`current`, else
+  `full_time`: extra time counts, a shoot-out does not) and the keeper
+  finished the match: no substitution took them off and no red card (or
+  second yellow) sent them off. A substitute keeper who finishes a nil is not
+  credited, because they did not start. Each row also carries
+  `starts_in_goal`, the judged matches the keeper started. The board takes
+  the declared `lineups` state. It is `limited` when some finished sides
+  could not be judged, because the list may be missing a keeper, and
+  `not_supplied` when none could. Judged sides with no clean sheet are an
+  empty list, not an absence.
+- **Cards.** `yellow_card` is a yellow; `red_card` and `second_yellow_card`
+  are reds, exactly as the player page counts them. The board is ranked by
+  reds, then yellows, then name, under the declared `incidents` state.
+- **The minutes floor.** `?min_minutes=` (T-824) applies to every board
+  under the scorers' rule (`reachesFloor`). `boards.unproven` counts, per
+  board, the players left out because their minutes cannot show the floor,
+  and a board with any left out is `limited`.
+- **Rows.** Each row is one person for one team, as the scorers are, so a
+  mid-season move gives two rows. The minutes are the person's in that
+  season for every team (T-824). Ten rows per board.
+
+**Alternatives considered.** Crediting a clean sheet to every keeper who
+played in a nil, or splitting it by minutes: the plan names the keeper who
+started and finished. A board of zeros for a season whose feed sends no
+assists: rule 3 forbids it. A disciplinary points scale (yellow 1, red 3): a
+weighting nobody asked for, where two plain counts say more.
+
+**Consequences.** `LeaderBoards`, `BoardPlayer`, `AssistLeader`,
+`CleanSheetLeader` and `CardLeader` are in the contract.
+`StandingsService.boards` is the standings boundary's answer; the catalog
+adds minutes and the floor. No migration: the plan's row names none.
+
+## D-119 — The manager is the coach on the team's latest line-up; news on entity pages is the news boundary's linking
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-944 fills the team page's manager and the team and
+competition pages' news (blueprint 5.1, 5.2) from what is already stored. No
+provider request is added.
+
+- **The manager.** The coach the feed named (`fixture_participant.coach_id`)
+  on the team's most recent stored line-up: the latest kick-off among the
+  team's matches whose side has a line-up row or a named coach. It is shown
+  as a fact about that match, with a link to it (`TeamManager.lineup_fixture`).
+  When that line-up names no coach, `coach` is `not_supplied` and the page
+  says the latest line-up names none. An older coach is never carried
+  forward, because a club that changed manager would then show the wrong
+  one as current. When the team has no stored line-up, `lineup_fixture` is
+  null and the page says so. Coaching spells are not read: nothing ingests
+  them, so a spell would be a guess.
+- **News.** `GET /teams/:id/news` and `GET /competitions/:id/news` are the
+  news page's latest cards (`ENTITY_NEWS_LIMIT`, five) for stories any of
+  whose reports the news boundary linked to that team or competition
+  (`article_entity`, the same links the `team` and `competition` filters
+  read), newest first, under the same rights (D-061). As on the match page
+  (T-145): `not_supplied` with `feeds_unread` until the feeds have been read
+  at all, then `available`, possibly empty with `nothing_linked`. An unknown
+  id is 404. The routes live in the news module, which still imports nothing
+  from the football boundaries (rule 9): it checks the id against the table
+  directly, as `forFixture` does.
+
+**Alternatives considered.** The latest coach named on any line-up: it
+survives a sacking. Reading `/news?section=latest&team=`: before the feeds
+are read it answers an available empty list, which on an entity page would
+read as "nobody wrote about this club". A window around today, as the match
+page has around kick-off: a club's latest story is news whenever it was
+written, and the list is short.
+
+**Consequences.** `TeamPage.manager` (`TeamManager`), `EntityNewsResponse`
+and `ENTITY_NEWS_LIMIT` are in the contract. No migration.
+
+
