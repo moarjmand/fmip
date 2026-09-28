@@ -46,6 +46,10 @@ class TrainingSource:
         """Every division's matches, clubs named by catalogue id (T-533)."""
         raise NotImplementedError
 
+    def own_elo(self, day: date, division: str) -> Mapping[str, float]:
+        """Our own Elo as of ``day`` (T-921), by the division's training names; empty if none."""
+        return {}
+
     def elo_source(self) -> EloSourceState | None:
         """Club Elo's recorded state (T-920); ``None`` for a source that keeps no loads."""
         return None

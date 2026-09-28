@@ -4281,3 +4281,40 @@ forecast past the API's timeout. *Asking on the watchdog's minute*: sixty
 requests an hour to a free API for a daily number. *A separate timer on the
 host*: one more thing to install, and the service already holds the loader,
 the store and the clock.
+
+**T-921: an Elo of our own, from the training store.** (Migration
+`1764850000000`.)
+
+- **What it reads.** Every result in `training.match`: football-data.co.uk's
+  divisions (D-016, training only) and our own records of the licensed feed
+  (D-083). Nothing else, so the prior a fit may take from it is licensed and
+  training data only, within D-014 -- unlike Club Elo, which is neither.
+- **Who a club is.** Its catalogue id where the committed bridge names it
+  (`training.team_alias`, D-080), so a club's league and cup matches are one
+  club's; otherwise `<division>:<name>`, a club of that division only. Two
+  spellings are never matched by likeness, and the same spelling in two
+  divisions without the bridge is two clubs. The limit, stated: a club
+  promoted from a division the bridge does not cover starts again in its new
+  one.
+- **The rules, frozen per version.** `own-elo@1.0.0` is World Football Elo:
+  K 20, home advantage 60 points, the goal-difference multiplier (1, 1.5,
+  (11 + d) / 8), a club entering at 1500 on its first match, matches applied
+  by day, then division and clubs, so the same results always give the same
+  numbers. A changed constant is a new version and a new run beside the old.
+- **Clubs with no history are left out.** A club with no match on or before
+  the day has no row, not 1500: a fit then gives it no prior beyond the ridge,
+  as it does a club Club Elo does not rate.
+- **Stored with the matches it was computed from.** One `own_elo_run` per
+  (day, rules): the matches read -- their count, first and last date, and a
+  sha256 over them in the order applied -- and one `own_elo` row per club.
+  `python -m fmip_model.training.own_elo verify --day …` recomputes the day
+  from the stored results and compares the hash and every rating; a result
+  that changed under a stored day is reported, not absorbed. Storing a day
+  again replaces its run.
+- **Daily, by the service.** The model service computes yesterday's run once a
+  day in the background of its health check (after its daily reload of our
+  own records, so the day's results are in), and a fit that asks for a day not
+  yet computed computes it first. A failure is logged and retried after an
+  hour; a fit without the prior says so (`elo_used`).
+- **Not read by the published model.** `dixon-coles-elo@0.1.0` is unchanged
+  (rule 5, D-082). T-922's candidate is the first version to read it.

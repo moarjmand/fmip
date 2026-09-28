@@ -12,7 +12,9 @@ import psycopg
 from ..model.cross_league import CROSS_LEAGUE
 from ..model.data import elo_on, every_match_before, matches_before
 from ..model.dixon_coles import MatchObservation
+from ..model.own_elo import for_division
 from ..training.load import Fetch, fetch_text, load_clubelo, load_records
+from ..training.own_elo import compute_day, ratings_on, store_run
 from ..training.sources import CLUB_ELO, OUR_RECORDS
 from ..training.store import TrainingStore
 from .contract import EloSourceState
@@ -26,6 +28,10 @@ CLUBELO_ASK_INTERVAL = timedelta(hours=6)
 #: The service's own ask gives up sooner than the loader's CLI default: it runs
 #: beside forecasts, and a source that hangs is a source that did not answer.
 CLUBELO_TIMEOUT_SECONDS = 20.0
+
+
+#: A day's own Elo that failed to compute is tried again after this long (T-921).
+OWN_ELO_RETRY_INTERVAL = timedelta(hours=1)
 
 
 def _clubelo_fetch(url: str) -> str:
@@ -59,6 +65,9 @@ class PostgresTrainingSource(TrainingSource):
         self._lock = threading.Lock()
         self._elo_lock = threading.Lock()
         self._elo_asked_at: datetime | None = None
+        self._own_elo_lock = threading.Lock()
+        self._own_elo_days: set[date] = set()
+        self._own_elo_tried: dict[date, datetime] = {}
 
     def aliases(self, division: str) -> Mapping[str, str]:
         self.refresh(division)
@@ -77,6 +86,46 @@ class PostgresTrainingSource(TrainingSource):
     def elo(self, day: date) -> Mapping[str, float]:
         with psycopg.connect(self.database_url) as conn:
             return elo_on(conn, day)
+
+    def own_elo(self, day: date, division: str) -> Mapping[str, float]:
+        """Our own Elo as of ``day`` (T-921), by ``division``'s training names.
+
+        The day's run is computed and stored first if it is not held yet; the
+        ratings are then read back from the store, so what a fit used is what
+        was written.
+        """
+        self.ensure_own_elo(day)
+        aliases = self.aliases(division)
+        with psycopg.connect(self.database_url) as conn:
+            ratings = ratings_on(conn, day) or {}
+        return for_division(ratings, division, aliases)
+
+    def ensure_own_elo(self, day: date) -> None:
+        """Compute and store the day's own Elo once (T-921); a failure is logged, not raised."""
+        with self._own_elo_lock:
+            if day in self._own_elo_days:
+                return
+            self._own_elo_tried[day] = self.clock()
+            try:
+                # Our own records first (D-083): the day's results are in them
+                # only once the division's daily reload has run.
+                for division in self._records_divisions():
+                    self.refresh(division)
+                with psycopg.connect(self.database_url) as conn:
+                    if ratings_on(conn, day) is None:
+                        store_run(conn, compute_day(conn, day))
+                self._own_elo_days.add(day)
+            except Exception:  # noqa: BLE001 - a fit without the prior says so (elo_used)
+                log.exception("computing our own Elo for %s failed", day)
+
+    def _records_divisions(self) -> list[str]:
+        with psycopg.connect(self.database_url) as conn, conn.cursor() as cur:
+            cur.execute(
+                "SELECT DISTINCT scope FROM training.source_load"
+                " WHERE source = %s AND status = 'succeeded' ORDER BY scope",
+                (OUR_RECORDS.id,),
+            )
+            return [str(row[0]) for row in cur.fetchall()]
 
     def every_match(self, since: date, until: date) -> Sequence[tuple[str, MatchObservation]]:
         self.refresh(CROSS_LEAGUE)
@@ -130,10 +179,22 @@ class PostgresTrainingSource(TrainingSource):
         )
 
     def ask_elo(self) -> None:
-        """Start one background ask of Club Elo when it is due (T-920)."""
-        if not self._elo_due():
-            return
-        threading.Thread(target=self.refresh_clubelo, name="clubelo-ask", daemon=True).start()
+        """Start the background work that is due: Club Elo's ask (T-920), our own Elo (T-921).
+
+        Our own Elo is computed for yesterday once a day, whether or not Club
+        Elo answers, so a run exists before the day's first fit asks for it.
+        """
+        if self._elo_due():
+            threading.Thread(target=self.refresh_clubelo, name="clubelo-ask", daemon=True).start()
+        yesterday = self.today() - timedelta(days=1)
+        tried = self._own_elo_tried.get(yesterday)
+        if yesterday not in self._own_elo_days and (
+            tried is None or self.clock() - tried >= OWN_ELO_RETRY_INTERVAL
+        ):
+            self._own_elo_tried[yesterday] = self.clock()
+            threading.Thread(
+                target=self.ensure_own_elo, args=(yesterday,), name="own-elo", daemon=True
+            ).start()
 
     def _elo_due(self) -> bool:
         if not self.clubelo_refresh:
