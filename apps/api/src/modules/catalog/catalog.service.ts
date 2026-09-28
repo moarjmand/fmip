@@ -12,6 +12,7 @@ import type {
   SuggestedTeam,
   TableContext,
   TableRow,
+  TeamManager,
   TeamPage,
   TeamSummary,
 } from '@fmip/contracts';
@@ -233,13 +234,14 @@ export class CatalogService {
     if (team === null) return { kind: 'unknown_team' };
     const seasons = await this.teams_.seasons(id);
     const seasonIds = seasons.map((s) => s.season.id);
-    const [{ fixtures, lastUpdatedAt }, squad, followers, tables, splitFixtures] =
+    const [{ fixtures, lastUpdatedAt }, squad, followers, tables, splitFixtures, lineup] =
       await Promise.all([
         this.teams_.fixtures(id, seasonIds),
         this.teams_.squad(id),
         this.teams_.followers(id),
         Promise.all(seasons.map((s) => this.standings.table(s.season.id))),
         this.teams_.splitFixtures(id, seasonIds),
+        this.teams_.latestLineup(id),
       ]);
     // Minutes for this team over the seasons the page covers (T-824).
     const squadMinutes = await this.players_.minutesByPerson(
@@ -271,6 +273,7 @@ export class CatalogService {
           squad.lastUpdatedAt,
         ),
         splits: buildSplits(seasons, splitFixtures),
+        manager: managerOf(lineup),
         followers,
         last_updated_at: lastUpdatedAt,
       },
@@ -503,5 +506,33 @@ export function tableContext(table: Covered<TableRow[]>, teamId: string): Covere
       points: row.points,
       rows: rows.slice(Math.max(0, index - CONTEXT_RADIUS), index + CONTEXT_RADIUS + 1),
     },
+  };
+}
+
+/**
+ * The team page's manager (T-944, D-119): the coach named on the most recent
+ * stored line-up, `available` as a fact about that match; `not_supplied` when
+ * that line-up names none or the team has no line-up at all -- never an
+ * older coach carried forward, and never a spell's guess.
+ */
+export function managerOf(
+  lineup: {
+    fixture: { id: string; kickoff_at: string };
+    coach: { id: string; name: string } | null;
+    updatedAt: string;
+  } | null,
+): TeamManager {
+  if (lineup === null) {
+    return {
+      coach: { coverage: 'not_supplied', last_updated_at: null, data: null },
+      lineup_fixture: null,
+    };
+  }
+  return {
+    coach:
+      lineup.coach === null
+        ? { coverage: 'not_supplied', last_updated_at: lineup.updatedAt, data: null }
+        : { coverage: 'available', last_updated_at: lineup.updatedAt, data: lineup.coach },
+    lineup_fixture: lineup.fixture,
   };
 }

@@ -455,8 +455,22 @@ export interface TeamPage {
    * `competitions` entry and in the same order.
    */
   splits: TeamCompetitionSplits[];
+  /** The coach named on the team's most recent line-up (T-944, D-119). */
+  manager: TeamManager;
   followers: number;
   last_updated_at: string | null;
+}
+
+/**
+ * The team's manager (blueprint 5.2, T-944, D-119): the coach the feed named
+ * on the team's most recent stored line-up -- a fact about that match, never
+ * a guess about the club. `coach` is `not_supplied` when that line-up names
+ * no coach, or when no line-up of the team is stored (`lineup_fixture` null).
+ */
+export interface TeamManager {
+  coach: Covered<{ id: string; name: string }>;
+  /** The match whose line-up was read; null when the team has no stored line-up. */
+  lineup_fixture: { id: string; kickoff_at: string } | null;
 }
 
 // ---------------------------------------------------------------------------

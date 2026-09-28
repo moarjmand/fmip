@@ -4,9 +4,10 @@ import { notFound } from 'next/navigation';
 import type { Covered, SeasonFixture } from '@fmip/contracts';
 import { FounderAnalysisFeed } from '@/components/founder-analysis';
 import { KnockoutBracket } from '@/components/knockout-bracket';
+import { EntityNews } from '@/components/related-news';
 import { MinutesFigure } from '@/components/minutes-figure';
 import { Translated } from '@/components/translated';
-import { fetchCompetition, fetchFounderFeed, fetchMe } from '@/lib/api';
+import { fetchCompetition, fetchEntityNews, fetchFounderFeed, fetchMe } from '@/lib/api';
 import {
   KIND_LABEL,
   competitionQuery,
@@ -73,10 +74,11 @@ export default async function CompetitionPage({
   if (!UUID.test(id)) notFound();
   const seasonParam = readSeasonParam(query);
   const minMinutes = readMinMinutesParam(query);
-  const [result, me, founder] = await Promise.all([
+  const [result, me, founder, news] = await Promise.all([
     fetchCompetition(id, competitionQuery(seasonParam, minMinutes), locale),
     fetchMe(await sessionCookieHeader()),
     fetchFounderFeed({ competition: id, limit: 3 }),
+    fetchEntityNews('competition', id, locale),
   ]);
   if (!result.ok) {
     if (result.status === 404) notFound();
@@ -302,6 +304,8 @@ export default async function CompetitionPage({
           </ol>
         )}
       </Module>
+
+      <EntityNews locale={locale} timeZone={timeZone} news={news.ok ? news.data : null} />
 
       <section className="flex flex-col gap-2" data-testid="coverage">
         <h2 className="text-lg font-semibold">Coverage for this season</h2>

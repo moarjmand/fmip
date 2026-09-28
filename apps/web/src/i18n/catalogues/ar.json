@@ -924,6 +924,16 @@
     "text": "",
     "status": "untranslated"
   },
+  "news.entity.nothingTeam": {
+    "source": "No publisher we read has reported on this team yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.entity.nothingCompetition": {
+    "source": "No publisher we read has reported on this competition yet.",
+    "text": "",
+    "status": "untranslated"
+  },
   "news.section.latest": {
     "source": "Latest",
     "text": "",
@@ -1900,6 +1910,26 @@
   },
   "competition.leaders.noneReach": {
     "source": "No scorer's recorded minutes reach this floor.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "team.manager.label": {
+    "source": "Manager",
+    "text": "",
+    "status": "untranslated"
+  },
+  "team.manager.named": {
+    "source": "named on the line-up for",
+    "text": "",
+    "status": "untranslated"
+  },
+  "team.manager.noCoach": {
+    "source": "No manager shown: the team's latest line-up names no coach.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "team.manager.noLineup": {
+    "source": "No manager shown: no line-up of this team is stored yet.",
     "text": "",
     "status": "untranslated"
   },
