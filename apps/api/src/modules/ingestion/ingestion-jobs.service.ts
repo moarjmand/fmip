@@ -355,7 +355,7 @@ export class IngestionJobsService {
         for (const k of ids) held.set(k.externalId, { ...k, target });
       }
       const question = liveQuestion(known);
-      const told = new Set<string>();
+      const raised = new Set<string>();
 
       if (question.externalIds.length > 0) {
         const result = await source.adapter.getLive({ fixtureExternalIds: question.externalIds });
@@ -388,7 +388,7 @@ export class IngestionJobsService {
             if (before !== null) {
               const hints =
                 fixture.halfTimeBreak === undefined ? {} : { halfTimeBreak: fixture.halfTimeBreak };
-              for (const id of await this.alerts.after(before, hints)) told.add(id);
+              for (const id of await this.alerts.after(before, hints)) raised.add(id);
             }
           }
 
@@ -419,13 +419,14 @@ export class IngestionJobsService {
             written += detail.written;
             seasons.add(match.target.seasonId);
             for (const id of detail.unresolved) unresolved.add(id);
-            if (before !== null) for (const id of await this.alerts.after(before)) told.add(id);
+            if (before !== null) for (const id of await this.alerts.after(before)) raised.add(id);
           }
         }
       }
       written += await this.coverage.recomputeMany([...seasons]);
-      // Everything this tick raised leaves now, one push per member (T-830).
-      await this.alerts.deliver([...told]);
+      // What this tick recorded goes to the alerts queue: the tick ends now,
+      // whatever the audience (T-835). One push per member (T-830).
+      await this.alerts.dispatch([...raised]);
       return this.report('live', source.provider, seen, written, refused, unresolved);
     });
   }
@@ -444,8 +445,8 @@ export class IngestionJobsService {
       let written = 0;
       const refused: string[] = [];
       const unresolved = new Set<string>();
-      // Who this run's team news reached (T-832): carried at its end.
-      const told = new Set<string>();
+      // This run's team news (T-832): handed to the alerts queue at its end (T-835).
+      const raised = new Set<string>();
 
       for (const candidate of candidates) {
         const result = await source.adapter.getLineup(candidate.externalId);
@@ -462,7 +463,8 @@ export class IngestionJobsService {
         );
         written += write.changed;
         for (const id of write.unresolved) unresolved.add(id);
-        if (before !== null) for (const id of await this.alerts.teamNewsAfter(before)) told.add(id);
+        if (before !== null)
+          for (const id of await this.alerts.teamNewsAfter(before)) raised.add(id);
       }
 
       const asked: string[] = [];
@@ -485,14 +487,15 @@ export class IngestionJobsService {
         );
         written += write.changed;
         for (const id of write.unresolved) unresolved.add(id);
-        if (before !== null) for (const id of await this.alerts.teamNewsAfter(before)) told.add(id);
+        if (before !== null)
+          for (const id of await this.alerts.teamNewsAfter(before)) raised.add(id);
       }
 
       written += await this.coverage.recomputeMany(
         await this.coverage.seasonsOf([...candidates.map((c) => c.fixtureId), ...asked]),
       );
       // One push per member for the run's team news (T-832, D-098's batch).
-      await this.alerts.deliver([...told]);
+      await this.alerts.dispatch([...raised]);
       return this.report('lineups', source.provider, seen, written, refused, unresolved);
     });
   }
@@ -516,7 +519,7 @@ export class IngestionJobsService {
       const unresolved = new Set<string>();
 
       const watched = new Set(recent.map((c) => c.fixtureId));
-      const told = new Set<string>();
+      const raised = new Set<string>();
       for (const candidate of candidates) {
         // A recent match's alerts (T-830): a full-time or a red card the live
         // list did not carry. A backlog match is long over and raises none,
@@ -532,12 +535,12 @@ export class IngestionJobsService {
         seen += 1;
         written += detail.written;
         for (const id of detail.unresolved) unresolved.add(id);
-        if (before !== null) for (const id of await this.alerts.after(before)) told.add(id);
+        if (before !== null) for (const id of await this.alerts.after(before)) raised.add(id);
       }
       written += await this.coverage.recomputeMany(
         await this.coverage.seasonsOf(candidates.map((c) => c.fixtureId)),
       );
-      await this.alerts.deliver([...told]);
+      await this.alerts.dispatch([...raised]);
       return this.report('post_match', source.provider, seen, written, refused, unresolved);
     });
   }

@@ -8,6 +8,7 @@ import { NO_MODEL_SERVICE } from '../../forecast/forecast.module';
 import { ForecastService } from '../../forecast/forecast.service';
 import { IngestRunsService } from '../../ingestion/ingest-runs.service';
 import { INGESTION_QUEUE } from '../../ingestion/ingestion-scheduler.service';
+import { MATCH_ALERTS_QUEUE } from '../../match-alerts/match-alerts.service';
 import { NEWS_QUEUE } from '../../news/news-scheduler.service';
 import { LIVE_FEED_THRESHOLD } from './conditions';
 import type { Observations, Unreadable } from './readings';
@@ -22,6 +23,7 @@ export const WATCHED_QUEUES = [
   NEWS_QUEUE,
   CHANNEL_POST_QUEUE,
   DATA_QUALITY_QUEUE,
+  MATCH_ALERTS_QUEUE,
   WATCHDOG_QUEUE,
 ];
 

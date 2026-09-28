@@ -271,11 +271,11 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
    * shows, so an e-mail and a push open exactly what the inbox opens; a
    * producer with more to say registers a composer for its kind.
    */
-  async carry(scope?: { userIds: string[] }): Promise<CarryReport> {
+  async carry(scope?: { userIds: string[] }, page = 100): Promise<CarryReport> {
     if (this.delivery.describe().in_product_only) return { due: 0, carried: 0 };
     // A producer carries its own members at once (a briefing, a campaign);
     // the timer carries everyone's. The scope is who, never what.
-    const due = await this.store.due(100, scope?.userIds ?? null);
+    const due = await this.store.due(page, scope?.userIds ?? null);
     let carried = 0;
     // A member's batched kinds wait for the end of the pass and leave as one
     // message (T-830); everything else leaves one by one, as before.
@@ -421,5 +421,62 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
     const outcomes: EmitOutcome[] = [];
     for (const request of requests) outcomes.push(await this.emit(request));
     return outcomes;
+  }
+
+  /**
+   * Tell a whole audience about one thing, in one statement (T-835).
+   *
+   * The same rules as `emit` -- the switch, the category, team and
+   * competition mutes, quiet hours delaying and never dropping, the dedupe
+   * key -- applied by the database to every member at once
+   * (`writeForAudience`), instead of five queries a member. A match alert to
+   * ten thousand followers is one insert, not fifty thousand round trips.
+   *
+   * Sourceless only: a notification with a source can be refused by a block,
+   * and one refusal would abort the statement, so those go through `emit`.
+   * A kind with an hourly cap also goes one by one, because the cap is a
+   * per-member count and a note on the newest row. Like `emit`, it never
+   * throws; unlike `emit`, a failure is `null`, because the caller -- a
+   * queued job -- can try the whole audience again and must know to.
+   *
+   * Returns the members written, split into those who may be carried now and
+   * those whose quiet hours hold theirs.
+   */
+  async emitToAudience(
+    request: Omit<EmitRequest, 'userId' | 'sourceId'>,
+    userIds: string[],
+  ): Promise<{ now: string[]; delayed: string[] } | null> {
+    const told = { now: [] as string[], delayed: [] as string[] };
+    if (userIds.length === 0) return told;
+    if (NOTIFICATION_HOURLY_CAP[request.kind] !== undefined) {
+      const outcomes = await this.emitMany(userIds.map((userId) => ({ ...request, userId })));
+      outcomes.forEach((outcome, index) => {
+        const userId = userIds[index];
+        if (userId === undefined) return;
+        if (outcome === 'sent') told.now.push(userId);
+        if (outcome === 'delayed') told.delayed.push(userId);
+      });
+      return told;
+    }
+    try {
+      const written = await this.store.writeForAudience({
+        userIds,
+        kind: request.kind,
+        category: NOTIFICATION_CATEGORY_OF[request.kind],
+        wantedByDefault: NOTIFICATION_DEFAULTS[request.kind],
+        subjectType: request.subjectType,
+        subjectId: request.subjectId,
+        dedupeKey: request.dedupeKey ?? null,
+        quietHoursHold: !QUIET_HOURS_EXEMPT.includes(request.kind),
+      });
+      for (const row of written) (row.now ? told.now : told.delayed).push(row.userId);
+    } catch (error) {
+      this.log.error(
+        `notification.emit_failed kind=${request.kind} audience=${String(userIds.length)}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+      return null;
+    }
+    return told;
   }
 }

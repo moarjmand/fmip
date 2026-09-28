@@ -4124,3 +4124,65 @@ own task rather than widened into this one.
 **Consequences.** A new write fails CI until it is given a ceiling or a
 reason in `inventory.ts` and a line in `02-architecture.md`. A new ceiling is
 a `rate_limit` row plus an inventory entry (a test fails on either alone).
+
+## D-105 — Match alerts leave the live job: recorded in the run, written per event in one statement by a queued worker
+**Status:** Accepted · 2026-09-28 (revisable under the standing delegation of 2026-09-26)
+
+(D-104 is taken by T-838's open PR, so this is the next free number.)
+
+**Decision.** T-835 changes how D-098's alerts are written and carried, not
+what they say or to whom.
+
+- **The ingestion run only records.** `MatchAlertsService.after` and
+  `teamNewsAfter` derive the events as before and record each in
+  `match_alert`; nobody is told in the run. At the end of the run `dispatch`
+  adds one job to the `match-alerts` BullMQ queue carrying the run's event
+  keys. The queue and its worker run in the process that runs the jobs
+  (`INGESTION_SCHEDULE=on` with `REDIS_URL`); a worker may run in more than
+  one process.
+- **The worker writes per event, in one statement.** It claims each pending
+  event of its job (and any pending for more than two minutes, whose job was
+  lost) with `FOR UPDATE SKIP LOCKED` and a two-minute lease, reads the
+  audience -- the followers, or for a correction those told of the goal -- and
+  writes every notification with one `INSERT ... SELECT`
+  (`NotificationsService.emitToAudience`). The rules are `emit`'s, as
+  conditions of the SELECT: the member's switch or the default, the category
+  mute, `notification_muted_for` (the one copy of the team and competition
+  mute rule), `quiet_hours_end` for the hold, and the dedupe key's unique
+  index with `ON CONFLICT DO NOTHING`. It marks the event done
+  (`expanded_at`), and when its events are written it carries what it wrote
+  for now, one push per member per page.
+- **Idempotent by the keys, not by the claim.** A retry, a second worker or a
+  replay reaches nobody twice because the event key is the dedupe key and the
+  delivery claim is per notification. The lease only saves work. A correction
+  is not claimed while the goal it withdraws is pending, so its audience is
+  complete. An event a stopped worker had claimed carries its whole audience
+  when it is taken over, since some of its notifications may be written and
+  not yet carried (`carry` sends only what is due and unclaimed).
+- **Without a queue** (no Redis, a test, a queue that refuses the job) the
+  run expands its own events at its end, as before.
+
+**Why.** T-834 measured the old path at about 12 ms per member told, all of
+it inside the live job: a goal burst to 10,000 followers took 64-70 s, and a
+three o'clock kick-off held the live job for ten minutes, so the scores were
+late too. Taking the alerts out of the run keeps the live job at 3-4 s
+whatever the audience, and one statement per event replaces about five
+queries per member (docs/08-load-test.md, "T-835").
+
+**Where the batch changed.** D-098's "one member's alerts of one run leave as
+one push" is now "of one job, per page of 500 notifications": events of one
+run are one job, but a member whose notifications straddle two pages, or two
+jobs racing, may get two pushes. T-836 pages by member.
+
+**Alternatives considered.** A job per event: many small jobs for a burst,
+and the batch per member would be lost entirely. Expanding in the database
+with a trigger on `match_alert`: the insert would run inside the live job's
+transaction, which is the cost being removed. Keeping `emit` per member in
+the worker: off the live job, but 50,000 round trips for a kick-off.
+
+**Consequences.** `match_alert` gains `claimed_at` and `expanded_at`
+(`1764820000000_match-alert-queue.sql`; rows already there are marked done).
+The watchdog watches the new queue's failed jobs, and failure counts count
+them. `emitToAudience` is sourceless only and sends a capped kind through
+`emit`, because a block refusal or a per-member cap cannot be a condition of
+one statement.

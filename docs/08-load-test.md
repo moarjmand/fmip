@@ -208,6 +208,12 @@ switches, the mutes, the hourly cap, quiet hours), and at the end of the run
 carries what it raised, one push per member (`MatchAlertsService.deliver`
 → `carry`). Everything happens inside the live job's run.
 
+**Since T-835 (D-105)** the live job only records the events (`match_alert`)
+and hands them to the `match-alerts` BullMQ queue. A worker writes each
+event's notifications in one statement and carries them; see "T-835: the
+alerts off the live job" below. The record and the gap that follow are of
+the path before it, and the reason for it.
+
 ### The threshold
 
 **A goal's push leaves within 60 seconds of the live tick that first sees
@@ -353,3 +359,54 @@ everything the five-minute timer carries. Each pass is 100 notifications, so
 a campaign to 10,000 members would reach its first hundred at once and the
 rest over about eight hours. That is left for its own task: the loop added
 here is the match alerts' only.
+
+### T-835: the alerts off the live job
+
+Remedies 1 and 2 above (D-105):
+
+- **The live job records and hands over.** `MatchAlertsService.after`
+  records each event in `match_alert` and returns its key; at the end of
+  the run `dispatch` adds one job to the `match-alerts` queue with the
+  run's keys. The live job's run no longer waits on any audience.
+- **One statement per event.** The worker claims each pending event
+  (`FOR UPDATE SKIP LOCKED`, a two-minute lease), reads the audience once
+  per match, and writes every follower's notification with one
+  `INSERT ... SELECT` (`NotificationsService.emitToAudience`: the switch,
+  the category, team and competition mutes, quiet hours, the dedupe key).
+  Then it carries what it wrote, in pages of 500.
+
+`--queue` runs the script through the queue, with a worker in the same
+process, as production runs it. It needs `REDIS_URL` pointing at a
+throwaway Redis (the queue is emptied). `job_ms` is then the live job
+alone, and `alerts_done_ms` is until the worker has nothing left.
+
+```bash
+docker run -d --name fmip-redis-load -p 127.0.0.1:6391:6379 redis:7-alpine
+DATABASE_URL=... REDIS_URL=redis://127.0.0.1:6391 SESSION_SECRET=... MODEL_SERVICE_URL=none \
+  node apps/api/scripts/load-match-alerts.mjs --competitions 15 --matches 6 \
+  --members 10000 --teams-per-member 2 --competition-share 0.3 --ticks 3 \
+  --goals-per-tick 10 --queue
+docker rm -f fmip-redis-load
+```
+
+**Record, 2026-09-28**, same machine and shape as above, Redis 7 in Docker,
+pushes instant (`--push-ms 0`):
+
+| Members | Tick | Live job | Notifications | Pushes | Push p50 / p95 / max | Left for the timer | Verdict |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 2,000 | 10 goals, ×3 | 2.7–3.9 s | 827–890 | 669–786 | 5,403–7,611 / 8,042–9,797 / ≤9,975 | 0 | pass |
+| 10,000 | 10 goals, ×3 | 3.1–3.5 s | 4,142–4,336 | 3,933–4,223 | 19,108–21,102 / 32,818–34,611 / ≤36,021 | 0 | **pass** (was 62.5–68.4 s) |
+| 10,000 | kick-off (90) | 3.8 s | 38,304 | 35,862 | 168,163 / 291,081 / 304,778 | 0 | fail (T-836) |
+
+**The live job now takes 3–4 s whatever the audience,** at 10,000 members
+as at 2,000, so no live tick waits on alerts (it took 64–70 s per goal burst
+at 10,000 before, and a Saturday's kick-off held it for ten minutes). The
+goal burst at 10,000 members is within the 60 s threshold with room. What
+is left is the carrying: claim, send and record one after another, about
+7 ms per notification. That is T-836.
+
+One more fix the run forced: `recordDelivery` writes
+`carried_at = greatest(now(), claimed_at)`. The database clock here steps
+back now and then (the Docker VM resyncing), the `carried_after_claim`
+check refused one record, and the exception stopped the whole carry, which
+left 4,019 kick-off pushes for the timer.

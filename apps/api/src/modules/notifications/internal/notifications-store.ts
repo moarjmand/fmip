@@ -142,6 +142,69 @@ export class PostgresNotificationsStore {
   }
 
   /**
+   * One notification to each of many members, in one statement (T-835): an
+   * `INSERT ... SELECT` over the audience with every rule `emit` applies one
+   * member at a time, as conditions of the SELECT:
+   *
+   * - **the switch:** the member's own row for the kind, else the default;
+   * - **the category mute;**
+   * - **the team and competition mutes,** asked of `notification_muted_for`,
+   *   the one copy of that rule;
+   * - **quiet hours delay, never drop:** `deliver_after` is when the
+   *   member's window ends (`quiet_hours_end`), the reason says so;
+   * - **once:** the dedupe key's unique index, `ON CONFLICT DO NOTHING`.
+   *
+   * Sourceless only, and the caller refuses a kind with an hourly cap (both
+   * are `emit`'s): the block guard can refuse only a row with a source, and
+   * one refusal would abort the whole statement. Returns who was written,
+   * and whether each may leave now or waits for their quiet hours.
+   */
+  async writeForAudience(entry: {
+    userIds: string[];
+    kind: string;
+    category: string;
+    wantedByDefault: boolean;
+    subjectType: string;
+    subjectId: string;
+    dedupeKey: string | null;
+    /** False for a kind quiet hours never hold (`QUIET_HOURS_EXEMPT`). */
+    quietHoursHold: boolean;
+  }): Promise<{ userId: string; now: boolean }[]> {
+    if (entry.userIds.length === 0) return [];
+    const { rows } = await this.pool.query<{ user_id: string; now: boolean }>(
+      `WITH audience AS (
+         SELECT DISTINCT a.user_id,
+                CASE WHEN $8::boolean THEN quiet_hours_end(a.user_id, now()) END AS quiet_until
+           FROM unnest($1::uuid[]) AS a (user_id)
+           JOIN user_account u ON u.id = a.user_id
+          WHERE coalesce((SELECT p.in_product FROM notification_preference p
+                           WHERE p.user_id = a.user_id AND p.kind = $2), $4::boolean)
+            AND NOT EXISTS (SELECT 1 FROM notification_mute m
+                             WHERE m.user_id = a.user_id AND m.scope = 'category' AND m.target = $3)
+            AND notification_muted_for(a.user_id, $5, $6) IS NULL
+       )
+       INSERT INTO notification
+         (user_id, kind, subject_type, subject_id, dedupe_key, deliver_after, held_reason)
+       SELECT user_id, $2, $5, $6, $7, coalesce(quiet_until, now()),
+              CASE WHEN quiet_until IS NOT NULL THEN 'your quiet hours' END
+         FROM audience
+       ON CONFLICT DO NOTHING
+       RETURNING user_id, deliver_after <= now() AS now`,
+      [
+        entry.userIds,
+        entry.kind,
+        entry.category,
+        entry.wantedByDefault,
+        entry.subjectType,
+        entry.subjectId,
+        entry.dedupeKey,
+        entry.quietHoursHold,
+      ],
+    );
+    return rows.map((row) => ({ userId: row.user_id, now: row.now }));
+  }
+
+  /**
    * Which kinds this member has turned off.
    *
    * Only the departures, because that is all the table holds (T-270). The
@@ -555,8 +618,12 @@ export class PostgresNotificationsStore {
   /** The outcome on each channel, written once; the trigger refuses a second. */
   async recordDelivery(notificationId: string, outcome: DeliveryRecord): Promise<void> {
     await this.pool.query(
+      // Never before the claim, even when the database's clock steps back
+      // between the two statements (a virtual machine resyncing its clock):
+      // the check refuses it, and one refused record stopped a whole
+      // Saturday's carry in the T-835 load run.
       `UPDATE notification_delivery
-          SET email = $2, push = $3, carried_at = now()
+          SET email = $2, push = $3, carried_at = greatest(now(), claimed_at)
         WHERE notification_id = $1`,
       [notificationId, outcome.email, outcome.push],
     );
