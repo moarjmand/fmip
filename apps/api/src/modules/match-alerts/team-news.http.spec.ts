@@ -101,12 +101,18 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       listFixtures: () => Promise.resolve(unsupported()),
       getLive: () => Promise.resolve(unsupported()),
       // Only about this match: another suite's fixtures are polled by the same
-      // job. Before the line-ups are out, an answer with nobody in it.
+      // job, and are answered with nobody -- not a refusal, which would make
+      // this run `partial` and the newest failure a parallel suite reads.
+      // Before the line-ups are out, this match's answer is nobody too.
       getLineup: (id: string) =>
         Promise.resolve(
-          id !== X('fixture')
-            ? unsupported()
-            : ok(lineup ?? { fixtureExternalId: X('fixture'), home: side([]), away: side([]) }),
+          ok(
+            (id === X('fixture') ? lineup : null) ?? {
+              fixtureExternalId: id,
+              home: side([]),
+              away: side([]),
+            },
+          ),
         ),
       getStandings: () => Promise.resolve(unsupported()),
       getFixtureDetail: () => Promise.resolve(unsupported()),
