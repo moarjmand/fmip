@@ -93,13 +93,28 @@ export class AuthRateLimiter {
          ON CONFLICT (subject, action, window_start)
            DO UPDATE SET count = auth_rate_window.count + 1
          RETURNING subject, action, count
+       ),
+       -- Each ceiling that refuses is counted for the day, for the System
+       -- page (T-811): the action and the day only, never the subject.
+       refused AS (
+         INSERT INTO rate_refusal (action, day, count)
+         SELECT c.action, $3::date, 1
+           FROM counted c
+           JOIN wanted w USING (subject, action)
+          WHERE c.count > w.per_hour
+         ON CONFLICT (action, day) DO UPDATE SET count = rate_refusal.count + 1
        )
        SELECT coalesce(bool_or(c.count > w.per_hour), false) AS refused,
               ceil(extract(epoch FROM date_trunc('hour', now()) + interval '1 hour' - now()))::int
                 AS retry_after
          FROM counted c
          JOIN wanted w USING (subject, action)`,
-      [checks.map((check) => check.subject), checks.map((check) => check.action)],
+      [
+        checks.map((check) => check.subject),
+        checks.map((check) => check.action),
+        // The UTC day as the application has it, like the report that reads it.
+        new Date().toISOString().slice(0, 10),
+      ],
     );
     const row = rows[0];
     if (row === undefined || !row.refused) return { ok: true };

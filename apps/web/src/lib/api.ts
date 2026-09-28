@@ -5,6 +5,7 @@ import type {
   AdminAlertsReport,
   AdminOverview,
   FailureCountsReport,
+  RateLimitsReport,
   WatchdogReport,
   AudiencesResponse,
   CampaignsResponse,
@@ -124,6 +125,11 @@ export function fetchFailureCounts(
 }
 
 /** `GET /admin/health/alerts` (T-802): the channels the alerts leave by, and where each went. */
+/** Every write's ceiling or its reason for none, with refusals per day (T-811), admin only. */
+export function fetchRateLimits(cookie: string | undefined): Promise<ApiResult<RateLimitsReport>> {
+  return apiRequest<RateLimitsReport>('/admin/rate-limits', cookie === undefined ? {} : { cookie });
+}
+
 export function fetchAdminAlerts(
   cookie: string | undefined,
 ): Promise<ApiResult<AdminAlertsReport>> {

@@ -142,6 +142,8 @@ export async function deleteAccountAction(
     method: 'POST',
     body,
     cookie: await sessionCookieHeader(),
+    // The password check is held to the sign-in ceilings, per address too (T-811).
+    clientIp: await readerAddress(),
   });
   if (!result.ok) return failure(result);
 

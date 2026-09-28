@@ -10,6 +10,8 @@ import {
   requestIdFrom,
 } from './observability/http-observability';
 import { JsonLogger } from './observability/json-logger';
+import { RateLimitsService } from './modules/rate-limits/rate-limits.service';
+import { registerRefusalCounter } from './modules/rate-limits/refusal-counter';
 
 const DEFAULT_PORT = 3001;
 
@@ -44,6 +46,9 @@ async function bootstrap(): Promise<void> {
   registerAccessLog(app.getHttpAdapter().getInstance(), logger, (seen) => {
     void failures.recordHttpError(seen);
   });
+  // A refusal by a database-enforced ceiling is counted per day here, because
+  // the trigger that refused it rolled its own count back (T-811).
+  registerRefusalCounter(app.getHttpAdapter().getInstance(), app.get(RateLimitsService));
   app.useGlobalFilters(new AllExceptionsFilter(logger));
 
   // Lets Nest run its shutdown hooks on SIGTERM, which is how Docker stops a

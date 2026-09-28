@@ -182,7 +182,8 @@ export class IdentityController {
     if (user === null) throw new UnauthorizedException(UNAUTHENTICATED);
     const input = unwrap(validateDeleteAccount(body));
 
-    const outcome = await this.identity.deleteAccount(user.id, input);
+    const outcome = await this.identity.deleteAccount(user.id, input, clientIpOf(request.headers));
+    if (isLimited(outcome)) refuse(reply, outcome);
     if (outcome === 'unknown') throw new UnauthorizedException(UNAUTHENTICATED);
     if (outcome !== 'deleted') {
       const error: ApiError = {

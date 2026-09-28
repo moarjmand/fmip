@@ -685,3 +685,13 @@ export type {
 // Activity counts per UTC day for the admin console (T-807).
 export { ACTIVITY_DEFAULT_DAYS, ACTIVITY_MAX_DAYS, ACTIVITY_METRICS } from './activity';
 export type { ActivityGroup, ActivityMetric, ActivityReport, ActivitySeries } from './activity';
+// The rate-limit inventory and refusals per day (T-811).
+export { RATE_REFUSAL_DAYS, RATE_REFUSAL_RETENTION_DAYS } from './rate-limits';
+export type {
+  RateLimitCeiling,
+  RateLimitEnforcement,
+  RateLimitExemption,
+  RateLimitSubject,
+  RateLimitsReport,
+  RateRefusalDay,
+} from './rate-limits';
