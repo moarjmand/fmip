@@ -18,7 +18,7 @@ import { type ApiResult, apiRequest } from './api';
 import { stepHref } from './first-run';
 import { applyGuestChoices } from './first-run-actions';
 import { afterRegistration, readInviter } from './invite';
-import { applyApiSetCookie, sessionCookieHeader } from './session';
+import { applyApiSetCookie, readerAddress, sessionCookieHeader } from './session';
 import { reconcileThemeAtSignIn } from './theme-cookie';
 
 /**
@@ -66,7 +66,11 @@ export async function registerAction(
     accept_rules: formData.get('accept_rules') === 'on',
   };
 
-  const result = await apiRequest<SessionResponse>('/auth/register', { method: 'POST', body });
+  const result = await apiRequest<SessionResponse>('/auth/register', {
+    method: 'POST',
+    body,
+    clientIp: await readerAddress(),
+  });
   if (!result.ok) return failure(result);
 
   await applyApiSetCookie(result.setCookie);
@@ -92,7 +96,11 @@ export async function loginAction(
     password: text(formData, 'password'),
   };
 
-  const result = await apiRequest<SessionResponse>('/auth/login', { method: 'POST', body });
+  const result = await apiRequest<SessionResponse>('/auth/login', {
+    method: 'POST',
+    body,
+    clientIp: await readerAddress(),
+  });
   if (!result.ok) return failure(result);
 
   await applyApiSetCookie(result.setCookie);
@@ -121,6 +129,7 @@ export async function forgotPasswordAction(
   const result = await apiRequest<{ accepted: true }>('/auth/password/forgot', {
     method: 'POST',
     body: { email: text(formData, 'email') },
+    clientIp: await readerAddress(),
   });
   if (!result.ok) return failure(result);
 
@@ -138,6 +147,7 @@ export async function resetPasswordAction(
   const result = await apiRequest<{ reset: true }>('/auth/password/reset', {
     method: 'POST',
     body: { token: text(formData, 'token'), password: text(formData, 'password') },
+    clientIp: await readerAddress(),
   });
   if (!result.ok) return failure(result);
 

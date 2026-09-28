@@ -38,6 +38,11 @@
 			# Caddy carries an upgrade through without being told to; this is
 			# here for the frames, which must not sit in a buffer.
 			flush_interval -1
+			# The API trusts this header as the reader's address for its
+			# sign-in rate limits (T-810, D-093), and only the web app may set
+			# it; on the one route that skips the web app, a reader's own copy
+			# is dropped here.
+			header_up -X-Fmip-Client-Ip
 		}
 	}
 
