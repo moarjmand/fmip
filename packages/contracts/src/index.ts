@@ -185,6 +185,13 @@ export type {
   TeamSummary,
   TeamsResponse,
 } from './catalog';
+// The match centre's competition context (blueprint 4.2, T-840).
+export type {
+  CompetitionContext,
+  CompetitionContextTable,
+  CompetitionContextTie,
+  ContextStanding,
+} from './competition-context';
 // The Following feed (blueprint 12.1, T-333): ranked from qualified signals,
 // never raw volume, and saying what it is showing.
 export { FEED_RANKING_VERSION, FEED_SIGNALS } from './following-feed';

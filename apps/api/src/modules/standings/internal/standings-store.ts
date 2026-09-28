@@ -19,7 +19,51 @@ export class PostgresStandingsStore {
    */
   async leagueResults(
     seasonId: string,
+    before: string | null = null,
   ): Promise<{ results: Result[]; lastUpdatedAt: string | null }> {
+    return this.results(
+      `f.season_id = $1 AND (st.kind = 'league' OR (f.stage_id IS NULL AND c.kind = 'league'))`,
+      [seasonId],
+      before,
+    );
+  }
+
+  /**
+   * Finished results of one group of a group stage (T-840): the stage's
+   * fixtures carrying that group's name.
+   */
+  async groupResults(
+    stageId: string,
+    groupName: string,
+    before: string | null,
+  ): Promise<{ results: Result[]; lastUpdatedAt: string | null }> {
+    return this.results(`f.stage_id = $1 AND f.group_name = $2`, [stageId, groupName], before);
+  }
+
+  /** Every team of one group, finished or not. */
+  async groupParticipants(stageId: string, groupName: string): Promise<TableRow['team'][]> {
+    const { rows } = await this.pool.query<{ id: string; name: string; short_name: string | null }>(
+      `SELECT DISTINCT t.id, t.name, t.short_name
+         FROM fixture f
+         JOIN fixture_participant p ON p.fixture_id = f.id
+         JOIN team t ON t.id = p.team_id
+        WHERE f.stage_id = $1 AND f.group_name = $2
+        ORDER BY t.name`,
+      [stageId, groupName],
+    );
+    return rows;
+  }
+
+  /**
+   * Finished results matching `where` (over `f`, `c` and `st`) with their
+   * full-time score, kicked off before `before` when one is given.
+   */
+  private async results(
+    where: string,
+    params: unknown[],
+    before: string | null,
+  ): Promise<{ results: Result[]; lastUpdatedAt: string | null }> {
+    const at = params.length + 1;
     const { rows } = await this.pool.query<{
       id: string;
       kickoff_at: Date;
@@ -46,11 +90,11 @@ export class PostgresStandingsStore {
          JOIN fixture_participant a ON a.fixture_id = f.id AND a.side = 'away'
          JOIN team ta ON ta.id = a.team_id
          JOIN fixture_score sc ON sc.fixture_id = f.id AND sc.kind = 'full_time'
-        WHERE f.season_id = $1
+        WHERE ${where}
           AND f.status = 'finished'
-          AND (st.kind = 'league' OR (f.stage_id IS NULL AND c.kind = 'league'))
+          AND ($${at}::timestamptz IS NULL OR f.kickoff_at < $${at}::timestamptz)
         ORDER BY f.kickoff_at, f.id`,
-      [seasonId],
+      [...params, before],
     );
     let last: Date | null = null;
     for (const r of rows) if (last === null || r.updated_at > last) last = r.updated_at;

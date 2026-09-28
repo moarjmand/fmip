@@ -12,6 +12,7 @@ import type {
   BlocksResponse,
   ChatHealth,
   CommunityConsensusResponse,
+  CompetitionContext,
   CompetitionPage,
   CompetitionsResponse,
   ConsensusListResponse,
@@ -716,6 +717,13 @@ export function fetchConsensusList(
 export function fetchConsensus(fixtureId: string): Promise<ApiResult<CommunityConsensusResponse>> {
   return apiRequest<CommunityConsensusResponse>(
     `/fixtures/${encodeURIComponent(fixtureId)}/consensus`,
+  );
+}
+
+/** `GET /fixtures/:id/competition-context` (T-840): the table or the tie before kick-off. Public. */
+export function fetchCompetitionContext(fixtureId: string): Promise<ApiResult<CompetitionContext>> {
+  return apiRequest<CompetitionContext>(
+    `/fixtures/${encodeURIComponent(fixtureId)}/competition-context`,
   );
 }
 

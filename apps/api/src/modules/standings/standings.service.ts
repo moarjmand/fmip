@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { Covered, Leader, TableRow } from '@fmip/contracts';
+import type { CoverageState, Covered, Leader, TableRow } from '@fmip/contracts';
 import { covered } from '../fixtures/fixtures.service';
 import { PostgresStandingsStore } from './internal/standings-store';
 import { rankTable } from './internal/table';
@@ -28,6 +28,40 @@ export class StandingsService {
     ]);
     const rows = results.length === 0 ? [] : rankTable(results, participants);
     return covered(rows, rows.length === 0, declared, lastUpdatedAt);
+  }
+
+  /**
+   * A table as it stood before `before` (T-840): the season's league stage,
+   * or one group of a group stage. `counted` is how many finished matches it
+   * is built from; with none, there are no positions yet and `data` is null
+   * under the declared state rather than a grid of noughts ordered by name.
+   */
+  async tableBefore(
+    seasonId: string,
+    before: string,
+    group: { stageId: string; name: string } | null = null,
+  ): Promise<{
+    table: Covered<TableRow[]>;
+    counted: number;
+    teams: number;
+    declared: CoverageState | null;
+  }> {
+    const [{ results, lastUpdatedAt }, participants, declared] = await Promise.all([
+      group === null
+        ? this.store.leagueResults(seasonId, before)
+        : this.store.groupResults(group.stageId, group.name, before),
+      group === null
+        ? this.store.leagueParticipants(seasonId)
+        : this.store.groupParticipants(group.stageId, group.name),
+      this.store.declared(seasonId, 'standings'),
+    ]);
+    const rows = results.length === 0 ? [] : rankTable(results, participants);
+    return {
+      table: covered(rows, rows.length === 0, declared, lastUpdatedAt),
+      counted: results.length,
+      teams: participants.length,
+      declared,
+    };
   }
 
   /** Top goalscorers of a season from recorded goal incidents. */
