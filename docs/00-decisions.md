@@ -3678,3 +3678,65 @@ kind today and the inbox is the record the System page reads.
 <condition> is <level> (<note>)`, `Recovered: <condition> is ok again`),
 English like the condition names; it opens the System page
 (`/[locale]/admin/system`, T-804).
+
+## D-097 — Data-quality checks: a sweep every five minutes over stored rows, findings that resolve, a watchdog condition for live matches
+**Status:** Accepted · 2026-09-28 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-820's checks read only what ingestion has stored -- no
+provider request of their own -- and run as a BullMQ job scheduler
+(`data-quality` queue, every five minutes) in the process with
+`INGESTION_SCHEDULE=on`, like the watchdog. Each finding is a row in
+`data_quality_finding` naming the check and its subject (a fixture, one side
+of one, a pair, a team in a season's table), with `first_seen_at`,
+`last_seen_at` and `resolved_at`; a partial unique index keeps one unresolved
+row per (check, subject), so a sweep that sees the same problem moves
+`last_seen_at` on and never writes a second row, and a sweep that no longer
+sees it resolves it; an unchanged finding's row is rewritten at most hourly, and
+`data_quality_check_run` says exactly when each check last ran. Nothing is
+corrected automatically. The checks and
+the numbers the plan left open:
+
+- `finished_without_score`: `finished` with no `full_time` row.
+- `goals_disagree`: the goal incidents per side against `current` (live), or
+  `current`, then `extra_time`, then `full_time` (finished). Judged only when
+  the fixture has at least one incident. An own goal is accepted under either
+  side (feeds differ on which they file it under), and when a shoot-out is
+  recorded, penalty goals at minute 120 may be shoot-out kicks.
+- `live_overrun`: still `live` **180 minutes** after kick-off -- past ninety
+  minutes, the interval, stoppage, extra time and a shoot-out, and half an
+  hour before the live job stops asking about the match (210).
+- `lineup_not_eleven`: a stored line-up side with other than eleven starters.
+- "One provider id on two fixtures" is refused by `provider_mapping`'s unique
+  key, so it is read as its two real forms: `fixture_mapped_twice` (one
+  fixture carrying two ids from one provider) and `duplicate_fixture` (one
+  season, the same home and the same away team, kick-offs within **three
+  days**, neither cancelled).
+- `table_disagrees`: the standings job's existing comparison with the
+  provider's table (T-030), per team, kept as findings for that season; it
+  rides on the request that job already makes.
+
+T-821's watchdog condition `data_quality` counts the open findings nobody has
+marked reviewed that are about a match that is live or kicked off in the last
+**six hours**, and have been open for at least **ten minutes** (two sweeps):
+`degraded` at **1**, `failing` at **3**. Older findings are the admin page's,
+not an alert.
+
+**Why.** Five minutes because a sweep reads every stored fixture, and doing
+that every minute would be most of the database's work for nothing new, while
+a live contradiction still reaches the watchdog within a quarter of an hour.
+Findings resolve instead of being deleted so the page can say how long a
+problem lasted. The ten-minute age is the difference between a score that
+arrived one tick before its goal event and a timeline that is wrong; the
+six-hour horizon is what "a live match's data contradicts itself" means for
+an administrator woken by it, and a finished season's leftovers are not news.
+
+**Alternatives considered.** Running the checks at the end of every ingest
+run: the live job runs every minute and would sweep every minute. Correcting
+obvious cases (closing a stuck live match): the plan forbids it, and a wrong
+correction is worse than a visible question. Deleting resolved findings: the
+history of what went wrong is the point of the page.
+
+**Consequences.** A threshold is a one-line change in
+`apps/api/src/modules/data-quality/internal/checks.ts` (checks) or
+`apps/api/src/modules/watchdog/internal/conditions.ts` (the watchdog), and an
+edit here.
