@@ -1,10 +1,7 @@
 {
   "model_version": "dixon-coles-elo@0.5.0",
   "own_elo_rules": "own-elo@1.0.0",
-  "window": [
-    "2025-08-01",
-    "2026-06-30"
-  ],
+  "window": ["2025-08-01", "2026-06-30"],
   "note": "Run 2026-09-29 on the maintainer's laptop, on a training store built for it: football-data.co.uk 2023/24 to 2026/27 for the ten divisions below (D-016), no aliases and none of our own records (the laptop holds no production fixtures), no Club Elo snapshot (its API answered 502). Own Elo therefore rates each division's clubs from that division's results alone.",
   "pooled_log_loss": {
     "none": 0.9965,
