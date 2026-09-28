@@ -44,6 +44,8 @@ export interface LeaderboardQuery {
   period: PeriodQuery;
   /** T-843: rate only the settlements on this competition's fixtures; null for all. */
   competition: string | null;
+  /** T-844: rank only members whose interface language has this primary subtag; null for all. */
+  language: string | null;
 }
 
 /** `2026-09` from 2000-01 to 2999-12, or null. */
@@ -83,7 +85,8 @@ function integer(value: string): number | null {
 
 /**
  * Parses `min_settled`, `limit`, `offset`, `scope`, `period`, `month`,
- * `season` and `competition` (T-843, an id), naming every bad field at once. Absent fields take the rules'
+ * `season`, `competition` (T-843, an id) and `language` (T-844, a primary
+ * language subtag such as `ar`), naming every bad field at once. Absent fields take the rules'
  * defaults; a `min_settled` under the floor is refused rather than raised, so
  * the caller learns the rule -- on a month or season board exactly as on the
  * all-time one (D-037, D-060).
@@ -157,7 +160,14 @@ export function parseLeaderboardQuery(
     else fields.competition = 'Must be a competition id.';
   }
 
+  let language: string | null = null;
+  const lang = first(raw.language);
+  if (lang !== undefined) {
+    if (/^[a-z]{2,3}$/i.test(lang)) language = lang.toLowerCase();
+    else fields.language = 'Must be a language code such as ar.';
+  }
+
   return Object.keys(fields).length > 0
     ? { ok: false, fields }
-    : { ok: true, query: { minSettled, limit, offset, scope, period, competition } };
+    : { ok: true, query: { minSettled, limit, offset, scope, period, competition, language } };
 }

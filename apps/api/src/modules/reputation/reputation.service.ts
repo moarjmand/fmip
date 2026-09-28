@@ -102,6 +102,12 @@ export class ReputationService {
    * rating history's per-competition figure is computed (T-640) -- behind
    * the same floor counted over those settlements alone (D-037), and under
    * the period boards' privacy rule, since it says where a member predicted.
+   *
+   * A language (T-844) changes only the population: members whose chosen
+   * interface language (`preferred_language`, by its primary subtag) is that
+   * language, intersected with `among`. Their language is not public, so a
+   * language board -- all time included -- is drawn only from members whose
+   * prediction history the viewer may read, as every board computed on read.
    */
   async leaderboard(
     query: LeaderboardQuery,
@@ -112,7 +118,8 @@ export class ReputationService {
       now?: Date;
     } = {},
   ): Promise<LeaderboardResponse> {
-    const among = options.among ?? null;
+    const viewerId = options.viewerId ?? null;
+    const among = await this.withLanguage(options.among ?? null, query.language, viewerId);
     const now = options.now ?? new Date();
     const generatedAt = now.toISOString();
     const [available, competitions, competitionName] = await Promise.all([
@@ -143,13 +150,7 @@ export class ReputationService {
         computed_at: r.computedAt,
       }));
     } else {
-      const rows = await this.computedRows(
-        period,
-        competition?.id ?? null,
-        among,
-        options.viewerId ?? null,
-        query,
-      );
+      const rows = await this.computedRows(period, competition?.id ?? null, among, viewerId, query);
       total = rows.length;
       entries = rows.slice(query.offset, query.offset + query.limit).map((r) => ({
         rank: r.rank,
@@ -170,6 +171,7 @@ export class ReputationService {
       available_periods: available,
       competition,
       available_competitions: competitions,
+      language: query.language,
       rules_version: this.leaderboardRules.version,
       min_settled: query.minSettled,
       floor: this.leaderboardRules.floor,
@@ -180,6 +182,22 @@ export class ReputationService {
       generated_at: generatedAt,
       entries,
     };
+  }
+
+  /**
+   * The population of a language board (T-844): the language's members,
+   * inside `among` when there is one, and only those whose prediction
+   * history the viewer may read. Without a language, `among` unchanged.
+   */
+  private async withLanguage(
+    among: string[] | null,
+    language: string | null,
+    viewerId: string | null,
+  ): Promise<string[] | null> {
+    if (language === null) return among;
+    const speakers = await this.profiles.membersByLanguage(language);
+    const inScope = among === null ? speakers : speakers.filter((id) => among.includes(id));
+    return [...(await this.profiles.predictionHistoryAudience(inScope, viewerId)).keys()];
   }
 
   /** Whether a competition exists, for the board's 404 (T-843). */

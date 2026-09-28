@@ -1797,5 +1797,20 @@
     "source": "All competitions",
     "text": "",
     "status": "untranslated"
+  },
+  "leaderboard.language.label": {
+    "source": "Language:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboard.language.all": {
+    "source": "All languages",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboard.language.note": {
+    "source": "A member's language is the one they chose for FMIP in Settings. It is not public, so this board shows only members whose prediction history you may see.",
+    "text": "",
+    "status": "untranslated"
   }
 }

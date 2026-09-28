@@ -424,6 +424,51 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Period leade
     expect((await get(`/leaderboard?competition=${CUP}&min_settled=1`)).statusCode).toBe(400);
   });
 
+  it("draws a language board from members who chose that language, under the history's privacy (T-844)", async () => {
+    // ann, cat and eve read FMIP in Arabic (cat as ar-EG), and gus too; the rest in English.
+    for (const [name, language] of [
+      ['ann', 'ar'],
+      ['cat', 'ar-EG'],
+      ['eve', 'ar'],
+      ['gus', 'ar'],
+    ] as const) {
+      await pool.query(`UPDATE user_account SET preferred_language = $2 WHERE id = $1`, [
+        users[name].id,
+        language,
+      ]);
+    }
+
+    // A language inside a competition: the cup's ratings, for Arabic readers only.
+    const cup = await board(`/leaderboard?language=ar&competition=${CUP}`, 'cat');
+    expect(cup.language).toBe('ar');
+    expect(names(cup).sort()).toEqual([users.ann.username, users.cat.username].sort());
+    // Signed out, cat's private history keeps her off it.
+    expect(names(await board(`/leaderboard?language=ar&competition=${CUP}`))).toEqual([
+      users.ann.username,
+    ]);
+
+    // All time, from the snapshots: eve is public; gus keeps his history
+    // private, so a board does not disclose his language, though his rating
+    // stays on the whole-site board. fay reads in English.
+    const allTime = await board('/leaderboard?language=ar&limit=100');
+    const ours = names(allTime).filter((n) => n.startsWith(`pb_${RUN}`));
+    expect(ours).toContain(users.eve.username);
+    expect(ours).not.toContain(users.gus.username);
+    expect(ours).not.toContain(users.fay.username);
+    expect(names(await board('/leaderboard?language=ar&limit=100', 'gus'))).toContain(
+      users.gus.username,
+    );
+
+    // A language nobody in the scope reads in: an empty board that names it.
+    const none = await board('/leaderboard?scope=friends&language=tr', 'eve');
+    expect(none.language).toBe('tr');
+    expect(none.entries).toEqual([]);
+    expect(none.total).toBe(0);
+    // The whole board carries no language.
+    expect((await board('/leaderboard?limit=1')).language).toBeNull();
+    expect((await get('/leaderboard?language=arabic')).statusCode).toBe(400);
+  });
+
   it('refuses what it does not understand, and the floor, on every board', async () => {
     const bad = await get('/leaderboard?scope=world&period=week');
     expect(bad.statusCode).toBe(400);

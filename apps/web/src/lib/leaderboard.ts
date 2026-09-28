@@ -29,6 +29,8 @@ export interface LeaderboardPageQuery {
   season: string | null;
   /** T-843: a competition id, to rate only its settlements; null for every competition. */
   competition: string | null;
+  /** T-844: a primary language subtag, to rank only members who chose it; null for all. */
+  language: string | null;
 }
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -57,6 +59,7 @@ export function readLeaderboardQuery(params: SearchParams): LeaderboardPageQuery
   const month = first(params.month);
   const season = first(params.season);
   const competition = first(params.competition);
+  const language = first(params.language);
   return {
     min: positiveInteger(first(params.min)),
     page: positiveInteger(first(params.page)) ?? 1,
@@ -66,6 +69,8 @@ export function readLeaderboardQuery(params: SearchParams): LeaderboardPageQuery
     season: kind === 'season' && season !== undefined && season.length <= 32 ? season : null,
     competition:
       competition !== undefined && UUID.test(competition) ? competition.toLowerCase() : null,
+    language:
+      language !== undefined && /^[a-z]{2,3}$/i.test(language) ? language.toLowerCase() : null,
   };
 }
 
@@ -80,6 +85,7 @@ export function apiQuery(q: LeaderboardPageQuery): string {
   if (q.period === 'month' && q.month !== null) params.set('month', q.month);
   if (q.period === 'season' && q.season !== null) params.set('season', q.season);
   if (q.competition !== null) params.set('competition', q.competition);
+  if (q.language !== null) params.set('language', q.language);
   return params.toString();
 }
 
@@ -100,10 +106,26 @@ export function pageHref(
   if (next.period === 'month' && next.month !== null) params.set('month', next.month);
   if (next.period === 'season' && next.season !== null) params.set('season', next.season);
   if (next.competition !== null) params.set('competition', next.competition);
+  if (next.language !== null) params.set('language', next.language);
   if (next.min !== null) params.set('min', String(next.min));
   if (next.page > 1) params.set('page', String(next.page));
   const query = params.toString();
   return `/${locale}/leaderboard${query === '' ? '' : `?${query}`}`;
+}
+
+/**
+ * A language's name in the reader's language (T-844), e.g. `ar` -> "Arabic";
+ * the code itself when the runtime has no name for it.
+ */
+export function languageLabel(code: string, locale = 'en'): string {
+  try {
+    return (
+      new Intl.DisplayNames([locale === 'x-rtl' ? 'en' : locale], { type: 'language' }).of(code) ??
+      code
+    );
+  } catch {
+    return code;
+  }
 }
 
 /** `2026-09` as "September 2026", in UTC so the name is the month the API rated. */
@@ -150,11 +172,19 @@ export function periodSentence(
 export function boardExplainer(
   board: Pick<LeaderboardResponse, 'scope' | 'period' | 'min_settled' | 'floor'> & {
     competition?: LeaderboardResponse['competition'];
+    language?: LeaderboardResponse['language'];
   },
   locale = 'en',
 ): string {
   const competition = board.competition?.name ?? null;
-  const among = board.scope === 'friends' ? ' among you and your friends' : '';
+  const language = board.language ?? null;
+  const readers = language === null ? '' : ` who use FMIP in ${languageLabel(language, locale)}`;
+  const among =
+    board.scope === 'friends'
+      ? ` among you and your friends${readers}`
+      : language === null
+        ? ''
+        : ` among members${readers}`;
   const inPeriod =
     board.period.kind !== 'all'
       ? ' in that period'
@@ -162,7 +192,7 @@ export function boardExplainer(
         ? ' in that competition'
         : '';
   const privacy =
-    board.period.kind === 'all' && competition === null
+    board.period.kind === 'all' && competition === null && language === null
       ? ''
       : ' A member appears only where their prediction history is visible to you.';
   return (
@@ -183,11 +213,16 @@ export function emptyBoardSentence(
   pastTheEnd: boolean,
   locale = 'en',
   competition: string | null = null,
+  language: string | null = null,
 ): string {
   if (pastTheEnd) return 'There is nobody on this page of the board.';
   if (period.kind === 'season' && period.label === null)
     return 'No season has a settled prediction yet, so there is no season board.';
-  const who = scope === 'friends' ? 'Neither you nor any of your friends has' : 'No member has';
+  const readers = language === null ? '' : ` who uses FMIP in ${languageLabel(language, locale)}`;
+  const who =
+    scope === 'friends'
+      ? `Neither you nor any of your friends${readers} has`
+      : `No member${readers} has`;
   const when =
     period.kind === 'month'
       ? ` in ${monthLabel(period.month, locale)}`

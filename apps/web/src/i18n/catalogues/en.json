@@ -396,5 +396,8 @@
   "notifications.match.fullTime": "Full-time, with the result",
   "notifications.match.quiet": "To silence one team or one competition, or every match alert at once, use What stays quiet below. Quiet hours hold match alerts too.",
   "leaderboard.competition.label": "Competition:",
-  "leaderboard.competition.all": "All competitions"
+  "leaderboard.competition.all": "All competitions",
+  "leaderboard.language.label": "Language:",
+  "leaderboard.language.all": "All languages",
+  "leaderboard.language.note": "A member's language is the one they chose for FMIP in Settings. It is not public, so this board shows only members whose prediction history you may see."
 }

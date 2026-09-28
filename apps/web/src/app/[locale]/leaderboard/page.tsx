@@ -4,6 +4,7 @@ import { fetchLeaderboard } from '@/lib/api';
 import {
   apiQuery,
   emptyBoardSentence,
+  languageLabel,
   monthLabel,
   pageCount,
   pageHref,
@@ -17,6 +18,10 @@ import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { Notice } from '@/components/ui';
 import { Translated } from '@/components/translated';
+import { UNFINISHED_LOCALES } from '@/i18n/locales';
+
+/** The languages a board can be drawn by (T-844): the ones the site is offered in. */
+const BOARD_LANGUAGES: readonly string[] = ['en', ...UNFINISHED_LOCALES];
 
 export const dynamic = 'force-dynamic';
 
@@ -125,6 +130,7 @@ export default async function LeaderboardPage({
                 month: null,
                 season: null,
                 competition: null,
+                language: null,
               })}
               className="underline"
             >
@@ -218,6 +224,36 @@ export default async function LeaderboardPage({
             </div>
           )}
 
+          <div className="flex flex-col gap-1 text-sm" data-testid="language-picker">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-muted">
+                <Translated locale={locale} message="leaderboard.language.label" />
+              </span>
+              <Link
+                href={pageHref(locale, q, { language: null, page: 1 })}
+                aria-current={result.data.language === null ? 'true' : undefined}
+                className={linkClass(result.data.language === null)}
+              >
+                <Translated locale={locale} message="leaderboard.language.all" />
+              </Link>
+              {BOARD_LANGUAGES.map((language) => (
+                <Link
+                  key={language}
+                  href={pageHref(locale, q, { language, page: 1 })}
+                  aria-current={result.data.language === language ? 'true' : undefined}
+                  className={linkClass(result.data.language === language)}
+                >
+                  {languageLabel(language, locale)}
+                </Link>
+              ))}
+            </div>
+            {result.data.language !== null && (
+              <p className="text-muted" data-testid="language-note">
+                <Translated locale={locale} message="leaderboard.language.note" />
+              </p>
+            )}
+          </div>
+
           <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="min-sample">
             <span className="text-muted">Minimum settled predictions:</span>
             {result.data.presets.map((preset) => (
@@ -253,6 +289,7 @@ export default async function LeaderboardPage({
                 q.page > 1 && result.data.total > 0,
                 locale,
                 result.data.competition?.name ?? null,
+                result.data.language,
               )}
             </p>
           ) : (

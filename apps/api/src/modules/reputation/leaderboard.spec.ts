@@ -27,6 +27,7 @@ describe('parseLeaderboardQuery', () => {
         scope: 'everyone',
         period: { kind: 'all' },
         competition: null,
+        language: null,
       },
     });
   });
@@ -41,6 +42,7 @@ describe('parseLeaderboardQuery', () => {
         scope: 'everyone',
         period: { kind: 'all' },
         competition: null,
+        language: null,
       },
     });
     expect(parseLeaderboardQuery({ min_settled: String(LEADERBOARD_RULES_V1.floor) }).ok).toBe(
@@ -73,6 +75,7 @@ describe('parseLeaderboardQuery', () => {
         scope: 'everyone',
         period: { kind: 'all' },
         competition: null,
+        language: null,
       },
     });
   });
@@ -132,6 +135,16 @@ describe('scope and period (T-641)', () => {
     });
     // The floor holds per competition exactly as on the whole board (D-037).
     expect(query({ competition: id, min_settled: '1' })).toHaveProperty('min_settled');
+  });
+
+  it('reads a language as its primary subtag, and names anything else (T-844)', () => {
+    expect(query({ language: 'AR' })).toMatchObject({ language: 'ar' });
+    expect(query({ language: 'pt', competition: undefined })).toMatchObject({ language: 'pt' });
+    expect(query({ language: 'pt-BR' })).toEqual({
+      language: 'Must be a language code such as ar.',
+    });
+    expect(query({ language: 'arabic' })).toHaveProperty('language');
+    expect(query({ language: 'ar', min_settled: '1' })).toHaveProperty('min_settled');
   });
 
   it('bounds a month in UTC, December into January', () => {

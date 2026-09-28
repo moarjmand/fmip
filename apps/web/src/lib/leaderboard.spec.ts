@@ -6,6 +6,7 @@ import {
   apiQuery,
   boardExplainer,
   emptyBoardSentence,
+  languageLabel,
   monthLabel,
   pageCount,
   pageHref,
@@ -26,6 +27,7 @@ const DEFAULT: LeaderboardPageQuery = {
   month: null,
   season: null,
   competition: null,
+  language: null,
 };
 const at = (change: Partial<LeaderboardPageQuery>): LeaderboardPageQuery => ({
   ...DEFAULT,
@@ -228,6 +230,51 @@ describe('a competition board (T-843)', () => {
     expect(page).toContain('result.data.available_competitions');
     expect(page).toContain('pageHref(locale, q, { competition: competition.id, page: 1 })');
     expect(page).toContain('result.data.competition?.name ?? null');
+  });
+});
+
+describe('a language board (T-844)', () => {
+  it('reads a language code, and drops a tag it cannot use', () => {
+    expect(readLeaderboardQuery({ language: 'AR' })).toEqual(at({ language: 'ar' }));
+    expect(readLeaderboardQuery({ language: 'pt-BR' })).toEqual(DEFAULT);
+  });
+
+  it('asks the API for it and keeps it in every link until changed', () => {
+    expect(apiQuery(at({ language: 'ar' }))).toBe(`limit=${PAGE_SIZE}&offset=0&language=ar`);
+    expect(pageHref('en', at({ language: 'ar', scope: 'friends' }), { page: 2 })).toBe(
+      '/en/leaderboard?scope=friends&language=ar&page=2',
+    );
+  });
+
+  it('names the language in the reader language, and the privacy rule', () => {
+    expect(languageLabel('ar')).toBe('Arabic');
+    expect(languageLabel('ar', 'fr')).toBe('arabe');
+    const text = boardExplainer({
+      scope: 'everyone',
+      period: { kind: 'all' },
+      min_settled: 30,
+      floor: 30,
+      competition: null,
+      language: 'ar',
+    });
+    expect(text).toContain('among members who use FMIP in Arabic');
+    expect(text).toContain('prediction history is visible to you');
+  });
+
+  it('says so when no member of that language reaches the floor', () => {
+    expect(emptyBoardSentence('everyone', { kind: 'all' }, 30, false, 'en', null, 'tr')).toBe(
+      'No member who uses FMIP in Turkish has 30 settled predictions yet.',
+    );
+  });
+
+  it('offers the site languages as links on the page', () => {
+    const page = readFileSync(
+      join(__dirname, '..', 'app', '[locale]', 'leaderboard', 'page.tsx'),
+      'utf8',
+    );
+    expect(page).toContain('data-testid="language-picker"');
+    expect(page).toContain("['en', ...UNFINISHED_LOCALES]");
+    expect(page).toContain('"leaderboard.language.note"');
   });
 });
 
