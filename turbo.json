@@ -21,7 +21,8 @@
     "DELIVERY_EMAIL_FROM",
     "VAPID_PUBLIC_KEY",
     "VAPID_PRIVATE_KEY",
-    "VAPID_SUBJECT"
+    "VAPID_SUBJECT",
+    "FMIP_CAMPAIGN_SCALE_MEMBERS"
   ],
   "tasks": {
     "build": {

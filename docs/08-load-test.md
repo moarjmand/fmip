@@ -410,3 +410,75 @@ One more fix the run forced: `recordDelivery` writes
 back now and then (the Docker VM resyncing), the `carried_after_claim`
 check refused one record, and the exception stopped the whole carry, which
 left 4,019 kick-off pushes for the timer.
+
+## Every carrier drains (T-837)
+
+That task. `NotificationsService.drain(scope)` carries page after page
+(`carry()`, 100 each) until a page comes back short, so nothing in scope is
+due. Each notification is claimed (`notification_delivery`'s key) before it
+is sent, so racing carriers never send one twice. A full page that claimed
+nothing means another carrier holds the rest; the drain stops rather than
+spin.
+
+**Bounded.** A drain stops after 500 pages (50,000 notifications) or four
+minutes of wall time, checked between pages. What it leaves is still due,
+and the next timer tick carries it.
+
+**Who drains:**
+
+- **A campaign** drains its reached members inside the send.
+- **The five-minute timer** drains everyone's due notifications. A tick that
+  finds the previous one still running skips.
+- **Match alerts** keep their own loop, now in the queued worker of T-835
+  (pages of 500). This task leaves it alone.
+
+### The record
+
+`apps/api/src/modules/campaigns/campaign-scale.http.spec.ts` sends one
+campaign through `CampaignsService.send`, with capturing e-mail and push
+channels. In the suite it sends to 1,000 members: ten pages, enough to prove
+the send drains past the first. With `FMIP_CAMPAIGN_SCALE_MEMBERS=10000` it
+sends to 10,000; that is the measured run below. The 10,000 run is not in
+the suite. It is about 100,000 queries over four to seven minutes, and
+beside the other suites on the one database it pushed their 5-second tests
+over the limit. The spec checks:
+
+- every member is reached;
+- every notification is claimed exactly once;
+- 10,000 e-mails and 10,000 pushes go out, one per member;
+- a second drain finds nothing.
+
+It prints the times. These runs were on 2026-09-28, on the maintainer's
+Windows machine, with Postgres in Docker on the same host. That Postgres was
+shared with another session's load runs, so the spread is wide:
+
+| Run | Emit (10,000 `emit()` + send rows) | Carry (drain) | Carried per second | Whole send |
+| --- | --- | --- | --- | --- |
+| 1 | 132.6 s | 114.4 s | 87 | 247.0 s |
+| 2 ¹ | 346.1 s | 83.3 s | 120 | 429.4 s |
+| 3 ¹ | 152.3 s | 99.3 s | 101 | 251.6 s |
+
+¹ The composer reads a campaign's words once per campaign instead of once
+per member. Campaigns are immutable (D-075).
+
+**Before:** the send carried the first 100, and the timer carried 100 every
+five minutes. The rest took **about eight hours**. **Now:** all 10,000 are
+carried in the send, in about **1.5 to 2 minutes** of carrying. The spec
+allows 15 minutes for a 10,000 send (scaled down for a smaller audience,
+two minutes at least), to leave room for a slower machine.
+
+```bash
+# The measured run, against a scratch database (migrated and seeded, with REDIS_URL set).
+cd apps/api
+FMIP_CAMPAIGN_SCALE_MEMBERS=10000 DATABASE_URL=... pnpm exec vitest run \
+  src/modules/campaigns/campaign-scale.http.spec.ts --silent=false
+```
+
+**What is left.** Emission is now the larger half: about six round trips per
+member, one member at a time. T-835's `emitToAudience` (one statement per
+audience) would apply here too. Campaigns stay on `emit` for now, because
+`send` records each member's outcome row. The carry is about three round
+trips per notification, with the sends one after another; T-836's bounded
+push pool applies to it too. The runs above were before T-835's
+`greatest(now(), claimed_at)` fix. One earlier attempt, inside the full
+suite, died on that clock step, and the rest waited for the timer.

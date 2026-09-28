@@ -53,8 +53,34 @@ export type BatchComposer = (due: DueNotification[]) => OutboundMessages | null;
 /** The web origin an e-mail's link is built on; the same `WEB_BASE_URL` identity uses. */
 export const WEB_ORIGIN = Symbol('WEB_ORIGIN');
 
+/**
+ * What `drain()` did: how many passes, how many notifications they carried,
+ * and why it stopped -- nothing left due (`drained`), a pass that claimed
+ * nothing because another carrier had them (`contended`), or a bound
+ * (`passes`, `time`), in which case the rest leaves on the timer's next tick.
+ */
+export interface DrainReport {
+  passes: number;
+  carried: number;
+  stopped: 'drained' | 'contended' | 'passes' | 'time';
+}
+
+/** How far one `drain()` may go before it yields (T-837). */
+export interface DrainBounds {
+  maxPasses: number;
+  maxMs: number;
+}
+
 /** How often held and missed notifications are carried once they are due (T-330). */
 const CARRY_EVERY_MS = 5 * 60_000;
+/** The page one `carry()` pass reads. */
+export const CARRY_PAGE = 100;
+/**
+ * One drain's bounds (T-837): 500 pages is 50,000 notifications, and four
+ * minutes is under the timer's five, so a run never overlaps the next tick
+ * and one carrier cannot hold the process; what is left leaves next time.
+ */
+export const DRAIN_BOUNDS: DrainBounds = { maxPasses: 500, maxMs: 4 * 60_000 };
 /** The push's title; the sentence is its body. */
 const PUSH_TITLE = 'FMIP';
 
@@ -117,6 +143,8 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
   private readonly composers = new Map<NotificationKind, Composer>();
   private readonly batchComposers = new Map<NotificationKind, BatchComposer>();
   private timer: NodeJS.Timeout | null = null;
+  /** The timer's drain in progress, so a tick that finds one running does not start a second. */
+  private ticking = false;
 
   constructor(
     private readonly store: PostgresNotificationsStore,
@@ -124,17 +152,34 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
     @Inject(WEB_ORIGIN) private readonly webOrigin: string,
   ) {}
 
-  /** A held notification leaves when its hold ends; a missed one on the next pass. Nothing waits on this. */
+  /**
+   * A held notification leaves when its hold ends; a missed one on the next
+   * tick. Each tick drains everything due, bounded (T-837): one page a tick
+   * was a hundred notifications per five minutes, hours for a large send.
+   * Nothing waits on this.
+   */
   onModuleInit(): void {
     if (process.env.NODE_ENV === 'test') return;
     this.timer = setInterval(() => {
-      this.carry().catch((error: unknown) =>
-        this.log.error(
-          `notification.carry_failed: ${error instanceof Error ? error.message : String(error)}`,
-        ),
-      );
+      void this.tick();
     }, CARRY_EVERY_MS);
     this.timer.unref();
+  }
+
+  /** One timer tick: a bounded drain of everyone's due notifications, never two at once. */
+  async tick(): Promise<DrainReport | null> {
+    if (this.ticking) return null;
+    this.ticking = true;
+    try {
+      return await this.drain();
+    } catch (error) {
+      this.log.error(
+        `notification.carry_failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return null;
+    } finally {
+      this.ticking = false;
+    }
   }
 
   onModuleDestroy(): void {
@@ -271,7 +316,7 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
    * shows, so an e-mail and a push open exactly what the inbox opens; a
    * producer with more to say registers a composer for its kind.
    */
-  async carry(scope?: { userIds: string[] }, page = 100): Promise<CarryReport> {
+  async carry(scope?: { userIds: string[] }, page = CARRY_PAGE): Promise<CarryReport> {
     if (this.delivery.describe().in_product_only) return { due: 0, carried: 0 };
     // A producer carries its own members at once (a briefing, a campaign);
     // the timer carries everyone's. The scope is who, never what.
@@ -322,6 +367,56 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
       carried += claimed.length;
     }
     return { due: due.length, carried };
+  }
+
+  /**
+   * Carry until nothing in scope is due, a page at a time (T-837).
+   *
+   * `carry()` is one page: a hundred notifications. A carrier that stopped
+   * there left a campaign's ten-thousandth member for the timer, which
+   * carried a hundred every five minutes -- about eight hours. So pass again
+   * while a pass found a full page; each pass claims what it sends before
+   * sending it (the claim is `notification_delivery`'s key), so nothing is
+   * sent twice however many carriers race, and each pass finds less. A pass
+   * that claimed nothing means another carrier holds the rest, and this one
+   * stops rather than spin.
+   *
+   * **Bounded**, so one run cannot hold the process: at most
+   * `bounds.maxPasses` pages and `bounds.maxMs` of wall time, checked between
+   * pages. What is left is still due, and the timer's next tick carries it.
+   */
+  async drain(
+    scope?: { userIds: string[] },
+    bounds: DrainBounds = DRAIN_BOUNDS,
+    clock: () => number = Date.now,
+  ): Promise<DrainReport> {
+    const started = clock();
+    let passes = 0;
+    let carried = 0;
+    let stopped: DrainReport['stopped'] = 'passes';
+    while (passes < bounds.maxPasses) {
+      if (passes > 0 && clock() - started >= bounds.maxMs) {
+        stopped = 'time';
+        break;
+      }
+      const pass = await this.carry(scope);
+      passes += 1;
+      carried += pass.carried;
+      if (pass.due < CARRY_PAGE) {
+        stopped = 'drained';
+        break;
+      }
+      if (pass.carried === 0) {
+        stopped = 'contended';
+        break;
+      }
+    }
+    if (stopped === 'passes' || stopped === 'time') {
+      this.log.warn(
+        `notification.drain_bounded stopped=${stopped} passes=${String(passes)} carried=${String(carried)}`,
+      );
+    }
+    return { passes, carried, stopped };
   }
 
   /** The sentence and the route, as the inbox shows them; a route that cannot be opened is left out of the e-mail and sends the push to the inbox. */
