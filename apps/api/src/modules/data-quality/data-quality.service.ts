@@ -146,7 +146,7 @@ export class DataQualityService {
   }
 
   /**
-   * What the watchdog's `data_quality` condition reads (T-821, D-096): open,
+   * What the watchdog's `data_quality` condition reads (T-821, D-097): open,
    * unreviewed findings about a match live or kicked off in the last six
    * hours, open for ten minutes or more; and the oldest of the swept checks'
    * newest runs, so a sweep that stopped reads as not known rather than fine.

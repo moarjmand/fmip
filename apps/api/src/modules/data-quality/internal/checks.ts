@@ -382,7 +382,7 @@ export function checkFreshness(
 }
 
 /**
- * What the watchdog's `data_quality` condition counts (T-821, D-096): open
+ * What the watchdog's `data_quality` condition counts (T-821, D-097): open
  * findings nobody has reviewed, about a match that is live or kicked off in
  * the last six hours, open for at least ten minutes (two sweeps) -- so a
  * score that arrives one tick before its goal event is not an alert.

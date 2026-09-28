@@ -293,7 +293,7 @@ export function deliveryChannel(
 }
 
 /**
- * Data-quality findings about a live match (T-821, D-096): open, unreviewed
+ * Data-quality findings about a live match (T-821, D-097): open, unreviewed
  * findings about a match live or kicked off in the last six hours, open for
  * ten minutes or more (the data-quality boundary counts them). One is a match
  * whose page contradicts itself right now; three is a feed doing it widely.
