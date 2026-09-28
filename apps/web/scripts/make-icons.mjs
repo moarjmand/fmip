@@ -5,10 +5,18 @@
 //   node scripts/make-icons.mjs           write the icons under public/icons
 //   node scripts/make-icons.mjs --check   exit 1 if a committed icon differs
 //
+// Writing also records `scripts/make-icons.manifest.json`: the SHA-256 of the
+// mark, of this script and of every icon it wrote. `brand-mark.spec.ts` checks
+// the committed files against it in milliseconds; rasterising all four icons
+// is CPU-bound (about a second alone, over five on a busy CI runner beside the
+// other suites), so the full `--check`, which also fails on a stale manifest,
+// runs once as its own CI step (`pnpm --filter @fmip/web icons:check`).
+//
 // The mark is deliberately limited to what this file can draw: a first
 // `<rect>` covering the whole view box (the tile) followed by `<rect>` and
 // `<circle>` shapes with a hex `fill`. Anything else is refused rather than
 // silently left out of the icons.
+import { createHash } from 'node:crypto';
 import { deflateSync } from 'node:zlib';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -16,6 +24,8 @@ import { fileURLToPath } from 'node:url';
 
 const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'icons');
 const SOURCE = join(OUT, 'mark.svg');
+const SCRIPT = fileURLToPath(import.meta.url);
+const MANIFEST = join(dirname(SCRIPT), 'make-icons.manifest.json');
 const SAMPLES = 4;
 /**
  * A maskable icon may be cropped to a circle of 40% of its size around the
@@ -179,12 +189,17 @@ function png(size, pixel) {
   ]);
 }
 
+const sha256 = (buffer) => createHash('sha256').update(buffer).digest('hex');
+
 const check = process.argv.includes('--check');
-const mark = parseMark(readFileSync(SOURCE, 'utf8'));
+const svg = readFileSync(SOURCE);
+const mark = parseMark(svg.toString('utf8'));
+const manifest = { source: sha256(svg), script: sha256(readFileSync(SCRIPT)), icons: {} };
 mkdirSync(OUT, { recursive: true });
 let stale = 0;
 for (const [name, size, options] of ICONS) {
   const image = png(size, draw(mark, size, options));
+  manifest.icons[name] = sha256(image);
   const path = join(OUT, name);
   if (check) {
     let committed = null;
@@ -201,5 +216,21 @@ for (const [name, size, options] of ICONS) {
     writeFileSync(path, image);
     process.stdout.write(`wrote ${name}\n`);
   }
+}
+const recorded = `${JSON.stringify(manifest, null, 2)}\n`;
+if (check) {
+  let committed = null;
+  try {
+    committed = readFileSync(MANIFEST, 'utf8');
+  } catch {
+    // Missing counts as stale.
+  }
+  if (committed !== recorded) {
+    stale += 1;
+    process.stdout.write('stale make-icons.manifest.json: run node scripts/make-icons.mjs\n');
+  }
+} else {
+  writeFileSync(MANIFEST, recorded);
+  process.stdout.write('wrote make-icons.manifest.json\n');
 }
 if (stale > 0) process.exit(1);
