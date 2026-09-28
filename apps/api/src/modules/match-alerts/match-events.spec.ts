@@ -10,7 +10,7 @@ import {
 } from './internal/match-events';
 import { composeBatch } from './match-alerts.service';
 
-// The event derivation and its keys (T-830, D-096), as pure functions over two
+// The event derivation and its keys (T-830, D-098), as pure functions over two
 // readings of one match. The database path is `match-alerts.http.spec.ts`.
 
 const F = '00000000-0000-4000-8000-00000000f830';
@@ -238,7 +238,7 @@ describe('one push for a burst', () => {
       body: 'Goal A.\nFull-time.',
       url: `/en/match/${F}`,
     });
-    // A match alert does not go by e-mail (D-096).
+    // A match alert does not go by e-mail (D-098).
     expect(one?.email).toBeNull();
     const two = composeBatch([due('1', F, 'Goal A.'), due('2', 'other', 'Goal B.')]);
     expect(two?.push?.url).toBe('/en/notifications');

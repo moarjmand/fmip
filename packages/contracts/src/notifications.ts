@@ -14,7 +14,7 @@ import type { DeliveryHealth } from './health';
  */
 
 /**
- * Match alerts (blueprint 12.2, T-830, D-096): raised by the live ingestion
+ * Match alerts (blueprint 12.2, T-830, D-098): raised by the live ingestion
  * when a followed team's or competition's match changes state. Kept as their
  * own list so the settings page can give them a section of their own and the
  * carrier can batch them per member. A disallowed goal is a `match_goal`
@@ -53,7 +53,7 @@ export const NOTIFICATION_KINDS = [
   'briefing',
   // A message from the platform to an audience (T-332, D-075).
   'campaign',
-  // Match alerts (T-830, D-096).
+  // Match alerts (T-830, D-098).
   ...MATCH_ALERT_KINDS,
 ] as const;
 
@@ -96,7 +96,7 @@ export const NOTIFICATION_DEFAULTS: Record<NotificationKind, boolean> = {
   // On, and a kind of its own so a member can turn campaigns off without
   // turning off what happens to their account (T-332).
   campaign: true,
-  // Match alerts (D-096): the moments a follower wants without asking --
+  // Match alerts (D-098): the moments a follower wants without asking --
   // the start, every goal, the result -- are on; half-time and red cards,
   // which double the pushes of an ordinary match for news the next goal or
   // the result carries anyway, are for a member who asks.

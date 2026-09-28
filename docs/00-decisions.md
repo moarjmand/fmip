@@ -3630,7 +3630,7 @@ renders `WatchdogReport`; T-805 replaces the backup probe's `undefined` with
 the newest recorded backup. Changing a threshold is a one-line change in
 `apps/api/src/modules/watchdog/internal/conditions.ts` and an edit here.
 
-## D-096 — Match alerts: raised from the live job's own writes, one per member per event, one push per run
+## D-098 — Match alerts: raised from the live job's own writes, one per member per event, one push per run
 **Status:** Accepted · 2026-09-28 (revisable under the standing delegation of 2026-09-26)
 
 **Decision.** T-830's match alerts are five notification kinds -- `match_kickoff`,
