@@ -4013,3 +4013,44 @@ handoff. `check-setup.sh` has a `Restore drill` line. T-804's System page
 shows both conditions through the watchdog report. A threshold change is a
 one-line change in `apps/api/src/modules/watchdog/internal/conditions.ts` and
 an edit here.
+
+---
+
+## D-102 — Activity counts: what is counted, per UTC day, from rows the product already keeps
+**Status:** Accepted · 2026-09-28 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-807's Activity page (`GET /admin/activity`, admin role) counts
+per UTC calendar day, over 30 days by default (at most 90): registrations
+(`user_account.created_at`), verifications (`email_verified_at`), sign-ins
+(`session.created_at`), active members (distinct members who started a
+session or submitted a prediction version that day), deletions
+(`retired_username.retired_at`), predictions, prediction changes (versions
+after the first), settlements (settled or voided), rating snapshots, direct
+messages, group posts (messages in groups and their match threads), match
+panel posts, group polls, reports, notifications written, and push and
+e-mail deliveries sent and failed (`notification_delivery.carried_at`).
+Every figure is a `count(*)` or a `count(DISTINCT ...)` computed in the
+database; the answer carries numbers and day labels only.
+
+**Why.** E80 says "counts, not tracking": nothing new is recorded about a
+member to produce these numbers, so each one is a column the product already
+writes for its own work. "Active" is the one definition with a choice in it:
+signing in or predicting are the two acts that leave a dated row per act
+(`session.last_seen_at` is only the newest visit, so a daily "seen" count
+would need a new record of each visit, which is tracking). UTC days, because
+the server's day is the one every other admin count uses (T-803).
+
+**What deletion does to the counts.** D-094 keeps a deleted account's
+tombstone, predictions, settlements, messages and reports, unnamed: they
+keep counting. It erases the address with its verification time and the
+sessions: those are not reconstructed, so a past day's verifications and
+sign-ins can fall after a deletion, and the page says so.
+
+**Alternatives considered.** A daily rollup table written by a job: faster on
+a large database, but a second copy of the same facts that can drift, and
+unnecessary at this size (one statement over indexed timestamp columns). A
+page-view or visit counter: new tracking, refused by E80.
+
+**Consequences.** Adding a count is a line in
+`apps/api/src/modules/activity/internal/activity-store.ts`, a name in
+`ACTIVITY_METRICS` and its words in `apps/web/src/lib/activity.ts`.
