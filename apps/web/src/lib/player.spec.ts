@@ -10,6 +10,7 @@ import {
   seasonsOf,
   spellPeriod,
 } from './player';
+import { afterTimeNote } from './team';
 
 const ID_A = '00000000-0000-4000-8000-000000000301';
 const ID_B = '00000000-0000-4000-8000-000000000302';
@@ -38,6 +39,8 @@ const match = (seasonId: string, role: PlayerMatch['role'], cameOn = false): Pla
     home: { id: 'a', name: 'A', short_name: null },
     away: { id: 'b', name: 'B', short_name: null },
     score: { home: 1, away: 0 },
+    after_extra_time: false,
+    penalties: null,
   },
   team: { id: 'a', name: 'A' },
   role,
@@ -99,5 +102,24 @@ describe('season selector', () => {
     expect(filterRecord(record, ID_A).map((r) => r.competition.id)).toEqual(['league']);
     expect(filterMatches(matches, ID_B).map((m) => m.role)).toEqual(['starter']);
     expect(filterMatches(matches, null)).toHaveLength(2);
+  });
+});
+
+describe('the match log after extra time (T-822)', () => {
+  it("says aet and the shoot-out from the player's own team's side", () => {
+    const base = match(ID_A, 'starter');
+    const m: PlayerMatch = {
+      ...base,
+      team: { id: 'b', name: 'B' },
+      fixture: {
+        ...base.fixture,
+        score: { home: 2, away: 2 },
+        after_extra_time: true,
+        penalties: { home: 3, away: 4 },
+      },
+    };
+    // The player played for the away side, which won the shoot-out.
+    expect(afterTimeNote(m.fixture, m.team.id)).toBe('aet, won 4–3 on penalties');
+    expect(afterTimeNote(base.fixture, base.team.id)).toBeNull();
   });
 });

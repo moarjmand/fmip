@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { fetchMe, fetchPlayer } from '@/lib/api';
 import { formatFixtureDate } from '@/lib/competition';
 import { moduleState } from '@/lib/match';
+import { afterTimeNote } from '@/lib/team';
 import {
   FOOT_LABEL,
   POSITION_LABEL,
@@ -329,6 +330,12 @@ export default async function PlayerPage({
                     : ` ${ltrIsolate(`${m.fixture.score.home}–${m.fixture.score.away}`)} `}
                   {m.fixture.away.short_name ?? m.fixture.away.name}
                 </Link>
+                {/* After extra time, and a shoot-out from the player's side (T-822). */}
+                {afterTimeNote(m.fixture, m.team.id) !== null && (
+                  <span className="text-xs text-muted" data-testid="after-time-note">
+                    {afterTimeNote(m.fixture, m.team.id)}
+                  </span>
+                )}
                 <span className="text-muted">{roleLabel(m)}</span>
                 {m.goals > 0 && <span>{m.goals === 1 ? '1 goal' : `${m.goals} goals`}</span>}
                 {m.assists > 0 && (

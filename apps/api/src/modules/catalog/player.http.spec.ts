@@ -220,4 +220,42 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('player page'
     );
     expect((await app.inject({ method: 'GET', url: `/players/nobody` })).statusCode).toBe(404);
   });
+
+  it('logs a match with the score after extra time, and the shoot-out beside it (T-822)', async () => {
+    // A cup-style tie in this season: 1-1 at ninety, 2-1 to alpha after extra time.
+    const aet = await fixture('2025-10-01T19:00:00Z', [1, 1]);
+    // And one level after extra time, 2-2, beta winning the shoot-out 4-3.
+    const pens = await fixture('2025-10-08T19:00:00Z', [1, 1]);
+    await pool.query(
+      `INSERT INTO fixture_score (fixture_id, kind, home, away) VALUES
+         ($1, 'extra_time', 1, 0), ($1, 'current', 2, 1),
+         ($2, 'extra_time', 1, 1), ($2, 'current', 2, 2), ($2, 'penalties', 3, 4)`,
+      [aet.id, pens.id],
+    );
+    await pool.query(
+      `INSERT INTO lineup (participant_id, person_id, role, shirt_number, position) VALUES
+         ($1, $3, 'starter', 8, 'midfielder'), ($2, $3, 'starter', 8, 'midfielder')`,
+      [aet.alpha, pens.alpha, PLAYER],
+    );
+
+    const page = (
+      await app.inject({ method: 'GET', url: `/players/${PLAYER}` })
+    ).json() as PlayerPage;
+    const log = page.recent_matches.data!.map((m) => [
+      m.fixture.id,
+      m.fixture.score,
+      m.fixture.after_extra_time,
+      m.fixture.penalties,
+    ]);
+    // Newest first; the ninety-minute 1-1 never reaches the log.
+    expect(log.slice(0, 2)).toEqual([
+      [pens.id, { home: 2, away: 2 }, true, { home: 3, away: 4 }],
+      [aet.id, { home: 2, away: 1 }, true, null],
+    ]);
+    // A league match without extra time says so.
+    expect(page.recent_matches.data![2]!.fixture).toMatchObject({
+      after_extra_time: false,
+      penalties: null,
+    });
+  });
 });
