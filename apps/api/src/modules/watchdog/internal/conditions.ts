@@ -340,13 +340,33 @@ export function dataQuality(seen: { open: number; sweptAt: Date | null }, now: D
 }
 
 /**
+ * What `backup_run` says about one kind of run (T-805): the newest successful
+ * one, and the newest of any outcome. `newest: null` means nothing was ever
+ * recorded on this deployment.
+ */
+export interface RunRecord {
+  lastSucceededAt: Date | null;
+  newest: { at: Date; ok: boolean; detail: string | null } | null;
+}
+
+const DAY = 24 * HOUR;
+const NOTE_DETAIL = 300;
+
+function detailOf(detail: string | null): string {
+  if (detail === null || detail === '') return '';
+  return `: ${detail.length > NOTE_DETAIL ? `${detail.slice(0, NOTE_DETAIL)}...` : detail}`;
+}
+
+/**
  * Seconds since the newest successful backup. The backup runs daily
  * (D-032), so `degraded` at 26 hours (one missed day, with slack for a slow
- * one) and `failing` at 50 (two).
+ * one) and `failing` at 50 (two). A newest run that failed is at least
+ * `degraded` at once (T-805, D-101): a failed backup reaches an administrator
+ * within minutes, not a day later when the age catches up.
  *
- * `undefined` means the API has nowhere to read a backup from: until T-805
- * records the backup's results where the API can read them, this condition is
- * `unknown` and says so, rather than `ok` because nothing said otherwise.
+ * `unknown` when nothing was ever recorded here -- a development machine, or a
+ * server whose timer is not installed -- rather than `ok` because nothing
+ * said otherwise; `undefined` when the record itself could not be read.
  */
 export const BACKUP_THRESHOLD: WatchdogThreshold = {
   unit: 'seconds',
@@ -354,32 +374,108 @@ export const BACKUP_THRESHOLD: WatchdogThreshold = {
   failing: 50 * HOUR,
 };
 
-export function backup(lastSucceededAt: Date | null | undefined, now: Date): Reading {
+export function backup(seen: RunRecord | undefined, now: Date): Reading {
   const threshold = BACKUP_THRESHOLD;
-  if (lastSucceededAt === undefined) {
+  if (seen === undefined) {
     return {
       key: 'backup',
       level: 'unknown',
       observed: null,
       threshold,
-      note: 'no backup record is readable by the API yet (T-805)',
+      note: 'the backup record could not be read',
     };
   }
-  if (lastSucceededAt === null) {
+  if (seen.newest === null) {
+    return {
+      key: 'backup',
+      level: 'unknown',
+      observed: null,
+      threshold,
+      note: 'no backup has recorded a result on this deployment (is fmip-backup.timer installed? docs/07-backups.md)',
+    };
+  }
+  if (seen.lastSucceededAt === null) {
     return {
       key: 'backup',
       level: 'failing',
       observed: null,
       threshold,
-      note: 'no successful backup on record',
+      note: `no successful backup on record; the newest run failed${detailOf(seen.newest.detail)}`,
     };
   }
-  const observed = Math.max(0, Math.round((now.getTime() - lastSucceededAt.getTime()) / 1000));
+  const observed = Math.max(0, Math.round((now.getTime() - seen.lastSucceededAt.getTime()) / 1000));
+  const level = levelOf(observed, threshold);
+  if (!seen.newest.ok) {
+    return {
+      key: 'backup',
+      level: level === 'failing' ? 'failing' : 'degraded',
+      observed,
+      threshold,
+      note: `the newest backup failed${detailOf(seen.newest.detail)}`,
+    };
+  }
   return {
     key: 'backup',
-    level: levelOf(observed, threshold),
+    level,
     observed,
     threshold,
     note: 'seconds since the newest successful backup',
+  };
+}
+
+/**
+ * Seconds since the newest restore drill that passed (T-805, D-101). The
+ * drill runs on the first Monday of each month (`fmip-restore-drill.timer`),
+ * so at most five weeks apart: `degraded` past 35 days (one drill missed),
+ * `failing` past 70 (two). A newest drill that failed is `failing` whatever
+ * its age: the off-provider copy did not restore, and that is the week's
+ * first task (docs/07-backups.md).
+ */
+export const RESTORE_DRILL_THRESHOLD: WatchdogThreshold = {
+  unit: 'seconds',
+  degraded: 35 * DAY,
+  failing: 70 * DAY,
+};
+
+export function restoreDrill(seen: RunRecord | undefined, now: Date): Reading {
+  const threshold = RESTORE_DRILL_THRESHOLD;
+  const key = 'restore_drill';
+  if (seen === undefined) {
+    return {
+      key,
+      level: 'unknown',
+      observed: null,
+      threshold,
+      note: 'the restore drill record could not be read',
+    };
+  }
+  if (seen.newest === null) {
+    return {
+      key,
+      level: 'unknown',
+      observed: null,
+      threshold,
+      note: 'no restore drill has recorded a result on this deployment (is fmip-restore-drill.timer installed? docs/07-backups.md)',
+    };
+  }
+  const observed =
+    seen.lastSucceededAt === null
+      ? null
+      : Math.max(0, Math.round((now.getTime() - seen.lastSucceededAt.getTime()) / 1000));
+  if (!seen.newest.ok) {
+    return {
+      key,
+      level: 'failing',
+      observed,
+      threshold,
+      note: `the newest restore drill failed${detailOf(seen.newest.detail)}`,
+    };
+  }
+  return {
+    key,
+    level: levelOf(observed ?? 0, threshold),
+    observed,
+    threshold,
+    note: 'seconds since the newest restore drill that passed',
   };
 }

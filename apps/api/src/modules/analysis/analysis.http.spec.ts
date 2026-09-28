@@ -377,6 +377,47 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the analysis
       expect(audited.map((a) => a.action)).toEqual(['analysis.changes', 'analysis.approved']);
     });
 
+    it('tells the analyst each decision, opening the draft, whatever team they muted (T-833)', async () => {
+      const { rows } = await pool.query<{
+        kind: string;
+        subject_type: string;
+        subject_id: string;
+        source_id: string | null;
+      }>(
+        `SELECT kind, subject_type, subject_id, source_id FROM notification
+          WHERE user_id = $1 ORDER BY created_at`,
+        [ids.get(analyst)],
+      );
+      // One per decision: the request for changes, then the approval.
+      expect(rows).toEqual([
+        {
+          kind: 'analysis_reviewed',
+          subject_type: 'analysis_draft',
+          subject_id: match,
+          source_id: null,
+        },
+        {
+          kind: 'analysis_reviewed',
+          subject_type: 'analysis_draft',
+          subject_id: match,
+          source_id: null,
+        },
+      ]);
+      // A subject of its own, so a team mute -- which silences what is about
+      // that team's matches -- does not silence the answer to a submission.
+      await pool.query(
+        `INSERT INTO notification_mute (user_id, scope, target)
+         SELECT $1, 'team', team_id::text FROM fixture_participant WHERE fixture_id = $2 LIMIT 1`,
+        [ids.get(analyst), match],
+      );
+      const muted = await pool.query<{ fixture: string | null; draft: string | null }>(
+        `SELECT notification_muted_for($1, 'fixture', $2) AS fixture,
+                notification_muted_for($1, 'analysis_draft', $2) AS draft`,
+        [ids.get(analyst), match],
+      );
+      expect(muted.rows[0]).toEqual({ fixture: 'team', draft: null });
+    });
+
     it('publishes to anybody, with the author standing attached and no session needed', async () => {
       const body = (
         await get(`/fixtures/${match}/community-analyses`)

@@ -8,10 +8,14 @@ import type {
 } from '@fmip/contracts';
 import { QueueEvents } from 'bullmq';
 import { Pool } from 'pg';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
 import { withTriggersOff } from '../../testing/cleanup';
-import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
+import {
+  DEFAULT_IDENTITY_OPTIONS,
+  IDENTITY_OPTIONS,
+  IdentityService,
+} from '../identity/identity.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AdminAlertsService, alertDedupeKey } from './admin-alerts.service';
 import { PostgresAlertCursor } from './internal/alert-cursor';
@@ -57,7 +61,10 @@ const quiet = (now: Date): Observations => ({
   model: { configured: false },
   delivery: { email: { configured: false }, push: { configured: false } },
   dataQuality: { open: 0, sweptAt: new Date(now.getTime() - 60_000) },
-  backup: undefined,
+  backups: {
+    backup: { lastSucceededAt: null, newest: null },
+    drill: { lastSucceededAt: null, newest: null },
+  },
 });
 const probes: WatchdogProbes = { observe: () => Promise.resolve(seen) };
 
@@ -122,6 +129,17 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the watchdog
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
     watchdog = app.get(WatchdogService);
+    // The alerts go to every administrator in the database, and in CI that
+    // includes the ones other suites create and delete while this one runs:
+    // a notification for an account deleted mid-delivery fails its foreign
+    // key, the delivery stops at that event (as it should), and this suite's
+    // counts are off by the other suite's timing. The real query still runs;
+    // its answer is narrowed to this suite's administrator.
+    const identity = app.get(IdentityService);
+    const holdersOf = identity.holdersOf.bind(identity);
+    vi.spyOn(identity, 'holdersOf').mockImplementation(async (role) =>
+      (await holdersOf(role)).filter((id) => id === adminId),
+    );
     pool = new Pool({ connectionString: DATABASE_URL });
     await clearWatchdog(pool);
     const a = await register(`wd_${RUN}a`);
@@ -195,6 +213,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the watchdog
     expect(observed.delivery).not.toHaveProperty('unreadable');
     expect(observed.ingest).not.toHaveProperty('unreadable');
     expect(observed.dataQuality).not.toHaveProperty('unreadable');
+    expect(observed.backups).not.toHaveProperty('unreadable');
     expect(observed.queues.map((q) => q.queue)).toEqual(WATCHED_QUEUES);
   });
 
@@ -403,7 +422,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the watchdog
         })
       ).json() as AdminAlertsReport;
       expect(report.channels).toEqual({ push: 'absent', email: 'absent', in_product_only: true });
-      expect(report.administrators).toBeGreaterThanOrEqual(1);
+      expect(report.administrators).toBe(1);
       expect(report.pending).toBe(0);
       expect(report.alerts.length).toBeGreaterThanOrEqual(2);
       const newest = report.alerts[0];
@@ -415,4 +434,53 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the watchdog
       expect(report.cursor.advanced_at).not.toBeNull();
     });
   });
+
+  it('reads what the backup scripts recorded in backup_run (T-805)', async () => {
+    // Stamped ahead of now, so they are the newest rows whatever else a shared
+    // database holds (a developer's own backup runs, say).
+    const base = Date.now();
+    const ahead = (hours: number): Date => new Date(base + hours * 3600_000);
+    const { rows } = await pool.query<{ id: string }>(
+      `INSERT INTO backup_run (kind, started_at, finished_at, ok, subject, detail) VALUES
+         ('backup', $1, $1, true, 'fmip-a.dump', 'local only'),
+         ('backup', $2, $2, false, 'fmip-b.dump', 'backup.sh stopped with status 1 during: pg_dump'),
+         ('restore_drill', $1, $1, true, 'fmip-a.dump', 'offsite; 1 migrations'),
+         ('restore_drill', $2, $2, false, 'fmip-b.dump', 'offsite; row counts differ from the manifest')
+       RETURNING id`,
+      [ahead(1), ahead(2)],
+    );
+    try {
+      const observed = await app.get(LiveProbes).observe(new Date());
+      if ('unreadable' in observed.backups) throw new Error(observed.backups.unreadable);
+      expect(observed.backups.backup.lastSucceededAt?.getTime()).toBe(ahead(1).getTime());
+      expect(observed.backups.backup.newest).toMatchObject({
+        ok: false,
+        detail: expect.stringMatching(/pg_dump/) as string,
+      });
+      expect(observed.backups.drill.lastSucceededAt?.getTime()).toBe(ahead(1).getTime());
+      expect(observed.backups.drill.newest?.ok).toBe(false);
+
+      seen = { ...quiet(new Date()), backups: observed.backups };
+      await clearWatchdog(pool);
+      await watchdog.tick(new Date());
+      const report = await watchdog.report(new Date());
+      // The newest backup failed: degraded at once. The newest drill failed: failing.
+      expect(report.conditions.find((c) => c.key === 'backup')).toMatchObject({
+        level: 'degraded',
+      });
+      expect(report.conditions.find((c) => c.key === 'restore_drill')).toMatchObject({
+        level: 'failing',
+        threshold: { unit: 'seconds', degraded: 35 * 86400, failing: 70 * 86400 },
+      });
+      expect(report.events.find((e) => e.condition === 'restore_drill')).toMatchObject({
+        kind: 'raised',
+        alert: true,
+      });
+    } finally {
+      await pool.query('DELETE FROM backup_run WHERE id = ANY($1::bigint[])', [
+        rows.map((r) => r.id),
+      ]);
+      await clearWatchdog(pool);
+    }
+  }, 20_000);
 });

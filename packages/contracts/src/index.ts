@@ -675,3 +675,6 @@ export type {
   QueueFailures,
   RouteErrors,
 } from './failure-counts';
+// Activity counts per UTC day for the admin console (T-807).
+export { ACTIVITY_DEFAULT_DAYS, ACTIVITY_MAX_DAYS, ACTIVITY_METRICS } from './activity';
+export type { ActivityGroup, ActivityMetric, ActivityReport, ActivitySeries } from './activity';

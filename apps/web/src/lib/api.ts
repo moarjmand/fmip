@@ -1,6 +1,7 @@
 import type {
   AchievementsResponse,
   SavedArticlesResponse,
+  ActivityReport,
   AdminAlertsReport,
   AdminOverview,
   FailureCountsReport,
@@ -128,6 +129,17 @@ export function fetchAdminAlerts(
 ): Promise<ApiResult<AdminAlertsReport>> {
   return apiRequest<AdminAlertsReport>(
     '/admin/health/alerts',
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/** `GET /admin/activity?days=` (T-807): counts per UTC day, aggregates only. */
+export function fetchActivity(
+  days: number,
+  cookie: string | undefined,
+): Promise<ApiResult<ActivityReport>> {
+  return apiRequest<ActivityReport>(
+    `/admin/activity?days=${String(days)}`,
     cookie === undefined ? {} : { cookie },
   );
 }

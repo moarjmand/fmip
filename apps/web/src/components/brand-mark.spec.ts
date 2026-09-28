@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createElement } from 'react';
@@ -63,11 +63,30 @@ describe('the share cards', () => {
 
 describe('make-icons.mjs', () => {
   it('has drawn the committed icons from the current mark', () => {
-    // Exits 1 and names the icon when a committed PNG is not what the mark
-    // draws, which is how an edit to the mark without regenerating shows up.
-    const out = execFileSync(process.execPath, [`${WEB}scripts/make-icons.mjs`, '--check'], {
-      encoding: 'utf8',
-    });
-    expect(out).toBe('');
+    // The script records what it drew from (the mark and itself) and what it
+    // wrote. An edit to the mark or the script without regenerating, or an
+    // icon changed by hand, no longer matches the record. Rasterising the
+    // icons again is the CI step `icons:check` (seconds of CPU on a busy
+    // runner, too slow for a unit test); it also fails on a stale record.
+    const manifest = JSON.parse(readFileSync(`${WEB}scripts/make-icons.manifest.json`, 'utf8')) as {
+      source: string;
+      script: string;
+      icons: Record<string, string>;
+    };
+    const sha256 = (path: string) =>
+      createHash('sha256')
+        .update(readFileSync(`${WEB}${path}`))
+        .digest('hex');
+    expect(sha256('public/icons/mark.svg')).toBe(manifest.source);
+    expect(sha256('scripts/make-icons.mjs')).toBe(manifest.script);
+    expect(Object.keys(manifest.icons).sort()).toEqual([
+      'apple-touch-icon.png',
+      'icon-192.png',
+      'icon-512.png',
+      'icon-maskable-512.png',
+    ]);
+    for (const [name, hash] of Object.entries(manifest.icons)) {
+      expect(sha256(`public/icons/${name}`), name).toBe(hash);
+    }
   });
 });
