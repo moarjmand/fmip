@@ -4,8 +4,14 @@ import { notFound } from 'next/navigation';
 import type { NewsEntity, NewsReport, StoryPage as StoryPageData } from '@fmip/contracts';
 import { Translated } from '@/components/translated';
 import { formatDateTime } from '@/i18n/format';
-import { fetchMe, fetchSavedArticles, fetchStory } from '@/lib/api';
+import { fetchFollowing, fetchMe, fetchSavedArticles, fetchStory } from '@/lib/api';
 import { SaveArticle } from '@/components/save-article';
+import { ShareLink } from '@/components/share-link';
+import {
+  StoryFollowControls,
+  StoryPredictionLinks,
+  followableEntities,
+} from '@/components/story-links';
 import {
   VERSION_STATUS_KEY,
   entityHref,
@@ -14,7 +20,7 @@ import {
   storyHref,
   versionStatus,
 } from '@/lib/news';
-import { pageMetadata } from '@/lib/seo';
+import { canonicalUrl, pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { Notice } from '@/components/ui';
 
@@ -50,9 +56,13 @@ export async function generateMetadata({
  * the same event, and the match, teams and competition it is about.
  *
  * What the blueprint lists and a free feed cannot give is named, not filled
- * (rule 3): the body is `not_supplied` and the page sends the reader on; the
- * three prediction products live on the match page, where rule 6 keeps them
- * apart, and are linked, not copied; save and share are not built.
+ * (rule 3): the body is `not_supplied` and the page sends the reader on.
+ *
+ * T-842 added saving. T-941 adds a share control (the page's canonical
+ * address and nothing about the sharer, T-521), follow controls for the teams
+ * and competitions the story links, and for a match story the three
+ * prediction products as three links, each with its own name, to their own
+ * sections of the match centre: linked, never copied or combined (rule 6).
  */
 export default async function StoryPage({
   params,
@@ -65,10 +75,11 @@ export default async function StoryPage({
   if (!UUID.test(id)) notFound();
   const q = readStoryQuery(query);
   const cookie = await sessionCookieHeader();
-  const [me, result, savedList] = await Promise.all([
+  const [me, result, savedList, following] = await Promise.all([
     fetchMe(cookie),
     fetchStory(id, q.language, locale),
     fetchSavedArticles(cookie),
+    fetchFollowing(cookie),
   ]);
   if (!result.ok && result.status === 404) notFound();
   const timeZone = me?.timezone ?? 'UTC';
@@ -213,13 +224,20 @@ export default async function StoryPage({
           <p data-testid="story-match">
             <Link href={entityHref(locale, match)} className="underline">
               <Translated locale={locale} message="story.matchCentre" />
-            </Link>{' '}
-            <span className="text-muted">
-              <Translated locale={locale} message="story.matchProducts" />
-            </span>
+            </Link>
           </p>
         )}
       </section>
+
+      {match !== null && <StoryPredictionLinks locale={locale} fixtureId={match.entity_id} />}
+
+      <StoryFollowControls
+        locale={locale}
+        storyId={story.story_id}
+        entities={followableEntities(named)}
+        signedIn={me !== null}
+        following={following}
+      />
 
       <section aria-labelledby="reports" className="flex flex-col gap-2 text-sm">
         <h2 id="reports" className="font-semibold">
@@ -258,8 +276,12 @@ export default async function StoryPage({
         </p>
       ) : null}
 
-      <p className="text-sm text-muted" data-testid="story-not-yet">
-        <Translated locale={locale} message="story.notYet" />
+      <p className="text-sm" data-testid="story-share">
+        <ShareLink
+          url={canonicalUrl(locale, `/news/story/${id}`)}
+          title={story.headline}
+          label={<Translated locale={locale} message="story.share" />}
+        />
       </p>
 
       <p
