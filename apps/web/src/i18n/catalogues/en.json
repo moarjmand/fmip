@@ -399,5 +399,10 @@
   "notifications.match.quiet": "To silence one team or one competition, or every match alert at once, use What stays quiet below. Quiet hours hold match alerts too.",
   "notifications.friends.heading": "Friends' predictions",
   "notifications.friends.intro": "When a friend predicts a match you follow or predicted too. It says that they predicted, never what, and only if their own privacy setting lets you see their predictions.",
-  "notifications.friends.predicted": "A friend predicted a match you follow or predicted"
+  "notifications.friends.predicted": "A friend predicted a match you follow or predicted",
+  "notifications.editorial.heading": "Analysis",
+  "notifications.editorial.intro": "The founder's analysis of the matches you follow, and the review of any analysis you submit.",
+  "notifications.editorial.founder": "The founder publishes an analysis of a match you follow",
+  "notifications.editorial.reviewed": "An analysis I submitted is reviewed",
+  "notifications.editorial.eligible": "A member newly meets the contributor requirements (administrators)"
 }

@@ -63,6 +63,12 @@ export const NOTIFICATION_KINDS = [
   'campaign',
   // A watchdog incident opened or closed, to administrators only (T-802, D-096).
   'system_alert',
+  // Editorial (T-833, D-100): the founder published an analysis of a
+  // followed match; a community analysis's review decided, to its author; a
+  // member newly meets the contributor requirements, to administrators only.
+  'founder_analysis_published',
+  'analysis_reviewed',
+  'contributor_eligible',
   // Match alerts (T-830, D-098).
   ...MATCH_ALERT_KINDS,
 ] as const;
@@ -112,6 +118,13 @@ export const NOTIFICATION_DEFAULTS: Record<NotificationKind, boolean> = {
   // On: an administrator who wants the pager off says so, and the inbox still
   // shows the condition on the System page either way (T-802).
   system_alert: true,
+  // Editorial (T-833, D-100), all on: the founder writes a handful a week and
+  // a follower of the match came for exactly that; an analyst who submitted
+  // is waiting for the answer; an administrator who approves contributors is
+  // the one person who must know somebody is waiting.
+  founder_analysis_published: true,
+  analysis_reviewed: true,
+  contributor_eligible: true,
   // Team news and line-ups are opt-in (T-832, D-100): they arrive for every
   // followed match, most of them nobody is waiting on.
   match_availability: false,
@@ -133,7 +146,11 @@ export const NOTIFICATION_DEFAULTS: Record<NotificationKind, boolean> = {
  * noise -- and only the watchdog's alert delivery emits them, to the holders
  * of the `admin` role.
  */
-export const ADMIN_ONLY_NOTIFICATION_KINDS: readonly NotificationKind[] = ['system_alert'];
+export const ADMIN_ONLY_NOTIFICATION_KINDS: readonly NotificationKind[] = [
+  'system_alert',
+  // A member newly eligible for contributor review (T-833, D-100).
+  'contributor_eligible',
+];
 
 /**
  * How many of one kind a member is told about in an hour (T-273).
@@ -201,7 +218,13 @@ export type NotificationSubject =
   /** A campaign (T-332): `subject_id` is the campaign, `subject_label` the path it opens, `headline` its title. */
   | 'campaign'
   /** A watchdog transition (T-802): `subject_id` is the `watchdog_event` id, `headline` what changed. */
-  | 'watchdog_event';
+  | 'watchdog_event'
+  /**
+   * The member's own community analysis of a match (T-833): `subject_id` is
+   * the fixture, and it opens the draft rather than the match. A subject of
+   * its own so a team mute never silences the answer to a submission.
+   */
+  | 'analysis_draft';
 
 /**
  * One notification, as its recipient sees it.
@@ -317,6 +340,9 @@ export const NOTIFICATION_CATEGORY_OF: Record<NotificationKind, NotificationCate
   contributor_granted: 'account',
   contributor_grant_changed: 'account',
   system_alert: 'account',
+  founder_analysis_published: 'football',
+  analysis_reviewed: 'account',
+  contributor_eligible: 'account',
   // Their own category (T-830), so every match alert can be silenced as one
   // without silencing predictions and ratings.
   match_availability: 'match',
@@ -404,6 +430,16 @@ export const NOTIFICATION_TEXT: Record<NotificationKind, { text: string; named: 
   briefing: { text: 'Your briefing was written.', named: false },
   campaign: { text: 'A message from the platform.', named: false },
   system_alert: { text: 'The watchdog raised or cleared a system alert.', named: false },
+  founder_analysis_published: {
+    text: 'The founder published an analysis of a match you follow.',
+    named: false,
+  },
+  analysis_reviewed: { text: 'Your analysis was reviewed.', named: false },
+  // The fallback only: the line names the member (T-833).
+  contributor_eligible: {
+    text: 'A member now meets the contributor requirements.',
+    named: false,
+  },
   // The fallback only: a match alert's line is its headline, written when the
   // event was seen, with the teams and the score (T-830).
   match_availability: { text: 'Team news for a match you follow.', named: false },
@@ -440,6 +476,8 @@ export function notificationLine(
 const FIXTURE_ANCHOR: Partial<Record<string, string>> = {
   match_availability: '#lineups',
   match_lineups: '#lineups',
+  // The founder's analysis region (T-833).
+  founder_analysis_published: '#analysis',
 };
 
 /**
@@ -465,6 +503,9 @@ export function notificationPath(
       // A kind about one part of the match opens that part (T-832).
       return `/${locale}/match/${id}${FIXTURE_ANCHOR[notification.kind ?? ''] ?? ''}`;
     case 'member':
+      // A member waiting for contributor review opens the queue it is in,
+      // where the four requirements and the decision are (T-833).
+      if (notification.kind === 'contributor_eligible') return `/${locale}/admin/contributors`;
       return label === null ? null : `/${locale}/u/${encodeURIComponent(label)}`;
     case 'group':
       return label === null ? null : `/${locale}/groups/${encodeURIComponent(label)}`;
@@ -487,6 +528,10 @@ export function notificationPath(
       // The briefing lives on the Following page, above the feed it was
       // written from (T-432).
       return `/${locale}/following#briefing`;
+    case 'analysis_draft':
+      // The analyst's own editor, where the decision and its reason sit
+      // beside the draft (T-262, T-833).
+      return `/${locale}/analyses/${id}`;
     case 'watchdog_event':
       // The System page, where the conditions and incidents are (T-802, T-804).
       return `/${locale}/admin/system`;

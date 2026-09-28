@@ -73,9 +73,9 @@ function isListedHere(
 
 /** The categories a member can silence as one (T-331), named in words. */
 const CATEGORY_LABEL: Record<NotificationCategory, string> = {
-  football: 'Football: my predictions, my rating and my points',
+  football: "Football: my predictions, my rating and my points, and the founder's analyses",
   social: "Social: friends, friends' predictions, messages, mentions, groups and reactions",
-  account: 'My account: moderation and contributor decisions',
+  account: 'My account: moderation and contributor decisions, and reviews of my analyses',
   match: 'Match alerts: team news, line-ups, kick-off, goals, red cards, half-time and full-time',
 };
 

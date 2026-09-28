@@ -2,7 +2,11 @@ import type { NotificationKind, NotificationSettings } from '@fmip/contracts';
 import { KindRow } from '@/components/notification-settings';
 import { Translated } from '@/components/translated';
 import type { MessageKey } from '@/i18n/messages';
-import { FRIEND_ALERT_KINDS, type SectionedKind } from '@/lib/notification-sections';
+import {
+  EDITORIAL_KINDS,
+  FRIEND_ALERT_KINDS,
+  type SectionedKind,
+} from '@/lib/notification-sections';
 
 /**
  * A section of Settings → Notifications for a few kinds, worded through the
@@ -64,6 +68,9 @@ export function KindSection<K extends NotificationKind>({
 /** Every sectioned kind's label, keyed by the union so a kind added without words does not compile. */
 export const SECTION_LABEL: Record<SectionedKind, MessageKey> = {
   friend_predicted: 'notifications.friends.predicted',
+  founder_analysis_published: 'notifications.editorial.founder',
+  analysis_reviewed: 'notifications.editorial.reviewed',
+  contributor_eligible: 'notifications.editorial.eligible',
 };
 
 /** Friends' predictions (blueprint 8.1, T-832, D-100): opt-in, and never the pick. */
@@ -83,6 +90,32 @@ export function FriendAlertSettings({
       heading="notifications.friends.heading"
       intro="notifications.friends.intro"
       testId="friend-alerts"
+    />
+  );
+}
+
+/**
+ * Editorial (blueprint 18.3, T-833, D-100): the founder's analysis of a
+ * followed match, the review of the member's own analysis, and -- offered to
+ * administrators only, because the API sends it to nobody else -- a member
+ * newly waiting for contributor review.
+ */
+export function EditorialSettings({
+  locale,
+  settings,
+}: {
+  locale: string;
+  settings: NotificationSettings;
+}) {
+  return (
+    <KindSection
+      locale={locale}
+      settings={settings}
+      kinds={EDITORIAL_KINDS}
+      labels={SECTION_LABEL}
+      heading="notifications.editorial.heading"
+      intro="notifications.editorial.intro"
+      testId="editorial-alerts"
     />
   );
 }

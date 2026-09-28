@@ -3,10 +3,15 @@ import { join } from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import type { NotificationSettings } from '@fmip/contracts';
-import { NOTIFICATION_DEFAULTS, NOTIFICATION_KINDS } from '@fmip/contracts';
+import {
+  ADMIN_ONLY_NOTIFICATION_KINDS,
+  NOTIFICATION_DEFAULTS,
+  NOTIFICATION_KINDS,
+  notificationPath,
+} from '@fmip/contracts';
 import { EN } from '@/i18n/messages';
 import { SECTIONED_KINDS } from '@/lib/notification-sections';
-import { FriendAlertSettings, SECTION_LABEL } from './kind-section';
+import { EditorialSettings, FriendAlertSettings, SECTION_LABEL } from './kind-section';
 
 /**
  * The sections of Settings → Notifications with catalogue words (T-832):
@@ -75,9 +80,64 @@ describe("the friends' predictions section", () => {
   });
 });
 
+describe('the editorial section', () => {
+  /** What a member is sent: every kind but an administrator's (T-802). */
+  const forMember = (): NotificationSettings => {
+    const all = settings();
+    all.preferences = all.preferences.filter(
+      (p) => !ADMIN_ONLY_NOTIFICATION_KINDS.includes(p.kind),
+    );
+    return all;
+  };
+
+  it("offers the founder's analysis and the review, on by default", () => {
+    const html = renderToStaticMarkup(<EditorialSettings locale="en" settings={forMember()} />);
+    expect(html).toContain('data-testid="editorial-alerts"');
+    expect(pressedOf(html, 'founder_analysis_published')).toBe('true');
+    expect(pressedOf(html, 'analysis_reviewed')).toBe('true');
+    expect(html).toContain(EN['notifications.editorial.reviewed']);
+  });
+
+  it('offers the contributor queue to an administrator only', () => {
+    const member = renderToStaticMarkup(<EditorialSettings locale="en" settings={forMember()} />);
+    expect(member).not.toContain('notification-kind-contributor_eligible');
+    const admin = renderToStaticMarkup(<EditorialSettings locale="en" settings={settings()} />);
+    expect(pressedOf(admin, 'contributor_eligible')).toBe('true');
+  });
+
+  it('deep-links each to the analysis, the draft or the contributors page', () => {
+    const id = '11111111-1111-4111-8111-111111111111';
+    expect(
+      notificationPath('en', {
+        kind: 'founder_analysis_published',
+        subject_type: 'fixture',
+        subject_id: id,
+        subject_label: null,
+      }),
+    ).toBe(`/en/match/${id}#analysis`);
+    expect(
+      notificationPath('en', {
+        kind: 'analysis_reviewed',
+        subject_type: 'analysis_draft',
+        subject_id: id,
+        subject_label: null,
+      }),
+    ).toBe(`/en/analyses/${id}`);
+    expect(
+      notificationPath('en', {
+        kind: 'contributor_eligible',
+        subject_type: 'member',
+        subject_id: id,
+        subject_label: 'alice',
+      }),
+    ).toBe('/en/admin/contributors');
+  });
+});
+
 describe('on the settings page', () => {
   it('is rendered by the page, and the general list leaves its kinds out', () => {
     expect(PAGE).toContain('<FriendAlertSettings');
+    expect(PAGE).toContain('<EditorialSettings');
     expect(FORM).toContain('{sections}');
     expect(FORM).toContain('!isSectionedKind(preference.kind)');
     for (const kind of SECTIONED_KINDS) expect(SECTION_LABEL[kind]).toBeTruthy();

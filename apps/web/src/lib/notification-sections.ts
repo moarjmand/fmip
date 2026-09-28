@@ -10,7 +10,14 @@ export const FRIEND_ALERT_KINDS = [
   'friend_predicted',
 ] as const satisfies readonly NotificationKind[];
 
-export const SECTIONED_KINDS = [...FRIEND_ALERT_KINDS] as const;
+/** Editorial (T-833): the founder's analysis, a review decided, and (administrators only) a member waiting for review. */
+export const EDITORIAL_KINDS = [
+  'founder_analysis_published',
+  'analysis_reviewed',
+  'contributor_eligible',
+] as const satisfies readonly NotificationKind[];
+
+export const SECTIONED_KINDS = [...FRIEND_ALERT_KINDS, ...EDITORIAL_KINDS] as const;
 
 export type SectionedKind = (typeof SECTIONED_KINDS)[number];
 

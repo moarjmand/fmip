@@ -3857,3 +3857,74 @@ notification can open a region of the match page; the kind lists of
 `notification`, `notification_preference` and `match_alert` are widened by
 `1764780000000_lineup-friend-alerts.sql`, which reads each constraint as it
 stands.
+
+## D-100, continued (T-833) — Editorial notifications: the founder's analysis to its match's followers, a review to its author, a newly eligible member to administrators
+**Status:** Accepted · 2026-09-28 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-833 adds three notification kinds, each a consequence of a
+write that already happens, each deep-linking where the plan says.
+
+- `founder_analysis_published` (category `football`): the **first** version
+  of the founder's analysis of a match is announced to everyone following
+  either team or the competition, the author excepted, keyed
+  `founder_analysis:<fixture>` so a revision is the same analysis. Written
+  from `FounderAnalysisService.publish` after the version commits, sourceless
+  (the platform's editorial, not one member reaching another), and never
+  failing the publication. Opens the match at the founder's analysis
+  (`/match/<id>#analysis`). Only the founder's analysis: a community
+  analysis is not announced to followers (rule 6 keeps the two apart, and
+  the plan names only the founder's).
+- `analysis_reviewed` (category `account`): the decision on a community
+  analysis submission, to its author, once per submission
+  (`analysis_review:<submission>`, the key it already had). It replaces the
+  `contributor_grant_changed` notification the review used to send, whose
+  words ("Your contributor approval changed") were about something else. Its
+  subject is new, `analysis_draft` (the fixture's id), so it opens the
+  analyst's editor (`/analyses/<fixture>`), where the decision and its reason
+  sit beside the draft (T-262), and so a team mute -- which silences what is
+  about that team's matches -- never silences the answer to a submission.
+- `contributor_eligible` (category `account`, **administrators only**, like
+  `system_alert`): a member who newly meets the four measurable requirements
+  (blueprint 9.4, `eligibilityFor`) is announced to every administrator, the
+  member excepted. The verdict is asked after every
+  `ReputationService.recompute` of an existing member -- eligibility can move
+  without the rating (a sanction ageing out, an address verified) -- and
+  `contributor_eligibility_state` keeps the last one, so only a **transition**
+  to qualifying is announced, in one statement that two recomputes racing
+  cannot both win. `times_qualified` is in the dedupe key
+  (`contributor_eligible:<member>:<n>`): a member who drops below and
+  qualifies again is announced again, once. A member who already holds a
+  grant in any standing is not announced -- a person has decided about them.
+  The line names the member by username (read at display time, like a
+  watchdog alert's); it opens the contributors page (`/admin/contributors`),
+  where the requirements and the decision are. It grants nothing (T-250).
+  Quiet hours hold it: it is a queue, not a pager.
+
+**Defaults.** All three **on**. The founder writes a handful a week and a
+follower of the match came for exactly that; an analyst who submitted is
+waiting for the answer (it was on before, under the other kind); the
+administrator who approves contributors is the one person who must know
+somebody is waiting. Each has a switch in Settings → Notifications, in a
+new "Analysis" section worded through the catalogues; the contributor switch
+is shown to administrators only, because the API offers it to nobody else.
+
+**No replay, and one exception to it.** Nothing is backfilled: analyses
+already published and reviews already decided are not announced. The
+eligibility state starts empty, so a member who qualified before this
+shipped and holds no grant is announced once, at their next recompute --
+the thresholds live in code (D-059), and seeding the state in SQL would be a
+second copy of them. They are exactly the members the contributors page
+already shows as waiting, so the notice is late news, not wrong news.
+
+**Alternatives considered.** A poller over `contributor_eligibility_input`:
+it would need the thresholds in SQL or every member read each pass, and
+would announce on its own interval rather than when the recompute changed
+the answer. Announcing every revision of the founder's analysis: a revision
+is the same analysis, and the page shows the newest. Keeping the review under
+`contributor_grant_changed`: a member who switched off grant changes would
+stop hearing about their analyses, and the sentence was wrong.
+
+**Consequences.** `notificationPath` routes `analysis_draft` and, by kind, a
+`contributor_eligible` member and a `founder_analysis_published` fixture;
+`1764790000000_editorial-notifications.sql` widens the kind and subject lists
+as they stand and creates `contributor_eligibility_state`.

@@ -1812,5 +1812,30 @@
     "source": "A friend predicted a match you follow or predicted",
     "text": "",
     "status": "untranslated"
+  },
+  "notifications.editorial.heading": {
+    "source": "Analysis",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notifications.editorial.intro": {
+    "source": "The founder's analysis of the matches you follow, and the review of any analysis you submit.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notifications.editorial.founder": {
+    "source": "The founder publishes an analysis of a match you follow",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notifications.editorial.reviewed": {
+    "source": "An analysis I submitted is reviewed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notifications.editorial.eligible": {
+    "source": "A member newly meets the contributor requirements (administrators)",
+    "text": "",
+    "status": "untranslated"
   }
 }
