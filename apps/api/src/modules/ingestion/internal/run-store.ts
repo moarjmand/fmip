@@ -123,6 +123,35 @@ export class PostgresRunStore {
     );
     return Number(rows[0]?.n ?? 0);
   }
+
+  /**
+   * Per (provider, job): when the newest completed run (succeeded or partial)
+   * finished, and when the newest run of any outcome started (T-801). Each is
+   * one backward walk of `ingest_run_recent_idx`.
+   */
+  async lastCompleted(
+    pairs: { provider: string; job: string }[],
+  ): Promise<{ provider: string; job: string; completed: Date | null; started: Date | null }[]> {
+    if (pairs.length === 0) return [];
+    const { rows } = await this.pool.query<{
+      provider: string;
+      job: string;
+      completed: Date | null;
+      started: Date | null;
+    }>(
+      `SELECT p.provider, p.job,
+              (SELECT r.finished_at FROM ingest_run r
+                WHERE r.provider = p.provider AND r.job = p.job
+                  AND r.status IN ('succeeded', 'partial')
+                ORDER BY r.started_at DESC LIMIT 1) AS completed,
+              (SELECT r.started_at FROM ingest_run r
+                WHERE r.provider = p.provider AND r.job = p.job
+                ORDER BY r.started_at DESC LIMIT 1) AS started
+         FROM unnest($1::text[], $2::text[]) AS p(provider, job)`,
+      [pairs.map((p) => p.provider), pairs.map((p) => p.job)],
+    );
+    return rows;
+  }
 }
 
 const COLUMNS =

@@ -209,6 +209,17 @@ export class ForecastService {
     });
   }
 
+  /**
+   * The model service's own health check (T-801's watchdog): a value, never a
+   * throw. `reason` is the client's description of what failed.
+   */
+  async modelHealth(): Promise<{ ok: true; modelVersion: string } | { ok: false; reason: string }> {
+    const result = await this.model.health();
+    return result.ok
+      ? { ok: true, modelVersion: result.data.model_version }
+      : { ok: false, reason: `${result.kind}: ${result.message}` };
+  }
+
   async versions(fixtureId: string): Promise<ForecastVersionsResponse | null> {
     if ((await this.store.fixtureForModel(fixtureId)) === null) return null;
 

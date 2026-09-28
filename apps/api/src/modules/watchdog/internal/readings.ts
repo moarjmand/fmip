@@ -1,0 +1,126 @@
+import {
+  type Reading,
+  backup,
+  deliveryChannel,
+  ingestJob,
+  liveFeed,
+  modelService,
+  queueFailures,
+  requestBudget,
+} from './conditions';
+import type { StoredCondition } from './transition';
+
+/** A section of the observations the tick could not read, and why. */
+export interface Unreadable {
+  unreadable: string;
+}
+
+const unreadable = (value: unknown): value is Unreadable =>
+  typeof value === 'object' && value !== null && 'unreadable' in value;
+
+/**
+ * What one tick read from the health views, before any judgement. Every
+ * section can be `Unreadable` on its own: one view that fails to answer makes
+ * its conditions `unknown`, not the whole tick fail.
+ */
+export interface Observations {
+  ingest:
+    | {
+        job: string;
+        provider: string | null;
+        reason: string | null;
+        lastCompletedAt: Date | null;
+        lastStartedAt: Date | null;
+      }[]
+    | Unreadable;
+  live: { inProgress: number; oldestChangeAt: Date | null; behind: number } | Unreadable;
+  budget: { requestsToday: number; budget: number | null } | Unreadable;
+  queues: ({ queue: string; failedLastHour: number } | { queue: string; unreadable: string })[];
+  model:
+    | { configured: false }
+    | { configured: true; ok: true }
+    | { configured: true; ok: false; reason: string };
+  delivery:
+    | {
+        email: { configured: false } | { configured: true; sent: number; failed: number };
+        push: { configured: false } | { configured: true; sent: number; failed: number };
+      }
+    | Unreadable;
+  /** `undefined`: nowhere to read a backup from yet (T-805). */
+  backup: Date | null | undefined | Unreadable;
+}
+
+/**
+ * Observations to readings, one per condition. Pure: the previous state is an
+ * argument because the model service's condition counts consecutive failures.
+ * `jobs` names the ingestion jobs so each keeps its key when the ingestion
+ * view could not be read.
+ */
+export function readingsOf(
+  seen: Observations,
+  previous: ReadonlyMap<string, StoredCondition>,
+  now: Date,
+  jobs: readonly string[],
+): Reading[] {
+  const out: Reading[] = [];
+
+  if (unreadable(seen.ingest)) {
+    const why = seen.ingest.unreadable;
+    for (const job of jobs) {
+      out.push({ ...ingestJob(job, noSource(why), now), note: why });
+    }
+  } else {
+    for (const row of seen.ingest) out.push(ingestJob(row.job, row, now));
+  }
+
+  out.push(
+    unreadable(seen.live)
+      ? {
+          ...liveFeed({ inProgress: 0, oldestChangeAt: null, behind: 0 }, now),
+          level: 'unknown',
+          note: seen.live.unreadable,
+        }
+      : liveFeed(seen.live, now),
+  );
+
+  out.push(
+    unreadable(seen.budget)
+      ? { ...requestBudget({ requestsToday: 0, budget: null }), note: seen.budget.unreadable }
+      : requestBudget(seen.budget),
+  );
+
+  for (const q of seen.queues) {
+    out.push(
+      'unreadable' in q
+        ? queueFailures(q.queue, { unreadable: q.unreadable })
+        : queueFailures(q.queue, { failedLastHour: q.failedLastHour }),
+    );
+  }
+
+  const model = previous.get('model_service');
+  out.push(
+    modelService(seen.model, model !== undefined && model.level !== 'ok' ? model.observed : null),
+  );
+
+  if (unreadable(seen.delivery)) {
+    const why = seen.delivery.unreadable;
+    for (const channel of ['email', 'push'] as const) {
+      out.push({ ...deliveryChannel(channel, { configured: false }), note: why });
+    }
+  } else {
+    out.push(deliveryChannel('email', seen.delivery.email));
+    out.push(deliveryChannel('push', seen.delivery.push));
+  }
+
+  out.push(
+    unreadable(seen.backup)
+      ? { ...backup(undefined, now), note: seen.backup.unreadable }
+      : backup(seen.backup, now),
+  );
+
+  return out;
+}
+
+function noSource(reason: string) {
+  return { provider: null, reason, lastCompletedAt: null, lastStartedAt: null };
+}

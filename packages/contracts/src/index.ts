@@ -621,6 +621,18 @@ export type {
   SendCampaignRequest,
 } from './campaigns';
 export { AUDIENCE_FOLLOW_TYPES } from './campaigns';
+// The watchdog over the health views (T-801): conditions, thresholds, transitions.
+export { WATCHDOG_LEVELS } from './watchdog';
+export type {
+  WatchdogCondition,
+  WatchdogEvent,
+  WatchdogEventKind,
+  WatchdogFreshness,
+  WatchdogLevel,
+  WatchdogReport,
+  WatchdogThreshold,
+  WatchdogUnit,
+} from './watchdog';
 // API errors and job failures counted per hour (T-803).
 export { FAILURE_RETENTION_DAYS } from './failure-counts';
 export type {

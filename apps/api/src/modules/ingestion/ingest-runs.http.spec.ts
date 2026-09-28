@@ -151,6 +151,36 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingest runs'
     );
   });
 
+  it('finds the newest completed run per job for the watchdog, past a newer failure (T-801)', async () => {
+    const store = app.get(PostgresRunStore);
+    await runs.track('highlightly', 'standings', 'completed:test', async () => ({
+      result: null,
+      itemsSeen: 1,
+      itemsWritten: 1,
+    }));
+    await expect(
+      runs.track('highlightly', 'standings', 'completed:test', () =>
+        Promise.reject(new Error('provider down')),
+      ),
+    ).rejects.toThrow('provider down');
+    const { rows } = await pool.query<{
+      id: string;
+      status: string;
+      started_at: Date;
+      finished_at: Date;
+    }>(
+      `SELECT id, status, started_at, finished_at FROM ingest_run
+        WHERE scope = 'completed:test' ORDER BY started_at`,
+    );
+    ids.push(...rows.map((r) => r.id));
+    const [done, failed] = rows;
+    expect([done?.status, failed?.status]).toEqual(['succeeded', 'failed']);
+    const [row] = await store.lastCompleted([{ provider: 'highlightly', job: 'standings' }]);
+    expect(row?.completed?.toISOString()).toBe(done?.finished_at.toISOString());
+    expect(row?.started?.toISOString()).toBe(failed?.started_at.toISOString());
+    expect(await store.lastCompleted([])).toEqual([]);
+  });
+
   it('answers with an empty picture rather than an invented one when nothing ran', async () => {
     const health = (
       await app.inject({ method: 'GET', url: '/health/ingestion' })

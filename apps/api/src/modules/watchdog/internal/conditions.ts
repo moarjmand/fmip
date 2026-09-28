@@ -1,0 +1,338 @@
+import type { WatchdogLevel, WatchdogThreshold } from '@fmip/contracts';
+
+/**
+ * The watchdog's conditions (T-801), each a pure function from what the
+ * health views say to a level. No clock and no I/O here: `now` and every
+ * observation are arguments, so each condition is tested on its own.
+ *
+ * The thresholds are the numbers an administrator is woken for. Each is
+ * stated with its reason beside it; changing one is a one-line change here,
+ * and the endpoint shows the value in force.
+ */
+
+/** One condition as this tick saw it. */
+export interface Reading {
+  key: string;
+  level: WatchdogLevel;
+  observed: number | null;
+  threshold: WatchdogThreshold;
+  note: string | null;
+}
+
+/** `failing` at or above `failing`, `degraded` at or above `degraded`, else `ok`. */
+export function levelOf(observed: number, threshold: WatchdogThreshold): WatchdogLevel {
+  if (observed >= threshold.failing) return 'failing';
+  if (observed >= threshold.degraded) return 'degraded';
+  return 'ok';
+}
+
+const MINUTE = 60;
+const HOUR = 60 * MINUTE;
+
+/**
+ * Seconds since an ingestion job last completed. Set against each job's
+ * schedule (`ingestion-scheduler.service.ts`): `degraded` after a handful of
+ * missed ticks, `failing` when the data it keeps is plainly out of date.
+ *
+ * - live, every minute: 5 and 15 minutes. Five missed ticks is not a slow
+ *   provider; fifteen minutes is a match's worth of goals not shown.
+ * - lineups, every five minutes: 20 minutes and an hour (a line-up lands about
+ *   an hour before kick-off).
+ * - post_match, every thirty minutes: 90 minutes and 4 hours.
+ * - fixtures and standings, hourly: 3 and 12 hours.
+ */
+export const INGEST_THRESHOLDS: Record<string, WatchdogThreshold> = {
+  live: { unit: 'seconds', degraded: 5 * MINUTE, failing: 15 * MINUTE },
+  lineups: { unit: 'seconds', degraded: 20 * MINUTE, failing: HOUR },
+  post_match: { unit: 'seconds', degraded: 90 * MINUTE, failing: 4 * HOUR },
+  fixtures: { unit: 'seconds', degraded: 3 * HOUR, failing: 12 * HOUR },
+  standings: { unit: 'seconds', degraded: 3 * HOUR, failing: 12 * HOUR },
+};
+
+const DEFAULT_INGEST_THRESHOLD: WatchdogThreshold = {
+  unit: 'seconds',
+  degraded: 3 * HOUR,
+  failing: 12 * HOUR,
+};
+
+export function ingestJob(
+  job: string,
+  seen: {
+    provider: string | null;
+    reason: string | null;
+    lastCompletedAt: Date | null;
+    lastStartedAt: Date | null;
+  },
+  now: Date,
+): Reading {
+  const key = `ingest:${job}`;
+  const threshold = INGEST_THRESHOLDS[job] ?? DEFAULT_INGEST_THRESHOLD;
+  if (seen.provider === null) {
+    return { key, level: 'unknown', observed: null, threshold, note: seen.reason };
+  }
+  if (seen.lastCompletedAt === null) {
+    return seen.lastStartedAt === null
+      ? {
+          key,
+          level: 'unknown',
+          observed: null,
+          threshold,
+          note: `no ${job} run on record for ${seen.provider}`,
+        }
+      : {
+          key,
+          level: 'failing',
+          observed: null,
+          threshold,
+          note: `${job} has runs on record for ${seen.provider} and none completed`,
+        };
+  }
+  const observed = Math.max(0, Math.round((now.getTime() - seen.lastCompletedAt.getTime()) / 1000));
+  return {
+    key,
+    level: levelOf(observed, threshold),
+    observed,
+    threshold,
+    note: `seconds since the newest completed ${job} run (${seen.provider})`,
+  };
+}
+
+/**
+ * Seconds since the longest-unchanged match in progress last changed.
+ *
+ * Not D-045's two minutes: that rule is right for a page ("the last known,
+ * not the current") and wrong for waking somebody, because half-time is a
+ * match in progress whose data does not change for fifteen minutes. So:
+ * `degraded` at 20 minutes (longer than any half-time), `failing` at 40. A
+ * feed that stops for every match at once is caught sooner by `ingest:live`.
+ */
+export const LIVE_FEED_THRESHOLD: WatchdogThreshold = {
+  unit: 'seconds',
+  degraded: 20 * MINUTE,
+  failing: 40 * MINUTE,
+};
+
+export function liveFeed(
+  seen: { inProgress: number; oldestChangeAt: Date | null; behind: number },
+  now: Date,
+): Reading {
+  const threshold = LIVE_FEED_THRESHOLD;
+  if (seen.inProgress === 0 || seen.oldestChangeAt === null) {
+    return {
+      key: 'live_feed',
+      level: 'ok',
+      observed: null,
+      threshold,
+      note: 'no match in progress',
+    };
+  }
+  const observed = Math.max(0, Math.round((now.getTime() - seen.oldestChangeAt.getTime()) / 1000));
+  return {
+    key: 'live_feed',
+    level: levelOf(observed, threshold),
+    observed,
+    threshold,
+    note: `${seen.inProgress} in progress, ${seen.behind} unchanged for ${threshold.degraded / MINUTE} minutes or more`,
+  };
+}
+
+/**
+ * The day's provider requests as a percentage of the budget T-501 set
+ * (`API_FOOTBALL_DAILY_BUDGET`): `degraded` at 80 % (the day will run out if
+ * the afternoon is like the morning), `failing` at 95 % (it is about to).
+ */
+export const REQUEST_BUDGET_THRESHOLD: WatchdogThreshold = {
+  unit: 'percent',
+  degraded: 80,
+  failing: 95,
+};
+
+export function requestBudget(seen: { requestsToday: number; budget: number | null }): Reading {
+  const threshold = REQUEST_BUDGET_THRESHOLD;
+  if (seen.budget === null || seen.budget <= 0) {
+    return {
+      key: 'request_budget',
+      level: 'unknown',
+      observed: null,
+      threshold,
+      note: 'no daily request budget is set for this deployment',
+    };
+  }
+  const observed = Math.round((1000 * seen.requestsToday) / seen.budget) / 10;
+  return {
+    key: 'request_budget',
+    level: levelOf(observed, threshold),
+    observed,
+    threshold,
+    note: `${seen.requestsToday} of ${seen.budget} requests since 00:00 UTC`,
+  };
+}
+
+/**
+ * Failed jobs on one BullMQ queue in the last hour: one is worth a look, three
+ * is a job that keeps failing. An hour's window is also the hysteresis: the
+ * condition recovers an hour after the last failure, not on the next tick.
+ */
+export const QUEUE_FAILURE_THRESHOLD: WatchdogThreshold = {
+  unit: 'count',
+  degraded: 1,
+  failing: 3,
+};
+
+export function queueFailures(
+  queue: string,
+  seen: { failedLastHour: number } | { unreadable: string },
+): Reading {
+  const key = `jobs:${queue}`;
+  const threshold = QUEUE_FAILURE_THRESHOLD;
+  if ('unreadable' in seen) {
+    return { key, level: 'unknown', observed: null, threshold, note: seen.unreadable };
+  }
+  return {
+    key,
+    level: levelOf(seen.failedLastHour, threshold),
+    observed: seen.failedLastHour,
+    threshold,
+    note: `failed ${queue} jobs in the last hour`,
+  };
+}
+
+/**
+ * Consecutive failed health checks of the model service, one a tick:
+ * `degraded` at the first, `failing` at three in a row. The count is carried
+ * from the previous tick's reading, so a single timeout is not an outage.
+ */
+export const MODEL_SERVICE_THRESHOLD: WatchdogThreshold = {
+  unit: 'count',
+  degraded: 1,
+  failing: 3,
+};
+
+export function modelService(
+  seen:
+    | { configured: false }
+    | { configured: true; ok: true }
+    | { configured: true; ok: false; reason: string },
+  previousObserved: number | null,
+): Reading {
+  const threshold = MODEL_SERVICE_THRESHOLD;
+  if (!seen.configured) {
+    return {
+      key: 'model_service',
+      level: 'unknown',
+      observed: null,
+      threshold,
+      note: 'no model service is configured for this deployment',
+    };
+  }
+  if (seen.ok) {
+    return {
+      key: 'model_service',
+      level: 'ok',
+      observed: 0,
+      threshold,
+      note: 'health check answered',
+    };
+  }
+  const observed = (previousObserved ?? 0) + 1;
+  return {
+    key: 'model_service',
+    level: levelOf(observed, threshold),
+    observed,
+    threshold,
+    note: seen.reason,
+  };
+}
+
+/**
+ * The share of one channel's deliveries in the last hour that failed, once
+ * there are at least `DELIVERY_MIN_ATTEMPTS` to judge: `degraded` at 25 %,
+ * `failing` at 75 %. A push that fails because a member's browser dropped its
+ * subscription is ordinary; a quarter of them failing is not.
+ */
+export const DELIVERY_THRESHOLD: WatchdogThreshold = {
+  unit: 'percent',
+  degraded: 25,
+  failing: 75,
+};
+export const DELIVERY_MIN_ATTEMPTS = 3;
+
+export function deliveryChannel(
+  channel: 'email' | 'push',
+  seen: { configured: false } | { configured: true; sent: number; failed: number },
+): Reading {
+  const key = `delivery:${channel}`;
+  const threshold = DELIVERY_THRESHOLD;
+  if (!seen.configured) {
+    return {
+      key,
+      level: 'unknown',
+      observed: null,
+      threshold,
+      note: `no ${channel} provider is configured; notifications stay in the product`,
+    };
+  }
+  const attempts = seen.sent + seen.failed;
+  if (attempts < DELIVERY_MIN_ATTEMPTS) {
+    return {
+      key,
+      level: 'ok',
+      observed: null,
+      threshold,
+      note: `${attempts} deliveries in the last hour, too few to judge`,
+    };
+  }
+  const observed = Math.round((1000 * seen.failed) / attempts) / 10;
+  return {
+    key,
+    level: levelOf(observed, threshold),
+    observed,
+    threshold,
+    note: `${seen.failed} of ${attempts} deliveries failed in the last hour`,
+  };
+}
+
+/**
+ * Seconds since the newest successful backup. The backup runs daily
+ * (D-032), so `degraded` at 26 hours (one missed day, with slack for a slow
+ * one) and `failing` at 50 (two).
+ *
+ * `undefined` means the API has nowhere to read a backup from: until T-805
+ * records the backup's results where the API can read them, this condition is
+ * `unknown` and says so, rather than `ok` because nothing said otherwise.
+ */
+export const BACKUP_THRESHOLD: WatchdogThreshold = {
+  unit: 'seconds',
+  degraded: 26 * HOUR,
+  failing: 50 * HOUR,
+};
+
+export function backup(lastSucceededAt: Date | null | undefined, now: Date): Reading {
+  const threshold = BACKUP_THRESHOLD;
+  if (lastSucceededAt === undefined) {
+    return {
+      key: 'backup',
+      level: 'unknown',
+      observed: null,
+      threshold,
+      note: 'no backup record is readable by the API yet (T-805)',
+    };
+  }
+  if (lastSucceededAt === null) {
+    return {
+      key: 'backup',
+      level: 'failing',
+      observed: null,
+      threshold,
+      note: 'no successful backup on record',
+    };
+  }
+  const observed = Math.max(0, Math.round((now.getTime() - lastSucceededAt.getTime()) / 1000));
+  return {
+    key: 'backup',
+    level: levelOf(observed, threshold),
+    observed,
+    threshold,
+    note: 'seconds since the newest successful backup',
+  };
+}
