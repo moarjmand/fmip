@@ -20,7 +20,9 @@ export type AuthRateAction =
   | 'register_ip'
   | 'password_forgot_account'
   | 'password_forgot_ip'
-  | 'email_token_ip';
+  | 'email_token_ip'
+  /** A signed-out reader's questions to `GET /ask` (T-838): the model's cost, per address. */
+  | 'ask_ip';
 
 /** One counter to take from: an action and whose it is. */
 export interface AuthRateCheck {

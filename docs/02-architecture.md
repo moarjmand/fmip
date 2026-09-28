@@ -189,9 +189,15 @@ with the refused insert.
 role-gated (the security spec's `CONSOLE` table) and every write is audited
 with a reason; the caller is an operator.
 
-**Not a write, and not limited:** `GET /ask` asks the language model for a
-guest as well as a member. It is outside this inventory, which is of writes;
-it is recorded as a gap for its own task (D-103).
+**The one read with a ceiling:** `GET /ask` asks the language model for a
+guest as well as a member, so it is limited though it writes nothing (T-838,
+D-104, closing the gap D-103 recorded): a member per account (`ask`), a signed-out
+reader per network address (`ask_ip`, the address the web app forwards as
+`X-Fmip-Client-IP`, D-093), both counted before the model is called and only
+when there is a model. A guest whose address was not forwarded is not
+limited, as on the account forms. Refused, the search page searches the
+question as keywords (`GET /search`, no model) and says why, so a shared
+address never leaves a reader without a search.
 
 ### The ceilings
 
@@ -214,6 +220,8 @@ it is recorded as a gap for its own task (D-103).
 | `panel_post` | 30 | member | trigger | `POST /fixtures/:id/panel` |
 | `briefing` | 6 | member | API | `POST /me/briefing` |
 | `push_subscription` | 10 | member | API | `POST /me/push-subscriptions` |
+| `ask` | 60 | member | API | `GET /ask` (a read: a model call) |
+| `ask_ip` | 120 | address | API | `GET /ask` (a read: a model call) |
 
 ### Writes without a ceiling, and why
 

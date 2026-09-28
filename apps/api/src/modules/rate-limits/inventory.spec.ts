@@ -20,6 +20,8 @@ describe('the rate-limit inventory', () => {
     expect(coverageOf('POST /admin/campaigns/:id/send')).toMatchObject({ kind: 'exempt' });
     expect(coverageOf('POST /administer')).toEqual({ kind: 'missing' });
     expect(coverageOf('POST /something-new')).toEqual({ kind: 'missing' });
+    // The one read with ceilings (T-838): a member per account, a guest per address.
+    expect(coverageOf('GET /ask')).toEqual({ kind: 'limited', actions: ['ask', 'ask_ip'] });
   });
 
   it('counts a 429 on the response only for a route held by one database ceiling', () => {
@@ -30,6 +32,7 @@ describe('the rate-limit inventory', () => {
     // The API-enforced ones count where they decide, never twice.
     expect(refusalCountedOnResponse('POST', '/auth/login')).toBeNull();
     expect(refusalCountedOnResponse('POST', '/me/briefing')).toBeNull();
+    expect(refusalCountedOnResponse('GET', '/ask')).toBeNull();
     expect(refusalCountedOnResponse('POST', undefined)).toBeNull();
   });
 

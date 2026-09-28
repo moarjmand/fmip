@@ -1,5 +1,7 @@
 import type {
+  AskResponse,
   GroupSearchResult,
+  SearchResponse,
   SearchEntityType,
   SearchResult,
   SearchType,
@@ -66,6 +68,34 @@ export const COMMUNITY_LIMIT = 10;
 export function communityQuery(term: string, limit = COMMUNITY_LIMIT): string | null {
   if (term.length < MIN_QUERY_LENGTH) return null;
   return `q=${encodeURIComponent(term)}&types=${SEARCH_COMMUNITY_TYPES.join(',')}&limit=${limit}`;
+}
+
+// ---------------------------------------------------------------------------
+// T-838: past the ceiling on the model's questions, keywords instead.
+// ---------------------------------------------------------------------------
+
+/**
+ * The `GET /search` query for the catalog's kinds, or null when the term is
+ * too short: what the page asks when `/ask` refused the question (429), since
+ * the keyword search calls no model and has no ceiling.
+ */
+export function entityQuery(term: string, limit = 20): string | null {
+  if (term.length < MIN_QUERY_LENGTH) return null;
+  return `q=${encodeURIComponent(term)}&types=${SEARCH_ENTITY_TYPES.join(',')}&limit=${limit}`;
+}
+
+/**
+ * The keyword search's rows in the shape `/ask` answers with, read by no
+ * model: `interpretation` is `not_supplied` and there is no reason, because
+ * the page says why beside it (the refusal's own sentence).
+ */
+export function keywordsAsAsked(term: string, found: Pick<SearchResponse, 'results'>): AskResponse {
+  return {
+    question: term,
+    interpretation: { coverage: 'not_supplied', last_updated_at: null, data: null },
+    reason: null,
+    results: [...found.results],
+  };
 }
 
 /**
