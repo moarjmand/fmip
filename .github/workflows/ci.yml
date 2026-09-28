@@ -144,8 +144,16 @@ jobs:
         run: pnpm test
 
       - name: Build
+        id: build
         if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.model.outcome == 'success' }}
         run: pnpm build
+
+      # T-808: the first-load JavaScript of the busiest pages, read from the
+      # build above, against apps/web/perf-budgets.json. A route over budget
+      # fails here with its name and its numbers.
+      - name: Performance budgets (first-load JavaScript)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: pnpm --filter @fmip/web perf:bundle
 
   e2e:
     name: E2E
@@ -279,6 +287,7 @@ jobs:
           pnpm --filter @fmip/db seed
 
       - name: Build and start the API
+        id: api
         run: |
           pnpm exec turbo run build --filter=@fmip/api
           (nohup pnpm --filter @fmip/api start > apps/api/api.log 2>&1 &)
@@ -288,7 +297,15 @@ jobs:
           done
           echo "API did not come up"; cat apps/api/api.log; exit 1
 
+      # T-808: the server response budgets, against the production build with
+      # the API and the seed behind it, before the journeys add their rows. Its
+      # own step so an exceeded budget is named as one. It builds and starts
+      # the web app; the journeys below reuse neither (Playwright stops it).
+      - name: Performance budgets (server response)
+        run: pnpm --filter @fmip/web exec playwright test --project=budgets
+
       - name: Run the journeys
+        if: ${{ !cancelled() && steps.api.outcome == 'success' }}
         run: pnpm --filter @fmip/web exec playwright test --project=journeys
 
       - name: Show the API log on failure
