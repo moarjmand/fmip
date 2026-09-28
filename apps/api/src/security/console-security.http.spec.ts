@@ -23,8 +23,9 @@ import { withTriggersOff } from '../testing/cleanup';
  *
  * For every row, and so for every page of the console:
  *
- * - a guest gets **401**, and a member without a role **403**;
- * - every role that is *not* in the row gets **403** too -- a moderator is
+ * - a guest gets **401** `unauthenticated`, and a member without a role
+ *   **403** `forbidden` (D-108);
+ * - every role that is *not* in the row gets **403** `forbidden` too -- a moderator is
  *   not an editor, an editor is not an administrator;
  * - a refusal is a refusal, not data: its body is an `ApiError` and nothing
  *   else;
@@ -70,6 +71,13 @@ interface ConsoleRoute {
    * no reason. Omitted for a read.
    */
   reason?: { without: Record<string, unknown> } | { none: string };
+  /**
+   * D-108: a refusal is `403 forbidden`. A row marked here still answers its
+   * module's old code until the named task moves its controller to the shared
+   * refusal; the mark is checked both ways, so a route that already answers
+   * `forbidden` with its mark still on fails until the mark is dropped.
+   */
+  until?: 'T-905' | 'T-906';
 }
 
 const UUID_A = '00000000-0000-4000-8000-00000000dead';
@@ -80,123 +88,165 @@ const UUID_A = '00000000-0000-4000-8000-00000000dead';
  */
 const CONSOLE: Record<string, ConsoleRoute> = {
   // The operator's overview, members, coverage and the audit log (T-070, T-600).
-  'GET /admin/overview': { roles: ADMIN },
-  'GET /admin/users': { roles: ADMIN },
-  'POST /admin/users/:id/status': { roles: ADMIN, reason: { without: { status: 'suspended' } } },
+  'GET /admin/overview': { roles: ADMIN, until: 'T-905' },
+  'GET /admin/users': { roles: ADMIN, until: 'T-905' },
+  'POST /admin/users/:id/status': {
+    roles: ADMIN,
+    until: 'T-905',
+    reason: { without: { status: 'suspended' } },
+  },
   'PUT /admin/coverage/:seasonId/:module': {
     roles: ADMIN,
+    until: 'T-905',
     reason: { without: { state: 'not_supplied' } },
   },
-  'GET /admin/audit': { roles: ADMIN },
-  'POST /admin/ingestion/backfill': { roles: ADMIN, reason: { without: {} } },
+  'GET /admin/audit': { roles: ADMIN, until: 'T-905' },
+  'POST /admin/ingestion/backfill': { roles: ADMIN, until: 'T-905', reason: { without: {} } },
 
   // The System page (T-801 to T-804).
-  'GET /admin/health/failures': { roles: ADMIN },
-  'GET /admin/health/watchdog': { roles: ADMIN },
-  'GET /admin/health/alerts': { roles: ADMIN },
-  'GET /admin/activity': { roles: ADMIN },
-  'GET /admin/rate-limits': { roles: ADMIN },
+  'GET /admin/health/failures': { roles: ADMIN, until: 'T-905' },
+  'GET /admin/health/watchdog': { roles: ADMIN, until: 'T-905' },
+  'GET /admin/health/alerts': { roles: ADMIN, until: 'T-905' },
+  'GET /admin/activity': { roles: ADMIN, until: 'T-905' },
+  'GET /admin/rate-limits': { roles: ADMIN, until: 'T-905' },
 
   // Data quality (T-640).
-  'GET /admin/data-quality': { roles: ADMIN },
-  'POST /admin/data-quality/:id/review': { roles: ADMIN, reason: { without: {} } },
+  'GET /admin/data-quality': { roles: ADMIN, until: 'T-905' },
+  'POST /admin/data-quality/:id/review': { roles: ADMIN, until: 'T-905', reason: { without: {} } },
 
   // Campaigns (T-332).
-  'GET /admin/audiences': { roles: ADMIN },
+  'GET /admin/audiences': { roles: ADMIN, until: 'T-905' },
   'POST /admin/audiences': {
     roles: ADMIN,
+    until: 'T-905',
     reason: { without: { name: 'Security probe', filter: {} } },
   },
-  'GET /admin/campaigns': { roles: ADMIN },
-  'GET /admin/campaigns/:id': { roles: ADMIN },
+  'GET /admin/campaigns': { roles: ADMIN, until: 'T-905' },
+  'GET /admin/campaigns/:id': { roles: ADMIN, until: 'T-905' },
   'POST /admin/campaigns': {
     roles: ADMIN,
+    until: 'T-905',
     reason: {
       without: { audience_id: UUID_A, path: '/en/scores', title: 'Probe', body: 'Probe' },
     },
   },
-  'POST /admin/campaigns/:id/send': { roles: ADMIN, reason: { without: {} } },
+  'POST /admin/campaigns/:id/send': { roles: ADMIN, until: 'T-905', reason: { without: {} } },
 
   // Moderation (T-212, T-441, T-610, T-611).
-  'GET /admin/moderation/queue': { roles: MODERATION },
-  'GET /admin/moderation/members/:username': { roles: MODERATION },
+  'GET /admin/moderation/queue': { roles: MODERATION, until: 'T-906' },
+  'GET /admin/moderation/members/:username': { roles: MODERATION, until: 'T-906' },
   'POST /admin/moderation/decisions': {
     roles: MODERATION,
+    until: 'T-906',
     reason: { without: { report_ids: [UUID_A], outcome: 'no_action' } },
   },
-  'POST /admin/moderation/sanctions/:id/lift': { roles: MODERATION, reason: { without: {} } },
+  'POST /admin/moderation/sanctions/:id/lift': {
+    roles: MODERATION,
+    until: 'T-906',
+    reason: { without: {} },
+  },
   'POST /admin/moderation/reports/:id/suggest': {
     roles: MODERATION,
+    until: 'T-906',
     reason: {
       none: 'Asks the assistant for a suggestion on a report; it decides nothing and changes no member.',
     },
   },
 
   // Contributors (T-250, T-612).
-  'GET /admin/contributors': { roles: MODERATION },
-  'GET /admin/contributors/:username': { roles: MODERATION },
-  'POST /admin/contributors': { roles: MODERATION, reason: { without: {} } },
-  'POST /admin/contributors/:username/pause': { roles: MODERATION, reason: { without: {} } },
-  'POST /admin/contributors/:username/resume': { roles: MODERATION, reason: { without: {} } },
-  'POST /admin/contributors/:username/withdraw': { roles: MODERATION, reason: { without: {} } },
+  'GET /admin/contributors': { roles: MODERATION, until: 'T-906' },
+  'GET /admin/contributors/:username': { roles: MODERATION, until: 'T-906' },
+  'POST /admin/contributors': { roles: MODERATION, until: 'T-906', reason: { without: {} } },
+  'POST /admin/contributors/:username/pause': {
+    roles: MODERATION,
+    until: 'T-906',
+    reason: { without: {} },
+  },
+  'POST /admin/contributors/:username/resume': {
+    roles: MODERATION,
+    until: 'T-906',
+    reason: { without: {} },
+  },
+  'POST /admin/contributors/:username/withdraw': {
+    roles: MODERATION,
+    until: 'T-906',
+    reason: { without: {} },
+  },
 
   // Featured-match panels (T-253, T-613).
-  'GET /admin/panels': { roles: MODERATION },
-  'POST /admin/fixtures/:id/panel': { roles: MODERATION, reason: { without: {} } },
-  'POST /admin/fixtures/:id/panel/close': { roles: MODERATION, reason: { without: {} } },
+  'GET /admin/panels': { roles: MODERATION, until: 'T-906' },
+  'POST /admin/fixtures/:id/panel': { roles: MODERATION, until: 'T-906', reason: { without: {} } },
+  'POST /admin/fixtures/:id/panel/close': {
+    roles: MODERATION,
+    until: 'T-906',
+    reason: { without: {} },
+  },
 
   // Editorial: analysis reviews, debates, translations, viewing, summaries.
-  'GET /admin/analysis-reviews': { roles: EDITORIAL },
+  'GET /admin/analysis-reviews': { roles: EDITORIAL, until: 'T-906' },
   'POST /admin/analysis-reviews/:submissionId': {
     roles: EDITORIAL,
+    until: 'T-906',
     reason: { without: { decision: 'approved' } },
   },
-  'GET /admin/debates': { roles: EDITORIAL },
-  'POST /admin/stories/:id/debate': { roles: EDITORIAL, reason: { without: {} } },
-  'POST /admin/stories/:id/debate/clear': { roles: EDITORIAL, reason: { without: {} } },
+  'GET /admin/debates': { roles: EDITORIAL, until: 'T-906' },
+  'POST /admin/stories/:id/debate': { roles: EDITORIAL, until: 'T-906', reason: { without: {} } },
+  'POST /admin/stories/:id/debate/clear': {
+    roles: EDITORIAL,
+    until: 'T-906',
+    reason: { without: {} },
+  },
   'POST /admin/articles/:id/translations': {
     roles: EDITORIAL,
+    until: 'T-906',
     reason: {
       none: 'Adds a translation, which is content under its translator, audited with who and when; nothing is overridden.',
     },
   },
   'POST /admin/articles/:id/translations/:language/review': {
     roles: EDITORIAL,
+    until: 'T-906',
     reason: {
       none: "A reviewer's approval of a translation is the decision itself, audited with who and when.",
     },
   },
-  'GET /admin/viewing/broadcasters': { roles: EDITORIAL },
+  'GET /admin/viewing/broadcasters': { roles: EDITORIAL, until: 'T-906' },
   'POST /admin/viewing/broadcasters': {
     roles: EDITORIAL,
+    until: 'T-906',
     reason: { none: 'Adds a broadcaster to the directory; removals carry a reason (T-312).' },
   },
-  'GET /admin/viewing/coverage': { roles: EDITORIAL },
+  'GET /admin/viewing/coverage': { roles: EDITORIAL, until: 'T-906' },
   'PUT /admin/viewing/coverage': {
     roles: EDITORIAL,
+    until: 'T-906',
     reason: {
       none: 'Records where a broadcaster shows a season; removals carry a reason (T-312).',
     },
   },
   'POST /admin/fixtures/:id/viewing-options': {
     roles: EDITORIAL,
+    until: 'T-906',
     reason: { none: 'Adds a way to watch a match; its removal carries a reason (T-312).' },
   },
   'POST /admin/fixtures/:id/viewing-options/:optionId/remove': {
     roles: EDITORIAL,
+    until: 'T-906',
     reason: { without: {} },
   },
   'PUT /admin/fixtures/:id/highlight': {
     roles: EDITORIAL,
+    until: 'T-906',
     reason: {
       none: 'Adds a highlight link for a territory; its removal carries a reason (T-312).',
     },
   },
   'POST /admin/fixtures/:id/highlight/:territory/remove': {
     roles: EDITORIAL,
+    until: 'T-906',
     reason: { without: {} },
   },
-  'POST /admin/fixtures/:id/summary': { roles: EDITORIAL, reason: { without: {} } },
+  'POST /admin/fixtures/:id/summary': { roles: EDITORIAL, until: 'T-906', reason: { without: {} } },
 };
 
 /**
@@ -394,23 +444,32 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       const url = concrete(path);
       const body = method === 'GET' ? undefined : {};
 
-      it('refuses a guest with 401 and a member without the role with 403, saying only that', async () => {
+      /** A 403 is `forbidden` and nothing else (D-108), bar a row still marked `until`. */
+      const expectForbidden = (who: string, response: { statusCode: number; body: string }) => {
+        expect(response.statusCode, `${who}: ${response.body}`).toBe(403);
+        const error = JSON.parse(response.body) as ApiError;
+        expect(Object.keys(error).sort()).toEqual(['error', 'message']);
+        if (row.until === undefined)
+          expect(error.error, `${who}: ${response.body}`).toBe('forbidden');
+        else
+          expect(
+            error.error,
+            `${who}: this route answers forbidden now; drop its until: '${row.until}'`,
+          ).not.toBe('forbidden');
+      };
+
+      it('refuses a guest with 401 unauthenticated and a member without the role with 403 forbidden, saying only that', async () => {
         const guest = await inject(method, url, undefined, body);
         expect(guest.statusCode, guest.body).toBe(401);
-        const member = await inject(method, url, 'member', body);
-        expect(member.statusCode, member.body).toBe(403);
-        for (const refused of [guest, member]) {
-          const error = refused.json() as ApiError;
-          expect(Object.keys(error).sort()).toEqual(['error', 'message']);
-        }
+        const error = guest.json() as ApiError;
+        expect(Object.keys(error).sort()).toEqual(['error', 'message']);
+        expect(error.error).toBe('unauthenticated');
+        expectForbidden('member', await inject(method, url, 'member', body));
       });
 
-      it(`is refused (403) to every role but ${row.roles.join(' and ')}`, async () => {
-        for (const role of ROLES.filter((r) => !row.roles.includes(r))) {
-          const response = await inject(method, url, role, body);
-          expect(response.statusCode, `${role}: ${response.body}`).toBe(403);
-          expect(Object.keys(response.json() as ApiError).sort()).toEqual(['error', 'message']);
-        }
+      it(`is refused (403 forbidden) to every role but ${row.roles.join(' and ')}`, async () => {
+        for (const role of ROLES.filter((r) => !row.roles.includes(r)))
+          expectForbidden(role, await inject(method, url, role, body));
       });
 
       it(`lets ${row.roles.join(' and ')} past the gate`, async () => {
