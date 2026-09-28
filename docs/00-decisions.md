@@ -3629,3 +3629,52 @@ since when, which is the operator's, not a visitor's.
 renders `WatchdogReport`; T-805 replaces the backup probe's `undefined` with
 the newest recorded backup. Changing a threshold is a one-line change in
 `apps/api/src/modules/watchdog/internal/conditions.ts` and an edit here.
+
+## D-096 — System alerts go to every administrator once, through the inbox and the device, at any hour
+**Status:** Accepted · 2026-09-28 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-802 delivers each watchdog `raised` and `recovered` event
+(D-095) as a `system_alert` notification to every active account holding the
+`admin` role, through the existing path: the inbox always, then Web Push and
+e-mail through the delivery port where the deployment has them and the
+administrator has a device or an address (T-330). The rules:
+
+- **Once, by a cursor and a dedupe key.** `watchdog_alert_cursor` holds the
+  newest event delivered; a run takes its own advisory lock, writes the
+  notifications event by event with the dedupe key `watchdog_event:<id>`, and
+  moves the cursor in the same transaction. A second process skips; a run
+  that dies before committing is repeated and writes nothing twice; a write
+  that fails stops the run there, so no later event jumps the cursor over it.
+  Push and e-mail are claimed per notification before sending (T-330).
+- **Quiet hours do not hold it.** `QUIET_HOURS_EXEMPT = ['system_alert']` is
+  the one exception to "everything waits" (T-273). The alert is the pager
+  for an outage; one that waits until morning is hours of a broken product
+  nobody was told about. It is one message per incident and one per
+  recovery, never a stream, so there is no cap either. An administrator who
+  does not want it turns the kind off in Settings like any other.
+- **Administrators only.** The kind is left out of a member's settings
+  (`ADMIN_ONLY_NOTIFICATION_KINDS`) and only the watchdog emits it. It is in
+  the `account` category.
+- **No replay of the past.** The cursor starts at the newest event already
+  logged when the migration runs; with no administrator at all the cursor
+  still moves (and the log says so), so the first administrator appointed is
+  not handed a week of old alerts.
+- **Where it went is readable.** `GET /admin/health/alerts` gives the
+  channels, the number of administrators, the cursor, pending events, and
+  per alert the inbox count and each channel's sent, failed, skipped, absent
+  and not-yet-carried counts, so the System page (T-804) says "inbox only"
+  when that is all there is and never counts a send that did not happen.
+
+**Alternatives considered.** Writing the notifications inside the cursor's
+own transaction: the notifications module owns its SQL and its rules
+(mutes, blocks, the dedupe index), and a second copy of the insert would
+drift; the dedupe key gives the same outcome across two transactions.
+Honouring quiet hours for alerts: the product rule was written for members'
+notifications; an operator's pager with a night-time delay is not a pager.
+A per-channel preference (push only, no inbox): the preference model is per
+kind today and the inbox is the record the System page reads.
+
+**Consequences.** The alert's line is read from the event (`System alert:
+<condition> is <level> (<note>)`, `Recovered: <condition> is ok again`),
+English like the condition names; it opens the administration area, and
+the System page once T-804 lands.

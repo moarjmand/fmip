@@ -57,6 +57,23 @@ export interface DeliveryRecord {
   push: 'absent' | 'sent' | 'failed' | 'skipped';
 }
 
+/** One channel's outcomes over several notifications (T-802). */
+export interface ChannelTally {
+  sent: number;
+  failed: number;
+  skipped: number;
+  absent: number;
+  /** Written and not carried: no claim yet, or no channel to claim for. */
+  pending: number;
+}
+
+/** Where the notifications about one subject went (T-802). */
+export interface SubjectOutcomes {
+  written: number;
+  push: ChannelTally;
+  email: ChannelTally;
+}
+
 export interface NewNotification {
   userId: string;
   kind: string;
@@ -71,6 +88,17 @@ export interface NewNotification {
   /** What the emitter considers "the same notification". Omit when there is nothing to say. */
   dedupeKey?: string | null;
 }
+
+/**
+ * A system alert's line (T-802): what changed, in the watchdog's own words,
+ * read from the event itself so the inbox, the e-mail and the push say the
+ * same thing. English, like the condition keys and notes it is made of: the
+ * reader is an operator, and the note is the one the log carries.
+ */
+const WATCHDOG_HEADLINE = `CASE subject_alert.kind
+  WHEN 'raised' THEN 'System alert: ' || subject_alert.condition || ' is ' || subject_alert.to_level
+  WHEN 'recovered' THEN 'Recovered: ' || subject_alert.condition || ' is ok again'
+END || coalesce(' (' || subject_alert.note || ')', '')`;
 
 @Injectable()
 export class PostgresNotificationsStore {
@@ -308,7 +336,7 @@ export class PostgresNotificationsStore {
                 WHEN 'campaign' THEN subject_campaign.path
                 ELSE NULL
               END AS subject_label,
-              subject_campaign.title AS headline,
+              coalesce(subject_campaign.title, ${WATCHDOG_HEADLINE}) AS headline,
               source.username AS source,
               n.created_at,
               n.read_at,
@@ -321,15 +349,19 @@ export class PostgresNotificationsStore {
          LEFT JOIN user_account subject_member
                 ON n.subject_type = 'member'
                AND n.subject_id ~ '^[0-9a-f-]{36}$'
-               AND subject_member.id = n.subject_id::uuid
+               AND subject_member.id = CASE WHEN n.subject_id ~ '^[0-9a-f-]{36}$' THEN n.subject_id::uuid END
          LEFT JOIN user_group subject_group
                 ON n.subject_type = 'group'
                AND n.subject_id ~ '^[0-9a-f-]{36}$'
-               AND subject_group.id = n.subject_id::uuid
+               AND subject_group.id = CASE WHEN n.subject_id ~ '^[0-9a-f-]{36}$' THEN n.subject_id::uuid END
          LEFT JOIN campaign subject_campaign
                 ON n.subject_type = 'campaign'
                AND n.subject_id ~ '^[0-9a-f-]{36}$'
-               AND subject_campaign.id = n.subject_id::uuid
+               AND subject_campaign.id = CASE WHEN n.subject_id ~ '^[0-9a-f-]{36}$' THEN n.subject_id::uuid END
+         LEFT JOIN watchdog_event subject_alert
+                ON n.subject_type = 'watchdog_event'
+               AND n.subject_id ~ '^[0-9]{1,18}$'
+               AND subject_alert.id = CASE WHEN n.subject_id ~ '^[0-9]{1,18}$' THEN n.subject_id::bigint END
         WHERE n.user_id = $1 AND n.deliver_after <= now()
         ORDER BY n.created_at DESC
         LIMIT $2`,
@@ -393,7 +425,7 @@ export class PostgresNotificationsStore {
                 WHEN 'campaign' THEN subject_campaign.path
                 ELSE NULL
               END AS subject_label,
-              subject_campaign.title AS headline,
+              coalesce(subject_campaign.title, ${WATCHDOG_HEADLINE}) AS headline,
               source.username AS source,
               u.email,
               u.preferred_language AS locale
@@ -404,15 +436,19 @@ export class PostgresNotificationsStore {
          LEFT JOIN user_account subject_member
                 ON n.subject_type = 'member'
                AND n.subject_id ~ '^[0-9a-f-]{36}$'
-               AND subject_member.id = n.subject_id::uuid
+               AND subject_member.id = CASE WHEN n.subject_id ~ '^[0-9a-f-]{36}$' THEN n.subject_id::uuid END
          LEFT JOIN user_group subject_group
                 ON n.subject_type = 'group'
                AND n.subject_id ~ '^[0-9a-f-]{36}$'
-               AND subject_group.id = n.subject_id::uuid
+               AND subject_group.id = CASE WHEN n.subject_id ~ '^[0-9a-f-]{36}$' THEN n.subject_id::uuid END
          LEFT JOIN campaign subject_campaign
                 ON n.subject_type = 'campaign'
                AND n.subject_id ~ '^[0-9a-f-]{36}$'
-               AND subject_campaign.id = n.subject_id::uuid
+               AND subject_campaign.id = CASE WHEN n.subject_id ~ '^[0-9a-f-]{36}$' THEN n.subject_id::uuid END
+         LEFT JOIN watchdog_event subject_alert
+                ON n.subject_type = 'watchdog_event'
+               AND n.subject_id ~ '^[0-9]{1,18}$'
+               AND subject_alert.id = CASE WHEN n.subject_id ~ '^[0-9]{1,18}$' THEN n.subject_id::bigint END
         WHERE n.deliver_after <= now()
           AND n.created_at >= now() - interval '1 day'
           AND d.notification_id IS NULL
@@ -435,6 +471,57 @@ export class PostgresNotificationsStore {
       [notificationId],
     );
     return rowCount === 1;
+  }
+
+  /**
+   * Where the notifications of one kind about each subject went (T-802): how
+   * many were written, and per channel how many were sent, failed, skipped
+   * (no device), absent (no channel), or not carried yet. Subjects with no
+   * notification are absent from the map.
+   */
+  async outcomesFor(kind: string, subjectIds: string[]): Promise<Map<string, SubjectOutcomes>> {
+    if (subjectIds.length === 0) return new Map();
+    const { rows } = await this.pool.query<Record<string, string>>(
+      `SELECT n.subject_id,
+              count(*)::text AS written,
+              count(*) FILTER (WHERE d.carried_at IS NULL)::text AS pending,
+              count(*) FILTER (WHERE d.push = 'sent')::text AS push_sent,
+              count(*) FILTER (WHERE d.push = 'failed')::text AS push_failed,
+              count(*) FILTER (WHERE d.push = 'skipped')::text AS push_skipped,
+              count(*) FILTER (WHERE d.push = 'absent')::text AS push_absent,
+              count(*) FILTER (WHERE d.email = 'sent')::text AS email_sent,
+              count(*) FILTER (WHERE d.email = 'failed')::text AS email_failed,
+              count(*) FILTER (WHERE d.email = 'skipped')::text AS email_skipped,
+              count(*) FILTER (WHERE d.email = 'absent')::text AS email_absent
+         FROM notification n
+         LEFT JOIN notification_delivery d ON d.notification_id = n.id
+        WHERE n.kind = $1 AND n.subject_id = ANY($2::text[])
+        GROUP BY n.subject_id`,
+      [kind, subjectIds],
+    );
+    const n = (value: string | undefined): number => Number(value ?? '0');
+    return new Map(
+      rows.map((row) => [
+        row.subject_id ?? '',
+        {
+          written: n(row.written),
+          push: {
+            sent: n(row.push_sent),
+            failed: n(row.push_failed),
+            skipped: n(row.push_skipped),
+            absent: n(row.push_absent),
+            pending: n(row.pending),
+          },
+          email: {
+            sent: n(row.email_sent),
+            failed: n(row.email_failed),
+            skipped: n(row.email_skipped),
+            absent: n(row.email_absent),
+            pending: n(row.pending),
+          },
+        },
+      ]),
+    );
   }
 
   /** The outcome on each channel, written once; the trigger refuses a second. */
