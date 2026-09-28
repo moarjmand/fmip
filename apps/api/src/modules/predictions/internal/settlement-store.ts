@@ -269,8 +269,36 @@ export class PostgresSettlementStore {
     from?: string;
     to?: string;
     seasonLabel?: string;
+    competitionId?: string;
   }): Promise<MemberSettledRecord[]> {
     return this.settledRows(filter);
+  }
+
+  /**
+   * Competitions with a settled prediction (T-843), the most recently
+   * settled first: the competition board's picker.
+   */
+  async settledCompetitions(limit: number): Promise<{ id: string; name: string }[]> {
+    const { rows } = await this.pool.query<{ id: string; name: string }>(
+      `SELECT c.id, c.name
+         FROM settlement s
+         JOIN fixture f ON f.id = s.fixture_id
+         JOIN season se ON se.id = f.season_id
+         JOIN competition c ON c.id = se.competition_id
+        WHERE s.status = 'settled'
+        GROUP BY c.id, c.name ORDER BY max(s.settled_at) DESC, c.name LIMIT $1`,
+      [limit],
+    );
+    return rows;
+  }
+
+  /** A competition's name, or null for no such competition (T-843). */
+  async competitionName(id: string): Promise<string | null> {
+    const { rows } = await this.pool.query<{ name: string }>(
+      `SELECT name FROM competition WHERE id = $1`,
+      [id],
+    );
+    return rows[0]?.name ?? null;
   }
 
   /** Months (`YYYY-MM`, UTC) with a settled prediction, newest first. */
@@ -305,6 +333,7 @@ export class PostgresSettlementStore {
     from?: string;
     to?: string;
     seasonLabel?: string;
+    competitionId?: string;
   }): Promise<MemberSettledRecord[]> {
     const { rows } = await this.pool.query<{
       user_id: string;
@@ -338,6 +367,7 @@ export class PostgresSettlementStore {
           AND ($3::timestamptz IS NULL OR s.settled_at >= $3::timestamptz)
           AND ($4::timestamptz IS NULL OR s.settled_at < $4::timestamptz)
           AND ($5::text IS NULL OR se.label = $5::text)
+          AND ($6::uuid IS NULL OR c.id = $6::uuid)
         ORDER BY p.user_id, s.settled_at, s.id`,
       [
         filter.userId ?? null,
@@ -345,6 +375,7 @@ export class PostgresSettlementStore {
         filter.from ?? null,
         filter.to ?? null,
         filter.seasonLabel ?? null,
+        filter.competitionId ?? null,
       ],
     );
     return rows.map((r) => ({

@@ -394,5 +394,7 @@
   "notifications.match.redCard": "Red cards",
   "notifications.match.halfTime": "Half-time",
   "notifications.match.fullTime": "Full-time, with the result",
-  "notifications.match.quiet": "To silence one team or one competition, or every match alert at once, use What stays quiet below. Quiet hours hold match alerts too."
+  "notifications.match.quiet": "To silence one team or one competition, or every match alert at once, use What stays quiet below. Quiet hours hold match alerts too.",
+  "leaderboard.competition.label": "Competition:",
+  "leaderboard.competition.all": "All competitions"
 }

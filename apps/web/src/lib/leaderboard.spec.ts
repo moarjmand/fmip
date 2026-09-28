@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   PAGE_SIZE,
@@ -23,6 +25,7 @@ const DEFAULT: LeaderboardPageQuery = {
   period: 'all',
   month: null,
   season: null,
+  competition: null,
 };
 const at = (change: Partial<LeaderboardPageQuery>): LeaderboardPageQuery => ({
   ...DEFAULT,
@@ -170,6 +173,61 @@ describe('period sentences (T-641)', () => {
     expect(emptyBoardSentence('everyone', { kind: 'all' }, 30, true)).toBe(
       'There is nobody on this page of the board.',
     );
+  });
+});
+
+describe('a competition board (T-843)', () => {
+  const CUP = '00000000-0000-4000-8000-0000000002AB';
+  const cup = CUP.toLowerCase();
+
+  it('reads a competition id, and drops anything else', () => {
+    expect(readLeaderboardQuery({ competition: CUP })).toEqual(at({ competition: cup }));
+    expect(readLeaderboardQuery({ competition: 'premier-league' })).toEqual(DEFAULT);
+  });
+
+  it('asks the API for it and keeps it in every link until changed', () => {
+    expect(apiQuery(at({ competition: cup }))).toBe(
+      `limit=${PAGE_SIZE}&offset=0&competition=${cup}`,
+    );
+    const q = at({ competition: cup, period: 'month', month: '2026-09' });
+    expect(pageHref('en', q, { page: 2 })).toBe(
+      `/en/leaderboard?period=month&month=2026-09&competition=${cup}&page=2`,
+    );
+    expect(pageHref('en', q, { competition: null })).toBe(
+      '/en/leaderboard?period=month&month=2026-09',
+    );
+  });
+
+  it('says only that competition is rated, per member, behind the same privacy as a period', () => {
+    expect(periodSentence({ kind: 'all' }, 'en', 'Cup')).toBe(
+      'Ranked by the Performance Rating computed over predictions on Cup fixtures only',
+    );
+    expect(periodSentence({ kind: 'season', label: '2025/26' }, 'en', 'Cup')).toContain(
+      'on Cup fixtures in its 2025/26 season only',
+    );
+    const text = boardExplainer({
+      scope: 'everyone',
+      period: { kind: 'all' },
+      min_settled: 30,
+      floor: 30,
+      competition: { id: cup, name: 'Cup' },
+    });
+    expect(text).toContain('at least 30 settled predictions in that competition');
+    expect(text).toContain('prediction history is visible to you');
+    expect(emptyBoardSentence('everyone', { kind: 'all' }, 30, false, 'en', 'Cup')).toBe(
+      'No member has 30 settled predictions in Cup yet.',
+    );
+  });
+
+  it('offers the competitions with settled predictions as links on the page', () => {
+    const page = readFileSync(
+      join(__dirname, '..', 'app', '[locale]', 'leaderboard', 'page.tsx'),
+      'utf8',
+    );
+    expect(page).toContain('data-testid="competition-picker"');
+    expect(page).toContain('result.data.available_competitions');
+    expect(page).toContain('pageHref(locale, q, { competition: competition.id, page: 1 })');
+    expect(page).toContain('result.data.competition?.name ?? null');
   });
 });
 

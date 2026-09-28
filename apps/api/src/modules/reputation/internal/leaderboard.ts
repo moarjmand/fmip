@@ -42,6 +42,8 @@ export interface LeaderboardQuery {
   offset: number;
   scope: LeaderboardScope;
   period: PeriodQuery;
+  /** T-843: rate only the settlements on this competition's fixtures; null for all. */
+  competition: string | null;
 }
 
 /** `2026-09` from 2000-01 to 2999-12, or null. */
@@ -73,13 +75,15 @@ function first(value: unknown): string | undefined {
   return typeof v === 'string' && v.trim() !== '' ? v.trim() : undefined;
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function integer(value: string): number | null {
   return /^\d{1,9}$/.test(value) ? Number(value) : null;
 }
 
 /**
- * Parses `min_settled`, `limit`, `offset`, `scope`, `period`, `month` and
- * `season`, naming every bad field at once. Absent fields take the rules'
+ * Parses `min_settled`, `limit`, `offset`, `scope`, `period`, `month`,
+ * `season` and `competition` (T-843, an id), naming every bad field at once. Absent fields take the rules'
  * defaults; a `min_settled` under the floor is refused rather than raised, so
  * the caller learns the rule -- on a month or season board exactly as on the
  * all-time one (D-037, D-060).
@@ -146,7 +150,14 @@ export function parseLeaderboardQuery(
     fields.period = 'Must be all, month or season.';
   }
 
+  let competition: string | null = null;
+  const comp = first(raw.competition);
+  if (comp !== undefined) {
+    if (UUID.test(comp)) competition = comp.toLowerCase();
+    else fields.competition = 'Must be a competition id.';
+  }
+
   return Object.keys(fields).length > 0
     ? { ok: false, fields }
-    : { ok: true, query: { minSettled, limit, offset, scope, period } };
+    : { ok: true, query: { minSettled, limit, offset, scope, period, competition } };
 }

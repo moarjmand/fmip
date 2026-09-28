@@ -16,6 +16,7 @@ import {
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { Notice } from '@/components/ui';
+import { Translated } from '@/components/translated';
 
 export const dynamic = 'force-dynamic';
 
@@ -123,6 +124,7 @@ export default async function LeaderboardPage({
                 period: 'all',
                 month: null,
                 season: null,
+                competition: null,
               })}
               className="underline"
             >
@@ -184,6 +186,38 @@ export default async function LeaderboardPage({
             </div>
           )}
 
+          {(result.data.available_competitions.length > 0 || result.data.competition !== null) && (
+            <div
+              className="flex flex-wrap items-center gap-2 text-sm"
+              data-testid="competition-picker"
+            >
+              <span className="text-muted">
+                <Translated locale={locale} message="leaderboard.competition.label" />
+              </span>
+              <Link
+                href={pageHref(locale, q, { competition: null, page: 1 })}
+                aria-current={result.data.competition === null ? 'true' : undefined}
+                className={linkClass(result.data.competition === null)}
+              >
+                <Translated locale={locale} message="leaderboard.competition.all" />
+              </Link>
+              {competitionChoices(result.data.available_competitions, result.data.competition).map(
+                (competition) => (
+                  <Link
+                    key={competition.id}
+                    href={pageHref(locale, q, { competition: competition.id, page: 1 })}
+                    aria-current={
+                      result.data.competition?.id === competition.id ? 'true' : undefined
+                    }
+                    className={linkClass(result.data.competition?.id === competition.id)}
+                  >
+                    {competition.name}
+                  </Link>
+                ),
+              )}
+            </div>
+          )}
+
           <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="min-sample">
             <span className="text-muted">Minimum settled predictions:</span>
             {result.data.presets.map((preset) => (
@@ -218,6 +252,7 @@ export default async function LeaderboardPage({
                 result.data.min_settled,
                 q.page > 1 && result.data.total > 0,
                 locale,
+                result.data.competition?.name ?? null,
               )}
             </p>
           ) : (
@@ -295,6 +330,19 @@ export default async function LeaderboardPage({
       )}
     </main>
   );
+}
+
+/**
+ * The competition picker's choices (T-843): those with settled predictions,
+ * plus the one being shown if it has none yet.
+ */
+function competitionChoices(
+  available: { id: string; name: string }[],
+  selected: { id: string; name: string } | null,
+): { id: string; name: string }[] {
+  return selected === null || available.some((c) => c.id === selected.id)
+    ? available
+    : [selected, ...available];
 }
 
 /** The picker's choices: what has settled predictions, plus the one being shown if it has none. */

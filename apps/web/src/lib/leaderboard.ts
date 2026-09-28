@@ -27,6 +27,8 @@ export interface LeaderboardPageQuery {
   month: string | null;
   /** A season label, only with `period: 'season'`; null means the newest season. */
   season: string | null;
+  /** T-843: a competition id, to rate only its settlements; null for every competition. */
+  competition: string | null;
 }
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -41,6 +43,7 @@ function positiveInteger(value: string | undefined): number | null {
 }
 
 const MONTH = /^2\d{3}-(0[1-9]|1[0-2])$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * `?min=50&page=2&scope=friends&period=month&month=2026-09`. A missing or bad
@@ -53,6 +56,7 @@ export function readLeaderboardQuery(params: SearchParams): LeaderboardPageQuery
   const kind: LeaderboardPeriodKind = period === 'month' || period === 'season' ? period : 'all';
   const month = first(params.month);
   const season = first(params.season);
+  const competition = first(params.competition);
   return {
     min: positiveInteger(first(params.min)),
     page: positiveInteger(first(params.page)) ?? 1,
@@ -60,6 +64,8 @@ export function readLeaderboardQuery(params: SearchParams): LeaderboardPageQuery
     period: kind,
     month: kind === 'month' && month !== undefined && MONTH.test(month) ? month : null,
     season: kind === 'season' && season !== undefined && season.length <= 32 ? season : null,
+    competition:
+      competition !== undefined && UUID.test(competition) ? competition.toLowerCase() : null,
   };
 }
 
@@ -73,6 +79,7 @@ export function apiQuery(q: LeaderboardPageQuery): string {
   if (q.period !== 'all') params.set('period', q.period);
   if (q.period === 'month' && q.month !== null) params.set('month', q.month);
   if (q.period === 'season' && q.season !== null) params.set('season', q.season);
+  if (q.competition !== null) params.set('competition', q.competition);
   return params.toString();
 }
 
@@ -92,6 +99,7 @@ export function pageHref(
   if (next.period !== 'all') params.set('period', next.period);
   if (next.period === 'month' && next.month !== null) params.set('month', next.month);
   if (next.period === 'season' && next.season !== null) params.set('season', next.season);
+  if (next.competition !== null) params.set('competition', next.competition);
   if (next.min !== null) params.set('min', String(next.min));
   if (next.page > 1) params.set('page', String(next.page));
   const query = params.toString();
@@ -108,17 +116,29 @@ export function monthLabel(month: string, locale = 'en'): string {
   }).format(new Date(Date.UTC(year, index - 1, 1)));
 }
 
-/** What the board ranks, as the sentence under the switcher says it. */
-export function periodSentence(period: LeaderboardPeriod, locale = 'en'): string {
+/**
+ * What the board ranks, as the sentence under the switcher says it. With a
+ * competition (T-843), only its fixtures' settlements are rated.
+ */
+export function periodSentence(
+  period: LeaderboardPeriod,
+  locale = 'en',
+  competition: string | null = null,
+): string {
+  const where = competition === null ? '' : ` on ${competition} fixtures`;
   switch (period.kind) {
     case 'all':
-      return 'Ranked by current Performance Rating';
+      return competition === null
+        ? 'Ranked by current Performance Rating'
+        : `Ranked by the Performance Rating computed over predictions${where} only`;
     case 'month':
-      return `Ranked by the Performance Rating computed over predictions settled in ${monthLabel(period.month, locale)} (UTC) only`;
+      return `Ranked by the Performance Rating computed over predictions${where} settled in ${monthLabel(period.month, locale)} (UTC) only`;
     case 'season':
       return period.label === null
         ? 'No season has a settled prediction yet'
-        : `Ranked by the Performance Rating computed over predictions on ${period.label} season fixtures, in every competition, only`;
+        : competition === null
+          ? `Ranked by the Performance Rating computed over predictions on ${period.label} season fixtures, in every competition, only`
+          : `Ranked by the Performance Rating computed over predictions${where} in its ${period.label} season only`;
   }
 }
 
@@ -128,17 +148,25 @@ export function periodSentence(period: LeaderboardPeriod, locale = 'en'): string
  * where their prediction history is visible to the viewer.
  */
 export function boardExplainer(
-  board: Pick<LeaderboardResponse, 'scope' | 'period' | 'min_settled' | 'floor'>,
+  board: Pick<LeaderboardResponse, 'scope' | 'period' | 'min_settled' | 'floor'> & {
+    competition?: LeaderboardResponse['competition'];
+  },
   locale = 'en',
 ): string {
+  const competition = board.competition?.name ?? null;
   const among = board.scope === 'friends' ? ' among you and your friends' : '';
-  const inPeriod = board.period.kind === 'all' ? '' : ' in that period';
+  const inPeriod =
+    board.period.kind !== 'all'
+      ? ' in that period'
+      : competition !== null
+        ? ' in that competition'
+        : '';
   const privacy =
-    board.period.kind === 'all'
+    board.period.kind === 'all' && competition === null
       ? ''
       : ' A member appears only where their prediction history is visible to you.';
   return (
-    `${periodSentence(board.period, locale)}${among}, counting members with at least ` +
+    `${periodSentence(board.period, locale, competition)}${among}, counting members with at least ` +
     `${board.min_settled} settled predictions${inPeriod}. Ratings are provisional below ` +
     `${board.floor}, so no smaller sample is ranked.${privacy}`
   );
@@ -154,6 +182,7 @@ export function emptyBoardSentence(
   minSettled: number,
   pastTheEnd: boolean,
   locale = 'en',
+  competition: string | null = null,
 ): string {
   if (pastTheEnd) return 'There is nobody on this page of the board.';
   if (period.kind === 'season' && period.label === null)
@@ -165,7 +194,8 @@ export function emptyBoardSentence(
       : period.kind === 'season'
         ? ` on ${period.label} season fixtures`
         : '';
-  return `${who} ${minSettled} settled predictions${when} yet.`;
+  const where = competition === null ? '' : ` in ${competition}`;
+  return `${who} ${minSettled} settled predictions${where}${when} yet.`;
 }
 
 /** How many pages a board of `total` entries has, at least one. */

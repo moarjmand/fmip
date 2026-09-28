@@ -1787,5 +1787,15 @@
     "source": "To silence one team or one competition, or every match alert at once, use What stays quiet below. Quiet hours hold match alerts too.",
     "text": "",
     "status": "untranslated"
+  },
+  "leaderboard.competition.label": {
+    "source": "Competition:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboard.competition.all": {
+    "source": "All competitions",
+    "text": "",
+    "status": "untranslated"
   }
 }

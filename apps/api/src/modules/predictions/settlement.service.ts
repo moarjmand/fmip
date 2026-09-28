@@ -74,14 +74,28 @@ export class SettlementService {
     return this.store.settledHistory(userId);
   }
 
-  /** The same records, over a month or a season, for a period board (T-641). */
+  /**
+   * The same records, over a month or a season (T-641) and/or in one
+   * competition (T-843), for a board computed on read.
+   */
   settledInPeriod(filter: {
     among: string[] | null;
     from?: string;
     to?: string;
     seasonLabel?: string;
+    competitionId?: string;
   }): Promise<MemberSettledRecord[]> {
     return this.store.settledInPeriod(filter);
+  }
+
+  /** Competitions with a settled prediction, most recently settled first (T-843). */
+  settledCompetitions(limit: number): Promise<{ id: string; name: string }[]> {
+    return this.store.settledCompetitions(limit);
+  }
+
+  /** A competition's name, or null when there is no such competition (T-843). */
+  competitionName(id: string): Promise<string | null> {
+    return this.store.competitionName(id);
   }
 
   /** The months and season labels a period board can be asked for, newest first. */

@@ -36,6 +36,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
 const NO_USER: ApiError = { error: 'not_found', message: 'No such member.' };
 const NO_GROUP: ApiError = { error: 'not_found', message: 'No such group.' };
+const NO_COMPETITION: ApiError = { error: 'not_found', message: 'No such competition.' };
 
 /**
  * Ratings over HTTP (T-053). A rating is public (blueprint 9.3: profiles and
@@ -160,6 +161,10 @@ export class ReputationController {
    * `period=month|season` rates each member over that period's settlements
    * only. The session is read when there is one, because a period board is
    * drawn from the members whose prediction history the viewer may read.
+   *
+   * T-843: `competition=<id>` rates each member over their settlements on
+   * that competition's fixtures only, under the same rule; an unknown
+   * competition is a 404.
    */
   @Get('leaderboard')
   async leaderboard(
@@ -177,6 +182,12 @@ export class ReputationController {
         fields: parsed.fields,
       };
       throw new BadRequestException(error);
+    }
+    if (
+      parsed.query.competition !== null &&
+      !(await this.reputation.competitionExists(parsed.query.competition))
+    ) {
+      throw new NotFoundException(NO_COMPETITION);
     }
     const viewer = await this.identity.authenticate(
       parseCookies(request.headers.cookie)[SESSION_COOKIE],

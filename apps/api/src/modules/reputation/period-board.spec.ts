@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { RATING_FORMULA_V1, computeRating } from './internal/formula';
 import { LEADERBOARD_RULES_V1, monthBounds } from './internal/leaderboard';
+import { ratingHistory } from './internal/history';
 import { periodBoard, type PeriodInput } from './internal/period-board';
 import { resolvePeriod } from './reputation.service';
 
@@ -114,6 +115,40 @@ describe('periodBoard (T-641)', () => {
     expect(board.map((r) => r.username)).toEqual(['ben']);
     expect(board[0]!.rank).toBe(1);
     expect(periodBoard([], MEMBERS, FLOOR)).toEqual([]);
+  });
+});
+
+describe('a competition board (T-843)', () => {
+  // Every other settlement is in the cup; the store hands the board only the
+  // cup's rows (settledInPeriod with competitionId), and each member's rating
+  // must be the figure their rating history gives that competition (T-640).
+  const CUP = { id: 'cup', name: 'Cup' };
+  const LEAGUE = { id: 'league', name: 'League' };
+  const rows = [
+    ...settlements(ANN, 160, '2026-08-01T00:00:00.000Z', 1),
+    ...settlements(BEN, 90, '2026-08-01T00:00:00.000Z', 2),
+    ...settlements(CAT, 40, '2026-08-01T00:00:00.000Z', 3),
+  ].map((r, i) => ({ ...r, competition: i % 2 === 0 ? CUP : LEAGUE }));
+  const cup = rows.filter((r) => r.competition.id === CUP.id);
+
+  it('rates each member exactly as their history rates that competition', () => {
+    const board = periodBoard(cup, MEMBERS, FLOOR);
+    expect(board.length).toBeGreaterThan(0);
+    for (const row of board) {
+      const own = rows.filter((r) => r.userId === row.userId);
+      const history = ratingHistory(own, '2026-09-28T00:00:00.000Z')!;
+      const figure = history.by_competition.find((c) => c.competition.id === CUP.id)!;
+      expect(row.result.rating).toBe(figure.rating);
+      expect(row.result.settledCount).toBe(figure.settled_count);
+    }
+  });
+
+  it('counts the floor over that competition alone (D-037)', () => {
+    // Cat has 40 settlements in all, 20 in the cup: under the floor there.
+    const board = periodBoard(cup, MEMBERS, FLOOR);
+    const catInCup = cup.filter((r) => r.userId === CAT).length;
+    expect(catInCup).toBeLessThan(FLOOR);
+    expect(board.some((r) => r.userId === CAT)).toBe(false);
   });
 });
 

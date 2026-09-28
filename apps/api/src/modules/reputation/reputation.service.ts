@@ -95,6 +95,13 @@ export class ReputationService {
    * history `viewerId` may read -- the rule `GET /users/:username/predictions`
    * and the rating history (T-640) follow. The all-time board shows what
    * blueprint 7.2 makes public (username and current rating), as before.
+   *
+   * A competition (T-843) likewise changes only which settlements are rated:
+   * `computeRating` over each member's settlements on that competition's
+   * fixtures (within the period, when there is one) -- exactly how the
+   * rating history's per-competition figure is computed (T-640) -- behind
+   * the same floor counted over those settlements alone (D-037), and under
+   * the period boards' privacy rule, since it says where a member predicted.
    */
   async leaderboard(
     query: LeaderboardQuery,
@@ -108,12 +115,20 @@ export class ReputationService {
     const among = options.among ?? null;
     const now = options.now ?? new Date();
     const generatedAt = now.toISOString();
-    const available = await this.settlements.settledPeriods(PERIOD_CHOICES);
+    const [available, competitions, competitionName] = await Promise.all([
+      this.settlements.settledPeriods(PERIOD_CHOICES),
+      this.settlements.settledCompetitions(COMPETITION_CHOICES),
+      query.competition === null
+        ? Promise.resolve(null)
+        : this.settlements.competitionName(query.competition),
+    ]);
     const period = resolvePeriod(query.period, available, now);
+    const competition =
+      query.competition === null ? null : { id: query.competition, name: competitionName ?? '' };
 
     let total: number;
     let entries: LeaderboardResponse['entries'];
-    if (period.kind === 'all') {
+    if (period.kind === 'all' && competition === null) {
       const page = await this.store.board(query.minSettled, query.limit, query.offset, among);
       total = page.total;
       entries = page.rows.map((r) => ({
@@ -128,7 +143,13 @@ export class ReputationService {
         computed_at: r.computedAt,
       }));
     } else {
-      const rows = await this.periodRows(period, among, options.viewerId ?? null, query);
+      const rows = await this.computedRows(
+        period,
+        competition?.id ?? null,
+        among,
+        options.viewerId ?? null,
+        query,
+      );
       total = rows.length;
       entries = rows.slice(query.offset, query.offset + query.limit).map((r) => ({
         rank: r.rank,
@@ -147,6 +168,8 @@ export class ReputationService {
       scope: options.scope ?? query.scope,
       period,
       available_periods: available,
+      competition,
+      available_competitions: competitions,
       rules_version: this.leaderboardRules.version,
       min_settled: query.minSettled,
       floor: this.leaderboardRules.floor,
@@ -159,18 +182,30 @@ export class ReputationService {
     };
   }
 
-  /** Every ranked row of a month or season board, before paging. */
-  private async periodRows(
-    period: Exclude<LeaderboardPeriod, { kind: 'all' }>,
+  /** Whether a competition exists, for the board's 404 (T-843). */
+  async competitionExists(id: string): Promise<boolean> {
+    return (await this.settlements.competitionName(id)) !== null;
+  }
+
+  /**
+   * Every ranked row of a board computed on read -- a month, a season, a
+   * competition, or a competition within a period -- before paging.
+   */
+  private async computedRows(
+    period: LeaderboardPeriod,
+    competitionId: string | null,
     among: string[] | null,
     viewerId: string | null,
     query: LeaderboardQuery,
   ): Promise<PeriodBoardRow[]> {
     if (period.kind === 'season' && period.label === null) return [];
+    const inCompetition = competitionId === null ? {} : { competitionId };
     const records = await this.settlements.settledInPeriod(
       period.kind === 'month'
-        ? { among, from: period.from, to: period.to }
-        : { among, seasonLabel: period.label ?? '' },
+        ? { among, from: period.from, to: period.to, ...inCompetition }
+        : period.kind === 'season'
+          ? { among, seasonLabel: period.label ?? '', ...inCompetition }
+          : { among, ...inCompetition },
     );
     if (records.length === 0) return [];
     const members = await this.profiles.predictionHistoryAudience(
@@ -330,6 +365,9 @@ export class ReputationService {
 
 /** How many months and seasons the pickers offer. */
 const PERIOD_CHOICES = 36;
+
+/** How many competitions the competition picker offers (T-843). */
+const COMPETITION_CHOICES = 50;
 
 /**
  * The period a board ranks, with its defaults filled in: the current UTC month,

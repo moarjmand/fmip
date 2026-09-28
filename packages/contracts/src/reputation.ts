@@ -240,12 +240,21 @@ export type LeaderboardPeriod =
   | { kind: 'month'; month: string; from: string; to: string }
   | { kind: 'season'; label: string | null };
 
-/** `GET /leaderboard?scope=&period=&month=&season=&min_settled=&limit=&offset=`. */
+/** `GET /leaderboard?scope=&period=&month=&season=&competition=&min_settled=&limit=&offset=`. */
 export interface LeaderboardResponse {
   scope: LeaderboardScope | 'group';
   period: LeaderboardPeriod;
   /** Months (`YYYY-MM`) and season labels with settled predictions, newest first: the pickers. */
   available_periods: { months: string[]; seasons: string[] };
+  /**
+   * The competition the board is narrowed to (T-843): each member's rating
+   * is `computeRating` over their settlements on that competition's fixtures
+   * only (within `period`), and the minimum-sample filter counts those alone
+   * (D-037). Null for every competition.
+   */
+  competition: { id: string; name: string } | null;
+  /** Competitions with settled predictions, most recently settled first: the picker. */
+  available_competitions: { id: string; name: string }[];
   /** name@semver of the leaderboard rules (floor, presets, page sizes). */
   rules_version: string;
   /** The filter applied: at least this many settled predictions to be ranked. */
