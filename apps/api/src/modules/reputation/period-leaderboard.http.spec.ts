@@ -36,6 +36,9 @@ const FLOOR = LEADERBOARD_RULES_V1.floor;
 const MONTH = '2031-01';
 const SEASON_A = `t641a-${RUN}`;
 const SEASON_B = `t641b-${RUN}`;
+// T-843: a competition only this run plays, settled in March 2031.
+const CUP = randomUUID();
+const SEASON_C = `t843c-${RUN}`;
 
 type Name = 'ann' | 'ben' | 'cat' | 'dan' | 'eve' | 'fay' | 'gus';
 const MEMBERS: Name[] = ['ann', 'ben', 'cat', 'dan', 'eve', 'fay', 'gus'];
@@ -50,7 +53,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Period leade
   let app: NestFastifyApplication;
   let pool: Pool;
   const users = {} as Record<Name, { id: string; username: string; cookie: string }>;
-  const seasons: Record<'a' | 'b', string> = { a: randomUUID(), b: randomUUID() };
+  const seasons: Record<'a' | 'b' | 'c', string> = {
+    a: randomUUID(),
+    b: randomUUID(),
+    c: randomUUID(),
+  };
   const fixtures: string[] = [];
   /** What each member settled, as the formula reads it, per period. */
   const written: Record<string, RatingInput[]> = {};
@@ -72,7 +79,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Period leade
    * `count` settled predictions for `who` on fixtures in `season`, one an hour
    * from `start`: correct on a fixed cycle, an exact score now and then.
    */
-  async function settle(who: Name, season: 'a' | 'b', start: string, count: number, seed: number) {
+  async function settle(
+    who: Name,
+    season: 'a' | 'b' | 'c',
+    start: string,
+    count: number,
+    seed: number,
+  ) {
     const key = `${who}:${season}`;
     written[key] = [];
     for (let i = 0; i < count; i += 1) {
@@ -208,6 +221,16 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Period leade
               ($2, $3, $5, DATE '2031-01-15', DATE '2031-12-31')`,
       [seasons.a, seasons.b, PREMIER_LEAGUE, SEASON_A, SEASON_B],
     );
+    await pool.query(
+      `INSERT INTO competition (id, country_id, name, kind, scope, gender)
+       VALUES ($1, $2, $3, 'cup', 'domestic', 'men')`,
+      [CUP, ENGLAND, `T-843 Cup ${RUN}`],
+    );
+    await pool.query(
+      `INSERT INTO season (id, competition_id, label, start_date, end_date)
+       VALUES ($1, $2, $3, DATE '2031-03-01', DATE '2031-05-31')`,
+      [seasons.c, CUP, SEASON_C],
+    );
 
     // January 2031, season A for everyone; February, season B, for ann only.
     await settle('ann', 'a', '2031-01-02T00:00:00.000Z', FLOOR + 5, 1);
@@ -215,6 +238,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Period leade
     await settle('cat', 'a', '2031-01-04T00:00:00.000Z', FLOOR + 10, 0);
     await settle('dan', 'a', '2031-01-05T00:00:00.000Z', 5, 1);
     await settle('ann', 'b', '2031-02-02T00:00:00.000Z', 10, 1);
+    // March 2031, the cup only: ann and cat reach the floor there, ben does not.
+    await settle('ann', 'c', '2031-03-02T00:00:00.000Z', FLOOR + 3, 2);
+    await settle('cat', 'c', '2031-03-03T00:00:00.000Z', FLOOR + 1, 1);
+    await settle('ben', 'c', '2031-03-04T00:00:00.000Z', 5, 0);
 
     // All-time snapshots for the friends board, which reads snapshots as the
     // global one does -- for members with no settlements, so no recompute
@@ -260,6 +287,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Period leade
     await pool.query(`DELETE FROM user_prediction WHERE fixture_id = ANY($1::uuid[])`, [fixtures]);
     await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [fixtures]);
     await pool.query(`DELETE FROM season WHERE id = ANY($1::uuid[])`, [Object.values(seasons)]);
+    await pool.query(`DELETE FROM competition WHERE id = $1`, [CUP]);
     await deleteRatedAccounts(pool, ids);
     await pool.end();
     await app.close();
@@ -357,6 +385,88 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Period leade
       'ben',
     );
     expect(names(friendsMonth).sort()).toEqual([users.ann.username, users.ben.username].sort());
+  });
+
+  it("rates a competition board over that competition's settlements only (T-843)", async () => {
+    const cup = await board(`/leaderboard?competition=${CUP}`, 'cat');
+    expect(cup.competition).toEqual({ id: CUP, name: `T-843 Cup ${RUN}` });
+    expect(cup.period).toEqual({ kind: 'all' });
+    expect(cup.available_competitions).toContainEqual({ id: CUP, name: `T-843 Cup ${RUN}` });
+    // cat sees her own private history; ben is under the floor in the cup,
+    // though well over it across every competition (D-037, per competition).
+    expect(names(cup).sort()).toEqual([users.ann.username, users.cat.username].sort());
+    for (const entry of cup.entries) {
+      const expected = computeRating(written[`${entry.username.slice(-3)}:c`]!)!;
+      expect(entry.rating).toBe(expected.rating);
+      expect(entry.settled_count).toBe(expected.settledCount);
+    }
+
+    // The period boards' privacy: signed out, only ann's public history.
+    expect(names(await board(`/leaderboard?competition=${CUP}`))).toEqual([users.ann.username]);
+    // A competition inside a period: March holds the cup, January none of it.
+    expect(
+      names(
+        await board(`/leaderboard?competition=${CUP}&period=month&month=2031-03`, 'cat'),
+      ).sort(),
+    ).toEqual([users.ann.username, users.cat.username].sort());
+    expect(
+      (await board(`/leaderboard?competition=${CUP}&period=month&month=${MONTH}`)).entries,
+    ).toEqual([]);
+    // Friends within a competition: ben and ann, and only ann reaches the floor.
+    expect(names(await board(`/leaderboard?competition=${CUP}&scope=friends`, 'ben'))).toEqual([
+      users.ann.username,
+    ]);
+    // The whole board carries no competition.
+    expect((await board('/leaderboard?period=month&month=2031-03', 'cat')).competition).toBeNull();
+
+    expect((await get(`/leaderboard?competition=${randomUUID()}`)).statusCode).toBe(404);
+    expect((await get('/leaderboard?competition=cup')).statusCode).toBe(400);
+    expect((await get(`/leaderboard?competition=${CUP}&min_settled=1`)).statusCode).toBe(400);
+  });
+
+  it("draws a language board from members who chose that language, under the history's privacy (T-844)", async () => {
+    // ann, cat and eve read FMIP in Arabic (cat as ar-EG), and gus too; the rest in English.
+    for (const [name, language] of [
+      ['ann', 'ar'],
+      ['cat', 'ar-EG'],
+      ['eve', 'ar'],
+      ['gus', 'ar'],
+    ] as const) {
+      await pool.query(`UPDATE user_account SET preferred_language = $2 WHERE id = $1`, [
+        users[name].id,
+        language,
+      ]);
+    }
+
+    // A language inside a competition: the cup's ratings, for Arabic readers only.
+    const cup = await board(`/leaderboard?language=ar&competition=${CUP}`, 'cat');
+    expect(cup.language).toBe('ar');
+    expect(names(cup).sort()).toEqual([users.ann.username, users.cat.username].sort());
+    // Signed out, cat's private history keeps her off it.
+    expect(names(await board(`/leaderboard?language=ar&competition=${CUP}`))).toEqual([
+      users.ann.username,
+    ]);
+
+    // All time, from the snapshots: eve is public; gus keeps his history
+    // private, so a board does not disclose his language, though his rating
+    // stays on the whole-site board. fay reads in English.
+    const allTime = await board('/leaderboard?language=ar&limit=100');
+    const ours = names(allTime).filter((n) => n.startsWith(`pb_${RUN}`));
+    expect(ours).toContain(users.eve.username);
+    expect(ours).not.toContain(users.gus.username);
+    expect(ours).not.toContain(users.fay.username);
+    expect(names(await board('/leaderboard?language=ar&limit=100', 'gus'))).toContain(
+      users.gus.username,
+    );
+
+    // A language nobody in the scope reads in: an empty board that names it.
+    const none = await board('/leaderboard?scope=friends&language=tr', 'eve');
+    expect(none.language).toBe('tr');
+    expect(none.entries).toEqual([]);
+    expect(none.total).toBe(0);
+    // The whole board carries no language.
+    expect((await board('/leaderboard?limit=1')).language).toBeNull();
+    expect((await get('/leaderboard?language=arabic')).statusCode).toBe(400);
   });
 
   it('refuses what it does not understand, and the floor, on every board', async () => {

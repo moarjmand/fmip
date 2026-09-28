@@ -83,6 +83,20 @@ export class PostgresProfileStore {
     return rows;
   }
 
+  /**
+   * Active members whose chosen interface language is `language` (T-844):
+   * `preferred_language` compared by its primary subtag, so `pt-BR` reads
+   * in Portuguese. `language` is a lower-case primary subtag.
+   */
+  async idsByLanguage(language: string): Promise<string[]> {
+    const { rows } = await this.pool.query<{ id: string }>(
+      `SELECT id FROM user_account
+        WHERE status = 'active' AND lower(split_part(preferred_language, '-', 1)) = $1`,
+      [language],
+    );
+    return rows.map((r) => r.id);
+  }
+
   /** Every territory a member may choose, by name. */
   async territories(): Promise<Territory[]> {
     const { rows } = await this.pool.query<Territory>(

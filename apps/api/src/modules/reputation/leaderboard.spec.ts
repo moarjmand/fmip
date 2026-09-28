@@ -26,6 +26,8 @@ describe('parseLeaderboardQuery', () => {
         offset: 0,
         scope: 'everyone',
         period: { kind: 'all' },
+        competition: null,
+        language: null,
       },
     });
   });
@@ -33,7 +35,15 @@ describe('parseLeaderboardQuery', () => {
   it('accepts a filter at or above the floor and a page inside the limits', () => {
     expect(parseLeaderboardQuery({ min_settled: '50', limit: '10', offset: '20' })).toEqual({
       ok: true,
-      query: { minSettled: 50, limit: 10, offset: 20, scope: 'everyone', period: { kind: 'all' } },
+      query: {
+        minSettled: 50,
+        limit: 10,
+        offset: 20,
+        scope: 'everyone',
+        period: { kind: 'all' },
+        competition: null,
+        language: null,
+      },
     });
     expect(parseLeaderboardQuery({ min_settled: String(LEADERBOARD_RULES_V1.floor) }).ok).toBe(
       true,
@@ -64,6 +74,8 @@ describe('parseLeaderboardQuery', () => {
         offset: 0,
         scope: 'everyone',
         period: { kind: 'all' },
+        competition: null,
+        language: null,
       },
     });
   });
@@ -106,6 +118,33 @@ describe('scope and period (T-641)', () => {
     expect(query({ period: 'season', season: 'x'.repeat(40) })).toHaveProperty('season');
     expect(query({ month: '2026-09' })).toHaveProperty('month');
     expect(query({ period: 'month', season: '2025/26' })).toHaveProperty('season');
+  });
+
+  it('reads a competition id, with any period, and names anything else (T-843)', () => {
+    const id = '00000000-0000-4000-8000-0000000002AB';
+    expect(query({ competition: id })).toMatchObject({
+      competition: id.toLowerCase(),
+      period: { kind: 'all' },
+    });
+    expect(query({ competition: id, period: 'season', season: '2025/26' })).toMatchObject({
+      competition: id.toLowerCase(),
+      period: { kind: 'season', label: '2025/26' },
+    });
+    expect(query({ competition: 'premier-league' })).toEqual({
+      competition: 'Must be a competition id.',
+    });
+    // The floor holds per competition exactly as on the whole board (D-037).
+    expect(query({ competition: id, min_settled: '1' })).toHaveProperty('min_settled');
+  });
+
+  it('reads a language as its primary subtag, and names anything else (T-844)', () => {
+    expect(query({ language: 'AR' })).toMatchObject({ language: 'ar' });
+    expect(query({ language: 'pt', competition: undefined })).toMatchObject({ language: 'pt' });
+    expect(query({ language: 'pt-BR' })).toEqual({
+      language: 'Must be a language code such as ar.',
+    });
+    expect(query({ language: 'arabic' })).toHaveProperty('language');
+    expect(query({ language: 'ar', min_settled: '1' })).toHaveProperty('min_settled');
   });
 
   it('bounds a month in UTC, December into January', () => {

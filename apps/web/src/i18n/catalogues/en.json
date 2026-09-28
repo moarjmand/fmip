@@ -442,5 +442,10 @@
   "saved.save": "Save",
   "saved.remove": "Remove from saved",
   "saved.isSaved": "Saved",
-  "saved.signIn": "Sign in to save this story."
+  "saved.signIn": "Sign in to save this story.",
+  "leaderboard.competition.label": "Competition:",
+  "leaderboard.competition.all": "All competitions",
+  "leaderboard.language.label": "Language:",
+  "leaderboard.language.all": "All languages",
+  "leaderboard.language.note": "A member's language is the one they chose for FMIP in Settings. It is not public, so this board shows only members whose prediction history you may see."
 }

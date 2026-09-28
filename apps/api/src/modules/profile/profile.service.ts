@@ -103,6 +103,15 @@ export class ProfileService {
   }
 
   /**
+   * The members a language board is drawn from (T-844): active accounts whose
+   * chosen interface language has this primary subtag. Who may then see them
+   * is `predictionHistoryAudience`'s to say, as on every board computed on read.
+   */
+  membersByLanguage(language: string): Promise<string[]> {
+    return this.store.idsByLanguage(language);
+  }
+
+  /**
    * `predictionHistoryAccess` for many members at once (T-641): of `userIds`,
    * the active members whose prediction history `viewerId` may read, by id,
    * with their usernames. The same `canView` rule on the same setting, so a
