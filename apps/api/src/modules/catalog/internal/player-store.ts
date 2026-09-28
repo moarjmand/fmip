@@ -1,9 +1,43 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { PlayerMatch, PlayerPage, PlayerSeasonRecord, PlayerSpell } from '@fmip/contracts';
+import type {
+  PlayerMatch,
+  PlayerPage,
+  PlayerSeasonMinutes,
+  PlayerSeasonRecord,
+  PlayerSpell,
+} from '@fmip/contracts';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 
-/** SQL for the player page (T-037). Reads only; everything comes from line-ups, incidents and spells. */
+/**
+ * The minutes of one season row (T-823): whole only when every match the
+ * player played carries the feed's minutes; a partial sum is never `total`.
+ */
+export function seasonMinutes(
+  matches: number,
+  matchesWithMinutes: number,
+  suppliedMinutes: number,
+): PlayerSeasonMinutes {
+  const coverage: PlayerSeasonMinutes['coverage'] =
+    matchesWithMinutes >= matches
+      ? 'available'
+      : matchesWithMinutes === 0
+        ? 'not_supplied'
+        : 'limited';
+  return {
+    coverage,
+    total: coverage === 'available' ? suppliedMinutes : null,
+    matches,
+    matches_with_minutes: matchesWithMinutes,
+    supplied_minutes: suppliedMinutes,
+  };
+}
+
+/**
+ * SQL for the player page (T-037). Reads only; everything comes from
+ * line-ups, incidents and spells, and minutes from the feed's per-player
+ * statistics (T-823).
+ */
 @Injectable()
 export class PostgresPlayerStore {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
@@ -79,7 +113,10 @@ export class PostgresPlayerStore {
    * One row per season, competition and team the player was named for:
    * starts, bench appearances that became a substitution on, goals (open play
    * and penalties), assists, cards — each counted only for the team of the
-   * line-up, so a mid-season move gives two honest rows.
+   * line-up, so a mid-season move gives two honest rows. Minutes (T-823):
+   * over the matches the player played (a start, on from the bench, or
+   * minutes above zero on record), how many carry the feed's `minutes` and
+   * their sum; `seasonMinutes` turns that into a coverage state.
    */
   async record(personId: string): Promise<PlayerSeasonRecord[]> {
     const { rows } = await this.pool.query<{
@@ -96,16 +133,26 @@ export class PostgresPlayerStore {
       assists: string;
       yellow_cards: string;
       red_cards: string;
+      matches_played: string;
+      matches_with_minutes: string;
+      supplied_minutes: string;
     }>(
-      `WITH named AS (
+      `WITH lined AS (
          SELECT f.id AS fixture_id, f.season_id, p.id AS participant_id, p.team_id, l.role,
                 EXISTS (SELECT 1 FROM incident s
                          WHERE s.fixture_id = f.id AND s.kind = 'substitution'
-                           AND s.related_person_id = l.person_id) AS came_on
+                           AND s.related_person_id = l.person_id) AS came_on,
+                m.value AS minutes
            FROM lineup l
            JOIN fixture_participant p ON p.id = l.participant_id
            JOIN fixture f ON f.id = p.fixture_id
+           LEFT JOIN fixture_player_stat m
+             ON m.participant_id = p.id AND m.person_id = l.person_id AND m.metric = 'minutes'
           WHERE l.person_id = $1
+       ), named AS (
+         SELECT lined.*,
+                (lined.role = 'starter' OR lined.came_on OR COALESCE(lined.minutes, 0) > 0) AS played
+           FROM lined
        ), counted AS (
          SELECT n.season_id, n.team_id,
                 count(*) FILTER (WHERE n.role = 'starter') AS starts,
@@ -121,7 +168,10 @@ export class PostgresPlayerStore {
                     AND i.person_id = $1 AND i.kind = 'yellow_card') AS yellow_cards,
                 (SELECT count(*) FROM incident i
                   WHERE i.participant_id = ANY(array_agg(n.participant_id))
-                    AND i.person_id = $1 AND i.kind IN ('red_card', 'second_yellow_card')) AS red_cards
+                    AND i.person_id = $1 AND i.kind IN ('red_card', 'second_yellow_card')) AS red_cards,
+                count(*) FILTER (WHERE n.played) AS matches_played,
+                count(*) FILTER (WHERE n.played AND n.minutes IS NOT NULL) AS matches_with_minutes,
+                COALESCE(sum(n.minutes) FILTER (WHERE n.played), 0) AS supplied_minutes
            FROM named n
           GROUP BY n.season_id, n.team_id
        )
@@ -129,7 +179,8 @@ export class PostgresPlayerStore {
               c.id AS competition_id, c.name AS competition_name, c.short_name AS competition_short_name,
               t.id AS team_id, t.name AS team_name,
               k.starts::text, k.sub_appearances::text, k.goals::text, k.assists::text,
-              k.yellow_cards::text, k.red_cards::text
+              k.yellow_cards::text, k.red_cards::text, k.matches_played::text,
+              k.matches_with_minutes::text, k.supplied_minutes::text
          FROM counted k
          JOIN season se ON se.id = k.season_id
          JOIN competition c ON c.id = se.competition_id
@@ -151,6 +202,11 @@ export class PostgresPlayerStore {
       assists: Number(r.assists),
       yellow_cards: Number(r.yellow_cards),
       red_cards: Number(r.red_cards),
+      minutes: seasonMinutes(
+        Number(r.matches_played),
+        Number(r.matches_with_minutes),
+        Number(r.supplied_minutes),
+      ),
     }));
   }
 
@@ -179,6 +235,9 @@ export class PostgresPlayerStore {
       away_short_name: string | null;
       score_home: number | null;
       score_away: number | null;
+      extra_time: boolean;
+      pen_home: number | null;
+      pen_away: number | null;
       team_id: string;
       team_name: string;
       role: 'starter' | 'bench';
@@ -194,7 +253,11 @@ export class PostgresPlayerStore {
               se.id AS season_id, se.label AS season_label,
               h.team_id AS home_id, th.name AS home_name, th.short_name AS home_short_name,
               a.team_id AS away_id, ta.name AS away_name, ta.short_name AS away_short_name,
-              COALESCE(ft.home, cur.home) AS score_home, COALESCE(ft.away, cur.away) AS score_away,
+              -- The latest score, so extra time counts, as the team page reads
+              -- it (T-632, T-822); the shoot-out beside it, never in it.
+              COALESCE(cur.home, ft.home) AS score_home, COALESCE(cur.away, ft.away) AS score_away,
+              et.id IS NOT NULL AS extra_time,
+              pen.home AS pen_home, pen.away AS pen_away,
               me.team_id, tm.name AS team_name, l.role,
               EXISTS (SELECT 1 FROM incident s WHERE s.fixture_id = f.id AND s.kind = 'substitution'
                         AND s.related_person_id = $1) AS came_on,
@@ -222,6 +285,8 @@ export class PostgresPlayerStore {
          JOIN team ta ON ta.id = a.team_id
          LEFT JOIN fixture_score ft ON ft.fixture_id = f.id AND ft.kind = 'full_time'
          LEFT JOIN fixture_score cur ON cur.fixture_id = f.id AND cur.kind = 'current'
+         LEFT JOIN fixture_score et ON et.fixture_id = f.id AND et.kind = 'extra_time'
+         LEFT JOIN fixture_score pen ON pen.fixture_id = f.id AND pen.kind = 'penalties'
         WHERE l.person_id = $1
         ORDER BY f.kickoff_at DESC, f.id
         LIMIT $2`,
@@ -252,6 +317,11 @@ export class PostgresPlayerStore {
           score:
             r.score_home !== null && r.score_away !== null
               ? { home: r.score_home, away: r.score_away }
+              : null,
+          after_extra_time: r.extra_time,
+          penalties:
+            r.pen_home !== null && r.pen_away !== null
+              ? { home: r.pen_home, away: r.pen_away }
               : null,
         },
         team: { id: r.team_id, name: r.team_name },

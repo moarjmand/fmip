@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { FailureCountsModule } from '../failure-counts/failure-counts.module';
 import { ForecastModule } from '../forecast/forecast.module';
 import { IdentityModule } from '../identity/identity.module';
 import { StandingsModule } from '../standings/standings.module';
@@ -30,7 +31,7 @@ import { INGESTION_SOURCES, resolveSources } from './internal/sources';
  * `DatabaseModule`.
  */
 @Module({
-  imports: [StandingsModule, ForecastModule, IdentityModule],
+  imports: [StandingsModule, ForecastModule, IdentityModule, FailureCountsModule],
   controllers: [IngestionController, IngestionAdminController],
   providers: [
     EntityResolverService,

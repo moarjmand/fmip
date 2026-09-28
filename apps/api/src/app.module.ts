@@ -32,6 +32,7 @@ import { BriefingsModule } from './modules/briefings/briefings.module';
 import { CampaignsModule } from './modules/campaigns/campaigns.module';
 import { ChannelPostModule } from './modules/channel-post/channel-post.module';
 import { WatchdogModule } from './modules/watchdog/watchdog.module';
+import { FailureCountsModule } from './modules/failure-counts/failure-counts.module';
 
 /**
  * The remaining modules from `docs/02-architecture.md` are registered here as
@@ -73,6 +74,7 @@ import { WatchdogModule } from './modules/watchdog/watchdog.module';
     CampaignsModule,
     ChannelPostModule,
     WatchdogModule,
+    FailureCountsModule,
     AdminModule,
   ],
 })

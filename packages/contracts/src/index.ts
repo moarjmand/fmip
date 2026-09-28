@@ -160,6 +160,7 @@ export type {
   Leader,
   PlayerMatch,
   PlayerPage,
+  PlayerSeasonMinutes,
   PlayerSeasonRecord,
   PlayerSpell,
   SeasonFixture,
@@ -630,3 +631,12 @@ export type {
   WatchdogThreshold,
   WatchdogUnit,
 } from './watchdog';
+// API errors and job failures counted per hour (T-803).
+export { FAILURE_RETENTION_DAYS } from './failure-counts';
+export type {
+  FailureBucket,
+  FailureCountsReport,
+  JobFailureKind,
+  QueueFailures,
+  RouteErrors,
+} from './failure-counts';

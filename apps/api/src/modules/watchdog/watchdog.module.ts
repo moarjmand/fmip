@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { DeliveryModule } from '../delivery/delivery.module';
+import { FailureCountsModule } from '../failure-counts/failure-counts.module';
 import { ForecastModule } from '../forecast/forecast.module';
 import { IdentityModule } from '../identity/identity.module';
 import { IngestionModule } from '../ingestion/ingestion.module';
@@ -17,7 +18,7 @@ import { WatchdogService } from './watchdog.service';
  * owns `watchdog_condition` and `watchdog_event`.
  */
 @Module({
-  imports: [IngestionModule, ForecastModule, DeliveryModule, IdentityModule],
+  imports: [IngestionModule, ForecastModule, DeliveryModule, IdentityModule, FailureCountsModule],
   controllers: [WatchdogController],
   providers: [
     WatchdogStore,

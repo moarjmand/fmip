@@ -1,7 +1,13 @@
 // Server-side only: `next/headers` has no client build, so an import from a
 // client component fails at build time, which is the guard we want.
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
+import { clientIpFrom } from './client-ip';
 import { SESSION_COOKIE, parseSessionSetCookie } from './set-cookie';
+
+/** The reader's address for the API's rate limits on the account forms (T-810), if known. */
+export async function readerAddress(): Promise<string | undefined> {
+  return clientIpFrom((await headers()).get('cf-connecting-ip'));
+}
 
 /** The `Cookie` header to forward to the API for the current visitor, if signed in. */
 export async function sessionCookieHeader(): Promise<string | undefined> {

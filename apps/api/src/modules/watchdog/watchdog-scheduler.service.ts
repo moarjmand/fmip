@@ -1,5 +1,6 @@
 import { Injectable, Logger, type OnApplicationShutdown, type OnModuleInit } from '@nestjs/common';
 import { Queue, Worker } from 'bullmq';
+import { FailureCountsService } from '../failure-counts/failure-counts.service';
 import { WATCHDOG_QUEUE } from './internal/probes';
 import { WatchdogService } from './watchdog.service';
 
@@ -23,7 +24,10 @@ export class WatchdogSchedulerService implements OnModuleInit, OnApplicationShut
   private queue: Queue | null = null;
   private worker: Worker | null = null;
 
-  constructor(private readonly watchdog: WatchdogService) {}
+  constructor(
+    private readonly watchdog: WatchdogService,
+    private readonly failures: FailureCountsService,
+  ) {}
 
   static enabled(env: NodeJS.ProcessEnv = process.env): boolean {
     return (env.INGESTION_SCHEDULE ?? 'off').trim().toLowerCase() === 'on';
@@ -63,6 +67,8 @@ export class WatchdogSchedulerService implements OnModuleInit, OnApplicationShut
         error: error.message,
       });
     });
+    // Failed and stalled ticks are counted per hour like every other queue's (T-803).
+    this.failures.watch(this.worker, name);
     if (options.schedule !== false) {
       await this.queue.upsertJobScheduler(
         WATCHDOG_JOB,
