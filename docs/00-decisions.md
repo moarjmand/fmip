@@ -3676,5 +3676,5 @@ kind today and the inbox is the record the System page reads.
 
 **Consequences.** The alert's line is read from the event (`System alert:
 <condition> is <level> (<note>)`, `Recovered: <condition> is ok again`),
-English like the condition names; it opens the administration area, and
-the System page once T-804 lands.
+English like the condition names; it opens the System page
+(`/[locale]/admin/system`, T-804).
