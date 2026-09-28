@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import type {
   ContributorEligibility,
   ContributorGrant,
@@ -12,6 +12,7 @@ import {
   type GrantRow,
 } from './internal/contributor-store';
 import { ELIGIBILITY_V1, eligibilityFor } from './internal/eligibility';
+import { eligibilityNotices } from './internal/eligibility-notice';
 import { NotificationsService } from '../notifications/notifications.service';
 
 /**
@@ -70,6 +71,8 @@ function asGrant(row: GrantRow, history: GrantEventRow[]): ContributorGrant {
 
 @Injectable()
 export class ContributorService {
+  private readonly log = new Logger(ContributorService.name);
+
   constructor(
     private readonly store: PostgresContributorStore,
     private readonly identity: IdentityService,
@@ -80,6 +83,42 @@ export class ContributorService {
   async eligibilityOf(userId: string): Promise<ContributorEligibility | null> {
     const facts = await this.store.factsFor(userId, ELIGIBILITY_V1.conductWindowDays);
     return facts === null ? null : eligibilityFor(facts);
+  }
+
+  /**
+   * Note the member's verdict after a recompute, and tell every administrator
+   * when it is a new "qualifies" (blueprint 18.3, T-833, D-100) -- the
+   * transition, never the state, and never for a member who already holds
+   * a grant. Grants nothing: telling a person somebody is waiting is not a
+   * decision about them. Never throws; the recompute it follows is done.
+   */
+  async noteEligibility(userId: string): Promise<'announced' | 'quiet'> {
+    try {
+      const eligibility = await this.eligibilityOf(userId);
+      if (eligibility === null) return 'quiet';
+      const change = await this.store.recordVerdict(
+        userId,
+        eligibility.qualifies,
+        eligibility.rules_version,
+      );
+      if (change === null || !change.qualifies) return 'quiet';
+      const holdsGrant = (await this.store.grantFor(userId)) !== null;
+      const notices = eligibilityNotices(
+        userId,
+        change,
+        holdsGrant,
+        await this.identity.holdersOf('admin'),
+      );
+      if (notices.length === 0) return 'quiet';
+      await this.notifications.emitMany(notices);
+      return 'announced';
+    } catch (error) {
+      this.log.error(
+        `contributor_eligible.failed member=${userId}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+      return 'quiet';
+    }
   }
 
   /**

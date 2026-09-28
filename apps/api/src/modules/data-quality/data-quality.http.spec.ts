@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Test } from '@nestjs/testing';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import type { DataQualityReport } from '@fmip/contracts';
@@ -12,10 +13,22 @@ import { DataQualityService } from './data-quality.service';
 // The checks against the real schema: every statement the sweep runs is valid
 // SQL over the feed's tables, a problem is one row however many sweeps see
 // it, and a problem that goes away is resolved rather than deleted.
+//
+// Every fixture here is in a competition and season of the spec's own, and
+// every sweep is narrowed to that season. A sweep over every stored fixture
+// would judge -- and write findings pointing at -- the fixtures other suites
+// are creating and deleting at the same moment in CI's shared database: one
+// deleted between the sweep's read and its write made the insert fail on its
+// foreign key and took the whole sweep with it. The seeded season was shared
+// too, with the standings job in ingestion-jobs.spec.ts, whose table
+// comparison resolves that season's table findings.
 const DATABASE_URL = process.env.DATABASE_URL;
 const ENGLAND = '00000000-0000-4000-8000-000000000101';
 const RUN = `${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
-const SEASON = '00000000-0000-4000-8000-000000000301';
+const COMPETITION = randomUUID();
+const SEASON = randomUUID();
+/** A second season of the same competition, which no sweep here is narrowed to. */
+const OTHER_SEASON = randomUUID();
 const LIVERPOOL = '00000000-0000-4000-8000-000000000602';
 const UNITED = '00000000-0000-4000-8000-000000000601';
 const MADRID = '00000000-0000-4000-8000-000000000603';
@@ -82,18 +95,19 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('data-quality
     });
   const fixtures: Record<string, string> = {};
 
-  /** A fixture of the seeded season, far from every other fixture of the same pair. */
+  /** A fixture of this spec's season (or `season`), far from every other fixture of the same pair. */
   async function fixture(
     name: string,
     home: string,
     away: string,
     kickoff: string,
     status: string,
+    season = SEASON,
   ): Promise<string> {
     const { rows } = await pool.query<{ id: string }>(
       `INSERT INTO fixture (season_id, kickoff_at, status, round)
        VALUES ($1, $2::timestamptz, $3, $4) RETURNING id`,
-      [SEASON, kickoff, status, `dq-${RUN}`],
+      [season, kickoff, status, `dq-${RUN}`],
     );
     const id = rows[0]!.id;
     await pool.query(
@@ -138,6 +152,17 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('data-quality
       `INSERT INTO user_role (user_id, role, granted_by, reason) VALUES ($1, 'admin', $1, 'data-quality test')`,
       [admin.id],
     );
+    await pool.query(
+      `INSERT INTO competition (id, country_id, name, kind, scope, gender, age_group, tier)
+       VALUES ($1, $2, $3, 'league', 'domestic', 'men', 'senior', 9)`,
+      [COMPETITION, ENGLAND, `Data Quality League ${RUN}`],
+    );
+    await pool.query(
+      `INSERT INTO season (id, competition_id, label, start_date, end_date, is_current)
+       VALUES ($1, $3, '2030/31', DATE '2030-08-01', DATE '2031-06-30', false),
+              ($2, $3, '2031/32', DATE '2031-08-01', DATE '2032-06-30', false)`,
+      [SEASON, OTHER_SEASON, COMPETITION],
+    );
 
     // Kick-offs in 2031, ten days apart, so no two of these are one match
     // stored twice unless the test means them to be.
@@ -175,6 +200,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('data-quality
     // One match stored twice: a postponed one and its rearrangement a day later.
     await fixture('first', PERSEPOLIS, UNITED, '2031-02-01T15:00:00Z', 'postponed');
     await fixture('second', PERSEPOLIS, UNITED, '2031-02-02T19:00:00Z', 'scheduled');
+    // Finished with no score, but in the season no sweep here is narrowed to:
+    // a narrowed sweep neither reads it nor names it.
+    await fixture('outside', MADRID, LIVERPOOL, '2031-09-01T15:00:00Z', 'finished', OTHER_SEASON);
     // A fixture carrying two ids from one provider.
     await pool.query(
       `INSERT INTO provider_mapping (provider, external_id, entity_type, internal_id)
@@ -191,15 +219,16 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('data-quality
     });
     await pool.query(`DELETE FROM user_account WHERE id = ANY($1::uuid[])`, [accounts]);
     await pool.query(`DELETE FROM provider_mapping WHERE external_id LIKE $1`, [`dq-${RUN}-%`]);
-    // Findings on a fixture go with it (ON DELETE CASCADE).
+    // Findings on a fixture or a season go with it (ON DELETE CASCADE).
     await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [Object.values(fixtures)]);
-    await pool.query(`DELETE FROM data_quality_finding WHERE subject_key LIKE $1`, [`${SEASON}:%`]);
+    await pool.query(`DELETE FROM season WHERE id = ANY($1::uuid[])`, [[SEASON, OTHER_SEASON]]);
+    await pool.query(`DELETE FROM competition WHERE id = $1`, [COMPETITION]);
     await pool.end();
     await app.close();
   });
 
   it('a sweep names each problem once, on the fixture and in its competition', async () => {
-    const outcome = await dataQuality.sweep(new Date());
+    const outcome = await dataQuality.sweep(new Date(), SEASON);
     expect(outcome.opened).toBeGreaterThanOrEqual(6);
     const rows = await mine();
     expect(rows.map((r) => [r.check_kind, r.fixture_id, r.detail])).toEqual([
@@ -243,12 +272,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('data-quality
 
   it('a second sweep writes no second row, and moves last_seen_at on at most hourly', async () => {
     const before = await mine();
-    await dataQuality.sweep(new Date(Date.now() + 5 * 60_000));
+    await dataQuality.sweep(new Date(Date.now() + 5 * 60_000), SEASON);
     const soon = await mine();
     expect(soon.map((r) => r.subject_key)).toEqual(before.map((r) => r.subject_key));
     expect(soon.map((r) => r.last_seen_at)).toEqual(before.map((r) => r.last_seen_at));
 
-    await dataQuality.sweep(new Date(Date.now() + 61 * 60_000));
+    await dataQuality.sweep(new Date(Date.now() + 61 * 60_000), SEASON);
     const after = await mine();
     expect(after.map((r) => r.subject_key)).toEqual(before.map((r) => r.subject_key));
     for (const row of after) {
@@ -263,7 +292,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('data-quality
       `INSERT INTO fixture_score (fixture_id, kind, home, away) VALUES ($1, 'full_time', 2, 2)`,
       [fixtures.noScore],
     );
-    const outcome = await dataQuality.sweep(new Date(Date.now() + 70 * 60_000));
+    const outcome = await dataQuality.sweep(new Date(Date.now() + 70 * 60_000), SEASON);
     expect(outcome.resolved).toBeGreaterThanOrEqual(1);
     const rows = await mine();
     const noScore = rows.filter((r) => r.fixture_id === fixtures.noScore);
@@ -280,7 +309,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('data-quality
 
   it('the same subject found again after it was resolved is a new row', async () => {
     await pool.query(`DELETE FROM fixture_score WHERE fixture_id = $1`, [fixtures.noScore]);
-    await dataQuality.sweep(new Date(Date.now() + 75 * 60_000));
+    await dataQuality.sweep(new Date(Date.now() + 75 * 60_000), SEASON);
     const noScore = (await mine()).filter((r) => r.fixture_id === fixtures.noScore);
     expect(noScore.map((r) => r.resolved_at === null)).toEqual([false, true]);
   });
@@ -311,7 +340,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('data-quality
       [null, "1 team in the provider's table has no mapping"],
     ]);
     // A sweep does not touch the table's findings: it did not compare tables.
-    await dataQuality.sweep(new Date(now.getTime() + 60_000));
+    await dataQuality.sweep(new Date(now.getTime() + 60_000), SEASON);
     expect(await open()).toHaveLength(2);
     const second = await dataQuality.recordTable(
       SEASON,

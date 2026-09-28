@@ -204,6 +204,28 @@ export class FounderStore {
    * by the service. Nothing here re-checks the clock: a second opinion about
    * the time is exactly what the trigger exists to make unnecessary.
    */
+  /**
+   * Who follows this match -- either team or its competition -- other than
+   * the author (T-833). A deleted account follows nothing.
+   */
+  async followers(fixtureId: string, authorId: string): Promise<string[]> {
+    const { rows } = await this.pool.query<{ user_id: string }>(
+      `SELECT DISTINCT fe.user_id
+         FROM followed_entity fe
+         JOIN user_account u ON u.id = fe.user_id AND u.status <> 'deleted'
+        WHERE fe.user_id <> $2
+          AND ((fe.entity_type = 'team'
+                AND fe.entity_id IN (SELECT team_id FROM fixture_participant WHERE fixture_id = $1))
+               OR (fe.entity_type = 'competition'
+                   AND fe.entity_id = (SELECT s.competition_id
+                                         FROM fixture f JOIN season s ON s.id = f.season_id
+                                        WHERE f.id = $1)))
+        ORDER BY fe.user_id`,
+      [fixtureId, authorId],
+    );
+    return rows.map((r) => r.user_id);
+  }
+
   async publish(input: NewVersion): Promise<FounderAnalysisVersion> {
     const client: PoolClient = await this.pool.connect();
     try {

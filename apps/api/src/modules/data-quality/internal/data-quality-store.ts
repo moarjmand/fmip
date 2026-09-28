@@ -220,8 +220,13 @@ export class DataQualityStore {
     }
   }
 
-  /** The rows every swept check judges, read in parallel outside any transaction. */
-  async read(now: Date): Promise<CheckRows> {
+  /**
+   * The rows every swept check judges, read in parallel outside any
+   * transaction. `seasonId` narrows every statement to one season's fixtures;
+   * `null` is every stored fixture (the scheduled sweep).
+   */
+  async read(now: Date, seasonId: string | null = null): Promise<CheckRows> {
+    const inScope = (n: number) => `($${n}::uuid IS NULL OR f.season_id = $${n}::uuid)`;
     const [scores, goals, live, lineups, mappings, pairs] = await Promise.all([
       this.pool.query<ScoreKindsRow>(
         `SELECT ${REF}, f.status,
@@ -230,9 +235,11 @@ export class DataQualityStore {
            JOIN season s ON s.id = f.season_id
            LEFT JOIN fixture_score sc ON sc.fixture_id = f.id
           WHERE f.status = 'finished'
+            AND ${inScope(1)}
             AND NOT EXISTS (SELECT 1 FROM fixture_score x
                              WHERE x.fixture_id = f.id AND x.kind = 'full_time')
           GROUP BY f.id, s.competition_id`,
+        [seasonId],
       ),
       this.pool.query<GoalsRow>(
         `WITH timeline AS (
@@ -244,6 +251,7 @@ export class DataQualityStore {
                            '[]'::jsonb) AS goals
              FROM incident i
              JOIN fixture f ON f.id = i.fixture_id AND f.status IN ('live', 'finished')
+                           AND ${inScope(1)}
              LEFT JOIN fixture_participant p ON p.id = i.participant_id
             GROUP BY i.fixture_id
          )
@@ -253,14 +261,16 @@ export class DataQualityStore {
            FROM timeline t
            JOIN fixture f ON f.id = t.fixture_id
            JOIN season s ON s.id = f.season_id`,
+        [seasonId],
       ),
       this.pool.query<LiveRow>(
         `SELECT ${REF}, f.status, f.kickoff_at AS "kickoffAt", f.minute
            FROM fixture f
            JOIN season s ON s.id = f.season_id
           WHERE f.status = 'live'
+            AND ${inScope(3)}
             AND f.kickoff_at <= $1::timestamptz - make_interval(mins => $2::int)`,
-        [now, LIVE_OVERRUN_MINUTES],
+        [now, LIVE_OVERRUN_MINUTES, seasonId],
       ),
       this.pool.query<LineupRow>(
         `SELECT ${REF}, p.side, p.team_id AS "teamId",
@@ -270,8 +280,10 @@ export class DataQualityStore {
            JOIN fixture_participant p ON p.id = l.participant_id
            JOIN fixture f ON f.id = p.fixture_id
            JOIN season s ON s.id = f.season_id
+          WHERE ${inScope(1)}
           GROUP BY f.id, s.competition_id, p.id
          HAVING count(*) FILTER (WHERE l.role = 'starter') <> 11`,
+        [seasonId],
       ),
       this.pool.query<MappingRow>(
         `SELECT ${REF}, m.provider, count(*)::int AS ids
@@ -279,8 +291,10 @@ export class DataQualityStore {
            JOIN fixture f ON f.id = m.internal_id
            JOIN season s ON s.id = f.season_id
           WHERE m.entity_type = 'fixture'
+            AND ${inScope(1)}
           GROUP BY f.id, s.competition_id, m.provider
          HAVING count(*) > 1`,
+        [seasonId],
       ),
       this.pool.query<PairRow>(
         `SELECT ${REF}, g.id AS "otherFixtureId",
@@ -296,9 +310,10 @@ export class DataQualityStore {
              ON ga.fixture_id = g.id AND ga.side = 'away' AND ga.team_id = fa.team_id
            JOIN season s ON s.id = f.season_id
           WHERE fh.side = 'home'
+            AND ${inScope(2)}
             AND f.status <> 'cancelled' AND g.status <> 'cancelled'
             AND abs(extract(epoch FROM g.kickoff_at - f.kickoff_at)) <= $1::int * 86400`,
-        [DUPLICATE_WINDOW_DAYS],
+        [DUPLICATE_WINDOW_DAYS, seasonId],
       ),
     ]);
     return {

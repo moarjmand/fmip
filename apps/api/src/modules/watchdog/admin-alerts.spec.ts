@@ -228,7 +228,7 @@ describe('alert delivery (T-802)', () => {
 describe('the system_alert kind (T-802, D-096)', () => {
   it('is on by default, for administrators only, and ignores quiet hours', () => {
     expect(NOTIFICATION_DEFAULTS.system_alert).toBe(true);
-    expect(ADMIN_ONLY_NOTIFICATION_KINDS).toEqual(['system_alert']);
+    expect(ADMIN_ONLY_NOTIFICATION_KINDS).toContain('system_alert');
     // The only exemption: every other kind still waits for quiet hours to end.
     expect(QUIET_HOURS_EXEMPT).toEqual(['system_alert']);
   });

@@ -8,6 +8,8 @@ import {
   modelService,
   queueFailures,
   requestBudget,
+  restoreDrill,
+  type RunRecord,
 } from './conditions';
 import type { StoredCondition } from './transition';
 
@@ -47,8 +49,8 @@ export interface Observations {
         push: { configured: false } | { configured: true; sent: number; failed: number };
       }
     | Unreadable;
-  /** `undefined`: nowhere to read a backup from yet (T-805). */
-  backup: Date | null | undefined | Unreadable;
+  /** What the backup and the restore drill recorded in `backup_run` (T-805). */
+  backups: { backup: RunRecord; drill: RunRecord } | Unreadable;
   /** Open findings about live matches and the newest complete sweep (T-821). */
   dataQuality: { open: number; sweptAt: Date | null } | Unreadable;
 }
@@ -124,11 +126,14 @@ export function readingsOf(
       : dataQuality(seen.dataQuality, now),
   );
 
-  out.push(
-    unreadable(seen.backup)
-      ? { ...backup(undefined, now), note: seen.backup.unreadable }
-      : backup(seen.backup, now),
-  );
+  if (unreadable(seen.backups)) {
+    const why = seen.backups.unreadable;
+    out.push({ ...backup(undefined, now), note: why });
+    out.push({ ...restoreDrill(undefined, now), note: why });
+  } else {
+    out.push(backup(seen.backups.backup, now));
+    out.push(restoreDrill(seen.backups.drill, now));
+  }
 
   return out;
 }

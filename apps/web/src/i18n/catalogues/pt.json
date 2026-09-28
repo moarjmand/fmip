@@ -1758,6 +1758,16 @@
     "text": "",
     "status": "untranslated"
   },
+  "notifications.match.availability": {
+    "source": "Team news: a player ruled out of the match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notifications.match.lineups": {
+    "source": "Line-ups, when both are announced",
+    "text": "",
+    "status": "untranslated"
+  },
   "notifications.match.kickoff": {
     "source": "Kick-off",
     "text": "",
@@ -1785,6 +1795,46 @@
   },
   "notifications.match.quiet": {
     "source": "To silence one team or one competition, or every match alert at once, use What stays quiet below. Quiet hours hold match alerts too.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notifications.friends.heading": {
+    "source": "Friends' predictions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notifications.friends.intro": {
+    "source": "When a friend predicts a match you follow or predicted too. It says that they predicted, never what, and only if their own privacy setting lets you see their predictions.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notifications.friends.predicted": {
+    "source": "A friend predicted a match you follow or predicted",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notifications.editorial.heading": {
+    "source": "Analysis",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notifications.editorial.intro": {
+    "source": "The founder's analysis of the matches you follow, and the review of any analysis you submit.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notifications.editorial.founder": {
+    "source": "The founder publishes an analysis of a match you follow",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notifications.editorial.reviewed": {
+    "source": "An analysis I submitted is reviewed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notifications.editorial.eligible": {
+    "source": "A member newly meets the contributor requirements (administrators)",
     "text": "",
     "status": "untranslated"
   },
