@@ -79,6 +79,19 @@ describe('the System page', () => {
     expect(REPORT).toMatch(/cannot be shown/);
   });
 
+  it('shows every rate limit with its refusals per day, and the writes without one (T-811)', () => {
+    expect(PAGE).toContain('fetchRateLimits');
+    expect(API).toContain('export function fetchRateLimits');
+    expect(API).toContain('/admin/rate-limits');
+    expect(PAGE).toContain('<RateLimitsSection');
+    expect(REPORT).toContain('system-rate-limits-unavailable');
+    expect(REPORT).toContain('system-rate-limits-none');
+    // A ceiling whose row is missing limits nothing, and is said so.
+    expect(REPORT).toContain('no row: not limited');
+    expect(REPORT).toMatch(/report\.days\.map/);
+    expect(REPORT).toContain('system-rate-limit-exempt');
+  });
+
   it('says a stopped or never-run watchdog above its levels', () => {
     expect(REPORT).toContain('freshnessSentence(report.freshness');
     expect(REPORT).toContain('data-testid={`system-watchdog-${report.freshness}`}');

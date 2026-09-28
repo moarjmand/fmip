@@ -1,6 +1,8 @@
 import type {
   AdminAlertsReport,
   FailureCountsReport,
+  RateLimitCeiling,
+  RateLimitsReport,
   WatchdogCondition,
   WatchdogReport,
 } from '@fmip/contracts';
@@ -515,6 +517,107 @@ export function FailuresSection({
           testId="system-failures-7d"
         />
       </div>
+    </section>
+  );
+}
+
+// --- Rate limits (T-811) -----------------------------------------------------
+
+const SUBJECT_WORDS: Record<RateLimitCeiling['subject'], string> = {
+  member: 'per member',
+  address: 'per network address',
+  identifier: 'per identifier typed',
+};
+
+export function RateLimitsSection({ report }: { report: RateLimitsReport | null }) {
+  if (report === null) {
+    return (
+      <section className="flex flex-col gap-3" data-testid="system-rate-limits">
+        <h2 className="text-lg font-semibold">Rate limits</h2>
+        <Unavailable testId="system-rate-limits-unavailable" what="The rate limits" />
+      </section>
+    );
+  }
+  const refused = report.ceilings.reduce(
+    (sum, ceiling) => sum + ceiling.refusals.reduce((n, day) => n + day.count, 0),
+    0,
+  );
+  return (
+    <section className="flex flex-col gap-3" data-testid="system-rate-limits">
+      <h2 className="text-lg font-semibold">Rate limits</h2>
+      <p className="text-sm text-muted">
+        Every write the API takes is held by one of these ceilings or listed below with the reason
+        it needs none. The numbers are the <code>rate_limit</code> table&rsquo;s now; refusals are
+        counted per UTC day and kept for 30 days, without the member, address or identifier.
+      </p>
+      {refused === 0 && (
+        <p className="text-sm text-muted" data-testid="system-rate-limits-none">
+          Nothing refused in the last {String(report.days.length)} days.
+        </p>
+      )}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm" data-testid="system-rate-limit-table">
+          <thead>
+            <tr className="border-b border-default">
+              <th scope="col" className={head}>
+                Ceiling
+              </th>
+              <th scope="col" className={head}>
+                Per hour
+              </th>
+              {report.days.map((day) => (
+                <th key={day} scope="col" className={`${head} tabular-nums`}>
+                  <time dateTime={day}>{day.slice(5)}</time>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {report.ceilings.map((ceiling) => (
+              <tr
+                key={ceiling.action}
+                className="border-b border-default"
+                data-testid="system-rate-limit"
+              >
+                <td className={cell}>
+                  <code>{ceiling.action}</code>{' '}
+                  <span className="text-muted">
+                    {SUBJECT_WORDS[ceiling.subject]}, by{' '}
+                    {ceiling.enforced === 'database' ? 'a trigger' : 'the API'}
+                  </span>
+                  <span className="block text-xs text-muted">{ceiling.what}</span>
+                  <span className="block text-xs text-muted">{ceiling.routes.join(' · ')}</span>
+                </td>
+                <td className={`${cell} tabular-nums`}>
+                  {ceiling.per_hour === null ? (
+                    <span data-testid="system-rate-limit-missing">no row: not limited</span>
+                  ) : (
+                    String(ceiling.per_hour)
+                  )}
+                </td>
+                {ceiling.refusals.map((day) => (
+                  <td key={day.day} className={`${cell} tabular-nums`}>
+                    {day.count === 0 ? <span className="text-muted">0</span> : String(day.count)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <details className="text-sm" data-testid="system-rate-limit-exempt">
+        <summary className="cursor-pointer">
+          Writes without a ceiling, and why ({String(report.exempt.length)}, plus every
+          administration write, which is role-gated and audited)
+        </summary>
+        <ul className="mt-2 flex flex-col gap-1">
+          {report.exempt.map((entry) => (
+            <li key={entry.route}>
+              <code>{entry.route}</code>: {entry.reason}
+            </li>
+          ))}
+        </ul>
+      </details>
     </section>
   );
 }

@@ -62,7 +62,9 @@ export type DeleteAccountOutcome =
   | 'wrong_password'
   | 'wrong_confirmation'
   /** No active account behind the id: already deleted, or never was. */
-  | 'unknown';
+  | 'unknown'
+  /** Too many wrong passwords: the sign-in ceilings, against the username (T-811). */
+  | Limited;
 
 /** The audit reason of a member deleting their own account (D-094). */
 export const SELF_SERVICE_DELETION = 'self-service deletion';
@@ -280,13 +282,30 @@ export class IdentityService {
    * The password is checked before the confirmation, so a wrong username
    * never tells a stranger at an unlocked screen whether the password was
    * right.
+   *
+   * The password check is a sign-in by another door, so it is held to the
+   * same ceilings (T-811, D-103): counted against the account's username and
+   * the address before the password is checked, and given back when it is
+   * right. Without them a session left open would be an unlimited way to
+   * guess the password it was opened with.
    */
-  async deleteAccount(userId: string, input: DeleteAccountRequest): Promise<DeleteAccountOutcome> {
+  async deleteAccount(
+    userId: string,
+    input: DeleteAccountRequest,
+    clientIp: string | null = null,
+  ): Promise<DeleteAccountOutcome> {
     const found = await this.deletion.credentialsOf(userId);
+    const checks =
+      found === null
+        ? []
+        : this.checks(clientIp, 'login_failure_ip', found.username, 'login_failure_account');
+    const taken = await this.limits.take(checks);
+    if (!taken.ok) return limited(taken);
     const storedHash = found?.passwordHash ?? (await decoyHash());
     const matches = await verifyPassword(input.password, storedHash);
     if (found === null) return 'unknown';
     if (found.passwordHash === null || !matches) return 'wrong_password';
+    await this.limits.giveBack(checks);
     if (input.confirm !== found.username) return 'wrong_confirmation';
 
     const done = await this.deletion.delete(userId, {

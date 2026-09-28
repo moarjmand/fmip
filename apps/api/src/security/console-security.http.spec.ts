@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../app.module';
 import { HTTP_APP_OPTIONS } from '../http-options';
 import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../modules/identity/identity.service';
+import { CEILINGS, EXEMPT, coverageOf } from '../modules/rate-limits/inventory';
 import { withTriggersOff } from '../testing/cleanup';
 
 /**
@@ -94,6 +95,7 @@ const CONSOLE: Record<string, ConsoleRoute> = {
   'GET /admin/health/watchdog': { roles: ADMIN },
   'GET /admin/health/alerts': { roles: ADMIN },
   'GET /admin/activity': { roles: ADMIN },
+  'GET /admin/rate-limits': { roles: ADMIN },
 
   // Data quality (T-640).
   'GET /admin/data-quality': { roles: ADMIN },
@@ -545,6 +547,57 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         expect(loginSetCookie).toMatch(/^fmip_session=/);
         expect(loginSetCookie).toMatch(/;\s*HttpOnly/);
         expect(loginSetCookie).toMatch(/;\s*SameSite=Lax/);
+      });
+    });
+
+    /**
+     * The rate-limit inventory (T-811, D-103), held to the same router: a
+     * write added without a ceiling and without a reason it needs none fails
+     * here with its method and path, and so does an entry for a route that
+     * is gone. The ceilings named must be rows in `rate_limit` (a missing row
+     * means "not limited", so a typo would silently lift a limit), and every
+     * trigger that enforces one must name a ceiling the inventory lists.
+     */
+    describe('every write has a ceiling or a stated reason for none', () => {
+      it('the inventory covers every write the router has', () => {
+        const missing = [...routes].filter(isWrite).filter((r) => coverageOf(r).kind === 'missing');
+        expect(missing, 'writes with neither a ceiling nor an exemption in inventory.ts').toEqual(
+          [],
+        );
+      });
+
+      it('every route the inventory names is still a write the router has', () => {
+        const named = [...CEILINGS.flatMap((c) => c.routes), ...Object.keys(EXEMPT)];
+        expect(named.filter((r) => !routes.has(r) || !isWrite(r))).toEqual([]);
+      });
+
+      it('no route is both limited and exempt, and every exemption says why', () => {
+        const limited = new Set(CEILINGS.flatMap((c) => c.routes));
+        expect(Object.keys(EXEMPT).filter((r) => limited.has(r))).toEqual([]);
+        expect(Object.entries(EXEMPT).filter(([, why]) => why.trim().length < 20)).toEqual([]);
+      });
+
+      it('every ceiling the inventory names is a row in rate_limit, and every row is named', async () => {
+        const { rows } = await pool.query<{ action: string }>(`SELECT action FROM rate_limit`);
+        const table = new Set(rows.map((r) => r.action));
+        const named = new Set(CEILINGS.map((c) => c.action));
+        expect([...named].filter((a) => !table.has(a))).toEqual([]);
+        expect([...table].filter((a) => !named.has(a))).toEqual([]);
+      });
+
+      it('every trigger that enforces a ceiling enforces one the inventory lists as a trigger ceiling', async () => {
+        // tgargs is the trigger's arguments, each ended by a NUL, which
+        // encode(..., 'escape') writes as the four characters \000.
+        const { rows } = await pool.query<{ action: string }>(
+          `SELECT split_part(encode(t.tgargs, 'escape'), '\\000', 1) AS action
+             FROM pg_trigger t
+            WHERE t.tgfoid = 'refuse_over_rate'::regproc AND NOT t.tgisinternal`,
+        );
+        const database = new Set(
+          CEILINGS.filter((c) => c.enforced === 'database').map((c) => c.action),
+        );
+        expect(rows.length).toBeGreaterThan(0);
+        expect(rows.map((r) => r.action).filter((a) => !database.has(a))).toEqual([]);
       });
     });
 

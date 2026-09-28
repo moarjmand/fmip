@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Req, UnauthorizedException } from '@nestjs/common';
+import { Controller, Get, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
 import type { ApiError, AuthUser, BriefingOutcome, BriefingResponse } from '@fmip/contracts';
-import type { FastifyRequest } from 'fastify';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
+import { RateLimitsService, refuseOverRate } from '../rate-limits/rate-limits.service';
 import { BriefingsService } from './briefings.service';
 
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
@@ -17,6 +18,7 @@ export class BriefingsController {
   constructor(
     private readonly briefings: BriefingsService,
     private readonly identity: IdentityService,
+    private readonly limits: RateLimitsService,
   ) {}
 
   @Get('briefing')
@@ -25,9 +27,20 @@ export class BriefingsController {
     return this.briefings.current(user.id);
   }
 
+  /**
+   * Every call asks the language model, whose allowance the whole product
+   * shares, so it is held to the `briefing` ceiling before anything is read
+   * (T-811, D-103).
+   */
   @Post('briefing')
-  async write(@Req() request: FastifyRequest): Promise<BriefingOutcome> {
+  async write(
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<BriefingOutcome> {
     const user = await this.member(request);
+    const taken = await this.limits.take(user.id, 'briefing');
+    if (!taken.ok)
+      refuseOverRate(reply, taken, 'You have asked for a lot of briefings in the last hour.');
     return this.briefings.write(user.id);
   }
 
