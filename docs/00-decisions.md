@@ -3801,3 +3801,34 @@ what e-mail is for.
 off by default (it used to read only an "off"). T-831 gives the kinds their
 own section in Settings → Notifications. T-832 (line-ups) can add a kind to
 the same derivation; T-834 measures the queue at a Saturday's load.
+
+## D-099 — The API takes JSON bodies only: a url-encoded body is refused before any handler
+**Status:** Accepted · 2026-09-28 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** The API's HTTP application is created with Nest's
+`bodyParser: false` (`apps/api/src/http-options.ts`, used by `main.ts`). That
+removes the one body parser Nest adds to Fastify's own --
+`application/x-www-form-urlencoded` -- so such a body is answered 415 before
+any controller runs. JSON is parsed by Fastify's own parser, with the same
+prototype- and constructor-poisoning refusal as before.
+
+**Why.** T-813's security tests found that a url-encoded body reached the
+controllers: `POST /admin/ingestion/backfill` with `reason=...` as a form
+body ran a backfill. A url-encoded body is what a plain HTML form sends, and
+a form needs no CORS preflight, so it is the shape of a cross-site request
+forgery. D-026's `SameSite=Lax` cookie already keeps a cross-*site* form from
+carrying a session, but "site" is the registrable domain: any page on a
+subdomain of it would be same-site. The API speaks JSON only -- the web app
+sends nothing else (`apps/web/src/lib/api.ts`), and no browser calls the API
+directly (D-027) -- so refusing the body costs nothing and closes the class
+rather than one route.
+
+**Alternatives.** An `Origin`/`Referer` check or a CSRF token on every write --
+more code on every path for the same result, and the API is not meant to be
+called from a browser at all (D-027). Leaving it -- the cookie makes it
+unexploitable cross-site today; rejected because the fix is one option.
+
+**Consequences.** A client that posts a form directly to the API gets 415;
+there is none. `text/plain` stays parsed by Fastify as a string, which no
+controller accepts as a body (each reads fields from an object), and the
+security spec checks every console write with a form body.
