@@ -299,7 +299,7 @@ export class GroupsController {
         } satisfies ApiError);
       case 'forbidden':
         throw new ForbiddenException({
-          error: 'validation',
+          error: 'forbidden',
           message: 'That is for the people who run this group.',
         } satisfies ApiError);
       case 'rate_limited':

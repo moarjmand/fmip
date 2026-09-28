@@ -123,12 +123,12 @@ export class GroupPollsController {
         throw new NotFoundException({ error: 'not_found', message: 'No such poll.' });
       case 'members_only':
         throw new ForbiddenException({
-          error: 'validation',
+          error: 'forbidden',
           message: 'Polls are for the members of this group.',
         } satisfies ApiError);
       case 'forbidden':
         throw new ForbiddenException({
-          error: 'validation',
+          error: 'forbidden',
           message: 'That is for whoever asked, or the people who run this group.',
         } satisfies ApiError);
       case 'invalid':

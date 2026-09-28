@@ -74,7 +74,7 @@ export class HistoryController {
     if (!audience.ok) {
       if (audience.reason === 'not_found') throw new NotFoundException(NO_GROUP);
       throw new ForbiddenException({
-        error: 'validation',
+        error: 'forbidden',
         message: 'Who is in this group is shown to its members.',
       } satisfies ApiError);
     }

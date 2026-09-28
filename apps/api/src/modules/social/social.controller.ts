@@ -144,7 +144,7 @@ export class SocialController {
     if (!outcome.ok && outcome.reason === 'restricted') {
       const sanction = await this.social.restriction(viewerId);
       throw new ForbiddenException({
-        error: 'validation',
+        error: 'forbidden',
         message:
           sanction !== null && !sanction.permanent
             ? 'A moderation restriction stops you sending friend requests. Your account standing says until when, and how to appeal.'
@@ -205,7 +205,7 @@ function settle(outcome: SocialOutcome): void {
       // Handled by `settleContact`, which can look the sanction up. Reaching
       // here would mean a route that can be sanctioned forgot to use it.
       throw new ForbiddenException({
-        error: 'validation',
+        error: 'forbidden',
         message: 'A moderation restriction stops you doing that.',
       } satisfies ApiError);
     case 'unavailable':
