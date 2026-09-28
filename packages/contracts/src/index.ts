@@ -671,6 +671,8 @@ export type {
   DataQualityFinding,
   DataQualityFixtureRef,
   DataQualityReport,
+  RefetchDataQualityRequest,
+  RefetchDataQualityResponse,
   ReviewDataQualityBatchRequest,
   ReviewDataQualityBatchResponse,
   ReviewDataQualityFindingRequest,

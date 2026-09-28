@@ -1,7 +1,11 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import type { DataQualityCheck, ReviewDataQualityBatchResponse } from '@fmip/contracts';
+import type {
+  DataQualityCheck,
+  RefetchDataQualityResponse,
+  ReviewDataQualityBatchResponse,
+} from '@fmip/contracts';
 import { apiRequest } from '@/lib/api';
 import type { ActionState } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
@@ -74,5 +78,45 @@ export async function reviewBatchAction(
   return {
     ok: true,
     message: `Marked ${n} finding${n === 1 ? '' : 's'} reviewed. They stay listed until the data agrees.`,
+  };
+}
+
+/**
+ * Asking the feed again (T-913): for one fixture, or for every fixture behind
+ * one check's open findings in one season. The API queues it and audits the
+ * reason; the post-match job asks within its share of the day's budget, and
+ * the finding resolves on the next sweep only if the answer agrees.
+ */
+export async function refetchAction(
+  locale: string,
+  target: { fixture_id: string } | { check: DataQualityCheck; season_id: string },
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const reason = String(formData.get('reason') ?? '').trim();
+  if (reason === '') return { ok: false, message: 'Say why. This is recorded.' };
+  const result = await apiRequest<RefetchDataQualityResponse>('/admin/data-quality/refetch', {
+    method: 'POST',
+    cookie: await sessionCookieHeader(),
+    body: { ...target, reason },
+  });
+  if (!result.ok) {
+    return {
+      ok: false,
+      message:
+        result.status === 0
+          ? 'The service is unreachable right now. Please try again shortly.'
+          : (result.error?.message ?? `The request failed (HTTP ${result.status}).`),
+    };
+  }
+  revalidatePath(`/${locale}/admin/data-quality`);
+  const n = result.data.queued;
+  const waiting = result.data.already_queued;
+  return {
+    ok: true,
+    message:
+      `Queued ${n} match${n === 1 ? '' : 'es'} to ask the feed again` +
+      (waiting > 0 ? ` (${waiting} already waiting)` : '') +
+      ". The post-match job asks within its share of the day's budget.",
   };
 }

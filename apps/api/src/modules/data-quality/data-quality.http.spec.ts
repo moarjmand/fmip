@@ -101,6 +101,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('data-quality
       headers: { cookie: `fmip_session=${cookie}` },
       payload,
     });
+  const refetch = (payload: Record<string, unknown>, cookie = admin.cookie) =>
+    app.inject({
+      method: 'POST',
+      url: '/admin/data-quality/refetch',
+      headers: { cookie: `fmip_session=${cookie}` },
+      payload,
+    });
   const fixtures: Record<string, string> = {};
 
   /** A fixture of this spec's season (or `season`), far from every other fixture of the same pair. */
@@ -527,5 +534,83 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('data-quality
       [again?.id],
     );
     expect(reopened).toEqual([{ reviewed_at: null }]);
+  });
+
+  it('asks the feed again for a match or a class, audited, once while it waits, and says what it found', async () => {
+    // The line-up match is one the feed has an id for; the goals match is not.
+    await pool.query(
+      `INSERT INTO provider_mapping (provider, external_id, entity_type, internal_id)
+       VALUES ('api_football', $2, 'fixture', $1)`,
+      [fixtures.lineup, `dq-${RUN}-c`],
+    );
+    const why = 'The line-up looks short; ask the feed again.';
+    expect(
+      (await refetch({ fixture_id: fixtures.first, reason: why }, member.cookie)).statusCode,
+    ).toBe(403);
+    const refused = await refetch({ check: 'nope', reason: '' });
+    expect(refused.statusCode).toBe(400);
+    expect(Object.keys((refused.json() as { fields: object }).fields).sort()).toEqual([
+      'check',
+      'reason',
+      'season_id',
+    ]);
+    expect((await refetch({ fixture_id: 'x', reason: why })).statusCode).toBe(400);
+    // No provider id, nothing to ask.
+    expect((await refetch({ fixture_id: fixtures.goals, reason: why })).statusCode).toBe(404);
+    expect(
+      (await refetch({ check: 'goals_disagree', season_id: SEASON, reason: why })).statusCode,
+    ).toBe(404);
+
+    const one = await refetch({ fixture_id: fixtures.first, reason: why });
+    expect(one.statusCode).toBe(202);
+    expect(one.json()).toEqual({ queued: 1, already_queued: 0 });
+    // Waiting already: not queued twice.
+    expect((await refetch({ fixture_id: fixtures.first, reason: why })).statusCode).toBe(409);
+
+    // A class: every match behind the season's open line-up findings the feed can be asked about.
+    const cls = await refetch({ check: 'lineup_not_eleven', season_id: SEASON, reason: why });
+    expect(cls.statusCode).toBe(202);
+    expect(cls.json()).toEqual({ queued: 1, already_queued: 0 });
+
+    const { rows: audit } = await pool.query<{
+      target_type: string;
+      target_id: string;
+      reason: string;
+      next: { fixture_ids: string[]; check: string | null };
+    }>(
+      `SELECT target_type, target_id, reason, next FROM audit_log
+        WHERE actor_id = $1 AND action = 'data_quality.refetch' ORDER BY created_at, id`,
+      [admin.id],
+    );
+    expect(
+      audit.map((a) => [a.target_type, a.target_id, a.reason, a.next.fixture_ids, a.next.check]),
+    ).toEqual([
+      ['fixture', fixtures.first, why, [fixtures.first], null],
+      ['season', SEASON, why, [fixtures.lineup], 'lineup_not_eleven'],
+    ]);
+
+    const waiting = (await get(admin.cookie)).json() as DataQualityReport;
+    expect(waiting.refetch.pending).toBeGreaterThanOrEqual(2);
+    const lineup = async () =>
+      ((await get(admin.cookie)).json() as DataQualityReport).findings.find(
+        (f) => f.check === 'lineup_not_eleven' && f.fixture?.id === fixtures.lineup,
+      );
+    expect((await lineup())?.asked_again).toMatchObject({ fetched_at: null, changed: null });
+
+    // The post-match job's side: due in this competition, then asked and unchanged.
+    const due = await dataQuality.refetchesDue('api_football', [COMPETITION], 10);
+    expect(due.map((d) => d.fixtureId).sort()).toEqual([fixtures.first, fixtures.lineup].sort());
+    expect(await dataQuality.refetchesDue('api_football', [randomUUID()], 10)).toEqual([]);
+    const before = await dataQuality.refetchedSince();
+    for (const d of due) await dataQuality.recordRefetch(d.id, false);
+    expect(await dataQuality.refetchedSince()).toBe(before + 2);
+    expect(await dataQuality.refetchesDue('api_football', [COMPETITION], 10)).toEqual([]);
+    const asked = (await lineup())?.asked_again;
+    expect(asked?.changed).toBe(false);
+    expect(asked?.fetched_at).toEqual(expect.any(String));
+    // Still open: the answer did not make the data agree. It can be asked again now.
+    await dataQuality.sweep(new Date(Date.now() + 95 * 60_000), SEASON);
+    expect((await lineup())?.asked_again?.changed).toBe(false);
+    expect((await refetch({ fixture_id: fixtures.lineup, reason: why })).statusCode).toBe(202);
   });
 });
