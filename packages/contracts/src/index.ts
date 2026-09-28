@@ -160,6 +160,7 @@ export type {
   Leader,
   PlayerMatch,
   PlayerPage,
+  PlayerSeasonMinutes,
   PlayerSeasonRecord,
   PlayerSpell,
   SeasonFixture,
