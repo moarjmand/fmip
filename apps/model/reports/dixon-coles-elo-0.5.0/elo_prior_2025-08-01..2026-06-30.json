@@ -1,0 +1,303 @@
+{
+  "model_version": "dixon-coles-elo@0.5.0",
+  "own_elo_rules": "own-elo@1.0.0",
+  "window": ["2025-08-01", "2026-06-30"],
+  "note": "Run 2026-09-29 on the maintainer's laptop, on a training store built for it: football-data.co.uk 2023/24 to 2026/27 for the ten divisions below (D-016), no aliases and none of our own records (the laptop holds no production fixtures), no Club Elo snapshot (its API answered 502). Own Elo therefore rates each division's clubs from that division's results alone.",
+  "pooled_log_loss": {
+    "none": 0.9965,
+    "clubelo": null,
+    "own": 0.9933
+  },
+  "divisions": [
+    {
+      "division": "B1",
+      "xi": 0.003,
+      "ridge": 0.3,
+      "matches": 303,
+      "scores": [
+        {
+          "variant": "none",
+          "ran": true,
+          "fits_with_prior": 0,
+          "log_loss": 1.0384910916187329,
+          "brier": 0.6238259328185799
+        },
+        {
+          "variant": "clubelo",
+          "ran": false,
+          "fits_with_prior": 0,
+          "log_loss": null,
+          "brier": null
+        },
+        {
+          "variant": "own",
+          "ran": true,
+          "fits_with_prior": 37,
+          "log_loss": 1.035289258839906,
+          "brier": 0.622528867159002
+        }
+      ]
+    },
+    {
+      "division": "D1",
+      "xi": 0.001,
+      "ridge": 0.3,
+      "matches": 305,
+      "scores": [
+        {
+          "variant": "none",
+          "ran": true,
+          "fits_with_prior": 0,
+          "log_loss": 0.9796051298377858,
+          "brier": 0.5786999765772719
+        },
+        {
+          "variant": "clubelo",
+          "ran": false,
+          "fits_with_prior": 0,
+          "log_loss": null,
+          "brier": null
+        },
+        {
+          "variant": "own",
+          "ran": true,
+          "fits_with_prior": 33,
+          "log_loss": 0.97624807931432,
+          "brier": 0.5772097285087895
+        }
+      ]
+    },
+    {
+      "division": "E0",
+      "xi": 0.002,
+      "ridge": 0.003,
+      "matches": 378,
+      "scores": [
+        {
+          "variant": "none",
+          "ran": true,
+          "fits_with_prior": 0,
+          "log_loss": 1.0486453274406085,
+          "brier": 0.6219722040077043
+        },
+        {
+          "variant": "clubelo",
+          "ran": false,
+          "fits_with_prior": 0,
+          "log_loss": null,
+          "brier": null
+        },
+        {
+          "variant": "own",
+          "ran": true,
+          "fits_with_prior": 33,
+          "log_loss": 1.030026868834192,
+          "brier": 0.6177126927658392
+        }
+      ]
+    },
+    {
+      "division": "F1",
+      "xi": 0.003,
+      "ridge": 0.3,
+      "matches": 305,
+      "scores": [
+        {
+          "variant": "none",
+          "ran": true,
+          "fits_with_prior": 0,
+          "log_loss": 1.0055555457285772,
+          "brier": 0.602390883345032
+        },
+        {
+          "variant": "clubelo",
+          "ran": false,
+          "fits_with_prior": 0,
+          "log_loss": null,
+          "brier": null
+        },
+        {
+          "variant": "own",
+          "ran": true,
+          "fits_with_prior": 33,
+          "log_loss": 1.004517555063424,
+          "brier": 0.601644470529281
+        }
+      ]
+    },
+    {
+      "division": "I1",
+      "xi": 0.001,
+      "ridge": 0.3,
+      "matches": 377,
+      "scores": [
+        {
+          "variant": "none",
+          "ran": true,
+          "fits_with_prior": 0,
+          "log_loss": 0.9978169776918486,
+          "brier": 0.5960117269878403
+        },
+        {
+          "variant": "clubelo",
+          "ran": false,
+          "fits_with_prior": 0,
+          "log_loss": null,
+          "brier": null
+        },
+        {
+          "variant": "own",
+          "ran": true,
+          "fits_with_prior": 36,
+          "log_loss": 0.9971790980566287,
+          "brier": 0.595423671815556
+        }
+      ]
+    },
+    {
+      "division": "N1",
+      "xi": 0.003,
+      "ridge": 0.3,
+      "matches": 305,
+      "scores": [
+        {
+          "variant": "none",
+          "ran": true,
+          "fits_with_prior": 0,
+          "log_loss": 0.9889068401413877,
+          "brier": 0.5857932484572731
+        },
+        {
+          "variant": "clubelo",
+          "ran": false,
+          "fits_with_prior": 0,
+          "log_loss": null,
+          "brier": null
+        },
+        {
+          "variant": "own",
+          "ran": true,
+          "fits_with_prior": 34,
+          "log_loss": 0.9869142567655342,
+          "brier": 0.5856881843598408
+        }
+      ]
+    },
+    {
+      "division": "P1",
+      "xi": 0.0005,
+      "ridge": 0.3,
+      "matches": 304,
+      "scores": [
+        {
+          "variant": "none",
+          "ran": true,
+          "fits_with_prior": 0,
+          "log_loss": 0.9271151291017731,
+          "brier": 0.5486125461500593
+        },
+        {
+          "variant": "clubelo",
+          "ran": false,
+          "fits_with_prior": 0,
+          "log_loss": null,
+          "brier": null
+        },
+        {
+          "variant": "own",
+          "ran": true,
+          "fits_with_prior": 35,
+          "log_loss": 0.9274808232422574,
+          "brier": 0.5487326345329997
+        }
+      ]
+    },
+    {
+      "division": "SC0",
+      "xi": 0.001,
+      "ridge": 0.3,
+      "matches": 227,
+      "scores": [
+        {
+          "variant": "none",
+          "ran": true,
+          "fits_with_prior": 0,
+          "log_loss": 0.9884012618096728,
+          "brier": 0.5883384993708518
+        },
+        {
+          "variant": "clubelo",
+          "ran": false,
+          "fits_with_prior": 0,
+          "log_loss": null,
+          "brier": null
+        },
+        {
+          "variant": "own",
+          "ran": true,
+          "fits_with_prior": 34,
+          "log_loss": 0.986356230765643,
+          "brier": 0.587171266745023
+        }
+      ]
+    },
+    {
+      "division": "SP1",
+      "xi": 0.003,
+      "ridge": 0.3,
+      "matches": 377,
+      "scores": [
+        {
+          "variant": "none",
+          "ran": true,
+          "fits_with_prior": 0,
+          "log_loss": 0.9834283122062193,
+          "brier": 0.5835775743496464
+        },
+        {
+          "variant": "clubelo",
+          "ran": false,
+          "fits_with_prior": 0,
+          "log_loss": null,
+          "brier": null
+        },
+        {
+          "variant": "own",
+          "ran": true,
+          "fits_with_prior": 35,
+          "log_loss": 0.9823838129304752,
+          "brier": 0.5829681702169952
+        }
+      ]
+    },
+    {
+      "division": "T1",
+      "xi": 0.004,
+      "ridge": 0.01,
+      "matches": 304,
+      "scores": [
+        {
+          "variant": "none",
+          "ran": true,
+          "fits_with_prior": 0,
+          "log_loss": 0.9956063677747039,
+          "brier": 0.59590627914203
+        },
+        {
+          "variant": "clubelo",
+          "ran": false,
+          "fits_with_prior": 0,
+          "log_loss": null,
+          "brier": null
+        },
+        {
+          "variant": "own",
+          "ran": true,
+          "fits_with_prior": 33,
+          "log_loss": 0.9978573709782824,
+          "brier": 0.597405856926908
+        }
+      ]
+    }
+  ]
+}

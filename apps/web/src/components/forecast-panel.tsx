@@ -11,6 +11,7 @@ import {
   describeChange,
   framing,
   percentages,
+  priorNote,
   versionChanges,
 } from '@/lib/forecast';
 import { attribute } from '@/lib/forecast-diff';
@@ -201,6 +202,11 @@ function Latest({
                 {factor.note}
               </li>
             ))}
+            {priorNote(version) !== null && (
+              <li className="text-muted" data-testid="no-elo-prior">
+                {priorNote(version)}
+              </li>
+            )}
           </ul>
         </div>
       )}

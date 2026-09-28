@@ -4435,6 +4435,137 @@ second place the budget would have to be counted.
 `DataQualityReport.refetch` are in the contract. `INGESTION_REFETCH_SHARE` is
 in `.env.example` and forwarded by the production compose file.
 
+## D-111 — An Elo prior from our own records, within D-014, when Club Elo does not answer
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26) · **Tasks:** T-920, T-921, T-922 · **Follows:** D-014, D-016, D-029, D-080, D-082, D-083, D-095
+
+**The problem.** The published model (`dixon-coles-elo@0.1.0`, D-029) pulls
+each club's net strength toward its Club Elo rating. Club Elo's API has
+answered `502 Bad Gateway` since 2026-09-25, so every forecast since has been
+fitted without the prior (`elo_used: false`), and nothing said so anywhere an
+administrator or a reader would look: the snapshots were loaded by hand, the
+failures were rows nobody read, and the strength factor's note still named
+"the Elo prior".
+
+**T-920: the source's state is visible.**
+
+- **The service asks, and records the answer.** The model service asks Club
+  Elo for yesterday's snapshot (a fit's date is the day before the match, and
+  never later than yesterday) at most every six hours, in the background of
+  its health check, through the existing loader: one `source_load` row per
+  ask, `succeeded` or `failed` with the error. A snapshot already held is not
+  asked for again. It never blocks or fails a forecast; the held ratings stand.
+  `MODEL_CLUBELO_REFRESH=off` stops the asking (CI sets it; N-4 would).
+- **`/health` reports it.** `elo_source`: the newest snapshot day that loaded
+  and when, the newest error and when, and `unanswered_since` -- the newest
+  success, else the oldest failure since -- read from `training.source_load`.
+  A store that does not answer is `unreadable`, never a failed health check.
+- **The watchdog counts days.** Condition `elo_source`: seconds since
+  `unanswered_since`. `degraded` at three days: forecasts are still made, from
+  results alone, and say so, so it is worth a look, not a wake-up. `failing` at
+  fourteen: a fortnight without the prior is the week's question (T-921's own
+  Elo, or N-4). `ok` when the asking is off on purpose; `unknown` when the
+  model service does not answer (that is `model_service`'s condition), does
+  not report the source, or has never asked. The transition rule is D-095's,
+  so four days of 502s at a check a minute is one incident and one alert, and
+  the first answer after it is one recovery. The System page names it
+  "Club Elo (the model's long-term ratings)" and shows the note: the day it
+  last answered for and the last error.
+- **The forecast panel says it per version.** A version whose stored inputs
+  say `elo_used: false` adds "No Elo prior this time" to its factor list,
+  from the version's own inputs (rule 5), never from the source's state now.
+  New versions' strength note says "no Elo prior this time" too; older ones
+  keep the words they were stored with, and the panel line corrects them.
+
+**Rejected.** *Asking on every forecast*: a hanging source would hold a
+forecast past the API's timeout. *Asking on the watchdog's minute*: sixty
+requests an hour to a free API for a daily number. *A separate timer on the
+host*: one more thing to install, and the service already holds the loader,
+the store and the clock.
+
+**T-921: an Elo of our own, from the training store.** (Migration
+`1764850000000`.)
+
+- **What it reads.** Every result in `training.match`: football-data.co.uk's
+  divisions (D-016, training only) and our own records of the licensed feed
+  (D-083). Nothing else, so the prior a fit may take from it is licensed and
+  training data only, within D-014 -- unlike Club Elo, which is neither.
+- **Who a club is.** Its catalogue id where the committed bridge names it
+  (`training.team_alias`, D-080), so a club's league and cup matches are one
+  club's; otherwise `<division>:<name>`, a club of that division only. Two
+  spellings are never matched by likeness, and the same spelling in two
+  divisions without the bridge is two clubs. The limit, stated: a club
+  promoted from a division the bridge does not cover starts again in its new
+  one.
+- **The rules, frozen per version.** `own-elo@1.0.0` is World Football Elo:
+  K 20, home advantage 60 points, the goal-difference multiplier (1, 1.5,
+  (11 + d) / 8), a club entering at 1500 on its first match, matches applied
+  by day, then division and clubs, so the same results always give the same
+  numbers. A changed constant is a new version and a new run beside the old.
+- **Clubs with no history are left out.** A club with no match on or before
+  the day has no row, not 1500: a fit then gives it no prior beyond the ridge,
+  as it does a club Club Elo does not rate.
+- **Stored with the matches it was computed from.** One `own_elo_run` per
+  (day, rules): the matches read -- their count, first and last date, and a
+  sha256 over them in the order applied -- and one `own_elo` row per club.
+  `python -m fmip_model.training.own_elo verify --day …` recomputes the day
+  from the stored results and compares the hash and every rating; a result
+  that changed under a stored day is reported, not absorbed. Storing a day
+  again replaces its run.
+- **Daily, by the service.** The model service computes yesterday's run once a
+  day in the background of its health check (after its daily reload of our
+  own records, so the day's results are in), and a fit that asks for a day not
+  yet computed computes it first. A failure is logged and retried after an
+  hour; a fit without the prior says so (`elo_used`).
+- **Not read by the published model.** `dixon-coles-elo@0.1.0` is unchanged
+  (rule 5, D-082). T-922's candidate is the first version to read it.
+
+**T-922: candidate `dixon-coles-elo@0.5.0`, in shadow.** It is 0.4.0 unchanged
+(its per-division constants and its cross-league fit) plus one new setting,
+`elo_prior: own`. The prior is always our own Elo, read by the division's
+training names. A version now names its prior: `clubelo` (the published
+version's, D-029), `own`, or `clubelo_then_own`. Nothing else changes, and
+`dixon-coles-elo@0.1.0` stays the published version.
+
+*The backtest* (`python -m fmip_model.backtest.elo_prior`, 2026-09-29,
+report in `apps/model/reports/dixon-coles-elo-0.5.0/`). For each of the ten
+divisions, the 2025/26 season was walked forward with the same weekly fit
+dates and the candidate's own constants. Each variant was scored only on
+the matches that every variant which ran had forecast. Log loss (lower is
+better):
+
+| Division | Matches | No prior | Club Elo, last cached | Own Elo |
+|---|---|---|---|---|
+| B1 | 303 | 1.0385 | not run | 1.0353 |
+| D1 | 305 | 0.9796 | not run | 0.9762 |
+| E0 | 378 | 1.0486 | not run | 1.0300 |
+| F1 | 305 | 1.0056 | not run | 1.0045 |
+| I1 | 377 | 0.9978 | not run | 0.9972 |
+| N1 | 305 | 0.9889 | not run | 0.9869 |
+| P1 | 304 | 0.9271 | not run | 0.9275 |
+| SC0 | 227 | 0.9884 | not run | 0.9864 |
+| SP1 | 377 | 0.9834 | not run | 0.9824 |
+| T1 | 304 | 0.9956 | not run | 0.9979 |
+| **Pooled** | 3,185 | **0.9965** | not run | **0.9933** |
+
+Our own Elo is better than no prior in eight divisions of ten, and by 0.0032
+pooled. It is worse in P1 (0.0004) and T1 (0.0023). This run was made on the
+laptop. It used a training store built for the purpose from football-data.co.uk
+2023/24 to 2026/27. That store has no aliases and none of our own records, so
+there each club is rated from its own division's results alone. On the
+server, the bridge and our cup records also link clubs across leagues.
+
+*Club Elo could not be compared here.* The laptop holds no Club Elo snapshot,
+and the API answered 502. The server holds the snapshots loaded before
+2026-09-25. There, the same command scores the "last cached" variant
+(`06-session-handoff.md`, Production). The task's rule is "Club Elo when it
+answers and ours when it does not, or ours always, whichever the backtest
+favours". With no Club Elo evidence, 0.5.0 takes the choice that needs
+none: ours, always. That is also the choice that keeps the prior within
+D-014. If the server run shows Club Elo's ratings ahead of ours, the next
+version is `clubelo_then_own`, as 0.5.1 with its own record. 0.5.0 is not
+edited (rule 5, D-082). Promotion is T-535's evaluation (D-120), never this
+table.
+
 ## D-118 — Leaders beyond goals: assists, clean sheets and cards, each a stated rule
 **Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
 
@@ -4481,3 +4612,4 @@ weighting nobody asked for, where two plain counts say more.
 `CleanSheetLeader` and `CardLeader` are in the contract.
 `StandingsService.boards` is the standings boundary's answer; the catalog
 adds minutes and the floor. No migration: the plan's row names none.
+

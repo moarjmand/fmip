@@ -141,7 +141,7 @@ jobs:
         id: model_service
         if: ${{ !cancelled() && steps.database.outcome == 'success' }}
         run: |
-          (cd apps/model && MODEL_PORT=8000 nohup python -m fmip_model.service > model-service.log 2>&1 &)
+          (cd apps/model && MODEL_PORT=8000 MODEL_CLUBELO_REFRESH=off nohup python -m fmip_model.service > model-service.log 2>&1 &)
           for i in $(seq 1 30); do
             curl -sf http://127.0.0.1:8000/health && exit 0
             sleep 1
