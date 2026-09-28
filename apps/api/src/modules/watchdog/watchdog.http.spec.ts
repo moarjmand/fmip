@@ -56,6 +56,7 @@ const quiet = (now: Date): Observations => ({
   queues: [{ queue: 'ingestion', failedLastHour: 0 }],
   model: { configured: false },
   delivery: { email: { configured: false }, push: { configured: false } },
+  dataQuality: { open: 0, sweptAt: new Date(now.getTime() - 60_000) },
   backup: undefined,
 });
 const probes: WatchdogProbes = { observe: () => Promise.resolve(seen) };
@@ -193,6 +194,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the watchdog
     expect(observed.live).toMatchObject({ inProgress: expect.any(Number) as number });
     expect(observed.delivery).not.toHaveProperty('unreadable');
     expect(observed.ingest).not.toHaveProperty('unreadable');
+    expect(observed.dataQuality).not.toHaveProperty('unreadable');
     expect(observed.queues.map((q) => q.queue)).toEqual(WATCHED_QUEUES);
   });
 

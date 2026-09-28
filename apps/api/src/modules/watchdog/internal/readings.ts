@@ -1,6 +1,7 @@
 import {
   type Reading,
   backup,
+  dataQuality,
   deliveryChannel,
   ingestJob,
   liveFeed,
@@ -48,6 +49,8 @@ export interface Observations {
     | Unreadable;
   /** `undefined`: nowhere to read a backup from yet (T-805). */
   backup: Date | null | undefined | Unreadable;
+  /** Open findings about live matches and the newest complete sweep (T-821). */
+  dataQuality: { open: number; sweptAt: Date | null } | Unreadable;
 }
 
 /**
@@ -111,6 +114,15 @@ export function readingsOf(
     out.push(deliveryChannel('email', seen.delivery.email));
     out.push(deliveryChannel('push', seen.delivery.push));
   }
+
+  out.push(
+    unreadable(seen.dataQuality)
+      ? {
+          ...dataQuality({ open: 0, sweptAt: null }, now),
+          note: seen.dataQuality.unreadable,
+        }
+      : dataQuality(seen.dataQuality, now),
+  );
 
   out.push(
     unreadable(seen.backup)

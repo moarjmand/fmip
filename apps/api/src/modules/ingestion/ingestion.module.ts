@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { DataQualityModule } from '../data-quality/data-quality.module';
 import { FailureCountsModule } from '../failure-counts/failure-counts.module';
 import { ForecastModule } from '../forecast/forecast.module';
 import { IdentityModule } from '../identity/identity.module';
@@ -28,7 +29,8 @@ import { INGESTION_SOURCES, resolveSources } from './internal/sources';
  * one we derive (D-038), and writes nothing. The forecast boundary is imported
  * for the same reason: the scheduler gives its version triggers (T-120) a tick
  * of their own, because producing a forecast is not ingestion and must not
- * appear in `ingest_run`. `PG_POOL` comes from the global
+ * appear in `ingest_run`. The data-quality boundary takes the standings job's
+ * comparison as findings (T-820). `PG_POOL` comes from the global
  * `DatabaseModule`.
  */
 @Module({
@@ -39,6 +41,7 @@ import { INGESTION_SOURCES, resolveSources } from './internal/sources';
     ForecastModule,
     IdentityModule,
     FailureCountsModule,
+    DataQualityModule,
     MatchAlertsModule,
   ],
   controllers: [IngestionController, IngestionAdminController],

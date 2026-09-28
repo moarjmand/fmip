@@ -1,0 +1,146 @@
+import Link from 'next/link';
+import type { Covered, KeyPlayers, KeyPlayersSide } from '@fmip/contracts';
+import { formatNumber } from '@/i18n/format';
+import {
+  availabilityLine,
+  coverageLine,
+  figuresLine,
+  positionLabel,
+  ruleNote,
+} from '@/lib/key-players';
+import { moduleState } from '@/lib/match';
+import { formatKickoff } from '@/lib/scores';
+import { Notice } from '@/components/ui';
+
+/**
+ * The match centre's key players (T-841, blueprint 4.2): each side's most
+ * used players in this competition's season before the match, their minutes,
+ * goals and assists, and what the provider said about this match. "Key" is
+ * the rule in the footnote -- a count, not a judgement -- and no rating is
+ * shown. A doubt reads as a doubt; with the provider never asked, nothing is
+ * claimed. Sides stack below `sm`.
+ */
+export function KeyPlayersPanel({
+  players,
+  home,
+  away,
+  locale,
+  timeZone,
+}: {
+  /** Null when the API could not be reached. */
+  players: KeyPlayers | null;
+  home: string;
+  away: string;
+  locale: string;
+  timeZone: string;
+}) {
+  if (players === null) {
+    return (
+      <section className="flex flex-col gap-2" data-testid="key-players" data-state="unreachable">
+        <h2 className="text-lg font-semibold">Key players</h2>
+        <Notice tone="danger">
+          The key players could not be reached, so they cannot be shown.
+        </Notice>
+      </section>
+    );
+  }
+
+  const asked = players.availability_asked_at;
+  return (
+    <section className="flex flex-col gap-3" data-testid="key-players" data-state="loaded">
+      <h2 className="text-lg font-semibold">Key players</h2>
+      <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
+        <Side name={home} module={players.home} locale={locale} />
+        <Side name={away} module={players.away} locale={locale} />
+      </div>
+      <p dir="auto" className="text-xs text-muted" data-testid="key-players-availability">
+        {asked === null ? (
+          'Availability: the provider has not been asked about this match, so none is claimed.'
+        ) : (
+          <>
+            Availability as the provider gave it,{' '}
+            <time dateTime={asked}>
+              {asked.slice(0, 10)} {formatKickoff(locale, asked, timeZone)}
+            </time>
+            .
+          </>
+        )}
+      </p>
+      <p dir="auto" className="text-xs text-muted" data-testid="key-players-rule">
+        {ruleNote(players.competition.name, players.season.label)}
+      </p>
+    </section>
+  );
+}
+
+function Side({
+  name,
+  module,
+  locale,
+}: {
+  name: string;
+  module: Covered<KeyPlayersSide>;
+  locale: string;
+}) {
+  const side = module.data;
+  return (
+    <div
+      className="flex min-w-0 flex-col gap-2"
+      data-testid="key-players-side"
+      data-coverage={module.coverage}
+    >
+      <h3 className="flex flex-wrap items-baseline gap-x-2 font-medium">
+        <bdi>{name}</bdi>
+        <span dir="auto" className="text-xs font-normal uppercase text-muted">
+          {moduleState(module)}
+        </span>
+      </h3>
+      {side === null ? (
+        <p dir="auto" className="text-muted">
+          {module.coverage === 'delayed'
+            ? 'Player figures for this side are delayed.'
+            : 'No per-match player figures for this side this season.'}
+        </p>
+      ) : (
+        <>
+          {side.players.length > 0 && (
+            <ol className="flex flex-col gap-2">
+              {side.players.map((p) => {
+                const position = positionLabel(p.position);
+                const availability = availabilityLine(p);
+                return (
+                  <li key={p.id} className="flex flex-col" data-testid="key-player">
+                    <span className="break-words">
+                      <Link href={`/${locale}/player/${p.id}`} className="underline">
+                        {p.name}
+                      </Link>
+                      {position !== null && <span className="text-muted"> · {position}</span>}
+                    </span>
+                    <span className="text-muted">
+                      {figuresLine(p, (n) => formatNumber(locale, n))}
+                    </span>
+                    {availability !== null && (
+                      <span
+                        dir="auto"
+                        className={
+                          p.availability?.status === 'not_listed' ? 'text-muted' : 'font-medium'
+                        }
+                        data-testid="key-player-availability"
+                        data-status={p.availability?.status}
+                      >
+                        {availability}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+          <p dir="auto" className="text-xs text-muted">
+            {coverageLine(side)}
+          </p>
+        </>
+      )}
+    </div>
+  );
+}

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   BACKUP_THRESHOLD,
+  DATA_QUALITY_STALE_SECONDS,
+  DATA_QUALITY_THRESHOLD,
   DELIVERY_THRESHOLD,
   INGEST_THRESHOLDS,
   LIVE_FEED_THRESHOLD,
@@ -9,6 +11,7 @@ import {
   REQUEST_BUDGET_THRESHOLD,
   type Reading,
   backup,
+  dataQuality,
   deliveryChannel,
   ingestJob,
   levelOf,
@@ -326,6 +329,33 @@ describe('the transition rule', () => {
   });
 });
 
+describe('data_quality', () => {
+  it('counts open findings about live matches: one is degraded, three failing', () => {
+    expect(DATA_QUALITY_THRESHOLD).toEqual({ unit: 'count', degraded: 1, failing: 3 });
+    expect(dataQuality({ open: 0, sweptAt: ago(60) }, NOW)).toMatchObject({
+      key: 'data_quality',
+      level: 'ok',
+      observed: 0,
+    });
+    expect(dataQuality({ open: 1, sweptAt: ago(60) }, NOW).level).toBe('degraded');
+    expect(dataQuality({ open: 3, sweptAt: ago(60) }, NOW).level).toBe('failing');
+  });
+
+  it('is unknown, not ok, when the sweep never ran or stopped', () => {
+    expect(dataQuality({ open: 0, sweptAt: null }, NOW)).toMatchObject({
+      level: 'unknown',
+      note: 'the data-quality checks have not run yet',
+    });
+    expect(
+      dataQuality({ open: 5, sweptAt: ago(DATA_QUALITY_STALE_SECONDS + 60) }, NOW),
+    ).toMatchObject({
+      level: 'unknown',
+      observed: null,
+      note: 'the newest data-quality sweep is 16 minutes old',
+    });
+  });
+});
+
 describe('readingsOf', () => {
   const observations = (over: Partial<Observations> = {}): Observations => ({
     ingest: [
@@ -342,6 +372,7 @@ describe('readingsOf', () => {
     queues: [{ queue: 'ingestion', failedLastHour: 0 }],
     model: { configured: true, ok: true },
     delivery: { email: { configured: false }, push: { configured: true, sent: 5, failed: 0 } },
+    dataQuality: { open: 0, sweptAt: ago(60) },
     backup: undefined,
     ...over,
   });
@@ -356,6 +387,7 @@ describe('readingsOf', () => {
       'model_service',
       'delivery:email',
       'delivery:push',
+      'data_quality',
       'backup',
     ]);
   });
@@ -378,6 +410,16 @@ describe('readingsOf', () => {
     expect(byKey.get('ingest:fixtures')).toMatchObject({ level: 'unknown' });
     expect(byKey.get('live_feed')).toMatchObject({ level: 'unknown', note: 'timeout' });
     expect(byKey.get('request_budget')?.level).toBe('ok');
+  });
+
+  it('an unreadable data-quality view is unknown with the reason', () => {
+    const reading = readingsOf(
+      observations({ dataQuality: { unreadable: 'relation does not exist' } }),
+      new Map(),
+      NOW,
+      [],
+    ).find((r) => r.key === 'data_quality');
+    expect(reading).toMatchObject({ level: 'unknown', note: 'relation does not exist' });
   });
 
   it('carries the model service failure count from the previous bad reading', () => {

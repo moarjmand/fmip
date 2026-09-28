@@ -37,7 +37,7 @@ describe('match centre labels', () => {
   it('lists every blueprint 4.2 module the page does not have yet', () => {
     // Equality, not containment: a module that reaches the page must leave
     // this list, or the page says "not yet" about something it shows.
-    expect(NOT_YET.map(([name]) => name)).toEqual(['Key players']);
+    expect(NOT_YET.map(([name]) => name)).toEqual([]);
   });
 });
 

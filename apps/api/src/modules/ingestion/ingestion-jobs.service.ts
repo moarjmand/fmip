@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Pool } from 'pg';
 import type { AdapterResult, NormalisedStanding, Provider, ProviderAdapter } from '@fmip/ingestion';
 import { PG_POOL } from '../../database/database.module';
+import { DataQualityService, type TableComparison } from '../data-quality/data-quality.service';
 import { MatchAlertsService } from '../match-alerts/match-alerts.service';
 import { StandingsService } from '../standings/standings.service';
 import { CoverageService } from './coverage.service';
@@ -189,6 +190,7 @@ export class IngestionJobsService {
     private readonly standings: StandingsService,
     private readonly coverage: CoverageService,
     resolver: EntityResolverService,
+    private readonly dataQuality: DataQualityService,
     private readonly alerts: MatchAlertsService,
   ) {
     this.store = new IngestStore(pool, resolver);
@@ -589,7 +591,6 @@ export class IngestionJobsService {
    * and name the teams, which is how a silent gap becomes a visible one.
    */
   private standingsCheck(now: Date = new Date()): Promise<JobReport> {
-    void now;
     return this.track('standings', async (source, targets) => {
       let seen = 0;
       const refused: string[] = [];
@@ -621,16 +622,24 @@ export class IngestionJobsService {
           // of a club (rule 1). A team nobody has identified is counted, not
           // silently dropped — it is the same gap seen from the other end.
           const mine = new Map((ours.data ?? []).map((row) => [row.team.id, row]));
+          const compared: TableComparison[] = [];
+          let unmappedHere = 0;
 
           for (const row of table.rows) {
             const teamId = await this.store.resolveTeam(source.provider, row.team);
             if (teamId === null) {
               unmapped += 1;
+              unmappedHere += 1;
               continue;
             }
-            const gap = tableGap(row.team.name, row.played, mine.get(teamId)?.played);
+            const held = mine.get(teamId)?.played;
+            compared.push({ teamId, providerPlayed: row.played, ourPlayed: held });
+            const gap = tableGap(row.team.name, row.played, held);
             if (gap !== null) behind.push(gap);
           }
+          // The same comparison, kept as findings (T-820): a gap stays visible
+          // on the data-quality page until a later comparison no longer sees it.
+          await this.recordTable(seasonId, compared, unmappedHere, now);
         }
         if (unmapped > 0) {
           behind.push(`${unmapped} teams in the provider's table have no mapping`);
@@ -645,6 +654,28 @@ export class IngestionJobsService {
         ...(partial === '' ? {} : { partial }),
       };
     });
+  }
+
+  /**
+   * Hands one season's table comparison to the data-quality checks. A failure
+   * there is logged and does not fail the standings run: the comparison is
+   * still in the run's `partial` text.
+   */
+  private async recordTable(
+    seasonId: string,
+    compared: TableComparison[],
+    unmapped: number,
+    now: Date,
+  ): Promise<void> {
+    try {
+      await this.dataQuality.recordTable(seasonId, compared, unmapped, now);
+    } catch (error: unknown) {
+      this.log.warn('the table comparison could not be recorded as findings', {
+        event: 'data_quality.table_write_failed',
+        season: seasonId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   /** The fixtures a detail job should spend requests on, newest kick-off first. */

@@ -13,6 +13,7 @@ import type {
   AuditResponse,
   BroadcastersResponse,
   BlocksResponse,
+  DataQualityReport,
   ChatHealth,
   CommunityConsensusResponse,
   CompetitionContext,
@@ -46,6 +47,7 @@ import type {
   GroupsResponse,
   HealthReport,
   IngestionHealth,
+  KeyPlayers,
   LeaderboardResponse,
   LiveHealth,
   CommunityAnalysesResponse,
@@ -688,6 +690,16 @@ export function fetchPanels(cookie: string | undefined): Promise<ApiResult<Panel
   return apiRequest<PanelListResponse>('/admin/panels', cookie === undefined ? {} : { cookie });
 }
 
+/** Data-quality findings over the stored feed (T-821). Needs the admin role. */
+export function fetchDataQuality(
+  cookie: string | undefined,
+): Promise<ApiResult<DataQualityReport>> {
+  return apiRequest<DataQualityReport>(
+    '/admin/data-quality',
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
 /** What is waiting to be read, oldest first. Needs the editor or admin role. */
 export function fetchAnalysisQueue(
   cookie: string | undefined,
@@ -906,6 +918,11 @@ export function fetchFixtureNews(
   return apiRequest<FixtureNewsResponse>(
     `/fixtures/${fixtureId}/news?locale=${encodeURIComponent(locale)}`,
   );
+}
+
+/** `GET /fixtures/:id/key-players` (T-841): each side's most-used players by the stated rule. Public. */
+export function fetchKeyPlayers(fixtureId: string): Promise<ApiResult<KeyPlayers>> {
+  return apiRequest<KeyPlayers>(`/fixtures/${encodeURIComponent(fixtureId)}/key-players`);
 }
 
 /** The match summary (E41, T-413): what a model wrote from the record, or the reason there is none. */
