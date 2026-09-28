@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation';
 import type { Covered, SeasonFixture } from '@fmip/contracts';
 import { FounderAnalysisFeed } from '@/components/founder-analysis';
 import { KnockoutBracket } from '@/components/knockout-bracket';
+import { MinutesFigure } from '@/components/minutes-figure';
+import { Translated } from '@/components/translated';
 import { fetchCompetition, fetchFounderFeed, fetchMe } from '@/lib/api';
 import {
   KIND_LABEL,
@@ -11,6 +13,8 @@ import {
   fixtureLine,
   formLine,
   formatFixtureDate,
+  leadersHref,
+  readMinMinutesParam,
   readSeasonParam,
   seasonHref,
 } from '@/lib/competition';
@@ -68,8 +72,9 @@ export default async function CompetitionPage({
   const [{ locale, id }, query] = await Promise.all([params, searchParams]);
   if (!UUID.test(id)) notFound();
   const seasonParam = readSeasonParam(query);
+  const minMinutes = readMinMinutesParam(query);
   const [result, me, founder] = await Promise.all([
-    fetchCompetition(id, competitionQuery(seasonParam), locale),
+    fetchCompetition(id, competitionQuery(seasonParam, minMinutes), locale),
     fetchMe(await sessionCookieHeader()),
     fetchFounderFeed({ competition: id, limit: 3 }),
   ]);
@@ -211,11 +216,72 @@ export default async function CompetitionPage({
         )}
       </section>
 
-      <Module title="Top scorers" module={page.leaders} testId="leaders">
+      <Module
+        title="Top scorers"
+        module={page.leaders}
+        testId="leaders"
+        empty={
+          page.leaders_filter.min_minutes !== null && page.leaders.data !== null ? (
+            <Translated locale={locale} message="competition.leaders.noneReach" />
+          ) : undefined
+        }
+        intro={
+          <>
+            <nav
+              aria-labelledby="leaders-filter"
+              className="flex flex-wrap items-baseline gap-1 text-sm"
+              data-testid="leaders-filter"
+            >
+              <span id="leaders-filter" className="me-1 text-muted">
+                <Translated locale={locale} message="competition.leaders.filter" />
+              </span>
+              {[null, ...page.leaders_filter.presets].map((floor) => {
+                const current = floor === page.leaders_filter.min_minutes;
+                return (
+                  <Link
+                    key={floor ?? 'any'}
+                    href={leadersHref(locale, c.id, page.season, floor)}
+                    aria-current={current ? 'true' : undefined}
+                    className={`rounded px-2 py-1 ${current ? 'bg-surface-raised font-semibold' : 'underline'}`}
+                  >
+                    {floor === null ? (
+                      <Translated locale={locale} message="competition.leaders.anyMinutes" />
+                    ) : (
+                      <Translated locale={locale} message="minutes.total" count={floor} />
+                    )}
+                  </Link>
+                );
+              })}
+            </nav>
+            {page.leaders_filter.min_minutes !== null && (
+              <p className="text-sm text-muted" data-testid="leaders-floor">
+                <Translated
+                  locale={locale}
+                  message="competition.leaders.floor"
+                  count={page.leaders_filter.min_minutes}
+                />
+                {page.leaders_filter.unproven > 0 && (
+                  <>
+                    {' '}
+                    <Translated
+                      locale={locale}
+                      message="competition.leaders.unproven"
+                      count={page.leaders_filter.unproven}
+                    />
+                  </>
+                )}
+              </p>
+            )}
+          </>
+        }
+      >
         {(leaders) => (
           <ol className="flex flex-col gap-1 text-sm">
             {leaders.map((leader, index) => (
-              <li key={leader.person.id} className="flex gap-3">
+              <li
+                key={`${leader.person.id}:${leader.team?.id ?? ''}`}
+                className="flex flex-wrap items-baseline gap-x-3"
+              >
                 <span className="w-6 tabular-nums text-muted">{index + 1}</span>
                 <span className="grow">
                   <Link href={`/${locale}/player/${leader.person.id}`} className="underline">
@@ -224,6 +290,11 @@ export default async function CompetitionPage({
                   {leader.team !== null && (
                     <span className="ms-2 text-xs text-muted">{leader.team.name}</span>
                   )}
+                  <MinutesFigure
+                    locale={locale}
+                    minutes={leader.minutes}
+                    className="ms-2 text-xs text-muted"
+                  />
                 </span>
                 <span className="tabular-nums font-semibold">{leader.goals}</span>
               </li>
@@ -264,24 +335,33 @@ function Module<T>({
   title,
   module,
   testId,
+  intro,
+  empty,
   children,
 }: {
   title: string;
   module: Covered<T[]>;
   testId: string;
+  /** Above the list: a filter, and what it did (T-824). */
+  intro?: React.ReactNode;
+  /** What an empty list means when it is a list, e.g. nobody reached a floor (T-824). */
+  empty?: React.ReactNode;
   children: (data: T[]) => React.ReactNode;
 }) {
   return (
-    <section className="flex flex-col gap-2" data-testid={testId}>
+    <section id={testId} className="flex flex-col gap-2 scroll-mt-4" data-testid={testId}>
       <h2 className="text-lg font-semibold">
         {title}
         <span className="ms-2 text-xs font-normal uppercase text-muted">{moduleState(module)}</span>
       </h2>
+      {intro}
       {module.data === null || module.data.length === 0 ? (
         <p className="text-sm text-muted" data-testid={`${testId}-empty`}>
-          {module.coverage === 'delayed'
-            ? 'Data for this module is behind; nothing is shown rather than something stale.'
-            : 'Not supplied for this season.'}
+          {empty !== undefined
+            ? empty
+            : module.coverage === 'delayed'
+              ? 'Data for this module is behind; nothing is shown rather than something stale.'
+              : 'Not supplied for this season.'}
         </p>
       ) : (
         children(module.data)

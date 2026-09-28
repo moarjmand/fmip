@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import type { CoverageState, Covered, Leader, TableRow } from '@fmip/contracts';
+import type { CoverageState, Covered, TableRow } from '@fmip/contracts';
 import { covered } from '../fixtures/fixtures.service';
-import { PostgresStandingsStore } from './internal/standings-store';
+import { PostgresStandingsStore, type Scorer } from './internal/standings-store';
 import { rankTable } from './internal/table';
 
 // The module's public surface. Other modules import from this file only.
 export { FORM_WINDOW, rankTable, type Result } from './internal/table';
+export type { Scorer } from './internal/standings-store';
 
 export const LEADERS_LIMIT = 10;
 
@@ -64,8 +65,11 @@ export class StandingsService {
     };
   }
 
-  /** Top goalscorers of a season from recorded goal incidents. */
-  async leaders(seasonId: string, limit = LEADERS_LIMIT): Promise<Covered<Leader[]>> {
+  /** Top goalscorers of a season from recorded goal incidents; every scorer when `limit` is null. */
+  async leaders(
+    seasonId: string,
+    limit: number | null = LEADERS_LIMIT,
+  ): Promise<Covered<Scorer[]>> {
     const [{ leaders, lastUpdatedAt }, declared] = await Promise.all([
       this.store.scorers(seasonId, limit),
       this.store.declared(seasonId, 'incidents'),

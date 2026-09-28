@@ -405,6 +405,32 @@
   "notifications.editorial.founder": "The founder publishes an analysis of a match you follow",
   "notifications.editorial.reviewed": "An analysis I submitted is reviewed",
   "notifications.editorial.eligible": "A member newly meets the contributor requirements (administrators)",
+  "minutes.total": {
+    "one": "{count} minute",
+    "other": "{count} minutes"
+  },
+  "minutes.atLeast": {
+    "one": "at least {count} minute",
+    "other": "at least {count} minutes"
+  },
+  "minutes.covers": {
+    "one": "{with} of {count} match",
+    "other": "{with} of {count} matches"
+  },
+  "minutes.notSupplied": "minutes not supplied",
+  "minutes.noneRecorded": "no minutes recorded",
+  "competition.leaders.filter": "Minimum minutes",
+  "competition.leaders.anyMinutes": "Any",
+  "competition.leaders.floor": {
+    "one": "Only scorers whose recorded minutes reach {count} minute.",
+    "other": "Only scorers whose recorded minutes reach {count} minutes."
+  },
+  "competition.leaders.unproven": {
+    "one": "{count} scorer is left out because the feed did not send minutes for every match they played, so the record cannot show they reached it.",
+    "other": "{count} scorers are left out because the feed did not send minutes for every match they played, so the record cannot show they reached it."
+  },
+  "competition.leaders.noneReach": "No scorer's recorded minutes reach this floor.",
+  "team.squad.minutes": "Minutes are for this team in the competitions above, from the feed's per-player figures: \"at least\" where some matches have none.",
   "leaderboard.competition.label": "Competition:",
   "leaderboard.competition.all": "All competitions",
   "leaderboard.language.label": "Language:",

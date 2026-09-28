@@ -255,7 +255,9 @@ export class PostgresTeamStore {
   }
 
   /** Open spells: the squad as our records have it, by position, shirt number, name. */
-  async squad(teamId: string): Promise<{ players: SquadPlayer[]; lastUpdatedAt: string | null }> {
+  async squad(
+    teamId: string,
+  ): Promise<{ players: Omit<SquadPlayer, 'minutes'>[]; lastUpdatedAt: string | null }> {
     const { rows } = await this.pool.query<{
       person_id: string;
       person_name: string;

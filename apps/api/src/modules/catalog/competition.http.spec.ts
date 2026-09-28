@@ -122,7 +122,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
 
     // New season: alpha beat beta 3-1 (scorer ×2, other ×1 for alpha; other... beta's goal by other),
     // gamma drew with alpha 0-0, beta v gamma next week.
-    await fixture(
+    const opener = await fixture(
       NEW_SEASON,
       NEW_STAGE,
       TEAMS.alpha,
@@ -134,7 +134,36 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
         { person: OTHER_SCORER, side: 'home', count: 1 },
       ],
     );
-    await fixture(NEW_SEASON, NEW_STAGE, TEAMS.gamma, TEAMS.alpha, '2025-09-08T15:00:00Z', [0, 0]);
+    const draw = await fixture(
+      NEW_SEASON,
+      NEW_STAGE,
+      TEAMS.gamma,
+      TEAMS.alpha,
+      '2025-09-08T15:00:00Z',
+      [0, 0],
+    );
+    // T-824: the scorer started both and the feed sent 90 minutes each time;
+    // the other scorer started the opener and the feed sent no minutes.
+    const alphaSide = await pool.query<{ id: string; fixture_id: string }>(
+      `SELECT id, fixture_id FROM fixture_participant WHERE fixture_id = ANY($1::uuid[]) AND team_id = $2`,
+      [[opener, draw], TEAMS.alpha],
+    );
+    for (const side of alphaSide.rows) {
+      await pool.query(
+        `INSERT INTO lineup (participant_id, person_id, role, shirt_number, position) VALUES ($1, $2, 'starter', 9, 'forward')`,
+        [side.id, SCORER],
+      );
+      await pool.query(
+        `INSERT INTO fixture_player_stat (participant_id, person_id, metric, value) VALUES ($1, $2, 'minutes', 90)`,
+        [side.id, SCORER],
+      );
+      if (side.fixture_id === opener) {
+        await pool.query(
+          `INSERT INTO lineup (participant_id, person_id, role, shirt_number, position) VALUES ($1, $2, 'starter', 10, 'forward')`,
+          [side.id, OTHER_SCORER],
+        );
+      }
+    }
     await fixture(NEW_SEASON, NEW_STAGE, TEAMS.beta, TEAMS.gamma, '2099-01-01T15:00:00Z', null);
     // Old season: one result, no declared coverage.
     await fixture(OLD_SEASON, OLD_STAGE, TEAMS.beta, TEAMS.alpha, '2024-09-01T15:00:00Z', [2, 0]);
@@ -262,13 +291,59 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
         person: { id: SCORER, name: 'Scorer' },
         team: { id: TEAMS.alpha, name: `Test Alpha ${RUN}` },
         goals: 2,
+        minutes: {
+          coverage: 'available',
+          total: 180,
+          matches: 2,
+          matches_with_minutes: 2,
+          supplied_minutes: 180,
+        },
       },
       {
         person: { id: OTHER_SCORER, name: `Test Other ${RUN}` },
         team: { id: TEAMS.alpha, name: `Test Alpha ${RUN}` },
         goals: 1,
+        minutes: {
+          coverage: 'not_supplied',
+          total: null,
+          matches: 1,
+          matches_with_minutes: 0,
+          supplied_minutes: 0,
+        },
       },
     ]);
+    expect(page.leaders_filter).toEqual({
+      min_minutes: null,
+      unproven: 0,
+      presets: [450, 900, 1800],
+    });
+  });
+
+  it('filters the leaders by minutes, counting the ones the record cannot judge (T-824)', async () => {
+    const get = async (floor: string) =>
+      app.inject({ method: 'GET', url: `/competitions/${COMPETITION}?min_minutes=${floor}` });
+
+    const reached = (await get('180')).json() as CompetitionPage;
+    expect(reached.leaders.data!.map((l) => l.person.id)).toEqual([SCORER]);
+    // The other scorer's minutes were never supplied: left out, counted, and
+    // the list is limited because it may be missing someone.
+    expect(reached.leaders_filter).toMatchObject({ min_minutes: 180, unproven: 1 });
+    expect(reached.leaders.coverage).toBe('limited');
+
+    const nobody = (await get('181')).json() as CompetitionPage;
+    expect(nobody.leaders.data).toEqual([]);
+    expect(nobody.leaders_filter.unproven).toBe(1);
+
+    const none = (await get('0')).json() as CompetitionPage;
+    expect(none.leaders_filter.min_minutes).toBeNull();
+    expect(none.leaders.data).toHaveLength(2);
+
+    const bad = await get('lots');
+    expect(bad.statusCode).toBe(400);
+    expect(bad.json()).toMatchObject({
+      error: 'validation',
+      fields: { min_minutes: expect.any(String) },
+    });
   });
 
   it('switches season on request and never dresses undeclared data as covered', async () => {

@@ -1,5 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { CoverageState, Leader, TableRow } from '@fmip/contracts';
+
+/** A leader as the standings boundary knows it: goals, not minutes (T-824 adds those in the catalog). */
+export type Scorer = Omit<Leader, 'minutes'>;
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 import type { Result } from './table';
@@ -129,11 +132,14 @@ export class PostgresStandingsStore {
     return rows;
   }
 
-  /** Goals (open play and penalties; own goals are not the scorer's) per person in the season. */
+  /**
+   * Goals (open play and penalties; own goals are not the scorer's) per person
+   * in the season; every scorer when `limit` is null.
+   */
   async scorers(
     seasonId: string,
-    limit: number,
-  ): Promise<{ leaders: Leader[]; lastUpdatedAt: string | null }> {
+    limit: number | null,
+  ): Promise<{ leaders: Scorer[]; lastUpdatedAt: string | null }> {
     const { rows } = await this.pool.query<{
       person_id: string;
       person_name: string;

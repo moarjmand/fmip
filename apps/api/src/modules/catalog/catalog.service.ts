@@ -15,15 +15,16 @@ import type {
   TeamPage,
   TeamSummary,
 } from '@fmip/contracts';
-import { SUGGESTED_TEAMS_PER_COMPETITION } from '@fmip/contracts';
+import { LEADERS_MINUTES_PRESETS, SUGGESTED_TEAMS_PER_COMPETITION } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../database/database.module';
 import { derived } from '../fixtures/fixtures.service';
-import { StandingsService } from '../standings/standings.service';
+import { LEADERS_LIMIT, StandingsService } from '../standings/standings.service';
 import { buildBracket, tieOf } from './internal/bracket';
 import { contextTable, phaseOf } from './internal/competition-context';
 import { PostgresCompetitionStore } from './internal/competition-store';
-import { PostgresPlayerStore } from './internal/player-store';
+import { leadersModule, leadersWithMinutes } from './internal/leaders';
+import { NO_LINEUPS, PostgresPlayerStore } from './internal/player-store';
 import { buildSplits } from './internal/team-splits';
 import { PostgresTeamStore } from './internal/team-store';
 
@@ -172,6 +173,7 @@ export class CatalogService {
     id: string,
     seasonId: string | null,
     locale: string | null = null,
+    minMinutes: number | null = null,
   ): Promise<CompetitionOutcome> {
     const competition = await this.competitions_.competition(id, locale);
     if (competition === null) return { kind: 'unknown_competition' };
@@ -181,15 +183,23 @@ export class CatalogService {
       return { kind: seasons.length === 0 ? 'no_seasons' : 'unknown_season' };
 
     const knockout = playsKnockoutBracket(competition);
-    const [stages, { fixtures, lastUpdatedAt }, coverage, table, leaders, bracketFixtures] =
+    // Under a minutes floor every scorer is read, since the first ten by
+    // goals may not be the first ten that reached it (T-824).
+    const [stages, { fixtures, lastUpdatedAt }, coverage, table, scorers, bracketFixtures] =
       await Promise.all([
         this.competitions_.stages(selected.id),
         this.competitions_.fixtures(selected.id),
         this.competitions_.coverage(selected.id),
         this.standings.table(selected.id),
-        this.standings.leaders(selected.id),
+        this.standings.leaders(selected.id, minMinutes === null ? LEADERS_LIMIT : null),
         knockout ? this.competitions_.bracketFixtures(selected.id) : Promise.resolve(null),
       ]);
+    const minutes = await this.players_.minutesByPerson(
+      [selected.id],
+      [...new Set((scorers.data ?? []).map((s) => s.person.id))],
+      null,
+    );
+    const filtered = leadersWithMinutes(scorers.data ?? [], minutes, minMinutes, LEADERS_LIMIT);
     const results = fixtures.filter((f) => f.status === 'finished').reverse();
     const upcoming = fixtures.filter((f) => f.status !== 'finished');
     return {
@@ -201,7 +211,12 @@ export class CatalogService {
         table,
         results,
         fixtures: upcoming,
-        leaders,
+        leaders: leadersModule(scorers, filtered),
+        leaders_filter: {
+          min_minutes: minMinutes,
+          unproven: filtered.unproven,
+          presets: [...LEADERS_MINUTES_PRESETS],
+        },
         bracket:
           bracketFixtures === null
             ? null
@@ -226,6 +241,12 @@ export class CatalogService {
         Promise.all(seasons.map((s) => this.standings.table(s.season.id))),
         this.teams_.splitFixtures(id, seasonIds),
       ]);
+    // Minutes for this team over the seasons the page covers (T-824).
+    const squadMinutes = await this.players_.minutesByPerson(
+      seasonIds,
+      squad.players.map((p) => p.person.id),
+      id,
+    );
     const results = fixtures.filter((f) => f.status === 'finished').reverse();
     const upcoming = fixtures.filter((f) => f.status !== 'finished');
     return {
@@ -241,7 +262,14 @@ export class CatalogService {
         previous_match: results[0] ?? null,
         fixtures: upcoming,
         results,
-        squad: derived(squad.players, 1, squad.lastUpdatedAt),
+        squad: derived(
+          squad.players.map((p) => ({
+            ...p,
+            minutes: squadMinutes.get(p.person.id) ?? NO_LINEUPS,
+          })),
+          1,
+          squad.lastUpdatedAt,
+        ),
         splits: buildSplits(seasons, splitFixtures),
         followers,
         last_updated_at: lastUpdatedAt,
