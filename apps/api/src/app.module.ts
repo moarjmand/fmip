@@ -31,6 +31,7 @@ import { ModerationAssistModule } from './modules/moderation-assist/moderation-a
 import { BriefingsModule } from './modules/briefings/briefings.module';
 import { CampaignsModule } from './modules/campaigns/campaigns.module';
 import { ChannelPostModule } from './modules/channel-post/channel-post.module';
+import { WatchdogModule } from './modules/watchdog/watchdog.module';
 
 /**
  * The remaining modules from `docs/02-architecture.md` are registered here as
@@ -71,6 +72,7 @@ import { ChannelPostModule } from './modules/channel-post/channel-post.module';
     BriefingsModule,
     CampaignsModule,
     ChannelPostModule,
+    WatchdogModule,
     AdminModule,
   ],
 })

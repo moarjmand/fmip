@@ -3426,3 +3426,56 @@ warnings and the live marker were below 7:1 too. *Honouring
 for more everywhere may want this site's standard look, as a theme choice
 wins over the device. *A redirect for guests with the controls in the
 header*: four switches crowd the one row the header has at 360px.
+
+## D-095 — The watchdog: one tick a minute, stated thresholds, an alert is a transition
+**Status:** Accepted · 2026-09-28 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-801's watchdog is a BullMQ job scheduler (`watchdog` queue,
+every minute) in the process that has `INGESTION_SCHEDULE=on`, so no new
+variable and no second poller. Each tick reads the health views and turns
+them into conditions with a level `ok` | `degraded` | `failing` | `unknown`,
+keeps the current state in `watchdog_condition` and writes a row to the
+append-only `watchdog_event` only when a level changes. Leaving `ok` opens an
+incident (`raised`), returning to `ok` closes it (`recovered`); moves inside
+an incident are `escalated`/`eased`, and `unknown` neither opens nor closes
+one. `raised` and `recovered` are the alerts T-802 delivers, read by id after
+a cursor (`WatchdogService.alertsAfter`). The state is at
+`GET /admin/health/watchdog`, admin role only, `stale` when the newest tick is
+older than three minutes. The thresholds, each `degraded` / `failing`:
+
+- `ingest:<job>`, since the newest completed (succeeded or partial) run:
+  live 5 / 15 min, lineups 20 / 60 min, post_match 90 min / 4 h, fixtures and
+  standings 3 / 12 h. A job with no source is `unknown`.
+- `live_feed`, since the longest-unchanged match in progress last changed:
+  20 / 40 min.
+- `request_budget`, the day's requests against `API_FOOTBALL_DAILY_BUDGET`:
+  80 / 95 %; `unknown` with no budget.
+- `jobs:<queue>` (ingestion, news, channel-post, watchdog), failed jobs in the
+  last hour: 1 / 3.
+- `model_service`, consecutive failed health checks: 1 / 3; `unknown` with
+  `MODEL_SERVICE_URL=off`.
+- `delivery:<channel>`, the failed share of the last hour's deliveries once
+  there are three: 25 / 75 %; `unknown` with no provider.
+- `backup`, since the newest successful backup: 26 / 50 h -- `unknown` until
+  T-805 records backups where the API can read them.
+
+**Why.** The acceptance is one alert per incident, not per tick; a
+transition log gives that by construction and is also the history T-804
+shows. The live feed's threshold is not D-045's two minutes on purpose:
+half-time is a match in progress whose data does not change for fifteen
+minutes, so two minutes would wake an administrator at every interval,
+while a feed that stops for everything is caught within five minutes by
+`ingest:live`. `unknown` is its own level because "could not be read" is
+neither fine nor an outage (rule 3), and an incident that goes unreadable
+and comes back still bad must not alert twice.
+
+**Alternatives considered.** A systemd timer running a script: the backup's
+pattern, but the views are inside the API and a script would re-implement
+them. Alerting on every tick while bad, rate-limited: more alerts for the
+same news. A public endpoint like `/health/*`: it names what is broken and
+since when, which is the operator's, not a visitor's.
+
+**Consequences.** T-802 reads `alertsAfter` and keeps its own cursor; T-804
+renders `WatchdogReport`; T-805 replaces the backup probe's `undefined` with
+the newest recorded backup. Changing a threshold is a one-line change in
+`apps/api/src/modules/watchdog/internal/conditions.ts` and an edit here.

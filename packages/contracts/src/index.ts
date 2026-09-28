@@ -618,3 +618,15 @@ export type {
   SendCampaignRequest,
 } from './campaigns';
 export { AUDIENCE_FOLLOW_TYPES } from './campaigns';
+// The watchdog over the health views (T-801): conditions, thresholds, transitions.
+export { WATCHDOG_LEVELS } from './watchdog';
+export type {
+  WatchdogCondition,
+  WatchdogEvent,
+  WatchdogEventKind,
+  WatchdogFreshness,
+  WatchdogLevel,
+  WatchdogReport,
+  WatchdogThreshold,
+  WatchdogUnit,
+} from './watchdog';

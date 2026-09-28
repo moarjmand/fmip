@@ -2,7 +2,26 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { IngestRun, IngestRunStatus, IngestionHealth } from '@fmip/contracts';
 import { PostgresRunStore } from './internal/run-store';
 import { withRequestTally } from './internal/request-meter';
-import { INGESTION_SOURCES, type IngestionSources } from './internal/sources';
+import {
+  INGEST_JOBS,
+  INGESTION_SOURCES,
+  type IngestJob,
+  type IngestionSources,
+} from './internal/sources';
+
+/**
+ * One ingestion job's newest completed run (T-801's watchdog). `provider` is
+ * `null` when no configured source serves the job, and `reason` says why.
+ */
+export interface JobCompletion {
+  job: IngestJob;
+  provider: string | null;
+  reason: string | null;
+  /** When the newest succeeded or partial run finished; `null` when none has. */
+  lastCompletedAt: Date | null;
+  /** When the newest run of any outcome started; `null` when none has. */
+  lastStartedAt: Date | null;
+}
 
 /** How far back "recent failures" looks. */
 export const FAILURE_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -121,6 +140,39 @@ export class IngestRunsService {
       });
       throw error;
     }
+  }
+
+  /**
+   * For every scheduled job, the newest run that completed (T-801): a partial
+   * run counts, because it wrote what it could and the job is moving; a job
+   * whose runs all fail, or that stopped running, does not move this.
+   */
+  async jobCompletions(): Promise<JobCompletion[]> {
+    const served = INGEST_JOBS.map((job) => ({ job, source: this.sources.forJob(job) }));
+    const rows = await this.store.lastCompleted(
+      served.flatMap(({ job, source }) =>
+        source === null ? [] : [{ provider: source.provider, job }],
+      ),
+    );
+    return served.map(({ job, source }) => {
+      if (source === null) {
+        return {
+          job,
+          provider: null,
+          reason: this.sources.reason ?? `no source serves ${job}`,
+          lastCompletedAt: null,
+          lastStartedAt: null,
+        };
+      }
+      const row = rows.find((r) => r.job === job && r.provider === source.provider);
+      return {
+        job,
+        provider: source.provider,
+        reason: null,
+        lastCompletedAt: row?.completed ?? null,
+        lastStartedAt: row?.started ?? null,
+      };
+    });
   }
 
   async ingestionHealth(now: Date = new Date()): Promise<IngestionHealth> {
