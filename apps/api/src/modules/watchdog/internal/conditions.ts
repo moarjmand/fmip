@@ -245,6 +245,86 @@ export function modelService(
 }
 
 /**
+ * Seconds since Club Elo last answered (T-920, D-111): since the newest
+ * snapshot that loaded, or, when none ever has, since the first failed ask.
+ * The model service asks for yesterday's snapshot at most every six hours.
+ *
+ * `degraded` after three days: the forecasts are still made, from results
+ * alone, and say so ("no Elo prior this time"), so this is worth a look, not
+ * a wake-up. `failing` after fourteen, when the published model has gone a
+ * fortnight without its long-term prior and D-111's own-records Elo (T-921)
+ * or N-4's retirement of the source is the week's question.
+ *
+ * `ok` when the service is told not to ask (`MODEL_CLUBELO_REFRESH=off`):
+ * a source retired on purpose is not a fault. `unknown` when the model service
+ * does not answer (that is `model_service`'s condition), does not report the
+ * source, or never asked it.
+ */
+export const ELO_SOURCE_THRESHOLD: WatchdogThreshold = {
+  unit: 'seconds',
+  degraded: 3 * 24 * HOUR,
+  failing: 14 * 24 * HOUR,
+};
+
+export interface EloSourceSeen {
+  refresh: boolean;
+  state: 'recorded' | 'unreadable';
+  last_succeeded_day: string | null;
+  last_error: string | null;
+  last_error_at: string | null;
+  unanswered_since: string | null;
+  detail: string | null;
+}
+
+export function eloSource(
+  seen: { configured: false } | { unreadable: string } | { source: EloSourceSeen | null },
+  now: Date,
+): Reading {
+  const key = 'elo_source';
+  const threshold = ELO_SOURCE_THRESHOLD;
+  const unknown = (note: string): Reading => ({
+    key,
+    level: 'unknown',
+    observed: null,
+    threshold,
+    note,
+  });
+  if ('configured' in seen) return unknown('no model service is configured for this deployment');
+  if ('unreadable' in seen) {
+    return unknown(`the model service did not answer, so Club Elo's state is not known`);
+  }
+  const source = seen.source;
+  if (source === null) return unknown('the model service does not report Club Elo');
+  if (!source.refresh) {
+    return {
+      key,
+      level: 'ok',
+      observed: null,
+      threshold,
+      note: 'Club Elo is not asked on this deployment (MODEL_CLUBELO_REFRESH=off)',
+    };
+  }
+  if (source.state === 'unreadable') {
+    return unknown(`the training store did not answer: ${source.detail ?? 'no detail'}`);
+  }
+  if (source.unanswered_since === null) return unknown('Club Elo has not been asked yet');
+
+  const observed = Math.max(
+    0,
+    Math.round((now.getTime() - new Date(source.unanswered_since).getTime()) / 1000),
+  );
+  const answered =
+    source.last_succeeded_day === null
+      ? 'Club Elo has never answered here'
+      : `Club Elo last answered for ${source.last_succeeded_day}`;
+  const error =
+    source.last_error === null
+      ? ''
+      : `; last error${source.last_error_at === null ? '' : ` ${source.last_error_at.slice(0, 16).replace('T', ' ')} UTC`}${detailOf(source.last_error)}`;
+  return { key, level: levelOf(observed, threshold), observed, threshold, note: answered + error };
+}
+
+/**
  * The share of one channel's deliveries in the last hour that failed, once
  * there are at least `DELIVERY_MIN_ATTEMPTS` to judge: `degraded` at 25 %,
  * `failing` at 75 %. A push that fails because a member's browser dropped its

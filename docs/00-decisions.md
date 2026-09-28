@@ -4234,3 +4234,50 @@ The watchdog watches the new queue's failed jobs, and failure counts count
 them. `emitToAudience` is sourceless only and sends a capped kind through
 `emit`, because a block refusal or a per-member cap cannot be a condition of
 one statement.
+
+## D-111 — An Elo prior from our own records, within D-014, when Club Elo does not answer
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26) · **Tasks:** T-920, T-921, T-922 · **Follows:** D-014, D-016, D-029, D-080, D-082, D-083, D-095
+
+**The problem.** The published model (`dixon-coles-elo@0.1.0`, D-029) pulls
+each club's net strength toward its Club Elo rating. Club Elo's API has
+answered `502 Bad Gateway` since 2026-09-25, so every forecast since has been
+fitted without the prior (`elo_used: false`), and nothing said so anywhere an
+administrator or a reader would look: the snapshots were loaded by hand, the
+failures were rows nobody read, and the strength factor's note still named
+"the Elo prior".
+
+**T-920: the source's state is visible.**
+
+- **The service asks, and records the answer.** The model service asks Club
+  Elo for yesterday's snapshot (a fit's date is the day before the match, and
+  never later than yesterday) at most every six hours, in the background of
+  its health check, through the existing loader: one `source_load` row per
+  ask, `succeeded` or `failed` with the error. A snapshot already held is not
+  asked for again. It never blocks or fails a forecast; the held ratings stand.
+  `MODEL_CLUBELO_REFRESH=off` stops the asking (CI sets it; N-4 would).
+- **`/health` reports it.** `elo_source`: the newest snapshot day that loaded
+  and when, the newest error and when, and `unanswered_since` -- the newest
+  success, else the oldest failure since -- read from `training.source_load`.
+  A store that does not answer is `unreadable`, never a failed health check.
+- **The watchdog counts days.** Condition `elo_source`: seconds since
+  `unanswered_since`. `degraded` at three days: forecasts are still made, from
+  results alone, and say so, so it is worth a look, not a wake-up. `failing` at
+  fourteen: a fortnight without the prior is the week's question (T-921's own
+  Elo, or N-4). `ok` when the asking is off on purpose; `unknown` when the
+  model service does not answer (that is `model_service`'s condition), does
+  not report the source, or has never asked. The transition rule is D-095's,
+  so four days of 502s at a check a minute is one incident and one alert, and
+  the first answer after it is one recovery. The System page names it
+  "Club Elo (the model's long-term ratings)" and shows the note: the day it
+  last answered for and the last error.
+- **The forecast panel says it per version.** A version whose stored inputs
+  say `elo_used: false` adds "No Elo prior this time" to its factor list,
+  from the version's own inputs (rule 5), never from the source's state now.
+  New versions' strength note says "no Elo prior this time" too; older ones
+  keep the words they were stored with, and the panel line corrects them.
+
+**Rejected.** *Asking on every forecast*: a hanging source would hold a
+forecast past the API's timeout. *Asking on the watchdog's minute*: sixty
+requests an hour to a free API for a daily number. *A separate timer on the
+host*: one more thing to install, and the service already holds the loader,
+the store and the clock.

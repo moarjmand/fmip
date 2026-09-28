@@ -86,6 +86,8 @@ def test_health_names_the_model_version() -> None:
     body = response.json()
     assert body["status"] == "ok" and body["service"] == "model"
     assert body["model_version"] == BASELINE.id
+    # A source that keeps no loads reports no Elo state, rather than a made-up one.
+    assert body["elo_source"] is None
 
 
 def test_forecast_is_a_complete_probability_statement() -> None:
@@ -112,6 +114,8 @@ def test_forecast_is_a_complete_probability_statement() -> None:
     assert inputs["fit_date"] == "2025-03-01"  # the day before kick-off
     assert inputs["elo_used"] is False
     assert inputs["data_completeness"] == "limited"  # no Elo prior in this fake
+    strength = next(f for f in body["leading_factors"] if f["factor"] == "team_strength")
+    assert "no Elo prior this time" in strength["note"]  # T-920: said where the factor is
 
 
 def test_completeness_is_available_only_with_elo_and_enough_history() -> None:
@@ -120,6 +124,8 @@ def test_completeness_is_available_only_with_elo_and_enough_history() -> None:
     assert inputs["elo_used"] is True
     assert inputs["matches_used"] >= 60
     assert inputs["data_completeness"] == "available"
+    factors = response.json()["leading_factors"]
+    assert "and the Elo prior" in next(f for f in factors if f["factor"] == "team_strength")["note"]
 
     # Elo but a side with too few matches in the window: limited, and said so.
     class ThinHistory(FakeSource):
