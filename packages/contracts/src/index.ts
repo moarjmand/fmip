@@ -192,6 +192,7 @@ export type {
   TeamCompetitionSplits,
   TeamFixture,
   TeamPage,
+  TeamManager,
   TeamPageFixture,
   TeamSplitRecord,
   TeamStatAverage,
@@ -585,6 +586,7 @@ export type {
 // link back to the publisher; each section says what it is computed from.
 export {
   FIXTURE_NEWS_LIMIT,
+  ENTITY_NEWS_LIMIT,
   NEWS_PAGE_SIZE,
   NEWS_SECTIONS,
   SAVED_ARTICLES_LIMIT,
@@ -598,6 +600,7 @@ export type {
   DebateSelectionRequest,
   FixtureNewsReason,
   FixtureNewsResponse,
+  EntityNewsResponse,
   NewsEntity,
   NewsFilters,
   NewsRights,

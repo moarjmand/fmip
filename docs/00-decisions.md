@@ -4613,3 +4613,42 @@ weighting nobody asked for, where two plain counts say more.
 `StandingsService.boards` is the standings boundary's answer; the catalog
 adds minutes and the floor. No migration: the plan's row names none.
 
+## D-119 — The manager is the coach on the team's latest line-up; news on entity pages is the news boundary's linking
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-944 fills the team page's manager and the team and
+competition pages' news (blueprint 5.1, 5.2) from what is already stored. No
+provider request is added.
+
+- **The manager.** The coach the feed named (`fixture_participant.coach_id`)
+  on the team's most recent stored line-up: the latest kick-off among the
+  team's matches whose side has a line-up row or a named coach. It is shown
+  as a fact about that match, with a link to it (`TeamManager.lineup_fixture`).
+  When that line-up names no coach, `coach` is `not_supplied` and the page
+  says the latest line-up names none. An older coach is never carried
+  forward, because a club that changed manager would then show the wrong
+  one as current. When the team has no stored line-up, `lineup_fixture` is
+  null and the page says so. Coaching spells are not read: nothing ingests
+  them, so a spell would be a guess.
+- **News.** `GET /teams/:id/news` and `GET /competitions/:id/news` are the
+  news page's latest cards (`ENTITY_NEWS_LIMIT`, five) for stories any of
+  whose reports the news boundary linked to that team or competition
+  (`article_entity`, the same links the `team` and `competition` filters
+  read), newest first, under the same rights (D-061). As on the match page
+  (T-145): `not_supplied` with `feeds_unread` until the feeds have been read
+  at all, then `available`, possibly empty with `nothing_linked`. An unknown
+  id is 404. The routes live in the news module, which still imports nothing
+  from the football boundaries (rule 9): it checks the id against the table
+  directly, as `forFixture` does.
+
+**Alternatives considered.** The latest coach named on any line-up: it
+survives a sacking. Reading `/news?section=latest&team=`: before the feeds
+are read it answers an available empty list, which on an entity page would
+read as "nobody wrote about this club". A window around today, as the match
+page has around kick-off: a club's latest story is news whenever it was
+written, and the list is short.
+
+**Consequences.** `TeamPage.manager` (`TeamManager`), `EntityNewsResponse`
+and `ENTITY_NEWS_LIMIT` are in the contract. No migration.
+
+

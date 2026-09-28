@@ -299,4 +299,47 @@ export class PostgresTeamStore {
     );
     return Number(rows[0]?.n ?? 0);
   }
+
+  /**
+   * The team's most recent stored line-up and the coach it names (T-944,
+   * D-119): the latest kick-off among the team's matches whose side has a
+   * line-up row or a named coach. Null when the team has none.
+   */
+  async latestLineup(teamId: string): Promise<{
+    fixture: { id: string; kickoff_at: string };
+    coach: { id: string; name: string } | null;
+    updatedAt: string;
+  } | null> {
+    const { rows } = await this.pool.query<{
+      fixture_id: string;
+      kickoff_at: Date;
+      coach_id: string | null;
+      coach_name: string | null;
+      updated_at: Date;
+    }>(
+      `SELECT f.id AS fixture_id, f.kickoff_at, p.coach_id,
+              COALESCE(pe.known_as, pe.full_name) AS coach_name,
+              GREATEST(p.updated_at, (SELECT max(l.updated_at) FROM lineup l
+                                       WHERE l.participant_id = p.id)) AS updated_at
+         FROM fixture_participant p
+         JOIN fixture f ON f.id = p.fixture_id
+         LEFT JOIN person pe ON pe.id = p.coach_id
+        WHERE p.team_id = $1
+          AND (p.coach_id IS NOT NULL
+               OR EXISTS (SELECT 1 FROM lineup l WHERE l.participant_id = p.id))
+        ORDER BY f.kickoff_at DESC, f.id
+        LIMIT 1`,
+      [teamId],
+    );
+    const r = rows[0];
+    if (r === undefined) return null;
+    return {
+      fixture: { id: r.fixture_id, kickoff_at: r.kickoff_at.toISOString() },
+      coach:
+        r.coach_id !== null && r.coach_name !== null
+          ? { id: r.coach_id, name: r.coach_name }
+          : null,
+      updatedAt: r.updated_at.toISOString(),
+    };
+  }
 }
