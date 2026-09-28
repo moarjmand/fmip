@@ -134,6 +134,9 @@ export default async function AdminPage({
       </h1>
 
       <nav className="flex flex-wrap gap-4 text-sm" data-testid="admin-links">
+        <Link href={`/${locale}/admin/system`} className="underline">
+          System
+        </Link>
         <Link href={`/${locale}/admin/campaigns`} className="underline">
           Campaigns
         </Link>

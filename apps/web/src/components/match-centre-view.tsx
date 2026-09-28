@@ -21,7 +21,7 @@ import { Score } from '@/components/score';
 
 /** The server-rendered panels the page slots between the live modules (T-605). */
 export type MatchSlot =
-  'summary' | 'forecast' | 'analysis' | 'community' | 'discussion' | 'watch' | 'news';
+  'summary' | 'context' | 'forecast' | 'analysis' | 'community' | 'discussion' | 'watch' | 'news';
 export type MatchSlots = Partial<Record<MatchSlot, React.ReactNode>>;
 
 /** The sections this view always has, whatever the page passes. */
@@ -37,6 +37,7 @@ export const SECTIONS: readonly [
 ][] = [
   ['timeline', 'Timeline'],
   ['stats', 'Stats'],
+  ['context', 'Competition'],
   ['lineups', 'Line-ups'],
   ['forecast', 'Model forecast'],
   ['analysis', "Founder's analysis"],
@@ -401,6 +402,8 @@ export function MatchCentreView({
           )}
         </Module>
       </Region>
+
+      <Region id="context">{slots.context}</Region>
 
       <Region id="lineups">
         <Module title="Line-ups" module={centre.lineups} testId="lineups">

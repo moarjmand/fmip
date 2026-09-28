@@ -351,7 +351,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the watchdog
       for (const id of ids) expect(got.get(id)).toBe(1);
     });
 
-    it('ignores quiet hours, says what changed, and opens the administration area', async () => {
+    it('ignores quiet hours, says what changed, and opens the System page', async () => {
       await pool.query(
         `INSERT INTO quiet_hours (user_id, starts_at, ends_at)
          SELECT $1, ((now() AT TIME ZONE 'Europe/London') - interval '1 hour')::time,

@@ -233,13 +233,13 @@ describe('the system_alert kind (T-802, D-096)', () => {
     expect(QUIET_HOURS_EXEMPT).toEqual(['system_alert']);
   });
 
-  it('opens the administration area', () => {
+  it('opens the System page', () => {
     expect(
       notificationPath('fa', {
         subject_type: 'watchdog_event',
         subject_id: '12',
         subject_label: null,
       }),
-    ).toBe('/fa/admin');
+    ).toBe('/fa/admin/system');
   });
 });

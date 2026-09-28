@@ -170,12 +170,7 @@ function tiesOf(fixtures: BracketFixture[], expectedLegs: 1 | 2): KnockoutTie[] 
  * round that does exist, it is a round our records do not hold.
  */
 export function buildBracket(fixtures: readonly BracketFixture[], open: boolean): KnockoutBracket {
-  let leagueStageStart: string | null = null;
-  for (const f of fixtures) {
-    if (isLeagueStage(f) && (leagueStageStart === null || f.kickoff_at < leagueStageStart)) {
-      leagueStageStart = f.kickoff_at;
-    }
-  }
+  const leagueStageStart = leagueStageStartOf(fixtures);
 
   const byRound = new Map<KnockoutRoundKey, BracketFixture[]>();
   for (const f of fixtures) {
@@ -220,4 +215,58 @@ export function buildBracket(fixtures: readonly BracketFixture[], open: boolean)
     });
   });
   return { rounds };
+}
+
+/** When the season's league (or group) stage began, from its first match; null when none. */
+function leagueStageStartOf(fixtures: readonly BracketFixture[]): string | null {
+  let start: string | null = null;
+  for (const f of fixtures) {
+    if (isLeagueStage(f) && (start === null || f.kickoff_at < start)) start = f.kickoff_at;
+  }
+  return start;
+}
+
+/**
+ * The knockout tie one fixture belongs to (T-840), paired by the bracket's
+ * own rules: every stored match of the same two teams in the same round.
+ * The round is the UEFA round key when `continental` and the words name one,
+ * else the round's own words. Matches per tie: the continental format for a
+ * UEFA round, else `stageLegs` (the stage's record), else two when we hold
+ * two matches, else unknown -- and with it unknown, the tie's aggregate and
+ * winner are not judged. Null when the fixture is not among `fixtures`.
+ */
+export function tieOf(
+  fixtures: readonly BracketFixture[],
+  fixtureId: string,
+  options: { continental: boolean; stageLegs: 1 | 2 | null },
+): { roundKey: KnockoutRoundKey | null; legs: 1 | 2 | null; tie: KnockoutTie } | null {
+  const own = fixtures.find((f) => f.id === fixtureId);
+  if (own === undefined) return null;
+  const leagueStageStart = options.continental ? leagueStageStartOf(fixtures) : null;
+  const round = (f: BracketFixture): string | null => {
+    const label = f.round ?? f.stage?.name ?? null;
+    return options.continental
+      ? (roundKeyOf(label, f.kickoff_at, leagueStageStart) ?? label)
+      : label;
+  };
+  const pair = (f: BracketFixture): string => [f.home.id, f.away.id].sort().join(':');
+  const ownRound = round(own);
+  const same = fixtures.filter((f) => round(f) === ownRound && pair(f) === pair(own));
+  const roundKey =
+    options.continental &&
+    ownRound !== null &&
+    (KNOCKOUT_ROUNDS as readonly string[]).includes(ownRound)
+      ? (ownRound as KnockoutRoundKey)
+      : null;
+  const legs: 1 | 2 | null =
+    roundKey !== null
+      ? FORMAT[roundKey].legs
+      : (options.stageLegs ?? (same.length === 2 ? 2 : null));
+  // `same` is one pair, so `tiesOf` makes exactly one tie of it.
+  const tie = tiesOf(same, legs ?? 1)[0]!;
+  return {
+    roundKey,
+    legs,
+    tie: legs === null ? { ...tie, aggregate: null, winner: null, decided_by: null } : tie,
+  };
 }

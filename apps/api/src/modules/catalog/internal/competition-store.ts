@@ -10,10 +10,90 @@ import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 import type { BracketFixture } from './bracket';
 
+export interface FixtureContextRow {
+  id: string;
+  kickoffAt: string;
+  round: string | null;
+  groupName: string | null;
+  season: { id: string; label: string };
+  competition: {
+    id: string;
+    name: string;
+    kind: CompetitionPage['competition']['kind'];
+    scope: CompetitionPage['competition']['scope'];
+  };
+  stage: { id: string; name: string; kind: string; legs: 1 | 2 } | null;
+  homeId: string;
+  awayId: string;
+}
+
 /** SQL for the competition page (T-035). Reads only. */
 @Injectable()
 export class PostgresCompetitionStore {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
+
+  /** One fixture as the competition context reads it (T-840); null for an unknown id. */
+  async fixtureContext(fixtureId: string): Promise<FixtureContextRow | null> {
+    const { rows } = await this.pool.query<{
+      id: string;
+      kickoff_at: Date;
+      round: string | null;
+      group_name: string | null;
+      season_id: string;
+      season_label: string;
+      competition_id: string;
+      competition_name: string;
+      competition_kind: CompetitionPage['competition']['kind'];
+      competition_scope: CompetitionPage['competition']['scope'];
+      stage_id: string | null;
+      stage_name: string | null;
+      stage_kind: string | null;
+      stage_legs: number | null;
+      home_id: string;
+      away_id: string;
+    }>(
+      `SELECT f.id, f.kickoff_at, f.round, f.group_name,
+              se.id AS season_id, se.label AS season_label,
+              c.id AS competition_id, c.name AS competition_name,
+              c.kind AS competition_kind, c.scope AS competition_scope,
+              st.id AS stage_id, st.name AS stage_name, st.kind AS stage_kind, st.legs AS stage_legs,
+              h.team_id AS home_id, a.team_id AS away_id
+         FROM fixture f
+         JOIN season se ON se.id = f.season_id
+         JOIN competition c ON c.id = se.competition_id
+         LEFT JOIN stage st ON st.id = f.stage_id
+         JOIN fixture_participant h ON h.fixture_id = f.id AND h.side = 'home'
+         JOIN fixture_participant a ON a.fixture_id = f.id AND a.side = 'away'
+        WHERE f.id = $1`,
+      [fixtureId],
+    );
+    const r = rows[0];
+    if (r === undefined) return null;
+    return {
+      id: r.id,
+      kickoffAt: r.kickoff_at.toISOString(),
+      round: r.round,
+      groupName: r.group_name,
+      season: { id: r.season_id, label: r.season_label },
+      competition: {
+        id: r.competition_id,
+        name: r.competition_name,
+        kind: r.competition_kind,
+        scope: r.competition_scope,
+      },
+      stage:
+        r.stage_id !== null && r.stage_name !== null && r.stage_kind !== null
+          ? {
+              id: r.stage_id,
+              name: r.stage_name,
+              kind: r.stage_kind,
+              legs: r.stage_legs === 2 ? 2 : 1,
+            }
+          : null,
+      homeId: r.home_id,
+      awayId: r.away_id,
+    };
+  }
 
   async competition(
     id: string,
