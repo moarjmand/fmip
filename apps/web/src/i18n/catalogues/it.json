@@ -1903,6 +1903,73 @@
     "text": "",
     "status": "untranslated"
   },
+  "competition.boards.assists": {
+    "source": "Assists",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competition.boards.cleanSheets": {
+    "source": "Clean sheets",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competition.boards.cards": {
+    "source": "Cards",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competition.boards.noAssists": {
+    "source": "No goal of this season names an assist yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competition.boards.noCleanSheets": {
+    "source": "No goalkeeper on our line-ups has kept a clean sheet yet this season.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competition.boards.noCards": {
+    "source": "No card is recorded for this season yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competition.boards.noneReach": {
+    "source": "No player's recorded minutes reach this floor.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competition.boards.unproven": {
+    "source": {
+      "one": "{count} player is left out because the feed did not send minutes for every match they played, so the record cannot show they reached the floor.",
+      "other": "{count} players are left out because the feed did not send minutes for every match they played, so the record cannot show they reached the floor."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "competition.boards.startsInGoal": {
+    "source": {
+      "one": "{count} start in goal",
+      "other": "{count} starts in goal"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "competition.boards.red": {
+    "source": {
+      "one": "{count} red",
+      "other": "{count} red"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "competition.boards.yellow": {
+    "source": {
+      "one": "{count} yellow",
+      "other": "{count} yellow"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
   "team.squad.minutes": {
     "source": "Minutes are for this team in the competitions above, from the feed's per-player figures: \"at least\" where some matches have none.",
     "text": "",
