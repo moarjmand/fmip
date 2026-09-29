@@ -6,12 +6,12 @@ import { ProfileModule } from '../profile/profile.module';
 import { PostgresBreakingAdminStore } from './internal/breaking-admin-store';
 import { PostgresDebateAdminStore } from './internal/debate-admin-store';
 import { PostgresNewsReadStore } from './internal/news-read-store';
-import { PostgresNewsSourcesAdminStore } from './internal/news-sources-admin-store';
 import { FetchTransport, NEWS_TRANSPORT } from './internal/news-transport';
 import { PostgresNewsStore } from './internal/news-store';
 import { PostgresSavedArticlesStore } from './internal/saved-articles-store';
 import { PostgresStoryLabelStore } from './internal/story-label-store';
 import { CATEGORY_MAPPING, STORY_TYPE_MAPPING } from './internal/story-type-mapping';
+import { PostgresNewsSourcesAdminStore } from './internal/news-sources-admin-store';
 import { NewsClusteringService } from './news-clustering.service';
 import { NewsIngestionService } from './news-ingestion.service';
 import { NewsSchedulerService } from './news-scheduler.service';
@@ -22,8 +22,8 @@ import { StoryTypeAdminController } from './story-type-admin.controller';
 import { PostgresTranslationsAdminStore } from './internal/translations-admin-store';
 import { TranslationsAdminController } from './translations-admin.controller';
 import { NewsController } from './news.controller';
-import { NewsSourcesAdminController } from './news-sources-admin.controller';
 import { SavedArticlesController } from './saved-articles.controller';
+import { NewsSourcesAdminController } from './news-sources-admin.controller';
 
 /**
  * News (blueprint 3.3, E14): publishers' feeds read as headline and link
@@ -43,13 +43,12 @@ import { SavedArticlesController } from './saved-articles.controller';
     BreakingAdminController,
     StoryTypeAdminController,
     TranslationsAdminController,
-    NewsSourcesAdminController,
     SavedArticlesController,
+    NewsSourcesAdminController,
   ],
   providers: [
     PostgresNewsStore,
     PostgresNewsReadStore,
-    PostgresNewsSourcesAdminStore,
     PostgresDebateAdminStore,
     PostgresBreakingAdminStore,
     BreakingAlertsService,
@@ -59,6 +58,7 @@ import { SavedArticlesController } from './saved-articles.controller';
     NewsClusteringService,
     NewsIngestionService,
     NewsSchedulerService,
+    PostgresNewsSourcesAdminStore,
     { provide: CATEGORY_MAPPING, useValue: STORY_TYPE_MAPPING },
     { provide: NEWS_TRANSPORT, useFactory: (): FetchTransport => new FetchTransport() },
   ],

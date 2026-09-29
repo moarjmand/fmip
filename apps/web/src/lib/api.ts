@@ -20,6 +20,7 @@ import type {
   AskResponse,
   BriefingResponse,
   AuditResponse,
+  NewsSourcesResponse,
   BroadcastersResponse,
   BlocksResponse,
   DataQualityReport,
@@ -75,7 +76,6 @@ import type {
   BreakingNewsResponse,
   MatchPanelPage,
   NewsSectionResponse,
-  NewsSourcesResponse,
   NotificationSettings,
   PushState,
   NotificationsResponse,
@@ -187,6 +187,13 @@ export function fetchAdminUsers(
 /** `GET /admin/audit` (T-070), newest first. */
 export function fetchAudit(cookie: string | undefined): Promise<ApiResult<AuditResponse>> {
   return apiRequest<AuditResponse>('/admin/audit', cookie === undefined ? {} : { cookie });
+}
+
+/** `GET /admin/news-sources` (T-1015): every news source, carried first; administrators only. */
+export function fetchNewsSources(
+  cookie: string | undefined,
+): Promise<ApiResult<NewsSourcesResponse>> {
+  return apiRequest<NewsSourcesResponse>('/admin/news-sources', { cookie });
 }
 
 /** The group directory: public and discoverable only (blueprint 8.2, T-242). */
@@ -563,13 +570,6 @@ export function fetchNewsSection(
  */
 export function fetchDebates(cookie: string | undefined): Promise<ApiResult<DebateListResponse>> {
   return apiRequest<DebateListResponse>('/admin/debates?state=open', { cookie });
-}
-
-/** `GET /admin/news-sources` (T-1015): every news source, carried first; administrators only. */
-export function fetchNewsSources(
-  cookie: string | undefined,
-): Promise<ApiResult<NewsSourcesResponse>> {
-  return apiRequest<NewsSourcesResponse>('/admin/news-sources', { cookie });
 }
 
 /** `GET /news/breaking` (T-1004): the stories marked breaking now, for the homepage strip. Public. */
