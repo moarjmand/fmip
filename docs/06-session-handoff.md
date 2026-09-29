@@ -66,6 +66,7 @@ log, because a long-held ssh session gets closed.
 - **The Elo prior (T-922, D-111):** the laptop cannot score Club Elo's variant (no snapshot; the API answers 502), the server can:
   `docker compose run --rm -T model python -m fmip_model.backtest.elo_prior --from 2025-08-01 --to 2026-06-30 --history-from 2023-07-01 --out /tmp/reports --note "server"`
   (about 30 minutes, in `tmux`). If Club Elo's column beats ours, the next candidate is `clubelo_then_own` (D-111).
+  Run on 2026-09-29: the server's `training.elo` holds no rows either (Club Elo was never loaded there), so Club Elo's column is "not run" on both machines; own Elo beat no prior in 8 of 10 divisions (E0 1.0487 -> 1.0298), the same as the laptop. The run's `--out` needs a folder the container can write (the bind-mounted `~/reports` was refused).
 - **A scheduled follow-up** (`fmip-server-followup`, every six hours, from the
   Claude desktop app) watches health, drains the backlog and adopts people
   after it, and carries Phase 6's observations to their end. It is the

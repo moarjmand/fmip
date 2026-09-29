@@ -205,6 +205,8 @@ and the rules version with its backfill (T-931). Two of its tasks and Phase 6's 
 matches, which resume on 2026-10-08, and two wait for the past-season
 backlog. Eight questions are listed under "Needs a decision".
 
+**Where it stands (2026-09-29).** Twenty-one tasks are built, merged and on the server (#376-#400): notifications carried a page at a time (a kick-off of 90 matches to 10,000 members in 53 s on the laptop) and campaigns emitted a page at a time; one `forbidden` code for every 403; "a deleted member" on every surface; the past-season findings diagnosed as adoption lag (D-109), with bulk review and a budgeted re-ask in the console; Club Elo's state on the System page, an Elo from our own records, and candidate `dixon-coles-elo@0.5.0` in shadow with it (better than no prior in 8 of 10 divisions; the server holds no Club Elo rows, so "own, always" stands); the scores card's three product lines, the story page's share, follow and product links, leaders for assists, clean sheets and cards, the team's manager and news, following a match, and achievement notifications. Open: the send pool measured on the server (T-902), the homepage (T-942), T-914 once a season is fully adopted, T-923 and T-924 (the backlog), T-925 and T-926 (match days), and T-930 and T-931 (the maintainer's yes).
+
 ## After Phase 9 — outline
 
 Not planned as tasks. Each bullet becomes a task file when its phase starts,
