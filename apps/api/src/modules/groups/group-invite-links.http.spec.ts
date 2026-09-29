@@ -17,6 +17,7 @@ import {
 } from '../identity/identity.service';
 import { CaptureMailer, MAILER } from '../identity/internal/mailer';
 import { SocialModule } from '../social/social.module';
+import { withTriggersOff } from '../../testing/cleanup';
 import { hashToken } from './group-invite-links.service';
 import { GroupsModule } from './groups.module';
 
@@ -250,12 +251,15 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('invite links
     expect((used.json() as { message: string }).message).toMatch(/used as many times/);
 
     const late = await link(slug);
-    await pool.query(
-      `ALTER TABLE group_invite_link DISABLE TRIGGER group_invite_link_fixed;
-       UPDATE group_invite_link SET created_at = now() - interval '3 hours',
-                                    expires_at = now() - interval '1 hour' WHERE id = '${late.id}';
-       ALTER TABLE group_invite_link ENABLE TRIGGER group_invite_link_fixed;`,
-    );
+    // A link made three hours ago that lasted two: moved back in time with the
+    // guards off for this session only, since a link is never rewritten.
+    await withTriggersOff(pool, async (client) => {
+      await client.query(
+        `UPDATE group_invite_link SET created_at = now() - interval '3 hours',
+                                      expires_at = now() - interval '1 hour' WHERE id = $1`,
+        [late.id],
+      );
+    });
     const expired = await post(`/group-invite-links/${late.token}`, null, other);
     expect(expired.statusCode).toBe(410);
     expect((expired.json() as { message: string }).message).toBe('This invite link has expired.');
