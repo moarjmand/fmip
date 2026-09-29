@@ -190,6 +190,16 @@ const CONSOLE: Record<string, ConsoleRoute> = {
     roles: EDITORIAL,
     reason: { without: {} },
   },
+  'GET /admin/breaking': { roles: EDITORIAL },
+  'POST /admin/stories/:id/breaking': { roles: EDITORIAL, reason: { without: {} } },
+  'POST /admin/stories/:id/breaking/clear': {
+    roles: EDITORIAL,
+    reason: { without: {} },
+  },
+  'POST /admin/stories/:id/type': {
+    roles: EDITORIAL,
+    reason: { without: { type: 'transfer' } },
+  },
   'POST /admin/articles/:id/translations': {
     roles: EDITORIAL,
     reason: {
