@@ -107,7 +107,7 @@ function GlossaryTerms({ desk }: { desk: Desk }) {
               <span lang="en" dir="ltr">
                 {hit.source}
               </span>
-              {' → '}
+              {': '}
               {hit.text === '' ? (
                 // Said, not left blank: an empty target is nobody having
                 // written it yet, and the translator decides the word.
@@ -222,6 +222,7 @@ function ReviewForm({ locale, desk }: { locale: string; desk: Desk }) {
                 label={`${FIELD_LABELS[result.field]}: the ${result.check} check fails. Why is it right anyway?`}
                 hint={result.detail}
                 name={`reason:${result.field}.${result.check}`}
+                dir="auto"
                 rows={2}
                 data-testid={`desk-reason-${result.field}-${result.check}`}
               />

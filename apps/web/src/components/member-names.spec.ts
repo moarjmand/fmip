@@ -93,6 +93,9 @@ const FIELDS: Record<string, Rule> = {
   'panel-social.ts:FollowedMember.display_name': {
     exempt: 'read for the follow state only (the match page); no page renders it as a name',
   },
+  'translation-desk.ts:TranslationGlossaryHit.source': {
+    exempt: 'an English glossary term the source uses (T-1013), not a member',
+  },
   'predictions.ts:FriendPrediction.display_name': {
     rendered: [['components/home-member.tsx', 'member={p}']],
   },

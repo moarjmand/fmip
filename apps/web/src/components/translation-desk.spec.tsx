@@ -104,6 +104,23 @@ describe("the translator's desk", () => {
     expect(html).not.toContain('desk-review-submit');
   });
 
+  it('names both people once the translation is reviewed, and offers no second review', () => {
+    const html = render(
+      desk({
+        translation: {
+          ...desk().translation!,
+          version_number: 2,
+          review_state: 'reviewed',
+          reviewed_by: PERSON_B,
+        },
+        checks: [],
+      }),
+    );
+    expect(html).toContain('data-testid="desk-reviewed"');
+    expect(html).toContain('reviewer');
+    expect(html).not.toContain('desk-review-submit');
+  });
+
   it('offers only the headline for a headline-only source', () => {
     const html = render(
       desk({
