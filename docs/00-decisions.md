@@ -6020,6 +6020,98 @@ the evaluation and every query written twice, as D-082 said of one.
 
 ---
 
+## D-143 — League stakes: a side whose place in the table is locked, read without zones
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26) · **Task:** T-1120 · **Follows:** D-038, D-083, D-139
+
+**The problem.** Blueprint 6.3 lists "competition format and match state":
+a side with nothing left to play for may not play as its strength says.
+Which places matter (the title, Europe, relegation) is a league's zones, and
+zones are not stored (question N-2). The plan (T-1120) asks for a rule that
+needs none.
+
+**The decision.** An input, `league_stakes` (`fmip_model/inputs/league_stakes.py`),
+judged by D-139's harness and carried by no candidate until T-1150:
+
+- **Locked.** Before a league match, a side `T` is locked when, for every
+  other side `U`, either `points(U) > points(T) + 3 * left(T)` or `points(T) >
+  points(U) + 3 * left(U)`: nobody above can be caught and nobody below can
+  catch it. A possible level finish is never locked (goal difference could
+  turn it). The rule is zone-free: a locked side has nothing to win or lose in
+  the table wherever it stands, so the title, a European place and safety are
+  all covered once they are settled, and nothing is assumed about where a
+  zone's line is.
+- **The table** is computed from stored results strictly before the match's
+  day, three points a win (D-038). Point deductions are not stored and not
+  applied.
+- **Matches left** are the season's stored fixture list minus the matches
+  played. The list is read for sides and days only, never scores: a
+  football-data.co.uk season's rows in `training.match` (its pairings are
+  published before it starts), or, for our records, the league's `fixture`
+  rows whatever their status except cancelled. **A season gives no value
+  unless its list is a complete double round robin** (every side meets every
+  other once at home and once away). A split league (Scotland), a season with
+  play-offs in the list (Belgium), and a season still being loaded are
+  incomplete. A match whose season is missing an earlier result from what the
+  forecast knows gives no value either.
+- **The term.** Home goals move by `exp(b1 * home locked + b2 * away locked)`,
+  away goals by `exp(b1 * away locked + b2 * home locked)`, fitted per refit by
+  `FeatureInput` (time-weighted Poisson likelihood with the candidate's expected
+  goals as offsets). A match where neither side is locked has nothing to read
+  (its term would be zero) and is outside the sample, so the sample is the
+  matches with a locked side.
+
+**The verdict: `insufficient`.** Laptop, private database (a copy of the
+football-data.co.uk store, 10 divisions, loaded to 2026-09-20), window
+2024-08-01 to 2026-06-30 with history from 2023-07-01, against
+`dixon-coles-elo@0.5.0`:
+
+| Division | Matches in window | With a locked side (home / away / both) |
+|---|---|---|
+| E0 | 760 | 11 (5 / 6 / 0) |
+| SP1 | 760 | 19 (8 / 9 / 2) |
+| I1 | 760 | 10 (5 / 4 / 1) |
+| D1 | 612 | 10 (4 / 6 / 0) |
+| F1 | 612 | 14 (6 / 7 / 1) |
+| N1 | 612 | 11 (4 / 7 / 0) |
+| P1 | 612 | 4 (2 / 1 / 1) |
+| B1 | 615 | not read: play-offs in the list |
+| SC0 | 456 | not read: the split |
+| T1 | 648 | 15 (7 / 5 / 3) |
+| **Total** | **6,447** | **94 (1.5%)** |
+
+94 matches is below D-139's minimum of 300, so the football-data group is
+`insufficient` whatever the log loss says, and no candidate carries the input.
+The harness itself confirmed the first five divisions' counts (it reported
+11, 19, 10, 10 and 14 applied) before the laptop's shared CPU made the
+remaining fits too slow to finish; the counts above are the input's own
+`stakes` over the same matches. Even the store's third complete season would
+bring the sample to about 140. A locked side is rare because the rule asks
+for certainty: most "dead rubbers" are decided in practice (a side eight
+points clear with two to play is not yet locked) and are not read. Our
+records' divisions were not run here (none is loaded on the laptop). The
+lead's server run, from `/opt/fmip`, covers both groups:
+
+```bash
+DIVS=$(docker compose exec -T postgres psql -U fmip -d fmip -Atc "SELECT string_agg(DISTINCT division, ' ') FROM training.match WHERE division <> 'XL'")
+docker compose run --rm -T model sh -c "python -m fmip_model.backtest.inputs --input league_stakes --divisions $DIVS --from 2024-08-01 --to 2026-06-30 --history-from 2023-07-01 --out /tmp/reports --note server && cat /tmp/reports/*/inputs_league_stakes_*.md"
+```
+
+If that run passes the bar in a group (at least 300 applied there), this
+entry is amended and T-1150 may carry the input; otherwise it stays
+`insufficient`. League zones (N-2) would widen the sample to "nothing left in
+the zones that matter", which is a different input and needs the zones first.
+
+**Rejected.** *"Locked" on a margin smaller than certainty* (for example,
+five points with two to play): a guess at what a side believes, and a
+threshold chosen after seeing the numbers. *Zones from the feed's standings
+descriptions*: N-2, not stored. *Counting a match with no locked side as a
+zero-valued sample*: it would pass the 300 minimum on matches the term never
+touches, hiding how small the real sample is. *Using a season's list when it
+is not a double round robin*: in a split or play-off season "matches left" is
+not knowable from the list before the split is drawn.
+
+---
+
 ## D-147 — Coach changes are read from stored line-ups by person id; a line-up naming no coach is a gap
 **Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26). T-1130's half; T-1131 adds the input's backtest verdict here.
 
