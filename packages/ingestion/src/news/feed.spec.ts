@@ -25,6 +25,10 @@ const RSS = `<?xml version="1.0" encoding="UTF-8"?>
       <guid isPermaLink="false">derby-2025-01</guid>
       <pubDate>Sun, 05 Jan 2025 16:28:00 GMT</pubDate>
       <dc:creator>A. Reporter</dc:creator>
+      <category domain="https://news.example.test/tags">Premier League</category>
+      <category><![CDATA[Match reports]]></category>
+      <category>Premier League</category>
+      <category>  </category>
       <description><![CDATA[<p>A late goal settled it &mdash; <b>2&ndash;1</b>.</p>]]></description>
       <content:encoded><![CDATA[<p>The whole article, which must never be taken.</p>]]></content:encoded>
     </item>
@@ -54,6 +58,8 @@ const ATOM = `<?xml version="1.0" encoding="utf-8"?>
     <published>2025-01-05T16:28:00Z</published>
     <updated>2025-01-05T18:00:00Z</updated>
     <author><name>Una Periodista</name></author>
+    <category term="crónica" label="Crónica del partido"/>
+    <category term="laliga" scheme="https://news.example.test/tags"/>
     <summary type="html">&lt;p&gt;Un gol tardío lo decidió.&lt;/p&gt;</summary>
   </entry>
   <entry xml:lang="ca">
@@ -79,6 +85,8 @@ describe('parseFeed: RSS 2.0', () => {
       byline: 'A. Reporter',
       publishedAt: '2025-01-05T16:28:00.000Z',
       language: 'en-GB',
+      // T-1002: as carried, in order, once each; an empty one is not a category.
+      categories: ['Premier League', 'Match reports'],
     });
     // The item carries a full body in content:encoded; nothing in the result
     // can hold it, and nothing does.
@@ -96,6 +104,7 @@ describe('parseFeed: RSS 2.0', () => {
       byline: null,
       publishedAt: null,
       language: 'en-GB',
+      categories: [],
     });
   });
 
@@ -120,6 +129,8 @@ describe('parseFeed: Atom', () => {
       byline: 'Una Periodista',
       publishedAt: '2025-01-05T16:28:00.000Z',
       language: 'es',
+      // T-1002: Atom's category is its `term`; the label is display text.
+      categories: ['crónica', 'laliga'],
     });
     expect(feed.items[1]).toMatchObject({
       url: 'https://news.example.test/ca/sense-resum',

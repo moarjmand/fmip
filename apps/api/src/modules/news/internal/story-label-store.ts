@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { StoryLabelOrigin, StoryType } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
+import { CATEGORY_MAPPING, type CategoryMapping, mappedType } from './story-type-mapping';
 
 export interface CurrentLabel {
   id: string;
@@ -13,6 +14,15 @@ export interface CurrentLabel {
 export type EditorLabelOutcome = 'labelled' | 'unchanged' | 'no_story';
 
 /**
+ * What refreshing a story's publisher type did (T-1002): `editor` when an
+ * editor's label stands and nothing was touched; `labelled` when a new
+ * publisher label superseded whatever was current; `withdrawn` when the
+ * current publisher label lost its basis and nothing replaced it;
+ * `unchanged` otherwise.
+ */
+export type PublisherLabelOutcome = 'editor' | 'labelled' | 'withdrawn' | 'unchanged';
+
+/**
  * A story's type (T-1001, D-123). A label is never edited: a new one
  * supersedes the current one (`superseded_at`) in the same transaction, and
  * the partial unique index keeps one current label per story even when two
@@ -21,7 +31,10 @@ export type EditorLabelOutcome = 'labelled' | 'unchanged' | 'no_story';
  */
 @Injectable()
 export class PostgresStoryLabelStore {
-  constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
+  constructor(
+    @Inject(PG_POOL) private readonly pool: Pool,
+    @Inject(CATEGORY_MAPPING) private readonly mapping: readonly CategoryMapping[],
+  ) {}
 
   async current(storyId: string): Promise<CurrentLabel | null> {
     const { rows } = await this.pool.query<CurrentLabel>(
@@ -30,6 +43,92 @@ export class PostgresStoryLabelStore {
       [storyId],
     );
     return rows[0] ?? null;
+  }
+
+  /**
+   * The story's publisher type, recomputed from its promoted original's
+   * categories as stored (T-1002, D-123). An editor's label always wins and is
+   * never superseded here. A publisher label is replaced only when the type,
+   * the article or the category that gave it changed; when the original no
+   * longer maps to anything the label is withdrawn (superseded with nothing
+   * after it), so the story says it has no type rather than keeping a type
+   * whose basis is gone.
+   */
+  async refreshPublisher(storyId: string): Promise<PublisherLabelOutcome> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const { rows: stories } = await client.query<{
+        article_id: string | null;
+        feed_url: string | null;
+        categories: string[];
+      }>(
+        `SELECT a.id AS article_id, src.feed_url,
+                COALESCE((SELECT array_agg(c.category ORDER BY c.position)
+                            FROM article_category c WHERE c.article_id = a.id), '{}') AS categories
+           FROM story s
+           LEFT JOIN article a ON a.id = s.promoted_article_id
+           LEFT JOIN news_source src ON src.id = a.source_id
+          WHERE s.id = $1
+          FOR UPDATE OF s`,
+        [storyId],
+      );
+      const story = stories[0];
+      const { rows: labels } = await client.query<{
+        id: string;
+        story_type: string;
+        origin: string;
+        source_article_id: string | null;
+        source_category: string | null;
+      }>(
+        `SELECT id, story_type, origin, source_article_id, source_category
+           FROM story_label WHERE story_id = $1 AND superseded_at IS NULL`,
+        [storyId],
+      );
+      const current = labels[0];
+      if (story === undefined || current?.origin === 'editor') {
+        await client.query('ROLLBACK');
+        return current?.origin === 'editor' ? 'editor' : 'unchanged';
+      }
+      const mapped =
+        story.article_id === null || story.feed_url === null
+          ? null
+          : mappedType(story.feed_url, story.categories, this.mapping);
+      if (
+        mapped !== null &&
+        current !== undefined &&
+        current.story_type === mapped.type &&
+        current.source_article_id === story.article_id &&
+        current.source_category === mapped.category
+      ) {
+        await client.query('ROLLBACK');
+        return 'unchanged';
+      }
+      if (mapped === null && current === undefined) {
+        await client.query('ROLLBACK');
+        return 'unchanged';
+      }
+      if (current !== undefined) {
+        await client.query(
+          `UPDATE story_label SET superseded_at = now() WHERE id = $1 AND superseded_at IS NULL`,
+          [current.id],
+        );
+      }
+      if (mapped !== null) {
+        await client.query(
+          `INSERT INTO story_label (story_id, story_type, origin, source_article_id, source_category)
+           VALUES ($1, $2, 'publisher', $3, $4)`,
+          [storyId, mapped.type, story.article_id, mapped.category],
+        );
+      }
+      await client.query('COMMIT');
+      return mapped === null ? 'withdrawn' : 'labelled';
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   /**
