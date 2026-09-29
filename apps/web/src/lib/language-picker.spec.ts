@@ -86,8 +86,14 @@ describe('the component', () => {
     // the one the browser has and there is no hydration mismatch to guard.
     expect(SOURCE.startsWith("'use client'")).toBe(true);
     expect(SOURCE).toMatch(/usePathname\(\)/);
-    expect(SOURCE).toMatch(/pickerEntries\(pathname\)/);
+    expect(SOURCE).toMatch(/pickerEntriesFor\(pathname, languages\)/);
     expect(SOURCE).not.toMatch(/isShippable|LOCALES|coverage\(/);
+  });
+
+  it('is handed the offered languages by the header, which decides on the server (T-1040)', () => {
+    const header = readFileSync(join(__dirname, '..', 'components', 'site-header.tsx'), 'utf8');
+    expect(header).toMatch(/<LanguagePicker languages=\{offeredLanguages\(\)\} \/>/);
+    expect(SOURCE).not.toMatch(/i18n\/messages'/);
   });
 
   it('renders nothing rather than an empty landmark when there is no choice', () => {

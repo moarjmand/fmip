@@ -27,6 +27,11 @@
  * category its language *has* fails the spec rather than falling back — a
  * fallback there is a sentence that is wrong in a way only a native speaker
  * sees. `type: "ordinal"` selects the ordinal rules ("1st", "2nd") instead.
+ *
+ * **Server only, in effect (T-1040).** This module imports all eight
+ * catalogues, so it must never enter a client bundle: a client component is
+ * handed messages already resolved (`resolveMessages`) and renders them with
+ * `MessageText`. `client-catalogues.spec.ts` holds the line.
  */
 
 import { DEFAULT_LOCALE, UNFINISHED_LOCALES, type Locale } from './locales';
@@ -218,6 +223,30 @@ export function message(locale: Locale, key: MessageKey): Message {
   return translated === undefined
     ? { text: textOf(source), status: 'untranslated' }
     : { text: textOf(translated), status: 'translated' };
+}
+
+/** Resolved messages for some keys: what a client component is handed (T-1040). */
+export type ResolvedMessages<K extends MessageKey> = Record<K, Message>;
+
+/**
+ * The messages for `keys` in `locale`, resolved here -- each one the locale's
+ * translation or the English marked `untranslated`, exactly as `message`
+ * answers -- so that a client component can be handed words rather than the
+ * catalogues they come from (T-1040).
+ *
+ * This is how the catalogues stay on the server. The eight files are imported
+ * above, statically, and any client module that imported this one would carry
+ * all eight to every browser; `client-catalogues.spec.ts` fails if one does. A
+ * client component instead receives the result of this function from a server
+ * component (a prop, or `ClientMessagesProvider` in the locale layout): only
+ * the viewer's locale, only the keys it renders, and the English only where
+ * that locale has none -- with the `status` that keeps the fallback visible.
+ */
+export function resolveMessages<K extends MessageKey>(
+  locale: Locale,
+  keys: readonly K[],
+): ResolvedMessages<K> {
+  return Object.fromEntries(keys.map((key) => [key, message(locale, key)])) as ResolvedMessages<K>;
 }
 
 /** Just the text, for the many places that render it directly. */
