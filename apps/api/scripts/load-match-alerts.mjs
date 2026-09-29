@@ -33,8 +33,10 @@
 // `--push-reads` (T-902) makes the captured push use the database as the Web
 // Push channel does: it reads the member's devices before the send and
 // touches them after, through the API's own `pg` pool (10 connections). Each
-// tick then reports `api_pool`: the most requests waiting for a connection,
-// and the share of 10 ms samples in which any waited. With it,
+// tick reports `api_pool` whether or not it is set: the most requests waiting
+// for a connection, the share of 10 ms samples in which any waited, and
+// `probe_ms`, a `SELECT 1` through that pool every 100 ms -- what a member's
+// request to the same process would wait. With it,
 // `NOTIFICATION_SEND_CONCURRENCY` can be sized against the pool on the
 // numbers (docs/08-load-test.md, "T-902"). The members have no devices, so
 // both statements find nothing; they cost what a device's would, less the
@@ -325,10 +327,12 @@ const outbound = {
   },
 };
 
-// How the API's pool held up during a tick: the most requests waiting for a
-// connection, and the share of 10 ms samples in which any waited (T-902).
+// How the API's pool held up during a tick (T-902): the most requests waiting
+// for a connection, the share of 10 ms samples in which any waited, and what
+// a member's request would have felt -- a `SELECT 1` through the same pool
+// every 100 ms, timed from asking to answer (`probe_ms`).
 function samplePool() {
-  if (apiPool === null) return () => null;
+  if (apiPool === null) return () => Promise.resolve(null);
   let samples = 0;
   let waited = 0;
   let most = 0;
@@ -338,12 +342,25 @@ function samplePool() {
     if (waiting > 0) waited += 1;
     most = Math.max(most, waiting);
   }, 10);
-  return () => {
+  const probes = [];
+  let probing = true;
+  const probe = (async () => {
+    while (probing) {
+      const asked = performance.now();
+      await apiPool.query('SELECT 1');
+      probes.push(performance.now() - asked);
+      await sleep(100);
+    }
+  })();
+  return async () => {
     clearInterval(timer);
+    probing = false;
+    await probe;
     return {
       size: apiPool.options.max,
       waiting_max: most,
       waiting_share: samples === 0 ? 0 : Math.round((waited / samples) * 1000) / 1000,
+      probe_ms: stats(probes),
     };
   };
 }
@@ -455,7 +472,7 @@ async function main() {
     // handed over; the alerts are done when the worker has nothing left.
     if (queue !== null) await settle();
     const settled = performance.now();
-    const apiPoolDuringTick = stopSampling();
+    const apiPoolDuringTick = await stopSampling();
     const after = await dbCounters();
     const tickPushes = pushes.slice(pushesBefore);
     const timer = await drain();

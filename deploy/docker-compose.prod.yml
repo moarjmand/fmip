@@ -137,6 +137,8 @@ services:
       # Delivery (T-330): absent until a provider is chosen, and /health/delivery says so.
       DELIVERY_EMAIL_PROVIDER: ${DELIVERY_EMAIL_PROVIDER:-off}
       DELIVERY_PUSH_PROVIDER: ${DELIVERY_PUSH_PROVIDER:-off}
+      # How many messages the carrier sends at once (T-836, sized by T-902, D-106).
+      NOTIFICATION_SEND_CONCURRENCY: ${NOTIFICATION_SEND_CONCURRENCY:-}
       # The intelligence layer (Phase 5): off until a key exists on this server (T-400).
       INTELLIGENCE_PROVIDER: ${INTELLIGENCE_PROVIDER:-off}
       INTELLIGENCE_MODEL: ${INTELLIGENCE_MODEL:-}

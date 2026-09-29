@@ -4287,6 +4287,31 @@ made the claims a small part of the minute.
 `recordDelivery`, `recordDeliveries` and `due` are replaced by `claimDue`
 and `recordOutcomes`. `drain` takes the page size.
 
+**Decision (T-902): the send pool.** `NOTIFICATION_SEND_CONCURRENCY` is set
+per machine, from a measurement, against the API's `pg` pool of 10. In
+production one process serves members' requests and runs the jobs, on the
+same pool. A value **starves the pool** when a member's request waits for a
+connection: a `SELECT 1` probe through the pool every 100 ms over 100 ms at
+p95, or the live job more than 1.5 times slower than at 16. The value is the
+largest of 16, 32 and 64 that does not starve the pool.
+
+- **Laptop (8 cores), 2026-09-29: 64.** A kick-off of 90 matches at 10,000
+  members, with pushes of 50 ms that read and touch the member's devices as
+  Web Push does, reached p95 25.3–27.6 s at 64, 35.8–38.7 s at 32 and
+  55.5–63.5 s at 16. The probe's p95 was 6–23 ms at every value, and the live
+  job stayed at 2.4–4.8 s. None of the three starved the pool
+  (docs/08-load-test.md, "T-902").
+- **Production (2 shared vCPUs): pending the lead's run** of the command in
+  docs/08-load-test.md, "T-902". Until it is recorded here, the server runs
+  the default, 16. Every statement is slower there, so 64 may queue where 32
+  does not; the laptop's answer is not carried over.
+
+**Consequences (T-902).** The production compose file forwards
+`NOTIFICATION_SEND_CONCURRENCY` to the API. Before, a value in the server's
+`.env` never reached the process. The code's default stays 16 until the server
+is measured. `load-match-alerts.mjs --push-reads` and its `api_pool` report
+are how the value is measured.
+
 ## D-107 — Campaign emission is one statement per audience page, like match alerts
 **Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
 
