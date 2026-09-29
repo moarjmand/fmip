@@ -170,6 +170,9 @@ export default async function AdminPage({
         <Link href={`/${locale}/admin/news-coverage`} className="underline">
           News coverage
         </Link>
+        <Link href={`/${locale}/admin/model-candidates`} className="underline">
+          Model candidates
+        </Link>
       </nav>
 
       <HealthPanel live={live} chat={chat} />

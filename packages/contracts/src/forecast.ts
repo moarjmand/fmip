@@ -321,3 +321,51 @@ export interface ForecastSummaryEntry {
 export interface ForecastSummaryListResponse {
   fixtures: ForecastSummaryEntry[];
 }
+
+/**
+ * Pre-kick-off forecasts a candidate needs before its promotion can be
+ * decided (D-082, T-535). Below it the console shows the count, never a verdict.
+ */
+export const PROMOTION_MINIMUM = 300;
+
+/** A candidate against the published version on the same matches of one competition. */
+export interface CandidateCompetitionRecord {
+  competition: { id: string; name: string };
+  /**
+   * Pairs scored: a (fixture, forecast kind) where both the candidate and the
+   * published version have a pre-kick-off evaluation (D-031), the latest of each.
+   */
+  pairs: number;
+  /** The published version(s) the pairs were scored against. */
+  published_versions: string[];
+  candidate: { log_loss: number; brier: number };
+  published: { log_loss: number; brier: number };
+}
+
+/** One candidate's shadow record (T-1103), from the stored evaluations (T-066). */
+export interface CandidateRecord {
+  model_version: string;
+  /**
+   * Whether the model service offers it now: false for a candidate that has
+   * left shadow but whose record stays; null when the service did not answer.
+   */
+  in_shadow: boolean | null;
+  /** Pre-kick-off forecasts evaluated after the match: the count toward the minimum. */
+  pre_kickoff_evaluated: number;
+  /** Pre-kick-off forecasts whose match has not been evaluated yet. */
+  pre_kickoff_awaiting: number;
+  /** Available forecasts computed after kick-off: never counted (D-031). */
+  after_kickoff: number;
+  /** The candidate's own refusals (`unavailable`), which are never scored. */
+  unavailable: number;
+  competitions: CandidateCompetitionRecord[];
+}
+
+/** `GET /admin/model/candidates` (T-1103). Administrators only. */
+export interface CandidateRecordsResponse {
+  minimum: number;
+  /** Whether the model service answered its candidate list. */
+  service: 'answered' | 'unreachable';
+  candidates: CandidateRecord[];
+  generated_at: string;
+}
