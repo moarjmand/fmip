@@ -48,6 +48,9 @@ interface CardRow {
   story_type: StoryType | null;
   type_origin: StoryLabelOrigin | null;
   labelled_at: Date | null;
+  breaking_note: string | null;
+  breaking_marked_at: Date | null;
+  breaking_ends_at: Date | null;
   at: Date;
   participants: number | null;
   debate_selected_at: Date | null;
@@ -168,6 +171,24 @@ export class PostgresNewsReadStore {
     );
   }
 
+  /**
+   * The stories marked breaking now (T-1004, D-125), newest mark first. The
+   * window is read here, against `now()`, so an expired mark is gone at the
+   * next render rather than at the next job.
+   */
+  async breaking(locale: string | null, limit: number): Promise<StoryPage_> {
+    const q = new Query(NO_FILTERS, locale);
+    return this.page(
+      q,
+      `SELECT sc.*, NULL::int AS participants, NULL::timestamptz AS debate_selected_at, NULL::text AS debate_note
+         FROM story_card sc
+        WHERE sc.breaking_ends_at IS NOT NULL
+        ORDER BY sc.breaking_marked_at DESC, sc.story_id
+        LIMIT ${q.param(limit)}`,
+      limit,
+    );
+  }
+
   /** What editors selected and have not cleared, newest selection first. */
   async debate(filters: NewsFilters, locale: string | null, limit: number): Promise<StoryPage_> {
     const q = new Query(filters, locale);
@@ -246,6 +267,8 @@ export class PostgresNewsReadStore {
                        a.fetched_at) AS at,
               (SELECT count(*)::int - 1 FROM article m WHERE m.story_id = s.id) AS other_reports,
               lb.story_type, lb.origin AS type_origin, lb.created_at AS labelled_at,
+              br.note AS breaking_note, br.marked_at AS breaking_marked_at,
+              br.ends_at AS breaking_ends_at,
               NULL::int AS participants,
               d.selected_at AS debate_selected_at, d.note AS debate_note
          FROM story s
@@ -254,6 +277,9 @@ export class PostgresNewsReadStore {
          JOIN LATERAL (${version('a', 'src.language')}) v ON TRUE
          LEFT JOIN story_debate d ON d.story_id = s.id AND d.cleared_at IS NULL
          LEFT JOIN story_label lb ON lb.story_id = s.id AND lb.superseded_at IS NULL
+         LEFT JOIN LATERAL (SELECT note, marked_at, ends_at FROM story_breaking b
+                     WHERE b.story_id = s.id AND b.cleared_at IS NULL AND b.ends_at > now()
+                     ORDER BY b.marked_at DESC LIMIT 1) br ON TRUE
         WHERE s.id = $1`,
       [storyId, language],
     );
@@ -456,6 +482,14 @@ export class PostgresNewsReadStore {
         r.debate_selected_at === null || r.debate_note === null
           ? null
           : { selected_at: r.debate_selected_at.toISOString(), note: r.debate_note },
+      breaking:
+        r.breaking_note === null || r.breaking_marked_at === null || r.breaking_ends_at === null
+          ? null
+          : {
+              note: r.breaking_note,
+              marked_at: r.breaking_marked_at.toISOString(),
+              ends_at: r.breaking_ends_at.toISOString(),
+            },
     };
   }
 
@@ -581,11 +615,16 @@ class Query {
              COALESCE((SELECT min(published_at) FROM article_version WHERE article_id = a.id),
                       a.fetched_at) AS at,
              (SELECT count(*)::int - 1 FROM article m WHERE m.story_id = s.id) AS other_reports,
-             lb.story_type, lb.origin AS type_origin, lb.created_at AS labelled_at
+             lb.story_type, lb.origin AS type_origin, lb.created_at AS labelled_at,
+             br.note AS breaking_note, br.marked_at AS breaking_marked_at,
+             br.ends_at AS breaking_ends_at
         FROM story s
         JOIN article a ON a.id = s.promoted_article_id
         JOIN news_source src ON src.id = a.source_id AND src.dropped_at IS NULL
         LEFT JOIN story_label lb ON lb.story_id = s.id AND lb.superseded_at IS NULL
+        LEFT JOIN LATERAL (SELECT note, marked_at, ends_at FROM story_breaking b
+                     WHERE b.story_id = s.id AND b.cleared_at IS NULL AND b.ends_at > now()
+                     ORDER BY b.marked_at DESC LIMIT 1) br ON TRUE
         JOIN LATERAL (
           SELECT headline, summary, byline, language, published_at, origin, review_state
             FROM article_version

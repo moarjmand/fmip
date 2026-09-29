@@ -18,6 +18,7 @@ import {
   fetchSavedArticles,
   fetchTeams,
 } from '@/lib/api';
+import { clearBreakingAction, markBreakingAction } from '@/lib/breaking-actions';
 import { clearDebateAction, selectDebateAction } from '@/lib/debate-actions';
 import {
   REASON_KEY,
@@ -429,6 +430,35 @@ function EditorControls({
           testId="debate-clear"
         />
       )}
+      {card.breaking === null ? (
+        <ActionForm
+          action={markBreakingAction.bind(null, locale, card.story_id)}
+          fields={[
+            {
+              name: 'note',
+              label: label('news.breaking.noteLabel'),
+              type: 'text',
+              required: true,
+            },
+          ]}
+          submitLabel={label('news.breaking.mark')}
+          testId="breaking-mark"
+        />
+      ) : (
+        <ActionForm
+          action={clearBreakingAction.bind(null, locale, card.story_id)}
+          fields={[
+            {
+              name: 'reason',
+              label: label('news.breaking.reasonLabel'),
+              type: 'text',
+              required: true,
+            },
+          ]}
+          submitLabel={label('news.breaking.clear')}
+          testId="breaking-clear"
+        />
+      )}
     </div>
   );
 }
@@ -455,6 +485,14 @@ function Story({
         </a>
       </h2>
       <StoryTypeTag locale={locale} type={card.type} />
+      {card.breaking !== null && (
+        <p className="text-sm" data-testid="story-breaking">
+          <span className="font-medium">
+            <Translated locale={locale} message="news.breaking.badge" />
+          </span>{' '}
+          {card.breaking.note}
+        </p>
+      )}
       <p className="text-sm text-muted" data-testid="story-source">
         <Translated locale={locale} message="news.readAt" />{' '}
         <a href={card.source.homepage_url} rel="noopener" className="underline">

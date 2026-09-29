@@ -1118,6 +1118,36 @@
     "text": "",
     "status": "untranslated"
   },
+  "news.breaking.title": {
+    "source": "Breaking",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.breaking.badge": {
+    "source": "Breaking:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.breaking.noteLabel": {
+    "source": "What is breaking (readers see this on the homepage)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.breaking.mark": {
+    "source": "Mark breaking",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.breaking.reasonLabel": {
+    "source": "Why the mark ends early (recorded)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.breaking.clear": {
+    "source": "End the breaking mark",
+    "text": "",
+    "status": "untranslated"
+  },
   "news.older": {
     "source": "Older",
     "text": "",

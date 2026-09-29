@@ -9,6 +9,8 @@ import {
 } from '@nestjs/common';
 import {
   type ApiError,
+  BREAKING_STRIP_LIMIT,
+  type BreakingNewsResponse,
   ENTITY_NEWS_LIMIT,
   type EntityNewsResponse,
   type FixtureNewsResponse,
@@ -244,6 +246,21 @@ export class NewsController {
         );
       }
     }
+  }
+
+  /**
+   * The homepage's breaking strip (blueprint 2.3, T-1004, D-125): the stories
+   * an editor marked breaking whose window has not run out, newest mark first.
+   * Public -- a guest sees the strip. `available` with a list that may be
+   * empty; the page draws no strip then, never an empty one.
+   */
+  @Get('news/breaking')
+  async breaking(@Query('locale') locale: unknown): Promise<BreakingNewsResponse> {
+    const [page, last_updated_at] = await Promise.all([
+      this.store.breaking(localeOf(locale), BREAKING_STRIP_LIMIT),
+      this.store.lastFetchedAt(),
+    ]);
+    return { stories: { coverage: 'available', last_updated_at, data: page.cards } };
   }
 
   /**

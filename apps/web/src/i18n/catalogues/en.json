@@ -249,6 +249,12 @@
     "other": "{count} members in the match discussion in the last {hours} hours"
   },
   "news.debateNote": "Why this is a debate:",
+  "news.breaking.title": "Breaking",
+  "news.breaking.badge": "Breaking:",
+  "news.breaking.noteLabel": "What is breaking (readers see this on the homepage)",
+  "news.breaking.mark": "Mark breaking",
+  "news.breaking.reasonLabel": "Why the mark ends early (recorded)",
+  "news.breaking.clear": "End the breaking mark",
   "news.older": "Older",
   "news.reason.nothingYet": "No stories have been read from any publisher yet.",
   "news.reason.personsUnlinked": "Stories are not linked to players yet, so this list cannot say whether there is news about this player.",

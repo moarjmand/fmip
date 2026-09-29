@@ -602,6 +602,8 @@ export type {
 // News (blueprint 3.1 and 3.3, T-143). A story is its promoted original and a
 // link back to the publisher; each section says what it is computed from.
 export {
+  BREAKING_STRIP_LIMIT,
+  BREAKING_WINDOW_HOURS,
   FIXTURE_NEWS_LIMIT,
   ENTITY_NEWS_LIMIT,
   NEWS_PAGE_SIZE,
@@ -614,6 +616,12 @@ export {
   isStoryType,
 } from './news';
 export type {
+  BreakingClearRequest,
+  BreakingListResponse,
+  BreakingMark,
+  BreakingMarkRequest,
+  BreakingNewsResponse,
+  BreakingRecord,
   DebateClearRequest,
   DebateListResponse,
   DebateRecord,

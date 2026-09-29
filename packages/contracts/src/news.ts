@@ -115,6 +115,18 @@ export interface NewsStoryCard {
   discussion: { participants: number; window_hours: number } | null;
   /** Debate only: when an editor selected it and what they said. `null` elsewhere. */
   debate: { selected_at: string; note: string } | null;
+  /**
+   * An editor's breaking mark in force (T-1004, D-125): what they said, when,
+   * and when it ends by itself. `null` when there is none in force -- an
+   * expired mark is `null` at the next read, not at the next job.
+   */
+  breaking: BreakingMark | null;
+}
+
+export interface BreakingMark {
+  note: string;
+  marked_at: string;
+  ends_at: string;
 }
 
 export interface NewsFilters {
@@ -368,4 +380,54 @@ export interface SavedArticle {
 export interface SavedArticlesResponse {
   saved: SavedArticle[];
   limit: number;
+}
+
+// ---------------------------------------------------------------------------
+// "Breaking" (blueprint 2.3 and 12.2, T-1004, D-125): an editor's mark with a
+// window, and the homepage strip of the stories marked while it lasts.
+// ---------------------------------------------------------------------------
+
+/** How long a mark lasts unless an editor clears it earlier (D-125's proposal). */
+export const BREAKING_WINDOW_HOURS = 6;
+/** The most stories the homepage strip shows. */
+export const BREAKING_STRIP_LIMIT = 5;
+
+/** `POST /admin/stories/:id/breaking`: readers see the note on the strip; it is audited. */
+export interface BreakingMarkRequest {
+  note: string;
+}
+
+/** `POST /admin/stories/:id/breaking/clear`: ends a mark early; the reason is audited. */
+export interface BreakingClearRequest {
+  reason: string;
+}
+
+/** One mark as the editor's list shows it: in force, expired or cleared. */
+export interface BreakingRecord {
+  story_id: string;
+  headline: string | null;
+  marked_by: string;
+  note: string;
+  marked_at: string;
+  ends_at: string;
+  cleared_by: string | null;
+  cleared_reason: string | null;
+  cleared_at: string | null;
+  /** `live` while in force; `expired` when its window ran out; `cleared` when an editor ended it. */
+  state: 'live' | 'expired' | 'cleared';
+}
+
+/** `GET /admin/breaking`: newest mark first. */
+export interface BreakingListResponse {
+  generated_at: string;
+  marks: BreakingRecord[];
+}
+
+/**
+ * `GET /news/breaking`: the stories marked breaking now, newest mark first.
+ * `available` with a list that may be empty; a page draws no strip when it
+ * is, never an empty one.
+ */
+export interface BreakingNewsResponse {
+  stories: Covered<NewsStoryCard[]>;
 }

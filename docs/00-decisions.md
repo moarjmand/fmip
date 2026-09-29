@@ -5044,3 +5044,36 @@ the short list would pose as all the transfer news. A `player` filter that
 answers an empty list before T-1006: indistinguishable from "no news about
 him". Dates in UTC for everyone: a Tehran reader's "today" would drop its
 first three and a half hours.
+
+## D-125 — "Breaking": an editor's mark with a window, the homepage strip, and who is told
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** "Breaking" on the homepage (blueprint 2.3) is an editor's act,
+never a publisher's word or a machine's (D-123, N-1).
+
+- **The mark.** An `editor` or `admin` marks a story with a note readers see
+  (`POST /admin/stories/:id/breaking`). The mark lasts
+  `BREAKING_WINDOW_HOURS` (the proposal, **6 hours**) from the moment it is
+  made; there is no per-mark window, so every strip entry means the same
+  thing. An editor may end it early with a reason (`.../breaking/clear`).
+  A second mark while one is in force is refused rather than re-noted; once
+  a mark has ended, the story may be marked again. Every mark and clear is an
+  `audit_log` row (`breaking.mark`, `breaking.clear`, target `story`) with
+  what was there before (rule 10). `GET /admin/breaking` lists marks as
+  `live`, `expired` or `cleared`.
+- **The strip.** `GET /news/breaking` is public (a guest sees it): the
+  stories whose mark is in force, newest mark first, at most
+  `BREAKING_STRIP_LIMIT` (5). "In force" is `ends_at > now()` read at
+  render, so an expired mark is gone at the next render with no job to take
+  it down. With nothing marked the homepage draws no strip at all -- not an
+  empty one (rule 3). A card carries `breaking` (the note and the window)
+  wherever it appears, so the news page marks it too.
+- **Not the type.** A story typed `breaking_news` by its publisher or an
+  editor (D-123) is not on the strip unless an editor marks it: the type says
+  what a story is, the mark says what is on the front page now.
+
+**Alternatives considered.** A flag on `story`: no author, no reason, no
+window. A scheduled job that clears expired marks: an expired mark would stay
+on the homepage until the job ran. Letting a publisher's "breaking" category
+fill the strip: the homepage would be written by whichever feed labels most
+generously.
