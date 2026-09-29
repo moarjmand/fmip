@@ -179,26 +179,29 @@ made per row, a timeout -- does.
 
 | Route | First-load JS measured / budget (gzip kB) | Server response median, CI / laptop / budget (ms) |
 | --- | --- | --- |
-| home `/en` | 200.3 / 220 | 38 / 50 / 200 |
-| scores `/en/scores` | 230.3 / 236 (raised 2026-09-29, T-1004) | 21 / 31 / 150 |
-| match centre `/en/match/…0901` | 218.5 / 240 | 77 / 76 / 300 |
-| competition `/en/competition/…0201` | 200.3 / 220 | 29 / 39 / 150 |
+| home `/en` | 149.8 / 158 (lowered 2026-09-29, T-1040) | 38 / 50 / 200 |
+| scores `/en/scores` | 162.4 / 171 (lowered 2026-09-29, T-1040) | 21 / 31 / 150 |
+| match centre `/en/match/…0901` | 171.1 / 180 (lowered 2026-09-29, T-1040) | 77 / 76 / 300 |
+| competition `/en/competition/…0201` | 149.8 / 158 (lowered 2026-09-29, T-1040) | 29 / 39 / 150 |
 
-**The scores budget, raised 2026-09-29 (T-1004).** The route itself did
-not change. What grew is the chunk every route shares: `src/i18n/messages.ts`
-imports all eight catalogues, so each new catalogue key ships to the browser
-eight times (the English and seven locale entries). Phase 10's news strings
-(story types, the filters, the breaking strip) moved every route by about
-2 kB gzip, and scores, the heaviest page after the match centre, crossed
-230.3 against 230. Raised to 236, about the growth two more phases of strings
-would bring; loading only the viewer's locale's catalogue on the client is the
-fix that would give the bytes back.
+**The raises of 2026-09-29, and the fix that undid them (T-1040, D-138).**
+The scores budget was raised from 230 to 236 (T-1004), then home and
+competition from 220 to 226 and the match centre from 240 to 246 (#421), as
+stopgaps. None of the routes had changed: what grew was the chunk every route
+shared, because `src/i18n/messages.ts` imports all eight catalogues and two
+client components reached it -- the error pages through `Translated`, the
+language picker through `isShippable` -- so every page's first load carried
+every language, and each new catalogue key was paid for eight times.
 
-The same shared chunk then carried home and competition to 221.8 (budget 220)
-and the match centre to 242.5 (budget 240) once T-1001..T-1008 landed together
-(#421). Raised to 226, 226 and 246 on 2026-09-29 as a stopgap; the fix,
-sending the client only the viewer's locale, is T-1040, and it brings all
-four budgets back down.
+T-1040 keeps the catalogues on the server: a client component is handed
+messages already resolved for the reader's locale (D-138), and
+`src/i18n/client-catalogues.spec.ts` fails if a client module reaches a
+catalogue again. First-load JavaScript fell by about 72 kB gzip on every
+route (home 222.4 to 149.8 kB, scores 234.8 to 162.4, the match centre 243.5
+to 171.1, competition 222.4 to 149.8), and the four budgets were lowered to
+the new measurement plus about 5 % -- a smaller margin than the original 10 %,
+so that the next library a page gains is noticed, and no longer eaten by
+strings.
 
 **Running them locally.** After `pnpm exec turbo run build --filter=@fmip/web`:
 `pnpm --filter @fmip/web perf:bundle`. For the response budgets, start the

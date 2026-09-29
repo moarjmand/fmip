@@ -1,6 +1,11 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { ErrorPageBody, errorPageLocale } from './error-page';
+import { resolveMessages } from '../i18n/messages';
+import type { Locale } from '../i18n/locales';
+import { ERROR_PAGE_KEYS, ErrorPageBody, errorPageLocale } from './error-page';
+
+/** What the locale layout provides (T-1040). */
+const words = (locale: Locale) => resolveMessages(locale, ERROR_PAGE_KEYS);
 
 /**
  * The error pages' shared body (T-809). The document around it carries
@@ -25,7 +30,9 @@ describe('errorPageLocale', () => {
 
 describe('ErrorPageBody', () => {
   it('says a page is missing, with a way back in the same locale, and no retry', () => {
-    const html = renderToStaticMarkup(<ErrorPageBody locale="en" kind="not-found" />);
+    const html = renderToStaticMarkup(
+      <ErrorPageBody locale="en" kind="not-found" messages={words('en')} />,
+    );
     expect(html).toContain('Page not found');
     expect(html).toContain('href="/en/scores"');
     expect(html).not.toContain('error-retry');
@@ -33,17 +40,19 @@ describe('ErrorPageBody', () => {
 
   it('offers to try again only for a failure that was handed a retry', () => {
     const html = renderToStaticMarkup(
-      <ErrorPageBody locale="en" kind="failed" onRetry={() => undefined} />,
+      <ErrorPageBody locale="en" kind="failed" messages={words('en')} onRetry={() => undefined} />,
     );
     expect(html).toContain('This page could not be shown');
     expect(html).toContain('data-testid="error-retry"');
-    expect(renderToStaticMarkup(<ErrorPageBody locale="en" kind="failed" />)).not.toContain(
-      'error-retry',
-    );
+    expect(
+      renderToStaticMarkup(<ErrorPageBody locale="en" kind="failed" messages={words('en')} />),
+    ).not.toContain('error-retry');
   });
 
   it('marks English it falls back to on an untranslated locale', () => {
-    const html = renderToStaticMarkup(<ErrorPageBody locale="ar" kind="not-found" />);
+    const html = renderToStaticMarkup(
+      <ErrorPageBody locale="ar" kind="not-found" messages={words('ar')} />,
+    );
     expect(html).toContain('href="/ar/scores"');
     expect(html).toContain('lang="en"');
     expect(html).toContain('data-translation="untranslated"');
