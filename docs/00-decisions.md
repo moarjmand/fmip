@@ -6395,6 +6395,101 @@ would make its ground look usual for a club that reached two.
 
 ---
 
+## D-146 — The Power Index's competition context: a side's stake as a position, measured and not adopted
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26) · **Task:** T-1123 · **Follows:** D-142, D-143, D-144
+
+**The problem.** Blueprint 6.1 gives competition context 5% of the Power
+Index, and the live index has never measured it: the component is
+`not_supplied` and its weight redistributed. T-1120 (D-143) and T-1121 (D-144)
+now read league stakes and a tie's first leg; the plan asks whether either,
+as a position, earns the 5%.
+
+**The proposal, adopted for the league.** A side's stake is its *open
+places*: the number of rivals it can still finish level with or on either side
+of, a rival being closed when it is out of reach (`points(U) > points(T) + 3 *
+left(T)`) or `T` is out of its reach (`points(T) > points(U) + 3 * left(U)`).
+It equals the places the side can still move between its best and worst
+finish, and is zero exactly when the side is locked under D-143's rule. The
+component is that count's mid-rank percentile among the division's sides, so
+a locked side is lowest and every side sits at 0.5 until the table separates
+them. The table is from the season's results strictly before the match's day
+(D-038, deductions not stored); matches left from the season's stored list,
+read for sides and days only; a season whose list is not a complete double
+round robin gives no stake (rule 3: the weight is redistributed). Pure code:
+`seasonListOf`, `openPlaces` and `stakesBefore` in
+`apps/api/src/modules/forecast/internal/power-index-backtest.ts`, tested.
+
+**The cup half is not adopted.** A tie's state (D-144's first-leg goal
+difference) is a value of one match, not a position: there is no population
+of sides to rank it against without inventing one. And it cannot be validated:
+the backtest walks `training.match`, which holds no cup ties (football-data has
+no cups; our records' cup matches sit in `XL`, without rounds or legs, and
+among clubs of different leagues the index's percentiles do not apply). D-144's
+own verdict is pending the server run. A cup match's context stays absent.
+
+**Validated as T-1111 validated rest.** `power-index-backtest.mjs` measures the
+stake for every match and scores three candidates on the same split:
+`blueprint` (the published `power-index@1.1.0` arithmetic, context unmeasured:
+weight 0 and an absent component combine identically, so its numbers equal
+D-142's), `with-context` (context at the blueprint's 5%) and `context-heavy`
+(15%). Private local database (the copy of football-data.co.uk 2023/24 to
+2026/27 D-142 used, ten divisions), every division's whole stored history,
+half to fit and half to score:
+
+| Division | Matches walked | Both sides' stake read | With a locked side | blueprint | with-context | context-heavy | Context's contribution | Best overall, by |
+|---|---|---|---|---|---|---|---|---|
+| E0 | 1,130 | 1,080 | 19 | 1.0290 | 1.0284 | 1.0301 | +0.0007 | strength-heavy, 0.0011 |
+| SP1 | 1,149 | 1,080 | 29 | 1.0050 | 1.0074 | 1.0162 | -0.0024 | venue-heavy, 0.0092 |
+| D1 | 894 | 858 | 18 | 1.0268 | 1.0278 | 1.0332 | -0.0011 | equal, 0.0004 |
+| I1 | 1,130 | 1,080 | 23 | 0.9970 | 0.9969 | 0.9939 | +0.0000 | strength-heavy, 0.0035 |
+| F1 | 903 | 858 | 19 | 1.0116 | 1.0125 | 1.0132 | -0.0009 | strength-heavy, 0.0027 |
+| N1 | 921 | 858 | 17 | 0.9994 | 1.0009 | 1.0055 | -0.0014 | strength-heavy, 0.0050 |
+| P1 | 920 | 858 | 11 | 0.9688 | 0.9724 | 0.9860 | -0.0036 | without-rest, 0.0007 |
+| B1 | 938 | 0 (play-offs in the list) | 0 | 1.0400 | 1.0400 | 1.0400 | not read | venue-heavy, 0.0028 |
+| T1 | 1,022 | 968 | 19 | 1.0174 | 1.0176 | 1.0241 | -0.0001 | none (blueprint best) |
+| SC0 | 666 | 0 (the split) | 0 | 1.0140 | 1.0140 | 1.0140 | not read | strength-heavy, 0.0040 |
+
+(Held-out log loss; context's contribution is `blueprint` minus
+`with-context`, positive when context helped. The current season, 2026/27, is
+incomplete in the store and is never read.)
+
+**The verdict: keep `power-index@1.1.0`.** No context candidate clears the
+0.01 bar in any division; its contribution lies between -0.0036 and +0.0007,
+negative in six of eight, and the heavier weight is worse in seven. Most of
+a season every side's stake is the same (every rival still open), so the
+component sits at 0.5 and carries nothing; late in a season the stake
+separates sides, but a side with many open places is a mid-table side, not a
+motivated one, and the locked sides are about 2% of matches. The live
+component stays `not_supplied` with its weight redistributed, and a covered
+match's completeness stays at 95%, not 100% less travel: that acceptance line
+was conditional on a component worth adding.
+
+**The lead re-runs it on the server's full store** (from a checkout of main
+with its dependencies installed, against the server's Postgres, on
+`127.0.0.1:5432` there or through an SSH tunnel; the script only reads):
+
+```bash
+pnpm --filter @fmip/contracts build && pnpm --filter @fmip/ingestion build && pnpm --filter @fmip/api build
+set -a; . ./.env; set +a
+export DATABASE_URL="postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@127.0.0.1:5432/$POSTGRES_DB"
+for d in SP1 D1 I1 F1 N1 P1 B1 T1 SC0 E1 IR1 E0; do node apps/api/scripts/power-index-backtest.mjs --division "$d"; done
+```
+
+(E0 last, so `docs/12-power-index.md` keeps E0's table.) Each report's
+"Competition context" line gives the matches read and the contribution. If a
+context candidate clears 0.01 there, the live measurement is a new
+`power-index@1.2.0` with its own entry, never an edit of this one.
+
+**Rejected.** *Locked as a flag (0 or 1)*: the same reading with less of it,
+and a percentile of a flag puts nineteen sides in twenty at one value.
+*Zones (title, Europe, relegation)*: not stored (N-2). *The tie state as
+0/0.5/1 for trailing/level/leading*: a value with no distribution behind it,
+which the index's first rule refuses. *Shipping the component anyway because
+it is cheap*: an unvalidated term would change every stored index's
+arithmetic for no measured gain.
+
+---
+
 ## D-147 — Coach changes are read from stored line-ups by person id; a line-up naming no coach is a gap
 **Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26). T-1130's half; T-1131 adds the input's backtest verdict here.
 

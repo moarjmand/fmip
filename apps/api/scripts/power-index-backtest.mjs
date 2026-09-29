@@ -6,8 +6,9 @@
 // Walks a division's history in order. For every match it measures both teams
 // from **only the matches played before that day** -- rest and congestion from
 // the stored schedule (T-1111): every training.match row, clubs keyed through
-// training.team_alias, as the model's rest input reads it -- combines them under each
-// candidate weight set, and records the index gap against what happened. The
+// training.team_alias, as the model's rest input reads it -- and competition
+// context from the season's table and stored fixture list (T-1123, D-146),
+// combines them under each candidate weight set, and records the index gap against what happened. The
 // first half of those observations fits an ordered logistic; the second half,
 // which the fit never saw, scores the weights.
 //
@@ -64,7 +65,7 @@ const BRIDGE = `LEFT JOIN training.team_alias ah
                  ON aa.division = m.division AND aa.training_name = m.away_team`;
 
 const { rows } = await client.query(
-  `SELECT to_char(m.match_date, 'YYYY-MM-DD') AS date, m.home_team, m.away_team,
+  `SELECT to_char(m.match_date, 'YYYY-MM-DD') AS date, m.season, m.home_team, m.away_team,
           m.home_goals, m.away_goals, m.result, ${KEY('h')} AS home_key, ${KEY('a')} AS away_key
      FROM training.match m ${BRIDGE}
     WHERE m.division = $1
@@ -93,6 +94,7 @@ if (rows.length < WARMUP_MATCHES * 2) {
 
 const history = rows.map((row) => ({
   date: row.date,
+  season: row.season,
   homeKey: row.home_key,
   awayKey: row.away_key,
   home: row.home_team,
@@ -109,6 +111,44 @@ const history = rows.map((row) => ({
 const observations = new Map(backtest.CANDIDATE_WEIGHTS.map(({ name }) => [name, []]));
 let restMeasured = 0;
 
+// Competition context (T-1123, D-146): each season's stored list, read for
+// sides and days only (D-143), and each side's stake as a position among the
+// division's sides, from the season's results strictly before the match's day.
+// Computed once per (season, day). An incomplete list gives no stake.
+const seasonRows = new Map();
+for (const m of history) {
+  const list = seasonRows.get(m.season) ?? [];
+  list.push(m);
+  seasonRows.set(m.season, list);
+}
+const seasonLists = new Map(
+  [...seasonRows].map(([season, list]) => [season, backtest.seasonListOf(list)]),
+);
+const stakeCache = new Map();
+const stakesOn = (season, date) => {
+  const key = `${season}|${date}`;
+  if (!stakeCache.has(key)) {
+    stakeCache.set(
+      key,
+      backtest.stakesBefore(seasonLists.get(season), seasonRows.get(season) ?? [], date),
+    );
+  }
+  return stakeCache.get(key);
+};
+const contextOf = (stakes, team) => {
+  const stake = stakes?.get(team);
+  if (stake === undefined) {
+    return { value: null, note: "the season's stored list is not a complete double round robin" };
+  }
+  return {
+    value: stake.value,
+    state: 'limited',
+    note: `${stake.open} of ${stake.rivals} rivals still within reach either way`,
+  };
+};
+let contextMeasured = 0;
+let contextLocked = 0;
+
 for (let index = WARMUP_MATCHES; index < history.length; index += 1) {
   const match = history[index];
   const before = history.slice(0, index).filter((m) => m.date < match.date);
@@ -118,8 +158,22 @@ for (let index = WARMUP_MATCHES; index < history.length; index += 1) {
     restMeasured += 1;
   }
 
-  const home = measure({ trainingName: match.home, side: 'home', history: before, rest: homeRest });
-  const away = measure({ trainingName: match.away, side: 'away', history: before, rest: awayRest });
+  const stakes = stakesOn(match.season, match.date);
+  const homeContext = contextOf(stakes, match.home);
+  const awayContext = contextOf(stakes, match.away);
+  if (homeContext.value !== null && awayContext.value !== null) {
+    contextMeasured += 1;
+    if (stakes.get(match.home).open === 0 || stakes.get(match.away).open === 0) contextLocked += 1;
+  }
+
+  const home = {
+    ...measure({ trainingName: match.home, side: 'home', history: before, rest: homeRest }),
+    competition_context: homeContext,
+  };
+  const away = {
+    ...measure({ trainingName: match.away, side: 'away', history: before, rest: awayRest }),
+    competition_context: awayContext,
+  };
 
   for (const { name, weights } of backtest.CANDIDATE_WEIGHTS) {
     const h = combine(home, weights);
@@ -140,6 +194,13 @@ result.generatedAt = new Date().toISOString();
 result.season = `${history[0].date} to ${history[history.length - 1].date}`;
 result.warmupMatches = WARMUP_MATCHES;
 result.restMeasured = restMeasured;
+result.contextMeasured = contextMeasured;
+result.contextLocked = contextLocked;
+// Nothing read: the context candidates are the published arithmetic, and a
+// "+0.0000" would read as a measured absence of effect.
+if (contextMeasured === 0) result.contextContribution = null;
+result.completeSeasons = [...seasonLists].filter(([, list]) => list.complete).map(([s]) => s);
+result.incompleteSeasons = [...seasonLists].filter(([, list]) => !list.complete).map(([s]) => s);
 result.bridgedClubs = new Set(
   history.flatMap((m) => [m.homeKey, m.awayKey]).filter((key) => !key.startsWith(`${division}:`)),
 ).size;
@@ -160,6 +221,11 @@ const table = [
     (result.restContribution === null
       ? ''
       : ` Removing the rest component changes held-out log-loss by ${result.restContribution >= 0 ? '+' : ''}${result.restContribution.toFixed(4)} (positive: rest helped).`),
+  '',
+  `Competition context (T-1123) from the season's table and stored fixture list: both sides' stake was read for ${result.contextMeasured} of ${history.length - WARMUP_MATCHES} matches (${result.contextLocked} with a locked side); complete seasons: ${result.completeSeasons.join(', ') || 'none'}; not read (the list is not a complete double round robin): ${result.incompleteSeasons.join(', ') || 'none'}. \`blueprint\` is the published arithmetic, context unmeasured.` +
+    (result.contextContribution === null
+      ? ''
+      : ` Measuring it at 5% (\`with-context\`) changes held-out log-loss by ${result.contextContribution >= 0 ? '+' : ''}${result.contextContribution.toFixed(4)} (positive: context helped).`),
   '',
   '| Weights | Held-out log-loss | Fitted log-loss | Higher index won |',
   '|---|---|---|---|',

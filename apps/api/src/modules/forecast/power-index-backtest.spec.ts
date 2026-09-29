@@ -6,10 +6,13 @@ import {
   fit,
   fitConverged,
   logLoss,
+  openPlaces,
   probabilities,
   restBefore,
   scheduleOf,
   score,
+  seasonListOf,
+  stakesBefore,
   spread,
   type Observation,
 } from './internal/power-index-backtest';
@@ -213,5 +216,106 @@ describe("the rest component's contribution", () => {
     );
     expect(result.restContribution).not.toBeNull();
     expect(result.restContribution ?? 0).toBeGreaterThan(0);
+  });
+});
+
+describe("competition context: a side's stake as a position (T-1123)", () => {
+  // Three sides, a double round robin: four matches each.
+  const list = seasonListOf([
+    { home: 'a', away: 'b' },
+    { home: 'b', away: 'a' },
+    { home: 'a', away: 'c' },
+    { home: 'c', away: 'a' },
+    { home: 'b', away: 'c' },
+    { home: 'c', away: 'b' },
+  ]);
+
+  it('reads a complete double round robin, and nothing else', () => {
+    expect(list.complete).toBe(true);
+    expect(list.totals.get('a')).toBe(4);
+    const short = seasonListOf([
+      { home: 'a', away: 'b' },
+      { home: 'b', away: 'a' },
+      { home: 'a', away: 'c' },
+    ]);
+    expect(short.complete).toBe(false);
+    expect(stakesBefore(short, [], '2025-09-01')).toBeNull();
+    expect(stakesBefore(undefined, [], '2025-09-01')).toBeNull();
+  });
+
+  it('counts the rivals still within reach either way; a locked side has none', () => {
+    // a 12 points, 0 left; b 3 with 2 left; c 0 with 2 left.
+    const open = openPlaces(
+      new Map([
+        ['a', 12],
+        ['b', 3],
+        ['c', 0],
+      ]),
+      new Map([
+        ['a', 0],
+        ['b', 2],
+        ['c', 2],
+      ]),
+    );
+    expect(open.get('a')).toBe(0);
+    expect(open.get('b')).toBe(1);
+    expect(open.get('c')).toBe(1);
+  });
+
+  it('never locks a side that can still finish level', () => {
+    const open = openPlaces(
+      new Map([
+        ['a', 6],
+        ['b', 3],
+      ]),
+      new Map([
+        ['a', 0],
+        ['b', 1],
+      ]),
+    );
+    expect(open.get('a')).toBe(1);
+  });
+
+  it('puts every side at the middle before anything is settled', () => {
+    const stakes = stakesBefore(list, [], '2025-08-01');
+    expect([...(stakes?.values() ?? [])].map((s) => s.value)).toEqual([0.5, 0.5, 0.5]);
+  });
+
+  it('reads only results strictly before the day, and puts a locked side lowest', () => {
+    const results = [
+      { date: '2025-08-01', home: 'a', away: 'b', homeGoals: 2, awayGoals: 0 },
+      { date: '2025-08-08', home: 'a', away: 'c', homeGoals: 1, awayGoals: 0 },
+      { date: '2025-08-15', home: 'b', away: 'a', homeGoals: 0, awayGoals: 1 },
+      { date: '2025-08-22', home: 'c', away: 'a', homeGoals: 0, awayGoals: 3 },
+      { date: '2025-08-29', home: 'b', away: 'c', homeGoals: 1, awayGoals: 1 },
+    ];
+    // Before 08-29: a 12 with none left, b 0 and c 0 with two left each.
+    const stakes = stakesBefore(list, results, '2025-08-29');
+    expect(stakes?.get('a')).toMatchObject({ open: 0, rivals: 2 });
+    expect(stakes?.get('b')?.open).toBe(1);
+    expect(stakes?.get('a')?.value).toBeLessThan(stakes?.get('b')?.value ?? 0);
+    // The same day's draw is not yet in the table.
+    expect(stakesBefore(list, results, '2025-08-29')?.get('b')?.open).toBe(
+      stakesBefore(list, results.slice(0, 4), '2025-08-29')?.get('b')?.open,
+    );
+  });
+});
+
+describe("the context component's contribution", () => {
+  it('is what measuring it gains over the published arithmetic on held-out matches', () => {
+    const observations = signal(400);
+    const half = { train: observations.slice(0, 200), test: observations.slice(200) };
+    const worse = {
+      train: half.train,
+      test: half.test.map((o) => ({ ...o, difference: -o.difference })),
+    };
+    const result = score(
+      'E0',
+      new Map([
+        ['blueprint', worse],
+        ['with-context', half],
+      ]),
+    );
+    expect(result.contextContribution ?? 0).toBeGreaterThan(0);
   });
 });

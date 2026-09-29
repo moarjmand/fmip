@@ -1,0 +1,146 @@
+{
+  "division": "F1",
+  "matches": 897,
+  "trainSize": 448,
+  "testSize": 449,
+  "baseRateLogLoss": 1.058620340581632,
+  "candidates": [
+    {
+      "name": "blueprint",
+      "trainLogLoss": 1.006059237345369,
+      "testLogLoss": 1.011580595803012,
+      "decisiveAccuracy": 0.6264367816091954,
+      "converged": true,
+      "fit": {
+        "scale": 33.40426401130108,
+        "beta": 0.7099919524103377,
+        "lower": -0.7262580843710339,
+        "upper": 0.35976787939655497
+      }
+    },
+    {
+      "name": "strength-heavy",
+      "trainLogLoss": 1.0044702343646634,
+      "testLogLoss": 1.0088868012597776,
+      "decisiveAccuracy": 0.6379310344827587,
+      "converged": true,
+      "fit": {
+        "scale": 34.46609817977104,
+        "beta": 0.7211868410477713,
+        "lower": -0.7262031232917906,
+        "upper": 0.36290063505943737
+      }
+    },
+    {
+      "name": "form-heavy",
+      "trainLogLoss": 1.0109038581870744,
+      "testLogLoss": 1.0253579127842414,
+      "decisiveAccuracy": 0.6235632183908046,
+      "converged": true,
+      "fit": {
+        "scale": 33.27824836852848,
+        "beta": 0.6771854268968198,
+        "lower": -0.7211243591731972,
+        "upper": 0.35604517923331047
+      }
+    },
+    {
+      "name": "venue-heavy",
+      "trainLogLoss": 1.004586447861586,
+      "testLogLoss": 1.014460426119508,
+      "decisiveAccuracy": 0.6264367816091954,
+      "converged": true,
+      "fit": {
+        "scale": 33.64433009493802,
+        "beta": 0.7198499629977313,
+        "lower": -0.7197755659347657,
+        "upper": 0.3694514511010546
+      }
+    },
+    {
+      "name": "without-rest",
+      "trainLogLoss": 1.0050430567918849,
+      "testLogLoss": 1.0123593515705605,
+      "decisiveAccuracy": 0.6235632183908046,
+      "converged": true,
+      "fit": {
+        "scale": 35.8414183514703,
+        "beta": 0.7162024779903682,
+        "lower": -0.7287060086289984,
+        "upper": 0.35929497006441624
+      }
+    },
+    {
+      "name": "rest-heavy",
+      "trainLogLoss": 1.0084506521843066,
+      "testLogLoss": 1.0106514017251682,
+      "decisiveAccuracy": 0.6350574712643678,
+      "converged": true,
+      "fit": {
+        "scale": 29.602953247160663,
+        "beta": 0.6955824164268094,
+        "lower": -0.7209218787314505,
+        "upper": 0.36044044479326376
+      }
+    },
+    {
+      "name": "with-context",
+      "trainLogLoss": 1.0045532447115706,
+      "testLogLoss": 1.0125302797481681,
+      "decisiveAccuracy": 0.6285714285714286,
+      "converged": true,
+      "fit": {
+        "scale": 31.145350837522738,
+        "beta": 0.7163715610352668,
+        "lower": -0.722853901656206,
+        "upper": 0.36002007055784235
+      }
+    },
+    {
+      "name": "context-heavy",
+      "trainLogLoss": 1.0055834560418446,
+      "testLogLoss": 1.0132191741682257,
+      "decisiveAccuracy": 0.6257142857142857,
+      "converged": true,
+      "fit": {
+        "scale": 27.632177238786383,
+        "beta": 0.7105602429733899,
+        "lower": -0.7235155265648437,
+        "upper": 0.3573509883865619
+      }
+    },
+    {
+      "name": "equal",
+      "trainLogLoss": 1.010943292852415,
+      "testLogLoss": 1.0156398512678981,
+      "decisiveAccuracy": 0.6350574712643678,
+      "converged": true,
+      "fit": {
+        "scale": 26.913003895575926,
+        "beta": 0.6799073791959316,
+        "lower": -0.711995861669967,
+        "upper": 0.36483076058861885
+      }
+    }
+  ],
+  "best": "strength-heavy",
+  "margin": 0.0026937945432343735,
+  "restContribution": 0.0007787557675484891,
+  "contextContribution": -0.0009496839451561545,
+  "verdict": "Keep the published weights. The best alternative (strength-heavy) improves held-out log-loss by 0.0027, below the 0.01 that would be a finding rather than noise at this sample size.",
+  "generatedAt": "2026-09-29T14:35:20.072Z",
+  "season": "2023-08-11 to 2026-09-20",
+  "warmupMatches": 60,
+  "restMeasured": 897,
+  "contextMeasured": 858,
+  "contextLocked": 19,
+  "completeSeasons": [
+    "2023/24",
+    "2024/25",
+    "2025/26"
+  ],
+  "incompleteSeasons": [
+    "2026/27"
+  ],
+  "bridgedClubs": 0
+}
