@@ -4,6 +4,7 @@ import type {
   ForecastKind,
   ForecastVersion,
   ForecastListEntry,
+  ForecastSummaryEntry,
   ForecastVersionsResponse,
   ModelEloSource,
   ModelForecastRequest,
@@ -257,6 +258,18 @@ export class ForecastService {
     if (fixtureIds.length === 0) return [];
     const latest = await this.store.latestForFixtures(fixtureIds);
     return fixtureIds.map((id) => ({ fixture_id: id, latest: latest.get(id) ?? null }));
+  }
+
+  /**
+   * The latest version computed before kick-off, as a summary, for several
+   * fixtures in the order asked (T-940, D-114): what the scores card shows.
+   * `pre_kickoff` null means the model was not asked, or answered only after
+   * the match began.
+   */
+  async preKickoffFor(fixtureIds: string[]): Promise<ForecastSummaryEntry[]> {
+    if (fixtureIds.length === 0) return [];
+    const summaries = await this.store.preKickoffSummaries(fixtureIds);
+    return fixtureIds.map((id) => ({ fixture_id: id, pre_kickoff: summaries.get(id) ?? null }));
   }
 }
 

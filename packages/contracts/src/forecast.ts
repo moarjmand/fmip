@@ -272,3 +272,40 @@ export interface ForecastListResponse {
 
 /** How many fixtures one request may ask about. */
 export const MAX_FORECAST_FIXTURES = 50;
+
+/**
+ * `GET /forecasts/pre-kickoff?fixtures=<id>,<id>` — what the scores card
+ * summarises (T-940, D-114).
+ *
+ * The latest published version **computed before kick-off**, for several
+ * fixtures at once. Before a match that is simply the latest version; once it
+ * has started, a version recomputed during or after it is not the forecast the
+ * match was played against, so the card keeps showing the one that was (the
+ * same line the evaluation draws, `pre_kickoff`, T-066).
+ *
+ * A summary, not a version: the probabilities and what a reader needs to know
+ * whose they are and when they were made. The inputs, factors and scorelines
+ * stay on the match centre, so a Saturday of fifty matches is a small answer.
+ */
+export interface ForecastSummary {
+  version_number: number;
+  kind: ForecastKind;
+  /** name@semver, as the model reported it. */
+  model_version: string;
+  computed_at: string;
+  status: 'available' | 'unavailable';
+  /** Present when available. The three total exactly 1 at four decimals. */
+  probabilities: ModelProbabilities | null;
+  /** Present when unavailable. */
+  unavailable_reason: ForecastUnavailableReason | null;
+}
+
+export interface ForecastSummaryEntry {
+  fixture_id: string;
+  /** Null when no version was computed before kick-off: the card says so. */
+  pre_kickoff: ForecastSummary | null;
+}
+
+export interface ForecastSummaryListResponse {
+  fixtures: ForecastSummaryEntry[];
+}
