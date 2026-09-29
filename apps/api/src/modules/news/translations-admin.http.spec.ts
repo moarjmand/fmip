@@ -28,6 +28,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('article tran
   let app: NestFastifyApplication;
   let pool: Pool;
   const sources: string[] = [];
+  const sourceByRights = new Map<string, string>();
+  let articleCount = 0;
   let storyId = '';
   let articleId = '';
   let headlineOnlyArticle = '';
@@ -90,26 +92,36 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('article tran
 
   async function article(
     rights: 'summary' | 'headline',
+    publishedAt = '2026-09-18T10:00:00Z',
   ): Promise<{ story: string; article: string }> {
-    const src = await pool.query<{ id: string }>(
-      `INSERT INTO news_source (name, homepage_url, feed_url, kind, rights, language)
-       VALUES ($1, 'https://scripted.test', $2, 'rss', $3, 'en') RETURNING id`,
-      [`Translated ${rights} ${RUN}`, `https://scripted.test/${rights}-${RUN}.xml`, rights],
-    );
-    sources.push(src.rows[0]!.id);
+    // One source per rights kind for the whole file: every active source is
+    // one more feed the ingestion spec beside this one would try to read.
+    let sourceId = sourceByRights.get(rights);
+    if (sourceId === undefined) {
+      const src = await pool.query<{ id: string }>(
+        `INSERT INTO news_source (name, homepage_url, feed_url, kind, rights, language)
+         VALUES ($1, 'https://scripted.test', $2, 'rss', $3, 'en') RETURNING id`,
+        [`Translated ${rights} ${RUN}`, `https://scripted.test/${rights}-${RUN}.xml`, rights],
+      );
+      sourceId = src.rows[0]!.id;
+      sourceByRights.set(rights, sourceId);
+      sources.push(sourceId);
+    }
+    articleCount += 1;
     const st = await pool.query<{ id: string }>(`INSERT INTO story DEFAULT VALUES RETURNING id`);
     const art = await pool.query<{ id: string }>(
       `INSERT INTO article (source_id, story_id, external_id, url)
        VALUES ($1, $2, $3, 'https://scripted.test/derby') RETURNING id`,
-      [src.rows[0]!.id, st.rows[0]!.id, `derby-${rights}-${RUN}`],
+      [sourceId, st.rows[0]!.id, `derby-${rights}-${RUN}-${articleCount}`],
     );
     await pool.query(
       `INSERT INTO article_version (article_id, language, version_number, headline, summary, published_at)
-       VALUES ($1, 'en', 1, $2, $3, '2026-09-18T10:00:00Z')`,
+       VALUES ($1, 'en', 1, $2, $3, $4)`,
       [
         art.rows[0]!.id,
         `Derby settled late ${RUN}`,
         rights === 'summary' ? 'A late header settled it.' : null,
+        publishedAt,
       ],
     );
     await pool.query(`UPDATE story SET promoted_article_id = $2 WHERE id = $1`, [
@@ -399,30 +411,31 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('article tran
     it('fails a linked team not written as its localised name, and passes it once it is', async () => {
       const { article: id, team, teamName } = await scored();
       // A stand-in for a localised name a person recorded (T-303): the test
-      // writes a marker, never a word in another language.
+      // writes a marker, never a word in another language. A regional tag
+      // nothing else in the suite names, so no other spec holds that name row.
       // No digits in it: the numbers check would rightly count them.
       const localised = `Localised${RUN.replace(/[0-9]/g, 'x')}`;
       await pool.query(
         `INSERT INTO entity_alias (entity_type, entity_id, alias, language, kind, source)
-         VALUES ('team', $1, $2, 'it', 'name', $3)`,
+         VALUES ('team', $1, $2, 'es-MX', 'name', $3)`,
         [team, localised, `t1012-${RUN}`],
       );
       await translate(`tl_${RUN}a`, id, {
-        language: 'it',
-        headline: `${teamName} 2-1 il 12 maggio`,
-        summary: 'Un colpo di testa.',
+        language: 'es-MX',
+        headline: `${teamName} 2-1 el 12 de mayo`,
+        summary: 'Un cabezazo.',
       });
-      const refused = await review(`tl_${RUN}b`, id, 'it');
+      const refused = await review(`tl_${RUN}b`, id, 'es-MX');
       expect(refused.statusCode).toBe(400);
       expect(Object.keys(refused.json<{ fields: Record<string, string> }>().fields)).toEqual([
         'headline.names',
       ]);
       await translate(`tl_${RUN}a`, id, {
-        language: 'it',
-        headline: `${localised} 2-1 il 12 maggio`,
-        summary: 'Un colpo di testa.',
+        language: 'es-MX',
+        headline: `${localised} 2-1 el 12 de mayo`,
+        summary: 'Un cabezazo.',
       });
-      const passed = await review(`tl_${RUN}b`, id, 'it');
+      const passed = await review(`tl_${RUN}b`, id, 'es-MX');
       expect(passed.statusCode).toBe(204);
     });
 
@@ -463,7 +476,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('article tran
     });
 
     it('queues an article from to-translate, to awaiting review, to reviewed', async () => {
-      const made = await article('summary');
+      // Published in the future, so it heads the newest-first queue whatever
+      // other specs running beside this one have just written.
+      const made = await article('summary', new Date(Date.now() + 3_600_000).toISOString());
       checked.push(made.article);
       await pool.query(
         `INSERT INTO article_version (article_id, language, version_number, headline, summary, published_at)
