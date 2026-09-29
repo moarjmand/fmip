@@ -1,4 +1,5 @@
 import type { SeasonFixture } from '@fmip/contracts';
+import { LEAGUE_ZONE_KINDS } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
 import {
   competitionQuery,
@@ -9,6 +10,10 @@ import {
   readMinMinutesParam,
   readSeasonParam,
   seasonHref,
+  ZONE_LABEL,
+  ZONE_MARK,
+  zoneBand,
+  zonesAbsentLine,
 } from './competition';
 
 const ID = '00000000-0000-4000-8000-000000000302';
@@ -83,5 +88,24 @@ describe('labels', () => {
     expect(formatFixtureDate('es', '2025-09-01T15:00:00.000Z', 'Asia/Tehran')).toMatch(
       /^lun.*sept?.*18:30$/,
     );
+  });
+});
+
+describe('league zones (T-1167)', () => {
+  it('names and marks every kind, with a token colour class', () => {
+    for (const kind of LEAGUE_ZONE_KINDS) {
+      expect(ZONE_LABEL[kind]).toBeTruthy();
+      expect(ZONE_MARK[kind]).toMatch(/^border-s-(accent|strong|warning|danger)$/);
+    }
+  });
+  it('reads a band', () => {
+    expect(zoneBand({ kind: 'relegation', from: 18, to: 20 })).toBe('18–20');
+    expect(zoneBand({ kind: 'relegation_playoff', from: 16, to: 16 })).toBe('16');
+  });
+  it('says why a league shows none, and says nothing for a cup', () => {
+    expect(zonesAbsentLine({ state: 'not_listed', reason: 'season_not_listed' })).toMatch(
+      /not listed/,
+    );
+    expect(zonesAbsentLine({ state: 'not_listed', reason: 'not_a_league' })).toBeNull();
   });
 });

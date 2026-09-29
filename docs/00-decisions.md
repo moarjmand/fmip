@@ -7145,6 +7145,70 @@ and its stakes stay zone-free with the reason (rule 3). The tables show the
 places where listed; whether stakes read them is a new input judged by
 D-139's bar.
 
+**Implementation (T-1167, 2026-09-30).**
+
+- **The file** is `packages/contracts/zones/league-zones.json`, read by the
+  API as `@fmip/contracts/zones/league-zones.json` and by the model service
+  (`fmip_model/inputs/_zones.py`; the image carries a copy in its working
+  directory). An entry is keyed by the competition's training division
+  (`competition.football_data_division`: E0, SP1, IR1 -- our code, not a name
+  or a provider id) and the season's label (`2025/26`), and carries the club
+  count, the zones as bands of places, `complete`, its `sources` (https, one
+  or more per entry: the season's published table legend and UEFA's, AFC's or
+  the league's own page) and a `note` for what a reader should know.
+  `leagueZoneProblems` (contracts) refuses a place past the club count,
+  overlapping bands and a source that is not https; its test runs over the
+  committed file, and the model's loader refuses the same.
+- **What is listed: only places a league position earns by itself and the
+  regulations fix before the season.** Kinds: `champions_league` (any round),
+  `afc_champions_league_elite`, `promotion`, `promotion_playoff`,
+  `relegation_playoff`, `relegation`. **Not listed**: Europa League and
+  Conference League places (and AFC Champions League Two), because who takes
+  them depends on the domestic cups; UEFA's European Performance Spot, decided
+  during the season (the entry's note says when fifth place took one). So the
+  zones never carry what was decided after a match was played, which the
+  backtest needs.
+- **`complete: false`** when a season's continental places are not published:
+  UEFA's 2027/28 access list (the next cycle) is not out, so the 2026/27
+  entries list relegation and promotion only and say so; the table shows what
+  is listed and the sentence that the rest is not.
+- **The first list (26 entries, researched 2026-09-30, each fact from two
+  sources where one was found):** E0, SP1, I1, D1, N1, P1 for 2024/25 to
+  2026/27 (2026/27 without continental places); E1 2024/25 to 2026/27 (the
+  play-offs grow to third to eighth in 2026/27); F1 and T1 2024/25 and
+  2025/26; IR1 2024/25. **Left out (rule 3, no zones shown):** B1 and SC0 (a
+  play-off or a split: the final order is not one table's), F1 2026/27 (its
+  published legend disagreed on the play-off places), T1 2026/27 (one source
+  only), IR1 2025/26 (abandoned in March 2026; the table at suspension
+  decided the AFC places and was never completed) and IR1 2026/27 (the AFC
+  gives Iran three places but the federation's allocation is not published),
+  and every season before 2024/25. Point deductions are not stored (D-038),
+  so where a season had them the entry's note says the table's order can
+  differ from the official one.
+- **The page.** `GET /competitions/:id` carries `zones`: `listed` (bands,
+  sources, `complete`, note) or `not_listed` with the reason (`not_a_league`,
+  `no_division`, `season_not_listed`). The table marks each place in a zone
+  on its start edge (token colours, the zone named for a screen reader) with a
+  legend below it naming the bands and linking the sources.
+- **The stakes.** A new input, `league_stakes_zones`
+  (`fmip_model/inputs/league_stakes_zones.py`), beside D-143's unchanged
+  `league_stakes`: a side is **settled** when its best and worst possible
+  finish (a level finish counted against it) fall in one band -- the
+  champion's place, a listed zone, or a run of places between zones. Read
+  only for a season with a `complete` entry whose club count equals the
+  stored fixture list's, and otherwise as D-143 (a complete double round
+  robin, no missing earlier result). Judged by D-139's bar and carried by no
+  candidate until it passes and T-1150 takes it. **Its verdict is not yet
+  run**: the lead's server run, from `/opt/fmip` after the model image is
+  rebuilt,
+
+  ```bash
+  DIVS=$(docker compose exec -T postgres psql -U fmip -d fmip -Atc "SELECT string_agg(DISTINCT division, ' ') FROM training.match WHERE division <> 'XL'")
+  docker compose run --rm -T model sh -c "python -m fmip_model.backtest.inputs --input league_stakes_zones --divisions $DIVS --from 2024-08-01 --to 2026-06-30 --history-from 2023-07-01 --out /tmp/reports --note server && cat /tmp/reports/*/inputs_league_stakes_zones_*.md"
+  ```
+
+  and the verdict is recorded here with its numbers, passed or not.
+
 ## D-172 — Territory settings: viewing coverage and language holds; nothing is proposed from a territory
 **Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers:** N-3 in `04-tasks-phase-11.md` · **Follows:** T-312, T-313, D-155
 

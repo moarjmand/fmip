@@ -368,6 +368,36 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
     expect(page.results).toHaveLength(1);
   });
 
+  it('marks the zones from the committed list only, and says why there are none (T-1167)', async () => {
+    const get = async (season?: string) =>
+      (
+        await app.inject({
+          method: 'GET',
+          url: `/competitions/${COMPETITION}${season === undefined ? '' : `?season=${season}`}`,
+        })
+      ).json() as CompetitionPage;
+    // No division: the list has no key for the competition (rule 3).
+    expect((await get()).zones).toEqual({ state: 'not_listed', reason: 'no_division' });
+    await pool.query(`UPDATE competition SET football_data_division = 'E0' WHERE id = $1`, [
+      COMPETITION,
+    ]);
+    try {
+      const listed = (await get()).zones;
+      expect(listed).toMatchObject({ state: 'listed', teams: 20, complete: true });
+      if (listed.state !== 'listed') throw new Error('unreachable');
+      expect(listed.zones).toContainEqual({ kind: 'relegation', from: 18, to: 20 });
+      expect(listed.sources.every((s) => s.startsWith('https://'))).toBe(true);
+      await pool.query(`UPDATE competition SET football_data_division = 'D9' WHERE id = $1`, [
+        COMPETITION,
+      ]);
+      expect((await get()).zones).toEqual({ state: 'not_listed', reason: 'season_not_listed' });
+    } finally {
+      await pool.query(`UPDATE competition SET football_data_division = NULL WHERE id = $1`, [
+        COMPETITION,
+      ]);
+    }
+  });
+
   it('answers 404 for an unknown competition or a season that is not its own', async () => {
     expect(
       (await app.inject({ method: 'GET', url: `/competitions/${randomUUID()}` })).statusCode,

@@ -6,6 +6,7 @@ import type {
   CountrySummary,
   Covered,
   FollowSuggestionsResponse,
+  LeagueZoneEntry,
   PlayerPage,
   SeasonSummary,
   SuggestedCompetition,
@@ -16,7 +17,12 @@ import type {
   TeamPage,
   TeamSummary,
 } from '@fmip/contracts';
-import { LEADERS_MINUTES_PRESETS, SUGGESTED_TEAMS_PER_COMPETITION } from '@fmip/contracts';
+import {
+  LEADERS_MINUTES_PRESETS,
+  SUGGESTED_TEAMS_PER_COMPETITION,
+  leagueZonesFor,
+} from '@fmip/contracts';
+import leagueZoneList from '@fmip/contracts/zones/league-zones.json';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../database/database.module';
 import { derived } from '../fixtures/fixtures.service';
@@ -188,16 +194,25 @@ export class CatalogService {
     const knockout = playsKnockoutBracket(competition);
     // Under a minutes floor every scorer is read, since the first ten by
     // goals may not be the first ten that reached it (T-824).
-    const [stages, { fixtures, lastUpdatedAt }, coverage, table, scorers, boards, bracketFixtures] =
-      await Promise.all([
-        this.competitions_.stages(selected.id),
-        this.competitions_.fixtures(selected.id),
-        this.competitions_.coverage(selected.id),
-        this.standings.table(selected.id),
-        this.standings.leaders(selected.id, minMinutes === null ? LEADERS_LIMIT : null),
-        this.standings.boards(selected.id),
-        knockout ? this.competitions_.bracketFixtures(selected.id) : Promise.resolve(null),
-      ]);
+    const [
+      stages,
+      { fixtures, lastUpdatedAt },
+      coverage,
+      table,
+      scorers,
+      boards,
+      bracketFixtures,
+      division,
+    ] = await Promise.all([
+      this.competitions_.stages(selected.id),
+      this.competitions_.fixtures(selected.id),
+      this.competitions_.coverage(selected.id),
+      this.standings.table(selected.id),
+      this.standings.leaders(selected.id, minMinutes === null ? LEADERS_LIMIT : null),
+      this.standings.boards(selected.id),
+      knockout ? this.competitions_.bracketFixtures(selected.id) : Promise.resolve(null),
+      this.competitions_.division(id),
+    ]);
     // The boards beyond goals (T-943) are read whole, so their minutes are
     // read only for the rows each board can show without a floor.
     const shown = <T extends { person: { id: string } }>(rows: T[] | null) =>
@@ -233,6 +248,12 @@ export class CatalogService {
         seasons,
         season: { ...selected, stages },
         table,
+        // T-1167 (D-171): the committed list, never the feed's standings.
+        zones: leagueZonesFor(
+          leagueZoneList as LeagueZoneEntry[],
+          { kind: competition.kind, division },
+          selected.label,
+        ),
         results,
         fixtures: upcoming,
         leaders: leadersModule(scorers, filtered),

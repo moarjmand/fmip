@@ -6,8 +6,10 @@ import type {
   CardLeader,
   CleanSheetLeader,
   Covered,
+  LeagueZones,
   SeasonFixture,
 } from '@fmip/contracts';
+import { zoneOfPlace } from '@fmip/contracts';
 import { FounderAnalysisFeed } from '@/components/founder-analysis';
 import { KnockoutBracket } from '@/components/knockout-bracket';
 import { EntityNews } from '@/components/related-news';
@@ -24,6 +26,10 @@ import {
   readMinMinutesParam,
   readSeasonParam,
   seasonHref,
+  ZONE_LABEL,
+  ZONE_MARK,
+  zoneBand,
+  zonesAbsentLine,
 } from '@/lib/competition';
 import { moduleState } from '@/lib/match';
 import { competitionJsonLd, pageMetadata } from '@/lib/seo';
@@ -173,7 +179,7 @@ export default async function CompetitionPage({
               <tbody>
                 {rows.map((row) => (
                   <tr key={row.team.id} className="border-b border-default" data-testid="table-row">
-                    <td className="py-1 pe-2 tabular-nums">{row.position}</td>
+                    <PlaceCell position={row.position} zones={page.zones} />
                     <td className="py-1 pe-2">
                       <Link href={`/${locale}/team/${row.team.id}`} className="underline">
                         {row.team.name}
@@ -198,6 +204,7 @@ export default async function CompetitionPage({
                 ))}
               </tbody>
             </table>
+            <ZoneLegend zones={page.zones} />
           </div>
         )}
       </Module>
@@ -547,5 +554,62 @@ function FixtureList({
         </li>
       ))}
     </ul>
+  );
+}
+
+/**
+ * The place, with its zone's start-edge mark and its name for a screen
+ * reader (T-1167, D-171). A place in no zone, or a season with none listed,
+ * keeps a blank edge of the same width so the numbers stay in line.
+ */
+function PlaceCell({ position, zones }: { position: number; zones: LeagueZones }) {
+  const zone = zones.state === 'listed' ? zoneOfPlace(zones.zones, position) : null;
+  return (
+    <td
+      className={`border-s-4 py-1 ps-1 pe-2 tabular-nums ${zone === null ? 'border-s-transparent' : ZONE_MARK[zone.kind]}`}
+      data-zone={zone?.kind}
+    >
+      {position}
+      {zone !== null && <span className="sr-only"> ({ZONE_LABEL[zone.kind]})</span>}
+    </td>
+  );
+}
+
+/** What the marks mean, where they come from, and what is not listed (rule 3). */
+function ZoneLegend({ zones }: { zones: LeagueZones }) {
+  const absent = zonesAbsentLine(zones);
+  if (zones.state !== 'listed') {
+    return absent === null ? null : (
+      <p className="mt-2 text-xs text-muted" data-testid="table-zones-absent">
+        {absent}
+      </p>
+    );
+  }
+  return (
+    <div className="mt-2 flex flex-col gap-1 text-xs text-muted" data-testid="table-zones">
+      <ul className="flex flex-wrap gap-x-4 gap-y-1">
+        {zones.zones.map((z) => (
+          <li key={`${z.kind}-${z.from}`} className={`border-s-4 ps-2 ${ZONE_MARK[z.kind]}`}>
+            {ZONE_LABEL[z.kind]}: {zoneBand(z)}
+          </li>
+        ))}
+      </ul>
+      <p>
+        Places a league position earns by itself, from the published regulations
+        {zones.sources.map((url, i) => (
+          <span key={url}>
+            {i === 0 ? ' (' : ', '}
+            <a href={url} className="underline" rel="noopener noreferrer">
+              source {i + 1}
+            </a>
+            {i === zones.sources.length - 1 ? ')' : ''}
+          </span>
+        ))}
+        . Cup winners change who takes the Europa and Conference League places, so they are not
+        marked.
+        {zones.complete ? '' : ' The continental places for this season are not published yet.'}
+      </p>
+      {zones.note !== null && <p>{zones.note}</p>}
+    </div>
   );
 }
