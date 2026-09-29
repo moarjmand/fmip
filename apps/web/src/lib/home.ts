@@ -1,10 +1,15 @@
-import type {
-  ForecastListEntry,
-  ModelProbabilities,
-  ScoreCard,
-  ScoresResponse,
+import {
+  PANEL_LATEST_BATCH,
+  type ForecastListEntry,
+  type MatchViewing,
+  type ModelProbabilities,
+  type PanelLatest,
+  type ScoreCard,
+  type ScoresResponse,
 } from '@fmip/contracts';
 import { percentages } from './forecast';
+import { dateIn } from './scores';
+import { type CardViewing, cardViewing } from './score-card-products';
 
 /**
  * What the homepage shows (blueprint 2.3, T-526), chosen from answers the
@@ -96,4 +101,54 @@ export function shortDay(iso: string, timeZone: string): string {
   return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone }).format(
     new Date(iso),
   );
+}
+
+// ---------------------------------------------------------------------------
+// The member's homepage (T-942, D-115)
+// ---------------------------------------------------------------------------
+
+/** How many of today's panels the homepage shows posts from. */
+export const HOME_PANELS = 3;
+
+/**
+ * Today's matches in the reader's zone, for "on today's panels": every match
+ * of the scores answer that kicks off on `today`, whatever its state, at most
+ * one panel batch. Pinned first, as the scores answer orders them.
+ */
+export function todayFixtureIds(scores: ScoresResponse, today: string, timeZone: string): string[] {
+  const ids = [...scores.pinned, ...scores.groups.flatMap((group) => group.fixtures)]
+    .filter((card) => dateIn(timeZone, new Date(card.kickoff_at)) === today)
+    .map((card) => card.id);
+  return [...new Set(ids)].slice(0, PANEL_LATEST_BATCH);
+}
+
+/**
+ * The panels worth a line on the homepage: those with a post that stands,
+ * the most recently written-on first. A panel with nothing in it is not
+ * listed; the section says once that nothing was posted.
+ */
+export function homePanels(panels: PanelLatest[], limit = HOME_PANELS): PanelLatest[] {
+  return panels
+    .filter((panel) => panel.posts.length > 0)
+    .sort((a, b) => (b.posts[0]?.created_at ?? '').localeCompare(a.posts[0]?.created_at ?? ''))
+    .slice(0, limit);
+}
+
+/**
+ * Where each listed match can be watched, for a member (T-942): the scores
+ * card's line per match (D-114), or -- when no territory is chosen, which is
+ * true of every match at once -- a single `ask` instead of the same question
+ * on every line. `null` means the viewing answer could not be had.
+ */
+export type HomeViewing =
+  | { state: 'ask' }
+  | { state: 'unreachable' }
+  | { state: 'lines'; byFixture: Map<string, CardViewing> };
+
+export function homeViewing(cards: ScoreCard[], viewing: MatchViewing[] | null): HomeViewing {
+  if (viewing === null) return { state: 'unreachable' };
+  const byId = new Map(viewing.map((entry) => [entry.fixture_id, entry]));
+  const lines = new Map(cards.map((card) => [card.id, cardViewing(byId.get(card.id))]));
+  if ([...lines.values()].every((line) => line.state === 'ask')) return { state: 'ask' };
+  return { state: 'lines', byFixture: lines };
 }

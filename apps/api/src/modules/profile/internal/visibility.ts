@@ -39,6 +39,11 @@ export function canView(
  */
 export interface FriendshipOracle {
   areFriends(a: string, b: string): Promise<boolean>;
+  /**
+   * Every accepted friend of `viewerId`, in one query, so a question about
+   * many members asks once and not once per member (T-942).
+   */
+  friendIds(viewerId: string): Promise<string[]>;
 }
 
 export const FRIENDSHIP_ORACLE = Symbol('FRIENDSHIP_ORACLE');

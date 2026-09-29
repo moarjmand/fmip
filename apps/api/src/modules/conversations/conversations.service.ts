@@ -8,6 +8,8 @@ import {
   type ConversationPage,
   type ConversationSummary,
   type FixtureCard,
+  GROUP_DISCUSSIONS_HOURS,
+  GROUP_DISCUSSIONS_LIMIT,
   MAX_MESSAGE_LENGTH,
   MESSAGE_PAGE_SIZE,
   MIN_SEARCH_TERM,
@@ -246,7 +248,33 @@ export class ConversationsService {
   }
 
   async list(viewerId: string): Promise<ConversationSummary[]> {
-    const rows = await this.store.conversationsFor(viewerId);
+    return this.summarise(await this.store.conversationsFor(viewerId), viewerId);
+  }
+
+  /**
+   * The viewer's active group discussions for the homepage (blueprint 2.3,
+   * T-942, D-115): group conversations and match threads with a message in the
+   * last `GROUP_DISCUSSIONS_HOURS`, newest first, muted ones left out. The same
+   * summaries as `list`, built the same way -- a batch per answer, never a
+   * query per conversation.
+   */
+  async activeGroupDiscussions(
+    viewerId: string,
+    now: Date = new Date(),
+  ): Promise<{ discussions: ConversationSummary[]; since: Date }> {
+    const since = new Date(now.getTime() - GROUP_DISCUSSIONS_HOURS * 3_600_000);
+    const rows = await this.store.activeGroupConversationsFor(
+      viewerId,
+      since,
+      GROUP_DISCUSSIONS_LIMIT,
+    );
+    return { discussions: await this.summarise(rows, viewerId), since };
+  }
+
+  private async summarise(
+    rows: ConversationRow[],
+    viewerId: string,
+  ): Promise<ConversationSummary[]> {
     const ids = rows.map((row) => row.id);
     const [participants, latest] = await Promise.all([
       this.store.participantsOf(ids),

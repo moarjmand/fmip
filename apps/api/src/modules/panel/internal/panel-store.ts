@@ -117,6 +117,68 @@ export class PostgresPanelStore {
   }
 
   /**
+   * The newest `perFixture` posts that still stand on each of `fixtureIds`'
+   * panels, newest first, with every panel's state and total (T-942). Three
+   * queries for the whole list, never one per match.
+   */
+  async latest(
+    fixtureIds: string[],
+    perFixture: number,
+  ): Promise<{
+    known: Set<string>;
+    states: Map<string, 'open' | 'closed'>;
+    totals: Map<string, number>;
+    rows: (PanelPostRow & { fixture_id: string })[];
+  }> {
+    const [fixtures, panels, posts] = await Promise.all([
+      this.pool.query<{ id: string }>(`SELECT id FROM fixture WHERE id = ANY($1::uuid[])`, [
+        fixtureIds,
+      ]),
+      this.pool.query<{ fixture_id: string; closed: boolean; total: string }>(
+        `SELECT mp.fixture_id, (mp.closed_at IS NOT NULL) AS closed,
+                (SELECT count(*) FROM panel_post pp WHERE pp.fixture_id = mp.fixture_id)::text AS total
+           FROM match_panel mp
+          WHERE mp.fixture_id = ANY($1::uuid[])`,
+        [fixtureIds],
+      ),
+      this.pool.query<PanelPostRow & { fixture_id: string }>(
+        `SELECT p.fixture_id,
+                p.id,
+                u.username,
+                u.display_name,
+                r.rating,
+                p.body,
+                p.created_at,
+                p.created_at::text AS created_text,
+                p.removed_kind,
+                member_may_contribute(p.author_id) AS approved
+           FROM (
+             SELECT pp.*, row_number() OVER (
+                      PARTITION BY pp.fixture_id ORDER BY pp.created_at DESC, pp.id DESC) AS n
+               FROM panel_post pp
+              WHERE pp.fixture_id = ANY($1::uuid[]) AND pp.removed_kind IS NULL
+           ) p
+           JOIN user_account u ON u.id = p.author_id
+           LEFT JOIN LATERAL (
+             SELECT s.rating FROM rating_snapshot s
+              WHERE s.user_id = p.author_id
+              ORDER BY s.computed_at DESC, s.id DESC
+              LIMIT 1
+           ) r ON true
+          WHERE p.n <= $2
+          ORDER BY p.fixture_id, p.created_at DESC, p.id DESC`,
+        [fixtureIds, perFixture],
+      ),
+    ]);
+    return {
+      known: new Set(fixtures.rows.map((row) => row.id)),
+      states: new Map(panels.rows.map((row) => [row.fixture_id, row.closed ? 'closed' : 'open'])),
+      totals: new Map(panels.rows.map((row) => [row.fixture_id, Number(row.total)])),
+      rows: posts.rows,
+    };
+  }
+
+  /**
    * Whether a `post` sanction is in force on this member.
    *
    * Specifically `post`, and not "any sanction": a contact restriction stops

@@ -127,13 +127,19 @@ export class ProfileService {
     viewerId: string | null,
   ): Promise<Map<string, string>> {
     const visible = new Map<string, string>();
-    for (const row of await this.store.findByUserIds(userIds)) {
-      const areFriends =
-        viewerId !== null &&
-        viewerId !== row.user_id &&
-        row.prediction_history_visibility === 'friends'
-          ? await this.friendships.areFriends(viewerId, row.user_id)
-          : false;
+    const rows = await this.store.findByUserIds(userIds);
+    // The viewer's friends are read once for the whole set, and only when a
+    // member in it has chosen `friends` (T-942): the same `canView`, asked
+    // with one query rather than one per member.
+    const friends =
+      viewerId !== null &&
+      rows.some(
+        (row) => row.prediction_history_visibility === 'friends' && row.user_id !== viewerId,
+      )
+        ? new Set(await this.friendships.friendIds(viewerId))
+        : new Set<string>();
+    for (const row of rows) {
+      const areFriends = viewerId !== row.user_id && friends.has(row.user_id);
       if (canView(row.prediction_history_visibility, row.user_id, viewerId, areFriends))
         visible.set(row.user_id, row.username);
     }

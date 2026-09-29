@@ -160,3 +160,27 @@ export interface PanelPermission {
 export interface SubmitPanelPostRequest {
   body: string;
 }
+
+/** The most posts `GET /panels/latest` carries per match (T-942, D-115). */
+export const PANEL_LATEST_POSTS = 3;
+/** The most matches one `GET /panels/latest` may ask about. */
+export const PANEL_LATEST_BATCH = 50;
+
+/**
+ * The newest posts on one match's public panel, for a list of matches (the
+ * member's homepage, T-942). Removed posts are left out: this is an excerpt
+ * that links to the panel, not the conversation itself, and a tombstone with
+ * nothing around it says nothing. `total` still counts every post (rule 3).
+ */
+export interface PanelLatest {
+  fixture_id: string;
+  state: PanelState;
+  /** Newest first, at most `PANEL_LATEST_POSTS`, none removed. */
+  posts: PanelPost[];
+  total: number;
+}
+
+/** `GET /panels/latest?fixture=…&fixture=…` (public). One entry per known fixture asked. */
+export interface PanelLatestResponse {
+  panels: PanelLatest[];
+}

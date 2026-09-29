@@ -1,5 +1,8 @@
 import type {
   AchievementsResponse,
+  FriendPredictionsResponse,
+  GroupDiscussionsResponse,
+  PanelLatestResponse,
   SavedArticlesResponse,
   ActivityReport,
   AdminAlertsReport,
@@ -778,6 +781,30 @@ export function fetchFounderFeed(
  */
 export function fetchForecastList(fixtureIds: string[]): Promise<ApiResult<ForecastListResponse>> {
   return apiRequest<ForecastListResponse>(`/forecasts?fixtures=${fixtureIds.join(',')}`);
+}
+
+/**
+ * The member's homepage (blueprint 2.3, T-942, D-115): one request per
+ * section for the whole page, never one per item. Friends' calls and group
+ * discussions need a session; the panels are public like the panel itself.
+ */
+export function fetchFriendPredictions(
+  cookie: string | undefined,
+): Promise<ApiResult<FriendPredictionsResponse>> {
+  return apiRequest<FriendPredictionsResponse>('/me/friends/predictions', { cookie });
+}
+
+export function fetchGroupDiscussions(
+  cookie: string | undefined,
+): Promise<ApiResult<GroupDiscussionsResponse>> {
+  return apiRequest<GroupDiscussionsResponse>('/me/group-discussions', { cookie });
+}
+
+/** At most `PANEL_LATEST_BATCH` fixture ids; the caller batches. */
+export function fetchPanelLatest(fixtureIds: string[]): Promise<ApiResult<PanelLatestResponse>> {
+  const p = new URLSearchParams();
+  for (const id of fixtureIds) p.append('fixture', id);
+  return apiRequest<PanelLatestResponse>(`/panels/latest?${p.toString()}`);
 }
 
 /**

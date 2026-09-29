@@ -196,3 +196,37 @@ export interface GroupPredictionComparison {
 export interface GroupPredictionComparisonResponse {
   comparison: GroupPredictionComparison;
 }
+
+// ---------------------------------------------------------------------------
+// Friends' recent predictions on the member's homepage (blueprint 2.3, T-942)
+// ---------------------------------------------------------------------------
+
+/** How far back the homepage looks for a friend's prediction, in days (D-115). */
+export const FRIEND_PREDICTIONS_DAYS = 7;
+/** The most friends' predictions one answer carries (D-115). */
+export const FRIEND_PREDICTIONS_LIMIT = 10;
+
+/**
+ * One friend's standing call on one match, as the viewer may see it.
+ *
+ * Only a friend whose `prediction_history_visibility` lets this viewer read
+ * their history is ever in the answer (D-063, D-115): the same rule as their
+ * profile, asked of the profile boundary, never a second one. `settlement` is
+ * the stored one (T-052), read and never recomputed.
+ */
+export interface FriendPrediction {
+  username: string;
+  display_name: string;
+  fixture: PredictionHistoryFixture;
+  /** The version that stands: the latest one submitted. */
+  version: PredictionVersion;
+  revisions: number;
+  settlement: Settlement | null;
+}
+
+/** `GET /me/friends/predictions` (T-942). Newest call first. */
+export interface FriendPredictionsResponse {
+  predictions: FriendPrediction[];
+  /** ISO 8601: the start of the window the answer covers. */
+  since: string;
+}

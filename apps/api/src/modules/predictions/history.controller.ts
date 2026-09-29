@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import type {
   ApiError,
+  FriendPredictionsResponse,
   GroupPredictionCall,
   GroupPredictionComparisonResponse,
   PredictionHistoryResponse,
@@ -101,6 +102,19 @@ export class HistoryController {
         withheld: found.calls.length - shown.length,
       },
     };
+  }
+
+  /**
+   * The viewer's friends' recent predictions (blueprint 2.3, T-942, D-115):
+   * only friends whose history visibility lets this viewer read it (D-063).
+   */
+  @Get('me/friends/predictions')
+  async friends(@Req() request: FastifyRequest): Promise<FriendPredictionsResponse> {
+    const viewer = await this.identity.authenticate(
+      parseCookies(request.headers.cookie)[SESSION_COOKIE],
+    );
+    if (viewer === null) throw new UnauthorizedException(UNAUTHENTICATED);
+    return this.predictions.friendsRecent(viewer.id);
   }
 
   @Get('users/:username/predictions')

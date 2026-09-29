@@ -1,12 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import type {
-  MatchPanelPage,
-  PanelAuthor,
-  PanelPermission,
-  PanelPost,
-  PanelReactionTally,
-  PanelRefusal,
-  RatingTier,
+import {
+  PANEL_LATEST_POSTS,
+  type MatchPanelPage,
+  type PanelAuthor,
+  type PanelLatest,
+  type PanelPermission,
+  type PanelPost,
+  type PanelReactionTally,
+  type PanelRefusal,
+  type RatingTier,
 } from '@fmip/contracts';
 import { ContributorService } from '../reputation/contributor.service';
 import { PanelSocialService } from './panel-social.service';
@@ -118,6 +120,28 @@ export class PanelService {
           : null,
       total,
     };
+  }
+
+  /**
+   * The newest standing posts on several matches' panels at once (blueprint
+   * 2.3, T-942): the homepage's "on today's panels". One entry per fixture
+   * that exists, in the order asked; a match with no panel says `none` rather
+   * than being dropped (rule 3). Four queries for the whole list.
+   */
+  async latest(fixtureIds: string[]): Promise<PanelLatest[]> {
+    if (fixtureIds.length === 0) return [];
+    const { known, states, totals, rows } = await this.store.latest(fixtureIds, PANEL_LATEST_POSTS);
+    const reactions = await this.social.talliesFor(rows.map((row) => row.id));
+    return fixtureIds
+      .filter((id) => known.has(id))
+      .map((id) => ({
+        fixture_id: id,
+        state: states.get(id) ?? 'none',
+        posts: rows
+          .filter((row) => row.fixture_id === id)
+          .map((row) => postOf(row, reactions.get(row.id) ?? [])),
+        total: totals.get(id) ?? 0,
+      }));
   }
 
   /**

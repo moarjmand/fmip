@@ -327,6 +327,37 @@ export class ConversationsStore {
     return rows;
   }
 
+  /**
+   * The viewer's group conversations and match threads with a message since
+   * `since`, newest message first, muted ones left out (T-942, D-115). The
+   * membership is `STANDING_WHERE`, the one question every other read asks,
+   * narrowed to the group kinds.
+   */
+  async activeGroupConversationsFor(
+    viewerId: string,
+    since: Date,
+    limit: number,
+  ): Promise<ConversationRow[]> {
+    const { rows } = await this.pool.query<ConversationRow>(
+      `SELECT ${STANDING_COLUMNS.replaceAll('$VIEWER', '$1')}
+         ${STANDING_FROM.replaceAll('$VIEWER', '$1')}
+         JOIN LATERAL (
+           SELECT m.created_at FROM message m
+            WHERE m.conversation_id = c.id
+            ORDER BY m.seq DESC
+            LIMIT 1
+         ) newest ON true
+        WHERE c.kind IN ('group', 'group_thread')
+          AND ${STANDING_WHERE.replaceAll('$VIEWER', '$1')}
+          AND me.muted_at IS NULL
+          AND newest.created_at >= $2
+        ORDER BY newest.created_at DESC, c.id
+        LIMIT $3`,
+      [viewerId, since, limit],
+    );
+    return rows;
+  }
+
   async participantsOf(conversationIds: string[]): Promise<ParticipantRow[]> {
     if (conversationIds.length === 0) return [];
     const { rows } = await this.pool.query<ParticipantRow>(

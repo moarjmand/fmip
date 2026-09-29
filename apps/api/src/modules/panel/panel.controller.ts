@@ -14,14 +14,16 @@ import {
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
-import type {
-  ApiError,
-  AuthUser,
-  MatchPanelPage,
-  PanelPermission,
-  PanelPost,
-  PanelRefusal,
-  SubmitPanelPostRequest,
+import {
+  PANEL_LATEST_BATCH,
+  type ApiError,
+  type AuthUser,
+  type MatchPanelPage,
+  type PanelLatestResponse,
+  type PanelPermission,
+  type PanelPost,
+  type PanelRefusal,
+  type SubmitPanelPostRequest,
 } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
@@ -173,5 +175,36 @@ export class PanelController {
         message: 'No post of yours with that id.',
       } satisfies ApiError);
     }
+  }
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * The newest posts on several matches' public panels (blueprint 2.3, T-942,
+ * D-115), for the homepage's "on today's panels". Public like the panel
+ * itself -- no session asked for -- and one request for a list of matches,
+ * never one per match.
+ */
+@Controller('panels')
+export class PanelLatestController {
+  constructor(private readonly panel: PanelService) {}
+
+  @Get('latest')
+  async latest(
+    @Query('fixture') fixture: string | string[] | undefined,
+  ): Promise<PanelLatestResponse> {
+    const given = (Array.isArray(fixture) ? fixture : fixture === undefined ? [] : [fixture])
+      .flatMap((value) => value.split(','))
+      .map((value) => value.trim())
+      .filter((value) => value !== '');
+    const ids = [...new Set(given)];
+    if (ids.length === 0 || ids.length > PANEL_LATEST_BATCH || ids.some((id) => !UUID.test(id))) {
+      throw new BadRequestException({
+        error: 'validation',
+        message: `Ask for between 1 and ${PANEL_LATEST_BATCH} fixture ids.`,
+      } satisfies ApiError);
+    }
+    return { panels: await this.panel.latest(ids.map((id) => id.toLowerCase())) };
   }
 }

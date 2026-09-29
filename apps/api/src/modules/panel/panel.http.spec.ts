@@ -1,7 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { Test } from '@nestjs/testing';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
-import type { ApiError, MatchPanelPage, PanelPermission, PanelPost } from '@fmip/contracts';
+import type {
+  ApiError,
+  MatchPanelPage,
+  PanelLatestResponse,
+  PanelPermission,
+  PanelPost,
+} from '@fmip/contracts';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
@@ -451,6 +457,52 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the match pa
       // pagination.
       expect(response.statusCode).toBe(200);
       expect((response.json() as MatchPanelPage).posts.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('the newest posts on several panels at once (T-942)', () => {
+    it('answers a guest, newest first, without removed posts, counting every post', async () => {
+      const unopened = randomUUID();
+      await pool.query(
+        `INSERT INTO fixture (id, season_id, stage_id, round, kickoff_at, status)
+         VALUES ($1, $2, $3, 'Matchday', now() + interval '3 days', 'scheduled')`,
+        [unopened, PL_2025, REGULAR_SEASON],
+      );
+      spare.push(unopened);
+      const newest = (await write('the newest word on it', writer)).json() as PanelPost;
+
+      const response = await get(
+        `/panels/latest?fixture=${match}&fixture=${unopened}&fixture=${randomUUID()}`,
+      );
+      expect(response.statusCode).toBe(200);
+      const { panels } = response.json() as PanelLatestResponse;
+      // One entry per match that exists, in the order asked; an unknown id is
+      // not a match with an empty panel.
+      expect(panels.map((p) => p.fixture_id)).toEqual([match, unopened]);
+
+      const [open, none] = panels;
+      expect(open?.state).toBe('open');
+      expect(open?.posts[0]?.id).toBe(newest.id);
+      expect(open?.posts.length).toBeLessThanOrEqual(3);
+      expect(open?.posts.every((p) => p.removed === null && p.body !== null)).toBe(true);
+      expect(open?.posts[0]?.author.approved).toBe(true);
+      const full = (await get(`/fixtures/${match}/panel?limit=100`)).json() as MatchPanelPage;
+      expect(open?.total).toBe(full.total);
+
+      // Said, not dropped: a match nobody opened a discussion on (rule 3).
+      expect(none).toEqual({ fixture_id: unopened, state: 'none', posts: [], total: 0 });
+    });
+
+    it('refuses no ids, too many, or something that is not an id, and names the limit', async () => {
+      for (const query of [
+        '',
+        '?fixture=not-an-id',
+        `?fixture=${Array.from({ length: 51 }, () => randomUUID()).join(',')}`,
+      ]) {
+        const refused = await get(`/panels/latest${query}`);
+        expect(refused.statusCode).toBe(400);
+        expect((refused.json() as ApiError).error).toBe('validation');
+      }
     });
   });
 });

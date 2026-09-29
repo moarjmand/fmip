@@ -1,5 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { GroupPredictionCall, Prediction, PredictionHistoryItem } from '@fmip/contracts';
+import {
+  FRIEND_PREDICTIONS_DAYS,
+  FRIEND_PREDICTIONS_LIMIT,
+  type FriendPredictionsResponse,
+  type GroupPredictionCall,
+  type Prediction,
+  type PredictionHistoryItem,
+} from '@fmip/contracts';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ProfileService } from '../profile/profile.service';
 import { SocialService } from '../social/social.service';
@@ -79,6 +86,33 @@ export class PredictionsService {
     userIds: string[],
   ): Promise<{ kickoffAt: Date; locked: boolean; calls: GroupPredictionCall[] } | null> {
     return this.store.callsOn(fixtureId, userIds);
+  }
+
+  /**
+   * The viewer's friends' recent calls for the homepage (blueprint 2.3, T-942,
+   * D-115). Whose calls may be shown is `prediction_history_visibility`,
+   * asked of the profile boundary for the whole set at once -- exactly the
+   * rule of each friend's own history page (D-063), and no second one. A
+   * friend who keeps their history private is never in the answer.
+   */
+  async friendsRecent(
+    viewerId: string,
+    now: Date = this.clock(),
+  ): Promise<FriendPredictionsResponse> {
+    const since = new Date(now.getTime() - FRIEND_PREDICTIONS_DAYS * 86_400_000);
+    const friends = await this.social.friendIds(viewerId);
+    const visible =
+      friends.length === 0
+        ? []
+        : [...(await this.profiles.predictionHistoryAudience(friends, viewerId)).keys()];
+    return {
+      predictions: await this.store.recentCalls(
+        visible.filter((id) => id !== viewerId),
+        since,
+        FRIEND_PREDICTIONS_LIMIT,
+      ),
+      since: since.toISOString(),
+    };
   }
 
   async submit(who: Submitter, fixtureId: string, body: unknown): Promise<SubmitOutcome> {
