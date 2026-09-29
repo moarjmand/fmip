@@ -7,6 +7,8 @@ import {
   fitConverged,
   logLoss,
   probabilities,
+  restBefore,
+  scheduleOf,
   score,
   spread,
   type Observation,
@@ -162,5 +164,54 @@ describe('the accuracy reported beside the loss', () => {
       { difference: 5, outcome: 'D' },
     ];
     expect(decisiveAccuracy(observations)).toBeCloseTo(2 / 3, 6);
+  });
+});
+
+describe('rest from the stored schedule (T-1111)', () => {
+  const schedule = scheduleOf([
+    { club: 'a', date: '2025-09-01' },
+    { club: 'a', date: '2025-09-05' },
+    { club: 'a', date: '2025-09-05' },
+    { club: 'a', date: '2025-09-11' },
+    { club: 'b', date: '2025-09-11' },
+  ]);
+
+  it('keeps one match day per club, oldest first', () => {
+    expect(schedule.get('a')).toEqual(['2025-09-01', '2025-09-05', '2025-09-11']);
+  });
+
+  it('reads only the days strictly before the match', () => {
+    expect(restBefore(schedule.get('a'), '2025-09-11')).toEqual({
+      daysSincePrevious: 6,
+      matchesInWindow: 2,
+    });
+    // Fourteen days back is inside the window, fifteen is not.
+    expect(restBefore(schedule.get('a'), '2025-09-15').matchesInWindow).toBe(3);
+    expect(restBefore(schedule.get('a'), '2025-09-16').matchesInWindow).toBe(2);
+  });
+
+  it('has no rest value for a club with no earlier stored match, never a default', () => {
+    expect(restBefore(schedule.get('b'), '2025-09-11').daysSincePrevious).toBeNull();
+    expect(restBefore(undefined, '2025-09-11').daysSincePrevious).toBeNull();
+  });
+});
+
+describe("the rest component's contribution", () => {
+  it('is what removing it costs on held-out matches', () => {
+    const observations = signal(400);
+    const half = { train: observations.slice(0, 200), test: observations.slice(200) };
+    const worse = {
+      train: half.train,
+      test: half.test.map((o) => ({ ...o, difference: -o.difference })),
+    };
+    const result = score(
+      'E0',
+      new Map([
+        ['blueprint', half],
+        ['without-rest', worse],
+      ]),
+    );
+    expect(result.restContribution).not.toBeNull();
+    expect(result.restContribution ?? 0).toBeGreaterThan(0);
   });
 });

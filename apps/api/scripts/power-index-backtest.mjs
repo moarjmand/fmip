@@ -3,8 +3,10 @@
 //   pnpm --filter @fmip/api build
 //   node apps/api/scripts/power-index-backtest.mjs --division E0
 //
-// Walks a division's season in order. For every match it measures both teams
-// from **only the matches played before that day**, combines them under each
+// Walks a division's history in order. For every match it measures both teams
+// from **only the matches played before that day** -- rest and congestion from
+// the stored schedule (T-1111): every training.match row, clubs keyed through
+// training.team_alias, as the model's rest input reads it -- combines them under each
 // candidate weight set, and records the index gap against what happened. The
 // first half of those observations fits an ordered logistic; the second half,
 // which the fit never saw, scores the weights.
@@ -52,14 +54,34 @@ if (!connectionString) {
 const client = new pg.Client({ connectionString });
 await client.connect();
 
+// A club's key in the schedule: its catalogue id through the bridge (D-080),
+// else `<division>:<name>` -- never matched across divisions by name (rule 1).
+const KEY = (side) =>
+  `coalesce(a${side}.team_id::text, m.division || ':' || m.${side === 'h' ? 'home' : 'away'}_team)`;
+const BRIDGE = `LEFT JOIN training.team_alias ah
+                 ON ah.division = m.division AND ah.training_name = m.home_team
+               LEFT JOIN training.team_alias aa
+                 ON aa.division = m.division AND aa.training_name = m.away_team`;
+
 const { rows } = await client.query(
-  `SELECT match_date, home_team, away_team, home_goals, away_goals, result
-     FROM training.match
-    WHERE division = $1
-    ORDER BY match_date ASC, home_team ASC`,
+  `SELECT to_char(m.match_date, 'YYYY-MM-DD') AS date, m.home_team, m.away_team,
+          m.home_goals, m.away_goals, m.result, ${KEY('h')} AS home_key, ${KEY('a')} AS away_key
+     FROM training.match m ${BRIDGE}
+    WHERE m.division = $1
+    ORDER BY m.match_date ASC, m.home_team ASC`,
   [division],
 );
+const { rows: scheduleRows } = await client.query(
+  `SELECT ${KEY('h')} AS home, ${KEY('a')} AS away, to_char(m.match_date, 'YYYY-MM-DD') AS date
+     FROM training.match m ${BRIDGE}`,
+);
 await client.end();
+const schedule = backtest.scheduleOf(
+  scheduleRows.flatMap((row) => [
+    { club: row.home, date: row.date },
+    { club: row.away, date: row.date },
+  ]),
+);
 
 if (rows.length < WARMUP_MATCHES * 2) {
   console.error(
@@ -70,7 +92,9 @@ if (rows.length < WARMUP_MATCHES * 2) {
 }
 
 const history = rows.map((row) => ({
-  date: row.match_date.toISOString().slice(0, 10),
+  date: row.date,
+  homeKey: row.home_key,
+  awayKey: row.away_key,
   home: row.home_team,
   away: row.away_team,
   homeGoals: row.home_goals,
@@ -78,18 +102,24 @@ const history = rows.map((row) => ({
   result: row.result,
 }));
 
-// Walk forward. Rest is not part of this: the training store holds no schedule,
-// and inventing one would be measuring the wrong thing — so every candidate is
-// scored on the components the history actually supports, equally.
+// Walk forward. `before` is the division's matches before this one (the
+// components ranked among its teams); rest reads the whole stored schedule, but
+// only days strictly before the match's. A club with no earlier stored match has
+// no rest value, and its weight is redistributed as the live index does.
 const observations = new Map(backtest.CANDIDATE_WEIGHTS.map(({ name }) => [name, []]));
-const noRest = { daysSincePrevious: null, matchesInWindow: 0 };
+let restMeasured = 0;
 
 for (let index = WARMUP_MATCHES; index < history.length; index += 1) {
   const match = history[index];
-  const before = history.slice(0, index);
+  const before = history.slice(0, index).filter((m) => m.date < match.date);
+  const homeRest = backtest.restBefore(schedule.get(match.homeKey), match.date);
+  const awayRest = backtest.restBefore(schedule.get(match.awayKey), match.date);
+  if (homeRest.daysSincePrevious !== null && awayRest.daysSincePrevious !== null) {
+    restMeasured += 1;
+  }
 
-  const home = measure({ trainingName: match.home, side: 'home', history: before, rest: noRest });
-  const away = measure({ trainingName: match.away, side: 'away', history: before, rest: noRest });
+  const home = measure({ trainingName: match.home, side: 'home', history: before, rest: homeRest });
+  const away = measure({ trainingName: match.away, side: 'away', history: before, rest: awayRest });
 
   for (const { name, weights } of backtest.CANDIDATE_WEIGHTS) {
     const h = combine(home, weights);
@@ -109,6 +139,10 @@ const result = backtest.score(division, split);
 result.generatedAt = new Date().toISOString();
 result.season = `${history[0].date} to ${history[history.length - 1].date}`;
 result.warmupMatches = WARMUP_MATCHES;
+result.restMeasured = restMeasured;
+result.bridgedClubs = new Set(
+  history.flatMap((m) => [m.homeKey, m.awayKey]).filter((key) => !key.startsWith(`${division}:`)),
+).size;
 
 const outDir = join(HERE, '..', 'backtest');
 mkdirSync(outDir, { recursive: true });
@@ -121,6 +155,11 @@ const table = [
   `Written by \`apps/api/scripts/power-index-backtest.mjs\` on ${result.generatedAt}; do not edit by hand.`,
   '',
   `${result.matches} matches measured after a ${result.warmupMatches}-match warm-up, split ${result.trainSize} to fit and ${result.testSize} to score. The season's own outcome frequencies score **${result.baseRateLogLoss.toFixed(4)}** — a weight set that does not beat that has found nothing.`,
+  '',
+  `Rest and congestion from the stored schedule: both sides' rest was read for ${result.restMeasured} of ${history.length - WARMUP_MATCHES} matches; ${result.bridgedClubs} of the division's clubs are bridged to our records (their cup matches count); the others' schedule is their league matches alone. Travel is not modelled.` +
+    (result.restContribution === null
+      ? ''
+      : ` Removing the rest component changes held-out log-loss by ${result.restContribution >= 0 ? '+' : ''}${result.restContribution.toFixed(4)} (positive: rest helped).`),
   '',
   '| Weights | Held-out log-loss | Fitted log-loss | Higher index won |',
   '|---|---|---|---|',

@@ -71,7 +71,7 @@ The blueprint says the calculation "should use historical performance to
 validate or adjust these weights". This is that, arranged so it can only give an
 honest answer.
 
-**The method.** Walk a division's season in order. For each match, measure both
+**The method.** Walk a division's stored history in order. For each match, measure both
 teams from **only the matches played before that day**, combine under each
 candidate weight set, and record the index gap against what happened. Fit an
 ordered logistic — one slope, two thresholds — on the first half of those
@@ -96,11 +96,23 @@ Below that, the published weights stay and the run says so. Replacing them is a
 new formula version (`power-index@x.y.z`), never an edit: two stored indexes must
 never be comparable across different arithmetic.
 
-**What one season cannot tell us.** Rest is excluded from the backtest — the
-training store holds results, not schedules — so this validates the three
-components that history supports and is silent on the fourth. And a single
-division for a single season is a small sample; the verdict wording is
-deliberately conservative about it.
+**Rest is scored with the others (T-1111, D-142).** Each side's rest and
+congestion are read from the stored schedule: every `training.match` row, clubs
+keyed through `training.team_alias` (a bridged club by its catalogue id, else
+by its name within its division, never across divisions by name), as the
+model's rest input reads it (D-141). Only days strictly before the match count,
+and a club with no earlier stored match has no rest value, so its weight is
+redistributed as the live index does. The limits are stated with each run:
+football-data holds league matches only, so for a club not bridged to our
+records a midweek cup or European match is invisible, and a domestic cup we do
+not carry is invisible to every club. Two candidates ask the component's own
+question: `without-rest` (the blueprint's weights with rest at 0) and
+`rest-heavy` (rest at 15%). The component stays `limited` in the live index,
+because travel is not modelled until Phase 11's N-1 (ground coordinates) is
+answered.
+
+**What a few seasons cannot tell us.** A division's three seasons are still a
+small sample, and the verdict wording is deliberately conservative about it.
 
 ### To run it
 
@@ -114,19 +126,23 @@ rather than in continuous integration. Each run replaces the table below and
 keeps the full result under `apps/api/backtest/`.
 
 <!-- backtest:start -->
-### Results — E0, 2024-08-15 to 2025-05-24
+### Results — E0, 2023-08-11 to 2026-09-20
 
-Written by `apps/api/scripts/power-index-backtest.mjs` on 2026-09-13T04:20:19.462Z; do not edit by hand.
+Written by `apps/api/scripts/power-index-backtest.mjs` on 2026-09-29T13:41:05.198Z; do not edit by hand.
 
-320 matches measured after a 60-match warm-up, split 160 to fit and 160 to score. The season's own outcome frequencies score **1.0667** — a weight set that does not beat that has found nothing.
+1123 matches measured after a 60-match warm-up, split 561 to fit and 562 to score. The season's own outcome frequencies score **1.0837** — a weight set that does not beat that has found nothing.
+
+Rest and congestion from the stored schedule: both sides' rest was read for 1123 of 1130 matches; 0 of the division's clubs are bridged to our records (their cup matches count); the others' schedule is their league matches alone. Travel is not modelled. Removing the rest component changes held-out log-loss by -0.0009 (positive: rest helped).
 
 | Weights | Held-out log-loss | Fitted log-loss | Higher index won |
 |---|---|---|---|
-| **equal** | 1.0064 | 1.0234 | 63.8% |
-| blueprint | 1.0064 | 1.0228 | 65.4% |
-| form-heavy | 1.0074 | 1.0266 | 63.8% |
-| strength-heavy | 1.0076 | 1.0221 | 63.8% |
-| venue-heavy | 1.0077 | 1.0229 | 64.6% |
+| **strength-heavy** | 1.0279 | 0.9835 | 65.3% |
+| without-rest | 1.0281 | 0.9841 | 65.3% |
+| blueprint | 1.0290 | 0.9854 | 66.0% |
+| venue-heavy | 1.0302 | 0.9864 | 65.3% |
+| rest-heavy | 1.0313 | 0.9885 | 65.3% |
+| equal | 1.0354 | 0.9943 | 64.3% |
+| form-heavy | 1.0357 | 0.9939 | 62.9% |
 
-**Verdict.** Keep the published weights. The best alternative (equal) improves held-out log-loss by 0.0000, below the 0.01 that would be a finding rather than noise at this sample size.
+**Verdict.** Keep the published weights. The best alternative (strength-heavy) improves held-out log-loss by 0.0011, below the 0.01 that would be a finding rather than noise at this sample size.
 <!-- backtest:end -->
