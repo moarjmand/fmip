@@ -6889,3 +6889,284 @@ the administrator's reason*: it is written for the audit log, and may name
 a page or a person. *Moving a member's stored language to English*: the
 choice is theirs, and the hold is temporary.
 
+## D-156 — The off-machine uptime check is a scheduled GitHub Actions workflow; its failure e-mail is the alert
+**Status:** Accepted · 2026-09-30 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** The check from outside the machine (T-806) runs on GitHub's
+own runners, in the repository that already exists, so it needs no new
+account, no purchase and no secret. `.github/workflows/uptime.yml` runs every
+10 minutes (`schedule`) and on demand (`workflow_dispatch`), never on
+`pull_request`, with `contents: read` only. It asks
+`https://traveltohormuz.ir/health` up to 3 times, 30 s apart, 20 s timeout
+each, and fails the job when no try answers 200.
+
+- **The alert is GitHub's failure e-mail.** When a scheduled run fails,
+  GitHub e-mails the person who owns the workflow (the last one to change its
+  cron, in practice the maintainer's account). The maintainer sees it in the
+  repository's Actions tab (workflow "Uptime") and by e-mail, provided their
+  GitHub notification setting under Settings -> Notifications -> Actions is
+  on, ideally "Only notify for failed workflows". `docs/09-deploy.md` says how.
+- **What `/health` proves.** A web route (`apps/web/src/app/health/route.ts`)
+  the locale proxy leaves alone. It asks the API's own liveness endpoint over
+  the compose network and answers 200 `{status: "ok", checked_at}`, or 503
+  `{status: "unavailable", checked_at}` when the API cannot be reached in 5 s
+  or does not report `ok`. One 200 therefore means Cloudflare, Caddy, the web
+  app and the API all answer. Nothing else is exposed: no uptime, version,
+  address or dependency. `cache-control: no-store`.
+- **Known limits, stated rather than hidden.** GitHub may start scheduled runs
+  late (minutes) when its runners are busy, so this detects an outage within
+  roughly 10 to 20 minutes, not seconds. GitHub disables a scheduled workflow
+  after 60 days without activity in the repository; re-enable it from the
+  Actions tab ("Enable workflow") if development pauses that long. The check
+  is liveness of the public path, not of ingestion or the database: the
+  watchdog (T-801, T-802) covers those from inside, and this covers the case
+  the watchdog cannot report -- the machine or its edge being down.
+
+**Rejected.** *A hosted uptime service* (UptimeRobot, Better Stack and the
+like): each needs an account the maintainer would have to open, which the
+standing directives rule out. *A cron job on the VPS*: it cannot report the
+VPS being down. *Pointing the check at `/en`*: it renders a full page and
+does not say whether the API behind it answers.
+
+---
+
+## D-157 — Point-in-time recovery: WAL archived by Postgres itself through the existing encrypted remote, once its volume is measured
+**Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers:** N-2 in `04-tasks-phase-8.md` · **Task:** T-845 · **Follows:** D-032, D-101
+
+**Decision.** D-032 named WAL archiving "the right answer once user
+predictions and reputation carry weight", and they now do: a lost day is a
+day of predictions, settlements and messages that nothing can recompute.
+Point-in-time recovery is adopted, with **no new component**: Postgres's own
+`archive_mode` and `archive_command`, shipping each finished WAL segment
+through the rclone `crypt` remote D-032 already uses, and a weekly
+`pg_basebackup` beside the daily `pg_dump` (which stays: it is what restores
+across versions and what the drill checks). WAL is kept off-provider for 7
+days, so any moment of the last week can be recovered; the dumps keep their
+90 days. The restore drill (D-101) gains a replay to a stated time, and the
+watchdog's `backup` condition gains the age of the newest archived segment.
+
+**The gate.** T-845 first measures a week of WAL on the server and the
+remote's current use. If the archive fits the storage the maintainer already
+has, it is built; if it would need a bigger plan, the task stops and the
+purchase is the maintainer's. Nothing is bought on this decision.
+
+**Rejected.** *WAL-G or pgBackRest*: a new infrastructure dependency
+(`CLAUDE.md` §2) for what the built-in commands and rclone already do at this
+size. *Dumping every hour instead*: 24 times the dump storage for a recovery
+point that is still an hour. *Provider snapshots*: same-provider, D-032's
+objection.
+
+## D-158 — A member can download a copy of their own data
+**Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers:** N-4 in `04-tasks-phase-8.md` · **Task:** T-846 · **Follows:** D-094
+
+**Decision.** Blueprint §7 does not ask for an export, and whether a given
+country's law requires one is not settled here. It is built anyway, because
+giving a person what the product holds about them carries no legal risk,
+costs nothing, and is the conservative side of the privacy question. From
+Settings, confirmed by the password (as deletion is, D-094), a member
+downloads one JSON file: their account and preferences, follows,
+friendships, group memberships, predictions with every version and
+settlement, rating history, achievements, saved stories, their own messages
+and panel posts, their community analyses, the reports they filed, and the
+notifications sent to them. **Only their own words and rows**: another
+member's message, name or prediction is never in the file (a conversation
+lists only the member's own messages). Rate-limited to one file per day,
+recorded in `audit_log` without its content, and never e-mailed: it is
+served to the signed-in session only. `13-policy.md` §4 says so; adding a
+right needs no new acceptance under §4's "Changes" rule.
+
+**Rejected.** *Waiting for a legal opinion*: the export is harmless whatever
+the opinion says. *Including the other side of conversations*: it is other
+people's data.
+
+## D-159 — Predicted line-ups: none of our own making; the module says `not_supplied`
+**Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers in part:** N-5 in `04-tasks-phase-8.md` · **Follows:** D-014, D-081
+
+**Decision.** Until a source with the rights to predicted line-ups exists
+(D-014), the match centre's predicted line-up is `not_supplied`, and the
+model's `lineups_predicted` version waits. The product does not make one of
+its own -- not "the last XI", not a model's guess -- because a guessed
+line-up shown where a predicted one belongs is an invented value (rule 3),
+and D-081 already refused guessing a substitute. **Still the maintainer's:**
+whether to license a source, which is money and licensing.
+
+## D-160 — Women's and youth football: none added now, and no filter shown for what the catalogue does not hold
+**Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers:** N-6 in `04-tasks-phase-8.md` · **Follows:** D-083, T-501
+
+**Decision.** No women's or youth competition joins the catalogue in this
+round. Each one spends the daily request budget that the live competitions
+need, and T-501 has not yet measured a full club match day under the fifteen
+competitions already carried. The scores API keeps its `gender` and `age`
+parameters (they cost nothing and are correct); the web offers no women's or
+youth filter while the catalogue holds no such competition, because a filter
+that can only ever return nothing implies coverage the product does not have
+(rule 3). The question is reopened with T-501's measurement: a competition
+is added then only if the budget holds.
+
+## D-161 — The feed's values are not overridden by hand; review and re-asking are the correction tools
+**Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers:** N-3 in `04-tasks-phase-9.md` · **Follows:** D-014, D-097, D-110
+
+**Decision.** Blueprint 16's "correction and manual review tools" are the
+data-quality review (T-821, T-912) and re-asking the feed (T-913, D-110). A
+person does not overwrite a stored score, incident or line-up. A hand value
+would settle predictions and move ratings on a number no source supplied
+(rules 3 and 8), would have to fight the feed's next answer, and would be
+shown beside licensed data under terms nobody has checked for it. A value
+the desk believes wrong stays a review finding and is re-asked, and the page
+keeps saying what the finding says until the feed answers.
+
+**Rejected.** *An override labelled "corrected by the desk"*, for those three
+reasons.
+
+## D-162 — Club Elo is retired: no new model version reads it, and asking stops once none does
+**Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers:** N-4 in `04-tasks-phase-9.md` · **Task:** T-947 · **Follows:** D-014, D-111, D-082
+
+**Decision.** Our own Elo (T-921) exists, and the candidate `0.5.0` already
+uses it always. Club Elo is free, unlicensed, and silent since 2026-09-25;
+keeping it would leave an unlicensed source on the model's critical path
+against D-014. So no new candidate or version may declare `elo_prior:
+clubelo` or `clubelo_then_own` (a test refuses the file). The published
+`dixon-coles-elo@0.1.0` keeps the prior it was published with (rule 5) until
+a promotion replaces it (D-082); from that promotion on, the service stops
+asking (`MODEL_CLUBELO_REFRESH` defaults to `off`), the watchdog's
+`elo_source` condition and the System page's line go, and the training store
+keeps Club Elo's past snapshots only as the record of what 0.1.0 read.
+Retiring a source needs no licence; this is the conservative side of the
+third-party-terms question.
+
+## D-163 — High-rating privileges are contributor access, exclusive groups and the badge; leaderboards stay ordered by rating alone
+**Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers:** N-6 in `04-tasks-phase-9.md` · **Follows:** D-059, D-091
+
+**Decision.** Of blueprint 9.4's list, the product carries what has rules:
+contributor access to public discussions and signed analysis, invitation to
+exclusive groups, and the contributor badge. **Greater visibility in
+leaderboards is refused**: a leaderboard ordered by anything but the rating
+would stop being reproducible from predictions and settlements (rule 8).
+Community discovery shows the badge it already shows, and nothing more.
+Private prediction events, early access and further perks are not built:
+each is a feature with no rule written, and each arrives, if it does, with
+its own decision and task, never changing the rating (9.4's own condition).
+
+## D-164 — Rating thresholds become versioned rows set from the console; the formula changes only by a new version
+**Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers:** N-7 in `04-tasks-phase-9.md` · **Task:** T-1160 (already planned, D-152) · **Follows:** D-035, D-059, D-137
+
+**Decision.** The plan's proposal is adopted as written, which is what
+blueprint 16 ("configurable rating formula, provisional limits and privilege
+thresholds") and rule 8 together allow. The thresholds (the provisional and
+established counts, `ELIGIBILITY_V1`'s values, D-137's period) are versioned
+rows an administrator supersedes from the console with a reason and a start,
+audited (rule 10); a rating or an eligibility is recomputable from stored
+predictions, settlements and the threshold version in force. The formula is
+never a setting: it changes only by a new formula version with its own
+decision. The first row holds today's constants exactly, so nothing moves on
+the day T-1160 ships. T-1160 is no longer gated.
+
+## D-165 — Story types are never labelled by a machine
+**Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers:** N-8 in `04-tasks-phase-9.md` and N-1 in `04-tasks-phase-10.md` · **Follows:** D-061, D-070, D-123
+
+**Decision.** D-123 stands without a third origin: a story's type comes from
+the publisher's own category through the committed mapping, or from an
+editor, and a story with neither has no type and says so in filters (D-124).
+A language model typing publishers' headlines would be machine output about
+other people's words under feed terms that do not address it (D-061), and an
+untyped story is honest where a machine-typed one could be wrong. No terms
+question needs asking, because nothing is done. An editor's "breaking" mark
+is D-125's and unchanged.
+
+## D-166 — Transfers and injuries come from typed stories, with opt-in alerts; the feed's transfer and injury endpoints stay unread
+**Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers:** N-2 in `04-tasks-phase-10.md` · **Task:** T-1032 · **Follows:** D-123, D-125, D-126, D-127
+
+**Decision.** Blueprint 12.2's "transfers, injuries and suspensions" alerts
+are made from stories already typed `transfer`, `injury` or `suspension`
+(D-123: the publisher's category or an editor), linked to a team or person
+the member follows (D-126). Two opt-in kinds, transfer news and availability
+news, off by default, each told once per story under the same quiet hours,
+mutes and cap as every kind. The licensed feed's transfer and injury
+endpoints are not read: they spend the live data's request budget, and their
+terms for alerts are unchecked. A player's availability on his page stays
+D-127's.
+
+## D-167 — Trending does not count views or shares
+**Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers:** N-3 in `04-tasks-phase-10.md` · **Follows:** D-044, D-102, D-128
+
+**Decision.** Recording who read or shared a story is reading-behaviour
+tracking that D-044 and D-102 kept out: the product counts only rows it
+keeps for its own function. Trending stays D-128's saves and discussion, and
+its `limited` reason keeps saying that views and shares are not counted. The
+privacy text needs no change.
+
+## D-168 — Groups: no automatic entry criteria and no administrator role
+**Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers:** N-6 in `04-tasks-phase-10.md` · **Follows:** D-057, D-132, D-133
+
+**Decision.** Entry to a group stays the owner's choice of who may invite
+(D-132), invitations and join requests decided by a person, and the group's
+written rules (D-133). No criterion admits or refuses a member by itself: a
+country criterion would filter on personal data, a rating criterion would
+duplicate 9.4's eligibility (which needs a person's approval anyway), and an
+account-age criterion adds nothing an owner's decision on a join request
+does not. The roles stay owner and moderators (D-057); an administrator role
+between them would split the one accountable owner for no stated need.
+
+## D-169 — The sustained period is 30 consecutive days below the contributor threshold
+**Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers:** N-7 in `04-tasks-phase-10.md` · **Follows:** D-059, D-137, D-164
+
+**Decision.** D-137's proposal is confirmed: "below" is D-059's contributor
+rating threshold (not a tier), and "sustained" is 30 consecutive days,
+flagged to administrators and never paused by code. It is no longer a
+proposal; once T-1160 ships it is part of the first threshold version
+(D-164), changed only by a new version with a reason.
+
+## D-170 — Travel: a cross-border proxy is measured; placing grounds from an open dataset stays open
+**Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers in part:** N-1 in `04-tasks-phase-11.md` · **Task:** T-1166 · **Follows:** D-014, D-139, D-142
+
+**Decision.** The proxy that needs no source is measured as an input by
+D-139's harness: a match whose two clubs' countries differ (T-1166). It
+reaches only cross-border matches and is judged only on them. Placing
+grounds by hand is not planned: some 300 grounds of editorial work for an
+input with no measured gain yet. The Power Index keeps saying travel is not
+modelled unless the proxy passes. **Still the maintainer's:** placing grounds
+from OpenStreetMap (ODbL) or Wikidata (CC0), because each is a third-party
+source with its own terms on the model's path (D-014).
+
+## D-171 — League zones: a committed list per competition and season, from the published regulations
+**Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers:** N-2 in `04-tasks-phase-11.md` · **Task:** T-1167 · **Follows:** D-038, D-143, D-146
+
+**Decision.** Qualification and relegation places come from a committed
+file, one entry per competition and season with the regulation's URL,
+reviewed in a PR. The feed's standings are not read for them: our tables are
+computed from results (D-038), and reading standings spends the request
+budget. A place count is a published fact about the competition, not the
+feed's data. A competition or season absent from the list shows no zones,
+and its stakes stay zone-free with the reason (rule 3). The tables show the
+places where listed; whether stakes read them is a new input judged by
+D-139's bar.
+
+## D-172 — Territory settings: viewing coverage and language holds; nothing is proposed from a territory
+**Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers:** N-3 in `04-tasks-phase-11.md` · **Follows:** T-312, T-313, D-155
+
+**Decision.** Blueprint 16's "language and territory settings" are the
+per-territory viewing coverage editors declare (T-313) and the language
+holds (D-155). No further per-territory setting is added: proposing a
+language or content from a reader's territory is inference, which T-312
+excludes and blueprint §5's "explicit choices" does not ask for.
+
+## D-173 — Coaching spells are not read from the feed's coaches endpoint
+**Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers:** N-4 in `04-tasks-phase-11.md` · **Follows:** D-119, D-147
+
+**Decision.** Coach changes stay read from stored line-ups (D-147), where a
+line-up naming no coach is a stated gap. The coaches endpoint would spend
+the request budget the live data needs, for an input (T-1131) not yet
+measured on what we already hold. Reopened only if T-1131 is measured and
+its gaps are shown to decide the verdict.
+
+## D-174 — The share of a season an input covers is stated, not a gate: D-139 stands
+**Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers:** N-5 in `04-tasks-phase-11.md` · **Follows:** D-139, D-082
+
+**Decision.** D-139's bar is kept as written: an input is judged on the
+matches where it can be read, needs at least 300 of them per group, and its
+report states the share. No further floor on the share is added: a match
+where the input is not read is forecast unchanged, so a small share limits
+how much the input changes, not how surely it was measured on what it
+changes (the 300-match floor and the interval see to that). A promotion's own entry (D-082)
+repeats the share, so a reader sees how much of the season the new input
+touched.
