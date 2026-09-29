@@ -75,6 +75,7 @@ import type {
   BreakingNewsResponse,
   MatchPanelPage,
   NewsSectionResponse,
+  NewsSourcesResponse,
   NotificationSettings,
   PushState,
   NotificationsResponse,
@@ -562,6 +563,13 @@ export function fetchNewsSection(
  */
 export function fetchDebates(cookie: string | undefined): Promise<ApiResult<DebateListResponse>> {
   return apiRequest<DebateListResponse>('/admin/debates?state=open', { cookie });
+}
+
+/** `GET /admin/news-sources` (T-1015): every news source, carried first; administrators only. */
+export function fetchNewsSources(
+  cookie: string | undefined,
+): Promise<ApiResult<NewsSourcesResponse>> {
+  return apiRequest<NewsSourcesResponse>('/admin/news-sources', { cookie });
 }
 
 /** `GET /news/breaking` (T-1004): the stories marked breaking now, for the homepage strip. Public. */

@@ -27,6 +27,7 @@ const USERNAME = `e2e_noadmin_${RUN}`;
 const MEMBER = '<member>';
 const REFUSING: Record<string, string> = {
   '/en/admin/system': 'system-forbidden',
+  '/en/admin/news-sources': 'news-sources-forbidden',
   '/en/admin/data-quality': 'data-quality-forbidden',
   '/en/admin/moderation': 'moderation-queue-forbidden',
   [`/en/admin/moderation/${MEMBER}`]: 'moderation-history-forbidden',
