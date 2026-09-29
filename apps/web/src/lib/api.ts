@@ -136,6 +136,10 @@ export function fetchAdminCompetitions(
 ): Promise<ApiResult<AdminCompetitionsResponse>> {
   return apiRequest<AdminCompetitionsResponse>(
     '/admin/competitions',
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
 /** `GET /locale-holds` (T-1163, D-155): the languages held back now. Public. */
 export function fetchHeldLocales(): Promise<ApiResult<HeldLocalesResponse>> {
   return apiRequest<HeldLocalesResponse>('/locale-holds');
