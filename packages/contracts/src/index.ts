@@ -544,6 +544,12 @@ export type {
 // visibilities, because "found but not read" is the case a boolean would lose.
 export {
   GROUP_INVITE_POLICIES,
+  INVITE_LINK_DEFAULT_HOURS,
+  INVITE_LINK_DEFAULT_USES,
+  INVITE_LINK_MAX_HOURS,
+  INVITE_LINK_MAX_USES,
+  INVITE_LINK_MIN_HOURS,
+  INVITE_LINK_STATES,
   GROUP_ROLES,
   GROUP_SLUG_PATTERN,
   GROUP_STANDINGS,
@@ -563,6 +569,15 @@ export {
   POLL_MIN_HOURS,
 } from './groups';
 export type {
+  CreatedGroupInviteLink,
+  CreateGroupInviteLinkRequest,
+  FollowInviteLinkResponse,
+  GroupInviteLink,
+  GroupInviteLinkResponse,
+  GroupInviteLinksResponse,
+  InviteLinkPreview,
+  InviteLinkPreviewResponse,
+  InviteLinkState,
   CreateGroupPollRequest,
   CreateGroupRequest,
   Group,

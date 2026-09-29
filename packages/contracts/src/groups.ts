@@ -202,6 +202,88 @@ export interface GroupHistoryResponse {
 }
 
 // ---------------------------------------------------------------------------
+// Invite links (T-1021, D-132). Whoever the invite policy lets invite makes
+// one, with an expiry and a use cap, and may revoke it. Only the token's hash
+// is stored: the token is shown once, in the answer to making it.
+// ---------------------------------------------------------------------------
+
+/** Hours a link lasts: a week unless its maker says otherwise, at most thirty days. */
+export const INVITE_LINK_DEFAULT_HOURS = 7 * 24;
+export const INVITE_LINK_MIN_HOURS = 1;
+export const INVITE_LINK_MAX_HOURS = 30 * 24;
+/** How many people a link lets in (or lets ask, for a discoverable group). */
+export const INVITE_LINK_DEFAULT_USES = 25;
+export const INVITE_LINK_MAX_USES = 500;
+
+/**
+ * Where a link stands. `orphaned`: whoever made it may no longer invite (they
+ * left, were demoted, or the policy changed), because the policy applies when
+ * a link is followed, not only when it was made.
+ */
+export const INVITE_LINK_STATES = ['live', 'revoked', 'expired', 'exhausted', 'orphaned'] as const;
+export type InviteLinkState = (typeof INVITE_LINK_STATES)[number];
+
+/** A link as the people who may manage it see it. Never its token. */
+export interface GroupInviteLink {
+  id: string;
+  /** The maker's username; null once their account is gone. */
+  created_by: string | null;
+  created_at: string;
+  expires_at: string;
+  max_uses: number;
+  uses: number;
+  revoked_at: string | null;
+  state: InviteLinkState;
+}
+
+/**
+ * The answer to making a link: the one time its token exists outside the
+ * holder's hands. The web page is `/{locale}/group-invite/{token}`.
+ */
+export interface CreatedGroupInviteLink extends GroupInviteLink {
+  token: string;
+}
+
+export interface CreateGroupInviteLinkRequest {
+  /** From now, whole hours; `INVITE_LINK_DEFAULT_HOURS` when absent. */
+  expires_in_hours?: number;
+  /** `INVITE_LINK_DEFAULT_USES` when absent. */
+  max_uses?: number;
+}
+
+export interface GroupInviteLinkResponse {
+  link: CreatedGroupInviteLink;
+}
+
+export interface GroupInviteLinksResponse {
+  links: GroupInviteLink[];
+}
+
+/**
+ * `GET /group-invite-links/:token`: what following it would do. A dead link
+ * says which (`state`); a dead link to an invite-only group is 404 instead,
+ * because the group is not findable and a dead link no longer invites.
+ */
+export interface InviteLinkPreview {
+  group: GroupSummary;
+  state: InviteLinkState;
+  /** `join` for a public or invite-only group, `ask` for a discoverable one. */
+  follow: 'join' | 'ask';
+  /** The viewer is already in the group. */
+  member: boolean;
+}
+
+export interface InviteLinkPreviewResponse {
+  preview: InviteLinkPreview;
+}
+
+/** `POST /group-invite-links/:token`: what following it did. */
+export interface FollowInviteLinkResponse {
+  outcome: 'joined' | 'requested';
+  group: GroupSummary;
+}
+
+// ---------------------------------------------------------------------------
 // Group polls (blueprint 8.2, T-643, D-091). A member's question to their
 // group, answered as counts. Never a prediction product (rule 6): a poll is
 // not a forecast, a consensus or an analysis, and nothing reads it as one.

@@ -112,6 +112,13 @@ export const CEILINGS: readonly CeilingDefinition[] = [
     routes: ['POST /groups/:slug/invites/:username'],
   },
   {
+    action: 'group_invite_link',
+    subject: 'member',
+    enforced: 'database',
+    what: 'Group invite links made.',
+    routes: ['POST /groups/:slug/invite-links'],
+  },
+  {
     action: 'group_join_request',
     subject: 'member',
     enforced: 'database',
@@ -277,6 +284,9 @@ export const EXEMPT: Readonly<Record<string, string>> = {
   'PUT /groups/:slug/invite-policy': GROUP_ADMIN,
   'DELETE /groups/:slug/members/:username': GROUP_ADMIN,
   'DELETE /groups/:slug/invites/:username': REMOVAL,
+  'DELETE /groups/:slug/invite-links/:id': REMOVAL,
+  'POST /group-invite-links/:token':
+    "Follows an invite link: each link lets in at most its own use cap, which its maker's ceiling bounds; the token is 256 random bits, so trying tokens is not a route in; a join request filed this way is counted by the join-request ceiling.",
   'POST /me/group-invites/:slug/accept': ANSWER,
   'DELETE /me/group-invites/:slug': ANSWER,
   'POST /groups/:slug/requests/:username/accept': ANSWER,

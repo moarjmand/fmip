@@ -8,6 +8,7 @@ import {
   answerJoinRequestAction,
   askToJoinGroupAction,
   declineGroupInviteAction,
+  followInviteLinkAction,
   joinGroupAction,
   leaveGroupAction,
   withdrawGroupRequestAction,
@@ -214,6 +215,29 @@ export function GroupControls({
     <p className="text-sm text-muted" data-testid="group-standing-unknown">
       There is nothing to do here yet.
     </p>
+  );
+}
+
+/**
+ * Following an invite link (T-1021): one button, whose words say what it will
+ * do -- join, or ask -- because the group's visibility decides and the page
+ * already knows which.
+ */
+export function FollowInviteLink({
+  locale,
+  token,
+  follow,
+}: {
+  locale: string;
+  token: string;
+  follow: 'join' | 'ask';
+}) {
+  return (
+    <ActionButton
+      action={followInviteLinkAction.bind(null, locale, token)}
+      label={follow === 'join' ? 'Join group' : 'Ask to join'}
+      testId="invite-link-follow"
+    />
   );
 }
 

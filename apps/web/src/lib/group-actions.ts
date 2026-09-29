@@ -1,6 +1,8 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import type { FollowInviteLinkResponse } from '@fmip/contracts';
 import { type ApiResult, apiRequest } from '@/lib/api';
 import type { ActionState } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
@@ -76,6 +78,31 @@ export async function askToJoinGroupAction(
 
   revalidatePath(`/${locale}/groups`);
   revalidatePath(`/${locale}/groups/${target(slug)}`);
+  return { ok: true, message: 'Asked. Somebody who runs the group will answer.' };
+}
+
+/**
+ * Following an invite link (T-1021): joined goes to the group; a request to a
+ * discoverable group stays here and says who answers it. A dead link's
+ * sentence (revoked, expired, used up) is the API's.
+ */
+export async function followInviteLinkAction(
+  locale: string,
+  token: string,
+  _previous: ActionState,
+  _formData: FormData,
+): Promise<ActionState> {
+  const result = await apiRequest<FollowInviteLinkResponse>(
+    `/group-invite-links/${target(token)}`,
+    { method: 'POST', cookie: await sessionCookieHeader() },
+  );
+  if (!result.ok) return failure(result);
+
+  const slug = result.data.group.slug;
+  revalidatePath(`/${locale}/groups`);
+  revalidatePath(`/${locale}/groups/${target(slug)}`);
+  revalidatePath(`/${locale}/messages`);
+  if (result.data.outcome === 'joined') redirect(`/${locale}/groups/${target(slug)}`);
   return { ok: true, message: 'Asked. Somebody who runs the group will answer.' };
 }
 

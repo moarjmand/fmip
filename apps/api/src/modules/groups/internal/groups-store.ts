@@ -63,6 +63,14 @@ export class GroupsStore {
     return rows[0] ?? null;
   }
 
+  async byId(id: string): Promise<GroupRow | null> {
+    const { rows } = await this.pool.query<GroupRow>(
+      `SELECT ${GROUP_COLUMNS} FROM user_group g WHERE g.id = $1`,
+      [id],
+    );
+    return rows[0] ?? null;
+  }
+
   /**
    * The directory: everything that can be found.
    *

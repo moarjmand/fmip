@@ -1,4 +1,5 @@
 import type {
+  InviteLinkPreviewResponse,
   AchievementsResponse,
   FriendPredictionsResponse,
   GroupDiscussionsResponse,
@@ -188,6 +189,21 @@ export function fetchGroups(
 ): Promise<ApiResult<GroupsResponse>> {
   const query = term === '' ? '' : `?q=${encodeURIComponent(term)}`;
   return apiRequest<GroupsResponse>(`/groups${query}`, cookie === undefined ? {} : { cookie });
+}
+
+/**
+ * What following an invite link would do (T-1021, D-132). 404 covers "no such
+ * link" and "a dead link to a group nobody may find"; a dead link to a group
+ * that can be found answers 200 with its `state`.
+ */
+export function fetchInviteLinkPreview(
+  token: string,
+  cookie: string | undefined,
+): Promise<ApiResult<InviteLinkPreviewResponse>> {
+  return apiRequest<InviteLinkPreviewResponse>(
+    `/group-invite-links/${encodeURIComponent(token)}`,
+    cookie === undefined ? {} : { cookie },
+  );
 }
 
 /** One group. 404 covers "no such group" and "you may not know it is there". */

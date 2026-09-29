@@ -144,3 +144,26 @@ describe('correct before fast', () => {
     expect(CONTROLS).not.toMatch(/onClick|useEffect|addEventListener/);
   });
 });
+
+describe('following an invite link (T-1021)', () => {
+  const INVITE = readFileSync(
+    join(HERE, '..', 'app', '[locale]', 'group-invite', '[token]', 'page.tsx'),
+    'utf8',
+  );
+
+  it('says which kind of dead a link is, for every state the contract has', () => {
+    for (const state of list('INVITE_LINK_STATES').filter((s) => s !== 'live')) {
+      expect(INVITE, `no sentence for ${state}`).toMatch(new RegExp(`\\b${state}:`));
+    }
+  });
+
+  it('is never indexed and never hands the token onward in a Referer', () => {
+    expect(INVITE).toContain('robots: { index: false, follow: false }');
+    expect(INVITE).toContain("referrer: 'no-referrer'");
+  });
+
+  it('leaves the 404 to the API rather than deciding it', () => {
+    expect(INVITE).toContain('result.status === 404');
+    expect(INVITE).not.toContain('invite_only');
+  });
+});

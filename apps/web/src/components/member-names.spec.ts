@@ -65,6 +65,10 @@ const FIELDS: Record<string, Rule> = {
   'groups.ts:GroupInvite.invited_by': {
     rendered: [['app/[locale]/groups/page.tsx', 'member={{ username: invite.invited_by }}']],
   },
+  'groups.ts:GroupInviteLink.created_by': {
+    exempt:
+      'no web page renders the invite-link list yet (T-1021 is API-first); the page that does must render it through the rule',
+  },
   'groups.ts:GroupJoinRequest.display_name': {
     rendered: [['app/[locale]/groups/[slug]/page.tsx', 'member={request}']],
   },

@@ -5001,11 +5001,35 @@ administrator's action, so nobody is asked to justify it.
 invitation; a member a `members` policy lets invite withdraws only one they
 sent.
 
-**Invite links (T-1021)** are decided with this entry: whoever the policy
-lets invite creates one, with an expiry and a use cap, and may revoke it. Only
-a hash of the token is stored. A link obeys the same gates as a direct
-invitation -- the policy at the moment it is followed, blocks, a `groups`
-sanction and a verified e-mail -- and T-1021 records the details below.
+**Invite links (T-1021).** Whoever the policy lets invite makes one, with
+an expiry (1 hour to 30 days, a week by default) and a use cap (1 to 500, 25
+by default), and a verified e-mail, as a direct invitation needs. The token is
+256 random bits, answered once when the link is made; the database keeps only
+its SHA-256, so a dump or a backup cannot be followed. The maker revokes their
+own link; the owner and the moderators any. Making links has a ceiling
+(`group_invite_link`, 20 an hour, a trigger), and the guard on making one
+repeats the policy (PL006) and a contact sanction (PL004).
+
+**Following a link is one database function**, `group_invite_link_follow`,
+under one row lock, so two people cannot both take the last use. It answers,
+in order: revoked, expired, used up, or *orphaned* -- the maker may no longer
+invite (they left, were demoted, or the policy changed), because the policy
+applies when a link is followed as well as when it was made. A dead link says
+which with a 410, **except that an invite-only group behind a dead link is
+404**, the same as the group itself: a dead link no longer invites, so it no
+longer shows the group. A block between the maker and the follower, or the
+maker's contact sanction, is "not available" and never says which; the
+follower's `groups` sanction is refused by the membership's own guard.
+**A public or invite-only group is joined; a discoverable group gets a join
+request**, because that visibility is joined by request (D-057) and a link
+does not change who decides; its owner and moderators are told as for any
+request. A use is counted only when a membership or a new request was made.
+Following needs a session; the preview (`GET /group-invite-links/:token`)
+shows the group only for a live link or a findable group. The web page is
+`/{locale}/group-invite/{token}`, never indexed and sent with `no-referrer`.
+Following has no ceiling of its own: each link is bounded by its cap, whose
+making is limited, a token cannot be guessed, and a request filed this way is
+counted by the join-request ceiling.
 
 **Alternatives considered.** A boolean "members may invite": loses the
 owner-only case the blueprint's "owner-controlled" implies. Deciding the
