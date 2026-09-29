@@ -1,6 +1,8 @@
+import type { CandidateShadowHealth } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
 import {
   BACKUP_THRESHOLD,
+  CANDIDATE_SHADOW_THRESHOLD,
   DATA_QUALITY_STALE_SECONDS,
   DATA_QUALITY_THRESHOLD,
   DELIVERY_THRESHOLD,
@@ -14,6 +16,7 @@ import {
   type Reading,
   type RunRecord,
   backup,
+  candidateShadow,
   dataQuality,
   deliveryChannel,
   eloSource,
@@ -636,6 +639,141 @@ describe('readingsOf', () => {
       [],
     ).find((r) => r.key === 'elo_source');
     expect(blind?.level).toBe('unknown');
+  });
+});
+
+describe('candidate:<version> (T-1165)', () => {
+  const health = (asked: number, failed: number): CandidateShadowHealth => ({
+    first_answered_at: ago(10 * 24 * 3600).toISOString(),
+    last_answered_at: ago(3600).toISOString(),
+    day: { asked, failed },
+    last_failure: failed === 0 ? null : { at: ago(60).toISOString(), fixture_id: 'f' },
+  });
+  const inShadow = (h: CandidateShadowHealth | undefined) =>
+    ({ state: 'in_shadow', health: h }) as const;
+
+  it('raises only when every forecast of the day stored nothing', () => {
+    expect(CANDIDATE_SHADOW_THRESHOLD).toEqual({ unit: 'percent', degraded: 100, failing: 100 });
+    const all = candidateShadow('c@0.6.0', inShadow(health(4, 4)));
+    expect(all).toMatchObject({ key: 'candidate:c@0.6.0', level: 'failing', observed: 100 });
+    expect(all.note).toContain('4 of 4');
+    expect(all.note).toContain('forecast.shadow_failed');
+    expect(candidateShadow('c@0.6.0', inShadow(health(4, 3)))).toMatchObject({
+      level: 'ok',
+      observed: 75,
+    });
+    // 299 of 300 is not every forecast, however it rounds.
+    expect(candidateShadow('c@0.6.0', inShadow(health(300, 299))).level).toBe('ok');
+  });
+
+  it('says a candidate that has never answered, never zero failures', () => {
+    for (const h of [undefined, { ...health(0, 0), first_answered_at: null }]) {
+      const reading = candidateShadow('c@0.6.0', inShadow(h));
+      expect(reading).toMatchObject({ level: 'unknown', observed: null });
+      expect(reading.note).toContain('never answered');
+    }
+  });
+
+  it('is ok with no forecast asked in the day, ok when it left shadow, unknown when unreadable', () => {
+    expect(candidateShadow('c@0.6.0', inShadow(health(0, 0)))).toMatchObject({
+      level: 'ok',
+      observed: null,
+    });
+    expect(candidateShadow('c@0.6.0', { state: 'left' })).toMatchObject({
+      level: 'ok',
+      note: 'no longer in shadow',
+    });
+    expect(
+      candidateShadow('c@0.6.0', { state: 'unreadable', reason: 'relation does not exist' }),
+    ).toMatchObject({ level: 'unknown', note: 'relation does not exist' });
+  });
+
+  it('is one alert for a day of failures and one recovery on the first answer', () => {
+    let state: StoredCondition | null = null;
+    const kinds: string[] = [];
+    for (const [asked, failed] of [
+      [1, 0],
+      [2, 1],
+      [3, 3],
+      [5, 5],
+      [6, 5],
+    ] as const) {
+      const reading = candidateShadow('c@0.6.0', inShadow(health(asked, failed)));
+      const next = step(state, reading, NOW);
+      if (next.event !== null) kinds.push(next.event.kind);
+      state = {
+        key: reading.key,
+        level: next.level,
+        since: next.since,
+        observed: reading.observed,
+        incidentId: next.incident === 'new' ? 1 : next.incident,
+      };
+    }
+    expect(kinds).toEqual(['raised', 'recovered']);
+  });
+
+  describe('through readingsOf', () => {
+    const base: Observations = {
+      ingest: [],
+      live: { inProgress: 0, oldestChangeAt: null, behind: 0 },
+      budget: { requestsToday: 0, budget: 100 },
+      queues: [],
+      model: { configured: true, ok: true },
+      delivery: { email: { configured: false }, push: { configured: false } },
+      dataQuality: { open: 0, sweptAt: ago(60) },
+      backups: { unreadable: 'n/a' },
+    };
+    const candidates = (seen: Observations['candidates'], previous = new Map()) =>
+      readingsOf({ ...base, candidates: seen }, previous, NOW, []).filter((r) =>
+        r.key.startsWith('candidate:'),
+      );
+
+    it('reads each listed candidate, and nothing from a service that lists none', () => {
+      const readings = candidates({
+        offered: ['a@0.5.0', 'b@0.6.0'],
+        health: new Map([['a@0.5.0', health(2, 2)]]),
+      });
+      expect(readings.map((r) => [r.key, r.level])).toEqual([
+        ['candidate:a@0.5.0', 'failing'],
+        ['candidate:b@0.6.0', 'unknown'],
+      ]);
+      expect(candidates({ offered: null, health: new Map() })).toEqual([]);
+      expect(candidates(undefined)).toEqual([]);
+      expect(candidates({ configured: false })).toEqual([]);
+    });
+
+    it('closes the incident of a candidate that left shadow; reads nothing while the list is unreadable', () => {
+      const previous = new Map<string, StoredCondition>([
+        [
+          'candidate:gone@0.4.0',
+          {
+            key: 'candidate:gone@0.4.0',
+            level: 'failing',
+            since: ago(60),
+            observed: 100,
+            incidentId: 9,
+          },
+        ],
+        [
+          'candidate:old@0.3.0',
+          {
+            key: 'candidate:old@0.3.0',
+            level: 'ok',
+            since: ago(60),
+            observed: null,
+            incidentId: null,
+          },
+        ],
+      ]);
+      const readings = candidates({ offered: [], health: new Map() }, previous);
+      expect(readings).toEqual([
+        expect.objectContaining({ key: 'candidate:gone@0.4.0', level: 'ok' }),
+      ]);
+      expect(candidates({ unreadable: 'http: 500' }, previous)).toEqual([]);
+      expect(
+        candidates({ offered: ['gone@0.4.0'], health: { unreadable: 'timeout' } }, previous),
+      ).toEqual([expect.objectContaining({ level: 'unknown', note: 'timeout' })]);
+    });
   });
 });
 

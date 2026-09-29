@@ -53,7 +53,9 @@ export interface WatchdogThreshold {
  * `request_budget` (the day's provider requests against the budget),
  * `jobs:<queue>` (failed BullMQ jobs in the last hour), `model_service`
  * (consecutive failed health checks), `delivery:<channel>` (failed outward
- * deliveries in the last hour), `backup` (the newest backup).
+ * deliveries in the last hour), `backup` (the newest backup),
+ * `candidate:<model version>` (a candidate in shadow that stored nothing on
+ * every forecast of the last 24 hours, T-1165).
  */
 export interface WatchdogCondition {
   key: string;

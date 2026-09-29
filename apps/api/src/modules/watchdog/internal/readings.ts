@@ -1,6 +1,8 @@
+import type { CandidateShadowHealth } from '@fmip/contracts';
 import {
   type Reading,
   backup,
+  candidateShadow,
   dataQuality,
   deliveryChannel,
   eloSource,
@@ -61,6 +63,18 @@ export interface Observations {
   backups: { backup: RunRecord; drill: RunRecord } | Unreadable;
   /** Open findings about live matches and the newest complete sweep (T-821). */
   dataQuality: { open: number; sweptAt: Date | null } | Unreadable;
+  /**
+   * The candidates in shadow, as the model service's health check lists them
+   * (`offered`, null from a service that does not), and whether each answers
+   * (T-1165). Unreadable when that check failed. Optional like `elo`.
+   */
+  candidates?:
+    | { configured: false }
+    | Unreadable
+    | {
+        offered: string[] | null;
+        health: ReadonlyMap<string, CandidateShadowHealth> | Unreadable;
+      };
 }
 
 /**
@@ -145,6 +159,39 @@ export function readingsOf(
     out.push(restoreDrill(seen.backups.drill, now));
   }
 
+  out.push(...candidateReadings(seen.candidates, previous));
+
+  return out;
+}
+
+/**
+ * One reading per candidate the service lists, and an `ok` "no longer in
+ * shadow" for one it stopped listing while its condition was not `ok`, so an
+ * open incident closes. When the list cannot be read (the model service is
+ * down: `model_service`'s condition) nothing is read for any candidate: the
+ * conditions keep their level and age, and an open incident stays open.
+ */
+function candidateReadings(
+  seen: Observations['candidates'],
+  previous: ReadonlyMap<string, StoredCondition>,
+): Reading[] {
+  if (seen === undefined || 'configured' in seen || unreadable(seen) || seen.offered === null) {
+    return [];
+  }
+  const { offered, health } = seen;
+  const out = offered.map((version) =>
+    candidateShadow(
+      version,
+      unreadable(health)
+        ? { state: 'unreadable', reason: health.unreadable }
+        : { state: 'in_shadow', health: health.get(version) },
+    ),
+  );
+  for (const [key, stored] of previous) {
+    if (!key.startsWith('candidate:') || stored.level === 'ok') continue;
+    const version = key.slice('candidate:'.length);
+    if (!offered.includes(version)) out.push(candidateShadow(version, { state: 'left' }));
+  }
   return out;
 }
 

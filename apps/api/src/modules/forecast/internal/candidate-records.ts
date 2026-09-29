@@ -1,4 +1,8 @@
-import type { CandidateRecord, CandidateRecordsResponse } from '@fmip/contracts';
+import type {
+  CandidateRecord,
+  CandidateRecordsResponse,
+  CandidateShadowHealth,
+} from '@fmip/contracts';
 import { PROMOTION_MINIMUM } from '@fmip/contracts';
 import type { CandidateCounts, CandidatePairRow } from './evaluation-store';
 
@@ -11,12 +15,16 @@ import type { CandidateCounts, CandidatePairRow } from './evaluation-store';
  * Numbers only: no verdict is computed here at any count. Promotion is a
  * decision entry with these numbers (D-082), and below the minimum the page
  * says how many there are.
+ *
+ * `shadow` is whether each answers (T-1165); a version absent from it has
+ * no stored version and is `NEVER_ANSWERED`, not zero failures.
  */
 export function candidateRecords(
   counts: readonly CandidateCounts[],
   pairs: readonly CandidatePairRow[],
   offered: readonly string[] | null,
   now: Date,
+  shadow: ReadonlyMap<string, CandidateShadowHealth> = new Map(),
 ): CandidateRecordsResponse {
   const versions = new Set<string>([
     ...counts.map((c) => c.modelVersion),
@@ -41,6 +49,7 @@ export function candidateRecords(
           candidate: p.candidate,
           published: p.published,
         })),
+      shadow: shadow.get(version) ?? NEVER_ANSWERED,
     };
   });
   return {
@@ -50,3 +59,11 @@ export function candidateRecords(
     generated_at: now.toISOString(),
   };
 }
+
+/** A candidate with no stored shadow version: said as such on the page (T-1165). */
+export const NEVER_ANSWERED: CandidateShadowHealth = {
+  first_answered_at: null,
+  last_answered_at: null,
+  day: { asked: 0, failed: 0 },
+  last_failure: null,
+};

@@ -3,13 +3,20 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import {
   AlertsSection,
+  CandidatesSection,
   FailuresSection,
   RateLimitsSection,
   WatchdogSection,
 } from '@/components/system-report';
 import { Notice } from '@/components/ui';
 import { directionOf } from '@/i18n/locales';
-import { fetchAdminAlerts, fetchFailureCounts, fetchRateLimits, fetchWatchdog } from '@/lib/api';
+import {
+  fetchAdminAlerts,
+  fetchCandidateRecords,
+  fetchFailureCounts,
+  fetchRateLimits,
+  fetchWatchdog,
+} from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 
@@ -25,7 +32,8 @@ export async function generateMetadata({
     locale,
     path: '/admin/system',
     title: 'System',
-    description: 'The watchdog, alert delivery, API errors, job failures and rate limits.',
+    description:
+      'The watchdog, alert delivery, API errors, job failures, rate limits and the candidates in shadow.',
     index: false,
   });
 }
@@ -34,7 +42,8 @@ export async function generateMetadata({
  * The System page (T-804, blueprint 16): the watchdog's conditions and
  * incidents (T-801), where its alerts went (T-802), and API errors and job
  * failures per hour (T-803), and every write's rate limit with its refusals
- * per day (T-811). Each section is fetched on its own and says
+ * per day (T-811), and each candidate in shadow with its last failure
+ * (T-1165). Each section is fetched on its own and says
  * separately "nothing recorded" (the API answered, and there is nothing)
  * and "cannot be shown" (the API did not answer): the first is good news,
  * the second is not, and rendering it as empty would be rule 3 on the page
@@ -47,14 +56,15 @@ export async function generateMetadata({
 export default async function AdminSystemPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const cookie = await sessionCookieHeader();
-  const [watchdog, day, week, alerts, limits] = await Promise.all([
+  const [watchdog, day, week, alerts, limits, candidates] = await Promise.all([
     fetchWatchdog(cookie),
     fetchFailureCounts(24, cookie),
     fetchFailureCounts(168, cookie),
     fetchAdminAlerts(cookie),
     fetchRateLimits(cookie),
+    fetchCandidateRecords(cookie),
   ]);
-  const results = [watchdog, day, week, alerts, limits];
+  const results = [watchdog, day, week, alerts, limits, candidates];
   if (results.some((r) => !r.ok && r.status === 401)) {
     redirect(`/${locale}/login?next=/${locale}/admin/system`);
   }
@@ -104,6 +114,7 @@ export default async function AdminSystemPage({ params }: { params: Promise<{ lo
           Data quality
         </Link>
       </p>
+      <CandidatesSection report={candidates.ok ? candidates.data : null} locale={locale} />
       <AlertsSection report={alerts.ok ? alerts.data : null} />
       <FailuresSection
         day={day.ok ? day.data : null}
