@@ -77,7 +77,7 @@ describe('what a conversation is called', () => {
       {
         ...base,
         kind: 'group',
-        group: { slug: 'terrace', name: 'The Open Terrace', language: null },
+        group: { slug: 'terrace', name: 'The Open Terrace', language: null, closed: false },
       },
       'me',
       'en',
@@ -93,7 +93,7 @@ describe('what a conversation is called', () => {
       {
         ...base,
         kind: 'group_thread',
-        group: { slug: 'terrace', name: 'The Open Terrace', language: null },
+        group: { slug: 'terrace', name: 'The Open Terrace', language: null, closed: false },
         fixture: match,
       },
       'me',
@@ -107,7 +107,7 @@ describe('what a conversation is called', () => {
       {
         ...base,
         kind: 'group_thread',
-        group: { slug: 'terrace', name: 'The Open Terrace', language: null },
+        group: { slug: 'terrace', name: 'The Open Terrace', language: null, closed: false },
       },
       'me',
       'en',
@@ -119,7 +119,7 @@ describe('what a conversation is called', () => {
     const thread: ConversationSummary = {
       ...base,
       kind: 'group_thread',
-      group: { slug: 'terrace', name: 'The Open Terrace', language: null },
+      group: { slug: 'terrace', name: 'The Open Terrace', language: null, closed: false },
       fixture: match,
     };
     expect(threadStanding(thread)).toBe('scheduled');

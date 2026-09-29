@@ -363,6 +363,12 @@ export class GroupsController {
           error: 'forbidden',
           message: outcome.message ?? 'This group does not let you invite.',
         } satisfies ApiError);
+      case 'closed':
+        // An administrator closed the group (T-1025); the page says why.
+        throw new ConflictException({
+          error: 'conflict',
+          message: 'This group is closed. Its members can read it and leave it; nothing else.',
+        } satisfies ApiError);
       case 'rules':
         // The group's own rules (T-1023): read and accept the current version.
         throw new ConflictException({

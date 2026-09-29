@@ -284,6 +284,8 @@ export const EXEMPT: Readonly<Record<string, string>> = {
   'PUT /groups/:slug/invite-policy': GROUP_ADMIN,
   'PUT /groups/:slug/rules': GROUP_ADMIN,
   'POST /me/conversations/:id/messages/:messageId/removal': GROUP_ADMIN,
+  'POST /groups/:slug/closure/appeal':
+    "The owner's notes on the appeal of their own group's closure (T-1025): only the owner of a closed group can write one, as with a sanction's appeal (`POST /me/sanctions/:id/appeal`).",
   'POST /groups/:slug/rules/seen': OWN_STATE,
   'DELETE /groups/:slug/members/:username': GROUP_ADMIN,
   'DELETE /groups/:slug/invites/:username': REMOVAL,

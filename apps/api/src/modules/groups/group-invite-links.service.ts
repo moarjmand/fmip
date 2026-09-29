@@ -39,7 +39,8 @@ export type LinkRefusal =
   | 'restricted'
   | 'unavailable'
   | 'rate_limited'
-  | 'rules';
+  | 'rules'
+  | 'closed';
 
 export type LinkOutcome<T> =
   | { ok: true; value: T }
@@ -301,6 +302,8 @@ export class GroupInviteLinksService {
         return { ok: false, reason: 'rate_limited' };
       case 'PL010':
         return { ok: false, reason: 'already_member' };
+      case 'PL020':
+        return { ok: false, reason: 'closed' };
       case 'PL006':
         if ((error as { hint?: string }).hint === 'rules') {
           return { ok: false, reason: 'rules', message: "Accept this group's rules to join." };

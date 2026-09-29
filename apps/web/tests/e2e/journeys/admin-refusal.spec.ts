@@ -30,6 +30,7 @@ const REFUSING: Record<string, string> = {
   '/en/admin/data-quality': 'data-quality-forbidden',
   '/en/admin/moderation': 'moderation-queue-forbidden',
   [`/en/admin/moderation/${MEMBER}`]: 'moderation-history-forbidden',
+  '/en/admin/moderation/groups/no-such-group': 'moderation-group-forbidden',
   '/en/admin/contributors': 'contributors-forbidden',
   '/en/admin/panels': 'panels-forbidden',
   '/en/admin/analysis-reviews': 'analysis-queue-forbidden',

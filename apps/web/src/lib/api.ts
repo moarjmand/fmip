@@ -1,4 +1,6 @@
 import type {
+  GroupAppealResponse,
+  GroupModerationView,
   InviteLinkPreviewResponse,
   AchievementsResponse,
   FriendPredictionsResponse,
@@ -719,6 +721,28 @@ export function fetchModerationQueue(
 ): Promise<ApiResult<ModerationQueueResponse>> {
   return apiRequest<ModerationQueueResponse>(
     '/admin/moderation/queue',
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/** `GET /admin/moderation/groups/:slug` (T-1025): everything about one group before deciding. */
+export function fetchGroupModeration(
+  slug: string,
+  cookie: string | undefined,
+): Promise<ApiResult<GroupModerationView>> {
+  return apiRequest<GroupModerationView>(
+    `/admin/moderation/groups/${encodeURIComponent(slug)}`,
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/** `GET /groups/:slug/closure/appeal` (T-1025): the owner's appeal of a closure. */
+export function fetchGroupClosureAppeal(
+  slug: string,
+  cookie: string | undefined,
+): Promise<ApiResult<GroupAppealResponse>> {
+  return apiRequest<GroupAppealResponse>(
+    `/groups/${encodeURIComponent(slug)}/closure/appeal`,
     cookie === undefined ? {} : { cookie },
   );
 }

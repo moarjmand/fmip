@@ -46,6 +46,7 @@ const OVER_RATE = 'PL005';
 const ALREADY_REMOVED = 'PL007';
 /** Raised when a group thread is opened by somebody outside the group (T-244). */
 const OUTSIDE_THE_GROUP = 'PL012';
+const GROUP_CLOSED = 'PL020';
 
 export type ConversationOutcome<T> =
   | { ok: true; value: T }
@@ -65,7 +66,8 @@ export type ConversationOutcome<T> =
         | 'removed'
         | 'invalid'
         | 'not_moderator'
-        | 'owner_message';
+        | 'owner_message'
+        | 'closed';
       fields?: Record<string, string>;
     };
 
@@ -772,6 +774,9 @@ export class ConversationsService {
     }
     const row = await this.store.participation(conversationId, viewerId);
     if (row === null) return { ok: false, reason: 'not_found' };
+    // A closed group is read-only to everybody in it, its moderators too: what
+    // is removed from it now is the administrators' to remove (T-1025).
+    if (row.group_closed === true) return { ok: false, reason: 'closed' };
     const role = await this.store.groupRole(conversationId, viewerId);
     if (role !== 'owner' && role !== 'moderator') return { ok: false, reason: 'not_moderator' };
 
@@ -851,6 +856,8 @@ export class ConversationsService {
     // first, like every other refusal on this surface.
     if (code === ALREADY_REMOVED) return { ok: false, reason: 'removed' };
     if (code === OUTSIDE_THE_GROUP) return { ok: false, reason: 'not_a_member' };
+    // An administrator closed the group (T-1025): read-only to its members.
+    if (code === GROUP_CLOSED) return { ok: false, reason: 'closed' };
     throw error;
   }
 }
@@ -895,7 +902,12 @@ function summary(
     group:
       row.group_slug === null || row.group_name === null
         ? null
-        : { slug: row.group_slug, name: row.group_name, language: row.group_language },
+        : {
+            slug: row.group_slug,
+            name: row.group_name,
+            language: row.group_language,
+            closed: row.group_closed === true,
+          },
     // The match a thread is about, as it stands now (T-244). Null for every
     // other kind, and null for a thread whose fixture no longer resolves --
     // which the product says rather than invents (rule 3).

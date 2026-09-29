@@ -101,7 +101,7 @@ export class PostgresCommunitySearchStore {
                   CASE WHEN g.slug LIKE q.key || '%' THEN 1 ELSE 0 END
                 ) AS score
            FROM user_group g CROSS JOIN q
-          WHERE g.visibility IN ('public', 'discoverable')
+          WHERE g.visibility IN ('public', 'discoverable') AND g.closed_at IS NULL
        )
        SELECT slug, name, visibility, member_count, round(score::numeric, 3)::text AS score
          FROM hits

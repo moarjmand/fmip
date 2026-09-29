@@ -140,6 +140,18 @@ const CONSOLE: Record<string, ConsoleRoute> = {
     roles: MODERATION,
     reason: { without: {} },
   },
+  // Administrators and groups (T-1025, D-135).
+  'GET /admin/moderation/groups/:slug': { roles: MODERATION },
+  'POST /admin/moderation/groups/:slug/close': { roles: MODERATION, reason: { without: {} } },
+  'POST /admin/moderation/groups/:slug/reopen': { roles: MODERATION, reason: { without: {} } },
+  'POST /admin/moderation/groups/:slug/removal': {
+    roles: MODERATION,
+    reason: { without: { description: true } },
+  },
+  'POST /admin/moderation/groups/:slug/dismissal': {
+    roles: MODERATION,
+    reason: { without: { report_ids: [UUID_A] } },
+  },
   'POST /admin/moderation/reports/:id/suggest': {
     roles: MODERATION,
     reason: {

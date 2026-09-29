@@ -232,7 +232,7 @@ export function ModerationQueue({
   if (subjects.length === 0) {
     return (
       <p className="text-sm text-muted" data-testid="moderation-queue-empty">
-        No report is waiting.
+        No report about a member is waiting.
       </p>
     );
   }

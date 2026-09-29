@@ -5153,3 +5153,64 @@ moderator's removal is not, and it would blur the group's moderation into the
 platform's. Showing the reason to the whole group: it would turn a removal
 into a public reprimand. Letting a moderator remove the owner's messages: the
 acceptance criterion refuses it, and the owner is who a moderator answers to.
+
+## D-135 — Administrators close, reopen and clear a group as moderation decisions about the group; a closed group is read-only, out of sight, says why, and can be appealed
+
+**Date:** 2026-09-29 · **Task:** T-1025 · **Status:** accepted (revisable under the standing delegation of 2026-09-26)
+
+Blueprint 10.4 lets administrators close groups and remove content. Until
+now a group could not be reported through the API (the contract listed
+members only) and a decision could only be about a member.
+
+**Who: the moderation team.** `moderator` or `admin`, the same gate as the
+rest of the queue (T-212): closing a group is moderation, and the moderator
+role exists for it. Every decision needs a reason, checked before anything
+else.
+
+**Four decisions about a group, each a `moderation_decision` with subject
+`group`:** close (`group_closed`), reopen (`group_reopened`), remove content
+(`content_removed`) and judge the reports groundless (`no_action`). Each is
+one transaction: the decision, what it changes, the open reports about that
+group it answers, and an `audit_log` row naming the actor, the reason and the
+**previous state** (whether it was closed and why; for a removal, every
+removed message and the description as they were). The audit target is the
+group, so the group's owner and moderators see it in the group's history
+(T-1020) as well.
+
+**Removing content** is tombstoning named messages of the group's own
+conversations (its room and its match threads) with `removed_kind =
+'moderator'`, and/or clearing its description. From the web, the moderation
+page offers the description; messages are removed by id through the API.
+**Whether platform moderators may read a private group's conversation to
+find what to remove is not decided here** -- that is a privacy question the
+blueprint does not settle, so no page shows a group's messages to a
+moderator who is not in it.
+
+**A closed group is read-only to its members, and the schema says so.**
+`refuse_write_in_closed_group()` refuses every insert into a group's
+surfaces -- a member, an invitation, a request, an invite link, a rules
+version, a poll or a vote, a thread, a message, a reaction, a pin (`PL020`).
+Updates and deletes are left to the ways out: leaving, an account's deletion
+handing ownership on, a tombstone. The API also refuses the owner's and
+moderators' settings changes, deleting the group (the closure and its appeal
+stand on it) and the group moderators' own removals: what is taken out of a
+closed group is the administrators' to take. **Members can still read it and
+leave it**; nobody is removed.
+
+**Out of the directory and search, and it says why.** A closed group is left
+out of `GET /groups` and the community search. Its page -- still open to its
+members, and to anyone who could see it before -- shows the reason the
+moderator gave. Reopening takes a reason too, and restores everything as it
+was.
+
+**The owner can appeal.** T-211's appeal notes, which belonged to a sanction,
+may now belong to a decision instead (exactly one of the two). The owner of a
+closed group writes notes on the decision that closed it
+(`/groups/:slug/closure/appeal`); the moderation page shows them. The owner
+is not notified of the closure by a notification: a new kind would need its
+own migration and the page already says it; recorded as open.
+
+**Alternatives considered.** A sanction on the owner instead of a closure:
+it restricts a person, and the harm is the group. Deleting a closed group:
+destroys the record an appeal needs. Hiding a closed group from its own
+members: the criterion says they can read their own history.

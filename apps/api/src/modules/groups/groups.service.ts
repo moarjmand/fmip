@@ -84,7 +84,8 @@ export type GroupRefusal =
   | 'unavailable'
   | 'rate_limited'
   | 'policy'
-  | 'rules';
+  | 'rules'
+  | 'closed';
 
 /**
  * The answer to "who is in this group, and may you ask" (T-243). Narrower than
@@ -105,6 +106,7 @@ export type GroupOutcome<T> =
 const BLOCKED = 'PL003';
 const SANCTIONED = 'PL004';
 const NOT_PERMITTED = 'PL006';
+const GROUP_CLOSED = 'PL020';
 const OVER_RATE = 'PL005';
 const SLUG_FIXED = 'PL008';
 const LAST_OWNER = 'PL009';
@@ -324,8 +326,13 @@ export class GroupsService {
           ? (await this.store.members(row.id)).map(membership)
           : null,
       pending: decides ? await this.store.pending(row.id) : null,
+      closed:
+        row.closed_at === null || row.closed_reason === null
+          ? null
+          : { at: row.closed_at.toISOString(), reason: row.closed_reason },
       invite_policy: row.invite_policy as GroupInvitePolicy,
-      may_invite: mayInvite(row.invite_policy, role),
+      // Nobody invites into a closed group (T-1025).
+      may_invite: row.closed_at === null && mayInvite(row.invite_policy, role),
       rules: rules === null ? null : rulesView(rules),
       rules_accepted_version: mine?.rules_version ?? null,
       // Shown once: until the member says they have read the newest version.
@@ -436,6 +443,7 @@ export class GroupsService {
   ): Promise<GroupOutcome<true>> {
     const found = await this.decider(viewerId, slug);
     if (!found.ok) return found;
+    if (found.value.group.closed_at !== null) return { ok: false, reason: 'closed' };
 
     if (patch.name !== undefined) {
       const length = patch.name.trim().length;
@@ -482,10 +490,15 @@ export class GroupsService {
     }
   }
 
-  /** Only the owner. A moderator runs a group; they do not end one. */
+  /**
+   * Only the owner. A moderator runs a group; they do not end one. A closed
+   * group is not deleted by its owner (T-1025): the closure and its appeal
+   * stand on it.
+   */
   async remove(viewerId: string, slug: string): Promise<GroupOutcome<true>> {
     const found = await this.owner(viewerId, slug);
     if (!found.ok) return found;
+    if (found.value.group.closed_at !== null) return { ok: false, reason: 'closed' };
     await this.store.remove(found.value.group.id);
     return { ok: true, value: true };
   }
@@ -541,6 +554,7 @@ export class GroupsService {
     }
     const found = await this.owner(viewerId, slug);
     if (!found.ok) return found;
+    if (found.value.group.closed_at !== null) return { ok: false, reason: 'closed' };
 
     const subject = await this.store.memberIdByUsername(username);
     if (subject === null) return { ok: false, reason: 'not_found' };
@@ -680,6 +694,7 @@ export class GroupsService {
     }
     const found = await this.owner(viewerId, slug);
     if (!found.ok) return found;
+    if (found.value.group.closed_at !== null) return { ok: false, reason: 'closed' };
     try {
       await this.store.setInvitePolicy(found.value.group.id, viewerId, policy);
       return { ok: true, value: true };
@@ -946,6 +961,8 @@ export class GroupsService {
         return { ok: false, reason: 'unavailable' };
       case SANCTIONED:
         return { ok: false, reason: 'restricted' };
+      case GROUP_CLOSED:
+        return { ok: false, reason: 'closed' };
       case NOT_PERMITTED:
         // The schema's own copy of the rules gate (T-1023): somebody let in
         // who had not accepted them -- a request filed before the group had

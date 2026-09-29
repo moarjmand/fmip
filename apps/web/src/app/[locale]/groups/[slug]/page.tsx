@@ -10,6 +10,7 @@ import {
 import { GroupPollsSection } from '@/components/group-polls';
 import { MemberHandle, MemberName } from '@/components/member-name';
 import {
+  fetchGroupClosureAppeal,
   fetchGroup,
   fetchGroupLeaderboard,
   fetchGroupPolls,
@@ -21,6 +22,7 @@ import { ratingLabel, statusLabel, tierLabel } from '@/lib/leaderboard';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { Translated } from '@/components/translated';
+import { AppealNotes, GroupAppealForm } from '@/components/group-moderation';
 import { Notice } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
@@ -90,6 +92,11 @@ export default async function GroupPage({
   // Polls are for the people in the group (T-643, D-091), so only they ask.
   const inside = decides || group.standing === 'member';
   const polls = inside ? await fetchGroupPolls(slug, cookie) : null;
+  // A closed group (T-1025): the owner's appeal, asked only by the owner.
+  const appeal =
+    group.closed !== null && group.standing === 'owner'
+      ? await fetchGroupClosureAppeal(slug, cookie)
+      : null;
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
@@ -134,6 +141,28 @@ export default async function GroupPage({
         )}
       </header>
 
+      {group.closed !== null && (
+        <Notice tone="warning" as="div" className="flex flex-col gap-2" data-testid="group-closed">
+          <p>
+            The platform&rsquo;s moderators closed this group:{' '}
+            <span data-testid="group-closed-reason">{group.closed.reason}</span>
+          </p>
+          <p>Its members can read it and leave it. Nothing new can be written in it.</p>
+        </Notice>
+      )}
+
+      {appeal !== null && (
+        <section className="flex flex-col gap-2" data-testid="group-appeal">
+          <h2 className="text-lg font-semibold">Appeal</h2>
+          {appeal.ok ? (
+            <AppealNotes notes={appeal.data.notes} />
+          ) : (
+            <Notice tone="danger">The appeal cannot be shown right now.</Notice>
+          )}
+          <GroupAppealForm locale={locale} slug={group.slug} />
+        </section>
+      )}
+
       {group.rules_changed && group.rules !== null && (
         <Notice
           tone="info"
@@ -167,14 +196,17 @@ export default async function GroupPage({
         </section>
       )}
 
-      <GroupControls
-        locale={locale}
-        slug={group.slug}
-        standing={group.standing}
-        rulesVersion={group.rules?.version ?? null}
-      />
+      {group.closed === null || group.standing === 'member' || group.standing === 'moderator' ? (
+        // Closed: the way out stays (leaving), every way in goes.
+        <GroupControls
+          locale={locale}
+          slug={group.slug}
+          standing={group.standing}
+          rulesVersion={group.rules?.version ?? null}
+        />
+      ) : null}
 
-      {group.standing === 'owner' && (
+      {group.standing === 'owner' && group.closed === null && (
         <section className="flex flex-col gap-2" data-testid="group-rules-owner">
           <h2 className="text-lg font-semibold">Rules</h2>
           <GroupRulesForm locale={locale} slug={group.slug} current={group.rules?.body ?? null} />

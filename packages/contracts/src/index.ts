@@ -482,6 +482,8 @@ export type {
 // Moderation (blueprint 10.4 and 16, T-210, D-053). Every list is short on
 // purpose and grows only when something enforces the next entry.
 export {
+  GROUP_DECISION_OUTCOMES,
+  MAX_GROUP_DECISION_REASON,
   MODERATION_OUTCOMES,
   REPORT_REASONS,
   REPORT_SUBJECTS,
@@ -489,6 +491,16 @@ export {
 } from './moderation';
 export type {
   AppealNote,
+  GroupAppealNote,
+  GroupAppealRequest,
+  GroupAppealResponse,
+  GroupClosure,
+  GroupDecisionOutcome,
+  GroupDecisionRequest,
+  GroupDecisionResponse,
+  GroupModerationView,
+  GroupQueueSubject,
+  RemoveGroupContentRequest,
   DecideRequest,
   LiftSanctionRequest,
   MemberModerationHistory,

@@ -314,6 +314,12 @@ export class ConversationsController {
           error: 'conflict',
           message: 'That message has been removed.',
         } satisfies ApiError);
+      case 'closed':
+        // T-1025: an administrator closed the group; the page says why.
+        throw new ConflictException({
+          error: 'conflict',
+          message: 'This group is closed. Nothing new can be written in it.',
+        } satisfies ApiError);
       case 'not_moderator':
         throw new ForbiddenException({
           error: 'forbidden',

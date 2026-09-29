@@ -87,6 +87,10 @@ const FIELDS: Record<string, Rule> = {
     rendered: [['components/match-panel.tsx', 'if (isDeletedMember(author.username))']],
   },
   'moderation.ts:AppealNote.author': { exempt: STAFF },
+  'moderation.ts:GroupAppealNote.author': {
+    exempt:
+      'not rendered: an appeal note on a closure shows its words and time, never its author (T-1025)',
+  },
   'moderation.ts:QueuedReport.reporter': { exempt: STAFF },
   'moderation.ts:QueueSubject.display_name': { exempt: STAFF },
   'notifications.ts:Notification.source': {
@@ -205,6 +209,7 @@ describe('the web never renders a stored name or a tombstone handle directly', (
     'components/moderation-queue.tsx': STAFF,
     'app/[locale]/admin/page.tsx': STAFF,
     'app/[locale]/admin/moderation/[username]/page.tsx': STAFF,
+    'app/[locale]/admin/moderation/groups/[slug]/page.tsx': STAFF,
   };
 
   it('reads `.display_name` only in the rule and the listed exceptions', () => {

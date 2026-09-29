@@ -11,6 +11,8 @@ export interface GroupRow {
   member_count: string;
   invite_policy: string;
   language: string | null;
+  closed_at: Date | null;
+  closed_reason: string | null;
   favourite_team_id: string | null;
   favourite_team_name: string | null;
   favourite_competition_id: string | null;
@@ -69,7 +71,7 @@ export interface RequestRow {
  * copy of a rule, and the second copy is the one that drifts.
  */
 const GROUP_COLUMNS = `g.id, g.slug, g.name, g.description, g.visibility, g.created_at, g.invite_policy,
-         g.language, g.favourite_team_id, g.favourite_competition_id,
+         g.language, g.closed_at, g.closed_reason, g.favourite_team_id, g.favourite_competition_id,
          (SELECT t.name FROM team t WHERE t.id = g.favourite_team_id) AS favourite_team_name,
          (SELECT c.name FROM competition c WHERE c.id = g.favourite_competition_id)
            AS favourite_competition_name,
@@ -110,6 +112,7 @@ export class GroupsStore {
       `SELECT ${GROUP_COLUMNS}
          FROM user_group g
         WHERE g.visibility <> 'invite_only'
+          AND g.closed_at IS NULL
           AND ($1 = '' OR search_key(g.name) LIKE '%' || search_key($1) || '%')
           AND ($3::text IS NULL OR g.language = $3::text)
           AND ($4::uuid IS NULL OR g.favourite_team_id = $4::uuid)

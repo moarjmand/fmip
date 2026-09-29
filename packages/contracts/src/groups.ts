@@ -149,6 +149,12 @@ export interface Group extends GroupSummary {
    * removed for not accepting it.
    */
   rules_changed: boolean;
+  /**
+   * Set when an administrator closed the group (T-1025, D-135): it is then
+   * read-only to its members, out of the directory and search, and this says
+   * why. Members can still leave and read; the owner can appeal.
+   */
+  closed: { at: string; reason: string } | null;
   /** Who may invite (T-1020); the owner changes it. */
   invite_policy: GroupInvitePolicy;
   /** Whether this viewer may invite under that policy. */

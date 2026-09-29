@@ -238,6 +238,7 @@ address never leaves a reader without a search.
 - `PUT /me/analyses/:fixtureId`: One draft per member per match, overwritten in place; nobody reads it until it is submitted.
 - `POST /me/analyses/:fixtureId/submit`: One submission of a draft waits for its decision: a second attempt while one is pending is refused (already_decided), so the review queue grows by at most one per member per match.
 - `POST /reports`: Deliberately unlimited (T-213): reporting is limited by target instead -- one open report per subject (T-210) -- because a member harassed by twenty accounts must be able to report twenty.
+- `POST /groups/:slug/closure/appeal`: The owner's notes on the appeal of their own group's closure (T-1025): only the owner of a closed group can write one, as with a sanction's appeal (`POST /me/sanctions/:id/appeal`).
 - `POST /me/sanctions/:id/appeal`: Deliberately unlimited (T-213): an appeal is the way out of a sanction, and the exit is never gated; only the sanctioned member can write, on their own sanction, and each note is length-capped.
 - `POST /me/blocks/:username`: Deliberately unlimited: a block protects the caller, reaches nobody, and is one row per pair.
 - `POST /me/friend-requests/:username/accept`, `DELETE /me/friend-requests/:username`, `POST /me/group-invites/:slug/accept`, `DELETE /me/group-invites/:slug`, `POST /groups/:slug/requests/:username/accept`, `DELETE /groups/:slug/requests/:username`: Answers an invitation or request that already exists; each can be answered once, so it is bounded by the ceiling on sending them.

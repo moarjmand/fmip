@@ -157,6 +157,11 @@ export class GroupInviteLinksController {
           error: 'conflict',
           message: 'That is not available.',
         } satisfies ApiError);
+      case 'closed':
+        throw new ConflictException({
+          error: 'conflict',
+          message: 'This group is closed. Nobody new can join it.',
+        } satisfies ApiError);
       case 'rules':
         throw new ConflictException({
           error: 'conflict',

@@ -139,3 +139,37 @@ export async function liftSanctionAction(
   revalidatePath(`/${locale}/admin/moderation`);
   return { ok: true, message: 'Lifted; the member can use it again now.' };
 }
+
+/** The four decisions an administrator makes about a group (T-1025, D-135). */
+export type GroupDecisionKind = 'close' | 'reopen' | 'removal' | 'dismissal';
+
+/**
+ * A decision about a group, with its reason and the reports it answers. The
+ * removal from the web is the group's description; removing messages by id
+ * is the API's (`message_ids`).
+ */
+export async function groupDecisionAction(
+  locale: string,
+  slug: string,
+  kind: GroupDecisionKind,
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const body = {
+    reason: String(formData.get('reason') ?? '').trim(),
+    report_ids: formData.getAll('report_id').map(String),
+    ...(kind === 'removal' ? { description: true } : {}),
+  };
+  const result = await post<{ decision_id: string; answered: number }>(
+    `/admin/moderation/groups/${encodeURIComponent(slug)}/${kind}`,
+    body,
+  );
+  if (!result.ok) return { ok: false, message: result.message };
+  revalidatePath(`/${locale}/admin/moderation`);
+  revalidatePath(`/${locale}/admin/moderation/groups/${encodeURIComponent(slug)}`);
+  revalidatePath(`/${locale}/groups/${encodeURIComponent(slug)}`);
+  return {
+    ok: true,
+    message: `Recorded. ${result.data.answered} report${result.data.answered === 1 ? '' : 's'} answered.`,
+  };
+}

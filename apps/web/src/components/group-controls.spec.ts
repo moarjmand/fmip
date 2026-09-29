@@ -209,3 +209,11 @@ describe("a group's owner and moderators removing messages (T-1024)", () => {
     expect(MESSAGE).toContain('data-testid="message-removed-reason"');
   });
 });
+
+describe('a group an administrator closed (T-1025)', () => {
+  it('says why, keeps the way out, and offers the appeal to the owner only', () => {
+    expect(PAGE).toContain('data-testid="group-closed-reason"');
+    expect(PAGE).toContain('Its members can read it and leave it.');
+    expect(PAGE).toContain("group.closed !== null && group.standing === 'owner'");
+  });
+});

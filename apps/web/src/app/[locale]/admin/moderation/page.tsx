@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { GroupModerationQueue } from '@/components/group-moderation';
 import { ModerationQueue } from '@/components/moderation-queue';
 import { fetchMe, fetchModerationQueue } from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';
@@ -54,7 +55,16 @@ export default async function ModerationPage({ params }: { params: Promise<{ loc
           openTotal={result.ok ? result.data.open_total : 0}
           reachable={result.ok}
         />
-      ) : (
+      ) : null}
+
+      {result.ok && (
+        <section className="flex flex-col gap-3" data-testid="moderation-groups-section">
+          <h2 className="text-lg font-semibold">Reports about groups</h2>
+          <GroupModerationQueue locale={locale} groups={result.data.groups} />
+        </section>
+      )}
+
+      {result.ok || result.status !== 403 ? null : (
         // "You may not see this" and "nothing is waiting" are different facts.
         <Notice tone="warning" data-testid="moderation-queue-forbidden">
           The moderation queue needs the moderator or administrator role.

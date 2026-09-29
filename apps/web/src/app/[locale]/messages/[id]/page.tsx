@@ -117,7 +117,10 @@ export default async function ConversationPage({
       ? null
       : await fetchGroup(page.conversation.group.slug, cookie);
   const standing = groupRead !== null && groupRead.ok ? groupRead.data.group.standing : null;
-  const runs = standing === 'owner' || standing === 'moderator';
+  // A closed group's moderators remove nothing new either: the closure is the
+  // platform's, and its content is the administrators' to remove (T-1025).
+  const runs =
+    (standing === 'owner' || standing === 'moderator') && page.conversation.group?.closed !== true;
   const ownerName =
     groupRead !== null && groupRead.ok
       ? (groupRead.data.group.members?.find((m) => m.role === 'owner')?.username ?? null)
@@ -272,7 +275,9 @@ export default async function ConversationPage({
         disabled={
           page.conversation.left
             ? 'You have left this conversation. You can still read it.'
-            : undefined
+            : page.conversation.group?.closed === true
+              ? 'The platform’s moderators closed this group. You can read it and leave it; nothing new can be written.'
+              : undefined
         }
       />
 

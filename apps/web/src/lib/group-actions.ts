@@ -97,6 +97,23 @@ export async function setGroupRulesAction(
   return { ok: true, message: `Published as version ${result.data.version}.` };
 }
 
+/** The owner's appeal of a closure (T-1025): one note on the decision that closed it. */
+export async function appealGroupClosureAction(
+  locale: string,
+  slug: string,
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const result = await apiRequest<unknown>(`/groups/${target(slug)}/closure/appeal`, {
+    method: 'POST',
+    cookie: await sessionCookieHeader(),
+    body: { body: String(formData.get('body') ?? '').trim() },
+  });
+  if (!result.ok) return failure(result);
+  revalidatePath(`/${locale}/groups/${target(slug)}`);
+  return { ok: true, message: 'Sent. A moderator reads every appeal.' };
+}
+
 /** A member has read the new rules; they are not shown as new again (T-1023). */
 export async function groupRulesSeenAction(
   locale: string,

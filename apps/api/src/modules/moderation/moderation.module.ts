@@ -2,6 +2,11 @@ import { Module } from '@nestjs/common';
 import { IdentityModule } from '../identity/identity.module';
 import { ModerationAssistModule } from '../moderation-assist/moderation-assist.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import {
+  GroupClosureAppealController,
+  GroupModerationAdminController,
+} from './group-moderation.controller';
+import { GroupModerationService } from './group-moderation.service';
 import { ModerationAdminController } from './moderation-admin.controller';
 import { ModerationController } from './moderation.controller';
 import { ModerationService } from './moderation.service';
@@ -17,8 +22,15 @@ import { ModerationService } from './moderation.service';
  */
 @Module({
   imports: [IdentityModule, NotificationsModule, ModerationAssistModule],
-  controllers: [ModerationController, ModerationAdminController],
-  providers: [ModerationService],
+  // Groups (T-1025): the administrators' decisions about a group and its
+  // owner's appeal are moderation, so they live here.
+  controllers: [
+    ModerationController,
+    ModerationAdminController,
+    GroupModerationAdminController,
+    GroupClosureAppealController,
+  ],
+  providers: [ModerationService, GroupModerationService],
   exports: [ModerationService],
 })
 export class ModerationModule {}

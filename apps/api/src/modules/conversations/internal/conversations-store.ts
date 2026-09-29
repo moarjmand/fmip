@@ -64,6 +64,7 @@ export interface ConversationRow {
   group_slug: string | null;
   group_name: string | null;
   group_language: string | null;
+  group_closed: boolean | null;
   /** The fixture a group thread is about; null for every other kind (T-244). */
   fixture_id: string | null;
   muted: boolean;
@@ -113,6 +114,7 @@ const STANDING_COLUMNS = `c.id,
               g.slug AS group_slug,
               g.name AS group_name,
               g.language AS group_language,
+              g.closed_at IS NOT NULL AS group_closed,
               c.fixture_id,
               CASE WHEN c.kind = 'direct' THEN (
                 SELECT p.last_read_seq FROM conversation_participant p
