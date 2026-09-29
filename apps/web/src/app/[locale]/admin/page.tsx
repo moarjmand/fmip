@@ -149,6 +149,9 @@ export default async function AdminPage({
         <Link href={`/${locale}/admin/translations`} className="underline">
           Translator&apos;s desk
         </Link>
+        <Link href={`/${locale}/admin/news`} className="underline">
+          News desk
+        </Link>
         <Link href={`/${locale}/admin/moderation`} className="underline">
           Moderation queue
         </Link>

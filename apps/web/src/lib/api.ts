@@ -72,6 +72,7 @@ import type {
   MemberModerationHistory,
   ModerationQueueResponse,
   DebateListResponse,
+  BreakingListResponse,
   BreakingNewsResponse,
   MatchPanelPage,
   NewsSectionResponse,
@@ -562,6 +563,28 @@ export function fetchNewsSection(
  */
 export function fetchDebates(cookie: string | undefined): Promise<ApiResult<DebateListResponse>> {
   return apiRequest<DebateListResponse>('/admin/debates?state=open', { cookie });
+}
+
+/**
+ * The news desk (T-1009): every debate selection and every breaking mark,
+ * open and closed, newest first, as far back as the API lists (200). The
+ * desk reads each story's record of decisions from these two lists.
+ */
+export function fetchDebateRecords(
+  cookie: string | undefined,
+): Promise<ApiResult<DebateListResponse>> {
+  return apiRequest<DebateListResponse>('/admin/debates?state=all&limit=200', { cookie });
+}
+
+export function fetchBreakingMarks(
+  cookie: string | undefined,
+): Promise<ApiResult<BreakingListResponse>> {
+  return apiRequest<BreakingListResponse>('/admin/breaking?limit=200', { cookie });
+}
+
+/** `GET /admin/audit?limit=200`: the newest audit rows; administrators only (T-070). */
+export function fetchRecentAudit(cookie: string | undefined): Promise<ApiResult<AuditResponse>> {
+  return apiRequest<AuditResponse>('/admin/audit?limit=200', { cookie });
 }
 
 /** `GET /news/breaking` (T-1004): the stories marked breaking now, for the homepage strip. Public. */
