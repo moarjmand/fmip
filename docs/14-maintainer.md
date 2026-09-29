@@ -323,8 +323,14 @@ catalog --set-division --competition 179 --division SC0 --by you@your-domain
 
 **Their order on the scores page (T-504)**, after a member's own favourites.
 Nothing in the data says which league a reader looks for first, so it is
-stated here and changed with the same command; `--order 0` clears a place, and
-a competition without one sorts after every stated one by country and name:
+stated by you. **From T-1162 (D-154) it is set in the console:** open
+`/en/admin/competitions` as an administrator, give each competition its place
+(1 first; empty clears it) with a reason, and the scores page and the homepage
+show the new order on their next render. Each change is recorded in the audit
+log with the place it had before. The command below still works and makes the
+same audited change (with `--by`), which is the quicker way to set all fifteen
+at once on a fresh deployment; `--order 0` clears a place, and a competition
+without one sorts after every stated one by country and name:
 
 ```bash
 n=1; for id in 2 39 140 135 78 61 290 3 848 40 88 94 203 144 179; do
