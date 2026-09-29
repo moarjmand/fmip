@@ -625,5 +625,54 @@ export interface PlayerPage {
   record: Covered<PlayerSeasonRecord[]>;
   /** The last matches the player was named for, newest first. */
   recent_matches: Covered<PlayerMatch[]>;
+  /** Whether the feed lists the player out or doubtful for their team's next match (T-1007, D-127). */
+  availability: PlayerAvailability;
   last_updated_at: string | null;
+}
+
+/**
+ * Why a player's availability says nothing (T-1007, D-127).
+ *
+ * - `no_team`: no open spell and no stored line-up names the player, so there
+ *   is no team whose next match to read.
+ * - `no_next_match`: the team has no scheduled match ahead in our records.
+ * - `not_asked`: the feed has not yet been asked who misses that match; an
+ *   empty list nobody asked for is not "not listed" (T-103).
+ */
+export type PlayerAvailabilityReason = 'no_team' | 'no_next_match' | 'not_asked';
+
+/**
+ * What the feed says about one player for one match, as the key players'
+ * `KeyPlayerAvailability` says it: `out` or `doubtful` as the feed lists
+ * them, `not_listed` when the feed was asked and does not list the player.
+ * Never "fit": the feed never says that (T-103).
+ */
+export interface PlayerAvailabilityListing {
+  status: 'out' | 'doubtful' | 'not_listed';
+  kind: 'injury' | 'suspension' | 'illness' | 'other' | null;
+  /** The feed's own words for the reason, when it gave any. */
+  reason: string | null;
+  /** When the feed first said this, or last changed it; `null` when not listed. */
+  reported_at: string | null;
+}
+
+/**
+ * The player page's current availability (blueprint 5.3, T-1007, D-127): the
+ * team's next scheduled match and what the feed's absence list says about the
+ * player for it. `listing.last_updated_at` is when the feed was last asked.
+ */
+export interface PlayerAvailability {
+  /**
+   * The team read: an open spell's (`spell`), else the team of the latest
+   * stored line-up that names the player (`lineup`). With several open spells,
+   * the one whose next match comes first.
+   */
+  team: { id: string; name: string; short_name: string | null; basis: 'spell' | 'lineup' } | null;
+  fixture: {
+    id: string;
+    kickoff_at: string;
+    opponent: { id: string; name: string; short_name: string | null } | null;
+  } | null;
+  listing: Covered<PlayerAvailabilityListing>;
+  reason: PlayerAvailabilityReason | null;
 }

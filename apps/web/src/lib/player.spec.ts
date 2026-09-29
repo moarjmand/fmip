@@ -1,6 +1,7 @@
 import type { PlayerMatch, PlayerSeasonRecord } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
 import {
+  availabilityStale,
   ageOn,
   appearances,
   filterMatches,
@@ -151,5 +152,13 @@ describe('minutesText (T-823)', () => {
 
   it('says not supplied when the feed sent none', () => {
     expect(minutesText(m('not_supplied', 0))).toEqual({ text: 'not supplied', note: null });
+  });
+});
+
+describe('availabilityStale (T-1007)', () => {
+  it('says an answer older than two missed re-asks may have changed', () => {
+    const now = new Date('2026-09-29T12:00:00Z');
+    expect(availabilityStale('2026-09-29T07:00:00Z', now)).toBe(false);
+    expect(availabilityStale('2026-09-29T05:59:00Z', now)).toBe(true);
   });
 });

@@ -27,6 +27,7 @@ import {
 } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
+import { LINK_REFUSAL_TEXT, parseLinkRequest } from './internal/panel-link';
 import { MAX_POST_LENGTH, PanelService } from './panel.service';
 
 const NO_MATCH: ApiError = { error: 'not_found', message: 'No such match.' };
@@ -130,10 +131,22 @@ export class PanelController {
         message: `A post is at most ${MAX_POST_LENGTH} characters.`,
       } satisfies ApiError);
     }
+    const link = parseLinkRequest(body?.link);
+    if (typeof link === 'string') {
+      throw new BadRequestException({ error: 'validation', message: link } satisfies ApiError);
+    }
     if (!(await this.panel.fixtureExists(fixtureId))) throw new NotFoundException(NO_MATCH);
 
-    const outcome = await this.panel.post(user, fixtureId, text);
+    const outcome = await this.panel.post(user, fixtureId, text, link);
     if (outcome.ok && outcome.post !== undefined) return outcome.post;
+    if (outcome.badLink !== undefined) {
+      // The database refused the link, not the member: a 400 naming which
+      // thing was not of this match (T-1030).
+      throw new BadRequestException({
+        error: 'validation',
+        message: LINK_REFUSAL_TEXT[outcome.badLink],
+      } satisfies ApiError);
+    }
 
     // 429 for the ceiling, 403 for a judgement. They are different answers: one
     // says "not now", the other says "not you", and a client that retried the

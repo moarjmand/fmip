@@ -3,6 +3,7 @@ import { type Transport, readFeed } from '@fmip/ingestion';
 import { NEWS_TRANSPORT } from './internal/news-transport';
 import { type NewsSourceRow, PostgresNewsStore, type VersionFields } from './internal/news-store';
 import { NEWS_USER_AGENT, robotsAllows } from './internal/robots';
+import { PostgresStoryLabelStore } from './internal/story-label-store';
 import { NewsClusteringService } from './news-clustering.service';
 
 /** Postgres' unique_violation: a run of this source is already open. */
@@ -40,6 +41,7 @@ export class NewsIngestionService {
   constructor(
     private readonly store: PostgresNewsStore,
     private readonly clustering: NewsClusteringService,
+    private readonly labels: PostgresStoryLabelStore,
     @Inject(NEWS_TRANSPORT) private readonly transport: Transport,
   ) {}
 
@@ -132,12 +134,25 @@ export class NewsIngestionService {
         published_at: item.publishedAt,
       };
       const article = await this.store.upsertArticle(source.id, item.externalId, item.url);
+      // T-1002: the publisher's categories as carried this time.
+      const recategorised = await this.store.replaceCategories(article.id, item.categories);
       const newest = await this.store.newestVersion(article.id, language);
-      if (newest !== null && same(newest, fields)) continue;
-      await this.store.addVersion(article.id, language, (newest?.version_number ?? 0) + 1, fields);
-      written += 1;
-      // Which entities the report is about, and whether it is a story already here.
-      await this.clustering.place(article.id, article.inserted);
+      if (newest === null || !same(newest, fields)) {
+        await this.store.addVersion(
+          article.id,
+          language,
+          (newest?.version_number ?? 0) + 1,
+          fields,
+        );
+        written += 1;
+        // Which entities the report is about, and whether it is a story already here.
+        await this.clustering.place(article.id, article.inserted);
+      } else if (!recategorised) {
+        continue;
+      }
+      // The story's publisher type follows its promoted original's categories;
+      // an editor's label is never touched (D-123).
+      await this.labels.refreshPublisher(await this.store.storyOf(article.id));
     }
 
     const skipped =
