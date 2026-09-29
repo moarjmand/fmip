@@ -15,7 +15,8 @@
       "types": "./dist/translation-checks.d.ts",
       "default": "./dist/translation-checks.js"
     },
-    "./glossary/*.json": "./glossary/*.json"
+    "./glossary/*.json": "./glossary/*.json",
+    "./zones/*.json": "./zones/*.json"
   },
   "typesVersions": {
     "*": {
@@ -26,7 +27,8 @@
   },
   "files": [
     "dist",
-    "glossary"
+    "glossary",
+    "zones"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",

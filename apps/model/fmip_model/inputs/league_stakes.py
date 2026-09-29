@@ -87,14 +87,20 @@ class Schedule:
     def __init__(self, lists: Mapping[tuple[str, str], Iterable[Listed]]) -> None:
         self.seasons: dict[tuple[str, str], SeasonList] = {}
         self._of: dict[tuple[str, date, str, str], SeasonList] = {}
+        self._label: dict[tuple[str, date, str, str], str] = {}
         for (division, season), fixtures in lists.items():
             built = season_list(fixtures)
             self.seasons[(division, season)] = built
             for key in built.keys:
                 self._of[(division, *key)] = built
+                self._label[(division, *key)] = season
 
     def season_of(self, division: str, match: Scheduled) -> SeasonList | None:
         return self._of.get((division, match.date, match.home, match.away))
+
+    def label_of(self, division: str, match: Scheduled) -> str | None:
+        """The season's label (``2025/26``) of a listed match (T-1167)."""
+        return self._label.get((division, match.date, match.home, match.away))
 
 
 def locked(team: str, points: Mapping[str, int], left: Mapping[str, int]) -> bool:

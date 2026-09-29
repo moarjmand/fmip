@@ -1,4 +1,11 @@
-import type { FormResult, SeasonFixture, SeasonSummary } from '@fmip/contracts';
+import type {
+  FormResult,
+  LeagueZone,
+  LeagueZoneKind,
+  LeagueZones,
+  SeasonFixture,
+  SeasonSummary,
+} from '@fmip/contracts';
 import { LEADERS_MINUTES_MAX } from '@fmip/contracts';
 import { formatDate } from '@/i18n/format';
 
@@ -100,3 +107,39 @@ export const KIND_LABEL: Record<string, string> = {
   qualifying: 'Qualifying',
   friendly: 'Friendlies',
 };
+
+/**
+ * The league zones (T-1167, D-171): what each place is called on the table,
+ * and the start-edge mark it carries. Colour is never the only sign: the
+ * place cell names the zone for a screen reader and the legend below the
+ * table says it in words.
+ */
+export const ZONE_LABEL: Record<LeagueZoneKind, string> = {
+  champions_league: 'Champions League',
+  afc_champions_league_elite: 'AFC Champions League Elite',
+  promotion: 'Promotion',
+  promotion_playoff: 'Promotion play-off',
+  relegation_playoff: 'Relegation play-off',
+  relegation: 'Relegation',
+};
+
+export const ZONE_MARK: Record<LeagueZoneKind, string> = {
+  champions_league: 'border-s-accent',
+  afc_champions_league_elite: 'border-s-accent',
+  promotion: 'border-s-accent',
+  promotion_playoff: 'border-s-strong',
+  relegation_playoff: 'border-s-warning',
+  relegation: 'border-s-danger',
+};
+
+/** "1-4" or "18": a band of places as the legend reads it. */
+export function zoneBand(zone: LeagueZone): string {
+  return zone.from === zone.to ? `${zone.from}` : `${zone.from}–${zone.to}`;
+}
+
+/** Why a league table shows no zones (rule 3); null for a cup, which has none to show. */
+export function zonesAbsentLine(zones: LeagueZones): string | null {
+  if (zones.state === 'listed') return null;
+  if (zones.reason === 'not_a_league') return null;
+  return 'Qualification and relegation places are not listed for this season.';
+}
