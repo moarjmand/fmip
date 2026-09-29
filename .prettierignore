@@ -31,3 +31,9 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 *.egg-info/
+
+# Machine-written backtest reports (apps/model's harnesses, the Power Index
+# backtest). They are records of a run, regenerated rather than edited, and
+# formatting them by hand after every run only fails CI when someone forgets.
+apps/model/reports/
+apps/api/backtest/

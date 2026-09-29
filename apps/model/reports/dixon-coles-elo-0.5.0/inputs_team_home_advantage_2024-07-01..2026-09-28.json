@@ -1,0 +1,217 @@
+{
+  "input": "team_home_advantage",
+  "description": "Home advantage by team: each club's deviation from its division's, penalised by 100 x delta^2 and fitted with the strengths; a club with fewer than 19 home matches in 730 days stays at the division's value (T-1141, D-149).",
+  "published": "dixon-coles-elo@0.1.0",
+  "candidate": "dixon-coles-elo@0.5.0",
+  "window": [
+    "2024-07-01",
+    "2026-09-28"
+  ],
+  "note": "Laptop, private store fmip_t114x: football-data.co.uk 2012/13 to 2026/27 (to 2026-09-20), ten divisions, no Club Elo rows and no our-records division (D-016: training only). One process per division through the harness's own run_division and judge.",
+  "bar": {
+    "min_applied": 300,
+    "resamples": 2000,
+    "level": 0.95,
+    "seed": 1101,
+    "min_division_applied": 50,
+    "max_worse_share": 0.3333333333333333
+  },
+  "verdict": "failed",
+  "groups": [
+    {
+      "group": "football_data",
+      "verdict": "failed",
+      "reasons": [
+        "log loss difference -0.00004, 95% interval [-0.00019, +0.00012] does not exclude zero on the better side"
+      ],
+      "scored": 6946,
+      "applied": 6946,
+      "published": {
+        "log_loss": 1.004,
+        "brier": 0.5959,
+        "calibration_error": 0.02482
+      },
+      "candidate": {
+        "log_loss": 0.98662,
+        "brier": 0.58756,
+        "calibration_error": 0.01378
+      },
+      "with_input": {
+        "log_loss": 0.98658,
+        "brier": 0.58753,
+        "calibration_error": 0.01397
+      },
+      "difference": -3.9e-05,
+      "interval": [
+        -0.000191,
+        0.000117
+      ],
+      "calibration_interval": [
+        -0.001129,
+        0.001538
+      ],
+      "divisions": [
+        {
+          "division": "E0",
+          "scored": 806,
+          "applied": 806,
+          "log_loss_candidate": 1.00622,
+          "log_loss_with_input": 1.00593,
+          "judged": true,
+          "worse": false
+        },
+        {
+          "division": "SP1",
+          "scored": 823,
+          "applied": 823,
+          "log_loss_candidate": 0.97596,
+          "log_loss_with_input": 0.9758,
+          "judged": true,
+          "worse": false
+        },
+        {
+          "division": "D1",
+          "scored": 643,
+          "applied": 643,
+          "log_loss_candidate": 0.99829,
+          "log_loss_with_input": 0.9981,
+          "judged": true,
+          "worse": false
+        },
+        {
+          "division": "I1",
+          "scored": 806,
+          "applied": 806,
+          "log_loss_candidate": 0.9818,
+          "log_loss_with_input": 0.98207,
+          "judged": true,
+          "worse": true
+        },
+        {
+          "division": "F1",
+          "scored": 654,
+          "applied": 654,
+          "log_loss_candidate": 0.99572,
+          "log_loss_with_input": 0.99571,
+          "judged": true,
+          "worse": false
+        },
+        {
+          "division": "N1",
+          "scored": 671,
+          "applied": 671,
+          "log_loss_candidate": 0.98771,
+          "log_loss_with_input": 0.98756,
+          "judged": true,
+          "worse": false
+        },
+        {
+          "division": "P1",
+          "scored": 670,
+          "applied": 670,
+          "log_loss_candidate": 0.94496,
+          "log_loss_with_input": 0.94479,
+          "judged": true,
+          "worse": false
+        },
+        {
+          "division": "T1",
+          "scored": 695,
+          "applied": 695,
+          "log_loss_candidate": 0.98056,
+          "log_loss_with_input": 0.98073,
+          "judged": true,
+          "worse": true
+        },
+        {
+          "division": "B1",
+          "scored": 681,
+          "applied": 681,
+          "log_loss_candidate": 1.01399,
+          "log_loss_with_input": 1.01426,
+          "judged": true,
+          "worse": true
+        },
+        {
+          "division": "SC0",
+          "scored": 497,
+          "applied": 497,
+          "log_loss_candidate": 0.97882,
+          "log_loss_with_input": 0.97867,
+          "judged": true,
+          "worse": false
+        }
+      ],
+      "share_applied": 1.0
+    },
+    {
+      "group": "our_records",
+      "verdict": "not run",
+      "reasons": [
+        "no division of this group was run"
+      ],
+      "scored": 0,
+      "applied": 0,
+      "published": null,
+      "candidate": null,
+      "with_input": null,
+      "difference": null,
+      "interval": null,
+      "calibration_interval": null,
+      "divisions": [],
+      "share_applied": 0.0
+    }
+  ],
+  "fits_with_prior": {
+    "E0": {
+      "refits": 72,
+      "published": 0,
+      "candidate": 72
+    },
+    "SP1": {
+      "refits": 77,
+      "published": 0,
+      "candidate": 77
+    },
+    "D1": {
+      "refits": 70,
+      "published": 0,
+      "candidate": 70
+    },
+    "I1": {
+      "refits": 78,
+      "published": 0,
+      "candidate": 78
+    },
+    "F1": {
+      "refits": 72,
+      "published": 0,
+      "candidate": 72
+    },
+    "N1": {
+      "refits": 76,
+      "published": 0,
+      "candidate": 76
+    },
+    "P1": {
+      "refits": 77,
+      "published": 0,
+      "candidate": 77
+    },
+    "T1": {
+      "refits": 77,
+      "published": 0,
+      "candidate": 77
+    },
+    "B1": {
+      "refits": 83,
+      "published": 0,
+      "candidate": 83
+    },
+    "SC0": {
+      "refits": 73,
+      "published": 0,
+      "candidate": 73
+    }
+  }
+}
