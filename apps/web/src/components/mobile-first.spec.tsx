@@ -76,10 +76,57 @@ describe('a match on the scores list', () => {
       expect(html).toContain(`data-testid="${id}"`);
     }
     const details = html.slice(html.indexOf('<details'));
-    expect(details).toContain('Forecast: not on this page yet');
-    expect(details).toContain('Watch: unsupported');
+    // T-940: three lines, each saying why when it has no figure.
+    expect(details).toContain('data-testid="card-forecast" data-state="not_loaded"');
+    expect(details).toContain('data-testid="card-community" data-state="not_loaded"');
+    expect(details).toContain('data-testid="card-viewing" data-state="not_loaded"');
+    expect(details).toContain('not loaded for this list');
     expect(details).toContain('Updated <time dateTime="2025-01-05T17:40:00.000Z">');
     expect(details).toContain('Anfield, Liverpool');
+  });
+
+  it('carries the model line, the community totals and the viewing line, each named (T-940)', () => {
+    const full = renderToStaticMarkup(
+      <ul>
+        <ScoreCard
+          card={card({ status: 'scheduled', minute: null })}
+          timeZone="UTC"
+          locale="en"
+          forecast={{
+            state: 'available',
+            home: 46.4,
+            draw: 26.2,
+            away: 27.4,
+            version: 3,
+            model_version: 'dixon-coles-elo@0.3.0',
+            computed_at: '2025-01-05T15:30:00.000Z',
+          }}
+          community={{ state: 'below_floor' }}
+          viewing={{ state: 'ask' }}
+        />
+      </ul>,
+    );
+    expect(full).toMatch(/data-testid="card-forecast" data-state="available"/);
+    expect(full).toContain('46.4%');
+    expect(full).toContain('version 3');
+    expect(full).toContain('not published until 5 members have predicted');
+    expect(full).toContain('href="/en/watch"');
+
+    const none = renderToStaticMarkup(
+      <ul>
+        <ScoreCard
+          card={card()}
+          timeZone="UTC"
+          locale="en"
+          forecast={{ state: 'none' }}
+          community={{ state: 'available', sample: 7, home: 4, draw: 1, away: 2 }}
+          viewing={{ state: 'nothing_listed', territory: 'Iran' }}
+        />
+      </ul>,
+    );
+    expect(none).toContain('the model had no forecast for this match before kick-off.');
+    expect(none).toContain('of 7 members, not the model');
+    expect(none).toContain('nothing listed in Iran');
   });
 
   it('keeps a leg, an aggregate and the competition of a favourite on the row', () => {

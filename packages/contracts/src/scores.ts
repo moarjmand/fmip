@@ -4,9 +4,14 @@
  * favourites pinned above the standard list.
  *
  * Every card carries the coverage state of its season's scores module and
- * the time its data last changed (rules 3 and 4). Fields the platform does
- * not have yet (forecast summary, community totals, viewing availability) are
- * absent from the shape rather than present and empty; the page labels them.
+ * the time its data last changed (rules 3 and 4).
+ *
+ * The model's forecast summary, the community totals and the viewing
+ * indicator (T-940, D-114) are deliberately not on this shape. Each is its own
+ * product with its own batch route (`GET /forecasts/pre-kickoff`,
+ * `GET /consensus`, `GET /viewing`), which the page asks once per page, and
+ * the stream stays scores only. One payload holding two prediction products is
+ * what rule 6 forbids.
  */
 
 import type { CoverageState } from './coverage';

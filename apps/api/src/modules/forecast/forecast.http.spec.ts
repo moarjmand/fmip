@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import type {
   ForecastListResponse,
+  ForecastSummaryListResponse,
   ForecastVersion,
   ForecastVersionsResponse,
 } from '@fmip/contracts';
@@ -264,6 +265,79 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       const body = response.json() as ForecastListResponse;
 
       expect(body.fixtures).toEqual([{ fixture_id: NO_FORECAST, latest: null }]);
+    });
+
+    it('summarises the latest version computed before kick-off for the scores card (T-940, D-114)', async () => {
+      // The seeded match kicked off 2025-01-05 16:30. `second` was computed the
+      // evening before (unavailable, no_history); `first` two months after. A
+      // third version, computed after kick-off, becomes the latest, and the card
+      // must still show `second`: the forecast the match was played against.
+      // Other suites move this seeded fixture's kick-off; put the seed's back
+      // for this question and restore whatever was there afterwards.
+      const before = await pool.query<{ kickoff_at: Date }>(
+        `SELECT kickoff_at FROM fixture WHERE id = $1`,
+        [FIXTURE],
+      );
+      await pool.query(`UPDATE fixture SET kickoff_at = '2025-01-05T16:30:00Z' WHERE id = $1`, [
+        FIXTURE,
+      ]);
+      try {
+        await preKickoffCase();
+      } finally {
+        await pool.query(`UPDATE fixture SET kickoff_at = $2 WHERE id = $1`, [
+          FIXTURE,
+          before.rows[0]?.kickoff_at,
+        ]);
+      }
+    });
+
+    async function preKickoffCase(): Promise<void> {
+      model.next = golden('forecast-response.example.json');
+      const response = await post(FIXTURE, { kind: 'manual' }, adminCookie);
+      expect(response.statusCode).toBe(201);
+      const third = response.json() as ForecastVersion;
+      createdIds.push(third.id);
+      expect(third.computed_at > '2025-01-05T16:30:00.000Z').toBe(true);
+
+      const latest = (
+        await app.inject({ method: 'GET', url: `/forecasts?fixtures=${FIXTURE}` })
+      ).json() as ForecastListResponse;
+      expect(latest.fixtures[0]?.latest?.id).toBe(third.id);
+
+      const summary = await app.inject({
+        method: 'GET',
+        url: `/forecasts/pre-kickoff?fixtures=${FIXTURE},${NO_FORECAST}`,
+      });
+      expect(summary.statusCode).toBe(200);
+      const body = summary.json() as ForecastSummaryListResponse;
+      expect(body.fixtures.map((entry) => entry.fixture_id)).toEqual([FIXTURE, NO_FORECAST]);
+      expect(body.fixtures[0]?.pre_kickoff).toEqual({
+        version_number: second.version_number,
+        kind: 'lineups_confirmed',
+        model_version: second.model_version,
+        computed_at: '2025-01-04T18:00:00.000Z',
+        status: 'unavailable',
+        probabilities: null,
+        unavailable_reason: 'no_history',
+      });
+      // Nothing computed before kick-off is said as null, never left out.
+      expect(body.fixtures[1]).toEqual({ fixture_id: NO_FORECAST, pre_kickoff: null });
+      // A summary: none of the version's heavy fields travel with it.
+      expect(Object.keys(body.fixtures[0]?.pre_kickoff ?? {})).not.toContain('inputs');
+    }
+
+    it('refuses a malformed or oversized pre-kick-off question', async () => {
+      const bad = await app.inject({ method: 'GET', url: '/forecasts/pre-kickoff?fixtures=nope' });
+      expect(bad.statusCode).toBe(400);
+      const many = Array.from(
+        { length: 51 },
+        (_, i) => `00000000-0000-4000-8000-${i.toString().padStart(12, '0')}`,
+      ).join(',');
+      const tooMany = await app.inject({
+        method: 'GET',
+        url: `/forecasts/pre-kickoff?fixtures=${many}`,
+      });
+      expect(tooMany.statusCode).toBe(400);
     });
 
     it('is refused by the database on UPDATE and DELETE of a forecast or its snapshot', async () => {
