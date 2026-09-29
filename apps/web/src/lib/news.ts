@@ -87,7 +87,7 @@ export const SECTION_KEY: Record<NewsSection, MessageKey> = {
 
 /** Each reason the API can give, as the sentence the page shows (rule 3). */
 export const REASON_KEY: Record<NewsSectionReason, MessageKey> = {
-  discussion_only: 'news.reason.discussionOnly',
+  discussion_and_saves: 'news.reason.discussionAndSaves',
   nothing_trending: 'news.reason.nothingTrending',
   nothing_selected: 'news.reason.nothingSelected',
   needs_session: 'news.reason.needsSession',

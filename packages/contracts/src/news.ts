@@ -14,8 +14,17 @@ export function isNewsSection(value: string): value is NewsSection {
 
 /** How many stories one page of a section carries. */
 export const NEWS_PAGE_SIZE = 40;
-/** How far back trending looks for discussion (hours). */
+/** How far back trending looks for discussion and saves (hours). */
 export const TRENDING_WINDOW_HOURS = 48;
+
+/**
+ * How trending weighs its two signals (T-1008, D-128): each distinct member
+ * on the public panel of the story's matches, and each distinct member who
+ * saved the story, inside the window. A story's score is
+ * `participants * discussion + savers * saves`. Views and shares are not
+ * counted (N-3).
+ */
+export const TRENDING_WEIGHTS = { discussion: 1, saves: 1 } as const;
 
 /** What a source grants (D-061); the card carries only what these allow. */
 export type NewsRights = 'headline' | 'summary' | 'full_text';
@@ -58,9 +67,10 @@ export interface NewsStoryCard {
   other_reports: number;
   /**
    * Trending only: how many distinct members took part in the public
-   * discussion of the story's matches inside the window. `null` elsewhere.
+   * discussion of the story's matches, and how many distinct members saved
+   * the story (T-1008), inside the window. `null` elsewhere.
    */
-  discussion: { participants: number; window_hours: number } | null;
+  discussion: { participants: number; savers: number; window_hours: number } | null;
   /** Debate only: when an editor selected it and what they said. `null` elsewhere. */
   debate: { selected_at: string; note: string } | null;
 }
@@ -79,8 +89,11 @@ export interface NewsFilters {
  * never hidden behind an empty list (rule 3).
  */
 export type NewsSectionReason =
-  /** Trending counts public discussion only; views, saves and shares are not measured (blueprint 3.1). */
-  | 'discussion_only'
+  /**
+   * Trending counts public discussion and saves (T-1008, D-128); views and
+   * shares are not measured (blueprint 3.1, N-3).
+   */
+  | 'discussion_and_saves'
   /** Nothing was discussed inside the window. */
   | 'nothing_trending'
   /** Debate is what editors selected; nobody has selected anything. */

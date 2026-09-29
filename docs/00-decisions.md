@@ -4963,3 +4963,58 @@ member product beside the others. Showing a friend's call regardless of their
 setting because the viewer is a friend: a second visibility rule, which D-063
 exists to refuse. Showing removed posts as tombstones in the excerpt: honest on
 the panel, noise on a homepage line.
+
+## D-128 — Trending counts saves beside discussion
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** Trending (blueprint 3.1) ranks the stories that were discussed
+or saved in the last `TRENDING_WINDOW_HOURS` (48) by two signals, each a count
+of distinct members:
+
+- **Discussion**: members who posted or reacted on the public panel of one of
+  the story's matches, as before (T-143).
+- **Saves** (T-1008): members whose `saved_article` row for the story was
+  saved inside the window.
+
+A story's score is `participants * 1 + savers * 1` (`TRENDING_WEIGHTS` in the
+contract). Ties go to the newer story. A member who both discussed and saved
+counts in both, because they are two different acts. The card carries both
+counts (`discussion.participants`, `discussion.savers`), and the page shows
+both. The section stays `limited`, now with the reason `discussion_and_saves`,
+which says what is counted and that views and shares are not.
+
+**Why equal weights.** There is nothing yet to calibrate them against:
+production has no stored stories and no saves (D-126), and no measure of
+"interest" exists to fit weights to. One member, one count per act is the
+rule a reader can check from the numbers on the card. A different weighting
+is a one-line change to the contract constant, together with this entry.
+
+**What is not counted.** Views and shares. Counting who read or shared a
+story is product analytics that D-044 and D-102 kept out, and whether to
+count them is the maintainer's question N-3. A save is a row the product
+already keeps for its own function (T-842). Trending reads only its count per
+story, never who saved it: the saved list stays private (T-842).
+
+**Merges.** When clustering moves an emptied story's saves onto the story it
+joined (`moveToStory`, T-842), `saved_article`'s key (member, story) keeps one
+row per member, with the time of the earlier save. A member who saved both
+stories counts once, and a moved save counts in the window of its original
+time.
+
+**Budget.** The section is still two statements, the cards and their
+entities, whatever the table holds. The saves are one grouped scan of
+`saved_article` joined to the cards, inside the same statement. A spec seeds
+10,000 saves and holds the section to those two statements and under 1.5 s on
+the development database. No index or migration was needed: none was
+assigned, and the scan is bounded by the table the spec measures.
+
+**Alternatives considered.** Weighting a save above a panel post (or below
+it): a preference with no evidence behind it. Counting every save ever made
+rather than the window's: trending would then be "most saved", which never
+decays. A separate "most saved" section: blueprint 3.1 names one trending
+list built from several signals.
+
+**Consequences.** `TRENDING_WEIGHTS`, `discussion.savers` and the
+`discussion_and_saves` reason are in the contract, replacing
+`discussion_only`. The plural `news.savers` and `news.reason.discussionAndSaves`
+are catalogue keys. No migration.
