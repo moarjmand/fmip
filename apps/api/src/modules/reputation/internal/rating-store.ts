@@ -12,6 +12,8 @@ export interface SnapshotRow {
   provisional: boolean;
   established: boolean;
   inputsHash: string;
+  /** The `rating_threshold_version` the flags were computed under (T-1160). */
+  thresholdVersion: number;
   computedAt: string;
 }
 
@@ -24,6 +26,7 @@ export interface NewSnapshot {
   provisional: boolean;
   established: boolean;
   inputsHash: string;
+  thresholdVersion: number;
 }
 
 export interface BoardRow {
@@ -57,10 +60,11 @@ export class PostgresRatingStore {
       provisional: boolean;
       established: boolean;
       inputs_hash: string;
+      threshold_version: number;
       computed_at: Date;
     }>(
       `SELECT id, formula_version, settled_count, rating, components, provisional, established,
-              inputs_hash, computed_at
+              inputs_hash, threshold_version, computed_at
          FROM rating_snapshot WHERE user_id = $1
         ORDER BY computed_at DESC, id DESC LIMIT 1`,
       [userId],
@@ -76,6 +80,7 @@ export class PostgresRatingStore {
       provisional: r.provisional,
       established: r.established,
       inputsHash: r.inputs_hash,
+      thresholdVersion: r.threshold_version,
       computedAt: r.computed_at.toISOString(),
     };
   }
@@ -83,8 +88,9 @@ export class PostgresRatingStore {
   async insert(snapshot: NewSnapshot): Promise<SnapshotRow> {
     const { rows } = await this.pool.query<{ id: string; computed_at: Date }>(
       `INSERT INTO rating_snapshot
-         (user_id, formula_version, settled_count, rating, components, provisional, established, inputs_hash)
-       VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8)
+         (user_id, formula_version, settled_count, rating, components, provisional, established,
+          inputs_hash, threshold_version)
+       VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9)
        RETURNING id, computed_at`,
       [
         snapshot.userId,
@@ -95,6 +101,7 @@ export class PostgresRatingStore {
         snapshot.provisional,
         snapshot.established,
         snapshot.inputsHash,
+        snapshot.thresholdVersion,
       ],
     );
     const r = rows[0];
@@ -108,6 +115,7 @@ export class PostgresRatingStore {
       provisional: snapshot.provisional,
       established: snapshot.established,
       inputsHash: snapshot.inputsHash,
+      thresholdVersion: snapshot.thresholdVersion,
       computedAt: r.computed_at.toISOString(),
     };
   }

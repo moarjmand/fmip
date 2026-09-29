@@ -7,39 +7,16 @@
  * an administrator and a notification telling them about it; pausing stays
  * the existing audited act a person performs (T-250).
  *
- * **The threshold is the contributor threshold of D-059**
- * (`ELIGIBILITY_V1.minRating`), read from its one home rather than copied.
+ * **The threshold and the period are a `rating_threshold_version` row**
+ * (T-1160, D-164): the contributor threshold of D-059 and the sustained
+ * period of D-169 (30 consecutive days in version 1), read from the version
+ * in force when the check runs, and written on every flag it raises.
  */
-
-/**
- * **The proposal, not a decision.** How long a contributor may stay below the
- * threshold before an administrator is asked to look is the maintainer's
- * policy (N-7 in `docs/04-tasks-phase-10.md`). D-137 records 30 consecutive
- * days as the proposal; `CONTRIBUTOR_FLAG_PERIOD_DAYS` overrides it without a
- * code change, and confirming or changing the number is the maintainer's.
- */
-export const CONTRIBUTOR_FLAG_PROPOSED_PERIOD_DAYS = 30;
 
 /** The rules a flag is raised under; a change to what the check decides changes this. */
 export const CONTRIBUTOR_FLAG_RULES = 'contributor-flag@1.0.0';
 
-const MAX_PERIOD_DAYS = 365;
 const DAY_MS = 86_400_000;
-
-/**
- * The period in force: `CONTRIBUTOR_FLAG_PERIOD_DAYS` when it is a whole number
- * of days from 1 to 365, else the proposal. A malformed value falls back
- * rather than failing the boot: the check is advisory, and a typo should not
- * take the API down.
- */
-export function flagPeriodDays(env: NodeJS.ProcessEnv = process.env): number {
-  const raw = (env.CONTRIBUTOR_FLAG_PERIOD_DAYS ?? '').trim();
-  if (raw === '') return CONTRIBUTOR_FLAG_PROPOSED_PERIOD_DAYS;
-  const days = Number(raw);
-  return Number.isInteger(days) && days >= 1 && days <= MAX_PERIOD_DAYS
-    ? days
-    : CONTRIBUTOR_FLAG_PROPOSED_PERIOD_DAYS;
-}
 
 /** One stored rating (`rating_snapshot`). */
 export interface RatingPoint {

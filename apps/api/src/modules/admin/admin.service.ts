@@ -8,10 +8,15 @@ import type {
 } from '@fmip/contracts';
 import { IngestRunsService } from '../ingestion/ingestion.service';
 import {
-  ELIGIBILITY_V1,
+  RatingThresholdsService,
+  type RatingThresholds,
+} from '../rating-thresholds/rating-thresholds.service';
+import {
   LEADERBOARD_RULES_V1,
   POINTS_RULES_V1,
   RATING_FORMULA_V1,
+  eligibilityRulesUnder,
+  formulaUnder,
 } from '../reputation/reputation.service';
 import { PostgresAdminStore } from './internal/admin-store';
 
@@ -31,20 +36,22 @@ export class AdminService {
   constructor(
     private readonly store: PostgresAdminStore,
     private readonly ingestRuns: IngestRunsService,
+    private readonly thresholds: RatingThresholdsService,
   ) {}
 
   async overview(): Promise<AdminOverview> {
-    const [coverage, freshness, ingestion] = await Promise.all([
+    const [coverage, freshness, ingestion, thresholds] = await Promise.all([
       this.store.coverage(),
       this.store.freshness(),
       this.ingestRuns.ingestionHealth(new Date()),
+      this.thresholds.inForce(),
     ]);
     return {
       checked_at: new Date().toISOString(),
       coverage,
       freshness,
       ingestion,
-      rating: ratingConfig(),
+      rating: ratingConfig(thresholds),
     };
   }
 
@@ -77,12 +84,21 @@ export class AdminService {
   }
 }
 
-/** The rule objects in force, as the admin page shows them. */
-export function ratingConfig(): RatingConfig {
+/** The rule objects in force, as the admin page shows them, under the threshold version in force. */
+export function ratingConfig(thresholds: RatingThresholds): RatingConfig {
   return {
-    formula: { ...RATING_FORMULA_V1 },
+    formula: { ...formulaUnder(RATING_FORMULA_V1, thresholds) },
     points: { ...POINTS_RULES_V1 },
-    eligibility: { ...ELIGIBILITY_V1 },
+    eligibility: { ...eligibilityRulesUnder(thresholds) },
     leaderboard: { ...LEADERBOARD_RULES_V1 },
+    thresholds: {
+      version: thresholds.version,
+      provisional_below: thresholds.provisionalBelow,
+      established_at: thresholds.establishedAt,
+      contributor_min_rating: thresholds.contributorMinRating,
+      contributor_min_settled: thresholds.contributorMinSettled,
+      conduct_window_days: thresholds.conductWindowDays,
+      flag_period_days: thresholds.flagPeriodDays,
+    },
   };
 }

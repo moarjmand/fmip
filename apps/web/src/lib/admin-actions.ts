@@ -1,6 +1,12 @@
 'use server';
 
-import type { SetCoverageRequest, SetUserStatusRequest } from '@fmip/contracts';
+import {
+  RATING_THRESHOLD_FIELDS,
+  type RatingThresholdVersion,
+  type SetCoverageRequest,
+  type SetRatingThresholdsRequest,
+  type SetUserStatusRequest,
+} from '@fmip/contracts';
 import { revalidatePath } from 'next/cache';
 import { apiRequest } from './api';
 import type { ActionState } from './auth-actions';
@@ -103,5 +109,38 @@ export async function backfillAction(
     message:
       `Backfill done: ${itemsSeen} fixture(s) seen, ${itemsWritten} row(s) written.` +
       (partial === undefined || partial === null ? '' : ` Partial: ${partial}`),
+  };
+}
+
+/**
+ * A new rating-threshold version (T-1160, D-152, D-164): all six values, a
+ * reason and a start (empty: now). A value that is not a number is sent as
+ * typed, so the API names it rather than this action guessing.
+ */
+export async function setRatingThresholdsAction(
+  locale: string,
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const body: Record<string, unknown> = {
+    reason: text(formData, 'reason'),
+    effective_from: text(formData, 'effective_from') || null,
+  };
+  for (const name of RATING_THRESHOLD_FIELDS) {
+    const raw = text(formData, name);
+    const value = Number(raw);
+    body[name] = raw === '' || !Number.isFinite(value) ? raw : value;
+  }
+  const result = await apiRequest<RatingThresholdVersion>('/admin/rating-thresholds', {
+    method: 'POST',
+    body: body as unknown as SetRatingThresholdsRequest,
+    cookie: await sessionCookieHeader(),
+  });
+  if (!result.ok) return failure(result);
+  revalidatePath(`/${locale}/admin/rating-thresholds`);
+  revalidatePath(`/${locale}/admin`);
+  return {
+    ok: true,
+    message: `Version ${result.data.version} recorded, in force from ${result.data.effective_from}.`,
   };
 }

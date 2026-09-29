@@ -6684,6 +6684,68 @@ fit for an input that has not passed. *Choosing the penalty on the scoring
 window*: the verdict would be chosen by its own numbers.
 
 
+## D-152 — Rating thresholds are versioned rows set from the console
+**Status:** Accepted · 2026-09-30 (the maintainer's yes of 2026-09-30; the gate answered by D-164) · **Task:** T-1160 · **Follows:** D-025, D-035, D-059, D-137, D-164, D-169
+
+**Decision.** The numbers a rating and a contributor eligibility are judged
+by are rows of `rating_threshold_version` (migration `1765200000000`), not
+constants in code:
+
+- **What is a row.** Six values: the provisional count (a rating over fewer
+  settled predictions is provisional), the established count (at least this
+  many is established; never below the provisional count, so a rating is
+  never both), the contributor rating threshold and settled count (D-059),
+  the conduct window in days (D-059), and the days below the threshold before
+  a flag (D-137, D-169). The formula's weights, windows and tiers, the
+  points rules and the leaderboard's floor are **not** rows: they change only
+  by a new version in code with its own decision (D-035, D-036, D-164).
+- **Version 1 is today.** The migration writes version 1 with the constants
+  in force (30, 50, 70, 50, 90, 30), from the epoch, with no actor; a spec
+  holds it equal to `RATING_FORMULA_V1`, `ELIGIBILITY_V1` and D-169's 30
+  days. Nothing moves the day it ships: every stored snapshot is recorded as
+  computed under version 1, and the eligibility rules version stays
+  `privilege-eligibility@1.1.0`.
+- **A new version.** `POST /admin/rating-thresholds` (`admin` only) with all
+  six values, a reason and a start: now when empty, never in the past (what
+  an earlier rating was computed under does not move), at most 366 days
+  ahead. A version identical to the one in force at that start is refused.
+  The version and its `audit_log` row (`rating_thresholds.supersede`,
+  `previous` the version it supersedes) are one transaction (rule 10). No row
+  is edited or deleted (`refuse_change()`). The console page is
+  `/admin/rating-thresholds`; the overview's rating configuration shows the
+  version in force.
+- **Which version is in force.** The latest start at or before the instant,
+  the higher version winning a tie, so a scheduled version set by mistake is
+  corrected by another at the same start rather than by an edit.
+- **Rule 8.** A snapshot records `threshold_version` beside
+  `formula_version`; a recompute over the same settlements writes a new
+  snapshot when the version in force differs, and nothing otherwise. An
+  eligibility verdict judged under version *n* > 1 carries
+  `privilege-eligibility@1.1.0+thresholds.n` as its rules version (stored in
+  `contributor_eligibility_state`), and a flag carries its threshold, period
+  and `contributor-flag@1.0.0+thresholds.n`. So a rating, an eligibility and
+  a flag are each recomputable from stored predictions and settlements and
+  the threshold row they name.
+- **When a new version takes effect.** Eligibility, the flag check, the
+  boards computed on read and the rating history read the version in force
+  when they run. A member's stored snapshot changes its provisional and
+  established flags at their next recompute (the next settlement, or
+  `POST /ratings/recompute`); until then the snapshot says which version it
+  was computed under.
+- **`CONTRIBUTOR_FLAG_PERIOD_DAYS` is retired.** The period is version 1's
+  30 days (D-169) and changes only by a new version; a value left in a
+  server's `.env` is ignored.
+
+**Rejected.** *Editing a row in place*: a stored rating could no longer be
+explained by the row it names. *A start in the past*: it would change what
+ratings already computed were judged by. *Folding the thresholds into the
+formula version* (`performance-rating@1.0.1` for a new count): D-164 keeps
+the formula out of the console, and a formula version that changed with a
+setting would stop meaning one formula. *Recomputing every member's snapshot
+when a version takes effect*: a write to every member for a change to two
+flags, where the next recompute does it and the snapshot already says which
+version it is under.
+
 ## D-153 — Featured matches on the homepage: an editor's placement with a window and a note, first after a member's favourites
 **Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
 

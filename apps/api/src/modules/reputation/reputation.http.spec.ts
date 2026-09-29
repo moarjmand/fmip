@@ -12,6 +12,7 @@ import { MODEL_CLIENT, ModelClient } from '../forecast/forecast.service';
 import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
 import { ReputationModule } from './reputation.module';
 import { ReputationService } from './reputation.service';
+import { RatingThresholdsService } from '../rating-thresholds/rating-thresholds.service';
 import { deleteRatedAccounts, withTriggersOff } from '../../testing/cleanup';
 
 // The acceptance criterion is "rating recomputable from stored records
@@ -68,6 +69,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Performance 
   let app: NestFastifyApplication;
   let pool: Pool;
   let service: ReputationService;
+  let thresholds: RatingThresholdsService;
   const users: { id: string; cookie: string; username: string }[] = [];
   let admin = '';
   const fixtures: string[] = [];
@@ -132,6 +134,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Performance 
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
     service = moduleRef.get(ReputationService);
+    thresholds = moduleRef.get(RatingThresholdsService);
     pool = new Pool({ connectionString: DATABASE_URL });
     await pool.query(
       `INSERT INTO team (id, name, kind, gender) VALUES ($1, $3, 'club', 'men'), ($2, $4, 'club', 'men')`,
@@ -181,6 +184,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Performance 
       await client.query(`DELETE FROM input_snapshot WHERE fixture_id = ANY($1::uuid[])`, [
         fixtures,
       ]);
+      // The threshold version the T-1160 test wrote, and its audit row.
+      const ours = users.map((u) => u.id);
+      await client.query(`DELETE FROM rating_threshold_version WHERE set_by = ANY($1::uuid[])`, [
+        ours,
+      ]);
+      await client.query(`DELETE FROM audit_log WHERE actor_id = ANY($1::uuid[])`, [ours]);
     });
     const accounts = await pool.query<{ id: string }>(
       `SELECT id FROM user_account WHERE username LIKE $1`,
@@ -408,5 +417,58 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Performance 
       'first_settled',
       'full_matchday',
     ]);
+  });
+
+  it('a new threshold version in force is a new snapshot over the same records, naming it (T-1160)', async () => {
+    const [fav, , adm] = users;
+    const before = await pool.query<{ inputs_hash: string; threshold_version: number }>(
+      `SELECT inputs_hash, threshold_version FROM rating_snapshot
+        WHERE user_id = $1 AND formula_version = 'performance-rating@1.0.0'
+        ORDER BY computed_at DESC, id DESC LIMIT 1`,
+      [fav!.id],
+    );
+    expect(before.rows[0]?.threshold_version).toBe(1);
+    // A version scheduled 300 days ahead, so no suite running beside this one
+    // rates under it; the service is shown that day's version.
+    const at = new Date(Date.now() + 300 * 86_400_000);
+    const recorded = await thresholds.supersede(
+      {
+        provisional_below: 2,
+        established_at: 3,
+        contributor_min_rating: 70,
+        contributor_min_settled: 50,
+        conduct_window_days: 90,
+        flag_period_days: 30,
+      },
+      at.toISOString(),
+      adm!.id,
+      'The T-1160 recompute test',
+    );
+    expect(recorded.kind).toBe('recorded');
+    if (recorded.kind !== 'recorded') return;
+    const real = (service as unknown as { thresholds: RatingThresholdsService }).thresholds;
+    (service as unknown as { thresholds: unknown }).thresholds = {
+      inForce: () => real.inForce(at),
+    };
+    try {
+      const outcome = await service.recompute(fav!.id);
+      expect(outcome.kind).toBe('snapshot');
+      if (outcome.kind === 'snapshot') {
+        expect(outcome.rating.provisional).toBe(false);
+        expect(outcome.rating.established).toBe(true);
+      }
+      expect((await service.recompute(fav!.id)).kind).toBe('unchanged');
+    } finally {
+      (service as unknown as { thresholds: unknown }).thresholds = real;
+    }
+    const after = await pool.query<{ inputs_hash: string; threshold_version: number }>(
+      `SELECT inputs_hash, threshold_version FROM rating_snapshot WHERE user_id = $1
+        ORDER BY computed_at DESC, id DESC LIMIT 1`,
+      [fav!.id],
+    );
+    expect(after.rows[0]).toEqual({
+      inputs_hash: before.rows[0]!.inputs_hash,
+      threshold_version: recorded.version.version,
+    });
   });
 });

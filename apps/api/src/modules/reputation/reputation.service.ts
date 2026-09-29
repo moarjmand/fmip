@@ -12,12 +12,14 @@ import { IdentityService } from '../identity/identity.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { SettlementService, type SettledRecord } from '../predictions/predictions.service';
 import { ProfileService } from '../profile/profile.service';
+import { RatingThresholdsService } from '../rating-thresholds/rating-thresholds.service';
 import { periodBoard, type PeriodBoardRow } from './internal/period-board';
 import {
   RATING_FORMULA_V1,
   type RatingFormula,
   type RatingInput,
   computeRating,
+  formulaUnder,
   tierOf,
 } from './internal/formula';
 import { CareerPointsService } from './career-points.service';
@@ -39,12 +41,18 @@ import { PostgresRatingStore, type SnapshotRow } from './internal/rating-store';
 export {
   RATING_FORMULA_V1,
   computeRating,
+  formulaUnder,
   tierOf,
   type RatingFormula,
   type RatingInput,
 } from './internal/formula';
 export { CareerPointsService } from './career-points.service';
-export { ELIGIBILITY_V1, eligibilityFor, type EligibilityRules } from './internal/eligibility';
+export {
+  ELIGIBILITY_V1,
+  eligibilityFor,
+  eligibilityRulesUnder,
+  type EligibilityRules,
+} from './internal/eligibility';
 export { POINTS_RULES_V1, awardsFor, currentStreak, type PointsRules } from './internal/points';
 export {
   LEADERBOARD_RULES_V1,
@@ -82,7 +90,18 @@ export class ReputationService {
     private readonly profiles: ProfileService,
     private readonly contributors: ContributorService,
     private readonly notifications: NotificationsService,
+    private readonly thresholds: RatingThresholdsService,
   ) {}
+
+  /**
+   * The formula under the threshold version in force now (T-1160, D-164):
+   * the provisional and established counts are that row's, everything else
+   * the formula's own.
+   */
+  private async formulaInForce(): Promise<{ formula: RatingFormula; thresholdVersion: number }> {
+    const inForce = await this.thresholds.inForce();
+    return { formula: formulaUnder(this.formula, inForce), thresholdVersion: inForce.version };
+  }
 
   /**
    * The board (blueprint 9.3, T-055): current ratings, ranked, behind the
@@ -243,7 +262,7 @@ export class ReputationService {
       records.map((record, i) => ({ ...inputs[i]!, userId: record.userId })),
       members,
       query.minSettled,
-      this.formula,
+      (await this.formulaInForce()).formula,
     );
   }
 
@@ -268,7 +287,7 @@ export class ReputationService {
     return ratingHistory(
       records.map((record, i) => ({ ...inputs[i]!, competition: record.competition })),
       new Date().toISOString(),
-      this.formula,
+      (await this.formulaInForce()).formula,
     );
   }
 
@@ -351,11 +370,19 @@ export class ReputationService {
     await this.points.award(userId);
     const history = await this.settlements.settledHistory(userId);
     const inputs = await this.withDifficulty(history);
-    const result = computeRating(inputs, this.formula);
+    const { formula, thresholdVersion } = await this.formulaInForce();
+    const result = computeRating(inputs, formula);
     if (result === null) return { kind: 'nothing_settled' };
 
+    // Unchanged means the same inputs under the same thresholds: a new
+    // threshold version in force is a new snapshot even over the same
+    // settlements, because the flags may differ (T-1160).
     const latest = await this.store.latest(userId);
-    if (latest !== null && latest.inputsHash === result.inputsHash) {
+    if (
+      latest !== null &&
+      latest.inputsHash === result.inputsHash &&
+      latest.thresholdVersion === thresholdVersion
+    ) {
       return { kind: 'unchanged', rating: toRating(user.username, latest) };
     }
     const snapshot = await this.store.insert({
@@ -367,6 +394,7 @@ export class ReputationService {
       provisional: result.provisional,
       established: result.established,
       inputsHash: result.inputsHash,
+      thresholdVersion,
     });
     return { kind: 'snapshot', rating: toRating(user.username, snapshot) };
   }

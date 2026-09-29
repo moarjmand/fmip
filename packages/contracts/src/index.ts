@@ -903,3 +903,15 @@ export type {
   LocaleHoldRecord,
   LocaleHoldRequest,
 } from './locale-hold';
+// Rating thresholds as versioned rows (T-1160, D-152, D-164).
+export {
+  RATING_THRESHOLD_BOUNDS,
+  RATING_THRESHOLD_FIELDS,
+  RATING_THRESHOLD_MAX_LEAD_DAYS,
+} from './rating-threshold';
+export type {
+  RatingThresholdListResponse,
+  RatingThresholdValues,
+  RatingThresholdVersion,
+  SetRatingThresholdsRequest,
+} from './rating-threshold';

@@ -11,7 +11,8 @@ import {
   type GrantEventRow,
   type GrantRow,
 } from './internal/contributor-store';
-import { ELIGIBILITY_V1, eligibilityFor } from './internal/eligibility';
+import { eligibilityFor, eligibilityRulesUnder } from './internal/eligibility';
+import { RatingThresholdsService } from '../rating-thresholds/rating-thresholds.service';
 import { eligibilityNotices } from './internal/eligibility-notice';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -77,12 +78,22 @@ export class ContributorService {
     private readonly store: PostgresContributorStore,
     private readonly identity: IdentityService,
     private readonly notifications: NotificationsService,
+    private readonly thresholds: RatingThresholdsService,
   ) {}
 
-  /** The four requirements, computed. Grants nothing and never has. */
+  /** The eligibility rules under the threshold version in force now (T-1160, D-164). */
+  private async rules() {
+    return eligibilityRulesUnder(await this.thresholds.inForce());
+  }
+
+  /**
+   * The four requirements, computed under the threshold version in force,
+   * which `rules_version` names (T-1160). Grants nothing and never has.
+   */
   async eligibilityOf(userId: string): Promise<ContributorEligibility | null> {
-    const facts = await this.store.factsFor(userId, ELIGIBILITY_V1.conductWindowDays);
-    return facts === null ? null : eligibilityFor(facts);
+    const rules = await this.rules();
+    const facts = await this.store.factsFor(userId, rules.conductWindowDays);
+    return facts === null ? null : eligibilityFor(facts, rules);
   }
 
   /**
@@ -144,13 +155,14 @@ export class ContributorService {
   /** Who a reviewer might be deciding about: everybody who qualifies, and everybody who holds one. */
   async candidates(limit = DEFAULT_CANDIDATES): Promise<ContributorListResponse> {
     const capped = Math.min(Math.max(limit, 1), MAX_CANDIDATES);
-    const rows = await this.store.candidates(ELIGIBILITY_V1, capped);
+    const rules = await this.rules();
+    const rows = await this.store.candidates(rules, capped);
     const entries = await Promise.all(
       rows.map(async (row) => {
         const held = await this.store.grantFor(row.user_id);
         return {
           username: row.username,
-          eligibility: eligibilityFor(row.facts),
+          eligibility: eligibilityFor(row.facts, rules),
           grant: held === null ? null : asGrant(held.grant, held.history),
         };
       }),

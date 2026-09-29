@@ -32,6 +32,11 @@ decide who may be *considered*, and a grant is a separate, audited act.
 | Verified e-mail | required | `eligibilityFor(..., emailVerified)` |
 | Clean recent conduct | **no active sanction, and no `sanctioned` decision in the last 90 days** | T-250 |
 
+**Since T-1160 (D-164)** these values, and the conduct window, are version 1 of
+`rating_threshold_version`: an administrator changes them from the console as a
+new version with a reason and a start, and every verdict names the version it
+was judged by. The table above is version 1.
+
 The first two were already the values of `privilege-eligibility@1.0.0` and are
 confirmed, not changed. The conduct window is new, and is the half the comment
 in `eligibility.ts` says arrives with moderation.

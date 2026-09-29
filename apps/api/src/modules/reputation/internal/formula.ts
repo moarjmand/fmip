@@ -30,6 +30,13 @@ export interface RatingFormula {
   consistencyMin: number;
   /** Difficulty used when no pre-kick-off forecast exists. */
   neutralDifficulty: number;
+  /**
+   * The provisional and established counts. Not the formula's own since
+   * T-1160 (D-164): they are a `rating_threshold_version` row, applied with
+   * `formulaUnder`, and every snapshot records the version it was computed
+   * under. The values here are version 1's, for a computation with no
+   * database (a unit test).
+   */
   provisionalBelow: number;
   establishedAt: number;
   /** Upper bounds (exclusive) for the tiers below elite. */
@@ -49,6 +56,23 @@ export const RATING_FORMULA_V1: RatingFormula = {
   establishedAt: 50,
   tiers: { bronze: 40, silver: 55, gold: 70, platinum: 85 },
 };
+
+/**
+ * The formula with the thresholds of a `rating_threshold_version` in force
+ * (T-1160, D-164). Only the provisional and established counts move; the
+ * version string is the formula's, because the formula has not changed, and
+ * the threshold version is recorded beside it on the snapshot.
+ */
+export function formulaUnder(
+  formula: RatingFormula,
+  thresholds: { provisionalBelow: number; establishedAt: number },
+): RatingFormula {
+  return {
+    ...formula,
+    provisionalBelow: thresholds.provisionalBelow,
+    establishedAt: thresholds.establishedAt,
+  };
+}
 
 /** One settled prediction as the formula sees it. */
 export interface RatingInput {

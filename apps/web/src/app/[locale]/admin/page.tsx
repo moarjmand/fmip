@@ -176,6 +176,9 @@ export default async function AdminPage({
         <Link href={`/${locale}/admin/competitions`} className="underline">
           Competition order
         </Link>
+        <Link href={`/${locale}/admin/rating-thresholds`} className="underline">
+          Rating thresholds
+        </Link>
         <Link href={`/${locale}/admin/news-coverage`} className="underline">
           News coverage
         </Link>
@@ -308,19 +311,25 @@ export default async function AdminPage({
       <section className="flex flex-col gap-2" data-testid="admin-rating">
         <h2 className="text-lg font-semibold">Rating configuration in force</h2>
         <p className="text-sm text-muted">
-          Read-only: a change is a new version in code (D-035, D-036), which keeps every stored
-          rating explainable.
+          The formula, points and leaderboard rules change only by a new version in code (D-035,
+          D-036). The thresholds are a versioned row set on{' '}
+          <Link href={`/${locale}/admin/rating-thresholds`} className="underline">
+            Rating thresholds
+          </Link>{' '}
+          (D-164); the formula and eligibility below are shown under the version in force.
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
-          {(['formula', 'points', 'eligibility', 'leaderboard'] as const).map((key) => (
-            <pre
-              key={key}
-              className="overflow-x-auto rounded border border-default p-2 text-xs"
-              data-testid={`rating-${key}`}
-            >
-              {JSON.stringify(data.rating[key], null, 2)}
-            </pre>
-          ))}
+          {(['formula', 'points', 'eligibility', 'leaderboard', 'thresholds'] as const).map(
+            (key) => (
+              <pre
+                key={key}
+                className="overflow-x-auto rounded border border-default p-2 text-xs"
+                data-testid={`rating-${key}`}
+              >
+                {JSON.stringify(data.rating[key], null, 2)}
+              </pre>
+            ),
+          )}
         </div>
       </section>
 
