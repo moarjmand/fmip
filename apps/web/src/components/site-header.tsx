@@ -4,11 +4,12 @@ import { BrandMark } from '@/components/brand-mark';
 import { HeldLanguageNotice } from '@/components/held-language-notice';
 import { Translated } from '@/components/translated';
 import { LanguagePicker } from '@/components/language-picker';
+import { RulesPrompt } from '@/components/rules-prompt';
 import { ThemeSwitch } from '@/components/theme-switch';
 import { controlClasses } from '@/components/ui';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { attribute } from '@/i18n/messages';
-import { fetchMe } from '@/lib/api';
+import { fetchSession } from '@/lib/api';
 import { readGuestChoices } from '@/lib/first-run-cookie';
 import { HELD_NOTICE_COOKIE, currentHolds, heldNotice, offeredGiven } from '@/lib/language-hold';
 import { offeredLanguages } from '@/lib/language-picker';
@@ -34,11 +35,12 @@ import type { ThemePreference } from '@/lib/theme';
  * of every link, so every `data-testid` is still one element.
  */
 export async function SiteHeader({ locale, theme }: { locale: string; theme: ThemePreference }) {
-  const [me, holds, jar] = await Promise.all([
-    fetchMe(await sessionCookieHeader()),
+  const [session, holds, jar] = await Promise.all([
+    fetchSession(await sessionCookieHeader()),
     currentHolds(),
     cookies(),
   ]);
+  const me = session?.user ?? null;
   // T-1163 (D-155): a reader whose stored language is held back is told
   // once; the language they chose is kept, and the picker offers it again
   // the day it is released.
@@ -174,6 +176,8 @@ export async function SiteHeader({ locale, theme }: { locale: string; theme: The
           </div>
         </details>
       </nav>
+      {/* A newer version of the platform rules awaits this member (T-931, D-113). */}
+      {session?.rules.pending === true && <RulesPrompt locale={locale} />}
       {notice !== null && stored !== null && stored !== undefined && (
         <HeldLanguageNotice locale={locale} held={stored} value={notice} />
       )}

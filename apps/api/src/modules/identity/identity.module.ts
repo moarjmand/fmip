@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { DeliveryModule } from '../delivery/delivery.module';
 import { DeliveryService } from '../delivery/delivery.service';
-import { IdentityController } from './identity.controller';
+import { IdentityController, PlatformRulesController } from './identity.controller';
 import {
   DEFAULT_IDENTITY_OPTIONS,
   IDENTITY_OPTIONS,
@@ -11,6 +11,7 @@ import {
 import { PostgresAccountDeletionStore } from './internal/account-deletion-store';
 import { AuthRateLimiter } from './internal/auth-rate-limit';
 import { PostgresIdentityStore } from './internal/identity-store';
+import { PostgresPlatformRulesStore } from './internal/platform-rules-store';
 import { DeliveryMailer } from './internal/delivery-mailer';
 import { MAILER } from './internal/mailer';
 import { sessionSecretFromEnv } from './internal/tokens';
@@ -34,10 +35,11 @@ export function identityOptionsFromEnv(env: NodeJS.ProcessEnv = process.env): Id
  */
 @Module({
   imports: [DeliveryModule],
-  controllers: [IdentityController],
+  controllers: [IdentityController, PlatformRulesController],
   providers: [
     IdentityService,
     PostgresIdentityStore,
+    PostgresPlatformRulesStore,
     PostgresAccountDeletionStore,
     AuthRateLimiter,
     { provide: IDENTITY_OPTIONS, useFactory: (): IdentityOptions => identityOptionsFromEnv() },
