@@ -393,7 +393,7 @@ export class PostgresTranslationsAdminStore {
            AND a.fetched_at > now() - make_interval(days => $2)
            AND NOT EXISTS (SELECT 1 FROM article_version p
                             WHERE p.article_id = a.id AND p.language = $1 AND p.origin = 'publisher')
-         ORDER BY first.published_at DESC LIMIT $3`,
+         ORDER BY first.published_at DESC NULLS LAST, a.fetched_at DESC LIMIT $3`,
         [language, TRANSLATION_QUEUE_DAYS, TRANSLATION_QUEUE_LIMIT],
       ),
       this.pool.query<QueueRow>(
@@ -626,7 +626,7 @@ interface QueueRow {
   source_language: string;
   rights: NewsRights;
   headline: string;
-  published_at: Date;
+  published_at: Date | null;
   version_number: number | null;
   review_state: ReviewState | null;
   updated_at: Date | null;
@@ -644,7 +644,7 @@ function queueItem(row: QueueRow): TranslationQueueItem {
     source_language: row.source_language,
     rights: row.rights,
     headline: row.headline,
-    published_at: row.published_at.toISOString(),
+    published_at: row.published_at?.toISOString() ?? null,
     translation:
       row.version_number === null || row.review_state === null || row.written_id === null
         ? null

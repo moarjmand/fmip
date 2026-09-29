@@ -34,7 +34,8 @@ export interface TranslationQueueItem {
   rights: NewsRights;
   /** The publisher's newest headline. */
   headline: string;
-  published_at: string;
+  /** The publisher's time, when the feed gave one. */
+  published_at: string | null;
   translation: TranslationVersionSummary | null;
 }
 
