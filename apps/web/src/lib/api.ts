@@ -77,6 +77,8 @@ import type {
   DebateListResponse,
   BreakingListResponse,
   BreakingNewsResponse,
+  FeaturedMatchesResponse,
+  HomepageFeatureListResponse,
   MatchPanelPage,
   NewsCoverageReport,
   NewsSectionResponse,
@@ -626,6 +628,21 @@ export function fetchRecentAudit(cookie: string | undefined): Promise<ApiResult<
 /** `GET /news/breaking` (T-1004): the stories marked breaking now, for the homepage strip. Public. */
 export function fetchBreakingNews(locale?: string): Promise<ApiResult<BreakingNewsResponse>> {
   return apiRequest<BreakingNewsResponse>(withLocale('/news/breaking', locale));
+}
+
+/** `GET /featured-matches` (T-1161, D-153): the matches an editor features now. Public. */
+export function fetchFeaturedMatches(): Promise<ApiResult<FeaturedMatchesResponse>> {
+  return apiRequest<FeaturedMatchesResponse>('/featured-matches');
+}
+
+/** `GET /admin/homepage-features` (T-1161): every feature, newest first. Editors and administrators. */
+export function fetchHomepageFeatures(
+  cookie: string | undefined,
+): Promise<ApiResult<HomepageFeatureListResponse>> {
+  return apiRequest<HomepageFeatureListResponse>(
+    '/admin/homepage-features',
+    cookie === undefined ? {} : { cookie },
+  );
 }
 
 /** `GET /news/stories/:id` (T-144), in `language` when the original has a version in it. */

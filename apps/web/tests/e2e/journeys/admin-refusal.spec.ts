@@ -35,6 +35,7 @@ const REFUSING: Record<string, string> = {
   '/en/admin/moderation/groups/no-such-group': 'moderation-group-forbidden',
   '/en/admin/contributors': 'contributors-forbidden',
   '/en/admin/panels': 'panels-forbidden',
+  '/en/admin/homepage': 'homepage-features-forbidden',
   '/en/admin/analysis-reviews': 'analysis-queue-forbidden',
   '/en/admin/translations': 'translations-forbidden',
   '/en/admin/news': 'news-desk-forbidden',

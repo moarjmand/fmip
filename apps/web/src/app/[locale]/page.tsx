@@ -14,6 +14,7 @@ import {
   fetchApiHealth,
   fetchBreakingNews,
   fetchCompetition,
+  fetchFeaturedMatches,
   fetchFirstRun,
   fetchForecastList,
   fetchFounderFeed,
@@ -27,7 +28,9 @@ import {
 } from '@/lib/api';
 import {
   HOME_DAYS,
+  HOME_MATCHES,
   HOME_TABLE_ROWS,
+  featuredNotes,
   homeForecasts,
   homeMatches,
   homePanels,
@@ -89,7 +92,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   // Times are the member's zone, else the zone a guest chose, else UTC, and say which.
   const timeZone = me?.timezone ?? guest?.timezone ?? 'UTC';
   const today = dateIn(timeZone, new Date());
-  const [scores, news, breaking] = await Promise.all([
+  const [scores, news, breaking, featured] = await Promise.all([
     fetchScores(
       new URLSearchParams({
         from: today,
@@ -101,8 +104,12 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     fetchNewsSection('', locale, cookie),
     // T-1004 (D-125): the strip, read at render, so an expired mark is gone now.
     fetchBreakingNews(locale),
+    // T-1161 (D-153): the matches an editor features now, read at render, so
+    // an expired feature is gone now. Unreachable reads as nothing featured.
+    fetchFeaturedMatches(),
   ]);
-  const matches = scores.ok ? homeMatches(scores.data) : [];
+  const notes = featuredNotes(featured.ok ? featured.data.features : null);
+  const matches = scores.ok ? homeMatches(scores.data, HOME_MATCHES, new Set(notes.keys())) : [];
   const tableId = scores.ok ? tableCompetition(scores.data) : null;
   // T-942 (D-115): every section below is one request for the whole page,
   // all in parallel with the forecasts and the table. The member sections and
@@ -212,6 +219,13 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                 <span className="text-xs text-muted">
                   {card.competition.short_name ?? card.competition.name}
                 </span>
+                {notes.has(card.id) && (
+                  // The editor's placement, in their words; it says nothing
+                  // about who will win (rule 6).
+                  <span className="w-full text-xs" data-testid="home-featured-note">
+                    <span className="font-semibold">Featured</span>: {notes.get(card.id)}
+                  </span>
+                )}
                 {watch?.state === 'lines' && (
                   <span className="w-full text-xs">
                     <CardViewingLine viewing={watch.byFixture.get(card.id)} locale={locale} />

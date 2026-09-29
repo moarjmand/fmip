@@ -232,6 +232,10 @@ const CONSOLE: Record<string, ConsoleRoute> = {
     roles: EDITORIAL,
     reason: { without: {} },
   },
+  // Featured matches on the homepage (T-1161, D-153): the note is the reason.
+  'GET /admin/homepage-features': { roles: EDITORIAL },
+  'POST /admin/fixtures/:id/feature': { roles: EDITORIAL, reason: { without: { hours: 24 } } },
+  'POST /admin/fixtures/:id/feature/clear': { roles: EDITORIAL, reason: { without: {} } },
   'POST /admin/stories/:id/type': {
     roles: EDITORIAL,
     reason: { without: { type: 'transfer' } },

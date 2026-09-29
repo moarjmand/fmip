@@ -164,6 +164,9 @@ export default async function AdminPage({
         <Link href={`/${locale}/admin/panels`} className="underline">
           Featured matches
         </Link>
+        <Link href={`/${locale}/admin/homepage`} className="underline">
+          Homepage features
+        </Link>
         <Link href={`/${locale}/admin/data-quality`} className="underline">
           Data quality
         </Link>
