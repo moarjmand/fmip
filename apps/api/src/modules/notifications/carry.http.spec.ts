@@ -199,4 +199,34 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('carry', () =
     await service.carry({ userIds: [ids.get(ada)!, ids.get(bob)!] });
     expect(mine()).toBe(before);
   });
+
+  it('two carriers racing over one page send each notification once, and record each once (T-901)', async () => {
+    const { rows: written } = await pool.query<{ id: string }>(
+      `INSERT INTO notification (user_id, kind, subject_type, subject_id)
+       SELECT $1, 'rating_changed', 'prediction', gen_random_uuid() FROM generate_series(1, 60)
+       RETURNING id`,
+      [ids.get(ada)],
+    );
+    const mine = () => mails.filter((mail) => mail.to === `${ada}@example.test`).length;
+    const before = mine();
+    const scope = { userIds: [ids.get(ada)!] };
+    // The same page read by both: each claims it in one statement, and the
+    // loser waits on the winner's keys and wins none of them.
+    const [first, second] = await Promise.all([
+      service.carry(scope, 100),
+      service.carry(scope, 100),
+    ]);
+    expect(first.carried + second.carried).toBe(60);
+    expect(mine() - before).toBe(60);
+    const { rows } = await pool.query<{ claims: number; carried: number }>(
+      `SELECT count(*)::int AS claims, count(d.carried_at)::int AS carried
+         FROM notification_delivery d
+        WHERE d.notification_id = ANY($1::uuid[])`,
+      [written.map((row) => row.id)],
+    );
+    expect(rows[0]).toEqual({ claims: 60, carried: 60 });
+    // Nothing left: a third carrier finds nothing due.
+    expect(await service.carry(scope, 100)).toEqual({ due: 0, carried: 0 });
+    expect(mine() - before).toBe(60);
+  });
 });

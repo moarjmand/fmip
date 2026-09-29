@@ -18,6 +18,7 @@ import {
 import type { OutboundEmail, OutboundPush } from '../delivery/delivery.port';
 import { DeliveryService } from '../delivery/delivery.service';
 import {
+  type CarriedRecord,
   type DueNotification,
   type MuteRow,
   PostgresNotificationsStore,
@@ -323,15 +324,27 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
     if (this.delivery.describe().in_product_only) return { due: 0, carried: 0 };
     // A producer carries its own members at once (a briefing, a campaign);
     // the timer carries everyone's. The scope is who, never what.
-    const due = await this.store.due(page, scope?.userIds ?? null);
+    //
+    // The page is claimed in one statement and its outcomes recorded in one
+    // (T-901, D-106): three round trips a page, where it was about three a
+    // notification. The cost is the window: a process that stops mid-page
+    // leaves the page's unsent claims unsent (at most once, never twice), a
+    // page rather than the sixteen in flight.
+    const { due, claimed } = await this.store.claimDue(page, scope?.userIds ?? null);
+    return { due, carried: await this.send(claimed) };
+  }
+
+  /** A claimed page, sent and recorded; how many were carried. Never throws. */
+  private async send(claimed: DueNotification[]): Promise<number> {
+    if (claimed.length === 0) return 0;
     // A member's batched kinds leave as one message (T-830); everything else
     // one by one. Each message is a task, and the tasks are sent concurrently,
     // at most `sendConcurrency` at a time (T-836): a push is an HTTPS request
     // to the browser's push service, and one after another a Saturday's
     // kick-off was minutes of waiting on the network.
-    const tasks: (() => Promise<number>)[] = [];
+    const tasks: (() => Promise<CarriedRecord[]>)[] = [];
     const batches = new Map<string, { compose: BatchComposer; items: DueNotification[] }>();
-    for (const item of due) {
+    for (const item of claimed) {
       const batch = isNotificationKind(item.kind) ? this.batchComposers.get(item.kind) : undefined;
       if (batch === undefined) {
         tasks.push(() => this.carryOne(item));
@@ -344,18 +357,48 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
     for (const { compose, items } of batches.values()) {
       tasks.push(() => this.carryBatch(compose, items));
     }
-    const counts = await inPool(tasks, this.sendConcurrency);
-    return { due: due.length, carried: counts.reduce((sum, n) => sum + n, 0) };
+    const records = (await inPool(tasks, this.sendConcurrency)).flat();
+    return this.record(records);
   }
 
   /**
-   * One notification: claimed, composed, sent on every channel, recorded.
-   * Never throws: a fault is logged and the rest of the pass goes on. A claim
-   * that could not be recorded stays a claim -- at most once, never twice.
+   * A page's outcomes, in one statement; how many were recorded. If the
+   * statement is refused, each is recorded on its own, so one bad row does
+   * not lose the page's outcomes. A claim that could not be recorded stays a
+   * claim -- at most once, never twice.
    */
-  private async carryOne(item: DueNotification): Promise<number> {
+  private async record(records: CarriedRecord[]): Promise<number> {
     try {
-      if (!(await this.store.claimDelivery(item.id))) return 0;
+      await this.store.recordOutcomes(records);
+      return records.length;
+    } catch (error) {
+      this.log.error(
+        `notification.record_failed page=${String(records.length)}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+    }
+    let recorded = 0;
+    for (const record of records) {
+      try {
+        await this.store.recordOutcomes([record]);
+        recorded += 1;
+      } catch (error) {
+        this.log.error(
+          `notification.carry_failed notification=${record.id}`,
+          error instanceof Error ? error.stack : String(error),
+        );
+      }
+    }
+    return recorded;
+  }
+
+  /**
+   * One claimed notification: composed and sent on every channel; the
+   * outcome is returned for the page's record. Never throws: a fault is
+   * logged and the rest of the pass goes on.
+   */
+  private async carryOne(item: DueNotification): Promise<CarriedRecord[]> {
+    try {
       let messages: OutboundMessages | null = null;
       try {
         const compose = isNotificationKind(item.kind) ? this.composers.get(item.kind) : undefined;
@@ -367,27 +410,26 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
         );
       }
       const outcome = await this.delivery.deliver(messages?.email ?? null, messages?.push ?? null);
-      await this.store.recordDelivery(item.id, outcome);
-      return 1;
+      return [{ id: item.id, outcome }];
     } catch (error) {
       this.log.error(
         `notification.carry_failed notification=${item.id}`,
         error instanceof Error ? error.stack : String(error),
       );
-      return 0;
+      return [];
     }
   }
 
   /**
-   * One member's batched notifications: claimed in one statement (each row
-   * still its own claim), sent as one message, the outcome recorded on every
-   * row it carried. Never throws, like `carryOne`.
+   * One member's batched notifications, each already its own claim: sent as
+   * one message, and the one outcome returned for every row it carried.
+   * Never throws, like `carryOne`.
    */
-  private async carryBatch(compose: BatchComposer, items: DueNotification[]): Promise<number> {
+  private async carryBatch(
+    compose: BatchComposer,
+    claimed: DueNotification[],
+  ): Promise<CarriedRecord[]> {
     try {
-      const taken = await this.store.claimDeliveries(items.map((item) => item.id));
-      const claimed = items.filter((item) => taken.has(item.id));
-      if (claimed.length === 0) return 0;
       let messages: OutboundMessages | null = null;
       try {
         messages = compose(claimed);
@@ -399,17 +441,13 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
       }
       const outcome = await this.delivery.deliver(messages?.email ?? null, messages?.push ?? null);
       // One message, so one outcome, recorded on every notification it carried.
-      await this.store.recordDeliveries(
-        claimed.map((item) => item.id),
-        outcome,
-      );
-      return claimed.length;
+      return claimed.map((item) => ({ id: item.id, outcome }));
     } catch (error) {
       this.log.error(
-        `notification.carry_failed member=${items[0]?.user_id ?? ''} batch=${String(items.length)}`,
+        `notification.carry_failed member=${claimed[0]?.user_id ?? ''} batch=${String(claimed.length)}`,
         error instanceof Error ? error.stack : String(error),
       );
-      return 0;
+      return [];
     }
   }
 
@@ -428,39 +466,59 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
    * **Bounded**, so one run cannot hold the process: at most
    * `bounds.maxPasses` pages and `bounds.maxMs` of wall time, checked between
    * pages. What is left is still due, and the timer's next tick carries it.
+   *
+   * **The next page is claimed while this one sends** (T-901): the claim is
+   * one statement, but a burst's claims were still a fifth of a kick-off's
+   * minute when each waited for the page before it to finish sending. The
+   * next page is claimed only when this one was full and the bounds allow
+   * another, and a page once claimed is always sent -- a claim that is never
+   * sent would be a notification lost.
    */
   async drain(
     scope?: { userIds: string[] },
     bounds: DrainBounds = DRAIN_BOUNDS,
     clock: () => number = Date.now,
+    page = CARRY_PAGE,
   ): Promise<DrainReport> {
+    if (this.delivery.describe().in_product_only) {
+      return { passes: 1, carried: 0, stopped: 'drained' };
+    }
     const started = clock();
+    const userIds = scope?.userIds ?? null;
     let passes = 0;
     let carried = 0;
-    let stopped: DrainReport['stopped'] = 'passes';
-    while (passes < bounds.maxPasses) {
-      if (passes > 0 && clock() - started >= bounds.maxMs) {
-        stopped = 'time';
-        break;
-      }
-      const pass = await this.carry(scope);
+    let stopped: DrainReport['stopped'] | null;
+    let current = await this.store.claimDue(page, userIds);
+    for (;;) {
       passes += 1;
-      carried += pass.carried;
-      if (pass.due < CARRY_PAGE) {
-        stopped = 'drained';
-        break;
+      if (current.due < page) stopped = 'drained';
+      else if (current.claimed.length === 0) stopped = 'contended';
+      else if (passes >= bounds.maxPasses) stopped = 'passes';
+      else if (clock() - started >= bounds.maxMs) stopped = 'time';
+      else stopped = null;
+      // Settled either way, so a failed claim is not an unhandled rejection
+      // while this page sends; it is thrown after the page is carried.
+      const next =
+        stopped === null
+          ? this.store.claimDue(page, userIds).then(
+              (value) => ({ value, error: null }),
+              (error: unknown) => ({ value: null, error }),
+            )
+          : null;
+      carried += await this.send(current.claimed);
+      if (next === null) break;
+      const claimed = await next;
+      if (claimed.value === null) {
+        throw claimed.error instanceof Error ? claimed.error : new Error(String(claimed.error));
       }
-      if (pass.carried === 0) {
-        stopped = 'contended';
-        break;
-      }
+      current = claimed.value;
     }
     if (stopped === 'passes' || stopped === 'time') {
       this.log.warn(
         `notification.drain_bounded stopped=${stopped} passes=${String(passes)} carried=${String(carried)}`,
       );
     }
-    return { passes, carried, stopped };
+    return { passes, carried, stopped: stopped ?? 'drained' };
   }
 
   /** The sentence and the route, as the inbox shows them; a route that cannot be opened is left out of the e-mail and sends the push to the inbox. */

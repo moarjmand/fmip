@@ -1,27 +1,63 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { DeliveryService } from '../delivery/delivery.service';
 import type { PostgresNotificationsStore } from './internal/notifications-store';
-import { CARRY_PAGE, type CarryReport, NotificationsService } from './notifications.service';
+import {
+  CARRY_PAGE,
+  type CarryReport,
+  DRAIN_BOUNDS,
+  NotificationsService,
+} from './notifications.service';
 
 /**
  * `drain()` (T-837): pages until nothing in scope is due, stops when another
  * carrier holds the rest, and yields at its bounds; the timer's tick never
- * runs two drains at once. The passes are scripted -- what one pass does is
- * `carry()`'s, proven against the database in `carry.http.spec.ts`.
+ * runs two drains at once. The pages are scripted -- what one claim does is
+ * `claimDue`'s, proven against the database in `carry.http.spec.ts`. Each
+ * scripted pass is the page's size (`due`) and how many of it this carrier
+ * won (`carried`).
  */
 function serviceWith(passes: CarryReport[]): {
   service: NotificationsService;
   carry: ReturnType<typeof vi.fn>;
+  events: string[];
 } {
-  const service = new NotificationsService(
-    {} as PostgresNotificationsStore,
-    {} as DeliveryService,
-    'http://web.test',
-  );
+  const events: string[] = [];
   let next = 0;
-  const carry = vi.fn(() => Promise.resolve(passes[next++] ?? { due: 0, carried: 0 }));
-  service.carry = carry;
-  return { service, carry };
+  let sent = 0;
+  const carry = vi.fn((page: number, userIds: string[] | null) => {
+    const pass = passes[next++] ?? { due: 0, carried: 0 };
+    events.push(`claim ${String(next)}`);
+    void page;
+    void userIds;
+    const claimed = Array.from({ length: pass.carried }, (_, i) => ({
+      id: `n${String(next)}-${String(i)}`,
+      user_id: `u${String(i)}`,
+      kind: 'friend_request',
+      subject_type: 'member',
+      subject_id: 'x',
+      subject_label: 'x',
+      source: 'x',
+      headline: null,
+      email: 'x@example.test',
+      locale: 'en',
+    }));
+    return Promise.resolve({ due: pass.due, claimed });
+  });
+  const store = {
+    claimDue: carry,
+    recordOutcomes: () => Promise.resolve(),
+  } as unknown as PostgresNotificationsStore;
+  const delivery = {
+    describe: () => ({ in_product_only: false }),
+    deliver: async () => {
+      sent += 1;
+      if (sent % CARRY_PAGE === 1) events.push('send');
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      return { email: 'absent', push: 'sent' } as const;
+    },
+  } as unknown as DeliveryService;
+  const service = new NotificationsService(store, delivery, 'http://web.test');
+  return { service, carry, events };
 }
 
 const full: CarryReport = { due: CARRY_PAGE, carried: CARRY_PAGE };
@@ -32,7 +68,28 @@ describe('drain', () => {
     const scope = { userIds: ['a'] };
     expect(await service.drain(scope)).toEqual({ passes: 3, carried: 237, stopped: 'drained' });
     expect(carry).toHaveBeenCalledTimes(3);
-    expect(carry).toHaveBeenCalledWith(scope);
+    expect(carry).toHaveBeenCalledWith(CARRY_PAGE, ['a']);
+  });
+
+  it('claims the next page while this one sends, and never claims past a short page (T-901)', async () => {
+    const { service, events } = serviceWith([full, full, { due: 37, carried: 37 }]);
+    await service.drain();
+    // Page 2 is claimed before page 1 is sent, page 3 before page 2; after
+    // the short page 3 nothing more is claimed.
+    expect(events).toEqual(['claim 1', 'claim 2', 'send', 'claim 3', 'send', 'send']);
+  });
+
+  it('takes the page size it is given', async () => {
+    const { service, carry } = serviceWith([
+      { due: 500, carried: 500 },
+      { due: 12, carried: 12 },
+    ]);
+    expect(await service.drain(undefined, DRAIN_BOUNDS, Date.now, 500)).toEqual({
+      passes: 2,
+      carried: 512,
+      stopped: 'drained',
+    });
+    expect(carry).toHaveBeenCalledWith(500, null);
   });
 
   it('stops when a full page claimed nothing: another carrier holds the rest', async () => {

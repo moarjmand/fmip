@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { OutboundEmail, OutboundPush } from '../delivery/delivery.port';
 import type { DeliveryService } from '../delivery/delivery.service';
 import type {
+  CarriedRecord,
   DeliveryRecord,
   DueNotification,
   PostgresNotificationsStore,
@@ -95,17 +96,21 @@ function carrier(rows: DueNotification[], options: { failRecordOf?: string } = {
     claims.add(id);
     return true;
   };
+  const statements = { claims: 0, records: 0 };
   const store = {
-    due: () => Promise.resolve(rows.filter((row) => !claims.has(row.id))),
-    claimDelivery: (id: string) => Promise.resolve(claim(id)),
-    claimDeliveries: (ids: string[]) => Promise.resolve(new Set(ids.filter(claim))),
-    recordDelivery: (id: string, outcome: DeliveryRecord) => {
-      if (id === options.failRecordOf) return Promise.reject(new Error('record failed'));
-      recorded.set(id, outcome);
-      return Promise.resolve();
+    // One statement: the page, and the claims this carrier won on it (T-901).
+    claimDue: (limit: number) => {
+      statements.claims += 1;
+      const page = rows.filter((row) => !claims.has(row.id)).slice(0, limit);
+      return Promise.resolve({ due: page.length, claimed: page.filter((row) => claim(row.id)) });
     },
-    recordDeliveries: (ids: string[], outcome: DeliveryRecord) => {
-      for (const id of ids) recorded.set(id, outcome);
+    // One statement: refused whole when one row is refused, as Postgres would.
+    recordOutcomes: (records: CarriedRecord[]) => {
+      statements.records += 1;
+      if (records.some((record) => record.id === options.failRecordOf)) {
+        return Promise.reject(new Error('record failed'));
+      }
+      for (const record of records) recorded.set(record.id, record.outcome);
       return Promise.resolve();
     },
   } as unknown as PostgresNotificationsStore;
@@ -122,7 +127,7 @@ function carrier(rows: DueNotification[], options: { failRecordOf?: string } = {
     },
   } as unknown as DeliveryService;
   const service = new NotificationsService(store, delivery, 'http://web.test');
-  return { service, sent, recorded, most: () => most };
+  return { service, sent, recorded, statements, most: () => most };
 }
 
 describe('carrying over the pool', () => {
@@ -168,12 +173,31 @@ describe('carrying over the pool', () => {
     expect([...recorded.keys()].sort()).toEqual(['g1', 'g2', 'g3']);
   });
 
+  it('a page is one claim statement and one record statement, whatever its size (T-901)', async () => {
+    const rows = Array.from({ length: 250 }, (_, i) =>
+      due(`n${String(i)}`, `u${String(i % 90)}`, i % 2 === 0 ? 'match_goal' : 'friend_request'),
+    );
+    const { service, sent, recorded, statements } = carrier(rows);
+    service.registerBatch(['match_goal'], (items) => ({
+      email: null,
+      push: { userId: items[0]!.user_id, title: 'FMIP', body: 'goals', url: '/en/notifications' },
+    }));
+    expect(await service.carry(undefined, 250)).toEqual({ due: 250, carried: 250 });
+    expect(statements).toEqual({ claims: 1, records: 1 });
+    expect(recorded.size).toBe(250);
+    // 125 friend requests one by one, and the goals one message for each of
+    // the 45 members they fell on (the even ids).
+    expect(sent).toHaveLength(125 + 45);
+  });
+
   it('one record that fails is logged and the rest of the pass still goes out', async () => {
     const rows = Array.from({ length: 6 }, (_, i) => due(`n${String(i)}`, `u${String(i)}`));
-    const { service, sent, recorded } = carrier(rows, { failRecordOf: 'n2' });
+    const { service, sent, recorded, statements } = carrier(rows, { failRecordOf: 'n2' });
     expect(await service.carry()).toEqual({ due: 6, carried: 5 });
     expect(sent).toHaveLength(6);
     expect(recorded.has('n2')).toBe(false);
+    // The page's statement was refused, so each was recorded on its own.
+    expect(statements.records).toBe(1 + 6);
     // Claimed and not recorded: never sent again.
     expect(await service.carry()).toEqual({ due: 0, carried: 0 });
   });

@@ -449,6 +449,169 @@ of more open requests and more waiting for the database pool (10
 connections). The production server (2 shared vCPUs) is slower than this
 laptop, so the margins above are smaller there.
 
+### T-901: the carry set-based
+
+D-106. What T-836 left was the carrying: about three round trips per
+notification (a claim, then a record, per message) around the sends.
+
+- **One claim statement a page.** `claimDue` selects the due page and
+  inserts its claims in one statement (a CTE with `INSERT ... ON CONFLICT DO
+  NOTHING RETURNING`) and returns the page with what this carrier won. A
+  second carrier that read the same page waits on those keys and wins none,
+  so a notification still leaves at most once (`carry.http.spec.ts` races
+  two carriers over one page of 60).
+- **One record statement a page.** `recordOutcomes` writes every outcome of
+  the page with one `UPDATE ... FROM unnest(...)`. If Postgres refuses it,
+  each row is recorded on its own, so one bad row does not lose the page.
+- **The next page is claimed while this one sends.** `drain` overlaps them;
+  match alerts' `deliver` is now a drain in pages of 500, bounded by passes.
+
+**What the measurement found: the claim scanned.** With the claim and record
+set-based, the first 10,000-member kick-off was *slower* (p95 82–92 s).
+Postgres's log (`log_min_duration_statement`, `auto_explain`) showed why: the
+page statements took 3 to 12 s each at the start of the burst. The planner
+had not seen the 38,000 rows written a second earlier (autovacuum had not
+analysed them), so it expected about 80 candidates and a claim table of a
+few rows. It chose a nested loop that scanned the whole claim table once per
+candidate (37.8 million rows removed by the join filter on one page). Then,
+with the candidates' own columns re-joined to `notification`, a second one
+(19 million).
+
+The fix is in the statement, not an index. "No claim yet" is a probe of the
+claim's primary key per candidate. It is written as a scalar subquery, which
+Postgres does not flatten into a join. The page carries the columns the rest
+of the statement reads, so nothing joins back. The statement runs in its own
+transaction with `SET LOCAL enable_seqscan = off`, so the probe is the
+primary key's index whatever the statistics say. After that, no page
+statement was over 1.5 s. Across a burst they took about 12 s in all, and
+the overlap with the sends hides most of it. **No index was needed**, so
+migration `1764890000000` is not used.
+
+**Record, 2026-09-29**, same machine and shape, `--queue`, `--push-ms 50`,
+16 at a time. Another session's load runs shared the machine and its
+Postgres for part of the evening. Runs taken while it was busy were 10–25 %
+slower, and the ones below were taken when it was quiet.
+
+| Members | Tick | Live job | Notifications | Pushes | Push p50 / p95 / max | Left for the timer | Verdict |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 2,000 | kick-off (90) | 3.7 s | 7,756 | 2,011 | 12,211 / 15,943 / 16,382 | 0 | pass (was 20.8 s) |
+| 2,000 | 10 goals, ×3 | 2.6–2.9 s | 827–890 | 625–740 | 4,400–4,634 / 5,611–5,957 / ≤6,084 | 0 | pass |
+| 10,000 | 10 goals, ×3 | 2.7–3.4 s | 4,142–4,336 | 3,175–3,630 | 10,677–11,614 / 16,412–18,218 / ≤18,971 | 0 | pass (was 19–24 s) |
+| 10,000 | kick-off (90) | 3.9–4.1 s | 38,304 | 10,051 | 34,361–34,741 / 53,011–53,231 / ≤55,403 | 0 | **pass** (was 70 s) |
+
+Two 10,000-member runs, both within a second of each other. **Every target
+is met on this laptop**, the kick-off at 10,000 members included. The live
+job stays at 3–4 s, so no live tick is skipped. A kick-off's page statements
+are now 77 claims and 77 records, where they were about 115,000 round trips.
+
+What is left in the kick-off's 53 s: about 10 s writing the 90 events'
+audiences (T-835's statements) before the first push, and then the sends
+themselves. 10,051 pushes × 50 ms ÷ 16 is 31 s, and the carry takes 43 s,
+because each page of 500 notifications is about 130 messages, a little over
+eight rounds of 16. The pool size is T-902's question.
+
+### T-902: the send pool sized
+
+D-106. `NOTIFICATION_SEND_CONCURRENCY` measured at 16, 32 and 64, against the
+API's `pg` pool of 10. In production one process serves the members' requests
+and runs the jobs, and they share that pool. A larger send pool is faster
+only until the sends queue for connections the members' requests need.
+
+**What the pool sees.** The captured push above never touches the database,
+but the Web Push channel does: it reads the member's devices before each
+send and touches them after (`push-subscriptions.ts`). `--push-reads` makes
+the captured push do the same two statements through the API's own pool.
+Each tick then reports `api_pool`:
+
+- `waiting_max`: the most requests waiting for a connection;
+- `waiting_share`: the share of 10 ms samples in which any waited;
+- `probe_ms`: a `SELECT 1` through the same pool every 100 ms, timed from
+  asking to answer. That is what a member's request to the process waits for
+  a connection.
+
+**Starving the pool** means a member's request waits noticeably for a
+connection. The rule applied here: `probe_ms` p95 over 100 ms, or the live job
+more than 1.5 times slower than at 16. Queued sends alone are not
+starvation. Connections free in milliseconds, and the pool serves waiters in
+order.
+
+**Record, 2026-09-29, the laptop**, same machine and shape: 10,000 members,
+a kick-off of 90 matches and one burst of 10 goals, `--queue --push-ms 50
+--push-reads`. Two runs at each value, interleaved (16, 32, 64, 16, 32, 64),
+while the machine was otherwise quiet:
+
+| Send pool | Tick | Live job | Push p50 / p95 / max (ms) | Pool waiting max / share | Probe p50 / p95 / max (ms) | Verdict |
+| --- | --- | --- | --- | --- | --- | --- |
+| 16 | kick-off (90) | 3.9–4.8 s | 36,041–44,006 / 55,499–63,503 / ≤65,728 | 8 / 16–19 % | 2 / 6–23 / ≤2,595 | fail once, by 3.5 s |
+| 16 | 10 goals | 2.8–3.2 s | 10,324–11,239 / 16,094–17,376 / ≤18,042 | 7–8 / 15–18 % | 2 / 5–7 / ≤133 | pass |
+| 32 | kick-off (90) | 2.7–4.3 s | 24,963–27,843 / 35,774–38,694 / ≤39,945 | 24 / 20–21 % | 2 / 11–20 / ≤587 | pass |
+| 32 | 10 goals | 2.5–3.2 s | 6,799–7,571 / 9,973–10,522 / ≤10,917 | 24 / 18–20 % | 2 / 6–8 / ≤14 | pass |
+| 64 | kick-off (90) | 3.3 s | 18,762–21,080 / 25,339–27,624 / ≤28,416 | 56 / 21–22 % | 2 / 10–18 / ≤438 | **pass** |
+| 64 | 10 goals | 2.4–2.9 s | 5,232–5,691 / 6,872–7,260 / ≤7,487 | 55 / 20–21 % | 2 / 8 / ≤18 | pass |
+
+Nothing was left for the timer in any run.
+
+**Verdict on the laptop: 64.** It halves the kick-off's p95 against 16, and
+the pool is not starved at any of the three:
+
+- A member's request waited 2 ms at the median at every size, and at most
+  23 ms at p95.
+- The live job stayed at 2.4–4.8 s.
+- The probe's rare spikes (0.4–2.6 s) came at every size, 16 included, while
+  the audiences were being written. They are the database being busy, not
+  the pool.
+
+The queue for connections grows with the send pool (`waiting_max` is about
+the pool size less 8). It stays short because each statement holds a
+connection for about a millisecond.
+
+At 64 the sends are no longer what a kick-off waits on: 10,056 pushes ×
+50 ms ÷ 64 is 8 s of its 25 s. The rest is writing the audiences and claiming
+the pages.
+
+Two earlier series ran while another session's load tests shared the machine
+and its Postgres. The same kick-off then ranged from 25 to 98 s at any of the
+three values, and the live job sometimes took 16–34 s. Those runs are not in
+the table; they measured the neighbour.
+
+**The production server is the lead's measurement.** It has 2 shared vCPUs,
+where the laptop has 8 cores. Every statement is slower there, so the queue
+for connections is longer, and 64 may starve the pool where 32 does not. Run
+this on the server when nothing live is on (the international break until
+2026-10-08, or a weekday morning). It shares the machine with production for
+about 15 minutes. It uses a scratch database and a throwaway Redis, and removes
+both:
+
+```bash
+ssh fmip-prod
+cd /opt/fmip && set -a && . ./.env && set +a
+# The API image's build stage has the built API, the scripts and the dev dependencies.
+docker build --target build -f apps/api/Dockerfile -t fmip-loadtool .
+docker compose exec -T postgres psql -U "$POSTGRES_USER" -d postgres -c "CREATE DATABASE fmip_load"
+LOAD_DB="postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres:5432/fmip_load"
+docker compose run --rm -e DATABASE_URL="$LOAD_DB" migrate
+docker run -d --name fmip-redis-load --network fmip_default redis:8-alpine
+for c in 16 32 64; do
+  docker run --rm --network fmip_default -e DATABASE_URL="$LOAD_DB" \
+    -e REDIS_URL=redis://fmip-redis-load:6379 -e MODEL_SERVICE_URL=none \
+    -e SESSION_SECRET=load-test-only-not-a-real-secret-000000000000 \
+    -e NOTIFICATION_SEND_CONCURRENCY=$c fmip-loadtool \
+    node apps/api/scripts/load-match-alerts.mjs --competitions 15 --matches 6 \
+      --members 10000 --teams-per-member 2 --competition-share 0.3 --ticks 1 \
+      --goals-per-tick 10 --push-ms 50 --queue --push-reads > "$HOME/t902-c$c.json"
+done
+docker rm -f fmip-redis-load
+docker compose exec -T postgres psql -U "$POSTGRES_USER" -d postgres -c "DROP DATABASE fmip_load"
+docker image rm fmip-loadtool
+```
+
+Choose the largest value that passes the rule above. That means `probe_ms`
+p95 within 100 ms, and a live job within 1.5 times the 16 run's, in each
+tick's `api_pool` and `job_ms`. Set it as `NOTIFICATION_SEND_CONCURRENCY` in
+the server's `.env`; the production compose file forwards it since T-902.
+Then `bash deploy/rollout.sh api`, and record the figures in a table like the
+one above and the value in D-106.
+
 ## Every carrier drains (T-837)
 
 That task. `NotificationsService.drain(scope)` carries page after page

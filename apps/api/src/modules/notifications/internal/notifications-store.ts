@@ -57,6 +57,12 @@ export interface DeliveryRecord {
   push: 'absent' | 'sent' | 'failed' | 'skipped';
 }
 
+/** One carried notification and its outcome, as a page records them (T-901). */
+export interface CarriedRecord {
+  id: string;
+  outcome: DeliveryRecord;
+}
+
 /** One channel's outcomes over several notifications (T-802). */
 export interface ChannelTally {
   sent: number;
@@ -490,22 +496,70 @@ export class PostgresNotificationsStore {
   // --- carrying outward (T-330, T-432) ------------------------------------
 
   /**
-   * Notifications that may leave the building now: past their hold (quiet
-   * hours delay, and this respects the delay), **created within the last
-   * day**, and with no delivery claim yet. The day is the difference between
-   * a channel arriving and a flood: the first carrier after a provider is
-   * configured must not send a member everything they were told last month.
-   * Oldest first, a page at a time, with the label and the source resolved
-   * as the inbox resolves them, because the route and the sentence need them.
+   * Claims a page of the notifications that may leave the building now, in
+   * one statement (T-901, D-106), and returns the page with what this carrier
+   * won.
+   *
+   * **Due** is: past their hold (quiet hours delay, and this respects the
+   * delay), **created within the last day**, and with no delivery claim yet.
+   * The day is the difference between a channel arriving and a flood: the
+   * first carrier after a provider is configured must not send a member
+   * everything they were told last month. Oldest first, a page at a time, with
+   * the label and the source resolved as the inbox resolves them, because the
+   * route and the sentence need them.
    *
    * **Scoped to members, a page is whole members** (T-836): ordered by member
    * first, so a member's batch is cut by a page boundary at most once per
    * page rather than wherever their rows fall in time -- a burst to thousands
    * of members is one push each, not two or three.
+   *
+   * **The claim is the same row it always was**, `notification_delivery`'s
+   * key, written for the whole page before anything is sent. A second carrier
+   * that read the same page waits on those keys and wins none of them, so a
+   * notification still leaves at most once. `due` is the page's size, so a
+   * drain can tell a short page (nothing left) from a page someone else held.
    */
-  async due(limit = 100, userIds: string[] | null = null): Promise<DueNotification[]> {
-    const { rows } = await this.pool.query<DueNotification>(
-      `SELECT n.id,
+  async claimDue(
+    limit = 100,
+    userIds: string[] | null = null,
+  ): Promise<{ due: number; claimed: DueNotification[] }> {
+    // **The plan is pinned** (T-901, D-106). A burst is planned on
+    // statistics that have not seen it: autovacuum has not analysed the
+    // thousands of rows written a second ago, so the planner expects a few
+    // dozen candidates and a small claim table, and chose a nested loop that
+    // scanned the whole claim table once per candidate -- 3 to 12 seconds a
+    // page at a kick-off of 38,000, most of the kick-off's minute. So "no
+    // claim yet" is a probe of the claim's key per candidate (a scalar
+    // subquery, never flattened into a join), and within this one
+    // transaction sequential scans are priced out, so the probe is always
+    // the primary key's index and the candidates come from `notification`'s
+    // indexes. The page carries the columns the rest of the statement reads,
+    // so nothing joins `notification` back to it.
+    const client = await this.pool.connect();
+    let rows: (DueNotification & { claimed: boolean })[];
+    try {
+      await client.query('BEGIN');
+      await client.query('SET LOCAL enable_seqscan = off');
+      ({ rows } = await client.query<DueNotification & { claimed: boolean }>(
+        `WITH page AS (
+         SELECT n.id, n.user_id, n.kind, n.subject_type, n.subject_id, n.source_id,
+                n.dedupe_key, n.deliver_after, n.created_at
+           FROM notification n
+          WHERE n.deliver_after <= now()
+            AND n.created_at >= now() - interval '1 day'
+            AND (SELECT 1 FROM notification_delivery d WHERE d.notification_id = n.id) IS NULL
+            AND ($2::uuid[] IS NULL OR n.user_id = ANY($2::uuid[]))
+          ORDER BY CASE WHEN $2::uuid[] IS NULL THEN NULL ELSE n.user_id END, n.deliver_after, n.created_at
+          LIMIT $1
+       ),
+       won AS (
+         INSERT INTO notification_delivery (notification_id)
+         SELECT id FROM page
+         ON CONFLICT DO NOTHING
+         RETURNING notification_id
+       )
+       SELECT n.id,
+              (won.notification_id IS NOT NULL) AS claimed,
               n.user_id,
               n.kind,
               n.subject_type,
@@ -521,9 +575,9 @@ export class PostgresNotificationsStore {
               source.username AS source,
               u.email,
               u.preferred_language AS locale
-         FROM notification n
+         FROM page n
+         LEFT JOIN won ON won.notification_id = n.id
          JOIN user_account u ON u.id = n.user_id
-         LEFT JOIN notification_delivery d ON d.notification_id = n.id
          LEFT JOIN user_account source ON source.id = n.source_id
          LEFT JOIN user_account subject_member
                 ON n.subject_type = 'member'
@@ -545,45 +599,20 @@ export class PostgresNotificationsStore {
          LEFT JOIN match_alert subject_match_alert
                 ON n.subject_type = 'fixture'
                AND subject_match_alert.event_key = n.dedupe_key
-        WHERE n.deliver_after <= now()
-          AND n.created_at >= now() - interval '1 day'
-          AND d.notification_id IS NULL
-          AND ($2::uuid[] IS NULL OR n.user_id = ANY($2::uuid[]))
-        ORDER BY CASE WHEN $2::uuid[] IS NULL THEN NULL ELSE n.user_id END, n.deliver_after, n.created_at
-        LIMIT $1`,
-      [limit, userIds],
-    );
-    return rows;
-  }
-
-  /**
-   * The claim, written before the send and unique per notification: a second
-   * carrier finds it taken and returns `false`. This is what makes "never
-   * sent twice" a property of the table rather than of the logs.
-   */
-  async claimDelivery(notificationId: string): Promise<boolean> {
-    const { rowCount } = await this.pool.query(
-      `INSERT INTO notification_delivery (notification_id) VALUES ($1) ON CONFLICT DO NOTHING`,
-      [notificationId],
-    );
-    return rowCount === 1;
-  }
-
-  /**
-   * The same claim for several notifications in one statement (T-836): one
-   * member's batch. Each row is still its own claim; the ones returned are
-   * the ones this carrier won.
-   */
-  async claimDeliveries(notificationIds: string[]): Promise<Set<string>> {
-    if (notificationIds.length === 0) return new Set();
-    const { rows } = await this.pool.query<{ notification_id: string }>(
-      `INSERT INTO notification_delivery (notification_id)
-       SELECT unnest($1::uuid[])
-       ON CONFLICT DO NOTHING
-       RETURNING notification_id`,
-      [notificationIds],
-    );
-    return new Set(rows.map((row) => row.notification_id));
+        ORDER BY CASE WHEN $2::uuid[] IS NULL THEN NULL ELSE n.user_id END, n.deliver_after, n.created_at`,
+        [limit, userIds],
+      ));
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+    return {
+      due: rows.length,
+      claimed: rows.filter((row) => row.claimed).map(({ claimed: _claimed, ...due }) => due),
+    };
   }
 
   /**
@@ -637,28 +666,27 @@ export class PostgresNotificationsStore {
     );
   }
 
-  /** The outcome on each channel, written once; the trigger refuses a second. */
-  async recordDelivery(notificationId: string, outcome: DeliveryRecord): Promise<void> {
+  /**
+   * The outcomes of a page, one statement (T-901, D-106): each notification
+   * with what each channel did, written once; the trigger refuses a second.
+   * A batch sent as one message has one outcome on every row it carried.
+   */
+  async recordOutcomes(records: CarriedRecord[]): Promise<void> {
+    if (records.length === 0) return;
     await this.pool.query(
       // Never before the claim, even when the database's clock steps back
       // between the two statements (a virtual machine resyncing its clock):
       // the check refuses it, and one refused record stopped a whole
       // Saturday's carry in the T-835 load run.
-      `UPDATE notification_delivery
-          SET email = $2, push = $3, carried_at = greatest(now(), claimed_at)
-        WHERE notification_id = $1`,
-      [notificationId, outcome.email, outcome.push],
-    );
-  }
-
-  /** One outcome on several notifications, one statement (T-836): a batch sent as one message. */
-  async recordDeliveries(notificationIds: string[], outcome: DeliveryRecord): Promise<void> {
-    if (notificationIds.length === 0) return;
-    await this.pool.query(
-      `UPDATE notification_delivery
-          SET email = $2, push = $3, carried_at = greatest(now(), claimed_at)
-        WHERE notification_id = ANY($1::uuid[])`,
-      [notificationIds, outcome.email, outcome.push],
+      `UPDATE notification_delivery d
+          SET email = r.email, push = r.push, carried_at = greatest(now(), d.claimed_at)
+         FROM unnest($1::uuid[], $2::text[], $3::text[]) AS r(id, email, push)
+        WHERE d.notification_id = r.id`,
+      [
+        records.map((record) => record.id),
+        records.map((record) => record.outcome.email),
+        records.map((record) => record.outcome.push),
+      ],
     );
   }
 }
