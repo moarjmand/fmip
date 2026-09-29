@@ -25,7 +25,7 @@ const QUIET = randomUUID();
 
 describe('player news before anything could be linked (T-1007)', () => {
   const controller = (read: Partial<PostgresNewsReadStore>) =>
-    new NewsController(read as PostgresNewsReadStore, null as never, null as never);
+    new NewsController(read as PostgresNewsReadStore, null as never, null as never, null as never);
   const unasked = async () => {
     throw new Error('not asked');
   };

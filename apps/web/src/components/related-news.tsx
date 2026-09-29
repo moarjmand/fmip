@@ -196,7 +196,27 @@ export function EntityNews({
           <Translated locale={locale} message="news.entity.personsUnlinked" />
         </p>
       )}
-      {state === 'nothing_linked' && (
+      {news.reason === 'no_carried_source' && news.coverage !== undefined && (
+        // T-1010 (D-129): said before any card, so an old story never reads as current coverage.
+        <Notice tone="warning" data-testid="entity-news-no-source">
+          <Translated
+            locale={locale}
+            message="news.entity.noCarriedSource"
+            count={news.coverage.window_days}
+          />
+        </Notice>
+      )}
+      {news.reason === 'below_floor' && news.coverage !== undefined && (
+        <Notice tone="warning" data-testid="entity-news-thin">
+          <Translated
+            locale={locale}
+            message="news.entity.belowFloor"
+            count={news.coverage.stories}
+            params={{ days: String(news.coverage.window_days) }}
+          />
+        </Notice>
+      )}
+      {state === 'nothing_linked' && news.reason !== 'no_carried_source' && (
         <p className="text-sm text-muted" data-testid="entity-news-nothing">
           <Translated
             locale={locale}

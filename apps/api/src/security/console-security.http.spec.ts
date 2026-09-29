@@ -212,6 +212,8 @@ const CONSOLE: Record<string, ConsoleRoute> = {
     roles: EDITORIAL,
     reason: { without: { type: 'transfer' } },
   },
+  // News coverage per competition (T-1010, D-129): a read, the gaps named.
+  'GET /admin/news/coverage': { roles: EDITORIAL },
   'GET /admin/translations': { roles: EDITORIAL },
   'GET /admin/articles/:id/translations/:language': { roles: EDITORIAL },
   'POST /admin/articles/:id/translations': {

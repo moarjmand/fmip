@@ -76,6 +76,7 @@ import type {
   DebateListResponse,
   BreakingNewsResponse,
   MatchPanelPage,
+  NewsCoverageReport,
   NewsSectionResponse,
   NotificationSettings,
   PushState,
@@ -1095,6 +1096,13 @@ export function fetchEntityNews(
   return apiRequest<EntityNewsResponse>(
     `/${path}/${encodeURIComponent(id)}/news?locale=${encodeURIComponent(locale)}`,
   );
+}
+
+/** `GET /admin/news/coverage` (T-1010, D-129): every active competition's news coverage, gaps first. */
+export function fetchNewsCoverage(
+  cookie: string | undefined,
+): Promise<ApiResult<NewsCoverageReport>> {
+  return apiRequest<NewsCoverageReport>('/admin/news/coverage', { cookie });
 }
 
 /** `GET /fixtures/:id/key-players` (T-841): each side's most-used players by the stated rule. Public. */

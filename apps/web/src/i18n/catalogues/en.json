@@ -207,6 +207,14 @@
   "news.entity.nothingCompetition": "No publisher we read has reported on this competition yet.",
   "news.entity.nothingPlayer": "No publisher we read has reported on this player yet.",
   "news.entity.personsUnlinked": "Stories are not linked to players yet, so this list cannot say whether anyone has written about this one.",
+  "news.entity.noCarriedSource": {
+    "one": "None of the publishers we read has written about this competition in the last {count} day, so this is not a picture of its news.",
+    "other": "None of the publishers we read has written about this competition in the last {count} days, so this is not a picture of its news."
+  },
+  "news.entity.belowFloor": {
+    "one": "Only {count} story about this competition from the publishers we read in the last {days} days: our coverage of it is thin.",
+    "other": "Only {count} stories about this competition from the publishers we read in the last {days} days: our coverage of it is thin."
+  },
   "player.availability.title": "Availability",
   "player.availability.noTeam": "No current team on record, so there is no next match to read availability for.",
   "player.availability.noNextMatch": "No scheduled match ahead for this team in our records.",

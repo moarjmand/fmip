@@ -5,6 +5,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { ProfileModule } from '../profile/profile.module';
 import { PostgresBreakingAdminStore } from './internal/breaking-admin-store';
 import { PostgresDebateAdminStore } from './internal/debate-admin-store';
+import { PostgresNewsCoverageStore } from './internal/news-coverage-store';
 import { PostgresNewsReadStore } from './internal/news-read-store';
 import { FetchTransport, NEWS_TRANSPORT } from './internal/news-transport';
 import { PostgresNewsStore } from './internal/news-store';
@@ -21,6 +22,7 @@ import { StoryTypeAdminController } from './story-type-admin.controller';
 import { PostgresTranslationsAdminStore } from './internal/translations-admin-store';
 import { TranslationsAdminController } from './translations-admin.controller';
 import { NewsController } from './news.controller';
+import { NewsCoverageAdminController } from './news-coverage-admin.controller';
 import { SavedArticlesController } from './saved-articles.controller';
 
 /**
@@ -41,11 +43,13 @@ import { SavedArticlesController } from './saved-articles.controller';
     BreakingAdminController,
     StoryTypeAdminController,
     TranslationsAdminController,
+    NewsCoverageAdminController,
     SavedArticlesController,
   ],
   providers: [
     PostgresNewsStore,
     PostgresNewsReadStore,
+    PostgresNewsCoverageStore,
     PostgresDebateAdminStore,
     PostgresBreakingAdminStore,
     BreakingAlertsService,
