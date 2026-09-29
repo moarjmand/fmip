@@ -12,7 +12,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from fmip_model.model.dixon_coles import MatchObservation
-from fmip_model.model.version import BASELINE, load_candidate
+from fmip_model.model.version import BASELINE, load_candidate, load_candidates
 from fmip_model.service.app import create_app
 from fmip_model.service.contract import ForecastRequest
 from fmip_model.service.forecaster import Forecaster, TrainingSource
@@ -78,7 +78,7 @@ class FakeSource(TrainingSource):
 
 
 def client(source: TrainingSource) -> TestClient:
-    return TestClient(create_app(source, read_candidate=False))
+    return TestClient(create_app(source, read_candidates=False))
 
 
 def request(**overrides: object) -> dict[str, object]:
@@ -231,18 +231,19 @@ def test_writes_the_contract_examples_apps_api_reads() -> None:
 
 def test_without_a_candidate_the_candidate_route_says_so() -> None:
     app = client(FakeSource())
-    assert app.get("/health").json()["candidate_version"] is None
-    response = app.post("/forecast/candidate", json=request())
+    assert app.get("/health").json()["candidate_versions"] == []
+    assert app.get("/candidates").json() == {"candidates": []}
+    response = app.post("/forecast/candidate/dixon-coles-elo-0.5.0", json=request())
     assert response.status_code == 404
 
 
 def test_a_candidate_answers_under_its_own_version_with_its_own_constants() -> None:
     candidate = replace(BASELINE, version="0.2.0", per_division={"E0": (0.002, 0.003)})
-    app = TestClient(create_app(FakeSource(), candidate=candidate))
-    assert app.get("/health").json()["candidate_version"] == "dixon-coles-elo@0.2.0"
+    app = TestClient(create_app(FakeSource(), {"dixon-coles-elo-0.2.0": candidate}))
+    assert app.get("/health").json()["candidate_versions"] == ["dixon-coles-elo@0.2.0"]
 
     published = app.post("/forecast", json=request()).json()
-    shadow = app.post("/forecast/candidate", json=request()).json()
+    shadow = app.post("/forecast/candidate/dixon-coles-elo-0.2.0", json=request()).json()
     assert published["inputs"]["model_version"] == BASELINE.id
     assert shadow["inputs"]["model_version"] == "dixon-coles-elo@0.2.0"
     # Different constants for this division: a different answer to the same question.
@@ -275,10 +276,10 @@ def test_the_published_version_reads_club_elo_only_and_a_candidate_reads_ours() 
     """T-922, D-111: the prior a version fits with is the version's, never a fallback of its own."""
     own = replace(BASELINE, version="0.5.0", elo_prior="own")
     source = FakeSource(with_elo=False, with_own_elo=True)
-    app = TestClient(create_app(source, candidate=own))
+    app = TestClient(create_app(source, {"dixon-coles-elo-0.5.0": own}))
 
     published = app.post("/forecast", json=request()).json()
-    shadow = app.post("/forecast/candidate", json=request()).json()
+    shadow = app.post("/forecast/candidate/dixon-coles-elo-0.5.0", json=request()).json()
     # Club Elo silent: the published model fits without a prior, and says so...
     assert published["inputs"]["elo_used"] is False
     # ...while the candidate fits with our own Elo, never asking Club Elo.
@@ -321,3 +322,45 @@ def test_the_committed_candidate_is_0_5_0_with_our_own_elo() -> None:
     assert candidate.id == "dixon-coles-elo@0.5.0"
     assert candidate.elo_prior == "own"
     assert candidate.cross_league is not None  # 0.4.0's cup fit, carried unchanged
+
+
+def test_several_candidates_answer_each_under_its_own_name_and_version() -> None:
+    """T-1102, D-140: every candidate in shadow at once, each asked by name."""
+    older = replace(BASELINE, version="0.5.0", elo_prior="own")
+    newer = replace(BASELINE, version="0.6.0", per_division={"E0": (0.002, 0.003)})
+    app = TestClient(
+        create_app(FakeSource(), {"dixon-coles-elo-0.6.0": newer, "dixon-coles-elo-0.5.0": older})
+    )
+    assert app.get("/candidates").json() == {
+        "candidates": [
+            {"name": "dixon-coles-elo-0.5.0", "model_version": "dixon-coles-elo@0.5.0"},
+            {"name": "dixon-coles-elo-0.6.0", "model_version": "dixon-coles-elo@0.6.0"},
+        ]
+    }
+    assert app.get("/health").json()["candidate_versions"] == [
+        "dixon-coles-elo@0.5.0",
+        "dixon-coles-elo@0.6.0",
+    ]
+    for name, version in (("dixon-coles-elo-0.5.0", "0.5.0"), ("dixon-coles-elo-0.6.0", "0.6.0")):
+        answer = app.post(f"/forecast/candidate/{name}", json=request()).json()
+        assert answer["inputs"]["model_version"] == f"dixon-coles-elo@{version}"
+    assert app.post("/forecast/candidate/nobody", json=request()).status_code == 404
+
+
+def test_a_candidate_file_is_named_after_its_version(tmp_path: Path) -> None:
+    (tmp_path / "dixon-coles-elo-0.6.0.json").write_text(
+        json.dumps({"version": "0.6.0", "elo_prior": "own"})
+    )
+    (tmp_path / "unchanged.json").write_text(json.dumps({"version": "0.7.0"}))
+    assert list(load_candidates(tmp_path)) == ["dixon-coles-elo-0.6.0"]
+    (tmp_path / "next.json").write_text(json.dumps({"version": "0.8.0", "elo_prior": "own"}))
+    with pytest.raises(ValueError, match="dixon-coles-elo-0.8.0.json"):
+        load_candidates(tmp_path)
+
+
+def test_0_5_0_keeps_its_version_in_the_directory_so_its_record_continues() -> None:
+    """T-535 counts 0.5.0's pre-kick-off forecasts by its model version: moving the
+    file into candidates/ must not rename it."""
+    committed = load_candidates()
+    assert committed["dixon-coles-elo-0.5.0"].id == "dixon-coles-elo@0.5.0"
+    assert committed["dixon-coles-elo-0.5.0"] == load_candidate()

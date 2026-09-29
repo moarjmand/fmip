@@ -42,7 +42,7 @@ from numpy.typing import NDArray
 from ..inputs import InputContext, ModelInput, Term, available, before, load
 from ..model.dixon_coles import FittedModel, MatchObservation
 from ..model.poisson import outcome_from_matrix, score_matrix
-from ..model.version import BASELINE, ModelVersion, load_candidate
+from ..model.version import BASELINE, ModelVersion, load_candidate, load_candidates
 from ..training.own_elo import read_matches
 from .__main__ import load_matches
 from .elo_prior import OwnEloByDay, last_cached_clubelo
@@ -574,15 +574,18 @@ def main(argv: Sequence[str] | None = None) -> int:
                         help="default: two years before --from")  # fmt: skip
     parser.add_argument("--out", type=Path, default=Path("reports"))
     parser.add_argument("--note", default="", help="where and on what data this was run")
+    parser.add_argument(
+        "--candidate", help="a candidate's name (T-1102); default: the newest version in shadow"
+    )
     args = parser.parse_args(argv)
 
     database_url = os.environ.get("DATABASE_URL")
     if not database_url:
         print("DATABASE_URL is not set", file=sys.stderr)
         return 2
-    candidate = load_candidate()
+    candidate = load_candidates().get(args.candidate) if args.candidate else load_candidate()
     if candidate is None:
-        print("no candidate version to add an input to", file=sys.stderr)
+        print(f"no candidate {args.candidate} to add an input to", file=sys.stderr)
         return 2
     window = (args.window_from, args.window_to)
     history_from = args.history_from or args.window_from - timedelta(days=730)

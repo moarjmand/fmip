@@ -5965,6 +5965,61 @@ magnitude, so the larger would decide alone.
 
 ---
 
+## D-140 — Several candidates run in shadow at once, each named by its version and numbered within it
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26) · **Task:** T-1102 · **Follows:** D-031, D-082, D-085, D-111
+
+**The problem.** D-082 ran one candidate in shadow (`candidate.json`) with
+shadow versions numbered within the role. Candidate `dixon-coles-elo@0.5.0`
+is collecting the 300 pre-kick-off forecasts T-535 promotes it on. Every
+Phase 11 input is a new candidate (D-139), and with one slot each would have
+to replace 0.5.0 and wait for the one before it.
+
+**The decision.**
+
+- **A directory of named candidates.** `fmip_model/model/candidates/` holds
+  one file per candidate, named `<name>-<version>.json` (the service refuses a
+  file whose name is not its version, so a name always means one version).
+  0.5.0's file moved there unchanged, as `dixon-coles-elo-0.5.0.json`.
+- **The service** lists them at `GET /candidates` (name and model version,
+  oldest first; empty is the usual state between candidates), answers
+  `POST /forecast/candidate/{name}` (404 for no such name), and `/health`
+  carries `candidate_versions`. `/forecast/candidate` without a name is gone.
+- **The API** asks the list on every forecast it computes and writes one
+  shadow version per candidate beside the published one. A candidate that
+  fails is logged (`forecast.shadow_failed` with its model version) and
+  records nothing; the others and the published version stand. A candidate's
+  own `unavailable` answer is stored under its version rather than
+  `none@0.0.0`, so each candidate's record is complete and its own.
+- **Numbering (migration `1765100000000`).** A shadow version is numbered
+  within its (fixture, model version); published versions keep counting on
+  their own, so the product's numbering has no gap and never changes. Two
+  partial unique indexes replace `forecast_version_unique`. No row is written
+  or renumbered.
+- **The evaluation records** were already one per forecast, carrying its
+  model version (T-066); nothing changes, and every candidate is scored on its
+  own forecasts. Every product read stays `role = 'published'`.
+
+**Why 0.5.0's count toward T-535 is not reset.** T-535 counts 0.5.0's
+pre-kick-off evaluations by its model version. The file keeps its name and
+version, so its forecasts are stored under the same `model_version` row as
+before; the migration touches no row, and an existing pair of shadow rows
+could not collide under the new indexes because they were unique within the
+role. A new candidate is a new model version with its own count from zero. So
+0.5.0 keeps counting from where it is, whatever else runs beside it.
+
+**What it is not.** Still no second prediction product (rule 6): no candidate
+is shown, blended or compared with the published version anywhere a member
+can see. Promotion is still a decision entry with the numbers (D-082); the
+console shows each candidate's record (T-1103), never a verdict below 300.
+
+**Rejected.** *Numbering shadows within the role, as before*: a new
+candidate would take numbers after 0.5.0's on the same fixture, and a
+candidate's record would read with gaps. *A separate table per candidate*:
+the evaluation and every query written twice, as D-082 said of one.
+*Replacing 0.5.0 with each new candidate*: resets the count T-535 waits on.
+
+---
+
 ## D-147 — Coach changes are read from stored line-ups by person id; a line-up naming no coach is a gap
 **Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26). T-1130's half; T-1131 adds the input's backtest verdict here.
 

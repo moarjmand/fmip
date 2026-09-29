@@ -239,6 +239,7 @@ export type {
   ModelXiStrength,
   ModelForecastResponse,
   ModelForecastUnavailable,
+  ModelCandidate,
   ModelEloSource,
   ModelHealth,
   ModelInputs,

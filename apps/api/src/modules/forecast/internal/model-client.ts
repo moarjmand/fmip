@@ -1,4 +1,9 @@
-import type { ModelForecastRequest, ModelForecastResponse, ModelHealth } from '@fmip/contracts';
+import type {
+  ModelCandidate,
+  ModelForecastRequest,
+  ModelForecastResponse,
+  ModelHealth,
+} from '@fmip/contracts';
 
 /**
  * The API's side of the internal contract with the model service (T-063).
@@ -177,12 +182,38 @@ export class ModelClient {
   }
 
   /**
-   * The candidate version's answer to the same question (T-531), for a shadow
-   * forecast; HTTP 404 when the service has no candidate, which is the usual
-   * state and not a failure.
+   * Every candidate the service runs in shadow (T-1102, D-140), oldest version
+   * first; an empty list is the usual state between candidates. An older
+   * service answers 404, which the caller reads as none.
    */
-  async candidate(request: ModelForecastRequest): Promise<ModelCallResult<ModelForecastResponse>> {
-    return this.forecastAt('/forecast/candidate', request);
+  async candidates(): Promise<ModelCallResult<ModelCandidate[]>> {
+    const result = await this.call('/candidates', undefined);
+    if (!result.ok) return result;
+    const list = isRecord(result.data) ? result.data.candidates : undefined;
+    if (
+      !Array.isArray(list) ||
+      !list.every(
+        (c: unknown) =>
+          isRecord(c) &&
+          typeof c.name === 'string' &&
+          /^[A-Za-z0-9._-]+$/.test(c.name) &&
+          typeof c.model_version === 'string',
+      )
+    ) {
+      return { ok: false, kind: 'contract', message: 'candidate list does not match the contract' };
+    }
+    return { ok: true, data: list as ModelCandidate[] };
+  }
+
+  /**
+   * One candidate's answer to the same question (T-531, T-1102), for a shadow
+   * forecast; HTTP 404 when the service no longer has that candidate.
+   */
+  async candidate(
+    name: string,
+    request: ModelForecastRequest,
+  ): Promise<ModelCallResult<ModelForecastResponse>> {
+    return this.forecastAt(`/forecast/candidate/${encodeURIComponent(name)}`, request);
   }
 
   private async forecastAt(

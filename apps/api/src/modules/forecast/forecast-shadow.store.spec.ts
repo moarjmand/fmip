@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withTriggersOff } from '../../testing/cleanup';
+import { PostgresEvaluationStore } from './internal/evaluation-store';
 import { PostgresForecastStore, type NewForecast } from './internal/forecast-store';
 
 /**
@@ -79,6 +80,67 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('shadow forec
     expect(rows).toEqual([
       { role: 'published', n: '2' },
       { role: 'shadow', n: '1' },
+    ]);
+  });
+
+  it('numbers each candidate within its own model version, and published has no gap (T-1102)', async () => {
+    // Continues the fixture above: published 1 and 2, 0.2.0's shadow 1.
+    const older = await store.record(answer('shadow', 'dixon-coles-elo@0.2.0'));
+    const newer = await store.record(answer('shadow', 'dixon-coles-elo@0.3.0'));
+    const third = await store.record(answer('published', 'dixon-coles-elo@0.1.0'));
+    const newerAgain = await store.record(answer('shadow', 'dixon-coles-elo@0.3.0'));
+
+    expect([older.version_number, newer.version_number, newerAgain.version_number]).toEqual([
+      2, 1, 2,
+    ]);
+    expect(third.version_number).toBe(3);
+    const served = await store.versions(fixture);
+    expect(served.map((v) => v.version_number)).toEqual([1, 2, 3]);
+    expect(served.every((v) => v.model_version === 'dixon-coles-elo@0.1.0')).toBe(true);
+
+    const { rows } = await pool.query<{ model_id: string; numbers: number[] }>(
+      `SELECT m.model_id, array_agg(f.version_number ORDER BY f.version_number) AS numbers
+         FROM forecast f JOIN model_version m ON m.id = f.model_version_id
+        WHERE f.fixture_id = $1 AND f.role = 'shadow'
+        GROUP BY m.model_id ORDER BY m.model_id`,
+      [fixture],
+    );
+    expect(rows).toEqual([
+      { model_id: 'dixon-coles-elo@0.2.0', numbers: [1, 2] },
+      { model_id: 'dixon-coles-elo@0.3.0', numbers: [1, 2] },
+    ]);
+  });
+
+  it('offers the available version of every candidate for evaluation under its own model version', async () => {
+    const available = (modelId: string): NewForecast => ({
+      ...answer('shadow', modelId),
+      available: {
+        probabilities: { home: 0.5, draw: 0.3, away: 0.2 },
+        expectedGoals: { home: 1.5, away: 1.0 },
+        mostLikely: [{ home: 1, away: 0, probability: 0.12 }],
+        leadingFactors: [],
+        inputs: {
+          model_version: modelId,
+          fit_date: '2099-01-31',
+          matches_used: 100,
+          elo_used: true,
+          history_from: '2098-01-01',
+          data_completeness: 'available',
+        },
+      },
+      unavailable: null,
+    });
+    await store.record(available('dixon-coles-elo@0.2.0'));
+    await store.record(available('dixon-coles-elo@0.3.0'));
+
+    const pending = await new PostgresEvaluationStore(pool).unevaluated(fixture);
+    const { rows } = await pool.query<{ id: string; model_id: string }>(
+      `SELECT mv.id, mv.model_id FROM model_version mv WHERE mv.id = ANY($1::uuid[])`,
+      [pending.map((p) => p.modelVersionId)],
+    );
+    expect(rows.map((r) => r.model_id).sort()).toEqual([
+      'dixon-coles-elo@0.2.0',
+      'dixon-coles-elo@0.3.0',
     ]);
   });
 });

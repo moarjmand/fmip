@@ -104,6 +104,18 @@ export interface ModelHealth {
   checked_at: string;
   /** Club Elo as the training store recorded it (T-920); absent from an older service. */
   elo_source?: ModelEloSource | null;
+  /** The versions in shadow, oldest first (T-1102); absent from an older service. */
+  candidate_versions?: string[];
+}
+
+/**
+ * One candidate the model service runs in shadow (T-1102, D-140), from
+ * `GET /candidates`: the name its route takes (`<name>-<version>`) and the
+ * model version its forecasts are stored under.
+ */
+export interface ModelCandidate {
+  name: string;
+  model_version: string;
 }
 
 /**
