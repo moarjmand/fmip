@@ -4301,10 +4301,14 @@ largest of 16, 32 and 64 that does not starve the pool.
   55.5–63.5 s at 16. The probe's p95 was 6–23 ms at every value, and the live
   job stayed at 2.4–4.8 s. None of the three starved the pool
   (docs/08-load-test.md, "T-902").
-- **Production (2 shared vCPUs): pending the lead's run** of the command in
-  docs/08-load-test.md, "T-902". Until it is recorded here, the server runs
-  the default, 16. Every statement is slower there, so 64 may queue where 32
-  does not; the laptop's answer is not carried over.
+- **Production (2 shared vCPUs), 2026-09-29: 64.** The same kick-off and one
+  goal tick at 10,000 members, on a scratch database beside production during
+  the international break: the kick-off's pushes reached p95 25.5 s at 64,
+  32.6 s at 32 and 46.8 s at 16; the goal tick's 5.4 s, 7.6 s and 12.9 s. The
+  probe's p95 was 10, 5 and 2 ms (max 71 ms at 64), and the live job 1.1, 1.3
+  and 1.1 s at kick-off. None starved the pool, so 64, the largest, is the
+  server's value, set as `NOTIFICATION_SEND_CONCURRENCY=64` in its `.env`
+  (docs/08-load-test.md, "T-902").
 
 **Consequences (T-902).** The production compose file forwards
 `NOTIFICATION_SEND_CONCURRENCY` to the API. Before, a value in the server's
