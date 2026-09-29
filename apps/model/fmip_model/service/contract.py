@@ -153,8 +153,21 @@ class Health(BaseModel):
     status: Literal["ok"] = "ok"
     service: Literal["model"] = "model"
     model_version: str
-    #: The version offered for shadow forecasts at /forecast/candidate (T-531), or null.
-    candidate_version: str | None = None
+    #: The versions offered for shadow forecasts at /forecast/candidate/{name}
+    #: (T-531, T-1102), oldest first; empty when there is none.
+    candidate_versions: list[str] = Field(default_factory=list)
     checked_at: datetime
     #: Club Elo's state (T-920); null from a source that keeps no loads (tests).
     elo_source: EloSourceState | None = None
+
+
+class Candidate(BaseModel):
+    #: The name the route takes: ``<name>-<version>`` (D-140).
+    name: str
+    model_version: str
+
+
+class CandidateList(BaseModel):
+    """GET /candidates (T-1102): every candidate in shadow, oldest version first."""
+
+    candidates: list[Candidate]

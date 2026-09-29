@@ -5892,6 +5892,134 @@ until it arrived, the silent fallback the policy forbids. *A generated
 per-locale subset file*: a second copy of the catalogues to keep in step, for
 one rarely rendered page.
 
+---
+
+## D-139 — An input passes its backtest only by beating the current candidate on the same matches, with an interval that excludes zero
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26) · **Task:** T-1101 · **Follows:** D-016, D-031, D-082, D-083, D-111
+
+**The problem.** Phase 11 tests up to seven model inputs (rest and
+congestion, league stakes, second legs, neutral grounds, a new coach,
+head-to-head, home advantage by team). Blueprint 6.3 admits an input only
+"where they improve prediction quality". Without a bar stated before any of
+them is run, each input would be judged by numbers chosen after seeing its
+own, and a small improvement on one window would be indistinguishable from
+noise.
+
+**The decision.** One harness, `python -m fmip_model.backtest.inputs --input
+<name> --divisions … --from … --to …` (T-1101), and this bar, fixed in code as
+`BAR` in `fmip_model/backtest/inputs.py`:
+
+- **Against which versions.** Per division, one walk-forward with the fit
+  dates of `backtest.elo_prior` (fit the day before, refit at most weekly, 60
+  matches of history first) scores the published version
+  (`dixon-coles-elo@0.1.0`, with its Club Elo prior as last cached), the
+  current candidate (its own constants and prior), and the candidate *with
+  the input* -- the candidate's very fits plus the input's term fitted on the
+  same history. The input is judged against the **candidate**; the published
+  version is reported for reference only.
+- **On which matches.** Only matches all three forecast, and of those only
+  the ones where the input can be read (N-5's proposal, adopted): a match
+  where the input has no value is forecast by the candidate unchanged and is
+  not in the sample. The report states the share of matches that is. The
+  input never sees a match on or after the day it forecasts, nor, when its
+  term is fitted, a match after the fit date.
+- **Separately.** football-data.co.uk divisions and our records' divisions
+  (by the source of their loads, D-083) are judged as two groups.
+- **By how much.** In a group, with at least **300** matches where the input
+  was read (below that: `insufficient`, never a pass):
+  1. mean log loss lower than the candidate's, and the 95% paired bootstrap
+     interval of the difference (2,000 resamples of the matches, seed 1101)
+     entirely below zero;
+  2. calibration error (the ten-bin expected calibration error, mean over
+     home, draw and away) not worse: fails only if the same resamples put the
+     whole interval of its rise above zero -- a few hundred matches make a
+     point estimate too noisy to ask it not to move at all;
+  3. worse (higher log loss) in no more than **one third** of the divisions
+     with at least 50 matches where the input was read.
+- **Overall.** `passed` when at least one group passed and none failed; a
+  group that is `insufficient` is stated beside the verdict. The report
+  (`reports/<candidate>/inputs_<name>_<window>.{md,json}`) carries the bar
+  itself, so a later change to it is visible in the evidence.
+
+A passed input is a candidate for T-1150's next version, nothing more: no
+input reaches a published forecast except through a promotion with its own
+decision entry (D-082). An input that fails is recorded with its numbers in
+its own entry and carried by no candidate.
+
+**The interface.** An input is a module `fmip_model/inputs/<name>.py` with
+`build(context) -> ModelInput`; `ModelInput.fit(division, history, fit_date,
+model) -> Term` and `Term.shift(match, known) -> (home, away) | None` (the
+change to log expected goals). `FeatureInput` is the short path for a feature
+pair and fitted coefficients (time-weighted Poisson likelihood with the
+fitted model's expected goals as offsets, as D-086's line-up term). The
+harness's own control, `--input null` (a coinflip with no effect), must fail.
+
+**Rejected.** *Beating the published version*: the candidate is already
+better (D-111), so an input could pass on the candidate's merit. *A point
+estimate with a margin*: a fixed margin is either too strict for a small
+input or too loose for a noisy window; the interval is what says "not noise".
+*Every match, input or not*: dilutes the effect by the share where it is not
+read, and punishes an input for matches it never touched. *A pooled number
+across football-data and our records*: the two differ in size by an order of
+magnitude, so the larger would decide alone.
+
+---
+
+## D-140 — Several candidates run in shadow at once, each named by its version and numbered within it
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26) · **Task:** T-1102 · **Follows:** D-031, D-082, D-085, D-111
+
+**The problem.** D-082 ran one candidate in shadow (`candidate.json`) with
+shadow versions numbered within the role. Candidate `dixon-coles-elo@0.5.0`
+is collecting the 300 pre-kick-off forecasts T-535 promotes it on. Every
+Phase 11 input is a new candidate (D-139), and with one slot each would have
+to replace 0.5.0 and wait for the one before it.
+
+**The decision.**
+
+- **A directory of named candidates.** `fmip_model/model/candidates/` holds
+  one file per candidate, named `<name>-<version>.json` (the service refuses a
+  file whose name is not its version, so a name always means one version).
+  0.5.0's file moved there unchanged, as `dixon-coles-elo-0.5.0.json`.
+- **The service** lists them at `GET /candidates` (name and model version,
+  oldest first; empty is the usual state between candidates), answers
+  `POST /forecast/candidate/{name}` (404 for no such name), and `/health`
+  carries `candidate_versions`. `/forecast/candidate` without a name is gone.
+- **The API** asks the list on every forecast it computes and writes one
+  shadow version per candidate beside the published one. A candidate that
+  fails is logged (`forecast.shadow_failed` with its model version) and
+  records nothing; the others and the published version stand. A candidate's
+  own `unavailable` answer is stored under its version rather than
+  `none@0.0.0`, so each candidate's record is complete and its own.
+- **Numbering (migration `1765100000000`).** A shadow version is numbered
+  within its (fixture, model version); published versions keep counting on
+  their own, so the product's numbering has no gap and never changes. Two
+  partial unique indexes replace `forecast_version_unique`. No row is written
+  or renumbered.
+- **The evaluation records** were already one per forecast, carrying its
+  model version (T-066); nothing changes, and every candidate is scored on its
+  own forecasts. Every product read stays `role = 'published'`.
+
+**Why 0.5.0's count toward T-535 is not reset.** T-535 counts 0.5.0's
+pre-kick-off evaluations by its model version. The file keeps its name and
+version, so its forecasts are stored under the same `model_version` row as
+before; the migration touches no row, and an existing pair of shadow rows
+could not collide under the new indexes because they were unique within the
+role. A new candidate is a new model version with its own count from zero. So
+0.5.0 keeps counting from where it is, whatever else runs beside it.
+
+**What it is not.** Still no second prediction product (rule 6): no candidate
+is shown, blended or compared with the published version anywhere a member
+can see. Promotion is still a decision entry with the numbers (D-082); the
+console shows each candidate's record (T-1103), never a verdict below 300.
+
+**Rejected.** *Numbering shadows within the role, as before*: a new
+candidate would take numbers after 0.5.0's on the same fixture, and a
+candidate's record would read with gaps. *A separate table per candidate*:
+the evaluation and every query written twice, as D-082 said of one.
+*Replacing 0.5.0 with each new candidate*: resets the count T-535 waits on.
+
+---
+
 ## D-147 — Coach changes are read from stored line-ups by person id; a line-up naming no coach is a gap
 **Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26). T-1130's half; T-1131 adds the input's backtest verdict here.
 
@@ -5941,3 +6069,48 @@ one query, so a table would be a second copy to keep in step.
 **Consequences.** No migration. `public` is only read. `as_text` (the load's
 content hash) leaves the coaches out, because `training.match` does not store
 them.
+
+## D-153 — Featured matches on the homepage: an editor's placement with a window and a note, first after a member's favourites
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** Blueprint 2.3's "important-match forecasts" and 16's
+"featured matches" on the homepage are an editor's act, recorded like the
+breaking mark (D-125), not a ranking a machine computes (T-1161).
+
+- **The feature.** An `editor` or `admin` features a match
+  (`POST /admin/fixtures/:id/feature`) with a note readers see beside it and
+  a window in whole hours, from 1 to 336 (two weeks, the homepage's own
+  reach, `HOME_DAYS`). Unlike the breaking mark the window is per feature:
+  a derby is worth a weekend, a cup draw's tie an evening. Only a match still
+  to be played or in play can be featured; a finished, postponed or
+  called-off one is refused, naming its state. A second feature while one is
+  in force is refused rather than re-noted; clear it first. An editor may
+  end one early with a reason (`.../feature/clear`). Every feature and clear
+  is an `audit_log` row (`homepage_feature.feature`, `homepage_feature.clear`,
+  target `fixture`) with what was there before (rule 10).
+  `GET /admin/homepage-features` lists them as `live`, `expired` or
+  `cleared`; the console page is `/admin/homepage`.
+- **The homepage.** `GET /featured-matches` is public (a guest sees it): the
+  features in force, at most 20. "In force" is `ends_at > now()` read at
+  render, so an expired feature is gone on the next render with no job.
+  The homepage's "Live and upcoming" list is the member's pinned favourites,
+  then the featured matches (live first, then soonest), then the rest as
+  before; "The model's view" takes its matches from that list, so it follows
+  the same order. A featured match carries "Featured: <note>" on its line.
+  A featured match the scores answer does not hold (beyond its two weeks) is
+  not listed. With nothing featured, or the answer unreachable, the
+  homepage is exactly as it was.
+- **Rule 6.** A feature is placement, not a view on the result: it never
+  touches a forecast, the founder's analysis or the community's consensus,
+  and the note is shown as the editor's, apart from all three.
+- **Not the panels.** A match's public discussion (T-253, T-613, "featured
+  matches" on `/admin/panels`) is a separate act by moderators; featuring a
+  match on the homepage opens no discussion, and opening one features
+  nothing.
+
+**Rejected.** *A flag on `fixture`*: it cannot say who, why or until when.
+*One fixed window for every feature* (as D-125 does for breaking news): a
+match's importance does not decay on a common clock. *Showing a featured
+match the scores answer does not hold* by a second request: the homepage
+looks two weeks ahead and a feature cannot outlast that, so the case is a
+match featured weeks early, which the editor can feature again nearer the day.

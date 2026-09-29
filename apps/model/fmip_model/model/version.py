@@ -4,10 +4,12 @@ A forecast is immutable and records which model version produced it (rule 5
 in CLAUDE.md, T-064). Changing any constant here is a new version string, so
 two forecasts that disagree can always be traced to what changed.
 
-``BASELINE`` is the published version. ``load_candidate`` reads the candidate
-the service offers for shadow forecasts (T-531, D-082) from ``candidate.json``
-beside this file; with no file, or a file that changes nothing, there is no
-candidate and the service says so.
+``BASELINE`` is the published version. The candidates the service offers for
+shadow forecasts (T-531, D-082) are the files of ``candidates/`` beside this
+file, one per candidate, named ``<name>-<version>.json`` (T-1102, D-140);
+``load_candidates`` reads them all, ``load_candidate`` reads one file, or the
+newest version when given none. With no file, or a file that changes nothing,
+there is no candidate and the service says so.
 """
 
 from __future__ import annotations
@@ -39,7 +41,7 @@ ELO_PRIORS: tuple[EloPrior, ...] = ("clubelo", "own", "clubelo_then_own")
 
 #: How far back the service fits from, unless a version says otherwise.
 DEFAULT_HISTORY_DAYS = 400
-CANDIDATE_FILE = Path(__file__).with_name("candidate.json")
+CANDIDATES_DIR = Path(__file__).with_name("candidates")
 
 
 @dataclass(frozen=True)
@@ -93,12 +95,39 @@ BASELINE = ModelVersion(
 )
 
 
-def load_candidate(path: Path = CANDIDATE_FILE) -> ModelVersion | None:
+def _version_key(version: ModelVersion) -> tuple[int, ...]:
+    return tuple(int(part) for part in version.version.split("."))
+
+
+def load_candidates(directory: Path = CANDIDATES_DIR) -> dict[str, ModelVersion]:
+    """Every candidate in ``directory``, by name: the file's stem, which must be
+    ``<name>-<version>`` so that a name always means one version (D-140)."""
+    out: dict[str, ModelVersion] = {}
+    if not directory.is_dir():
+        return out
+    for path in sorted(directory.glob("*.json")):
+        version = load_candidate(path)
+        if version is None:
+            continue
+        expected = f"{version.name}-{version.version}"
+        if path.stem != expected:
+            raise ValueError(f"{path.name} describes {version.id}; name it {expected}.json")
+        out[path.stem] = version
+    return out
+
+
+def load_candidate(path: Path | None = None) -> ModelVersion | None:
     """The candidate version the file describes, or ``None`` when there is none.
+
+    With no path: the newest version in ``candidates/``, the one a backtest
+    means by "the current candidate" unless told another.
 
     The file names a version and, per division, the constants tuning adopted;
     everything it does not name is the published version's.
     """
+    if path is None:
+        candidates = load_candidates()
+        return max(candidates.values(), key=_version_key) if candidates else None
     if not path.exists():
         return None
     body = json.loads(path.read_text(encoding="utf-8"))

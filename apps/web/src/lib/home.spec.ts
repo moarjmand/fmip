@@ -7,6 +7,7 @@ import type {
   ScoresResponse,
 } from '@fmip/contracts';
 import {
+  featuredNotes,
   homeForecasts,
   homeMatches,
   homePanels,
@@ -60,6 +61,41 @@ describe('the homepage', () => {
     );
     expect(picked.map((c) => c.id)).toEqual(['fav', 'live', 'soon', 'later']);
     expect(homeMatches(scores([], [[soon, later]]), 1).map((c) => c.id)).toEqual(['soon']);
+  });
+
+  it('lists featured matches after the favourites and before the rest (T-1161)', () => {
+    const fav = card('fav', 'scheduled', '2026-10-05T12:00:00Z');
+    const soon = card('soon', 'scheduled', '2026-10-03T12:00:00Z');
+    const later = card('later', 'scheduled', '2026-10-04T12:00:00Z');
+    const live = card('live', 'live', '2026-10-03T12:00:00Z');
+    const done = card('done', 'finished', '2026-10-03T10:00:00Z');
+    const list = scores([fav], [[soon, later, live, done]]);
+    const ids = (featured: string[]) => homeMatches(list, 8, new Set(featured)).map((c) => c.id);
+    expect(ids(['later'])).toEqual(['fav', 'later', 'live', 'soon']);
+    // A favourite stays where it is; a finished or absent match is not listed.
+    expect(ids(['fav', 'done', 'elsewhere'])).toEqual(['fav', 'live', 'soon', 'later']);
+    expect(ids(['later', 'live'])).toEqual(['fav', 'live', 'later', 'soon']);
+    // Nothing featured: the list is exactly as before.
+    expect(ids([])).toEqual(homeMatches(list).map((c) => c.id));
+    // The model's view follows the same order.
+    const entry = (id: string) => ({
+      fixture_id: id,
+      latest: {
+        status: 'available',
+        model_version: 'dixon-coles-elo@0.1.0',
+        probabilities: { home: 0.4, draw: 0.3, away: 0.3 },
+      },
+    });
+    const forecasts = homeForecasts(
+      homeMatches(list, 8, new Set(['later'])),
+      ['soon', 'later', 'fav'].map(entry) as unknown as ForecastListEntry[],
+    );
+    expect(forecasts.map((f) => f.card.id)).toEqual(['fav', 'later', 'soon']);
+  });
+
+  it('reads the editor’s notes, and an unreachable answer as nothing featured', () => {
+    expect(featuredNotes([{ fixture_id: 'a', note: 'Derby.' }]).get('a')).toBe('Derby.');
+    expect(featuredNotes(null).size).toBe(0);
   });
 
   it('takes its table from the first competition in the reader’s order', () => {

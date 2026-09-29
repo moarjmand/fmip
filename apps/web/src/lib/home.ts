@@ -39,21 +39,46 @@ export const HOME_TABLE_ROWS = 6;
 const OPEN: ReadonlySet<ScoreCard['status']> = new Set(['live', 'scheduled']);
 
 /**
- * Live and upcoming matches, favourites first: the pinned cards, then every
- * other live match, then the soonest scheduled ones. A finished or called-off
- * match is not "live and upcoming" and is left to the scores page.
+ * Live and upcoming matches, favourites first: the pinned cards, then the
+ * matches an editor features now (T-1161, D-153), then every other live
+ * match, then the soonest scheduled ones. A finished or called-off match is
+ * not "live and upcoming" and is left to the scores page. Featured matches
+ * keep the same order among themselves (live, then soonest); a featured match
+ * outside the scores answer's window is not listed, and with nothing featured
+ * the list is as it was.
  */
-export function homeMatches(scores: ScoresResponse, limit = HOME_MATCHES): ScoreCard[] {
+export function homeMatches(
+  scores: ScoresResponse,
+  limit = HOME_MATCHES,
+  featured: ReadonlySet<string> = new Set(),
+): ScoreCard[] {
   const pinned = scores.pinned.filter((card) => OPEN.has(card.status));
   const seen = new Set(pinned.map((card) => card.id));
   const rest = scores.groups
     .flatMap((group) => group.fixtures)
     .filter((card) => OPEN.has(card.status) && !seen.has(card.id));
-  const live = rest.filter((card) => card.status === 'live');
-  const upcoming = rest
-    .filter((card) => card.status === 'scheduled')
-    .sort((a, b) => a.kickoff_at.localeCompare(b.kickoff_at));
-  return [...pinned, ...live, ...upcoming].slice(0, limit);
+  const ordered = (cards: ScoreCard[]) => [
+    ...cards.filter((card) => card.status === 'live'),
+    ...cards
+      .filter((card) => card.status === 'scheduled')
+      .sort((a, b) => a.kickoff_at.localeCompare(b.kickoff_at)),
+  ];
+  return [
+    ...pinned,
+    ...ordered(rest.filter((card) => featured.has(card.id))),
+    ...ordered(rest.filter((card) => !featured.has(card.id))),
+  ].slice(0, limit);
+}
+
+/**
+ * The editor's note per featured match (T-1161, D-153), from
+ * `GET /featured-matches`. An unreachable answer is no features: the homepage
+ * is then as it was before T-1161, which is a true page, not a false one.
+ */
+export function featuredNotes(
+  features: readonly { fixture_id: string; note: string }[] | null,
+): Map<string, string> {
+  return new Map((features ?? []).map((feature) => [feature.fixture_id, feature.note]));
 }
 
 /** The competition whose table the homepage shows: the first one in the reader's order. */

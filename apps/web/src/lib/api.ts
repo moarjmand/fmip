@@ -79,8 +79,11 @@ import type {
   DebateListResponse,
   BreakingListResponse,
   BreakingNewsResponse,
+  FeaturedMatchesResponse,
+  HomepageFeatureListResponse,
   MatchPanelPage,
   NewsCoverageReport,
+  CandidateRecordsResponse,
   NewsSectionResponse,
   NotificationSettings,
   PushState,
@@ -651,6 +654,21 @@ export function fetchBreakingNews(locale?: string): Promise<ApiResult<BreakingNe
   return apiRequest<BreakingNewsResponse>(withLocale('/news/breaking', locale));
 }
 
+/** `GET /featured-matches` (T-1161, D-153): the matches an editor features now. Public. */
+export function fetchFeaturedMatches(): Promise<ApiResult<FeaturedMatchesResponse>> {
+  return apiRequest<FeaturedMatchesResponse>('/featured-matches');
+}
+
+/** `GET /admin/homepage-features` (T-1161): every feature, newest first. Editors and administrators. */
+export function fetchHomepageFeatures(
+  cookie: string | undefined,
+): Promise<ApiResult<HomepageFeatureListResponse>> {
+  return apiRequest<HomepageFeatureListResponse>(
+    '/admin/homepage-features',
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
 /** `GET /news/stories/:id` (T-144), in `language` when the original has a version in it. */
 export function fetchStory(
   id: string,
@@ -1157,6 +1175,13 @@ export function fetchNewsCoverage(
   cookie: string | undefined,
 ): Promise<ApiResult<NewsCoverageReport>> {
   return apiRequest<NewsCoverageReport>('/admin/news/coverage', { cookie });
+}
+
+/** `GET /admin/model/candidates` (T-1103): each candidate's shadow record. Administrators only. */
+export function fetchCandidateRecords(
+  cookie: string | undefined,
+): Promise<ApiResult<CandidateRecordsResponse>> {
+  return apiRequest<CandidateRecordsResponse>('/admin/model/candidates', { cookie });
 }
 
 /** `GET /fixtures/:id/key-players` (T-841): each side's most-used players by the stated rule. Public. */

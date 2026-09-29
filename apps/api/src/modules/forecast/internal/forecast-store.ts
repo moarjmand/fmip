@@ -269,9 +269,12 @@ export class PostgresForecastStore {
       const snapshotId = snapshot.rows[0]?.id;
       if (snapshotId === undefined) throw new Error('input_snapshot insert returned no row');
 
-      // The next version number, decided inside the transaction. Two
-      // concurrent computations for one fixture serialise on the unique
-      // constraint: the loser fails and retries, never overwrites.
+      // The next version number, decided inside the transaction. Published
+      // versions count on their own, so a reader never sees a gap; each
+      // candidate's shadow versions count within its own model version
+      // (T-1102, D-140), so one candidate's record never numbers another's.
+      // Two concurrent computations serialise on the unique index: the loser
+      // fails and retries, never overwrites.
       const forecast = await client.query<ForecastRow>(
         `INSERT INTO forecast (
            fixture_id, input_snapshot_id, model_version_id, version_number, computed_at, status,
@@ -281,7 +284,8 @@ export class PostgresForecastStore {
          )
          SELECT $1, $2, $3, COALESCE(MAX(version_number), 0) + 1, $4, $5,
                 $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb, $13, $14, $15, $16
-           FROM forecast WHERE fixture_id = $1 AND role = $16
+           FROM forecast
+          WHERE fixture_id = $1 AND role = $16 AND ($16 = 'published' OR model_version_id = $3)
          RETURNING id`,
         [
           input.fixtureId,

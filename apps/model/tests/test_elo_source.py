@@ -129,7 +129,7 @@ def test_health_carries_the_state_and_an_unreadable_store_is_said_not_raised() -
     feed, clock = Feed(), Clock()
     src = source(feed, clock)
     src.refresh_clubelo()
-    body = TestClient(create_app(src, read_candidate=False)).get("/health").json()
+    body = TestClient(create_app(src, read_candidates=False)).get("/health").json()
     assert body["elo_source"]["source"] == "clubelo"
     assert "502" in body["elo_source"]["last_error"]
 

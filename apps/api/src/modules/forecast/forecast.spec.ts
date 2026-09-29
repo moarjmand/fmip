@@ -262,8 +262,8 @@ describe('ForecastService.compute', () => {
     });
     await service(store, model).compute(FIXTURE.id, 'early');
 
-    // The published version is never asked; only the candidate is (T-533).
-    expect(asked).toEqual(['http://model.test/forecast/candidate']);
+    // The published version is never asked; only the candidates are (T-533).
+    expect(asked).toEqual(['http://model.test/candidates']);
     expect(store.published[0]?.unavailable).toMatchObject({ reason: 'cross_competition' });
     expect(store.shadows).toHaveLength(0);
   });
@@ -358,58 +358,128 @@ describe('XI strength in the question (T-534)', () => {
   });
 });
 
-describe('shadow forecasts (T-531)', () => {
-  const answering = (candidateStatus: number) =>
+describe('shadow forecasts (T-531, T-1102)', () => {
+  const V05 = { name: 'dixon-coles-elo-0.5.0', model_version: 'dixon-coles-elo@0.5.0' };
+  const V06 = { name: 'dixon-coles-elo-0.6.0', model_version: 'dixon-coles-elo@0.6.0' };
+
+  /** A model service with these candidates; a candidate named in `failing` answers that status. */
+  const answering = (
+    listed: { name: string; model_version: string }[] | number,
+    failing: Record<string, number> = {},
+  ) =>
     new ModelClient({
       baseUrl: 'http://model.test',
-      fetchImpl: async (url) =>
-        String(url).endsWith('/forecast/candidate') && candidateStatus !== 200
-          ? new Response(JSON.stringify({ detail: 'no candidate' }), { status: candidateStatus })
-          : new Response(
-              JSON.stringify({
-                ...AVAILABLE,
-                inputs: {
-                  ...AVAILABLE.inputs,
-                  model_version: String(url).endsWith('/candidate')
-                    ? 'dixon-coles-elo@0.2.0'
-                    : AVAILABLE.inputs.model_version,
-                },
-              }),
-            ),
+      fetchImpl: async (url) => {
+        const path = String(url).replace('http://model.test', '');
+        if (path === '/candidates') {
+          return typeof listed === 'number'
+            ? new Response(JSON.stringify({ detail: 'Not Found' }), { status: listed })
+            : new Response(JSON.stringify({ candidates: listed }));
+        }
+        const name = path.startsWith('/forecast/candidate/')
+          ? decodeURIComponent(path.slice('/forecast/candidate/'.length))
+          : null;
+        const status = name === null ? undefined : failing[name];
+        if (status !== undefined) {
+          return new Response(JSON.stringify({ detail: 'broken' }), { status });
+        }
+        const candidate =
+          typeof listed === 'number' ? undefined : listed.find((c) => c.name === name);
+        return new Response(
+          JSON.stringify({
+            ...AVAILABLE,
+            inputs: {
+              ...AVAILABLE.inputs,
+              model_version: candidate?.model_version ?? AVAILABLE.inputs.model_version,
+            },
+          }),
+        );
+      },
     });
 
   it('records the candidate beside the published version, and never shows it', async () => {
     const store = new FakeStore(FIXTURE);
-    await service(store, answering(200)).compute(FIXTURE.id, 'early');
+    await service(store, answering([V05])).compute(FIXTURE.id, 'early');
 
     expect(store.published).toHaveLength(1);
     expect(store.shadows).toHaveLength(1);
-    expect(store.shadows[0]?.modelId).toBe('dixon-coles-elo@0.2.0');
-    const served = await service(store, answering(200)).versions(FIXTURE.id);
-    expect(served?.versions.map((v) => v.model_version)).not.toContain('dixon-coles-elo@0.2.0');
+    expect(store.shadows[0]?.modelId).toBe('dixon-coles-elo@0.5.0');
+    const served = await service(store, answering([V05])).versions(FIXTURE.id);
+    expect(served?.versions.map((v) => v.model_version)).not.toContain('dixon-coles-elo@0.5.0');
   });
 
-  it('asks the candidate about a cup match on the scale across leagues, in shadow (T-533)', async () => {
+  it('records one shadow version per candidate, each under its own model version', async () => {
+    const store = new FakeStore(FIXTURE);
+    await service(store, answering([V05, V06])).compute(FIXTURE.id, 'early');
+
+    expect(store.published).toHaveLength(1);
+    expect(store.shadows.map((s) => s.modelId)).toEqual([
+      'dixon-coles-elo@0.5.0',
+      'dixon-coles-elo@0.6.0',
+    ]);
+  });
+
+  it('asks the candidates about a cup match on the scale across leagues, in shadow (T-533)', async () => {
     const store = new FakeStore({ ...FIXTURE, division: null, mixesLeagues: true });
-    await service(store, answering(200)).compute(FIXTURE.id, 'early');
+    await service(store, answering([V05, V06])).compute(FIXTURE.id, 'early');
 
     expect(store.published).toHaveLength(1);
     expect(store.published[0]?.unavailable).toMatchObject({ reason: 'cross_competition' });
-    expect(store.shadows).toHaveLength(1);
-    expect(store.shadows[0]?.request.division).toBe(CROSS_LEAGUE_DIVISION);
-    expect(store.shadows[0]?.modelId).toBe('dixon-coles-elo@0.2.0');
+    expect(store.shadows).toHaveLength(2);
+    expect(store.shadows.every((s) => s.request.division === CROSS_LEAGUE_DIVISION)).toBe(true);
   });
 
   it('records nothing when there is no candidate, and the published version stands if it fails', async () => {
     const none = new FakeStore(FIXTURE);
-    await service(none, answering(404)).compute(FIXTURE.id, 'early');
+    await service(none, answering([])).compute(FIXTURE.id, 'early');
     expect(none.shadows).toHaveLength(0);
     expect(none.published).toHaveLength(1);
+
+    const older = new FakeStore(FIXTURE);
+    await service(older, answering(404)).compute(FIXTURE.id, 'early');
+    expect(older.shadows).toHaveLength(0);
+    expect(older.published).toHaveLength(1);
 
     const failing = new FakeStore(FIXTURE);
     const outcome = await service(failing, answering(500)).compute(FIXTURE.id, 'early');
     expect(outcome.kind).toBe('recorded');
     expect(failing.shadows).toHaveLength(0);
     expect(failing.published[0]?.available).not.toBeNull();
+  });
+
+  it('logs a failing candidate while the others and the published version stand', async () => {
+    const store = new FakeStore(FIXTURE);
+    const outcome = await service(store, answering([V05, V06], { [V05.name]: 500 })).compute(
+      FIXTURE.id,
+      'early',
+    );
+    expect(outcome.kind).toBe('recorded');
+    expect(store.published[0]?.available).not.toBeNull();
+    expect(store.shadows.map((s) => s.modelId)).toEqual(['dixon-coles-elo@0.6.0']);
+  });
+
+  it("stores a candidate's own refusal under its version, not under none", async () => {
+    const store = new FakeStore(FIXTURE);
+    const refusing = new ModelClient({
+      baseUrl: 'http://model.test',
+      fetchImpl: async (url) =>
+        String(url).endsWith('/candidates')
+          ? new Response(JSON.stringify({ candidates: [V06] }))
+          : String(url).endsWith(`/forecast/candidate/${V06.name}`)
+            ? new Response(
+                JSON.stringify({
+                  status: 'unavailable',
+                  fixture_id: FIXTURE.id,
+                  reason: 'no_history',
+                  detail: 'a test refusal',
+                  computed_at: AVAILABLE.computed_at,
+                }),
+              )
+            : new Response(JSON.stringify(AVAILABLE)),
+    });
+    await service(store, refusing).compute(FIXTURE.id, 'early');
+    expect(store.shadows).toHaveLength(1);
+    expect(store.shadows[0]?.modelId).toBe('dixon-coles-elo@0.6.0');
+    expect(store.shadows[0]?.unavailable).toMatchObject({ reason: 'no_history' });
   });
 });

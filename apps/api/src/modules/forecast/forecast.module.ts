@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { IdentityModule } from '../identity/identity.module';
+import { CandidatesController } from './candidates.controller';
 import { EvaluationController } from './evaluation.controller';
 import { EvaluationService } from './evaluation.service';
 import { ForecastListController } from './forecast-list.controller';
@@ -51,6 +52,7 @@ export function modelClientFromEnv(env: NodeJS.ProcessEnv = process.env): ModelC
     EvaluationController,
     PowerIndexController,
     ForecastListController,
+    CandidatesController,
   ],
   providers: [
     ForecastService,
