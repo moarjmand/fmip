@@ -865,3 +865,13 @@ export type {
   TranslationQueueItem,
   TranslationVersionSummary,
 } from './translation-desk';
+
+// Holding back a language that is ready (T-1163, D-155).
+export { HOLDABLE_LOCALES } from './locale-hold';
+export type {
+  HeldLocalesResponse,
+  HoldableLocale,
+  LocaleHoldListResponse,
+  LocaleHoldRecord,
+  LocaleHoldRequest,
+} from './locale-hold';

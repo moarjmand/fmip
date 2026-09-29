@@ -92,6 +92,10 @@ const CONSOLE: Record<string, ConsoleRoute> = {
     reason: { without: { state: 'not_supplied' } },
   },
   'GET /admin/audit': { roles: ADMIN },
+  // Holding back a language (T-1163, D-155).
+  'GET /admin/locale-holds': { roles: ADMIN },
+  'POST /admin/locales/:locale/hold': { roles: ADMIN, reason: { without: {} } },
+  'POST /admin/locales/:locale/release': { roles: ADMIN, reason: { without: {} } },
   'POST /admin/ingestion/backfill': { roles: ADMIN, reason: { without: {} } },
 
   // News sources (T-1015): add, edit and drop a publisher's feed.
@@ -331,6 +335,7 @@ function concrete(path: string): string {
     .replace(/:username/g, 'nobody_t813')
     .replace(/:territory/g, 'GB')
     .replace(/:language/g, 'fa')
+    .replace(/:locale/g, 'fr')
     .replace(/:module/g, 'scores')
     .replace(/:scope/g, 'category')
     .replace(/:target/g, 'social')

@@ -12,6 +12,8 @@ import type {
   ActivityReport,
   AdminAlertsReport,
   AdminOverview,
+  HeldLocalesResponse,
+  LocaleHoldListResponse,
   FailureCountsReport,
   RateLimitsReport,
   WatchdogReport,
@@ -120,6 +122,21 @@ export type ApiHealth = { reachable: true; report: HealthReport } | { reachable:
 /** `GET /admin/overview` (T-070): the operator's view; 401/403 come back as results. */
 export function fetchAdminOverview(cookie: string | undefined): Promise<ApiResult<AdminOverview>> {
   return apiRequest<AdminOverview>('/admin/overview', cookie === undefined ? {} : { cookie });
+}
+
+/** `GET /locale-holds` (T-1163, D-155): the languages held back now. Public. */
+export function fetchHeldLocales(): Promise<ApiResult<HeldLocalesResponse>> {
+  return apiRequest<HeldLocalesResponse>('/locale-holds');
+}
+
+/** `GET /admin/locale-holds` (T-1163): every hold, newest first. Administrators only. */
+export function fetchLocaleHolds(
+  cookie: string | undefined,
+): Promise<ApiResult<LocaleHoldListResponse>> {
+  return apiRequest<LocaleHoldListResponse>(
+    '/admin/locale-holds',
+    cookie === undefined ? {} : { cookie },
+  );
 }
 
 /** `GET /admin/health/watchdog` (T-801): every condition, its threshold and state, and the newest transitions. */

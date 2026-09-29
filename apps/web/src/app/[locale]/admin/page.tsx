@@ -10,6 +10,7 @@ import {
   fetchAdminOverview,
   fetchAdminUsers,
   fetchAudit,
+  fetchLocaleHolds,
   fetchChatHealth,
   fetchLiveHealth,
 } from '@/lib/api';
@@ -70,13 +71,15 @@ export default async function AdminPage({
   }
   const rawQ = Array.isArray(query.q) ? query.q[0] : query.q;
   const q = (rawQ ?? '').trim();
-  const [users, audit, live, chat] = await Promise.all([
+  const [users, audit, live, chat, holds] = await Promise.all([
     q.length >= 2 ? fetchAdminUsers(q, cookie) : Promise.resolve(null),
     fetchAudit(cookie),
     // Public endpoints, fetched here so an operator sees the live paths beside
     // the ingestion block rather than from a terminal (T-236).
     fetchLiveHealth(),
     fetchChatHealth(),
+    // T-1163 (D-155): the language holds, for the language table's rows.
+    fetchLocaleHolds(cookie),
   ]);
   const data = overview.data;
   const seasons = new Map<string, string>();
@@ -312,7 +315,7 @@ export default async function AdminPage({
         </div>
       </section>
 
-      <LanguageCoverage locale={locale} />
+      <LanguageCoverage locale={locale} holds={holds.ok ? holds.data.holds : null} />
 
       <section className="flex flex-col gap-3" data-testid="admin-users">
         <h2 className="text-lg font-semibold">Members</h2>
