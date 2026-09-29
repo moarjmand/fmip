@@ -194,6 +194,12 @@ eight times (the English and seven locale entries). Phase 10's news strings
 would bring; loading only the viewer's locale's catalogue on the client is the
 fix that would give the bytes back.
 
+The same shared chunk then carried home and competition to 221.8 (budget 220)
+and the match centre to 242.5 (budget 240) once T-1001..T-1008 landed together
+(#421). Raised to 226, 226 and 246 on 2026-09-29 as a stopgap; the fix,
+sending the client only the viewer's locale, is T-1040, and it brings all
+four budgets back down.
+
 **Running them locally.** After `pnpm exec turbo run build --filter=@fmip/web`:
 `pnpm --filter @fmip/web perf:bundle`. For the response budgets, start the
 API against the migrated, seeded database (as for the journeys), then
