@@ -8,7 +8,11 @@ const ENTITY_TABLE: Record<FollowedEntityType, string> = {
   team: 'team',
   competition: 'competition',
   person: 'person',
+  fixture: 'fixture',
 };
+
+/** Whether a match can be followed now (D-116): it exists, and its window is open. */
+export type FixtureFollowState = 'open' | 'ended' | 'unknown';
 
 interface FollowRow {
   entity_type: FollowedEntityType;
@@ -30,21 +34,42 @@ export class PostgresFollowingStore {
     return (rowCount ?? 0) > 0;
   }
 
+  /** A match's follow window (D-116), read through the one copy of the rule. */
+  async fixtureFollowState(id: string): Promise<FixtureFollowState> {
+    const { rows } = await this.pool.query<{ open: boolean }>(
+      `SELECT fixture_follow_open(id) AS open FROM fixture WHERE id = $1`,
+      [id],
+    );
+    const row = rows[0];
+    return row === undefined ? 'unknown' : row.open ? 'open' : 'ended';
+  }
+
   /**
    * Everything the member follows, with the entity's current name joined per
    * type. A follow whose target has since vanished joins to nothing and is
-   * left out rather than shown nameless.
+   * left out rather than shown nameless, and so is a match whose follow has
+   * ended (D-116): it follows nothing any more.
    */
   async list(userId: string): Promise<FollowedEntity[]> {
     const { rows } = await this.pool.query<FollowRow>(
       `SELECT f.entity_type, f.entity_id, f.favourite, f.created_at,
-              COALESCE(t.name, c.name, p.known_as, p.full_name) AS name
+              COALESCE(t.name, c.name, p.known_as, p.full_name, m.name) AS name
          FROM followed_entity f
          LEFT JOIN team t        ON f.entity_type = 'team'        AND t.id = f.entity_id
          LEFT JOIN competition c ON f.entity_type = 'competition' AND c.id = f.entity_id
          LEFT JOIN person p      ON f.entity_type = 'person'      AND p.id = f.entity_id
+         LEFT JOIN LATERAL (
+           SELECT fx.id,
+                  (SELECT string_agg(tm.name, ' v ' ORDER BY fp.side DESC)
+                     FROM fixture_participant fp JOIN team tm ON tm.id = fp.team_id
+                    WHERE fp.fixture_id = fx.id) AS name
+             FROM fixture fx
+            WHERE f.entity_type = 'fixture' AND fx.id = f.entity_id
+              AND fixture_follow_open(fx.id)
+         ) m ON true
         WHERE f.user_id = $1
-          AND COALESCE(t.id, c.id, p.id) IS NOT NULL
+          AND COALESCE(t.id, c.id, p.id, m.id) IS NOT NULL
+          AND COALESCE(t.name, c.name, p.known_as, p.full_name, m.name) IS NOT NULL
         ORDER BY f.favourite DESC, name, f.created_at`,
       [userId],
     );
@@ -58,13 +83,24 @@ export class PostgresFollowingStore {
     }));
   }
 
-  /** Follow if not already; set the favourite flag when asked. Idempotent. */
+  /**
+   * Follow if not already; set the favourite flag when asked. Idempotent.
+   * Following a match first removes the member's match follows whose window
+   * has closed (D-116), so an ended follow does not stay behind as a row.
+   */
   async upsert(
     userId: string,
     type: FollowedEntityType,
     id: string,
     favourite: boolean | undefined,
   ): Promise<void> {
+    if (type === 'fixture') {
+      await this.pool.query(
+        `DELETE FROM followed_entity
+          WHERE user_id = $1 AND entity_type = 'fixture' AND NOT fixture_follow_open(entity_id)`,
+        [userId],
+      );
+    }
     await this.pool.query(
       `INSERT INTO followed_entity (user_id, entity_type, entity_id, favourite)
          VALUES ($1, $2, $3, COALESCE($4, false))
