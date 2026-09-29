@@ -239,6 +239,7 @@ export type {
   ModelXiStrength,
   ModelForecastResponse,
   ModelForecastUnavailable,
+  ModelCandidate,
   ModelEloSource,
   ModelHealth,
   ModelInputs,
@@ -266,7 +267,11 @@ export type {
   MatchOutcome,
   ModelPerformanceResponse,
   ModelPerformanceRow,
+  CandidateCompetitionRecord,
+  CandidateRecord,
+  CandidateRecordsResponse,
 } from './forecast';
+export { PROMOTION_MINIMUM } from './forecast';
 export { STALE_LIVE_AFTER_MS } from './scores';
 export type {
   FixtureStatus,

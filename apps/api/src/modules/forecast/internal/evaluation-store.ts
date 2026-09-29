@@ -279,4 +279,118 @@ export class PostgresEvaluationStore {
       lastUpdatedAt: row?.last_updated_at ?? null,
     };
   }
+
+  /**
+   * Each shadow model version's counts (T-1103): pre-kick-off forecasts
+   * evaluated (the count toward promotion, D-031), pre-kick-off ones not yet
+   * evaluated, forecasts made after kick-off, and its refusals.
+   */
+  async candidateCounts(): Promise<CandidateCounts[]> {
+    const { rows } = await this.pool.query<{
+      model_id: string;
+      evaluated: number;
+      awaiting: number;
+      after_kickoff: number;
+      unavailable: number;
+    }>(
+      `SELECT m.model_id,
+              COUNT(e.id) FILTER (WHERE e.pre_kickoff)::int AS evaluated,
+              COUNT(*) FILTER (WHERE e.id IS NULL AND f.status = 'available'
+                                 AND f.computed_at < fx.kickoff_at)::int AS awaiting,
+              COUNT(*) FILTER (WHERE f.status = 'available'
+                                 AND f.computed_at >= fx.kickoff_at)::int AS after_kickoff,
+              COUNT(*) FILTER (WHERE f.status = 'unavailable')::int AS unavailable
+         FROM forecast f
+         JOIN model_version m ON m.id = f.model_version_id
+         JOIN fixture fx ON fx.id = f.fixture_id
+         LEFT JOIN evaluation e ON e.forecast_id = f.id
+        WHERE f.role = 'shadow' AND m.model_id <> 'none@0.0.0'
+        GROUP BY m.model_id
+        ORDER BY m.model_id`,
+    );
+    return rows.map((row) => ({
+      modelVersion: row.model_id,
+      evaluated: row.evaluated,
+      awaiting: row.awaiting,
+      afterKickoff: row.after_kickoff,
+      unavailable: row.unavailable,
+    }));
+  }
+
+  /**
+   * Each shadow model version against the published version on the same
+   * matches, per competition (T-1103): a pair is a (fixture, forecast kind)
+   * where both have a pre-kick-off evaluation, the latest of each.
+   */
+  async candidatePairs(): Promise<CandidatePairRow[]> {
+    const { rows } = await this.pool.query<{
+      model_id: string;
+      competition_id: string;
+      competition_name: string;
+      pairs: number;
+      published_versions: string[];
+      candidate_log_loss: string;
+      candidate_brier: string;
+      published_log_loss: string;
+      published_brier: string;
+    }>(
+      `WITH pre AS (
+         SELECT f.fixture_id, s.kind, f.role, m.model_id, f.computed_at, e.log_loss, e.brier
+           FROM evaluation e
+           JOIN forecast f ON f.id = e.forecast_id
+           JOIN input_snapshot s ON s.id = f.input_snapshot_id
+           JOIN model_version m ON m.id = f.model_version_id
+          WHERE e.pre_kickoff
+       ),
+       cand AS (
+         SELECT DISTINCT ON (fixture_id, kind, model_id) *
+           FROM pre WHERE role = 'shadow'
+          ORDER BY fixture_id, kind, model_id, computed_at DESC
+       ),
+       pub AS (
+         SELECT DISTINCT ON (fixture_id, kind) *
+           FROM pre WHERE role = 'published'
+          ORDER BY fixture_id, kind, computed_at DESC
+       )
+       SELECT c.model_id, co.id::text AS competition_id, co.name AS competition_name,
+              COUNT(*)::int AS pairs,
+              array_agg(DISTINCT p.model_id ORDER BY p.model_id) AS published_versions,
+              ROUND(AVG(c.log_loss), 6)::text AS candidate_log_loss,
+              ROUND(AVG(c.brier), 6)::text AS candidate_brier,
+              ROUND(AVG(p.log_loss), 6)::text AS published_log_loss,
+              ROUND(AVG(p.brier), 6)::text AS published_brier
+         FROM cand c
+         JOIN pub p ON p.fixture_id = c.fixture_id AND p.kind = c.kind
+         JOIN fixture fx ON fx.id = c.fixture_id
+         JOIN season se ON se.id = fx.season_id
+         JOIN competition co ON co.id = se.competition_id
+        GROUP BY c.model_id, co.id, co.name
+        ORDER BY c.model_id, co.name`,
+    );
+    return rows.map((row) => ({
+      modelVersion: row.model_id,
+      competition: { id: row.competition_id, name: row.competition_name },
+      pairs: row.pairs,
+      publishedVersions: row.published_versions,
+      candidate: { log_loss: Number(row.candidate_log_loss), brier: Number(row.candidate_brier) },
+      published: { log_loss: Number(row.published_log_loss), brier: Number(row.published_brier) },
+    }));
+  }
+}
+
+export interface CandidateCounts {
+  modelVersion: string;
+  evaluated: number;
+  awaiting: number;
+  afterKickoff: number;
+  unavailable: number;
+}
+
+export interface CandidatePairRow {
+  modelVersion: string;
+  competition: { id: string; name: string };
+  pairs: number;
+  publishedVersions: string[];
+  candidate: { log_loss: number; brier: number };
+  published: { log_loss: number; brier: number };
 }

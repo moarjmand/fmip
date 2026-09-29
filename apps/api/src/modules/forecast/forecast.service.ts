@@ -6,6 +6,7 @@ import type {
   ForecastListEntry,
   ForecastSummaryEntry,
   ForecastVersionsResponse,
+  ModelCandidate,
   ModelEloSource,
   ModelForecastRequest,
   ModelXiStrength,
@@ -122,37 +123,66 @@ export class ForecastService {
   }
 
   /**
-   * The candidate model version's answer to the same question, stored as a
-   * shadow version (T-531): immutable like any forecast, evaluated after the
-   * match like any forecast, and shown nowhere until a decision promotes it
-   * (T-535). Off the critical path by construction: a service with no
-   * candidate answers 404, which is the usual state and records nothing, and
-   * any other failure is logged while the published version stands.
+   * Every candidate model version's answer to the same question, each stored
+   * as a shadow version (T-531, T-1102, D-140): immutable like any forecast,
+   * numbered within its own model version, evaluated after the match like any
+   * forecast, and shown nowhere until a decision promotes it (T-535). Off the
+   * critical path by construction: no candidate is the usual state and
+   * records nothing, and a candidate that fails is logged while the others
+   * and the published version stand.
    */
   private async shadow(
     fixtureId: string,
     kind: ForecastKind,
     request: ModelForecastRequest,
   ): Promise<void> {
+    let candidates: ModelCandidate[];
     try {
-      const result = await this.model.candidate(request);
-      if (!result.ok) {
-        if (result.kind !== 'http' || result.status !== 404) {
-          this.log.warn(`shadow forecast not recorded: ${result.message}`, {
-            event: 'forecast.shadow_failed',
-            fixture_id: fixtureId,
-          });
+      const listed = await this.model.candidates();
+      if (!listed.ok) {
+        // 404: a service from before T-1102, which offers no named candidate.
+        if (listed.kind !== 'http' || listed.status !== 404) {
+          this.shadowFailed(fixtureId, null, listed.message);
         }
         return;
       }
-      await this.recordAnswer(fixtureId, kind, request, result, 'shadow');
+      candidates = listed.data;
     } catch (error: unknown) {
-      this.log.warn('shadow forecast not recorded', {
-        event: 'forecast.shadow_failed',
-        fixture_id: fixtureId,
-        error: error instanceof Error ? error.message : String(error),
-      });
+      this.shadowFailed(fixtureId, null, error instanceof Error ? error.message : String(error));
+      return;
     }
+    for (const candidate of candidates) {
+      try {
+        const result = await this.model.candidate(candidate.name, request);
+        if (!result.ok) {
+          this.shadowFailed(fixtureId, candidate.model_version, result.message);
+          continue;
+        }
+        await this.recordAnswer(
+          fixtureId,
+          kind,
+          request,
+          result,
+          'shadow',
+          candidate.model_version,
+        );
+      } catch (error: unknown) {
+        this.shadowFailed(
+          fixtureId,
+          candidate.model_version,
+          error instanceof Error ? error.message : String(error),
+        );
+      }
+    }
+  }
+
+  private shadowFailed(fixtureId: string, modelVersion: string | null, error: string): void {
+    this.log.warn(`shadow forecast not recorded: ${error}`, {
+      event: 'forecast.shadow_failed',
+      fixture_id: fixtureId,
+      model_version: modelVersion,
+      error,
+    });
   }
 
   /** One model answer -- an outage, a refusal, or a forecast -- as a stored version. */
@@ -162,13 +192,18 @@ export class ForecastService {
     request: ModelForecastRequest,
     result: Awaited<ReturnType<ModelClient['forecast']>>,
     role: 'published' | 'shadow',
+    /**
+     * The version a shadow's `unavailable` answer is stored under: the
+     * candidate that gave it, so each candidate's numbering is its own (D-140).
+     */
+    answeredBy = 'none@0.0.0',
   ): Promise<ForecastVersion> {
     if (!result.ok) {
       return this.store.record({
         fixtureId,
         kind,
         role,
-        modelId: 'none@0.0.0',
+        modelId: answeredBy,
         request,
         computedAt: new Date(),
         available: null,
@@ -185,7 +220,7 @@ export class ForecastService {
         fixtureId,
         kind,
         role,
-        modelId: 'none@0.0.0',
+        modelId: answeredBy,
         request,
         computedAt: new Date(answer.computed_at),
         available: null,

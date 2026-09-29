@@ -81,6 +81,7 @@ import type {
   HomepageFeatureListResponse,
   MatchPanelPage,
   NewsCoverageReport,
+  CandidateRecordsResponse,
   NewsSectionResponse,
   NotificationSettings,
   PushState,
@@ -1151,6 +1152,13 @@ export function fetchNewsCoverage(
   cookie: string | undefined,
 ): Promise<ApiResult<NewsCoverageReport>> {
   return apiRequest<NewsCoverageReport>('/admin/news/coverage', { cookie });
+}
+
+/** `GET /admin/model/candidates` (T-1103): each candidate's shadow record. Administrators only. */
+export function fetchCandidateRecords(
+  cookie: string | undefined,
+): Promise<ApiResult<CandidateRecordsResponse>> {
+  return apiRequest<CandidateRecordsResponse>('/admin/model/candidates', { cookie });
 }
 
 /** `GET /fixtures/:id/key-players` (T-841): each side's most-used players by the stated rule. Public. */

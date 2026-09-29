@@ -125,6 +125,9 @@ const CONSOLE: Record<string, ConsoleRoute> = {
   'GET /admin/activity': { roles: ADMIN },
   'GET /admin/rate-limits': { roles: ADMIN },
 
+  // Candidates' shadow records (T-1103): read-only.
+  'GET /admin/model/candidates': { roles: ADMIN },
+
   // Data quality (T-640).
   'GET /admin/data-quality': { roles: ADMIN },
   'POST /admin/data-quality/:id/review': { roles: ADMIN, reason: { without: {} } },

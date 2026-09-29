@@ -125,6 +125,36 @@ describe('ModelClient', () => {
     });
     expect(await down.forecast(request)).toMatchObject({ ok: false, kind: 'unreachable' });
   });
+
+  it('lists the candidates in shadow, asks one by name, and refuses a drifted list (T-1102)', async () => {
+    const asked: string[] = [];
+    const client = clientWith((url) => {
+      asked.push(url);
+      return url.endsWith('/candidates')
+        ? new Response(
+            JSON.stringify({
+              candidates: [
+                { name: 'dixon-coles-elo-0.5.0', model_version: 'dixon-coles-elo@0.5.0' },
+              ],
+            }),
+          )
+        : new Response(JSON.stringify(example('forecast-response.example.json')));
+    });
+    expect(await client.candidates()).toEqual({
+      ok: true,
+      data: [{ name: 'dixon-coles-elo-0.5.0', model_version: 'dixon-coles-elo@0.5.0' }],
+    });
+    expect((await client.candidate('dixon-coles-elo-0.5.0', request)).ok).toBe(true);
+    expect(asked).toEqual([
+      'http://model.test/candidates',
+      'http://model.test/forecast/candidate/dixon-coles-elo-0.5.0',
+    ]);
+
+    const drifted = clientWith(
+      () => new Response(JSON.stringify({ candidates: [{ name: '../x', model_version: 1 }] })),
+    );
+    expect(await drifted.candidates()).toMatchObject({ ok: false, kind: 'contract' });
+  });
 });
 
 // The live half of the contract: a running model service, when there is one
