@@ -5284,6 +5284,177 @@ list built from several signals.
 `discussion_only`. The plural `news.savers` and `news.reason.discussionAndSaves`
 are catalogue keys. No migration.
 
+## D-130 — The glossary is the translators' file per locale; translation memory is a named person's earlier reviewed words, suggested and never filled in
+
+**Date:** 2026-09-29 · **Task:** T-1011, T-1014 · **Status:** accepted (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** The shared football glossary is one JSON file per locale in
+the catalogue's shape (D-066): `packages/contracts/glossary/en.json` holds
+the English terms, each keyed by a stable id -- `term.<slug>` for a football
+word, `team.<uuid>`, `competition.<uuid>` or `person.<uuid>` for a name --
+with a `locked` flag; `glossary/<locale>.json` carries every key as
+`{ source, locked, text, status, note? }`, where `text` is the target term a
+person wrote and `status` is `untranslated`, `translated` or `reviewed` as a
+person set it. `i18n:glossary` (`apps/web/scripts/i18n-glossary.mjs`) keeps
+the files in step and `--check` runs in CI.
+
+**The script never writes a target term.** The plan's rule (Phase 10, "the
+translators' words are theirs"): the English side may be generated, and it
+is -- every word of a committed English `VOCABULARY` that the catalogue's
+`en.json` uses as a whole word, plus entity names from an export -- while
+everything in another language is a person's. A new term arrives as
+`untranslated` with an empty `text`; `text`, `status` and `note` are kept
+exactly as the translator left them; a term the catalogue stopped using is
+dropped only when no locale carries words for it, and otherwise the script
+refuses and names it. A term with words and no status, or a status its text
+does not support, fails the check, and a refresh writes nothing while
+anything is wrong, so a problem is never normalised into the file.
+
+**Locked.** A locked term must appear in a translation exactly as the
+glossary gives it, wherever its English appears in the source (T-1012
+enforces it). A name is always locked; a football word is not until a person
+sets `"locked": true` on it in `en.json`, which the script keeps. A locked
+term with no target term yet locks nothing -- there is nothing to compare
+against, and the check says so rather than passing or failing.
+
+**Names come from an export, and are only ever added.** `--entities <file>`
+reads `[{ "type", "id", "name" }]`. The export is whatever someone chose to
+export, so a name missing from it is not a name to drop. To export the
+competitions and the teams that play in them, against any database:
+
+```sql
+\copy (SELECT json_agg(e) FROM (
+  SELECT 'competition' AS type, id, name FROM competition
+  UNION ALL SELECT 'team', id, name FROM team) e) TO 'names.json'
+```
+
+No names are committed with this task: the files hold only the catalogue's
+football words until an export is run, and no agent runs one against
+production.
+
+**Why in `packages/contracts` and not beside the catalogues.** The plan said
+"beside the catalogues". The API's review endpoint enforces the locked terms
+(T-1012), and the API image carries `@fmip/contracts` but not `apps/web`; a
+copy in each, or a Dockerfile step copying a web folder into the API image,
+would be two sources of one list. The package ships the folder
+(`files`, and `exports` `./glossary/*.json`) and each side reads it as
+`@fmip/contracts/glossary/<locale>.json`. The files are not imported by the
+package's index, so no browser bundle carries them.
+
+**Why a committed vocabulary and not "every noun in the catalogue".** A
+glossary of "Home", "Settings" and "Sign in" is a second catalogue. The
+football words a translator must render the same way every time are a short,
+reviewable list; the catalogue decides which of them are live.
+
+**Alternatives considered.** A translation platform's glossary (an account,
+§7, and D-066's argument). Keys by English term (rule 1 for names, and a
+football word whose English changes would become a new term, orphaning the
+translation). Filling a target term from a localised name already in
+`entity_alias`: a script writing a word in another language, which this
+decision exists to refuse; the review check reads both sources instead.
+
+**Translation memory (T-1014).** For each field of the source, the desk
+lists the reviewed translations into the same language of *another*
+article whose publisher's version carries **exactly** the same string in
+the same field -- no fuzzy match, no normalisation, because a near match is
+a different sentence and offering it as memory would be a guess. Each entry
+names who wrote it and who reviewed it, and when: memory is a named
+person's earlier words, not the product's. Only `reviewed` versions are
+memory; a translation a second speaker has not read is not yet anyone's
+settled word. When a later version of that translation carries different
+words for the field, the entry shows that correction beside itself, with
+its author and whether it is reviewed yet, rather than hiding either.
+
+**Suggested, never filled in.** The desk shows memory beside the field
+with a "copy" control; the field starts empty (or with this article's own
+newest translation) and receives remembered words only when the translator
+presses it, after which they are the translator's to edit and save like
+their own. The API only reads (`TRANSLATION_MEMORY_LIMIT` entries per field,
+newest first); nothing writes a memory entry, because memory is the stored
+versions themselves. Rejected: filling the field on load (the plan's rule:
+nothing from memory without a person choosing it) and a separate memory
+table (a second copy of the versions, stale on the first correction).
+
+## D-131 — The automatic translation checks, and a reviewer's recorded reason to pass one
+
+**Date:** 2026-09-29 · **Task:** T-1012 · **Status:** accepted (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** `checkTranslation(source, target, context)` in
+`@fmip/contracts` is a pure function over the publisher's newest version and
+a person's translation. For each field either carries (headline, summary,
+byline) it returns one result per check -- `pass`, `fail` or `not_checked`,
+with what it expected, what it found and one sentence:
+
+- **empty**: a field the source has is not left empty, and a field it lacks
+  is not added (the rights guard, PL016, refuses more than the source grants
+  anyway).
+- **numbers**: the same numbers as a multiset, compared as numbers: Latin,
+  Arabic-Indic (U+0660) and Persian (U+06F0) digits and the Arabic decimal
+  and thousands separators are one set of digits; `1,500` and `1.500` are a
+  thousand and a half, `2,5` and `2.5` two and a half, `09` is 9.
+- **scorelines**: the same `a-b` pairs (`-`, `–`, `—` or `:`), in order, so a
+  score written the other way round fails though every number is there.
+- **dates**: numeric dates with a year (`2026-09-29`, `29/09/2026`,
+  `29.09.2026`) and a day beside a month's name, the target's names taken
+  from `Intl` for its language (long and short, standalone and in a date) with
+  the English ones beside them; matched on day and month, and on the year
+  when both give one. Dates are taken out of the text before numbers and
+  scorelines are read, so a date reformatted is not three numbers of which
+  one went missing.
+- **names**: every entity the article links (`article_entity`: team,
+  competition, person), found in the source by its canonical name, the name
+  it is known by or an alias in the source's language, must appear in the
+  translation as its localised name (T-303, `localised_name`) or its glossary
+  term (T-1011); every locked glossary term likewise. A name nobody has
+  written in the target language -- no localised name, no glossary term --
+  is `not_checked`, said as such, never a pass.
+- **links**: the same URLs.
+- **markup**: the same tags and entities.
+
+**A check never rewrites the text.** It returns a verdict and nothing else;
+there is no "fix" and no suggestion (D-066: the words are the translator's).
+
+**The review refuses a failing check unless the reviewer records a reason.**
+`POST .../translations/:language/review` recomputes the checks on the
+version being reviewed. Any `fail` without a matching `overrides` entry
+(`{ check, field, reason }`) refuses the review with a 400 that lists every
+failure in `checks` and in `fields` keyed `<field>.<check>`. A reason given
+for a check that does not fail is refused too: a record of passing something
+that never failed is noise. Each override is a `translation_check_override`
+row (migration `1764940000000`) against the exact version read, naming the
+reviewer, the check, the field and the reason, and an `audit_log` row
+(`translation.check_override`, previous the failure and its sentence) in the
+same transaction as the review. The row is immutable and goes only with its
+article; the schema refuses one on the publisher's own words. A new version
+is checked from nothing, because it is different words.
+
+**Where the function lives.** `@fmip/contracts/translation-checks`, a subpath
+of its own: the index exports only the types. The web's client bundles load
+the contracts index whole (it is CommonJS), and the checks in it pushed two
+pages over T-808's first-load budgets.
+
+**`not_checked` does not block.** Blocking on it would make every name
+nobody has localised yet a reason to refuse every review; the desk (T-1013)
+shows it beside the field so the reviewer reads it.
+
+**Why these checks and no more.** Each is a fact about the text that
+survives translation unchanged -- a number, a score, a date, a URL, a tag, a
+name as recorded -- and so can be compared without understanding either
+language. Anything past that (tone, meaning, a mistranslated verb) is the
+second fluent speaker's job, which is what review is.
+
+**Known limits, accepted.** A number written as a word ("two") on one side
+and as digits on the other fails `numbers`; a time `20:45` reads as a
+scoreline on both sides and so passes; a month name a language spells
+several ways (Levantine Arabic's month names beside `Intl`'s) fails `dates`.
+Each is what the reason exists for.
+
+**Alternatives considered.** Storing each check's result: a cache of a pure
+function of stored rows, which goes stale the day the glossary changes.
+Blocking the write instead of the review: the plan puts the gate at review,
+and a translator saving work in progress should not be told to finish it
+first. A reviewer override without a reason: the whole point is that
+somebody can later read why.
 
 ## D-136 — A panel post links to one incident, player, prediction or statistic of its own match
 **Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)

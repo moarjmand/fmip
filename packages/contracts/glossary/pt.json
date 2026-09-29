@@ -1,0 +1,122 @@
+{
+  "term.assist": {
+    "source": "assist",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.clean-sheet": {
+    "source": "clean sheet",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.coach": {
+    "source": "coach",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.competition": {
+    "source": "competition",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.fixture": {
+    "source": "fixture",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.full-time": {
+    "source": "full-time",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.goal": {
+    "source": "goal",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.goalkeeper": {
+    "source": "goalkeeper",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.half-time": {
+    "source": "half-time",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.kick-off": {
+    "source": "kick-off",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.line-up": {
+    "source": "line-up",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.manager": {
+    "source": "manager",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.match": {
+    "source": "match",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.matchday": {
+    "source": "matchday",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.player": {
+    "source": "player",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.red-card": {
+    "source": "red card",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.score": {
+    "source": "score",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.scorer": {
+    "source": "scorer",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.season": {
+    "source": "season",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.team": {
+    "source": "team",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  }
+}

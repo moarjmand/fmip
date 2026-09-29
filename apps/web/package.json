@@ -15,6 +15,8 @@
     "perf:bundle": "node scripts/perf-budgets.mjs",
     "i18n:catalogues": "node scripts/i18n-catalogues.mjs",
     "i18n:catalogues:check": "node scripts/i18n-catalogues.mjs --check",
+    "i18n:glossary": "node scripts/i18n-glossary.mjs",
+    "i18n:glossary:check": "node scripts/i18n-glossary.mjs --check",
     "icons:check": "node scripts/make-icons.mjs --check"
   },
   "dependencies": {

@@ -755,3 +755,45 @@ export type {
   RateLimitsReport,
   RateRefusalDay,
 } from './rate-limits';
+
+// The translators' glossary (T-1011, D-130). The files are in `glossary/`,
+// read as `@fmip/contracts/glossary/<locale>.json`.
+// Types only: no browser page needs the glossary at run time, and every
+// module the index loads is in every page's first-load JavaScript (T-808).
+export type {
+  Glossary,
+  GlossaryEntry,
+  GlossaryKind,
+  GlossarySourceEntry,
+  GlossaryStatus,
+} from './glossary';
+
+// The automatic translation checks (T-1012, D-131): the types only. The
+// functions are `@fmip/contracts/translation-checks`, a subpath of their
+// own, so a browser page that imports a constant from this index does not
+// carry the checks in its first-load JavaScript (T-808's budgets).
+export type {
+  TranslationCheck,
+  TranslationCheckContext,
+  TranslationCheckOutcome,
+  TranslationCheckOverride,
+  TranslationCheckResult,
+  TranslationField,
+  TranslationName,
+  TranslationReviewRefusal,
+  TranslationReviewRequest,
+  TranslationTexts,
+} from './translation-checks';
+
+// The translator's desk (T-1013): the queue per language and one article's
+// source, translation, checks and glossary terms.
+export type {
+  TranslationDesk,
+  TranslationDeskVersion,
+  TranslationGlossaryHit,
+  TranslationMemoryEntry,
+  TranslationPerson,
+  TranslationQueue,
+  TranslationQueueItem,
+  TranslationVersionSummary,
+} from './translation-desk';
