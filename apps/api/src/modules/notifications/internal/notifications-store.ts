@@ -113,6 +113,8 @@ END || coalesce(' (' || subject_alert.note || ')', '')`;
  */
 const ELIGIBLE_HEADLINE = `CASE WHEN n.kind = 'contributor_eligible'
   THEN subject_member.username || ' now meets the contributor requirements and is waiting for review.'
+  WHEN n.kind = 'contributor_below_threshold'
+  THEN subject_member.username || ' has stayed below the contributor threshold and is flagged for review. Nothing was paused.'
 END`;
 
 @Injectable()
