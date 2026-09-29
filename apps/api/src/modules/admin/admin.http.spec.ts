@@ -270,6 +270,26 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('administrati
     ).toBe(404);
   });
 
+  it('narrows the audit log to the rows about one member, for their page (T-1164)', async () => {
+    const about = (
+      await inject('GET', `/admin/audit?member=${member.id}`, admin.cookie)
+    ).json() as AuditResponse;
+    expect(about.records.map((r) => [r.action, r.target_type, r.target_id, r.reason])).toEqual([
+      ['user.status', 'user_account', member.id, 'Appeal upheld.'],
+      ['user.status', 'user_account', member.id, 'Spam in match discussion.'],
+    ]);
+    const nobody = (
+      await inject('GET', `/admin/audit?member=${randomUUID()}`, admin.cookie)
+    ).json() as AuditResponse;
+    expect(nobody.records).toEqual([]);
+    const bad = await inject('GET', '/admin/audit?member=someone', admin.cookie);
+    expect(bad.statusCode).toBe(400);
+    expect((bad.json() as ApiError).fields?.member).toBeDefined();
+    expect(
+      (await inject('GET', `/admin/audit?member=${member.id}`, member.cookie)).statusCode,
+    ).toBe(403);
+  });
+
   it('keeps every audit record immutable', async () => {
     const id = auditIds[0]!;
     await expect(

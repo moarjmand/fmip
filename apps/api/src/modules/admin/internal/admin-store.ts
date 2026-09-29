@@ -123,9 +123,11 @@ export class PostgresAdminStore {
               u.created_at
          FROM user_account u
         WHERE u.username ILIKE $1 OR u.email ILIKE $1 OR u.display_name ILIKE $1
-        ORDER BY u.username
+        -- The exact username first (T-1164): a member's page finds its account
+        -- through this search, and a common name must not push it past the limit.
+        ORDER BY (lower(u.username) = lower($3)) DESC, u.username
         LIMIT $2`,
-      [`%${query.replace(/[%_\\]/g, '\\$&')}%`, limit],
+      [`%${query.replace(/[%_\\]/g, '\\$&')}%`, limit, query],
     );
     return rows.map((r) => ({
       id: r.id,
@@ -222,7 +224,13 @@ export class PostgresAdminStore {
     });
   }
 
-  async audit(limit: number): Promise<AuditRecord[]> {
+  /**
+   * The audit log, newest first. `memberId` narrows it to the rows about one
+   * account (T-1164): those whose target is the account itself, under either
+   * name the writers use for it (`user_account`, and `user` from the role
+   * script).
+   */
+  async audit(limit: number, memberId: string | null = null): Promise<AuditRecord[]> {
     const { rows } = await this.pool.query<{
       id: string;
       actor_id: string;
@@ -238,9 +246,11 @@ export class PostgresAdminStore {
       `SELECT a.id, a.actor_id, u.username AS actor_username, a.action, a.target_type, a.target_id,
               a.reason, a.previous, a.next, a.created_at
          FROM audit_log a JOIN user_account u ON u.id = a.actor_id
+        WHERE $2::text IS NULL
+           OR (a.target_type IN ('user_account', 'user') AND a.target_id = $2::text)
         ORDER BY a.created_at DESC, a.id DESC
         LIMIT $1`,
-      [limit],
+      [limit, memberId],
     );
     return rows.map((r) => ({
       id: r.id,

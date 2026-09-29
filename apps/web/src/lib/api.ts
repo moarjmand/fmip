@@ -22,6 +22,8 @@ import type {
   AskResponse,
   BriefingResponse,
   AuditResponse,
+  CareerPointsResponse,
+  ContributorStatusResponse,
   NewsSourcesResponse,
   BroadcastersResponse,
   BlocksResponse,
@@ -189,8 +191,29 @@ export function fetchAdminUsers(
 }
 
 /** `GET /admin/audit` (T-070), newest first. */
-export function fetchAudit(cookie: string | undefined): Promise<ApiResult<AuditResponse>> {
-  return apiRequest<AuditResponse>('/admin/audit', cookie === undefined ? {} : { cookie });
+export function fetchAudit(
+  cookie: string | undefined,
+  memberId?: string,
+): Promise<ApiResult<AuditResponse>> {
+  // T-1164: `member` narrows the log to the rows about one account.
+  const query = memberId === undefined ? '' : `?member=${encodeURIComponent(memberId)}&limit=200`;
+  return apiRequest<AuditResponse>(`/admin/audit${query}`, cookie === undefined ? {} : { cookie });
+}
+
+/** `GET /admin/contributors/:username` (T-250): eligibility and the grant. Moderators and administrators. */
+export function fetchContributorStatus(
+  username: string,
+  cookie: string | undefined,
+): Promise<ApiResult<ContributorStatusResponse>> {
+  return apiRequest<ContributorStatusResponse>(
+    `/admin/contributors/${encodeURIComponent(username)}`,
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/** `GET /users/:username/points` (T-054): a member's Career Points ledger summary. */
+export function fetchCareerPoints(username: string): Promise<ApiResult<CareerPointsResponse>> {
+  return apiRequest<CareerPointsResponse>(`/users/${encodeURIComponent(username)}/points`);
 }
 
 /** `GET /admin/news-sources` (T-1015): every news source, carried first; administrators only. */

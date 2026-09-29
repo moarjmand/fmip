@@ -343,8 +343,14 @@ export default async function AdminPage({
             {users.data.users.map((user) => (
               <li key={user.id} className="flex flex-col gap-2 py-3" data-testid="admin-user">
                 <p className="text-sm">
-                  <span className="font-medium">@{user.username}</span> · {user.display_name} ·{' '}
-                  {user.email}
+                  <Link
+                    href={`/${locale}/admin/members/${encodeURIComponent(user.username)}`}
+                    className="font-medium underline"
+                    data-testid={`member-page-${user.username}`}
+                  >
+                    @{user.username}
+                  </Link>{' '}
+                  · {user.display_name} · {user.email}
                   {user.email_verified ? ' · verified' : ' · unverified'} · {user.status}
                   {user.roles.length > 0 ? ` · ${user.roles.join(', ')}` : ''}
                 </p>
