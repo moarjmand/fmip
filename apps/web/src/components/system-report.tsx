@@ -1,5 +1,9 @@
+import Link from 'next/link';
+import { CANDIDATE_FAILURE_LOOKBACK_DAYS } from '@fmip/contracts';
 import type {
   AdminAlertsReport,
+  CandidateRecord,
+  CandidateRecordsResponse,
   FailureCountsReport,
   RateLimitCeiling,
   RateLimitsReport,
@@ -618,6 +622,156 @@ export function RateLimitsSection({ report }: { report: RateLimitsReport | null 
           ))}
         </ul>
       </details>
+    </section>
+  );
+}
+
+// --- candidates in shadow (T-1165) -------------------------------------------
+
+function CandidateDay({ candidate }: { candidate: CandidateRecord }) {
+  const { asked, failed } = candidate.shadow.day;
+  if (asked === 0) return <span className="text-muted">not asked</span>;
+  const tone = failed === asked ? 'font-semibold text-danger' : failed > 0 ? 'text-warning' : '';
+  return (
+    <span className={tone}>
+      {failed === 0
+        ? `answered all ${String(asked)}`
+        : `stored nothing for ${String(failed)} of ${String(asked)}`}
+    </span>
+  );
+}
+
+/**
+ * Each candidate the model service runs in shadow, and whether it answers
+ * (T-1165): its newest stored version, the last 24 hours, and its last
+ * failure -- a forecast it stored nothing for, whose reason is in the log. A
+ * candidate with nothing stored says "never answered", never a zero. Its
+ * record against the published version is the Model candidates page's.
+ */
+export function CandidatesSection({
+  report,
+  locale,
+}: {
+  report: CandidateRecordsResponse | null;
+  locale: string;
+}) {
+  if (report === null) {
+    return (
+      <section className="flex flex-col gap-3" data-testid="system-candidates">
+        <h2 className="text-lg font-semibold">Candidates in shadow</h2>
+        <Unavailable testId="system-candidates-unavailable" what="The candidates in shadow" />
+      </section>
+    );
+  }
+  const now = report.generated_at;
+  // When the service is silent, which candidates it runs is not known: the
+  // ones with a record are shown, marked as such.
+  const shown = report.candidates.filter((c) => c.in_shadow !== false);
+  return (
+    <section className="flex flex-col gap-3" data-testid="system-candidates">
+      <h2 className="text-lg font-semibold">Candidates in shadow</h2>
+      <p className="text-sm text-muted">
+        A candidate is asked beside the published version for every forecast and shown nowhere. It
+        fails a forecast when nothing is stored for it; the reason is in the API log as{' '}
+        <code>forecast.shadow_failed</code>. The watchdog raises{' '}
+        <code>candidate:&lt;version&gt;</code> when one fails on every forecast of 24 hours. Its
+        record against the published version:{' '}
+        <Link
+          href={`/${locale}/admin/model-candidates`}
+          className="underline"
+          data-testid="system-candidates-link"
+        >
+          Model candidates
+        </Link>
+        .
+      </p>
+      {report.service === 'unreachable' && (
+        <Notice tone="warning" data-testid="system-candidates-silent">
+          The model service did not answer, so which candidates it runs now is not known. Those with
+          a stored record are shown.
+        </Notice>
+      )}
+      {shown.length === 0 ? (
+        <p className="text-sm text-muted" data-testid="system-candidates-none">
+          {report.service === 'answered'
+            ? 'No candidate is in shadow: the model service runs the published version only.'
+            : 'No candidate has a stored record.'}
+        </p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm" data-testid="system-candidate-table">
+            <thead>
+              <tr className="border-b border-default">
+                <th scope="col" className={head}>
+                  Candidate
+                </th>
+                <th scope="col" className={head}>
+                  Newest answer
+                </th>
+                <th scope="col" className={head}>
+                  Last 24 hours
+                </th>
+                <th scope="col" className={head}>
+                  Last failure
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {shown.map((candidate) => {
+                const { shadow } = candidate;
+                return (
+                  <tr
+                    key={candidate.model_version}
+                    className="border-b border-default"
+                    data-testid="system-candidate"
+                    data-version={candidate.model_version}
+                  >
+                    <td className={cell}>
+                      <code>{candidate.model_version}</code>
+                      {candidate.in_shadow === null && (
+                        <span className="block text-xs text-muted">in shadow: not known</span>
+                      )}
+                    </td>
+                    {shadow.first_answered_at === null || shadow.last_answered_at === null ? (
+                      <td className={cell} colSpan={3} data-testid="system-candidate-never">
+                        <span className="font-semibold">Never answered</span>: no shadow forecast is
+                        stored for it, so there is nothing to count.
+                      </td>
+                    ) : (
+                      <>
+                        <td className={cell}>
+                          <time dateTime={shadow.last_answered_at}>
+                            {ago(shadow.last_answered_at, now)}
+                          </time>
+                        </td>
+                        <td className={`${cell} tabular-nums`}>
+                          <CandidateDay candidate={candidate} />
+                        </td>
+                        <td className={cell}>
+                          {shadow.last_failure === null ? (
+                            <span className="text-muted" data-testid="system-candidate-no-failure">
+                              none in {String(CANDIDATE_FAILURE_LOOKBACK_DAYS)} days
+                            </span>
+                          ) : (
+                            <span data-testid="system-candidate-failure">
+                              <time dateTime={shadow.last_failure.at}>
+                                {ago(shadow.last_failure.at, now)}
+                              </time>
+                              <span className="block text-xs text-muted">
+                                match <code>{shadow.last_failure.fixture_id}</code>
+                              </span>
+                            </span>
+                          )}
+                        </td>
+                      </>
+                    )}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   );
 }
