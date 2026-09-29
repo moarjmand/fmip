@@ -145,6 +145,10 @@ export function MessageRow({
           {message.removed.by === 'moderator'
             ? 'Removed by a moderator.'
             : 'The author removed this.'}
+          {/* Only the author is sent the reason (T-1024): they are told why. */}
+          {message.removed.reason !== undefined && (
+            <span data-testid="message-removed-reason"> Why: {message.removed.reason}</span>
+          )}
         </p>
       ) : (
         <>

@@ -7,6 +7,7 @@ import {
   ConversationExits,
   PinMessage,
   Reactions,
+  ModerateMessage,
   RemoveMessage,
 } from '@/components/conversation-controls';
 import { LiveConversation } from '@/components/live-conversation';
@@ -14,6 +15,7 @@ import { GroupComparison } from '@/components/group-comparison';
 import {
   fetchConversation,
   fetchConversationSearch,
+  fetchGroup,
   fetchGroupComparison,
   fetchMe,
 } from '@/lib/api';
@@ -106,6 +108,22 @@ export default async function ConversationPage({
     thread.kind === 'group_thread' && thread.fixture !== null && thread.group !== null
       ? await fetchGroupComparison(thread.group.slug, thread.fixture.id, cookie)
       : null;
+
+  // Who runs the group, asked of the group itself (T-1024, D-134): its owner
+  // and moderators may remove others' messages with a reason, and a
+  // moderator never the owner's. The API decides; this only offers the form.
+  const groupRead =
+    page.conversation.group === null
+      ? null
+      : await fetchGroup(page.conversation.group.slug, cookie);
+  const standing = groupRead !== null && groupRead.ok ? groupRead.data.group.standing : null;
+  const runs = standing === 'owner' || standing === 'moderator';
+  const ownerName =
+    groupRead !== null && groupRead.ok
+      ? (groupRead.data.group.members?.find((m) => m.role === 'owner')?.username ?? null)
+      : null;
+  const mayModerate = (author: string): boolean =>
+    runs && author !== me.username && !(standing === 'moderator' && author === ownerName);
 
   // What members write is marked with the group's language (T-1022, D-133);
   // a group with none, and a direct conversation, leave the page's own.
@@ -233,6 +251,9 @@ export default async function ConversationPage({
                   />
                   {message.author === me.username && (
                     <RemoveMessage locale={locale} conversationId={id} messageId={message.id} />
+                  )}
+                  {mayModerate(message.author) && (
+                    <ModerateMessage locale={locale} conversationId={id} messageId={message.id} />
                   )}
                 </div>
               )}

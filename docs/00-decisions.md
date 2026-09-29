@@ -5109,3 +5109,47 @@ do not accept a new version: the acceptance criterion refuses it, and a
 group's owner changing a sentence should not empty the group. Showing the
 new version as a notification: a new kind and a preference for something
 the group's own page already shows once.
+
+## D-134 — A group's owner and moderators remove messages in the group's conversations, with a reason the author is told, audited with the message as it was
+
+**Date:** 2026-09-29 · **Task:** T-1024 · **Status:** accepted (revisable under the standing delegation of 2026-09-26)
+
+The schema has allowed a message to be removed as `moderator` since T-220,
+but nothing let a group's owner or moderator do it. Blueprint 8.2 gives a
+group's owner and moderators the running of it.
+
+**Who: the owner and the group's moderators, in the group's own
+conversations.** The group's conversation and each of its match threads; a
+direct conversation has nobody who runs it and is refused. The role is read
+from `group_member` when the removal is made, so a demoted moderator loses
+the power at once. **A group moderator cannot remove the owner's messages**
+(403, saying so); the owner can remove anybody's. Removing one's own message
+stays the author's own route (T-224). The platform's moderators keep exactly
+the powers T-212 gave them: this is the group's moderation, not the
+platform's, and it neither widens nor replaces the queue.
+
+**How: a tombstone, a reason, and an audit row.** The message keeps its place
+in the conversation with `removed_kind = 'moderator'` -- the same tombstone a
+platform moderator leaves, so a reader sees that a moderator took it down, not
+which one. The reason (1-500 characters) is required. The tombstone and an
+`audit_log` row (`message.remove`, target the message) holding the actor, the
+reason and **the message as it was** -- body, shared card, author, sequence,
+conversation and group -- are written in one transaction (rule 10). The body
+leaves the message row; the audit row is where it can still be read by the
+people accountable for reading it.
+
+**The author is told why, and nobody else is.** The reason travels on the
+tombstone to the message's author only (`Message.removed.reason`, read from
+the audit row); every other reader sees only that a moderator removed it.
+There is no notification: a new notification kind is a migration this task
+was not given, and the plan assigned T-1024 none. The author meets the reason
+where the message was. If a notification is wanted, it needs its own
+migration number (a `group_message_removed` kind and its preference); that is
+recorded as open rather than taken.
+
+**Alternatives considered.** Reusing the `moderation_decision` notification:
+it says a decision was made about the member's account, which a group
+moderator's removal is not, and it would blur the group's moderation into the
+platform's. Showing the reason to the whole group: it would turn a removal
+into a public reprimand. Letting a moderator remove the owner's messages: the
+acceptance criterion refuses it, and the owner is who a moderator answers to.

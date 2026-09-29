@@ -27,7 +27,11 @@ import type {
   SendMessageResponse,
 } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
-import type { GroupThreadsResponse, OpenThreadRequest } from '@fmip/contracts';
+import type {
+  GroupThreadsResponse,
+  OpenThreadRequest,
+  RemoveMessageRequest,
+} from '@fmip/contracts';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { type ConversationOutcome, ConversationsService } from './conversations.service';
 
@@ -136,6 +140,21 @@ export class ConversationsController {
   ): Promise<void> {
     const viewer = await this.requireViewer(request);
     this.unwrap(await this.conversations.removeOwn(viewer.id, id, messageId));
+  }
+
+  /** A group's owner or moderator removes a message, with a reason (T-1024, D-134). */
+  @Post(':id/messages/:messageId/removal')
+  @HttpCode(204)
+  async removeAsGroupModerator(
+    @Param('id') id: string,
+    @Param('messageId') messageId: string,
+    @Body() body: RemoveMessageRequest,
+    @Req() request: FastifyRequest,
+  ): Promise<void> {
+    const viewer = await this.requireViewer(request);
+    this.unwrap(
+      await this.conversations.removeAsGroupModerator(viewer.id, id, messageId, body?.reason),
+    );
   }
 
   @Put(':id/messages/:messageId/reactions/:reaction')
@@ -294,6 +313,17 @@ export class ConversationsController {
         throw new ConflictException({
           error: 'conflict',
           message: 'That message has been removed.',
+        } satisfies ApiError);
+      case 'not_moderator':
+        throw new ForbiddenException({
+          error: 'forbidden',
+          message: "Removing other people's messages is for the people who run this group.",
+        } satisfies ApiError);
+      case 'owner_message':
+        // D-134: a group's moderator does not remove the owner's words.
+        throw new ForbiddenException({
+          error: 'forbidden',
+          message: "A group moderator cannot remove the group owner's messages.",
         } satisfies ApiError);
       case 'restricted':
         throw new ForbiddenException({

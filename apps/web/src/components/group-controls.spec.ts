@@ -190,3 +190,22 @@ describe("a group's rules, accepted on the way in (T-1023)", () => {
     expect(PAGE).toContain('You stay a member either way.');
   });
 });
+
+describe("a group's owner and moderators removing messages (T-1024)", () => {
+  const CONVERSATION_PAGE = readFileSync(
+    join(HERE, '..', 'app', '[locale]', 'messages', '[id]', 'page.tsx'),
+    'utf8',
+  );
+  const MESSAGE = readFileSync(join(HERE, 'conversation.tsx'), 'utf8');
+
+  it("offers the form only to who runs the group, and never on the owner's words to a moderator", () => {
+    expect(CONVERSATION_PAGE).toContain("standing === 'owner' || standing === 'moderator'");
+    expect(CONVERSATION_PAGE).toContain("!(standing === 'moderator' && author === ownerName)");
+    expect(CONVERSATION_PAGE).toContain('<ModerateMessage');
+  });
+
+  it('tells the author why, on the tombstone', () => {
+    expect(MESSAGE).toContain('message.removed.reason !== undefined');
+    expect(MESSAGE).toContain('data-testid="message-removed-reason"');
+  });
+});

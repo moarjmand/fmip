@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Pool } from 'pg';
 import {
+  MAX_MESSAGE_REMOVAL_REASON,
   CARD_KINDS,
   type CardKind,
   type ChatEvent,
@@ -62,11 +63,15 @@ export type ConversationOutcome<T> =
         | 'not_a_member'
         | 'left'
         | 'removed'
-        | 'invalid';
+        | 'invalid'
+        | 'not_moderator'
+        | 'owner_message';
       fields?: Record<string, string>;
     };
 
 type CardLookup = Map<string, SharedCard>;
+
+const UUID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** How many messages one card change may refresh at once (T-232). */
 const CARD_PUSH_LIMIT = 50;
@@ -76,9 +81,16 @@ interface Marks {
   reactions: Map<string, ReactionCount[]>;
   mentions: Map<string, string[]>;
   pinned: Set<string>;
+  /** Why the viewer's own messages were removed by a group moderator (T-1024). */
+  removals: Map<string, string>;
 }
 
-const NO_MARKS: Marks = { reactions: new Map(), mentions: new Map(), pinned: new Set() };
+const NO_MARKS: Marks = {
+  reactions: new Map(),
+  mentions: new Map(),
+  pinned: new Set(),
+  removals: new Map(),
+};
 
 function message(row: MessageRow, cards: CardLookup = new Map(), marks: Marks = NO_MARKS): Message {
   return {
@@ -94,6 +106,8 @@ function message(row: MessageRow, cards: CardLookup = new Map(), marks: Marks = 
         : {
             at: row.removed_at.toISOString(),
             by: (row.removed_kind ?? 'author') as MessageRemoval,
+            // Only ever present for the author's own message (T-1024).
+            ...(marks.removals.has(row.id) ? { reason: marks.removals.get(row.id) } : {}),
           },
     card:
       row.card_kind === null || row.card_id === null
@@ -117,6 +131,7 @@ function collectMarks(
   reactions: ReactionRow[],
   mentions: MentionRow[],
   pinned: Set<string>,
+  removals: Map<string, string> = new Map(),
 ): Marks {
   const byMessage = new Map<string, ReactionCount[]>();
   for (const row of reactions) {
@@ -129,7 +144,7 @@ function collectMarks(
   for (const row of mentions) {
     named.set(row.message_id, [...(named.get(row.message_id) ?? []), row.username]);
   }
-  return { reactions: byMessage, mentions: named, pinned };
+  return { reactions: byMessage, mentions: named, pinned, removals };
 }
 
 /**
@@ -243,8 +258,8 @@ export class ConversationsService {
   private async marksFor(rows: MessageRow[], viewerId: string): Promise<Marks> {
     const ids = rows.map((row) => row.id);
     if (ids.length === 0) return NO_MARKS;
-    const { reactions, mentions, pinned } = await this.store.marks(ids, viewerId);
-    return collectMarks(reactions, mentions, pinned);
+    const { reactions, mentions, pinned, removals } = await this.store.marks(ids, viewerId);
+    return collectMarks(reactions, mentions, pinned, removals);
   }
 
   async list(viewerId: string): Promise<ConversationSummary[]> {
@@ -727,6 +742,49 @@ export class ConversationsService {
       return { ok: false, reason: 'not_found' };
     }
     return null;
+  }
+
+  /**
+   * A group's owner or moderator removes a message in the group's
+   * conversation or one of its match threads, with a reason (T-1024, D-134).
+   *
+   * Who runs the group is `group_member`'s role; a moderator cannot remove
+   * the owner's words. A direct conversation has nobody who runs it, so it is
+   * refused. The platform's own moderation (T-212) is unchanged: this is the
+   * group's.
+   */
+  async removeAsGroupModerator(
+    viewerId: string,
+    conversationId: string,
+    messageId: string,
+    reason: unknown,
+  ): Promise<ConversationOutcome<true>> {
+    const text = typeof reason === 'string' ? reason.trim() : '';
+    if (text.length < 1 || text.length > MAX_MESSAGE_REMOVAL_REASON) {
+      return {
+        ok: false,
+        reason: 'invalid',
+        fields: { reason: `A reason, at most ${MAX_MESSAGE_REMOVAL_REASON} characters.` },
+      };
+    }
+    if (!UUID_SHAPE.test(conversationId) || !UUID_SHAPE.test(messageId)) {
+      return { ok: false, reason: 'not_found' };
+    }
+    const row = await this.store.participation(conversationId, viewerId);
+    if (row === null) return { ok: false, reason: 'not_found' };
+    const role = await this.store.groupRole(conversationId, viewerId);
+    if (role !== 'owner' && role !== 'moderator') return { ok: false, reason: 'not_moderator' };
+
+    const done = await this.store.removeAsGroupModerator(
+      conversationId,
+      messageId,
+      viewerId,
+      role,
+      text,
+    );
+    if (done === 'owner_message') return { ok: false, reason: 'owner_message' };
+    if (done === 'not_found') return { ok: false, reason: 'not_found' };
+    return { ok: true, value: true };
   }
 
   /** The author takes their own message down. A moderator's removal is T-212's. */
