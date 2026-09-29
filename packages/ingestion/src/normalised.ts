@@ -312,4 +312,10 @@ export interface NormalisedNewsItem {
   publishedAt: string | null;
   /** BCP 47 when the feed or the item says; `null` otherwise. Never guessed. */
   language: string | null;
+  /**
+   * The publisher's own category strings on the item, as carried (T-1002,
+   * D-123): RSS `<category>` text, Atom `<category term>`, in feed order,
+   * duplicates removed, nothing else changed. Empty when the item carries none.
+   */
+  categories: string[];
 }

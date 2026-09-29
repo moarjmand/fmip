@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ContributorsAdmin } from '@/components/contributors-admin';
-import { fetchContributors, fetchMe } from '@/lib/api';
+import { fetchContributorFlags, fetchContributors, fetchMe } from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { Notice } from '@/components/ui';
@@ -36,7 +36,10 @@ export default async function ContributorsPage({
   const me = await fetchMe(cookie);
   if (me === null) redirect(`/${locale}/login?next=/${locale}/admin/contributors`);
 
-  const result = await fetchContributors(cookie);
+  const [result, flags] = await Promise.all([
+    fetchContributors(cookie),
+    fetchContributorFlags(cookie),
+  ]);
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
@@ -52,6 +55,8 @@ export default async function ContributorsPage({
           locale={locale}
           entries={result.ok ? result.data.entries : []}
           reachable={result.ok}
+          flags={flags.ok ? flags.data : null}
+          now={result.ok ? result.data.generated_at : new Date().toISOString()}
         />
       ) : (
         <Notice tone="warning" data-testid="contributors-forbidden">
