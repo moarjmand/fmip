@@ -44,6 +44,6 @@ import { SavedArticlesController } from './saved-articles.controller';
     NewsSchedulerService,
     { provide: NEWS_TRANSPORT, useFactory: (): FetchTransport => new FetchTransport() },
   ],
-  exports: [NewsIngestionService],
+  exports: [NewsIngestionService, NewsClusteringService],
 })
 export class NewsModule {}
