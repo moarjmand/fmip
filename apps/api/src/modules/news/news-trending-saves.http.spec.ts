@@ -15,7 +15,17 @@ import { PostgresNewsStore } from './internal/news-store';
 const DATABASE_URL = process.env.DATABASE_URL;
 const RUN = `${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
 const ENGLAND = '00000000-0000-4000-8000-000000000101';
-const NO_FILTERS = { country: null, competition: null, team: null, language: null };
+const NO_FILTERS = {
+  country: null,
+  competition: null,
+  team: null,
+  language: null,
+  type: null,
+  player: null,
+  from: null,
+  to: null,
+  time_zone: 'UTC',
+};
 /** The section's query budget: the cards and their entities, whatever the table holds. */
 const QUERY_BUDGET = 2;
 const TIME_BUDGET_MS = 1500;

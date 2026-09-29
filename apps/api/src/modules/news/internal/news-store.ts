@@ -198,6 +198,48 @@ export class PostgresNewsStore {
     }
   }
 
+  /**
+   * The item's category strings as the feed carried them this time (T-1002):
+   * the stored set becomes this set, in the feed's order. True when anything
+   * changed, so the caller knows the story's publisher type may have moved.
+   */
+  async replaceCategories(articleId: string, categories: readonly string[]): Promise<boolean> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const { rows } = await client.query<{ category: string }>(
+        `SELECT category FROM article_category WHERE article_id = $1 ORDER BY position FOR UPDATE`,
+        [articleId],
+      );
+      const stored = rows.map((r) => r.category);
+      if (stored.length === categories.length && stored.every((c, i) => c === categories[i])) {
+        await client.query('ROLLBACK');
+        return false;
+      }
+      // A string still carried keeps its `first_seen_at`; one no longer carried goes.
+      await client.query(
+        `DELETE FROM article_category WHERE article_id = $1 AND category <> ALL($2::text[])`,
+        [articleId, [...categories]],
+      );
+      if (categories.length > 0) {
+        await client.query(
+          `INSERT INTO article_category (article_id, category, position)
+           SELECT $1, c.category, (c.n - 1)::smallint
+             FROM unnest($2::text[]) WITH ORDINALITY AS c(category, n)
+           ON CONFLICT (article_id, category) DO UPDATE SET position = EXCLUDED.position`,
+          [articleId, [...categories]],
+        );
+      }
+      await client.query('COMMIT');
+      return true;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   /** The newest version in a language, or null when there is none yet. */
   async newestVersion(
     articleId: string,

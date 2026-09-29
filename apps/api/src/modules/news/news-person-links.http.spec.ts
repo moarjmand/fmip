@@ -166,7 +166,17 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       const linked = await article(`Kai Strikeson${RUN} extends his deal with ${HOME_NAME}`);
       const read = new PostgresNewsReadStore(pool);
       const page = await read.following(
-        { country: null, competition: null, team: null, language: null },
+        {
+          country: null,
+          competition: null,
+          team: null,
+          language: null,
+          type: null,
+          player: null,
+          from: null,
+          to: null,
+          time_zone: 'UTC',
+        },
         null,
         { teams: [], competitions: [], persons: [people.kai!] },
         null,

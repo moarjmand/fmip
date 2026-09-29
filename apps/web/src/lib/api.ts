@@ -69,6 +69,7 @@ import type {
   MemberModerationHistory,
   ModerationQueueResponse,
   DebateListResponse,
+  BreakingNewsResponse,
   MatchPanelPage,
   NewsSectionResponse,
   NotificationSettings,
@@ -536,6 +537,11 @@ export function fetchNewsSection(
  */
 export function fetchDebates(cookie: string | undefined): Promise<ApiResult<DebateListResponse>> {
   return apiRequest<DebateListResponse>('/admin/debates?state=open', { cookie });
+}
+
+/** `GET /news/breaking` (T-1004): the stories marked breaking now, for the homepage strip. Public. */
+export function fetchBreakingNews(locale?: string): Promise<ApiResult<BreakingNewsResponse>> {
+  return apiRequest<BreakingNewsResponse>(withLocale('/news/breaking', locale));
 }
 
 /** `GET /news/stories/:id` (T-144), in `language` when the original has a version in it. */

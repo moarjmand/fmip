@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { NewsEntity, NewsReport, StoryPage as StoryPageData } from '@fmip/contracts';
+import { StoryTypeTag } from '@/components/story-type';
 import { Translated } from '@/components/translated';
 import { formatDateTime } from '@/i18n/format';
 import { fetchFollowing, fetchMe, fetchSavedArticles, fetchStory } from '@/lib/api';
@@ -112,6 +113,7 @@ export default async function StoryPage({
         <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
           {story.headline}
         </h1>
+        <StoryTypeTag locale={locale} type={story.type} sayNone />
         <p className="text-sm text-muted" data-testid="story-source">
           <Translated locale={locale} message="news.readAt" />{' '}
           <a href={story.source.homepage_url} rel="noopener" className="underline">
