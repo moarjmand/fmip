@@ -71,8 +71,9 @@ export class AdminService {
     return this.store.setCoverage(seasonId, module, next, { actorId, reason });
   }
 
-  audit(limit = AUDIT_LIMIT): Promise<AuditRecord[]> {
-    return this.store.audit(limit);
+  /** Newest first; with `memberId`, only the rows whose target is that account (T-1164). */
+  audit(limit = AUDIT_LIMIT, memberId: string | null = null): Promise<AuditRecord[]> {
+    return this.store.audit(limit, memberId);
   }
 }
 

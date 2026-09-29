@@ -6192,3 +6192,88 @@ match's importance does not decay on a common clock. *Showing a featured
 match the scores answer does not hold* by a second request: the homepage
 looks two weeks ahead and a feature cannot outlast that, so the case is a
 match featured weeks early, which the editor can feature again nearer the day.
+
+## D-154 — The competitions' order is set from the console, the same audited write as the script
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** `competition.display_order` (T-504), the place a competition
+takes on the scores page and the homepage after a member's own favourites, is
+set by an administrator from `/admin/competitions` (T-1162) as well as by
+`catalog.mjs --set-order`, which keeps working unchanged.
+
+- **Who.** The `admin` role only, as the script is the operator's: the order
+  is the product's statement of what a reader looks for first, not an
+  editorial placement (that is D-153's featured matches).
+- **The write.** `PUT /admin/competitions/:id/order` with `order` (1 to
+  32767, 1 first; `null` clears it) and a reason. It is the script's change
+  -- the column and an `audit_log` row `catalog.competition_order_set` on the
+  competition with `next: { display_order }` -- plus what the script does not
+  record: the administrator's reason and `previous: { display_order }`
+  (rule 10), in one statement with the change. Two competitions may share a
+  place; the country and the name then decide, as for every competition with
+  none.
+- **The list.** `GET /admin/competitions` gives every competition, active or
+  not, in the order readers meet them: stated places first, then by country
+  (international first) and name, as `fixtures/internal/arrange.ts` groups
+  them.
+- **When it shows.** The scores answer and the homepage read the column per
+  request (nothing caches it), so the next render has the new order; the web
+  action revalidates both pages as well.
+
+**Rejected.** *Drag-and-drop reordering that renumbers every competition in
+one write*: one reason would stand for fifteen changes, and the audit log
+would say little about any one of them. *Retiring the script*: a fresh
+deployment sets all fifteen places before anyone has an account in the
+console, and the runbook does it in one loop.
+
+## D-155 — A ready language can be held back by an administrator; a hold only takes a language away
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** A locale is offered when its catalogue passes `isShippable`
+(T-306) **and** no administrator holds it back (T-1163). A hold is for a
+language that is ready by the numbers but must not be offered yet -- a
+translation that reads wrong in review, a legal page not yet checked in that
+language. It never touches the translators' files (D-066), and it can only
+take a language away: nothing offers a locale `isShippable` refuses.
+
+- **The hold.** `admin` only: `POST /admin/locales/:locale/hold` and
+  `.../release`, each with a reason, each an `audit_log` row
+  (`locale.hold`, `locale.release`, target `locale`) with what was there
+  before (rule 10). Any real language but English may be held
+  (`HOLDABLE_LOCALES`, kept equal to the web's registry by a spec); English
+  is the source (D-003) and what a held language falls back to, and the
+  schema refuses it. One hold in force per language (a partial unique
+  index); a released hold keeps its row with who released it and why.
+  `/admin`'s language table shows each row as offered, "ready, held back"
+  (by whom, since when, why) or not yet offered, with the hold or release
+  form; `GET /admin/locale-holds` is the history.
+- **What a hold does.** `GET /locale-holds` (public; the locales and since
+  when, never the reason) is read once per request by the web. A held
+  language is not in the header's picker, not in the first run's language
+  step, and the step's save action refuses it. Its URLs answer as a language
+  not yet offered does today: they route and render with English marked
+  where untranslated, and they are not indexed (`INDEXABLE_LOCALES` holds
+  only English while every other language is unfinished; a spec fails the
+  day that changes, so indexing is made to consult the holds then).
+- **A reader whose stored language is held** -- a member's
+  `preferred_language`, a guest's first-run choice -- is shown the default:
+  a guest arriving without a locale in the path is sent to English, not the
+  held language, and a notification's links are made in English. Their
+  choice is kept, and applies again when the hold is released. The header
+  tells them once, in the page's language: the language's own name and that
+  it is held back for now, so FMIP is shown in English. "Once" is per hold
+  and per browser: a cookie records `<locale>@<held_at>`, so a later hold of
+  the same language is told again.
+- **When the holds cannot be read, only English is offered.** A hold exists
+  because something must not be shown yet; offering the language because
+  the API was slow would undo it at the worst moment. English is always
+  true, so the fallback is a smaller offer, never a false one. `/admin` says
+  so when it happens.
+
+**Rejected.** *Editing the catalogue status to hold a language*: the files
+are the translators' words and status, and a hold is an operator's call
+about the product, not a statement about the translation. *Showing readers
+the administrator's reason*: it is written for the audit log, and may name
+a page or a person. *Moving a member's stored language to English*: the
+choice is theirs, and the hold is temporary.
+

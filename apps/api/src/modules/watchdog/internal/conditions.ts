@@ -1,4 +1,4 @@
-import type { WatchdogLevel, WatchdogThreshold } from '@fmip/contracts';
+import type { CandidateShadowHealth, WatchdogLevel, WatchdogThreshold } from '@fmip/contracts';
 
 /**
  * The watchdog's conditions (T-801), each a pure function from what the
@@ -322,6 +322,72 @@ export function eloSource(
       ? ''
       : `; last error${source.last_error_at === null ? '' : ` ${source.last_error_at.slice(0, 16).replace('T', ' ')} UTC`}${detailOf(source.last_error)}`;
   return { key, level: levelOf(observed, threshold), observed, threshold, note: answered + error };
+}
+
+/**
+ * The share of the last 24 hours' forecasts a candidate in shadow stored
+ * nothing for (T-1165): the call to it failed, which is logged as
+ * `forecast.shadow_failed` with the reason. A refusal is an answer and is not
+ * counted. Raised only when it failed on every forecast of the day -- one
+ * failed call among answers is a timeout, and a candidate is off the
+ * critical path by construction (D-140) -- so `degraded` and `failing` are
+ * both 100 %. It recovers on the first forecast it answers.
+ *
+ * `unknown` when it has never answered: nothing is stored, so there is no day
+ * to judge and "zero failures" would be a lie; the System page says so. `ok`
+ * with no forecast asked of it in the day, and when it has left shadow (so an
+ * incident open for it closes).
+ */
+export const CANDIDATE_SHADOW_THRESHOLD: WatchdogThreshold = {
+  unit: 'percent',
+  degraded: 100,
+  failing: 100,
+};
+
+export function candidateShadow(
+  version: string,
+  seen:
+    | { state: 'in_shadow'; health: CandidateShadowHealth | undefined }
+    | { state: 'left' }
+    | { state: 'unreadable'; reason: string },
+): Reading {
+  const key = `candidate:${version}`;
+  const threshold = CANDIDATE_SHADOW_THRESHOLD;
+  if (seen.state === 'left') {
+    return { key, level: 'ok', observed: null, threshold, note: 'no longer in shadow' };
+  }
+  if (seen.state === 'unreadable') {
+    return { key, level: 'unknown', observed: null, threshold, note: seen.reason };
+  }
+  const health = seen.health;
+  if (health === undefined || health.first_answered_at === null) {
+    return {
+      key,
+      level: 'unknown',
+      observed: null,
+      threshold,
+      note: 'in shadow and has never answered: no shadow forecast is stored for it',
+    };
+  }
+  const { asked, failed } = health.day;
+  if (asked === 0) {
+    return {
+      key,
+      level: 'ok',
+      observed: null,
+      threshold,
+      note: 'no forecast was asked of it in the last 24 hours',
+    };
+  }
+  // Floored, so 99.6 % is not read as every forecast.
+  const observed = Math.floor((failed * 100) / asked);
+  return {
+    key,
+    level: levelOf(observed, threshold),
+    observed,
+    threshold,
+    note: `${String(failed)} of ${String(asked)} forecasts in the last 24 hours stored nothing for it (the reason is logged as forecast.shadow_failed)`,
+  };
 }
 
 /**

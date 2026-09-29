@@ -270,8 +270,9 @@ export type {
   CandidateCompetitionRecord,
   CandidateRecord,
   CandidateRecordsResponse,
+  CandidateShadowHealth,
 } from './forecast';
-export { PROMOTION_MINIMUM } from './forecast';
+export { CANDIDATE_FAILURE_LOOKBACK_DAYS, PROMOTION_MINIMUM } from './forecast';
 export { STALE_LIVE_AFTER_MS } from './scores';
 export type {
   FixtureStatus,
@@ -885,3 +886,20 @@ export type {
   HomepageFeatureRecord,
   HomepageFeatureRequest,
 } from './homepage';
+// The competitions' order in the console (T-1162, D-154).
+export { COMPETITION_ORDER_MAX } from './competition-order';
+export type {
+  AdminCompetition,
+  AdminCompetitionsResponse,
+  SetCompetitionOrderRequest,
+  SetCompetitionOrderResponse,
+} from './competition-order';
+// Holding back a language that is ready (T-1163, D-155).
+export { HOLDABLE_LOCALES } from './locale-hold';
+export type {
+  HeldLocalesResponse,
+  HoldableLocale,
+  LocaleHoldListResponse,
+  LocaleHoldRecord,
+  LocaleHoldRequest,
+} from './locale-hold';

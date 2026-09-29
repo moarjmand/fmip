@@ -57,6 +57,7 @@
   "language.name.it": "Italian",
   "language.name.pt": "Portuguese",
   "language.name.tr": "Turkish",
+  "languageHold.notice": "this language is held back for now, so FMIP is shown in English. Your choice is kept, and applies again when the language returns.",
   "friends.mutualCount": {
     "one": "{count} friend in common",
     "other": "{count} friends in common"
