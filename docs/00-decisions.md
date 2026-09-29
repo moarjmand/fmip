@@ -5024,6 +5024,111 @@ there once links exist. T-1003's player filter and T-1007's related news
 read the same links and say `not_supplied` while there are none. No
 migration: `article_entity` already accepts `person`.
 
+## D-127 — A player's related news and current availability
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-1007 gives the player page (blueprint 5.3) related news and
+current availability from what is already stored. No provider request is
+added.
+
+- **Related news.** `GET /players/:id/news` is D-119's entity-news shape
+  (`EntityNewsResponse`, `ENTITY_NEWS_LIMIT` cards, newest first) over the
+  stories any of whose reports link the person (D-126). It is `not_supplied`
+  with `feeds_unread` until the feeds have been read, as on the team page.
+  While no report links **any** person it is `not_supplied` with the new
+  reason `persons_unlinked`: D-126 keeps the person linker off until its
+  precision is measured, and an empty list then would read as "nobody wrote
+  about this player". Once any person link exists, an empty list is
+  `available` with `nothing_linked`. An unknown id is 404.
+- **Availability.** `PlayerPage.availability` reads the player's team: every
+  open spell's, else the team of the latest stored line-up that names the
+  player (`basis: 'lineup'`, and the page says so). Nothing ingests squads
+  today, so the line-up is what most players have. With several teams, the
+  team whose next match comes first is used. Then it reads that team's next
+  scheduled match still ahead, and what `fixture_absence` says about the
+  player for it (T-103):
+  - `not_supplied` with `no_team`, `no_next_match` or `not_asked`. The last
+    one means no `fixture_availability_fetch` row exists for that match: the
+    feed is asked only in the three days before kick-off, and an empty list
+    nobody asked for is not information.
+  - Once the feed was asked, `available` with `out` or `doubtful`, the kind
+    and the feed's own words, or `not_listed`. It is never "fit", because the
+    feed never says that (T-103). The status words are the key players'
+    (`KeyPlayerAvailability`).
+  - `last_updated_at` is when the feed was last asked. The page shows that
+    time and says the answer may have changed once it is more than six hours
+    old: T-103 re-asks every three hours, so six hours means at least one
+    re-ask was missed (rule 4).
+
+**Alternatives considered.** Reading only open spells: nothing writes them,
+so every player page in production would say "no team". Calling a player
+with no listing "available" or "fit": the feed does not say so. Answering an
+empty news list before any person is linked: this would be a false negative
+presented as fact (rule 3). Reusing `/news?team=`-style filters for the
+person: T-1003 owns the `player` filter of the news page, and the entity
+list needs the `persons_unlinked` state, which a filter does not have.
+
+**Consequences.** `PlayerAvailability`, `PlayerAvailabilityListing`,
+`PlayerAvailabilityReason` and `EntityNewsReason` are in the contract, and
+`EntityNewsResponse.entity.type` takes `person`. Seventeen catalogue keys were
+added (`player.availability.*`, `news.entity.nothingPlayer`,
+`news.entity.personsUnlinked`). No migration.
+
+## D-128 — Trending counts saves beside discussion
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** Trending (blueprint 3.1) ranks the stories that were discussed
+or saved in the last `TRENDING_WINDOW_HOURS` (48) by two signals, each a count
+of distinct members:
+
+- **Discussion**: members who posted or reacted on the public panel of one of
+  the story's matches, as before (T-143).
+- **Saves** (T-1008): members whose `saved_article` row for the story was
+  saved inside the window.
+
+A story's score is `participants * 1 + savers * 1` (`TRENDING_WEIGHTS` in the
+contract). Ties go to the newer story. A member who both discussed and saved
+counts in both, because they are two different acts. The card carries both
+counts (`discussion.participants`, `discussion.savers`), and the page shows
+both. The section stays `limited`, now with the reason `discussion_and_saves`,
+which says what is counted and that views and shares are not.
+
+**Why equal weights.** There is nothing yet to calibrate them against:
+production has no stored stories and no saves (D-126), and no measure of
+"interest" exists to fit weights to. One member, one count per act is the
+rule a reader can check from the numbers on the card. A different weighting
+is a one-line change to the contract constant, together with this entry.
+
+**What is not counted.** Views and shares. Counting who read or shared a
+story is product analytics that D-044 and D-102 kept out, and whether to
+count them is the maintainer's question N-3. A save is a row the product
+already keeps for its own function (T-842). Trending reads only its count per
+story, never who saved it: the saved list stays private (T-842).
+
+**Merges.** When clustering moves an emptied story's saves onto the story it
+joined (`moveToStory`, T-842), `saved_article`'s key (member, story) keeps one
+row per member, with the time of the earlier save. A member who saved both
+stories counts once, and a moved save counts in the window of its original
+time.
+
+**Budget.** The section is still two statements, the cards and their
+entities, whatever the table holds. The saves are one grouped scan of
+`saved_article` joined to the cards, inside the same statement. A spec seeds
+10,000 saves and holds the section to those two statements and under 1.5 s on
+the development database. No index or migration was needed: none was
+assigned, and the scan is bounded by the table the spec measures.
+
+**Alternatives considered.** Weighting a save above a panel post (or below
+it): a preference with no evidence behind it. Counting every save ever made
+rather than the window's: trending would then be "most saved", which never
+decays. A separate "most saved" section: blueprint 3.1 names one trending
+list built from several signals.
+
+**Consequences.** `TRENDING_WEIGHTS`, `discussion.savers` and the
+`discussion_and_saves` reason are in the contract, replacing
+`discussion_only`. The plural `news.savers` and `news.reason.discussionAndSaves`
+are catalogue keys. No migration.
+
 
 ## D-136 — A panel post links to one incident, player, prediction or statistic of its own match
 **Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
@@ -5071,3 +5176,4 @@ was linked. *Showing a withheld prediction to friends on the public document*:
 it would make the public read viewer-specific. *Player statistics as a fifth
 kind*: the task names a statistic of the match; a player card already leads to
 the player's numbers.
+
