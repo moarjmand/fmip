@@ -61,6 +61,7 @@ import type {
   CommunityAnalysesResponse,
   CommunityAnalysisWorkspace,
   CommunitySubmission,
+  ContributorFlagListResponse,
   ContributorListResponse,
   MatchCentre,
   MatchSummaryResponse,
@@ -709,6 +710,16 @@ export function fetchMemberModerationHistory(
 ): Promise<ApiResult<MemberModerationHistory>> {
   return apiRequest<MemberModerationHistory>(
     `/admin/moderation/members/${encodeURIComponent(username)}`,
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/** `GET /admin/contributor-flags` (T-1031, D-137): the open flags. Needs the moderator or admin role. */
+export function fetchContributorFlags(
+  cookie: string | undefined,
+): Promise<ApiResult<ContributorFlagListResponse>> {
+  return apiRequest<ContributorFlagListResponse>(
+    '/admin/contributor-flags',
     cookie === undefined ? {} : { cookie },
   );
 }
