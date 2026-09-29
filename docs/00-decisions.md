@@ -5008,3 +5008,39 @@ and an editor's correction would erase the publisher's word. A default type
 what the unlabelled half is. A type per article rather than per story: the
 reader filters stories, and the promoted original is already the story's
 voice (T-142).
+
+## D-124 — News filters by story type, player and date, and what a filter says about the stories it cannot place
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** `GET /news` takes `type`, `player`, `from`, `to` and `tz`
+beside the existing filters (blueprint 3.2), in every section, applied to the
+whole cluster as the others are (a story matches when any of its reports
+does).
+
+- **Type.** One of `STORY_TYPES` (D-123), against the story's current label.
+  A story with no type is never shown under a type filter and never counted
+  as one; the answer's `untyped` says how many stories matching every other
+  filter (the dates included) have no type, and the page says "N stories ...
+  have no type, so they are not shown". Without a type filter `untyped` is
+  `null`.
+- **Player.** A person by id (rule 1), matched on the story's person links.
+  Until any report links any person (T-1006 writes them), a player filter
+  answers `not_supplied` with reason `persons_unlinked` rather than an empty
+  list, because the list would be empty for want of linking, not of news.
+  Once links exist an empty answer is an ordinary `no_match`. The news page
+  shows an active player filter by name with a link to remove it; the way in
+  is a player's own page (T-1007), since a picker over every player would be a
+  second search box.
+- **Dates.** `from` and `to` are calendar days (`YYYY-MM-DD`, both
+  inclusive) in `tz`, an IANA zone (default `UTC`), compared with the story's
+  first publication -- the earliest time its original's publisher gave, else
+  when it was first read, the same instant the cards are ordered by. The web
+  sends the member's own zone, and only with a date; a guest's days are UTC.
+  A malformed day, an unknown zone or `from` after `to` is a 400 naming it.
+
+**Alternatives considered.** Showing untyped stories under every type filter
+("might be a transfer"): a filter that does not filter. Hiding the count:
+the short list would pose as all the transfer news. A `player` filter that
+answers an empty list before T-1006: indistinguishable from "no news about
+him". Dates in UTC for everyone: a Tehran reader's "today" would drop its
+first three and a half hours.

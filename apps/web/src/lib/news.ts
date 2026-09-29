@@ -6,7 +6,7 @@ import type {
   StoryType,
   StoryVersion,
 } from '@fmip/contracts';
-import { isNewsSection } from '@fmip/contracts';
+import { isNewsSection, isStoryType } from '@fmip/contracts';
 import type { MessageKey } from '@/i18n/messages';
 
 type Params = Record<string, string | string[] | undefined>;
@@ -26,8 +26,28 @@ export interface NewsPageQuery {
   competition: string | null;
   team: string | null;
   language: string | null;
+  /** T-1003 (D-124): a story type, a person by id, and calendar days (`YYYY-MM-DD`). */
+  type: StoryType | null;
+  player: string | null;
+  from: string | null;
+  to: string | null;
   before: string | null;
 }
+
+/** The filters a reader can set, in the order the query string carries them. */
+const FILTER_NAMES = [
+  'country',
+  'competition',
+  'team',
+  'language',
+  'type',
+  'player',
+  'from',
+  'to',
+  'before',
+] as const;
+
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 function first(params: Params, name: string): string | null {
   const v = params[name];
@@ -48,24 +68,44 @@ export function readNewsQuery(params: Params): NewsPageQuery {
   };
   const language = first(params, 'language');
   const before = first(params, 'before');
+  const type = first(params, 'type');
+  const day = (name: string): string | null => {
+    const v = first(params, name);
+    return v !== null && DAY.test(v) && !Number.isNaN(new Date(`${v}T00:00:00Z`).getTime())
+      ? v
+      : null;
+  };
   return {
     section: isNewsSection(section) ? section : 'latest',
     country: id('country'),
     competition: id('competition'),
     team: id('team'),
     language: language !== null && LANGUAGE.test(language) ? language : null,
+    type: type !== null && isStoryType(type) ? type : null,
+    player: id('player'),
+    from: day('from'),
+    to: day('to'),
     before: before !== null && !Number.isNaN(new Date(before).getTime()) ? before : null,
   };
 }
 
-/** The query string for `GET /news`, without the leading `?` when empty. */
-export function apiQuery(q: NewsPageQuery): string {
+/**
+ * The query string for `GET /news`. `tz` is the viewer's zone, so `from` and
+ * `to` are their calendar days (D-124); it is sent only with a date.
+ */
+export function apiQuery(q: NewsPageQuery, timeZone = 'UTC'): string {
   const p = new URLSearchParams({ section: q.section });
-  for (const name of ['country', 'competition', 'team', 'language', 'before'] as const) {
+  for (const name of FILTER_NAMES) {
     const v = q[name];
     if (v !== null) p.set(name, v);
   }
+  if (q.from !== null || q.to !== null) p.set('tz', timeZone);
   return `?${p.toString()}`;
+}
+
+/** Whether any filter narrows the list (paging is not a filter). */
+export function isFiltered(q: NewsPageQuery): boolean {
+  return FILTER_NAMES.some((name) => name !== 'before' && q[name] !== null);
 }
 
 /** The page's own URL for a variant of the query; `before` never carries over unless asked for. */
@@ -77,7 +117,7 @@ export function pageHref(
   const next: NewsPageQuery = { ...q, before: null, ...over };
   const p = new URLSearchParams();
   if (next.section !== 'latest') p.set('section', next.section);
-  for (const name of ['country', 'competition', 'team', 'language', 'before'] as const) {
+  for (const name of FILTER_NAMES) {
     const v = next[name];
     if (v !== null) p.set(name, v);
   }
@@ -101,6 +141,7 @@ export const REASON_KEY: Record<NewsSectionReason, MessageKey> = {
   nothing_followed: 'news.reason.nothingFollowed',
   no_match: 'news.reason.noMatch',
   nothing_yet: 'news.reason.nothingYet',
+  persons_unlinked: 'news.reason.personsUnlinked',
 };
 
 /** Where an entity chip goes: the entity's own page, by id (rule 1). */

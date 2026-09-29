@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { NEWS_SECTIONS, type NewsStoryCard } from '@fmip/contracts';
+import { NEWS_SECTIONS, STORY_TYPES, type NewsStoryCard } from '@fmip/contracts';
 import { ActionForm } from '@/components/action-form';
 import { SaveArticle } from '@/components/save-article';
 import { StoryTypeTag } from '@/components/story-type';
@@ -14,6 +14,7 @@ import {
   fetchDebates,
   fetchMe,
   fetchNewsSection,
+  fetchPlayer,
   fetchSavedArticles,
   fetchTeams,
 } from '@/lib/api';
@@ -21,9 +22,11 @@ import { clearDebateAction, selectDebateAction } from '@/lib/debate-actions';
 import {
   REASON_KEY,
   SECTION_KEY,
+  STORY_TYPE_KEY,
   apiQuery,
   entityHref,
   feedsStale,
+  isFiltered,
   pageHref,
   readNewsQuery,
   storyHref,
@@ -78,14 +81,29 @@ export default async function NewsPage({
   const resolved: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
   const q = readNewsQuery(query);
   const cookie = await sessionCookieHeader();
-  const [me, result, countries, competitions, teams, savedList] = await Promise.all([
-    fetchMe(cookie),
-    fetchNewsSection(apiQuery(q), locale, cookie),
+  const mePromise = fetchMe(cookie);
+  // D-124: dates are the viewer's calendar days, so a dated query waits for
+  // their zone; an undated one does not wait at all.
+  const newsPromise = (
+    q.from === null && q.to === null
+      ? Promise.resolve('UTC')
+      : mePromise.then((m) => m?.timezone ?? 'UTC')
+  ).then((zone) => fetchNewsSection(apiQuery(q, zone), locale, cookie));
+  const [me, result, countries, competitions, teams, savedList, player] = await Promise.all([
+    mePromise,
+    newsPromise,
     fetchCountries(),
     fetchCompetitions(),
     fetchTeams(),
     fetchSavedArticles(cookie),
+    q.player === null ? Promise.resolve(null) : fetchPlayer(q.player, locale),
   ]);
+  const playerName =
+    player !== null && player.ok
+      ? (player.data.person.localised_name ??
+        player.data.person.known_as ??
+        player.data.person.full_name)
+      : null;
   // T-842: a member's save control knows what is saved; a guest gets none,
   // and an unreachable list offers none rather than a wrong state.
   const saved =
@@ -95,8 +113,7 @@ export default async function NewsPage({
   // The session carries no roles; an editor is whoever the editor's list answers.
   const editor = me !== null && (await fetchDebates(cookie)).ok;
   const timeZone = me?.timezone ?? 'UTC';
-  const filtered =
-    q.country !== null || q.competition !== null || q.team !== null || q.language !== null;
+  const filtered = isFiltered(q);
   const linkClass = (active: boolean): string =>
     `rounded px-2 py-1 ${active ? 'bg-surface-raised font-semibold' : 'underline'}`;
   const label = (key: Parameters<typeof t>[1]): string => t(resolved, key);
@@ -186,6 +203,54 @@ export default async function NewsPage({
             ))}
           </select>
         </label>
+        <label className="flex flex-col gap-1">
+          <Translated locale={locale} message="news.filter.type" />
+          <select
+            name="type"
+            defaultValue={q.type ?? ''}
+            className={controlClasses('sm')}
+            data-testid="news-filter-type"
+          >
+            <option value="">{label('news.filter.any')}</option>
+            {STORY_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {label(STORY_TYPE_KEY[type])}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1">
+          <Translated locale={locale} message="news.filter.from" />
+          <input
+            type="date"
+            name="from"
+            defaultValue={q.from ?? ''}
+            className={controlClasses('sm')}
+            data-testid="news-filter-from"
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <Translated locale={locale} message="news.filter.to" />
+          <input
+            type="date"
+            name="to"
+            defaultValue={q.to ?? ''}
+            className={controlClasses('sm')}
+            data-testid="news-filter-to"
+          />
+        </label>
+        {q.player !== null && (
+          <p className="flex flex-wrap items-center gap-2" data-testid="news-filter-player">
+            <input type="hidden" name="player" value={q.player} />
+            <Translated locale={locale} message="news.filter.player" />{' '}
+            <Link href={`/${locale}/player/${q.player}`} className="underline">
+              {playerName ?? q.player}
+            </Link>
+            <Link href={pageHref(locale, q, { player: null })} className="underline">
+              <Translated locale={locale} message="news.filter.playerClear" />
+            </Link>
+          </p>
+        )}
         <Button type="submit" className="font-medium">
           <Translated locale={locale} message="news.filter.apply" />
         </Button>
@@ -196,6 +261,10 @@ export default async function NewsPage({
               competition: null,
               team: null,
               language: null,
+              type: null,
+              player: null,
+              from: null,
+              to: null,
             })}
             className="underline"
           >
@@ -232,6 +301,16 @@ export default async function NewsPage({
                   </Link>
                 </>
               )}
+            </p>
+          )}
+
+          {result.data.untyped !== null && result.data.untyped > 0 && (
+            <p role="status" className="text-sm text-muted" data-testid="news-untyped">
+              <Translated
+                locale={locale}
+                message="news.filter.untyped"
+                count={result.data.untyped}
+              />
             </p>
           )}
 

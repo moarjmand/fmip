@@ -83,6 +83,28 @@ export class PostgresNewsReadStore {
     return rows[0]?.at?.toISOString() ?? null;
   }
 
+  /**
+   * With a type filter (T-1003, D-124): how many stories matching every other
+   * filter have no current type, so a reader is told what the filter cannot
+   * place rather than seeing a short list as the whole of it.
+   */
+  async untyped(filters: NewsFilters): Promise<number> {
+    const q = new Query({ ...filters, type: null }, null);
+    const { rows } = await this.pool.query<{ n: number }>(
+      `${q.storyCard()} SELECT count(*)::int AS n FROM story_card sc WHERE sc.story_type IS NULL`,
+      q.params,
+    );
+    return rows[0]?.n ?? 0;
+  }
+
+  /** Whether any report links any person yet (T-1006 writes them); a player filter needs one. */
+  async anyPersonLinked(): Promise<boolean> {
+    const { rows } = await this.pool.query<{ found: boolean }>(
+      `SELECT EXISTS (SELECT 1 FROM article_entity WHERE entity_type = 'person') AS found`,
+    );
+    return rows[0]?.found === true;
+  }
+
   /** Newest first, by the publisher's time (else the fetch time); `before` pages back. */
   async latest(
     filters: NewsFilters,
@@ -346,7 +368,7 @@ export class PostgresNewsReadStore {
     if (found === undefined) return null;
     const since = new Date(found.kickoff_at.getTime() - 7 * 24 * 60 * 60 * 1000);
     const until = new Date(found.kickoff_at.getTime() + 3 * 24 * 60 * 60 * 1000);
-    const q = new Query({ country: null, competition: null, team: null, language: null }, locale);
+    const q = new Query(NO_FILTERS, locale);
     const match = q.param(fixtureId);
     const teams = q.param(found.teams ?? []);
     const from = q.param(since.toISOString());
@@ -477,6 +499,19 @@ export class PostgresNewsReadStore {
   }
 }
 
+/** No filter at all: the match page's related news reads every story. */
+export const NO_FILTERS: NewsFilters = {
+  country: null,
+  competition: null,
+  team: null,
+  language: null,
+  type: null,
+  player: null,
+  from: null,
+  to: null,
+  time_zone: 'UTC',
+};
+
 /**
  * The card every section starts from, with the filters folded into its WHERE
  * and the parameters numbered as they are added. Building the text and the
@@ -500,6 +535,27 @@ class Query {
     if (filters.competition !== null) {
       this.where.push(`EXISTS (SELECT 1 FROM article m JOIN article_entity e ON e.article_id = m.id
          WHERE m.story_id = s.id AND e.entity_type = 'competition' AND e.entity_id = ${this.param(filters.competition)}::uuid)`);
+    }
+    if (filters.type !== null) {
+      this.where.push(`EXISTS (SELECT 1 FROM story_label fl
+         WHERE fl.story_id = s.id AND fl.superseded_at IS NULL AND fl.story_type = ${this.param(filters.type)}::text)`);
+    }
+    if (filters.player !== null) {
+      this.where.push(`EXISTS (SELECT 1 FROM article m JOIN article_entity e ON e.article_id = m.id
+         WHERE m.story_id = s.id AND e.entity_type = 'person' AND e.entity_id = ${this.param(filters.player)}::uuid)`);
+    }
+    // T-1003 (D-124): calendar days in the viewer's zone, against the story's
+    // first publication -- the same instant the cards are ordered by.
+    const first = `COALESCE((SELECT min(published_at) FROM article_version WHERE article_id = a.id), a.fetched_at)`;
+    if (filters.from !== null) {
+      this.where.push(
+        `${first} >= (${this.param(filters.from)}::date)::timestamp AT TIME ZONE ${this.param(filters.time_zone)}::text`,
+      );
+    }
+    if (filters.to !== null) {
+      this.where.push(
+        `${first} < ((${this.param(filters.to)}::date + 1)::timestamp AT TIME ZONE ${this.param(filters.time_zone)}::text)`,
+      );
     }
     if (filters.country !== null) {
       const country = this.param(filters.country);

@@ -124,6 +124,18 @@ export interface NewsFilters {
   team: string | null;
   /** Stories with a version in this language. */
   language: string | null;
+  /** Stories whose current type is this (T-1003, D-124); untyped stories are counted, not shown. */
+  type: StoryType | null;
+  /** Stories any of whose reports links this person, by id (rule 1). */
+  player: string | null;
+  /**
+   * The story's first publication on or after this date (`YYYY-MM-DD`), and
+   * on or before `to`, as calendar days in `time_zone` (T-1003, D-124).
+   */
+  from: string | null;
+  to: string | null;
+  /** The IANA zone `from` and `to` are read in; `UTC` when none was given. */
+  time_zone: string;
 }
 
 /**
@@ -144,7 +156,13 @@ export type NewsSectionReason =
   /** No story matched the filters. */
   | 'no_match'
   /** Nothing has been read from any publisher yet. */
-  | 'nothing_yet';
+  | 'nothing_yet'
+  /**
+   * A player filter, while no story links any person yet (T-1003, D-124):
+   * the list would be empty because nobody is linked, not because there is
+   * no news about the player.
+   */
+  | 'persons_unlinked';
 
 export interface NewsSectionResponse {
   section: NewsSection;
@@ -159,6 +177,12 @@ export interface NewsSectionResponse {
   reason: NewsSectionReason | null;
   /** `?before=` for the next page of latest and following; `null` when this is the last. */
   next_before: string | null;
+  /**
+   * With a type filter only (T-1003, D-124): how many stories that match
+   * every other filter have no type, and so are not shown. `null` without a
+   * type filter.
+   */
+  untyped: number | null;
 }
 
 // ---------------------------------------------------------------------------
