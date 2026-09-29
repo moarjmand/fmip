@@ -4643,6 +4643,65 @@ version is `clubelo_then_own`, as 0.5.1 with its own record. 0.5.0 is not
 edited (rule 5, D-082). Promotion is T-535's evaluation (D-120), never this
 table.
 
+## D-113 — The platform-rules version is recorded at registration, and a new version is accepted before it applies
+
+**Date:** 2026-09-30 · **Task:** T-931 · **Status:** accepted (the maintainer's yes to N-2, 2026-09-30)
+
+`13-policy.md` says a registration stores which platform rules were
+accepted. Until now only *when* was stored (`user_account.accepted_rules_at`),
+so the rules' own *Changes* clause ("you are told before the change applies,
+and asked to accept the new version") had nothing to keep it.
+
+**What is stored.** Migration `1765300000000_platform-rules-version`:
+
+- `platform_rules_version`: every published version with its text and
+  publication time, insert-only. `platform-rules@1.0.0` is written by the
+  migration with the text approved on 2026-09-15 (`13-policy.md` section 4,
+  as plain paragraphs). Publishing a new version is inserting a row with its
+  text; the version in force is the **highest version number**, compared as
+  numbers, never the latest timestamp, so a clock cannot reorder two
+  publications (the compose Postgres clock drifts here).
+- `user_account.accepted_rules_version`, beside `accepted_rules_at`: the
+  version that applies to the member and when they accepted it. Registration
+  writes the version in force.
+- `platform_rules_acceptance`: every acceptance, one row per member and
+  version, so accepting 1.1.0 does not erase the record of 1.0.0.
+
+**The backfill (N-2).** Every existing account records
+`platform-rules@1.0.0` at its own `accepted_rules_at`: no other version has
+ever been published, so that is what each of them accepted. It is the
+column's default, so it is also what a row written without naming a version
+gets (fixtures, load scripts). Such a member is then asked for any newer
+version, never assumed to have accepted it.
+
+**Asking.** `GET /auth/me` (and the register and login answers) carry
+`rules: { current, accepted, accepted_at, pending }`. While `pending`, every
+page's header shows one notice with a link to `/rules`: one question
+however many versions were published meanwhile, since only the newest is
+asked, and gone once it is accepted. `/rules` shows the version in force
+to anybody (`GET /rules/platform`); a member with one pending accepts it
+there with `POST /auth/rules/accept`. The request names the version they
+read. If a newer version was published while they read, the answer is 409
+and the page shows them the newer text. A repeat acceptance is a no-op.
+
+**Meanwhile nothing is blocked.** Until they accept, the version they
+accepted before applies to them. Nothing they wrote is hidden, and they
+can go on writing. A rules change can therefore not act on a member
+retroactively or silently. There is no "not now": the notice is a sentence
+under the header, not a gate, and ending it is one click on the page that
+shows the text.
+
+**Not built.** No console for publishing a version. A new version needs
+the maintainer's approved text first (`13-policy.md`), and then it is one
+`INSERT`, so a form would be a way to publish text nobody approved.
+
+**The timestamp.** The plan pre-assigned migration `1764860000000`.
+Production had already applied migrations up to `1765200000000` by the time
+this was built, and node-pg-migrate refuses a migration older than the last
+one applied. So this one is `1765300000000`. The content is what the plan
+named (`platform_rules_acceptance`, the version each member accepted and
+when), plus the version table the acceptance points at.
+
 ## D-114 — The scores card summarises the model's latest pre-kick-off version, the community's totals at D-052's floor, and viewing in the viewer's own territory
 
 **Date:** 2026-09-29 · **Task:** T-940 · **Status:** accepted

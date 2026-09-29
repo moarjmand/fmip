@@ -25,6 +25,51 @@ export interface AuthUser {
 
 export interface SessionResponse {
   user: AuthUser;
+  /** Which platform rules apply to the member, and whether a newer version awaits them (T-931). */
+  rules: PlatformRulesStanding;
+}
+
+/**
+ * The platform rules a member accepts (13-policy.md, T-931, D-113). Each
+ * version is published once and never changed: `platform-rules@1.0.0`,
+ * `platform-rules@1.1.0`. The one in force is the highest version number.
+ */
+export interface PlatformRules {
+  /** e.g. `platform-rules@1.1.0`. */
+  version: string;
+  /** ISO 8601. */
+  published_at: string;
+  /**
+   * The text, in English as approved: paragraphs separated by a blank line; a
+   * paragraph whose every line starts with `- ` is a list.
+   */
+  body: string;
+}
+
+/**
+ * A member and the platform rules. A newer published version does not apply
+ * to them until they accept it; until then the version they accepted does,
+ * and nothing they wrote is hidden or held back meanwhile.
+ */
+export interface PlatformRulesStanding {
+  /** The newest published version. */
+  current: string;
+  /** The version that applies to this member: the last one they accepted. */
+  accepted: string;
+  /** ISO 8601: when `accepted` was accepted. */
+  accepted_at: string;
+  /** `true` while `current` is newer than `accepted`: the member is asked to accept it. */
+  pending: boolean;
+}
+
+/**
+ * `POST /auth/rules/accept`. The version the member read; it must be the one
+ * in force, so a version published while they were reading is not accepted
+ * on their behalf (409). Accepting the version already accepted is a no-op.
+ * Answers 200 with the member's `PlatformRulesStanding`.
+ */
+export interface AcceptPlatformRulesRequest {
+  version: string;
 }
 
 /** `POST /auth/register`. Every field is required (blueprint 7.1). */
@@ -38,7 +83,7 @@ export interface RegisterRequest {
   country_id: string;
   preferred_language: string;
   timezone: string;
-  /** Must be `true`: acceptance of the platform rules. */
+  /** Must be `true`: acceptance of the platform rules in force (recorded with its version, T-931). */
   accept_rules: boolean;
 }
 

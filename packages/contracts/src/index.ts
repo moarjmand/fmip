@@ -70,11 +70,14 @@ export type {
 } from './health';
 export { DELETED_USERNAME_PATTERN, ROLE_REFUSALS, forbidden, isDeletedMember } from './identity';
 export type {
+  AcceptPlatformRulesRequest,
   ApiError,
   AuthUser,
   DeleteAccountRequest,
   ForgotPasswordRequest,
   LoginRequest,
+  PlatformRules,
+  PlatformRulesStanding,
   RefusedRole,
   RegisterRequest,
   ResetPasswordRequest,

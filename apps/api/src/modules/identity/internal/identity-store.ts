@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { AuthUser } from '@fmip/contracts';
 import { Pool, type PoolClient } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
+import { CURRENT_RULES_VERSION_SQL } from './platform-rules-store';
 
 /** A `user_account` row as the queries below return it. */
 export interface UserRow {
@@ -76,8 +77,9 @@ export class PostgresIdentityStore {
 
       const { rows } = await client.query<UserRow>(
         `INSERT INTO user_account AS u
-           (username, display_name, email, country_id, preferred_language, timezone, accepted_rules_at)
-         VALUES ($1, $2, $3, $4, $5, $6, now())
+           (username, display_name, email, country_id, preferred_language, timezone,
+            accepted_rules_at, accepted_rules_version)
+         VALUES ($1, $2, $3, $4, $5, $6, now(), ${CURRENT_RULES_VERSION_SQL})
          RETURNING ${USER_COLUMNS}`,
         [
           input.username,
@@ -94,6 +96,12 @@ export class PostgresIdentityStore {
       await client.query(
         `INSERT INTO credential (user_id, kind, secret_hash) VALUES ($1, 'password', $2)`,
         [user.id, input.passwordHash],
+      );
+      // The version accepted at registration, beside when (T-931, D-113).
+      await client.query(
+        `INSERT INTO platform_rules_acceptance (user_id, version, accepted_at)
+         SELECT id, accepted_rules_version, accepted_rules_at FROM user_account WHERE id = $1`,
+        [user.id],
       );
 
       await client.query('COMMIT');

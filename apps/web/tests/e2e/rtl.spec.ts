@@ -109,4 +109,20 @@ test.describe('layout mirrors under rtl', () => {
       expect(style).toEqual({ borderLeftWidth: '0px', borderRightWidth: ACCENT_WIDTH });
     });
   }
+
+  // T-931: the platform rules page mirrors, while the rules themselves stay
+  // an English, left-to-right block inside it.
+  test('/x-rtl/rules is right-to-left, its accent on the right', async ({ page }) => {
+    await page.goto('/x-rtl/rules');
+
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    const style = await page.getByTestId('title').evaluate((el) => {
+      const computed = getComputedStyle(el);
+      return {
+        borderLeftWidth: computed.borderLeftWidth,
+        borderRightWidth: computed.borderRightWidth,
+      };
+    });
+    expect(style).toEqual({ borderLeftWidth: '0px', borderRightWidth: ACCENT_WIDTH });
+  });
 });
