@@ -1,7 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { GroupControls, JoinRequestControls } from '@/components/group-controls';
+import {
+  GroupControls,
+  GroupRulesForm,
+  JoinRequestControls,
+  RulesSeen,
+} from '@/components/group-controls';
 import { GroupPollsSection } from '@/components/group-polls';
 import { MemberHandle, MemberName } from '@/components/member-name';
 import {
@@ -129,7 +134,52 @@ export default async function GroupPage({
         )}
       </header>
 
-      <GroupControls locale={locale} slug={group.slug} standing={group.standing} />
+      {group.rules_changed && group.rules !== null && (
+        <Notice
+          tone="info"
+          as="div"
+          className="flex flex-col gap-2"
+          data-testid="group-rules-changed"
+        >
+          <p>
+            This group&rsquo;s rules have changed (version {group.rules.version}). Read them below.
+            You stay a member either way.
+          </p>
+          <RulesSeen locale={locale} slug={group.slug} />
+        </Notice>
+      )}
+
+      {group.rules !== null && (
+        <section className="flex flex-col gap-2" data-testid="group-rules">
+          <h2 className="text-lg font-semibold">This group&rsquo;s rules</h2>
+          <p
+            className="whitespace-pre-line text-sm"
+            lang={lang}
+            data-testid="group-rules-body-text"
+          >
+            {group.rules.body}
+          </p>
+          <p className="text-sm text-muted" data-testid="group-rules-whose">
+            Version {group.rules.version}. Written by the group&rsquo;s owner: these are the
+            group&rsquo;s own rules, not the platform&rsquo;s, and they sit beside the platform
+            rules every member already accepted.
+          </p>
+        </section>
+      )}
+
+      <GroupControls
+        locale={locale}
+        slug={group.slug}
+        standing={group.standing}
+        rulesVersion={group.rules?.version ?? null}
+      />
+
+      {group.standing === 'owner' && (
+        <section className="flex flex-col gap-2" data-testid="group-rules-owner">
+          <h2 className="text-lg font-semibold">Rules</h2>
+          <GroupRulesForm locale={locale} slug={group.slug} current={group.rules?.body ?? null} />
+        </section>
+      )}
 
       {group.conversation_id !== null && (
         <Link

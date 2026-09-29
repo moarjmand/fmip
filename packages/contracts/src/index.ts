@@ -543,6 +543,7 @@ export type {
 // Groups (blueprint 8.2 and the exclusive groups of 10.1, T-240). Three
 // visibilities, because "found but not read" is the case a boolean would lose.
 export {
+  MAX_GROUP_RULES,
   GROUP_FAVOURITE_TYPES,
   GROUP_INVITE_POLICIES,
   INVITE_LINK_DEFAULT_HOURS,
@@ -570,6 +571,9 @@ export {
   POLL_MIN_HOURS,
 } from './groups';
 export type {
+  AcceptGroupRulesRequest,
+  GroupRules,
+  SetGroupRulesRequest,
   GroupDirectoryFilters,
   GroupFavourite,
   GroupFavouriteRef,

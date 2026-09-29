@@ -24,6 +24,13 @@ export interface DirectoryFilters {
   competition: string | null;
 }
 
+export interface RulesRow {
+  version: number;
+  body: string;
+  created_by: string | null;
+  created_at: Date;
+}
+
 export interface HistoryRow {
   action: string;
   actor: string | null;
@@ -271,12 +278,95 @@ export class GroupsStore {
     await this.pool.query(`DELETE FROM user_group WHERE id = $1`, [groupId]);
   }
 
-  /** `true` when the member was added, `false` when they were already in. */
-  async addMember(groupId: string, userId: string, role = 'member'): Promise<boolean> {
+  /**
+   * `true` when the member was added, `false` when they were already in. The
+   * rules version is what they accepted (T-1023); the schema refuses none for
+   * a group that has rules.
+   */
+  async addMember(
+    groupId: string,
+    userId: string,
+    role = 'member',
+    rulesVersion: number | null = null,
+  ): Promise<boolean> {
     const { rowCount } = await this.pool.query(
-      `INSERT INTO group_member (group_id, user_id, role) VALUES ($1, $2, $3)
+      `INSERT INTO group_member (group_id, user_id, role, rules_version) VALUES ($1, $2, $3, $4)
        ON CONFLICT DO NOTHING`,
-      [groupId, userId, role],
+      [groupId, userId, role, rulesVersion],
+    );
+    return rowCount === 1;
+  }
+
+  // -------------------------------------------------------------------------
+  // Rules (T-1023, D-133)
+  // -------------------------------------------------------------------------
+
+  async latestRules(groupId: string): Promise<RulesRow | null> {
+    const { rows } = await this.pool.query<RulesRow>(
+      `SELECT r.version, r.body, u.username AS created_by, r.created_at
+         FROM group_rules_version r
+         LEFT JOIN user_account u ON u.id = r.created_by
+        WHERE r.group_id = $1
+        ORDER BY r.version DESC
+        LIMIT 1`,
+      [groupId],
+    );
+    return rows[0] ?? null;
+  }
+
+  async memberRules(
+    groupId: string,
+    userId: string,
+  ): Promise<{ rules_version: number | null; rules_seen_version: number | null } | null> {
+    const { rows } = await this.pool.query<{
+      rules_version: number | null;
+      rules_seen_version: number | null;
+    }>(
+      `SELECT rules_version, rules_seen_version FROM group_member
+        WHERE group_id = $1 AND user_id = $2`,
+      [groupId, userId],
+    );
+    return rows[0] ?? null;
+  }
+
+  /**
+   * The next version, its `audit_log` row in the group's history, and the
+   * owner marked as having seen what they wrote -- one transaction. The
+   * version number is the schema's (`number_rules_version`).
+   */
+  async writeRules(groupId: string, actorId: string, body: string): Promise<number> {
+    return this.inTransaction(async (client) => {
+      const { rows } = await client.query<{ version: number }>(
+        `INSERT INTO group_rules_version (group_id, version, body, created_by)
+         VALUES ($1, 0, $2, $3) RETURNING version`,
+        [groupId, body, actorId],
+      );
+      const version = rows[0]?.version ?? 0;
+      await client.query(
+        `UPDATE group_member SET rules_seen_version = $3 WHERE group_id = $1 AND user_id = $2`,
+        [groupId, actorId, version],
+      );
+      await client.query(
+        `INSERT INTO audit_log (actor_id, action, target_type, target_id, reason, previous, next)
+         VALUES ($1::uuid, 'user_group.rules', 'user_group', $2::text,
+                 'The group owner wrote a new version of the group''s rules.', $3::jsonb, $4::jsonb)`,
+        [
+          actorId,
+          groupId,
+          JSON.stringify({ rules_version: version > 1 ? version - 1 : null }),
+          JSON.stringify({ rules_version: version }),
+        ],
+      );
+      return version;
+    });
+  }
+
+  /** The member has been shown the current rules; they are not shown again. */
+  async markRulesSeen(groupId: string, userId: string): Promise<boolean> {
+    const { rowCount } = await this.pool.query(
+      `UPDATE group_member SET rules_seen_version = group_rules_latest(group_id)
+        WHERE group_id = $1 AND user_id = $2 AND group_rules_latest(group_id) IS NOT NULL`,
+      [groupId, userId],
     );
     return rowCount === 1;
   }
@@ -413,11 +503,12 @@ export class GroupsStore {
   }
 
   /** Accept: join and drop the offer, so neither can exist without the other. */
-  async acceptInvite(groupId: string, userId: string): Promise<void> {
+  async acceptInvite(groupId: string, userId: string, rulesVersion: number | null): Promise<void> {
     await this.inTransaction(async (client) => {
       await client.query(
-        `INSERT INTO group_member (group_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-        [groupId, userId],
+        `INSERT INTO group_member (group_id, user_id, rules_version) VALUES ($1, $2, $3)
+         ON CONFLICT DO NOTHING`,
+        [groupId, userId, rulesVersion],
       );
       await client.query(`DELETE FROM group_invite WHERE group_id = $1 AND invitee_id = $2`, [
         groupId,
@@ -446,10 +537,16 @@ export class GroupsStore {
     return rows.map((row) => row.user_id);
   }
 
-  async requestJoin(groupId: string, userId: string, note: string | null): Promise<void> {
+  async requestJoin(
+    groupId: string,
+    userId: string,
+    note: string | null,
+    rulesVersion: number | null = null,
+  ): Promise<void> {
     await this.pool.query(
-      `INSERT INTO group_join_request (group_id, user_id, note) VALUES ($1, $2, $3)`,
-      [groupId, userId, note],
+      `INSERT INTO group_join_request (group_id, user_id, note, rules_version)
+       VALUES ($1, $2, $3, $4)`,
+      [groupId, userId, note, rulesVersion],
     );
   }
 
@@ -481,10 +578,14 @@ export class GroupsStore {
     return rowCount === 1;
   }
 
+  /** The member joins with the rules version they accepted when they asked (T-1023). */
   async acceptRequest(groupId: string, userId: string): Promise<void> {
     await this.inTransaction(async (client) => {
       await client.query(
-        `INSERT INTO group_member (group_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+        `INSERT INTO group_member (group_id, user_id, rules_version)
+         SELECT group_id, user_id, rules_version FROM group_join_request
+          WHERE group_id = $1 AND user_id = $2
+         ON CONFLICT DO NOTHING`,
         [groupId, userId],
       );
       await client.query(`DELETE FROM group_join_request WHERE group_id = $1 AND user_id = $2`, [

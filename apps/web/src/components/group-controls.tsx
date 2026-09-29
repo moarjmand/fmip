@@ -9,11 +9,14 @@ import {
   askToJoinGroupAction,
   declineGroupInviteAction,
   followInviteLinkAction,
+  groupRulesSeenAction,
+  setGroupRulesAction,
   joinGroupAction,
   leaveGroupAction,
   withdrawGroupRequestAction,
 } from '@/lib/group-actions';
 import { Button, FormStatus, TextArea } from '@/components/ui';
+import { MAX_GROUP_RULES } from '@fmip/contracts';
 
 type BoundAction = (state: ActionState, formData: FormData) => Promise<ActionState>;
 
@@ -22,21 +25,40 @@ type BoundAction = (state: ActionState, formData: FormData) => Promise<ActionSta
  * as `friend-controls.tsx`, for the same reason: each control works on its own
  * without JavaScript, and a failure is shown beside the thing that failed.
  */
+/**
+ * The rules a member accepts to get in (T-1023): a box they tick, and the
+ * version they were shown, so what they accept is the text on the screen.
+ * Nothing at all when the group has no rules.
+ */
+function AcceptRules({ version }: { version: number | null | undefined }) {
+  if (version === null || version === undefined) return null;
+  return (
+    <label className="flex items-center gap-2 text-sm">
+      <input type="hidden" name="rules_version" value={version} />
+      <input type="checkbox" name="accept_rules" required data-testid="group-accept-rules" />I have
+      read this group&rsquo;s rules and I accept them.
+    </label>
+  );
+}
+
 function ActionButton({
   action,
   label,
   testId,
   quiet,
+  rulesVersion,
 }: {
   action: BoundAction;
   label: string;
   testId: string;
   quiet?: boolean;
+  rulesVersion?: number | null;
 }) {
   const [state, formAction, pending] = useActionState(action, null);
 
   return (
     <form action={formAction} className="flex flex-col gap-1">
+      <AcceptRules version={rulesVersion} />
       <Button
         type="submit"
         variant={quiet ? 'secondary' : 'primary'}
@@ -57,7 +79,15 @@ function ActionButton({
 }
 
 /** Asking to join, with a sentence for whoever decides. */
-function AskToJoin({ locale, slug }: { locale: string; slug: string }) {
+function AskToJoin({
+  locale,
+  slug,
+  rulesVersion,
+}: {
+  locale: string;
+  slug: string;
+  rulesVersion: number | null;
+}) {
   const [state, formAction, pending] = useActionState(
     askToJoinGroupAction.bind(null, locale, slug),
     null,
@@ -73,6 +103,7 @@ function AskToJoin({ locale, slug }: { locale: string; slug: string }) {
         maxLength={300}
         data-testid="group-note"
       />
+      <AcceptRules version={rulesVersion} />
       <Button
         type="submit"
         variant="primary"
@@ -116,10 +147,13 @@ export function GroupControls({
   locale,
   slug,
   standing,
+  rulesVersion = null,
 }: {
   locale: string;
   slug: string;
   standing: GroupStanding;
+  /** The group's current rules version, which every way in asks to accept (T-1023). */
+  rulesVersion?: number | null;
 }) {
   if (standing === 'owner') {
     return (
@@ -147,6 +181,7 @@ export function GroupControls({
           action={acceptGroupInviteAction.bind(null, locale, slug)}
           label="Accept invitation"
           testId="group-accept-invite"
+          rulesVersion={rulesVersion}
         />
         <ActionButton
           action={declineGroupInviteAction.bind(null, locale, slug)}
@@ -180,12 +215,13 @@ export function GroupControls({
         action={joinGroupAction.bind(null, locale, slug)}
         label="Join group"
         testId="group-join"
+        rulesVersion={rulesVersion}
       />
     );
   }
 
   if (standing === 'may_ask') {
-    return <AskToJoin locale={locale} slug={slug} />;
+    return <AskToJoin locale={locale} slug={slug} rulesVersion={rulesVersion} />;
   }
 
   if (standing === 'invite_only') {
@@ -227,17 +263,85 @@ export function FollowInviteLink({
   locale,
   token,
   follow,
+  rulesVersion = null,
 }: {
   locale: string;
   token: string;
   follow: 'join' | 'ask';
+  rulesVersion?: number | null;
 }) {
   return (
     <ActionButton
       action={followInviteLinkAction.bind(null, locale, token)}
       label={follow === 'join' ? 'Join group' : 'Ask to join'}
       testId="invite-link-follow"
+      rulesVersion={rulesVersion}
     />
+  );
+}
+
+/** "I have read them": the new rules are not shown as new again (T-1023). */
+export function RulesSeen({ locale, slug }: { locale: string; slug: string }) {
+  return (
+    <ActionButton
+      action={groupRulesSeenAction.bind(null, locale, slug)}
+      label="I have read them"
+      testId="group-rules-seen"
+      quiet
+    />
+  );
+}
+
+/**
+ * The owner's rules form (T-1023): publishing writes the next version, and
+ * the text of every earlier one stays as it was, because a member accepted
+ * exactly those words.
+ */
+export function GroupRulesForm({
+  locale,
+  slug,
+  current,
+}: {
+  locale: string;
+  slug: string;
+  current: string | null;
+}) {
+  const [state, formAction, pending] = useActionState(
+    setGroupRulesAction.bind(null, locale, slug),
+    null,
+  );
+  return (
+    <form action={formAction} className="flex flex-col gap-2" data-testid="group-rules-form">
+      <TextArea
+        label={current === null ? 'Write the group’s rules' : 'Write a new version of the rules'}
+        id="group-rules-body"
+        name="body"
+        rows={6}
+        maxLength={MAX_GROUP_RULES}
+        defaultValue={current ?? ''}
+        required
+        data-testid="group-rules-body"
+      />
+      <p className="text-sm text-muted">
+        Publishing makes a new version. Joining will ask for it to be accepted; members already in
+        are shown it once and stay members either way.
+      </p>
+      <Button
+        type="submit"
+        variant="secondary"
+        pending={pending}
+        pendingLabel="Working…"
+        data-testid="group-rules-publish"
+        className="self-start"
+      >
+        Publish
+      </Button>
+      {state !== null && (
+        <FormStatus ok={state.ok} data-testid="group-rules-result">
+          {state.ok ? (state.message ?? 'Done.') : state.message}
+        </FormStatus>
+      )}
+    </form>
   );
 }
 

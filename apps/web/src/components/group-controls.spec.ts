@@ -167,3 +167,26 @@ describe('following an invite link (T-1021)', () => {
     expect(INVITE).not.toContain('invite_only');
   });
 });
+
+describe("a group's rules, accepted on the way in (T-1023)", () => {
+  it('asks every way in to accept the version it shows', () => {
+    // Joining, asking, accepting an invitation and following a link all pass
+    // the version through the one checkbox.
+    for (const control of [
+      'testId="group-join"',
+      'testId="group-accept-invite"',
+      'testId="invite-link-follow"',
+    ]) {
+      const at = CONTROLS.indexOf(control);
+      expect(at, control).toBeGreaterThan(-1);
+      expect(CONTROLS.slice(at, at + 200), control).toContain('rulesVersion={rulesVersion}');
+    }
+    expect(CONTROLS).toContain('<AcceptRules version={rulesVersion} />');
+    expect(CONTROLS).toContain('name="accept_rules" required');
+  });
+
+  it("says the rules are the group's, not the platform's", () => {
+    expect(PAGE).toContain('not the platform&rsquo;s');
+    expect(PAGE).toContain('You stay a member either way.');
+  });
+});

@@ -160,6 +160,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('invite links
             OR group_id IN (SELECT id FROM user_group WHERE created_by = ANY($1::uuid[]))`,
         [everyone],
       );
+      await client.query(
+        `DELETE FROM group_rules_version WHERE group_id IN
+           (SELECT id FROM user_group WHERE created_by = ANY($1::uuid[]))`,
+        [everyone],
+      );
       await client.query(`DELETE FROM user_group WHERE created_by = ANY($1::uuid[])`, [everyone]);
       await client.query(`DELETE FROM rate_window WHERE user_id = ANY($1::uuid[])`, [everyone]);
     } finally {
@@ -363,6 +368,19 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('invite links
     );
     const over = await post(`/groups/${slug}/invite-links`, {}, owner);
     expect(over.statusCode).toBe(429);
+  });
+
+  it('shows the rules before following, and needs them accepted (T-1023)', async () => {
+    const slug = await group('invite_only');
+    await put(`/groups/${slug}/rules`, { body: 'No spoilers.' }, owner);
+    const made = await link(slug);
+    const preview = (
+      await get(`/group-invite-links/${made.token}`, other)
+    ).json() as InviteLinkPreviewResponse;
+    expect(preview.preview.rules).toMatchObject({ version: 1, body: 'No spoilers.' });
+    expect((await post(`/group-invite-links/${made.token}`, null, other)).statusCode).toBe(409);
+    const followed = await post(`/group-invite-links/${made.token}`, { rules_version: 1 }, other);
+    expect(followed.statusCode).toBe(201);
   });
 
   it('tells a guest to sign in', async () => {

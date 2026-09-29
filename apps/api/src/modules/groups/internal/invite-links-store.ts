@@ -116,11 +116,18 @@ export class InviteLinksStore {
     return rows[0] ?? null;
   }
 
-  /** Follow: the whole of it is `group_invite_link_follow()`, one statement. */
-  async follow(tokenHash: string, viewerId: string): Promise<FollowRow | null> {
+  /**
+   * Follow: the whole of it is `group_invite_link_follow()`, one statement,
+   * with the version of the group's rules the follower accepted (T-1023).
+   */
+  async follow(
+    tokenHash: string,
+    viewerId: string,
+    rulesVersion: number | null,
+  ): Promise<FollowRow | null> {
     const { rows } = await this.pool.query<FollowRow>(
-      `SELECT outcome, group_id, visibility FROM group_invite_link_follow($1, $2)`,
-      [tokenHash, viewerId],
+      `SELECT outcome, group_id, visibility FROM group_invite_link_follow($1, $2, $3)`,
+      [tokenHash, viewerId, rulesVersion],
     );
     return rows[0] ?? null;
   }

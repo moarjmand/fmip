@@ -69,6 +69,10 @@ const FIELDS: Record<string, Rule> = {
     exempt:
       'no web page renders the invite-link list yet (T-1021 is API-first); the page that does must render it through the rule',
   },
+  'groups.ts:GroupRules.created_by': {
+    exempt:
+      "not rendered: a group's rules are shown as the owner's (T-1023), never under a member's name",
+  },
   'groups.ts:GroupJoinRequest.display_name': {
     rendered: [['app/[locale]/groups/[slug]/page.tsx', 'member={request}']],
   },

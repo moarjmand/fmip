@@ -135,6 +135,20 @@ export interface Group extends GroupSummary {
   members: GroupMember[] | null;
   /** What is waiting for an owner or a moderator; `null` for everybody else. */
   pending: { invites: number; requests: number } | null;
+  /**
+   * The group's current rules (T-1023), or `null` when its owner has written
+   * none. Shown to whoever may see the group, so a member reads them before
+   * joining. **They are the group's words, not the platform's.**
+   */
+  rules: GroupRules | null;
+  /** The version this viewer accepted on joining; `null` outside the group, or before it had rules. */
+  rules_accepted_version: number | null;
+  /**
+   * The rules changed since this member was last shown them: the page shows
+   * the new version once, until the member says they have read it. Nobody is
+   * removed for not accepting it.
+   */
+  rules_changed: boolean;
   /** Who may invite (T-1020); the owner changes it. */
   invite_policy: GroupInvitePolicy;
   /** Whether this viewer may invite under that policy. */
@@ -212,6 +226,38 @@ export interface UpdateGroupRequest {
 export interface JoinGroupRequest {
   /** A sentence to whoever decides. Optional, and never required to be read. */
   note?: string | null;
+  /** The version of the group's rules the asker accepted (T-1023); required when it has rules. */
+  rules_version?: number | null;
+}
+
+// ---------------------------------------------------------------------------
+// A group's rules (T-1023, D-133): the owner writes them, versioned and never
+// edited in place; a member accepts the current version to join.
+// ---------------------------------------------------------------------------
+
+export const MAX_GROUP_RULES = 4000;
+
+/** One version of a group's rules. The group's own words, beside the platform's rules. */
+export interface GroupRules {
+  version: number;
+  body: string;
+  /** The owner who wrote this version; null once their account is gone. */
+  created_by: string | null;
+  created_at: string;
+}
+
+/** `PUT /groups/:slug/rules`, the owner only: writes the next version. */
+export interface SetGroupRulesRequest {
+  body: string;
+}
+
+/**
+ * The body of every way into a group -- joining a public group, accepting an
+ * invitation, following an invite link: the version of the rules accepted.
+ * Required when the group has rules; it must be the current version.
+ */
+export interface AcceptGroupRulesRequest {
+  rules_version?: number | null;
 }
 
 export interface SetGroupRoleRequest {
@@ -313,6 +359,8 @@ export interface InviteLinkPreview {
   follow: 'join' | 'ask';
   /** The viewer is already in the group. */
   member: boolean;
+  /** The group's current rules, to read before following (T-1023); `null` when it has none. */
+  rules: GroupRules | null;
 }
 
 export interface InviteLinkPreviewResponse {

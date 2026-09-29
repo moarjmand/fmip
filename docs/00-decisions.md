@@ -5068,8 +5068,44 @@ cannot be a filter is left out rather than refused, the way the scores filters
 read theirs. Whoever may change the group's name (the owner and moderators)
 may change these, as a group setting.
 
+**A group's rules are the owner's written text, versioned (T-1023).** Only
+the owner writes them (a moderator runs the group; what a member accepts is
+the owner's). Each change is the next version, numbered by the database;
+nothing is edited in place, so the words a member accepted are always the
+words they read. Every version is audited in the group's history
+(`user_group.rules`). The rules are shown to whoever may see the group --
+a stranger to a public or discoverable group, an invitee, the holder of a
+live invite link -- because a member reads them **before** joining.
+
+**Joining without accepting the current version is refused, by the schema.**
+Every way in carries the version the member ticked to accept: joining a
+public group, asking to join a discoverable one, accepting an invitation and
+following an invite link. The API refuses a missing or an out-of-date version
+with a sentence that says which (409); the database refuses a membership or a
+request with none (`PL006`, hint `rules`), whatever the caller. A request
+records what its asker accepted, and letting them in records that version.
+The owner's own row at creation is exempt, since a group has no rules until
+its owner writes them.
+
+**A new version is shown once to existing members; nobody is removed for not
+accepting it.** `rules_seen_version` records the newest version a member has
+been shown; the page shows a newer one, with the text, until the member says
+they have read it (`POST /groups/:slug/rules/seen`). Their membership does not
+change either way. **The text is the group's, not the platform's, and says
+so**: the page names it as the owner's rules beside the platform rules every
+member accepted at registration (D-059), never instead of them.
+
+Criteria that decide entry (a minimum rating, a country, an account age) and
+an administrator role between owner and moderator are not built: N-6 is the
+maintainer's.
+
 **Alternatives considered.** Restricting the language to the site's locales:
 a Persian-speaking group on an English site is exactly the case, and a
 closed list would make it lie. Storing a favourite by name: rule 1. Several
 favourites: no blueprint case, and a filter over a list is a different
-query for a problem nobody has.
+query for a problem nobody has. Editing the rules in place: a member's
+acceptance would then point at words they never read. Removing members who
+do not accept a new version: the acceptance criterion refuses it, and a
+group's owner changing a sentence should not empty the group. Showing the
+new version as a notification: a new kind and a preference for something
+the group's own page already shows once.

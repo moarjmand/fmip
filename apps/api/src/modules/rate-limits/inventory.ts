@@ -282,6 +282,8 @@ export const EXEMPT: Readonly<Record<string, string>> = {
   'DELETE /groups/:slug/members/me': OWN_STATE,
   'PUT /groups/:slug/members/:username/role': GROUP_ADMIN,
   'PUT /groups/:slug/invite-policy': GROUP_ADMIN,
+  'PUT /groups/:slug/rules': GROUP_ADMIN,
+  'POST /groups/:slug/rules/seen': OWN_STATE,
   'DELETE /groups/:slug/members/:username': GROUP_ADMIN,
   'DELETE /groups/:slug/invites/:username': REMOVAL,
   'DELETE /groups/:slug/invite-links/:id': REMOVAL,

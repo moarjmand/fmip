@@ -57,15 +57,19 @@ export default async function GroupInvitePage({
     );
   }
 
-  const { group, state, follow, member } = result.data.preview;
+  const { group, state, follow, member, rules } = result.data.preview;
   const groupHref = `/${locale}/groups/${encodeURIComponent(group.slug)}`;
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-4 p-8">
-      <h1 className="text-2xl font-semibold" data-testid="invite-link-group">
+      <h1
+        className="text-2xl font-semibold"
+        data-testid="invite-link-group"
+        lang={group.language ?? undefined}
+      >
         {group.name}
       </h1>
-      {group.description !== null && <p>{group.description}</p>}
+      {group.description !== null && <p lang={group.language ?? undefined}>{group.description}</p>}
 
       {member ? (
         <p className="text-sm" data-testid="invite-link-member">
@@ -86,7 +90,24 @@ export default async function GroupInvitePage({
               ? 'This link lets you into the group.'
               : 'This group is joined by request. The link sends yours to the people who run it.'}
           </p>
-          <FollowInviteLink locale={locale} token={token} follow={follow} />
+          {rules !== null && (
+            <section className="flex flex-col gap-2" data-testid="invite-link-rules">
+              <h2 className="text-lg font-semibold">This group&rsquo;s rules</h2>
+              <p className="whitespace-pre-line text-sm" lang={group.language ?? undefined}>
+                {rules.body}
+              </p>
+              <p className="text-sm text-muted">
+                Written by the group&rsquo;s owner: the group&rsquo;s own rules, not the
+                platform&rsquo;s.
+              </p>
+            </section>
+          )}
+          <FollowInviteLink
+            locale={locale}
+            token={token}
+            follow={follow}
+            rulesVersion={rules?.version ?? null}
+          />
         </>
       )}
     </main>

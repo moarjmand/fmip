@@ -156,6 +156,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('groups over 
             OR group_id IN (SELECT id FROM user_group WHERE created_by = ANY($1::uuid[]))`,
         [everyone],
       );
+      await client.query(
+        `DELETE FROM group_rules_version WHERE group_id IN
+           (SELECT id FROM user_group WHERE created_by = ANY($1::uuid[]))`,
+        [everyone],
+      );
       await client.query(`DELETE FROM user_group WHERE created_by = ANY($1::uuid[])`, [everyone]);
       await client.query(`DELETE FROM rate_window WHERE user_id = ANY($1::uuid[])`, [everyone]);
     } finally {
@@ -623,6 +628,109 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('groups over 
       // A value that cannot be a filter is left out, not refused.
       const junk = (await get(`/groups?language=%3Cb%3E&team=nope`, ada)).json() as GroupsResponse;
       expect(junk.filters).toEqual({ language: null, favourite: null });
+    });
+  });
+
+  describe("a group's rules, versioned and accepted on joining (T-1023, D-133)", () => {
+    type RulesView = Group & { rules: { version: number; body: string } | null };
+
+    it("are the owner's to write, a version at a time, never edited", async () => {
+      const slug = await group(ada, 'public');
+      await post(`/groups/${slug}/members`, null, bo);
+      await put(`/groups/${slug}/members/${bo}/role`, { role: 'moderator' }, ada);
+      expect((await put(`/groups/${slug}/rules`, { body: 'Be kind.' }, bo)).statusCode).toBe(403);
+      expect((await put(`/groups/${slug}/rules`, { body: '  ' }, ada)).statusCode).toBe(400);
+
+      const first = await put(`/groups/${slug}/rules`, { body: 'Be kind.' }, ada);
+      expect(first.statusCode).toBe(200);
+      expect(first.json()).toEqual({ version: 1 });
+      const second = await put(`/groups/${slug}/rules`, { body: 'Be kind. No spoilers.' }, ada);
+      expect(second.json()).toEqual({ version: 2 });
+
+      const seen = (await get(`/groups/${slug}`, stranger)).json() as { group: RulesView };
+      expect(seen.group.rules).toMatchObject({ version: 2, body: 'Be kind. No spoilers.' });
+      await expect(
+        pool.query(
+          `UPDATE group_rules_version SET body = 'Anything goes.'
+            WHERE group_id = (SELECT id FROM user_group WHERE slug = $1)`,
+          [slug],
+        ),
+      ).rejects.toMatchObject({ code: 'PL007' });
+      const history = (await get(`/groups/${slug}/history`, ada)).json() as {
+        history: { action: string; next: unknown }[];
+      };
+      expect(history.history.filter((h) => h.action === 'user_group.rules')).toHaveLength(2);
+    });
+
+    it('refuses joining without accepting the current version, and records the one accepted', async () => {
+      const slug = await group(ada, 'public');
+      await put(`/groups/${slug}/rules`, { body: 'Be kind.' }, ada);
+      const none = await post(`/groups/${slug}/members`, null, cass);
+      expect(none.statusCode).toBe(409);
+      expect((none.json() as { message: string }).message).toMatch(/has rules/);
+      const stale = await post(`/groups/${slug}/members`, { rules_version: 7 }, cass);
+      expect(stale.statusCode).toBe(409);
+      expect((stale.json() as { message: string }).message).toMatch(/changed/);
+
+      expect((await post(`/groups/${slug}/members`, { rules_version: 1 }, cass)).statusCode).toBe(
+        204,
+      );
+      const mine = (await get(`/groups/${slug}`, cass)).json() as { group: Group };
+      expect(mine.group.rules_accepted_version).toBe(1);
+      expect(mine.group.rules_changed).toBe(false);
+
+      // The schema's own copy of the rule, whatever the caller.
+      await expect(
+        pool.query(
+          `INSERT INTO group_member (group_id, user_id)
+           SELECT id, $2 FROM user_group WHERE slug = $1`,
+          [slug, ids.get(stranger)],
+        ),
+      ).rejects.toMatchObject({ code: 'PL006' });
+    });
+
+    it('shows a new version once to existing members, and removes nobody', async () => {
+      const slug = await group(ada, 'public');
+      await post(`/groups/${slug}/members`, null, bo);
+      await put(`/groups/${slug}/rules`, { body: 'Be kind.' }, ada);
+
+      let seen = (await get(`/groups/${slug}`, bo)).json() as { group: Group };
+      expect(seen.group.standing).toBe('member');
+      expect(seen.group.rules_accepted_version).toBeNull();
+      expect(seen.group.rules_changed).toBe(true);
+      // The owner who wrote it is not told about their own words.
+      const owner = (await get(`/groups/${slug}`, ada)).json() as { group: Group };
+      expect(owner.group.rules_changed).toBe(false);
+
+      expect((await post(`/groups/${slug}/rules/seen`, null, bo)).statusCode).toBe(204);
+      seen = (await get(`/groups/${slug}`, bo)).json() as { group: Group };
+      expect(seen.group.rules_changed).toBe(false);
+      expect(seen.group.standing).toBe('member');
+    });
+
+    it('carries the accepted version through a request and an invitation', async () => {
+      const asked = await group(ada, 'discoverable');
+      await put(`/groups/${asked}/rules`, { body: 'Be kind.' }, ada);
+      expect((await post(`/groups/${asked}/requests`, { note: 'hi' }, cass)).statusCode).toBe(409);
+      expect(
+        (await post(`/groups/${asked}/requests`, { note: 'hi', rules_version: 1 }, cass))
+          .statusCode,
+      ).toBe(204);
+      expect((await post(`/groups/${asked}/requests/${cass}/accept`, null, ada)).statusCode).toBe(
+        204,
+      );
+      const inside = (await get(`/groups/${asked}`, cass)).json() as { group: Group };
+      expect(inside.group.rules_accepted_version).toBe(1);
+
+      const invited = await group(ada, 'invite_only');
+      await put(`/groups/${invited}/rules`, { body: 'Be kind.' }, ada);
+      await post(`/groups/${invited}/invites/${bo}`, null, ada);
+      const preview = (await get(`/groups/${invited}`, bo)).json() as { group: RulesView };
+      expect(preview.group.rules?.body).toBe('Be kind.');
+      expect((await post(`/me/group-invites/${invited}/accept`, null, bo)).statusCode).toBe(409);
+      expect(
+        (await post(`/me/group-invites/${invited}/accept`, { rules_version: 1 }, bo)).statusCode,
+      ).toBe(204);
     });
   });
 

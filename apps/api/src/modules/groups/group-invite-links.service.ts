@@ -6,6 +6,7 @@ import {
   type CreatedGroupInviteLink,
   type FollowInviteLinkResponse,
   type GroupInviteLink,
+  type GroupRules,
   type GroupSummary,
   INVITE_LINK_DEFAULT_HOURS,
   INVITE_LINK_DEFAULT_USES,
@@ -20,7 +21,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { groupSummary } from './internal/group-summary';
 import { type GroupRow, GroupsStore } from './internal/groups-store';
 import { InviteLinksStore, type LinkRow } from './internal/invite-links-store';
-import { policySentence } from './groups.service';
+import { policySentence, rulesCheck } from './groups.service';
 
 /**
  * Why a link verb was refused. `gone` is a dead link that is allowed to say
@@ -37,7 +38,8 @@ export type LinkRefusal =
   | 'already_member'
   | 'restricted'
   | 'unavailable'
-  | 'rate_limited';
+  | 'rate_limited'
+  | 'rules';
 
 export type LinkOutcome<T> =
   | { ok: true; value: T }
@@ -194,15 +196,30 @@ export class GroupInviteLinksService {
         state: row.state as InviteLinkState,
         follow: row.visibility === 'discoverable' ? 'ask' : 'join',
         member: row.member,
+        rules: await this.rulesOf(row.group_id),
       },
     };
   }
 
-  async follow(viewerId: string, token: string): Promise<LinkOutcome<FollowInviteLinkResponse>> {
+  async follow(
+    viewerId: string,
+    token: string,
+    rulesVersion?: number | null,
+  ): Promise<LinkOutcome<FollowInviteLinkResponse>> {
     if (!TOKEN.test(token)) return { ok: false, reason: 'not_found' };
+    // The rules are asked about only for a link that would let somebody in:
+    // a dead one answers first, and an invite-only group behind it stays 404.
+    const seen = await this.links.preview(hashToken(token), viewerId);
+    let accepted: number | null = null;
+    if (seen !== null && seen.state === 'live' && !seen.member) {
+      const latest = await this.groups.latestRules(seen.group_id);
+      const checked = rulesCheck(latest?.version ?? null, rulesVersion);
+      if (!checked.ok) return { ok: false, reason: 'rules', message: checked.message };
+      accepted = checked.version;
+    }
     let row;
     try {
-      row = await this.links.follow(hashToken(token), viewerId);
+      row = await this.links.follow(hashToken(token), viewerId, accepted);
     } catch (error) {
       if (code(error) === '23505') return { ok: false, reason: 'already_member' };
       return this.refusal(error);
@@ -239,6 +256,18 @@ export class GroupInviteLinksService {
 
   // -------------------------------------------------------------------------
 
+  private async rulesOf(groupId: string): Promise<GroupRules | null> {
+    const rules = await this.groups.latestRules(groupId);
+    return rules === null
+      ? null
+      : {
+          version: rules.version,
+          body: rules.body,
+          created_by: rules.created_by,
+          created_at: rules.created_at.toISOString(),
+        };
+  }
+
   private decides(role: string): boolean {
     return role === 'owner' || role === 'moderator';
   }
@@ -272,6 +301,11 @@ export class GroupInviteLinksService {
         return { ok: false, reason: 'rate_limited' };
       case 'PL010':
         return { ok: false, reason: 'already_member' };
+      case 'PL006':
+        if ((error as { hint?: string }).hint === 'rules') {
+          return { ok: false, reason: 'rules', message: "Accept this group's rules to join." };
+        }
+        throw error;
       default:
         throw error;
     }

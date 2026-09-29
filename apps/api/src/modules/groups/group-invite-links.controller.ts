@@ -15,6 +15,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type {
+  AcceptGroupRulesRequest,
   ApiError,
   AuthUser,
   CreateGroupInviteLinkRequest,
@@ -93,10 +94,11 @@ export class GroupInviteLinksController {
   @Post('group-invite-links/:token')
   async follow(
     @Param('token') token: string,
+    @Body() body: AcceptGroupRulesRequest,
     @Req() request: FastifyRequest,
   ): Promise<FollowInviteLinkResponse> {
     const viewer = await this.viewer(request);
-    return this.unwrap(await this.links.follow(viewer.id, token));
+    return this.unwrap(await this.links.follow(viewer.id, token, body?.rules_version));
   }
 
   private async viewer(request: FastifyRequest): Promise<AuthUser> {
@@ -154,6 +156,11 @@ export class GroupInviteLinksController {
         throw new ConflictException({
           error: 'conflict',
           message: 'That is not available.',
+        } satisfies ApiError);
+      case 'rules':
+        throw new ConflictException({
+          error: 'conflict',
+          message: outcome.message ?? "Accept this group's rules to join.",
         } satisfies ApiError);
       case 'rate_limited':
         throw new HttpException(

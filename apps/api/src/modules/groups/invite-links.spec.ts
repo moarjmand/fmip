@@ -6,6 +6,24 @@ import {
   INVITE_LINK_MAX_USES,
 } from '@fmip/contracts';
 import { checkLinkRequest, hashToken, newToken } from './group-invite-links.service';
+import { rulesCheck } from './groups.service';
+
+/** Accepting a group's rules (T-1023): the three answers. */
+describe('rules accepted on joining', () => {
+  it('needs nothing when the group has none, and the current version when it has', () => {
+    expect(rulesCheck(null, undefined)).toEqual({ ok: true, version: null });
+    expect(rulesCheck(null, 4)).toEqual({ ok: true, version: null });
+    expect(rulesCheck(3, 3)).toEqual({ ok: true, version: 3 });
+    expect(rulesCheck(3, null)).toMatchObject({
+      ok: false,
+      message: expect.stringMatching(/has rules/),
+    });
+    expect(rulesCheck(3, 2)).toMatchObject({
+      ok: false,
+      message: expect.stringMatching(/changed/),
+    });
+  });
+});
 
 /** The pure half of invite links (T-1021, D-132). */
 describe('invite links', () => {
