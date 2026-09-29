@@ -6020,6 +6020,72 @@ the evaluation and every query written twice, as D-082 said of one.
 
 ---
 
+## D-144 — The second leg of a tie is forecast given the first leg's score, from our records' cup ties
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26) · **Task:** T-1121 · **Follows:** D-083, D-085, D-139
+
+**The problem.** A second leg is not an ordinary match: a side two goals down
+must attack, a side two up can sit back, and a tie settled by the first leg is
+played at a lower intensity. The fit sees neither the tie nor its first leg.
+Blueprint 6.3 lists "competition format and match state"; football-data.co.uk
+carries no cups, so only our records can say it.
+
+**The decision.** An input, `second_leg` (`fmip_model/inputs/second_leg.py`),
+judged by D-139's harness and carried by no candidate until T-1150:
+
+- **A tie** is two fixtures of one cup season (`competition.kind <> 'league'`)
+  in the same round (the round label, else the stage's name), between the same
+  two clubs with the sides reversed, on different days, outside any group and
+  outside a round named as a group, league stage or phase, or regular season --
+  the pairing the bracket's `tieOf` makes (T-630). A continental round holding
+  the pair twice is two-legged, as the bracket takes it. A domestic cup's round
+  counts only when its stage says `legs = 2`, because a domestic replay is the
+  same pair reversed in the same round and is not a second leg. The later
+  fixture is the second leg.
+- **The feature.** `d`, the first leg's goal difference from the second leg's
+  home side's view (it was the away side then), capped at 3 either way. Home
+  goals move by `exp(b1 * d + b2 * |d|)`, away goals by `exp(-b1 * d + b2 *
+  |d|)`, the two coefficients fitted per refit by D-139's `FeatureInput`
+  (time-weighted Poisson likelihood with the candidate's expected goals as
+  offsets): `b1` is what a lead does to a side's own scoring, `b2` what a
+  lopsided tie does to both. A level first leg is a value (`d = 0`).
+- **Nothing is read** for a first leg, a single-leg round (a final, a domestic
+  tie), a pair that is not a tie by the rule above, or a second leg whose first
+  leg's result is not among what the forecast knows (matches strictly before
+  its day) -- so a tie whose legs share a day gives no value. The pairing is
+  read from `fixture` (rounds and sides are fixed by the draw, before either
+  leg); the first leg's score only ever from the harness's `known`. The score
+  is the full-time one (T-512).
+- **Where.** Only our records' cross-league division `XL` (T-533: every
+  competition that is not one domestic league) holds cup matches; the run is on
+  our records only, as the plan says.
+
+**The sample and the verdict.** Not run on our records yet: the laptop's
+private database holds only the football-data.co.uk divisions (no fixture
+rows), so there is no second leg to read and no verdict. The run on the
+server is the lead's; its report's "Applied" column is the number of second
+legs in the window, and this entry is amended with it and the verdict either
+way. Only knockout rounds of the cups we carry have second legs, and only as
+far back as the backlog has loaded them, so the sample may well be **below
+D-139's minimum of 300**: then the verdict is
+`insufficient`, and no candidate carries the input, because a coefficient
+fitted on fewer matches than the bar asks for would be noise the harness cannot
+tell from an effect. The two-season window below doubles the sample as far as
+the backlog has loaded past seasons. The server run, from `/opt/fmip`:
+
+```bash
+docker compose run --rm -T model sh -c "python -m fmip_model.backtest.inputs --input second_leg --divisions XL --from 2024-08-01 --to 2026-06-30 --history-from 2023-07-01 --out /tmp/reports --note server && cat /tmp/reports/*/inputs_second_leg_*.md"
+```
+
+**Rejected.** *The aggregate state as three flags (leading, level, trailing)*:
+the same information with less of it; the goal difference and its size carry
+it in two numbers. *Reading the first leg from `fixture_score` in `build`*: the
+harness's `known` is the boundary that keeps a forecast from seeing a result
+on or after its day, and every input keeps to it. *Treating every domestic
+pair met twice in a round as a tie*: replays would pass as second legs.
+*Extra time and penalties in the first leg's score*: a first leg has neither.
+
+---
+
 ## D-147 — Coach changes are read from stored line-ups by person id; a line-up naming no coach is a gap
 **Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26). T-1130's half; T-1131 adds the input's backtest verdict here.
 
