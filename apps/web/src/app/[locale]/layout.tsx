@@ -1,10 +1,13 @@
 import type { Metadata, Viewport } from 'next';
 import { notFound } from 'next/navigation';
+import { ClientMessagesProvider } from '@/components/client-messages';
 import { DemonstrationBanner } from '@/components/demonstration-banner';
+import { ERROR_PAGE_KEYS } from '@/components/error-page';
 import { ServiceWorker } from '@/components/service-worker';
 import { Translated } from '@/components/translated';
 import { SiteHeader } from '@/components/site-header';
 import { LOCALES, directionOf, isLocale } from '@/i18n/locales';
+import { resolveMessages } from '@/i18n/messages';
 import {
   DEMONSTRATION_TITLE_PREFIX,
   DEMONSTRATION_TITLE_TEMPLATE,
@@ -133,7 +136,12 @@ export default async function LocaleLayout({
         <DemonstrationBanner />
         <SiteHeader locale={locale} theme={theme} />
         <div id="content" tabIndex={-1} className="outline-none">
-          {children}
+          {/* The error pages below this layout are client components, and the
+              catalogues stay on the server (T-1040): their words are resolved
+              here, for this locale only, and handed down. */}
+          <ClientMessagesProvider messages={resolveMessages(locale, ERROR_PAGE_KEYS)}>
+            {children}
+          </ClientMessagesProvider>
         </div>
         <ServiceWorker />
       </body>

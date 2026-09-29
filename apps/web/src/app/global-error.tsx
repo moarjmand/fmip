@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, usePathname } from 'next/navigation';
-import { ErrorPageBody, errorPageLocale } from '@/components/error-page';
+import { ErrorPageBody, errorPageLocale, useErrorPageMessages } from '@/components/error-page';
 import { directionOf } from '@/i18n/locales';
 import '@fontsource-variable/vazirmatn';
 import './globals.css';
@@ -24,11 +24,12 @@ export default function GlobalError({
   const params = useParams<{ locale?: string }>();
   const pathname = usePathname();
   const locale = errorPageLocale(params?.locale, pathname);
+  const messages = useErrorPageMessages(locale);
   return (
     <html lang={locale} dir={directionOf(locale)}>
       <body>
         <title>FMIP</title>
-        <ErrorPageBody locale={locale} kind="failed" onRetry={retry} />
+        <ErrorPageBody locale={locale} kind="failed" messages={messages} onRetry={retry} />
       </body>
     </html>
   );

@@ -1,5 +1,8 @@
-import { LOCALES, type Locale, isPseudoLocale, localeFromPathname } from '@/i18n/locales';
+import { LOCALES, type Locale, isPseudoLocale } from '@/i18n/locales';
 import { isShippable, message } from '@/i18n/messages';
+import { type OfferedLanguage, type PickerEntry, pickerEntriesFor } from '@/lib/language-switch';
+
+export { type OfferedLanguage, type PickerEntry, switchLocale } from '@/lib/language-switch';
 
 /**
  * The language picker's contents (T-306): the languages the product actually
@@ -18,15 +21,12 @@ import { isShippable, message } from '@/i18n/messages';
  * is furniture, and furniture that appears the day a second language is done
  * is the honest signal. The predicate is a parameter so the spec can show both
  * states without editing a catalogue.
+ *
+ * **Server side (T-1040).** Deciding reads every catalogue, so this module is
+ * for server components: the header calls `offeredLanguages()` and hands the
+ * result to the picker, which makes the links with `language-switch.ts` and
+ * never sees a catalogue.
  */
-export interface PickerEntry {
-  locale: Locale;
-  /** The language's own name, from its own catalogue: a fact, not a translation. */
-  autonym: string;
-  /** The same page in that language. */
-  href: string;
-  current: boolean;
-}
 
 /** Locales a reader may be offered, in the order they ship. */
 export function offeredLocales(shippable: (locale: Locale) => boolean = isShippable): Locale[] {
@@ -34,33 +34,22 @@ export function offeredLocales(shippable: (locale: Locale) => boolean = isShippa
 }
 
 /**
- * The same pathname under another locale. The locale is the first segment when
- * there is one (`/es/scores` → `/fr/scores`); a pathname without one -- which
- * the proxy never serves, but a link may still be built from -- is prefixed.
+ * The offered locales with their autonyms: what the header hands the picker.
+ * Fewer than two is still passed as it is; the picker's `[]` rule decides.
  */
-export function switchLocale(pathname: string, to: Locale): string {
-  const current = localeFromPathname(pathname);
-  if (current === undefined) return `/${to}${pathname === '/' ? '' : pathname}`;
-  const rest = pathname.slice(`/${current}`.length);
-  return `/${to}${rest}`;
+export function offeredLanguages(
+  shippable: (locale: Locale) => boolean = isShippable,
+): OfferedLanguage[] {
+  return offeredLocales(shippable).map((locale) => ({
+    locale,
+    autonym: message(locale, `language.name.${locale}` as Parameters<typeof message>[1]).text,
+  }));
 }
 
-/**
- * What the picker shows for a reader on `pathname`, or `[]` when there is no
- * choice to offer. `[]` rather than the one entry, so a caller cannot render
- * a one-item menu by forgetting to check.
- */
+/** What the picker shows for a reader on `pathname`: `pickerEntriesFor` over `offeredLanguages`. */
 export function pickerEntries(
   pathname: string,
   shippable: (locale: Locale) => boolean = isShippable,
 ): PickerEntry[] {
-  const offered = offeredLocales(shippable);
-  if (offered.length < 2) return [];
-  const current = localeFromPathname(pathname);
-  return offered.map((locale) => ({
-    locale,
-    autonym: message(locale, `language.name.${locale}` as Parameters<typeof message>[1]).text,
-    href: switchLocale(pathname, locale),
-    current: locale === current,
-  }));
+  return pickerEntriesFor(pathname, offeredLanguages(shippable));
 }

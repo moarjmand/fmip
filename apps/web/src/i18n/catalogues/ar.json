@@ -1949,6 +1949,299 @@
     "text": "",
     "status": "untranslated"
   },
+  "groupSettings.title": {
+    "source": "Running the group",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.working": {
+    "source": "Working…",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.policy.title": {
+    "source": "Who may invite",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.policy.owner": {
+    "source": "Only the owner",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.policy.owner_and_moderators": {
+    "source": "The owner and the group's moderators",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.policy.members": {
+    "source": "Every member",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.policy.hint": {
+    "source": "The change is recorded in the group's history. A link somebody made stops working if the new choice leaves them out.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.policy.save": {
+    "source": "Save who may invite",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.policy.done": {
+    "source": "Saved. The change is in the group's history.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.about.title": {
+    "source": "Language and favourite",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.about.language": {
+    "source": "The language members write in",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.about.favourite": {
+    "source": "The club or competition the group is about",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.about.none": {
+    "source": "None",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.about.clubs": {
+    "source": "Clubs",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.about.competitions": {
+    "source": "Competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.about.listUnavailable": {
+    "source": "The list of clubs and competitions cannot be shown right now, so the favourite stays as it is.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.about.save": {
+    "source": "Save language and favourite",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.about.done": {
+    "source": "Saved.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.links.title": {
+    "source": "Invite links",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.links.hint": {
+    "source": "Anyone holding a live link can follow it until it expires, is used up or is revoked. Blocks, sanctions and the e-mail check apply to them as to an invitation.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.links.none": {
+    "source": "No invite links yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.links.unreachable": {
+    "source": "The invite links cannot be shown right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.links.madeBy": {
+    "source": "Made by",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.links.madeByGone": {
+    "source": "Made by a deleted account",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.links.expires": {
+    "source": "Expires",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.links.used": {
+    "source": "Used",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.links.state.live": {
+    "source": "Live",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.links.state.revoked": {
+    "source": "Revoked",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.links.state.expired": {
+    "source": "Expired",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.links.state.exhausted": {
+    "source": "Used up",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.links.state.orphaned": {
+    "source": "Not working: its maker may no longer invite",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.links.revoke": {
+    "source": "Revoke",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.links.revoked": {
+    "source": "Revoked. The link no longer works.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.links.createTitle": {
+    "source": "Make a link",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.links.lasts": {
+    "source": "Lasts",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.links.oneHour": {
+    "source": "1 hour",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.links.days": {
+    "source": {
+      "one": "{count} day",
+      "other": "{count} days"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "groupSettings.links.maxUses": {
+    "source": "How many people it lets in",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.links.create": {
+    "source": "Make the link",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.links.created": {
+    "source": "Made. Copy it now: it is shown only this once.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.links.newLink": {
+    "source": "The new link",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.links.copy": {
+    "source": "Copy the link",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.links.copied": {
+    "source": "Copied.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.links.copyFailed": {
+    "source": "Copying did not work here. Select the link and copy it yourself.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.history.link": {
+    "source": "The group's history",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.history.title": {
+    "source": "History",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.history.intro": {
+    "source": "Every recorded change to this group, newest first: who made it, when, why, and what it was before. Nobody can edit this list.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.history.none": {
+    "source": "Nothing has been changed yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.history.unreachable": {
+    "source": "The history cannot be shown right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.history.by": {
+    "source": "By",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.history.accountGone": {
+    "source": "a deleted account",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.history.reason": {
+    "source": "Reason",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.history.before": {
+    "source": "Before",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.history.after": {
+    "source": "After",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.history.action.invitePolicy": {
+    "source": "Who may invite changed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.history.action.rules": {
+    "source": "A new version of the rules",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.history.action.other": {
+    "source": "A change",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupSettings.history.back": {
+    "source": "Back to the group",
+    "text": "",
+    "status": "untranslated"
+  },
   "groupPolls.title": {
     "source": "Polls",
     "text": "",

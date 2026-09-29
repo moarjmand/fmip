@@ -1,5 +1,6 @@
-import { DEFAULT_LOCALE, directionOf, isLocale, type Locale } from '@/i18n/locales';
+import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
 import { type MessageKey, type PluralKey, message, plural } from '@/i18n/messages';
+import { MessageText } from '@/components/message-text';
 
 /**
  * One message, rendered with the truth about where it came from (T-151).
@@ -29,6 +30,11 @@ import { type MessageKey, type PluralKey, message, plural } from '@/i18n/message
  * locale's own rules; `params` fills any other `{name}` placeholder. The
  * marking is the same either way — a plural nobody has translated is English
  * and says so, exactly like a sentence.
+ *
+ * A server component's tool: it resolves the key against the catalogues, and
+ * the catalogues stay on the server (T-1040). A client component is handed
+ * resolved messages instead and renders them with `MessageText`, which is
+ * where the marking itself lives.
  */
 export function Translated(
   props: { locale: string; className?: string } & (
@@ -38,22 +44,9 @@ export function Translated(
 ) {
   const { locale, message: key, className } = props;
   const resolved: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
-  const { text, status } =
+  const resolvedMessage =
     props.count === undefined
       ? message(resolved, key)
       : plural(resolved, props.message, props.count, props.params);
-
-  if (status === 'untranslated') {
-    return (
-      <span
-        lang={DEFAULT_LOCALE}
-        dir={directionOf(DEFAULT_LOCALE)}
-        data-translation="untranslated"
-        className={className}
-      >
-        {text}
-      </span>
-    );
-  }
-  return className === undefined ? <>{text}</> : <span className={className}>{text}</span>;
+  return <MessageText message={resolvedMessage} className={className} />;
 }

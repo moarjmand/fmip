@@ -5850,3 +5850,44 @@ inputs change, so an unchanged low rating has one old snapshot, and the
 stretch began with it. *A flag per day while below*: noise; one per stretch
 is what an administrator can act on.
 
+
+## D-138 — The message catalogues stay on the server; a client component is handed messages already resolved for the reader's locale
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26). **Number taken as the next free one after D-137: the Phase 10 plan assigned none to T-1040.**
+
+**Decision.** T-1040 keeps `apps/web/src/i18n/messages.ts`, which imports
+all eight catalogues, out of every client bundle.
+
+- **Resolved on the server, handed down.** `resolveMessages(locale, keys)`
+  answers each key exactly as `message()` does: the locale's translation, or
+  the English with `status: 'untranslated'`. A client component receives that
+  result -- as a prop from a server component, or from
+  `ClientMessagesProvider`, which the locale layout fills with
+  `ERROR_PAGE_KEYS` for the reader's locale -- and renders it with
+  `MessageText`, the one place the fallback marking (`lang="en"`, `dir`,
+  `data-translation`) lives. `Translated` renders through it too, so the
+  marking cannot differ between server and client. The client gets only the
+  reader's locale, only the keys it renders, and English only where that
+  locale has none.
+- **The language picker** is handed `offeredLanguages()` (locale and
+  autonym) by the header; it makes the links from the pathname with
+  `lib/language-switch.ts`, which imports no catalogue.
+- **`global-error.tsx`** replaces the layout, provider and all, so it loads
+  the catalogue module with a dynamic `import()` and `use()`: a chunk only a
+  failed layout fetches, never first-load.
+- **Held by a spec.** `src/i18n/client-catalogues.spec.ts` fails when any
+  `'use client'` module reaches `messages.ts` or a catalogue file by static
+  import, naming the chain.
+
+The missing-string policy (T-151) is unchanged: nothing is translated by
+machine, and an untranslated string is still English and visibly marked.
+First-load JavaScript fell by about 72 kB gzip on every route (home 222.4 to
+149.8 kB), and the page budgets were lowered to match (docs/08-load-test.md).
+
+**Rejected.** *Shipping the whole viewer's catalogue to the client* through a
+provider: the only client components that render catalogue strings are the
+error pages and the picker, so it would put some thirty kilobytes of words in
+every page's payload for six keys. *Loading the locale's catalogue with a
+dynamic import in every client component*: the first render would be English
+until it arrived, the silent fallback the policy forbids. *A generated
+per-locale subset file*: a second copy of the catalogues to keep in step, for
+one rarely rendered page.
