@@ -5891,3 +5891,53 @@ dynamic import in every client component*: the first render would be English
 until it arrived, the silent fallback the policy forbids. *A generated
 per-locale subset file*: a second copy of the catalogues to keep in step, for
 one rarely rendered page.
+
+## D-147 — Coach changes are read from stored line-ups by person id; a line-up naming no coach is a gap
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26). T-1130's half; T-1131 adds the input's backtest verdict here.
+
+**Decision.** Blueprint 6.3 lists "manager changes" among the model's inputs.
+Nothing ingests coaching spells (D-119), so T-1130 derives changes from what
+is stored: the coach the feed named on each line-up
+(`fixture_participant.coach_id`). `fmip_model/training/coaches.py` reads them;
+the records loader (`records.py`, T-512) carries each side's coach id on
+`RecordedMatch` for T-1131.
+
+- **A line-up** is a club's side of a finished match, in any competition we
+  carry (cups included), that has a line-up row or a named coach: the team
+  page's test (D-119). A match stored without either is not a line-up at all.
+- **The coach is a person id**, never a name (rule 1). Two coaches with the
+  same name are two people; one coach under two spellings would be one
+  person only if the catalogue resolved them to one id.
+- **A gap** is a line-up that names no coach. It is never a change, and the
+  coach before it is never carried into it: at a gap the coach is unknown.
+- **A change** is recorded where two consecutive line-ups that name a coach
+  name different people. The gaps between them are skipped and counted on
+  the change (`gaps_between`), so the change's match is the first one the new
+  coach is seen at, not necessarily his first match.
+- **A caretaker is a change like any other.** The feed names the person in
+  the dugout; an interim manager and the permanent appointment after him are
+  two changes. A return (A, B, A) is two changes.
+- **Matches under the current coach are counted from their first stored
+  line-up**: the spell's first named line-up is match 1, a gap counts for no
+  one. A club's first stored coach did not arrive by a change we saw
+  (`after_change` false): his spell may be years old, and T-1131 must not
+  read him as new.
+
+`python -m fmip_model.training.coaches count` prints the line-ups, gaps and
+changes (by season). On the local database of 2026-09-29 it finds none: 61
+fixtures, no stored line-up and no named coach. The production count is the
+lead's to run; the past seasons' line-ups are loading with the backlog.
+
+**Alternatives considered.** Matching coaches by name across line-ups: rule 1,
+and a name is not an identity. Carrying the last named coach across a gap:
+the same objection as D-119's, a club that changed manager in the gap would be
+credited to the wrong one. Treating any two consecutive line-ups with a gap
+between as no change: a real change hidden behind one unnamed line-up would
+be lost; counting the gaps on the change keeps it and says how sure it is.
+Reading the feed's coaches endpoint: a new request and source, Phase 11's N-4.
+Storing the changes in a table: they are recomputed from stored line-ups in
+one query, so a table would be a second copy to keep in step.
+
+**Consequences.** No migration. `public` is only read. `as_text` (the load's
+content hash) leaves the coaches out, because `training.match` does not store
+them.
