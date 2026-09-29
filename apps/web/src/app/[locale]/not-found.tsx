@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { ErrorPageBody, errorPageLocale } from '@/components/error-page';
+import { ErrorPageBody, errorPageLocale, useErrorPageMessages } from '@/components/error-page';
 
 /**
  * A page that does not exist, inside the locale (T-809): a page's own
@@ -13,5 +13,7 @@ import { ErrorPageBody, errorPageLocale } from '@/components/error-page';
  */
 export default function LocaleNotFound() {
   const params = useParams<{ locale?: string }>();
-  return <ErrorPageBody locale={errorPageLocale(params?.locale)} kind="not-found" />;
+  const locale = errorPageLocale(params?.locale);
+  const messages = useErrorPageMessages(locale);
+  return <ErrorPageBody locale={locale} kind="not-found" messages={messages} />;
 }

@@ -7,6 +7,7 @@ import { controlClasses } from '@/components/ui';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { attribute } from '@/i18n/messages';
 import { fetchMe } from '@/lib/api';
+import { offeredLanguages } from '@/lib/language-picker';
 import { logoutAction } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
 import type { ThemePreference } from '@/lib/theme';
@@ -145,7 +146,7 @@ export async function SiteHeader({ locale, theme }: { locale: string; theme: The
               </>
             )}
             {/* Nothing until a second language is finished (T-306); see the component. */}
-            <LanguagePicker />
+            <LanguagePicker languages={offeredLanguages()} />
             {/* Light, dark or the device's own, on every page (T-602). */}
             <div className="py-2 sm:order-2 sm:py-0">
               <ThemeSwitch locale={locale} current={theme} variant="compact" />
