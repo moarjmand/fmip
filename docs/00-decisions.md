@@ -5285,6 +5285,57 @@ list built from several signals.
 `discussion_only`. The plural `news.savers` and `news.reason.discussionAndSaves`
 are catalogue keys. No migration.
 
+## D-129 — News coverage per competition, stated rather than implied
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26; the floor is a proposal the maintainer may change)
+
+**Decision.** Blueprint 3.2 asks for full coverage of the popular leagues,
+continental competitions and national teams. Which competitions the carried
+feeds actually cover is now a stated number (T-1010), not something a reader
+infers from a short list:
+
+- **What is counted.** For each competition, the carried sources (a
+  `news_source` row with no `dropped_at`) with at least one report linked to
+  the competition (`article_entity`, `entity_type = 'competition'`, by UUID)
+  whose first publication (the earliest `article_version.published_at`) is
+  inside the last `NEWS_COVERAGE_WINDOW_DAYS` (30) days; per source, the
+  distinct stories it linked; and the distinct stories together, so a story
+  two sources reported counts once. A team link does not count for the
+  team's competition: "about this competition" is the competition link's
+  claim, and the clustering already makes it (T-142).
+- **The floor.** `NEWS_COVERAGE_FLOOR` = 5 stories in the window. Proposal:
+  roughly one story a week plus one, the least a competition page's news can
+  have before a reader is better told it is thin. A dropped source stops
+  counting at once.
+- **The competition page.** `GET /competitions/:id/news` carries `coverage`
+  (the sources, the count, the window and the floor). Below the floor its
+  stories are `limited` with reason `below_floor`; with no carried source in
+  the window, `limited` with `no_carried_source`, said before any card, so an
+  older story never reads as current coverage (rule 3). At or above the
+  floor, `available` as before. Teams and players are unchanged.
+- **The console.** `GET /admin/news/coverage` (editors and administrators)
+  lists every active competition (`competition.is_active`) with its state,
+  count and sources, the gaps first, with the number of carried sources and
+  when a feed was last read. The page `/admin/news/coverage` shows it.
+
+**What it does not do.** It adds no source and proposes no publisher. Which
+publishers to carry, under what terms, is the maintainer's (N-8); the report
+names the gaps so that decision has the numbers.
+
+**Alternatives considered.** A floor on distinct sources rather than
+stories: one prolific publisher can cover a league well, and a count of
+stories is what a reader of the module notices. Counting a story through a
+linked team's current competition: it would count a transfer story about a
+club as league news, and would guess where a club plays a cup. Counting the
+fetch time rather than the publication time: a newly carried feed's
+back-catalogue would read as this month's coverage.
+
+**Consequences.** `NEWS_COVERAGE_WINDOW_DAYS`, `NEWS_COVERAGE_FLOOR`,
+`CompetitionNewsCoverage`, `NewsCoverageReport`, `newsCoverageState` and the
+reasons `below_floor` and `no_carried_source` are in the contract. The plurals
+`news.entity.belowFloor` and `news.entity.noCarriedSource` are catalogue keys.
+Production carries no source today, so every active competition is a gap
+until the maintainer answers N-8. No migration.
+
 ## D-130 — The glossary is the translators' file per locale; translation memory is a named person's earlier reviewed words, suggested and never filled in
 
 **Date:** 2026-09-29 · **Task:** T-1011, T-1014 · **Status:** accepted (revisable under the standing delegation of 2026-09-26)

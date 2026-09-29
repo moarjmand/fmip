@@ -15,6 +15,8 @@ import {
   type EntityNewsResponse,
   type FixtureNewsResponse,
   FIXTURE_NEWS_LIMIT,
+  NEWS_COVERAGE_FLOOR,
+  NEWS_COVERAGE_WINDOW_DAYS,
   NEWS_PAGE_SIZE,
   NEWS_SECTIONS,
   STORY_TYPES,
@@ -26,11 +28,13 @@ import {
   TRENDING_WINDOW_HOURS,
   isNewsSection,
   isStoryType,
+  newsCoverageState,
   type StoryType,
 } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { ProfileService } from '../profile/profile.service';
+import { PostgresNewsCoverageStore } from './internal/news-coverage-store';
 import { NO_FILTERS, PostgresNewsReadStore, type StoryPage_ } from './internal/news-read-store';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -126,6 +130,7 @@ export class NewsController {
     private readonly store: PostgresNewsReadStore,
     private readonly identity: IdentityService,
     private readonly profiles: ProfileService,
+    private readonly coverage: PostgresNewsCoverageStore,
   ) {}
 
   @Get('news')
@@ -415,6 +420,26 @@ export class NewsController {
       null,
       ENTITY_NEWS_LIMIT,
     );
+    if (type === 'competition') {
+      // T-1010 (D-129): below the floor the module says how thin it is, and a
+      // competition no carried source covers never looks populated (rule 3).
+      const coverage =
+        (
+          await this.coverage.coverage([entityId], NEWS_COVERAGE_WINDOW_DAYS, NEWS_COVERAGE_FLOOR)
+        ).get(entityId) ??
+        PostgresNewsCoverageStore.empty(NEWS_COVERAGE_WINDOW_DAYS, NEWS_COVERAGE_FLOOR);
+      const state = newsCoverageState(coverage.stories, coverage.floor);
+      return {
+        entity,
+        stories: {
+          coverage: state === 'covered' ? 'available' : 'limited',
+          last_updated_at,
+          data: page.cards,
+        },
+        reason: state !== 'covered' ? state : page.cards.length === 0 ? 'nothing_linked' : null,
+        coverage,
+      };
+    }
     return {
       entity,
       stories: { coverage: 'available', last_updated_at, data: page.cards },

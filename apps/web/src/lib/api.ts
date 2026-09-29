@@ -74,6 +74,7 @@ import type {
   DebateListResponse,
   BreakingNewsResponse,
   MatchPanelPage,
+  NewsCoverageReport,
   NewsSectionResponse,
   NotificationSettings,
   PushState,
@@ -562,6 +563,13 @@ export function fetchNewsSection(
  */
 export function fetchDebates(cookie: string | undefined): Promise<ApiResult<DebateListResponse>> {
   return apiRequest<DebateListResponse>('/admin/debates?state=open', { cookie });
+}
+
+/** `GET /admin/news/coverage` (T-1010, D-129): every active competition's news coverage, gaps first. */
+export function fetchNewsCoverage(
+  cookie: string | undefined,
+): Promise<ApiResult<NewsCoverageReport>> {
+  return apiRequest<NewsCoverageReport>('/admin/news/coverage', { cookie });
 }
 
 /** `GET /news/breaking` (T-1004): the stories marked breaking now, for the homepage strip. Public. */

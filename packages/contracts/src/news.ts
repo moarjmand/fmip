@@ -350,6 +350,69 @@ export interface EntityNewsResponse {
   entity: { type: 'team' | 'competition' | 'person'; id: string };
   stories: Covered<NewsStoryCard[]>;
   reason: EntityNewsReason | null;
+  /**
+   * A competition's news only (T-1010, D-129): which carried sources linked
+   * a story to it in the window, and how many stories. Below the floor the
+   * stories are `limited` with `no_carried_source` or `below_floor`.
+   */
+  coverage?: CompetitionNewsCoverage;
+}
+
+/** The window a competition's news coverage is counted over (T-1010, D-129). */
+export const NEWS_COVERAGE_WINDOW_DAYS = 30;
+/**
+ * D-129's floor: a competition with fewer stories than this from carried
+ * sources inside the window has `limited` news. A proposal the maintainer
+ * may change, like the choice of publishers it points at (N-8).
+ */
+export const NEWS_COVERAGE_FLOOR = 5;
+
+/** One carried source's stories about a competition inside the window. */
+export interface NewsCoverageSource {
+  id: string;
+  name: string;
+  stories: number;
+}
+
+/**
+ * A competition's news coverage (T-1010, D-129): the carried sources (not
+ * dropped) with at least one report linked to it whose first publication
+ * falls inside the window, most stories first, and the distinct stories
+ * they make together (a story two sources reported counts once).
+ */
+export interface CompetitionNewsCoverage {
+  window_days: number;
+  floor: number;
+  stories: number;
+  sources: NewsCoverageSource[];
+}
+
+/** Where a competition stands against the floor. */
+export type NewsCoverageState = 'covered' | 'below_floor' | 'no_carried_source';
+
+export function newsCoverageState(stories: number, floor: number): NewsCoverageState {
+  if (stories === 0) return 'no_carried_source';
+  return stories < floor ? 'below_floor' : 'covered';
+}
+
+/**
+ * `GET /admin/news/coverage` (T-1010): every active competition's coverage,
+ * the gaps first. It names the gaps and adds nothing: which publishers to
+ * carry is the maintainer's (N-8).
+ */
+export interface NewsCoverageReport {
+  generated_at: string;
+  window_days: number;
+  floor: number;
+  /** Sources carried now (not dropped); zero means every competition is a gap. */
+  carried_sources: number;
+  /** When a feed was last read, or `null` if never: a report over unread feeds says nothing. */
+  feeds_read_at: string | null;
+  competitions: {
+    competition: { id: string; name: string };
+    state: NewsCoverageState;
+    coverage: CompetitionNewsCoverage;
+  }[];
 }
 
 /**
@@ -359,7 +422,13 @@ export interface EntityNewsResponse {
  * precision is measured), because an empty list would read as "nobody wrote
  * about this player".
  */
-export type EntityNewsReason = FixtureNewsReason | 'persons_unlinked';
+export type EntityNewsReason =
+  | FixtureNewsReason
+  | 'persons_unlinked'
+  /** T-1010 (D-129): no carried source linked a story to the competition inside the window. */
+  | 'no_carried_source'
+  /** T-1010 (D-129): fewer stories than the floor inside the window. */
+  | 'below_floor';
 
 // ---------------------------------------------------------------------------
 // Saved articles (blueprint 3.3 and 2.1, T-842): a member's own list, under

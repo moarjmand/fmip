@@ -661,6 +661,8 @@ export {
   BREAKING_WINDOW_HOURS,
   FIXTURE_NEWS_LIMIT,
   ENTITY_NEWS_LIMIT,
+  NEWS_COVERAGE_FLOOR,
+  NEWS_COVERAGE_WINDOW_DAYS,
   NEWS_PAGE_SIZE,
   NEWS_SECTIONS,
   SAVED_ARTICLES_LIMIT,
@@ -669,6 +671,7 @@ export {
   TRENDING_WEIGHTS,
   TRENDING_WINDOW_HOURS,
   isNewsSection,
+  newsCoverageState,
   isStoryType,
 } from './news';
 export type {
@@ -686,6 +689,10 @@ export type {
   FixtureNewsResponse,
   EntityNewsReason,
   EntityNewsResponse,
+  CompetitionNewsCoverage,
+  NewsCoverageReport,
+  NewsCoverageSource,
+  NewsCoverageState,
   NewsEntity,
   NewsFilters,
   NewsRights,

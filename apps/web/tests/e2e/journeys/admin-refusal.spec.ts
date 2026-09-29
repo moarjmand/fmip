@@ -28,6 +28,7 @@ const MEMBER = '<member>';
 const REFUSING: Record<string, string> = {
   '/en/admin/system': 'system-forbidden',
   '/en/admin/data-quality': 'data-quality-forbidden',
+  '/en/admin/news/coverage': 'news-coverage-forbidden',
   '/en/admin/moderation': 'moderation-queue-forbidden',
   [`/en/admin/moderation/${MEMBER}`]: 'moderation-history-forbidden',
   '/en/admin/moderation/groups/no-such-group': 'moderation-group-forbidden',

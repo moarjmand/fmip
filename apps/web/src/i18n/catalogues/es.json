@@ -944,6 +944,22 @@
     "text": "",
     "status": "untranslated"
   },
+  "news.entity.noCarriedSource": {
+    "source": {
+      "one": "None of the publishers we read has written about this competition in the last {count} day, so this is not a picture of its news.",
+      "other": "None of the publishers we read has written about this competition in the last {count} days, so this is not a picture of its news."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "news.entity.belowFloor": {
+    "source": {
+      "one": "Only {count} story about this competition from the publishers we read in the last {days} days: our coverage of it is thin.",
+      "other": "Only {count} stories about this competition from the publishers we read in the last {days} days: our coverage of it is thin."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
   "player.availability.title": {
     "source": "Availability",
     "text": "",

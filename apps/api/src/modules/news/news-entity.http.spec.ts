@@ -33,7 +33,7 @@ describe('entity news before the feeds were read (T-944)', () => {
         throw new Error('not asked before the feeds were read');
       },
     } as unknown as PostgresNewsReadStore;
-    const controller = new NewsController(store, null as never, null as never);
+    const controller = new NewsController(store, null as never, null as never, null as never);
     const id = randomUUID();
     expect(await controller.teamNews(id, undefined)).toEqual({
       entity: { type: 'team', id },
@@ -174,6 +174,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('entity news 
     expect(body.stories.data?.map((c) => c.headline)).toEqual([
       `Entityville top the league ${RUN}`,
     ]);
+    // One story (or none, once its fixed date leaves the window) is under
+    // D-129's floor, so the list says it is limited and why (T-1010).
+    expect(body.stories.coverage).toBe('limited');
+    expect(body.coverage?.stories).toBeLessThanOrEqual(1);
+    expect(body.reason).toBe(body.coverage?.stories === 1 ? 'below_floor' : 'no_carried_source');
   });
 
   it('says nothing links a team nobody wrote about, and 404s an unknown id', async () => {
