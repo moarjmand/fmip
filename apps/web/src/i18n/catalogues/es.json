@@ -1170,11 +1170,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "story.matchProducts": {
-    "source": "for the model forecast, the founder's analysis and the community consensus, kept apart there.",
-    "text": "",
-    "status": "untranslated"
-  },
   "story.otherReports": {
     "source": "Other reports of this story",
     "text": "",
@@ -1185,8 +1180,78 @@
     "text": "",
     "status": "untranslated"
   },
-  "story.notYet": {
-    "source": "Save and share are not built yet.",
+  "story.share": {
+    "source": "Share this story",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.follow.title": {
+    "source": "Follow what this story is about",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.follow.follow": {
+    "source": "Follow",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.follow.following": {
+    "source": "Following",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.follow.unfollow": {
+    "source": "Unfollow",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.follow.signIn": {
+    "source": "Sign in to follow these teams and competitions.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.follow.unavailable": {
+    "source": "Your follows could not be read just now, so they cannot be changed here.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.title": {
+    "source": "Predictions for this match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.intro": {
+    "source": "Three separate products, each on the match centre under its own name. None is shown here, and they are never combined.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.model": {
+    "source": "The model's forecast",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.modelNote": {
+    "source": "probabilities from the versioned statistical model",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.founder": {
+    "source": "The founder's analysis",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.founderNote": {
+    "source": "one person's signed view, not the model",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.community": {
+    "source": "The community consensus",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.communityNote": {
+    "source": "what members predicted, published from five predictors",
     "text": "",
     "status": "untranslated"
   },
