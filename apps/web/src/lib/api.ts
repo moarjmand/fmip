@@ -13,6 +13,8 @@ import type {
   AdminAlertsReport,
   AdminCompetitionsResponse,
   AdminOverview,
+  HeldLocalesResponse,
+  LocaleHoldListResponse,
   FailureCountsReport,
   RateLimitsReport,
   WatchdogReport,
@@ -134,6 +136,17 @@ export function fetchAdminCompetitions(
 ): Promise<ApiResult<AdminCompetitionsResponse>> {
   return apiRequest<AdminCompetitionsResponse>(
     '/admin/competitions',
+/** `GET /locale-holds` (T-1163, D-155): the languages held back now. Public. */
+export function fetchHeldLocales(): Promise<ApiResult<HeldLocalesResponse>> {
+  return apiRequest<HeldLocalesResponse>('/locale-holds');
+}
+
+/** `GET /admin/locale-holds` (T-1163): every hold, newest first. Administrators only. */
+export function fetchLocaleHolds(
+  cookie: string | undefined,
+): Promise<ApiResult<LocaleHoldListResponse>> {
+  return apiRequest<LocaleHoldListResponse>(
+    '/admin/locale-holds',
     cookie === undefined ? {} : { cookie },
   );
 }

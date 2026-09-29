@@ -893,3 +893,12 @@ export type {
   SetCompetitionOrderRequest,
   SetCompetitionOrderResponse,
 } from './competition-order';
+// Holding back a language that is ready (T-1163, D-155).
+export { HOLDABLE_LOCALES } from './locale-hold';
+export type {
+  HeldLocalesResponse,
+  HoldableLocale,
+  LocaleHoldListResponse,
+  LocaleHoldRecord,
+  LocaleHoldRequest,
+} from './locale-hold';
