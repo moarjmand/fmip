@@ -299,9 +299,17 @@ export type {
 // The match centre's key players (blueprint 4.2, T-841): a stated rule, not a judgement.
 export { KEY_PLAYERS_PER_SIDE } from './key-players';
 export type { KeyPlayer, KeyPlayerAvailability, KeyPlayers, KeyPlayersSide } from './key-players';
-export { MAX_EXPLANATION_LENGTH, MAX_REASON_TAGS, PREDICTION_REASON_TAGS } from './predictions';
+export {
+  FRIEND_PREDICTIONS_DAYS,
+  FRIEND_PREDICTIONS_LIMIT,
+  MAX_EXPLANATION_LENGTH,
+  MAX_REASON_TAGS,
+  PREDICTION_REASON_TAGS,
+} from './predictions';
 export type {
   FixtureSettlementsResponse,
+  FriendPrediction,
+  FriendPredictionsResponse,
   GroupPredictionCall,
   GroupPredictionComparison,
   GroupPredictionComparisonResponse,
@@ -377,9 +385,12 @@ export type {
 // The public match discussion (blueprint 10.2, T-251). Reading is open and
 // posting is granted, so the panel and the viewer's permission are separate
 // shapes: a guest gets the first and the second does not apply to them.
+export { PANEL_LATEST_BATCH, PANEL_LATEST_POSTS } from './match-panel';
 export type {
   MatchPanelPage,
   PanelAuthor,
+  PanelLatest,
+  PanelLatestResponse,
   PanelPermission,
   PanelPost,
   PanelRefusal,
@@ -500,6 +511,8 @@ export type {
 export {
   CARD_KINDS,
   CONVERSATION_KINDS,
+  GROUP_DISCUSSIONS_HOURS,
+  GROUP_DISCUSSIONS_LIMIT,
   MAX_MESSAGE_LENGTH,
   MESSAGE_PAGE_SIZE,
   MIN_SEARCH_TERM,
@@ -515,6 +528,7 @@ export type {
   ConversationSummary,
   ConversationsResponse,
   FixtureCard,
+  GroupDiscussionsResponse,
   GroupThreadsResponse,
   Message,
   MessageRemoval,

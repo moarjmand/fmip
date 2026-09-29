@@ -8,7 +8,7 @@ import { PostgresPanelStore } from './internal/panel-store';
 import { PanelAdminController } from './panel-admin.controller';
 import { PanelSocialController } from './panel-social.controller';
 import { PanelSocialService } from './panel-social.service';
-import { PanelController } from './panel.controller';
+import { PanelController, PanelLatestController } from './panel.controller';
 import { PanelService } from './panel.service';
 
 /**
@@ -34,7 +34,12 @@ import { PanelService } from './panel.service';
  */
 @Module({
   imports: [IdentityModule, ReputationModule, NotificationsModule],
-  controllers: [PanelController, PanelSocialController, PanelAdminController],
+  controllers: [
+    PanelController,
+    PanelLatestController,
+    PanelSocialController,
+    PanelAdminController,
+  ],
   providers: [
     PanelService,
     PostgresPanelStore,

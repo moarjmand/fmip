@@ -228,7 +228,7 @@ export function ScoreCard({
  * 11): a count of listings, or the sentence for why there is none. Nobody's
  * territory is guessed; without one, the line asks (T-312).
  */
-function CardViewingLine({
+export function CardViewingLine({
   viewing,
   locale,
 }: {

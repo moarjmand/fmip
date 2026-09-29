@@ -22,6 +22,7 @@ import type {
   ConversationPage,
   ConversationSearchResponse,
   ConversationsResponse,
+  GroupDiscussionsResponse,
   SendMessageRequest,
   SendMessageResponse,
 } from '@fmip/contracts';
@@ -322,6 +323,31 @@ export class ConversationsController {
  * write is `group_member` in a trigger, the page is the same page, the socket
  * is the same socket.
  */
+/**
+ * The viewer's active group discussions (blueprint 2.3, T-942, D-115): the
+ * homepage's "in your groups". Its own path rather than a filter on
+ * `/me/conversations`, because it answers a different question -- which of my
+ * groups are talking now -- ordered by the newest message, not by the list's
+ * order.
+ */
+@Controller('me/group-discussions')
+export class GroupDiscussionsController {
+  constructor(
+    private readonly conversations: ConversationsService,
+    private readonly identity: IdentityService,
+  ) {}
+
+  @Get()
+  async list(@Req() request: FastifyRequest): Promise<GroupDiscussionsResponse> {
+    const viewer = await this.identity.authenticate(
+      parseCookies(request.headers.cookie)[SESSION_COOKIE],
+    );
+    if (viewer === null) throw new UnauthorizedException(UNAUTHENTICATED);
+    const { discussions, since } = await this.conversations.activeGroupDiscussions(viewer.id);
+    return { discussions, since: since.toISOString() };
+  }
+}
+
 @Controller('groups/:slug/threads')
 export class GroupThreadsController {
   constructor(

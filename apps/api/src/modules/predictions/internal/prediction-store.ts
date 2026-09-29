@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type {
+  FriendPrediction,
   GroupPredictionCall,
   Prediction,
   PredictionHistoryItem,
@@ -413,5 +414,102 @@ export class PostgresPredictionStore {
         a.username.localeCompare(b.username),
     );
     return { kickoffAt: match.kickoff_at, locked: match.locked, calls };
+  }
+
+  /**
+   * The standing calls of `userIds` whose latest version was submitted since
+   * `since`, newest first (T-942). Three queries whatever the number of
+   * friends: the calls with their fixtures and heads, the version counts, and
+   * the newest settlement of each -- **read**, never recomputed (D-063).
+   * Whose calls these may be is the caller's to have decided already.
+   */
+  async recentCalls(userIds: string[], since: Date, limit: number): Promise<FriendPrediction[]> {
+    if (userIds.length === 0) return [];
+    const { rows } = await this.pool.query<
+      VersionRow & {
+        prediction_id: string;
+        username: string;
+        display_name: string;
+        revisions: string;
+        fixture_id: string;
+        kickoff_at: Date;
+        status: string;
+        competition_id: string;
+        competition_name: string;
+        home_id: string;
+        home_name: string;
+        home_short_name: string | null;
+        away_id: string;
+        away_name: string;
+        away_short_name: string | null;
+        score_home: number | null;
+        score_away: number | null;
+      }
+    >(
+      `SELECT p.id AS prediction_id, u.username, u.display_name,
+              v.id, v.version_number, v.outcome, v.home_goals, v.away_goals, v.confidence,
+              v.reason_tags, v.explanation, v.submitted_at,
+              v.version_number::text AS revisions,
+              f.id AS fixture_id, f.kickoff_at, f.status,
+              c.id AS competition_id, c.name AS competition_name,
+              h.team_id AS home_id, th.name AS home_name, th.short_name AS home_short_name,
+              a.team_id AS away_id, ta.name AS away_name, ta.short_name AS away_short_name,
+              COALESCE(ft.home, cur.home) AS score_home, COALESCE(ft.away, cur.away) AS score_away
+         FROM user_prediction p
+         JOIN user_account u ON u.id = p.user_id AND u.status = 'active'
+         JOIN LATERAL (
+           SELECT * FROM prediction_version pv
+            WHERE pv.prediction_id = p.id
+            ORDER BY pv.version_number DESC
+            LIMIT 1
+         ) v ON true
+         JOIN fixture f ON f.id = p.fixture_id
+         JOIN season se ON se.id = f.season_id
+         JOIN competition c ON c.id = se.competition_id
+         JOIN fixture_participant h ON h.fixture_id = f.id AND h.side = 'home'
+         JOIN team th ON th.id = h.team_id
+         JOIN fixture_participant a ON a.fixture_id = f.id AND a.side = 'away'
+         JOIN team ta ON ta.id = a.team_id
+         LEFT JOIN fixture_score ft ON ft.fixture_id = f.id AND ft.kind = 'full_time'
+         LEFT JOIN fixture_score cur ON cur.fixture_id = f.id AND cur.kind = 'current'
+        WHERE p.user_id = ANY($1::uuid[]) AND v.submitted_at >= $2
+        ORDER BY v.submitted_at DESC, p.id
+        LIMIT $3`,
+      [userIds, since, limit],
+    );
+    if (rows.length === 0) return [];
+
+    // Versions are numbered from one with no gaps (MAX + 1 under the row
+    // lock), so the head's number is how many there are.
+    const settlements = await this.pool.query<SettlementRow & { prediction_id: string }>(
+      `SELECT DISTINCT ON (s.prediction_id) s.prediction_id, ${SETTLEMENT_COLUMNS}
+         FROM settlement s JOIN prediction_version v ON v.id = s.version_id
+        WHERE s.prediction_id = ANY($1::uuid[])
+        ORDER BY s.prediction_id, s.settled_at DESC, s.id DESC`,
+      [rows.map((row) => row.prediction_id)],
+    );
+    const settled = new Map(settlements.rows.map((row) => [row.prediction_id, row]));
+    return rows.map((r) => {
+      const settlement = settled.get(r.prediction_id);
+      return {
+        username: r.username,
+        display_name: r.display_name,
+        fixture: {
+          id: r.fixture_id,
+          kickoff_at: r.kickoff_at.toISOString(),
+          status: r.status,
+          competition: { id: r.competition_id, name: r.competition_name },
+          home: { id: r.home_id, name: r.home_name, short_name: r.home_short_name },
+          away: { id: r.away_id, name: r.away_name, short_name: r.away_short_name },
+          score:
+            r.score_home !== null && r.score_away !== null
+              ? { home: r.score_home, away: r.score_away }
+              : null,
+        },
+        version: toVersion(r),
+        revisions: Number(r.revisions),
+        settlement: settlement === undefined ? null : toSettlement(settlement),
+      };
+    });
   }
 }

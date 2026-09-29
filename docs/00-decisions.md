@@ -4895,3 +4895,71 @@ lists and adds `achievement_unlocked`. The kind is in `NOTIFICATION_KINDS`,
 and `notificationPath` opens `#achievements`. No new route, write or setting.
 
 
+
+## D-115 — The member's homepage: friends' calls under their own visibility, active group discussions, today's panels, and viewing in the member's territory
+
+**Date:** 2026-09-29 · **Task:** T-942 · **Status:** accepted (revisable under the standing delegation of 2026-09-26)
+
+Blueprint 2.3 asks the homepage for friends' recent predictions, active
+private-group discussions, public match discussions from approved
+contributors, and official viewing for relevant matches. Each needed a
+judgement about whose activity, how recent, and who may see it.
+
+**Friends' predictions: exactly a friend's own history visibility (D-063).**
+`GET /me/friends/predictions` takes the viewer's accepted, active friends
+(`SocialService.friendIds`), asks the profile boundary which of them this
+viewer may read (`predictionHistoryAudience`, the same `canView` on
+`prediction_history_visibility` as `GET /users/:username/predictions`), and
+reads only those. A `public` or `friends` history is shown to a friend; a
+`private` one never is; a stranger's never is, whatever their setting; the
+viewer's own is not "a friend's". The pick is shown, before kick-off too,
+because the friend's profile already shows it (D-063's recorded
+consequence); only notifications withhold the pick (D-100). Each call is the
+standing version with the **stored** settlement, never recomputed. "Recent"
+is the latest version submitted in the last 7 days, newest first, at most 10.
+`predictionHistoryAudience` now reads the viewer's friends once for the set
+(`FriendshipOracle.friendIds`) instead of asking once per friends-only member,
+so every caller of it -- the boards included -- asks one query, not N.
+
+**Group discussions: the membership every conversation read already asks
+(D-058).** `GET /me/group-discussions` is the viewer's group conversations and
+match threads with a message in the last 48 hours, newest message first, at
+most 5, as the same `ConversationSummary` `/me/conversations` answers. A muted
+one is left out: a member who muted it asked not to be drawn to it.
+
+**Today's panels: public, for everybody.** `GET /panels/latest?fixture=…`
+(no session, up to 50 ids) answers, per known match, the panel state, total
+and its newest three posts that still stand. Removed posts are left out of an
+excerpt (a tombstone with nothing around it says nothing) while `total` still
+counts them. The homepage asks it for the matches that kick off today in the
+reader's zone and lists the three panels most recently written on. A guest
+sees this section too: the panel is already public, and it is not a member
+section.
+
+**Viewing: the member's stored territory only (D-114).** The listed live and
+upcoming matches carry the scores card's viewing line, from one
+`GET /viewing?fixture=` for the list. A member with no territory is asked
+once, not on every line. A guest's viewing is not asked for at all.
+
+**What a reader is told.** A guest sees none of the member sections and is not
+told they are empty. A member section with nothing in it says so once; one
+that could not be loaded says that instead (rule 3). Friends' calls are
+labelled as members' own and sit in their own section, never beside,
+averaged with or relabelled as the model's forecast or the community
+consensus (rule 6).
+
+**Keeping the page fast.** Each section is one request for the whole page,
+issued in parallel with the forecast and table requests, and each answer is a
+fixed number of queries whatever the number of friends, groups or matches.
+The T-808 budgets in `apps/web/perf-budgets.json` are unchanged (the budgeted
+request is a guest's, which gains one panel request in the same parallel
+round).
+
+**No migration.** T-942 had none assigned and needed none.
+
+**Alternatives considered.** One `/me/home` endpoint composing every section:
+a module importing five boundaries' internals, and one payload holding a
+member product beside the others. Showing a friend's call regardless of their
+setting because the viewer is a friend: a second visibility rule, which D-063
+exists to refuse. Showing removed posts as tombstones in the excerpt: honest on
+the panel, noise on a homepage line.

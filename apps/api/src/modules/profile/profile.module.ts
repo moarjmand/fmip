@@ -32,6 +32,7 @@ import { ProfileService } from './profile.service';
       provide: FRIENDSHIP_ORACLE,
       useFactory: (social: SocialService): FriendshipOracle => ({
         areFriends: (a, b) => social.areFriends(a, b),
+        friendIds: (viewerId) => social.friendIds(viewerId),
       }),
       inject: [SocialService],
     },

@@ -4,22 +4,35 @@ import { FirstRunOffer } from '@/components/first-run-offer';
 import { JsonLd } from '@/components/json-ld';
 import { FounderAnalysisFeed } from '@/components/founder-analysis';
 import {
+  FriendPredictionsSection,
+  GroupDiscussionsSection,
+  PanelsSection,
+} from '@/components/home-member';
+import { CardViewingLine } from '@/components/score-card';
+import {
   fetchApiHealth,
   fetchCompetition,
   fetchFirstRun,
   fetchForecastList,
   fetchFounderFeed,
+  fetchFriendPredictions,
+  fetchGroupDiscussions,
   fetchMe,
   fetchNewsSection,
+  fetchPanelLatest,
   fetchScores,
+  fetchViewingBatch,
 } from '@/lib/api';
 import {
   HOME_DAYS,
   HOME_TABLE_ROWS,
   homeForecasts,
   homeMatches,
+  homePanels,
+  homeViewing,
   shortDay,
   tableCompetition,
+  todayFixtureIds,
 } from '@/lib/home';
 import { dateIn, formatKickoff, shiftDate, statusLabel } from '@/lib/scores';
 import { rootTitle } from '@/lib/demonstration';
@@ -87,10 +100,37 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   ]);
   const matches = scores.ok ? homeMatches(scores.data) : [];
   const tableId = scores.ok ? tableCompetition(scores.data) : null;
-  const [forecasts, table] = await Promise.all([
+  // T-942 (D-115): every section below is one request for the whole page,
+  // all in parallel with the forecasts and the table. The member sections and
+  // the viewing lines are asked for a member only: a guest has no friends,
+  // groups or stored territory, and is not told those sections are empty.
+  const todayIds = scores.ok ? todayFixtureIds(scores.data, today, timeZone) : [];
+  const member = me !== null;
+  const [forecasts, table, friendCalls, groupTalk, panelsLatest, viewing] = await Promise.all([
     matches.length > 0 ? fetchForecastList(matches.map((card) => card.id)) : null,
     tableId !== null ? fetchCompetition(tableId, '', locale) : null,
+    member ? fetchFriendPredictions(cookie) : null,
+    member ? fetchGroupDiscussions(cookie) : null,
+    todayIds.length > 0 ? fetchPanelLatest(todayIds) : null,
+    member && matches.length > 0
+      ? fetchViewingBatch(
+          matches.map((card) => card.id),
+          undefined,
+          cookie,
+        )
+      : null,
   ]);
+  const watch =
+    viewing === null ? null : homeViewing(matches, viewing.ok ? viewing.data.fixtures : null);
+  const panels =
+    panelsLatest === null ? [] : panelsLatest.ok ? homePanels(panelsLatest.data.panels) : null;
+  const cardsById = new Map(
+    scores.ok
+      ? [...scores.data.pinned, ...scores.data.groups.flatMap((group) => group.fixtures)].map(
+          (card) => [card.id, card] as const,
+        )
+      : [],
+  );
   const modelView =
     forecasts !== null && forecasts.ok ? homeForecasts(matches, forecasts.data.fixtures) : [];
   const tableRows =
@@ -165,9 +205,28 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                 <span className="text-xs text-muted">
                   {card.competition.short_name ?? card.competition.name}
                 </span>
+                {watch?.state === 'lines' && (
+                  <span className="w-full text-xs">
+                    <CardViewingLine viewing={watch.byFixture.get(card.id)} locale={locale} />
+                  </span>
+                )}
               </li>
             ))}
           </ul>
+          {watch?.state === 'ask' && (
+            // Once for the list, not the same question on every line (D-115).
+            <p className="text-sm" data-testid="home-viewing-ask">
+              <Link href={`/${locale}/watch`} className="underline">
+                Choose your territory
+              </Link>{' '}
+              to see where these matches are shown.
+            </p>
+          )}
+          {watch?.state === 'unreachable' && (
+            <p className="text-sm text-muted" data-testid="home-viewing-unreachable">
+              Where to watch these matches could not be loaded.
+            </p>
+          )}
           <p className="text-sm">
             <Link href={`/${locale}/scores`} className="underline">
               All scores
@@ -197,6 +256,24 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           </p>
         </section>
       )}
+
+      {me !== null && (
+        <FriendPredictionsSection
+          locale={locale}
+          timeZone={timeZone}
+          result={friendCalls?.ok === true ? friendCalls.data.predictions : null}
+        />
+      )}
+
+      {me !== null && (
+        <GroupDiscussionsSection
+          locale={locale}
+          viewer={me.username}
+          result={groupTalk?.ok === true ? groupTalk.data.discussions : null}
+        />
+      )}
+
+      {todayIds.length > 0 && <PanelsSection locale={locale} panels={panels} cards={cardsById} />}
 
       {founder.ok && (
         <FounderAnalysisFeed

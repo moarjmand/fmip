@@ -89,6 +89,9 @@ const FIELDS: Record<string, Rule> = {
   'panel-social.ts:FollowedMember.display_name': {
     exempt: 'read for the follow state only (the match page); no page renders it as a name',
   },
+  'predictions.ts:FriendPrediction.display_name': {
+    rendered: [['components/home-member.tsx', 'member={p}']],
+  },
   'predictions.ts:GroupPredictionCall.display_name': {
     rendered: [['components/group-comparison.tsx', 'member={call}']],
   },

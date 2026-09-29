@@ -199,6 +199,23 @@ export interface ConversationsResponse {
   conversations: ConversationSummary[];
 }
 
+/** How far back a group discussion counts as active on the homepage, in hours (D-115). */
+export const GROUP_DISCUSSIONS_HOURS = 48;
+/** The most active group discussions one answer carries (D-115). */
+export const GROUP_DISCUSSIONS_LIMIT = 5;
+
+/**
+ * `GET /me/group-discussions` (T-942): the viewer's group conversations and
+ * match threads with a message inside the window, newest message first, muted
+ * ones left out. The same summaries `GET /me/conversations` answers, read
+ * through the same membership query (D-058).
+ */
+export interface GroupDiscussionsResponse {
+  discussions: ConversationSummary[];
+  /** ISO 8601: the start of the window. */
+  since: string;
+}
+
 /**
  * One conversation and a page of it, oldest first.
  *

@@ -1,9 +1,14 @@
 import { Test } from '@nestjs/testing';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
-import type { ConversationSummary, GroupThreadsResponse } from '@fmip/contracts';
+import type {
+  ConversationSummary,
+  GroupDiscussionsResponse,
+  GroupThreadsResponse,
+} from '@fmip/contracts';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
+import { withTriggersOff } from '../../testing/cleanup';
 import { GroupsModule } from '../groups/groups.module';
 import { IdentityModule } from '../identity/identity.module';
 import {
@@ -249,6 +254,53 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('group thread
     expect(listed.statusCode).toBe(200);
     const all = (listed.json() as { conversations: ConversationSummary[] }).conversations;
     expect(all.some((c) => c.id === room && c.kind === 'group_thread')).toBe(true);
+  });
+
+  describe("the homepage's active group discussions (T-942)", () => {
+    const discussions = async (who: string): Promise<string[]> => {
+      const response = await get('/me/group-discussions', who);
+      expect(response.statusCode).toBe(200);
+      return (response.json() as GroupDiscussionsResponse).discussions.map((c) => c.id);
+    };
+    let room = '';
+
+    it('lists a thread in one of my groups with a recent message, and nobody else sees it', async () => {
+      room = (
+        (await post(`/groups/${slug}/threads`, { fixture_id: fixture }, ada)).json() as {
+          id: string;
+        }
+      ).id;
+      expect(
+        (await post(`/me/conversations/${room}/messages`, { body: 'who starts up front?' }, bo))
+          .statusCode,
+      ).toBe(201);
+      expect(await discussions(ada)).toContain(room);
+      expect(await discussions(outsider)).not.toContain(room);
+      expect((await get('/me/group-discussions')).statusCode).toBe(401);
+    });
+
+    it('leaves out a discussion I muted', async () => {
+      expect((await post(`/me/conversations/${room}/mute`, {}, ada)).statusCode).toBe(204);
+      expect(await discussions(ada)).not.toContain(room);
+      expect(await discussions(bo)).toContain(room);
+      const unmuted = await app.inject({
+        method: 'DELETE',
+        url: `/me/conversations/${room}/mute`,
+        headers: as(ada),
+      });
+      expect(unmuted.statusCode).toBe(204);
+      expect(await discussions(ada)).toContain(room);
+    });
+
+    it('leaves out a discussion whose newest message is older than the window', async () => {
+      await withTriggersOff(pool, async (client) => {
+        await client.query(
+          `UPDATE message SET created_at = now() - interval '3 days' WHERE conversation_id = $1`,
+          [room],
+        );
+      });
+      expect(await discussions(ada)).not.toContain(room);
+    });
   });
 
   it('refuses somebody outside the group, without pretending the group is gone', async () => {

@@ -1,6 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import type { ForecastListEntry, ScoreCard, ScoresResponse } from '@fmip/contracts';
-import { homeForecasts, homeMatches, shortDay, tableCompetition } from './home';
+import type {
+  ForecastListEntry,
+  MatchViewing,
+  PanelLatest,
+  ScoreCard,
+  ScoresResponse,
+} from '@fmip/contracts';
+import {
+  homeForecasts,
+  homeMatches,
+  homePanels,
+  homeViewing,
+  shortDay,
+  tableCompetition,
+  todayFixtureIds,
+} from './home';
 
 /** T-526: the homepage keeps the reader's order and shows only what is real. */
 const card = (
@@ -79,5 +93,59 @@ describe('the homepage', () => {
   it('writes a kick-off day in the reader’s zone, not in UTC', () => {
     expect(shortDay('2026-10-04T22:30:00Z', 'UTC')).toBe('4 Oct');
     expect(shortDay('2026-10-04T22:30:00Z', 'Asia/Tehran')).toBe('5 Oct');
+  });
+});
+
+describe("the member's homepage (T-942)", () => {
+  it("takes today's matches in the reader's zone, pinned first, once each", () => {
+    const pinned = card('fav', 'scheduled', '2026-10-04T20:00:00Z');
+    const late = card('late', 'scheduled', '2026-10-04T23:30:00Z');
+    const tomorrow = card('tomorrow', 'scheduled', '2026-10-05T12:00:00Z');
+    const done = card('done', 'finished', '2026-10-04T10:00:00Z');
+    const data = scores([pinned], [[done, pinned, late, tomorrow]]);
+    // 23:30 UTC is already the 5th in Tehran, so it is not "today" there.
+    expect(todayFixtureIds(data, '2026-10-04', 'UTC')).toEqual(['fav', 'done', 'late']);
+    expect(todayFixtureIds(data, '2026-10-04', 'Asia/Tehran')).toEqual(['fav', 'done']);
+  });
+
+  it('lists only panels with a post, the most recently written-on first', () => {
+    const panel = (id: string, at: string | null): PanelLatest =>
+      ({
+        fixture_id: id,
+        state: 'open',
+        total: at === null ? 0 : 1,
+        posts: at === null ? [] : [{ id: `${id}p`, created_at: at }],
+      }) as unknown as PanelLatest;
+    const chosen = homePanels([
+      panel('quiet', null),
+      panel('older', '2026-10-04T10:00:00Z'),
+      panel('newer', '2026-10-04T12:00:00Z'),
+    ]);
+    expect(chosen.map((p) => p.fixture_id)).toEqual(['newer', 'older']);
+  });
+
+  it('asks for a territory once, not on every line', () => {
+    const cards = [
+      card('a', 'scheduled', '2026-10-04T12:00:00Z'),
+      card('b', 'live', '2026-10-04T10:00:00Z'),
+    ];
+    const unchosen = (id: string) =>
+      ({ fixture_id: id, territory: { state: 'not_chosen' } }) as unknown as MatchViewing;
+    expect(homeViewing(cards, [unchosen('a'), unchosen('b')])).toEqual({ state: 'ask' });
+    expect(homeViewing(cards, null)).toEqual({ state: 'unreachable' });
+
+    const listed = {
+      fixture_id: 'a',
+      territory: { state: 'chosen', territory: { code: 'GB', name: 'United Kingdom' } },
+      options: { coverage: 'available', data: [{}], last_updated_at: null },
+      highlights: { coverage: 'not_supplied', data: null, last_updated_at: null },
+    } as unknown as MatchViewing;
+    const lines = homeViewing(cards, [listed]);
+    expect(lines.state).toBe('lines');
+    if (lines.state === 'lines') {
+      expect(lines.byFixture.get('a')).toMatchObject({ state: 'listed', count: 1 });
+      // A match the answer left out is said to be unreachable, not guessed.
+      expect(lines.byFixture.get('b')).toEqual({ state: 'unreachable' });
+    }
   });
 });
