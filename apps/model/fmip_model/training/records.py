@@ -26,7 +26,7 @@ from .football_data import MatchRow
 
 RECORDED_MATCHES_SQL = """
 SELECT s.label, (f.kickoff_at AT TIME ZONE 'UTC')::date, h.team_id::text, a.team_id::text,
-       sc.home, sc.away
+       sc.home, sc.away, h.coach_id::text, a.coach_id::text
   FROM fixture f
   JOIN season s ON s.id = f.season_id
   JOIN competition c ON c.id = s.competition_id
@@ -50,6 +50,10 @@ class RecordedMatch:
     away_team_id: str
     home_goals: int
     away_goals: int
+    # The coach each side's line-up named, as a person id (T-1130, D-147);
+    # None when it named none. Never a name (rule 1), never carried forward.
+    home_coach_id: str | None = None
+    away_coach_id: str | None = None
 
 
 def recorded_matches(conn: Connection[tuple[object, ...]], division: str) -> list[RecordedMatch]:
@@ -70,13 +74,19 @@ def recorded_matches(conn: Connection[tuple[object, ...]], division: str) -> lis
             away_team_id=str(row[3]),
             home_goals=int(str(row[4])),
             away_goals=int(str(row[5])),
+            home_coach_id=None if row[6] is None else str(row[6]),
+            away_coach_id=None if row[7] is None else str(row[7]),
         )
         for row in rows
     ]
 
 
 def as_text(matches: Sequence[RecordedMatch]) -> str:
-    """The load's content as CSV, so its hash says whether two loads read the same thing."""
+    """The load's content as CSV, so its hash says whether two loads read the same thing.
+
+    The coaches are not in it: ``training.match`` does not store them, so a
+    line-up filled in later is not a different load of the same results.
+    """
     out = io.StringIO()
     writer = csv.writer(out, lineterminator="\n")
     writer.writerow(["season", "date", "home", "away", "home_goals", "away_goals"])
