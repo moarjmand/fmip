@@ -320,6 +320,107 @@ criterion of T-074.
 Reboots are safe: every service has `restart: unless-stopped` and Docker is
 enabled at boot.
 
+## 8. Only Cloudflare reaches the origin (T-930, D-112)
+
+Caddy closes, without an answer, any connection whose own address is outside
+Cloudflare's published ranges. The ranges are committed in
+`deploy/cloudflare-ranges.caddy` and imported by the `Caddyfile`; the matcher is
+`remote_ip`, the connection's peer, never a header, so a request that skips
+Cloudflare can no longer choose its own `CF-Connecting-IP` (D-093). Loopback
+(a probe from inside the Caddy container) is also allowed, and
+`ORIGIN_EXTRA_RANGES` in `.env` adds more -- empty on the server. SSH, port 22,
+is not Caddy's and is untouched. Port 80 still answers everyone, with the
+redirect to HTTPS and nothing else.
+
+**What calls the origin from the server itself.** Nothing that the rule
+refuses. The compose healthchecks never go through Caddy: Caddy's runs
+`caddy validate`, and `api` and `web` probe their own ports inside their own
+containers. `web` reaches the API as `http://api:3001` and Caddy reaches `web`
+over the compose network, not the other way round. `verify-rollout.sh` and
+`check-setup.sh` probe `https://$SITE_HOST`, which from the server resolves
+through public DNS to Cloudflare, so their probes arrive from a Cloudflare
+address -- exactly the path readers take. Two checks before applying, on the
+server:
+
+```bash
+cd /opt/fmip && set -a && . ./.env && set +a
+getent ahosts "$SITE_HOST"      # Cloudflare addresses only (104.x / 172.64-71.x / 2606:4700::...), not 127.0.0.1 or this server
+docker compose logs --since 48h caddy | grep -o '"remote_ip":"[^"]*"' | sort | uniq -c | sort -rn | head -20
+```
+
+The second lists who reached Caddy in the last two days. Everything but a
+scatter of scanners should be inside the ranges in
+`deploy/cloudflare-ranges.caddy`; an address outside them that sends real
+traffic is something to understand before applying, not after.
+
+**Why private ranges are not allowed on the server.** Docker's userland proxy
+can hand Caddy an IPv6 connection from anywhere as if it came from the bridge
+gateway (a `172.x.0.1` address), so allowing private ranges would reopen the
+gap for every IPv6 client. If Cloudflare ever reaches this origin over IPv6
+(an `AAAA` record for the origin in Cloudflare's DNS) and Docker carries it
+that way, those requests would be refused too; `verify-rollout.sh` through
+Cloudflare catches that, and the fix is enabling IPv6 on the compose network,
+not widening the list.
+
+**Applying it (the first time).** `rollout.sh` does not recreate Caddy, and
+this change adds a file mount and a variable to it:
+
+```bash
+cd /opt/fmip
+git pull --ff-only
+bash deploy/rollout.sh                    # the API with the weekly check
+docker compose up -d --no-deps caddy      # Caddy with the rule (a few seconds of refused connections)
+docker compose ps caddy                   # healthy
+bash deploy/verify-rollout.sh             # every probe 200, through Cloudflare
+curl -sk -m 10 -o /dev/null -w '%{http_code}
+' --resolve "$SITE_HOST:443:$(curl -s4 https://ifconfig.me)" "https://$SITE_HOST/en"
+                                          # 000: straight at the origin, refused
+```
+
+The last line goes around Cloudflare to this server's own public address and
+must print `000` (curl exit 52, empty reply). Run it from the laptop too, with
+the server's address in place of the `ifconfig.me` call.
+
+**The weekly check.** The API's watchdog (the process with
+`INGESTION_SCHEDULE=on`) reads https://www.cloudflare.com/ips-v4 and
+https://www.cloudflare.com/ips-v6 once a week, and once at every start, and
+compares them with the committed list (`CLOUDFLARE_RANGES_CHECK=on`, set by
+the compose file). Any difference makes the condition `cloudflare_ranges`
+`failing`, which is an alert to every administrator (T-802) naming each range
+that differs; the System page shows it. A list that could not be read is
+`unknown` and is tried again after an hour. When the alert comes: copy the
+two lists into `deploy/cloudflare-ranges.caddy` **and**
+`apps/api/src/modules/watchdog/internal/cloudflare-ranges.ts` (a unit test
+fails while the two disagree), merge, then on the server
+`git pull --ff-only && bash deploy/rollout.sh && docker compose up -d --no-deps caddy`.
+The condition recovers at the new API's first tick.
+
+**Rollback.** Two ways, the first for an emergency (a Cloudflare outage
+during which the site must be served with DNS pointing straight at the server,
+or readers refused after Cloudflare added a range):
+
+```bash
+# 1. Open the origin again without touching the code (seconds):
+echo 'ORIGIN_EXTRA_RANGES=0.0.0.0/0 ::/0' >> .env
+docker compose up -d --no-deps caddy
+# ...and to close it again: delete that line, then the same `up`.
+
+# 2. Undo the change itself: revert the T-930 merge commit on main, then
+git pull --ff-only
+docker compose up -d --no-deps caddy
+bash deploy/rollout.sh                    # the API without the check
+```
+
+`CLOUDFLARE_RANGES_CHECK=off` in `.env` and `bash deploy/rollout.sh api`
+silence the weekly check alone.
+
+**Rehearsed on the laptop** (record below) with the real `Caddyfile` and
+`cloudflare-ranges.caddy` in `caddy:2-alpine`, a stand-in for `web`, and two
+Docker networks: one numbered inside a Cloudflare range (`173.245.48.0/24`),
+one outside (`10.99.0.0/24`). The rehearsal stack below sets
+`ORIGIN_EXTRA_RANGES=private_ranges`, because Docker Desktop hands Caddy the
+laptop's own requests from the bridge gateway.
+
 ## Uptime check (from outside, T-806)
 
 `.github/workflows/uptime.yml` asks `https://traveltohormuz.ir/health` every
@@ -340,7 +441,8 @@ API does not. Three tries 30 s apart; the run fails when none answers 200.
 - Scheduled runs can start a few minutes late when GitHub is busy; expect an
   outage to be reported within 10 to 20 minutes.
 
-To check by hand: `curl -si https://traveltohormuz.ir/health`.
+To check by hand: `curl -si https://traveltohormuz.ir/health`. It goes through
+Cloudflare like a reader, so T-930's rule (§8) does not refuse it.
 
 ## Rehearsal on a laptop
 
@@ -352,7 +454,7 @@ Desktop running and the development `.env` set aside:
 cp .env .env.dev-backup
 { grep -E '^(POSTGRES_USER|POSTGRES_PASSWORD|POSTGRES_DB|SESSION_SECRET)=' .env.dev-backup
   printf '%s\n' COMPOSE_FILE=deploy/docker-compose.prod.yml COMPOSE_PROJECT_NAME=fmip-rehearsal \
-    SITE_HOST=localhost HTTPS_PORT=8443 HTTP_PORT=8080 POSTGRES_PORT=55432 REDIS_PORT=56379; } > .env
+    SITE_HOST=localhost HTTPS_PORT=8443 HTTP_PORT=8080 POSTGRES_PORT=55432 REDIS_PORT=56379 \n    ORIGIN_EXTRA_RANGES=private_ranges; } > .env
 docker compose --profile tools build
 docker compose run --rm migrate
 # The certificate before the first start: Caddy will not come up without one,
@@ -385,3 +487,4 @@ development one and `up` then starts it without building.
 | 2026-09-22 | Maintainer's laptop, rehearsal as above, on the tree after PR #238 (the catalogue tool, the season backfill and its admin route, the paid provider's profile, the role-granting tool) | **Passed.** The four images built from this tree; `docker compose run --rm migrate` applied all 58 migrations to an empty database, leaving 106 tables and no teams — what a fresh deployment actually starts from; all six services came up healthy; `deploy/check-setup.sh` reported every required check `ok` and the four optional capabilities `off`; and `deploy/verify-rollout.sh` rolled `api` then `web` — **47 probes of `https://localhost:8443/en`, 47 answered 200**, slowest 0.334 s, longest gap 692 ms. Through Caddy: `/en`, `/en/scores`, `/robots.txt`, `/sitemap.xml`, `/manifest.webmanifest` and `/sw.js` 200, `/en/nope` 404, `/en/admin` and `/en/following` redirected an anonymous visitor to `/en/login` (the second carrying `?next=`), and `/api/scores/stream` delivered `: ping` and then a `snapshot` event. **Two things were exercised here for the first time.** The operator's tools were run the way `14-maintainer.md` tells the operator to run them on the server — `docker compose run --rm migrate node scripts/catalog.mjs --list` and `... scripts/grant-role.mjs --list` — rather than through pnpm on a laptop: both answered from inside the image ("Nothing is waiting to be placed."; "No role has been granted on this deployment."). And the backfill route of T-030 was proved registered in the production build: `POST /admin/ingestion/backfill` from inside the api container answered `401 unauthenticated`. The run caught `check-setup.sh` printing `Site: https://localhost` in its header while probing `:8443` — the other half of the defect fixed on 2026-09-20 — corrected in the same commit. |
 | 2026-09-22 | Maintainer's laptop, rehearsal as above on the tree after PR #242, with `INGESTION_SCHEDULE=on` and the offline `replay` profile — a fresh production database an hour after the switch is thrown | **Passed, and the point of the run was the report rather than the stack.** 58 migrations onto an empty database, six healthy services, `/en`, `/en/scores` and `/robots.txt` 200 through Caddy, `/en/admin` redirecting an anonymous visitor. `check-setup.sh` said `Match data ... IDLE` and `Backups ... off` where it would have said `ON` and nothing a day earlier, and `catalog.mjs --list` from inside the `migrate` image printed the two flags that create a competition rather than a bare "Nothing is waiting to be placed." Earlier the same night, on the tree after PR #238: `verify-rollout.sh` 47 of 47 probes 200; a successful `api` roll probed on `/en` **and** `/en/scores` gave 258 of 258; and **a deliberately broken deploy** -- `POSTGRES_PASSWORD` mistyped in `.env`, the state an operator reaches by editing that file -- had the new container die on Postgres `28P01`, `rollout.sh` remove it and leave the old one serving, exit 1, and **386 of 386 probes answer 200 while it happened**. The run also caught its own fix: `Match data` named a blank provider, because `INGESTION_SOURCE=replay` resolves to nothing in an image carrying no recordings and the resolver's reason was reaching nobody (PR #243). |
 | 2026-09-25 | **Production**: Hetzner CPX22 (2 shared vCPUs, 4 GB, Nuremberg), Ubuntu 24.04, `traveltohormuz.ir` behind Cloudflare (proxied, SSL Full (strict), origin certificate), on the tree after PR #248 and redeployed to PR #250 the same evening | **Live.** Steps 1-5 of this runbook on the real server; `check-setup.sh` PASS with every required check `ok`. The first real registration found what no seeded environment could: an empty country list (nobody could register, PR #250, D-078) and blank primary buttons (PR #249); both fixed, redeployed with `rollout.sh` in about a minute, and checked on the live site. Then the first administrator, the catalogue (six competitions and their 2026/27 seasons, 155 adopted clubs) and two backfills: 358 real fixtures and a real Premier League table; `Match data ... ON`, 6 of 6 in season. Backups: first dump verified on B2, the nightly `fmip-backup.service` run once through systemd as `fmip`, `restore-drill.sh` PASSED; `Backups ... ON`. **`verify-rollout.sh` on the real host: 47 probes, 47 answered 200**, slowest 0.390 s, longest gap 603 ms. The load test on this machine is recorded in `08-load-test.md`. The server's first five hours also logged 1,675 failed SSH password guesses -- none could succeed, no account has a password -- and step 1 now turns password logins off. |
+| 2026-09-30 | Maintainer's laptop, T-930's rule alone (§8): the real `Caddyfile` and `cloudflare-ranges.caddy` in `caddy:2-alpine` 2.11.4, `SITE_HOST=fmip.test`, a stand-in `web` answering on :3000, one Docker network numbered `173.245.48.0/24` (inside Cloudflare's `173.245.48.0/20`) and one `10.99.0.0/24` | **Passed.** With `ORIGIN_EXTRA_RANGES` empty (the server's setting): a client at `173.245.48.4` got the page (Caddy logged status 200); a client at `10.99.0.3` got no answer (connection closed, logged status 0); the laptop's own request to the published port, which Docker Desktop delivers from the bridge gateway `10.99.0.1`, got no answer (curl exit 52); a probe from inside the Caddy container over loopback got the page. With `ORIGIN_EXTRA_RANGES=private_ranges` (the laptop rehearsal's setting) all four got the page. `caddy adapt` shows the refusal as the first route of the site, before the chat socket and `web`, and the Cloudflare lines, loopback and the extra ranges merged into one `remote_ip` matcher under `not`. |
