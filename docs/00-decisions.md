@@ -5504,7 +5504,7 @@ moderator who is not in it.
 **A closed group is read-only to its members, and the schema says so.**
 `refuse_write_in_closed_group()` refuses every insert into a group's
 surfaces -- a member, an invitation, a request, an invite link, a rules
-version, a poll or a vote, a thread, a message, a reaction, a pin (`PL020`).
+version, a poll or a vote, a thread, a message, a reaction, a pin (`PL021`).
 Updates and deletes are left to the ways out: leaving, an account's deletion
 handing ownership on, a tombstone. The API also refuses the owner's and
 moderators' settings changes, deleting the group (the closure and its appeal

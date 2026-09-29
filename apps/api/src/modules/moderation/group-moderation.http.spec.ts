@@ -382,7 +382,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
           `INSERT INTO message (conversation_id, author_id, body) VALUES ($1, $2, 'sneaky')`,
           [room, ids.get(owner)],
         ),
-      ).rejects.toMatchObject({ code: 'PL020' });
+      ).rejects.toMatchObject({ code: 'PL021' });
     });
 
     it("leaves a closed group's content to the administrators, not its own moderators", async () => {

@@ -46,7 +46,7 @@ const OVER_RATE = 'PL005';
 const ALREADY_REMOVED = 'PL007';
 /** Raised when a group thread is opened by somebody outside the group (T-244). */
 const OUTSIDE_THE_GROUP = 'PL012';
-const GROUP_CLOSED = 'PL020';
+const GROUP_CLOSED = 'PL021';
 
 export type ConversationOutcome<T> =
   | { ok: true; value: T }

@@ -302,7 +302,7 @@ export class GroupInviteLinksService {
         return { ok: false, reason: 'rate_limited' };
       case 'PL010':
         return { ok: false, reason: 'already_member' };
-      case 'PL020':
+      case 'PL021':
         return { ok: false, reason: 'closed' };
       case 'PL006':
         if ((error as { hint?: string }).hint === 'rules') {

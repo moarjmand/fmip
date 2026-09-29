@@ -79,14 +79,14 @@ BEGIN
   END;
   IF target IS NOT NULL AND group_is_closed(target) THEN
     RAISE EXCEPTION 'this group is closed'
-      USING ERRCODE = 'PL020', HINT = 'group_closed';
+      USING ERRCODE = 'PL021', HINT = 'group_closed';
   END IF;
   RETURN NEW;
 END
 $$;
 
 COMMENT ON FUNCTION refuse_write_in_closed_group() IS
-  'Refuses anything new in a group an administrator closed (T-1025, D-135). SQLSTATE PL020, hint group_closed.';
+  'Refuses anything new in a group an administrator closed (T-1025, D-135). SQLSTATE PL021, hint group_closed.';
 
 CREATE TRIGGER group_member_closed_guard BEFORE INSERT ON group_member
   FOR EACH ROW EXECUTE FUNCTION refuse_write_in_closed_group('group_id', 'group');

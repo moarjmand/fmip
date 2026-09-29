@@ -207,7 +207,7 @@ export class GroupPollsService {
         return { ok: false, reason: 'poll_closed' };
       case 'PL019':
         return { ok: false, reason: 'poll_limit' };
-      case 'PL020':
+      case 'PL021':
         return { ok: false, reason: 'closed' };
       case '23503':
       case '23514':
