@@ -5130,6 +5130,53 @@ list built from several signals.
 are catalogue keys. No migration.
 
 
+## D-136 — A panel post links to one incident, player, prediction or statistic of its own match
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-1030 lets a contributor attach **at most one** link to a panel
+post (blueprint 10.2): an incident of the match, a player in either line-up,
+their own prediction on the match, or a team statistic of the match. It is
+rendered as a card beside the post.
+
+- **Where it lives.** Columns on `panel_post` (migration `1765000000000`):
+  `link_kind` and one target column per kind, with a CHECK that a row carries
+  either no link or exactly one kind's columns. Written with the post in the
+  same INSERT; never changed afterwards (`refuse_panel_link_rewrite`, `PL007`,
+  the tombstone included).
+- **The schema refuses another match.** `panel_post_with_link_guard` (named to
+  run last of the BEFORE INSERT guards, so a member who may not post at all
+  hears that first) checks the target belongs to the post's fixture and raises
+  `PL020` with the kind in the HINT; the API answers 400 with a sentence per
+  kind. A statistic the feed has not supplied is refused too: a card for a
+  number nobody has would invent one (rule 3).
+- **Changed or removed by the feed.** An incident is linked by id **without a
+  foreign key**, and the trigger stores what it said (`link_snapshot`). On read
+  the card is `as_linked`, `changed` (shown as the feed has it now, with a note
+  saying it changed) or `removed` (nothing of the old incident is shown). A
+  statistic keeps its value at posting beside its value now; a player the feed
+  later dropped from both line-ups is said to be so.
+- **A prediction is the author's own, and only as visible as they make it.**
+  The link is the `prediction_version` in force when the post was written,
+  chosen by the trigger from the author's own call on this match (the client
+  names no id). The public panel is the same bytes for everybody, so it shows
+  the call only when the author's `prediction_history_visibility` shows it to a
+  guest; otherwise the card is `withheld` and names the setting. A viewer the
+  setting admits (the author, a friend under `friends`) receives the call on
+  `PanelPermission.linked_predictions`, asked of the profile boundary exactly as
+  D-063 asks it. A later revision does not rewrite the card; it says the call
+  was changed after posting. Rule 6: the card is labelled as the member's own
+  call, never the model's or the community's.
+- **A removed post shows no card**, as it shows no body.
+
+**Rejected.** *A link table*: "at most one" would be a unique index plus a
+promise, and a post could exist for a moment without its link. *A foreign key
+to `incident`*: RESTRICT would block the feed, SET NULL would blank the link
+through an UPDATE the rewrite guard refuses and lose the fact that something
+was linked. *Showing a withheld prediction to friends on the public document*:
+it would make the public read viewer-specific. *Player statistics as a fifth
+kind*: the task names a statistic of the match; a player card already leads to
+the player's numbers.
+
 ## D-137 — A contributor below the threshold for a sustained period is flagged to administrators, never paused
 **Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26). **The period is a proposal (N-7): the maintainer's to confirm or change.**
 
@@ -5178,4 +5225,5 @@ the contributor threshold is the number contributors were admitted against.
 inputs change, so an unchanged low rating has one old snapshot, and the
 stretch began with it. *A flag per day while below*: noise; one per stretch
 is what an administrator can act on.
+
 
