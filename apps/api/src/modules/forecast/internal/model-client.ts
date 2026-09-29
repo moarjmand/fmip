@@ -174,7 +174,20 @@ export class ModelClient {
       isRecord(elo) && elo.source === 'clubelo' && typeof elo.refresh === 'boolean'
         ? (elo as unknown as ModelHealth['elo_source'])
         : null;
-    return { ok: true, data: { ...(body as unknown as ModelHealth), elo_source: eloSource } };
+    // The candidates in shadow (T-1102) likewise: absent unless a list of strings.
+    const listed = body.candidate_versions;
+    const candidateVersions =
+      Array.isArray(listed) && listed.every((v: unknown) => typeof v === 'string')
+        ? (listed as string[])
+        : undefined;
+    return {
+      ok: true,
+      data: {
+        ...(body as unknown as ModelHealth),
+        elo_source: eloSource,
+        candidate_versions: candidateVersions,
+      },
+    };
   }
 
   async forecast(request: ModelForecastRequest): Promise<ModelCallResult<ModelForecastResponse>> {

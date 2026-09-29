@@ -27,6 +27,12 @@ function record(overrides: Partial<CandidateRecord>): CandidateRecord {
         published: { log_loss: 1.00123, brier: 0.5901 },
       },
     ],
+    shadow: {
+      first_answered_at: '2026-09-01T10:00:00Z',
+      last_answered_at: '2026-09-30T10:00:00Z',
+      day: { asked: 4, failed: 0 },
+      last_failure: null,
+    },
     ...overrides,
   };
 }
