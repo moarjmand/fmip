@@ -117,6 +117,19 @@ const ELIGIBLE_HEADLINE = `CASE WHEN n.kind = 'contributor_eligible'
   THEN subject_member.username || ' has stayed below the contributor threshold and is flagged for review. Nothing was paused.'
 END`;
 
+/**
+ * A breaking alert's line (T-1005, D-125): "Breaking: " and the note of the
+ * editor's mark it was raised by -- the newest mark made before the
+ * notification -- read from the mark rather than copied, like every other
+ * headline here. Null when the mark is gone with its story.
+ */
+const BREAKING_HEADLINE = `CASE WHEN n.kind = 'breaking_news' AND n.subject_id ~ '^[0-9a-f-]{36}$' THEN
+  (SELECT 'Breaking: ' || b.note FROM story_breaking b
+    WHERE b.story_id = CASE WHEN n.subject_id ~ '^[0-9a-f-]{36}$' THEN n.subject_id::uuid END
+      AND b.marked_at <= n.created_at
+    ORDER BY b.marked_at DESC LIMIT 1)
+END`;
+
 @Injectable()
 export class PostgresNotificationsStore {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
@@ -426,7 +439,7 @@ export class PostgresNotificationsStore {
                 ELSE NULL
               END AS subject_label,
               coalesce(subject_campaign.title, ${WATCHDOG_HEADLINE}, subject_match_alert.line,
-                       ${ELIGIBLE_HEADLINE}) AS headline,
+                       ${ELIGIBLE_HEADLINE}, ${BREAKING_HEADLINE}) AS headline,
               source.username AS source,
               n.created_at,
               n.read_at,
@@ -573,7 +586,7 @@ export class PostgresNotificationsStore {
                 ELSE NULL
               END AS subject_label,
               coalesce(subject_campaign.title, ${WATCHDOG_HEADLINE}, subject_match_alert.line,
-                       ${ELIGIBLE_HEADLINE}) AS headline,
+                       ${ELIGIBLE_HEADLINE}, ${BREAKING_HEADLINE}) AS headline,
               source.username AS source,
               u.email,
               u.preferred_language AS locale

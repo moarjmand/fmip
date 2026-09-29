@@ -4964,6 +4964,161 @@ setting because the viewer is a friend: a second visibility rule, which D-063
 exists to refuse. Showing removed posts as tombstones in the excerpt: honest on
 the panel, noise on a homepage line.
 
+## D-123 — Story types: blueprint 3.2's eleven, from the publisher's own category by an exact committed mapping or from an editor, never from a machine
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** A story's type (blueprint 3.2) is one of eleven:
+`breaking_news`, `transfer`, `injury`, `suspension`, `tactical_analysis`,
+`match_preview`, `match_report`, `interview`, `opinion`, `data_analysis`,
+`explainer` -- the blueprint's list and nothing else (`STORY_TYPES` in
+`@fmip/contracts`, the `story_label_type_known` check in the database, and a
+spec that fails when the two differ).
+
+- **Two origins.** `publisher`: the publisher's own category string on the
+  story's promoted original, mapped by an exact, committed list (T-1002).
+  `editor`: a person with the `editor` or `admin` role, with a reason, over
+  `POST /admin/stories/:id/type` beside the debate mark (T-1001). The card and
+  the story page carry `type: Covered<{ type, origin }>`, so a reader is told
+  whose word it is.
+- **No type is a stated absence.** A story with no current label is
+  `not_supplied`; there is no default type and no "other". The story page
+  says the story has none; a card carries no tag.
+- **Superseded, never edited.** `story_label` rows take one change in their
+  life, `superseded_at`, enforced by a trigger; a new label supersedes the
+  current one in the same transaction; a partial unique index keeps one
+  current label per story. There is no pointer to the replacing row, because
+  a publisher's label goes with its article when a publisher is dropped
+  (D-061) and a pointer would make the drop fail.
+- **An editor's word wins.** An editor's label supersedes a publisher's, even
+  of the same type, because the editor's origin is what keeps a later fetch
+  from changing it (T-1002). The same editor label twice is refused rather
+  than re-noted. Every editor label is an `audit_log` row (`story.type`,
+  target `story`) with the label it replaced as `previous` (rule 10).
+- **Never a machine (N-1).** No similarity, keyword or language-model rule
+  assigns a type. A third origin is a new decision entry and a migration; the
+  origin check, the contract's `STORY_LABEL_ORIGINS` and the web's total
+  records over it fail the build until both exist.
+- **"Breaking news" the type is not the breaking mark.** A publisher's
+  "breaking" category or an editor's label types the story; only the
+  editor's time-bound mark of D-125 puts it on the homepage strip.
+
+**The publisher's category (T-1002).** The feed reader keeps each item's
+category strings as carried (RSS `<category>` text, Atom `<category term>`,
+in feed order, duplicates removed) in `article_category`, replaced by each
+fetch so a category the publisher removed is gone. The committed list
+`STORY_TYPE_MAPPING` maps (the source's feed host, the exact string) to a
+type: no case folding, no trimming beyond the reader's whitespace, no prefix,
+keyword or similarity rule. A story takes its promoted original's mapped
+type; an item whose mapped categories name two different types has none
+(choosing would be a guess); an original that no longer maps withdraws the
+publisher label (superseded with nothing after it). The job recomputes the
+label whenever an item's words or categories change, and never supersedes an
+editor's label.
+
+**The mapping ships empty.** Each entry must name a recorded item from its
+feed that carries the exact string (`src/modules/news/_recorded/`, held by
+`story-type-mapping.spec.ts`). Which publishers are carried is the
+maintainer's (D-061, N-8) and is not in the repository, so no entry was
+written from memory or by analogy. Adding one is a recording and a line; the
+mechanism, the storage and the editor path work today.
+
+**Alternatives considered.** A `story.type` column: no history, no author,
+and an editor's correction would erase the publisher's word. A default type
+("news") for unlabelled stories: a filter by type would then pretend to know
+what the unlabelled half is. A type per article rather than per story: the
+reader filters stories, and the promoted original is already the story's
+voice (T-142).
+
+## D-124 — News filters by story type, player and date, and what a filter says about the stories it cannot place
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** `GET /news` takes `type`, `player`, `from`, `to` and `tz`
+beside the existing filters (blueprint 3.2), in every section, applied to the
+whole cluster as the others are (a story matches when any of its reports
+does).
+
+- **Type.** One of `STORY_TYPES` (D-123), against the story's current label.
+  A story with no type is never shown under a type filter and never counted
+  as one; the answer's `untyped` says how many stories matching every other
+  filter (the dates included) have no type, and the page says "N stories ...
+  have no type, so they are not shown". Without a type filter `untyped` is
+  `null`.
+- **Player.** A person by id (rule 1), matched on the story's person links.
+  Until any report links any person (T-1006 writes them), a player filter
+  answers `not_supplied` with reason `persons_unlinked` rather than an empty
+  list, because the list would be empty for want of linking, not of news.
+  Once links exist an empty answer is an ordinary `no_match`. The news page
+  shows an active player filter by name with a link to remove it; the way in
+  is a player's own page (T-1007), since a picker over every player would be a
+  second search box.
+- **Dates.** `from` and `to` are calendar days (`YYYY-MM-DD`, both
+  inclusive) in `tz`, an IANA zone (default `UTC`), compared with the story's
+  first publication -- the earliest time its original's publisher gave, else
+  when it was first read, the same instant the cards are ordered by. The web
+  sends the member's own zone, and only with a date; a guest's days are UTC.
+  A malformed day, an unknown zone or `from` after `to` is a 400 naming it.
+
+**Alternatives considered.** Showing untyped stories under every type filter
+("might be a transfer"): a filter that does not filter. Hiding the count:
+the short list would pose as all the transfer news. A `player` filter that
+answers an empty list before T-1006: indistinguishable from "no news about
+him". Dates in UTC for everyone: a Tehran reader's "today" would drop its
+first three and a half hours.
+
+## D-125 — "Breaking": an editor's mark with a window, the homepage strip, and who is told
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** "Breaking" on the homepage (blueprint 2.3) is an editor's act,
+never a publisher's word or a machine's (D-123, N-1).
+
+- **The mark.** An `editor` or `admin` marks a story with a note readers see
+  (`POST /admin/stories/:id/breaking`). The mark lasts
+  `BREAKING_WINDOW_HOURS` (the proposal, **6 hours**) from the moment it is
+  made; there is no per-mark window, so every strip entry means the same
+  thing. An editor may end it early with a reason (`.../breaking/clear`).
+  A second mark while one is in force is refused rather than re-noted; once
+  a mark has ended, the story may be marked again. Every mark and clear is an
+  `audit_log` row (`breaking.mark`, `breaking.clear`, target `story`) with
+  what was there before (rule 10). `GET /admin/breaking` lists marks as
+  `live`, `expired` or `cleared`.
+- **The strip.** `GET /news/breaking` is public (a guest sees it): the
+  stories whose mark is in force, newest mark first, at most
+  `BREAKING_STRIP_LIMIT` (5). "In force" is `ends_at > now()` read at
+  render, so an expired mark is gone at the next render with no job to take
+  it down. With nothing marked the homepage draws no strip at all -- not an
+  empty one (rule 3). A card carries `breaking` (the note and the window)
+  wherever it appears, so the news page marks it too.
+- **Not the type.** A story typed `breaking_news` by its publisher or an
+  editor (D-123) is not on the strip unless an editor marks it: the type says
+  what a story is, the mark says what is on the front page now.
+
+- **Who is told (T-1005).** `breaking_news` is a notification kind, **off
+  by default**: an interruption about news is something a member asks for,
+  and the strip is there for everyone else. When a mark is made, the members
+  who follow a team, competition or person any of the story's reports links,
+  and whose switch is on, are told -- one audience query and one
+  `emitToAudience` statement, as the match alerts are since T-835 (D-105), so
+  the category mute (`football`), the team and competition mutes (a story is
+  about every team and competition it links, through `notification_about`),
+  quiet hours (delay, never drop) and the dedupe key apply exactly as to
+  every kind. The kind has no hourly cap, like every kind but messages and
+  reactions (T-273): marks are made by editors, by hand, a few a day. The
+  dedupe key is the story, so a story marked, cleared and marked again is
+  told **once**; a member who starts following in between is told at the next
+  mark. A story that links nothing a member follows reaches nobody. The
+  notification's subject is the story (`story`, a new subject) and opens the
+  story page; its line is "Breaking: " and the editor's note, read from the
+  mark rather than copied.
+
+**Alternatives considered.** A flag on `story`: no author, no reason, no
+window. A scheduled job that clears expired marks: an expired mark would stay
+on the homepage until the job ran. Letting a publisher's "breaking" category
+fill the strip: the homepage would be written by whichever feed labels most
+generously. On by default: every member following a big club would be pushed
+several times a day about stories they did not ask to be interrupted by.
+Telling on every re-mark: a correction to a note would reach everybody
+again.
+
 ## D-126 — Linking a person to a story: the rule, its precision on a sample, and what it never does
 **Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
 
@@ -5396,5 +5551,4 @@ the contributor threshold is the number contributors were admitted against.
 inputs change, so an unchanged low rating has one old snapshot, and the
 stretch began with it. *A flag per day while below*: noise; one per stretch
 is what an administrator can act on.
-
 

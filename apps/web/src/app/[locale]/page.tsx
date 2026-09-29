@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { BreakingStrip } from '@/components/breaking-strip';
 import { FirstRunOffer } from '@/components/first-run-offer';
 import { JsonLd } from '@/components/json-ld';
 import { FounderAnalysisFeed } from '@/components/founder-analysis';
@@ -11,6 +12,7 @@ import {
 import { CardViewingLine } from '@/components/score-card';
 import {
   fetchApiHealth,
+  fetchBreakingNews,
   fetchCompetition,
   fetchFirstRun,
   fetchForecastList,
@@ -87,7 +89,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   // Times are the member's zone, else the zone a guest chose, else UTC, and say which.
   const timeZone = me?.timezone ?? guest?.timezone ?? 'UTC';
   const today = dateIn(timeZone, new Date());
-  const [scores, news] = await Promise.all([
+  const [scores, news, breaking] = await Promise.all([
     fetchScores(
       new URLSearchParams({
         from: today,
@@ -97,6 +99,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       cookie,
     ),
     fetchNewsSection('', locale, cookie),
+    // T-1004 (D-125): the strip, read at render, so an expired mark is gone now.
+    fetchBreakingNews(locale),
   ]);
   const matches = scores.ok ? homeMatches(scores.data) : [];
   const tableId = scores.ok ? tableCompetition(scores.data) : null;
@@ -157,6 +161,9 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         </Link>
         .
       </p>
+      {breaking.ok && breaking.data.stories.data !== null && (
+        <BreakingStrip locale={locale} stories={breaking.data.stories.data} />
+      )}
       {offerFirstRun && <FirstRunOffer locale={locale} />}
       {me === null && (
         <p data-testid="first-visit">

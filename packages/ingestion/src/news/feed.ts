@@ -160,6 +160,29 @@ function atomLink(entry: string): string | null {
   return fallback;
 }
 
+/** Distinct, non-empty, in the order the feed gave them. */
+function distinct(values: (string | null)[]): string[] {
+  const out: string[] = [];
+  for (const v of values) if (v !== null && !out.includes(v)) out.push(v);
+  return out;
+}
+
+/** RSS `<category>` text, as carried (T-1002); a `domain` attribute is not part of the string. */
+function rssCategories(item: string): string[] {
+  return distinct(blocks(item, 'category').map((c) => textOf(c)));
+}
+
+/** Atom `<category term="...">`, as carried (T-1002); `label` is display text, `term` the category. */
+function atomCategories(entry: string): string[] {
+  const tags = entry.match(/<(?:[a-zA-Z0-9_-]+:)?category\s[^>]*>/gi) ?? [];
+  return distinct(
+    tags.map((tag) => {
+      const term = firstAttribute(tag, 'category', 'term');
+      return term === null || term.trim() === '' ? null : term.trim();
+    }),
+  );
+}
+
 function rssItem(item: string, feedLanguage: string | null): NormalisedNewsItem | null {
   const headline = textOf(firstElement(item, 'title'));
   const url = textOf(firstElement(item, 'link'));
@@ -173,6 +196,7 @@ function rssItem(item: string, feedLanguage: string | null): NormalisedNewsItem 
     byline: textOf(firstElement(item, 'creator')) ?? textOf(firstElement(item, 'author')),
     publishedAt: isoDate(firstElement(item, 'pubDate')),
     language: feedLanguage,
+    categories: rssCategories(item),
   };
 }
 
@@ -195,6 +219,7 @@ function atomEntry(
     publishedAt:
       isoDate(firstElement(entry, 'published')) ?? isoDate(firstElement(entry, 'updated')),
     language: entryLanguage ?? feedLanguage,
+    categories: atomCategories(entry),
   };
 }
 
