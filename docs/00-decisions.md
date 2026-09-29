@@ -4728,6 +4728,54 @@ written, and the list is short.
 **Consequences.** `TeamPage.manager` (`TeamManager`), `EntityNewsResponse`
 and `ENTITY_NEWS_LIMIT` are in the contract. No migration.
 
+## D-114 — The scores card summarises the model's latest pre-kick-off version, the community's totals at D-052's floor, and viewing in the viewer's own territory
+
+**Date:** 2026-09-29 · **Task:** T-940 · **Status:** accepted
+
+Blueprint 4.1 asks each match on the scores list for a model forecast
+summary, community prediction totals and where it can be watched. All three
+existed on the match centre; the card said "not on this page yet". Putting
+them on a list of up to a few hundred matches needed three judgements.
+
+**Which forecast version.** The latest *published* version computed before
+kick-off (`computed_at < kickoff_at`, the evaluation's own `pre_kickoff`
+test, T-066). Before a match that is simply the latest version. Once it has
+started, a version recomputed during or after the match is not the forecast
+the match was played against, and a list that swapped to it would quietly
+show a number fitted with knowledge of the game. The card names the version
+and its computation time, and says "the statistical model". An unavailable
+version shows its reason; no pre-kick-off version is said in words, never an
+empty bar. `GET /forecasts/pre-kickoff?fixtures=` answers a *summary*
+(probabilities, version, kind, model, time, reason), not the full version:
+the inputs, factors and scorelines stay on the match centre.
+
+**What "community totals" are, and the floor.** The crowd counts (how many
+members' standing predictions picked home, draw, away) and the sample, from
+`GET /consensus?fixtures=`, and only when the consensus is published at all:
+D-052's five predictors. Below it the card says "not published until 5
+members have predicted this match". Counts rather than percentages, so the
+community's line cannot be read as a second set of model probabilities; the
+weighted distribution stays on the match centre, where there is room to
+explain it. The two lines are two components fed from two endpoints and two
+maps; nothing averages or relabels them (rule 6, `three-products.spec.ts`).
+
+**Whose territory.** The member's stored one (T-312), through
+`GET /viewing?fixture=`. A guest, or a member who has not chosen, is asked
+("choose your territory", linking to Watch), and nothing is inferred. The
+scores page does not ask the viewing boundary for a guest at all.
+
+**Keeping the list fast.** The page asks each product once per 50 shown
+matches, all in parallel, after the scores snapshot (never a request per
+card), and reduces the answers on the server to a few values per card before
+they reach the client. The SSE stream stays scores only: a match the stream
+adds after load says its lines were not loaded. The T-808 budgets in
+`apps/web/perf-budgets.json` are unchanged.
+
+**Alternatives considered.** Adding the three to `ScoreCard` on `GET /scores`:
+one payload holding two prediction products, which T-136 already refused
+(rule 6), and a heavier stream on every snapshot. Showing the latest version
+whatever its time: simpler, and wrong for every match in play.
+
 ## D-116 — Following a match: its alerts under the member's own switches, once, until three hours after full-time
 **Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
 
@@ -4782,4 +4830,68 @@ on every alert, the cost D-098 declined for per-team switches.
 `fixture_follow_open()`. `FOLLOWED_ENTITY_TYPES` in the contract has
 `fixture`, whose `name` is "Home v Away". `components/match-follow.tsx` is the
 control. No new route, write or setting.
+
+
+
+## D-117 — An achievement unlock is told once, the first time it is derived, and never taken back
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-946 makes an achievement (D-091) a notification (blueprint
+12.2).
+
+- **When.** After every rating recompute (after each settlement, and in the
+  job's pass over recently settled members), the reputation boundary derives
+  the member's achievements exactly as the profile does. It records each one
+  it has not seen before in `achievement_unlocked`: the member, the kind, the
+  stored time that earned it, and when it was first derived. For each new
+  one it emits `achievement_unlocked`, keyed `achievement_unlocked:<member>:<kind>`,
+  with the member as the subject. The notification opens their profile at
+  the list (`/u/<username>#achievements`) and says "You earned an
+  achievement."
+- **Told once, and what was told is not lost.** A row is one per member and
+  kind (the primary key), and a recomputation never deletes one. The plan's
+  "only for achievements that cannot be lost" is read this way: the
+  achievement on the profile stays derived and can still be withdrawn by a
+  corrected settlement (D-091 is unchanged), but the unlock that was told is
+  a fact that is kept. An achievement that a correction removes and a later
+  settlement restores is therefore not told twice, and one lost and earned
+  again later is not told again either. The notification is never withdrawn:
+  it was true when it was sent.
+- **Only when it is news.** An achievement first derived more than **three
+  days** after the stored time that earned it is recorded with `told` false
+  and no notification. That covers every achievement earned before T-946, on
+  the job's first pass after the deploy (so there is no backfill and no
+  flood), and one the job reached late.
+- **The existing controls.** `achievement_unlocked` is a kind in the
+  `football` category, on by default, and appears in the general list in
+  Settings → Notifications ("When I earn an achievement (once each)"). The
+  member's switch, the `football` category mute and quiet hours apply as they
+  do to `prediction_settled`. A member who switched it off is still recorded,
+  so switching it back on does not replay old unlocks.
+- **A deleted member is never told.** The insert reads the account and
+  records nothing for a tombstone (`status = 'deleted'`), so nothing is
+  emitted.
+- **Achievements still change nothing.** `achievement_unlocked` is read only
+  by the job that writes it. The profile, the rating, the boards and
+  eligibility read nothing new.
+
+**At most once.** The row is written before the notification. If the write
+of the notification then fails (`emit` never throws, and logs the fault),
+that member is not told of that achievement. A second tell on a retry would
+break the rule this decision exists for, and nothing depends on the
+notification existing.
+
+**Alternatives considered.** Storing achievements as rows and notifying on
+insert: D-091 keeps them derived, and a stored copy would drift from the
+settlements. Telling on every first appearance, without the record: a
+correction that removes and restores would tell twice. Telling only the kinds
+that no correction can remove (`competitions_5` alone): true to the letter of
+the plan, but it would leave nine of ten achievements silent, and the
+acceptance test for a removed-and-restored achievement would describe nothing.
+
+**Consequences.** `1764880000000_achievement-unlocked.sql` widens the kind
+lists and adds `achievement_unlocked`. The kind is in `NOTIFICATION_KINDS`,
+`NOTIFICATION_DEFAULTS`, `NOTIFICATION_CATEGORY_OF` and `NOTIFICATION_TEXT`,
+and `notificationPath` opens `#achievements`. No new route, write or setting.
+
 

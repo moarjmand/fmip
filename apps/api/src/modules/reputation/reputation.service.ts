@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import type {
+  AchievementKind,
   Achievements,
   LeaderboardPeriod,
   LeaderboardResponse,
@@ -8,6 +9,7 @@ import type {
 } from '@fmip/contracts';
 import { ForecastService } from '../forecast/forecast.service';
 import { IdentityService } from '../identity/identity.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { SettlementService, type SettledRecord } from '../predictions/predictions.service';
 import { ProfileService } from '../profile/profile.service';
 import { periodBoard, type PeriodBoardRow } from './internal/period-board';
@@ -21,6 +23,7 @@ import {
 import { CareerPointsService } from './career-points.service';
 import { ContributorService } from './contributor.service';
 import { deriveAchievements } from './internal/achievements';
+import { newUnlocks, unlockKey } from './internal/achievement-unlocks';
 import { ratingHistory } from './internal/history';
 import {
   LEADERBOARD_RULES_V1,
@@ -68,6 +71,7 @@ export class ReputationService {
   /** Replaceable so a test can rate under a different version. */
   formula: RatingFormula = RATING_FORMULA_V1;
   leaderboardRules: LeaderboardRules = LEADERBOARD_RULES_V1;
+  private readonly log = new Logger(ReputationService.name);
 
   constructor(
     private readonly store: PostgresRatingStore,
@@ -77,6 +81,7 @@ export class ReputationService {
     private readonly points: CareerPointsService,
     private readonly profiles: ProfileService,
     private readonly contributors: ContributorService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /**
@@ -299,8 +304,44 @@ export class ReputationService {
     // Eligibility can move without the rating (a sanction ageing out, an
     // address verified), so it is asked after every recompute of a member
     // who exists; administrators hear only of a transition (T-833, D-100).
-    if (outcome.kind !== 'unknown_user') await this.contributors.noteEligibility(userId);
+    if (outcome.kind !== 'unknown_user') {
+      await this.contributors.noteEligibility(userId);
+      await this.noteAchievements(userId);
+    }
     return outcome;
+  }
+
+  /**
+   * Tells the member of each achievement derived for the first time (T-946,
+   * D-117): recorded once in `achievement_unlocked`, told only when it is
+   * news, through the member's own switch, category mute and quiet hours.
+   * Reads the achievements exactly as the profile does and changes nothing
+   * they feed (D-091). Never throws: a recompute is not undone because a
+   * notification could not be written, and the next one records it.
+   */
+  async noteAchievements(userId: string, now = new Date()): Promise<AchievementKind[]> {
+    try {
+      const achievements = await this.achievements(userId);
+      if (achievements.earned.length === 0) return [];
+      const unlocks = newUnlocks(achievements.earned, await this.store.unlockedKinds(userId), now);
+      const told = await this.store.recordUnlocks(userId, achievements.rules_version, unlocks);
+      await this.notifications.emitMany(
+        told.map((kind) => ({
+          userId,
+          kind: 'achievement_unlocked' as const,
+          subjectType: 'member' as const,
+          subjectId: userId,
+          dedupeKey: unlockKey(userId, kind),
+        })),
+      );
+      return told;
+    } catch (error) {
+      this.log.error(
+        `achievement_unlocked.failed member=${userId}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+      return [];
+    }
   }
 
   private async recomputeRating(userId: string): Promise<RecomputeOutcome> {

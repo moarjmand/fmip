@@ -262,7 +262,8 @@ export default async function ProfilePage({
         />
       </section>
 
-      <section className="flex flex-col gap-2" data-testid="achievements">
+      {/* The anchor an achievement notification opens (T-946). */}
+      <section id="achievements" className="flex flex-col gap-2" data-testid="achievements">
         <h2 className="text-lg font-semibold">
           <Translated locale={locale} message="achievements.title" />
         </h2>

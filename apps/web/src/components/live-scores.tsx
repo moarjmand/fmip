@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { ScoreCard } from '@/components/score-card';
 import { scoresAnnouncements } from '@/lib/announce';
 import { INITIAL_CLOCK, type LiveClock, liveLabel, liveState } from '@/lib/live';
+import type { ScoreCardProducts } from '@/lib/score-card-products';
 import { blockUpdatedLabel } from '@/lib/scores';
 import { applyFilters, isFiltered, type ScoresFilterSelection } from '@/lib/scores-filters';
 
@@ -53,6 +54,7 @@ export function LiveScores({
   locale,
   filters,
   clearFiltersHref,
+  products,
 }: {
   initial: ScoresResponse;
   streamQuery: string;
@@ -61,6 +63,12 @@ export function LiveScores({
   filters: ScoresFilterSelection;
   /** The same day with the country / competition / stage filters removed. */
   clearFiltersHref: string;
+  /**
+   * The model's, the community's and the viewing line for each card (T-940),
+   * loaded once with the page, one batch per product. The stream carries
+   * scores only; a match it adds later says its lines were not loaded.
+   */
+  products: ScoreCardProducts;
 }) {
   const [scores, setScores] = useState(initial);
   const [clock, setClock] = useState<LiveClock>(INITIAL_CLOCK);
@@ -157,6 +165,9 @@ export function LiveScores({
                     locale={locale}
                     now={now}
                     showCompetition
+                    forecast={products.forecast[card.id]}
+                    community={products.community[card.id]}
+                    viewing={products.viewing[card.id]}
                   />
                 ))}
               </ul>
@@ -191,6 +202,9 @@ export function LiveScores({
                     timeZone={timeZone}
                     locale={locale}
                     now={now}
+                    forecast={products.forecast[card.id]}
+                    community={products.community[card.id]}
+                    viewing={products.viewing[card.id]}
                   />
                 ))}
               </ul>

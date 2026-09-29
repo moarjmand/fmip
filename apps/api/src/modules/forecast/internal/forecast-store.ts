@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type {
   ForecastKind,
+  ForecastSummary,
   ForecastUnavailableReason,
   ForecastVersion,
   ModelExpectedGoals,
@@ -182,6 +183,60 @@ export class PostgresForecastStore {
       [fixtureIds],
     );
     return new Map(rows.map((row) => [row.fixture_id, toVersion(row)]));
+  }
+
+  /**
+   * The latest published version computed before its fixture's kick-off, for
+   * each of these fixtures, in one query (T-940, D-114). Only the columns a
+   * summary carries: no input snapshot join, no factors or scorelines.
+   *
+   * "Before kick-off" is `computed_at < kickoff_at`, the evaluation's own test
+   * (`pre_kickoff`, T-066). A fixture with no such version is absent.
+   */
+  async preKickoffSummaries(fixtureIds: string[]): Promise<Map<string, ForecastSummary>> {
+    const { rows } = await this.pool.query<{
+      fixture_id: string;
+      version_number: number;
+      kind: ForecastKind;
+      model_id: string;
+      computed_at: Date;
+      status: 'available' | 'unavailable';
+      p_home: string | null;
+      p_draw: string | null;
+      p_away: string | null;
+      unavailable_reason: ForecastUnavailableReason | null;
+    }>(
+      `SELECT DISTINCT ON (f.fixture_id)
+              f.fixture_id, f.version_number, s.kind, m.model_id, f.computed_at, f.status,
+              f.p_home, f.p_draw, f.p_away, f.unavailable_reason
+         FROM forecast f
+         JOIN fixture fx ON fx.id = f.fixture_id
+         JOIN input_snapshot s ON s.id = f.input_snapshot_id
+         JOIN model_version m ON m.id = f.model_version_id
+        WHERE f.fixture_id = ANY($1)
+          AND f.role = 'published'
+          AND f.computed_at < fx.kickoff_at
+        ORDER BY f.fixture_id, f.version_number DESC`,
+      [fixtureIds],
+    );
+    return new Map(
+      rows.map((row) => {
+        const available = row.status === 'available';
+        const summary: ForecastSummary = {
+          version_number: row.version_number,
+          kind: row.kind,
+          model_version: row.model_id,
+          computed_at: row.computed_at.toISOString(),
+          status: row.status,
+          probabilities:
+            available && row.p_home !== null && row.p_draw !== null && row.p_away !== null
+              ? { home: Number(row.p_home), draw: Number(row.p_draw), away: Number(row.p_away) }
+              : null,
+          unavailable_reason: available ? null : row.unavailable_reason,
+        };
+        return [row.fixture_id, summary];
+      }),
+    );
   }
 
   /** Writes one version. Returns it as the API serves it. */

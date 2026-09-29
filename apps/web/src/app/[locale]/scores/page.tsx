@@ -1,10 +1,18 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { LiveScores } from '@/components/live-scores';
-import { fetchIngestionHealth, fetchMe, fetchScores } from '@/lib/api';
+import {
+  fetchConsensusList,
+  fetchForecastSummaries,
+  fetchIngestionHealth,
+  fetchMe,
+  fetchScores,
+  fetchViewingBatch,
+} from '@/lib/api';
 import { feedNotice } from '@/lib/live';
 import { apiQuery, dayStrip, pageHref, readScoresQuery, shiftDate } from '@/lib/scores';
 import {
+  applyFilters,
   filterOptions,
   filterParams,
   isFiltered,
@@ -12,6 +20,7 @@ import {
   withSelected,
   type FilterOption,
 } from '@/lib/scores-filters';
+import { cardIds, loadScoreCardProducts, NO_PRODUCTS } from '@/lib/score-card-products';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { Button, ButtonLink, Notice, controlClasses } from '@/components/ui';
@@ -60,6 +69,17 @@ export default async function ScoresPage({
     fetchScores(apiQuery(q), cookie),
     fetchIngestionHealth(),
   ]);
+  const filters = q.filters ?? NO_FILTERS;
+  // T-940 (D-114): the model's, the community's and the viewing line for every
+  // card shown, one request per product per 50 matches, in parallel -- never a
+  // request per card. A guest has no stored territory, so viewing is not asked.
+  const products = result.ok
+    ? await loadScoreCardProducts(cardIds(applyFilters(result.data, filters)), {
+        forecasts: fetchForecastSummaries,
+        consensus: fetchConsensusList,
+        viewing: me === null ? null : (ids) => fetchViewingBatch(ids, undefined, cookie),
+      })
+    : NO_PRODUCTS;
   // A provider outage is named on the page (T-083), never hidden behind old numbers.
   const notice = feedNotice(ingestion, locale, q.timezone);
   const strip = dayStrip(q, locale);
@@ -70,7 +90,6 @@ export default async function ScoresPage({
     }`;
   // The day steps, each a thumb-sized button.
   const stepClass = 'inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1';
-  const filters = q.filters ?? NO_FILTERS;
   const filtered = isFiltered(filters);
   const clearFiltersHref = pageHref(locale, q, { filters: NO_FILTERS });
   const options = result.ok ? filterOptions(result.data) : null;
@@ -260,6 +279,7 @@ export default async function ScoresPage({
             locale={locale}
             filters={filters}
             clearFiltersHref={clearFiltersHref}
+            products={products}
           />
         </>
       )}
