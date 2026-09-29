@@ -1,6 +1,13 @@
 import type { ForecastVersion } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
-import { describeChange, favourite, framing, percentages, versionChanges } from './forecast';
+import {
+  describeChange,
+  favourite,
+  framing,
+  percentages,
+  priorNote,
+  versionChanges,
+} from './forecast';
 
 const version = (n: number, p: [number, number, number] | null, kind: ForecastVersion['kind']) =>
   ({
@@ -75,5 +82,25 @@ describe('versionChanges', () => {
     expect(describeChange(same[1]!, 'A', 'B')).toBe(
       'No change in probabilities (manual recomputation).',
     );
+  });
+});
+
+describe('priorNote (T-920)', () => {
+  const inputs = (eloUsed: boolean): ForecastVersion['inputs'] => ({
+    model_version: 'dixon-coles-elo@0.1.0',
+    fit_date: '2026-09-27',
+    matches_used: 380,
+    elo_used: eloUsed,
+    history_from: '2025-08-23',
+    data_completeness: 'limited',
+  });
+
+  it('says so in the factor list when the version had no Elo prior, from its stored inputs', () => {
+    expect(priorNote({ inputs: inputs(false) })).toMatch(/^No Elo prior this time/);
+  });
+
+  it('says nothing when the prior was used or the version reported no inputs', () => {
+    expect(priorNote({ inputs: inputs(true) })).toBeNull();
+    expect(priorNote({ inputs: null })).toBeNull();
   });
 });

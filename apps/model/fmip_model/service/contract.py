@@ -124,6 +124,31 @@ class Unavailable(BaseModel):
 ForecastResponse = Forecast | Unavailable
 
 
+class EloSourceState(BaseModel):
+    """Club Elo as the training store recorded it (T-920, D-111).
+
+    Read from ``training.source_load``: the newest load that succeeded, and the
+    newest that failed. ``unanswered_since`` is when the source was last heard
+    from -- the newest success, else the oldest failure on record -- so the
+    watchdog can count days without an answer.
+    """
+
+    source: Literal["clubelo"] = "clubelo"
+    #: Whether this service asks Club Elo itself each day (MODEL_CLUBELO_REFRESH).
+    refresh: bool
+    #: ``recorded``: the loads were read; ``unreadable``: the store did not answer.
+    state: Literal["recorded", "unreadable"]
+    #: The day of the newest snapshot that loaded, and when it finished.
+    last_succeeded_day: date | None = None
+    last_succeeded_at: datetime | None = None
+    #: The newest failed load: its error and when it finished.
+    last_error: str | None = None
+    last_error_at: datetime | None = None
+    #: The newest success, else the oldest failure; null when nothing was ever asked.
+    unanswered_since: datetime | None = None
+    detail: str | None = None
+
+
 class Health(BaseModel):
     status: Literal["ok"] = "ok"
     service: Literal["model"] = "model"
@@ -131,3 +156,5 @@ class Health(BaseModel):
     #: The version offered for shadow forecasts at /forecast/candidate (T-531), or null.
     candidate_version: str | None = None
     checked_at: datetime
+    #: Club Elo's state (T-920); null from a source that keeps no loads (tests).
+    elo_source: EloSourceState | None = None

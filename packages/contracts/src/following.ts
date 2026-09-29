@@ -6,13 +6,19 @@
  * Following views (blueprint 4.1, 7.2).
  */
 
-export const FOLLOWED_ENTITY_TYPES = ['team', 'competition', 'person'] as const;
+/**
+ * T-945 (D-116): a `fixture` is a match followed. It joins that match's alert
+ * audience, is never a favourite, and ends by itself three hours after
+ * full-time -- after which `GET /me/following` no longer lists it and a new
+ * follow of it is a 409.
+ */
+export const FOLLOWED_ENTITY_TYPES = ['team', 'competition', 'person', 'fixture'] as const;
 export type FollowedEntityType = (typeof FOLLOWED_ENTITY_TYPES)[number];
 
 export interface FollowedEntity {
   entity_type: FollowedEntityType;
   entity_id: string;
-  /** The entity's current display name, joined at read time. */
+  /** The entity's current display name, joined at read time; a match is "Home v Away". */
   name: string;
   favourite: boolean;
   /** ISO 8601. */

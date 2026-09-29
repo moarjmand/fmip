@@ -11,7 +11,8 @@ export function ShareLink({
 }: {
   url: string;
   title: string;
-  label?: string;
+  /** The button's words; a server page may pass a `<Translated>` message (T-941). */
+  label?: React.ReactNode;
 }) {
   const [message, setMessage] = useState<string | null>(null);
 

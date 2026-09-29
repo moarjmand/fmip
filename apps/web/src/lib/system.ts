@@ -153,6 +153,8 @@ export function conditionName(key: string): string {
       return `Failed jobs: ${target ?? '?'} queue`;
     case 'model_service':
       return 'Model service';
+    case 'elo_source':
+      return "Club Elo (the model's long-term ratings)";
     case 'delivery':
       return `Delivery: ${target ?? '?'}`;
     case 'backup':

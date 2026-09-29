@@ -25,7 +25,11 @@ export {
   favouriteRank,
 } from './internal/favourite-order';
 
-export type FollowOutcome = 'followed' | 'unknown_entity';
+/**
+ * `favourite_match`: a match is never pinned. `follow_ended`: the match's
+ * follow window closed three hours after full-time (D-116).
+ */
+export type FollowOutcome = 'followed' | 'unknown_entity' | 'favourite_match' | 'follow_ended';
 
 /** What the predictions boundary asks before serialising a member's history (T-056). */
 export type HistoryAccess =
@@ -223,7 +227,14 @@ export class ProfileService {
     entityId: string,
     favourite: boolean | undefined,
   ): Promise<FollowOutcome> {
-    if (!(await this.following.entityExists(type, entityId))) return 'unknown_entity';
+    if (type === 'fixture') {
+      if (favourite === true) return 'favourite_match';
+      const state = await this.following.fixtureFollowState(entityId);
+      if (state === 'unknown') return 'unknown_entity';
+      if (state === 'ended') return 'follow_ended';
+    } else if (!(await this.following.entityExists(type, entityId))) {
+      return 'unknown_entity';
+    }
     await this.following.upsert(userId, type, entityId, favourite);
     return 'followed';
   }

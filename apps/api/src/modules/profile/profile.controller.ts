@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
   Delete,
   Get,
@@ -40,7 +41,16 @@ const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in 
 const NOT_FOUND: ApiError = { error: 'not_found', message: 'No such member.' };
 const UNKNOWN_ENTITY: ApiError = {
   error: 'not_found',
-  message: 'No such team, competition or person.',
+  message: 'No such team, competition, person or match.',
+};
+const FAVOURITE_MATCH: ApiError = {
+  error: 'validation',
+  message: 'A match can be followed, not made a favourite.',
+  fields: { favourite: 'must not be true for a match' },
+};
+const FOLLOW_ENDED: ApiError = {
+  error: 'conflict',
+  message: 'This match ended more than three hours ago, so it can no longer be followed.',
 };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -214,6 +224,8 @@ export class ProfileController {
 
     const outcome = await this.profiles.follow(userId, target.type, target.id, favourite);
     if (outcome === 'unknown_entity') throw new NotFoundException(UNKNOWN_ENTITY);
+    if (outcome === 'favourite_match') throw new BadRequestException(FAVOURITE_MATCH);
+    if (outcome === 'follow_ended') throw new ConflictException(FOLLOW_ENDED);
 
     return { items: await this.profiles.listFollowing(userId) };
   }

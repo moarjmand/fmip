@@ -5,6 +5,7 @@ import type {
   ForecastVersion,
   ForecastListEntry,
   ForecastVersionsResponse,
+  ModelEloSource,
   ModelForecastRequest,
   ModelXiStrength,
 } from '@fmip/contracts';
@@ -211,12 +212,21 @@ export class ForecastService {
 
   /**
    * The model service's own health check (T-801's watchdog): a value, never a
-   * throw. `reason` is the client's description of what failed.
+   * throw. `reason` is the client's description of what failed. `eloSource`
+   * is Club Elo's recorded state (T-920), null from a service that does not
+   * report it.
    */
-  async modelHealth(): Promise<{ ok: true; modelVersion: string } | { ok: false; reason: string }> {
+  async modelHealth(): Promise<
+    | { ok: true; modelVersion: string; eloSource: ModelEloSource | null }
+    | { ok: false; reason: string }
+  > {
     const result = await this.model.health();
     return result.ok
-      ? { ok: true, modelVersion: result.data.model_version }
+      ? {
+          ok: true,
+          modelVersion: result.data.model_version,
+          eloSource: result.data.elo_source ?? null,
+        }
       : { ok: false, reason: `${result.kind}: ${result.message}` };
   }
 
