@@ -238,17 +238,27 @@ export interface FixtureNewsResponse {
 export const ENTITY_NEWS_LIMIT = 5;
 
 /**
- * `GET /teams/:id/news` and `GET /competitions/:id/news` (T-944, D-119): the
+ * `GET /teams/:id/news`, `GET /competitions/:id/news` (T-944, D-119) and
+ * `GET /players/:id/news` (T-1007, D-127): the
  * news page's latest cards for stories the news boundary linked to the team
  * or competition, newest first. `not_supplied` with `feeds_unread` until the
  * feeds have been read at all, as on the match page; then `available`,
  * possibly empty with `nothing_linked`.
  */
 export interface EntityNewsResponse {
-  entity: { type: 'team' | 'competition'; id: string };
+  entity: { type: 'team' | 'competition' | 'person'; id: string };
   stories: Covered<NewsStoryCard[]>;
-  reason: FixtureNewsReason | null;
+  reason: EntityNewsReason | null;
 }
+
+/**
+ * Why an entity's news list says nothing. Beside the match page's reasons,
+ * `persons_unlinked` (T-1007, D-127): a player's list is `not_supplied` while
+ * no story links any person at all (D-126 keeps the linker off until its
+ * precision is measured), because an empty list would read as "nobody wrote
+ * about this player".
+ */
+export type EntityNewsReason = FixtureNewsReason | 'persons_unlinked';
 
 // ---------------------------------------------------------------------------
 // Saved articles (blueprint 3.3 and 2.1, T-842): a member's own list, under

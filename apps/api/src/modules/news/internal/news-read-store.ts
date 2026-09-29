@@ -367,14 +367,40 @@ export class PostgresNewsReadStore {
    * Whether a team or competition exists (T-944), so its news answers 404
    * for an id that is neither rather than an empty list about nothing.
    */
-  async entityExists(type: 'team' | 'competition', id: string): Promise<boolean> {
+  async entityExists(type: 'team' | 'competition' | 'person', id: string): Promise<boolean> {
+    const table = type === 'team' ? 'team' : type === 'competition' ? 'competition' : 'person';
     const { rows } = await this.pool.query<{ found: boolean }>(
-      type === 'team'
-        ? `SELECT EXISTS (SELECT 1 FROM team WHERE id = $1) AS found`
-        : `SELECT EXISTS (SELECT 1 FROM competition WHERE id = $1) AS found`,
+      `SELECT EXISTS (SELECT 1 FROM ${table} WHERE id = $1) AS found`,
       [id],
     );
     return rows[0]?.found === true;
+  }
+
+  /** Whether any report links any person (D-126); until one does, a player's list is not a fact. */
+  async anyPersonLinked(): Promise<boolean> {
+    const { rows } = await this.pool.query<{ found: boolean }>(
+      `SELECT EXISTS (SELECT 1 FROM article_entity WHERE entity_type = 'person') AS found`,
+    );
+    return rows[0]?.found === true;
+  }
+
+  /**
+   * A player's related news (T-1007, D-127): stories any of whose reports
+   * link the person, newest first, the latest section's cards.
+   */
+  async forPerson(personId: string, locale: string | null, limit: number): Promise<StoryPage_> {
+    const q = new Query({ country: null, competition: null, team: null, language: null }, locale);
+    return this.page(
+      q,
+      `SELECT sc.*, NULL::int AS participants, NULL::timestamptz AS debate_selected_at, NULL::text AS debate_note
+         FROM story_card sc
+        WHERE EXISTS (SELECT 1 FROM article m JOIN article_entity e ON e.article_id = m.id
+                       WHERE m.story_id = sc.story_id
+                         AND e.entity_type = 'person' AND e.entity_id = ${q.param(personId)}::uuid)
+        ORDER BY sc.at DESC, sc.story_id
+        LIMIT ${q.param(limit + 1)}`,
+      limit,
+    );
   }
 
   private async page(q: Query, select: string, limit: number): Promise<StoryPage_> {
