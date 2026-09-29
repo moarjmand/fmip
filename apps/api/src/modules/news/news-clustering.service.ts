@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PostgresNewsStore } from './internal/news-store';
+import { PostgresNewsStore, type PersonCandidate } from './internal/news-store';
 
 /**
  * A name or alias shorter than this after folding ("roma", "ajax", "psg")
@@ -24,6 +24,21 @@ export const DUPLICATE_WINDOW = '48 hours';
  */
 export const DUPLICATE_THRESHOLD = 0.4;
 
+/**
+ * Whether the clustering links persons (T-1006, D-126): `NEWS_PERSON_LINKS=on`,
+ * and off for anything else. It stays off until the rule's precision on a
+ * hand-checked sample of stored headlines (`dist/cli/person-link-sample.js`)
+ * is recorded in D-126 at or above `PERSON_LINK_PRECISION_BAR`.
+ */
+export function personLinksOn(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.NEWS_PERSON_LINKS?.trim().toLowerCase() === 'on';
+}
+
+/** The share of sampled links a person must judge right before the rule may write (D-126). */
+export const PERSON_LINK_PRECISION_BAR = 0.95;
+/** The fewest proposed links a sample must hold for its precision to count (D-126). */
+export const PERSON_LINK_SAMPLE_MINIMUM = 100;
+
 export interface Placement {
   /** How many entities the article links after this pass. */
   linked: number;
@@ -37,7 +52,8 @@ export interface Placement {
  * and whether it is another publisher's telling of a story already here.
  *
  * Linking is by the entity's own name or a recorded alias, whole words only,
- * never a person and never a guess (rules 1 and 3). Clustering is narrower
+ * never a guess (rules 1 and 3). A person is linked only behind
+ * `NEWS_PERSON_LINKS` and only by the narrower rule of D-126. Clustering is narrower
  * than it could be on purpose: two reports become one story only when they
  * link exactly the same teams, come from different publishers, fall within
  * the window and still read alike once the names are taken out. A duplicate
@@ -50,6 +66,18 @@ export class NewsClusteringService {
 
   constructor(private readonly store: PostgresNewsStore) {}
 
+  /** What the person rule would link to an article, written nowhere (the precision sample). */
+  personCandidates(articleId: string): Promise<PersonCandidate[]> {
+    return this.store.personCandidates(articleId, MINIMUM_NAME_LENGTH);
+  }
+
+  /** A random sample of stored articles that link a team, for the precision check. */
+  sampleArticles(
+    size: number,
+  ): Promise<{ id: string; headline: string; summary: string | null }[]> {
+    return this.store.samplePersonArticles(size);
+  }
+
   /**
    * Links the article's entities from every version it has, then -- for a
    * report seen for the first time -- looks for the story it duplicates. An
@@ -60,6 +88,7 @@ export class NewsClusteringService {
     const linked = await this.store.linkEntities(articleId, {
       minimumKeyLength: MINIMUM_NAME_LENGTH,
       fixtureWindow: FIXTURE_WINDOW,
+      persons: personLinksOn(),
     });
     if (!firstSeen) {
       return { linked, story: 'kept', storyId: await this.store.storyOf(articleId) };
