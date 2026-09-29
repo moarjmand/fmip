@@ -6020,6 +6020,88 @@ the evaluation and every query written twice, as D-082 said of one.
 
 ---
 
+## D-142 — The Power Index's rest component is scored from the stored schedule, and keeps its 5%
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26) · **Task:** T-1111 · **Follows:** T-113, D-080, D-141
+
+**The problem.** T-113's validation of the Power Index weights left rest out,
+because the training store was read as results without a schedule, so the
+blueprint's 5% for "rest, travel and schedule" had never been tested.
+
+**The decision.** `apps/api/scripts/power-index-backtest.mjs` reads the stored
+schedule and scores rest with the other components:
+
+- **The schedule** is every `training.match` row, clubs keyed through
+  `training.team_alias` (a bridged club by its catalogue id, else
+  `<division>:<name>`), the rows the model's rest input reads (D-141).
+  `scheduleOf` and `restBefore` in `internal/power-index-backtest.ts` (pure,
+  tested) give each side's days since its previous match and its matches in
+  the 14 days before, from days strictly before the match's day, the shape
+  the live store gives `restOf`. A club with no earlier stored match has no
+  rest value; its weight is redistributed, as live.
+- **The division's own history** a match is measured against is now its
+  matches of earlier days only. Before this, other matches of the same day
+  counted, which the method's own words ("before that day") did not allow.
+- **The component's own question** is asked by two more candidates:
+  `without-rest` (the blueprint's weights with rest at 0) and `rest-heavy`
+  (rest at 15%). The report states how many matches had both sides' rest
+  read, how many of the division's clubs are bridged (their cup matches
+  count), and what removing rest costs on the held-out half.
+- **The bar is unchanged**: a candidate must beat the blueprint's held-out
+  log loss by more than 0.01, and a changed weight is a new
+  `power-index@x.y.z`, never an edit.
+- **The component stays `limited`** in the live index: travel is not
+  modelled until Phase 11's N-1 (ground coordinates) is answered.
+
+**The result: keep the published weights, rest at 5%.** Run on a private
+local database (a copy of football-data.co.uk 2023/24 to 2026/27, ten
+divisions; no bridge rows, so each club's schedule is its league matches),
+every division's whole stored history, half to fit and half to score:
+
+| Division | Matches walked | Both sides' rest read | Blueprint | without-rest | rest-heavy | Rest's contribution | Best alternative, by |
+|---|---|---|---|---|---|---|---|
+| E0 | 1,130 | 1,123 | 1.0290 | 1.0281 | 1.0313 | -0.0009 | strength-heavy, 0.0011 |
+| SP1 | 1,149 | 1,141 | 1.0050 | 1.0035 | 1.0089 | -0.0016 | venue-heavy, 0.0092 |
+| D1 | 894 | 888 | 1.0268 | 1.0273 | 1.0264 | +0.0005 | equal, 0.0004 |
+| I1 | 1,130 | 1,125 | 0.9970 | 0.9975 | 0.9970 | +0.0006 | strength-heavy, 0.0035 |
+| F1 | 903 | 897 | 1.0116 | 1.0124 | 1.0107 | +0.0008 | strength-heavy, 0.0027 |
+| N1 | 921 | 916 | 0.9994 | 0.9991 | 1.0011 | -0.0003 | strength-heavy, 0.0050 |
+| P1 | 920 | 914 | 0.9688 | 0.9681 | 0.9712 | -0.0007 | without-rest, 0.0007 |
+| B1 | 938 | 932 | 1.0400 | 1.0401 | 1.0404 | +0.0001 | venue-heavy, 0.0028 |
+| T1 | 1,022 | 1,015 | 1.0174 | 1.0175 | 1.0179 | +0.0001 | none (blueprint best) |
+| SC0 | 666 | 664 | 1.0140 | 1.0151 | 1.0124 | +0.0011 | strength-heavy, 0.0040 |
+
+(Held-out log loss; rest's contribution is `without-rest` minus the
+blueprint, positive when rest helped.) No candidate clears 0.01 in any
+division, and rest's contribution lies between -0.0016 and +0.0011, in both
+directions: on league schedules alone rest carries no signal this backtest
+can see, and none against it either. The weights stay, `power-index@1.1.0`
+is unchanged, and `docs/12-power-index.md` holds E0's table and no longer says
+rest is excluded. The full results are under `apps/api/backtest/`.
+
+**The lead re-runs it on the server's full store**, where the bridge joins
+our records' cup and continental matches to the league clubs and congestion
+is real: from a checkout of main with its dependencies installed, against
+the server's Postgres (on `127.0.0.1:5432` there, or through an SSH tunnel):
+
+```bash
+pnpm --filter @fmip/contracts build && pnpm --filter @fmip/ingestion build && pnpm --filter @fmip/api build
+set -a; . ./.env; set +a
+export DATABASE_URL="postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@127.0.0.1:5432/$POSTGRES_DB"
+for d in SP1 D1 I1 F1 N1 P1 B1 T1 SC0 E1 IR1 E0; do node apps/api/scripts/power-index-backtest.mjs --division "$d"; done
+```
+
+and records that run's table here. A candidate that clears 0.01 there is a
+new formula version with its own entry, never an edit of this one.
+
+**Alternatives considered.** Rest from our fixture table, as the live index
+reads it: it covers every competition we carry but only from 2025/26, too
+short for a walk-forward with a held-out half. Leaving rest out and saying
+so: the blueprint asks the weights to be validated, and the schedule was
+stored all along. A grid of rest weights: the candidates stay few and
+arguable, so that a winner is not noise.
+
+---
+
 ## D-147 — Coach changes are read from stored line-ups by person id; a line-up naming no coach is a gap
 **Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26). T-1130's half; T-1131 adds the input's backtest verdict here.
 

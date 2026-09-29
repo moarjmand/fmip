@@ -1,0 +1,109 @@
+{
+  "division": "N1",
+  "matches": 916,
+  "trainSize": 458,
+  "testSize": 458,
+  "baseRateLogLoss": 1.0805086249151161,
+  "candidates": [
+    {
+      "name": "blueprint",
+      "trainLogLoss": 0.9768230398313188,
+      "testLogLoss": 0.9994396289552816,
+      "decisiveAccuracy": 0.7113095238095238,
+      "converged": true,
+      "fit": {
+        "scale": 33.646661057967236,
+        "beta": 0.8936219974605137,
+        "lower": -0.983987639584338,
+        "upper": 0.2616043395227582
+      }
+    },
+    {
+      "name": "strength-heavy",
+      "trainLogLoss": 0.9730162285942388,
+      "testLogLoss": 0.9944698834141836,
+      "decisiveAccuracy": 0.7083333333333334,
+      "converged": true,
+      "fit": {
+        "scale": 34.518295612340516,
+        "beta": 0.9127413847847539,
+        "lower": -0.988174016866061,
+        "upper": 0.2650750331952164
+      }
+    },
+    {
+      "name": "form-heavy",
+      "trainLogLoss": 0.9855992112172318,
+      "testLogLoss": 1.0193352622708998,
+      "decisiveAccuracy": 0.6726190476190477,
+      "converged": true,
+      "fit": {
+        "scale": 34.577704952190416,
+        "beta": 0.8464017855898671,
+        "lower": -0.9694210995630389,
+        "upper": 0.2581348315636053
+      }
+    },
+    {
+      "name": "venue-heavy",
+      "trainLogLoss": 0.9721970068696842,
+      "testLogLoss": 1.0017844632535404,
+      "decisiveAccuracy": 0.6815476190476191,
+      "converged": true,
+      "fit": {
+        "scale": 34.03802549408796,
+        "beta": 0.9163370927343646,
+        "lower": -0.981969194381804,
+        "upper": 0.2723439036063532
+      }
+    },
+    {
+      "name": "without-rest",
+      "trainLogLoss": 0.9736926625162898,
+      "testLogLoss": 0.999107558376001,
+      "decisiveAccuracy": 0.7113095238095238,
+      "converged": true,
+      "fit": {
+        "scale": 36.32446772573404,
+        "beta": 0.9103508607353756,
+        "lower": -0.9909966677251077,
+        "upper": 0.26067421950175496
+      }
+    },
+    {
+      "name": "rest-heavy",
+      "trainLogLoss": 0.9842157258437066,
+      "testLogLoss": 1.0011069913563793,
+      "decisiveAccuracy": 0.6904761904761905,
+      "converged": true,
+      "fit": {
+        "scale": 29.484672566635204,
+        "beta": 0.8536071555669817,
+        "lower": -0.9679794635333746,
+        "upper": 0.2632077699547427
+      }
+    },
+    {
+      "name": "equal",
+      "trainLogLoss": 0.989687266131055,
+      "testLogLoss": 1.0099135394811196,
+      "decisiveAccuracy": 0.6815476190476191,
+      "converged": true,
+      "fit": {
+        "scale": 26.987929208845628,
+        "beta": 0.8220455061729854,
+        "lower": -0.9507641040249922,
+        "upper": 0.2693008899073309
+      }
+    }
+  ],
+  "best": "strength-heavy",
+  "margin": 0.00496974554109797,
+  "restContribution": -0.0003320705792806411,
+  "verdict": "Keep the published weights. The best alternative (strength-heavy) improves held-out log-loss by 0.0050, below the 0.01 that would be a finding rather than noise at this sample size.",
+  "generatedAt": "2026-09-29T13:39:36.956Z",
+  "season": "2023-08-11 to 2026-09-20",
+  "warmupMatches": 60,
+  "restMeasured": 916,
+  "bridgedClubs": 0
+}
