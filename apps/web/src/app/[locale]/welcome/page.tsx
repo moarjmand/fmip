@@ -9,6 +9,7 @@ import { fetchFollowing, fetchMe, fetchOwnProfile, fetchTeams, fetchTerritories 
 import { STEPS, type Step, readStep, stepHref, teamMatches } from '@/lib/first-run';
 import { finishFirstRunAction, saveFirstRunStepAction } from '@/lib/first-run-actions';
 import { readGuestChoices } from '@/lib/first-run-cookie';
+import { offeredNow } from '@/lib/language-hold';
 import { offeredLocales } from '@/lib/language-picker';
 import { sessionCookieHeader } from '@/lib/session';
 import { territoryOptions } from '@/lib/territory';
@@ -199,8 +200,17 @@ function SaveButton({ locale }: { locale: string }) {
   );
 }
 
-function LanguageStep({ locale, current, save }: { locale: string; current: string; save: Save }) {
-  const offered = offeredLocales();
+async function LanguageStep({
+  locale,
+  current,
+  save,
+}: {
+  locale: string;
+  current: string;
+  save: Save;
+}) {
+  // Finished and not held back (T-306, T-1163, D-155).
+  const offered = offeredLocales(await offeredNow());
   return (
     <>
       <Question locale={locale} message="firstRun.language.question" />

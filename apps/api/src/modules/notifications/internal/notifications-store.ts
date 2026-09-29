@@ -589,7 +589,12 @@ export class PostgresNotificationsStore {
                        ${ELIGIBLE_HEADLINE}, ${BREAKING_HEADLINE}) AS headline,
               source.username AS source,
               u.email,
-              u.preferred_language AS locale
+              -- A held language (T-1163, D-155) is not offered, so its links
+              -- are made in the default one instead.
+              CASE WHEN EXISTS (SELECT 1 FROM locale_hold lh
+                                 WHERE lh.locale = u.preferred_language
+                                   AND lh.released_at IS NULL)
+                   THEN 'en' ELSE u.preferred_language END AS locale
          FROM page n
          LEFT JOIN won ON won.notification_id = n.id
          JOIN user_account u ON u.id = n.user_id

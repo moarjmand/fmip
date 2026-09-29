@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { DEFAULT_LOCALE, localeFromPathname } from '@/i18n/locales';
+import { fetchHeldLocales } from '@/lib/api';
 import { FIRST_RUN_COOKIE, parseGuestChoices } from '@/lib/first-run';
 
 /**
@@ -10,8 +11,14 @@ import { FIRST_RUN_COOKIE, parseGuestChoices } from '@/lib/first-run';
  * that does not say what language it is in. A guest who chose a language in
  * the first run (T-620) is sent to that one instead; a member's language
  * reaches them through the flow's own redirect.
+ *
+ * A guest's language that an administrator has since held back (T-1163,
+ * D-155) is not moved to: they are sent to the default, and the header tells
+ * them why, once. When the holds cannot be read, the default too -- a hold
+ * is not undone by the API being slow. Only a request with no locale in its
+ * path, from a guest who chose another language, asks.
  */
-export function proxy(request: NextRequest): NextResponse {
+export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
 
   if (localeFromPathname(pathname) !== undefined) {
@@ -20,9 +27,18 @@ export function proxy(request: NextRequest): NextResponse {
 
   const url = request.nextUrl.clone();
   const chosen = parseGuestChoices(request.cookies.get(FIRST_RUN_COOKIE)?.value).language;
-  url.pathname = `/${chosen ?? DEFAULT_LOCALE}${pathname === '/' ? '' : pathname}`;
+  const language =
+    chosen === undefined || chosen === DEFAULT_LOCALE || (await isHeld(chosen))
+      ? DEFAULT_LOCALE
+      : chosen;
+  url.pathname = `/${language}${pathname === '/' ? '' : pathname}`;
 
   return NextResponse.redirect(url);
+}
+
+async function isHeld(locale: string): Promise<boolean> {
+  const holds = await fetchHeldLocales();
+  return !holds.ok || holds.data.held.some((hold) => hold.locale === locale);
 }
 
 export const config = {
