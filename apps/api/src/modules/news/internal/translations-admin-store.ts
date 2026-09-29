@@ -1,14 +1,23 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  TRANSLATION_QUEUE_DAYS,
+  TRANSLATION_QUEUE_LIMIT,
   checkTranslation,
   unresolvedFailures,
+  type NewsRights,
+  type ReviewState,
   type TranslationCheckOverride,
   type TranslationCheckResult,
+  type TranslationDesk,
+  type TranslationDeskVersion,
+  type TranslationField,
+  type TranslationQueue,
+  type TranslationQueueItem,
   type TranslationTexts,
 } from '@fmip/contracts';
 import { Pool, type PoolClient } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
-import { glossaryFor, namesToCarry, type LinkedName } from './translation-names';
+import { glossaryFor, glossaryHits, namesToCarry, type LinkedName } from './translation-names';
 
 /** Postgres' unique_violation and the article schema's rights guard (T-141). */
 const RIGHTS = 'PL016';
@@ -342,6 +351,177 @@ export class PostgresTranslationsAdminStore {
       client.release();
     }
   }
+
+  /**
+   * The desk's queue for one language (T-1013): promoted originals of the
+   * last days with no translation into it, and every article whose newest
+   * translation into it awaits review or is reviewed. Three bounded reads.
+   */
+  async queue(language: string): Promise<TranslationQueue> {
+    const item = `
+      SELECT a.id AS article_id, a.story_id, s.name AS source_name, s.language AS source_language,
+             s.rights, src.headline, first.published_at,
+             t.version_number, t.review_state, t.created_at AS updated_at,
+             w.id AS written_id, w.username AS written_username,
+             r.id AS reviewed_id, r.username AS reviewed_username
+        FROM article a
+        JOIN news_source s ON s.id = a.source_id AND s.dropped_at IS NULL
+        CROSS JOIN LATERAL (
+          SELECT headline FROM article_version v
+           WHERE v.article_id = a.id AND v.origin = 'publisher'
+           ORDER BY v.created_at DESC, v.version_number DESC LIMIT 1) src
+        CROSS JOIN LATERAL (
+          SELECT min(published_at) AS published_at FROM article_version v
+           WHERE v.article_id = a.id) first
+        LEFT JOIN LATERAL (
+          SELECT version_number, review_state, created_at, written_by, reviewed_by
+            FROM article_version v
+           WHERE v.article_id = a.id AND v.language = $1 AND v.origin = 'translation'
+           ORDER BY v.version_number DESC LIMIT 1) t ON true
+        LEFT JOIN user_account w ON w.id = t.written_by
+        LEFT JOIN user_account r ON r.id = t.reviewed_by`;
+    const [toTranslate, awaiting, reviewed, now] = await Promise.all([
+      this.pool.query<QueueRow>(
+        `${item}
+          JOIN story st ON st.promoted_article_id = a.id
+         WHERE t.version_number IS NULL
+           AND a.fetched_at > now() - make_interval(days => $2)
+           AND NOT EXISTS (SELECT 1 FROM article_version p
+                            WHERE p.article_id = a.id AND p.language = $1 AND p.origin = 'publisher')
+         ORDER BY first.published_at DESC LIMIT $3`,
+        [language, TRANSLATION_QUEUE_DAYS, TRANSLATION_QUEUE_LIMIT],
+      ),
+      this.pool.query<QueueRow>(
+        `${item} WHERE t.review_state = 'translated' ORDER BY t.created_at ASC LIMIT $2`,
+        [language, TRANSLATION_QUEUE_LIMIT],
+      ),
+      this.pool.query<QueueRow>(
+        `${item} WHERE t.review_state = 'reviewed' ORDER BY t.created_at DESC LIMIT $2`,
+        [language, TRANSLATION_QUEUE_LIMIT],
+      ),
+      this.pool.query<{ now: Date }>(`SELECT now() AS now`),
+    ]);
+    return {
+      language,
+      to_translate: toTranslate.rows.map(queueItem),
+      awaiting_review: awaiting.rows.map(queueItem),
+      reviewed: reviewed.rows.map(queueItem),
+      generated_at: now.rows[0]!.now.toISOString(),
+    };
+  }
+
+  /**
+   * One article at the desk (T-1013): the publisher's newest words, the
+   * newest translation into `language`, its checks and the glossary terms
+   * the source uses. Null when there is no such article.
+   */
+  async desk(
+    articleId: string,
+    language: string,
+    viewerId: string,
+  ): Promise<TranslationDesk | null> {
+    const source = await this.pool.query<{
+      story_id: string;
+      name: string;
+      rights: NewsRights;
+      url: string;
+      language: string;
+      version_number: number;
+      headline: string;
+      summary: string | null;
+      byline: string | null;
+      created_at: Date;
+    }>(
+      `SELECT a.story_id, s.name, s.rights, a.url, v.language, v.version_number,
+              v.headline, v.summary, v.byline, v.created_at
+         FROM article a
+         JOIN news_source s ON s.id = a.source_id AND s.dropped_at IS NULL
+         JOIN LATERAL (
+           SELECT * FROM article_version v
+            WHERE v.article_id = a.id AND v.origin = 'publisher'
+            ORDER BY v.created_at DESC, v.version_number DESC LIMIT 1) v ON true
+        WHERE a.id = $1`,
+      [articleId],
+    );
+    const original = source.rows[0];
+    if (original === undefined) return null;
+    const newest = await this.pool.query<{
+      version_number: number;
+      review_state: ReviewState;
+      headline: string;
+      summary: string | null;
+      byline: string | null;
+      created_at: Date;
+      written_id: string;
+      written_username: string;
+      reviewed_id: string | null;
+      reviewed_username: string | null;
+    }>(
+      `SELECT v.version_number, v.review_state, v.headline, v.summary, v.byline, v.created_at,
+              w.id AS written_id, w.username AS written_username,
+              r.id AS reviewed_id, r.username AS reviewed_username
+         FROM article_version v
+         JOIN user_account w ON w.id = v.written_by
+         LEFT JOIN user_account r ON r.id = v.reviewed_by
+        WHERE v.article_id = $1 AND v.language = $2 AND v.origin = 'translation'
+        ORDER BY v.version_number DESC LIMIT 1`,
+      [articleId, language],
+    );
+    const current = newest.rows[0];
+    const translation: TranslationDeskVersion | null =
+      current === undefined
+        ? null
+        : {
+            version_number: current.version_number,
+            review_state: current.review_state,
+            written_by: { id: current.written_id, username: current.written_username },
+            reviewed_by:
+              current.reviewed_id === null
+                ? null
+                : { id: current.reviewed_id, username: current.reviewed_username ?? '' },
+            updated_at: current.created_at.toISOString(),
+            headline: current.headline,
+            summary: current.summary,
+            byline: current.byline,
+          };
+    const checks =
+      current === undefined
+        ? []
+        : await this.checks(this.pool, articleId, language, {
+            headline: current.headline,
+            summary: current.summary,
+            byline: current.byline,
+          });
+    const fields: TranslationField[] = ['headline'];
+    if (original.rights !== 'headline') {
+      if (original.summary !== null) fields.push('summary');
+      if (original.byline !== null) fields.push('byline');
+    }
+    return {
+      article_id: articleId,
+      story_id: original.story_id,
+      language,
+      source: {
+        name: original.name,
+        language: original.language,
+        rights: original.rights,
+        url: original.url,
+        version_number: original.version_number,
+        headline: original.headline,
+        summary: original.summary,
+        byline: original.byline,
+        updated_at: original.created_at.toISOString(),
+      },
+      fields,
+      translation,
+      checks,
+      glossary: glossaryHits(
+        [original.headline, original.summary ?? '', original.byline ?? ''],
+        glossaryFor(language),
+      ),
+      viewer_is_author: current !== undefined && current.written_id === viewerId,
+    };
+  }
 }
 
 async function record(client: PoolClient, entry: AuditEntry): Promise<void> {
@@ -357,4 +537,46 @@ async function record(client: PoolClient, entry: AuditEntry): Promise<void> {
       JSON.stringify(entry.next),
     ],
   );
+}
+
+interface QueueRow {
+  article_id: string;
+  story_id: string;
+  source_name: string;
+  source_language: string;
+  rights: NewsRights;
+  headline: string;
+  published_at: Date;
+  version_number: number | null;
+  review_state: ReviewState | null;
+  updated_at: Date | null;
+  written_id: string | null;
+  written_username: string | null;
+  reviewed_id: string | null;
+  reviewed_username: string | null;
+}
+
+function queueItem(row: QueueRow): TranslationQueueItem {
+  return {
+    article_id: row.article_id,
+    story_id: row.story_id,
+    source_name: row.source_name,
+    source_language: row.source_language,
+    rights: row.rights,
+    headline: row.headline,
+    published_at: row.published_at.toISOString(),
+    translation:
+      row.version_number === null || row.review_state === null || row.written_id === null
+        ? null
+        : {
+            version_number: row.version_number,
+            review_state: row.review_state,
+            written_by: { id: row.written_id, username: row.written_username ?? '' },
+            reviewed_by:
+              row.reviewed_id === null
+                ? null
+                : { id: row.reviewed_id, username: row.reviewed_username ?? '' },
+            updated_at: row.updated_at!.toISOString(),
+          },
+  };
 }

@@ -184,6 +184,8 @@ const CONSOLE: Record<string, ConsoleRoute> = {
     roles: EDITORIAL,
     reason: { without: {} },
   },
+  'GET /admin/translations': { roles: EDITORIAL },
+  'GET /admin/articles/:id/translations/:language': { roles: EDITORIAL },
   'POST /admin/articles/:id/translations': {
     roles: EDITORIAL,
     reason: {

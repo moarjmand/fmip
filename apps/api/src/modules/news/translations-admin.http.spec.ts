@@ -1,6 +1,6 @@
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
-import type { StoryPage } from '@fmip/contracts';
+import type { StoryPage, TranslationDesk, TranslationQueue } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
@@ -436,6 +436,99 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('article tran
           [id, ids.get(`tl_${RUN}b`)],
         ),
       ).rejects.toThrow(/only on a translation/);
+    });
+  });
+
+  describe('the desk (T-1013)', () => {
+    const desk = (who: string, article: string, language: string) =>
+      app.inject({
+        method: 'GET',
+        url: `/admin/articles/${article}/translations/${language}`,
+        headers: as(who),
+      });
+    const queue = (who: string, language: string) =>
+      app.inject({
+        method: 'GET',
+        url: `/admin/translations?language=${language}`,
+        headers: as(who),
+      });
+
+    it('is for editors only, and asks for a language', async () => {
+      expect((await queue(`tl_${RUN}m`, 'tr')).statusCode).toBe(403);
+      expect((await desk(`tl_${RUN}m`, articleId, 'tr')).statusCode).toBe(403);
+      expect((await queue(`tl_${RUN}a`, 'not a tag')).statusCode).toBe(400);
+      expect(
+        (await desk(`tl_${RUN}a`, '00000000-0000-4000-8000-00000000dead', 'tr')).statusCode,
+      ).toBe(404);
+    });
+
+    it('queues an article from to-translate, to awaiting review, to reviewed', async () => {
+      const made = await article('summary');
+      checked.push(made.article);
+      await pool.query(
+        `INSERT INTO article_version (article_id, language, version_number, headline, summary, published_at)
+         VALUES ($1, 'en', 2, $2, 'Scored a goal.', '2026-09-18T11:00:00Z')`,
+        [made.article, `A goal settled it ${RUN}`],
+      );
+      const articleIds = (list: { article_id: string }[]) => list.map((item) => item.article_id);
+      const before = (await queue(`tl_${RUN}a`, 'tr')).json<TranslationQueue>();
+      expect(articleIds(before.to_translate)).toContain(made.article);
+      expect(before.to_translate.find((i) => i.article_id === made.article)).toMatchObject({
+        headline: `A goal settled it ${RUN}`,
+        source_language: 'en',
+        rights: 'summary',
+        translation: null,
+      });
+
+      // The desk, before anything is written: the source, the fields it
+      // offers, the glossary terms it uses, and no checks.
+      const empty = (await desk(`tl_${RUN}a`, made.article, 'tr')).json<TranslationDesk>();
+      expect(empty.translation).toBeNull();
+      expect(empty.checks).toEqual([]);
+      expect(empty.fields).toEqual(['headline', 'summary']);
+      expect(empty.glossary.map((hit) => hit.key)).toContain('term.goal');
+      // Nobody has written the term: it is shown empty, never filled.
+      expect(empty.glossary.find((hit) => hit.key === 'term.goal')).toMatchObject({
+        text: '',
+        status: 'untranslated',
+      });
+
+      await translate(`tl_${RUN}a`, made.article, {
+        language: 'tr',
+        headline: `Bir gol ${RUN}`,
+        summary: 'Bir gol.',
+      });
+      const waiting = (await queue(`tl_${RUN}a`, 'tr')).json<TranslationQueue>();
+      expect(articleIds(waiting.to_translate)).not.toContain(made.article);
+      expect(waiting.awaiting_review.find((i) => i.article_id === made.article)).toMatchObject({
+        translation: {
+          version_number: 1,
+          review_state: 'translated',
+          written_by: { username: `tl_${RUN}a` },
+          reviewed_by: null,
+        },
+      });
+
+      const mine = (await desk(`tl_${RUN}a`, made.article, 'tr')).json<TranslationDesk>();
+      expect(mine.viewer_is_author).toBe(true);
+      expect(mine.checks.map((c) => `${c.field}.${c.check}.${c.outcome}`)).toContain(
+        'headline.numbers.pass',
+      );
+      const theirs = (await desk(`tl_${RUN}b`, made.article, 'tr')).json<TranslationDesk>();
+      expect(theirs.viewer_is_author).toBe(false);
+
+      expect((await review(`tl_${RUN}b`, made.article, 'tr')).statusCode).toBe(204);
+      const done = (await queue(`tl_${RUN}a`, 'tr')).json<TranslationQueue>();
+      expect(articleIds(done.awaiting_review)).not.toContain(made.article);
+      expect(done.reviewed.find((i) => i.article_id === made.article)).toMatchObject({
+        translation: { review_state: 'reviewed', reviewed_by: { username: `tl_${RUN}b` } },
+      });
+    });
+
+    it('offers only the headline for a source that grants only the headline', async () => {
+      const view = (await desk(`tl_${RUN}a`, headlineOnlyArticle, 'tr')).json<TranslationDesk>();
+      expect(view.source.rights).toBe('headline');
+      expect(view.fields).toEqual(['headline']);
     });
   });
 });

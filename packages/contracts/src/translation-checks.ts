@@ -274,7 +274,7 @@ function markupIn(text: string): string[] {
 // --- Names --------------------------------------------------------------------
 
 /** Whether `name` appears in `text` as whole words, in any script. */
-function contains(text: string, name: string, ignoreCase: boolean): boolean {
+export function containsPhrase(text: string, name: string, ignoreCase: boolean): boolean {
   if (name.trim() === '') return false;
   return new RegExp(
     `(?<![${LETTER}\\d])${escapeRegExp(name.trim())}(?![${LETTER}\\d])`,
@@ -441,14 +441,14 @@ function namesResult(
   const missing: string[] = [];
   const unchecked: string[] = [];
   for (const name of names) {
-    const inSource = name.sources.find((source) => contains(from, source, true));
+    const inSource = name.sources.find((source) => containsPhrase(from, source, true));
     if (inSource === undefined) continue;
     if (name.targets.length === 0) {
       unchecked.push(inSource);
       continue;
     }
     expected.push(name.targets.join(' / '));
-    const carried = name.targets.find((target) => contains(into, target, false));
+    const carried = name.targets.find((target) => containsPhrase(into, target, false));
     if (carried === undefined) missing.push(`${inSource} (${name.targets.join(' or ')})`);
     else found.push(carried);
   }

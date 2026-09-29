@@ -1,4 +1,10 @@
-import type { Glossary, GlossaryEntry, TranslationName } from '@fmip/contracts';
+import {
+  containsPhrase,
+  type Glossary,
+  type GlossaryEntry,
+  type TranslationGlossaryHit,
+  type TranslationName,
+} from '@fmip/contracts';
 import ar from '@fmip/contracts/glossary/ar.json';
 import de from '@fmip/contracts/glossary/de.json';
 import es from '@fmip/contracts/glossary/es.json';
@@ -76,4 +82,26 @@ export function namesToCarry(linked: LinkedName[], glossary: Glossary | null): T
     names.set(key, { key, sources: [entry.source], targets: target === null ? [] : [target] });
   }
   return [...names.values()];
+}
+
+/**
+ * The glossary terms the source uses (T-1013): every entry, locked or not,
+ * whose English appears in one of the texts as whole words, with the target
+ * term a person wrote or an empty one. Shown beside the form; never inserted.
+ */
+export function glossaryHits(texts: string[], glossary: Glossary | null): TranslationGlossaryHit[] {
+  const hits: TranslationGlossaryHit[] = [];
+  for (const [key, entry] of Object.entries(glossary ?? {})) {
+    // "goal" is used in "goals" too: the English plural, as the glossary script counts it.
+    const forms = [entry.source, `${entry.source}s`];
+    if (!texts.some((text) => forms.some((form) => containsPhrase(text, form, true)))) continue;
+    hits.push({
+      key,
+      source: entry.source,
+      locked: entry.locked,
+      text: written(entry) ?? '',
+      status: written(entry) === null ? 'untranslated' : entry.status,
+    });
+  }
+  return hits.sort((a, b) => a.source.localeCompare(b.source, 'en'));
 }

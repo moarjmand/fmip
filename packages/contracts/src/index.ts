@@ -745,6 +745,7 @@ export {
   TRANSLATION_CHECKS,
   TRANSLATION_FIELDS,
   checkTranslation,
+  containsPhrase,
   latinDigits,
   unresolvedFailures,
 } from './translation-checks';
@@ -760,3 +761,16 @@ export type {
   TranslationReviewRequest,
   TranslationTexts,
 } from './translation-checks';
+
+// The translator's desk (T-1013): the queue per language and one article's
+// source, translation, checks and glossary terms.
+export { TRANSLATION_QUEUE_DAYS, TRANSLATION_QUEUE_LIMIT } from './translation-desk';
+export type {
+  TranslationDesk,
+  TranslationDeskVersion,
+  TranslationGlossaryHit,
+  TranslationPerson,
+  TranslationQueue,
+  TranslationQueueItem,
+  TranslationVersionSummary,
+} from './translation-desk';

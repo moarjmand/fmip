@@ -3,10 +3,12 @@ import {
   Body,
   Controller,
   ForbiddenException,
+  Get,
   HttpCode,
   NotFoundException,
   Param,
   Post,
+  Query,
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -14,6 +16,8 @@ import type {
   ApiError,
   AuthUser,
   TranslationCheckOverride,
+  TranslationDesk,
+  TranslationQueue,
   TranslationRequest,
   TranslationReviewRefusal,
   TranslationReviewRequest,
@@ -76,6 +80,36 @@ export class TranslationsAdminController {
       return null;
     }
     return text.slice(0, MAX_TEXT);
+  }
+
+  /** The desk's queue for one language (T-1013). */
+  @Get('translations')
+  async queue(
+    @Query('language') language: string | undefined,
+    @Req() request: FastifyRequest,
+  ): Promise<TranslationQueue> {
+    await this.editor(request);
+    const tag = typeof language === 'string' ? language.trim() : '';
+    if (!LANGUAGE.test(tag)) {
+      throw TranslationsAdminController.bad('language must be a language tag.', {
+        language: 'A BCP 47 tag, like ar or pt-BR.',
+      });
+    }
+    return this.store.queue(tag);
+  }
+
+  /** One article at the desk (T-1013): source, newest translation, checks, glossary terms. */
+  @Get('articles/:id/translations/:language')
+  async desk(
+    @Param('id') articleId: string,
+    @Param('language') language: string,
+    @Req() request: FastifyRequest,
+  ): Promise<TranslationDesk> {
+    const user = await this.editor(request);
+    if (!UUID.test(articleId) || !LANGUAGE.test(language)) throw new NotFoundException(NO_ARTICLE);
+    const desk = await this.store.desk(articleId.toLowerCase(), language, user.id);
+    if (desk === null) throw new NotFoundException(NO_ARTICLE);
+    return desk;
   }
 
   @Post('articles/:id/translations')
