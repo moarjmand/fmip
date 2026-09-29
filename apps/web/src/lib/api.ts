@@ -11,7 +11,10 @@ import type {
   SavedArticlesResponse,
   ActivityReport,
   AdminAlertsReport,
+  AdminCompetitionsResponse,
   AdminOverview,
+  HeldLocalesResponse,
+  LocaleHoldListResponse,
   FailureCountsReport,
   RateLimitsReport,
   WatchdogReport,
@@ -22,6 +25,8 @@ import type {
   AskResponse,
   BriefingResponse,
   AuditResponse,
+  CareerPointsResponse,
+  ContributorStatusResponse,
   NewsSourcesResponse,
   BroadcastersResponse,
   BlocksResponse,
@@ -125,6 +130,31 @@ export function fetchAdminOverview(cookie: string | undefined): Promise<ApiResul
   return apiRequest<AdminOverview>('/admin/overview', cookie === undefined ? {} : { cookie });
 }
 
+/** `GET /admin/competitions` (T-1162): every competition in the order readers meet them. Administrators only. */
+export function fetchAdminCompetitions(
+  cookie: string | undefined,
+): Promise<ApiResult<AdminCompetitionsResponse>> {
+  return apiRequest<AdminCompetitionsResponse>(
+    '/admin/competitions',
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/** `GET /locale-holds` (T-1163, D-155): the languages held back now. Public. */
+export function fetchHeldLocales(): Promise<ApiResult<HeldLocalesResponse>> {
+  return apiRequest<HeldLocalesResponse>('/locale-holds');
+}
+
+/** `GET /admin/locale-holds` (T-1163): every hold, newest first. Administrators only. */
+export function fetchLocaleHolds(
+  cookie: string | undefined,
+): Promise<ApiResult<LocaleHoldListResponse>> {
+  return apiRequest<LocaleHoldListResponse>(
+    '/admin/locale-holds',
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
 /** `GET /admin/health/watchdog` (T-801): every condition, its threshold and state, and the newest transitions. */
 export function fetchWatchdog(cookie: string | undefined): Promise<ApiResult<WatchdogReport>> {
   return apiRequest<WatchdogReport>(
@@ -192,8 +222,29 @@ export function fetchAdminUsers(
 }
 
 /** `GET /admin/audit` (T-070), newest first. */
-export function fetchAudit(cookie: string | undefined): Promise<ApiResult<AuditResponse>> {
-  return apiRequest<AuditResponse>('/admin/audit', cookie === undefined ? {} : { cookie });
+export function fetchAudit(
+  cookie: string | undefined,
+  memberId?: string,
+): Promise<ApiResult<AuditResponse>> {
+  // T-1164: `member` narrows the log to the rows about one account.
+  const query = memberId === undefined ? '' : `?member=${encodeURIComponent(memberId)}&limit=200`;
+  return apiRequest<AuditResponse>(`/admin/audit${query}`, cookie === undefined ? {} : { cookie });
+}
+
+/** `GET /admin/contributors/:username` (T-250): eligibility and the grant. Moderators and administrators. */
+export function fetchContributorStatus(
+  username: string,
+  cookie: string | undefined,
+): Promise<ApiResult<ContributorStatusResponse>> {
+  return apiRequest<ContributorStatusResponse>(
+    `/admin/contributors/${encodeURIComponent(username)}`,
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/** `GET /users/:username/points` (T-054): a member's Career Points ledger summary. */
+export function fetchCareerPoints(username: string): Promise<ApiResult<CareerPointsResponse>> {
+  return apiRequest<CareerPointsResponse>(`/users/${encodeURIComponent(username)}/points`);
 }
 
 /** `GET /admin/news-sources` (T-1015): every news source, carried first; administrators only. */

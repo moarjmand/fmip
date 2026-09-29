@@ -37,6 +37,7 @@ import { DataQualityModule } from './modules/data-quality/data-quality.module';
 import { ActivityModule } from './modules/activity/activity.module';
 import { RateLimitsModule } from './modules/rate-limits/rate-limits.module';
 import { HomepageModule } from './modules/homepage/homepage.module';
+import { LocaleHoldsModule } from './modules/locale-holds/locale-holds.module';
 
 /**
  * The remaining modules from `docs/02-architecture.md` are registered here as
@@ -83,6 +84,7 @@ import { HomepageModule } from './modules/homepage/homepage.module';
     ActivityModule,
     RateLimitsModule,
     HomepageModule,
+    LocaleHoldsModule,
     AdminModule,
   ],
 })

@@ -290,6 +290,11 @@
     "status": "translated",
     "note": "The language's own name: a fact, not a translation of the English."
   },
+  "languageHold.notice": {
+    "source": "this language is held back for now, so FMIP is shown in English. Your choice is kept, and applies again when the language returns.",
+    "text": "",
+    "status": "untranslated"
+  },
   "friends.mutualCount": {
     "source": {
       "one": "{count} friend in common",

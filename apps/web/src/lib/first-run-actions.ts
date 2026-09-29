@@ -17,6 +17,7 @@ import {
   stepHref,
 } from './first-run';
 import { clearGuestChoices, readGuestChoices, writeGuestChoices } from './first-run-cookie';
+import { offeredNow } from './language-hold';
 import { sessionCookieHeader } from './session';
 import { SESSION_COOKIE, parseSessionSetCookie } from './set-cookie';
 
@@ -55,7 +56,9 @@ export async function saveFirstRunStepAction(
   switch (step) {
     case 'language': {
       const language = text(formData, 'language');
-      if (isLocale(language) && !isPseudoLocale(language)) {
+      // Only a language the step offered (T-306, T-1163): one that is not
+      // finished, or is held back, is not stored and not moved to.
+      if (isLocale(language) && !isPseudoLocale(language) && (await offeredNow())(language)) {
         target = language;
         if (cookie !== null) {
           await apiRequest('/me/preferences', {

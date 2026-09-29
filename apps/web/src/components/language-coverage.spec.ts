@@ -74,7 +74,7 @@ describe('what the code does and does not do', () => {
   });
 
   it('renders the rows and computes nothing', () => {
-    expect(COMPONENT).toMatch(/languageRows\(\)/);
+    expect(COMPONENT).toMatch(/languageRows\(holds\)/);
     expect(COMPONENT).not.toMatch(/coverage\(|isShippable\(|TRANSLATION_FILES/);
     // The one arithmetic allowed on the page is turning the threshold into a
     // percent for the sentence beside the table.
