@@ -237,6 +237,8 @@ among them machine-labelled story types (Phase 9's N-8), transfer and
 injury feeds, and whether a translation of a publisher's words is within
 the feeds' terms.
 
+**Where it stands (2026-09-29).** Every task in `04-tasks-phase-10.md` is built, merged and on the server (#404-#428): story types from editors and the publisher's own categories (the mapping ships empty until publishers are carried), filters by type, player and date, the breaking mark and its opt-in alert, players linked to stories (switched off, `NEWS_PERSON_LINKS`, until squads and feeds exist to measure it), the player page's news and availability, trending that counts saves, the editor's news desk and news coverage per competition; the translator's glossary, automatic checks, desk and memory (no translated word written); groups' invite policy and links, language and favourite, rules, message removal and closure; panel posts linked to their match, and contributors flagged below the threshold. Three tasks were added while building: T-1015 (news sources added, edited and dropped from the console, robots and the feed checked first), T-1026 (the group owner's controls on the web) and T-1040 (the client receives only the reader's catalogue: about 72 kB less first-load JavaScript on every page, D-138). Production carries no news source yet: which publishers to carry is the maintainer's (N-8).
+
 ## After Phase 10 — outline
 
 Not planned as tasks. Each bullet becomes a task file when its phase starts,
