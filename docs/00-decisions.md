@@ -5024,6 +5024,56 @@ there once links exist. T-1003's player filter and T-1007's related news
 read the same links and say `not_supplied` while there are none. No
 migration: `article_entity` already accepts `person`.
 
+## D-127 — A player's related news and current availability
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-1007 gives the player page (blueprint 5.3) related news and
+current availability from what is already stored. No provider request is
+added.
+
+- **Related news.** `GET /players/:id/news` is D-119's entity-news shape
+  (`EntityNewsResponse`, `ENTITY_NEWS_LIMIT` cards, newest first) over the
+  stories any of whose reports link the person (D-126). It is `not_supplied`
+  with `feeds_unread` until the feeds have been read, as on the team page.
+  While no report links **any** person it is `not_supplied` with the new
+  reason `persons_unlinked`: D-126 keeps the person linker off until its
+  precision is measured, and an empty list then would read as "nobody wrote
+  about this player". Once any person link exists, an empty list is
+  `available` with `nothing_linked`. An unknown id is 404.
+- **Availability.** `PlayerPage.availability` reads the player's team: every
+  open spell's, else the team of the latest stored line-up that names the
+  player (`basis: 'lineup'`, and the page says so). Nothing ingests squads
+  today, so the line-up is what most players have. With several teams, the
+  team whose next match comes first is used. Then it reads that team's next
+  scheduled match still ahead, and what `fixture_absence` says about the
+  player for it (T-103):
+  - `not_supplied` with `no_team`, `no_next_match` or `not_asked`. The last
+    one means no `fixture_availability_fetch` row exists for that match: the
+    feed is asked only in the three days before kick-off, and an empty list
+    nobody asked for is not information.
+  - Once the feed was asked, `available` with `out` or `doubtful`, the kind
+    and the feed's own words, or `not_listed`. It is never "fit", because the
+    feed never says that (T-103). The status words are the key players'
+    (`KeyPlayerAvailability`).
+  - `last_updated_at` is when the feed was last asked. The page shows that
+    time and says the answer may have changed once it is more than six hours
+    old: T-103 re-asks every three hours, so six hours means at least one
+    re-ask was missed (rule 4).
+
+**Alternatives considered.** Reading only open spells: nothing writes them,
+so every player page in production would say "no team". Calling a player
+with no listing "available" or "fit": the feed does not say so. Answering an
+empty news list before any person is linked: this would be a false negative
+presented as fact (rule 3). Reusing `/news?team=`-style filters for the
+person: T-1003 owns the `player` filter of the news page, and the entity
+list needs the `persons_unlinked` state, which a filter does not have.
+
+**Consequences.** `PlayerAvailability`, `PlayerAvailabilityListing`,
+`PlayerAvailabilityReason` and `EntityNewsReason` are in the contract, and
+`EntityNewsResponse.entity.type` takes `person`. Seventeen catalogue keys were
+added (`player.availability.*`, `news.entity.nothingPlayer`,
+`news.entity.personsUnlinked`). No migration.
+
 ## D-128 — Trending counts saves beside discussion
 **Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
 
@@ -5078,4 +5128,5 @@ list built from several signals.
 `discussion_and_saves` reason are in the contract, replacing
 `discussion_only`. The plural `news.savers` and `news.reason.discussionAndSaves`
 are catalogue keys. No migration.
+
 

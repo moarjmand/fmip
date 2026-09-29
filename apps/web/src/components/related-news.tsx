@@ -135,7 +135,7 @@ function StoryList({
 }
 
 /**
- * News on a team or competition page (T-944, D-119): the stories the news
+ * News on a team, competition or player page (T-944, D-119; T-1007, D-127): the stories the news
  * boundary linked to it, newest first, in the match centre's three honest
  * states -- the feeds never read, nothing linked, or the list -- with the
  * news page's freshness line, and never an empty box.
@@ -191,6 +191,11 @@ export function EntityNews({
           </>
         )}
       </p>
+      {state === 'not_supplied' && news.reason === 'persons_unlinked' && (
+        <p className="text-sm text-muted" data-testid="entity-news-unlinked">
+          <Translated locale={locale} message="news.entity.personsUnlinked" />
+        </p>
+      )}
       {state === 'nothing_linked' && (
         <p className="text-sm text-muted" data-testid="entity-news-nothing">
           <Translated
@@ -198,7 +203,9 @@ export function EntityNews({
             message={
               news.entity.type === 'team'
                 ? 'news.entity.nothingTeam'
-                : 'news.entity.nothingCompetition'
+                : news.entity.type === 'person'
+                  ? 'news.entity.nothingPlayer'
+                  : 'news.entity.nothingCompetition'
             }
           />
         </p>
