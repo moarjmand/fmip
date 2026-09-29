@@ -325,6 +325,75 @@ export function eloSource(
 }
 
 /**
+ * How many ranges differ between the list Caddy enforces
+ * (`deploy/cloudflare-ranges.caddy`) and the one Cloudflare publishes
+ * (T-930, D-112), compared once a week. Any difference is `failing`, like
+ * T-1165's candidate: a range Cloudflare added and we lack refuses real
+ * readers, and a range it dropped and we still allow is an address that can
+ * reach the origin without Cloudflare again. The note names every range.
+ *
+ * `ok` when the check is off on this deployment (`CLOUDFLARE_RANGES_CHECK`,
+ * on only in production, where Caddy enforces the list). `unknown` when
+ * Cloudflare's lists did not answer, or answered something that is not a list.
+ */
+export const CLOUDFLARE_RANGES_THRESHOLD: WatchdogThreshold = {
+  unit: 'count',
+  degraded: 1,
+  failing: 1,
+};
+
+export type CloudflareRangesSeen =
+  | { configured: false }
+  | { unreadable: string; at: Date }
+  | { notCommitted: string[]; noLongerPublished: string[]; at: Date };
+
+export function cloudflareRanges(seen: CloudflareRangesSeen): Reading {
+  const key = 'cloudflare_ranges';
+  const threshold = CLOUDFLARE_RANGES_THRESHOLD;
+  if ('configured' in seen) {
+    return {
+      key,
+      level: 'ok',
+      observed: null,
+      threshold,
+      note: 'not compared on this deployment (CLOUDFLARE_RANGES_CHECK=off)',
+    };
+  }
+  const when = seen.at.toISOString().slice(0, 16).replace('T', ' ');
+  if ('unreadable' in seen) {
+    return {
+      key,
+      level: 'unknown',
+      observed: null,
+      threshold,
+      note: `Cloudflare's published ranges could not be read at ${when} UTC${detailOf(seen.unreadable)}`,
+    };
+  }
+  const observed = seen.notCommitted.length + seen.noLongerPublished.length;
+  const parts: string[] = [];
+  if (seen.notCommitted.length > 0) {
+    parts.push(
+      `published and not in deploy/cloudflare-ranges.caddy: ${seen.notCommitted.join(' ')}`,
+    );
+  }
+  if (seen.noLongerPublished.length > 0) {
+    parts.push(
+      `in deploy/cloudflare-ranges.caddy and no longer published: ${seen.noLongerPublished.join(' ')}`,
+    );
+  }
+  return {
+    key,
+    level: levelOf(observed, threshold),
+    observed,
+    threshold,
+    note:
+      observed === 0
+        ? `the committed list matches Cloudflare's (compared ${when} UTC)`
+        : `${parts.join('; ')} (compared ${when} UTC)`,
+  };
+}
+
+/**
  * The share of the last 24 hours' forecasts a candidate in shadow stored
  * nothing for (T-1165): the call to it failed, which is logged as
  * `forecast.shadow_failed` with the reason. A refusal is an answer and is not

@@ -3,6 +3,8 @@ import {
   type Reading,
   backup,
   candidateShadow,
+  cloudflareRanges,
+  type CloudflareRangesSeen,
   dataQuality,
   deliveryChannel,
   eloSource,
@@ -75,6 +77,11 @@ export interface Observations {
         offered: string[] | null;
         health: ReadonlyMap<string, CandidateShadowHealth> | Unreadable;
       };
+  /**
+   * The newest weekly comparison of the committed Cloudflare ranges with the
+   * published ones (T-930). Optional like `elo`; absent reads as not compared.
+   */
+  cloudflare?: CloudflareRangesSeen;
 }
 
 /**
@@ -160,6 +167,8 @@ export function readingsOf(
   }
 
   out.push(...candidateReadings(seen.candidates, previous));
+
+  out.push(cloudflareRanges(seen.cloudflare ?? { configured: false }));
 
   return out;
 }

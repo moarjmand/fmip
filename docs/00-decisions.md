@@ -4643,6 +4643,82 @@ version is `clubelo_then_own`, as 0.5.1 with its own record. 0.5.0 is not
 edited (rule 5, D-082). Promotion is T-535's evaluation (D-120), never this
 table.
 
+## D-112 — The origin answers only Cloudflare's addresses: Caddy's `remote_ip` from a committed list, compared with Cloudflare's weekly by the watchdog
+
+**Status:** Accepted · 2026-09-30 (the maintainer's yes to N-1, 2026-09-30) · **Tasks:** T-930 · **Follows:** D-048, D-093, D-095, D-096
+
+**The decision.**
+
+- **The rule.** Caddy closes (`abort`, no answer) every connection to the site
+  whose own peer address is outside Cloudflare's published ranges. It is the
+  first route of the site block, before the chat socket and `web`. The matcher
+  is Caddy's built-in `remote_ip` (no module): the TCP peer, never a header.
+- **The list** is `deploy/cloudflare-ranges.caddy`, one `remote_ip` line per
+  range, copied from https://www.cloudflare.com/ips-v4 and `/ips-v6` on
+  2026-09-30 (15 IPv4 and 7 IPv6 ranges), imported by the `Caddyfile` as the
+  `cloudflare_ranges` snippet; Caddy merges the lines into one matcher.
+- **Also allowed:** loopback (a probe from inside the Caddy container), and
+  whatever `ORIGIN_EXTRA_RANGES` names -- empty on the server,
+  `private_ranges` in the laptop rehearsal, `0.0.0.0/0 ::/0` as the one-line
+  emergency rollback.
+- **Nothing on the server is refused by it.** The compose healthchecks never
+  pass through Caddy (Caddy's is `caddy validate`; `api` and `web` probe their
+  own ports), `web` reaches `api` and Caddy reaches `web` on the compose
+  network, and `verify-rollout.sh` and `check-setup.sh` probe
+  `https://$SITE_HOST`, which resolves to Cloudflare. `09-deploy.md` §8 has
+  the two commands that confirm this on the server before applying.
+- **The weekly check** is the API's watchdog, not a host timer: a condition
+  `cloudflare_ranges` whose probe reads Cloudflare's two lists once a week (and
+  at every start, an hour later after a failed read) and counts the ranges in
+  one list and not the other. Any difference is `failing`, which is an alert
+  to every administrator through T-802 naming each range; an unreadable list
+  is `unknown`, never a difference. The API image does not carry `deploy/`, so
+  the list is mirrored in `watchdog/internal/cloudflare-ranges.ts` and a unit
+  test fails while the two differ. `CLOUDFLARE_RANGES_CHECK=on` in the
+  production compose file; off when unset, so development and CI never ask
+  Cloudflare.
+- **SSH is untouched**; port 80 still answers everyone with the redirect only.
+
+**Why.** D-093 left one gap: a request that reaches the origin without
+Cloudflare chooses its own `CF-Connecting-IP`, and so its own per-address
+sign-in counter. Refusing every peer that is not Cloudflare closes it. Caddy's
+own matcher needs no account (a Hetzner firewall would need the maintainer's)
+and rolls back with one commit, or with one `.env` line in seconds.
+
+**Why private ranges are not allowed on the server.** The obvious way to keep
+local callers working is to allow `private_ranges`. It is wrong here: Docker's
+userland proxy can hand Caddy an IPv6 connection from anywhere as if from the
+bridge gateway (`172.x.0.1`), so allowing private ranges would let every IPv6
+client through. No local caller needs it (above). The laptop does, because
+Docker Desktop delivers the host's own requests from the bridge gateway (the
+rehearsal saw `10.99.0.1`), so the rehearsal `.env` sets it.
+
+**Why the watchdog and not a host timer** like the backup's (T-805). A host
+script would need somewhere to record its verdict for the watchdog to read;
+`backup_run`'s `kind` is constrained to the backup and the drill, so that is a
+migration, and a new systemd unit to install. The API already reaches the
+internet (the feed, Club Elo), already has the alert path, and ticks every
+minute; a probe that asks weekly is the smallest change.
+
+**Rejected.** *A Hetzner cloud firewall*: the same effect a layer lower, but it
+needs the maintainer's account (N-1). *Caddy's layer4 app*: a new module.
+*`trusted_proxies` with `client_ip`*: that decides which header to believe,
+not who may connect. *Refusing with 403*: an answer tells a scanner there is a
+site here; `abort` tells it nothing. *Fetching the list at Caddy's start*: the
+edge would then change on Cloudflare's say-so with no review, and a failed
+fetch would take the site down.
+
+**Consequences.** During a Cloudflare outage the site cannot be served by
+pointing DNS straight at the server until `ORIGIN_EXTRA_RANGES=0.0.0.0/0 ::/0`
+is set (`09-deploy.md` §8). When Cloudflare changes its ranges, readers routed
+through a new range are refused until the list is updated and Caddy recreated;
+the weekly check says so within a week, and Cloudflare announces changes ahead.
+If Cloudflare ever reaches the origin over IPv6 through Docker's userland
+proxy, those requests are refused too; `verify-rollout.sh` through Cloudflare
+would show it, and the fix is IPv6 on the compose network, not a wider list.
+
+---
+
 ## D-114 — The scores card summarises the model's latest pre-kick-off version, the community's totals at D-052's floor, and viewing in the viewer's own territory
 
 **Date:** 2026-09-29 · **Task:** T-940 · **Status:** accepted

@@ -567,6 +567,7 @@ describe('readingsOf', () => {
       'data_quality',
       'backup',
       'restore_drill',
+      'cloudflare_ranges',
     ]);
   });
 

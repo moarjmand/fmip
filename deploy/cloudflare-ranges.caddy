@@ -1,0 +1,37 @@
+# Cloudflare's published address ranges (T-930, D-112): the only addresses the
+# origin answers. Imported by deploy/Caddyfile; each line is one `remote_ip`
+# range, and Caddy merges repeated `remote_ip` lines into one matcher.
+#
+# Copied from https://www.cloudflare.com/ips-v4 and
+# https://www.cloudflare.com/ips-v6 on 2026-09-30.
+#
+# The API's watchdog compares this list with Cloudflare's published one once a
+# week (condition `cloudflare_ranges`) and raises an alert when they differ.
+# To update: edit the lines here AND the same list in
+# apps/api/src/modules/watchdog/internal/cloudflare-ranges.ts (a unit test
+# fails while the two disagree), then deploy and recreate Caddy
+# (docs/09-deploy.md, "Only Cloudflare reaches the origin").
+(cloudflare_ranges) {
+	remote_ip 173.245.48.0/20
+	remote_ip 103.21.244.0/22
+	remote_ip 103.22.200.0/22
+	remote_ip 103.31.4.0/22
+	remote_ip 141.101.64.0/18
+	remote_ip 108.162.192.0/18
+	remote_ip 190.93.240.0/20
+	remote_ip 188.114.96.0/20
+	remote_ip 197.234.240.0/22
+	remote_ip 198.41.128.0/17
+	remote_ip 162.158.0.0/15
+	remote_ip 104.16.0.0/13
+	remote_ip 104.24.0.0/14
+	remote_ip 172.64.0.0/13
+	remote_ip 131.0.72.0/22
+	remote_ip 2400:cb00::/32
+	remote_ip 2606:4700::/32
+	remote_ip 2803:f800::/32
+	remote_ip 2405:b500::/32
+	remote_ip 2405:8100::/32
+	remote_ip 2a06:98c0::/29
+	remote_ip 2c0f:f248::/32
+}
