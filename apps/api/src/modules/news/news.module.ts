@@ -8,6 +8,7 @@ import { FetchTransport, NEWS_TRANSPORT } from './internal/news-transport';
 import { PostgresNewsStore } from './internal/news-store';
 import { PostgresSavedArticlesStore } from './internal/saved-articles-store';
 import { PostgresStoryLabelStore } from './internal/story-label-store';
+import { CATEGORY_MAPPING, STORY_TYPE_MAPPING } from './internal/story-type-mapping';
 import { NewsClusteringService } from './news-clustering.service';
 import { NewsIngestionService } from './news-ingestion.service';
 import { NewsSchedulerService } from './news-scheduler.service';
@@ -46,6 +47,7 @@ import { SavedArticlesController } from './saved-articles.controller';
     NewsClusteringService,
     NewsIngestionService,
     NewsSchedulerService,
+    { provide: CATEGORY_MAPPING, useValue: STORY_TYPE_MAPPING },
     { provide: NEWS_TRANSPORT, useFactory: (): FetchTransport => new FetchTransport() },
   ],
   exports: [NewsIngestionService],

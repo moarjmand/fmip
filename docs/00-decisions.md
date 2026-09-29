@@ -5002,6 +5002,26 @@ spec that fails when the two differ).
   "breaking" category or an editor's label types the story; only the
   editor's time-bound mark of D-125 puts it on the homepage strip.
 
+**The publisher's category (T-1002).** The feed reader keeps each item's
+category strings as carried (RSS `<category>` text, Atom `<category term>`,
+in feed order, duplicates removed) in `article_category`, replaced by each
+fetch so a category the publisher removed is gone. The committed list
+`STORY_TYPE_MAPPING` maps (the source's feed host, the exact string) to a
+type: no case folding, no trimming beyond the reader's whitespace, no prefix,
+keyword or similarity rule. A story takes its promoted original's mapped
+type; an item whose mapped categories name two different types has none
+(choosing would be a guess); an original that no longer maps withdraws the
+publisher label (superseded with nothing after it). The job recomputes the
+label whenever an item's words or categories change, and never supersedes an
+editor's label.
+
+**The mapping ships empty.** Each entry must name a recorded item from its
+feed that carries the exact string (`src/modules/news/_recorded/`, held by
+`story-type-mapping.spec.ts`). Which publishers are carried is the
+maintainer's (D-061, N-8) and is not in the repository, so no entry was
+written from memory or by analogy. Adding one is a recording and a line; the
+mechanism, the storage and the editor path work today.
+
 **Alternatives considered.** A `story.type` column: no history, no author,
 and an editor's correction would erase the publisher's word. A default type
 ("news") for unlabelled stories: a filter by type would then pretend to know
