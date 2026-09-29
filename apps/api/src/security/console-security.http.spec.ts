@@ -94,6 +94,30 @@ const CONSOLE: Record<string, ConsoleRoute> = {
   'GET /admin/audit': { roles: ADMIN },
   'POST /admin/ingestion/backfill': { roles: ADMIN, reason: { without: {} } },
 
+  // News sources (T-1015): add, edit and drop a publisher's feed.
+  'GET /admin/news-sources': { roles: ADMIN },
+  'POST /admin/news-sources/preview': {
+    roles: ADMIN,
+    reason: {
+      none: 'Reads a feed once after its robots.txt and writes nothing; adding it takes a reason.',
+    },
+  },
+  'POST /admin/news-sources': {
+    roles: ADMIN,
+    reason: {
+      without: {
+        name: 'Security probe',
+        homepage_url: 'https://publisher.example',
+        feed_url: 'https://publisher.example/feed.xml',
+        kind: 'rss',
+        rights: 'headline',
+        language: 'en',
+      },
+    },
+  },
+  'PATCH /admin/news-sources/:id': { roles: ADMIN, reason: { without: { name: 'Renamed' } } },
+  'POST /admin/news-sources/:id/drop': { roles: ADMIN, reason: { without: {} } },
+
   // The System page (T-801 to T-804).
   'GET /admin/health/failures': { roles: ADMIN },
   'GET /admin/health/watchdog': { roles: ADMIN },

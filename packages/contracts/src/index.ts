@@ -714,6 +714,24 @@ export type {
   TranslationRequest,
   VersionOrigin,
 } from './news';
+// News sources in the console (T-1015).
+export { NEWS_FEED_PREVIEW_ITEMS, NEWS_SOURCE_KINDS, NEWS_SOURCE_RIGHTS } from './news';
+export type {
+  NewsFeedPreview,
+  NewsFeedPreviewItem,
+  NewsFeedPreviewRequest,
+  NewsFeedYield,
+  NewsSourceDropRequest,
+  NewsSourceEditRequest,
+  NewsSourceFetch,
+  NewsSourceKind,
+  NewsSourceRecord,
+  NewsSourceRequest,
+  NewsSourceRights,
+  NewsSourcesResponse,
+  NewsSourceWriteResponse,
+  RobotsVerdict,
+} from './news';
 // The intelligence layer (Phase 5, D-070): a language model behind one port,
 // its honest absence, and the labelled shape of anything a machine wrote.
 export type {

@@ -22,6 +22,7 @@ import type {
   AskResponse,
   BriefingResponse,
   AuditResponse,
+  NewsSourcesResponse,
   BroadcastersResponse,
   BlocksResponse,
   DataQualityReport,
@@ -189,6 +190,13 @@ export function fetchAdminUsers(
 /** `GET /admin/audit` (T-070), newest first. */
 export function fetchAudit(cookie: string | undefined): Promise<ApiResult<AuditResponse>> {
   return apiRequest<AuditResponse>('/admin/audit', cookie === undefined ? {} : { cookie });
+}
+
+/** `GET /admin/news-sources` (T-1015): every news source, carried first; administrators only. */
+export function fetchNewsSources(
+  cookie: string | undefined,
+): Promise<ApiResult<NewsSourcesResponse>> {
+  return apiRequest<NewsSourcesResponse>('/admin/news-sources', { cookie });
 }
 
 /** The group directory: public and discoverable only (blueprint 8.2, T-242). */

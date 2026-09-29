@@ -523,3 +523,128 @@ export interface BreakingListResponse {
 export interface BreakingNewsResponse {
   stories: Covered<NewsStoryCard[]>;
 }
+
+// ---------------------------------------------------------------------------
+// News sources in the console (T-1015): an administrator adds, edits and
+// drops a publisher's feed, audited with the reason and the previous value.
+// Which publishers to carry, and their terms, are the maintainer's (N-8).
+// ---------------------------------------------------------------------------
+
+/** The feed kinds the console adds: a free publisher feed (D-061). A licensed wire is not added here. */
+export const NEWS_SOURCE_KINDS = ['rss', 'atom'] as const;
+export type NewsSourceKind = (typeof NEWS_SOURCE_KINDS)[number];
+
+/** What a free feed may grant (D-061): the headline, or the headline and the publisher's summary. */
+export const NEWS_SOURCE_RIGHTS = ['headline', 'summary'] as const;
+export type NewsSourceRights = (typeof NEWS_SOURCE_RIGHTS)[number];
+
+/** How many of a feed's items the preview shows. */
+export const NEWS_FEED_PREVIEW_ITEMS = 10;
+
+export interface NewsSourceFetch {
+  status: 'running' | 'succeeded' | 'partial' | 'failed';
+  started_at: string;
+  finished_at: string | null;
+  items_seen: number;
+  items_written: number;
+  error: string | null;
+}
+
+export interface NewsSourceRecord {
+  id: string;
+  name: string;
+  homepage_url: string;
+  feed_url: string | null;
+  /** `licensed` only for a row the console did not add. */
+  kind: NewsSourceKind | 'licensed';
+  rights: NewsRights;
+  /** BCP 47 of the language the publisher writes in. */
+  language: string;
+  created_at: string;
+  updated_at: string;
+  /** A dropped source stays, dated with the reason (D-061); it is read and shown no more. */
+  dropped_at: string | null;
+  dropped_reason: string | null;
+  /** The newest attempt to read the feed, or `null` when it was never read. */
+  last_fetch: NewsSourceFetch | null;
+}
+
+/** `GET /admin/news-sources`: every source, carried first, then dropped. */
+export interface NewsSourcesResponse {
+  sources: NewsSourceRecord[];
+}
+
+/**
+ * What the publisher's robots.txt says about the feed's path for our agent:
+ * `allowed` or `disallowed` by its rules; `absent` when it answered anything
+ * but 200, which allows everything (the standard, and the ingestion job);
+ * `unreachable` when it could not be asked at all, which the console treats
+ * as not checked and refuses to save over.
+ */
+export type RobotsVerdict = 'allowed' | 'disallowed' | 'absent' | 'unreachable';
+
+/** One item as the feed carries it, for the administrator's eyes only; nothing is stored. */
+export interface NewsFeedPreviewItem {
+  headline: string;
+  url: string;
+  published_at: string | null;
+  /** The publisher's summary, cut to a few hundred characters; `null` when the item has none. */
+  summary: string | null;
+  language: string | null;
+}
+
+/** What one read of a feed yielded, or why it yielded nothing. */
+export type NewsFeedYield =
+  | {
+      ok: true;
+      kind: NewsSourceKind;
+      title: string | null;
+      language: string | null;
+      items: number;
+      skipped: number;
+      sample: NewsFeedPreviewItem[];
+    }
+  | { ok: false; error: string };
+
+/** `POST /admin/news-sources/preview`: the feed fetched once, after its robots.txt. */
+export interface NewsFeedPreview {
+  feed_url: string;
+  checked_at: string;
+  robots: { url: string; verdict: RobotsVerdict; status: number | null };
+  /** `null` when robots.txt disallows the feed or could not be asked: the feed is not fetched. */
+  feed: NewsFeedYield | null;
+}
+
+export interface NewsFeedPreviewRequest {
+  feed_url: string;
+}
+
+/** `POST /admin/news-sources`: added only after the feed is fetched and robots.txt allows it. */
+export interface NewsSourceRequest {
+  name: string;
+  homepage_url: string;
+  feed_url: string;
+  kind: NewsSourceKind;
+  rights: NewsSourceRights;
+  language: string;
+  /** Recorded in the audit log; required (rule 10). */
+  reason: string;
+}
+
+/** `PATCH /admin/news-sources/:id`: the fields to change and why. A new feed URL is checked as on adding. */
+export type NewsSourceEditRequest = Partial<Omit<NewsSourceRequest, 'reason'>> & {
+  reason: string;
+};
+
+/** `POST /admin/news-sources/:id/drop`: a publisher who asks to be dropped is dropped; the reason is kept. */
+export interface NewsSourceDropRequest {
+  reason: string;
+}
+
+/** The answer to an add, an edit or a drop. */
+export interface NewsSourceWriteResponse {
+  source: NewsSourceRecord;
+  /** The check the write made of a new feed URL; `null` when the URL did not change. */
+  preview: NewsFeedPreview | null;
+  audit_id: string;
+}
