@@ -73,6 +73,11 @@ next free number.
 | D-120 | T-535 | Promotion of the candidate (or not), with the numbers |
 | D-121 | T-923 | The line-up term's fit, and whether the candidate carries it |
 | D-122 | T-924 | The Power Index's line-up and stability weights, revalidated on our own line-ups |
+| D-161 | — | The feed's values are not overridden by hand (N-3) |
+| D-162 | T-947 | Club Elo retired from every new version (N-4) |
+| D-163 | — | High-rating privileges as built; leaderboards by rating alone (N-6) |
+| D-164 | T-1160 | Thresholds as versioned rows; the formula only by a new version (N-7) |
+| D-165 | — | Story types never labelled by a machine (N-8) |
 
 | Migration | Task | For |
 |---|---|---|
@@ -177,6 +182,7 @@ feed asked again, or a person's reviewed judgement.*
 | `[x]` T-920 | The Elo source's state visible. The model service reports Club Elo's last successful day and its last error. The watchdog raises `degraded` after 3 days without an Elo answer. The forecast panel's factor list says "no Elo prior this time", as the stored `elo_used` already records. D-111 | T-801 | An alert once per incident, never per tick (D-095). The System page shows the source's state. A test with the loader failing drives both |
 | `[x]` T-921 | An Elo computed from our own records. A daily Elo per club from the results in the training store, both football-data's divisions (D-016, training only) and our own records (D-083), is stored with the matches it was computed from. D-111; migration `1764850000000` | T-920 | Licensed and training data only, within D-014. Recomputable from stored results (a test recomputes a day). Clubs map by the committed bridge (D-080), never by name. Clubs with no history are left out, not given 1500 |
 | `[x]` T-922 | Candidate `dixon-coles-elo@0.5.0` in shadow: 0.4.0 with the own-records Elo as its prior. It uses Club Elo when it answers and ours when it does not, or ours always, whichever the backtest favours. D-111 | T-921, D-082 | A backtest of 0.4.0 without a prior, with Club Elo's last cached ratings, and with ours, over the same fit dates, recorded in `12-power-index.md`'s neighbour or the handoff. The candidate stays in shadow. Stored forecasts keep their versions (rule 5) |
+| `[ ]` T-947 | Club Elo retired (D-162): a candidate file declaring `elo_prior: clubelo` or `clubelo_then_own` is refused by a test; from the promotion that replaces `dixon-coles-elo@0.1.0`, `MODEL_CLUBELO_REFRESH` defaults to `off` and the watchdog's `elo_source` condition and the System page's line are removed | T-922, D-082 | Rule 5: stored forecasts and 0.1.0's constants are untouched, and Club Elo's past snapshots stay as the record of what 0.1.0 read. `03-project-map.md` and `.env.example` follow |
 | `[ ]` T-923 | Fit the line-up term (D-086) on the 2025/26 line-ups once the past-season backlog has loaded them. **Waits for data.** D-121 | T-536, T-534 | `python -m fmip_model.backtest.lineups` on the full season, with the fit and held-out score recorded. The candidate carries `lineup_beta` only if the held-out gain is real. Otherwise D-121 says why not, with the numbers |
 | `[ ]` T-924 | The Power Index's line-up quality (20%) and stability (5%) weights, validated on our own recorded line-ups. `12-power-index.md` currently says they "cannot be validated". **Waits for data.** D-122 | T-923, T-113 | `power-index-backtest.mjs` extended to read our line-ups. The bar is unchanged (beat the blueprint by more than 0.01 held-out log-loss). A change is a new `power-index@x.y.z`, never an edit |
 | `[ ]` T-925 | Match alerts measured on a real Saturday. **(match days)** Record the delivery time from incident to push outcome for kick-off, goal and full-time, from the run's own rows, beside T-834's synthetic figures | T-835, T-901 | A table in `08-load-test.md` with the day's fixtures, followers and p50/p95. A miss is written down with its cause, not re-run until it passes |
@@ -225,14 +231,14 @@ Each needs a decision entry first. The note says whose.
    (`CLAUDE.md` §7: a schema change with a backfill). The proposal is that
    every existing account records `platform-rules@1.0.0`, because no other
    version has ever been published.
-3. **N-3 — A person correcting the feed.** Blueprint 16 asks for "correction
+3. **N-3 — A person correcting the feed.** **Answered 2026-09-30 under the standing delegation: D-161** -- no hand override of a stored score, incident or line-up; review and re-asking the feed are the correction tools. Blueprint 16 asks for "correction
    and manual review tools". Review is built (T-821, T-912), and re-asking
    the feed is T-913. Overriding a stored score, incident or line-up by hand
    is not. Three questions come with it: whether the feed's next answer wins,
    how the page says "corrected by the desk", and whether the licensed
    feed's terms allow showing a changed value beside its data. *The
    maintainer's* (licensing and product behaviour).
-4. **N-4 — Club Elo after T-921.** Club Elo is free, not licensed, and has not
+4. **N-4 — Club Elo after T-921.** **Answered 2026-09-30 under the standing delegation: D-162** -- retired: no new version reads it, and asking stops once the published version no longer does (T-947). Club Elo is free, not licensed, and has not
    answered since 2026-09-25. Once our own Elo exists, the proposal is to
    retire Club Elo as an input, so that the model's critical path is licensed
    and training data only (D-014). *The maintainer's* (third-party terms).
@@ -242,15 +248,16 @@ Each needs a decision entry first. The note says whose.
    (D-089). Blueprint 13's eight languages do not include it. Adding a locale
    is scope and needs a fluent reviewer (D-066). *The maintainer's.*
 6. **N-6 — The privileges blueprint 9.4 lists beyond contributor access and
-   exclusive groups.** Private prediction events, greater visibility in
+   exclusive groups.** **Answered 2026-09-30 under the standing delegation: D-163** -- contributor access, exclusive groups and the badge only; leaderboards stay ordered by rating alone; nothing else is built without its own decision. Private prediction events, greater visibility in
    leaderboards and discovery, early access, and further perks are product
    behaviour with no rule written anywhere. *The maintainer's.*
 7. **N-7 — Rating formula and thresholds set from the console (9.1, 16).**
+   **Answered 2026-09-30 under the standing delegation: D-164** -- yes, as proposed; T-1160 is no longer gated.
    Today they are versioned constants (D-035, D-059). The proposal is that
    thresholds become versioned rows an administrator changes with a reason,
    and the formula changes only by a new version, so that rule 8 holds. The
    thresholds are policy the maintainer settled (D-059). *The maintainer's.*
-8. **N-8 — Story types and breaking news (3.2, 12.2).** An editor marking a
+8. **N-8 — Story types and breaking news (3.2, 12.2).** **Answered 2026-09-30 under the standing delegation: D-165** -- no machine labelling; D-123 and D-125 stand. An editor marking a
    story "breaking", with an opt-in alert, is covered by the standing
    delegation. Labelling publishers' headlines by machine (D-070) touches
    the feeds' terms (D-061). *The maintainer's.* This is planned for Phase 10,
