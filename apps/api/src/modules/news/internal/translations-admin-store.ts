@@ -1,24 +1,28 @@
 import { Inject, Injectable } from '@nestjs/common';
-import {
-  TRANSLATION_MEMORY_LIMIT,
-  TRANSLATION_QUEUE_DAYS,
-  TRANSLATION_QUEUE_LIMIT,
-  type NewsRights,
-  type ReviewState,
-  type TranslationCheckOverride,
-  type TranslationCheckResult,
-  type TranslationDesk,
-  type TranslationDeskVersion,
-  type TranslationField,
-  type TranslationMemoryEntry,
-  type TranslationQueue,
-  type TranslationQueueItem,
-  type TranslationTexts,
+import type {
+  NewsRights,
+  ReviewState,
+  TranslationCheckOverride,
+  TranslationCheckResult,
+  TranslationDesk,
+  TranslationDeskVersion,
+  TranslationField,
+  TranslationMemoryEntry,
+  TranslationQueue,
+  TranslationQueueItem,
+  TranslationTexts,
 } from '@fmip/contracts';
 import { checkTranslation, unresolvedFailures } from '@fmip/contracts/translation-checks';
 import { Pool, type PoolClient } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 import { glossaryFor, glossaryHits, namesToCarry, type LinkedName } from './translation-names';
+
+/** How many of each bucket the desk's queue shows at most (T-1013). */
+const TRANSLATION_QUEUE_LIMIT = 50;
+/** How far back "to translate" looks, in days: the news a reader still sees. */
+const TRANSLATION_QUEUE_DAYS = 7;
+/** How many memory entries per field the desk shows at most, newest first (T-1014). */
+const TRANSLATION_MEMORY_LIMIT = 5;
 
 /** Postgres' unique_violation and the article schema's rights guard (T-141). */
 const RIGHTS = 'PL016';

@@ -38,15 +38,10 @@ export interface TranslationQueueItem {
   translation: TranslationVersionSummary | null;
 }
 
-/** How many of each bucket the queue shows at most. */
-export const TRANSLATION_QUEUE_LIMIT = 50;
-/** How far back "to translate" looks, in days: the news a reader still sees. */
-export const TRANSLATION_QUEUE_DAYS = 7;
-
 /** `GET /admin/translations?language=` (T-1013). */
 export interface TranslationQueue {
   language: string;
-  /** Promoted originals of the last `TRANSLATION_QUEUE_DAYS` days with no translation into it, newest first. */
+  /** Promoted originals of the last seven days with no translation into it, newest first. */
   to_translate: TranslationQueueItem[];
   /** Newest translation not yet reviewed, oldest first: the longest wait at the top. */
   awaiting_review: TranslationQueueItem[];
@@ -101,9 +96,6 @@ export interface TranslationMemoryEntry {
     updated_at: string;
   } | null;
 }
-
-/** How many memory entries per field the desk shows at most, newest first. */
-export const TRANSLATION_MEMORY_LIMIT = 5;
 
 /** `GET /admin/articles/:id/translations/:language` (T-1013). */
 export interface TranslationDesk {

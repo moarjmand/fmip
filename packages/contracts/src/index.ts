@@ -743,7 +743,8 @@ export type {
 
 // The translators' glossary (T-1011, D-130). The files are in `glossary/`,
 // read as `@fmip/contracts/glossary/<locale>.json`.
-export { GLOSSARY_KINDS, GLOSSARY_STATUSES } from './glossary';
+// Types only: no browser page needs the glossary at run time, and every
+// module the index loads is in every page's first-load JavaScript (T-808).
 export type {
   Glossary,
   GlossaryEntry,
@@ -771,11 +772,6 @@ export type {
 
 // The translator's desk (T-1013): the queue per language and one article's
 // source, translation, checks and glossary terms.
-export {
-  TRANSLATION_MEMORY_LIMIT,
-  TRANSLATION_QUEUE_DAYS,
-  TRANSLATION_QUEUE_LIMIT,
-} from './translation-desk';
 export type {
   TranslationDesk,
   TranslationDeskVersion,
