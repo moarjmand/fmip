@@ -6813,6 +6813,44 @@ the administrator's reason*: it is written for the audit log, and may name
 a page or a person. *Moving a member's stored language to English*: the
 choice is theirs, and the hold is temporary.
 
+## D-156 — The off-machine uptime check is a scheduled GitHub Actions workflow; its failure e-mail is the alert
+**Status:** Accepted · 2026-09-30 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** The check from outside the machine (T-806) runs on GitHub's
+own runners, in the repository that already exists, so it needs no new
+account, no purchase and no secret. `.github/workflows/uptime.yml` runs every
+10 minutes (`schedule`) and on demand (`workflow_dispatch`), never on
+`pull_request`, with `contents: read` only. It asks
+`https://traveltohormuz.ir/health` up to 3 times, 30 s apart, 20 s timeout
+each, and fails the job when no try answers 200.
+
+- **The alert is GitHub's failure e-mail.** When a scheduled run fails,
+  GitHub e-mails the person who owns the workflow (the last one to change its
+  cron, in practice the maintainer's account). The maintainer sees it in the
+  repository's Actions tab (workflow "Uptime") and by e-mail, provided their
+  GitHub notification setting under Settings -> Notifications -> Actions is
+  on, ideally "Only notify for failed workflows". `docs/09-deploy.md` says how.
+- **What `/health` proves.** A web route (`apps/web/src/app/health/route.ts`)
+  the locale proxy leaves alone. It asks the API's own liveness endpoint over
+  the compose network and answers 200 `{status: "ok", checked_at}`, or 503
+  `{status: "unavailable", checked_at}` when the API cannot be reached in 5 s
+  or does not report `ok`. One 200 therefore means Cloudflare, Caddy, the web
+  app and the API all answer. Nothing else is exposed: no uptime, version,
+  address or dependency. `cache-control: no-store`.
+- **Known limits, stated rather than hidden.** GitHub may start scheduled runs
+  late (minutes) when its runners are busy, so this detects an outage within
+  roughly 10 to 20 minutes, not seconds. GitHub disables a scheduled workflow
+  after 60 days without activity in the repository; re-enable it from the
+  Actions tab ("Enable workflow") if development pauses that long. The check
+  is liveness of the public path, not of ingestion or the database: the
+  watchdog (T-801, T-802) covers those from inside, and this covers the case
+  the watchdog cannot report -- the machine or its edge being down.
+
+**Rejected.** *A hosted uptime service* (UptimeRobot, Better Stack and the
+like): each needs an account the maintainer would have to open, which the
+standing directives rule out. *A cron job on the VPS*: it cannot report the
+VPS being down. *Pointing the check at `/en`*: it renders a full page and
+does not say whether the API behind it answers.
 
 ---
 

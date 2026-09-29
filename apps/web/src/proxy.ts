@@ -43,7 +43,8 @@ async function isHeld(locale: string): Promise<boolean> {
 
 export const config = {
   // Everything except Next's own assets, the web app's own API routes (the SSE
-  // proxy of T-032 has no locale) and files that already have an
-  // extension — redirecting those would break them.
-  matcher: ['/((?!_next/|api/|favicon\\.ico|.*\\.[^/]+$).*)'],
+  // proxy of T-032 has no locale), the exact path `/health` (the public
+  // origin's health for the outside uptime check, T-806) and files that
+  // already have an extension — redirecting those would break them.
+  matcher: ['/((?!_next/|api/|health$|favicon\\.ico|.*\\.[^/]+$).*)'],
 };

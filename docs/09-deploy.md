@@ -320,6 +320,28 @@ criterion of T-074.
 Reboots are safe: every service has `restart: unless-stopped` and Docker is
 enabled at boot.
 
+## Uptime check (from outside, T-806)
+
+`.github/workflows/uptime.yml` asks `https://traveltohormuz.ir/health` every
+10 minutes from GitHub's runners, outside the VPS (D-156). `/health` answers
+200 only when the web app and, through it, the API both answer; 503 when the
+API does not. Three tries 30 s apart; the run fails when none answers 200.
+
+- **Where you see it.** The repository's **Actions** tab, workflow
+  **Uptime**: a red run is an outage (its log says what each try got). **Run
+  workflow** there runs it once on demand.
+- **The alert is GitHub's e-mail.** GitHub e-mails the workflow's owner when a
+  scheduled run fails. Make sure it is on: github.com -> Settings ->
+  Notifications -> **Actions**, tick **Email**, and choose "Only notify for
+  failed workflows". No other account is involved.
+- **After 60 days without any commit** GitHub disables scheduled workflows.
+  If development pauses that long, open Actions -> Uptime -> **Enable
+  workflow**.
+- Scheduled runs can start a few minutes late when GitHub is busy; expect an
+  outage to be reported within 10 to 20 minutes.
+
+To check by hand: `curl -si https://traveltohormuz.ir/health`.
+
 ## Rehearsal on a laptop
 
 The same files run on a developer machine; this is how the zero-downtime
