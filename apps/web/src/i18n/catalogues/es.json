@@ -934,6 +934,91 @@
     "text": "",
     "status": "untranslated"
   },
+  "news.entity.nothingPlayer": {
+    "source": "No publisher we read has reported on this player yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.entity.personsUnlinked": {
+    "source": "Stories are not linked to players yet, so this list cannot say whether anyone has written about this one.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "player.availability.title": {
+    "source": "Availability",
+    "text": "",
+    "status": "untranslated"
+  },
+  "player.availability.noTeam": {
+    "source": "No current team on record, so there is no next match to read availability for.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "player.availability.noNextMatch": {
+    "source": "No scheduled match ahead for this team in our records.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "player.availability.fromLineup": {
+    "source": "Team taken from the latest line-up that names this player.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "player.availability.nextMatch": {
+    "source": "Next match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "player.availability.notAsked": {
+    "source": "The feed has not yet been asked who will miss this match. It is asked in the three days before kick-off.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "player.availability.out": {
+    "source": "Listed out",
+    "text": "",
+    "status": "untranslated"
+  },
+  "player.availability.doubtful": {
+    "source": "Listed doubtful",
+    "text": "",
+    "status": "untranslated"
+  },
+  "player.availability.notListed": {
+    "source": "Not on the feed's list of players who will or may miss this match. The feed never confirms that a player is fit.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "player.availability.asked": {
+    "source": "Feed asked",
+    "text": "",
+    "status": "untranslated"
+  },
+  "player.availability.stale": {
+    "source": "This answer is more than six hours old and may have changed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "player.availability.kind.injury": {
+    "source": "Injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "player.availability.kind.suspension": {
+    "source": "Suspension",
+    "text": "",
+    "status": "untranslated"
+  },
+  "player.availability.kind.illness": {
+    "source": "Illness",
+    "text": "",
+    "status": "untranslated"
+  },
+  "player.availability.kind.other": {
+    "source": "Other reason",
+    "text": "",
+    "status": "untranslated"
+  },
   "news.section.latest": {
     "source": "Latest",
     "text": "",
@@ -1047,8 +1132,8 @@
     "text": "",
     "status": "untranslated"
   },
-  "news.reason.discussionOnly": {
-    "source": "Trending counts public discussion only. Views, saves and shares are not measured.",
+  "news.reason.discussionAndSaves": {
+    "source": "Trending counts members discussing a story's matches and members saving the story in the last 48 hours, one each. Views and shares are not measured.",
     "text": "",
     "status": "untranslated"
   },
@@ -1109,6 +1194,14 @@
     "source": {
       "one": "{count} member in the match discussion in the last {hours} hours",
       "other": "{count} members in the match discussion in the last {hours} hours"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "news.savers": {
+    "source": {
+      "one": "{count} member saved it in the last {hours} hours",
+      "other": "{count} members saved it in the last {hours} hours"
     },
     "forms": {},
     "status": "untranslated"

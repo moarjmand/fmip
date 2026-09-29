@@ -278,9 +278,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('news section
 
     const after = await section('section=trending');
     expect(after.body.stories.coverage).toBe('limited');
-    expect(after.body.reason).toBe('discussion_only');
+    expect(after.body.reason).toBe('discussion_and_saves');
     const card = after.body.stories.data!.find((c) => c.story_id === matchStory);
-    expect(card?.discussion).toEqual({ participants: 2, window_hours: 48 });
+    expect(card?.discussion).toEqual({ participants: 2, savers: 0, window_hours: 48 });
     expect(after.body.stories.data!.map((c) => c.story_id)).not.toContain(otherStory);
   });
 

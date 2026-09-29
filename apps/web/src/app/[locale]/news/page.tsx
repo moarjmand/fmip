@@ -548,6 +548,13 @@ function Story({
             count={card.discussion.participants}
             params={{ hours: String(card.discussion.window_hours) }}
           />
+          {' · '}
+          <Translated
+            locale={locale}
+            message="news.savers"
+            count={card.discussion.savers}
+            params={{ hours: String(card.discussion.window_hours) }}
+          />
         </p>
       )}
       {card.debate !== null && (

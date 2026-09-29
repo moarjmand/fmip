@@ -32,6 +32,9 @@ const FIELDS: Record<string, Rule> = {
   'admin.ts:AdminUser.display_name': { exempt: STAFF },
   'campaigns.ts:Audience.created_by': { exempt: STAFF },
   'campaigns.ts:Campaign.created_by': { exempt: STAFF },
+  // The administrator who dismissed a contributor flag (T-1031): shown only on
+  // the console's contributors page.
+  'contributor.ts:ContributorFlag.by': { exempt: STAFF },
   'community-analysis.ts:CommunityAnalyst.display_name': {
     rendered: [['components/community-analysis-panel.tsx', 'member={analysis.author}']],
   },

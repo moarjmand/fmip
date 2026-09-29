@@ -163,6 +163,12 @@ const CONSOLE: Record<string, ConsoleRoute> = {
     roles: MODERATION,
     reason: { without: {} },
   },
+  // Contributor flags (T-1031, D-137).
+  'GET /admin/contributor-flags': { roles: MODERATION },
+  'POST /admin/contributor-flags/:id/dismiss': {
+    roles: MODERATION,
+    reason: { without: {} },
+  },
 
   // Featured-match panels (T-253, T-613).
   'GET /admin/panels': { roles: MODERATION },

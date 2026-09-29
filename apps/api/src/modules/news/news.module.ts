@@ -58,6 +58,6 @@ import { SavedArticlesController } from './saved-articles.controller';
     { provide: CATEGORY_MAPPING, useValue: STORY_TYPE_MAPPING },
     { provide: NEWS_TRANSPORT, useFactory: (): FetchTransport => new FetchTransport() },
   ],
-  exports: [NewsIngestionService],
+  exports: [NewsIngestionService, NewsClusteringService],
 })
 export class NewsModule {}

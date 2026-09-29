@@ -5,6 +5,7 @@ import { apiRequest } from '@/lib/api';
 import type { ActionState } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
 import { failureState } from './action-failure';
+import { parseLinkChoice } from './panel-link';
 
 /**
  * Posting on a public match panel (T-251).
@@ -30,10 +31,14 @@ export async function postToPanelAction(
     return { ok: false, message: 'Write something first.' };
   }
 
+  // At most one link, to something of this match (T-1030). Whether it is of
+  // this match is the database's question; the API sends its sentence back.
+  const link = parseLinkChoice(String(formData.get('link') ?? ''));
+
   const result = await apiRequest(`/fixtures/${encodeURIComponent(fixtureId)}/panel`, {
     method: 'POST',
     cookie: await sessionCookieHeader(),
-    body: { body },
+    body: { body, link },
   });
 
   if (!result.ok) {

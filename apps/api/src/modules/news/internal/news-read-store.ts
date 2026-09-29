@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { TRENDING_WEIGHTS } from '@fmip/contracts';
 import type {
   NewsEntity,
   NewsFilters,
@@ -53,6 +54,8 @@ interface CardRow {
   breaking_ends_at: Date | null;
   at: Date;
   participants: number | null;
+  /** Trending only (T-1008); the other sections do not select it. */
+  savers?: number | null;
   debate_selected_at: Date | null;
   debate_note: string | null;
 }
@@ -129,10 +132,13 @@ export class PostgresNewsReadStore {
   }
 
   /**
-   * Stories whose matches were discussed inside the window, ranked by how many
-   * distinct members took part on the public panel -- a post or a reaction,
-   * each counted once per member, so one person cannot trend a story alone.
-   * Views, saves and shares are not measured and are not pretended (rule 3).
+   * Stories discussed or saved inside the window (T-1008, D-128), ranked by
+   * `TRENDING_WEIGHTS`: distinct members on the public panel of the story's
+   * matches -- a post or a reaction, each member once -- and distinct members
+   * who saved the story. A save moved onto a story by a cluster merge is one
+   * row per member (`saved_article`'s key), so it counts once, at the time it
+   * was first saved. Views and shares are not measured and are not pretended
+   * (rule 3, N-3).
    */
   async trending(
     filters: NewsFilters,
@@ -143,9 +149,11 @@ export class PostgresNewsReadStore {
     const q = new Query(filters, locale);
     q.windowHours = windowHours;
     const window = q.param(`${windowHours} hours`);
+    const discussionWeight = q.param(TRENDING_WEIGHTS.discussion);
+    const saveWeight = q.param(TRENDING_WEIGHTS.saves);
     return this.page(
       q,
-      `, signal AS (
+      `, discussed AS (
          SELECT m.story_id, count(DISTINCT u.user_id)::int AS participants
            FROM story_card sc
            JOIN article m ON m.story_id = sc.story_id
@@ -161,11 +169,26 @@ export class PostgresNewsReadStore {
               WHERE p.removed_at IS NULL
            ) u ON u.fixture_id = e.entity_id AND u.created_at >= now() - ${window}::interval
           GROUP BY m.story_id
+       ),
+       saved AS (
+         SELECT sa.story_id, count(DISTINCT sa.user_id)::int AS savers
+           FROM saved_article sa
+           JOIN story_card sc ON sc.story_id = sa.story_id
+          WHERE sa.saved_at >= now() - ${window}::interval
+          GROUP BY sa.story_id
+       ),
+       signal AS (
+         SELECT COALESCE(d.story_id, s.story_id) AS story_id,
+                COALESCE(d.participants, 0) AS participants,
+                COALESCE(s.savers, 0) AS savers
+           FROM discussed d
+           FULL JOIN saved s ON s.story_id = d.story_id
        )
-       SELECT sc.*, sg.participants, NULL::timestamptz AS debate_selected_at, NULL::text AS debate_note
+       SELECT sc.*, sg.participants, sg.savers, NULL::timestamptz AS debate_selected_at, NULL::text AS debate_note
          FROM story_card sc
          JOIN signal sg ON sg.story_id = sc.story_id
-        ORDER BY sg.participants DESC, sc.at DESC, sc.story_id
+        ORDER BY sg.participants * ${discussionWeight}::int + sg.savers * ${saveWeight}::int DESC,
+                 sc.at DESC, sc.story_id
         LIMIT ${q.param(limit)}`,
       limit,
     );
@@ -422,14 +445,45 @@ export class PostgresNewsReadStore {
    * Whether a team or competition exists (T-944), so its news answers 404
    * for an id that is neither rather than an empty list about nothing.
    */
-  async entityExists(type: 'team' | 'competition', id: string): Promise<boolean> {
+  async entityExists(type: 'team' | 'competition' | 'person', id: string): Promise<boolean> {
+    const table = type === 'team' ? 'team' : type === 'competition' ? 'competition' : 'person';
     const { rows } = await this.pool.query<{ found: boolean }>(
-      type === 'team'
-        ? `SELECT EXISTS (SELECT 1 FROM team WHERE id = $1) AS found`
-        : `SELECT EXISTS (SELECT 1 FROM competition WHERE id = $1) AS found`,
+      `SELECT EXISTS (SELECT 1 FROM ${table} WHERE id = $1) AS found`,
       [id],
     );
     return rows[0]?.found === true;
+  }
+
+  /**
+   * A player's related news (T-1007, D-127): stories any of whose reports
+   * link the person, newest first, the latest section's cards.
+   */
+  async forPerson(personId: string, locale: string | null, limit: number): Promise<StoryPage_> {
+    const q = new Query(
+      {
+        country: null,
+        competition: null,
+        team: null,
+        language: null,
+        type: null,
+        player: null,
+        from: null,
+        to: null,
+        time_zone: 'UTC',
+      },
+      locale,
+    );
+    return this.page(
+      q,
+      `SELECT sc.*, NULL::int AS participants, NULL::timestamptz AS debate_selected_at, NULL::text AS debate_note
+         FROM story_card sc
+        WHERE EXISTS (SELECT 1 FROM article m JOIN article_entity e ON e.article_id = m.id
+                       WHERE m.story_id = sc.story_id
+                         AND e.entity_type = 'person' AND e.entity_id = ${q.param(personId)}::uuid)
+        ORDER BY sc.at DESC, sc.story_id
+        LIMIT ${q.param(limit + 1)}`,
+      limit,
+    );
   }
 
   private async page(q: Query, select: string, limit: number): Promise<StoryPage_> {
@@ -477,7 +531,11 @@ export class PostgresNewsReadStore {
       discussion:
         r.participants === null
           ? null
-          : { participants: r.participants, window_hours: windowHours ?? 0 },
+          : {
+              participants: r.participants,
+              savers: r.savers ?? 0,
+              window_hours: windowHours ?? 0,
+            },
       debate:
         r.debate_selected_at === null || r.debate_note === null
           ? null
