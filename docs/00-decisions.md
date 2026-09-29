@@ -4486,3 +4486,275 @@ second place the budget would have to be counted.
 `fixture_refetch_request`. `DataQualityFinding.asked_again` and
 `DataQualityReport.refetch` are in the contract. `INGESTION_REFETCH_SHARE` is
 in `.env.example` and forwarded by the production compose file.
+
+## D-111 — An Elo prior from our own records, within D-014, when Club Elo does not answer
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26) · **Tasks:** T-920, T-921, T-922 · **Follows:** D-014, D-016, D-029, D-080, D-082, D-083, D-095
+
+**The problem.** The published model (`dixon-coles-elo@0.1.0`, D-029) pulls
+each club's net strength toward its Club Elo rating. Club Elo's API has
+answered `502 Bad Gateway` since 2026-09-25, so every forecast since has been
+fitted without the prior (`elo_used: false`), and nothing said so anywhere an
+administrator or a reader would look: the snapshots were loaded by hand, the
+failures were rows nobody read, and the strength factor's note still named
+"the Elo prior".
+
+**T-920: the source's state is visible.**
+
+- **The service asks, and records the answer.** The model service asks Club
+  Elo for yesterday's snapshot (a fit's date is the day before the match, and
+  never later than yesterday) at most every six hours, in the background of
+  its health check, through the existing loader: one `source_load` row per
+  ask, `succeeded` or `failed` with the error. A snapshot already held is not
+  asked for again. It never blocks or fails a forecast; the held ratings stand.
+  `MODEL_CLUBELO_REFRESH=off` stops the asking (CI sets it; N-4 would).
+- **`/health` reports it.** `elo_source`: the newest snapshot day that loaded
+  and when, the newest error and when, and `unanswered_since` -- the newest
+  success, else the oldest failure since -- read from `training.source_load`.
+  A store that does not answer is `unreadable`, never a failed health check.
+- **The watchdog counts days.** Condition `elo_source`: seconds since
+  `unanswered_since`. `degraded` at three days: forecasts are still made, from
+  results alone, and say so, so it is worth a look, not a wake-up. `failing` at
+  fourteen: a fortnight without the prior is the week's question (T-921's own
+  Elo, or N-4). `ok` when the asking is off on purpose; `unknown` when the
+  model service does not answer (that is `model_service`'s condition), does
+  not report the source, or has never asked. The transition rule is D-095's,
+  so four days of 502s at a check a minute is one incident and one alert, and
+  the first answer after it is one recovery. The System page names it
+  "Club Elo (the model's long-term ratings)" and shows the note: the day it
+  last answered for and the last error.
+- **The forecast panel says it per version.** A version whose stored inputs
+  say `elo_used: false` adds "No Elo prior this time" to its factor list,
+  from the version's own inputs (rule 5), never from the source's state now.
+  New versions' strength note says "no Elo prior this time" too; older ones
+  keep the words they were stored with, and the panel line corrects them.
+
+**Rejected.** *Asking on every forecast*: a hanging source would hold a
+forecast past the API's timeout. *Asking on the watchdog's minute*: sixty
+requests an hour to a free API for a daily number. *A separate timer on the
+host*: one more thing to install, and the service already holds the loader,
+the store and the clock.
+
+**T-921: an Elo of our own, from the training store.** (Migration
+`1764850000000`.)
+
+- **What it reads.** Every result in `training.match`: football-data.co.uk's
+  divisions (D-016, training only) and our own records of the licensed feed
+  (D-083). Nothing else, so the prior a fit may take from it is licensed and
+  training data only, within D-014 -- unlike Club Elo, which is neither.
+- **Who a club is.** Its catalogue id where the committed bridge names it
+  (`training.team_alias`, D-080), so a club's league and cup matches are one
+  club's; otherwise `<division>:<name>`, a club of that division only. Two
+  spellings are never matched by likeness, and the same spelling in two
+  divisions without the bridge is two clubs. The limit, stated: a club
+  promoted from a division the bridge does not cover starts again in its new
+  one.
+- **The rules, frozen per version.** `own-elo@1.0.0` is World Football Elo:
+  K 20, home advantage 60 points, the goal-difference multiplier (1, 1.5,
+  (11 + d) / 8), a club entering at 1500 on its first match, matches applied
+  by day, then division and clubs, so the same results always give the same
+  numbers. A changed constant is a new version and a new run beside the old.
+- **Clubs with no history are left out.** A club with no match on or before
+  the day has no row, not 1500: a fit then gives it no prior beyond the ridge,
+  as it does a club Club Elo does not rate.
+- **Stored with the matches it was computed from.** One `own_elo_run` per
+  (day, rules): the matches read -- their count, first and last date, and a
+  sha256 over them in the order applied -- and one `own_elo` row per club.
+  `python -m fmip_model.training.own_elo verify --day …` recomputes the day
+  from the stored results and compares the hash and every rating; a result
+  that changed under a stored day is reported, not absorbed. Storing a day
+  again replaces its run.
+- **Daily, by the service.** The model service computes yesterday's run once a
+  day in the background of its health check (after its daily reload of our
+  own records, so the day's results are in), and a fit that asks for a day not
+  yet computed computes it first. A failure is logged and retried after an
+  hour; a fit without the prior says so (`elo_used`).
+- **Not read by the published model.** `dixon-coles-elo@0.1.0` is unchanged
+  (rule 5, D-082). T-922's candidate is the first version to read it.
+
+**T-922: candidate `dixon-coles-elo@0.5.0`, in shadow.** It is 0.4.0 unchanged
+(its per-division constants and its cross-league fit) plus one new setting,
+`elo_prior: own`. The prior is always our own Elo, read by the division's
+training names. A version now names its prior: `clubelo` (the published
+version's, D-029), `own`, or `clubelo_then_own`. Nothing else changes, and
+`dixon-coles-elo@0.1.0` stays the published version.
+
+*The backtest* (`python -m fmip_model.backtest.elo_prior`, 2026-09-29,
+report in `apps/model/reports/dixon-coles-elo-0.5.0/`). For each of the ten
+divisions, the 2025/26 season was walked forward with the same weekly fit
+dates and the candidate's own constants. Each variant was scored only on
+the matches that every variant which ran had forecast. Log loss (lower is
+better):
+
+| Division | Matches | No prior | Club Elo, last cached | Own Elo |
+|---|---|---|---|---|
+| B1 | 303 | 1.0385 | not run | 1.0353 |
+| D1 | 305 | 0.9796 | not run | 0.9762 |
+| E0 | 378 | 1.0486 | not run | 1.0300 |
+| F1 | 305 | 1.0056 | not run | 1.0045 |
+| I1 | 377 | 0.9978 | not run | 0.9972 |
+| N1 | 305 | 0.9889 | not run | 0.9869 |
+| P1 | 304 | 0.9271 | not run | 0.9275 |
+| SC0 | 227 | 0.9884 | not run | 0.9864 |
+| SP1 | 377 | 0.9834 | not run | 0.9824 |
+| T1 | 304 | 0.9956 | not run | 0.9979 |
+| **Pooled** | 3,185 | **0.9965** | not run | **0.9933** |
+
+Our own Elo is better than no prior in eight divisions of ten, and by 0.0032
+pooled. It is worse in P1 (0.0004) and T1 (0.0023). This run was made on the
+laptop. It used a training store built for the purpose from football-data.co.uk
+2023/24 to 2026/27. That store has no aliases and none of our own records, so
+there each club is rated from its own division's results alone. On the
+server, the bridge and our cup records also link clubs across leagues.
+
+*Club Elo could not be compared here.* The laptop holds no Club Elo snapshot,
+and the API answered 502. The server holds the snapshots loaded before
+2026-09-25. There, the same command scores the "last cached" variant
+(`06-session-handoff.md`, Production). The task's rule is "Club Elo when it
+answers and ours when it does not, or ours always, whichever the backtest
+favours". With no Club Elo evidence, 0.5.0 takes the choice that needs
+none: ours, always. That is also the choice that keeps the prior within
+D-014. If the server run shows Club Elo's ratings ahead of ours, the next
+version is `clubelo_then_own`, as 0.5.1 with its own record. 0.5.0 is not
+edited (rule 5, D-082). Promotion is T-535's evaluation (D-120), never this
+table.
+
+## D-118 — Leaders beyond goals: assists, clean sheets and cards, each a stated rule
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-943 adds three boards to the competition page beside the
+scorers (blueprint 5.1). Each is its own `Covered` module in
+`CompetitionPage.boards`, computed from what the fixtures boundary already
+stores. No provider request is added.
+
+- **Assists.** A goal or penalty goal whose `related_person_id` names a
+  player is that player's assist, credited to the scoring side. Own goals
+  are nobody's. The board takes the season's declared `incidents` state.
+  When the season's goals name no assist at all, the board is
+  `not_supplied`: a list of nobody would read as a season without assists.
+- **Clean sheets.** A side of a finished match with a score is *judged* when
+  its line-up names exactly one starter at `goalkeeper`. That keeper keeps a
+  clean sheet when the other side's latest score is nil (`current`, else
+  `full_time`: extra time counts, a shoot-out does not) and the keeper
+  finished the match: no substitution took them off and no red card (or
+  second yellow) sent them off. A substitute keeper who finishes a nil is not
+  credited, because they did not start. Each row also carries
+  `starts_in_goal`, the judged matches the keeper started. The board takes
+  the declared `lineups` state. It is `limited` when some finished sides
+  could not be judged, because the list may be missing a keeper, and
+  `not_supplied` when none could. Judged sides with no clean sheet are an
+  empty list, not an absence.
+- **Cards.** `yellow_card` is a yellow; `red_card` and `second_yellow_card`
+  are reds, exactly as the player page counts them. The board is ranked by
+  reds, then yellows, then name, under the declared `incidents` state.
+- **The minutes floor.** `?min_minutes=` (T-824) applies to every board
+  under the scorers' rule (`reachesFloor`). `boards.unproven` counts, per
+  board, the players left out because their minutes cannot show the floor,
+  and a board with any left out is `limited`.
+- **Rows.** Each row is one person for one team, as the scorers are, so a
+  mid-season move gives two rows. The minutes are the person's in that
+  season for every team (T-824). Ten rows per board.
+
+**Alternatives considered.** Crediting a clean sheet to every keeper who
+played in a nil, or splitting it by minutes: the plan names the keeper who
+started and finished. A board of zeros for a season whose feed sends no
+assists: rule 3 forbids it. A disciplinary points scale (yellow 1, red 3): a
+weighting nobody asked for, where two plain counts say more.
+
+**Consequences.** `LeaderBoards`, `BoardPlayer`, `AssistLeader`,
+`CleanSheetLeader` and `CardLeader` are in the contract.
+`StandingsService.boards` is the standings boundary's answer; the catalog
+adds minutes and the floor. No migration: the plan's row names none.
+
+## D-119 — The manager is the coach on the team's latest line-up; news on entity pages is the news boundary's linking
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-944 fills the team page's manager and the team and
+competition pages' news (blueprint 5.1, 5.2) from what is already stored. No
+provider request is added.
+
+- **The manager.** The coach the feed named (`fixture_participant.coach_id`)
+  on the team's most recent stored line-up: the latest kick-off among the
+  team's matches whose side has a line-up row or a named coach. It is shown
+  as a fact about that match, with a link to it (`TeamManager.lineup_fixture`).
+  When that line-up names no coach, `coach` is `not_supplied` and the page
+  says the latest line-up names none. An older coach is never carried
+  forward, because a club that changed manager would then show the wrong
+  one as current. When the team has no stored line-up, `lineup_fixture` is
+  null and the page says so. Coaching spells are not read: nothing ingests
+  them, so a spell would be a guess.
+- **News.** `GET /teams/:id/news` and `GET /competitions/:id/news` are the
+  news page's latest cards (`ENTITY_NEWS_LIMIT`, five) for stories any of
+  whose reports the news boundary linked to that team or competition
+  (`article_entity`, the same links the `team` and `competition` filters
+  read), newest first, under the same rights (D-061). As on the match page
+  (T-145): `not_supplied` with `feeds_unread` until the feeds have been read
+  at all, then `available`, possibly empty with `nothing_linked`. An unknown
+  id is 404. The routes live in the news module, which still imports nothing
+  from the football boundaries (rule 9): it checks the id against the table
+  directly, as `forFixture` does.
+
+**Alternatives considered.** The latest coach named on any line-up: it
+survives a sacking. Reading `/news?section=latest&team=`: before the feeds
+are read it answers an available empty list, which on an entity page would
+read as "nobody wrote about this club". A window around today, as the match
+page has around kick-off: a club's latest story is news whenever it was
+written, and the list is short.
+
+**Consequences.** `TeamPage.manager` (`TeamManager`), `EntityNewsResponse`
+and `ENTITY_NEWS_LIMIT` are in the contract. No migration.
+
+## D-116 — Following a match: its alerts under the member's own switches, once, until three hours after full-time
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-945 lets a member follow one match (blueprint 12.1).
+
+- **A row like any other follow.** `followed_entity` takes `fixture`. The
+  match centre has one control, and it posts the same
+  `PUT`/`DELETE /me/following/:type/:id` as every other follow. A match is
+  never a favourite: a favourite is pinned on the scores page and shown on
+  the profile, and a match pinned there would be stale within a week. Asking
+  for one is a 400, and a check constraint refuses it in the schema.
+- **What it sends by default: the match alerts, and nothing else.** A match
+  follower joins the match-alert audience (`MatchAlertsStore.followers`)
+  beside the followers of either team and of the competition. What reaches
+  them is what their match-alert switches (D-098, D-100), the team,
+  competition and `match` mutes and quiet hours allow, exactly as for a team
+  follower, because the audience is still written by `emitToAudience` in one
+  statement (D-105). There is no second set of switches for a followed match.
+  Other producers that read `followed_entity` (the founder's analysis, a
+  friend's prediction, campaigns, the Following feed) do not read a match
+  follow.
+- **Once per event per member.** The audience is one row per member however
+  many ways they follow the match (the match, both teams and the
+  competition), and the event key is the dedupe key, so nobody hears an
+  event twice. A correction still goes to those told of the goal.
+- **The follow ends by itself three hours after full-time.**
+  `fixture_follow_open(id)` is the one copy of the rule: open until the match
+  is finished, awarded, cancelled or abandoned and three hours have passed
+  since the last period recorded ended, or since two hours after kick-off
+  when no period is recorded. A postponed or suspended match keeps its
+  followers until it is played. Every read of a match follow asks it: the
+  audience, `GET /me/following` (an ended follow is not listed) and a new
+  follow (a 409 once the window has closed). The row of an ended follow is
+  removed the next time the member follows a match, and with the account.
+  The match centre does not offer a follow for a match that is over.
+
+**Why three hours.** Full-time is the last alert a follower asked for, and a
+provider may still settle the score, or take a late goal off the board, in
+the hour after it. Three hours covers that and a late full-time from a delayed
+feed, and is short enough that a follow never lasts into the next matchday.
+Two hours after kick-off stands in for full-time only when the feed recorded
+no period.
+
+**Alternatives considered.** An `ends_at` stored on the row: full-time is not
+known when the follow is made, and a postponement would have to rewrite every
+follow. A sweep job deleting ended follows: a second schedule for rows that
+already follow nothing. A per-match set of switches: a second preference read
+on every alert, the cost D-098 declined for per-team switches.
+
+**Consequences.** `1764870000000_follow-fixture.sql` widens
+`followed_entity_type_check`, adds `followed_entity_fixture_not_favourite` and
+`fixture_follow_open()`. `FOLLOWED_ENTITY_TYPES` in the contract has
+`fixture`, whose `name` is "Home v Away". `components/match-follow.tsx` is the
+control. No new route, write or setting.
+

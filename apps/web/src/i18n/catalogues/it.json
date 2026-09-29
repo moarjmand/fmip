@@ -924,6 +924,16 @@
     "text": "",
     "status": "untranslated"
   },
+  "news.entity.nothingTeam": {
+    "source": "No publisher we read has reported on this team yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.entity.nothingCompetition": {
+    "source": "No publisher we read has reported on this competition yet.",
+    "text": "",
+    "status": "untranslated"
+  },
   "news.section.latest": {
     "source": "Latest",
     "text": "",
@@ -1160,11 +1170,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "story.matchProducts": {
-    "source": "for the model forecast, the founder's analysis and the community consensus, kept apart there.",
-    "text": "",
-    "status": "untranslated"
-  },
   "story.otherReports": {
     "source": "Other reports of this story",
     "text": "",
@@ -1175,8 +1180,78 @@
     "text": "",
     "status": "untranslated"
   },
-  "story.notYet": {
-    "source": "Save and share are not built yet.",
+  "story.share": {
+    "source": "Share this story",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.follow.title": {
+    "source": "Follow what this story is about",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.follow.follow": {
+    "source": "Follow",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.follow.following": {
+    "source": "Following",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.follow.unfollow": {
+    "source": "Unfollow",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.follow.signIn": {
+    "source": "Sign in to follow these teams and competitions.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.follow.unavailable": {
+    "source": "Your follows could not be read just now, so they cannot be changed here.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.title": {
+    "source": "Predictions for this match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.intro": {
+    "source": "Three separate products, each on the match centre under its own name. None is shown here, and they are never combined.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.model": {
+    "source": "The model's forecast",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.modelNote": {
+    "source": "probabilities from the versioned statistical model",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.founder": {
+    "source": "The founder's analysis",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.founderNote": {
+    "source": "one person's signed view, not the model",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.community": {
+    "source": "The community consensus",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.communityNote": {
+    "source": "what members predicted, published from five predictors",
     "text": "",
     "status": "untranslated"
   },
@@ -1754,7 +1829,7 @@
     "status": "untranslated"
   },
   "notifications.match.intro": {
-    "source": "For the matches of the teams and competitions you follow. Alerts from the same minute arrive together, a goal taken off the board is corrected, and nothing arrives twice.",
+    "source": "For the matches you follow, and the matches of the teams and competitions you follow. Alerts from the same minute arrive together, a goal taken off the board is corrected, and nothing arrives twice.",
     "text": "",
     "status": "untranslated"
   },
@@ -1795,6 +1870,41 @@
   },
   "notifications.match.quiet": {
     "source": "To silence one team or one competition, or every match alert at once, use What stays quiet below. Quiet hours hold match alerts too.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "match.follow.start": {
+    "source": "Follow this match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "match.follow.stop": {
+    "source": "Stop following",
+    "text": "",
+    "status": "untranslated"
+  },
+  "match.follow.note": {
+    "source": "Its alerts reach you under your match alert settings, once each even if you follow its teams too. The follow ends by itself three hours after full-time.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "match.follow.following": {
+    "source": "You follow this match. The follow ends by itself three hours after full-time.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "match.follow.over": {
+    "source": "This match is over, so it can no longer be followed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "match.follow.signIn": {
+    "source": "Sign in to follow this match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "match.follow.unreachable": {
+    "source": "Whether you follow this match cannot be checked right now.",
     "text": "",
     "status": "untranslated"
   },
@@ -1903,6 +2013,26 @@
     "text": "",
     "status": "untranslated"
   },
+  "team.manager.label": {
+    "source": "Manager",
+    "text": "",
+    "status": "untranslated"
+  },
+  "team.manager.named": {
+    "source": "named on the line-up for",
+    "text": "",
+    "status": "untranslated"
+  },
+  "team.manager.noCoach": {
+    "source": "No manager shown: the team's latest line-up names no coach.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "team.manager.noLineup": {
+    "source": "No manager shown: no line-up of this team is stored yet.",
+    "text": "",
+    "status": "untranslated"
+  },
   "team.squad.minutes": {
     "source": "Minutes are for this team in the competitions above, from the feed's per-player figures: \"at least\" where some matches have none.",
     "text": "",
@@ -1991,6 +2121,73 @@
   "leaderboard.language.note": {
     "source": "A member's language is the one they chose for FMIP in Settings. It is not public, so this board shows only members whose prediction history you may see.",
     "text": "",
+    "status": "untranslated"
+  },
+  "competition.boards.assists": {
+    "source": "Assists",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competition.boards.cleanSheets": {
+    "source": "Clean sheets",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competition.boards.cards": {
+    "source": "Cards",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competition.boards.noAssists": {
+    "source": "No goal of this season names an assist yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competition.boards.noCleanSheets": {
+    "source": "No goalkeeper on our line-ups has kept a clean sheet yet this season.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competition.boards.noCards": {
+    "source": "No card is recorded for this season yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competition.boards.noneReach": {
+    "source": "No player's recorded minutes reach this floor.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competition.boards.unproven": {
+    "source": {
+      "one": "{count} player is left out because the feed did not send minutes for every match they played, so the record cannot show they reached the floor.",
+      "other": "{count} players are left out because the feed did not send minutes for every match they played, so the record cannot show they reached the floor."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "competition.boards.startsInGoal": {
+    "source": {
+      "one": "{count} start in goal",
+      "other": "{count} starts in goal"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "competition.boards.red": {
+    "source": {
+      "one": "{count} red",
+      "other": "{count} red"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "competition.boards.yellow": {
+    "source": {
+      "one": "{count} yellow",
+      "other": "{count} yellow"
+    },
+    "forms": {},
     "status": "untranslated"
   }
 }

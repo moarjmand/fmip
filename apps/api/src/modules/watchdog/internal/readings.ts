@@ -3,6 +3,8 @@ import {
   backup,
   dataQuality,
   deliveryChannel,
+  eloSource,
+  type EloSourceSeen,
   ingestJob,
   liveFeed,
   modelService,
@@ -43,6 +45,12 @@ export interface Observations {
     | { configured: false }
     | { configured: true; ok: true }
     | { configured: true; ok: false; reason: string };
+  /**
+   * Club Elo as the model service reported it on the same health check
+   * (T-920): unreadable when that check failed. Optional so a probe written
+   * before it still type-checks; absent reads as not reported.
+   */
+  elo?: { configured: false } | Unreadable | { source: EloSourceSeen | null };
   delivery:
     | {
         email: { configured: false } | { configured: true; sent: number; failed: number };
@@ -106,6 +114,8 @@ export function readingsOf(
   out.push(
     modelService(seen.model, model !== undefined && model.level !== 'ok' ? model.observed : null),
   );
+
+  out.push(eloSource(seen.elo ?? { source: null }, now));
 
   if (unreadable(seen.delivery)) {
     const why = seen.delivery.unreadable;

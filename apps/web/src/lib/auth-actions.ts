@@ -290,6 +290,8 @@ export async function followAction(locale: string, formData: FormData): Promise<
   revalidatePath(`/${locale}/settings`);
   // The Following page offers these buttons too when nothing is followed (T-622).
   revalidatePath(`/${locale}/following`);
+  // The match centre offers one for the match itself (T-945).
+  if (type === 'fixture') revalidatePath(`/${locale}/match/${id}`);
 }
 
 export async function unfollowAction(locale: string, formData: FormData): Promise<void> {
@@ -301,4 +303,5 @@ export async function unfollowAction(locale: string, formData: FormData): Promis
     { method: 'DELETE', cookie: await sessionCookieHeader() },
   );
   revalidatePath(`/${locale}/settings`);
+  if (type === 'fixture') revalidatePath(`/${locale}/match/${id}`);
 }

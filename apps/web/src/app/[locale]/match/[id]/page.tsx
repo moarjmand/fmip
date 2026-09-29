@@ -11,6 +11,7 @@ import { FounderAnalysisPanel } from '@/components/founder-analysis';
 import { JsonLd } from '@/components/json-ld';
 import { KeyPlayersPanel } from '@/components/key-players';
 import { LiveMatch } from '@/components/live-match';
+import { MatchFollow } from '@/components/match-follow';
 import { MatchPanel } from '@/components/match-panel';
 import { MatchSummaryPanel } from '@/components/match-summary';
 import { PowerIndexPanel } from '@/components/power-index-panel';
@@ -26,6 +27,7 @@ import {
   fetchEvaluations,
   fetchFixtureNews,
   fetchFollowedMembers,
+  fetchFollowing,
   fetchForecasts,
   fetchKeyPlayers,
   fetchMatchCentre,
@@ -110,10 +112,15 @@ export default async function MatchPage({
   // guest is in none. The same is true of whom they follow — a guest follows
   // nobody, and one request here saves a follow-status call per contributor on
   // the panel below (T-252).
-  const [groups, followed] =
+  // The member's follows, for the follow control on the match itself (T-945).
+  const [groups, followed, following] =
     me === null
-      ? [null, null]
-      : await Promise.all([fetchMyGroups(cookie), fetchFollowedMembers(cookie)]);
+      ? [null, null, null]
+      : await Promise.all([
+          fetchMyGroups(cookie),
+          fetchFollowedMembers(cookie),
+          fetchFollowing(cookie),
+        ]);
 
   const result = await fetchMatchCentre(id);
   if (!result.ok && result.status === 404) notFound();
@@ -192,6 +199,13 @@ export default async function MatchPage({
       ) : (
         <>
           <JsonLd data={matchJsonLd(locale, result.data.fixture)} />
+          <MatchFollow
+            locale={locale}
+            fixtureId={result.data.fixture.id}
+            status={result.data.fixture.status}
+            signedIn={me !== null}
+            following={following}
+          />
           <LiveMatch
             initial={result.data}
             timeZone={timeZone}

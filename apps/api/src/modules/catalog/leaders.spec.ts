@@ -59,6 +59,27 @@ describe('leadersWithMinutes (T-824)', () => {
   });
 });
 
+describe('leadersWithMinutes on a board beyond goals (T-943)', () => {
+  it('keeps the board its own figures and order, under the same floor', () => {
+    const cards = [
+      { person: { id: 'b', name: 'b' }, team: null, yellow_cards: 1, red_cards: 1 },
+      { person: { id: 'a', name: 'a' }, team: null, yellow_cards: 5, red_cards: 0 },
+    ];
+    const minutes = new Map([
+      ['a', seasonMinutes(10, 10, 900)],
+      ['b', seasonMinutes(3, 0, 0)],
+    ]);
+    const all = leadersWithMinutes(cards, minutes, null, 10);
+    expect(all.leaders.map((l) => [l.person.id, l.red_cards, l.yellow_cards])).toEqual([
+      ['b', 1, 1],
+      ['a', 0, 5],
+    ]);
+    const floored = leadersWithMinutes(cards, minutes, 450, 10);
+    expect(floored.leaders.map((l) => l.person.id)).toEqual(['a']);
+    expect(floored.unproven).toBe(1);
+  });
+});
+
 describe('leadersModule (T-824)', () => {
   const available: Covered<Scorer[]> = {
     coverage: 'available',
