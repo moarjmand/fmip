@@ -4964,6 +4964,66 @@ setting because the viewer is a friend: a second visibility rule, which D-063
 exists to refuse. Showing removed posts as tombstones in the excerpt: honest on
 the panel, noise on a homepage line.
 
+## D-126 — Linking a person to a story: the rule, its precision on a sample, and what it never does
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-1006 lets the news clustering link a person (`article_entity`
+type `person`, by UUID), by a rule narrower than the team linker's, and keeps
+it switched off until its precision has been measured.
+
+- **The rule.** A person is linked to an article when (1) one of the
+  article's headlines or summaries carries their `full_name`, or an
+  `entity_alias` recorded for them, as whole words after the same folding the
+  team linker uses (`search_key`, every run of non-letters one space);
+  (2) that key is at least two words and five letters -- a surname alone
+  ("Salah", "Silva") never links, and `known_as` is not read, because the
+  provider's short form is often exactly that; (3) the person holds an open
+  `player_spell` at a team the story links (any report of the cluster); and
+  (4) no other member of those squads answers to the same key, and no other
+  matched candidate's key contains it or is contained by it ("Bruno Guimaraes"
+  inside "Bruno Guimaraes Rodrigues"). A name that could be two people links
+  neither (rule 1). The rule is `PERSON_CANDIDATES` in
+  `news/internal/news-store.ts`, one SQL text read both by the writer and by
+  the sample, so what is measured is what writes.
+- **The bar.** The rule may write only when a person has hand-checked a random
+  sample of stored headlines and found at least **95 %** of the proposed links
+  right over at least **100** proposed links (`PERSON_LINK_PRECISION_BAR`,
+  `PERSON_LINK_SAMPLE_MINIMUM`). A wrong link puts a story on a stranger's
+  player page and in their followers' feed; a missed one costs a reader one
+  story, so the bar is on precision, not recall.
+- **The switch.** `NEWS_PERSON_LINKS=on` turns the writer on; anything else,
+  and the default, leaves it off. The sample is
+  `node dist/cli/person-link-sample.js [--size 300]`, read-only: one row per
+  proposed link (article, person, matched words, headline, summary) for the
+  checker to mark.
+
+**Precision measured on 2026-09-29: none -- the sample is empty.** The public
+site showed, as a guest, "The feeds have not been read yet" on `/news` and
+"No squad on record for this team" on Arsenal's page: production has stored
+no headline, and no `player_spell` row exists anywhere but the seed (nothing
+ingests squads; D-119 found the same for coaching spells). A rule that needs
+both can propose no link there, so there is nothing to check, and the switch
+stays **off**. It may be turned on only after the feeds have run and squads
+are stored, the sample has been checked, and the measured precision and the
+sample's size have been added here.
+
+**What it never does.** Link by surname, by `known_as`, by a person's name
+outside the squads of the teams the story links, or by a machine's reading
+of the words (N-1). It never links a coach or referee: spells are players'.
+
+**Alternatives considered.** Matching `known_as` ("M. Salah", "Rodri"): the
+provider's short form is a surname or a mononym as often as not, which is
+the guess rule 1 forbids. Any person in the catalogue rather than the linked
+teams' squads: common full names repeat across clubs. Turning the rule on
+with a precision measured on invented headlines: a number about text nobody
+published is not a measurement of this rule.
+
+**Consequences.** `NEWS_PERSON_LINKS` in `.env.example`. The following
+section already reads `person` links, so a followed player's stories appear
+there once links exist. T-1003's player filter and T-1007's related news
+read the same links and say `not_supplied` while there are none. No
+migration: `article_entity` already accepts `person`.
+
 ## D-127 — A player's related news and current availability
 **Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
 
@@ -5013,3 +5073,4 @@ list needs the `persons_unlinked` state, which a filter does not have.
 `EntityNewsResponse.entity.type` takes `person`. Seventeen catalogue keys were
 added (`player.availability.*`, `news.entity.nothingPlayer`,
 `news.entity.personsUnlinked`). No migration.
+
