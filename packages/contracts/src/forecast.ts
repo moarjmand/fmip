@@ -359,6 +359,38 @@ export interface CandidateRecord {
   /** The candidate's own refusals (`unavailable`), which are never scored. */
   unavailable: number;
   competitions: CandidateCompetitionRecord[];
+  /** Whether it is answering at all (T-1165): what the System page and the watchdog read. */
+  shadow: CandidateShadowHealth;
+}
+
+/**
+ * How far back a candidate's last failure is looked for (T-1165). Older
+ * failures are not shown; `last_failure` null says "none in this many days".
+ */
+export const CANDIDATE_FAILURE_LOOKBACK_DAYS = 7;
+
+/**
+ * Whether a candidate in shadow answers (T-1165). A candidate is asked for
+ * every forecast the published version is asked for and the model service
+ * answered (T-1102); it *fails* one when nothing is stored for it -- the call
+ * failed, which is logged as `forecast.shadow_failed` with the reason, since
+ * a failed call stores nothing (D-140). A refusal (`unavailable`, with the
+ * model's reason) is an answer, counted in `unavailable`, not a failure.
+ *
+ * Counted only from its first stored version on: forecasts made before it
+ * was in shadow were never asked of it. A candidate with no stored version
+ * has `first_answered_at` null, which the page says as "never answered",
+ * never as zero failures.
+ */
+export interface CandidateShadowHealth {
+  /** Its oldest stored shadow version, answer or refusal; null: it has never answered. */
+  first_answered_at: string | null;
+  /** Its newest stored shadow version. */
+  last_answered_at: string | null;
+  /** The last 24 hours: forecasts asked of it, and those it stored nothing for. */
+  day: { asked: number; failed: number };
+  /** The newest forecast in `CANDIDATE_FAILURE_LOOKBACK_DAYS` it stored nothing for. */
+  last_failure: { at: string; fixture_id: string } | null;
 }
 
 /** `GET /admin/model/candidates` (T-1103). Administrators only. */

@@ -6,11 +6,13 @@ import type {
   ForecastListEntry,
   ForecastSummaryEntry,
   ForecastVersionsResponse,
+  CandidateShadowHealth,
   ModelCandidate,
   ModelEloSource,
   ModelForecastRequest,
   ModelXiStrength,
 } from '@fmip/contracts';
+import { CANDIDATE_FAILURE_LOOKBACK_DAYS } from '@fmip/contracts';
 import { PostgresForecastStore } from './internal/forecast-store';
 import { ModelClient } from './internal/model-client';
 import { roundToTotalOne } from './internal/rounding';
@@ -23,6 +25,8 @@ export { EvaluationService, type EvaluateOutcome } from './evaluation.service';
 export { UNIFORM_BRIER, UNIFORM_LOG_LOSS, outcomeOf, score } from './internal/scoring';
 
 export const MODEL_CLIENT = Symbol('MODEL_CLIENT');
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type ComputeOutcome =
   { kind: 'recorded'; version: ForecastVersion } | { kind: 'unknown_fixture' };
@@ -250,10 +254,16 @@ export class ForecastService {
    * The model service's own health check (T-801's watchdog): a value, never a
    * throw. `reason` is the client's description of what failed. `eloSource`
    * is Club Elo's recorded state (T-920), null from a service that does not
-   * report it.
+   * report it; `candidateVersions` the versions in shadow (T-1102), null
+   * likewise.
    */
   async modelHealth(): Promise<
-    | { ok: true; modelVersion: string; eloSource: ModelEloSource | null }
+    | {
+        ok: true;
+        modelVersion: string;
+        eloSource: ModelEloSource | null;
+        candidateVersions: string[] | null;
+      }
     | { ok: false; reason: string }
   > {
     const result = await this.model.health();
@@ -262,8 +272,34 @@ export class ForecastService {
           ok: true,
           modelVersion: result.data.model_version,
           eloSource: result.data.elo_source ?? null,
+          candidateVersions: result.data.candidate_versions ?? null,
         }
       : { ok: false, reason: `${result.kind}: ${result.message}` };
+  }
+
+  /**
+   * Each shadow model version with a stored version, and whether it answers
+   * (T-1165): the day is the 24 hours before `now`, and a failure is looked
+   * for over `CANDIDATE_FAILURE_LOOKBACK_DAYS`. A version with nothing stored
+   * is absent: it has never answered.
+   */
+  async candidateShadow(now: Date = new Date()): Promise<Map<string, CandidateShadowHealth>> {
+    const since = new Date(now.getTime() - CANDIDATE_FAILURE_LOOKBACK_DAYS * DAY_MS);
+    const rows = await this.store.candidateShadow(since, new Date(now.getTime() - DAY_MS), now);
+    return new Map(
+      rows.map((row) => [
+        row.modelVersion,
+        {
+          first_answered_at: row.firstAt.toISOString(),
+          last_answered_at: row.lastAt.toISOString(),
+          day: { asked: row.dayAsked, failed: row.dayFailed },
+          last_failure:
+            row.lastFailure === null
+              ? null
+              : { at: row.lastFailure.at.toISOString(), fixture_id: row.lastFailure.fixtureId },
+        },
+      ]),
+    );
   }
 
   async versions(fixtureId: string): Promise<ForecastVersionsResponse | null> {
