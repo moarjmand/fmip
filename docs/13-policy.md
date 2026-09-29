@@ -16,6 +16,9 @@ rules were accepted, and a contributor grant stores which contributor rules were
 (blueprint 9.4). Changing either in a way that changes what is allowed means a
 new version and a new acceptance -- which is what the *Changes* clause promises,
 and the version is how that promise is kept rather than asserted.
+Since T-931 (D-113) each published platform-rules version is stored with its
+text, a registration records the version in force, and a member accepts a new
+version at `/rules` before it applies to them.
 
 ---
 
@@ -125,16 +128,6 @@ you are told which and why.
 **Appeals.** Every decision can be appealed once, in writing, and the appeal is
 kept with the decision.
 
-**A copy of your data.** From Settings, with your password, you can download
-one file of what this site holds about you: your account and preferences,
-follows, friendships, groups, your predictions with every version and how they
-settled, your rating history and achievements, saved stories, the messages and
-match panel posts you wrote, your community analysis, the reports you filed and
-the notifications sent to you. It holds only your own words and rows -- never
-another member's messages, name or predictions. One file a day; it downloads
-to your signed-in browser and is never e-mailed. That you downloaded it is
-recorded (when), without a copy of what was in it.
-
 **Leaving.** You can delete your account, from Settings, with your password and
 your username typed again. It happens at once and cannot be undone.
 
@@ -160,6 +153,22 @@ removed.
 
 **Changes.** If these rules change in a way that affects what is allowed, you are
 told before the change applies, and asked to accept the new version.
+
+> **A right added since 1.0.0 (D-158, T-846, 2026-09-30).** Not part of the
+> accepted text above, which is published and never changed (D-113): adding a
+> right changes nothing that is allowed, so under *Changes* it is not a new
+> version to accept. Whoever next publishes a version folds it in as its own
+> paragraph before *Leaving*:
+>
+> **A copy of your data.** From Settings, with your password, you can download
+> one file of what this site holds about you: your account and preferences,
+> follows, friendships, groups, your predictions with every version and how
+> they settled, your rating history and achievements, saved stories, the
+> messages and match panel posts you wrote, your community analysis, the
+> reports you filed and the notifications sent to you. It holds only your own
+> words and rows -- never another member's messages, name or predictions. One
+> file a day; it downloads to your signed-in browser and is never e-mailed.
+> That you downloaded it is recorded (when), without a copy of what was in it.
 
 ## 5. The contributor rules — `contributor-rules@1.0.0`
 

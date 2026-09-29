@@ -141,6 +141,18 @@ export class PostgresCompetitionStore {
   }
 
   /** Newest first. */
+  /**
+   * The competition's training division (E0, IR1 ...): the key of the
+   * committed league-zone list (T-1167, D-171); null when it has none.
+   */
+  async division(id: string): Promise<string | null> {
+    const { rows } = await this.pool.query<{ division: string | null }>(
+      `SELECT football_data_division AS division FROM competition WHERE id = $1`,
+      [id],
+    );
+    return rows[0]?.division ?? null;
+  }
+
   async seasons(competitionId: string): Promise<SeasonSummary[]> {
     const { rows } = await this.pool.query<{
       id: string;

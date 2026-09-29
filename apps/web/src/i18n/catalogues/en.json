@@ -635,5 +635,20 @@
   "competition.boards.yellow": {
     "one": "{count} yellow",
     "other": "{count} yellow"
-  }
+  },
+  "rules.title": "Platform rules",
+  "rules.version": "Version",
+  "rules.published": "Published",
+  "rules.englishOnly": "The rules are published in English, the language they were approved in.",
+  "rules.guest": "Registering means accepting this version.",
+  "rules.pendingIntro": "This version is newer than the one you accepted. Read it first: once you accept it, it applies to you from then on. Until then the version you accepted before still applies, and nothing you wrote is hidden.",
+  "rules.accept": "I accept these rules",
+  "rules.acceptedCurrent": "You accepted this version on",
+  "rules.outcome.accepted": "Accepted. This version now applies to you.",
+  "rules.outcome.newer": "A newer version was published while you were reading. This is it: read it before accepting.",
+  "rules.outcome.signedOut": "Sign in to accept the rules.",
+  "rules.outcome.failed": "The acceptance did not go through. Please try again shortly.",
+  "rules.prompt": "The platform rules have a new version. Until you accept it, the version you accepted before still applies to you, and nothing you wrote is hidden.",
+  "rules.promptLink": "Read the new rules",
+  "rules.registerLink": "Read the platform rules"
 }

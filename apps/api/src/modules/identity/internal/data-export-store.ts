@@ -44,6 +44,7 @@ SELECT json_build_object(
       'preferred_language', u.preferred_language, 'timezone', u.timezone,
       'viewing_territory', u.viewing_territory, 'theme', u.theme, 'text_size', u.text_size,
       'contrast', u.contrast, 'motion', u.motion, 'accepted_rules_at', u.accepted_rules_at,
+      'accepted_rules_version', u.accepted_rules_version,
       'first_run_done_at', u.first_run_done_at, 'created_at', u.created_at,
       'roles', coalesce((SELECT json_agg(r.role ORDER BY r.role) FROM user_role r
                           WHERE r.user_id = u.id), '[]'::json))

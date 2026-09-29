@@ -2824,5 +2824,80 @@
     },
     "forms": {},
     "status": "untranslated"
+  },
+  "rules.title": {
+    "source": "Platform rules",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.version": {
+    "source": "Version",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.published": {
+    "source": "Published",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.englishOnly": {
+    "source": "The rules are published in English, the language they were approved in.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.guest": {
+    "source": "Registering means accepting this version.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.pendingIntro": {
+    "source": "This version is newer than the one you accepted. Read it first: once you accept it, it applies to you from then on. Until then the version you accepted before still applies, and nothing you wrote is hidden.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.accept": {
+    "source": "I accept these rules",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.acceptedCurrent": {
+    "source": "You accepted this version on",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.outcome.accepted": {
+    "source": "Accepted. This version now applies to you.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.outcome.newer": {
+    "source": "A newer version was published while you were reading. This is it: read it before accepting.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.outcome.signedOut": {
+    "source": "Sign in to accept the rules.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.outcome.failed": {
+    "source": "The acceptance did not go through. Please try again shortly.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.prompt": {
+    "source": "The platform rules have a new version. Until you accept it, the version you accepted before still applies to you, and nothing you wrote is hidden.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.promptLink": {
+    "source": "Read the new rules",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.registerLink": {
+    "source": "Read the platform rules",
+    "text": "",
+    "status": "untranslated"
   }
 }

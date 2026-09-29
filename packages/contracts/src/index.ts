@@ -70,6 +70,7 @@ export type {
 } from './health';
 export { DELETED_USERNAME_PATTERN, ROLE_REFUSALS, forbidden, isDeletedMember } from './identity';
 export type {
+  AcceptPlatformRulesRequest,
   ApiError,
   AuthUser,
   DataExport,
@@ -77,6 +78,8 @@ export type {
   DeleteAccountRequest,
   ForgotPasswordRequest,
   LoginRequest,
+  PlatformRules,
+  PlatformRulesStanding,
   RefusedRole,
   RegisterRequest,
   ResetPasswordRequest,
@@ -905,3 +908,7 @@ export type {
   LocaleHoldRecord,
   LocaleHoldRequest,
 } from './locale-hold';
+// League zones from a committed list (T-1167, D-171). The list is
+// `zones/league-zones.json`, read as `@fmip/contracts/zones/league-zones.json`.
+export { LEAGUE_ZONE_KINDS, leagueZoneProblems, leagueZonesFor, zoneOfPlace } from './league-zones';
+export type { LeagueZone, LeagueZoneEntry, LeagueZoneKind, LeagueZones } from './league-zones';

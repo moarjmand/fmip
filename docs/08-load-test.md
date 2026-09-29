@@ -628,6 +628,22 @@ Choose the largest value that passes the rule above. That means `probe_ms`
 p95 within 100 ms, and a live job within 1.5 times the 16 run's, in each
 tick's `api_pool` and `job_ms`. Set it as `NOTIFICATION_SEND_CONCURRENCY` in
 the server's `.env`; the production compose file forwards it since T-902.
+
+**Production, 2026-09-29 (the lead's run).** The command above, on the
+server during the international break, with nothing live on:
+
+| Value | Tick | Live job | Pushes p95 | All alerts done | Pool waiting (max, share) | Probe p95 / max |
+|---|---|---|---|---|---|---|
+| 16 | kick-off | 1.1 s | 46.8 s | 48.7 s | 7, 1.3% | 2 / 12 ms |
+| 16 | goals | 1.0 s | 12.9 s | 13.5 s | 6, 0.8% | 2 / 17 ms |
+| 32 | kick-off | 1.3 s | 32.6 s | 33.8 s | 23, 5.8% | 5 / 14 ms |
+| 32 | goals | 0.9 s | 7.6 s | 8.0 s | 23, 3.1% | 2 / 6 ms |
+| 64 | kick-off | 1.1 s | 25.5 s | 26.2 s | 55, 10.4% | 10 / 71 ms |
+| 64 | goals | 1.1 s | 5.4 s | 5.6 s | 55, 8.9% | 9 / 11 ms |
+
+The alert jobs queue for connections at 64 (up to 55 waiters), but a
+member's request does not: the probe stays far inside 100 ms and the live
+job inside 1.5 times the 16 run's. **64 is the server's value** (D-106).
 Then `bash deploy/rollout.sh api`, and record the figures in a table like the
 one above and the value in D-106.
 

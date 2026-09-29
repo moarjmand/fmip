@@ -6,6 +6,7 @@
  */
 
 import type { CoverageState, Covered } from './coverage';
+import type { LeagueZones } from './league-zones';
 
 export interface CountrySummary {
   id: string;
@@ -327,6 +328,11 @@ export interface CompetitionPage {
   season: SeasonSummary & { stages: StageSummary[] };
   /** League table over the season's league-stage results. */
   table: Covered<TableRow[]>;
+  /**
+   * The season's qualification and relegation places from the committed
+   * list (T-1167, D-171), or why there are none.
+   */
+  zones: LeagueZones;
   /** Finished matches, most recent first. */
   results: SeasonFixture[];
   /** Everything not finished, soonest first. */

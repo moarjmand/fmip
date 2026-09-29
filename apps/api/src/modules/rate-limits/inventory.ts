@@ -207,6 +207,8 @@ const ROLE_GATED =
 export const EXEMPT: Readonly<Record<string, string>> = {
   // Accounts.
   'POST /auth/logout': "Ends the caller's own session; nothing is created.",
+  'POST /auth/rules/accept':
+    "Records the caller's acceptance of the platform rules in force: one row per member and version, so a repeat is a no-op and reaches nobody.",
 
   // A member's own settings and lists.
   'PATCH /me/profile': OWN_SETTING,

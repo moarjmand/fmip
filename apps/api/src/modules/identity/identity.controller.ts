@@ -6,12 +6,19 @@ import {
   Get,
   HttpCode,
   HttpException,
+  NotFoundException,
   Post,
   Req,
   Res,
   UnauthorizedException,
 } from '@nestjs/common';
-import type { ApiError, DataExport, SessionResponse } from '@fmip/contracts';
+import type {
+  ApiError,
+  DataExport,
+  PlatformRules,
+  PlatformRulesStanding,
+  SessionResponse,
+} from '@fmip/contracts';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import {
   IdentityService,
@@ -23,6 +30,7 @@ import {
 } from './identity.service';
 import {
   type Validated,
+  validateAcceptRules,
   validateDataExport,
   validateDeleteAccount,
   validateForgotPassword,
@@ -124,7 +132,7 @@ export class IdentityController {
     }
 
     void reply.header('set-cookie', this.identity.sessionCookie(outcome.sessionToken));
-    return { user: outcome.user };
+    return { user: outcome.user, rules: await this.identity.rulesStanding(outcome.user.id) };
   }
 
   @Post('login')
@@ -152,7 +160,7 @@ export class IdentityController {
     }
 
     void reply.header('set-cookie', this.identity.sessionCookie(login.sessionToken));
-    return { user: login.user };
+    return { user: login.user, rules: await this.identity.rulesStanding(login.user.id) };
   }
 
   @Post('logout')
@@ -169,7 +177,35 @@ export class IdentityController {
   async me(@Req() request: FastifyRequest): Promise<SessionResponse> {
     const user = await this.identity.authenticate(sessionTokenOf(request));
     if (user === null) throw new UnauthorizedException(UNAUTHENTICATED);
-    return { user };
+    return { user, rules: await this.identity.rulesStanding(user.id) };
+  }
+
+  /**
+   * Accept the platform rules in force (T-931, D-113). The body names the
+   * version the member read; one published since is a 409 carrying nothing
+   * but the sentence, and the page shows them the newer text to read first.
+   */
+  @Post('rules/accept')
+  @HttpCode(200)
+  async acceptRules(
+    @Body() body: unknown,
+    @Req() request: FastifyRequest,
+  ): Promise<PlatformRulesStanding> {
+    const user = await this.identity.authenticate(sessionTokenOf(request));
+    if (user === null) throw new UnauthorizedException(UNAUTHENTICATED);
+    const { version } = unwrap(validateAcceptRules(body));
+
+    const outcome = await this.identity.acceptRules(user.id, version);
+    if (outcome.kind === 'unknown_user') throw new UnauthorizedException(UNAUTHENTICATED);
+    if (outcome.kind === 'not_current') {
+      const error: ApiError = {
+        error: 'conflict',
+        message:
+          'These are not the platform rules in force. Read the current version and accept that.',
+      };
+      throw new ConflictException(error);
+    }
+    return outcome.standing;
   }
 
   /**
@@ -293,5 +329,25 @@ export class IdentityController {
     if (isLimited(reset)) refuse(reply, reset);
     if (!reset) throw new BadRequestException(INVALID_TOKEN);
     return { reset: true };
+  }
+}
+
+/**
+ * `GET /rules/platform` (T-931, D-113): the platform rules in force, for
+ * anybody -- a guest reads what they would accept by registering, and a
+ * member reads a new version before accepting it.
+ */
+@Controller('rules')
+export class PlatformRulesController {
+  constructor(private readonly identity: IdentityService) {}
+
+  @Get('platform')
+  async platform(): Promise<PlatformRules> {
+    const rules = await this.identity.currentRules();
+    if (rules === null) {
+      const error: ApiError = { error: 'not_found', message: 'No platform rules are published.' };
+      throw new NotFoundException(error);
+    }
+    return rules;
   }
 }

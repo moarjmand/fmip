@@ -1,0 +1,621 @@
+[
+  {
+    "division": "E0",
+    "season": "2024/25",
+    "teams": 20,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation",
+        "from": 18,
+        "to": 20
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2024%E2%80%9325_Premier_League",
+      "https://www.uefa.com/uefachampionsleague/news/0297-1d507af6baee-830bfe269d09-1000--2025-26-uefa-champions-league-newcastle-and-villarreal-se/"
+    ],
+    "note": "Fifth place also took a Champions League place through UEFA's European Performance Spot, decided during the season; it is not marked."
+  },
+  {
+    "division": "E0",
+    "season": "2025/26",
+    "teams": 20,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation",
+        "from": 18,
+        "to": 20
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2025%E2%80%9326_Premier_League",
+      "https://www.uefa.com/uefachampionsleague/news/02a2-1fdbe9a25733-8d37ff5f9226-1000--2026-27-uefa-champions-league-liverpool-and-real-betis-se/"
+    ],
+    "note": "Fifth place also took a Champions League place through UEFA's European Performance Spot, decided during the season; it is not marked."
+  },
+  {
+    "division": "E0",
+    "season": "2026/27",
+    "teams": 20,
+    "zones": [
+      {
+        "kind": "relegation",
+        "from": 18,
+        "to": 20
+      }
+    ],
+    "complete": false,
+    "sources": ["https://en.wikipedia.org/wiki/2026%E2%80%9327_Premier_League"],
+    "note": "UEFA has not published the 2027/28 access list, so the Champions League places this season earns are not listed yet."
+  },
+  {
+    "division": "E1",
+    "season": "2024/25",
+    "teams": 24,
+    "zones": [
+      {
+        "kind": "promotion",
+        "from": 1,
+        "to": 2
+      },
+      {
+        "kind": "promotion_playoff",
+        "from": 3,
+        "to": 6
+      },
+      {
+        "kind": "relegation",
+        "from": 22,
+        "to": 24
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2024%E2%80%9325_EFL_Championship",
+      "https://www.espn.com/soccer/story/_/id/39920692/sheffield-united-deducted-two-points-next-efl-season"
+    ],
+    "note": "Sheffield United started two points down. Point deductions are not applied to this table, so its order can differ from the official one."
+  },
+  {
+    "division": "E1",
+    "season": "2025/26",
+    "teams": 24,
+    "zones": [
+      {
+        "kind": "promotion",
+        "from": 1,
+        "to": 2
+      },
+      {
+        "kind": "promotion_playoff",
+        "from": 3,
+        "to": 6
+      },
+      {
+        "kind": "relegation",
+        "from": 22,
+        "to": 24
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2025%E2%80%9326_EFL_Championship",
+      "https://www.skysports.com/football/news/11095/13544383/southamptons-appeal-against-championship-play-off-final-explusion-dismissed-after-spygate-scandal"
+    ],
+    "note": "Sheffield Wednesday (18), Leicester City (6) and West Bromwich Albion (2) were deducted points. Point deductions are not applied to this table, so its order can differ from the official one."
+  },
+  {
+    "division": "E1",
+    "season": "2026/27",
+    "teams": 24,
+    "zones": [
+      {
+        "kind": "promotion",
+        "from": 1,
+        "to": 2
+      },
+      {
+        "kind": "promotion_playoff",
+        "from": 3,
+        "to": 8
+      },
+      {
+        "kind": "relegation",
+        "from": 22,
+        "to": 24
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2026%E2%80%9327_EFL_Championship",
+      "https://www.skysports.com/football/news/11688/13515549/championship-play-offs-efl-confirms-expansion-from-four-to-six-teams-from-2026-27-season-onwards"
+    ],
+    "note": "The play-offs grow to six clubs: third and fourth go to the semi-finals, fifth to eighth play one-off eliminators. Southampton start four points down. Point deductions are not applied to this table, so its order can differ from the official one."
+  },
+  {
+    "division": "SP1",
+    "season": "2024/25",
+    "teams": 20,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation",
+        "from": 18,
+        "to": 20
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2024%E2%80%9325_La_Liga",
+      "https://www.uefa.com/uefachampionsleague/news/0297-1d507af6baee-830bfe269d09-1000--2025-26-uefa-champions-league-newcastle-and-villarreal-se/"
+    ],
+    "note": "Fifth place also took a Champions League place through UEFA's European Performance Spot, decided during the season; it is not marked."
+  },
+  {
+    "division": "SP1",
+    "season": "2025/26",
+    "teams": 20,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation",
+        "from": 18,
+        "to": 20
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2025%E2%80%9326_La_Liga",
+      "https://www.uefa.com/uefachampionsleague/news/02a2-1fdbe9a25733-8d37ff5f9226-1000--2026-27-uefa-champions-league-liverpool-and-real-betis-se/"
+    ],
+    "note": "Fifth place also took a Champions League place through UEFA's European Performance Spot, decided during the season; it is not marked."
+  },
+  {
+    "division": "SP1",
+    "season": "2026/27",
+    "teams": 20,
+    "zones": [
+      {
+        "kind": "relegation",
+        "from": 18,
+        "to": 20
+      }
+    ],
+    "complete": false,
+    "sources": ["https://en.wikipedia.org/wiki/2026%E2%80%9327_La_Liga"],
+    "note": "UEFA has not published the 2027/28 access list, so the Champions League places this season earns are not listed yet."
+  },
+  {
+    "division": "I1",
+    "season": "2024/25",
+    "teams": 20,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation",
+        "from": 18,
+        "to": 20
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2024%E2%80%9325_Serie_A",
+      "https://www.uefa.com/uefachampionsleague/news/0297-1d507af6baee-1bdad04be9b9-1000--2025-26-champions-league-who-qualified-for-the-league-phase/"
+    ],
+    "note": "A tie on points for first place is settled by a play-off, which this table does not show."
+  },
+  {
+    "division": "I1",
+    "season": "2025/26",
+    "teams": 20,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation",
+        "from": 18,
+        "to": 20
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2025%E2%80%9326_Serie_A",
+      "https://www.uefa.com/uefachampionsleague/news/02a2-1fdbe9a25733-8d37ff5f9226-1000--2026-27-uefa-champions-league-liverpool-and-real-betis-se/"
+    ],
+    "note": "A tie on points for first place is settled by a play-off, which this table does not show."
+  },
+  {
+    "division": "I1",
+    "season": "2026/27",
+    "teams": 20,
+    "zones": [
+      {
+        "kind": "relegation",
+        "from": 18,
+        "to": 20
+      }
+    ],
+    "complete": false,
+    "sources": ["https://en.wikipedia.org/wiki/2026%E2%80%9327_Serie_A"],
+    "note": "UEFA has not published the 2027/28 access list, so the Champions League places this season earns are not listed yet. A tie on points for first place is settled by a play-off, which this table does not show."
+  },
+  {
+    "division": "D1",
+    "season": "2024/25",
+    "teams": 18,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation_playoff",
+        "from": 16,
+        "to": 16
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 18
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2024%E2%80%9325_Bundesliga",
+      "https://kassiesa.net/uefa/qual2025.html"
+    ]
+  },
+  {
+    "division": "D1",
+    "season": "2025/26",
+    "teams": 18,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation_playoff",
+        "from": 16,
+        "to": 16
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 18
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2025%E2%80%9326_Bundesliga",
+      "https://kassiesa.net/uefa/qual2026.html"
+    ]
+  },
+  {
+    "division": "D1",
+    "season": "2026/27",
+    "teams": 18,
+    "zones": [
+      {
+        "kind": "relegation_playoff",
+        "from": 16,
+        "to": 16
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 18
+      }
+    ],
+    "complete": false,
+    "sources": ["https://en.wikipedia.org/wiki/2026%E2%80%9327_Bundesliga"],
+    "note": "UEFA has not published the 2027/28 access list, so the Champions League places this season earns are not listed yet."
+  },
+  {
+    "division": "F1",
+    "season": "2024/25",
+    "teams": 18,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation_playoff",
+        "from": 16,
+        "to": 16
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 18
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2024%E2%80%9325_Ligue_1",
+      "https://kassiesa.net/uefa/qual2025.html"
+    ],
+    "note": "Fourth place enters the Champions League's third qualifying round."
+  },
+  {
+    "division": "F1",
+    "season": "2025/26",
+    "teams": 18,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation_playoff",
+        "from": 16,
+        "to": 16
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 18
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2025%E2%80%9326_Ligue_1",
+      "https://kassiesa.net/uefa/qual2026.html"
+    ],
+    "note": "Fourth place enters the Champions League's third qualifying round."
+  },
+  {
+    "division": "N1",
+    "season": "2024/25",
+    "teams": 18,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 3
+      },
+      {
+        "kind": "relegation_playoff",
+        "from": 16,
+        "to": 16
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 18
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2024%E2%80%9325_Eredivisie",
+      "https://kassiesa.net/uefa/qual2025.html"
+    ],
+    "note": "Third place enters the Champions League's third qualifying round."
+  },
+  {
+    "division": "N1",
+    "season": "2025/26",
+    "teams": 18,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 3
+      },
+      {
+        "kind": "relegation_playoff",
+        "from": 16,
+        "to": 16
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 18
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2025%E2%80%9326_Eredivisie",
+      "https://kassiesa.net/uefa/qual2026.html"
+    ],
+    "note": "Third place enters the Champions League's third qualifying round."
+  },
+  {
+    "division": "N1",
+    "season": "2026/27",
+    "teams": 18,
+    "zones": [
+      {
+        "kind": "relegation_playoff",
+        "from": 16,
+        "to": 16
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 18
+      }
+    ],
+    "complete": false,
+    "sources": ["https://en.wikipedia.org/wiki/2026%E2%80%9327_Eredivisie"],
+    "note": "UEFA has not published the 2027/28 access list, so the Champions League places this season earns are not listed yet."
+  },
+  {
+    "division": "P1",
+    "season": "2024/25",
+    "teams": 18,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 2
+      },
+      {
+        "kind": "relegation_playoff",
+        "from": 16,
+        "to": 16
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 18
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2024%E2%80%9325_Primeira_Liga",
+      "https://kassiesa.net/uefa/qual2025.html"
+    ],
+    "note": "Second place enters the Champions League's third qualifying round."
+  },
+  {
+    "division": "P1",
+    "season": "2025/26",
+    "teams": 18,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 2
+      },
+      {
+        "kind": "relegation_playoff",
+        "from": 16,
+        "to": 16
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 18
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2025%E2%80%9326_Primeira_Liga",
+      "https://kassiesa.net/uefa/qual2026.html"
+    ],
+    "note": "Second place enters the Champions League's third qualifying round unless UEFA's rebalancing moves it to the league phase."
+  },
+  {
+    "division": "P1",
+    "season": "2026/27",
+    "teams": 18,
+    "zones": [
+      {
+        "kind": "relegation_playoff",
+        "from": 16,
+        "to": 16
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 18
+      }
+    ],
+    "complete": false,
+    "sources": ["https://en.wikipedia.org/wiki/2026%E2%80%9327_Primeira_Liga"],
+    "note": "UEFA has not published the 2027/28 access list, so the Champions League places this season earns are not listed yet."
+  },
+  {
+    "division": "T1",
+    "season": "2024/25",
+    "teams": 19,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 2
+      },
+      {
+        "kind": "relegation",
+        "from": 16,
+        "to": 19
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2024%E2%80%9325_S%C3%BCper_Lig",
+      "https://en.wikipedia.org/wiki/2025%E2%80%9326_UEFA_Champions_League"
+    ],
+    "note": "Second place enters the Champions League's third qualifying round. Adana Demirspor were deducted points. Point deductions are not applied to this table, so its order can differ from the official one."
+  },
+  {
+    "division": "T1",
+    "season": "2025/26",
+    "teams": 18,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 2
+      },
+      {
+        "kind": "relegation",
+        "from": 16,
+        "to": 18
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2025%E2%80%9326_S%C3%BCper_Lig",
+      "https://en.wikipedia.org/wiki/2026%E2%80%9327_UEFA_Champions_League",
+      "https://en.wikipedia.org/wiki/2026%E2%80%9327_S%C3%BCper_Lig"
+    ],
+    "note": "Second place enters the Champions League's second qualifying round."
+  },
+  {
+    "division": "IR1",
+    "season": "2024/25",
+    "teams": 16,
+    "zones": [
+      {
+        "kind": "afc_champions_league_elite",
+        "from": 1,
+        "to": 2
+      },
+      {
+        "kind": "relegation",
+        "from": 15,
+        "to": 16
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2024%E2%80%9325_Persian_Gulf_Pro_League",
+      "https://en.wikipedia.org/wiki/2025%E2%80%9326_AFC_Champions_League_Elite"
+    ],
+    "note": "Second place enters the AFC Champions League Elite through its play-off."
+  }
+]
