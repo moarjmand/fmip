@@ -56,6 +56,10 @@ const FIELDS: Record<string, Rule> = {
   'following-feed.ts:FeedPanelPost.display_name': {
     rendered: [['lib/feed.ts', 'memberName(locale, item.author)']],
   },
+  'glossary.ts:GlossaryEntry.source': { exempt: 'an English glossary term (T-1011), not a member' },
+  'glossary.ts:GlossarySourceEntry.source': {
+    exempt: 'an English glossary term (T-1011), not a member',
+  },
   'founder-analysis.ts:FounderAnalysis.display_name': {
     exempt: "the founder's own signed analysis (rule 6), keyed by account id, not a member's",
   },
@@ -103,6 +107,12 @@ const FIELDS: Record<string, Rule> = {
   },
   'panel-social.ts:FollowedMember.display_name': {
     exempt: 'read for the follow state only (the match page); no page renders it as a name',
+  },
+  'translation-desk.ts:TranslationGlossaryHit.source': {
+    exempt: 'an English glossary term the source uses (T-1013), not a member',
+  },
+  'translation-desk.ts:TranslationMemoryEntry.source': {
+    exempt: 'the source string a memory entry matched (T-1014), not a member',
   },
   'predictions.ts:FriendPrediction.display_name': {
     rendered: [['components/home-member.tsx', 'member={p}']],

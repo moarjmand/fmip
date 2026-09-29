@@ -10,10 +10,23 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./translation-checks": {
+      "types": "./dist/translation-checks.d.ts",
+      "default": "./dist/translation-checks.js"
+    },
+    "./glossary/*.json": "./glossary/*.json"
+  },
+  "typesVersions": {
+    "*": {
+      "translation-checks": [
+        "dist/translation-checks.d.ts"
+      ]
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "glossary"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",

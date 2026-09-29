@@ -97,6 +97,8 @@ import type {
   ViewingTerritoryResponse,
   ViewingBatchResponse,
   TeamsResponse,
+  TranslationDesk,
+  TranslationQueue,
 } from '@fmip/contracts';
 import { withLocale } from '@/lib/locale-query';
 
@@ -1097,4 +1099,27 @@ export function fetchAsk(
 /** The member's briefing (E43): the feed's window as a document, and the prose over it or the reason there is none. */
 export function fetchBriefing(cookie: string | undefined): Promise<ApiResult<BriefingResponse>> {
   return apiRequest<BriefingResponse>('/me/briefing', { cookie });
+}
+
+/** The translator's desk queue for one language (T-1013). Needs the editor or admin role. */
+export function fetchTranslationQueue(
+  language: string,
+  cookie: string | undefined,
+): Promise<ApiResult<TranslationQueue>> {
+  return apiRequest<TranslationQueue>(
+    `/admin/translations?language=${encodeURIComponent(language)}`,
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/** One article at the translator's desk (T-1013): source, translation, checks, glossary terms. */
+export function fetchTranslationDesk(
+  articleId: string,
+  language: string,
+  cookie: string | undefined,
+): Promise<ApiResult<TranslationDesk>> {
+  return apiRequest<TranslationDesk>(
+    `/admin/articles/${encodeURIComponent(articleId)}/translations/${encodeURIComponent(language)}`,
+    cookie === undefined ? {} : { cookie },
+  );
 }
