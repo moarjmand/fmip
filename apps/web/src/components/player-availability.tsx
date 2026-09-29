@@ -4,6 +4,13 @@ import { formatDateTime } from '@/i18n/format';
 import { availabilityStale } from '@/lib/player';
 import { Translated } from '@/components/translated';
 
+const KIND_MESSAGE = {
+  injury: 'player.availability.kind.injury',
+  suspension: 'player.availability.kind.suspension',
+  illness: 'player.availability.kind.illness',
+  other: 'player.availability.kind.other',
+} as const;
+
 /**
  * The player page's current availability (blueprint 5.3, T-1007, D-127):
  * the team's next scheduled match and what the feed's absence list says about
@@ -86,10 +93,7 @@ export function PlayerAvailabilitySection({
               {listing.data.kind !== null && (
                 <>
                   {' · '}
-                  <Translated
-                    locale={locale}
-                    message={`player.availability.kind.${listing.data.kind}`}
-                  />
+                  <Translated locale={locale} message={KIND_MESSAGE[listing.data.kind]} />
                 </>
               )}
               {listing.data.reason !== null && ` · ${listing.data.reason}`}
