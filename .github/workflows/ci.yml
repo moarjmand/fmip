@@ -120,6 +120,13 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm --filter @fmip/web icons:check
 
+      # The translators' glossary (T-1011, D-130) in step with the catalogue's
+      # English and every entry's status consistent with its term. The script
+      # never writes a target term; this only reads.
+      - name: Glossary in step with the catalogue
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @fmip/web i18n:glossary:check
+
       # The schema the tests run against is the one the migrations produce, and
       # the seed is what the resolver's integration tests resolve against. Both
       # run through the real package scripts, so a migration that node-pg-migrate

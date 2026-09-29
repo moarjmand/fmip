@@ -1,0 +1,102 @@
+{
+  "term.assist": {
+    "kind": "term",
+    "source": "assist",
+    "locked": false
+  },
+  "term.clean-sheet": {
+    "kind": "term",
+    "source": "clean sheet",
+    "locked": false
+  },
+  "term.coach": {
+    "kind": "term",
+    "source": "coach",
+    "locked": false
+  },
+  "term.competition": {
+    "kind": "term",
+    "source": "competition",
+    "locked": false
+  },
+  "term.fixture": {
+    "kind": "term",
+    "source": "fixture",
+    "locked": false
+  },
+  "term.full-time": {
+    "kind": "term",
+    "source": "full-time",
+    "locked": false
+  },
+  "term.goal": {
+    "kind": "term",
+    "source": "goal",
+    "locked": false
+  },
+  "term.goalkeeper": {
+    "kind": "term",
+    "source": "goalkeeper",
+    "locked": false
+  },
+  "term.half-time": {
+    "kind": "term",
+    "source": "half-time",
+    "locked": false
+  },
+  "term.kick-off": {
+    "kind": "term",
+    "source": "kick-off",
+    "locked": false
+  },
+  "term.line-up": {
+    "kind": "term",
+    "source": "line-up",
+    "locked": false
+  },
+  "term.manager": {
+    "kind": "term",
+    "source": "manager",
+    "locked": false
+  },
+  "term.match": {
+    "kind": "term",
+    "source": "match",
+    "locked": false
+  },
+  "term.matchday": {
+    "kind": "term",
+    "source": "matchday",
+    "locked": false
+  },
+  "term.player": {
+    "kind": "term",
+    "source": "player",
+    "locked": false
+  },
+  "term.red-card": {
+    "kind": "term",
+    "source": "red card",
+    "locked": false
+  },
+  "term.score": {
+    "kind": "term",
+    "source": "score",
+    "locked": false
+  },
+  "term.scorer": {
+    "kind": "term",
+    "source": "scorer",
+    "locked": false
+  },
+  "term.season": {
+    "kind": "term",
+    "source": "season",
+    "locked": false
+  },
+  "term.team": {
+    "kind": "term",
+    "source": "team",
+    "locked": false
+  }
+}

@@ -10,10 +10,12 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    }
+    },
+    "./glossary/*.json": "./glossary/*.json"
   },
   "files": [
-    "dist"
+    "dist",
+    "glossary"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",

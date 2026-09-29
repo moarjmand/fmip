@@ -726,3 +726,14 @@ export type {
   RateLimitsReport,
   RateRefusalDay,
 } from './rate-limits';
+
+// The translators' glossary (T-1011, D-130). The files are in `glossary/`,
+// read as `@fmip/contracts/glossary/<locale>.json`.
+export { GLOSSARY_KINDS, GLOSSARY_STATUSES } from './glossary';
+export type {
+  Glossary,
+  GlossaryEntry,
+  GlossaryKind,
+  GlossarySourceEntry,
+  GlossaryStatus,
+} from './glossary';

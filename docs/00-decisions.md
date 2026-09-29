@@ -4963,3 +4963,72 @@ member product beside the others. Showing a friend's call regardless of their
 setting because the viewer is a friend: a second visibility rule, which D-063
 exists to refuse. Showing removed posts as tombstones in the excerpt: honest on
 the panel, noise on a homepage line.
+
+## D-130 — The glossary is the translators' file per locale; translation memory is a named person's earlier reviewed words, suggested and never filled in
+
+**Date:** 2026-09-29 · **Task:** T-1011, T-1014 · **Status:** accepted (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** The shared football glossary is one JSON file per locale in
+the catalogue's shape (D-066): `packages/contracts/glossary/en.json` holds
+the English terms, each keyed by a stable id -- `term.<slug>` for a football
+word, `team.<uuid>`, `competition.<uuid>` or `person.<uuid>` for a name --
+with a `locked` flag; `glossary/<locale>.json` carries every key as
+`{ source, locked, text, status, note? }`, where `text` is the target term a
+person wrote and `status` is `untranslated`, `translated` or `reviewed` as a
+person set it. `i18n:glossary` (`apps/web/scripts/i18n-glossary.mjs`) keeps
+the files in step and `--check` runs in CI.
+
+**The script never writes a target term.** The plan's rule (Phase 10, "the
+translators' words are theirs"): the English side may be generated, and it
+is -- every word of a committed English `VOCABULARY` that the catalogue's
+`en.json` uses as a whole word, plus entity names from an export -- while
+everything in another language is a person's. A new term arrives as
+`untranslated` with an empty `text`; `text`, `status` and `note` are kept
+exactly as the translator left them; a term the catalogue stopped using is
+dropped only when no locale carries words for it, and otherwise the script
+refuses and names it. A term with words and no status, or a status its text
+does not support, fails the check, and a refresh writes nothing while
+anything is wrong, so a problem is never normalised into the file.
+
+**Locked.** A locked term must appear in a translation exactly as the
+glossary gives it, wherever its English appears in the source (T-1012
+enforces it). A name is always locked; a football word is not until a person
+sets `"locked": true` on it in `en.json`, which the script keeps. A locked
+term with no target term yet locks nothing -- there is nothing to compare
+against, and the check says so rather than passing or failing.
+
+**Names come from an export, and are only ever added.** `--entities <file>`
+reads `[{ "type", "id", "name" }]`. The export is whatever someone chose to
+export, so a name missing from it is not a name to drop. To export the
+competitions and the teams that play in them, against any database:
+
+```sql
+\copy (SELECT json_agg(e) FROM (
+  SELECT 'competition' AS type, id, name FROM competition
+  UNION ALL SELECT 'team', id, name FROM team) e) TO 'names.json'
+```
+
+No names are committed with this task: the files hold only the catalogue's
+football words until an export is run, and no agent runs one against
+production.
+
+**Why in `packages/contracts` and not beside the catalogues.** The plan said
+"beside the catalogues". The API's review endpoint enforces the locked terms
+(T-1012), and the API image carries `@fmip/contracts` but not `apps/web`; a
+copy in each, or a Dockerfile step copying a web folder into the API image,
+would be two sources of one list. The package ships the folder
+(`files`, and `exports` `./glossary/*.json`) and each side reads it as
+`@fmip/contracts/glossary/<locale>.json`. The files are not imported by the
+package's index, so no browser bundle carries them.
+
+**Why a committed vocabulary and not "every noun in the catalogue".** A
+glossary of "Home", "Settings" and "Sign in" is a second catalogue. The
+football words a translator must render the same way every time are a short,
+reviewable list; the catalogue decides which of them are live.
+
+**Alternatives considered.** A translation platform's glossary (an account,
+§7, and D-066's argument). Keys by English term (rule 1 for names, and a
+football word whose English changes would become a new term, orphaning the
+translation). Filling a target term from a localised name already in
+`entity_alias`: a script writing a word in another language, which this
+decision exists to refuse; the review check reads both sources instead.
