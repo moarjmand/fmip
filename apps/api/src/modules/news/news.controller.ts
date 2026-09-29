@@ -34,6 +34,7 @@ const NO_STORY: ApiError = { error: 'not_found', message: 'No such story.' };
 const NO_FIXTURE: ApiError = { error: 'not_found', message: 'No such fixture.' };
 const NO_TEAM: ApiError = { error: 'not_found', message: 'No such team.' };
 const NO_COMPETITION: ApiError = { error: 'not_found', message: 'No such competition.' };
+const NO_PLAYER: ApiError = { error: 'not_found', message: 'No such player.' };
 
 function first(value: unknown): string | undefined {
   const v = Array.isArray(value) ? value[0] : value;
@@ -136,7 +137,7 @@ export class NewsController {
           await this.store.trending(filters, locale, TRENDING_WINDOW_HOURS, NEWS_PAGE_SIZE),
           'limited',
           'nothing_trending',
-          'discussion_only',
+          'discussion_and_saves',
         );
       case 'debate':
         return answer(
@@ -270,13 +271,27 @@ export class NewsController {
   }
 
   /**
+   * Related news on the player page (blueprint 5.3, T-1007, D-127): as for a
+   * team, over the person links of D-126. While no story links any person at
+   * all the list is `not_supplied` with `persons_unlinked`, never an empty
+   * list that would say nobody wrote about the player.
+   */
+  @Get('players/:id/news')
+  async playerNews(
+    @Param('id') id: string,
+    @Query('locale') locale: unknown,
+  ): Promise<EntityNewsResponse> {
+    return this.entityNews('person', id, locale, NO_PLAYER);
+  }
+
+  /**
    * An entity's news: 404 for an unknown id; `not_supplied` with
    * `feeds_unread` until the feeds have been read at all, because an empty
    * list nobody looked for is not a fact (rule 3); then `available`,
    * possibly empty with `nothing_linked`.
    */
   private async entityNews(
-    type: 'team' | 'competition',
+    type: 'team' | 'competition' | 'person',
     id: string,
     locale: unknown,
     missing: ApiError,
@@ -294,6 +309,21 @@ export class NewsController {
         entity,
         stories: { coverage: 'not_supplied', last_updated_at: null, data: null },
         reason: 'feeds_unread',
+      };
+    }
+    if (type === 'person') {
+      if (!(await this.store.anyPersonLinked())) {
+        return {
+          entity,
+          stories: { coverage: 'not_supplied', last_updated_at, data: null },
+          reason: 'persons_unlinked',
+        };
+      }
+      const page = await this.store.forPerson(entityId, localeOf(locale), ENTITY_NEWS_LIMIT);
+      return {
+        entity,
+        stories: { coverage: 'available', last_updated_at, data: page.cards },
+        reason: page.cards.length === 0 ? 'nothing_linked' : null,
       };
     }
     const page = await this.store.latest(

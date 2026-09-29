@@ -4964,6 +4964,171 @@ setting because the viewer is a friend: a second visibility rule, which D-063
 exists to refuse. Showing removed posts as tombstones in the excerpt: honest on
 the panel, noise on a homepage line.
 
+## D-126 — Linking a person to a story: the rule, its precision on a sample, and what it never does
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-1006 lets the news clustering link a person (`article_entity`
+type `person`, by UUID), by a rule narrower than the team linker's, and keeps
+it switched off until its precision has been measured.
+
+- **The rule.** A person is linked to an article when (1) one of the
+  article's headlines or summaries carries their `full_name`, or an
+  `entity_alias` recorded for them, as whole words after the same folding the
+  team linker uses (`search_key`, every run of non-letters one space);
+  (2) that key is at least two words and five letters -- a surname alone
+  ("Salah", "Silva") never links, and `known_as` is not read, because the
+  provider's short form is often exactly that; (3) the person holds an open
+  `player_spell` at a team the story links (any report of the cluster); and
+  (4) no other member of those squads answers to the same key, and no other
+  matched candidate's key contains it or is contained by it ("Bruno Guimaraes"
+  inside "Bruno Guimaraes Rodrigues"). A name that could be two people links
+  neither (rule 1). The rule is `PERSON_CANDIDATES` in
+  `news/internal/news-store.ts`, one SQL text read both by the writer and by
+  the sample, so what is measured is what writes.
+- **The bar.** The rule may write only when a person has hand-checked a random
+  sample of stored headlines and found at least **95 %** of the proposed links
+  right over at least **100** proposed links (`PERSON_LINK_PRECISION_BAR`,
+  `PERSON_LINK_SAMPLE_MINIMUM`). A wrong link puts a story on a stranger's
+  player page and in their followers' feed; a missed one costs a reader one
+  story, so the bar is on precision, not recall.
+- **The switch.** `NEWS_PERSON_LINKS=on` turns the writer on; anything else,
+  and the default, leaves it off. The sample is
+  `node dist/cli/person-link-sample.js [--size 300]`, read-only: one row per
+  proposed link (article, person, matched words, headline, summary) for the
+  checker to mark.
+
+**Precision measured on 2026-09-29: none -- the sample is empty.** The public
+site showed, as a guest, "The feeds have not been read yet" on `/news` and
+"No squad on record for this team" on Arsenal's page: production has stored
+no headline, and no `player_spell` row exists anywhere but the seed (nothing
+ingests squads; D-119 found the same for coaching spells). A rule that needs
+both can propose no link there, so there is nothing to check, and the switch
+stays **off**. It may be turned on only after the feeds have run and squads
+are stored, the sample has been checked, and the measured precision and the
+sample's size have been added here.
+
+**What it never does.** Link by surname, by `known_as`, by a person's name
+outside the squads of the teams the story links, or by a machine's reading
+of the words (N-1). It never links a coach or referee: spells are players'.
+
+**Alternatives considered.** Matching `known_as` ("M. Salah", "Rodri"): the
+provider's short form is a surname or a mononym as often as not, which is
+the guess rule 1 forbids. Any person in the catalogue rather than the linked
+teams' squads: common full names repeat across clubs. Turning the rule on
+with a precision measured on invented headlines: a number about text nobody
+published is not a measurement of this rule.
+
+**Consequences.** `NEWS_PERSON_LINKS` in `.env.example`. The following
+section already reads `person` links, so a followed player's stories appear
+there once links exist. T-1003's player filter and T-1007's related news
+read the same links and say `not_supplied` while there are none. No
+migration: `article_entity` already accepts `person`.
+
+## D-127 — A player's related news and current availability
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-1007 gives the player page (blueprint 5.3) related news and
+current availability from what is already stored. No provider request is
+added.
+
+- **Related news.** `GET /players/:id/news` is D-119's entity-news shape
+  (`EntityNewsResponse`, `ENTITY_NEWS_LIMIT` cards, newest first) over the
+  stories any of whose reports link the person (D-126). It is `not_supplied`
+  with `feeds_unread` until the feeds have been read, as on the team page.
+  While no report links **any** person it is `not_supplied` with the new
+  reason `persons_unlinked`: D-126 keeps the person linker off until its
+  precision is measured, and an empty list then would read as "nobody wrote
+  about this player". Once any person link exists, an empty list is
+  `available` with `nothing_linked`. An unknown id is 404.
+- **Availability.** `PlayerPage.availability` reads the player's team: every
+  open spell's, else the team of the latest stored line-up that names the
+  player (`basis: 'lineup'`, and the page says so). Nothing ingests squads
+  today, so the line-up is what most players have. With several teams, the
+  team whose next match comes first is used. Then it reads that team's next
+  scheduled match still ahead, and what `fixture_absence` says about the
+  player for it (T-103):
+  - `not_supplied` with `no_team`, `no_next_match` or `not_asked`. The last
+    one means no `fixture_availability_fetch` row exists for that match: the
+    feed is asked only in the three days before kick-off, and an empty list
+    nobody asked for is not information.
+  - Once the feed was asked, `available` with `out` or `doubtful`, the kind
+    and the feed's own words, or `not_listed`. It is never "fit", because the
+    feed never says that (T-103). The status words are the key players'
+    (`KeyPlayerAvailability`).
+  - `last_updated_at` is when the feed was last asked. The page shows that
+    time and says the answer may have changed once it is more than six hours
+    old: T-103 re-asks every three hours, so six hours means at least one
+    re-ask was missed (rule 4).
+
+**Alternatives considered.** Reading only open spells: nothing writes them,
+so every player page in production would say "no team". Calling a player
+with no listing "available" or "fit": the feed does not say so. Answering an
+empty news list before any person is linked: this would be a false negative
+presented as fact (rule 3). Reusing `/news?team=`-style filters for the
+person: T-1003 owns the `player` filter of the news page, and the entity
+list needs the `persons_unlinked` state, which a filter does not have.
+
+**Consequences.** `PlayerAvailability`, `PlayerAvailabilityListing`,
+`PlayerAvailabilityReason` and `EntityNewsReason` are in the contract, and
+`EntityNewsResponse.entity.type` takes `person`. Seventeen catalogue keys were
+added (`player.availability.*`, `news.entity.nothingPlayer`,
+`news.entity.personsUnlinked`). No migration.
+
+## D-128 — Trending counts saves beside discussion
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** Trending (blueprint 3.1) ranks the stories that were discussed
+or saved in the last `TRENDING_WINDOW_HOURS` (48) by two signals, each a count
+of distinct members:
+
+- **Discussion**: members who posted or reacted on the public panel of one of
+  the story's matches, as before (T-143).
+- **Saves** (T-1008): members whose `saved_article` row for the story was
+  saved inside the window.
+
+A story's score is `participants * 1 + savers * 1` (`TRENDING_WEIGHTS` in the
+contract). Ties go to the newer story. A member who both discussed and saved
+counts in both, because they are two different acts. The card carries both
+counts (`discussion.participants`, `discussion.savers`), and the page shows
+both. The section stays `limited`, now with the reason `discussion_and_saves`,
+which says what is counted and that views and shares are not.
+
+**Why equal weights.** There is nothing yet to calibrate them against:
+production has no stored stories and no saves (D-126), and no measure of
+"interest" exists to fit weights to. One member, one count per act is the
+rule a reader can check from the numbers on the card. A different weighting
+is a one-line change to the contract constant, together with this entry.
+
+**What is not counted.** Views and shares. Counting who read or shared a
+story is product analytics that D-044 and D-102 kept out, and whether to
+count them is the maintainer's question N-3. A save is a row the product
+already keeps for its own function (T-842). Trending reads only its count per
+story, never who saved it: the saved list stays private (T-842).
+
+**Merges.** When clustering moves an emptied story's saves onto the story it
+joined (`moveToStory`, T-842), `saved_article`'s key (member, story) keeps one
+row per member, with the time of the earlier save. A member who saved both
+stories counts once, and a moved save counts in the window of its original
+time.
+
+**Budget.** The section is still two statements, the cards and their
+entities, whatever the table holds. The saves are one grouped scan of
+`saved_article` joined to the cards, inside the same statement. A spec seeds
+10,000 saves and holds the section to those two statements and under 1.5 s on
+the development database. No index or migration was needed: none was
+assigned, and the scan is bounded by the table the spec measures.
+
+**Alternatives considered.** Weighting a save above a panel post (or below
+it): a preference with no evidence behind it. Counting every save ever made
+rather than the window's: trending would then be "most saved", which never
+decays. A separate "most saved" section: blueprint 3.1 names one trending
+list built from several signals.
+
+**Consequences.** `TRENDING_WEIGHTS`, `discussion.savers` and the
+`discussion_and_saves` reason are in the contract, replacing
+`discussion_only`. The plural `news.savers` and `news.reason.discussionAndSaves`
+are catalogue keys. No migration.
+
 ## D-130 — The glossary is the translators' file per locale; translation memory is a named person's earlier reviewed words, suggested and never filled in
 
 **Date:** 2026-09-29 · **Task:** T-1011, T-1014 · **Status:** accepted (revisable under the standing delegation of 2026-09-26)

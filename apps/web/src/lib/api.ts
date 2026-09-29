@@ -994,14 +994,15 @@ export function fetchFixtureNews(
   );
 }
 
-/** `GET /teams/:id/news` or `GET /competitions/:id/news` (T-944): stories linked to the entity. Public. */
+/** `GET /teams/:id/news`, `/competitions/:id/news` (T-944) or `/players/:id/news` (T-1007): stories linked to the entity. Public. */
 export function fetchEntityNews(
-  type: 'team' | 'competition',
+  type: 'team' | 'competition' | 'person',
   id: string,
   locale: string,
 ): Promise<ApiResult<EntityNewsResponse>> {
+  const path = type === 'team' ? 'teams' : type === 'competition' ? 'competitions' : 'players';
   return apiRequest<EntityNewsResponse>(
-    `/${type === 'team' ? 'teams' : 'competitions'}/${encodeURIComponent(id)}/news?locale=${encodeURIComponent(locale)}`,
+    `/${path}/${encodeURIComponent(id)}/news?locale=${encodeURIComponent(locale)}`,
   );
 }
 
