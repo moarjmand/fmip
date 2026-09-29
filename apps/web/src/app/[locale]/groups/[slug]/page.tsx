@@ -8,14 +8,18 @@ import {
   RulesSeen,
 } from '@/components/group-controls';
 import { GroupPollsSection } from '@/components/group-polls';
+import { GroupInviteLinks, GroupOwnerSettings } from '@/components/group-settings';
 import { MemberHandle, MemberName } from '@/components/member-name';
 import {
+  fetchCompetitions,
   fetchGroupClosureAppeal,
   fetchGroup,
+  fetchGroupInviteLinks,
   fetchGroupLeaderboard,
   fetchGroupPolls,
   fetchGroupRequests,
   fetchMe,
+  fetchTeams,
 } from '@/lib/api';
 import { favouriteDirectoryHref, favouriteHref, languageName } from '@/lib/group-about';
 import { ratingLabel, statusLabel, tierLabel } from '@/lib/leaderboard';
@@ -96,6 +100,19 @@ export default async function GroupPage({
   const appeal =
     group.closed !== null && group.standing === 'owner'
       ? await fetchGroupClosureAppeal(slug, cookie)
+      : null;
+  // Running the group (T-1026). A closed group changes nothing (T-1025), so
+  // none of these is asked of one. The owner's settings need the clubs and
+  // competitions to choose a favourite from; the links are for whoever the
+  // invite policy lets invite, and for the owner and moderators who manage them.
+  const running = group.closed === null;
+  const owns = running && group.standing === 'owner';
+  const [teams, competitions] = owns
+    ? await Promise.all([fetchTeams(), fetchCompetitions()])
+    : [null, null];
+  const links =
+    running && inside && (group.may_invite || decides)
+      ? await fetchGroupInviteLinks(slug, cookie)
       : null;
 
   return (
@@ -211,6 +228,29 @@ export default async function GroupPage({
           <h2 className="text-lg font-semibold">Rules</h2>
           <GroupRulesForm locale={locale} slug={group.slug} current={group.rules?.body ?? null} />
         </section>
+      )}
+
+      {owns && (
+        <GroupOwnerSettings
+          locale={locale}
+          group={group}
+          teams={teams}
+          competitions={competitions}
+        />
+      )}
+
+      {links !== null && (
+        <GroupInviteLinks locale={locale} slug={group.slug} timeZone={me.timezone} result={links} />
+      )}
+
+      {decides && (
+        <Link
+          href={`/${locale}/groups/${encodeURIComponent(group.slug)}/history`}
+          className="self-start underline"
+          data-testid="group-history-link"
+        >
+          <Translated locale={locale} message="groupSettings.history.link" />
+        </Link>
       )}
 
       {group.conversation_id !== null && (

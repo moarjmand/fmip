@@ -1,5 +1,7 @@
 import type {
   GroupAppealResponse,
+  GroupHistoryResponse,
+  GroupInviteLinksResponse,
   GroupModerationView,
   InviteLinkPreviewResponse,
   AchievementsResponse,
@@ -334,6 +336,31 @@ export function fetchGroupRequests(
 ): Promise<ApiResult<GroupJoinRequestsResponse>> {
   return apiRequest<GroupJoinRequestsResponse>(
     `/groups/${encodeURIComponent(slug)}/requests`,
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/**
+ * A group's invite links (T-1021): every link for its owner and moderators,
+ * a member's own for anybody else the policy lets invite. Never a token.
+ */
+export function fetchGroupInviteLinks(
+  slug: string,
+  cookie: string | undefined,
+): Promise<ApiResult<GroupInviteLinksResponse>> {
+  return apiRequest<GroupInviteLinksResponse>(
+    `/groups/${encodeURIComponent(slug)}/invite-links`,
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/** A group's audited changes (T-1020), for its owner and moderators. */
+export function fetchGroupHistory(
+  slug: string,
+  cookie: string | undefined,
+): Promise<ApiResult<GroupHistoryResponse>> {
+  return apiRequest<GroupHistoryResponse>(
+    `/groups/${encodeURIComponent(slug)}/history`,
     cookie === undefined ? {} : { cookie },
   );
 }
