@@ -21,7 +21,7 @@
 
 import type { PowerIndexComponent } from '@fmip/contracts';
 import { POWER_INDEX_WEIGHTS } from '@fmip/contracts';
-import { CONGESTION_WINDOW_DAYS, type RestInput } from './power-index-measure';
+import { CONGESTION_WINDOW_DAYS, percentile, type RestInput } from './power-index-measure';
 
 export type Outcome = 'H' | 'D' | 'A';
 
@@ -253,10 +253,120 @@ export function restBefore(
   };
 }
 
+/**
+ * A season's stored fixture list (T-1123, D-146), read for sides and days only,
+ * as the league-stakes input reads it (D-143): the matches each side plays, and
+ * whether the list is a complete double round robin. A split league, a list
+ * with play-offs in it, or a season still being loaded is incomplete, and an
+ * incomplete list gives no stake.
+ */
+export interface SeasonList {
+  totals: Map<string, number>;
+  complete: boolean;
+}
+
+export function seasonListOf(fixtures: readonly { home: string; away: string }[]): SeasonList {
+  const totals = new Map<string, number>();
+  const pairs = new Set<string>();
+  for (const { home, away } of fixtures) {
+    totals.set(home, (totals.get(home) ?? 0) + 1);
+    totals.set(away, (totals.get(away) ?? 0) + 1);
+    pairs.add(JSON.stringify([home, away]));
+  }
+  const n = totals.size;
+  return {
+    totals,
+    complete: n >= 2 && fixtures.length === n * (n - 1) && pairs.size === fixtures.length,
+  };
+}
+
+/**
+ * Each side's open places (T-1123, D-146): the number of other sides it can
+ * still finish level with or on either side of, from the table and the matches
+ * left. A rival is closed when it is out of reach (`points(U) > points(T) + 3 *
+ * left(T)`) or `T` is out of its reach (`points(T) > points(U) + 3 *
+ * left(U)`); every other rival is open. It is also the number of places the side
+ * can still move between its best and its worst finish, and zero exactly when
+ * the side is locked under D-143's rule.
+ */
+export function openPlaces(
+  points: ReadonlyMap<string, number>,
+  left: ReadonlyMap<string, number>,
+): Map<string, number> {
+  const open = new Map<string, number>();
+  for (const [team, mine] of points) {
+    const reach = 3 * (left.get(team) ?? 0);
+    let count = 0;
+    for (const [other, theirs] of points) {
+      if (other === team) continue;
+      const above = theirs > mine + reach;
+      const below = mine > theirs + 3 * (left.get(other) ?? 0);
+      if (!above && !below) count += 1;
+    }
+    open.set(team, count);
+  }
+  return open;
+}
+
+/** One side's stake before a match: its open places, and their position among the division's. */
+export interface Stake {
+  open: number;
+  rivals: number;
+  /** Mid-rank percentile of `open` among every side of the table. A locked side is lowest. */
+  value: number;
+}
+
+/**
+ * Every side's stake before `date`, from the season's results strictly before
+ * that day (three points a win, D-038; deductions are not stored) and the
+ * season's list. `null` when the list is not a complete double round robin, so
+ * the component is absent and its weight redistributed (rule 3).
+ */
+export function stakesBefore(
+  list: SeasonList | undefined,
+  results: readonly {
+    date: string;
+    home: string;
+    away: string;
+    homeGoals: number;
+    awayGoals: number;
+  }[],
+  date: string,
+): Map<string, Stake> | null {
+  if (list === undefined || !list.complete) return null;
+  const points = new Map([...list.totals.keys()].map((team) => [team, 0]));
+  const played = new Map([...list.totals.keys()].map((team) => [team, 0]));
+  for (const m of results) {
+    if (m.date >= date || !points.has(m.home) || !points.has(m.away)) continue;
+    played.set(m.home, (played.get(m.home) ?? 0) + 1);
+    played.set(m.away, (played.get(m.away) ?? 0) + 1);
+    const home = m.homeGoals > m.awayGoals ? 3 : m.homeGoals === m.awayGoals ? 1 : 0;
+    const away = m.awayGoals > m.homeGoals ? 3 : m.homeGoals === m.awayGoals ? 1 : 0;
+    points.set(m.home, (points.get(m.home) ?? 0) + home);
+    points.set(m.away, (points.get(m.away) ?? 0) + away);
+  }
+  const left = new Map(
+    [...list.totals].map(([team, total]) => [team, total - (played.get(team) ?? 0)]),
+  );
+  const open = openPlaces(points, left);
+  const population = [...open.values()];
+  return new Map(
+    [...open].map(([team, count]) => [
+      team,
+      { open: count, rivals: population.length - 1, value: percentile(count, population) },
+    ]),
+  );
+}
+
 export type WeightSet = Partial<Record<PowerIndexComponent, number>>;
 
-/** The blueprint's weights, as a candidate like any other. */
-export const BLUEPRINT_WEIGHTS: WeightSet = { ...POWER_INDEX_WEIGHTS };
+/**
+ * The published arithmetic (`power-index@1.1.0`) as a candidate like any other:
+ * the blueprint's weights, with competition context unmeasured. A weight of 0
+ * and an absent component combine identically (both are left out of the
+ * supplied weight), so this is exactly what the live index computes today.
+ */
+export const BLUEPRINT_WEIGHTS: WeightSet = { ...POWER_INDEX_WEIGHTS, competition_context: 0 };
 
 /**
  * The candidates. Deliberately few and deliberately named: a grid fine enough
@@ -295,6 +405,10 @@ export const CANDIDATE_WEIGHTS: { name: string; weights: WeightSet }[] = [
   // T-1111: the rest component's own question -- does it earn its 5%, or more?
   { name: 'without-rest', weights: { ...BLUEPRINT_WEIGHTS, rest_and_congestion: 0 } },
   { name: 'rest-heavy', weights: { ...BLUEPRINT_WEIGHTS, rest_and_congestion: 0.15 } },
+  // T-1123: competition context -- a side's stake as a position among the
+  // division's -- at the blueprint's 5%, and heavier.
+  { name: 'with-context', weights: { ...BLUEPRINT_WEIGHTS, competition_context: 0.05 } },
+  { name: 'context-heavy', weights: { ...BLUEPRINT_WEIGHTS, competition_context: 0.15 } },
   {
     name: 'equal',
     weights: {
@@ -336,6 +450,11 @@ export interface BacktestResult {
    * blueprint's. Positive: rest helped. `null` when either was not scored.
    */
   restContribution: number | null;
+  /**
+   * T-1123: the published arithmetic's held-out log loss minus `with-context`'s.
+   * Positive: measuring competition context helped. `null` when either was not scored.
+   */
+  contextContribution: number | null;
   verdict: string;
 }
 
@@ -395,6 +514,12 @@ export function score(
       ? withoutRest.testLogLoss - blueprint.testLogLoss
       : null;
 
+  const withContext = candidates.find((candidate) => candidate.name === 'with-context');
+  const contextContribution =
+    withContext?.converged === true && blueprint?.converged === true
+      ? blueprint.testLogLoss - withContext.testLogLoss
+      : null;
+
   return {
     division,
     matches,
@@ -405,6 +530,7 @@ export function score(
     best: best?.name ?? 'none',
     margin,
     restContribution,
+    contextContribution,
     verdict: verdictOf(
       best?.name ?? 'none',
       margin,

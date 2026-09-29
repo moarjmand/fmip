@@ -37,7 +37,8 @@ free data of D-049 that was **70%**: line-up quality, managerial stability and
 competition context were not measurable, and the panel says which. With the paid
 feed's line-ups and player ratings (T-101) the first two are measured from our
 own match records (T-112, below), so a match of a covered league reaches
-**95%**; competition context is still not modelled.
+**95%**; competition context is still not modelled (measured by the backtest
+and not adopted, T-1123, D-146).
 
 ## Line-up quality and stability (T-112, D-081)
 
@@ -111,6 +112,24 @@ question: `without-rest` (the blueprint's weights with rest at 0) and
 because travel is not modelled until Phase 11's N-1 (ground coordinates) is
 answered.
 
+**Competition context is measured, and not adopted (T-1123, D-146).** The
+backtest reads a side's stake as a position: its *open places*, the number of
+rivals it can still finish level with or on either side of, from the season's
+table (results strictly before the match's day, three points a win) and the
+season's stored fixture list, read for sides and days only as the
+league-stakes input reads it (D-143). A locked side has none. The component is
+that count's mid-rank percentile among the division's sides, so a locked side
+is lowest and every side sits at 0.5 until the table separates them. A season
+whose list is not a complete double round robin (a split, play-offs in the
+list, a season still being loaded) gives no stake and the weight is
+redistributed. `blueprint` in the table is the published arithmetic with
+context unmeasured; `with-context` measures it at the blueprint's 5% and
+`context-heavy` at 15%. On ten divisions measuring it changed held-out log loss
+by between -0.0036 and +0.0007 and cleared the 0.01 bar nowhere, so
+`power-index@1.1.0` stands and the live component stays `not_supplied`. A cup
+tie's state (D-144) is not scored: the training store holds no cup ties, and a
+tie has no population to rank a side against.
+
 **What a few seasons cannot tell us.** A division's three seasons are still a
 small sample, and the verdict wording is deliberately conservative about it.
 
@@ -128,17 +147,21 @@ keeps the full result under `apps/api/backtest/`.
 <!-- backtest:start -->
 ### Results — E0, 2023-08-11 to 2026-09-20
 
-Written by `apps/api/scripts/power-index-backtest.mjs` on 2026-09-29T13:41:05.198Z; do not edit by hand.
+Written by `apps/api/scripts/power-index-backtest.mjs` on 2026-09-29T14:35:31.465Z; do not edit by hand.
 
 1123 matches measured after a 60-match warm-up, split 561 to fit and 562 to score. The season's own outcome frequencies score **1.0837** — a weight set that does not beat that has found nothing.
 
 Rest and congestion from the stored schedule: both sides' rest was read for 1123 of 1130 matches; 0 of the division's clubs are bridged to our records (their cup matches count); the others' schedule is their league matches alone. Travel is not modelled. Removing the rest component changes held-out log-loss by -0.0009 (positive: rest helped).
 
+Competition context (T-1123) from the season's table and stored fixture list: both sides' stake was read for 1080 of 1130 matches (19 with a locked side); complete seasons: 2023/24, 2024/25, 2025/26; not read (the list is not a complete double round robin): 2026/27. `blueprint` is the published arithmetic, context unmeasured. Measuring it at 5% (`with-context`) changes held-out log-loss by +0.0007 (positive: context helped).
+
 | Weights | Held-out log-loss | Fitted log-loss | Higher index won |
 |---|---|---|---|
 | **strength-heavy** | 1.0279 | 0.9835 | 65.3% |
 | without-rest | 1.0281 | 0.9841 | 65.3% |
+| with-context | 1.0284 | 0.9846 | 65.9% |
 | blueprint | 1.0290 | 0.9854 | 66.0% |
+| context-heavy | 1.0301 | 0.9856 | 65.9% |
 | venue-heavy | 1.0302 | 0.9864 | 65.3% |
 | rest-heavy | 1.0313 | 0.9885 | 65.3% |
 | equal | 1.0354 | 0.9943 | 64.3% |
