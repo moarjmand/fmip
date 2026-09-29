@@ -607,6 +607,7 @@ export {
   NEWS_PAGE_SIZE,
   NEWS_SECTIONS,
   SAVED_ARTICLES_LIMIT,
+  TRENDING_WEIGHTS,
   TRENDING_WINDOW_HOURS,
   isNewsSection,
 } from './news';
