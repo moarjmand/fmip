@@ -158,7 +158,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('a group conv
       };
     };
     expect(page.conversation.kind).toBe('group');
-    expect(page.conversation.group).toMatchObject({ slug });
+    expect(page.conversation.group).toMatchObject({ slug, language: null });
+    // The group's language travels with its conversation, so the page can
+    // mark what members write with it (T-1022).
+    await pool.query(`UPDATE user_group SET language = 'fa' WHERE slug = $1`, [slug]);
+    const marked = (await get(`/me/conversations/${room}`, ada)).json() as {
+      conversation: { group: { language: string | null } | null };
+    };
+    expect(marked.conversation.group?.language).toBe('fa');
     // Not a conversation *with* particular people: its membership is the
     // group's, and `group` being non-null is exactly when `members` is empty.
     expect(page.conversation.members).toEqual([]);

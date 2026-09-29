@@ -497,6 +497,135 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('groups over 
     });
   });
 
+  describe('a language and a favourite, by id (T-1022, D-133)', () => {
+    const TEAM = crypto.randomUUID();
+    const COMPETITION = crypto.randomUUID();
+
+    beforeAll(async () => {
+      await pool.query(
+        `INSERT INTO team (id, country_id, name, kind, gender) VALUES ($1, $2, $3, 'club', 'men')`,
+        [TEAM, ENGLAND, `Groupville ${RUN}`],
+      );
+      await pool.query(
+        `INSERT INTO competition (id, country_id, name, kind, scope, gender)
+         VALUES ($1, $2, $3, 'league', 'domestic', 'men')`,
+        [COMPETITION, ENGLAND, `Group League ${RUN}`],
+      );
+    });
+
+    afterAll(async () => {
+      await pool.query(`DELETE FROM team WHERE id = $1`, [TEAM]);
+      await pool.query(`DELETE FROM competition WHERE id = $1`, [COMPETITION]);
+    });
+
+    it('says nothing for a group with neither', async () => {
+      const slug = await group(ada, 'public');
+      const body = (await get(`/groups/${slug}`, ada)).json() as { group: Group };
+      expect(body.group.language).toBeNull();
+      expect(body.group.favourite).toBeNull();
+    });
+
+    it('keeps a favourite as an id, names it, and holds at most one', async () => {
+      const slug = await group(ada, 'public');
+      expect(
+        (
+          await patch(
+            `/groups/${slug}`,
+            { language: 'pt-BR', favourite: { type: 'team', id: TEAM } },
+            ada,
+          )
+        ).statusCode,
+      ).toBe(204);
+      let body = (await get(`/groups/${slug}`, ada)).json() as { group: Group };
+      expect(body.group.language).toBe('pt-BR');
+      expect(body.group.favourite).toEqual({ type: 'team', id: TEAM, name: `Groupville ${RUN}` });
+
+      // A competition replaces the club: a group is about one thing at most.
+      await patch(`/groups/${slug}`, { favourite: { type: 'competition', id: COMPETITION } }, ada);
+      body = (await get(`/groups/${slug}`, ada)).json() as { group: Group };
+      expect(body.group.favourite).toMatchObject({ type: 'competition', id: COMPETITION });
+      expect(body.group.language).toBe('pt-BR');
+
+      await patch(`/groups/${slug}`, { favourite: null, language: null }, ada);
+      body = (await get(`/groups/${slug}`, ada)).json() as { group: Group };
+      expect(body.group.favourite).toBeNull();
+      expect(body.group.language).toBeNull();
+    });
+
+    it('names every bad field, and an id that is nobody', async () => {
+      const slug = await group(ada, 'public');
+      const bad = await patch(
+        `/groups/${slug}`,
+        { language: 'Portuguese', favourite: { type: 'player', id: TEAM } },
+        ada,
+      );
+      expect(bad.statusCode).toBe(400);
+      expect(Object.keys((bad.json() as { fields: object }).fields).sort()).toEqual([
+        'favourite',
+        'language',
+      ]);
+      const nobody = await patch(
+        `/groups/${slug}`,
+        { favourite: { type: 'team', id: crypto.randomUUID() } },
+        ada,
+      );
+      expect(nobody.statusCode).toBe(400);
+      expect((nobody.json() as { fields: Record<string, string> }).fields.favourite).toBeTruthy();
+      // The schema holds the one-favourite rule too.
+      await expect(
+        pool.query(
+          `UPDATE user_group SET favourite_team_id = $2, favourite_competition_id = $3 WHERE slug = $1`,
+          [slug, TEAM, COMPETITION],
+        ),
+      ).rejects.toMatchObject({ code: '23514' });
+    });
+
+    it('filters the directory by language and by favourite, and says what it filtered by', async () => {
+      await pool.query(`DELETE FROM rate_window WHERE user_id = $1 AND action = 'group_create'`, [
+        ids.get(bo) ?? '',
+      ]);
+      const made = await post(
+        '/groups',
+        {
+          slug: `gh-${RUN}-lang`.toLowerCase(),
+          name: `Portuguese ${RUN}`,
+          visibility: 'discoverable',
+          language: 'pt',
+          favourite: { type: 'team', id: TEAM },
+        },
+        bo,
+      );
+      expect(made.statusCode).toBe(201);
+      const hidden = await group(bo, 'invite_only');
+      await patch(
+        `/groups/${hidden}`,
+        { language: 'pt', favourite: { type: 'team', id: TEAM } },
+        bo,
+      );
+
+      const byLanguage = (await get(`/groups?language=pt`, ada)).json() as GroupsResponse;
+      expect(byLanguage.groups.map((g) => g.name)).toEqual([`Portuguese ${RUN}`]);
+      expect(byLanguage.filters).toEqual({ language: 'pt', favourite: null });
+
+      const byTeam = (await get(`/groups?team=${TEAM}`, ada)).json() as GroupsResponse;
+      expect(byTeam.groups.map((g) => g.name)).toEqual([`Portuguese ${RUN}`]);
+      expect(byTeam.filters?.favourite).toEqual({
+        type: 'team',
+        id: TEAM,
+        name: `Groupville ${RUN}`,
+      });
+
+      const byCompetition = (
+        await get(`/groups?competition=${COMPETITION}`, ada)
+      ).json() as GroupsResponse;
+      expect(byCompetition.groups.filter((g) => g.name === `Portuguese ${RUN}`)).toEqual([]);
+
+      // A value that cannot be a filter is left out, not refused.
+      const junk = (await get(`/groups?language=%3Cb%3E&team=nope`, ada)).json() as GroupsResponse;
+      expect(junk.filters).toEqual({ language: null, favourite: null });
+    });
+  });
+
   it('answers a group that is not there with 404 on every verb', async () => {
     for (const response of await Promise.all([
       get('/groups/nothing-is-here', ada),

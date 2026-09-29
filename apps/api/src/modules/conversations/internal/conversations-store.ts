@@ -63,6 +63,7 @@ export interface ConversationRow {
   /** The group this conversation belongs to; both null for a direct one. */
   group_slug: string | null;
   group_name: string | null;
+  group_language: string | null;
   /** The fixture a group thread is about; null for every other kind (T-244). */
   fixture_id: string | null;
   muted: boolean;
@@ -111,6 +112,7 @@ const STANDING_COLUMNS = `c.id,
               COALESCE(me.last_read_seq, 0) AS last_read_seq,
               g.slug AS group_slug,
               g.name AS group_name,
+              g.language AS group_language,
               c.fixture_id,
               CASE WHEN c.kind = 'direct' THEN (
                 SELECT p.last_read_seq FROM conversation_participant p

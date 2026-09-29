@@ -10,6 +10,18 @@ export interface GroupRow {
   created_at: Date;
   member_count: string;
   invite_policy: string;
+  language: string | null;
+  favourite_team_id: string | null;
+  favourite_team_name: string | null;
+  favourite_competition_id: string | null;
+  favourite_competition_name: string | null;
+}
+
+/** The directory's filters, already shaped (T-1022). */
+export interface DirectoryFilters {
+  language: string | null;
+  team: string | null;
+  competition: string | null;
 }
 
 export interface HistoryRow {
@@ -50,6 +62,10 @@ export interface RequestRow {
  * copy of a rule, and the second copy is the one that drifts.
  */
 const GROUP_COLUMNS = `g.id, g.slug, g.name, g.description, g.visibility, g.created_at, g.invite_policy,
+         g.language, g.favourite_team_id, g.favourite_competition_id,
+         (SELECT t.name FROM team t WHERE t.id = g.favourite_team_id) AS favourite_team_name,
+         (SELECT c.name FROM competition c WHERE c.id = g.favourite_competition_id)
+           AS favourite_competition_name,
          (SELECT count(*) FROM group_member m WHERE m.group_id = g.id) AS member_count`;
 
 export class GroupsStore {
@@ -78,17 +94,35 @@ export class GroupsStore {
    * behind this query does not contain them either, so there is no path by
    * which one could be listed.
    */
-  async directory(term: string, limit: number): Promise<GroupRow[]> {
+  async directory(
+    term: string,
+    limit: number,
+    filters: DirectoryFilters = { language: null, team: null, competition: null },
+  ): Promise<GroupRow[]> {
     const { rows } = await this.pool.query<GroupRow>(
       `SELECT ${GROUP_COLUMNS}
          FROM user_group g
         WHERE g.visibility <> 'invite_only'
           AND ($1 = '' OR search_key(g.name) LIKE '%' || search_key($1) || '%')
+          AND ($3::text IS NULL OR g.language = $3::text)
+          AND ($4::uuid IS NULL OR g.favourite_team_id = $4::uuid)
+          AND ($5::uuid IS NULL OR g.favourite_competition_id = $5::uuid)
         ORDER BY member_count DESC, g.created_at DESC
         LIMIT $2`,
-      [term, limit],
+      [term, limit, filters.language, filters.team, filters.competition],
     );
     return rows;
+  }
+
+  /** A club's or a competition's name, for the directory to say what it filtered by. */
+  async favouriteName(type: 'team' | 'competition', id: string): Promise<string | null> {
+    const { rows } = await this.pool.query<{ name: string }>(
+      type === 'team'
+        ? `SELECT name FROM team WHERE id = $1`
+        : `SELECT name FROM competition WHERE id = $1`,
+      [id],
+    );
+    return rows[0]?.name ?? null;
   }
 
   /** Every group the viewer is in, whatever its visibility. */
@@ -162,12 +196,18 @@ export class GroupsStore {
     description: string | null,
     visibility: string,
     owner: string,
+    about: { language: string | null; team: string | null; competition: string | null } = {
+      language: null,
+      team: null,
+      competition: null,
+    },
   ): Promise<GroupRow> {
     return this.inTransaction(async (client) => {
       const { rows } = await client.query<{ id: string }>(
-        `INSERT INTO user_group (slug, name, description, visibility, created_by)
-         VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-        [slug, name, description, visibility, owner],
+        `INSERT INTO user_group (slug, name, description, visibility, created_by,
+                                 language, favourite_team_id, favourite_competition_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+        [slug, name, description, visibility, owner, about.language, about.team, about.competition],
       );
       const id = rows[0]?.id ?? '';
       await client.query(
@@ -187,15 +227,30 @@ export class GroupsStore {
     });
   }
 
+  /**
+   * `undefined` leaves a field as it is; for the nullable ones `null` clears
+   * it. A favourite replaces both columns at once, so the group is about one
+   * thing at most (T-1022).
+   */
   async update(
     groupId: string,
-    patch: { name?: string; description?: string | null; visibility?: string },
+    patch: {
+      name?: string;
+      description?: string | null;
+      visibility?: string;
+      language?: string | null;
+      favourite?: { team: string | null; competition: string | null };
+    },
   ): Promise<void> {
     await this.pool.query(
       `UPDATE user_group
           SET name = COALESCE($2, name),
               description = CASE WHEN $3::boolean THEN $4 ELSE description END,
-              visibility = COALESCE($5, visibility)
+              visibility = COALESCE($5, visibility),
+              language = CASE WHEN $6::boolean THEN $7 ELSE language END,
+              favourite_team_id = CASE WHEN $8::boolean THEN $9::uuid ELSE favourite_team_id END,
+              favourite_competition_id =
+                CASE WHEN $8::boolean THEN $10::uuid ELSE favourite_competition_id END
         WHERE id = $1`,
       [
         groupId,
@@ -203,6 +258,11 @@ export class GroupsStore {
         patch.description !== undefined,
         patch.description ?? null,
         patch.visibility ?? null,
+        patch.language !== undefined,
+        patch.language ?? null,
+        patch.favourite !== undefined,
+        patch.favourite?.team ?? null,
+        patch.favourite?.competition ?? null,
       ],
     );
   }

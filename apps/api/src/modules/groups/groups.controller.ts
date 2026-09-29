@@ -33,7 +33,7 @@ import type {
 } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
-import { type GroupOutcome, GroupsService } from './groups.service';
+import { type GroupOutcome, GroupsService, directoryFilters } from './groups.service';
 
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
 const NOT_FOUND: ApiError = { error: 'not_found', message: 'No such group.' };
@@ -81,8 +81,8 @@ export class GroupsController {
   /** The directory. Public and discoverable only; a guest may read it. */
   @Get('groups')
   async directory(@Query() query: unknown): Promise<GroupsResponse> {
-    const term = first((query as Record<string, unknown> | undefined)?.q);
-    return { groups: await this.groups.directory(term) };
+    const read = query as Record<string, unknown> | undefined;
+    return this.groups.directory(first(read?.q), directoryFilters(read));
   }
 
   @Get('me/groups')

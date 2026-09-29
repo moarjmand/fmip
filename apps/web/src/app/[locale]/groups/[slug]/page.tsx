@@ -11,6 +11,7 @@ import {
   fetchGroupRequests,
   fetchMe,
 } from '@/lib/api';
+import { favouriteDirectoryHref, favouriteHref, languageName } from '@/lib/group-about';
 import { ratingLabel, statusLabel, tierLabel } from '@/lib/leaderboard';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
@@ -73,6 +74,8 @@ export default async function GroupPage({
   }
 
   const group = result.data.group;
+  // The group's own words carry its language (T-1022); the page's stay the site's.
+  const lang = group.language ?? undefined;
   const decides = group.standing === 'owner' || group.standing === 'moderator';
   // `members === null` is the API's own answer to "may this viewer see who is
   // in this group", and the board is that list with numbers beside it — so it
@@ -90,14 +93,40 @@ export default async function GroupPage({
       </Link>
 
       <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold" data-testid="group-name">
+        <h1 className="text-2xl font-semibold" data-testid="group-name" lang={lang}>
           {group.name}
         </h1>
         <p className="text-sm text-muted" data-testid="group-visibility">
           <Translated locale={locale} message="groups.memberCount" count={group.member_count} /> ·{' '}
           {VISIBILITY[group.visibility] ?? group.visibility}
         </p>
-        {group.description !== null && <p data-testid="group-description">{group.description}</p>}
+        {group.description !== null && (
+          <p data-testid="group-description" lang={lang}>
+            {group.description}
+          </p>
+        )}
+        {/* A group with neither says nothing, rather than "none" (T-1022). */}
+        {group.language !== null && (
+          <p className="text-sm text-muted" data-testid="group-language">
+            <Translated locale={locale} message="groups.about.language" />{' '}
+            {languageName(locale, group.language)}
+          </p>
+        )}
+        {group.favourite !== null && (
+          <p className="text-sm" data-testid="group-favourite">
+            <Translated locale={locale} message="groups.about.favourite" />{' '}
+            <Link href={favouriteHref(locale, group.favourite)} className="underline">
+              {group.favourite.name}
+            </Link>{' '}
+            ·{' '}
+            <Link
+              href={favouriteDirectoryHref(locale, group.favourite)}
+              className="text-muted underline"
+            >
+              <Translated locale={locale} message="groups.about.moreGroups" />
+            </Link>
+          </p>
+        )}
       </header>
 
       <GroupControls locale={locale} slug={group.slug} standing={group.standing} />

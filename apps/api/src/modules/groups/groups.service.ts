@@ -2,11 +2,15 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { Pool } from 'pg';
 import {
   type CreateGroupRequest,
+  GROUP_FAVOURITE_TYPES,
   GROUP_INVITE_POLICIES,
   GROUP_ROLES,
   GROUP_SLUG_PATTERN,
   GROUP_VISIBILITIES,
   type Group,
+  type GroupDirectoryFilters,
+  type GroupFavourite,
+  type GroupFavouriteRef,
   type GroupHistoryEntry,
   type GroupInvite,
   type GroupInvitePolicy,
@@ -15,7 +19,6 @@ import {
   type GroupRole,
   type GroupStanding,
   type GroupSummary,
-  type GroupVisibility,
   MAX_GROUP_DESCRIPTION,
   MAX_GROUP_NAME,
   MAX_JOIN_NOTE,
@@ -23,7 +26,9 @@ import {
   type UpdateGroupRequest,
 } from '@fmip/contracts';
 import { PG_POOL } from '../../database/database.module';
+import { LANGUAGE_TAG, UUID, groupSummary } from './internal/group-summary';
 import {
+  type DirectoryFilters,
   type GroupRow,
   GroupsStore,
   type InviteRow,
@@ -108,15 +113,72 @@ function code(error: unknown): string | undefined {
   return (error as { code?: string }).code;
 }
 
-function summary(row: GroupRow): GroupSummary {
+const FOREIGN_KEY = '23503';
+
+const summary = groupSummary;
+
+/**
+ * A language and a favourite as sent, checked and shaped for the store, or
+ * the fields that are wrong (T-1022). `undefined` in means "not sent", which
+ * an update leaves alone.
+ */
+export function checkAbout(input: {
+  language?: string | null;
+  favourite?: GroupFavouriteRef | null;
+}):
+  | {
+      ok: true;
+      language: string | null | undefined;
+      favourite: { team: string | null; competition: string | null } | undefined;
+    }
+  | { ok: false; fields: Record<string, string> } {
+  const fields: Record<string, string> = {};
+  let language: string | null | undefined;
+  if (input.language !== undefined) {
+    const tag = input.language === null ? '' : String(input.language).trim();
+    if (tag === '') language = null;
+    else if (LANGUAGE_TAG.test(tag)) language = tag;
+    else fields.language = 'A language tag, such as en or pt-BR.';
+  }
+  let favourite: { team: string | null; competition: string | null } | undefined;
+  if (input.favourite !== undefined) {
+    const ref = input.favourite;
+    if (ref === null) favourite = { team: null, competition: null };
+    else if (
+      typeof ref !== 'object' ||
+      !GROUP_FAVOURITE_TYPES.includes(ref.type) ||
+      typeof ref.id !== 'string' ||
+      !UUID.test(ref.id)
+    ) {
+      fields.favourite = 'A club or a competition, by its id.';
+    } else {
+      favourite =
+        ref.type === 'team'
+          ? { team: ref.id, competition: null }
+          : { team: null, competition: ref.id };
+    }
+  }
+  return Object.keys(fields).length === 0
+    ? { ok: true, language, favourite }
+    : { ok: false, fields };
+}
+
+/**
+ * The directory's filters from a query string (T-1022). A value that cannot be
+ * one is left out rather than refused, the way the scores filters read theirs.
+ */
+export function directoryFilters(query: Record<string, unknown> | undefined): DirectoryFilters {
+  const one = (value: unknown): string => {
+    if (Array.isArray(value)) return typeof value[0] === 'string' ? value[0] : '';
+    return typeof value === 'string' ? value : '';
+  };
+  const language = one(query?.language).trim();
+  const team = one(query?.team).trim();
+  const competition = one(query?.competition).trim();
   return {
-    id: row.id,
-    slug: row.slug,
-    name: row.name,
-    description: row.description,
-    visibility: row.visibility as GroupVisibility,
-    member_count: Number(row.member_count),
-    created_at: row.created_at.toISOString(),
+    language: LANGUAGE_TAG.test(language) ? language : null,
+    team: UUID.test(team) ? team.toLowerCase() : null,
+    competition: UUID.test(competition) ? competition.toLowerCase() : null,
   };
 }
 
@@ -168,9 +230,28 @@ export class GroupsService {
   // Reading
   // -------------------------------------------------------------------------
 
-  async directory(term: string): Promise<GroupSummary[]> {
-    const rows = await this.store.directory(term.trim(), DIRECTORY_LIMIT);
-    return rows.map(summary);
+  /**
+   * The directory, filtered by name, language and favourite (T-1022), with
+   * the filters echoed as they were read -- the favourite named, so the page
+   * can say what it is showing.
+   */
+  async directory(
+    term: string,
+    filters: DirectoryFilters = { language: null, team: null, competition: null },
+  ): Promise<{ groups: GroupSummary[]; filters: GroupDirectoryFilters }> {
+    const rows = await this.store.directory(term.trim(), DIRECTORY_LIMIT, filters);
+    let favourite: GroupFavourite | null = null;
+    const ref: GroupFavouriteRef | null =
+      filters.team !== null
+        ? { type: 'team', id: filters.team }
+        : filters.competition !== null
+          ? { type: 'competition', id: filters.competition }
+          : null;
+    if (ref !== null) {
+      const name = await this.store.favouriteName(ref.type, ref.id);
+      if (name !== null) favourite = { ...ref, name };
+    }
+    return { groups: rows.map(summary), filters: { language: filters.language, favourite } };
   }
 
   async mine(viewerId: string): Promise<GroupSummary[]> {
@@ -268,7 +349,14 @@ export class GroupsService {
 
   async create(viewerId: string, request: CreateGroupRequest): Promise<GroupOutcome<GroupSummary>> {
     const fields = this.checkShape(request);
-    if (fields !== null) return { ok: false, reason: 'invalid', fields };
+    const about = checkAbout(request);
+    if (fields !== null || !about.ok) {
+      return {
+        ok: false,
+        reason: 'invalid',
+        fields: { ...(fields ?? {}), ...(about.ok ? {} : about.fields) },
+      };
+    }
 
     try {
       const row = await this.store.create(
@@ -277,11 +365,23 @@ export class GroupsService {
         request.description?.trim() ?? null,
         request.visibility,
         viewerId,
+        {
+          language: about.language ?? null,
+          team: about.favourite?.team ?? null,
+          competition: about.favourite?.competition ?? null,
+        },
       );
       return { ok: true, value: summary(row) };
     } catch (error) {
       if (code(error) === UNIQUE) {
         return { ok: false, reason: 'conflict', fields: { slug: 'That handle is taken.' } };
+      }
+      if (code(error) === FOREIGN_KEY) {
+        return {
+          ok: false,
+          reason: 'invalid',
+          fields: { favourite: 'No such club or competition.' },
+        };
       }
       return this.refusal(error);
     }
@@ -315,6 +415,8 @@ export class GroupsService {
     if (patch.visibility !== undefined && !GROUP_VISIBILITIES.includes(patch.visibility)) {
       return { ok: false, reason: 'invalid', fields: { visibility: 'Not a visibility.' } };
     }
+    const about = checkAbout(patch);
+    if (!about.ok) return { ok: false, reason: 'invalid', fields: about.fields };
 
     try {
       await this.store.update(found.value.group.id, {
@@ -322,9 +424,18 @@ export class GroupsService {
         description:
           patch.description === undefined ? undefined : (patch.description?.trim() ?? null),
         visibility: patch.visibility,
+        language: about.language,
+        favourite: about.favourite,
       });
       return { ok: true, value: true };
     } catch (error) {
+      if (code(error) === FOREIGN_KEY) {
+        return {
+          ok: false,
+          reason: 'invalid',
+          fields: { favourite: 'No such club or competition.' },
+        };
+      }
       return this.refusal(error);
     }
   }

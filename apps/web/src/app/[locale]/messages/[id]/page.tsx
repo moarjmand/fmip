@@ -107,6 +107,10 @@ export default async function ConversationPage({
       ? await fetchGroupComparison(thread.group.slug, thread.fixture.id, cookie)
       : null;
 
+  // What members write is marked with the group's language (T-1022, D-133);
+  // a group with none, and a direct conversation, leave the page's own.
+  const lang = page.conversation.group?.language ?? undefined;
+
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
       <ConversationHeader conversation={page.conversation} me={me.username} locale={locale} />
@@ -181,6 +185,7 @@ export default async function ConversationPage({
                 locale={locale}
                 timeZone={me.timezone}
                 isMine={message.author === me.username}
+                lang={lang}
               />
             ))}
           </ul>
@@ -210,6 +215,7 @@ export default async function ConversationPage({
                 locale={locale}
                 timeZone={me.timezone}
                 isMine={message.author === me.username}
+                lang={lang}
               />
               {message.removed === null && (
                 <div className="flex flex-wrap items-center gap-3">

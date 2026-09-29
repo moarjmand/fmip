@@ -186,8 +186,15 @@ export function fetchAudit(cookie: string | undefined): Promise<ApiResult<AuditR
 export function fetchGroups(
   term: string,
   cookie: string | undefined,
+  filters: { language?: string; team?: string; competition?: string } = {},
 ): Promise<ApiResult<GroupsResponse>> {
-  const query = term === '' ? '' : `?q=${encodeURIComponent(term)}`;
+  // The directory's filters (T-1022) pass through; the API reads what it can.
+  const params = new URLSearchParams();
+  if (term !== '') params.set('q', term);
+  for (const [key, value] of Object.entries(filters)) {
+    if (value !== undefined && value !== '') params.set(key, value);
+  }
+  const query = params.size === 0 ? '' : `?${params.toString()}`;
   return apiRequest<GroupsResponse>(`/groups${query}`, cookie === undefined ? {} : { cookie });
 }
 

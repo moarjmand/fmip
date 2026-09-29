@@ -837,7 +837,7 @@ function summary(
     group:
       row.group_slug === null || row.group_name === null
         ? null
-        : { slug: row.group_slug, name: row.group_name },
+        : { slug: row.group_slug, name: row.group_name, language: row.group_language },
     // The match a thread is about, as it stands now (T-244). Null for every
     // other kind, and null for a thread whose fixture no longer resolves --
     // which the product says rather than invents (rule 3).

@@ -7,7 +7,6 @@ import {
   type FollowInviteLinkResponse,
   type GroupInviteLink,
   type GroupSummary,
-  type GroupVisibility,
   INVITE_LINK_DEFAULT_HOURS,
   INVITE_LINK_DEFAULT_USES,
   INVITE_LINK_MAX_HOURS,
@@ -18,6 +17,7 @@ import {
 } from '@fmip/contracts';
 import { PG_POOL } from '../../database/database.module';
 import { NotificationsService } from '../notifications/notifications.service';
+import { groupSummary } from './internal/group-summary';
 import { type GroupRow, GroupsStore } from './internal/groups-store';
 import { InviteLinksStore, type LinkRow } from './internal/invite-links-store';
 import { policySentence } from './groups.service';
@@ -96,18 +96,6 @@ function linkView(row: LinkRow): GroupInviteLink {
     uses: row.uses,
     revoked_at: row.revoked_at?.toISOString() ?? null,
     state: row.state as InviteLinkState,
-  };
-}
-
-function summaryOf(row: GroupRow): GroupSummary {
-  return {
-    id: row.id,
-    slug: row.slug,
-    name: row.name,
-    description: row.description,
-    visibility: row.visibility as GroupVisibility,
-    member_count: Number(row.member_count),
-    created_at: row.created_at.toISOString(),
   };
 }
 
@@ -202,15 +190,7 @@ export class GroupInviteLinksService {
     return {
       ok: true,
       value: {
-        group: {
-          id: row.group_id,
-          slug: row.slug,
-          name: row.name,
-          description: row.description,
-          visibility: row.visibility as GroupVisibility,
-          member_count: Number(row.member_count),
-          created_at: row.group_created_at.toISOString(),
-        },
+        group: await this.groupById(row.group_id),
         state: row.state as InviteLinkState,
         follow: row.visibility === 'discoverable' ? 'ask' : 'join',
         member: row.member,
@@ -264,7 +244,7 @@ export class GroupInviteLinksService {
   }
 
   private async groupById(id: string): Promise<GroupSummary> {
-    return summaryOf((await this.groups.byId(id)) as GroupRow);
+    return groupSummary((await this.groups.byId(id)) as GroupRow);
   }
 
   private async inside(

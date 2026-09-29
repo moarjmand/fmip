@@ -1667,6 +1667,41 @@
     "text": "",
     "status": "untranslated"
   },
+  "groups.about.language": {
+    "source": "Members write in",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groups.about.favourite": {
+    "source": "About",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groups.about.moreGroups": {
+    "source": "Other groups about it",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groups.filter.language": {
+    "source": "Language",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groups.filter.anyLanguage": {
+    "source": "Any language",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groups.filter.showing": {
+    "source": "Showing groups about",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groups.filter.clear": {
+    "source": "Show every group",
+    "text": "",
+    "status": "untranslated"
+  },
   "groupPolls.title": {
     "source": "Polls",
     "text": "",

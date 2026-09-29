@@ -156,7 +156,7 @@ export interface ConversationSummary {
    * ambiguous: a group conversation is not a conversation *with* particular
    * people, and its membership is read from the group rather than copied here.
    */
-  group: { slug: string; name: string } | null;
+  group: { slug: string; name: string; language: string | null } | null;
   /**
    * The fixture a group thread is about (T-244), and `null` for every other
    * kind — "a thread is a conversation about a fixture, **and says which**".

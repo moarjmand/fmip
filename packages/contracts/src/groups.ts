@@ -69,6 +69,22 @@ export const MAX_JOIN_NOTE = 300;
 /** The handle in a URL, the way a username is. Lower-case, and never changed. */
 export const GROUP_SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{2,39}$/;
 
+/**
+ * What a group is about (T-1022, D-133): one club or one competition, by id
+ * (rule 1). `name` is only what a reader is shown.
+ */
+export const GROUP_FAVOURITE_TYPES = ['team', 'competition'] as const;
+export type GroupFavouriteType = (typeof GROUP_FAVOURITE_TYPES)[number];
+
+export interface GroupFavouriteRef {
+  type: GroupFavouriteType;
+  id: string;
+}
+
+export interface GroupFavourite extends GroupFavouriteRef {
+  name: string;
+}
+
 /** What a directory row shows. Nothing here is private to the membership. */
 export interface GroupSummary {
   id: string;
@@ -83,6 +99,14 @@ export interface GroupSummary {
    */
   member_count: number;
   created_at: string;
+  /**
+   * The language the members write in, a BCP 47 tag, or `null` (T-1022). The
+   * group's page and conversation carry it as their `lang`. Never a
+   * translation: nothing machine-translates what members write (13.2).
+   */
+  language: string | null;
+  /** The club or competition the group is about, or `null`: then nothing is said. */
+  favourite: GroupFavourite | null;
 }
 
 export interface GroupMember {
@@ -135,6 +159,17 @@ export interface GroupJoinRequest {
 
 export interface GroupsResponse {
   groups: GroupSummary[];
+  /**
+   * The directory's filters as the API read them (T-1022): a value that could
+   * not be one is left out rather than refused. Absent on `/me/groups`.
+   */
+  filters?: GroupDirectoryFilters;
+}
+
+export interface GroupDirectoryFilters {
+  language: string | null;
+  /** The favourite filtered by, named; `null` when none, or when the id is unknown. */
+  favourite: GroupFavourite | null;
 }
 
 export interface GroupResponse {
@@ -154,6 +189,9 @@ export interface CreateGroupRequest {
   name: string;
   description?: string | null;
   visibility: GroupVisibility;
+  /** A BCP 47 tag (T-1022). */
+  language?: string | null;
+  favourite?: GroupFavouriteRef | null;
 }
 
 /**
@@ -165,6 +203,10 @@ export interface UpdateGroupRequest {
   name?: string;
   description?: string | null;
   visibility?: GroupVisibility;
+  /** `null` clears it (T-1022). */
+  language?: string | null;
+  /** `null` clears it; a new one replaces the other kind too (at most one). */
+  favourite?: GroupFavouriteRef | null;
 }
 
 export interface JoinGroupRequest {

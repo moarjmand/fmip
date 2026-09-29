@@ -5037,3 +5037,39 @@ policy in the service: a second copy of a membership rule, which D-057
 refuses. Asking the owner for a reason on every change: rule 10 is about
 administrators' high-impact actions; an owner's setting on their own group
 is recorded with who and when, which is what the history needs.
+
+## D-133 — A group's language is a tag for markup and a filter, its favourite is one club or competition by id, and its rules are its own, versioned
+
+**Date:** 2026-09-29 · **Tasks:** T-1022, T-1023 · **Status:** accepted (revisable under the standing delegation of 2026-09-26)
+
+Blueprint 8.2 asks for a group's preferred language, a favourite club or
+competition, and membership rules.
+
+**The language is a BCP 47 tag, for markup and for the directory.**
+`user_group.language` has the same shape check as a member's preferred
+language, and any tag is allowed, not only the site's own languages: a group
+may write in a language the product is not translated into. It is used for
+two things only: the `lang` attribute on what the group's members wrote (the
+name, the description, each message body -- never the site's words around
+them, which stay in the reader's language), and the directory's filter.
+**Nothing is machine-translated** (13.2, D-061); the tag says what the words
+are, it does not change them. The directory's language select offers the
+site's languages, as the news filter does; the API takes any tag.
+
+**A favourite is one club or one competition, by id (rule 1).** Two nullable
+foreign keys and a check that at most one is set: a group about a club and a
+competition at once is two groups. `ON DELETE SET NULL`, because a catalogue
+row merged away should leave the group without a favourite, not remove the
+group. The API takes `{ type, id }` and answers `{ type, id, name }`; the name
+is only what a reader sees. The directory filters by `team` or `competition`
+and names what it filtered by, from the id. **A group with neither says
+nothing**: no "none", no empty label. A value in the directory's query that
+cannot be a filter is left out rather than refused, the way the scores filters
+read theirs. Whoever may change the group's name (the owner and moderators)
+may change these, as a group setting.
+
+**Alternatives considered.** Restricting the language to the site's locales:
+a Persian-speaking group on an English site is exactly the case, and a
+closed list would make it lie. Storing a favourite by name: rule 1. Several
+favourites: no blueprint case, and a filter over a list is a different
+query for a problem nobody has.
