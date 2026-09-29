@@ -16,6 +16,7 @@
  * `PanelAuthor` has no shape in which the tier is absent.
  */
 
+import type { MatchIncidentKind, MatchStatMetric } from './match-centre';
 import type { MyPostReactions, PanelReactionTally } from './panel-social';
 import type { RatingTier } from './reputation';
 
@@ -66,7 +67,97 @@ export interface PanelPost {
    * post, a visible record of how many people agreed with something taken down.
    */
   reactions: PanelReactionTally[];
+  /**
+   * The one thing of this match the post links to (T-1030, D-136), or null.
+   * Always null on a removed post: the link goes with the words.
+   */
+  link: PanelLink | null;
 }
+
+/** What a panel post may link to (T-1030, D-136): one thing, of its own match. */
+export type PanelLinkKind = 'incident' | 'player' | 'prediction' | 'statistic';
+
+/**
+ * The link a contributor asks for when posting. A prediction link names no id:
+ * it is always the author's own call on this match, in force when they post,
+ * and the database chooses it so that a post cannot carry somebody else's.
+ */
+export type PanelLinkRequest =
+  | { kind: 'incident'; incident_id: string }
+  | { kind: 'player'; person_id: string }
+  | { kind: 'prediction' }
+  | { kind: 'statistic'; side: 'home' | 'away'; metric: MatchStatMetric };
+
+/** An incident as the card shows it. */
+export interface PanelLinkedIncident {
+  kind: MatchIncidentKind;
+  minute: number;
+  added_time: number | null;
+  side: 'home' | 'away' | null;
+  player: { id: string; name: string } | null;
+  related_player: { id: string; name: string } | null;
+  detail: string | null;
+}
+
+/** The author's own call, as the card shows it. */
+export interface PanelLinkedPrediction {
+  outcome: 'home' | 'draw' | 'away';
+  home_goals: number | null;
+  away_goals: number | null;
+  confidence: number;
+  /** ISO 8601: when this version was submitted. */
+  submitted_at: string;
+  /** True when the author changed their call after writing the post. */
+  revised_since: boolean;
+}
+
+/**
+ * A post's link, as a reader sees it.
+ *
+ * **An incident the feed changed or removed says so** (`state`), and a
+ * `removed` one carries no incident at all: the card never shows the old value
+ * as if it were current (rule 4). A `changed` one carries the incident as the
+ * feed has it now.
+ *
+ * **A prediction is shown only where the author's own history visibility
+ * already shows it** (D-063). On the public panel -- the same bytes for
+ * everybody -- that is only a `public` history; for anybody else the card is
+ * `withheld` and names the setting, and a viewer the setting does admit (a
+ * friend, the author) receives the call on `PanelPermission.linked_predictions`.
+ * Rule 6: the card is always labelled as the member's own call, never the
+ * model's or the community's.
+ */
+export type PanelLink =
+  | {
+      kind: 'incident';
+      state: 'as_linked' | 'changed' | 'removed';
+      /** Null exactly when `state` is `removed`. */
+      incident: PanelLinkedIncident | null;
+    }
+  | {
+      kind: 'player';
+      player: { id: string; name: string };
+      side: 'home' | 'away' | null;
+      /** False when the feed has since dropped them from both line-ups. */
+      in_lineup: boolean;
+    }
+  | {
+      kind: 'prediction';
+      state: 'visible' | 'withheld';
+      /** Set when withheld: the author's setting that withholds it. */
+      visibility: 'friends' | 'private' | null;
+      /** Null exactly when withheld. */
+      prediction: PanelLinkedPrediction | null;
+    }
+  | {
+      kind: 'statistic';
+      side: 'home' | 'away';
+      metric: MatchStatMetric;
+      /** The value when the post was written. */
+      value_at_post: number;
+      /** The value now; null when the feed no longer supplies it. */
+      current: number | null;
+    };
 
 /**
  * Whether this match has a public discussion at all (T-253).
@@ -154,11 +245,20 @@ export interface PanelPermission {
    * nothing — the same answer, because for a guest it is also the true one.
    */
   my_reactions: MyPostReactions[];
+  /**
+   * Linked predictions the public panel withholds and this viewer may see
+   * (T-1030): the author's own posts, and a friend's whose history is
+   * `friends`. Empty for a guest. Same rule, asked of the profile boundary
+   * (D-063), never a second one.
+   */
+  linked_predictions: { post_id: string; prediction: PanelLinkedPrediction }[];
 }
 
 /** `POST /fixtures/:id/panel`. */
 export interface SubmitPanelPostRequest {
   body: string;
+  /** At most one link, to something of this match (T-1030). */
+  link?: PanelLinkRequest | null;
 }
 
 /** The most posts `GET /panels/latest` carries per match (T-942, D-115). */

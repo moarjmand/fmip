@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { FailureCountsModule } from '../failure-counts/failure-counts.module';
 import { ForecastModule } from '../forecast/forecast.module';
 import { GroupsModule } from '../groups/groups.module';
 import { IdentityModule } from '../identity/identity.module';
@@ -7,8 +8,11 @@ import { PredictionsModule } from '../predictions/predictions.module';
 import { ProfileModule } from '../profile/profile.module';
 import { SocialModule } from '../social/social.module';
 import { CareerPointsService } from './career-points.service';
+import { ContributorFlagSchedulerService } from './contributor-flag-scheduler.service';
+import { ContributorFlagService } from './contributor-flag.service';
 import { ContributorController } from './contributor.controller';
 import { ContributorService } from './contributor.service';
+import { PostgresContributorFlagStore } from './internal/contributor-flag-store';
 import { PostgresContributorStore } from './internal/contributor-store';
 import { PostgresPointsStore } from './internal/points-store';
 import { PostgresRatingStore } from './internal/rating-store';
@@ -42,6 +46,8 @@ import { ReputationService } from './reputation.service';
     ProfileModule,
     // The friends board (T-641) asks who the viewer's friends are, nothing else.
     SocialModule,
+    // The daily contributor-flag job reports its failures like every job (T-1031).
+    FailureCountsModule,
   ],
   controllers: [ReputationController, ContributorController],
   providers: [
@@ -51,6 +57,9 @@ import { ReputationService } from './reputation.service';
     PostgresPointsStore,
     ContributorService,
     PostgresContributorStore,
+    ContributorFlagService,
+    PostgresContributorFlagStore,
+    ContributorFlagSchedulerService,
   ],
   exports: [ReputationService, CareerPointsService, ContributorService],
 })

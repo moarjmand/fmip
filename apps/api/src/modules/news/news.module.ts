@@ -1,16 +1,23 @@
 import { Module } from '@nestjs/common';
 import { FailureCountsModule } from '../failure-counts/failure-counts.module';
 import { IdentityModule } from '../identity/identity.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { ProfileModule } from '../profile/profile.module';
+import { PostgresBreakingAdminStore } from './internal/breaking-admin-store';
 import { PostgresDebateAdminStore } from './internal/debate-admin-store';
 import { PostgresNewsReadStore } from './internal/news-read-store';
 import { FetchTransport, NEWS_TRANSPORT } from './internal/news-transport';
 import { PostgresNewsStore } from './internal/news-store';
 import { PostgresSavedArticlesStore } from './internal/saved-articles-store';
+import { PostgresStoryLabelStore } from './internal/story-label-store';
+import { CATEGORY_MAPPING, STORY_TYPE_MAPPING } from './internal/story-type-mapping';
 import { NewsClusteringService } from './news-clustering.service';
 import { NewsIngestionService } from './news-ingestion.service';
 import { NewsSchedulerService } from './news-scheduler.service';
+import { BreakingAdminController } from './breaking-admin.controller';
+import { BreakingAlertsService } from './breaking-alerts.service';
 import { DebateAdminController } from './debate-admin.controller';
+import { StoryTypeAdminController } from './story-type-admin.controller';
 import { PostgresTranslationsAdminStore } from './internal/translations-admin-store';
 import { TranslationsAdminController } from './translations-admin.controller';
 import { NewsController } from './news.controller';
@@ -26,10 +33,13 @@ import { SavedArticlesController } from './saved-articles.controller';
  * provider so a spec can script every response.
  */
 @Module({
-  imports: [IdentityModule, ProfileModule, FailureCountsModule],
+  // Notifications for the breaking alert (T-1005); it imports nothing back.
+  imports: [IdentityModule, ProfileModule, FailureCountsModule, NotificationsModule],
   controllers: [
     NewsController,
     DebateAdminController,
+    BreakingAdminController,
+    StoryTypeAdminController,
     TranslationsAdminController,
     SavedArticlesController,
   ],
@@ -37,13 +47,17 @@ import { SavedArticlesController } from './saved-articles.controller';
     PostgresNewsStore,
     PostgresNewsReadStore,
     PostgresDebateAdminStore,
+    PostgresBreakingAdminStore,
+    BreakingAlertsService,
     PostgresTranslationsAdminStore,
     PostgresSavedArticlesStore,
+    PostgresStoryLabelStore,
     NewsClusteringService,
     NewsIngestionService,
     NewsSchedulerService,
+    { provide: CATEGORY_MAPPING, useValue: STORY_TYPE_MAPPING },
     { provide: NEWS_TRANSPORT, useFactory: (): FetchTransport => new FetchTransport() },
   ],
-  exports: [NewsIngestionService],
+  exports: [NewsIngestionService, NewsClusteringService],
 })
 export class NewsModule {}

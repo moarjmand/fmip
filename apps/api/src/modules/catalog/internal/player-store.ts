@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type {
+  PlayerAvailability,
   PlayerMatch,
   PlayerPage,
   PlayerSeasonMinutes,
@@ -46,6 +47,69 @@ export const NO_LINEUPS: PlayerSeasonMinutes = {
   supplied_minutes: 0,
 };
 
+/** One row of the availability query, before it is said (T-1007). */
+export interface AvailabilityRow {
+  team_id: string;
+  team_name: string;
+  team_short_name: string | null;
+  basis: 'spell' | 'lineup';
+  fixture_id: string | null;
+  kickoff_at: Date | null;
+  opponent_id: string | null;
+  opponent_name: string | null;
+  opponent_short_name: string | null;
+  asked_at: Date | null;
+  status: 'out' | 'doubtful' | null;
+  kind: 'injury' | 'suspension' | 'illness' | 'other' | null;
+  reason: string | null;
+  reported_at: Date | null;
+}
+
+/**
+ * What the player page says about availability (T-1007, D-127). Pure, for
+ * tests. Nothing is said without a team, a scheduled match and an ask of the
+ * feed for it; once asked, a player the feed does not list is "not listed"
+ * (`not_listed`), never "fit" -- the feed never says fit (T-103).
+ */
+export function availabilityOf(row: AvailabilityRow | null): PlayerAvailability {
+  const none = { coverage: 'not_supplied', last_updated_at: null, data: null } as const;
+  if (row === null) return { team: null, fixture: null, listing: none, reason: 'no_team' };
+  const team = {
+    id: row.team_id,
+    name: row.team_name,
+    short_name: row.team_short_name,
+    basis: row.basis,
+  };
+  if (row.fixture_id === null || row.kickoff_at === null) {
+    return { team, fixture: null, listing: none, reason: 'no_next_match' };
+  }
+  const fixture = {
+    id: row.fixture_id,
+    kickoff_at: row.kickoff_at.toISOString(),
+    opponent:
+      row.opponent_id === null || row.opponent_name === null
+        ? null
+        : { id: row.opponent_id, name: row.opponent_name, short_name: row.opponent_short_name },
+  };
+  const askedAt = row.asked_at ?? (row.status === null ? null : row.reported_at);
+  if (askedAt === null) return { team, fixture, listing: none, reason: 'not_asked' };
+  return {
+    team,
+    fixture,
+    listing: {
+      coverage: 'available',
+      last_updated_at: askedAt.toISOString(),
+      data: {
+        status: row.status ?? 'not_listed',
+        kind: row.status === null ? null : row.kind,
+        reason: row.status === null ? null : row.reason,
+        reported_at: row.status === null ? null : (row.reported_at?.toISOString() ?? null),
+      },
+    },
+    reason: null,
+  };
+}
+
 /**
  * SQL for the player page (T-037). Reads only; everything comes from
  * line-ups, incidents and spells, and minutes from the feed's per-player
@@ -91,6 +155,60 @@ export class PostgresPlayerStore {
       height_cm: r.height_cm,
       preferred_foot: r.preferred_foot,
     };
+  }
+
+  /**
+   * The row `availabilityOf` reads (T-1007, D-127): the player's team -- every
+   * open spell's, else the team of the latest stored line-up naming them --
+   * with its next scheduled match still ahead, whether the feed was asked
+   * who misses it, and what it lists for this player. With several teams,
+   * the one whose next match comes first. Null when there is no team.
+   */
+  async availability(personId: string): Promise<AvailabilityRow | null> {
+    const { rows } = await this.pool.query<AvailabilityRow>(
+      `WITH spell AS (
+         SELECT DISTINCT ps.team_id, 'spell' AS basis
+           FROM player_spell ps
+          WHERE ps.person_id = $1 AND ps.end_date IS NULL
+       ),
+       lineup_team AS (
+         SELECT fp.team_id, 'lineup' AS basis
+           FROM lineup l
+           JOIN fixture_participant fp ON fp.id = l.participant_id
+           JOIN fixture f ON f.id = fp.fixture_id
+          WHERE l.person_id = $1 AND NOT EXISTS (SELECT 1 FROM spell)
+          ORDER BY f.kickoff_at DESC
+          LIMIT 1
+       ),
+       chosen AS (SELECT * FROM spell UNION ALL SELECT * FROM lineup_team)
+       SELECT c.team_id, t.name AS team_name, t.short_name AS team_short_name, c.basis,
+              nx.id AS fixture_id, nx.kickoff_at,
+              o.id AS opponent_id, o.name AS opponent_name, o.short_name AS opponent_short_name,
+              ask.fetched_at AS asked_at,
+              ab.status, ab.kind, ab.reason, ab.reported_at
+         FROM chosen c
+         JOIN team t ON t.id = c.team_id
+         LEFT JOIN LATERAL (
+           SELECT f.id, f.kickoff_at
+             FROM fixture f
+             JOIN fixture_participant p ON p.fixture_id = f.id AND p.team_id = c.team_id
+            WHERE f.status = 'scheduled' AND f.kickoff_at > now()
+            ORDER BY f.kickoff_at, f.id
+            LIMIT 1
+         ) nx ON TRUE
+         LEFT JOIN LATERAL (
+           SELECT op.team_id FROM fixture_participant op
+            WHERE op.fixture_id = nx.id AND op.team_id <> c.team_id
+            LIMIT 1
+         ) opp ON TRUE
+         LEFT JOIN team o ON o.id = opp.team_id
+         LEFT JOIN fixture_availability_fetch ask ON ask.fixture_id = nx.id
+         LEFT JOIN fixture_absence ab ON ab.fixture_id = nx.id AND ab.person_id = $1
+        ORDER BY nx.kickoff_at ASC NULLS LAST, t.name, c.team_id
+        LIMIT 1`,
+      [personId],
+    );
+    return rows[0] ?? null;
   }
 
   /** Newest first; an open spell (no end) before any closed one starting the same day. */
