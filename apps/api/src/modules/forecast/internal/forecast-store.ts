@@ -100,6 +100,26 @@ function toVersion(row: ForecastRow): ForecastVersion {
   };
 }
 
+/** One candidate's answering, as `candidateShadow` reads it (T-1165). */
+export interface CandidateShadowRow {
+  modelVersion: string;
+  firstAt: Date;
+  lastAt: Date;
+  dayAsked: number;
+  dayFailed: number;
+  lastFailure: { at: Date; fixtureId: string } | null;
+}
+
+/**
+ * How long after a published version a candidate's answer to the same
+ * question is looked for, and how long before (the model service's clock
+ * stamps an answer, the API's a refusal it never received). Both are asked in
+ * the same call (`ForecastService.compute`), seconds apart; two published
+ * versions of one fixture and kind are hours apart (T-120).
+ */
+const SHADOW_MATCH_BEFORE = '2 minutes';
+const SHADOW_MATCH_AFTER = '15 minutes';
+
 const SELECT = `
   SELECT f.id, f.fixture_id, f.version_number, s.kind, m.model_id, f.computed_at, f.status,
          f.p_home, f.p_draw, f.p_away, f.expected_home_goals, f.expected_away_goals,
@@ -321,5 +341,83 @@ export class PostgresForecastStore {
     } finally {
       client.release();
     }
+  }
+
+  /**
+   * Each shadow model version's answering (T-1165): its first and newest
+   * stored version, and against the published versions it was asked for --
+   * those the model service answered (a model outage is `model_service`'s
+   * condition, and asks no candidate), plus the cups that go to the
+   * cross-league scale (T-533) -- from its first stored version on, how many
+   * in the last day and which it stored nothing for. `since` bounds the
+   * failure looked for; `dayFrom` the day counted; `now` both.
+   */
+  async candidateShadow(since: Date, dayFrom: Date, now: Date): Promise<CandidateShadowRow[]> {
+    const { rows } = await this.pool.query<{
+      model_id: string;
+      first_at: Date;
+      last_at: Date;
+      day_asked: number;
+      day_failed: number;
+      last_failure_at: Date | null;
+      last_failure_fixture: string | null;
+    }>(
+      `WITH cand AS (
+         SELECT m.model_id, MIN(f.computed_at) AS first_at, MAX(f.computed_at) AS last_at
+           FROM forecast f
+           JOIN model_version m ON m.id = f.model_version_id
+          WHERE f.role = 'shadow' AND m.model_id <> 'none@0.0.0'
+          GROUP BY m.model_id
+       ),
+       asked AS (
+         SELECT p.fixture_id, s.kind, p.computed_at
+           FROM forecast p
+           JOIN input_snapshot s ON s.id = p.input_snapshot_id
+          WHERE p.role = 'published'
+            AND p.computed_at >= $1 AND p.computed_at <= $3
+            AND (p.unavailable_reason = 'cross_competition'
+                 OR (COALESCE(s.request->>'division', '') <> ''
+                     AND p.unavailable_reason IS DISTINCT FROM 'model_unreachable'
+                     AND p.unavailable_reason IS DISTINCT FROM 'contract_violation'))
+       ),
+       outcome AS (
+         SELECT c.model_id, a.fixture_id, a.computed_at,
+                EXISTS (
+                  SELECT 1
+                    FROM forecast f
+                    JOIN input_snapshot fs ON fs.id = f.input_snapshot_id
+                    JOIN model_version m ON m.id = f.model_version_id
+                   WHERE f.fixture_id = a.fixture_id AND f.role = 'shadow'
+                     AND fs.kind = a.kind AND m.model_id = c.model_id
+                     AND f.computed_at >= a.computed_at - interval '${SHADOW_MATCH_BEFORE}'
+                     AND f.computed_at <= a.computed_at + interval '${SHADOW_MATCH_AFTER}'
+                ) AS answered
+           FROM cand c
+           JOIN asked a ON a.computed_at >= c.first_at - interval '${SHADOW_MATCH_BEFORE}'
+       )
+       SELECT c.model_id, c.first_at, c.last_at,
+              COUNT(o.fixture_id) FILTER (WHERE o.computed_at >= $2)::int AS day_asked,
+              COUNT(o.fixture_id) FILTER (WHERE o.computed_at >= $2 AND NOT o.answered)::int
+                AS day_failed,
+              MAX(o.computed_at) FILTER (WHERE NOT o.answered) AS last_failure_at,
+              (ARRAY_AGG(o.fixture_id ORDER BY o.computed_at DESC)
+                 FILTER (WHERE NOT o.answered))[1] AS last_failure_fixture
+         FROM cand c
+         LEFT JOIN outcome o ON o.model_id = c.model_id
+        GROUP BY c.model_id, c.first_at, c.last_at
+        ORDER BY c.model_id`,
+      [since, dayFrom, now],
+    );
+    return rows.map((row) => ({
+      modelVersion: row.model_id,
+      firstAt: row.first_at,
+      lastAt: row.last_at,
+      dayAsked: row.day_asked,
+      dayFailed: row.day_failed,
+      lastFailure:
+        row.last_failure_at === null || row.last_failure_fixture === null
+          ? null
+          : { at: row.last_failure_at, fixtureId: row.last_failure_fixture },
+    }));
   }
 }

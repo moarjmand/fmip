@@ -270,8 +270,9 @@ export type {
   CandidateCompetitionRecord,
   CandidateRecord,
   CandidateRecordsResponse,
+  CandidateShadowHealth,
 } from './forecast';
-export { PROMOTION_MINIMUM } from './forecast';
+export { CANDIDATE_FAILURE_LOOKBACK_DAYS, PROMOTION_MINIMUM } from './forecast';
 export { STALE_LIVE_AFTER_MS } from './scores';
 export type {
   FixtureStatus,
