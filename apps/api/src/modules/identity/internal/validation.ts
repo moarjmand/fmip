@@ -1,4 +1,5 @@
 import type {
+  AcceptPlatformRulesRequest,
   DeleteAccountRequest,
   ForgotPasswordRequest,
   LoginRequest,
@@ -182,4 +183,14 @@ export function validateDeleteAccount(body: unknown): Validated<DeleteAccountReq
 
   if (Object.keys(fields).length > 0) return { ok: false, fields };
   return { ok: true, value: { password: password as string, confirm: confirm as string } };
+}
+
+/** `platform-rules@` and a three-part version number (T-931, D-113). */
+const RULES_VERSION = /^platform-rules@\d{1,6}\.\d{1,6}\.\d{1,6}$/;
+
+export function validateAcceptRules(body: unknown): Validated<AcceptPlatformRulesRequest> {
+  if (!isRecord(body) || typeof body.version !== 'string' || !RULES_VERSION.test(body.version)) {
+    return { ok: false, fields: { version: 'must be a platform-rules version' } };
+  }
+  return { ok: true, value: { version: body.version } };
 }

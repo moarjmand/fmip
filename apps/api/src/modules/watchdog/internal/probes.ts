@@ -10,6 +10,7 @@ import { IngestRunsService } from '../../ingestion/ingest-runs.service';
 import { INGESTION_QUEUE } from '../../ingestion/ingestion-scheduler.service';
 import { MATCH_ALERTS_QUEUE } from '../../match-alerts/match-alerts.service';
 import { NEWS_QUEUE } from '../../news/news-scheduler.service';
+import { WeeklyRangesCheck } from './cloudflare-ranges';
 import { LIVE_FEED_THRESHOLD } from './conditions';
 import type { Observations, Unreadable } from './readings';
 import { WatchdogStore } from './watchdog-store';
@@ -54,11 +55,14 @@ async function orUnreadable<T>(read: () => Promise<T>): Promise<T | Unreadable> 
  * runs and budget (T-071, T-501), the live fixtures' last change (D-045), the
  * BullMQ failed sets, the model service's health check, the delivery
  * channels and their recorded outcomes (T-330), and what the backup and the
- * restore drill recorded in `backup_run` from the host (T-805).
+ * restore drill recorded in `backup_run` from the host (T-805), and the weekly
+ * comparison of the committed Cloudflare ranges with the published ones (T-930).
  */
 @Injectable()
 export class LiveProbes implements WatchdogProbes, OnApplicationShutdown {
   private readonly queues = new Map<string, Queue>();
+  /** Cloudflare's published ranges against the committed list, weekly (T-930). */
+  private readonly ranges = new WeeklyRangesCheck();
 
   constructor(
     private readonly runs: IngestRunsService,
@@ -70,7 +74,7 @@ export class LiveProbes implements WatchdogProbes, OnApplicationShutdown {
 
   async observe(now: Date): Promise<Observations> {
     const hourAgo = new Date(now.getTime() - HOUR_MS);
-    const [ingest, live, budget, queues, health, delivery, dataQuality, backups] =
+    const [ingest, live, budget, queues, health, delivery, dataQuality, backups, cloudflare] =
       await Promise.all([
         orUnreadable(async () => {
           const rows = await this.runs.jobCompletions();
@@ -99,6 +103,7 @@ export class LiveProbes implements WatchdogProbes, OnApplicationShutdown {
         }),
         orUnreadable(() => this.dataQuality.liveContradictions(now)),
         orUnreadable(() => this.store.backupRuns()),
+        this.ranges.seen(now, process.env.CLOUDFLARE_RANGES_CHECK),
       ]);
     const { model, elo, candidates } = health;
     return {
@@ -112,6 +117,7 @@ export class LiveProbes implements WatchdogProbes, OnApplicationShutdown {
       dataQuality,
       backups,
       candidates,
+      cloudflare,
     };
   }
 

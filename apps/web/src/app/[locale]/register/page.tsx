@@ -7,6 +7,7 @@ import { readGuestChoices } from '@/lib/first-run-cookie';
 import { readInviter } from '@/lib/invite';
 import { registerAction } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
+import { Translated } from '@/components/translated';
 import { Notice } from '@/components/ui';
 
 export const metadata: Metadata = { title: 'Register · FMIP' };
@@ -127,6 +128,12 @@ export default async function RegisterPage({
           @{inviter} invited you. After you register you can send them a friend request, or not.
         </p>
       )}
+      {/* What the checkbox accepts, readable before it is ticked (T-931). */}
+      <p className="text-sm">
+        <Link href={`/${locale}/rules`} data-testid="register-rules-link">
+          <Translated locale={locale} message="rules.registerLink" />
+        </Link>
+      </p>
       <ActionForm
         action={registerAction.bind(null, locale)}
         fields={fields}

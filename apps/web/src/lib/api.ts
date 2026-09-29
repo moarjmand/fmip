@@ -95,6 +95,7 @@ import type {
   OwnProfile,
   PanelListResponse,
   PanelPermission,
+  PlatformRules,
   PlayerPage,
   PowerIndexResponse,
   PredictionHistoryResponse,
@@ -574,9 +575,22 @@ export async function apiRequest<T>(
 // result so the page can say "unreachable" rather than guess.
 
 export async function fetchMe(cookie: string | undefined): Promise<SessionResponse['user'] | null> {
+  return (await fetchSession(cookie))?.user ?? null;
+}
+
+/**
+ * `GET /auth/me` whole: the member and where they stand with the platform
+ * rules (T-931), for the header's prompt and the rules page.
+ */
+export async function fetchSession(cookie: string | undefined): Promise<SessionResponse | null> {
   if (cookie === undefined) return null;
   const result = await apiRequest<SessionResponse>('/auth/me', { cookie });
-  return result.ok ? result.data.user : null;
+  return result.ok ? result.data : null;
+}
+
+/** `GET /rules/platform` (T-931, D-113): the platform rules in force, for anybody. */
+export function fetchPlatformRules(): Promise<ApiResult<PlatformRules>> {
+  return apiRequest<PlatformRules>('/rules/platform');
 }
 
 export function fetchProfile(

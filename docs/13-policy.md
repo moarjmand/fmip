@@ -16,6 +16,9 @@ rules were accepted, and a contributor grant stores which contributor rules were
 (blueprint 9.4). Changing either in a way that changes what is allowed means a
 new version and a new acceptance -- which is what the *Changes* clause promises,
 and the version is how that promise is kept rather than asserted.
+Since T-931 (D-113) each published platform-rules version is stored with its
+text, a registration records the version in force, and a member accepts a new
+version at `/rules` before it applies to them.
 
 ---
 

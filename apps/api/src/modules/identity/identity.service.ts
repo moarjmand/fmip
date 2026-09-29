@@ -3,6 +3,8 @@ import type {
   AuthUser,
   DeleteAccountRequest,
   LoginRequest,
+  PlatformRules,
+  PlatformRulesStanding,
   RegisterRequest,
 } from '@fmip/contracts';
 import { PostgresAccountDeletionStore } from './internal/account-deletion-store';
@@ -15,6 +17,7 @@ import {
 import { clearSessionCookie, serializeSessionCookie } from './internal/cookies';
 import { PostgresIdentityStore, toAuthUser } from './internal/identity-store';
 import { MAILER, type Mailer } from './internal/mailer';
+import { type AcceptOutcome, PostgresPlatformRulesStore } from './internal/platform-rules-store';
 import { decoyHash, hashPassword, verifyPassword } from './internal/password';
 import { hashToken, newToken } from './internal/tokens';
 
@@ -117,6 +120,7 @@ export class IdentityService {
     @Inject(MAILER) private readonly mailer: Mailer,
     @Inject(IDENTITY_OPTIONS) private readonly options: IdentityOptions,
     private readonly limits: AuthRateLimiter,
+    private readonly rules: PostgresPlatformRulesStore,
   ) {}
 
   async register(
@@ -188,6 +192,26 @@ export class IdentityService {
     if (sessionToken === undefined || sessionToken === '') return null;
     const row = await this.store.findSessionUser(this.hash(sessionToken));
     return row === null ? null : toAuthUser(row);
+  }
+
+  /** The platform rules in force (T-931, D-113): the highest version published. */
+  currentRules(): Promise<PlatformRules | null> {
+    return this.rules.current();
+  }
+
+  /** Which platform rules apply to the member, and whether a newer version awaits them. */
+  async rulesStanding(userId: string): Promise<PlatformRulesStanding> {
+    const standing = await this.rules.standing(userId);
+    if (standing === null) throw new Error(`no account ${userId}`);
+    return standing;
+  }
+
+  /**
+   * The member accepts `version`, which must be the one in force. Until they
+   * do, the version they accepted before applies, and nothing is held back.
+   */
+  acceptRules(userId: string, version: string): Promise<AcceptOutcome> {
+    return this.rules.accept(userId, version);
   }
 
   async logout(sessionToken: string | undefined): Promise<void> {
