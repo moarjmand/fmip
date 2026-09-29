@@ -5177,3 +5177,53 @@ it would make the public read viewer-specific. *Player statistics as a fifth
 kind*: the task names a statistic of the match; a player card already leads to
 the player's numbers.
 
+## D-137 — A contributor below the threshold for a sustained period is flagged to administrators, never paused
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26). **The period is a proposal (N-7): the maintainer's to confirm or change.**
+
+**Decision.** T-1031 implements blueprint 9.4's "a contributor below the
+threshold for a sustained period" as a flag for a person, never an automatic
+pause.
+
+- **Below what.** The contributor rating threshold of D-059
+  (`ELIGIBILITY_V1.minRating`, 70), read from its one home. Not a tier.
+- **For how long: 30 consecutive days, as a proposal.** The number is one
+  named constant, `CONTRIBUTOR_FLAG_PROPOSED_PERIOD_DAYS = 30` in
+  `apps/api/src/modules/reputation/internal/contributor-flag.ts`, and the
+  environment variable `CONTRIBUTOR_FLAG_PERIOD_DAYS` overrides it (a whole
+  number from 1 to 365; empty or malformed falls back to 30). **Choosing the
+  period is policy, like the thresholds themselves (D-059): the maintainer
+  confirms 30 or sets another number, and changing it needs no code change.**
+  Each flag records the period it was raised under.
+- **How "below for the period" is decided, from stored ratings only (rule
+  8).** The stretch is the unbroken run of stored ratings (`rating_snapshot`)
+  below the threshold that ends with the newest one; it began at the first of
+  them. A member with no rating is not below. It is counted from the later of
+  its start and the grant, since before the grant the member was not a
+  contributor. Only live, unpaused grants are checked.
+- **One flag per stretch, told once.** A daily check (04:20 UTC, in the API
+  with `INGESTION_SCHEDULE=on`) raises one `contributor_flag` per stretch
+  (unique on member and `below_since`). Each new flag tells every
+  administrator once, as `contributor_below_threshold`. The notification is
+  administrators-only, on by default, and opens the contributors page.
+- **Nothing is paused.** The check has no path to a grant event. On the
+  console's contributors page (moderator or administrator, the same approvers
+  as the rest of the page), a person either pauses with the existing audited
+  act (T-250) or dismisses the flag with a required reason. The dismissal is
+  written with an `audit_log` row naming the actor, the reason and the
+  previous state (rule 10).
+- **Closing.** A member back at or above the threshold closes the flag as
+  `recovered`. So does a newer stretch replacing the one the flag named, and
+  the newer stretch gets its own flag when it is due. A grant a person paused
+  or withdrew closes it as `grant_not_live`. A dismissed stretch is not raised
+  again; a later stretch is. A flag is closed once and never edited.
+
+**Rejected.** *Pausing automatically*: it is the arithmetic-for-judgement
+swap blueprint 10.2 keeps out, and a pause is something the member is told
+with a reason a person gave. *A tier as the line*: tiers are display bands;
+the contributor threshold is the number contributors were admitted against.
+*Counting calendar days of snapshots*: a snapshot is stored only when the
+inputs change, so an unchanged low rating has one old snapshot, and the
+stretch began with it. *A flag per day while below*: noise; one per stretch
+is what an administrator can act on.
+
+
