@@ -6229,6 +6229,87 @@ one query, so a table would be a second copy to keep in step.
 content hash) leaves the coaches out, because `training.match` does not store
 them.
 
+---
+
+## D-149 — Home advantage by team is a penalised deviation fitted with the strengths, and it failed its bar: no candidate carries it
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26) · **Task:** T-1141 · **Follows:** D-016, D-139, T-533
+
+**The problem.** The model has one home advantage per division. Some clubs
+may gain more at home than others do. The question is whether a per-club
+deviation, pulled toward the division's value, improves the forecast.
+
+**The input** (`fmip_model/inputs/team_home_advantage.py`, `--input
+team_home_advantage`). At each refit, two Poisson fits run on the same
+history with the model's time weights. One gives each club a home deviation
+`delta` with the penalty `PENALTY * sum(delta ** 2)`; the other has no
+deviations; both are otherwise the same (attack, defence, one home
+advantage, a 0.1 ridge on the strengths, the mean attack pinned at zero).
+The deviations are fitted *with* the strengths, because a club that wins
+more at home already carries part of that in its attack and defence. The
+shift applied to the candidate is the ratio of the two fits' expected goals
+(home `log(lam_with / lam_without)`, away the same for `mu`), so what the
+auxiliary fits leave out (the Elo prior, the low-score correction) cancels
+out of it. A club with fewer than 19 home matches in the last 730 days of the
+history has no deviation of its own: it stays at its division's value. A
+side the history never saw gives no value.
+
+**The penalty was chosen on one window and scored once on the next**, as
+T-533 chose its constants. Laptop, 2026-09-29, a private store (not
+production) loaded with football-data.co.uk 2012/13 to 2026/27 (to
+2026-09-20) for E0, SP1, D1, I1, F1, N1, P1, T1, B1 and SC0 (D-016: training
+only), against `dixon-coles-elo@0.5.0`.
+
+*Choosing window, 2023-07-01 to 2024-06-30* (3,271 matches, candidate log
+loss 0.9728; lowest log loss chooses):
+
+| Penalty | Difference [95% interval] | Worse in |
+|---|---|---|
+| 1 | +0.00418 [+0.00149, +0.00698] | 9 of 10 |
+| 3 | +0.00286 [+0.00075, +0.00502] | 8 of 10 |
+| 10 | +0.00135 [+0.00009, +0.00260] | 7 of 10 |
+| 30 | +0.00052 [-0.00006, +0.00111] | 7 of 10 |
+| **100** | +0.00016 [-0.00004, +0.00038] | 6 of 10 |
+
+Every penalty made the forecast worse, less so the harder the deviations
+were pulled to zero. 100, the least harmful, is `PENALTY`.
+
+*Scoring window, 2024-07-01 to 2026-09-28, once, with penalty 100:*
+
+| Group | Scored | Applied | Log loss candidate | with the input | Difference [95% interval] | Calibration candidate / with |
+|---|---|---|---|---|---|---|
+| football-data | 6,946 | 6,946 | 0.9866 | 0.9866 | -0.00004 [-0.00019, +0.00012] | 0.0138 / 0.0140 |
+
+Worse in 3 of 10 divisions (I1, T1, B1). The interval straddles zero:
+**failed.** The harness's control (`--input null`) failed on the same run.
+Our records' divisions were not run on the laptop (no records there).
+Reports: `reports/dixon-coles-elo-0.5.0/inputs_team_home_advantage_2024-07-01..2026-09-28.{md,json}`
+and the five choosing runs,
+`inputs_team_home_advantage_penalty_<p>_2023-07-01..2024-06-30.{md,json}`
+(written by a local driver that calls the harness's own `run_division` and
+`judge` once per penalty; the command line takes the module's `PENALTY`).
+
+**The lead's re-run on the server** (it adds IR1, our records; a division the
+store lacks is skipped and named):
+
+```
+docker compose run --rm -T model python -m fmip_model.backtest.inputs --input team_home_advantage --divisions E0 E1 SP1 D1 I1 F1 N1 P1 T1 B1 SC0 IR1 --from 2024-07-01 --to 2026-09-28 --out /tmp/reports --note "server"
+```
+
+The server's football-data rows start in 2023/24, so the choosing window
+cannot be re-run there; the laptop's choice stands.
+
+**So.** No candidate carries home advantage by team; T-1150 leaves it out.
+The division's single home advantage is what the data supports: across ten
+divisions, per-club differences that survive shrinkage are too small, or
+too unstable from one season to the next, to beat the candidate.
+
+**Rejected.** *Fitting the deviations after the strengths* (offsets on the
+home goals only): the strengths already absorb about half of a club's home
+edge, so the deviation would measure the wrong thing. *Editing the
+Dixon-Coles fit itself to add the deviations*: a change to every version's
+fit for an input that has not passed. *Choosing the penalty on the scoring
+window*: the verdict would be chosen by its own numbers.
+
 ## D-153 — Featured matches on the homepage: an editor's placement with a window and a note, first after a member's favourites
 **Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
 
