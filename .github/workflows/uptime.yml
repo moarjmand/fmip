@@ -1,0 +1,51 @@
+name: Uptime
+
+# The off-machine uptime check (T-806, D-156). GitHub's runners are outside the
+# VPS, so this sees what a reader sees: Cloudflare, Caddy, the web app and,
+# through the web app's /health, the API. A failed scheduled run is the alert:
+# GitHub e-mails the workflow's owner (docs/09-deploy.md, "Uptime check").
+#
+# Never on pull_request: it checks production, not the change under review.
+on:
+  schedule:
+    # Every 10 minutes. GitHub may start a scheduled run late under load, and
+    # disables schedules after 60 days without repository activity.
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One check at a time; a late run is not worth two in flight.
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Public /health answers 200
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      URL: https://traveltohormuz.ir/health
+      TRIES: '3'
+      PAUSE_SECONDS: '30'
+      TIMEOUT_SECONDS: '20'
+    steps:
+      - name: Probe
+        run: |
+          set -u
+          for try in $(seq 1 "$TRIES"); do
+            rm -f body.json
+            code="$(curl -s -o body.json -w '%{http_code}' -m "$TIMEOUT_SECONDS" \
+              -H 'cache-control: no-cache' "$URL")" || true
+            echo "try $try/$TRIES: HTTP $code"
+            if [ "$code" = '200' ]; then
+              cat body.json; echo
+              exit 0
+            fi
+            [ -s body.json ] && { head -c 500 body.json; echo; }
+            if [ "$try" -lt "$TRIES" ]; then sleep "$PAUSE_SECONDS"; fi
+          done
+          echo "::error title=Site down::$URL did not answer 200 in $TRIES tries"
+          exit 1

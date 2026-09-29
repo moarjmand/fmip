@@ -17,8 +17,33 @@
 	admin off
 }
 
+# The `cloudflare_ranges` snippet: Cloudflare's published ranges (T-930).
+import cloudflare-ranges.caddy
+
 {$SITE_HOST} {
 	tls /certs/origin.pem /certs/origin.key
+
+	# Only Cloudflare reaches the origin (T-930, D-112). A connection from any
+	# other address is closed without an answer, before either route below,
+	# so a request that skips Cloudflare cannot choose its own
+	# CF-Connecting-IP and with it its own sign-in counter (D-093).
+	#
+	# `remote_ip` is the connection's own peer, never a header. Loopback is
+	# allowed for a probe from inside this container; ORIGIN_EXTRA_RANGES
+	# (empty on the server) adds more, e.g. `private_ranges` for the laptop
+	# rehearsal, where Docker Desktop hands Caddy the host's requests from a
+	# bridge address. Kept empty on the server on purpose: Docker's userland
+	# proxy can carry an IPv6 connection from anywhere to Caddy as the bridge
+	# gateway, so allowing private ranges there would reopen the gap.
+	@outside_cloudflare {
+		not {
+			import cloudflare_ranges
+			remote_ip 127.0.0.0/8 ::1 {$ORIGIN_EXTRA_RANGES}
+		}
+	}
+	handle @outside_cloudflare {
+		abort
+	}
 
 	# The chat socket, to the API rather than to `web` (T-234, D-055).
 	#
