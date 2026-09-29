@@ -192,6 +192,7 @@ about football -- a chat, a channel -- and let one member bring another.
 | `[ ]` T-535 | Promotion: the candidate replaces the published version only on the evaluation | T-531 | A decision entry with the numbers; stored forecasts keep their version (rule 5) |
 | `[x]` T-536 | The detail backlog reaches past seasons: a `--season` backfill's matches get their line-ups and incidents | T-102, T-512 | The post-match backlog asks every season of a polled competition, newest first; a spec proves a match before the polled season is owed |
 | `[x]` T-537 | A run left open by a stopped process no longer holds its job's lock | T-071 | A run open for more than two hours is closed as failed (`abandoned: ...`) when the next tick of that job starts; a spec proves the reclaim and that a fresh open run still blocks |
+| `[x]` T-538 | A shoot-out longer than thirty kicks no longer aborts a post-match run | T-102 | The API-Football adapter supplies no added time past the contract's 30 (the provider numbers shoot-out kicks 120+n); a spec proves a 34-kick shoot-out maps and validates |
 
 **What v2 has to beat.** The first backtest (T-062, 2024/25 Premier League, 320
 forecasts) gave log loss 1.0170 against the market's 0.9811 and uniform's
@@ -477,3 +478,12 @@ backlog stood still for about twenty-one hours with no failed run to show for it
 The row was closed by hand on the server; `IngestRunsService.start` now closes
 an open run older than two hours as failed and starts again, so a deploy or a
 crash costs at most two hours of one job.
+
+**T-538 done on 2026-09-29.** The `post_match` run of 2026-09-29 05:30 UTC failed
+whole on `incident_added_time_range`: a 2024/25 Europa League qualifier (provider
+fixture 1274782) went to a 34-kick shoot-out, and API-Football numbers the kicks
+as minute 120 with `extra` 1 to 34. The adapter passed kicks 31 to 34 on as added
+time, past the contract's thirty minutes, and the insert refused them. It now
+supplies no added time past thirty; the sequence still orders the kicks. That
+match's detail is asked again with the rest when the next adoption clears the
+backlog (D-079).

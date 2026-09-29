@@ -237,6 +237,9 @@ function ref(value: unknown): { externalId: string; name: string } | null {
   return externalId === null || name === null ? null : { externalId, name };
 }
 
+/** The contract's ceiling on stoppage time (`validate.ts`, the incident table). */
+const MAX_ADDED_TIME = 30;
+
 /**
  * `events` of one fixture. An event whose player the provider did not
  * identify cannot become an incident (the contract needs a player for every
@@ -261,12 +264,16 @@ export function mapIncidents(
     const related = ref(e.assist);
     if (kind !== 'var' && player === null) continue;
     if (kind === 'substitution' && related === null) continue;
+    // `extra` is stoppage time, except in a shoot-out, where the provider
+    // numbers the kicks as 120+1, 120+2, ... A long shoot-out passes the
+    // contract's thirty minutes (a 34-kick one aborted a whole post-match run,
+    // T-538); a number past it is not stoppage time, so it is not supplied.
     const extra = int(time.extra);
     out.push({
       fixtureExternalId,
       sequence: out.length + 1,
       minute,
-      addedTime: extra !== null && extra > 0 ? extra : null,
+      addedTime: extra !== null && extra > 0 && extra <= MAX_ADDED_TIME ? extra : null,
       kind,
       side,
       player,

@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { checkAdapterContract, loadScenarios } from '../../harness/contract-check';
+import { validateIncident } from '../../harness/validate';
 import { createApiFootballAdapter } from './index';
 import {
   absenceKind,
@@ -296,6 +297,25 @@ describe('mapping rules', () => {
       [4, 'var', 'away', null],
     ]);
     expect(incidents[2]?.relatedPlayer).toEqual({ externalId: '5', name: 'On' });
+  });
+
+  it('keeps a long shoot-out inside the contract: a kick past 120+30 has no added time (T-538)', () => {
+    const kick = (extra: number) => ({
+      time: { elapsed: 120, extra },
+      team: { id: 44 },
+      player: { id: 7, name: 'Taker' },
+      assist: { id: null, name: null },
+      type: 'Goal',
+      detail: 'Penalty',
+    });
+    const incidents = mapIncidents([kick(1), kick(30), kick(31), kick(34)], '1', '44');
+    expect(incidents.map((i) => [i.sequence, i.minute, i.addedTime])).toEqual([
+      [1, 120, 1],
+      [2, 120, 30],
+      [3, 120, null],
+      [4, 120, null],
+    ]);
+    expect(incidents.flatMap((i) => validateIncident(i))).toEqual([]);
   });
 });
 
