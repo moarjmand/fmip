@@ -1,3 +1,4 @@
+import type { LocaleHoldRecord } from '@fmip/contracts';
 import { DEFAULT_LOCALE, LOCALES, type Locale, isPseudoLocale } from '@/i18n/locales';
 import { EN, type Coverage, TRANSLATION_FILES, coverage, isShippable } from '@/i18n/messages';
 
@@ -9,9 +10,10 @@ import { EN, type Coverage, TRANSLATION_FILES, coverage, isShippable } from '@/i
  * nothing here computes a second version of them: a second arithmetic would
  * be a second answer to the same question, and the day the two disagreed the
  * operator and the translator would be reading different truths about the
- * same file. `offered` is `isShippable`, the same test the picker (T-306) will
- * use, so what the operator reads as "not yet offered" is exactly what a
- * reader is not shown.
+ * same file. `ready` is `isShippable`; `offered` is ready and not held back
+ * by an administrator (T-1163, D-155) -- the same test the picker (T-306) and
+ * the first run use, so what the operator reads as "not offered" is exactly
+ * what a reader is not shown.
  */
 export interface LanguageRow {
   locale: Locale;
@@ -22,6 +24,11 @@ export interface LanguageRow {
   coverage: Coverage;
   /** Whole percent of keys that are done, rounded down: 94.9% is not 95%. */
   percent: number;
+  /** The catalogue passes `isShippable`. */
+  ready: boolean;
+  /** The hold in force, if an administrator holds this language back (T-1163). */
+  hold: LocaleHoldRecord | null;
+  /** Ready and not held: what readers are offered. */
   offered: boolean;
 }
 
@@ -44,8 +51,19 @@ const NAME_KEY = {
   tr: 'language.name.tr',
 } as const satisfies Record<Exclude<Locale, 'x-rtl'>, keyof typeof EN>;
 
-/** One row per real locale, English first, the rest in the order they ship. */
-export function languageRows(): LanguageRow[] {
+/**
+ * One row per real locale, English first, the rest in the order they ship.
+ * `holds` is the console's list of holds (any order, released ones too);
+ * `null` when it could not be read, and then no language but English is
+ * shown as offered, as the web offers none (`language-hold.ts`).
+ */
+export function languageRows(
+  holds: readonly LocaleHoldRecord[] | null = [],
+  shippable: (locale: Locale) => boolean = isShippable,
+): LanguageRow[] {
+  const inForce = new Map(
+    (holds ?? []).filter((h) => h.released_at === null).map((h) => [h.locale, h]),
+  );
   return LOCALES.filter((locale) => !isPseudoLocale(locale)).map((locale) => {
     const key = NAME_KEY[locale as keyof typeof NAME_KEY];
     const c = coverage(locale);
@@ -59,7 +77,11 @@ export function languageRows(): LanguageRow[] {
       name: EN[key],
       coverage: c,
       percent: Math.floor(((c.total - c.untranslated) / c.total) * 100),
-      offered: isShippable(locale),
+      ready: shippable(locale),
+      hold: inForce.get(locale) ?? null,
+      offered:
+        shippable(locale) &&
+        (locale === DEFAULT_LOCALE || (holds !== null && !inForce.has(locale))),
     };
   });
 }

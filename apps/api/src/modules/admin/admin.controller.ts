@@ -167,6 +167,7 @@ export class AdminController {
   @Get('audit')
   async audit(
     @Query('limit') limit: unknown,
+    @Query('member') member: unknown,
     @Req() request: FastifyRequest,
   ): Promise<AuditResponse> {
     await this.administrator(request);
@@ -174,7 +175,13 @@ export class AdminController {
     const n = typeof raw === 'string' && /^\d{1,3}$/.test(raw) ? Number(raw) : undefined;
     if (n !== undefined && (n < 1 || n > 200))
       invalid({ limit: 'Must be a whole number from 1 to 200.' });
-    return { records: await this.admin.audit(n) };
+    // T-1164: the rows about one member, for their page in the console.
+    const who = Array.isArray(member) ? member[0] : member;
+    if (who !== undefined && (typeof who !== 'string' || !UUID.test(who)))
+      invalid({ member: "Must be a member's id." });
+    return {
+      records: await this.admin.audit(n, typeof who === 'string' ? who.toLowerCase() : null),
+    };
   }
 
   private async administrator(request: FastifyRequest) {

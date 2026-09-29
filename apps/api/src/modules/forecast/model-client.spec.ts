@@ -155,6 +155,29 @@ describe('ModelClient', () => {
     );
     expect(await drifted.candidates()).toMatchObject({ ok: false, kind: 'contract' });
   });
+
+  it('reads the candidates /health lists, and a drifted or absent list as not reported (T-1165)', async () => {
+    const health = (extra: Record<string, unknown>) =>
+      clientWith(
+        () =>
+          new Response(
+            JSON.stringify({
+              status: 'ok',
+              service: 'model',
+              model_version: 'dixon-coles-elo@0.1.0',
+              checked_at: '2026-09-29T10:00:00Z',
+              ...extra,
+            }),
+          ),
+      ).health();
+    const listed = await health({ candidate_versions: ['dixon-coles-elo@0.5.0'] });
+    expect(listed.ok && listed.data.candidate_versions).toEqual(['dixon-coles-elo@0.5.0']);
+    for (const extra of [{}, { candidate_versions: [1] }, { candidate_versions: 'x' }]) {
+      const result = await health(extra);
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.data.candidate_versions).toBeUndefined();
+    }
+  });
 });
 
 // The live half of the contract: a running model service, when there is one

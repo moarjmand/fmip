@@ -3,6 +3,8 @@ import { IdentityModule } from '../identity/identity.module';
 import { IngestionModule } from '../ingestion/ingestion.module';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
+import { CompetitionOrderController } from './competition-order.controller';
+import { PostgresCompetitionOrderStore } from './internal/competition-order-store';
 import { PostgresAdminStore } from './internal/admin-store';
 
 /**
@@ -13,8 +15,8 @@ import { PostgresAdminStore } from './internal/admin-store';
  */
 @Module({
   imports: [IdentityModule, IngestionModule],
-  controllers: [AdminController],
-  providers: [AdminService, PostgresAdminStore],
+  controllers: [AdminController, CompetitionOrderController],
+  providers: [AdminService, PostgresAdminStore, PostgresCompetitionOrderStore],
   exports: [AdminService],
 })
 export class AdminModule {}

@@ -1,5 +1,7 @@
+import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { BrandMark } from '@/components/brand-mark';
+import { HeldLanguageNotice } from '@/components/held-language-notice';
 import { Translated } from '@/components/translated';
 import { LanguagePicker } from '@/components/language-picker';
 import { ThemeSwitch } from '@/components/theme-switch';
@@ -7,6 +9,8 @@ import { controlClasses } from '@/components/ui';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { attribute } from '@/i18n/messages';
 import { fetchMe } from '@/lib/api';
+import { readGuestChoices } from '@/lib/first-run-cookie';
+import { HELD_NOTICE_COOKIE, currentHolds, heldNotice, offeredGiven } from '@/lib/language-hold';
 import { offeredLanguages } from '@/lib/language-picker';
 import { logoutAction } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
@@ -30,7 +34,23 @@ import type { ThemePreference } from '@/lib/theme';
  * of every link, so every `data-testid` is still one element.
  */
 export async function SiteHeader({ locale, theme }: { locale: string; theme: ThemePreference }) {
-  const me = await fetchMe(await sessionCookieHeader());
+  const [me, holds, jar] = await Promise.all([
+    fetchMe(await sessionCookieHeader()),
+    currentHolds(),
+    cookies(),
+  ]);
+  // T-1163 (D-155): a reader whose stored language is held back is told
+  // once; the language they chose is kept, and the picker offers it again
+  // the day it is released.
+  const stored = me !== null ? me.preferred_language : (await readGuestChoices()).language;
+  const notice = heldNotice(
+    stored,
+    holds,
+    (() => {
+      const raw = jar.get(HELD_NOTICE_COOKIE)?.value;
+      return raw === undefined ? undefined : decodeURIComponent(raw);
+    })(),
+  );
   const href = (path: string) => `/${locale}${path}`;
   const search = attribute(isLocale(locale) ? locale : DEFAULT_LOCALE, 'nav.search');
   // A thumb-sized row in the phone menu; inline text again from `sm`.
@@ -145,8 +165,8 @@ export async function SiteHeader({ locale, theme }: { locale: string; theme: The
                 </form>
               </>
             )}
-            {/* Nothing until a second language is finished (T-306); see the component. */}
-            <LanguagePicker languages={offeredLanguages()} />
+            {/* Nothing until a second language is finished (T-306) and not held back (T-1163). */}
+            <LanguagePicker languages={offeredLanguages(offeredGiven(holds))} />
             {/* Light, dark or the device's own, on every page (T-602). */}
             <div className="py-2 sm:order-2 sm:py-0">
               <ThemeSwitch locale={locale} current={theme} variant="compact" />
@@ -154,6 +174,9 @@ export async function SiteHeader({ locale, theme }: { locale: string; theme: The
           </div>
         </details>
       </nav>
+      {notice !== null && stored !== null && stored !== undefined && (
+        <HeldLanguageNotice locale={locale} held={stored} value={notice} />
+      )}
     </header>
   );
 }

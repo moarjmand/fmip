@@ -82,7 +82,7 @@ export class LiveProbes implements WatchdogProbes, OnApplicationShutdown {
           return { requestsToday: health.requests_today, budget: health.request_budget };
         }),
         Promise.all(WATCHED_QUEUES.map((name) => this.failedSince(name, hourAgo))),
-        this.model(),
+        this.model(now),
         orUnreadable(async () => {
           const channels = this.delivery.describe();
           const outcomes = await this.store.deliveryOutcomes(hourAgo);
@@ -100,30 +100,66 @@ export class LiveProbes implements WatchdogProbes, OnApplicationShutdown {
         orUnreadable(() => this.dataQuality.liveContradictions(now)),
         orUnreadable(() => this.store.backupRuns()),
       ]);
-    const { model, elo } = health;
-    return { ingest, live, budget, queues, model, elo, delivery, dataQuality, backups };
+    const { model, elo, candidates } = health;
+    return {
+      ingest,
+      live,
+      budget,
+      queues,
+      model,
+      elo,
+      delivery,
+      dataQuality,
+      backups,
+      candidates,
+    };
   }
 
-  /** The model service's health check, and Club Elo's state it carries (T-920). */
-  private async model(): Promise<{
+  /**
+   * The model service's health check, Club Elo's state it carries (T-920),
+   * and the candidates it lists with whether each answers (T-1165).
+   */
+  private async model(now: Date): Promise<{
     model: Observations['model'];
     elo: NonNullable<Observations['elo']>;
+    candidates: NonNullable<Observations['candidates']>;
   }> {
     const url = (process.env.MODEL_SERVICE_URL ?? '').trim().toLowerCase();
     if (url === '' || url === NO_MODEL_SERVICE) {
-      return { model: { configured: false }, elo: { configured: false } };
+      return {
+        model: { configured: false },
+        elo: { configured: false },
+        candidates: { configured: false },
+      };
     }
     try {
       const health = await this.forecasts.modelHealth();
-      return health.ok
-        ? { model: { configured: true, ok: true }, elo: { source: health.eloSource } }
-        : {
-            model: { configured: true, ok: false, reason: health.reason },
-            elo: { unreadable: health.reason },
-          };
+      if (!health.ok) {
+        return {
+          model: { configured: true, ok: false, reason: health.reason },
+          elo: { unreadable: health.reason },
+          candidates: { unreadable: health.reason },
+        };
+      }
+      const offered = health.candidateVersions;
+      return {
+        model: { configured: true, ok: true },
+        elo: { source: health.eloSource },
+        candidates: {
+          offered,
+          health:
+            offered === null || offered.length === 0
+              ? new Map()
+              : await orUnreadable(() => this.forecasts.candidateShadow(now)),
+        },
+      };
     } catch (error: unknown) {
       const reason = why(error).unreadable;
-      return { model: { configured: true, ok: false, reason }, elo: { unreadable: reason } };
+      return {
+        model: { configured: true, ok: false, reason },
+        elo: { unreadable: reason },
+        candidates: { unreadable: reason },
+      };
     }
   }
 

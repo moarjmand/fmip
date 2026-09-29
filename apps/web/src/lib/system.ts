@@ -163,6 +163,8 @@ export function conditionName(key: string): string {
       return 'Restore drill (monthly)';
     case 'data_quality':
       return 'Live match data contradicting itself';
+    case 'candidate':
+      return `Candidate in shadow: ${target ?? '?'}`;
     default:
       return key;
   }

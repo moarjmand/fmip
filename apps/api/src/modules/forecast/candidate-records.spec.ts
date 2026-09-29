@@ -1,6 +1,6 @@
 import { PROMOTION_MINIMUM } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
-import { candidateRecords } from './internal/candidate-records';
+import { NEVER_ANSWERED, candidateRecords } from './internal/candidate-records';
 
 const NOW = new Date('2026-10-01T00:00:00Z');
 const COUNT = {
@@ -52,7 +52,27 @@ describe('candidateRecords (T-1103)', () => {
       'model_version',
       'pre_kickoff_awaiting',
       'pre_kickoff_evaluated',
+      'shadow',
       'unavailable',
     ]);
+  });
+
+  it('carries whether each answers, and a candidate with nothing stored as never answered (T-1165)', () => {
+    const answering = {
+      first_answered_at: '2026-09-20T10:00:00.000Z',
+      last_answered_at: '2026-09-30T10:00:00.000Z',
+      day: { asked: 6, failed: 1 },
+      last_failure: { at: '2026-09-30T09:00:00.000Z', fixture_id: 'f1' },
+    };
+    const report = candidateRecords(
+      [COUNT],
+      [],
+      ['dixon-coles-elo@0.5.0', 'dixon-coles-elo@0.6.0'],
+      NOW,
+      new Map([['dixon-coles-elo@0.5.0', answering]]),
+    );
+    expect(report.candidates[0]?.shadow).toEqual(answering);
+    expect(report.candidates[1]?.shadow).toEqual(NEVER_ANSWERED);
+    expect(NEVER_ANSWERED.first_answered_at).toBeNull();
   });
 });

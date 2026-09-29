@@ -133,4 +133,44 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('candidate re
     expect(pair?.candidate.log_loss).toBeCloseTo(-Math.log(0.6), 5);
     expect(pair?.published.log_loss).toBeCloseTo(-Math.log(0.5), 5);
   });
+
+  it('counts the forecasts a candidate stored nothing for, from its first answer on (T-1165)', async () => {
+    const store = new PostgresForecastStore(pool);
+    const shadowOnly = `shadow-${RUN}@0.7.0`;
+    const now = new Date('2037-06-11T12:00:00Z');
+    const at = (hoursBefore: number, seconds = 0) =>
+      new Date(now.getTime() - hoursBefore * 3_600_000 + seconds * 1000).toISOString();
+    const published = (iso: string) =>
+      store.record(version('published', PUBLISHED, iso, [0.5, 0.3, 0.2]));
+
+    // Before its first answer: never asked of it, so not a failure.
+    await published(at(96));
+    // Answered, outside the day.
+    await published(at(30));
+    await store.record(version('shadow', shadowOnly, at(30, 5), [0.4, 0.3, 0.3]));
+    // Nothing stored: a failure, inside the day.
+    await published(at(5));
+    // A refusal is an answer.
+    await published(at(2));
+    await store.record(version('shadow', shadowOnly, at(2, 10), null));
+    // The model service did not answer: no candidate was asked.
+    await store.record({
+      ...version('published', 'none@0.0.0', at(1), null),
+      unavailable: { reason: 'model_unreachable', detail: 'a test outage' },
+    });
+
+    const rows = await store.candidateShadow(
+      new Date(now.getTime() - 7 * 86_400_000),
+      new Date(now.getTime() - 86_400_000),
+      now,
+    );
+    const row = rows.find((r) => r.modelVersion === shadowOnly);
+    expect(row).toMatchObject({ dayAsked: 2, dayFailed: 1 });
+    expect(row?.firstAt.toISOString()).toBe(at(30, 5));
+    expect(row?.lastAt.toISOString()).toBe(at(2, 10));
+    expect(row?.lastFailure?.at.toISOString()).toBe(at(5));
+    expect(row?.lastFailure?.fixtureId).toBe(fixture);
+    // A version with nothing stored is absent: it has never answered.
+    expect(rows.find((r) => r.modelVersion === `never-${RUN}@0.8.0`)).toBeUndefined();
+  });
 });

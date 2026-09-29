@@ -205,6 +205,7 @@ describe('the web never renders a stored name or a tombstone handle directly', (
     'components/founder-analysis.tsx': "the founder's own signed analysis (rule 6)",
     'components/moderation-queue.tsx': STAFF,
     'app/[locale]/admin/page.tsx': STAFF,
+    'app/[locale]/admin/members/[username]/page.tsx': STAFF,
     'app/[locale]/settings/page.tsx': "the member's own profile form",
     'lib/share-card.ts': 'public profiles only; a tombstone is private and never reaches it',
   };
@@ -221,6 +222,7 @@ describe('the web never renders a stored name or a tombstone handle directly', (
     'components/contributors-admin.tsx': STAFF,
     'components/moderation-queue.tsx': STAFF,
     'app/[locale]/admin/page.tsx': STAFF,
+    'app/[locale]/admin/members/[username]/page.tsx': STAFF,
     'app/[locale]/admin/moderation/[username]/page.tsx': STAFF,
     'app/[locale]/admin/moderation/groups/[slug]/page.tsx': STAFF,
   };
