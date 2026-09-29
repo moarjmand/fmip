@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { ErrorPageBody, errorPageLocale } from '@/components/error-page';
+import { ErrorPageBody, errorPageLocale, useErrorPageMessages } from '@/components/error-page';
 
 /**
  * A page that failed to render, inside the locale (T-809). The boundary sits
@@ -16,5 +16,7 @@ export default function LocaleError({
   retry: () => void;
 }) {
   const params = useParams<{ locale?: string }>();
-  return <ErrorPageBody locale={errorPageLocale(params?.locale)} kind="failed" onRetry={retry} />;
+  const locale = errorPageLocale(params?.locale);
+  const messages = useErrorPageMessages(locale);
+  return <ErrorPageBody locale={locale} kind="failed" messages={messages} onRetry={retry} />;
 }
