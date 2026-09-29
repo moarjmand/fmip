@@ -205,34 +205,42 @@ and the rules version with its backfill (T-931). Two of its tasks and Phase 6's 
 matches, which resume on 2026-10-08, and two wait for the past-season
 backlog. Eight questions are listed under "Needs a decision".
 
-**Where it stands (2026-09-29).** Twenty-one tasks are built, merged and on the server (#376-#400): notifications carried a page at a time (a kick-off of 90 matches to 10,000 members in 53 s on the laptop) and campaigns emitted a page at a time; one `forbidden` code for every 403; "a deleted member" on every surface; the past-season findings diagnosed as adoption lag (D-109), with bulk review and a budgeted re-ask in the console; Club Elo's state on the System page, an Elo from our own records, and candidate `dixon-coles-elo@0.5.0` in shadow with it (better than no prior in 8 of 10 divisions; the server holds no Club Elo rows, so "own, always" stands); the scores card's three product lines, the story page's share, follow and product links, leaders for assists, clean sheets and cards, the team's manager and news, following a match, and achievement notifications. Open: the send pool measured on the server (T-902), the homepage (T-942), T-914 once a season is fully adopted, T-923 and T-924 (the backlog), T-925 and T-926 (match days), and T-930 and T-931 (the maintainer's yes).
+**Where it stands (2026-09-29).** Twenty-two tasks are built, merged and on the server (#376-#402): notifications carried a page at a time (a kick-off of 90 matches to 10,000 members in 53 s on the laptop) and campaigns emitted a page at a time; one `forbidden` code for every 403; "a deleted member" on every surface; the past-season findings diagnosed as adoption lag (D-109), with bulk review and a budgeted re-ask in the console; Club Elo's state on the System page, an Elo from our own records, and candidate `dixon-coles-elo@0.5.0` in shadow with it (better than no prior in 8 of 10 divisions; the server holds no Club Elo rows, so "own, always" stands); the scores card's three product lines, the story page's share, follow and product links, leaders for assists, clean sheets and cards, the team's manager and news, following a match, achievement notifications, and the member's homepage with friends' calls, group discussions, today's panels and viewing (T-942). Open: the send pool measured on the server (T-902), T-914 once a season is fully adopted, T-923 and T-924 (the backlog), T-925 and T-926 (match days), and T-930 and T-931 (the maintainer's yes).
 
-## After Phase 9 — outline
+## Phase 10 — News depth and community depth
+
+- News sorted by what it is: story types from the publisher's own category
+  or an editor, never a machine; filters by type, player and date; an
+  editor's "breaking" mark with a homepage strip and an opt-in alert; trending
+  that counts saves; persons linked to stories, so the player page has
+  related news and current availability; each competition's news coverage
+  stated.
+- The translator's desk on the web over T-304's API, with automatic checks
+  that numbers, scorelines, names and links survive, a shared glossary and
+  translation memory. Tooling only: the words stay the translators'.
+- Groups run by their owners: who may invite, invite links, written rules, a
+  language and a favourite, removing content; administrators closing a
+  group with a reason.
+- A panel post linked to one incident, player, prediction or statistic, and a
+  contributor below the threshold for a sustained period flagged to
+  administrators, never paused automatically.
+
+**Planned in `04-tasks-phase-10.md`** (2026-09-29, from a comparison of
+blueprint 2.3, 3, 5.3, 8, 9.4, 10, 12 and 13 against what is built). Four
+epics and twenty-three tasks (this plan included). Decision numbers D-123 to
+D-137 and migration timestamps from `1764900000000` are assigned in the
+plan. Everything is buildable by an agent; T-1031's sustained period is the
+maintainer's policy, built with a stated proposal. Injury and suspension
+alerts were dropped from the outline because `match_availability` (D-100)
+already sends them. Eight questions are listed under "Needs a decision",
+among them machine-labelled story types (Phase 9's N-8), transfer and
+injury feeds, and whether a translation of a publisher's words is within
+the feeds' terms.
+
+## After Phase 10 — outline
 
 Not planned as tasks. Each bullet becomes a task file when its phase starts,
 from the blueprint and whatever operation has taught by then.
-
-**Phase 10 — News depth and community depth.**
-
-- Story types from the publisher's own category where the feed carries one;
-  news filters by story type, player and date (3.2); an editor's "breaking"
-  mark with an opt-in alert and a homepage strip (2.3, 12.2); transfer and
-  injury alerts for followed teams (12.2). Machine labelling waits on
-  Phase 9's N-8.
-- News linked to players, so that the player page has related news (5.3).
-  This needs a person-linking rule the clustering deliberately does not have
-  today (T-142).
-- Trending that counts saves beside discussion (3.1).
-- The translator's desk on the web for article versions (T-304 has the API
-  only), with automatic checks that numbers, scorelines, entity names and
-  links survive a translation, and a shared glossary (13.1, 13.2). The
-  tooling only: the words stay the translators' (T-305).
-- Groups: invite links, an owner's rule on who may invite, and membership
-  rules (8.2). Administrators closing a group and removing group content with
-  a reason (10.4). Panel posts linked to an incident, a player or a
-  prediction (10.2).
-- A contributor whose rating stays below the threshold for a sustained period
-  is flagged to administrators, never paused automatically (9.4).
 
 **Phase 11 — Model depth and the console's configuration.**
 
@@ -246,7 +254,8 @@ from the blueprint and whatever operation has taught by then.
 
 **Waiting on the maintainer, in no phase until answered:** Phase 8's N-1
 (T-806), N-2 (point-in-time recovery), N-4 (a copy of my data), N-5 (predicted
-line-ups) and N-6 (women's and youth football); Phase 9's N-3 to N-6 and N-8;
+line-ups) and N-6 (women's and youth football); Phase 9's N-3 to N-6; Phase
+10's N-1 to N-8;
 the language model's key (T-400) and the Telegram channel (T-524).
 
 **After Phase 11, nothing in the blueprint is left unplanned** except what an
