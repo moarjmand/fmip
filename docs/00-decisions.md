@@ -4643,91 +4643,6 @@ version is `clubelo_then_own`, as 0.5.1 with its own record. 0.5.0 is not
 edited (rule 5, D-082). Promotion is T-535's evaluation (D-120), never this
 table.
 
-## D-118 — Leaders beyond goals: assists, clean sheets and cards, each a stated rule
-**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
-
-**Decision.** T-943 adds three boards to the competition page beside the
-scorers (blueprint 5.1). Each is its own `Covered` module in
-`CompetitionPage.boards`, computed from what the fixtures boundary already
-stores. No provider request is added.
-
-- **Assists.** A goal or penalty goal whose `related_person_id` names a
-  player is that player's assist, credited to the scoring side. Own goals
-  are nobody's. The board takes the season's declared `incidents` state.
-  When the season's goals name no assist at all, the board is
-  `not_supplied`: a list of nobody would read as a season without assists.
-- **Clean sheets.** A side of a finished match with a score is *judged* when
-  its line-up names exactly one starter at `goalkeeper`. That keeper keeps a
-  clean sheet when the other side's latest score is nil (`current`, else
-  `full_time`: extra time counts, a shoot-out does not) and the keeper
-  finished the match: no substitution took them off and no red card (or
-  second yellow) sent them off. A substitute keeper who finishes a nil is not
-  credited, because they did not start. Each row also carries
-  `starts_in_goal`, the judged matches the keeper started. The board takes
-  the declared `lineups` state. It is `limited` when some finished sides
-  could not be judged, because the list may be missing a keeper, and
-  `not_supplied` when none could. Judged sides with no clean sheet are an
-  empty list, not an absence.
-- **Cards.** `yellow_card` is a yellow; `red_card` and `second_yellow_card`
-  are reds, exactly as the player page counts them. The board is ranked by
-  reds, then yellows, then name, under the declared `incidents` state.
-- **The minutes floor.** `?min_minutes=` (T-824) applies to every board
-  under the scorers' rule (`reachesFloor`). `boards.unproven` counts, per
-  board, the players left out because their minutes cannot show the floor,
-  and a board with any left out is `limited`.
-- **Rows.** Each row is one person for one team, as the scorers are, so a
-  mid-season move gives two rows. The minutes are the person's in that
-  season for every team (T-824). Ten rows per board.
-
-**Alternatives considered.** Crediting a clean sheet to every keeper who
-played in a nil, or splitting it by minutes: the plan names the keeper who
-started and finished. A board of zeros for a season whose feed sends no
-assists: rule 3 forbids it. A disciplinary points scale (yellow 1, red 3): a
-weighting nobody asked for, where two plain counts say more.
-
-**Consequences.** `LeaderBoards`, `BoardPlayer`, `AssistLeader`,
-`CleanSheetLeader` and `CardLeader` are in the contract.
-`StandingsService.boards` is the standings boundary's answer; the catalog
-adds minutes and the floor. No migration: the plan's row names none.
-
-## D-119 — The manager is the coach on the team's latest line-up; news on entity pages is the news boundary's linking
-**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
-
-**Decision.** T-944 fills the team page's manager and the team and
-competition pages' news (blueprint 5.1, 5.2) from what is already stored. No
-provider request is added.
-
-- **The manager.** The coach the feed named (`fixture_participant.coach_id`)
-  on the team's most recent stored line-up: the latest kick-off among the
-  team's matches whose side has a line-up row or a named coach. It is shown
-  as a fact about that match, with a link to it (`TeamManager.lineup_fixture`).
-  When that line-up names no coach, `coach` is `not_supplied` and the page
-  says the latest line-up names none. An older coach is never carried
-  forward, because a club that changed manager would then show the wrong
-  one as current. When the team has no stored line-up, `lineup_fixture` is
-  null and the page says so. Coaching spells are not read: nothing ingests
-  them, so a spell would be a guess.
-- **News.** `GET /teams/:id/news` and `GET /competitions/:id/news` are the
-  news page's latest cards (`ENTITY_NEWS_LIMIT`, five) for stories any of
-  whose reports the news boundary linked to that team or competition
-  (`article_entity`, the same links the `team` and `competition` filters
-  read), newest first, under the same rights (D-061). As on the match page
-  (T-145): `not_supplied` with `feeds_unread` until the feeds have been read
-  at all, then `available`, possibly empty with `nothing_linked`. An unknown
-  id is 404. The routes live in the news module, which still imports nothing
-  from the football boundaries (rule 9): it checks the id against the table
-  directly, as `forFixture` does.
-
-**Alternatives considered.** The latest coach named on any line-up: it
-survives a sacking. Reading `/news?section=latest&team=`: before the feeds
-are read it answers an available empty list, which on an entity page would
-read as "nobody wrote about this club". A window around today, as the match
-page has around kick-off: a club's latest story is news whenever it was
-written, and the list is short.
-
-**Consequences.** `TeamPage.manager` (`TeamManager`), `EntityNewsResponse`
-and `ENTITY_NEWS_LIMIT` are in the contract. No migration.
-
 ## D-114 — The scores card summarises the model's latest pre-kick-off version, the community's totals at D-052's floor, and viewing in the viewer's own territory
 
 **Date:** 2026-09-29 · **Task:** T-940 · **Status:** accepted
@@ -4775,6 +4690,75 @@ adds after load says its lines were not loaded. The T-808 budgets in
 one payload holding two prediction products, which T-136 already refused
 (rule 6), and a heavier stream on every snapshot. Showing the latest version
 whatever its time: simpler, and wrong for every match in play.
+
+## D-115 — The member's homepage: friends' calls under their own visibility, active group discussions, today's panels, and viewing in the member's territory
+
+**Date:** 2026-09-29 · **Task:** T-942 · **Status:** accepted (revisable under the standing delegation of 2026-09-26)
+
+Blueprint 2.3 asks the homepage for friends' recent predictions, active
+private-group discussions, public match discussions from approved
+contributors, and official viewing for relevant matches. Each needed a
+judgement about whose activity, how recent, and who may see it.
+
+**Friends' predictions: exactly a friend's own history visibility (D-063).**
+`GET /me/friends/predictions` takes the viewer's accepted, active friends
+(`SocialService.friendIds`), asks the profile boundary which of them this
+viewer may read (`predictionHistoryAudience`, the same `canView` on
+`prediction_history_visibility` as `GET /users/:username/predictions`), and
+reads only those. A `public` or `friends` history is shown to a friend; a
+`private` one never is; a stranger's never is, whatever their setting; the
+viewer's own is not "a friend's". The pick is shown, before kick-off too,
+because the friend's profile already shows it (D-063's recorded
+consequence); only notifications withhold the pick (D-100). Each call is the
+standing version with the **stored** settlement, never recomputed. "Recent"
+is the latest version submitted in the last 7 days, newest first, at most 10.
+`predictionHistoryAudience` now reads the viewer's friends once for the set
+(`FriendshipOracle.friendIds`) instead of asking once per friends-only member,
+so every caller of it -- the boards included -- asks one query, not N.
+
+**Group discussions: the membership every conversation read already asks
+(D-058).** `GET /me/group-discussions` is the viewer's group conversations and
+match threads with a message in the last 48 hours, newest message first, at
+most 5, as the same `ConversationSummary` `/me/conversations` answers. A muted
+one is left out: a member who muted it asked not to be drawn to it.
+
+**Today's panels: public, for everybody.** `GET /panels/latest?fixture=…`
+(no session, up to 50 ids) answers, per known match, the panel state, total
+and its newest three posts that still stand. Removed posts are left out of an
+excerpt (a tombstone with nothing around it says nothing) while `total` still
+counts them. The homepage asks it for the matches that kick off today in the
+reader's zone and lists the three panels most recently written on. A guest
+sees this section too: the panel is already public, and it is not a member
+section.
+
+**Viewing: the member's stored territory only (D-114).** The listed live and
+upcoming matches carry the scores card's viewing line, from one
+`GET /viewing?fixture=` for the list. A member with no territory is asked
+once, not on every line. A guest's viewing is not asked for at all.
+
+**What a reader is told.** A guest sees none of the member sections and is not
+told they are empty. A member section with nothing in it says so once; one
+that could not be loaded says that instead (rule 3). Friends' calls are
+labelled as members' own and sit in their own section, never beside,
+averaged with or relabelled as the model's forecast or the community
+consensus (rule 6).
+
+**Keeping the page fast.** Each section is one request for the whole page,
+issued in parallel with the forecast and table requests, and each answer is a
+fixed number of queries whatever the number of friends, groups or matches.
+The T-808 budgets in `apps/web/perf-budgets.json` are unchanged (the budgeted
+request is a guest's, which gains one panel request in the same parallel
+round).
+
+**No migration.** T-942 had none assigned and needed none.
+
+**Alternatives considered.** One `/me/home` endpoint composing every section:
+a module importing five boundaries' internals, and one payload holding a
+member product beside the others. Showing a friend's call regardless of their
+setting because the viewer is a friend: a second visibility rule, which D-063
+exists to refuse. Showing removed posts as tombstones in the excerpt: honest on
+the panel, noise on a homepage line.
+
 
 ## D-116 — Following a match: its alerts under the member's own switches, once, until three hours after full-time
 **Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
@@ -4896,74 +4880,90 @@ and `notificationPath` opens `#achievements`. No new route, write or setting.
 
 
 
-## D-115 — The member's homepage: friends' calls under their own visibility, active group discussions, today's panels, and viewing in the member's territory
+## D-118 — Leaders beyond goals: assists, clean sheets and cards, each a stated rule
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
 
-**Date:** 2026-09-29 · **Task:** T-942 · **Status:** accepted (revisable under the standing delegation of 2026-09-26)
+**Decision.** T-943 adds three boards to the competition page beside the
+scorers (blueprint 5.1). Each is its own `Covered` module in
+`CompetitionPage.boards`, computed from what the fixtures boundary already
+stores. No provider request is added.
 
-Blueprint 2.3 asks the homepage for friends' recent predictions, active
-private-group discussions, public match discussions from approved
-contributors, and official viewing for relevant matches. Each needed a
-judgement about whose activity, how recent, and who may see it.
+- **Assists.** A goal or penalty goal whose `related_person_id` names a
+  player is that player's assist, credited to the scoring side. Own goals
+  are nobody's. The board takes the season's declared `incidents` state.
+  When the season's goals name no assist at all, the board is
+  `not_supplied`: a list of nobody would read as a season without assists.
+- **Clean sheets.** A side of a finished match with a score is *judged* when
+  its line-up names exactly one starter at `goalkeeper`. That keeper keeps a
+  clean sheet when the other side's latest score is nil (`current`, else
+  `full_time`: extra time counts, a shoot-out does not) and the keeper
+  finished the match: no substitution took them off and no red card (or
+  second yellow) sent them off. A substitute keeper who finishes a nil is not
+  credited, because they did not start. Each row also carries
+  `starts_in_goal`, the judged matches the keeper started. The board takes
+  the declared `lineups` state. It is `limited` when some finished sides
+  could not be judged, because the list may be missing a keeper, and
+  `not_supplied` when none could. Judged sides with no clean sheet are an
+  empty list, not an absence.
+- **Cards.** `yellow_card` is a yellow; `red_card` and `second_yellow_card`
+  are reds, exactly as the player page counts them. The board is ranked by
+  reds, then yellows, then name, under the declared `incidents` state.
+- **The minutes floor.** `?min_minutes=` (T-824) applies to every board
+  under the scorers' rule (`reachesFloor`). `boards.unproven` counts, per
+  board, the players left out because their minutes cannot show the floor,
+  and a board with any left out is `limited`.
+- **Rows.** Each row is one person for one team, as the scorers are, so a
+  mid-season move gives two rows. The minutes are the person's in that
+  season for every team (T-824). Ten rows per board.
 
-**Friends' predictions: exactly a friend's own history visibility (D-063).**
-`GET /me/friends/predictions` takes the viewer's accepted, active friends
-(`SocialService.friendIds`), asks the profile boundary which of them this
-viewer may read (`predictionHistoryAudience`, the same `canView` on
-`prediction_history_visibility` as `GET /users/:username/predictions`), and
-reads only those. A `public` or `friends` history is shown to a friend; a
-`private` one never is; a stranger's never is, whatever their setting; the
-viewer's own is not "a friend's". The pick is shown, before kick-off too,
-because the friend's profile already shows it (D-063's recorded
-consequence); only notifications withhold the pick (D-100). Each call is the
-standing version with the **stored** settlement, never recomputed. "Recent"
-is the latest version submitted in the last 7 days, newest first, at most 10.
-`predictionHistoryAudience` now reads the viewer's friends once for the set
-(`FriendshipOracle.friendIds`) instead of asking once per friends-only member,
-so every caller of it -- the boards included -- asks one query, not N.
+**Alternatives considered.** Crediting a clean sheet to every keeper who
+played in a nil, or splitting it by minutes: the plan names the keeper who
+started and finished. A board of zeros for a season whose feed sends no
+assists: rule 3 forbids it. A disciplinary points scale (yellow 1, red 3): a
+weighting nobody asked for, where two plain counts say more.
 
-**Group discussions: the membership every conversation read already asks
-(D-058).** `GET /me/group-discussions` is the viewer's group conversations and
-match threads with a message in the last 48 hours, newest message first, at
-most 5, as the same `ConversationSummary` `/me/conversations` answers. A muted
-one is left out: a member who muted it asked not to be drawn to it.
+**Consequences.** `LeaderBoards`, `BoardPlayer`, `AssistLeader`,
+`CleanSheetLeader` and `CardLeader` are in the contract.
+`StandingsService.boards` is the standings boundary's answer; the catalog
+adds minutes and the floor. No migration: the plan's row names none.
 
-**Today's panels: public, for everybody.** `GET /panels/latest?fixture=…`
-(no session, up to 50 ids) answers, per known match, the panel state, total
-and its newest three posts that still stand. Removed posts are left out of an
-excerpt (a tombstone with nothing around it says nothing) while `total` still
-counts them. The homepage asks it for the matches that kick off today in the
-reader's zone and lists the three panels most recently written on. A guest
-sees this section too: the panel is already public, and it is not a member
-section.
+## D-119 — The manager is the coach on the team's latest line-up; news on entity pages is the news boundary's linking
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
 
-**Viewing: the member's stored territory only (D-114).** The listed live and
-upcoming matches carry the scores card's viewing line, from one
-`GET /viewing?fixture=` for the list. A member with no territory is asked
-once, not on every line. A guest's viewing is not asked for at all.
+**Decision.** T-944 fills the team page's manager and the team and
+competition pages' news (blueprint 5.1, 5.2) from what is already stored. No
+provider request is added.
 
-**What a reader is told.** A guest sees none of the member sections and is not
-told they are empty. A member section with nothing in it says so once; one
-that could not be loaded says that instead (rule 3). Friends' calls are
-labelled as members' own and sit in their own section, never beside,
-averaged with or relabelled as the model's forecast or the community
-consensus (rule 6).
+- **The manager.** The coach the feed named (`fixture_participant.coach_id`)
+  on the team's most recent stored line-up: the latest kick-off among the
+  team's matches whose side has a line-up row or a named coach. It is shown
+  as a fact about that match, with a link to it (`TeamManager.lineup_fixture`).
+  When that line-up names no coach, `coach` is `not_supplied` and the page
+  says the latest line-up names none. An older coach is never carried
+  forward, because a club that changed manager would then show the wrong
+  one as current. When the team has no stored line-up, `lineup_fixture` is
+  null and the page says so. Coaching spells are not read: nothing ingests
+  them, so a spell would be a guess.
+- **News.** `GET /teams/:id/news` and `GET /competitions/:id/news` are the
+  news page's latest cards (`ENTITY_NEWS_LIMIT`, five) for stories any of
+  whose reports the news boundary linked to that team or competition
+  (`article_entity`, the same links the `team` and `competition` filters
+  read), newest first, under the same rights (D-061). As on the match page
+  (T-145): `not_supplied` with `feeds_unread` until the feeds have been read
+  at all, then `available`, possibly empty with `nothing_linked`. An unknown
+  id is 404. The routes live in the news module, which still imports nothing
+  from the football boundaries (rule 9): it checks the id against the table
+  directly, as `forFixture` does.
 
-**Keeping the page fast.** Each section is one request for the whole page,
-issued in parallel with the forecast and table requests, and each answer is a
-fixed number of queries whatever the number of friends, groups or matches.
-The T-808 budgets in `apps/web/perf-budgets.json` are unchanged (the budgeted
-request is a guest's, which gains one panel request in the same parallel
-round).
+**Alternatives considered.** The latest coach named on any line-up: it
+survives a sacking. Reading `/news?section=latest&team=`: before the feeds
+are read it answers an available empty list, which on an entity page would
+read as "nobody wrote about this club". A window around today, as the match
+page has around kick-off: a club's latest story is news whenever it was
+written, and the list is short.
 
-**No migration.** T-942 had none assigned and needed none.
-
-**Alternatives considered.** One `/me/home` endpoint composing every section:
-a module importing five boundaries' internals, and one payload holding a
-member product beside the others. Showing a friend's call regardless of their
-setting because the viewer is a friend: a second visibility rule, which D-063
-exists to refuse. Showing removed posts as tombstones in the excerpt: honest on
-the panel, noise on a homepage line.
-
+**Consequences.** `TeamPage.manager` (`TeamManager`), `EntityNewsResponse`
+and `ENTITY_NEWS_LIMIT` are in the contract. No migration.
 
 ## D-123 — Story types: blueprint 3.2's eleven, from the publisher's own category by an exact committed mapping or from an editor, never from a machine
 **Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
@@ -6176,6 +6176,222 @@ so: the blueprint asks the weights to be validated, and the schedule was
 stored all along. A grid of rest weights: the candidates stay few and
 arguable, so that a winner is not noise.
 
+
+---
+
+## D-143 — League stakes: a side whose place in the table is locked, read without zones
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26) · **Task:** T-1120 · **Follows:** D-038, D-083, D-139
+
+**The problem.** Blueprint 6.3 lists "competition format and match state":
+a side with nothing left to play for may not play as its strength says.
+Which places matter (the title, Europe, relegation) is a league's zones, and
+zones are not stored (question N-2). The plan (T-1120) asks for a rule that
+needs none.
+
+**The decision.** An input, `league_stakes` (`fmip_model/inputs/league_stakes.py`),
+judged by D-139's harness and carried by no candidate until T-1150:
+
+- **Locked.** Before a league match, a side `T` is locked when, for every
+  other side `U`, either `points(U) > points(T) + 3 * left(T)` or `points(T) >
+  points(U) + 3 * left(U)`: nobody above can be caught and nobody below can
+  catch it. A possible level finish is never locked (goal difference could
+  turn it). The rule is zone-free: a locked side has nothing to win or lose in
+  the table wherever it stands, so the title, a European place and safety are
+  all covered once they are settled, and nothing is assumed about where a
+  zone's line is.
+- **The table** is computed from stored results strictly before the match's
+  day, three points a win (D-038). Point deductions are not stored and not
+  applied.
+- **Matches left** are the season's stored fixture list minus the matches
+  played. The list is read for sides and days only, never scores: a
+  football-data.co.uk season's rows in `training.match` (its pairings are
+  published before it starts), or, for our records, the league's `fixture`
+  rows whatever their status except cancelled. **A season gives no value
+  unless its list is a complete double round robin** (every side meets every
+  other once at home and once away). A split league (Scotland), a season with
+  play-offs in the list (Belgium), and a season still being loaded are
+  incomplete. A match whose season is missing an earlier result from what the
+  forecast knows gives no value either.
+- **The term.** Home goals move by `exp(b1 * home locked + b2 * away locked)`,
+  away goals by `exp(b1 * away locked + b2 * home locked)`, fitted per refit by
+  `FeatureInput` (time-weighted Poisson likelihood with the candidate's expected
+  goals as offsets). A match where neither side is locked has nothing to read
+  (its term would be zero) and is outside the sample, so the sample is the
+  matches with a locked side.
+
+**The verdict: `insufficient`.** Laptop, private database (a copy of the
+football-data.co.uk store, 10 divisions, loaded to 2026-09-20), window
+2024-08-01 to 2026-06-30 with history from 2023-07-01, against
+`dixon-coles-elo@0.5.0`:
+
+| Division | Matches in window | With a locked side (home / away / both) |
+|---|---|---|
+| E0 | 760 | 11 (5 / 6 / 0) |
+| SP1 | 760 | 19 (8 / 9 / 2) |
+| I1 | 760 | 10 (5 / 4 / 1) |
+| D1 | 612 | 10 (4 / 6 / 0) |
+| F1 | 612 | 14 (6 / 7 / 1) |
+| N1 | 612 | 11 (4 / 7 / 0) |
+| P1 | 612 | 4 (2 / 1 / 1) |
+| B1 | 615 | not read: play-offs in the list |
+| SC0 | 456 | not read: the split |
+| T1 | 648 | 15 (7 / 5 / 3) |
+| **Total** | **6,447** | **94 (1.5%)** |
+
+94 matches is below D-139's minimum of 300, so the football-data group is
+`insufficient` whatever the log loss says, and no candidate carries the input.
+The harness itself confirmed the first five divisions' counts (it reported
+11, 19, 10, 10 and 14 applied) before the laptop's shared CPU made the
+remaining fits too slow to finish; the counts above are the input's own
+`stakes` over the same matches. Even the store's third complete season would
+bring the sample to about 140. A locked side is rare because the rule asks
+for certainty: most "dead rubbers" are decided in practice (a side eight
+points clear with two to play is not yet locked) and are not read. Our
+records' divisions were not run here (none is loaded on the laptop). The
+lead's server run, from `/opt/fmip`, covers both groups:
+
+```bash
+DIVS=$(docker compose exec -T postgres psql -U fmip -d fmip -Atc "SELECT string_agg(DISTINCT division, ' ') FROM training.match WHERE division <> 'XL'")
+docker compose run --rm -T model sh -c "python -m fmip_model.backtest.inputs --input league_stakes --divisions $DIVS --from 2024-08-01 --to 2026-06-30 --history-from 2023-07-01 --out /tmp/reports --note server && cat /tmp/reports/*/inputs_league_stakes_*.md"
+```
+
+If that run passes the bar in a group (at least 300 applied there), this
+entry is amended and T-1150 may carry the input; otherwise it stays
+`insufficient`. League zones (N-2) would widen the sample to "nothing left in
+the zones that matter", which is a different input and needs the zones first.
+
+**Rejected.** *"Locked" on a margin smaller than certainty* (for example,
+five points with two to play): a guess at what a side believes, and a
+threshold chosen after seeing the numbers. *Zones from the feed's standings
+descriptions*: N-2, not stored. *Counting a match with no locked side as a
+zero-valued sample*: it would pass the 300 minimum on matches the term never
+touches, hiding how small the real sample is. *Using a season's list when it
+is not a double round robin*: in a split or play-off season "matches left" is
+not knowable from the list before the split is drawn.
+
+---
+
+## D-144 — The second leg of a tie is forecast given the first leg's score, from our records' cup ties
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26) · **Task:** T-1121 · **Follows:** D-083, D-085, D-139
+
+**The problem.** A second leg is not an ordinary match: a side two goals down
+must attack, a side two up can sit back, and a tie settled by the first leg is
+played at a lower intensity. The fit sees neither the tie nor its first leg.
+Blueprint 6.3 lists "competition format and match state"; football-data.co.uk
+carries no cups, so only our records can say it.
+
+**The decision.** An input, `second_leg` (`fmip_model/inputs/second_leg.py`),
+judged by D-139's harness and carried by no candidate until T-1150:
+
+- **A tie** is two fixtures of one cup season (`competition.kind <> 'league'`)
+  in the same round (the round label, else the stage's name), between the same
+  two clubs with the sides reversed, on different days, outside any group and
+  outside a round named as a group, league stage or phase, or regular season --
+  the pairing the bracket's `tieOf` makes (T-630). A continental round holding
+  the pair twice is two-legged, as the bracket takes it. A domestic cup's round
+  counts only when its stage says `legs = 2`, because a domestic replay is the
+  same pair reversed in the same round and is not a second leg. The later
+  fixture is the second leg.
+- **The feature.** `d`, the first leg's goal difference from the second leg's
+  home side's view (it was the away side then), capped at 3 either way. Home
+  goals move by `exp(b1 * d + b2 * |d|)`, away goals by `exp(-b1 * d + b2 *
+  |d|)`, the two coefficients fitted per refit by D-139's `FeatureInput`
+  (time-weighted Poisson likelihood with the candidate's expected goals as
+  offsets): `b1` is what a lead does to a side's own scoring, `b2` what a
+  lopsided tie does to both. A level first leg is a value (`d = 0`).
+- **Nothing is read** for a first leg, a single-leg round (a final, a domestic
+  tie), a pair that is not a tie by the rule above, or a second leg whose first
+  leg's result is not among what the forecast knows (matches strictly before
+  its day) -- so a tie whose legs share a day gives no value. The pairing is
+  read from `fixture` (rounds and sides are fixed by the draw, before either
+  leg); the first leg's score only ever from the harness's `known`. The score
+  is the full-time one (T-512).
+- **Where.** Only our records' cross-league division `XL` (T-533: every
+  competition that is not one domestic league) holds cup matches; the run is on
+  our records only, as the plan says.
+
+**The sample and the verdict.** Not run on our records yet: the laptop's
+private database holds only the football-data.co.uk divisions (no fixture
+rows), so there is no second leg to read and no verdict. The run on the
+server is the lead's; its report's "Applied" column is the number of second
+legs in the window, and this entry is amended with it and the verdict either
+way. Only knockout rounds of the cups we carry have second legs, and only as
+far back as the backlog has loaded them, so the sample may well be **below
+D-139's minimum of 300**: then the verdict is
+`insufficient`, and no candidate carries the input, because a coefficient
+fitted on fewer matches than the bar asks for would be noise the harness cannot
+tell from an effect. The two-season window below doubles the sample as far as
+the backlog has loaded past seasons. The server run, from `/opt/fmip`:
+
+```bash
+docker compose run --rm -T model sh -c "python -m fmip_model.backtest.inputs --input second_leg --divisions XL --from 2024-08-01 --to 2026-06-30 --history-from 2023-07-01 --out /tmp/reports --note server && cat /tmp/reports/*/inputs_second_leg_*.md"
+```
+
+**Rejected.** *The aggregate state as three flags (leading, level, trailing)*:
+the same information with less of it; the goal difference and its size carry
+it in two numbers. *Reading the first leg from `fixture_score` in `build`*: the
+harness's `known` is the boundary that keeps a forecast from seeing a result
+on or after its day, and every input keeps to it. *Treating every domestic
+pair met twice in a round as a tie*: replays would pass as second legs.
+*Extra time and penalties in the first leg's score*: a first leg has neither.
+
+---
+
+## D-145 — A match on neither club's usual ground is forecast without home advantage
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26) · **Task:** T-1122 · **Follows:** D-083, D-139
+
+**The problem.** The fit learns one home advantage per division and gives it
+to whichever side the fixture names at home. A final, a match moved to a third
+ground by a ban, or a cup tie played away from both clubs has no home side in
+any footballing sense, yet it is forecast as if the first-named club were at
+home. Blueprint 6.3 lists "competition format and match state" among the
+inputs; the plan (T-1122) asks for this one on our records.
+
+**The decision.** An input, `neutral_ground` (`fmip_model/inputs/neutral_ground.py`),
+judged by D-139's harness and carried by no candidate until T-1150:
+
+- **A club's usual ground** is the venue of most of its home league matches in
+  the league season that contains the match's day, or, after the league's last
+  day (a cup final in May), the latest season that ended within the year
+  before it. A tie for "most" gives every venue in it, so a ground two clubs
+  share is either club's usual ground.
+- **Neutral** is a stored venue that is neither side's usual ground. The home
+  side's log expected goals then lose the fitted `home_advantage`; the away
+  side's are unchanged. Nothing is fitted: the rule removes a parameter the
+  model already has.
+- **Nothing is read** -- the candidate's forecast, with today's home
+  advantage, stands and the match is outside the sample -- for a match with no
+  stored venue, or where either club has no usual ground (a club whose league
+  we do not carry). A match on either club's ground is not neutral and is
+  outside the sample too. In a served forecast (T-1150) such a match keeps its
+  home advantage and says so in its factors.
+- **Sources.** Venues come from `fixture.venue_id` (fixed when the match is
+  scheduled, not by its result). `fixture.is_neutral_venue` is not used:
+  ingestion always writes it false. football-data.co.uk carries no ground, so
+  only our records' divisions (`IR1`, and `XL`, T-533) can be read.
+
+**The sample and the verdict.** Not run on our records yet: the laptop's
+private database holds only the football-data.co.uk divisions (10,273 matches,
+no fixture or venue rows), where the input cannot be read on any match, so
+the group is `not run` and there is no verdict. The run on the server, where
+our records are, is the lead's; its report states the number of neutral
+matches, and this entry is amended with the verdict and the numbers either
+way. Expect few: finals and the odd relocated league match, likely below
+D-139's 300, in which case the verdict is `insufficient` and no candidate
+carries it. The server run, from `/opt/fmip`:
+
+```bash
+DIVS=$(docker compose exec -T postgres psql -U fmip -d fmip -Atc "SELECT string_agg(DISTINCT m.division, ' ') FROM training.match m JOIN training.source_load l ON l.id = m.source_load_id WHERE l.source = 'our_records'")
+docker compose run --rm -T model sh -c "python -m fmip_model.backtest.inputs --input neutral_ground --divisions $DIVS --from 2025-08-01 --to 2026-06-30 --history-from 2023-07-01 --out /tmp/reports --note server && cat /tmp/reports/*/inputs_neutral_ground_*.md"
+```
+
+**Rejected.** *Fitting a neutral-ground coefficient*: the sample is a few
+dozen matches a season, too few to fit a number that the rule already gives.
+*Halving the home advantage between the sides*: the fit's home advantage is
+the home side's alone (the away side's goals carry none), so removing it is
+the whole of "no home side". *Trusting `is_neutral_venue`*: nothing sets it.
+*The club's most frequent venue over all competitions*: a continental final
+would make its ground look usual for a club that reached two.
 
 ---
 
