@@ -8,6 +8,7 @@ import {
   apiQuery,
   entityHref,
   feedsStale,
+  isFiltered,
   pageHref,
   readNewsQuery,
   VERSION_STATUS_KEY,
@@ -26,6 +27,10 @@ describe('readNewsQuery', () => {
       competition: null,
       team: null,
       language: null,
+      type: null,
+      player: null,
+      from: null,
+      to: null,
       before: null,
     });
   });
@@ -57,8 +62,49 @@ describe('readNewsQuery', () => {
       competition: null,
       team: null,
       language: null,
+      type: null,
+      player: null,
+      from: null,
+      to: null,
       before: null,
     });
+  });
+});
+
+describe('the type, player and date filters (T-1003, D-124)', () => {
+  it('reads a known type, a player id and real calendar days, and drops anything else', () => {
+    const q = readNewsQuery({
+      type: 'transfer',
+      player: TEAM.toUpperCase(),
+      from: '2026-03-01',
+      to: '2026-03-31',
+    });
+    expect(q).toMatchObject({
+      type: 'transfer',
+      player: TEAM,
+      from: '2026-03-01',
+      to: '2026-03-31',
+    });
+    expect(isFiltered(q)).toBe(true);
+    expect(
+      readNewsQuery({ type: 'gossip', player: 'salah', from: '2026-02-30x', to: '31/03/2026' }),
+    ).toMatchObject({ type: null, player: null, from: null, to: null });
+    expect(isFiltered(readNewsQuery({ before: '2026-09-18T00:00:00Z' }))).toBe(false);
+  });
+
+  it("sends the viewer's zone only with a date, and keeps the filters on the page's links", () => {
+    const typed = readNewsQuery({ type: 'injury' });
+    expect(apiQuery(typed, 'Asia/Tehran')).toBe('?section=latest&type=injury');
+    const dated = readNewsQuery({ from: '2026-03-11', to: '2026-03-11' });
+    expect(apiQuery(dated, 'Asia/Tehran')).toBe(
+      `?section=latest&from=2026-03-11&to=2026-03-11&tz=${encodeURIComponent('Asia/Tehran')}`,
+    );
+    expect(pageHref('en', dated, { section: 'trending' })).toBe(
+      '/en/news?section=trending&from=2026-03-11&to=2026-03-11',
+    );
+    expect(pageHref('en', readNewsQuery({ player: TEAM, type: 'opinion' }), { player: null })).toBe(
+      '/en/news?type=opinion',
+    );
   });
 });
 

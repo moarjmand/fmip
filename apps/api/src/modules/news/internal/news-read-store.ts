@@ -7,7 +7,9 @@ import type {
   NewsRights,
   NewsStoryCard,
   ReviewState,
+  StoryLabelOrigin,
   StoryPage,
+  StoryType,
   VersionOrigin,
 } from '@fmip/contracts';
 import { Pool } from 'pg';
@@ -44,6 +46,12 @@ interface CardRow {
   homepage_url: string;
   rights: NewsRights;
   other_reports: number;
+  story_type: StoryType | null;
+  type_origin: StoryLabelOrigin | null;
+  labelled_at: Date | null;
+  breaking_note: string | null;
+  breaking_marked_at: Date | null;
+  breaking_ends_at: Date | null;
   at: Date;
   participants: number | null;
   /** Trending only (T-1008); the other sections do not select it. */
@@ -79,6 +87,28 @@ export class PostgresNewsReadStore {
       `SELECT max(finished_at) AS at FROM news_fetch WHERE status IN ('succeeded', 'partial')`,
     );
     return rows[0]?.at?.toISOString() ?? null;
+  }
+
+  /**
+   * With a type filter (T-1003, D-124): how many stories matching every other
+   * filter have no current type, so a reader is told what the filter cannot
+   * place rather than seeing a short list as the whole of it.
+   */
+  async untyped(filters: NewsFilters): Promise<number> {
+    const q = new Query({ ...filters, type: null }, null);
+    const { rows } = await this.pool.query<{ n: number }>(
+      `${q.storyCard()} SELECT count(*)::int AS n FROM story_card sc WHERE sc.story_type IS NULL`,
+      q.params,
+    );
+    return rows[0]?.n ?? 0;
+  }
+
+  /** Whether any report links any person yet (T-1006 writes them); a player filter needs one. */
+  async anyPersonLinked(): Promise<boolean> {
+    const { rows } = await this.pool.query<{ found: boolean }>(
+      `SELECT EXISTS (SELECT 1 FROM article_entity WHERE entity_type = 'person') AS found`,
+    );
+    return rows[0]?.found === true;
   }
 
   /** Newest first, by the publisher's time (else the fetch time); `before` pages back. */
@@ -164,6 +194,24 @@ export class PostgresNewsReadStore {
     );
   }
 
+  /**
+   * The stories marked breaking now (T-1004, D-125), newest mark first. The
+   * window is read here, against `now()`, so an expired mark is gone at the
+   * next render rather than at the next job.
+   */
+  async breaking(locale: string | null, limit: number): Promise<StoryPage_> {
+    const q = new Query(NO_FILTERS, locale);
+    return this.page(
+      q,
+      `SELECT sc.*, NULL::int AS participants, NULL::timestamptz AS debate_selected_at, NULL::text AS debate_note
+         FROM story_card sc
+        WHERE sc.breaking_ends_at IS NOT NULL
+        ORDER BY sc.breaking_marked_at DESC, sc.story_id
+        LIMIT ${q.param(limit)}`,
+      limit,
+    );
+  }
+
   /** What editors selected and have not cleared, newest selection first. */
   async debate(filters: NewsFilters, locale: string | null, limit: number): Promise<StoryPage_> {
     const q = new Query(filters, locale);
@@ -241,6 +289,9 @@ export class PostgresNewsReadStore {
               COALESCE((SELECT min(published_at) FROM article_version WHERE article_id = a.id),
                        a.fetched_at) AS at,
               (SELECT count(*)::int - 1 FROM article m WHERE m.story_id = s.id) AS other_reports,
+              lb.story_type, lb.origin AS type_origin, lb.created_at AS labelled_at,
+              br.note AS breaking_note, br.marked_at AS breaking_marked_at,
+              br.ends_at AS breaking_ends_at,
               NULL::int AS participants,
               d.selected_at AS debate_selected_at, d.note AS debate_note
          FROM story s
@@ -248,6 +299,10 @@ export class PostgresNewsReadStore {
          JOIN news_source src ON src.id = a.source_id AND src.dropped_at IS NULL
          JOIN LATERAL (${version('a', 'src.language')}) v ON TRUE
          LEFT JOIN story_debate d ON d.story_id = s.id AND d.cleared_at IS NULL
+         LEFT JOIN story_label lb ON lb.story_id = s.id AND lb.superseded_at IS NULL
+         LEFT JOIN LATERAL (SELECT note, marked_at, ends_at FROM story_breaking b
+                     WHERE b.story_id = s.id AND b.cleared_at IS NULL AND b.ends_at > now()
+                     ORDER BY b.marked_at DESC LIMIT 1) br ON TRUE
         WHERE s.id = $1`,
       [storyId, language],
     );
@@ -362,7 +417,7 @@ export class PostgresNewsReadStore {
     if (found === undefined) return null;
     const since = new Date(found.kickoff_at.getTime() - 7 * 24 * 60 * 60 * 1000);
     const until = new Date(found.kickoff_at.getTime() + 3 * 24 * 60 * 60 * 1000);
-    const q = new Query({ country: null, competition: null, team: null, language: null }, locale);
+    const q = new Query(NO_FILTERS, locale);
     const match = q.param(fixtureId);
     const teams = q.param(found.teams ?? []);
     const from = q.param(since.toISOString());
@@ -399,20 +454,25 @@ export class PostgresNewsReadStore {
     return rows[0]?.found === true;
   }
 
-  /** Whether any report links any person (D-126); until one does, a player's list is not a fact. */
-  async anyPersonLinked(): Promise<boolean> {
-    const { rows } = await this.pool.query<{ found: boolean }>(
-      `SELECT EXISTS (SELECT 1 FROM article_entity WHERE entity_type = 'person') AS found`,
-    );
-    return rows[0]?.found === true;
-  }
-
   /**
    * A player's related news (T-1007, D-127): stories any of whose reports
    * link the person, newest first, the latest section's cards.
    */
   async forPerson(personId: string, locale: string | null, limit: number): Promise<StoryPage_> {
-    const q = new Query({ country: null, competition: null, team: null, language: null }, locale);
+    const q = new Query(
+      {
+        country: null,
+        competition: null,
+        team: null,
+        language: null,
+        type: null,
+        player: null,
+        from: null,
+        to: null,
+        time_zone: 'UTC',
+      },
+      locale,
+    );
     return this.page(
       q,
       `SELECT sc.*, NULL::int AS participants, NULL::timestamptz AS debate_selected_at, NULL::text AS debate_note
@@ -460,6 +520,14 @@ export class PostgresNewsReadStore {
       },
       entities,
       other_reports: r.other_reports,
+      type:
+        r.story_type === null || r.type_origin === null || r.labelled_at === null
+          ? { coverage: 'not_supplied', last_updated_at: null, data: null }
+          : {
+              coverage: 'available',
+              last_updated_at: r.labelled_at.toISOString(),
+              data: { type: r.story_type, origin: r.type_origin },
+            },
       discussion:
         r.participants === null
           ? null
@@ -472,6 +540,14 @@ export class PostgresNewsReadStore {
         r.debate_selected_at === null || r.debate_note === null
           ? null
           : { selected_at: r.debate_selected_at.toISOString(), note: r.debate_note },
+      breaking:
+        r.breaking_note === null || r.breaking_marked_at === null || r.breaking_ends_at === null
+          ? null
+          : {
+              note: r.breaking_note,
+              marked_at: r.breaking_marked_at.toISOString(),
+              ends_at: r.breaking_ends_at.toISOString(),
+            },
     };
   }
 
@@ -515,6 +591,19 @@ export class PostgresNewsReadStore {
   }
 }
 
+/** No filter at all: the match page's related news reads every story. */
+export const NO_FILTERS: NewsFilters = {
+  country: null,
+  competition: null,
+  team: null,
+  language: null,
+  type: null,
+  player: null,
+  from: null,
+  to: null,
+  time_zone: 'UTC',
+};
+
 /**
  * The card every section starts from, with the filters folded into its WHERE
  * and the parameters numbered as they are added. Building the text and the
@@ -539,6 +628,27 @@ class Query {
       this.where.push(`EXISTS (SELECT 1 FROM article m JOIN article_entity e ON e.article_id = m.id
          WHERE m.story_id = s.id AND e.entity_type = 'competition' AND e.entity_id = ${this.param(filters.competition)}::uuid)`);
     }
+    if (filters.type !== null) {
+      this.where.push(`EXISTS (SELECT 1 FROM story_label fl
+         WHERE fl.story_id = s.id AND fl.superseded_at IS NULL AND fl.story_type = ${this.param(filters.type)}::text)`);
+    }
+    if (filters.player !== null) {
+      this.where.push(`EXISTS (SELECT 1 FROM article m JOIN article_entity e ON e.article_id = m.id
+         WHERE m.story_id = s.id AND e.entity_type = 'person' AND e.entity_id = ${this.param(filters.player)}::uuid)`);
+    }
+    // T-1003 (D-124): calendar days in the viewer's zone, against the story's
+    // first publication -- the same instant the cards are ordered by.
+    const first = `COALESCE((SELECT min(published_at) FROM article_version WHERE article_id = a.id), a.fetched_at)`;
+    if (filters.from !== null) {
+      this.where.push(
+        `${first} >= (${this.param(filters.from)}::date)::timestamp AT TIME ZONE ${this.param(filters.time_zone)}::text`,
+      );
+    }
+    if (filters.to !== null) {
+      this.where.push(
+        `${first} < ((${this.param(filters.to)}::date + 1)::timestamp AT TIME ZONE ${this.param(filters.time_zone)}::text)`,
+      );
+    }
     if (filters.country !== null) {
       const country = this.param(filters.country);
       this.where.push(`EXISTS (SELECT 1 FROM article m JOIN article_entity e ON e.article_id = m.id
@@ -562,10 +672,17 @@ class Query {
              v.headline, v.summary, v.byline, v.language, v.published_at, v.origin, v.review_state,
              COALESCE((SELECT min(published_at) FROM article_version WHERE article_id = a.id),
                       a.fetched_at) AS at,
-             (SELECT count(*)::int - 1 FROM article m WHERE m.story_id = s.id) AS other_reports
+             (SELECT count(*)::int - 1 FROM article m WHERE m.story_id = s.id) AS other_reports,
+             lb.story_type, lb.origin AS type_origin, lb.created_at AS labelled_at,
+             br.note AS breaking_note, br.marked_at AS breaking_marked_at,
+             br.ends_at AS breaking_ends_at
         FROM story s
         JOIN article a ON a.id = s.promoted_article_id
         JOIN news_source src ON src.id = a.source_id AND src.dropped_at IS NULL
+        LEFT JOIN story_label lb ON lb.story_id = s.id AND lb.superseded_at IS NULL
+        LEFT JOIN LATERAL (SELECT note, marked_at, ends_at FROM story_breaking b
+                     WHERE b.story_id = s.id AND b.cleared_at IS NULL AND b.ends_at > now()
+                     ORDER BY b.marked_at DESC LIMIT 1) br ON TRUE
         JOIN LATERAL (
           SELECT headline, summary, byline, language, published_at, origin, review_state
             FROM article_version

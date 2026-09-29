@@ -1079,6 +1079,39 @@
     "text": "",
     "status": "untranslated"
   },
+  "news.filter.type": {
+    "source": "Story type",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.filter.from": {
+    "source": "From",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.filter.to": {
+    "source": "To",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.filter.player": {
+    "source": "Player:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.filter.playerClear": {
+    "source": "Remove the player filter",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.filter.untyped": {
+    "source": {
+      "one": "{count} story that matches the other filters has no type, so it is not shown.",
+      "other": "{count} stories that match the other filters have no type, so they are not shown."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
   "news.updated": {
     "source": "Feeds last read",
     "text": "",
@@ -1178,6 +1211,36 @@
     "text": "",
     "status": "untranslated"
   },
+  "news.breaking.title": {
+    "source": "Breaking",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.breaking.badge": {
+    "source": "Breaking:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.breaking.noteLabel": {
+    "source": "What is breaking (readers see this on the homepage)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.breaking.mark": {
+    "source": "Mark breaking",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.breaking.reasonLabel": {
+    "source": "Why the mark ends early (recorded)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.breaking.clear": {
+    "source": "End the breaking mark",
+    "text": "",
+    "status": "untranslated"
+  },
   "news.older": {
     "source": "Older",
     "text": "",
@@ -1185,6 +1248,11 @@
   },
   "news.reason.nothingYet": {
     "source": "No stories have been read from any publisher yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "news.reason.personsUnlinked": {
+    "source": "Stories are not linked to players yet, so this list cannot say whether there is news about this player.",
     "text": "",
     "status": "untranslated"
   },
@@ -1360,6 +1428,76 @@
   },
   "story.version.reviewed": {
     "source": "translated and reviewed by two fluent speakers",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.type.none": {
+    "source": "No type: neither the publisher's category nor an editor gave this story one.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.type.origin.publisher": {
+    "source": "from the publisher's own category",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.type.origin.editor": {
+    "source": "set by an editor",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.type.breakingNews": {
+    "source": "Breaking news",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.type.transfer": {
+    "source": "Transfer",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.type.injury": {
+    "source": "Injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.type.suspension": {
+    "source": "Suspension",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.type.tacticalAnalysis": {
+    "source": "Tactical analysis",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.type.matchPreview": {
+    "source": "Match preview",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.type.matchReport": {
+    "source": "Match report",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.type.interview": {
+    "source": "Interview",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.type.opinion": {
+    "source": "Opinion",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.type.dataAnalysis": {
+    "source": "Data analysis",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.type.explainer": {
+    "source": "Explainer",
     "text": "",
     "status": "untranslated"
   },
