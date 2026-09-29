@@ -5315,7 +5315,7 @@ infers from a short list:
 - **The console.** `GET /admin/news/coverage` (editors and administrators)
   lists every active competition (`competition.is_active`) with its state,
   count and sources, the gaps first, with the number of carried sources and
-  when a feed was last read. The page `/admin/news/coverage` shows it.
+  when a feed was last read. The console page `/admin/news-coverage` shows it.
 
 **What it does not do.** It adds no source and proposes no publisher. Which
 publishers to carry, under what terms, is the maintainer's (N-8); the report

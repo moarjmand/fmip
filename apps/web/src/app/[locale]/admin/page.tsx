@@ -161,7 +161,7 @@ export default async function AdminPage({
         <Link href={`/${locale}/admin/data-quality`} className="underline">
           Data quality
         </Link>
-        <Link href={`/${locale}/admin/news/coverage`} className="underline">
+        <Link href={`/${locale}/admin/news-coverage`} className="underline">
           News coverage
         </Link>
       </nav>
