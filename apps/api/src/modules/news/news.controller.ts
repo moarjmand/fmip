@@ -137,7 +137,7 @@ export class NewsController {
           await this.store.trending(filters, locale, TRENDING_WINDOW_HOURS, NEWS_PAGE_SIZE),
           'limited',
           'nothing_trending',
-          'discussion_only',
+          'discussion_and_saves',
         );
       case 'debate':
         return answer(

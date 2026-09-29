@@ -238,7 +238,7 @@
   "news.neverRead": "The feeds have not been read yet.",
   "news.stale": "The feeds have not been read for a while, so this list may be behind.",
   "news.unreachable": "The news service is unreachable right now, so nothing can be shown.",
-  "news.reason.discussionOnly": "Trending counts public discussion only. Views, saves and shares are not measured.",
+  "news.reason.discussionAndSaves": "Trending counts members discussing a story's matches and members saving the story in the last 48 hours, one each. Views and shares are not measured.",
   "news.reason.nothingTrending": "Nothing has been discussed in the last two days.",
   "news.reason.nothingSelected": "Editors have not selected any debates yet.",
   "news.reason.needsSession": "Sign in to see stories about what you follow.",
@@ -255,6 +255,10 @@
   "news.discussion": {
     "one": "{count} member in the match discussion in the last {hours} hours",
     "other": "{count} members in the match discussion in the last {hours} hours"
+  },
+  "news.savers": {
+    "one": "{count} member saved it in the last {hours} hours",
+    "other": "{count} members saved it in the last {hours} hours"
   },
   "news.debateNote": "Why this is a debate:",
   "news.older": "Older",

@@ -1099,8 +1099,8 @@
     "text": "",
     "status": "untranslated"
   },
-  "news.reason.discussionOnly": {
-    "source": "Trending counts public discussion only. Views, saves and shares are not measured.",
+  "news.reason.discussionAndSaves": {
+    "source": "Trending counts members discussing a story's matches and members saving the story in the last 48 hours, one each. Views and shares are not measured.",
     "text": "",
     "status": "untranslated"
   },
@@ -1161,6 +1161,14 @@
     "source": {
       "one": "{count} member in the match discussion in the last {hours} hours",
       "other": "{count} members in the match discussion in the last {hours} hours"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "news.savers": {
+    "source": {
+      "one": "{count} member saved it in the last {hours} hours",
+      "other": "{count} members saved it in the last {hours} hours"
     },
     "forms": {},
     "status": "untranslated"
