@@ -34,9 +34,10 @@ async function decide(
       message: result.error?.message ?? `The request failed (HTTP ${result.status}).`,
     };
   }
-  // The news page and the homepage strip both read the mark.
+  // The news page, the homepage strip and the news desk (T-1009) all read the mark.
   revalidatePath(`/${locale}/news`);
   revalidatePath(`/${locale}`);
+  revalidatePath(`/${locale}/admin/news`);
   return { ok: true, message: done };
 }
 

@@ -36,6 +36,7 @@ async function decide(
   }
   // The page is a server component reading the section; tell it the section changed.
   revalidatePath(`/${locale}/news`);
+  revalidatePath(`/${locale}/admin/news`);
   return { ok: true, message: done };
 }
 
