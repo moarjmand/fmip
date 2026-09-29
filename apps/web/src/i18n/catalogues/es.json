@@ -249,6 +249,61 @@
     "text": "",
     "status": "untranslated"
   },
+  "account.export.heading": {
+    "source": "Download my data",
+    "text": "",
+    "status": "untranslated"
+  },
+  "account.export.contents": {
+    "source": "One file (JSON) of what this site holds about you: your account and preferences, follows, friendships, groups, every version of your predictions and how they settled, your rating history and achievements, saved stories, the messages and match panel posts you wrote, your community analysis, the reports you filed and the notifications sent to you.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "account.export.others": {
+    "source": "Only your own words and rows are in it: never another member's messages, name or predictions. A conversation shows only what you wrote.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "account.export.once": {
+    "source": "One file a day. It downloads here, in this browser, and is never sent by e-mail.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "account.export.password": {
+    "source": "Your password",
+    "text": "",
+    "status": "untranslated"
+  },
+  "account.export.submit": {
+    "source": "Download my data",
+    "text": "",
+    "status": "untranslated"
+  },
+  "account.export.refused.password": {
+    "source": "That password is not right. No file was made.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "account.export.refused.daily": {
+    "source": "You downloaded a copy less than a day ago. The next one is possible a day after that.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "account.export.refused.limited": {
+    "source": "Too many wrong passwords. Wait a while and try again.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "account.export.refused.signed_out": {
+    "source": "Your session has ended. Sign in again to download your data.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "account.export.refused.unavailable": {
+    "source": "The service is unreachable right now. No file was made.",
+    "text": "",
+    "status": "untranslated"
+  },
   "language.name.en": {
     "source": "English",
     "text": "",

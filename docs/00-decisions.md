@@ -7100,6 +7100,24 @@ recorded in `audit_log` without its content, and never e-mailed: it is
 served to the signed-in session only. `13-policy.md` §4 says so; adding a
 right needs no new acceptance under §4's "Changes" rule.
 
+**As built (T-846).** `POST /auth/account/export` (identity module,
+`internal/data-export-store.ts`) answers the file as an attachment with
+`Cache-Control: no-store`; the web app's Settings form posts to its own route
+handler, which streams it to the browser and sends any refusal back to the
+section. The password check is held to the sign-in ceilings exactly as
+deletion's is. "One per day" is a rolling 24 hours from the last
+`account.export` row in `audit_log` (whose `next` holds only row counts), not
+a `rate_limit` row: the ceilings there are hourly and tunable, this is a
+product rule; a refusal is 429 with `Retry-After` and `fields.export`. The file
+is one SQL statement, so one snapshot; ids stand for other members where a
+row points at one (a friendship, a report) and a notification's cause is left
+out. No migration. Since T-931 (D-113) the platform rules are published,
+immutable versions, so the right is written in `13-policy.md` §4 as a note
+beside `platform-rules@1.0.0`, not into its accepted text, and no version is
+published for it: adding a right changes nothing that is allowed, and a new
+version would ask every member to accept it. The note carries the paragraph
+for whoever next publishes a version.
+
 **Rejected.** *Waiting for a legal opinion*: the export is harmless whatever
 the opinion says. *Including the other side of conversations*: it is other
 people's data.

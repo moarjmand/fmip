@@ -121,6 +121,155 @@ export interface DeleteAccountRequest {
 }
 
 /**
+ * `POST /auth/account/export` (T-846, D-158). The member's password, checked
+ * as deleting the account checks it. Answers 200 with a `DataExport` as an
+ * attachment; one per member per rolling day (429 with `Retry-After` after).
+ */
+export interface DataExportRequest {
+  password: string;
+}
+
+/**
+ * A copy of a member's own data (T-846, D-158): their rows and their words,
+ * and nothing of another member's -- no other member's message, name or
+ * prediction. Where a row names another member (a friendship, a report, a
+ * notification) it does so by id only. Football entities are ids; timestamps
+ * are ISO-8601 UTC.
+ */
+export interface DataExport {
+  format: 'fmip-data-export@1';
+  generated_at: string;
+  account: {
+    id: string;
+    username: string;
+    display_name: string;
+    email: string;
+    email_verified_at: string | null;
+    country_code: string;
+    preferred_language: string;
+    timezone: string;
+    viewing_territory: string | null;
+    theme: string;
+    text_size: string;
+    contrast: string;
+    motion: string;
+    accepted_rules_at: string;
+    /** The platform-rules version that applies to the member (D-113). */
+    accepted_rules_version: string;
+    first_run_done_at: string | null;
+    created_at: string;
+    roles: string[];
+  };
+  profile: { bio: string | null; avatar_url: string | null } | null;
+  privacy: { profile_visibility: string; prediction_history_visibility: string } | null;
+  notification_settings: {
+    kinds: { kind: string; in_product: boolean }[];
+    quiet_hours: { starts_at: string; ends_at: string } | null;
+    mutes: { scope: string; target: string; created_at: string }[];
+  };
+  follows: {
+    entities: { entity_type: string; entity_id: string; favourite: boolean; created_at: string }[];
+    members: { member_id: string; created_at: string }[];
+  };
+  friendships: { member_id: string; created_at: string }[];
+  groups: { group_id: string; slug: string; name: string; role: string; joined_at: string }[];
+  predictions: {
+    fixture_id: string;
+    created_at: string;
+    versions: {
+      version_number: number;
+      outcome: string;
+      home_goals: number | null;
+      away_goals: number | null;
+      confidence: number;
+      reason_tags: string[];
+      explanation: string | null;
+      submitted_at: string;
+    }[];
+    settlements: {
+      version_number: number;
+      status: string;
+      void_reason: string | null;
+      actual_home: number | null;
+      actual_away: number | null;
+      outcome_correct: boolean | null;
+      score_correct: boolean | null;
+      settled_at: string;
+    }[];
+  }[];
+  rating_history: {
+    formula_version: string;
+    settled_count: number;
+    rating: number;
+    provisional: boolean;
+    established: boolean;
+    computed_at: string;
+  }[];
+  career_points: { reason: string; points: number; rule_version: string; awarded_at: string }[];
+  achievements: { kind: string; earned_at: string; rules_version: string }[];
+  saved_stories: { story_id: string; article_url: string | null; saved_at: string }[];
+  /** The member's own messages only: never the other side of a conversation. */
+  messages: {
+    conversation_id: string;
+    conversation_kind: string;
+    seq: number;
+    body: string | null;
+    created_at: string;
+    removed_at: string | null;
+    removed_kind: string | null;
+  }[];
+  panel_posts: {
+    fixture_id: string;
+    body: string | null;
+    created_at: string;
+    removed_at: string | null;
+    removed_kind: string | null;
+  }[];
+  analyses: {
+    fixture_id: string;
+    created_at: string;
+    versions: {
+      version_number: number;
+      predicted_outcome: string;
+      predicted_home: number | null;
+      predicted_away: number | null;
+      confidence: number;
+      reasoning: string;
+      lineup_impact: string | null;
+      key_players: string | null;
+      form_and_context: string | null;
+      published_at: string;
+    }[];
+    draft: {
+      predicted_outcome: string;
+      predicted_home: number | null;
+      predicted_away: number | null;
+      confidence: number;
+      reasoning: string;
+      lineup_impact: string | null;
+      key_players: string | null;
+      form_and_context: string | null;
+      updated_at: string;
+    } | null;
+  }[];
+  reports_filed: {
+    subject_type: string;
+    subject_id: string;
+    reason: string;
+    detail: string | null;
+    decided: boolean;
+    created_at: string;
+  }[];
+  notifications: {
+    kind: string;
+    subject_type: string;
+    subject_id: string;
+    created_at: string;
+    read_at: string | null;
+  }[];
+}
+
+/**
  * The username a deleted account is left with (D-094): `deleted_` and twelve
  * hex digits. No live account can hold one (the database refuses it), so a
  * reader that meets it -- a message's author, a panel post's -- shows "a

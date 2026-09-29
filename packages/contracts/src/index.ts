@@ -73,6 +73,8 @@ export type {
   AcceptPlatformRulesRequest,
   ApiError,
   AuthUser,
+  DataExport,
+  DataExportRequest,
   DeleteAccountRequest,
   ForgotPasswordRequest,
   LoginRequest,

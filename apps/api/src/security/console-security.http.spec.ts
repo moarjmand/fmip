@@ -889,6 +889,21 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         );
         expect(rows[0]?.status).toBe('active');
       });
+
+      it('POST /auth/account/export', async () => {
+        // T-846 (D-158): another session gets no file of the member's -- the
+        // session decides whose data it is, and the password must be that
+        // account's -- and no copy of the member's data is recorded.
+        const response = await inject('POST', '/auth/account/export', 'other', {
+          password: 'not the password',
+        });
+        expect(response.statusCode, response.body).toBe(400);
+        const { rows } = await pool.query(
+          `SELECT 1 FROM audit_log WHERE action = 'account.export' AND target_id = $1`,
+          [accounts.member.id],
+        );
+        expect(rows).toHaveLength(0);
+      });
     });
 
     /**

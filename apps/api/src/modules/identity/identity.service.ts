@@ -1,6 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type {
   AuthUser,
+  DataExport,
+  DataExportRequest,
   DeleteAccountRequest,
   LoginRequest,
   PlatformRules,
@@ -8,6 +10,7 @@ import type {
   RegisterRequest,
 } from '@fmip/contracts';
 import { PostgresAccountDeletionStore } from './internal/account-deletion-store';
+import { PostgresDataExportStore } from './internal/data-export-store';
 import {
   type AuthRateCheck,
   AuthRateLimiter,
@@ -73,6 +76,19 @@ export type DeleteAccountOutcome =
   /** Too many wrong passwords: the sign-in ceilings, against the username (T-811). */
   | Limited;
 
+export type DataExportOutcome =
+  | { kind: 'exported'; data: DataExport }
+  | { kind: 'wrong_password' }
+  /** A copy was made less than a day ago (D-158): when the next one is possible. */
+  | { kind: 'too_soon'; retryAfterSeconds: number }
+  /** No active account behind the id. */
+  | { kind: 'unknown' }
+  /** Too many wrong passwords: the sign-in ceilings, as deletion (T-811). */
+  | Limited;
+
+/** The audit reason of a member downloading a copy of their data (D-158). */
+export const SELF_SERVICE_EXPORT = 'self-service data export';
+
 /** The audit reason of a member deleting their own account (D-094). */
 export const SELF_SERVICE_DELETION = 'self-service deletion';
 
@@ -117,6 +133,7 @@ export class IdentityService {
   constructor(
     private readonly store: PostgresIdentityStore,
     private readonly deletion: PostgresAccountDeletionStore,
+    private readonly exports: PostgresDataExportStore,
     @Inject(MAILER) private readonly mailer: Mailer,
     @Inject(IDENTITY_OPTIONS) private readonly options: IdentityOptions,
     private readonly limits: AuthRateLimiter,
@@ -341,6 +358,35 @@ export class IdentityService {
       reason: SELF_SERVICE_DELETION,
     });
     return done === null ? 'unknown' : 'deleted';
+  }
+
+  /**
+   * A copy of my data (T-846, D-158). The password is checked exactly as
+   * deleting the account checks it -- the same sign-in ceilings, counted
+   * before the check and given back when it is right -- because a session
+   * left open must not become an unlimited way to guess the password, nor a
+   * way for somebody else at the screen to take the member's messages away.
+   * Then at most one file per rolling day, decided by the audit trail.
+   */
+  async exportData(
+    userId: string,
+    input: DataExportRequest,
+    clientIp: string | null = null,
+  ): Promise<DataExportOutcome> {
+    const found = await this.deletion.credentialsOf(userId);
+    const checks =
+      found === null
+        ? []
+        : this.checks(clientIp, 'login_failure_ip', found.username, 'login_failure_account');
+    const taken = await this.limits.take(checks);
+    if (!taken.ok) return limited(taken);
+    const storedHash = found?.passwordHash ?? (await decoyHash());
+    const matches = await verifyPassword(input.password, storedHash);
+    if (found === null) return { kind: 'unknown' };
+    if (found.passwordHash === null || !matches) return { kind: 'wrong_password' };
+    await this.limits.giveBack(checks);
+
+    return this.exports.export(userId, SELF_SERVICE_EXPORT);
   }
 
   /** For other boundaries that hold a user id and need the account as the API describes it. */

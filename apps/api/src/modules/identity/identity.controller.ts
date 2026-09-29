@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import type {
   ApiError,
+  DataExport,
   PlatformRules,
   PlatformRulesStanding,
   SessionResponse,
@@ -30,6 +31,7 @@ import {
 import {
   type Validated,
   validateAcceptRules,
+  validateDataExport,
   validateDeleteAccount,
   validateForgotPassword,
   validateLogin,
@@ -74,6 +76,12 @@ function refuse(reply: FastifyReply, outcome: Limited): never {
 
 function isLimited(value: unknown): value is Limited {
   return typeof value === 'object' && value !== null && (value as Limited).kind === 'limited';
+}
+
+/** A second copy of one's data within a day (D-158): when the next is possible, in hours. */
+export function nextCopyMessage(retryAfterSeconds: number): string {
+  const hours = Math.max(1, Math.ceil(retryAfterSeconds / 3600));
+  return `A copy of your data was made less than a day ago. The next one is possible in ${hours} ${hours === 1 ? 'hour' : 'hours'}.`;
 }
 
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
@@ -232,6 +240,54 @@ export class IdentityController {
       throw new BadRequestException(error);
     }
     void reply.header('set-cookie', this.identity.clearedSessionCookie());
+  }
+
+  /**
+   * Download a copy of my data (T-846, D-158). Needs the session and the
+   * password; answers the file as an attachment, never cached. A second copy
+   * within a day is 429 with `Retry-After`, like any other ceiling. Nothing is
+   * e-mailed: the file goes to this session only.
+   */
+  @Post('account/export')
+  @HttpCode(200)
+  async exportData(
+    @Body() body: unknown,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<DataExport> {
+    const user = await this.identity.authenticate(sessionTokenOf(request));
+    if (user === null) throw new UnauthorizedException(UNAUTHENTICATED);
+    const input = unwrap(validateDataExport(body));
+
+    const outcome = await this.identity.exportData(user.id, input, clientIpOf(request.headers));
+    if (outcome.kind === 'limited') refuse(reply, outcome);
+    if (outcome.kind === 'too_soon') {
+      void reply.header('retry-after', String(outcome.retryAfterSeconds));
+      const error: ApiError = {
+        error: 'rate_limited',
+        message: nextCopyMessage(outcome.retryAfterSeconds),
+        // Tells this refusal apart from the password ceilings' 429.
+        fields: { export: 'one copy per day' },
+      };
+      throw new HttpException(error, 429);
+    }
+    if (outcome.kind === 'unknown') throw new UnauthorizedException(UNAUTHENTICATED);
+    if (outcome.kind === 'wrong_password') {
+      const error: ApiError = {
+        error: 'validation',
+        message: 'No copy was made.',
+        fields: { password: 'is not right' },
+      };
+      throw new BadRequestException(error);
+    }
+
+    const day = outcome.data.generated_at.slice(0, 10);
+    void reply.header('cache-control', 'no-store');
+    void reply.header(
+      'content-disposition',
+      `attachment; filename="fmip-data-${user.username}-${day}.json"`,
+    );
+    return outcome.data;
   }
 
   @Post('verify-email')
