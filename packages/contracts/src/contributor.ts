@@ -134,3 +134,54 @@ export interface ContributorListResponse {
   generated_at: string;
   entries: ContributorCandidate[];
 }
+
+/** Why a contributor flag closed (T-1031, D-137). */
+export type ContributorFlagClosure = 'recovered' | 'grant_not_live' | 'dismissed';
+
+/**
+ * A contributor whose rating has stayed below the contributor threshold for
+ * the sustained period (blueprint 9.4, T-1031, D-137).
+ *
+ * **A flag is a question for a person, never a decision.** Nothing pauses the
+ * member: an administrator pauses with the existing audited act, or dismisses
+ * the flag with a reason. Everything it was raised from is on it, so it can be
+ * recomputed from the stored ratings (rule 8).
+ */
+export interface ContributorFlag {
+  id: string;
+  username: string;
+  /** ISO 8601: the first stored rating of the unbroken run below the threshold. */
+  below_since: string;
+  /** The rating when the flag was raised. */
+  rating_at_flag: number;
+  /** The member's newest stored rating now. */
+  rating_now: number | null;
+  threshold: number;
+  period_days: number;
+  rules_version: string;
+  /** ISO 8601. */
+  raised_at: string;
+  /** The grant's standing now. */
+  standing: GrantStanding;
+  /** Null while open. */
+  closed: {
+    reason: ContributorFlagClosure;
+    at: string;
+    /** The administrator, for a dismissal; null otherwise. */
+    by: string | null;
+    note: string | null;
+  } | null;
+}
+
+/** `GET /admin/contributor-flags`: the open flags, oldest stretch first. */
+export interface ContributorFlagListResponse {
+  /** The period in force, in days (D-137's proposal until the maintainer confirms it). */
+  period_days: number;
+  threshold: number;
+  flags: ContributorFlag[];
+}
+
+/** `POST /admin/contributor-flags/:id/dismiss`. */
+export interface DismissContributorFlagRequest {
+  reason: string;
+}

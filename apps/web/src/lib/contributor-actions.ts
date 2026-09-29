@@ -1,7 +1,11 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import type { GrantContributorRequest, GrantEventRequest } from '@fmip/contracts';
+import type {
+  DismissContributorFlagRequest,
+  GrantContributorRequest,
+  GrantEventRequest,
+} from '@fmip/contracts';
 import { apiRequest } from '@/lib/api';
 import type { ActionState } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
@@ -86,4 +90,27 @@ export async function contributorEventAction(
   if (!outcome?.ok) return outcome;
   revalidatePath(`/${locale}/admin/contributors`);
   return { ok: true, message: EVENT_WORDS[event] };
+}
+
+/**
+ * Dismissing a contributor flag (T-1031, D-137), with a reason the API
+ * records beside the flag and in the audit log. It changes nothing about the
+ * member's grant.
+ */
+export async function dismissContributorFlagAction(
+  locale: string,
+  flagId: string,
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const reason = reasonOf(formData);
+  if (reason === '') return { ok: false, message: 'Say why. The dismissal is recorded.' };
+  const request: DismissContributorFlagRequest = { reason };
+  const outcome = await post(
+    `/admin/contributor-flags/${encodeURIComponent(flagId)}/dismiss`,
+    request,
+  );
+  if (!outcome?.ok) return outcome;
+  revalidatePath(`/${locale}/admin/contributors`);
+  return { ok: true, message: 'Dismissed. The grant is unchanged.' };
 }

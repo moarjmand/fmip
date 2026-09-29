@@ -15,15 +15,19 @@ import {
 import type {
   ApiError,
   AuthUser,
+  ContributorFlag,
+  ContributorFlagListResponse,
   ContributorGrant,
   ContributorListResponse,
   ContributorStatusResponse,
+  DismissContributorFlagRequest,
   GrantContributorRequest,
   GrantEventRequest,
 } from '@fmip/contracts';
 import { ROLE_REFUSALS } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
+import { ContributorFlagService } from './contributor-flag.service';
 import { ContributorService, type GrantOutcome } from './contributor.service';
 
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
@@ -54,6 +58,7 @@ export class ContributorController {
   constructor(
     private readonly contributors: ContributorService,
     private readonly identity: IdentityService,
+    private readonly flags: ContributorFlagService,
   ) {}
 
   private async viewer(request: FastifyRequest): Promise<AuthUser> {
@@ -218,6 +223,48 @@ export class ContributorController {
     return ContributorController.settle(
       await this.contributors.change(actor.id, username, 'resumed', reason),
     );
+  }
+
+  /**
+   * The open contributor flags (T-1031, D-137): contributors whose rating has
+   * stayed below the threshold for the period. For the same approvers as the
+   * rest of this page; acting on one is the existing pause, or a dismissal.
+   */
+  @Get('admin/contributor-flags')
+  async openFlags(@Req() request: FastifyRequest): Promise<ContributorFlagListResponse> {
+    await this.approver(request);
+    return this.flags.listOpen();
+  }
+
+  /**
+   * Dismissing a flag with a reason, audited (rule 10). It changes nothing
+   * about the member: their grant stands as it was.
+   */
+  @Post('admin/contributor-flags/:id/dismiss')
+  @HttpCode(200)
+  async dismissFlag(
+    @Param('id') flagId: string,
+    @Body() body: DismissContributorFlagRequest,
+    @Req() request: FastifyRequest,
+  ): Promise<ContributorFlag> {
+    const actor = await this.approver(request);
+    const text = typeof body?.reason === 'string' ? body.reason.trim() : '';
+    if (text === '') {
+      throw new BadRequestException({
+        error: 'validation',
+        message: 'Say why. The dismissal is recorded with its reason.',
+      } satisfies ApiError);
+    }
+    const flag = /^[0-9a-f-]{36}$/i.test(flagId)
+      ? await this.flags.dismiss(flagId.toLowerCase(), actor.id, text.slice(0, MAX_REASON))
+      : null;
+    if (flag === null) {
+      throw new NotFoundException({
+        error: 'not_found',
+        message: 'No open contributor flag with that id.',
+      } satisfies ApiError);
+    }
+    return flag;
   }
 
   /**

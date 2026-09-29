@@ -13,6 +13,7 @@ import { KeyPlayersPanel } from '@/components/key-players';
 import { LiveMatch } from '@/components/live-match';
 import { MatchFollow } from '@/components/match-follow';
 import { MatchPanel } from '@/components/match-panel';
+import { linkChoices } from '@/lib/panel-link';
 import { MatchSummaryPanel } from '@/components/match-summary';
 import { PowerIndexPanel } from '@/components/power-index-panel';
 import { ShareLink } from '@/components/share-link';
@@ -312,6 +313,13 @@ export default async function MatchPage({
                       panelPermission !== null && panelPermission.ok ? panelPermission.data : null
                     }
                     reachable={panel !== null && panel.ok}
+                    // What a post may link to (T-1030): this match's own
+                    // incidents, line-ups and statistics, and the member's call.
+                    linkChoices={linkChoices(result.data, prediction !== null)}
+                    names={{
+                      home: result.data.fixture.home.name,
+                      away: result.data.fixture.away.name,
+                    }}
                     me={me?.username ?? null}
                     followed={
                       followed !== null && followed.ok
