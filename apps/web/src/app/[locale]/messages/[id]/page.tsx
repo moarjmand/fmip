@@ -7,6 +7,7 @@ import {
   ConversationExits,
   PinMessage,
   Reactions,
+  ModerateMessage,
   RemoveMessage,
 } from '@/components/conversation-controls';
 import { LiveConversation } from '@/components/live-conversation';
@@ -14,6 +15,7 @@ import { GroupComparison } from '@/components/group-comparison';
 import {
   fetchConversation,
   fetchConversationSearch,
+  fetchGroup,
   fetchGroupComparison,
   fetchMe,
 } from '@/lib/api';
@@ -107,6 +109,29 @@ export default async function ConversationPage({
       ? await fetchGroupComparison(thread.group.slug, thread.fixture.id, cookie)
       : null;
 
+  // Who runs the group, asked of the group itself (T-1024, D-134): its owner
+  // and moderators may remove others' messages with a reason, and a
+  // moderator never the owner's. The API decides; this only offers the form.
+  const groupRead =
+    page.conversation.group === null
+      ? null
+      : await fetchGroup(page.conversation.group.slug, cookie);
+  const standing = groupRead !== null && groupRead.ok ? groupRead.data.group.standing : null;
+  // A closed group's moderators remove nothing new either: the closure is the
+  // platform's, and its content is the administrators' to remove (T-1025).
+  const runs =
+    (standing === 'owner' || standing === 'moderator') && page.conversation.group?.closed !== true;
+  const ownerName =
+    groupRead !== null && groupRead.ok
+      ? (groupRead.data.group.members?.find((m) => m.role === 'owner')?.username ?? null)
+      : null;
+  const mayModerate = (author: string): boolean =>
+    runs && author !== me.username && !(standing === 'moderator' && author === ownerName);
+
+  // What members write is marked with the group's language (T-1022, D-133);
+  // a group with none, and a direct conversation, leave the page's own.
+  const lang = page.conversation.group?.language ?? undefined;
+
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
       <ConversationHeader conversation={page.conversation} me={me.username} locale={locale} />
@@ -181,6 +206,7 @@ export default async function ConversationPage({
                 locale={locale}
                 timeZone={me.timezone}
                 isMine={message.author === me.username}
+                lang={lang}
               />
             ))}
           </ul>
@@ -210,6 +236,7 @@ export default async function ConversationPage({
                 locale={locale}
                 timeZone={me.timezone}
                 isMine={message.author === me.username}
+                lang={lang}
               />
               {message.removed === null && (
                 <div className="flex flex-wrap items-center gap-3">
@@ -228,6 +255,9 @@ export default async function ConversationPage({
                   {message.author === me.username && (
                     <RemoveMessage locale={locale} conversationId={id} messageId={message.id} />
                   )}
+                  {mayModerate(message.author) && (
+                    <ModerateMessage locale={locale} conversationId={id} messageId={message.id} />
+                  )}
                 </div>
               )}
             </div>
@@ -245,7 +275,9 @@ export default async function ConversationPage({
         disabled={
           page.conversation.left
             ? 'You have left this conversation. You can still read it.'
-            : undefined
+            : page.conversation.group?.closed === true
+              ? 'The platform’s moderators closed this group. You can read it and leave it; nothing new can be written.'
+              : undefined
         }
       />
 

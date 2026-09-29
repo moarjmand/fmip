@@ -18,20 +18,24 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type {
+  AcceptGroupRulesRequest,
   ApiError,
   AuthUser,
   CreateGroupRequest,
+  GroupHistoryResponse,
   GroupInvitesResponse,
   GroupJoinRequestsResponse,
   GroupResponse,
   GroupsResponse,
   JoinGroupRequest,
+  SetGroupInvitePolicyRequest,
   SetGroupRoleRequest,
+  SetGroupRulesRequest,
   UpdateGroupRequest,
 } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
-import { type GroupOutcome, GroupsService } from './groups.service';
+import { type GroupOutcome, GroupsService, directoryFilters } from './groups.service';
 
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
 const NOT_FOUND: ApiError = { error: 'not_found', message: 'No such group.' };
@@ -79,8 +83,8 @@ export class GroupsController {
   /** The directory. Public and discoverable only; a guest may read it. */
   @Get('groups')
   async directory(@Query() query: unknown): Promise<GroupsResponse> {
-    const term = first((query as Record<string, unknown> | undefined)?.q);
-    return { groups: await this.groups.directory(term) };
+    const read = query as Record<string, unknown> | undefined;
+    return this.groups.directory(first(read?.q), directoryFilters(read));
   }
 
   @Get('me/groups')
@@ -149,9 +153,13 @@ export class GroupsController {
 
   @Post('groups/:slug/members')
   @HttpCode(204)
-  async join(@Param('slug') slug: string, @Req() request: FastifyRequest): Promise<void> {
+  async join(
+    @Param('slug') slug: string,
+    @Body() body: AcceptGroupRulesRequest,
+    @Req() request: FastifyRequest,
+  ): Promise<void> {
     const viewer = await this.requireViewer(request);
-    this.unwrap(await this.groups.join(viewer.id, slug));
+    this.unwrap(await this.groups.join(viewer.id, slug, body?.rules_version));
   }
 
   @Delete('groups/:slug/members/me')
@@ -188,6 +196,47 @@ export class GroupsController {
   // Invitations
   // -------------------------------------------------------------------------
 
+  /** The group's rules: the owner writes the next version (T-1023, D-133). */
+  @Put('groups/:slug/rules')
+  async setRules(
+    @Param('slug') slug: string,
+    @Body() body: SetGroupRulesRequest,
+    @Req() request: FastifyRequest,
+  ): Promise<{ version: number }> {
+    const viewer = await this.requireViewer(request);
+    return this.unwrap(await this.groups.setRules(viewer.id, slug, body?.body));
+  }
+
+  /** A member has read the current rules (T-1023): shown once, then not again. */
+  @Post('groups/:slug/rules/seen')
+  @HttpCode(204)
+  async rulesSeen(@Param('slug') slug: string, @Req() request: FastifyRequest): Promise<void> {
+    const viewer = await this.requireViewer(request);
+    this.unwrap(await this.groups.rulesSeen(viewer.id, slug));
+  }
+
+  /** Who may invite (T-1020, D-132). The owner only; audited. */
+  @Put('groups/:slug/invite-policy')
+  @HttpCode(204)
+  async setInvitePolicy(
+    @Param('slug') slug: string,
+    @Body() body: SetGroupInvitePolicyRequest,
+    @Req() request: FastifyRequest,
+  ): Promise<void> {
+    const viewer = await this.requireViewer(request);
+    this.unwrap(await this.groups.setInvitePolicy(viewer.id, slug, body?.invite_policy));
+  }
+
+  /** The group's audited changes, for its owner and moderators (T-1020). */
+  @Get('groups/:slug/history')
+  async history(
+    @Param('slug') slug: string,
+    @Req() request: FastifyRequest,
+  ): Promise<GroupHistoryResponse> {
+    const viewer = await this.requireViewer(request);
+    return { history: this.unwrap(await this.groups.history(viewer.id, slug)) };
+  }
+
   @Post('groups/:slug/invites/:username')
   @HttpCode(204)
   async invite(
@@ -218,9 +267,13 @@ export class GroupsController {
 
   @Post('me/group-invites/:slug/accept')
   @HttpCode(204)
-  async acceptInvite(@Param('slug') slug: string, @Req() request: FastifyRequest): Promise<void> {
+  async acceptInvite(
+    @Param('slug') slug: string,
+    @Body() body: AcceptGroupRulesRequest,
+    @Req() request: FastifyRequest,
+  ): Promise<void> {
     const viewer = await this.requireViewer(request);
-    this.unwrap(await this.groups.acceptInvite(viewer.id, slug));
+    this.unwrap(await this.groups.acceptInvite(viewer.id, slug, body?.rules_version));
   }
 
   @Delete('me/group-invites/:slug')
@@ -242,7 +295,9 @@ export class GroupsController {
     @Req() request: FastifyRequest,
   ): Promise<void> {
     const viewer = await this.requireViewer(request);
-    this.unwrap(await this.groups.askToJoin(viewer.id, slug, body?.note ?? null));
+    this.unwrap(
+      await this.groups.askToJoin(viewer.id, slug, body?.note ?? null, body?.rules_version),
+    );
   }
 
   @Post('groups/:slug/requests/:username/accept')
@@ -301,6 +356,24 @@ export class GroupsController {
         throw new ForbiddenException({
           error: 'forbidden',
           message: 'That is for the people who run this group.',
+        } satisfies ApiError);
+      case 'policy':
+        // The group's own rule on who may invite (T-1020), said in words.
+        throw new ForbiddenException({
+          error: 'forbidden',
+          message: outcome.message ?? 'This group does not let you invite.',
+        } satisfies ApiError);
+      case 'closed':
+        // An administrator closed the group (T-1025); the page says why.
+        throw new ConflictException({
+          error: 'conflict',
+          message: 'This group is closed. Its members can read it and leave it; nothing else.',
+        } satisfies ApiError);
+      case 'rules':
+        // The group's own rules (T-1023): read and accept the current version.
+        throw new ConflictException({
+          error: 'conflict',
+          message: outcome.message ?? "Accept this group's rules to join.",
         } satisfies ApiError);
       case 'rate_limited':
         throw new HttpException(

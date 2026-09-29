@@ -147,6 +147,11 @@ export class GroupPollsController {
           error: 'conflict',
           message: 'This group already has three open polls. Close one first.',
         } satisfies ApiError);
+      case 'closed':
+        throw new ConflictException({
+          error: 'conflict',
+          message: 'This group is closed. Nothing new can be written in it.',
+        } satisfies ApiError);
       case 'restricted':
         throw new ConflictException({
           error: 'conflict',

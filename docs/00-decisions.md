@@ -4964,6 +4964,7 @@ setting because the viewer is a friend: a second visibility rule, which D-063
 exists to refuse. Showing removed posts as tombstones in the excerpt: honest on
 the panel, noise on a homepage line.
 
+
 ## D-123 — Story types: blueprint 3.2's eleven, from the publisher's own category by an exact committed mapping or from an editor, never from a machine
 **Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
 
@@ -5455,6 +5456,252 @@ Blocking the write instead of the review: the plan puts the gate at review,
 and a translator saving work in progress should not be told to finish it
 first. A reviewer override without a reason: the whole point is that
 somebody can later read why.
+
+## D-132 — Who may invite to a group is the owner's choice of three, applied by the schema; invite links store only a hash
+
+**Date:** 2026-09-29 · **Tasks:** T-1020, T-1021 · **Status:** accepted (revisable under the standing delegation of 2026-09-26)
+
+Blueprint 8.2 lets a group's owner decide who may invite, and asks for invite
+links. T-241 let the owner and the moderators invite and nobody else.
+
+**Three policies, a closed list: `owner`, `owner_and_moderators`, `members`.**
+`user_group.invite_policy` is a check over those three. The default is
+`owner_and_moderators` because that is what every group already did: an
+existing group keeps today's behaviour, and the migration needs no backfill.
+Only the owner changes it (`PUT /groups/:slug/invite-policy`); a moderator
+runs a group but does not decide who opens its door.
+
+**The schema applies it, like every other membership rule (D-057).**
+`group_may_invite(group, member)` is the one question, and
+`group_invite_a_policy_guard` refuses an invitation it does not allow
+(`PL006`, hint `invite_policy`). The trigger fires before the existing guard
+and the hourly ceiling, so somebody who may not invite at all is told that,
+and a refused attempt is not counted. The API lets anybody inside the group
+try, and turns the refusal into the policy in words ("Only this group's owner
+invites people to it.") with a 403. A stranger is still 403, or 404 for an
+invite-only group, before the database is asked.
+
+**A change is audited in the group's history.** The new value and its
+`audit_log` row (`user_group.invite_policy`, the owner, the policy before and
+after) are one transaction; setting the policy it already has writes nothing.
+`GET /groups/:slug/history` reads the audit rows whose target is the group,
+newest first, for its owner and moderators. The reason recorded is a fixed
+sentence naming the owner's setting: it is the owner's own group, not an
+administrator's action, so nobody is asked to justify it.
+
+**Withdrawing follows inviting.** The owner and the moderators withdraw any
+invitation; a member a `members` policy lets invite withdraws only one they
+sent.
+
+**Invite links (T-1021).** Whoever the policy lets invite makes one, with
+an expiry (1 hour to 30 days, a week by default) and a use cap (1 to 500, 25
+by default), and a verified e-mail, as a direct invitation needs. The token is
+256 random bits, answered once when the link is made; the database keeps only
+its SHA-256, so a dump or a backup cannot be followed. The maker revokes their
+own link; the owner and the moderators any. Making links has a ceiling
+(`group_invite_link`, 20 an hour, a trigger), and the guard on making one
+repeats the policy (PL006) and a contact sanction (PL004).
+
+**Following a link is one database function**, `group_invite_link_follow`,
+under one row lock, so two people cannot both take the last use. It answers,
+in order: revoked, expired, used up, or *orphaned* -- the maker may no longer
+invite (they left, were demoted, or the policy changed), because the policy
+applies when a link is followed as well as when it was made. A dead link says
+which with a 410, **except that an invite-only group behind a dead link is
+404**, the same as the group itself: a dead link no longer invites, so it no
+longer shows the group. A block between the maker and the follower, or the
+maker's contact sanction, is "not available" and never says which; the
+follower's `groups` sanction is refused by the membership's own guard.
+**A public or invite-only group is joined; a discoverable group gets a join
+request**, because that visibility is joined by request (D-057) and a link
+does not change who decides; its owner and moderators are told as for any
+request. A use is counted only when a membership or a new request was made.
+Following needs a session; the preview (`GET /group-invite-links/:token`)
+shows the group only for a live link or a findable group. The web page is
+`/{locale}/group-invite/{token}`, never indexed and sent with `no-referrer`.
+Following has no ceiling of its own: each link is bounded by its cap, whose
+making is limited, a token cannot be guessed, and a request filed this way is
+counted by the join-request ceiling.
+
+**Alternatives considered.** A boolean "members may invite": loses the
+owner-only case the blueprint's "owner-controlled" implies. Deciding the
+policy in the service: a second copy of a membership rule, which D-057
+refuses. Asking the owner for a reason on every change: rule 10 is about
+administrators' high-impact actions; an owner's setting on their own group
+is recorded with who and when, which is what the history needs.
+
+## D-133 — A group's language is a tag for markup and a filter, its favourite is one club or competition by id, and its rules are its own, versioned
+
+**Date:** 2026-09-29 · **Tasks:** T-1022, T-1023 · **Status:** accepted (revisable under the standing delegation of 2026-09-26)
+
+Blueprint 8.2 asks for a group's preferred language, a favourite club or
+competition, and membership rules.
+
+**The language is a BCP 47 tag, for markup and for the directory.**
+`user_group.language` has the same shape check as a member's preferred
+language, and any tag is allowed, not only the site's own languages: a group
+may write in a language the product is not translated into. It is used for
+two things only: the `lang` attribute on what the group's members wrote (the
+name, the description, each message body -- never the site's words around
+them, which stay in the reader's language), and the directory's filter.
+**Nothing is machine-translated** (13.2, D-061); the tag says what the words
+are, it does not change them. The directory's language select offers the
+site's languages, as the news filter does; the API takes any tag.
+
+**A favourite is one club or one competition, by id (rule 1).** Two nullable
+foreign keys and a check that at most one is set: a group about a club and a
+competition at once is two groups. `ON DELETE SET NULL`, because a catalogue
+row merged away should leave the group without a favourite, not remove the
+group. The API takes `{ type, id }` and answers `{ type, id, name }`; the name
+is only what a reader sees. The directory filters by `team` or `competition`
+and names what it filtered by, from the id. **A group with neither says
+nothing**: no "none", no empty label. A value in the directory's query that
+cannot be a filter is left out rather than refused, the way the scores filters
+read theirs. Whoever may change the group's name (the owner and moderators)
+may change these, as a group setting.
+
+**A group's rules are the owner's written text, versioned (T-1023).** Only
+the owner writes them (a moderator runs the group; what a member accepts is
+the owner's). Each change is the next version, numbered by the database;
+nothing is edited in place, so the words a member accepted are always the
+words they read. Every version is audited in the group's history
+(`user_group.rules`). The rules are shown to whoever may see the group --
+a stranger to a public or discoverable group, an invitee, the holder of a
+live invite link -- because a member reads them **before** joining.
+
+**Joining without accepting the current version is refused, by the schema.**
+Every way in carries the version the member ticked to accept: joining a
+public group, asking to join a discoverable one, accepting an invitation and
+following an invite link. The API refuses a missing or an out-of-date version
+with a sentence that says which (409); the database refuses a membership or a
+request with none (`PL006`, hint `rules`), whatever the caller. A request
+records what its asker accepted, and letting them in records that version.
+The owner's own row at creation is exempt, since a group has no rules until
+its owner writes them.
+
+**A new version is shown once to existing members; nobody is removed for not
+accepting it.** `rules_seen_version` records the newest version a member has
+been shown; the page shows a newer one, with the text, until the member says
+they have read it (`POST /groups/:slug/rules/seen`). Their membership does not
+change either way. **The text is the group's, not the platform's, and says
+so**: the page names it as the owner's rules beside the platform rules every
+member accepted at registration (D-059), never instead of them.
+
+Criteria that decide entry (a minimum rating, a country, an account age) and
+an administrator role between owner and moderator are not built: N-6 is the
+maintainer's.
+
+**Alternatives considered.** Restricting the language to the site's locales:
+a Persian-speaking group on an English site is exactly the case, and a
+closed list would make it lie. Storing a favourite by name: rule 1. Several
+favourites: no blueprint case, and a filter over a list is a different
+query for a problem nobody has.
+
+## D-134 — A group's owner and moderators remove messages in the group's conversations, with a reason the author is told, audited with the message as it was
+
+**Date:** 2026-09-29 · **Task:** T-1024 · **Status:** accepted (revisable under the standing delegation of 2026-09-26)
+
+The schema has allowed a message to be removed as `moderator` since T-220,
+but nothing let a group's owner or moderator do it. Blueprint 8.2 gives a
+group's owner and moderators the running of it.
+
+**Who: the owner and the group's moderators, in the group's own
+conversations.** The group's conversation and each of its match threads; a
+direct conversation has nobody who runs it and is refused. The role is read
+from `group_member` when the removal is made, so a demoted moderator loses
+the power at once. **A group moderator cannot remove the owner's messages**
+(403, saying so); the owner can remove anybody's. Removing one's own message
+stays the author's own route (T-224). The platform's moderators keep exactly
+the powers T-212 gave them: this is the group's moderation, not the
+platform's, and it neither widens nor replaces the queue.
+
+**How: a tombstone, a reason, and an audit row.** The message keeps its place
+in the conversation with `removed_kind = 'moderator'` -- the same tombstone a
+platform moderator leaves, so a reader sees that a moderator took it down, not
+which one. The reason (1-500 characters) is required. The tombstone and an
+`audit_log` row (`message.remove`, target the message) holding the actor, the
+reason and **the message as it was** -- body, shared card, author, sequence,
+conversation and group -- are written in one transaction (rule 10). The body
+leaves the message row; the audit row is where it can still be read by the
+people accountable for reading it.
+
+**The author is told why, and nobody else is.** The reason travels on the
+tombstone to the message's author only (`Message.removed.reason`, read from
+the audit row); every other reader sees only that a moderator removed it.
+There is no notification: a new notification kind is a migration this task
+was not given, and the plan assigned T-1024 none. The author meets the reason
+where the message was. If a notification is wanted, it needs its own
+migration number (a `group_message_removed` kind and its preference); that is
+recorded as open rather than taken.
+
+**Alternatives considered.** Reusing the `moderation_decision` notification:
+it says a decision was made about the member's account, which a group
+moderator's removal is not, and it would blur the group's moderation into the
+platform's. Showing the reason to the whole group: it would turn a removal
+into a public reprimand. Letting a moderator remove the owner's messages: the
+acceptance criterion refuses it, and the owner is who a moderator answers to.
+
+## D-135 — Administrators close, reopen and clear a group as moderation decisions about the group; a closed group is read-only, out of sight, says why, and can be appealed
+
+**Date:** 2026-09-29 · **Task:** T-1025 · **Status:** accepted (revisable under the standing delegation of 2026-09-26)
+
+Blueprint 10.4 lets administrators close groups and remove content. Until
+now a group could not be reported through the API (the contract listed
+members only) and a decision could only be about a member.
+
+**Who: the moderation team.** `moderator` or `admin`, the same gate as the
+rest of the queue (T-212): closing a group is moderation, and the moderator
+role exists for it. Every decision needs a reason, checked before anything
+else.
+
+**Four decisions about a group, each a `moderation_decision` with subject
+`group`:** close (`group_closed`), reopen (`group_reopened`), remove content
+(`content_removed`) and judge the reports groundless (`no_action`). Each is
+one transaction: the decision, what it changes, the open reports about that
+group it answers, and an `audit_log` row naming the actor, the reason and the
+**previous state** (whether it was closed and why; for a removal, every
+removed message and the description as they were). The audit target is the
+group, so the group's owner and moderators see it in the group's history
+(T-1020) as well.
+
+**Removing content** is tombstoning named messages of the group's own
+conversations (its room and its match threads) with `removed_kind =
+'moderator'`, and/or clearing its description. From the web, the moderation
+page offers the description; messages are removed by id through the API.
+**Whether platform moderators may read a private group's conversation to
+find what to remove is not decided here** -- that is a privacy question the
+blueprint does not settle, so no page shows a group's messages to a
+moderator who is not in it.
+
+**A closed group is read-only to its members, and the schema says so.**
+`refuse_write_in_closed_group()` refuses every insert into a group's
+surfaces -- a member, an invitation, a request, an invite link, a rules
+version, a poll or a vote, a thread, a message, a reaction, a pin (`PL021`).
+Updates and deletes are left to the ways out: leaving, an account's deletion
+handing ownership on, a tombstone. The API also refuses the owner's and
+moderators' settings changes, deleting the group (the closure and its appeal
+stand on it) and the group moderators' own removals: what is taken out of a
+closed group is the administrators' to take. **Members can still read it and
+leave it**; nobody is removed.
+
+**Out of the directory and search, and it says why.** A closed group is left
+out of `GET /groups` and the community search. Its page -- still open to its
+members, and to anyone who could see it before -- shows the reason the
+moderator gave. Reopening takes a reason too, and restores everything as it
+was.
+
+**The owner can appeal.** T-211's appeal notes, which belonged to a sanction,
+may now belong to a decision instead (exactly one of the two). The owner of a
+closed group writes notes on the decision that closed it
+(`/groups/:slug/closure/appeal`); the moderation page shows them. The owner
+is not notified of the closure by a notification: a new kind would need its
+own migration and the page already says it; recorded as open.
+
+**Alternatives considered.** A sanction on the owner instead of a closure:
+it restricts a person, and the harm is the group. Deleting a closed group:
+destroys the record an appeal needs. Hiding a closed group from its own
+members: the criterion says they can read their own history.
+
 
 ## D-136 — A panel post links to one incident, player, prediction or statistic of its own match
 **Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)

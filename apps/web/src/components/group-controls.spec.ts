@@ -144,3 +144,76 @@ describe('correct before fast', () => {
     expect(CONTROLS).not.toMatch(/onClick|useEffect|addEventListener/);
   });
 });
+
+describe('following an invite link (T-1021)', () => {
+  const INVITE = readFileSync(
+    join(HERE, '..', 'app', '[locale]', 'group-invite', '[token]', 'page.tsx'),
+    'utf8',
+  );
+
+  it('says which kind of dead a link is, for every state the contract has', () => {
+    for (const state of list('INVITE_LINK_STATES').filter((s) => s !== 'live')) {
+      expect(INVITE, `no sentence for ${state}`).toMatch(new RegExp(`\\b${state}:`));
+    }
+  });
+
+  it('is never indexed and never hands the token onward in a Referer', () => {
+    expect(INVITE).toContain('robots: { index: false, follow: false }');
+    expect(INVITE).toContain("referrer: 'no-referrer'");
+  });
+
+  it('leaves the 404 to the API rather than deciding it', () => {
+    expect(INVITE).toContain('result.status === 404');
+    expect(INVITE).not.toContain('invite_only');
+  });
+});
+
+describe("a group's rules, accepted on the way in (T-1023)", () => {
+  it('asks every way in to accept the version it shows', () => {
+    // Joining, asking, accepting an invitation and following a link all pass
+    // the version through the one checkbox.
+    for (const control of [
+      'testId="group-join"',
+      'testId="group-accept-invite"',
+      'testId="invite-link-follow"',
+    ]) {
+      const at = CONTROLS.indexOf(control);
+      expect(at, control).toBeGreaterThan(-1);
+      expect(CONTROLS.slice(at, at + 200), control).toContain('rulesVersion={rulesVersion}');
+    }
+    expect(CONTROLS).toContain('<AcceptRules version={rulesVersion} />');
+    expect(CONTROLS).toContain('name="accept_rules" required');
+  });
+
+  it("says the rules are the group's, not the platform's", () => {
+    expect(PAGE).toContain('not the platform&rsquo;s');
+    expect(PAGE).toContain('You stay a member either way.');
+  });
+});
+
+describe("a group's owner and moderators removing messages (T-1024)", () => {
+  const CONVERSATION_PAGE = readFileSync(
+    join(HERE, '..', 'app', '[locale]', 'messages', '[id]', 'page.tsx'),
+    'utf8',
+  );
+  const MESSAGE = readFileSync(join(HERE, 'conversation.tsx'), 'utf8');
+
+  it("offers the form only to who runs the group, and never on the owner's words to a moderator", () => {
+    expect(CONVERSATION_PAGE).toContain("standing === 'owner' || standing === 'moderator'");
+    expect(CONVERSATION_PAGE).toContain("!(standing === 'moderator' && author === ownerName)");
+    expect(CONVERSATION_PAGE).toContain('<ModerateMessage');
+  });
+
+  it('tells the author why, on the tombstone', () => {
+    expect(MESSAGE).toContain('message.removed.reason !== undefined');
+    expect(MESSAGE).toContain('data-testid="message-removed-reason"');
+  });
+});
+
+describe('a group an administrator closed (T-1025)', () => {
+  it('says why, keeps the way out, and offers the appeal to the owner only', () => {
+    expect(PAGE).toContain('data-testid="group-closed-reason"');
+    expect(PAGE).toContain('Its members can read it and leave it.');
+    expect(PAGE).toContain("group.closed !== null && group.standing === 'owner'");
+  });
+});

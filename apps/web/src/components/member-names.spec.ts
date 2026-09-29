@@ -72,6 +72,14 @@ const FIELDS: Record<string, Rule> = {
   'groups.ts:GroupInvite.invited_by': {
     rendered: [['app/[locale]/groups/page.tsx', 'member={{ username: invite.invited_by }}']],
   },
+  'groups.ts:GroupInviteLink.created_by': {
+    exempt:
+      'no web page renders the invite-link list yet (T-1021 is API-first); the page that does must render it through the rule',
+  },
+  'groups.ts:GroupRules.created_by': {
+    exempt:
+      "not rendered: a group's rules are shown as the owner's (T-1023), never under a member's name",
+  },
   'groups.ts:GroupJoinRequest.display_name': {
     rendered: [['app/[locale]/groups/[slug]/page.tsx', 'member={request}']],
   },
@@ -86,6 +94,10 @@ const FIELDS: Record<string, Rule> = {
     rendered: [['components/match-panel.tsx', 'if (isDeletedMember(author.username))']],
   },
   'moderation.ts:AppealNote.author': { exempt: STAFF },
+  'moderation.ts:GroupAppealNote.author': {
+    exempt:
+      'not rendered: an appeal note on a closure shows its words and time, never its author (T-1025)',
+  },
   'moderation.ts:QueuedReport.reporter': { exempt: STAFF },
   'moderation.ts:QueueSubject.display_name': { exempt: STAFF },
   'notifications.ts:Notification.source': {
@@ -210,6 +222,7 @@ describe('the web never renders a stored name or a tombstone handle directly', (
     'components/moderation-queue.tsx': STAFF,
     'app/[locale]/admin/page.tsx': STAFF,
     'app/[locale]/admin/moderation/[username]/page.tsx': STAFF,
+    'app/[locale]/admin/moderation/groups/[slug]/page.tsx': STAFF,
   };
 
   it('reads `.display_name` only in the rule and the listed exceptions', () => {

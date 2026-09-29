@@ -9,6 +9,37 @@ export interface GroupRow {
   visibility: string;
   created_at: Date;
   member_count: string;
+  invite_policy: string;
+  language: string | null;
+  closed_at: Date | null;
+  closed_reason: string | null;
+  favourite_team_id: string | null;
+  favourite_team_name: string | null;
+  favourite_competition_id: string | null;
+  favourite_competition_name: string | null;
+}
+
+/** The directory's filters, already shaped (T-1022). */
+export interface DirectoryFilters {
+  language: string | null;
+  team: string | null;
+  competition: string | null;
+}
+
+export interface RulesRow {
+  version: number;
+  body: string;
+  created_by: string | null;
+  created_at: Date;
+}
+
+export interface HistoryRow {
+  action: string;
+  actor: string | null;
+  reason: string;
+  previous: Record<string, unknown> | null;
+  next: Record<string, unknown> | null;
+  created_at: Date;
 }
 
 export interface MemberRow {
@@ -39,7 +70,11 @@ export interface RequestRow {
  * refuse what it must. A guard re-implemented in a query here would be a second
  * copy of a rule, and the second copy is the one that drifts.
  */
-const GROUP_COLUMNS = `g.id, g.slug, g.name, g.description, g.visibility, g.created_at,
+const GROUP_COLUMNS = `g.id, g.slug, g.name, g.description, g.visibility, g.created_at, g.invite_policy,
+         g.language, g.closed_at, g.closed_reason, g.favourite_team_id, g.favourite_competition_id,
+         (SELECT t.name FROM team t WHERE t.id = g.favourite_team_id) AS favourite_team_name,
+         (SELECT c.name FROM competition c WHERE c.id = g.favourite_competition_id)
+           AS favourite_competition_name,
          (SELECT count(*) FROM group_member m WHERE m.group_id = g.id) AS member_count`;
 
 export class GroupsStore {
@@ -53,6 +88,14 @@ export class GroupsStore {
     return rows[0] ?? null;
   }
 
+  async byId(id: string): Promise<GroupRow | null> {
+    const { rows } = await this.pool.query<GroupRow>(
+      `SELECT ${GROUP_COLUMNS} FROM user_group g WHERE g.id = $1`,
+      [id],
+    );
+    return rows[0] ?? null;
+  }
+
   /**
    * The directory: everything that can be found.
    *
@@ -60,17 +103,36 @@ export class GroupsStore {
    * behind this query does not contain them either, so there is no path by
    * which one could be listed.
    */
-  async directory(term: string, limit: number): Promise<GroupRow[]> {
+  async directory(
+    term: string,
+    limit: number,
+    filters: DirectoryFilters = { language: null, team: null, competition: null },
+  ): Promise<GroupRow[]> {
     const { rows } = await this.pool.query<GroupRow>(
       `SELECT ${GROUP_COLUMNS}
          FROM user_group g
         WHERE g.visibility <> 'invite_only'
+          AND g.closed_at IS NULL
           AND ($1 = '' OR search_key(g.name) LIKE '%' || search_key($1) || '%')
+          AND ($3::text IS NULL OR g.language = $3::text)
+          AND ($4::uuid IS NULL OR g.favourite_team_id = $4::uuid)
+          AND ($5::uuid IS NULL OR g.favourite_competition_id = $5::uuid)
         ORDER BY member_count DESC, g.created_at DESC
         LIMIT $2`,
-      [term, limit],
+      [term, limit, filters.language, filters.team, filters.competition],
     );
     return rows;
+  }
+
+  /** A club's or a competition's name, for the directory to say what it filtered by. */
+  async favouriteName(type: 'team' | 'competition', id: string): Promise<string | null> {
+    const { rows } = await this.pool.query<{ name: string }>(
+      type === 'team'
+        ? `SELECT name FROM team WHERE id = $1`
+        : `SELECT name FROM competition WHERE id = $1`,
+      [id],
+    );
+    return rows[0]?.name ?? null;
   }
 
   /** Every group the viewer is in, whatever its visibility. */
@@ -144,12 +206,18 @@ export class GroupsStore {
     description: string | null,
     visibility: string,
     owner: string,
+    about: { language: string | null; team: string | null; competition: string | null } = {
+      language: null,
+      team: null,
+      competition: null,
+    },
   ): Promise<GroupRow> {
     return this.inTransaction(async (client) => {
       const { rows } = await client.query<{ id: string }>(
-        `INSERT INTO user_group (slug, name, description, visibility, created_by)
-         VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-        [slug, name, description, visibility, owner],
+        `INSERT INTO user_group (slug, name, description, visibility, created_by,
+                                 language, favourite_team_id, favourite_competition_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+        [slug, name, description, visibility, owner, about.language, about.team, about.competition],
       );
       const id = rows[0]?.id ?? '';
       await client.query(
@@ -169,15 +237,30 @@ export class GroupsStore {
     });
   }
 
+  /**
+   * `undefined` leaves a field as it is; for the nullable ones `null` clears
+   * it. A favourite replaces both columns at once, so the group is about one
+   * thing at most (T-1022).
+   */
   async update(
     groupId: string,
-    patch: { name?: string; description?: string | null; visibility?: string },
+    patch: {
+      name?: string;
+      description?: string | null;
+      visibility?: string;
+      language?: string | null;
+      favourite?: { team: string | null; competition: string | null };
+    },
   ): Promise<void> {
     await this.pool.query(
       `UPDATE user_group
           SET name = COALESCE($2, name),
               description = CASE WHEN $3::boolean THEN $4 ELSE description END,
-              visibility = COALESCE($5, visibility)
+              visibility = COALESCE($5, visibility),
+              language = CASE WHEN $6::boolean THEN $7 ELSE language END,
+              favourite_team_id = CASE WHEN $8::boolean THEN $9::uuid ELSE favourite_team_id END,
+              favourite_competition_id =
+                CASE WHEN $8::boolean THEN $10::uuid ELSE favourite_competition_id END
         WHERE id = $1`,
       [
         groupId,
@@ -185,6 +268,11 @@ export class GroupsStore {
         patch.description !== undefined,
         patch.description ?? null,
         patch.visibility ?? null,
+        patch.language !== undefined,
+        patch.language ?? null,
+        patch.favourite !== undefined,
+        patch.favourite?.team ?? null,
+        patch.favourite?.competition ?? null,
       ],
     );
   }
@@ -193,12 +281,95 @@ export class GroupsStore {
     await this.pool.query(`DELETE FROM user_group WHERE id = $1`, [groupId]);
   }
 
-  /** `true` when the member was added, `false` when they were already in. */
-  async addMember(groupId: string, userId: string, role = 'member'): Promise<boolean> {
+  /**
+   * `true` when the member was added, `false` when they were already in. The
+   * rules version is what they accepted (T-1023); the schema refuses none for
+   * a group that has rules.
+   */
+  async addMember(
+    groupId: string,
+    userId: string,
+    role = 'member',
+    rulesVersion: number | null = null,
+  ): Promise<boolean> {
     const { rowCount } = await this.pool.query(
-      `INSERT INTO group_member (group_id, user_id, role) VALUES ($1, $2, $3)
+      `INSERT INTO group_member (group_id, user_id, role, rules_version) VALUES ($1, $2, $3, $4)
        ON CONFLICT DO NOTHING`,
-      [groupId, userId, role],
+      [groupId, userId, role, rulesVersion],
+    );
+    return rowCount === 1;
+  }
+
+  // -------------------------------------------------------------------------
+  // Rules (T-1023, D-133)
+  // -------------------------------------------------------------------------
+
+  async latestRules(groupId: string): Promise<RulesRow | null> {
+    const { rows } = await this.pool.query<RulesRow>(
+      `SELECT r.version, r.body, u.username AS created_by, r.created_at
+         FROM group_rules_version r
+         LEFT JOIN user_account u ON u.id = r.created_by
+        WHERE r.group_id = $1
+        ORDER BY r.version DESC
+        LIMIT 1`,
+      [groupId],
+    );
+    return rows[0] ?? null;
+  }
+
+  async memberRules(
+    groupId: string,
+    userId: string,
+  ): Promise<{ rules_version: number | null; rules_seen_version: number | null } | null> {
+    const { rows } = await this.pool.query<{
+      rules_version: number | null;
+      rules_seen_version: number | null;
+    }>(
+      `SELECT rules_version, rules_seen_version FROM group_member
+        WHERE group_id = $1 AND user_id = $2`,
+      [groupId, userId],
+    );
+    return rows[0] ?? null;
+  }
+
+  /**
+   * The next version, its `audit_log` row in the group's history, and the
+   * owner marked as having seen what they wrote -- one transaction. The
+   * version number is the schema's (`number_rules_version`).
+   */
+  async writeRules(groupId: string, actorId: string, body: string): Promise<number> {
+    return this.inTransaction(async (client) => {
+      const { rows } = await client.query<{ version: number }>(
+        `INSERT INTO group_rules_version (group_id, version, body, created_by)
+         VALUES ($1, 0, $2, $3) RETURNING version`,
+        [groupId, body, actorId],
+      );
+      const version = rows[0]?.version ?? 0;
+      await client.query(
+        `UPDATE group_member SET rules_seen_version = $3 WHERE group_id = $1 AND user_id = $2`,
+        [groupId, actorId, version],
+      );
+      await client.query(
+        `INSERT INTO audit_log (actor_id, action, target_type, target_id, reason, previous, next)
+         VALUES ($1::uuid, 'user_group.rules', 'user_group', $2::text,
+                 'The group owner wrote a new version of the group''s rules.', $3::jsonb, $4::jsonb)`,
+        [
+          actorId,
+          groupId,
+          JSON.stringify({ rules_version: version > 1 ? version - 1 : null }),
+          JSON.stringify({ rules_version: version }),
+        ],
+      );
+      return version;
+    });
+  }
+
+  /** The member has been shown the current rules; they are not shown again. */
+  async markRulesSeen(groupId: string, userId: string): Promise<boolean> {
+    const { rowCount } = await this.pool.query(
+      `UPDATE group_member SET rules_seen_version = group_rules_latest(group_id)
+        WHERE group_id = $1 AND user_id = $2 AND group_rules_latest(group_id) IS NOT NULL`,
+      [groupId, userId],
     );
     return rowCount === 1;
   }
@@ -257,12 +428,68 @@ export class GroupsStore {
     return rowCount === 1;
   }
 
-  async withdrawInvite(groupId: string, invitee: string): Promise<boolean> {
+  /**
+   * Withdraw an invitation. With `by`, only one that member sent: somebody a
+   * `members` policy lets invite may take back their own offer and nobody
+   * else's (T-1020).
+   */
+  async withdrawInvite(groupId: string, invitee: string, by?: string): Promise<boolean> {
     const { rowCount } = await this.pool.query(
-      `DELETE FROM group_invite WHERE group_id = $1 AND invitee_id = $2`,
-      [groupId, invitee],
+      `DELETE FROM group_invite
+        WHERE group_id = $1 AND invitee_id = $2 AND ($3::uuid IS NULL OR invited_by = $3::uuid)`,
+      [groupId, invitee, by ?? null],
     );
     return rowCount === 1;
+  }
+
+  /**
+   * Change who may invite, and its `audit_log` row -- the owner, the time and
+   * the policy before and after -- in one transaction (T-1020, rule 10). False
+   * when the policy was already that, so nothing is written.
+   */
+  async setInvitePolicy(groupId: string, actorId: string, policy: string): Promise<boolean> {
+    return this.inTransaction(async (client) => {
+      const { rows } = await client.query<{ invite_policy: string }>(
+        `SELECT invite_policy FROM user_group WHERE id = $1 FOR UPDATE`,
+        [groupId],
+      );
+      const previous = rows[0]?.invite_policy;
+      if (previous === undefined || previous === policy) return false;
+      await client.query(`UPDATE user_group SET invite_policy = $2 WHERE id = $1`, [
+        groupId,
+        policy,
+      ]);
+      await client.query(
+        `INSERT INTO audit_log (actor_id, action, target_type, target_id, reason, previous, next)
+         VALUES ($1::uuid, 'user_group.invite_policy', 'user_group', $2::text,
+                 'The group owner changed who may invite.', $3::jsonb, $4::jsonb)`,
+        [
+          actorId,
+          groupId,
+          JSON.stringify({ invite_policy: previous }),
+          JSON.stringify({ invite_policy: policy }),
+        ],
+      );
+      return true;
+    });
+  }
+
+  /**
+   * The group's history: every audited change whose target is the group,
+   * newest first (T-1020). The audit log is immutable, so this is a record,
+   * not a summary somebody could tidy.
+   */
+  async history(groupId: string, limit: number): Promise<HistoryRow[]> {
+    const { rows } = await this.pool.query<HistoryRow>(
+      `SELECT a.action, u.username AS actor, a.reason, a.previous, a.next, a.created_at
+         FROM audit_log a
+         LEFT JOIN user_account u ON u.id = a.actor_id
+        WHERE a.target_type = 'user_group' AND a.target_id = $1::text
+        ORDER BY a.created_at DESC, a.id
+        LIMIT $2`,
+      [groupId, limit],
+    );
+    return rows;
   }
 
   async invitesFor(userId: string): Promise<InviteRow[]> {
@@ -279,11 +506,12 @@ export class GroupsStore {
   }
 
   /** Accept: join and drop the offer, so neither can exist without the other. */
-  async acceptInvite(groupId: string, userId: string): Promise<void> {
+  async acceptInvite(groupId: string, userId: string, rulesVersion: number | null): Promise<void> {
     await this.inTransaction(async (client) => {
       await client.query(
-        `INSERT INTO group_member (group_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-        [groupId, userId],
+        `INSERT INTO group_member (group_id, user_id, rules_version) VALUES ($1, $2, $3)
+         ON CONFLICT DO NOTHING`,
+        [groupId, userId, rulesVersion],
       );
       await client.query(`DELETE FROM group_invite WHERE group_id = $1 AND invitee_id = $2`, [
         groupId,
@@ -312,10 +540,16 @@ export class GroupsStore {
     return rows.map((row) => row.user_id);
   }
 
-  async requestJoin(groupId: string, userId: string, note: string | null): Promise<void> {
+  async requestJoin(
+    groupId: string,
+    userId: string,
+    note: string | null,
+    rulesVersion: number | null = null,
+  ): Promise<void> {
     await this.pool.query(
-      `INSERT INTO group_join_request (group_id, user_id, note) VALUES ($1, $2, $3)`,
-      [groupId, userId, note],
+      `INSERT INTO group_join_request (group_id, user_id, note, rules_version)
+       VALUES ($1, $2, $3, $4)`,
+      [groupId, userId, note, rulesVersion],
     );
   }
 
@@ -347,10 +581,14 @@ export class GroupsStore {
     return rowCount === 1;
   }
 
+  /** The member joins with the rules version they accepted when they asked (T-1023). */
   async acceptRequest(groupId: string, userId: string): Promise<void> {
     await this.inTransaction(async (client) => {
       await client.query(
-        `INSERT INTO group_member (group_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+        `INSERT INTO group_member (group_id, user_id, rules_version)
+         SELECT group_id, user_id, rules_version FROM group_join_request
+          WHERE group_id = $1 AND user_id = $2
+         ON CONFLICT DO NOTHING`,
         [groupId, userId],
       );
       await client.query(`DELETE FROM group_join_request WHERE group_id = $1 AND user_id = $2`, [

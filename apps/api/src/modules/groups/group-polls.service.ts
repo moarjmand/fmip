@@ -19,7 +19,8 @@ export type PollRefusal =
   | 'poll_closed'
   | 'poll_limit'
   | 'restricted'
-  | 'rate_limited';
+  | 'rate_limited'
+  | 'closed';
 
 export type PollOutcome<T> =
   { ok: true; value: T } | { ok: false; reason: PollRefusal; fields?: Record<string, string> };
@@ -206,6 +207,8 @@ export class GroupPollsService {
         return { ok: false, reason: 'poll_closed' };
       case 'PL019':
         return { ok: false, reason: 'poll_limit' };
+      case 'PL021':
+        return { ok: false, reason: 'closed' };
       case '23503':
       case '23514':
         return { ok: false, reason: 'invalid' };

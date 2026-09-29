@@ -89,6 +89,32 @@ export async function removeMessageAction(
 }
 
 /**
+ * A group's owner or moderator removes somebody's message, with a reason
+ * (T-1024, D-134). The reason is what the author is told; the API audits it
+ * with the message as it was.
+ */
+export async function removeAsGroupModeratorAction(
+  locale: string,
+  conversationId: string,
+  messageId: string,
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const result = await apiRequest<null>(
+    `/me/conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(messageId)}/removal`,
+    {
+      method: 'POST',
+      cookie: await sessionCookieHeader(),
+      body: { reason: String(formData.get('reason') ?? '').trim() },
+    },
+  );
+  if (!result.ok) return failure(result);
+
+  revalidatePath(`/${locale}/messages/${conversationId}`);
+  return { ok: true, message: 'Removed. Its author is told why.' };
+}
+
+/**
  * Move the read position forward.
  *
  * Called when the page renders rather than by a script watching the viewport,

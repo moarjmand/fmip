@@ -29,6 +29,15 @@ export const GROUP_ROLES = ['owner', 'moderator', 'member'] as const;
 export type GroupRole = (typeof GROUP_ROLES)[number];
 
 /**
+ * Who may invite to a group (T-1020, D-132): the owner alone, the owner and
+ * the moderators, or every member. The owner sets it. The default is
+ * `owner_and_moderators`, which is what every group did before there was a
+ * choice. The schema refuses an invitation the policy does not allow.
+ */
+export const GROUP_INVITE_POLICIES = ['owner', 'owner_and_moderators', 'members'] as const;
+export type GroupInvitePolicy = (typeof GROUP_INVITE_POLICIES)[number];
+
+/**
  * Where a viewer stands with a group — one closed set, so every surface that
  * renders a group has to say what it offers in each case.
  *
@@ -60,6 +69,22 @@ export const MAX_JOIN_NOTE = 300;
 /** The handle in a URL, the way a username is. Lower-case, and never changed. */
 export const GROUP_SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{2,39}$/;
 
+/**
+ * What a group is about (T-1022, D-133): one club or one competition, by id
+ * (rule 1). `name` is only what a reader is shown.
+ */
+export const GROUP_FAVOURITE_TYPES = ['team', 'competition'] as const;
+export type GroupFavouriteType = (typeof GROUP_FAVOURITE_TYPES)[number];
+
+export interface GroupFavouriteRef {
+  type: GroupFavouriteType;
+  id: string;
+}
+
+export interface GroupFavourite extends GroupFavouriteRef {
+  name: string;
+}
+
 /** What a directory row shows. Nothing here is private to the membership. */
 export interface GroupSummary {
   id: string;
@@ -74,6 +99,14 @@ export interface GroupSummary {
    */
   member_count: number;
   created_at: string;
+  /**
+   * The language the members write in, a BCP 47 tag, or `null` (T-1022). The
+   * group's page and conversation carry it as their `lang`. Never a
+   * translation: nothing machine-translates what members write (13.2).
+   */
+  language: string | null;
+  /** The club or competition the group is about, or `null`: then nothing is said. */
+  favourite: GroupFavourite | null;
 }
 
 export interface GroupMember {
@@ -102,6 +135,30 @@ export interface Group extends GroupSummary {
   members: GroupMember[] | null;
   /** What is waiting for an owner or a moderator; `null` for everybody else. */
   pending: { invites: number; requests: number } | null;
+  /**
+   * The group's current rules (T-1023), or `null` when its owner has written
+   * none. Shown to whoever may see the group, so a member reads them before
+   * joining. **They are the group's words, not the platform's.**
+   */
+  rules: GroupRules | null;
+  /** The version this viewer accepted on joining; `null` outside the group, or before it had rules. */
+  rules_accepted_version: number | null;
+  /**
+   * The rules changed since this member was last shown them: the page shows
+   * the new version once, until the member says they have read it. Nobody is
+   * removed for not accepting it.
+   */
+  rules_changed: boolean;
+  /**
+   * Set when an administrator closed the group (T-1025, D-135): it is then
+   * read-only to its members, out of the directory and search, and this says
+   * why. Members can still leave and read; the owner can appeal.
+   */
+  closed: { at: string; reason: string } | null;
+  /** Who may invite (T-1020); the owner changes it. */
+  invite_policy: GroupInvitePolicy;
+  /** Whether this viewer may invite under that policy. */
+  may_invite: boolean;
 }
 
 /** An invitation as the invited member sees it. */
@@ -122,6 +179,17 @@ export interface GroupJoinRequest {
 
 export interface GroupsResponse {
   groups: GroupSummary[];
+  /**
+   * The directory's filters as the API read them (T-1022): a value that could
+   * not be one is left out rather than refused. Absent on `/me/groups`.
+   */
+  filters?: GroupDirectoryFilters;
+}
+
+export interface GroupDirectoryFilters {
+  language: string | null;
+  /** The favourite filtered by, named; `null` when none, or when the id is unknown. */
+  favourite: GroupFavourite | null;
 }
 
 export interface GroupResponse {
@@ -141,6 +209,9 @@ export interface CreateGroupRequest {
   name: string;
   description?: string | null;
   visibility: GroupVisibility;
+  /** A BCP 47 tag (T-1022). */
+  language?: string | null;
+  favourite?: GroupFavouriteRef | null;
 }
 
 /**
@@ -152,15 +223,160 @@ export interface UpdateGroupRequest {
   name?: string;
   description?: string | null;
   visibility?: GroupVisibility;
+  /** `null` clears it (T-1022). */
+  language?: string | null;
+  /** `null` clears it; a new one replaces the other kind too (at most one). */
+  favourite?: GroupFavouriteRef | null;
 }
 
 export interface JoinGroupRequest {
   /** A sentence to whoever decides. Optional, and never required to be read. */
   note?: string | null;
+  /** The version of the group's rules the asker accepted (T-1023); required when it has rules. */
+  rules_version?: number | null;
+}
+
+// ---------------------------------------------------------------------------
+// A group's rules (T-1023, D-133): the owner writes them, versioned and never
+// edited in place; a member accepts the current version to join.
+// ---------------------------------------------------------------------------
+
+export const MAX_GROUP_RULES = 4000;
+
+/** One version of a group's rules. The group's own words, beside the platform's rules. */
+export interface GroupRules {
+  version: number;
+  body: string;
+  /** The owner who wrote this version; null once their account is gone. */
+  created_by: string | null;
+  created_at: string;
+}
+
+/** `PUT /groups/:slug/rules`, the owner only: writes the next version. */
+export interface SetGroupRulesRequest {
+  body: string;
+}
+
+/**
+ * The body of every way into a group -- joining a public group, accepting an
+ * invitation, following an invite link: the version of the rules accepted.
+ * Required when the group has rules; it must be the current version.
+ */
+export interface AcceptGroupRulesRequest {
+  rules_version?: number | null;
 }
 
 export interface SetGroupRoleRequest {
   role: GroupRole;
+}
+
+/** `PUT /groups/:slug/invite-policy`, the owner only (T-1020). */
+export interface SetGroupInvitePolicyRequest {
+  invite_policy: GroupInvitePolicy;
+}
+
+/**
+ * One change to a group's settings, as its owner and moderators read it
+ * (`GET /groups/:slug/history`, T-1020): who, when, why, and the value before
+ * and after. Read from the audit log, which nothing edits (rule 10).
+ */
+export interface GroupHistoryEntry {
+  /** `user_group.invite_policy`, ... : a dotted noun.verb. */
+  action: string;
+  /** The username of whoever did it; null once their account is gone. */
+  actor: string | null;
+  reason: string;
+  previous: Record<string, unknown> | null;
+  next: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface GroupHistoryResponse {
+  history: GroupHistoryEntry[];
+}
+
+// ---------------------------------------------------------------------------
+// Invite links (T-1021, D-132). Whoever the invite policy lets invite makes
+// one, with an expiry and a use cap, and may revoke it. Only the token's hash
+// is stored: the token is shown once, in the answer to making it.
+// ---------------------------------------------------------------------------
+
+/** Hours a link lasts: a week unless its maker says otherwise, at most thirty days. */
+export const INVITE_LINK_DEFAULT_HOURS = 7 * 24;
+export const INVITE_LINK_MIN_HOURS = 1;
+export const INVITE_LINK_MAX_HOURS = 30 * 24;
+/** How many people a link lets in (or lets ask, for a discoverable group). */
+export const INVITE_LINK_DEFAULT_USES = 25;
+export const INVITE_LINK_MAX_USES = 500;
+
+/**
+ * Where a link stands. `orphaned`: whoever made it may no longer invite (they
+ * left, were demoted, or the policy changed), because the policy applies when
+ * a link is followed, not only when it was made.
+ */
+export const INVITE_LINK_STATES = ['live', 'revoked', 'expired', 'exhausted', 'orphaned'] as const;
+export type InviteLinkState = (typeof INVITE_LINK_STATES)[number];
+
+/** A link as the people who may manage it see it. Never its token. */
+export interface GroupInviteLink {
+  id: string;
+  /** The maker's username; null once their account is gone. */
+  created_by: string | null;
+  created_at: string;
+  expires_at: string;
+  max_uses: number;
+  uses: number;
+  revoked_at: string | null;
+  state: InviteLinkState;
+}
+
+/**
+ * The answer to making a link: the one time its token exists outside the
+ * holder's hands. The web page is `/{locale}/group-invite/{token}`.
+ */
+export interface CreatedGroupInviteLink extends GroupInviteLink {
+  token: string;
+}
+
+export interface CreateGroupInviteLinkRequest {
+  /** From now, whole hours; `INVITE_LINK_DEFAULT_HOURS` when absent. */
+  expires_in_hours?: number;
+  /** `INVITE_LINK_DEFAULT_USES` when absent. */
+  max_uses?: number;
+}
+
+export interface GroupInviteLinkResponse {
+  link: CreatedGroupInviteLink;
+}
+
+export interface GroupInviteLinksResponse {
+  links: GroupInviteLink[];
+}
+
+/**
+ * `GET /group-invite-links/:token`: what following it would do. A dead link
+ * says which (`state`); a dead link to an invite-only group is 404 instead,
+ * because the group is not findable and a dead link no longer invites.
+ */
+export interface InviteLinkPreview {
+  group: GroupSummary;
+  state: InviteLinkState;
+  /** `join` for a public or invite-only group, `ask` for a discoverable one. */
+  follow: 'join' | 'ask';
+  /** The viewer is already in the group. */
+  member: boolean;
+  /** The group's current rules, to read before following (T-1023); `null` when it has none. */
+  rules: GroupRules | null;
+}
+
+export interface InviteLinkPreviewResponse {
+  preview: InviteLinkPreview;
+}
+
+/** `POST /group-invite-links/:token`: what following it did. */
+export interface FollowInviteLinkResponse {
+  outcome: 'joined' | 'requested';
+  group: GroupSummary;
 }
 
 // ---------------------------------------------------------------------------

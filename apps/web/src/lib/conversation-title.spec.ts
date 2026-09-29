@@ -74,7 +74,11 @@ describe('what a conversation is called', () => {
 
   it('names a group room by its group', () => {
     const title = conversationTitle(
-      { ...base, kind: 'group', group: { slug: 'terrace', name: 'The Open Terrace' } },
+      {
+        ...base,
+        kind: 'group',
+        group: { slug: 'terrace', name: 'The Open Terrace', language: null, closed: false },
+      },
       'me',
       'en',
     );
@@ -89,7 +93,7 @@ describe('what a conversation is called', () => {
       {
         ...base,
         kind: 'group_thread',
-        group: { slug: 'terrace', name: 'The Open Terrace' },
+        group: { slug: 'terrace', name: 'The Open Terrace', language: null, closed: false },
         fixture: match,
       },
       'me',
@@ -100,7 +104,11 @@ describe('what a conversation is called', () => {
 
   it('says a match is missing rather than naming one it cannot see', () => {
     const title = conversationTitle(
-      { ...base, kind: 'group_thread', group: { slug: 'terrace', name: 'The Open Terrace' } },
+      {
+        ...base,
+        kind: 'group_thread',
+        group: { slug: 'terrace', name: 'The Open Terrace', language: null, closed: false },
+      },
       'me',
       'en',
     );
@@ -111,7 +119,7 @@ describe('what a conversation is called', () => {
     const thread: ConversationSummary = {
       ...base,
       kind: 'group_thread',
-      group: { slug: 'terrace', name: 'The Open Terrace' },
+      group: { slug: 'terrace', name: 'The Open Terrace', language: null, closed: false },
       fixture: match,
     };
     expect(threadStanding(thread)).toBe('scheduled');

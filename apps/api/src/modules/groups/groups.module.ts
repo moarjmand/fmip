@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { IdentityModule } from '../identity/identity.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { GroupInviteLinksController } from './group-invite-links.controller';
+import { GroupInviteLinksService } from './group-invite-links.service';
 import { GroupPollsController } from './group-polls.controller';
 import { GroupPollsService } from './group-polls.service';
 import { GroupsController } from './groups.controller';
@@ -19,8 +21,9 @@ import { GroupsService } from './groups.service';
 @Module({
   imports: [IdentityModule, NotificationsModule],
   // Polls (T-643) are the group's, so they live here, with their own service.
-  controllers: [GroupsController, GroupPollsController],
-  providers: [GroupsService, GroupPollsService],
+  // Invite links (T-1021) too: a link is the group's door.
+  controllers: [GroupsController, GroupPollsController, GroupInviteLinksController],
+  providers: [GroupsService, GroupPollsService, GroupInviteLinksService],
   exports: [GroupsService],
 })
 export class GroupsModule {}

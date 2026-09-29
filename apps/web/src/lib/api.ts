@@ -1,4 +1,7 @@
 import type {
+  GroupAppealResponse,
+  GroupModerationView,
+  InviteLinkPreviewResponse,
   AchievementsResponse,
   FriendPredictionsResponse,
   GroupDiscussionsResponse,
@@ -189,9 +192,31 @@ export function fetchAudit(cookie: string | undefined): Promise<ApiResult<AuditR
 export function fetchGroups(
   term: string,
   cookie: string | undefined,
+  filters: { language?: string; team?: string; competition?: string } = {},
 ): Promise<ApiResult<GroupsResponse>> {
-  const query = term === '' ? '' : `?q=${encodeURIComponent(term)}`;
+  // The directory's filters (T-1022) pass through; the API reads what it can.
+  const params = new URLSearchParams();
+  if (term !== '') params.set('q', term);
+  for (const [key, value] of Object.entries(filters)) {
+    if (value !== undefined && value !== '') params.set(key, value);
+  }
+  const query = params.size === 0 ? '' : `?${params.toString()}`;
   return apiRequest<GroupsResponse>(`/groups${query}`, cookie === undefined ? {} : { cookie });
+}
+
+/**
+ * What following an invite link would do (T-1021, D-132). 404 covers "no such
+ * link" and "a dead link to a group nobody may find"; a dead link to a group
+ * that can be found answers 200 with its `state`.
+ */
+export function fetchInviteLinkPreview(
+  token: string,
+  cookie: string | undefined,
+): Promise<ApiResult<InviteLinkPreviewResponse>> {
+  return apiRequest<InviteLinkPreviewResponse>(
+    `/group-invite-links/${encodeURIComponent(token)}`,
+    cookie === undefined ? {} : { cookie },
+  );
 }
 
 /** One group. 404 covers "no such group" and "you may not know it is there". */
@@ -705,6 +730,28 @@ export function fetchModerationQueue(
 ): Promise<ApiResult<ModerationQueueResponse>> {
   return apiRequest<ModerationQueueResponse>(
     '/admin/moderation/queue',
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/** `GET /admin/moderation/groups/:slug` (T-1025): everything about one group before deciding. */
+export function fetchGroupModeration(
+  slug: string,
+  cookie: string | undefined,
+): Promise<ApiResult<GroupModerationView>> {
+  return apiRequest<GroupModerationView>(
+    `/admin/moderation/groups/${encodeURIComponent(slug)}`,
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/** `GET /groups/:slug/closure/appeal` (T-1025): the owner's appeal of a closure. */
+export function fetchGroupClosureAppeal(
+  slug: string,
+  cookie: string | undefined,
+): Promise<ApiResult<GroupAppealResponse>> {
+  return apiRequest<GroupAppealResponse>(
+    `/groups/${encodeURIComponent(slug)}/closure/appeal`,
     cookie === undefined ? {} : { cookie },
   );
 }

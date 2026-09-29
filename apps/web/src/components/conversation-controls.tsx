@@ -1,12 +1,18 @@
 'use client';
 
 import { useActionState } from 'react';
-import { REACTIONS, type Reaction, type ReactionCount } from '@fmip/contracts';
+import {
+  MAX_MESSAGE_REMOVAL_REASON,
+  REACTIONS,
+  type Reaction,
+  type ReactionCount,
+} from '@fmip/contracts';
 import type { ActionState } from '@/lib/auth-actions';
 import {
   leaveConversationAction,
   openConversationAction,
   reactAction,
+  removeAsGroupModeratorAction,
   removeMessageAction,
   sendMessageAction,
   setMutedAction,
@@ -174,6 +180,57 @@ export function RemoveMessage({
       </Button>
       <Result state={state} testId="message-remove-result" />
     </form>
+  );
+}
+
+/**
+ * A group's owner or moderator removes somebody else's message, with a reason
+ * (T-1024, D-134). Behind a disclosure, because it is a moderation act and not
+ * a reaction: a reason is asked for before anything happens.
+ */
+export function ModerateMessage({
+  locale,
+  conversationId,
+  messageId,
+}: {
+  locale: string;
+  conversationId: string;
+  messageId: string;
+}) {
+  const action = removeAsGroupModeratorAction.bind(
+    null,
+    locale,
+    conversationId,
+    messageId,
+  ) as unknown as BoundAction;
+  const [state, formAction, pending] = useActionState(action, null);
+
+  return (
+    <details className="text-xs" data-testid="message-moderate">
+      <summary className="cursor-pointer text-muted">Remove as a group moderator</summary>
+      <form action={formAction} className="mt-2 flex flex-col gap-2">
+        <TextArea
+          label="Why (the author is told)"
+          id={`moderate-reason-${messageId}`}
+          name="reason"
+          rows={2}
+          maxLength={MAX_MESSAGE_REMOVAL_REASON}
+          required
+          data-testid="message-moderate-reason"
+        />
+        <Button
+          type="submit"
+          variant="secondary"
+          size="xs"
+          pending={pending}
+          className="self-start"
+          data-testid="message-moderate-submit"
+        >
+          Remove
+        </Button>
+        <Result state={state} testId="message-moderate-result" />
+      </form>
+    </details>
   );
 }
 

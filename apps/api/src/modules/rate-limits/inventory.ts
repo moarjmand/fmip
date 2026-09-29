@@ -112,6 +112,13 @@ export const CEILINGS: readonly CeilingDefinition[] = [
     routes: ['POST /groups/:slug/invites/:username'],
   },
   {
+    action: 'group_invite_link',
+    subject: 'member',
+    enforced: 'database',
+    what: 'Group invite links made.',
+    routes: ['POST /groups/:slug/invite-links'],
+  },
+  {
     action: 'group_join_request',
     subject: 'member',
     enforced: 'database',
@@ -274,8 +281,17 @@ export const EXEMPT: Readonly<Record<string, string>> = {
     'Joins an open group: one membership per member and group (a primary key), and joining tells nobody.',
   'DELETE /groups/:slug/members/me': OWN_STATE,
   'PUT /groups/:slug/members/:username/role': GROUP_ADMIN,
+  'PUT /groups/:slug/invite-policy': GROUP_ADMIN,
+  'PUT /groups/:slug/rules': GROUP_ADMIN,
+  'POST /me/conversations/:id/messages/:messageId/removal': GROUP_ADMIN,
+  'POST /groups/:slug/closure/appeal':
+    "The owner's notes on the appeal of their own group's closure (T-1025): only the owner of a closed group can write one, as with a sanction's appeal (`POST /me/sanctions/:id/appeal`).",
+  'POST /groups/:slug/rules/seen': OWN_STATE,
   'DELETE /groups/:slug/members/:username': GROUP_ADMIN,
   'DELETE /groups/:slug/invites/:username': REMOVAL,
+  'DELETE /groups/:slug/invite-links/:id': REMOVAL,
+  'POST /group-invite-links/:token':
+    "Follows an invite link: each link lets in at most its own use cap, which its maker's ceiling bounds; the token is 256 random bits, so trying tokens is not a route in; a join request filed this way is counted by the join-request ceiling.",
   'POST /me/group-invites/:slug/accept': ANSWER,
   'DELETE /me/group-invites/:slug': ANSWER,
   'POST /groups/:slug/requests/:username/accept': ANSWER,

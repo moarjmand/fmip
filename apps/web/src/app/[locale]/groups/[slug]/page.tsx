@@ -1,20 +1,28 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { GroupControls, JoinRequestControls } from '@/components/group-controls';
+import {
+  GroupControls,
+  GroupRulesForm,
+  JoinRequestControls,
+  RulesSeen,
+} from '@/components/group-controls';
 import { GroupPollsSection } from '@/components/group-polls';
 import { MemberHandle, MemberName } from '@/components/member-name';
 import {
+  fetchGroupClosureAppeal,
   fetchGroup,
   fetchGroupLeaderboard,
   fetchGroupPolls,
   fetchGroupRequests,
   fetchMe,
 } from '@/lib/api';
+import { favouriteDirectoryHref, favouriteHref, languageName } from '@/lib/group-about';
 import { ratingLabel, statusLabel, tierLabel } from '@/lib/leaderboard';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { Translated } from '@/components/translated';
+import { AppealNotes, GroupAppealForm } from '@/components/group-moderation';
 import { Notice } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
@@ -73,6 +81,8 @@ export default async function GroupPage({
   }
 
   const group = result.data.group;
+  // The group's own words carry its language (T-1022); the page's stay the site's.
+  const lang = group.language ?? undefined;
   const decides = group.standing === 'owner' || group.standing === 'moderator';
   // `members === null` is the API's own answer to "may this viewer see who is
   // in this group", and the board is that list with numbers beside it — so it
@@ -82,6 +92,11 @@ export default async function GroupPage({
   // Polls are for the people in the group (T-643, D-091), so only they ask.
   const inside = decides || group.standing === 'member';
   const polls = inside ? await fetchGroupPolls(slug, cookie) : null;
+  // A closed group (T-1025): the owner's appeal, asked only by the owner.
+  const appeal =
+    group.closed !== null && group.standing === 'owner'
+      ? await fetchGroupClosureAppeal(slug, cookie)
+      : null;
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
@@ -90,17 +105,113 @@ export default async function GroupPage({
       </Link>
 
       <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold" data-testid="group-name">
+        <h1 className="text-2xl font-semibold" data-testid="group-name" lang={lang}>
           {group.name}
         </h1>
         <p className="text-sm text-muted" data-testid="group-visibility">
           <Translated locale={locale} message="groups.memberCount" count={group.member_count} /> ·{' '}
           {VISIBILITY[group.visibility] ?? group.visibility}
         </p>
-        {group.description !== null && <p data-testid="group-description">{group.description}</p>}
+        {group.description !== null && (
+          <p data-testid="group-description" lang={lang}>
+            {group.description}
+          </p>
+        )}
+        {/* A group with neither says nothing, rather than "none" (T-1022). */}
+        {group.language !== null && (
+          <p className="text-sm text-muted" data-testid="group-language">
+            <Translated locale={locale} message="groups.about.language" />{' '}
+            {languageName(locale, group.language)}
+          </p>
+        )}
+        {group.favourite !== null && (
+          <p className="text-sm" data-testid="group-favourite">
+            <Translated locale={locale} message="groups.about.favourite" />{' '}
+            <Link href={favouriteHref(locale, group.favourite)} className="underline">
+              {group.favourite.name}
+            </Link>{' '}
+            ·{' '}
+            <Link
+              href={favouriteDirectoryHref(locale, group.favourite)}
+              className="text-muted underline"
+            >
+              <Translated locale={locale} message="groups.about.moreGroups" />
+            </Link>
+          </p>
+        )}
       </header>
 
-      <GroupControls locale={locale} slug={group.slug} standing={group.standing} />
+      {group.closed !== null && (
+        <Notice tone="warning" as="div" className="flex flex-col gap-2" data-testid="group-closed">
+          <p>
+            The platform&rsquo;s moderators closed this group:{' '}
+            <span data-testid="group-closed-reason">{group.closed.reason}</span>
+          </p>
+          <p>Its members can read it and leave it. Nothing new can be written in it.</p>
+        </Notice>
+      )}
+
+      {appeal !== null && (
+        <section className="flex flex-col gap-2" data-testid="group-appeal">
+          <h2 className="text-lg font-semibold">Appeal</h2>
+          {appeal.ok ? (
+            <AppealNotes notes={appeal.data.notes} />
+          ) : (
+            <Notice tone="danger">The appeal cannot be shown right now.</Notice>
+          )}
+          <GroupAppealForm locale={locale} slug={group.slug} />
+        </section>
+      )}
+
+      {group.rules_changed && group.rules !== null && (
+        <Notice
+          tone="info"
+          as="div"
+          className="flex flex-col gap-2"
+          data-testid="group-rules-changed"
+        >
+          <p>
+            This group&rsquo;s rules have changed (version {group.rules.version}). Read them below.
+            You stay a member either way.
+          </p>
+          <RulesSeen locale={locale} slug={group.slug} />
+        </Notice>
+      )}
+
+      {group.rules !== null && (
+        <section className="flex flex-col gap-2" data-testid="group-rules">
+          <h2 className="text-lg font-semibold">This group&rsquo;s rules</h2>
+          <p
+            className="whitespace-pre-line text-sm"
+            lang={lang}
+            data-testid="group-rules-body-text"
+          >
+            {group.rules.body}
+          </p>
+          <p className="text-sm text-muted" data-testid="group-rules-whose">
+            Version {group.rules.version}. Written by the group&rsquo;s owner: these are the
+            group&rsquo;s own rules, not the platform&rsquo;s, and they sit beside the platform
+            rules every member already accepted.
+          </p>
+        </section>
+      )}
+
+      {group.closed === null || group.standing === 'member' || group.standing === 'moderator' ? (
+        // Closed: the way out stays (leaving), every way in goes.
+        <GroupControls
+          locale={locale}
+          slug={group.slug}
+          standing={group.standing}
+          rulesVersion={group.rules?.version ?? null}
+        />
+      ) : null}
+
+      {group.standing === 'owner' && group.closed === null && (
+        <section className="flex flex-col gap-2" data-testid="group-rules-owner">
+          <h2 className="text-lg font-semibold">Rules</h2>
+          <GroupRulesForm locale={locale} slug={group.slug} current={group.rules?.body ?? null} />
+        </section>
+      )}
 
       {group.conversation_id !== null && (
         <Link

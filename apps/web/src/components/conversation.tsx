@@ -111,11 +111,17 @@ export function MessageRow({
   locale,
   timeZone,
   isMine,
+  lang,
 }: {
   message: Message;
   locale: string;
   timeZone: string;
   isMine: boolean;
+  /**
+   * The group's language (T-1022), on what members wrote and nothing else:
+   * the author's name and the time around it are the site's words.
+   */
+  lang?: string;
 }) {
   return (
     <li className="flex flex-col gap-1" data-testid="message">
@@ -139,10 +145,18 @@ export function MessageRow({
           {message.removed.by === 'moderator'
             ? 'Removed by a moderator.'
             : 'The author removed this.'}
+          {/* Only the author is sent the reason (T-1024): they are told why. */}
+          {message.removed.reason !== undefined && (
+            <span data-testid="message-removed-reason"> Why: {message.removed.reason}</span>
+          )}
         </p>
       ) : (
         <>
-          {message.body !== null && <p className="whitespace-pre-line text-sm">{message.body}</p>}
+          {message.body !== null && (
+            <p className="whitespace-pre-line text-sm" lang={lang}>
+              {message.body}
+            </p>
+          )}
           {message.card !== null && <FootballCard card={message.card} locale={locale} />}
         </>
       )}

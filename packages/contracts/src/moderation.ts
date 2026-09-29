@@ -15,7 +15,7 @@
 /** What can be reported today. Messages, groups and analyses join it with the surfaces that hold them. */
 import type { LanguageModelState, ModerationSuggestion } from './intelligence';
 
-export const REPORT_SUBJECTS = ['member'] as const;
+export const REPORT_SUBJECTS = ['member', 'group'] as const;
 export type ReportSubject = (typeof REPORT_SUBJECTS)[number];
 
 /**
@@ -52,10 +52,23 @@ export type ModerationOutcome = (typeof MODERATION_OUTCOMES)[number];
 export const SANCTION_SCOPES = ['contact', 'messaging'] as const;
 export type SanctionScope = (typeof SANCTION_SCOPES)[number];
 
+/**
+ * What an administrator decides about a group (T-1025, D-135): close it,
+ * reopen it, remove its content, or judge its reports groundless. Kept apart
+ * from `MODERATION_OUTCOMES`, which are about a member.
+ */
+export const GROUP_DECISION_OUTCOMES = [
+  'group_closed',
+  'group_reopened',
+  'content_removed',
+  'no_action',
+] as const;
+export type GroupDecisionOutcome = (typeof GROUP_DECISION_OUTCOMES)[number];
+
 /** `POST /reports`. */
 export interface SubmitReportRequest {
   subject_type: ReportSubject;
-  /** For a `member`, their username. */
+  /** For a `member`, their username; for a `group`, its slug (T-1025). */
   subject: string;
   reason: ReportReason;
   /** Required when `reason` is `other`. */
@@ -84,7 +97,7 @@ export interface ModerationDecision {
   moderator: string;
   subject_type: ReportSubject;
   subject_id: string;
-  outcome: ModerationOutcome;
+  outcome: ModerationOutcome | GroupDecisionOutcome;
   reason: string;
   created_at: string;
 }
@@ -159,8 +172,33 @@ export interface QueueSubject {
   active_sanctions: number;
 }
 
+/**
+ * Everything open about one group (T-1025): its reports together, with what
+ * the group is and whether it is already closed, so a moderator can close it,
+ * remove its content or answer its reports from the queue.
+ */
+export interface GroupQueueSubject {
+  subject_type: 'group';
+  subject_id: string;
+  slug: string;
+  name: string;
+  visibility: string;
+  closed: GroupClosure | null;
+  reports: QueuedReport[];
+  waiting_since: string;
+}
+
+/** Why and when an administrator closed a group; the decision it descends from. */
+export interface GroupClosure {
+  at: string;
+  reason: string;
+  decision_id: string;
+}
+
 export interface ModerationQueueResponse {
   subjects: QueueSubject[];
+  /** Open reports about groups, by group, oldest waiter first (T-1025). */
+  groups: GroupQueueSubject[];
   /** Whether a model is there to suggest at all, so an empty `suggestion` is read the right way. */
   assistant: LanguageModelState;
   /** Open reports in total, so a page showing one screen can say what it is not showing. */
@@ -203,4 +241,71 @@ export interface MemberModerationHistory {
   reports_about_them: QueuedReport[];
   decisions: ModerationDecision[];
   sanctions: Sanction[];
+}
+
+// ---------------------------------------------------------------------------
+// Administrators and groups (blueprint 10.4, T-1025, D-135)
+// ---------------------------------------------------------------------------
+
+export const MAX_GROUP_DECISION_REASON = 500;
+
+/** An appeal note on a group's closure: the owner's words or a moderator's. */
+export interface GroupAppealNote {
+  id: string;
+  decision_id: string;
+  author: string;
+  body: string;
+  created_at: string;
+}
+
+/** `GET /admin/moderation/groups/:slug`: everything a moderator needs about one group. */
+export interface GroupModerationView {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  visibility: string;
+  member_count: number;
+  /** The owner's username. */
+  owner: string | null;
+  closed: GroupClosure | null;
+  /** Open and answered, newest first. */
+  reports: QueuedReport[];
+  decisions: ModerationDecision[];
+  /** Notes on the current closure's appeal, oldest first; empty while open. */
+  appeal: GroupAppealNote[];
+}
+
+/**
+ * `POST /admin/moderation/groups/:slug/close`, `/reopen` and `/dismissal`:
+ * each a decision with a reason, answering the reports it names.
+ */
+export interface GroupDecisionRequest {
+  reason: string;
+  report_ids?: string[];
+}
+
+/**
+ * `POST /admin/moderation/groups/:slug/removal`: removes the named messages
+ * of the group's conversations (as tombstones) and, when asked, its
+ * description -- each as it was kept in the audit row.
+ */
+export interface RemoveGroupContentRequest extends GroupDecisionRequest {
+  message_ids?: string[];
+  description?: boolean;
+}
+
+export interface GroupDecisionResponse {
+  decision_id: string;
+  answered: number;
+}
+
+/** `GET`/`POST /groups/:slug/closure/appeal`: the owner's appeal of a closure (T-211's notes). */
+export interface GroupAppealResponse {
+  closed: GroupClosure;
+  notes: GroupAppealNote[];
+}
+
+export interface GroupAppealRequest {
+  body: string;
 }

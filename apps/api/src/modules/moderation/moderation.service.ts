@@ -25,6 +25,7 @@ import {
   type SanctionRow,
 } from './internal/moderation-store';
 import { ModerationAssistService } from '../moderation-assist/moderation-assist.service';
+import { GroupModerationService } from './group-moderation.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
 export type ModerationOutcomeResult =
@@ -113,6 +114,7 @@ export class ModerationService {
     @Inject(PG_POOL) pool: Pool,
     private readonly notifications: NotificationsService,
     private readonly assist: ModerationAssistService,
+    private readonly groupModeration: GroupModerationService,
   ) {
     this.store = new ModerationStore(pool);
     this.queueStore = new ModerationQueueStore(pool);
@@ -121,10 +123,12 @@ export class ModerationService {
   async report(reporterId: string, body: SubmitReportRequest): Promise<ModerationOutcomeResult> {
     const fields: Record<string, string> = {};
 
-    // `member` is the only subject that exists (T-210), and the contract says
-    // so; a request naming another kind is refused rather than stored against a
-    // table nothing can open.
-    if (body.subject_type !== 'member') fields.subject_type = 'Must be "member".';
+    // `member` and, since T-1025, `group` are the subjects that exist, and the
+    // contract says so; a request naming another kind is refused rather than
+    // stored against a table nothing can open.
+    if (body.subject_type !== 'member' && body.subject_type !== 'group') {
+      fields.subject_type = 'Must be "member" or "group".';
+    }
     if (!(REPORT_REASONS as readonly string[]).includes(body.reason)) {
       fields.reason = `Must be one of ${REPORT_REASONS.join(', ')}.`;
     }
@@ -134,9 +138,24 @@ export class ModerationService {
     }
     if (detail.length > MAX_DETAIL) fields.detail = `At most ${MAX_DETAIL} characters.`;
     if (typeof body.subject !== 'string' || body.subject.trim() === '') {
-      fields.subject = 'Name the member.';
+      fields.subject = body.subject_type === 'group' ? 'Name the group.' : 'Name the member.';
     }
     if (Object.keys(fields).length > 0) return { ok: false, reason: 'invalid', fields };
+
+    if (body.subject_type === 'group') {
+      // A group the reporter can find, or is in or invited to (T-1025); an
+      // invite-only group nobody told them about is unknown, as everywhere.
+      const group = await this.groupModeration.reportable(body.subject.trim(), reporterId);
+      if (group === null) return { ok: false, reason: 'unknown_subject' };
+      const filed = await this.store.file(
+        reporterId,
+        'group',
+        group.id,
+        body.reason as ReportReason,
+        detail === '' ? null : detail,
+      );
+      return { ok: true, filed };
+    }
 
     const subject = await this.store.memberByUsername(body.subject.trim());
     if (subject === null) return { ok: false, reason: 'unknown_subject' };
@@ -159,7 +178,7 @@ export class ModerationService {
     const rows = await this.store.filedBy(reporterId);
     return rows.map((row) => ({
       id: row.id,
-      subject_type: 'member',
+      subject_type: row.subject_type === 'group' ? 'group' : 'member',
       subject_id: row.subject_id,
       reason: row.reason as ReportReason,
       detail: row.detail,
@@ -251,6 +270,8 @@ export class ModerationService {
     // and the insertion order is already "who has waited longest".
     return {
       subjects: [...bySubject.values()],
+      // Reports about groups reach the queue beside them (T-1025, D-135).
+      groups: await this.groupModeration.queue(limit),
       open_total: total,
       assistant: this.assist.assistant(),
     };

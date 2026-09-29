@@ -42,6 +42,20 @@ export interface ConversationMember {
  */
 export type MessageRemoval = 'author' | 'moderator';
 
+/** The longest reason a group's owner or moderator gives for removing a message (T-1024). */
+export const MAX_MESSAGE_REMOVAL_REASON = 500;
+
+/**
+ * `POST /me/conversations/:id/messages/:messageId/removal` (T-1024, D-134):
+ * a group's owner or moderator removes a message in the group's conversation
+ * or one of its match threads, with a reason. The tombstone says a moderator
+ * removed it; the author is told why; the removal is audited with the message
+ * as it was.
+ */
+export interface RemoveMessageRequest {
+  reason: string;
+}
+
 /**
  * What a message can carry besides words (blueprint 8.3, T-222).
  *
@@ -130,7 +144,16 @@ export interface Message {
   reply_to_id: string | null;
   /** ISO 8601. For display, never for ordering. */
   created_at: string;
-  removed: { at: string; by: MessageRemoval } | null;
+  removed: {
+    at: string;
+    by: MessageRemoval;
+    /**
+     * Why a group's owner or moderator removed it (T-1024, D-134) -- shown to
+     * the message's author only, so they are told why. Absent for everybody
+     * else, and for a removal by the author.
+     */
+    reason?: string;
+  } | null;
   /** `null` when the message is only words, and always null once removed. */
   card: SharedCard | null;
   /** Empty once removed: a tombstone leaves no applauded outline. */
@@ -156,7 +179,8 @@ export interface ConversationSummary {
    * ambiguous: a group conversation is not a conversation *with* particular
    * people, and its membership is read from the group rather than copied here.
    */
-  group: { slug: string; name: string } | null;
+  /** `closed`: an administrator closed the group, so nothing new can be written (T-1025). */
+  group: { slug: string; name: string; language: string | null; closed: boolean } | null;
   /**
    * The fixture a group thread is about (T-244), and `null` for every other
    * kind — "a thread is a conversation about a fixture, **and says which**".

@@ -150,9 +150,15 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('groups over 
       // before the accounts go, or the foreign keys that clean up credentials
       // and sessions are switched off too (03-project-map.md).
       await client.query(`SET session_replication_role = 'replica'`);
+      await client.query(`DELETE FROM audit_log WHERE actor_id = ANY($1::uuid[])`, [everyone]);
       await client.query(
         `DELETE FROM group_member WHERE user_id = ANY($1::uuid[])
             OR group_id IN (SELECT id FROM user_group WHERE created_by = ANY($1::uuid[]))`,
+        [everyone],
+      );
+      await client.query(
+        `DELETE FROM group_rules_version WHERE group_id IN
+           (SELECT id FROM user_group WHERE created_by = ANY($1::uuid[]))`,
         [everyone],
       );
       await client.query(`DELETE FROM user_group WHERE created_by = ANY($1::uuid[])`, [everyone]);
@@ -405,6 +411,327 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('groups over 
     );
     expect(over.statusCode).toBe(429);
     expect((over.json() as { error: string }).error).toBe('rate_limited');
+  });
+
+  describe("who may invite is the owner's choice (T-1020, D-132)", () => {
+    it('keeps what every group did before: the owner and the moderators', async () => {
+      const slug = await group(ada, 'public');
+      const body = (await get(`/groups/${slug}`, ada)).json() as { group: Group };
+      expect(body.group.invite_policy).toBe('owner_and_moderators');
+      expect(body.group.may_invite).toBe(true);
+    });
+
+    it('lets every member invite once the owner says so, and audits the change', async () => {
+      const slug = await group(ada, 'public');
+      await post(`/groups/${slug}/members`, null, bo);
+      const refused = await post(`/groups/${slug}/invites/${cass}`, null, bo);
+      expect(refused.statusCode).toBe(403);
+      expect((refused.json() as { message: string }).message).toBe(
+        "Only this group's owner and moderators invite people to it.",
+      );
+
+      expect(
+        (await put(`/groups/${slug}/invite-policy`, { invite_policy: 'members' }, ada)).statusCode,
+      ).toBe(204);
+      const seen = (await get(`/groups/${slug}`, bo)).json() as { group: Group };
+      expect(seen.group.may_invite).toBe(true);
+      expect((await post(`/groups/${slug}/invites/${cass}`, null, bo)).statusCode).toBe(204);
+      // Their own offer is theirs to take back.
+      expect((await del(`/groups/${slug}/invites/${cass}`, bo)).statusCode).toBe(204);
+
+      const history = await get(`/groups/${slug}/history`, ada);
+      expect(history.statusCode).toBe(200);
+      expect(
+        (
+          history.json() as {
+            history: { action: string; actor: string; previous: unknown; next: unknown }[];
+          }
+        ).history,
+      ).toEqual([
+        expect.objectContaining({
+          action: 'user_group.invite_policy',
+          actor: ada,
+          previous: { invite_policy: 'owner_and_moderators' },
+          next: { invite_policy: 'members' },
+        }),
+      ]);
+      // The history is for the people who run the group.
+      expect((await get(`/groups/${slug}/history`, bo)).statusCode).toBe(403);
+    });
+
+    it('refuses a moderator when only the owner invites, and says so', async () => {
+      const slug = await group(ada, 'public');
+      await post(`/groups/${slug}/members`, null, bo);
+      await put(`/groups/${slug}/members/${bo}/role`, { role: 'moderator' }, ada);
+      await put(`/groups/${slug}/invite-policy`, { invite_policy: 'owner' }, ada);
+      const refused = await post(`/groups/${slug}/invites/${cass}`, null, bo);
+      expect(refused.statusCode).toBe(403);
+      expect((refused.json() as { message: string }).message).toBe(
+        "Only this group's owner invites people to it.",
+      );
+      expect((await post(`/groups/${slug}/invites/${stranger}`, null, ada)).statusCode).toBe(204);
+    });
+
+    it("is the owner's alone to change, and only to a policy that exists", async () => {
+      const slug = await group(ada, 'public');
+      await post(`/groups/${slug}/members`, null, bo);
+      await put(`/groups/${slug}/members/${bo}/role`, { role: 'moderator' }, ada);
+      expect(
+        (await put(`/groups/${slug}/invite-policy`, { invite_policy: 'members' }, bo)).statusCode,
+      ).toBe(403);
+      expect(
+        (await put(`/groups/${slug}/invite-policy`, { invite_policy: 'anyone' }, ada)).statusCode,
+      ).toBe(400);
+      // A repeat of the same policy writes no second history line.
+      await put(`/groups/${slug}/invite-policy`, { invite_policy: 'owner' }, ada);
+      await put(`/groups/${slug}/invite-policy`, { invite_policy: 'owner' }, ada);
+      const history = (await get(`/groups/${slug}/history`, ada)).json() as { history: unknown[] };
+      expect(history.history).toHaveLength(1);
+    });
+
+    it("is the schema's rule: a direct insert the policy does not allow is refused", async () => {
+      const slug = await group(ada, 'public');
+      await post(`/groups/${slug}/members`, null, bo);
+      await expect(
+        pool.query(
+          `INSERT INTO group_invite (group_id, invitee_id, invited_by)
+           SELECT id, $2, $3 FROM user_group WHERE slug = $1`,
+          [slug, ids.get(cass), ids.get(bo)],
+        ),
+      ).rejects.toMatchObject({ code: 'PL006' });
+    });
+  });
+
+  describe('a language and a favourite, by id (T-1022, D-133)', () => {
+    const TEAM = crypto.randomUUID();
+    const COMPETITION = crypto.randomUUID();
+
+    beforeAll(async () => {
+      await pool.query(
+        `INSERT INTO team (id, country_id, name, kind, gender) VALUES ($1, $2, $3, 'club', 'men')`,
+        [TEAM, ENGLAND, `Groupville ${RUN}`],
+      );
+      await pool.query(
+        `INSERT INTO competition (id, country_id, name, kind, scope, gender)
+         VALUES ($1, $2, $3, 'league', 'domestic', 'men')`,
+        [COMPETITION, ENGLAND, `Group League ${RUN}`],
+      );
+    });
+
+    afterAll(async () => {
+      await pool.query(`DELETE FROM team WHERE id = $1`, [TEAM]);
+      await pool.query(`DELETE FROM competition WHERE id = $1`, [COMPETITION]);
+    });
+
+    it('says nothing for a group with neither', async () => {
+      const slug = await group(ada, 'public');
+      const body = (await get(`/groups/${slug}`, ada)).json() as { group: Group };
+      expect(body.group.language).toBeNull();
+      expect(body.group.favourite).toBeNull();
+    });
+
+    it('keeps a favourite as an id, names it, and holds at most one', async () => {
+      const slug = await group(ada, 'public');
+      expect(
+        (
+          await patch(
+            `/groups/${slug}`,
+            { language: 'pt-BR', favourite: { type: 'team', id: TEAM } },
+            ada,
+          )
+        ).statusCode,
+      ).toBe(204);
+      let body = (await get(`/groups/${slug}`, ada)).json() as { group: Group };
+      expect(body.group.language).toBe('pt-BR');
+      expect(body.group.favourite).toEqual({ type: 'team', id: TEAM, name: `Groupville ${RUN}` });
+
+      // A competition replaces the club: a group is about one thing at most.
+      await patch(`/groups/${slug}`, { favourite: { type: 'competition', id: COMPETITION } }, ada);
+      body = (await get(`/groups/${slug}`, ada)).json() as { group: Group };
+      expect(body.group.favourite).toMatchObject({ type: 'competition', id: COMPETITION });
+      expect(body.group.language).toBe('pt-BR');
+
+      await patch(`/groups/${slug}`, { favourite: null, language: null }, ada);
+      body = (await get(`/groups/${slug}`, ada)).json() as { group: Group };
+      expect(body.group.favourite).toBeNull();
+      expect(body.group.language).toBeNull();
+    });
+
+    it('names every bad field, and an id that is nobody', async () => {
+      const slug = await group(ada, 'public');
+      const bad = await patch(
+        `/groups/${slug}`,
+        { language: 'Portuguese', favourite: { type: 'player', id: TEAM } },
+        ada,
+      );
+      expect(bad.statusCode).toBe(400);
+      expect(Object.keys((bad.json() as { fields: object }).fields).sort()).toEqual([
+        'favourite',
+        'language',
+      ]);
+      const nobody = await patch(
+        `/groups/${slug}`,
+        { favourite: { type: 'team', id: crypto.randomUUID() } },
+        ada,
+      );
+      expect(nobody.statusCode).toBe(400);
+      expect((nobody.json() as { fields: Record<string, string> }).fields.favourite).toBeTruthy();
+      // The schema holds the one-favourite rule too.
+      await expect(
+        pool.query(
+          `UPDATE user_group SET favourite_team_id = $2, favourite_competition_id = $3 WHERE slug = $1`,
+          [slug, TEAM, COMPETITION],
+        ),
+      ).rejects.toMatchObject({ code: '23514' });
+    });
+
+    it('filters the directory by language and by favourite, and says what it filtered by', async () => {
+      await pool.query(`DELETE FROM rate_window WHERE user_id = $1 AND action = 'group_create'`, [
+        ids.get(bo) ?? '',
+      ]);
+      const made = await post(
+        '/groups',
+        {
+          slug: `gh-${RUN}-lang`.toLowerCase(),
+          name: `Portuguese ${RUN}`,
+          visibility: 'discoverable',
+          language: 'pt',
+          favourite: { type: 'team', id: TEAM },
+        },
+        bo,
+      );
+      expect(made.statusCode).toBe(201);
+      const hidden = await group(bo, 'invite_only');
+      await patch(
+        `/groups/${hidden}`,
+        { language: 'pt', favourite: { type: 'team', id: TEAM } },
+        bo,
+      );
+
+      const byLanguage = (await get(`/groups?language=pt`, ada)).json() as GroupsResponse;
+      expect(byLanguage.groups.map((g) => g.name)).toEqual([`Portuguese ${RUN}`]);
+      expect(byLanguage.filters).toEqual({ language: 'pt', favourite: null });
+
+      const byTeam = (await get(`/groups?team=${TEAM}`, ada)).json() as GroupsResponse;
+      expect(byTeam.groups.map((g) => g.name)).toEqual([`Portuguese ${RUN}`]);
+      expect(byTeam.filters?.favourite).toEqual({
+        type: 'team',
+        id: TEAM,
+        name: `Groupville ${RUN}`,
+      });
+
+      const byCompetition = (
+        await get(`/groups?competition=${COMPETITION}`, ada)
+      ).json() as GroupsResponse;
+      expect(byCompetition.groups.filter((g) => g.name === `Portuguese ${RUN}`)).toEqual([]);
+
+      // A value that cannot be a filter is left out, not refused.
+      const junk = (await get(`/groups?language=%3Cb%3E&team=nope`, ada)).json() as GroupsResponse;
+      expect(junk.filters).toEqual({ language: null, favourite: null });
+    });
+  });
+
+  describe("a group's rules, versioned and accepted on joining (T-1023, D-133)", () => {
+    type RulesView = Group & { rules: { version: number; body: string } | null };
+
+    it("are the owner's to write, a version at a time, never edited", async () => {
+      const slug = await group(ada, 'public');
+      await post(`/groups/${slug}/members`, null, bo);
+      await put(`/groups/${slug}/members/${bo}/role`, { role: 'moderator' }, ada);
+      expect((await put(`/groups/${slug}/rules`, { body: 'Be kind.' }, bo)).statusCode).toBe(403);
+      expect((await put(`/groups/${slug}/rules`, { body: '  ' }, ada)).statusCode).toBe(400);
+
+      const first = await put(`/groups/${slug}/rules`, { body: 'Be kind.' }, ada);
+      expect(first.statusCode).toBe(200);
+      expect(first.json()).toEqual({ version: 1 });
+      const second = await put(`/groups/${slug}/rules`, { body: 'Be kind. No spoilers.' }, ada);
+      expect(second.json()).toEqual({ version: 2 });
+
+      const seen = (await get(`/groups/${slug}`, stranger)).json() as { group: RulesView };
+      expect(seen.group.rules).toMatchObject({ version: 2, body: 'Be kind. No spoilers.' });
+      await expect(
+        pool.query(
+          `UPDATE group_rules_version SET body = 'Anything goes.'
+            WHERE group_id = (SELECT id FROM user_group WHERE slug = $1)`,
+          [slug],
+        ),
+      ).rejects.toMatchObject({ code: 'PL007' });
+      const history = (await get(`/groups/${slug}/history`, ada)).json() as {
+        history: { action: string; next: unknown }[];
+      };
+      expect(history.history.filter((h) => h.action === 'user_group.rules')).toHaveLength(2);
+    });
+
+    it('refuses joining without accepting the current version, and records the one accepted', async () => {
+      const slug = await group(ada, 'public');
+      await put(`/groups/${slug}/rules`, { body: 'Be kind.' }, ada);
+      const none = await post(`/groups/${slug}/members`, null, cass);
+      expect(none.statusCode).toBe(409);
+      expect((none.json() as { message: string }).message).toMatch(/has rules/);
+      const stale = await post(`/groups/${slug}/members`, { rules_version: 7 }, cass);
+      expect(stale.statusCode).toBe(409);
+      expect((stale.json() as { message: string }).message).toMatch(/changed/);
+
+      expect((await post(`/groups/${slug}/members`, { rules_version: 1 }, cass)).statusCode).toBe(
+        204,
+      );
+      const mine = (await get(`/groups/${slug}`, cass)).json() as { group: Group };
+      expect(mine.group.rules_accepted_version).toBe(1);
+      expect(mine.group.rules_changed).toBe(false);
+
+      // The schema's own copy of the rule, whatever the caller.
+      await expect(
+        pool.query(
+          `INSERT INTO group_member (group_id, user_id)
+           SELECT id, $2 FROM user_group WHERE slug = $1`,
+          [slug, ids.get(stranger)],
+        ),
+      ).rejects.toMatchObject({ code: 'PL006' });
+    });
+
+    it('shows a new version once to existing members, and removes nobody', async () => {
+      const slug = await group(ada, 'public');
+      await post(`/groups/${slug}/members`, null, bo);
+      await put(`/groups/${slug}/rules`, { body: 'Be kind.' }, ada);
+
+      let seen = (await get(`/groups/${slug}`, bo)).json() as { group: Group };
+      expect(seen.group.standing).toBe('member');
+      expect(seen.group.rules_accepted_version).toBeNull();
+      expect(seen.group.rules_changed).toBe(true);
+      // The owner who wrote it is not told about their own words.
+      const owner = (await get(`/groups/${slug}`, ada)).json() as { group: Group };
+      expect(owner.group.rules_changed).toBe(false);
+
+      expect((await post(`/groups/${slug}/rules/seen`, null, bo)).statusCode).toBe(204);
+      seen = (await get(`/groups/${slug}`, bo)).json() as { group: Group };
+      expect(seen.group.rules_changed).toBe(false);
+      expect(seen.group.standing).toBe('member');
+    });
+
+    it('carries the accepted version through a request and an invitation', async () => {
+      const asked = await group(ada, 'discoverable');
+      await put(`/groups/${asked}/rules`, { body: 'Be kind.' }, ada);
+      expect((await post(`/groups/${asked}/requests`, { note: 'hi' }, cass)).statusCode).toBe(409);
+      expect(
+        (await post(`/groups/${asked}/requests`, { note: 'hi', rules_version: 1 }, cass))
+          .statusCode,
+      ).toBe(204);
+      expect((await post(`/groups/${asked}/requests/${cass}/accept`, null, ada)).statusCode).toBe(
+        204,
+      );
+      const inside = (await get(`/groups/${asked}`, cass)).json() as { group: Group };
+      expect(inside.group.rules_accepted_version).toBe(1);
+
+      const invited = await group(ada, 'invite_only');
+      await put(`/groups/${invited}/rules`, { body: 'Be kind.' }, ada);
+      await post(`/groups/${invited}/invites/${bo}`, null, ada);
+      const preview = (await get(`/groups/${invited}`, bo)).json() as { group: RulesView };
+      expect(preview.group.rules?.body).toBe('Be kind.');
+      expect((await post(`/me/group-invites/${invited}/accept`, null, bo)).statusCode).toBe(409);
+      expect(
+        (await post(`/me/group-invites/${invited}/accept`, { rules_version: 1 }, bo)).statusCode,
+      ).toBe(204);
+    });
   });
 
   it('answers a group that is not there with 404 on every verb', async () => {

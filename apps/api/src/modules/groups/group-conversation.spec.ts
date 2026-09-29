@@ -126,6 +126,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('a group conv
     const client = await pool.connect();
     try {
       await client.query(`SET session_replication_role = 'replica'`);
+      await client.query(`DELETE FROM audit_log WHERE actor_id = ANY($1::uuid[])`, [everyone]);
       await client.query(`DELETE FROM message WHERE author_id = ANY($1::uuid[])`, [everyone]);
       await client.query(
         `DELETE FROM conversation WHERE group_id IN
@@ -158,7 +159,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('a group conv
       };
     };
     expect(page.conversation.kind).toBe('group');
-    expect(page.conversation.group).toMatchObject({ slug });
+    expect(page.conversation.group).toMatchObject({ slug, language: null });
+    // The group's language travels with its conversation, so the page can
+    // mark what members write with it (T-1022).
+    await pool.query(`UPDATE user_group SET language = 'fa' WHERE slug = $1`, [slug]);
+    const marked = (await get(`/me/conversations/${room}`, ada)).json() as {
+      conversation: { group: { language: string | null } | null };
+    };
+    expect(marked.conversation.group?.language).toBe('fa');
     // Not a conversation *with* particular people: its membership is the
     // group's, and `group` being non-null is exactly when `members` is empty.
     expect(page.conversation.members).toEqual([]);
@@ -256,6 +264,103 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('a group conv
     // Never "left": a group conversation has no such state, and a missing row
     // must not be read as one.
     expect(page.conversation.left).toBe(false);
+  });
+
+  describe("the group's owner and moderators remove messages, with a reason (T-1024, D-134)", () => {
+    type Page = {
+      messages: {
+        id: string;
+        body: string | null;
+        removed: { by: string; reason?: string } | null;
+      }[];
+    };
+    const say = async (room: string, who: string, body: string): Promise<string> => {
+      const sent = await post(`/me/conversations/${room}/messages`, { body }, who);
+      expect(sent.statusCode).toBe(201);
+      return (sent.json() as { message: { id: string } }).message.id;
+    };
+    const moderator = async (slug: string, who: string) => {
+      await pool.query(
+        `UPDATE group_member SET role = 'moderator'
+          WHERE user_id = $2 AND group_id = (SELECT id FROM user_group WHERE slug = $1)`,
+        [slug, ids.get(who)],
+      );
+    };
+    const removal = (room: string, id: string, reason: unknown, who: string) =>
+      post(`/me/conversations/${room}/messages/${id}/removal`, { reason }, who);
+
+    it('leaves the tombstone, tells the author why, and audits the message as it was', async () => {
+      const { slug, room } = await group(ada);
+      await post(`/groups/${slug}/members`, null, bo);
+      await post(`/groups/${slug}/members`, null, cass);
+      const id = await say(room, bo, 'something out of line');
+
+      expect((await removal(room, id, '', ada)).statusCode).toBe(400);
+      expect((await removal(room, id, 'Personal attack.', ada)).statusCode).toBe(204);
+      expect((await removal(room, id, 'Again.', ada)).statusCode).toBe(404);
+
+      const author = (await get(`/me/conversations/${room}`, bo)).json() as Page;
+      const theirs = author.messages.find((m) => m.id === id);
+      expect(theirs?.body).toBeNull();
+      expect(theirs?.removed).toMatchObject({ by: 'moderator', reason: 'Personal attack.' });
+      // Everybody else sees the tombstone and not the reason.
+      const other = (await get(`/me/conversations/${room}`, cass)).json() as Page;
+      expect(other.messages.find((m) => m.id === id)?.removed).toEqual({
+        by: 'moderator',
+        at: expect.any(String),
+      });
+
+      const audit = await pool.query<{
+        actor_id: string;
+        reason: string;
+        previous: { body: string; author: string };
+      }>(
+        `SELECT actor_id, reason, previous FROM audit_log
+          WHERE action = 'message.remove' AND target_type = 'message' AND target_id = $1`,
+        [id],
+      );
+      expect(audit.rows).toHaveLength(1);
+      expect(audit.rows[0]).toMatchObject({
+        actor_id: ids.get(ada),
+        reason: 'Personal attack.',
+        previous: { body: 'something out of line', author: bo },
+      });
+    });
+
+    it("lets a moderator remove a member's words and never the owner's", async () => {
+      const { slug, room } = await group(ada);
+      await post(`/groups/${slug}/members`, null, bo);
+      await post(`/groups/${slug}/members`, null, cass);
+      await moderator(slug, bo);
+      const owners = await say(room, ada, 'from the owner');
+      const members = await say(room, cass, 'from a member');
+
+      const refused = await removal(room, owners, 'No.', bo);
+      expect(refused.statusCode).toBe(403);
+      expect((refused.json() as { message: string }).message).toMatch(/owner's messages/);
+      expect((await removal(room, members, 'Off topic.', bo)).statusCode).toBe(204);
+    });
+
+    it('is refused to a member who runs nothing, and to somebody outside', async () => {
+      const { slug, room } = await group(ada);
+      await post(`/groups/${slug}/members`, null, bo);
+      const id = await say(room, ada, 'hello');
+      expect((await removal(room, id, 'Because.', bo)).statusCode).toBe(403);
+      expect((await removal(room, id, 'Because.', stranger)).statusCode).toBe(404);
+    });
+
+    it("reaches the group's match threads too", async () => {
+      const { rows } = await pool.query<{ id: string }>(`SELECT id FROM fixture LIMIT 1`);
+      const fixture = rows[0]?.id;
+      if (fixture === undefined) return;
+      const { slug } = await group(ada);
+      await post(`/groups/${slug}/members`, null, bo);
+      const opened = await post(`/groups/${slug}/threads`, { fixture_id: fixture }, ada);
+      expect(opened.statusCode).toBe(201);
+      const thread = (opened.json() as { id: string }).id;
+      const id = await say(thread, bo, 'spoiler');
+      expect((await removal(thread, id, 'Spoiler.', ada)).statusCode).toBe(204);
+    });
   });
 
   it('holds two members who have blocked each other, and lets both speak', async () => {

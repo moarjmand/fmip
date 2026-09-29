@@ -7,7 +7,7 @@
  * service decided and lets the database refuse what it must.
  */
 
-import type { Pool } from 'pg';
+import type { Pool, PoolClient } from 'pg';
 
 export interface MemberRow {
   id: string;
@@ -63,6 +63,8 @@ export interface ConversationRow {
   /** The group this conversation belongs to; both null for a direct one. */
   group_slug: string | null;
   group_name: string | null;
+  group_language: string | null;
+  group_closed: boolean | null;
   /** The fixture a group thread is about; null for every other kind (T-244). */
   fixture_id: string | null;
   muted: boolean;
@@ -111,6 +113,8 @@ const STANDING_COLUMNS = `c.id,
               COALESCE(me.last_read_seq, 0) AS last_read_seq,
               g.slug AS group_slug,
               g.name AS group_name,
+              g.language AS group_language,
+              g.closed_at IS NOT NULL AS group_closed,
               c.fixture_id,
               CASE WHEN c.kind = 'direct' THEN (
                 SELECT p.last_read_seq FROM conversation_participant p
@@ -519,12 +523,17 @@ export class ConversationsStore {
   async marks(
     messageIds: string[],
     viewerId: string,
-  ): Promise<{ reactions: ReactionRow[]; mentions: MentionRow[]; pinned: Set<string> }> {
+  ): Promise<{
+    reactions: ReactionRow[];
+    mentions: MentionRow[];
+    pinned: Set<string>;
+    removals: Map<string, string>;
+  }> {
     if (messageIds.length === 0) {
-      return { reactions: [], mentions: [], pinned: new Set() };
+      return { reactions: [], mentions: [], pinned: new Set(), removals: new Map() };
     }
 
-    const [reactions, mentions, pins] = await Promise.all([
+    const [reactions, mentions, pins, removals] = await Promise.all([
       this.pool.query<ReactionRow>(
         `SELECT message_id,
                 reaction,
@@ -548,13 +557,109 @@ export class ConversationsStore {
         `SELECT message_id FROM conversation_pin WHERE message_id = ANY($1::uuid[])`,
         [messageIds],
       ),
+      // Why a group's owner or moderator removed the viewer's own messages
+      // (T-1024): the reason is in the audit row, and it is the author's to
+      // read, nobody else's.
+      this.pool.query<{ message_id: string; reason: string }>(
+        `SELECT DISTINCT ON (a.target_id) a.target_id AS message_id, a.reason
+           FROM audit_log a
+           JOIN message m ON m.id::text = a.target_id
+          WHERE a.target_type = 'message' AND a.action = 'message.remove'
+            AND a.target_id = ANY($1::text[]) AND m.author_id = $2
+            AND m.removed_kind = 'moderator'
+          ORDER BY a.target_id, a.created_at DESC`,
+        [messageIds, viewerId],
+      ),
     ]);
 
     return {
       reactions: reactions.rows,
       mentions: mentions.rows,
       pinned: new Set(pins.rows.map((row) => row.message_id)),
+      removals: new Map(removals.rows.map((row) => [row.message_id, row.reason])),
     };
+  }
+
+  /** The viewer's role in the group a conversation belongs to, or null (T-1024). */
+  async groupRole(conversationId: string, userId: string): Promise<string | null> {
+    const { rows } = await this.pool.query<{ role: string }>(
+      `SELECT gm.role FROM conversation c
+         JOIN group_member gm ON gm.group_id = c.group_id AND gm.user_id = $2
+        WHERE c.id = $1 AND c.kind IN ('group', 'group_thread')`,
+      [conversationId, userId],
+    );
+    return rows[0]?.role ?? null;
+  }
+
+  /**
+   * A group's owner or moderator removes a message (T-1024, D-134): the
+   * tombstone (`removed_kind = 'moderator'`) and its `audit_log` row -- the
+   * actor, the reason and the message as it was -- in one transaction.
+   * `owner_message` when a moderator reaches for the owner's words.
+   */
+  async removeAsGroupModerator(
+    conversationId: string,
+    messageId: string,
+    actorId: string,
+    actorRole: string,
+    reason: string,
+  ): Promise<'removed' | 'not_found' | 'owner_message'> {
+    return this.inTransaction(async (client) => {
+      const { rows } = await client.query<{
+        id: string;
+        seq: string;
+        author_id: string;
+        author: string;
+        author_role: string | null;
+        body: string | null;
+        card_kind: string | null;
+        card_id: string | null;
+        created_at: Date;
+        group_id: string;
+      }>(
+        `SELECT m.id, m.seq, m.author_id, u.username AS author, gm.role AS author_role,
+                m.body, m.card_kind, m.card_id, m.created_at, c.group_id
+           FROM message m
+           JOIN conversation c ON c.id = m.conversation_id
+           JOIN user_account u ON u.id = m.author_id
+           LEFT JOIN group_member gm ON gm.group_id = c.group_id AND gm.user_id = m.author_id
+          WHERE m.id = $1 AND m.conversation_id = $2 AND m.removed_at IS NULL
+          FOR UPDATE OF m`,
+        [messageId, conversationId],
+      );
+      const found = rows[0];
+      if (found === undefined) return 'not_found';
+      if (found.author_role === 'owner' && actorRole !== 'owner') return 'owner_message';
+
+      await client.query(
+        `UPDATE message
+            SET body = NULL, card_kind = NULL, card_id = NULL,
+                removed_at = now(), removed_by = $2, removed_kind = 'moderator'
+          WHERE id = $1`,
+        [messageId, actorId],
+      );
+      await client.query(
+        `INSERT INTO audit_log (actor_id, action, target_type, target_id, reason, previous, next)
+         VALUES ($1::uuid, 'message.remove', 'message', $2::text, $3::text, $4::jsonb, $5::jsonb)`,
+        [
+          actorId,
+          messageId,
+          reason,
+          JSON.stringify({
+            conversation_id: conversationId,
+            group_id: found.group_id,
+            seq: Number(found.seq),
+            author: found.author,
+            body: found.body,
+            card_kind: found.card_kind,
+            card_id: found.card_id,
+            created_at: found.created_at.toISOString(),
+          }),
+          JSON.stringify({ removed_kind: 'moderator', by_role: actorRole }),
+        ],
+      );
+      return 'removed';
+    });
   }
 
   /** Every pinned message in a conversation, newest pin first. */
@@ -714,6 +819,21 @@ export class ConversationsStore {
         WHERE conversation_id = $1 AND user_id = $2 AND left_at IS NULL`,
       [conversationId, viewerId],
     );
+  }
+
+  private async inTransaction<T>(run: (client: PoolClient) => Promise<T>): Promise<T> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const value = await run(client);
+      await client.query('COMMIT');
+      return value;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 }
 
