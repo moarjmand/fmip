@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  TRANSLATION_MEMORY_LIMIT,
   TRANSLATION_QUEUE_DAYS,
   TRANSLATION_QUEUE_LIMIT,
   checkTranslation,
@@ -11,6 +12,7 @@ import {
   type TranslationDesk,
   type TranslationDeskVersion,
   type TranslationField,
+  type TranslationMemoryEntry,
   type TranslationQueue,
   type TranslationQueueItem,
   type TranslationTexts,
@@ -520,7 +522,82 @@ export class PostgresTranslationsAdminStore {
         glossaryFor(language),
       ),
       viewer_is_author: current !== undefined && current.written_id === viewerId,
+      memory: await this.memory(articleId, language, original),
     };
+  }
+
+  /**
+   * Translation memory (T-1014, D-130): for each field of the source, the
+   * reviewed translations into `language` of another article whose publisher
+   * version carries exactly the same string in the same field. Exact matches
+   * only; each names who wrote and who reviewed it, and carries the newest
+   * later version whose words differ as its correction. Read-only: nothing
+   * here fills a field.
+   */
+  async memory(
+    articleId: string,
+    language: string,
+    source: Record<TranslationField, string | null>,
+  ): Promise<TranslationMemoryEntry[]> {
+    const entries: TranslationMemoryEntry[] = [];
+    for (const field of MEMORY_FIELDS) {
+      const text = source[field];
+      if (text === null || text.trim() === '') continue;
+      // `field` is one of three fixed column names, never input.
+      const { rows } = await this.pool.query<MemoryRow>(
+        `SELECT r.article_id, r.version_number, r.${field} AS text, r.created_at,
+                w.id AS written_id, w.username AS written_username,
+                rv.id AS reviewed_id, rv.username AS reviewed_username,
+                c.version_number AS c_version, c.${field} AS c_text, c.review_state AS c_state,
+                c.created_at AS c_at, cw.id AS c_written_id, cw.username AS c_written_username
+           FROM article_version r
+           JOIN article a ON a.id = r.article_id
+           JOIN news_source s ON s.id = a.source_id AND s.dropped_at IS NULL
+           JOIN user_account w ON w.id = r.written_by
+           JOIN user_account rv ON rv.id = r.reviewed_by
+           LEFT JOIN LATERAL (
+             SELECT * FROM article_version c
+              WHERE c.article_id = r.article_id AND c.language = r.language
+                AND c.origin = 'translation' AND c.version_number > r.version_number
+                AND c.${field} IS DISTINCT FROM r.${field}
+              ORDER BY c.version_number DESC LIMIT 1) c ON true
+           LEFT JOIN user_account cw ON cw.id = c.written_by
+          WHERE r.language = $1 AND r.origin = 'translation' AND r.review_state = 'reviewed'
+            AND r.article_id <> $2 AND r.${field} IS NOT NULL
+            AND EXISTS (SELECT 1 FROM article_version p
+                         WHERE p.article_id = r.article_id AND p.origin = 'publisher'
+                           AND p.${field} = $3)
+          ORDER BY r.created_at DESC, r.article_id, r.version_number DESC
+          LIMIT $4`,
+        [language, articleId, text, TRANSLATION_MEMORY_LIMIT],
+      );
+      for (const row of rows) {
+        entries.push({
+          field,
+          source: text,
+          text: row.text,
+          article_id: row.article_id,
+          version_number: row.version_number,
+          written_by: { id: row.written_id, username: row.written_username },
+          reviewed_by: { id: row.reviewed_id, username: row.reviewed_username },
+          reviewed_at: row.created_at.toISOString(),
+          correction:
+            row.c_version === null || row.c_state === null || row.c_at === null
+              ? null
+              : {
+                  version_number: row.c_version,
+                  text: row.c_text,
+                  review_state: row.c_state,
+                  written_by: {
+                    id: row.c_written_id ?? '',
+                    username: row.c_written_username ?? '',
+                  },
+                  updated_at: row.c_at.toISOString(),
+                },
+        });
+      }
+    }
+    return entries;
   }
 }
 
@@ -579,4 +656,27 @@ function queueItem(row: QueueRow): TranslationQueueItem {
             updated_at: row.updated_at!.toISOString(),
           },
   };
+}
+
+const MEMORY_FIELDS = [
+  'headline',
+  'summary',
+  'byline',
+] as const satisfies readonly TranslationField[];
+
+interface MemoryRow {
+  article_id: string;
+  version_number: number;
+  text: string;
+  created_at: Date;
+  written_id: string;
+  written_username: string;
+  reviewed_id: string;
+  reviewed_username: string;
+  c_version: number | null;
+  c_text: string | null;
+  c_state: ReviewState | null;
+  c_at: Date | null;
+  c_written_id: string | null;
+  c_written_username: string | null;
 }

@@ -5,6 +5,7 @@ import type {
   TranslationCheckResult,
   TranslationDesk as Desk,
   TranslationField,
+  TranslationMemoryEntry,
 } from '@fmip/contracts';
 import { directionOf } from '@/i18n/locales';
 import {
@@ -63,6 +64,98 @@ export function FieldChecks({
         );
       })}
     </ul>
+  );
+}
+
+const fieldId = (field: TranslationField) => `desk-field-${field}`;
+
+/**
+ * Put a remembered translation into its field, because the translator chose
+ * it (T-1014, D-130). The only way words from memory reach the form: nothing
+ * is copied on load, and the translator edits or saves it like their own.
+ */
+function copyInto(field: TranslationField, text: string) {
+  const control = document.getElementById(fieldId(field));
+  if (control instanceof HTMLTextAreaElement) {
+    control.value = text;
+    control.focus();
+  }
+}
+
+/** Translation memory for one field: exact matches, each with its people. */
+export function FieldMemory({
+  field,
+  language,
+  entries,
+}: {
+  field: TranslationField;
+  language: string;
+  entries: TranslationMemoryEntry[];
+}) {
+  const mine = entries.filter((entry) => entry.field === field);
+  if (mine.length === 0) return null;
+  const direction = directionOf(language);
+  return (
+    <div className="flex flex-col gap-1 text-xs" data-testid={`desk-memory-${field}`}>
+      <p className="font-medium">
+        Translation memory: the same {field} reviewed before. Copy one only if it fits.
+      </p>
+      <ul className="flex flex-col gap-2">
+        {mine.map((entry) => (
+          <li
+            key={`${entry.article_id}-${entry.version_number}`}
+            className="flex flex-col gap-1"
+            data-testid="desk-memory-entry"
+          >
+            <span lang={language} dir={direction} className="text-sm">
+              {entry.text}
+            </span>
+            <span className="text-muted">
+              Written by {entry.written_by.username}, reviewed by {entry.reviewed_by.username},{' '}
+              <time dateTime={entry.reviewed_at}>{entry.reviewed_at.slice(0, 10)}</time>
+            </span>
+            {entry.correction !== null && (
+              // Shown beside it, never instead of it: the reader sees both
+              // and chooses, and a correction still under review says so.
+              <span data-testid="desk-memory-correction">
+                <span className="font-medium">
+                  Corrected in version {entry.correction.version_number} by{' '}
+                  {entry.correction.written_by.username}
+                  {entry.correction.review_state === 'translated' ? ' (not yet reviewed)' : ''}:
+                </span>{' '}
+                {entry.correction.text === null ? (
+                  <span className="text-muted">the {field} was removed</span>
+                ) : (
+                  <span lang={language} dir={direction}>
+                    {entry.correction.text}
+                  </span>
+                )}
+              </span>
+            )}
+            <span className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => copyInto(field, entry.text)}
+                data-testid="desk-memory-copy"
+              >
+                Copy into the {field}
+              </Button>
+              {entry.correction?.text != null && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => copyInto(field, entry.correction!.text!)}
+                  data-testid="desk-memory-copy-correction"
+                >
+                  Copy the correction
+                </Button>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -149,6 +242,7 @@ function WriteForm({ locale, desk }: { locale: string; desk: Desk }) {
           <div key={field} className="flex flex-col gap-1">
             <TextArea
               label={`${FIELD_LABELS[field]} (${desk.language})`}
+              id={fieldId(field)}
               name={field}
               rows={field === 'summary' ? 4 : 2}
               required={field === 'headline'}
@@ -159,6 +253,7 @@ function WriteForm({ locale, desk }: { locale: string; desk: Desk }) {
               data-testid={`desk-field-${field}`}
             />
             <FieldChecks field={field} results={desk.checks} />
+            <FieldMemory field={field} language={desk.language} entries={desk.memory} />
           </div>
         ))}
         <Button

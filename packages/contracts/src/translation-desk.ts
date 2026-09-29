@@ -71,6 +71,40 @@ export interface TranslationDeskVersion extends TranslationVersionSummary {
   byline: string | null;
 }
 
+/**
+ * Translation memory (T-1014, D-130): a reviewed translation of exactly the
+ * same source string, in the same language, on another article -- a named
+ * person's earlier words, offered to copy and never filled in.
+ */
+export interface TranslationMemoryEntry {
+  field: TranslationField;
+  /** The source string, exactly as this article's source carries it. */
+  source: string;
+  /** The reviewed translation of it. */
+  text: string;
+  article_id: string;
+  version_number: number;
+  written_by: TranslationPerson;
+  reviewed_by: TranslationPerson;
+  /** When the reviewed version was written. */
+  reviewed_at: string;
+  /**
+   * A later version of that translation whose words differ: the memory entry
+   * was corrected, and the correction is shown beside it. Null when the
+   * reviewed words are still the newest.
+   */
+  correction: {
+    version_number: number;
+    text: string | null;
+    review_state: ReviewState;
+    written_by: TranslationPerson;
+    updated_at: string;
+  } | null;
+}
+
+/** How many memory entries per field the desk shows at most, newest first. */
+export const TRANSLATION_MEMORY_LIMIT = 5;
+
 /** `GET /admin/articles/:id/translations/:language` (T-1013). */
 export interface TranslationDesk {
   article_id: string;
@@ -100,4 +134,6 @@ export interface TranslationDesk {
   glossary: TranslationGlossaryHit[];
   /** The viewer wrote the newest translation, and so cannot review it (D-066). */
   viewer_is_author: boolean;
+  /** Exact matches from translation memory, per field of the source (T-1014). */
+  memory: TranslationMemoryEntry[];
 }

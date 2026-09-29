@@ -5033,6 +5033,28 @@ translation). Filling a target term from a localised name already in
 `entity_alias`: a script writing a word in another language, which this
 decision exists to refuse; the review check reads both sources instead.
 
+**Translation memory (T-1014).** For each field of the source, the desk
+lists the reviewed translations into the same language of *another*
+article whose publisher's version carries **exactly** the same string in
+the same field -- no fuzzy match, no normalisation, because a near match is
+a different sentence and offering it as memory would be a guess. Each entry
+names who wrote it and who reviewed it, and when: memory is a named
+person's earlier words, not the product's. Only `reviewed` versions are
+memory; a translation a second speaker has not read is not yet anyone's
+settled word. When a later version of that translation carries different
+words for the field, the entry shows that correction beside itself, with
+its author and whether it is reviewed yet, rather than hiding either.
+
+**Suggested, never filled in.** The desk shows memory beside the field
+with a "copy" control; the field starts empty (or with this article's own
+newest translation) and receives remembered words only when the translator
+presses it, after which they are the translator's to edit and save like
+their own. The API only reads (`TRANSLATION_MEMORY_LIMIT` entries per field,
+newest first); nothing writes a memory entry, because memory is the stored
+versions themselves. Rejected: filling the field on load (the plan's rule:
+nothing from memory without a person choosing it) and a separate memory
+table (a second copy of the versions, stale on the first correction).
+
 ## D-131 — The automatic translation checks, and a reviewer's recorded reason to pass one
 
 **Date:** 2026-09-29 · **Task:** T-1012 · **Status:** accepted (revisable under the standing delegation of 2026-09-26)

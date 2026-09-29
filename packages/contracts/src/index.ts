@@ -764,11 +764,16 @@ export type {
 
 // The translator's desk (T-1013): the queue per language and one article's
 // source, translation, checks and glossary terms.
-export { TRANSLATION_QUEUE_DAYS, TRANSLATION_QUEUE_LIMIT } from './translation-desk';
+export {
+  TRANSLATION_MEMORY_LIMIT,
+  TRANSLATION_QUEUE_DAYS,
+  TRANSLATION_QUEUE_LIMIT,
+} from './translation-desk';
 export type {
   TranslationDesk,
   TranslationDeskVersion,
   TranslationGlossaryHit,
+  TranslationMemoryEntry,
   TranslationPerson,
   TranslationQueue,
   TranslationQueueItem,

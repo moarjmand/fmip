@@ -69,6 +69,7 @@ function desk(overrides: Partial<Desk> = {}): Desk {
       { key: 'term.goal', source: 'goal', locked: false, text: '', status: 'untranslated' },
     ],
     viewer_is_author: false,
+    memory: [],
     ...overrides,
   };
 }
@@ -148,5 +149,45 @@ describe("the translator's desk", () => {
     // The term is shown once, beside the form, and no textarea holds it.
     expect(html.match(/هدف-مصطلح/g)).toHaveLength(1);
     expect(html).not.toMatch(/<textarea[^>]*>[^<]*هدف-مصطلح/);
+  });
+
+  it('offers translation memory beside its field, with its people and its correction, filled into nothing', () => {
+    const remembered = 'MEMORY-WORDS';
+    const html = render(
+      desk({
+        translation: null,
+        checks: [],
+        memory: [
+          {
+            field: 'headline',
+            source: 'A goal settles it 2-1',
+            text: remembered,
+            article_id: '00000000-0000-4000-8000-000000000ccc',
+            version_number: 2,
+            written_by: PERSON_A,
+            reviewed_by: PERSON_B,
+            reviewed_at: '2026-09-01T10:00:00.000Z',
+            correction: {
+              version_number: 3,
+              text: 'CORRECTED-WORDS',
+              review_state: 'translated',
+              written_by: PERSON_A,
+              updated_at: '2026-09-02T10:00:00.000Z',
+            },
+          },
+        ],
+      }),
+    );
+    expect(html).toContain('data-testid="desk-memory-headline"');
+    expect(html).not.toContain('data-testid="desk-memory-summary"');
+    expect(html).toContain('Written by writer, reviewed by reviewer');
+    expect(html).toContain('CORRECTED-WORDS');
+    expect(html).toContain('(not yet reviewed)');
+    expect(html).toContain('data-testid="desk-memory-copy"');
+    // Offered only: no field holds the remembered or corrected words.
+    expect(html).not.toMatch(/<textarea[^>]*>[^<]*(MEMORY|CORRECTED)-WORDS/);
+    expect(html).toMatch(
+      /<textarea[^>]*name="headline"[^>]*><\/textarea>|<textarea[^>]*><\/textarea>/,
+    );
   });
 });

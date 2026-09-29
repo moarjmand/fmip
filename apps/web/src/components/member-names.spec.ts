@@ -96,6 +96,9 @@ const FIELDS: Record<string, Rule> = {
   'translation-desk.ts:TranslationGlossaryHit.source': {
     exempt: 'an English glossary term the source uses (T-1013), not a member',
   },
+  'translation-desk.ts:TranslationMemoryEntry.source': {
+    exempt: 'the source string a memory entry matched (T-1014), not a member',
+  },
   'predictions.ts:FriendPrediction.display_name': {
     rendered: [['components/home-member.tsx', 'member={p}']],
   },

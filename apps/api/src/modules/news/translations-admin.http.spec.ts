@@ -531,4 +531,88 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('article tran
       expect(view.fields).toEqual(['headline']);
     });
   });
+
+  describe('translation memory (T-1014)', () => {
+    /** An article whose publisher's headline is exactly `headline`. */
+    async function saying(headline: string, summary: string): Promise<string> {
+      const made = await article('summary');
+      checked.push(made.article);
+      await pool.query(
+        `INSERT INTO article_version (article_id, language, version_number, headline, summary, published_at)
+         VALUES ($1, 'en', 2, $2, $3, '2026-09-18T11:00:00Z')`,
+        [made.article, headline, summary],
+      );
+      return made.article;
+    }
+    const deskOf = async (who: string, article: string) =>
+      (
+        await app.inject({
+          method: 'GET',
+          url: `/admin/articles/${article}/translations/pt`,
+          headers: as(who),
+        })
+      ).json<TranslationDesk>();
+
+    it("offers a named person's reviewed words for exactly the same string, and fills nothing", async () => {
+      const said = `Kick-off moved ${RUN}`;
+      const earlier = await saying(said, 'An earlier summary.');
+      await translate(`tl_${RUN}a`, earlier, {
+        language: 'pt',
+        headline: `Pontapé adiado ${RUN}`,
+        summary: 'Um resumo.',
+      });
+      // Written but not reviewed: not memory yet.
+      const now = await saying(said, 'A different summary.');
+      const nearly = await saying(`${said}!`, 'A different summary.');
+      expect((await deskOf(`tl_${RUN}b`, now)).memory).toEqual([]);
+
+      expect((await review(`tl_${RUN}b`, earlier, 'pt')).statusCode).toBe(204);
+      const desk = await deskOf(`tl_${RUN}b`, now);
+      expect(desk.memory).toEqual([
+        expect.objectContaining({
+          field: 'headline',
+          source: said,
+          text: `Pontapé adiado ${RUN}`,
+          article_id: earlier,
+          version_number: 2,
+          written_by: expect.objectContaining({ username: `tl_${RUN}a` }),
+          reviewed_by: expect.objectContaining({ username: `tl_${RUN}b` }),
+          correction: null,
+        }),
+      ]);
+      // Offered, never filled in: the article has no translation.
+      expect(desk.translation).toBeNull();
+      // Exact matches only.
+      expect((await deskOf(`tl_${RUN}b`, nearly)).memory).toEqual([]);
+      // And never the article's own translation.
+      expect((await deskOf(`tl_${RUN}b`, earlier)).memory).toEqual([]);
+    });
+
+    it('shows the correction when the remembered version was corrected', async () => {
+      const said = `Squad named ${RUN}`;
+      const earlier = await saying(said, 'Summary one.');
+      await translate(`tl_${RUN}a`, earlier, {
+        language: 'pt',
+        headline: `Convocados ${RUN}`,
+        summary: 'Um.',
+      });
+      await review(`tl_${RUN}b`, earlier, 'pt');
+      await translate(`tl_${RUN}a`, earlier, {
+        language: 'pt',
+        headline: `Lista de convocados ${RUN}`,
+        summary: 'Um.',
+      });
+      const now = await saying(said, 'Summary two.');
+      const [entry] = (await deskOf(`tl_${RUN}b`, now)).memory;
+      expect(entry).toMatchObject({
+        text: `Convocados ${RUN}`,
+        correction: {
+          version_number: 3,
+          text: `Lista de convocados ${RUN}`,
+          review_state: 'translated',
+          written_by: { username: `tl_${RUN}a` },
+        },
+      });
+    });
+  });
 });
