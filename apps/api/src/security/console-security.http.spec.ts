@@ -92,6 +92,9 @@ const CONSOLE: Record<string, ConsoleRoute> = {
     reason: { without: { state: 'not_supplied' } },
   },
   'GET /admin/audit': { roles: ADMIN },
+  // The competitions' order (T-1162, D-154).
+  'GET /admin/competitions': { roles: ADMIN },
+  'PUT /admin/competitions/:id/order': { roles: ADMIN, reason: { without: { order: 3 } } },
   'POST /admin/ingestion/backfill': { roles: ADMIN, reason: { without: {} } },
 
   // News sources (T-1015): add, edit and drop a publisher's feed.

@@ -11,6 +11,7 @@ import type {
   SavedArticlesResponse,
   ActivityReport,
   AdminAlertsReport,
+  AdminCompetitionsResponse,
   AdminOverview,
   FailureCountsReport,
   RateLimitsReport,
@@ -120,6 +121,16 @@ export type ApiHealth = { reachable: true; report: HealthReport } | { reachable:
 /** `GET /admin/overview` (T-070): the operator's view; 401/403 come back as results. */
 export function fetchAdminOverview(cookie: string | undefined): Promise<ApiResult<AdminOverview>> {
   return apiRequest<AdminOverview>('/admin/overview', cookie === undefined ? {} : { cookie });
+}
+
+/** `GET /admin/competitions` (T-1162): every competition in the order readers meet them. Administrators only. */
+export function fetchAdminCompetitions(
+  cookie: string | undefined,
+): Promise<ApiResult<AdminCompetitionsResponse>> {
+  return apiRequest<AdminCompetitionsResponse>(
+    '/admin/competitions',
+    cookie === undefined ? {} : { cookie },
+  );
 }
 
 /** `GET /admin/health/watchdog` (T-801): every condition, its threshold and state, and the newest transitions. */

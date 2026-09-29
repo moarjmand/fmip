@@ -5941,3 +5941,36 @@ one query, so a table would be a second copy to keep in step.
 **Consequences.** No migration. `public` is only read. `as_text` (the load's
 content hash) leaves the coaches out, because `training.match` does not store
 them.
+
+## D-154 — The competitions' order is set from the console, the same audited write as the script
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** `competition.display_order` (T-504), the place a competition
+takes on the scores page and the homepage after a member's own favourites, is
+set by an administrator from `/admin/competitions` (T-1162) as well as by
+`catalog.mjs --set-order`, which keeps working unchanged.
+
+- **Who.** The `admin` role only, as the script is the operator's: the order
+  is the product's statement of what a reader looks for first, not an
+  editorial placement (that is D-153's featured matches).
+- **The write.** `PUT /admin/competitions/:id/order` with `order` (1 to
+  32767, 1 first; `null` clears it) and a reason. It is the script's change
+  -- the column and an `audit_log` row `catalog.competition_order_set` on the
+  competition with `next: { display_order }` -- plus what the script does not
+  record: the administrator's reason and `previous: { display_order }`
+  (rule 10), in one statement with the change. Two competitions may share a
+  place; the country and the name then decide, as for every competition with
+  none.
+- **The list.** `GET /admin/competitions` gives every competition, active or
+  not, in the order readers meet them: stated places first, then by country
+  (international first) and name, as `fixtures/internal/arrange.ts` groups
+  them.
+- **When it shows.** The scores answer and the homepage read the column per
+  request (nothing caches it), so the next render has the new order; the web
+  action revalidates both pages as well.
+
+**Rejected.** *Drag-and-drop reordering that renumbers every competition in
+one write*: one reason would stand for fifteen changes, and the audit log
+would say little about any one of them. *Retiring the script*: a fresh
+deployment sets all fifteen places before anyone has an account in the
+console, and the runbook does it in one loop.
