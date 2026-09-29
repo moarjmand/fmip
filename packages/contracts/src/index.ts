@@ -743,17 +743,10 @@ export type {
   GlossaryStatus,
 } from './glossary';
 
-// The automatic translation checks (T-1012, D-131): a pure function over the
-// publisher's version and a person's translation, shared by the review
-// endpoint that enforces them and the desk that shows them.
-export {
-  TRANSLATION_CHECKS,
-  TRANSLATION_FIELDS,
-  checkTranslation,
-  containsPhrase,
-  latinDigits,
-  unresolvedFailures,
-} from './translation-checks';
+// The automatic translation checks (T-1012, D-131): the types only. The
+// functions are `@fmip/contracts/translation-checks`, a subpath of their
+// own, so a browser page that imports a constant from this index does not
+// carry the checks in its first-load JavaScript (T-808's budgets).
 export type {
   TranslationCheck,
   TranslationCheckContext,
