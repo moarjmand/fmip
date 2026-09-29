@@ -6096,6 +6096,145 @@ before the match, the bridge keys a cup match to the league side, a club with
 no earlier match gives no value, and a planted fatigue effect passes the bar
 while none fails.
 
+## D-142 — The Power Index's rest component is scored from the stored schedule, and keeps its 5%
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26) · **Task:** T-1111 · **Follows:** T-113, D-080, D-141
+
+**The problem.** T-113's validation of the Power Index weights left rest out,
+because the training store was read as results without a schedule, so the
+blueprint's 5% for "rest, travel and schedule" had never been tested.
+
+**The decision.** `apps/api/scripts/power-index-backtest.mjs` reads the stored
+schedule and scores rest with the other components:
+
+- **The schedule** is every `training.match` row, clubs keyed through
+  `training.team_alias` (a bridged club by its catalogue id, else
+  `<division>:<name>`), the rows the model's rest input reads (D-141).
+  `scheduleOf` and `restBefore` in `internal/power-index-backtest.ts` (pure,
+  tested) give each side's days since its previous match and its matches in
+  the 14 days before, from days strictly before the match's day, the shape
+  the live store gives `restOf`. A club with no earlier stored match has no
+  rest value; its weight is redistributed, as live.
+- **The division's own history** a match is measured against is now its
+  matches of earlier days only. Before this, other matches of the same day
+  counted, which the method's own words ("before that day") did not allow.
+- **The component's own question** is asked by two more candidates:
+  `without-rest` (the blueprint's weights with rest at 0) and `rest-heavy`
+  (rest at 15%). The report states how many matches had both sides' rest
+  read, how many of the division's clubs are bridged (their cup matches
+  count), and what removing rest costs on the held-out half.
+- **The bar is unchanged**: a candidate must beat the blueprint's held-out
+  log loss by more than 0.01, and a changed weight is a new
+  `power-index@x.y.z`, never an edit.
+- **The component stays `limited`** in the live index: travel is not
+  modelled until Phase 11's N-1 (ground coordinates) is answered.
+
+**The result: keep the published weights, rest at 5%.** Run on a private
+local database (a copy of football-data.co.uk 2023/24 to 2026/27, ten
+divisions; no bridge rows, so each club's schedule is its league matches),
+every division's whole stored history, half to fit and half to score:
+
+| Division | Matches walked | Both sides' rest read | Blueprint | without-rest | rest-heavy | Rest's contribution | Best alternative, by |
+|---|---|---|---|---|---|---|---|
+| E0 | 1,130 | 1,123 | 1.0290 | 1.0281 | 1.0313 | -0.0009 | strength-heavy, 0.0011 |
+| SP1 | 1,149 | 1,141 | 1.0050 | 1.0035 | 1.0089 | -0.0016 | venue-heavy, 0.0092 |
+| D1 | 894 | 888 | 1.0268 | 1.0273 | 1.0264 | +0.0005 | equal, 0.0004 |
+| I1 | 1,130 | 1,125 | 0.9970 | 0.9975 | 0.9970 | +0.0006 | strength-heavy, 0.0035 |
+| F1 | 903 | 897 | 1.0116 | 1.0124 | 1.0107 | +0.0008 | strength-heavy, 0.0027 |
+| N1 | 921 | 916 | 0.9994 | 0.9991 | 1.0011 | -0.0003 | strength-heavy, 0.0050 |
+| P1 | 920 | 914 | 0.9688 | 0.9681 | 0.9712 | -0.0007 | without-rest, 0.0007 |
+| B1 | 938 | 932 | 1.0400 | 1.0401 | 1.0404 | +0.0001 | venue-heavy, 0.0028 |
+| T1 | 1,022 | 1,015 | 1.0174 | 1.0175 | 1.0179 | +0.0001 | none (blueprint best) |
+| SC0 | 666 | 664 | 1.0140 | 1.0151 | 1.0124 | +0.0011 | strength-heavy, 0.0040 |
+
+(Held-out log loss; rest's contribution is `without-rest` minus the
+blueprint, positive when rest helped.) No candidate clears 0.01 in any
+division, and rest's contribution lies between -0.0016 and +0.0011, in both
+directions: on league schedules alone rest carries no signal this backtest
+can see, and none against it either. The weights stay, `power-index@1.1.0`
+is unchanged, and `docs/12-power-index.md` holds E0's table and no longer says
+rest is excluded. The full results are under `apps/api/backtest/`.
+
+**The lead re-runs it on the server's full store**, where the bridge joins
+our records' cup and continental matches to the league clubs and congestion
+is real: from a checkout of main with its dependencies installed, against
+the server's Postgres (on `127.0.0.1:5432` there, or through an SSH tunnel):
+
+```bash
+pnpm --filter @fmip/contracts build && pnpm --filter @fmip/ingestion build && pnpm --filter @fmip/api build
+set -a; . ./.env; set +a
+export DATABASE_URL="postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@127.0.0.1:5432/$POSTGRES_DB"
+for d in SP1 D1 I1 F1 N1 P1 B1 T1 SC0 E1 IR1 E0; do node apps/api/scripts/power-index-backtest.mjs --division "$d"; done
+```
+
+and records that run's table here. A candidate that clears 0.01 there is a
+new formula version with its own entry, never an edit of this one.
+
+**Alternatives considered.** Rest from our fixture table, as the live index
+reads it: it covers every competition we carry but only from 2025/26, too
+short for a walk-forward with a held-out half. Leaving rest out and saying
+so: the blueprint asks the weights to be validated, and the schedule was
+stored all along. A grid of rest weights: the candidates stay few and
+arguable, so that a winner is not noise.
+
+
+---
+
+## D-145 — A match on neither club's usual ground is forecast without home advantage
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26) · **Task:** T-1122 · **Follows:** D-083, D-139
+
+**The problem.** The fit learns one home advantage per division and gives it
+to whichever side the fixture names at home. A final, a match moved to a third
+ground by a ban, or a cup tie played away from both clubs has no home side in
+any footballing sense, yet it is forecast as if the first-named club were at
+home. Blueprint 6.3 lists "competition format and match state" among the
+inputs; the plan (T-1122) asks for this one on our records.
+
+**The decision.** An input, `neutral_ground` (`fmip_model/inputs/neutral_ground.py`),
+judged by D-139's harness and carried by no candidate until T-1150:
+
+- **A club's usual ground** is the venue of most of its home league matches in
+  the league season that contains the match's day, or, after the league's last
+  day (a cup final in May), the latest season that ended within the year
+  before it. A tie for "most" gives every venue in it, so a ground two clubs
+  share is either club's usual ground.
+- **Neutral** is a stored venue that is neither side's usual ground. The home
+  side's log expected goals then lose the fitted `home_advantage`; the away
+  side's are unchanged. Nothing is fitted: the rule removes a parameter the
+  model already has.
+- **Nothing is read** -- the candidate's forecast, with today's home
+  advantage, stands and the match is outside the sample -- for a match with no
+  stored venue, or where either club has no usual ground (a club whose league
+  we do not carry). A match on either club's ground is not neutral and is
+  outside the sample too. In a served forecast (T-1150) such a match keeps its
+  home advantage and says so in its factors.
+- **Sources.** Venues come from `fixture.venue_id` (fixed when the match is
+  scheduled, not by its result). `fixture.is_neutral_venue` is not used:
+  ingestion always writes it false. football-data.co.uk carries no ground, so
+  only our records' divisions (`IR1`, and `XL`, T-533) can be read.
+
+**The sample and the verdict.** Not run on our records yet: the laptop's
+private database holds only the football-data.co.uk divisions (10,273 matches,
+no fixture or venue rows), where the input cannot be read on any match, so
+the group is `not run` and there is no verdict. The run on the server, where
+our records are, is the lead's; its report states the number of neutral
+matches, and this entry is amended with the verdict and the numbers either
+way. Expect few: finals and the odd relocated league match, likely below
+D-139's 300, in which case the verdict is `insufficient` and no candidate
+carries it. The server run, from `/opt/fmip`:
+
+```bash
+DIVS=$(docker compose exec -T postgres psql -U fmip -d fmip -Atc "SELECT string_agg(DISTINCT m.division, ' ') FROM training.match m JOIN training.source_load l ON l.id = m.source_load_id WHERE l.source = 'our_records'")
+docker compose run --rm -T model sh -c "python -m fmip_model.backtest.inputs --input neutral_ground --divisions $DIVS --from 2025-08-01 --to 2026-06-30 --history-from 2023-07-01 --out /tmp/reports --note server && cat /tmp/reports/*/inputs_neutral_ground_*.md"
+```
+
+**Rejected.** *Fitting a neutral-ground coefficient*: the sample is a few
+dozen matches a season, too few to fit a number that the rule already gives.
+*Halving the home advantage between the sides*: the fit's home advantage is
+the home side's alone (the away side's goals carry none), so removing it is
+the whole of "no home side". *Trusting `is_neutral_venue`*: nothing sets it.
+*The club's most frequent venue over all competitions*: a continental final
+would make its ground look usual for a club that reached two.
+
 ---
 
 ## D-143 — League stakes: a side whose place in the table is locked, read without zones

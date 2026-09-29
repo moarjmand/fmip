@@ -21,6 +21,7 @@
 
 import type { PowerIndexComponent } from '@fmip/contracts';
 import { POWER_INDEX_WEIGHTS } from '@fmip/contracts';
+import { CONGESTION_WINDOW_DAYS, type RestInput } from './power-index-measure';
 
 export type Outcome = 'H' | 'D' | 'A';
 
@@ -209,6 +210,49 @@ export function baseRateLogLoss(train: Observation[], test: Observation[]): numb
   );
 }
 
+/**
+ * The stored schedule (T-1111): each club's distinct match days, oldest first.
+ *
+ * The rows are every `training.match` row, clubs keyed through
+ * `training.team_alias` (a bridged club by its catalogue id, else
+ * `<division>:<name>`), so a club's cup matches in our records count toward
+ * its league rest when the bridge joins them -- the same rows the model's rest
+ * input reads (D-141).
+ */
+export function scheduleOf(rows: readonly { club: string; date: string }[]): Map<string, string[]> {
+  const days = new Map<string, Set<string>>();
+  for (const { club, date } of rows) {
+    const set = days.get(club) ?? new Set<string>();
+    set.add(date);
+    days.set(club, set);
+  }
+  return new Map([...days].map(([club, set]) => [club, [...set].sort()]));
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * What the schedule said about a club before `date` (ISO): days since its
+ * previous match and its matches in the congestion window, from its matches
+ * strictly before that day, as the live store measures a kick-off (T-111).
+ * No earlier match: `daysSincePrevious` is null and the component is absent.
+ */
+export function restBefore(
+  days: readonly string[] | undefined,
+  date: string,
+  windowDays = CONGESTION_WINDOW_DAYS,
+): RestInput {
+  const day = Date.parse(`${date}T00:00:00Z`);
+  const earlier = (days ?? []).filter((d) => d < date);
+  const previous = earlier.at(-1);
+  if (previous === undefined) return { daysSincePrevious: null, matchesInWindow: 0 };
+  const since = day - windowDays * DAY_MS;
+  return {
+    daysSincePrevious: Math.round((day - Date.parse(`${previous}T00:00:00Z`)) / DAY_MS),
+    matchesInWindow: earlier.filter((d) => Date.parse(`${d}T00:00:00Z`) >= since).length,
+  };
+}
+
 export type WeightSet = Partial<Record<PowerIndexComponent, number>>;
 
 /** The blueprint's weights, as a candidate like any other. */
@@ -248,6 +292,9 @@ export const CANDIDATE_WEIGHTS: { name: string; weights: WeightSet }[] = [
       rest_and_congestion: 0.05,
     },
   },
+  // T-1111: the rest component's own question -- does it earn its 5%, or more?
+  { name: 'without-rest', weights: { ...BLUEPRINT_WEIGHTS, rest_and_congestion: 0 } },
+  { name: 'rest-heavy', weights: { ...BLUEPRINT_WEIGHTS, rest_and_congestion: 0.15 } },
   {
     name: 'equal',
     weights: {
@@ -284,6 +331,11 @@ export interface BacktestResult {
    * formula version. A margin smaller than this is noise at this sample size.
    */
   margin: number;
+  /**
+   * T-1111: held-out log loss without the rest component minus the
+   * blueprint's. Positive: rest helped. `null` when either was not scored.
+   */
+  restContribution: number | null;
   verdict: string;
 }
 
@@ -337,6 +389,12 @@ export function score(
       ? Number.NaN
       : blueprint.testLogLoss - best.testLogLoss;
 
+  const withoutRest = candidates.find((candidate) => candidate.name === 'without-rest');
+  const restContribution =
+    withoutRest?.converged === true && blueprint?.converged === true
+      ? withoutRest.testLogLoss - blueprint.testLogLoss
+      : null;
+
   return {
     division,
     matches,
@@ -346,6 +404,7 @@ export function score(
     candidates,
     best: best?.name ?? 'none',
     margin,
+    restContribution,
     verdict: verdictOf(
       best?.name ?? 'none',
       margin,
