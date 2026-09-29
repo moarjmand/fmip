@@ -18,7 +18,8 @@ import type {
   TranslationReviewRefusal,
   TranslationReviewRequest,
 } from '@fmip/contracts';
-import { ROLE_REFUSALS, TRANSLATION_CHECKS, TRANSLATION_FIELDS } from '@fmip/contracts';
+import { ROLE_REFUSALS } from '@fmip/contracts';
+import { TRANSLATION_CHECKS, TRANSLATION_FIELDS } from '@fmip/contracts/translation-checks';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { PostgresTranslationsAdminStore } from './internal/translations-admin-store';

@@ -1,11 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import {
-  checkTranslation,
-  unresolvedFailures,
-  type TranslationCheckOverride,
-  type TranslationCheckResult,
-  type TranslationTexts,
+import type {
+  TranslationCheckOverride,
+  TranslationCheckResult,
+  TranslationTexts,
 } from '@fmip/contracts';
+import { checkTranslation, unresolvedFailures } from '@fmip/contracts/translation-checks';
 import { Pool, type PoolClient } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 import { glossaryFor, namesToCarry, type LinkedName } from './translation-names';
