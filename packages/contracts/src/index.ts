@@ -865,3 +865,18 @@ export type {
   TranslationQueueItem,
   TranslationVersionSummary,
 } from './translation-desk';
+
+// Featured matches on the homepage (T-1161, D-153).
+export {
+  HOMEPAGE_FEATURE_LIMIT,
+  HOMEPAGE_FEATURE_MAX_HOURS,
+  HOMEPAGE_FEATURE_MIN_HOURS,
+} from './homepage';
+export type {
+  FeaturedMatch,
+  FeaturedMatchesResponse,
+  HomepageFeatureClearRequest,
+  HomepageFeatureListResponse,
+  HomepageFeatureRecord,
+  HomepageFeatureRequest,
+} from './homepage';

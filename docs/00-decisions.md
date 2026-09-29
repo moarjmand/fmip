@@ -5891,3 +5891,48 @@ dynamic import in every client component*: the first render would be English
 until it arrived, the silent fallback the policy forbids. *A generated
 per-locale subset file*: a second copy of the catalogues to keep in step, for
 one rarely rendered page.
+
+## D-153 — Featured matches on the homepage: an editor's placement with a window and a note, first after a member's favourites
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** Blueprint 2.3's "important-match forecasts" and 16's
+"featured matches" on the homepage are an editor's act, recorded like the
+breaking mark (D-125), not a ranking a machine computes (T-1161).
+
+- **The feature.** An `editor` or `admin` features a match
+  (`POST /admin/fixtures/:id/feature`) with a note readers see beside it and
+  a window in whole hours, from 1 to 336 (two weeks, the homepage's own
+  reach, `HOME_DAYS`). Unlike the breaking mark the window is per feature:
+  a derby is worth a weekend, a cup draw's tie an evening. Only a match still
+  to be played or in play can be featured; a finished, postponed or
+  called-off one is refused, naming its state. A second feature while one is
+  in force is refused rather than re-noted; clear it first. An editor may
+  end one early with a reason (`.../feature/clear`). Every feature and clear
+  is an `audit_log` row (`homepage_feature.feature`, `homepage_feature.clear`,
+  target `fixture`) with what was there before (rule 10).
+  `GET /admin/homepage-features` lists them as `live`, `expired` or
+  `cleared`; the console page is `/admin/homepage`.
+- **The homepage.** `GET /featured-matches` is public (a guest sees it): the
+  features in force, at most 20. "In force" is `ends_at > now()` read at
+  render, so an expired feature is gone on the next render with no job.
+  The homepage's "Live and upcoming" list is the member's pinned favourites,
+  then the featured matches (live first, then soonest), then the rest as
+  before; "The model's view" takes its matches from that list, so it follows
+  the same order. A featured match carries "Featured: <note>" on its line.
+  A featured match the scores answer does not hold (beyond its two weeks) is
+  not listed. With nothing featured, or the answer unreachable, the
+  homepage is exactly as it was.
+- **Rule 6.** A feature is placement, not a view on the result: it never
+  touches a forecast, the founder's analysis or the community's consensus,
+  and the note is shown as the editor's, apart from all three.
+- **Not the panels.** A match's public discussion (T-253, T-613, "featured
+  matches" on `/admin/panels`) is a separate act by moderators; featuring a
+  match on the homepage opens no discussion, and opening one features
+  nothing.
+
+**Rejected.** *A flag on `fixture`*: it cannot say who, why or until when.
+*One fixed window for every feature* (as D-125 does for breaking news): a
+match's importance does not decay on a common clock. *Showing a featured
+match the scores answer does not hold* by a second request: the homepage
+looks two weeks ahead and a feature cannot outlast that, so the case is a
+match featured weeks early, which the editor can feature again nearer the day.
