@@ -83,6 +83,11 @@ next free number.
 | D-135 | T-1025 | Administrators closing a group and removing its content |
 | D-136 | T-1030 | A panel post linked to one incident, player, prediction or statistic of its match |
 | D-137 | T-1031 | A contributor below the threshold for a sustained period is flagged, never paused |
+| D-165 | — | Story types never labelled by a machine (N-1) |
+| D-166 | T-1032 | Transfer and availability alerts from typed stories (N-2) |
+| D-167 | — | Trending does not count views or shares (N-3) |
+| D-168 | — | No automatic group entry criteria and no administrator role (N-6) |
+| D-169 | T-1031 | The sustained period: 30 consecutive days (N-7) |
 
 | Migration | Task | For |
 |---|---|---|
@@ -164,6 +169,7 @@ its forecast never depend on anything in E100.
 | `[x]` T-1008 | Trending counts saves: distinct members who saved the story in the window, beside distinct members on its matches' public panels, each weighted as D-128 states. The section's `limited` reason names both signals | T-842 | Blueprint 3.1. Views and shares are not counted (N-3) and the reason says so. A save moved by a cluster merge counts once. The section stays within its query budget (a test on a seeded 10,000-save table) |
 | `[x]` T-1009 | The editor's news desk in the console: debates (the API exists), story types and breaking, one page, `editor` or `admin` | T-1001, T-1004 | Every action takes a reason where the API asks for one and shows the audit history of the story. A member gets `forbidden` (T-904). No new API beyond what T-1001 and T-1004 add |
 | `[x]` T-1010 | News coverage per competition, stated. For each active competition: the carried sources that linked a story to it in the last 30 days, and the count. The competition page's news module is `limited` with a reason when the count is under D-129's floor; the console lists the gaps | T-944 | Rule 3: a competition with no carried source never shows a news module that looks populated. The console names the gap and does not add a source: which publishers to add is N-8 |
+| `[ ]` T-1032 | Transfer and availability alerts (D-166): two opt-in kinds, off by default, raised when a story typed `transfer`, or `injury` or `suspension`, links a team or person the member follows; once per story, deep-linked to it | T-1002, T-1005, T-331 | Blueprint 12.2. Quiet hours, mutes and the frequency cap apply as to every kind. A story that gains its type later is told once, then. The feed's transfer and injury endpoints are not read (no new provider request) |
 
 ## E101 — The translator's desk
 
@@ -207,21 +213,21 @@ stated proposal (N-7).*
 None of these is a task yet. Each needs a decision entry first. The note
 says whose.
 
-1. **N-1 — Machine-labelled story types (3.2).** Carried from Phase 9's N-8.
+1. **N-1 — Machine-labelled story types (3.2).** **Answered 2026-09-30 under the standing delegation: D-165** -- no. Carried from Phase 9's N-8.
    A language model (D-070) labelling publishers' headlines would type the
    many stories whose feeds carry no category. It is machine output about
    other people's words, and whether the free feeds' terms allow it is
    D-061's question. *The maintainer's* (third-party terms). T-1001 and
    T-1002 are built either way; an answer of yes would be a third origin,
    labelled as the machine's.
-2. **N-2 — Transfers, and injuries outside a match (12.2, 3.2).** The
+2. **N-2 — Transfers, and injuries outside a match (12.2, 3.2).** **Answered 2026-09-30 under the standing delegation: D-166** -- from typed stories with opt-in alerts (T-1032); the feed's transfer and injury endpoints stay unread. The
    licensed feed has transfer and injury endpoints. Reading them spends the
    daily request budget and depends on the feed's plan and its terms for
    showing that data as alerts. A "transfer" story type from T-1002 or an
    editor gives transfer news without them, and T-1005 could alert on it.
    Which does the product use? *The maintainer's* (third-party terms, and a
    request budget that is also the live data's).
-3. **N-3 — Views and shares in trending (3.1).** Counting who read or shared
+3. **N-3 — Views and shares in trending (3.1).** **Answered 2026-09-30 under the standing delegation: D-167** -- not counted. Counting who read or shared
    a story is product analytics that D-044 and D-102 kept out: the product
    counts only rows it keeps for its own function. Whether to count views
    and shares, and what the privacy text says, is *the maintainer's*.
@@ -234,11 +240,12 @@ says whose.
    administrators. Whether translators get a narrower `translator` role, and
    who holds it, is *the maintainer's*: the translators are theirs.
 6. **N-6 — Group membership criteria and a group administrator role (8.2).**
+   **Answered 2026-09-30 under the standing delegation: D-168** -- neither: entry stays a person's decision under D-132 and D-133, and the roles stay owner and moderators.
    "Membership rules" is planned as a written rules text (T-1023). Criteria
    that decide entry -- a minimum rating, a country, a verified account age
    -- and an `administrator` role between owner and moderator are product
    behaviour the blueprint names without defining. *The maintainer's*.
-7. **N-7 — The sustained period (9.4, T-1031).** How long below the
+7. **N-7 — The sustained period (9.4, T-1031).** **Answered 2026-09-30 under the standing delegation: D-169** -- 30 consecutive days below D-059's contributor threshold, confirmed. How long below the
    threshold, and whether "below" is the contributor threshold of D-059 or a
    tier, is policy the maintainer settled for the thresholds themselves
    (D-059). The proposal is 30 consecutive days below the contributor
@@ -272,7 +279,7 @@ news (D-061); video embeds (D-069); a native app (D-084).
 | T-1021 | T-1020 | agent |
 | T-1024 → T-1025 | nothing | agent |
 | Glossary target terms | T-1011's file | the translators, not an agent |
-| T-1031's period | N-7 (built with the proposal meanwhile) | **maintainer** to confirm or change |
+| T-1031's period | answered by D-169 | nobody |
 
 **Start with T-1001 and T-1006.** Every other news task reads a story's type
 or its people. E101, E102 and E103 are independent of E100 and of each

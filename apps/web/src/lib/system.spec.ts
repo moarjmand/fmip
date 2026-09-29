@@ -95,6 +95,7 @@ describe('the words', () => {
     expect(conditionName('backup')).toBe('Backup');
     expect(conditionName('elo_source')).toBe("Club Elo (the model's long-term ratings)");
     expect(conditionName('restore_drill')).toBe('Restore drill (monthly)');
+    expect(conditionName('cloudflare_ranges')).toBe("Cloudflare's address ranges (weekly)");
     expect(conditionName('something_new')).toBe('something_new');
   });
 

@@ -100,10 +100,11 @@ repeat them; The watchdog (T-801) reads the budget T-501 set; nothing else here 
 | `[x]` T-803 | API errors and job failures counted: 5xx responses per route and failed BullMQ jobs per queue, per hour, kept for 30 days | T-071 | The request id of the newest failure per route is kept so the log line can be found; no stack or request body leaves the log |
 | `[x]` T-804 | The System page in the admin console: health views, the watchdog's conditions, error and job-failure counts, notification delivery outcomes by channel, and the last backup and drill | T-801, T-803, T-805 | Blueprint 16 ("system health, job failures, API errors and notification delivery"); each section states "nothing recorded" and "cannot be shown" separately |
 | `[x]` T-805 | The restore drill on a timer: `restore-drill.sh` runs from the off-provider copy on the first Monday of each month (D-032) and the backup and drill results are recorded where the API can read them | T-072 | A failed drill raises a T-801 alert; `07-backups.md`'s monthly checklist names the timer; the first timed run on the server is recorded in the handoff |
-| `[ ]` T-806 | **Needs the maintainer:** a check from outside the machine that `https://traveltohormuz.ir/health` answers, alerting the maintainer when it does not | maintainer | A decision entry names the service; the maintainer opens its account; no secret in the repository |
+| `[x]` T-806 | A check from outside the machine that `https://traveltohormuz.ir/health` answers, alerting the maintainer when it does not | maintainer | A decision entry names the service; the maintainer opens its account; no secret in the repository |
 | `[x]` T-807 | Activity counts for the admin console: registrations, verifications, predictions submitted, settlements, rating snapshots, messages, reports and notifications delivered or failed, per day, from our own tables | T-052, T-070 | Blueprint 19 ("observable from the administration system"); aggregates only, no per-member series; a test proves a deleted account's rows still count without its name |
 | `[x]` T-808 | Performance budgets: first-load JavaScript and server response time for the scores page, the match centre and the competition page, written down and checked in CI | T-605, T-073 | A budget exceeded fails CI with the route and the numbers; no new dependency (the build's own output and the existing load harness, `08-load-test.md`) |
 | `[x]` T-809 | Every error page carries `lang` and `dir`: a not-found and an error boundary inside the locale, and a global error page | T-005, T-081 | axe `html-has-lang` at zero on `/en/competition/<id>` without a season and on an unknown route; the RTL test covers `/ar`'s not-found |
+| `[ ]` T-845 | Point-in-time recovery (D-157): measure a week of WAL on the server and the off-provider remote's use; if it fits the storage already held, turn on `archive_mode` with an `archive_command` through the existing rclone `crypt` remote, a weekly `pg_basebackup`, 7 days of WAL off-provider, the restore drill replaying to a stated time, and the watchdog's `backup` condition reading the newest archived segment | T-805, D-032 | No new component (`CLAUDE.md` §2). A drill recovers to a stated minute and passes D-101's checks. If the archive needs a bigger storage plan, the task stops with the numbers and the purchase is the maintainer's. `07-backups.md` and `09-deploy.md` say how to roll it back |
 
 ## E81 — Security and a member's account
 
@@ -116,6 +117,7 @@ standing delegation lets an agent propose.*
 | `[x]` T-811 | A rate-limit inventory: every public write, its ceiling, and the reason for any write without one, in `13-policy.md` or a new section of `02-architecture.md` | T-810 | Gaps found are fixed in the same PR or given their own task; the admin System page (T-804) shows refusals per limit per day |
 | `[x]` T-812 | Delete my account: from Settings, confirmed by password, signs out every session, removes the profile, follows, friendships and credentials, and keeps predictions and settlements as records without the name (`13-policy.md` §4) | T-040, decision N-3 | Every other member's rating recomputes to the same value afterwards (rule 8); an audit row; the username is not reusable; group ownership is handed over or the group closed, per D-057 |
 | `[x]` T-813 | Security tests for the Phase 7 console and member settings: every admin page's API refuses a non-administrator, every settings write refuses another member's session | T-610–T-613, T-620–T-621 | Blueprint 19 ("security tests cover ... administrator actions"); one test per write |
+| `[ ]` T-846 | Download my data (D-158): from Settings, confirmed by password, one JSON file of the member's own rows and words (account, preferences, follows, friendships, groups, predictions with versions and settlements, rating history, achievements, saved stories, own messages and panel posts, analyses, reports filed, notifications received) | T-812, T-040 | No other member's message, name or prediction is in the file (a test with a two-person conversation). One file per member per day; an `audit_log` row without the content; served to the session only, never e-mailed. `13-policy.md` §4 names the right |
 
 ## E82 — The feed checked, and the football pages fixed
 
@@ -169,25 +171,25 @@ whose.
    account.* A free external monitor or a check from another machine the
    maintainer owns. Everything else in E80 works without it; without it, the
    VPS being down is still found by a person.
-2. **N-2 — Point-in-time recovery.** D-032 named WAL archiving "the right
+2. **N-2 — Point-in-time recovery.** **Answered 2026-09-30 under the standing delegation: D-157** -- WAL archived by Postgres's own `archive_command` through the existing encrypted remote, no new component, built as T-845 once a week of WAL is measured; a bigger storage plan would stop it as the maintainer's purchase. D-032 named WAL archiving "the right
    answer once user predictions and reputation carry weight". It adds a
    component (WAL-G or pgBackRest) and more off-provider storage, which is a
    new infrastructure dependency (`CLAUDE.md` §2) and possibly a cost. *The
    maintainer's* if it costs; otherwise an agent can propose it.
-3. **N-3 — What deleting an account removes besides the profile.** The
+3. **N-3 — What deleting an account removes besides the profile.** **Answered 2026-09-28: D-094** (built as T-812). The
    policy settles predictions (kept, unnamed). It does not settle messages
    in direct and group chats, public panel posts, published community
    analysis, or reports the member filed. Proposal: messages and panel posts
    kept as "a deleted member", analysis unpublished, reports kept for the
    audit. *Covered by the standing delegation*; the policy text changes
    (`13-policy.md`) follow the "told before it applies" rule in §4.
-4. **N-4 — A copy of my data.** Blueprint §7 does not ask for an export;
+4. **N-4 — A copy of my data.** **Answered 2026-09-30 under the standing delegation: D-158** -- yes: a member downloads their own rows and words as one file, built as T-846. Blueprint §7 does not ask for an export;
    privacy law in some members' countries may. *The maintainer's*, because
    it is a legal question (`CLAUDE.md` §7).
-5. **N-5 — Predicted line-ups (4.2).** The feed supplies confirmed line-ups
+5. **N-5 — Predicted line-ups (4.2).** **Answered in part 2026-09-30: D-159** -- none of our own making, the module stays `not_supplied`; licensing a source stays the maintainer's. The feed supplies confirmed line-ups
    only; a predicted one needs a source with rights for it (D-014). *The
    maintainer's* (licensing).
-6. **N-6 — Women's and youth football (4.1 filters).** The filters mean
+6. **N-6 — Women's and youth football (4.1 filters).** **Answered 2026-09-30 under the standing delegation: D-160** -- none added until T-501 shows the budget holds, and no filter shown for what the catalogue does not hold. The filters mean
    nothing until such competitions are in the catalogue, and each one spends
    the daily request budget (T-501). *The maintainer's*, as a choice of
    competitions.

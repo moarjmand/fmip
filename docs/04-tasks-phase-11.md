@@ -102,6 +102,11 @@ next free number.
 | D-153 | T-1161 | Featured matches on the homepage |
 | D-154 | T-1162 | The competitions' order set from the console |
 | D-155 | T-1163 | Holding back a language that is ready |
+| D-170 | T-1166 | Travel by its cross-border proxy (N-1, in part) |
+| D-171 | T-1167 | League zones from a committed list (N-2) |
+| D-172 | — | Territory settings are viewing coverage and language holds (N-3) |
+| D-173 | — | Coaching spells not read from the feed (N-4) |
+| D-174 | — | The share an input covers is stated, not a gate (N-5) |
 
 | Migration | Task | For |
 |---|---|---|
@@ -195,6 +200,7 @@ candidate is ever shown beside the published version.
 |---|---|---|---|
 | `[ ]` T-1110 | Rest and congestion as an input: days since each side's previous match and its matches in the last 14 days, from `training.match` and our records (clubs joined through `team_alias`, D-080), moving the expected goals by fitted coefficients, as the line-up term does (D-086). Backtested with T-1101. D-141 | T-1101 | Training and serving read the same rows, so a forecast never sees a wider schedule than its fit did. A club with no earlier match in the store has no rest value and the term is not applied, never a default. The entry states that domestic cups we do not carry are invisible. Verdict recorded either way |
 | `[ ]` T-1111 | The Power Index's rest and schedule component validated: `power-index-backtest.mjs` reads the stored schedule, so rest is scored with the other components, and `12-power-index.md` loses "rest is excluded". D-142 | T-113 | The bar is unchanged (beat the blueprint's weights by more than 0.01 held-out log loss). A changed weight is a new `power-index@x.y.z`, never an edit. The component stays `limited` and says travel is not modelled until N-1 is answered |
+| `[ ]` T-1166 | Travel by its proxy, measured (D-170): an input `cross_border` -- the two clubs' countries differ -- judged by D-139's harness on the matches where it is read | T-1101 | Countries from the catalogue by id, never by name. Its verdict and the share of matches it reads are recorded in its own decision entry; carried by no candidate unless it passes. The Power Index keeps saying travel is not modelled unless it does |
 
 ## E112 — Competition context
 
@@ -206,6 +212,7 @@ candidate is ever shown beside the published version.
 | `[ ]` T-1121 | The second leg of a tie: the first leg's score as an input to the second, from our records' cup matches (the bracket's pairing, T-630). Backtested with T-1101 on our records only. D-144 | T-1101, T-533 | The entry states the number of second legs in the sample. Below the bar's minimum, no candidate carries it and the entry says why. A single-leg round and a tie decided on the first leg's own day give no value |
 | `[ ]` T-1122 | Neutral ground: a match whose stored venue is neither club's usual ground (the ground of most of its home league matches that season) is fitted without home advantage. A candidate on our records' finals and neutral matches. D-145 | T-1101 | A match with no stored venue, or a club with no usual ground, keeps today's home advantage and says so in its factors. A ground shared by two clubs is either club's usual ground. The sample is stated |
 | `[ ]` T-1123 | The Power Index's competition context (5%), measured: a side's stake as a position among the division's teams, from T-1120's rule and, in a cup, the tie's state from T-1121's. A new `power-index@x.y.z`, validated as T-1111 is. D-146 | T-1120, T-1121, T-1111 | Rule 3: a match where nothing can be read leaves the component absent and its weight redistributed, as today. `12-power-index.md` updated. A covered match can then reach 100% completeness less travel |
+| `[ ]` T-1167 | League zones from a committed list (D-171): one entry per competition and season -- qualification and relegation places with the regulation's URL -- shown on the competition's table, and offered to D-143's stakes as a zone-aware variant judged by D-139's bar | T-1120, T-1101 | Rule 3: a competition or season not in the list shows no zones and its stakes stay zone-free with the reason. No standings request to the feed. A test fails when a listed place count exceeds the table's size |
 
 ## E113 — Manager changes
 
@@ -236,13 +243,13 @@ candidate is ever shown beside the published version.
 
 ## E116 — The console's configuration
 
-*Agent-doable, except T-1160 (the maintainer's answer to Phase 9's N-7).
+*Agent-doable. T-1160's gate, Phase 9's N-7, is answered (D-164).
 Every write takes a reason and is an `audit_log` row with the previous value
 (rule 10, D-046).*
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-1160 | **Needs the maintainer's yes (Phase 9's N-7).** Rating thresholds as versioned rows: the provisional and established counts, the contributor eligibility thresholds (`ELIGIBILITY_V1`, D-059) and T-1031's sustained period, set by an administrator from the console as a new version with a reason and a start. The formula changes only by a new formula version, never here. D-152; migration `1765200000000` | T-053, T-250, T-1031 | Rule 8: a rating and an eligibility are recomputable from stored predictions, settlements and the threshold version in force when they were computed. The first version holds today's constants exactly, so nothing changes on the day it ships. No row is edited; a new one supersedes |
+| `[ ]` T-1160 | **Gate answered: D-164 (Phase 9's N-7).** Rating thresholds as versioned rows: the provisional and established counts, the contributor eligibility thresholds (`ELIGIBILITY_V1`, D-059) and T-1031's sustained period, set by an administrator from the console as a new version with a reason and a start. The formula changes only by a new formula version, never here. D-152; migration `1765200000000` | T-053, T-250, T-1031 | Rule 8: a rating and an eligibility are recomputable from stored predictions, settlements and the threshold version in force when they were computed. The first version holds today's constants exactly, so nothing changes on the day it ships. No row is edited; a new one supersedes |
 | `[ ]` T-1161 | Featured matches on the homepage: an editor features a match for a window, with a note, and may clear it early with a reason. The homepage's matches and "the model's view" list featured matches first, after a member's own favourites. D-153; migration `1765120000000` | T-526, T-942 | Audited on feature and clear. An expired feature is gone on the next render. A guest sees them. With nothing featured the homepage is as today. The founder's analysis and the community are unaffected (rule 6). A member gets `forbidden` |
 | `[ ]` T-1162 | The competitions' order in the console: `competition.display_order` (T-504) set from a page instead of `catalog.mjs --set-order`, with a reason. D-154 | T-504 | The same audited write the script makes, and the script keeps working. The scores page and the homepage read the new order on the next render. `14-maintainer.md` says where it is now set |
 | `[ ]` T-1163 | Holding back a language: an administrator may hold back a locale that `isShippable` offers, with a reason, and release it. A held locale is not offered by the picker or the first run, and its URLs answer as an unoffered locale does today. D-155; migration `1765130000000` | T-302, T-306 | Nothing can offer a locale that `isShippable` refuses. A member whose stored language is held is shown the default and told why, once. The `/admin` language rows show the hold. The catalogue files are untouched (the words are the translators') |
@@ -256,7 +263,7 @@ Every write takes a reason and is an `audit_log` row with the previous value
 None of these is a task yet. Each needs a decision entry first. The note
 says whose.
 
-1. **N-1 — Travel (6.3, 6.1).** `venue.latitude` and `longitude` exist and
+1. **N-1 — Travel (6.3, 6.1).** **Answered in part 2026-09-30: D-170** -- the cross-border proxy is measured (T-1166); placing grounds from an open dataset stays the maintainer's (third-party terms). `venue.latitude` and `longitude` exist and
    are empty. The licensed feed gives a ground's name and city only, and
    football-data carries no ground, so travel can be measured only on our
    records, from the day grounds are placed. Three ways to place about 300
@@ -266,7 +273,7 @@ says whose.
    cross-border match (the clubs' countries differ), which reaches only the
    European cups. *The maintainer's* (third-party terms). Until then the
    Power Index says travel is not modelled.
-2. **N-2 — League zones (6.3, 5.1).** Qualification and relegation places
+2. **N-2 — League zones (6.3, 5.1).** **Answered 2026-09-30 under the standing delegation: D-171** -- a committed list from each competition's published regulations (T-1167). Qualification and relegation places
    are not stored, so T-1120's stakes are zone-free. The feed's standings
    carry a description per place, but tables are computed from results
    (D-038) and reading standings spends the daily request budget. A committed
@@ -274,19 +281,19 @@ says whose.
    regulations, is the other way. Either would also let the tables show the
    places. *The maintainer's* (request budget, and whether a hand-kept list
    is acceptable on a table the licensed feed otherwise supplies).
-3. **N-3 — Territory settings (16).** A reader already chooses a territory,
+3. **N-3 — Territory settings (16).** **Answered 2026-09-30 under the standing delegation: D-172** -- viewing coverage (T-313) and language holds (D-155) are the settings; nothing is proposed from a territory. A reader already chooses a territory,
    and editors declare viewing coverage per territory (T-313). What an
    administrator would set per territory is not written anywhere: a default
    language proposed to a guest, or the territories offered first. Inferring
    a territory from Cloudflare's country header is excluded: T-312 says a
    territory is "never silently inferred". *The maintainer's* (product
    behaviour).
-4. **N-4 — Coaching spells from the feed.** The licensed feed has a coaches
+4. **N-4 — Coaching spells from the feed.** **Answered 2026-09-30 under the standing delegation: D-173** -- not read. The licensed feed has a coaches
    endpoint with each coach's career, which would date appointments exactly
    and separate a caretaker from an appointment. T-1130 reads only the
    line-ups we already store (D-119). Reading it spends the request budget.
    *The maintainer's* (request budget and terms).
-5. **N-5 — The share of a season an input must cover.** Rest reads league
+5. **N-5 — The share of a season an input must cover.** **Answered 2026-09-30 under the standing delegation: D-174** -- D-139 stands; the share is stated, not a gate. Rest reads league
    matches only in the football-data history, and our records cover the
    past seasons only as the backlog loads them. D-139 proposes that an input
    is judged only on the matches where it can be read, and that the entry
@@ -317,8 +324,9 @@ guessed substitute (D-081); machine translation of anyone's words (D-061,
 | T-1131 | T-1130, T-1101, the past seasons' line-ups | agent, **waits for data** |
 | T-1150 | T-1102 and the input tasks' verdicts | agent |
 | T-1151 | T-1150, T-1103, T-535, 300 pre-kick-off forecasts | agent, on match days |
-| T-1160 | Phase 9's N-7 | **maintainer** to answer, then agent |
-| Travel, league zones, territory settings, coaching spells | N-1 to N-4 | **maintainer** |
+| T-1160 | nothing (D-164 answered its gate) | agent |
+| T-1166, T-1167 | T-1101 | agent |
+| Placing grounds from an open dataset | N-1's remainder (D-170) | **maintainer** |
 
 **Start with T-1101 and T-1102.** Every input task is judged by the first,
 and none can reach a shadow without the second. The input tasks are
