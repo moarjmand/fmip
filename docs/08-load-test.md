@@ -180,9 +180,19 @@ made per row, a timeout -- does.
 | Route | First-load JS measured / budget (gzip kB) | Server response median, CI / laptop / budget (ms) |
 | --- | --- | --- |
 | home `/en` | 200.3 / 220 | 38 / 50 / 200 |
-| scores `/en/scores` | 210.1 / 230 | 21 / 31 / 150 |
+| scores `/en/scores` | 230.3 / 236 (raised 2026-09-29, T-1004) | 21 / 31 / 150 |
 | match centre `/en/match/…0901` | 218.5 / 240 | 77 / 76 / 300 |
 | competition `/en/competition/…0201` | 200.3 / 220 | 29 / 39 / 150 |
+
+**The scores budget, raised 2026-09-29 (T-1004).** The route itself did
+not change. What grew is the chunk every route shares: `src/i18n/messages.ts`
+imports all eight catalogues, so each new catalogue key ships to the browser
+eight times (the English and seven locale entries). Phase 10's news strings
+(story types, the filters, the breaking strip) moved every route by about
+2 kB gzip, and scores, the heaviest page after the match centre, crossed
+230.3 against 230. Raised to 236, about the growth two more phases of strings
+would bring; loading only the viewer's locale's catalogue on the client is the
+fix that would give the bytes back.
 
 **Running them locally.** After `pnpm exec turbo run build --filter=@fmip/web`:
 `pnpm --filter @fmip/web perf:bundle`. For the response budgets, start the
