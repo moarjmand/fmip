@@ -5197,3 +5197,101 @@ football word whose English changes would become a new term, orphaning the
 translation). Filling a target term from a localised name already in
 `entity_alias`: a script writing a word in another language, which this
 decision exists to refuse; the review check reads both sources instead.
+
+## D-136 — A panel post links to one incident, player, prediction or statistic of its own match
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-1030 lets a contributor attach **at most one** link to a panel
+post (blueprint 10.2): an incident of the match, a player in either line-up,
+their own prediction on the match, or a team statistic of the match. It is
+rendered as a card beside the post.
+
+- **Where it lives.** Columns on `panel_post` (migration `1765000000000`):
+  `link_kind` and one target column per kind, with a CHECK that a row carries
+  either no link or exactly one kind's columns. Written with the post in the
+  same INSERT; never changed afterwards (`refuse_panel_link_rewrite`, `PL007`,
+  the tombstone included).
+- **The schema refuses another match.** `panel_post_with_link_guard` (named to
+  run last of the BEFORE INSERT guards, so a member who may not post at all
+  hears that first) checks the target belongs to the post's fixture and raises
+  `PL020` with the kind in the HINT; the API answers 400 with a sentence per
+  kind. A statistic the feed has not supplied is refused too: a card for a
+  number nobody has would invent one (rule 3).
+- **Changed or removed by the feed.** An incident is linked by id **without a
+  foreign key**, and the trigger stores what it said (`link_snapshot`). On read
+  the card is `as_linked`, `changed` (shown as the feed has it now, with a note
+  saying it changed) or `removed` (nothing of the old incident is shown). A
+  statistic keeps its value at posting beside its value now; a player the feed
+  later dropped from both line-ups is said to be so.
+- **A prediction is the author's own, and only as visible as they make it.**
+  The link is the `prediction_version` in force when the post was written,
+  chosen by the trigger from the author's own call on this match (the client
+  names no id). The public panel is the same bytes for everybody, so it shows
+  the call only when the author's `prediction_history_visibility` shows it to a
+  guest; otherwise the card is `withheld` and names the setting. A viewer the
+  setting admits (the author, a friend under `friends`) receives the call on
+  `PanelPermission.linked_predictions`, asked of the profile boundary exactly as
+  D-063 asks it. A later revision does not rewrite the card; it says the call
+  was changed after posting. Rule 6: the card is labelled as the member's own
+  call, never the model's or the community's.
+- **A removed post shows no card**, as it shows no body.
+
+**Rejected.** *A link table*: "at most one" would be a unique index plus a
+promise, and a post could exist for a moment without its link. *A foreign key
+to `incident`*: RESTRICT would block the feed, SET NULL would blank the link
+through an UPDATE the rewrite guard refuses and lose the fact that something
+was linked. *Showing a withheld prediction to friends on the public document*:
+it would make the public read viewer-specific. *Player statistics as a fifth
+kind*: the task names a statistic of the match; a player card already leads to
+the player's numbers.
+
+## D-137 — A contributor below the threshold for a sustained period is flagged to administrators, never paused
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26). **The period is a proposal (N-7): the maintainer's to confirm or change.**
+
+**Decision.** T-1031 implements blueprint 9.4's "a contributor below the
+threshold for a sustained period" as a flag for a person, never an automatic
+pause.
+
+- **Below what.** The contributor rating threshold of D-059
+  (`ELIGIBILITY_V1.minRating`, 70), read from its one home. Not a tier.
+- **For how long: 30 consecutive days, as a proposal.** The number is one
+  named constant, `CONTRIBUTOR_FLAG_PROPOSED_PERIOD_DAYS = 30` in
+  `apps/api/src/modules/reputation/internal/contributor-flag.ts`, and the
+  environment variable `CONTRIBUTOR_FLAG_PERIOD_DAYS` overrides it (a whole
+  number from 1 to 365; empty or malformed falls back to 30). **Choosing the
+  period is policy, like the thresholds themselves (D-059): the maintainer
+  confirms 30 or sets another number, and changing it needs no code change.**
+  Each flag records the period it was raised under.
+- **How "below for the period" is decided, from stored ratings only (rule
+  8).** The stretch is the unbroken run of stored ratings (`rating_snapshot`)
+  below the threshold that ends with the newest one; it began at the first of
+  them. A member with no rating is not below. It is counted from the later of
+  its start and the grant, since before the grant the member was not a
+  contributor. Only live, unpaused grants are checked.
+- **One flag per stretch, told once.** A daily check (04:20 UTC, in the API
+  with `INGESTION_SCHEDULE=on`) raises one `contributor_flag` per stretch
+  (unique on member and `below_since`). Each new flag tells every
+  administrator once, as `contributor_below_threshold`. The notification is
+  administrators-only, on by default, and opens the contributors page.
+- **Nothing is paused.** The check has no path to a grant event. On the
+  console's contributors page (moderator or administrator, the same approvers
+  as the rest of the page), a person either pauses with the existing audited
+  act (T-250) or dismisses the flag with a required reason. The dismissal is
+  written with an `audit_log` row naming the actor, the reason and the
+  previous state (rule 10).
+- **Closing.** A member back at or above the threshold closes the flag as
+  `recovered`. So does a newer stretch replacing the one the flag named, and
+  the newer stretch gets its own flag when it is due. A grant a person paused
+  or withdrew closes it as `grant_not_live`. A dismissed stretch is not raised
+  again; a later stretch is. A flag is closed once and never edited.
+
+**Rejected.** *Pausing automatically*: it is the arithmetic-for-judgement
+swap blueprint 10.2 keeps out, and a pause is something the member is told
+with a reason a person gave. *A tier as the line*: tiers are display bands;
+the contributor threshold is the number contributors were admitted against.
+*Counting calendar days of snapshots*: a snapshot is stored only when the
+inputs change, so an unchanged low rating has one old snapshot, and the
+stretch began with it. *A flag per day while below*: noise; one per stretch
+is what an administrator can act on.
+
+

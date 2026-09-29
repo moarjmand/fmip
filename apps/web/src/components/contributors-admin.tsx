@@ -2,9 +2,18 @@
 
 import { useActionState, type ReactNode } from 'react';
 import Link from 'next/link';
-import type { ContributorCandidate, GrantStanding } from '@fmip/contracts';
+import type {
+  ContributorCandidate,
+  ContributorFlagListResponse,
+  GrantStanding,
+} from '@fmip/contracts';
 import type { ActionState } from '@/lib/auth-actions';
-import { contributorEventAction, grantContributorAction } from '@/lib/contributor-actions';
+import {
+  contributorEventAction,
+  dismissContributorFlagAction,
+  grantContributorAction,
+} from '@/lib/contributor-actions';
+import { FLAG_NOTHING_PAUSED, flagSummary, periodLine } from '@/lib/contributor-flags';
 import { Button, Card, FormStatus, Notice, TextArea, TextField } from '@/components/ui';
 
 /**
@@ -36,11 +45,13 @@ function ReasonForm({
   label,
   testId,
   children,
+  placeholder = 'Say why. The member can read it.',
 }: {
   action: (state: ActionState, formData: FormData) => Promise<ActionState>;
   label: string;
   testId: string;
   children?: ReactNode;
+  placeholder?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, null);
   return (
@@ -52,7 +63,7 @@ function ReasonForm({
         name="reason"
         rows={2}
         required
-        placeholder="Say why. The member can read it."
+        placeholder={placeholder}
       />
       <Button
         type="submit"
@@ -147,14 +158,80 @@ function Candidate({ locale, entry }: { locale: string; entry: ContributorCandid
   );
 }
 
+/**
+ * Contributors below the threshold for the sustained period (T-1031, D-137).
+ * A flag is a question for a person: nothing was paused, and the two answers
+ * are the existing Pause on the member's entry or a dismissal with a reason.
+ */
+function ContributorFlags({
+  locale,
+  flags,
+  now,
+}: {
+  locale: string;
+  /** Null when the flags could not be fetched: said, not shown as none. */
+  flags: ContributorFlagListResponse | null;
+  now: string;
+}) {
+  return (
+    <section className="flex flex-col gap-2" data-testid="contributor-flags">
+      <h2 className="text-lg font-semibold">Flagged below the threshold</h2>
+      {flags === null ? (
+        <Notice tone="danger" data-testid="contributor-flags-unreachable">
+          The contributor flags cannot be shown right now.
+        </Notice>
+      ) : (
+        <>
+          <p className="text-sm text-muted">{periodLine(flags.period_days, flags.threshold)}</p>
+          {flags.flags.length === 0 ? (
+            <p className="text-sm text-muted" data-testid="contributor-flags-empty">
+              No contributor is flagged.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {flags.flags.map((flag) => (
+                <Card as="li" key={flag.id} data-testid="contributor-flag">
+                  <p>
+                    <Link
+                      href={`/${locale}/u/${encodeURIComponent(flag.username)}`}
+                      className="font-medium underline"
+                    >
+                      @{flag.username}
+                    </Link>{' '}
+                    <span className="text-sm text-muted">({flag.standing})</span>
+                  </p>
+                  <p className="text-sm">{flagSummary(flag, new Date(now))}</p>
+                  <p className="text-sm text-muted">{FLAG_NOTHING_PAUSED}</p>
+                  <ReasonForm
+                    action={dismissContributorFlagAction.bind(null, locale, flag.id)}
+                    label="Dismiss"
+                    testId={`contributor-flag-dismiss-${flag.username}`}
+                    placeholder="Say why. It is recorded with the flag."
+                  />
+                </Card>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
 export function ContributorsAdmin({
   locale,
   entries,
   reachable,
+  flags = null,
+  now = new Date(0).toISOString(),
 }: {
   locale: string;
   entries: ContributorCandidate[];
   reachable: boolean;
+  /** The open flags (T-1031); null when they could not be fetched. */
+  flags?: ContributorFlagListResponse | null;
+  /** When the page was assembled, so the day counts do not differ between server and browser. */
+  now?: string;
 }) {
   if (!reachable) {
     return (
@@ -165,6 +242,8 @@ export function ContributorsAdmin({
   }
   return (
     <div className="flex flex-col gap-6">
+      <ContributorFlags locale={locale} flags={flags} now={now} />
+
       <section className="flex flex-col gap-2">
         <h2 className="text-lg font-semibold">Grant by username</h2>
         <ReasonForm

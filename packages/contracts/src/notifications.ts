@@ -73,6 +73,9 @@ export const NOTIFICATION_KINDS = [
   'founder_analysis_published',
   'analysis_reviewed',
   'contributor_eligible',
+  // A contributor below the threshold for the sustained period, to
+  // administrators only (T-1031, D-137).
+  'contributor_below_threshold',
   // Match alerts (T-830, D-098).
   ...MATCH_ALERT_KINDS,
 ] as const;
@@ -132,6 +135,9 @@ export const NOTIFICATION_DEFAULTS: Record<NotificationKind, boolean> = {
   founder_analysis_published: true,
   analysis_reviewed: true,
   contributor_eligible: true,
+  // On: the one person who decides whether to pause somebody must know a
+  // flag is waiting (T-1031).
+  contributor_below_threshold: true,
   // Team news and line-ups are opt-in (T-832, D-100): they arrive for every
   // followed match, most of them nobody is waiting on.
   match_availability: false,
@@ -157,6 +163,8 @@ export const ADMIN_ONLY_NOTIFICATION_KINDS: readonly NotificationKind[] = [
   'system_alert',
   // A member newly eligible for contributor review (T-833, D-100).
   'contributor_eligible',
+  // A contributor flagged below the threshold (T-1031, D-137).
+  'contributor_below_threshold',
 ];
 
 /**
@@ -351,6 +359,7 @@ export const NOTIFICATION_CATEGORY_OF: Record<NotificationKind, NotificationCate
   founder_analysis_published: 'football',
   analysis_reviewed: 'account',
   contributor_eligible: 'account',
+  contributor_below_threshold: 'account',
   // Their own category (T-830), so every match alert can be silenced as one
   // without silencing predictions and ratings.
   match_availability: 'match',
@@ -450,6 +459,11 @@ export const NOTIFICATION_TEXT: Record<NotificationKind, { text: string; named: 
     text: 'A member now meets the contributor requirements.',
     named: false,
   },
+  // The fallback only: the line names the member (T-1031).
+  contributor_below_threshold: {
+    text: 'A contributor has stayed below the contributor threshold and is flagged for review.',
+    named: false,
+  },
   // The fallback only: a match alert's line is its headline, written when the
   // event was seen, with the teams and the score (T-830).
   match_availability: { text: 'Team news for a match you follow.', named: false },
@@ -523,7 +537,11 @@ export function notificationPath(
     case 'member':
       // A member waiting for contributor review opens the queue it is in,
       // where the four requirements and the decision are (T-833).
-      if (notification.kind === 'contributor_eligible') return `/${locale}/admin/contributors`;
+      if (
+        notification.kind === 'contributor_eligible' ||
+        notification.kind === 'contributor_below_threshold'
+      )
+        return `/${locale}/admin/contributors`;
       if (label === null) return null;
       // An achievement opens the member's own list of them (T-946).
       return `/${locale}/u/${encodeURIComponent(label)}${
