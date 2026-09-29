@@ -25,7 +25,7 @@ import { buildBracket, tieOf } from './internal/bracket';
 import { contextTable, phaseOf } from './internal/competition-context';
 import { PostgresCompetitionStore } from './internal/competition-store';
 import { leadersModule, leadersWithMinutes } from './internal/leaders';
-import { NO_LINEUPS, PostgresPlayerStore } from './internal/player-store';
+import { NO_LINEUPS, PostgresPlayerStore, availabilityOf } from './internal/player-store';
 import { buildSplits } from './internal/team-splits';
 import { PostgresTeamStore } from './internal/team-store';
 
@@ -63,10 +63,11 @@ export class CatalogService {
   async player(id: string, locale: string | null = null): Promise<PlayerOutcome> {
     const person = await this.players_.person(id, locale);
     if (person === null) return { kind: 'unknown_player' };
-    const [spells, record, recent] = await Promise.all([
+    const [spells, record, recent, availability] = await Promise.all([
       this.players_.spells(id),
       this.players_.record(id),
       this.players_.recent(id, RECENT_MATCHES),
+      this.players_.availability(id),
     ]);
     return {
       kind: 'ok',
@@ -76,6 +77,7 @@ export class CatalogService {
         spells,
         record: derived(record, 1, recent.lastUpdatedAt),
         recent_matches: derived(recent.matches, 1, recent.lastUpdatedAt),
+        availability: availabilityOf(availability),
         last_updated_at: recent.lastUpdatedAt,
       },
     };

@@ -111,3 +111,15 @@ export function roleLabel(match: Pick<PlayerMatch, 'role' | 'came_on'>): string 
   if (match.role === 'starter') return 'Started';
   return match.came_on ? 'Came on' : 'Unused sub';
 }
+
+/**
+ * The feed is asked who misses a match every three hours in the three days
+ * before kick-off (T-103). An answer older than twice that has missed a
+ * re-ask, so the page says it may have changed (rule 4, T-1007, D-127).
+ */
+export const AVAILABILITY_STALE_AFTER_HOURS = 6;
+
+/** Whether the feed's last answer about a match is old enough to say so. */
+export function availabilityStale(askedAt: string, now: Date): boolean {
+  return now.getTime() - Date.parse(askedAt) > AVAILABILITY_STALE_AFTER_HOURS * 60 * 60 * 1000;
+}
