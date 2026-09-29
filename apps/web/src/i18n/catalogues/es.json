@@ -1270,6 +1270,76 @@
     "text": "",
     "status": "untranslated"
   },
+  "story.type.none": {
+    "source": "No type: neither the publisher's category nor an editor gave this story one.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.type.origin.publisher": {
+    "source": "from the publisher's own category",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.type.origin.editor": {
+    "source": "set by an editor",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.type.breakingNews": {
+    "source": "Breaking news",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.type.transfer": {
+    "source": "Transfer",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.type.injury": {
+    "source": "Injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.type.suspension": {
+    "source": "Suspension",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.type.tacticalAnalysis": {
+    "source": "Tactical analysis",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.type.matchPreview": {
+    "source": "Match preview",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.type.matchReport": {
+    "source": "Match report",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.type.interview": {
+    "source": "Interview",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.type.opinion": {
+    "source": "Opinion",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.type.dataAnalysis": {
+    "source": "Data analysis",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.type.explainer": {
+    "source": "Explainer",
+    "text": "",
+    "status": "untranslated"
+  },
   "nav.following": {
     "source": "Following",
     "text": "",

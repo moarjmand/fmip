@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { NEWS_SECTIONS, type NewsStoryCard } from '@fmip/contracts';
 import { ActionForm } from '@/components/action-form';
 import { SaveArticle } from '@/components/save-article';
+import { StoryTypeTag } from '@/components/story-type';
 import { Translated } from '@/components/translated';
 import { formatDateTime } from '@/i18n/format';
 import { DEFAULT_LOCALE, type Locale, UNFINISHED_LOCALES, isLocale } from '@/i18n/locales';
@@ -374,6 +375,7 @@ function Story({
           {card.headline}
         </a>
       </h2>
+      <StoryTypeTag locale={locale} type={card.type} />
       <p className="text-sm text-muted" data-testid="story-source">
         <Translated locale={locale} message="news.readAt" />{' '}
         <a href={card.source.homepage_url} rel="noopener" className="underline">

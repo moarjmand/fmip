@@ -17,6 +17,52 @@ export const NEWS_PAGE_SIZE = 40;
 /** How far back trending looks for discussion (hours). */
 export const TRENDING_WINDOW_HOURS = 48;
 
+/**
+ * A story's type (blueprint 3.2, T-1001, D-123): the blueprint's eleven and
+ * nothing else. The database's `story_label_type_known` check is the same
+ * list; `story-label.schema.spec.ts` fails when the two differ.
+ */
+export const STORY_TYPES = [
+  'breaking_news',
+  'transfer',
+  'injury',
+  'suspension',
+  'tactical_analysis',
+  'match_preview',
+  'match_report',
+  'interview',
+  'opinion',
+  'data_analysis',
+  'explainer',
+] as const;
+export type StoryType = (typeof STORY_TYPES)[number];
+
+export function isStoryType(value: string): value is StoryType {
+  return (STORY_TYPES as readonly string[]).includes(value);
+}
+
+/**
+ * Who gave a story its type (D-123): the publisher's own category through
+ * the committed mapping (T-1002), or an editor. Never a machine (N-1): a new
+ * origin is a decision entry and a migration, and the schema spec and every
+ * total record over this union fail until both exist.
+ */
+export const STORY_LABEL_ORIGINS = ['publisher', 'editor'] as const;
+export type StoryLabelOrigin = (typeof STORY_LABEL_ORIGINS)[number];
+
+/** What a story's current type is, and whose word it is. */
+export interface StoryTypeLabel {
+  type: StoryType;
+  origin: StoryLabelOrigin;
+}
+
+/** `POST /admin/stories/:id/type` (T-1001): an editor's label, superseding the current one. */
+export interface StoryTypeRequest {
+  type: StoryType;
+  /** Recorded on the label and in the audit log; required. */
+  reason: string;
+}
+
 /** What a source grants (D-061); the card carries only what these allow. */
 export type NewsRights = 'headline' | 'summary' | 'full_text';
 
@@ -56,6 +102,12 @@ export interface NewsStoryCard {
   entities: NewsEntity[];
   /** Other publishers' reports grouped under this story. */
   other_reports: number;
+  /**
+   * The story's type and whose word it is (T-1001, D-123): `available` with
+   * `last_updated_at` the label's time, or `not_supplied` when neither the
+   * publisher's category nor an editor gave one -- never a default type.
+   */
+  type: Covered<StoryTypeLabel>;
   /**
    * Trending only: how many distinct members took part in the public
    * discussion of the story's matches inside the window. `null` elsewhere.

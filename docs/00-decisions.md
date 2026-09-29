@@ -4963,3 +4963,48 @@ member product beside the others. Showing a friend's call regardless of their
 setting because the viewer is a friend: a second visibility rule, which D-063
 exists to refuse. Showing removed posts as tombstones in the excerpt: honest on
 the panel, noise on a homepage line.
+
+## D-123 — Story types: blueprint 3.2's eleven, from the publisher's own category by an exact committed mapping or from an editor, never from a machine
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** A story's type (blueprint 3.2) is one of eleven:
+`breaking_news`, `transfer`, `injury`, `suspension`, `tactical_analysis`,
+`match_preview`, `match_report`, `interview`, `opinion`, `data_analysis`,
+`explainer` -- the blueprint's list and nothing else (`STORY_TYPES` in
+`@fmip/contracts`, the `story_label_type_known` check in the database, and a
+spec that fails when the two differ).
+
+- **Two origins.** `publisher`: the publisher's own category string on the
+  story's promoted original, mapped by an exact, committed list (T-1002).
+  `editor`: a person with the `editor` or `admin` role, with a reason, over
+  `POST /admin/stories/:id/type` beside the debate mark (T-1001). The card and
+  the story page carry `type: Covered<{ type, origin }>`, so a reader is told
+  whose word it is.
+- **No type is a stated absence.** A story with no current label is
+  `not_supplied`; there is no default type and no "other". The story page
+  says the story has none; a card carries no tag.
+- **Superseded, never edited.** `story_label` rows take one change in their
+  life, `superseded_at`, enforced by a trigger; a new label supersedes the
+  current one in the same transaction; a partial unique index keeps one
+  current label per story. There is no pointer to the replacing row, because
+  a publisher's label goes with its article when a publisher is dropped
+  (D-061) and a pointer would make the drop fail.
+- **An editor's word wins.** An editor's label supersedes a publisher's, even
+  of the same type, because the editor's origin is what keeps a later fetch
+  from changing it (T-1002). The same editor label twice is refused rather
+  than re-noted. Every editor label is an `audit_log` row (`story.type`,
+  target `story`) with the label it replaced as `previous` (rule 10).
+- **Never a machine (N-1).** No similarity, keyword or language-model rule
+  assigns a type. A third origin is a new decision entry and a migration; the
+  origin check, the contract's `STORY_LABEL_ORIGINS` and the web's total
+  records over it fail the build until both exist.
+- **"Breaking news" the type is not the breaking mark.** A publisher's
+  "breaking" category or an editor's label types the story; only the
+  editor's time-bound mark of D-125 puts it on the homepage strip.
+
+**Alternatives considered.** A `story.type` column: no history, no author,
+and an editor's correction would erase the publisher's word. A default type
+("news") for unlabelled stories: a filter by type would then pretend to know
+what the unlabelled half is. A type per article rather than per story: the
+reader filters stories, and the promoted original is already the story's
+voice (T-142).

@@ -1,4 +1,11 @@
-import type { NewsEntity, NewsSection, NewsSectionReason, StoryVersion } from '@fmip/contracts';
+import type {
+  NewsEntity,
+  NewsSection,
+  NewsSectionReason,
+  StoryLabelOrigin,
+  StoryType,
+  StoryVersion,
+} from '@fmip/contracts';
 import { isNewsSection } from '@fmip/contracts';
 import type { MessageKey } from '@/i18n/messages';
 
@@ -144,3 +151,24 @@ export function feedsStale(lastUpdatedAt: string | null, now = new Date()): bool
   if (lastUpdatedAt === null) return true;
   return now.getTime() - new Date(lastUpdatedAt).getTime() > NEWS_STALE_AFTER_MS;
 }
+
+/** Each story type's name (T-1001); total, so a new type fails the build until it has one. */
+export const STORY_TYPE_KEY: Record<StoryType, MessageKey> = {
+  breaking_news: 'story.type.breakingNews',
+  transfer: 'story.type.transfer',
+  injury: 'story.type.injury',
+  suspension: 'story.type.suspension',
+  tactical_analysis: 'story.type.tacticalAnalysis',
+  match_preview: 'story.type.matchPreview',
+  match_report: 'story.type.matchReport',
+  interview: 'story.type.interview',
+  opinion: 'story.type.opinion',
+  data_analysis: 'story.type.dataAnalysis',
+  explainer: 'story.type.explainer',
+};
+
+/** Whose word a type is (D-123); total, so a new origin fails the build until it has a sentence. */
+export const LABEL_ORIGIN_KEY: Record<StoryLabelOrigin, MessageKey> = {
+  publisher: 'story.type.origin.publisher',
+  editor: 'story.type.origin.editor',
+};

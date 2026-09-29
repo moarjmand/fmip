@@ -7,10 +7,12 @@ import { PostgresNewsReadStore } from './internal/news-read-store';
 import { FetchTransport, NEWS_TRANSPORT } from './internal/news-transport';
 import { PostgresNewsStore } from './internal/news-store';
 import { PostgresSavedArticlesStore } from './internal/saved-articles-store';
+import { PostgresStoryLabelStore } from './internal/story-label-store';
 import { NewsClusteringService } from './news-clustering.service';
 import { NewsIngestionService } from './news-ingestion.service';
 import { NewsSchedulerService } from './news-scheduler.service';
 import { DebateAdminController } from './debate-admin.controller';
+import { StoryTypeAdminController } from './story-type-admin.controller';
 import { PostgresTranslationsAdminStore } from './internal/translations-admin-store';
 import { TranslationsAdminController } from './translations-admin.controller';
 import { NewsController } from './news.controller';
@@ -30,6 +32,7 @@ import { SavedArticlesController } from './saved-articles.controller';
   controllers: [
     NewsController,
     DebateAdminController,
+    StoryTypeAdminController,
     TranslationsAdminController,
     SavedArticlesController,
   ],
@@ -39,6 +42,7 @@ import { SavedArticlesController } from './saved-articles.controller';
     PostgresDebateAdminStore,
     PostgresTranslationsAdminStore,
     PostgresSavedArticlesStore,
+    PostgresStoryLabelStore,
     NewsClusteringService,
     NewsIngestionService,
     NewsSchedulerService,

@@ -6,7 +6,9 @@ import type {
   NewsRights,
   NewsStoryCard,
   ReviewState,
+  StoryLabelOrigin,
   StoryPage,
+  StoryType,
   VersionOrigin,
 } from '@fmip/contracts';
 import { Pool } from 'pg';
@@ -43,6 +45,9 @@ interface CardRow {
   homepage_url: string;
   rights: NewsRights;
   other_reports: number;
+  story_type: StoryType | null;
+  type_origin: StoryLabelOrigin | null;
+  labelled_at: Date | null;
   at: Date;
   participants: number | null;
   debate_selected_at: Date | null;
@@ -218,6 +223,7 @@ export class PostgresNewsReadStore {
               COALESCE((SELECT min(published_at) FROM article_version WHERE article_id = a.id),
                        a.fetched_at) AS at,
               (SELECT count(*)::int - 1 FROM article m WHERE m.story_id = s.id) AS other_reports,
+              lb.story_type, lb.origin AS type_origin, lb.created_at AS labelled_at,
               NULL::int AS participants,
               d.selected_at AS debate_selected_at, d.note AS debate_note
          FROM story s
@@ -225,6 +231,7 @@ export class PostgresNewsReadStore {
          JOIN news_source src ON src.id = a.source_id AND src.dropped_at IS NULL
          JOIN LATERAL (${version('a', 'src.language')}) v ON TRUE
          LEFT JOIN story_debate d ON d.story_id = s.id AND d.cleared_at IS NULL
+         LEFT JOIN story_label lb ON lb.story_id = s.id AND lb.superseded_at IS NULL
         WHERE s.id = $1`,
       [storyId, language],
     );
@@ -411,6 +418,14 @@ export class PostgresNewsReadStore {
       },
       entities,
       other_reports: r.other_reports,
+      type:
+        r.story_type === null || r.type_origin === null || r.labelled_at === null
+          ? { coverage: 'not_supplied', last_updated_at: null, data: null }
+          : {
+              coverage: 'available',
+              last_updated_at: r.labelled_at.toISOString(),
+              data: { type: r.story_type, origin: r.type_origin },
+            },
       discussion:
         r.participants === null
           ? null
@@ -509,10 +524,12 @@ class Query {
              v.headline, v.summary, v.byline, v.language, v.published_at, v.origin, v.review_state,
              COALESCE((SELECT min(published_at) FROM article_version WHERE article_id = a.id),
                       a.fetched_at) AS at,
-             (SELECT count(*)::int - 1 FROM article m WHERE m.story_id = s.id) AS other_reports
+             (SELECT count(*)::int - 1 FROM article m WHERE m.story_id = s.id) AS other_reports,
+             lb.story_type, lb.origin AS type_origin, lb.created_at AS labelled_at
         FROM story s
         JOIN article a ON a.id = s.promoted_article_id
         JOIN news_source src ON src.id = a.source_id AND src.dropped_at IS NULL
+        LEFT JOIN story_label lb ON lb.story_id = s.id AND lb.superseded_at IS NULL
         JOIN LATERAL (
           SELECT headline, summary, byline, language, published_at, origin, review_state
             FROM article_version

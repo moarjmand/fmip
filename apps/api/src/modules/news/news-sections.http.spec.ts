@@ -209,6 +209,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('news section
       other_reports: 0,
       discussion: null,
       debate: null,
+      // T-1001: no publisher category and no editor, so no type -- never a default.
+      type: { coverage: 'not_supplied', last_updated_at: null, data: null },
     });
     expect(match.entities.map((e) => [e.entity_type, e.name])).toEqual(
       expect.arrayContaining([

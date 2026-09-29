@@ -607,8 +607,11 @@ export {
   NEWS_PAGE_SIZE,
   NEWS_SECTIONS,
   SAVED_ARTICLES_LIMIT,
+  STORY_LABEL_ORIGINS,
+  STORY_TYPES,
   TRENDING_WINDOW_HOURS,
   isNewsSection,
+  isStoryType,
 } from './news';
 export type {
   DebateClearRequest,
@@ -630,7 +633,11 @@ export type {
   SavedArticleState,
   SavedArticlesResponse,
   ReviewState,
+  StoryLabelOrigin,
   StoryPage,
+  StoryType,
+  StoryTypeLabel,
+  StoryTypeRequest,
   StoryVersion,
   TranslationRequest,
   VersionOrigin,
