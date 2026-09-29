@@ -64,6 +64,7 @@ import type {
   CommunityAnalysesResponse,
   CommunityAnalysisWorkspace,
   CommunitySubmission,
+  ContributorFlagListResponse,
   ContributorListResponse,
   MatchCentre,
   MatchSummaryResponse,
@@ -71,6 +72,7 @@ import type {
   MemberModerationHistory,
   ModerationQueueResponse,
   DebateListResponse,
+  BreakingNewsResponse,
   MatchPanelPage,
   NewsSectionResponse,
   NotificationSettings,
@@ -560,6 +562,11 @@ export function fetchDebates(cookie: string | undefined): Promise<ApiResult<Deba
   return apiRequest<DebateListResponse>('/admin/debates?state=open', { cookie });
 }
 
+/** `GET /news/breaking` (T-1004): the stories marked breaking now, for the homepage strip. Public. */
+export function fetchBreakingNews(locale?: string): Promise<ApiResult<BreakingNewsResponse>> {
+  return apiRequest<BreakingNewsResponse>(withLocale('/news/breaking', locale));
+}
+
 /** `GET /news/stories/:id` (T-144), in `language` when the original has a version in it. */
 export function fetchStory(
   id: string,
@@ -754,6 +761,16 @@ export function fetchMemberModerationHistory(
 ): Promise<ApiResult<MemberModerationHistory>> {
   return apiRequest<MemberModerationHistory>(
     `/admin/moderation/members/${encodeURIComponent(username)}`,
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/** `GET /admin/contributor-flags` (T-1031, D-137): the open flags. Needs the moderator or admin role. */
+export function fetchContributorFlags(
+  cookie: string | undefined,
+): Promise<ApiResult<ContributorFlagListResponse>> {
+  return apiRequest<ContributorFlagListResponse>(
+    '/admin/contributor-flags',
     cookie === undefined ? {} : { cookie },
   );
 }
@@ -1039,14 +1056,15 @@ export function fetchFixtureNews(
   );
 }
 
-/** `GET /teams/:id/news` or `GET /competitions/:id/news` (T-944): stories linked to the entity. Public. */
+/** `GET /teams/:id/news`, `/competitions/:id/news` (T-944) or `/players/:id/news` (T-1007): stories linked to the entity. Public. */
 export function fetchEntityNews(
-  type: 'team' | 'competition',
+  type: 'team' | 'competition' | 'person',
   id: string,
   locale: string,
 ): Promise<ApiResult<EntityNewsResponse>> {
+  const path = type === 'team' ? 'teams' : type === 'competition' ? 'competitions' : 'players';
   return apiRequest<EntityNewsResponse>(
-    `/${type === 'team' ? 'teams' : 'competitions'}/${encodeURIComponent(id)}/news?locale=${encodeURIComponent(locale)}`,
+    `/${path}/${encodeURIComponent(id)}/news?locale=${encodeURIComponent(locale)}`,
   );
 }
 

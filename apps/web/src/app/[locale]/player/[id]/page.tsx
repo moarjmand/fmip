@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { PlayerSeasonMinutes } from '@fmip/contracts';
-import { fetchMe, fetchPlayer } from '@/lib/api';
+import { fetchEntityNews, fetchMe, fetchPlayer } from '@/lib/api';
 import { formatFixtureDate } from '@/lib/competition';
 import { moduleState } from '@/lib/match';
 import { afterTimeNote } from '@/lib/team';
@@ -22,6 +22,8 @@ import {
 import { pageMetadata, playerJsonLd } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { JsonLd } from '@/components/json-ld';
+import { PlayerAvailabilitySection } from '@/components/player-availability';
+import { EntityNews } from '@/components/related-news';
 import { ltrIsolate } from '@/components/score';
 import { Button, Notice, controlClasses, inlineTargetClasses } from '@/components/ui';
 
@@ -52,7 +54,8 @@ export async function generateMetadata({
  * The player page (blueprint 5.3, T-037): identity, current team, career
  * spells, the record per season and competition that our line-ups and
  * incidents support, and the recent-match log, with a season selector over
- * both. Statistics we do not hold are named as such, never shown as zero.
+ * both. T-1007: current availability for the team's next match and related
+ * news. Statistics we do not hold are named as such, never shown as zero.
  */
 export default async function PlayerPage({
   params,
@@ -63,9 +66,10 @@ export default async function PlayerPage({
 }) {
   const [{ locale, id }, query] = await Promise.all([params, searchParams]);
   if (!UUID.test(id)) notFound();
-  const [result, me] = await Promise.all([
+  const [result, me, news] = await Promise.all([
     fetchPlayer(id, locale),
     fetchMe(await sessionCookieHeader()),
+    fetchEntityNews('person', id, locale),
   ]);
   if (!result.ok) {
     if (result.status === 404) notFound();
@@ -154,6 +158,13 @@ export default async function PlayerPage({
           </p>
         )}
       </section>
+
+      <PlayerAvailabilitySection
+        locale={locale}
+        timeZone={timeZone}
+        availability={page.availability}
+        now={new Date()}
+      />
 
       <form
         action={`${base}/compare`}
@@ -362,6 +373,8 @@ export default async function PlayerPage({
           </ul>
         )}
       </section>
+
+      <EntityNews locale={locale} timeZone={timeZone} news={news.ok ? news.data : null} />
 
       <p className="text-xs text-muted">
         {page.last_updated_at === null ? (

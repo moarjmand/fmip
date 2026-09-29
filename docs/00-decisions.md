@@ -4965,6 +4965,326 @@ exists to refuse. Showing removed posts as tombstones in the excerpt: honest on
 the panel, noise on a homepage line.
 
 
+## D-123 — Story types: blueprint 3.2's eleven, from the publisher's own category by an exact committed mapping or from an editor, never from a machine
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** A story's type (blueprint 3.2) is one of eleven:
+`breaking_news`, `transfer`, `injury`, `suspension`, `tactical_analysis`,
+`match_preview`, `match_report`, `interview`, `opinion`, `data_analysis`,
+`explainer` -- the blueprint's list and nothing else (`STORY_TYPES` in
+`@fmip/contracts`, the `story_label_type_known` check in the database, and a
+spec that fails when the two differ).
+
+- **Two origins.** `publisher`: the publisher's own category string on the
+  story's promoted original, mapped by an exact, committed list (T-1002).
+  `editor`: a person with the `editor` or `admin` role, with a reason, over
+  `POST /admin/stories/:id/type` beside the debate mark (T-1001). The card and
+  the story page carry `type: Covered<{ type, origin }>`, so a reader is told
+  whose word it is.
+- **No type is a stated absence.** A story with no current label is
+  `not_supplied`; there is no default type and no "other". The story page
+  says the story has none; a card carries no tag.
+- **Superseded, never edited.** `story_label` rows take one change in their
+  life, `superseded_at`, enforced by a trigger; a new label supersedes the
+  current one in the same transaction; a partial unique index keeps one
+  current label per story. There is no pointer to the replacing row, because
+  a publisher's label goes with its article when a publisher is dropped
+  (D-061) and a pointer would make the drop fail.
+- **An editor's word wins.** An editor's label supersedes a publisher's, even
+  of the same type, because the editor's origin is what keeps a later fetch
+  from changing it (T-1002). The same editor label twice is refused rather
+  than re-noted. Every editor label is an `audit_log` row (`story.type`,
+  target `story`) with the label it replaced as `previous` (rule 10).
+- **Never a machine (N-1).** No similarity, keyword or language-model rule
+  assigns a type. A third origin is a new decision entry and a migration; the
+  origin check, the contract's `STORY_LABEL_ORIGINS` and the web's total
+  records over it fail the build until both exist.
+- **"Breaking news" the type is not the breaking mark.** A publisher's
+  "breaking" category or an editor's label types the story; only the
+  editor's time-bound mark of D-125 puts it on the homepage strip.
+
+**The publisher's category (T-1002).** The feed reader keeps each item's
+category strings as carried (RSS `<category>` text, Atom `<category term>`,
+in feed order, duplicates removed) in `article_category`, replaced by each
+fetch so a category the publisher removed is gone. The committed list
+`STORY_TYPE_MAPPING` maps (the source's feed host, the exact string) to a
+type: no case folding, no trimming beyond the reader's whitespace, no prefix,
+keyword or similarity rule. A story takes its promoted original's mapped
+type; an item whose mapped categories name two different types has none
+(choosing would be a guess); an original that no longer maps withdraws the
+publisher label (superseded with nothing after it). The job recomputes the
+label whenever an item's words or categories change, and never supersedes an
+editor's label.
+
+**The mapping ships empty.** Each entry must name a recorded item from its
+feed that carries the exact string (`src/modules/news/_recorded/`, held by
+`story-type-mapping.spec.ts`). Which publishers are carried is the
+maintainer's (D-061, N-8) and is not in the repository, so no entry was
+written from memory or by analogy. Adding one is a recording and a line; the
+mechanism, the storage and the editor path work today.
+
+**Alternatives considered.** A `story.type` column: no history, no author,
+and an editor's correction would erase the publisher's word. A default type
+("news") for unlabelled stories: a filter by type would then pretend to know
+what the unlabelled half is. A type per article rather than per story: the
+reader filters stories, and the promoted original is already the story's
+voice (T-142).
+
+## D-124 — News filters by story type, player and date, and what a filter says about the stories it cannot place
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** `GET /news` takes `type`, `player`, `from`, `to` and `tz`
+beside the existing filters (blueprint 3.2), in every section, applied to the
+whole cluster as the others are (a story matches when any of its reports
+does).
+
+- **Type.** One of `STORY_TYPES` (D-123), against the story's current label.
+  A story with no type is never shown under a type filter and never counted
+  as one; the answer's `untyped` says how many stories matching every other
+  filter (the dates included) have no type, and the page says "N stories ...
+  have no type, so they are not shown". Without a type filter `untyped` is
+  `null`.
+- **Player.** A person by id (rule 1), matched on the story's person links.
+  Until any report links any person (T-1006 writes them), a player filter
+  answers `not_supplied` with reason `persons_unlinked` rather than an empty
+  list, because the list would be empty for want of linking, not of news.
+  Once links exist an empty answer is an ordinary `no_match`. The news page
+  shows an active player filter by name with a link to remove it; the way in
+  is a player's own page (T-1007), since a picker over every player would be a
+  second search box.
+- **Dates.** `from` and `to` are calendar days (`YYYY-MM-DD`, both
+  inclusive) in `tz`, an IANA zone (default `UTC`), compared with the story's
+  first publication -- the earliest time its original's publisher gave, else
+  when it was first read, the same instant the cards are ordered by. The web
+  sends the member's own zone, and only with a date; a guest's days are UTC.
+  A malformed day, an unknown zone or `from` after `to` is a 400 naming it.
+
+**Alternatives considered.** Showing untyped stories under every type filter
+("might be a transfer"): a filter that does not filter. Hiding the count:
+the short list would pose as all the transfer news. A `player` filter that
+answers an empty list before T-1006: indistinguishable from "no news about
+him". Dates in UTC for everyone: a Tehran reader's "today" would drop its
+first three and a half hours.
+
+## D-125 — "Breaking": an editor's mark with a window, the homepage strip, and who is told
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** "Breaking" on the homepage (blueprint 2.3) is an editor's act,
+never a publisher's word or a machine's (D-123, N-1).
+
+- **The mark.** An `editor` or `admin` marks a story with a note readers see
+  (`POST /admin/stories/:id/breaking`). The mark lasts
+  `BREAKING_WINDOW_HOURS` (the proposal, **6 hours**) from the moment it is
+  made; there is no per-mark window, so every strip entry means the same
+  thing. An editor may end it early with a reason (`.../breaking/clear`).
+  A second mark while one is in force is refused rather than re-noted; once
+  a mark has ended, the story may be marked again. Every mark and clear is an
+  `audit_log` row (`breaking.mark`, `breaking.clear`, target `story`) with
+  what was there before (rule 10). `GET /admin/breaking` lists marks as
+  `live`, `expired` or `cleared`.
+- **The strip.** `GET /news/breaking` is public (a guest sees it): the
+  stories whose mark is in force, newest mark first, at most
+  `BREAKING_STRIP_LIMIT` (5). "In force" is `ends_at > now()` read at
+  render, so an expired mark is gone at the next render with no job to take
+  it down. With nothing marked the homepage draws no strip at all -- not an
+  empty one (rule 3). A card carries `breaking` (the note and the window)
+  wherever it appears, so the news page marks it too.
+- **Not the type.** A story typed `breaking_news` by its publisher or an
+  editor (D-123) is not on the strip unless an editor marks it: the type says
+  what a story is, the mark says what is on the front page now.
+
+- **Who is told (T-1005).** `breaking_news` is a notification kind, **off
+  by default**: an interruption about news is something a member asks for,
+  and the strip is there for everyone else. When a mark is made, the members
+  who follow a team, competition or person any of the story's reports links,
+  and whose switch is on, are told -- one audience query and one
+  `emitToAudience` statement, as the match alerts are since T-835 (D-105), so
+  the category mute (`football`), the team and competition mutes (a story is
+  about every team and competition it links, through `notification_about`),
+  quiet hours (delay, never drop) and the dedupe key apply exactly as to
+  every kind. The kind has no hourly cap, like every kind but messages and
+  reactions (T-273): marks are made by editors, by hand, a few a day. The
+  dedupe key is the story, so a story marked, cleared and marked again is
+  told **once**; a member who starts following in between is told at the next
+  mark. A story that links nothing a member follows reaches nobody. The
+  notification's subject is the story (`story`, a new subject) and opens the
+  story page; its line is "Breaking: " and the editor's note, read from the
+  mark rather than copied.
+
+**Alternatives considered.** A flag on `story`: no author, no reason, no
+window. A scheduled job that clears expired marks: an expired mark would stay
+on the homepage until the job ran. Letting a publisher's "breaking" category
+fill the strip: the homepage would be written by whichever feed labels most
+generously. On by default: every member following a big club would be pushed
+several times a day about stories they did not ask to be interrupted by.
+Telling on every re-mark: a correction to a note would reach everybody
+again.
+
+## D-126 — Linking a person to a story: the rule, its precision on a sample, and what it never does
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-1006 lets the news clustering link a person (`article_entity`
+type `person`, by UUID), by a rule narrower than the team linker's, and keeps
+it switched off until its precision has been measured.
+
+- **The rule.** A person is linked to an article when (1) one of the
+  article's headlines or summaries carries their `full_name`, or an
+  `entity_alias` recorded for them, as whole words after the same folding the
+  team linker uses (`search_key`, every run of non-letters one space);
+  (2) that key is at least two words and five letters -- a surname alone
+  ("Salah", "Silva") never links, and `known_as` is not read, because the
+  provider's short form is often exactly that; (3) the person holds an open
+  `player_spell` at a team the story links (any report of the cluster); and
+  (4) no other member of those squads answers to the same key, and no other
+  matched candidate's key contains it or is contained by it ("Bruno Guimaraes"
+  inside "Bruno Guimaraes Rodrigues"). A name that could be two people links
+  neither (rule 1). The rule is `PERSON_CANDIDATES` in
+  `news/internal/news-store.ts`, one SQL text read both by the writer and by
+  the sample, so what is measured is what writes.
+- **The bar.** The rule may write only when a person has hand-checked a random
+  sample of stored headlines and found at least **95 %** of the proposed links
+  right over at least **100** proposed links (`PERSON_LINK_PRECISION_BAR`,
+  `PERSON_LINK_SAMPLE_MINIMUM`). A wrong link puts a story on a stranger's
+  player page and in their followers' feed; a missed one costs a reader one
+  story, so the bar is on precision, not recall.
+- **The switch.** `NEWS_PERSON_LINKS=on` turns the writer on; anything else,
+  and the default, leaves it off. The sample is
+  `node dist/cli/person-link-sample.js [--size 300]`, read-only: one row per
+  proposed link (article, person, matched words, headline, summary) for the
+  checker to mark.
+
+**Precision measured on 2026-09-29: none -- the sample is empty.** The public
+site showed, as a guest, "The feeds have not been read yet" on `/news` and
+"No squad on record for this team" on Arsenal's page: production has stored
+no headline, and no `player_spell` row exists anywhere but the seed (nothing
+ingests squads; D-119 found the same for coaching spells). A rule that needs
+both can propose no link there, so there is nothing to check, and the switch
+stays **off**. It may be turned on only after the feeds have run and squads
+are stored, the sample has been checked, and the measured precision and the
+sample's size have been added here.
+
+**What it never does.** Link by surname, by `known_as`, by a person's name
+outside the squads of the teams the story links, or by a machine's reading
+of the words (N-1). It never links a coach or referee: spells are players'.
+
+**Alternatives considered.** Matching `known_as` ("M. Salah", "Rodri"): the
+provider's short form is a surname or a mononym as often as not, which is
+the guess rule 1 forbids. Any person in the catalogue rather than the linked
+teams' squads: common full names repeat across clubs. Turning the rule on
+with a precision measured on invented headlines: a number about text nobody
+published is not a measurement of this rule.
+
+**Consequences.** `NEWS_PERSON_LINKS` in `.env.example`. The following
+section already reads `person` links, so a followed player's stories appear
+there once links exist. T-1003's player filter and T-1007's related news
+read the same links and say `not_supplied` while there are none. No
+migration: `article_entity` already accepts `person`.
+
+## D-127 — A player's related news and current availability
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-1007 gives the player page (blueprint 5.3) related news and
+current availability from what is already stored. No provider request is
+added.
+
+- **Related news.** `GET /players/:id/news` is D-119's entity-news shape
+  (`EntityNewsResponse`, `ENTITY_NEWS_LIMIT` cards, newest first) over the
+  stories any of whose reports link the person (D-126). It is `not_supplied`
+  with `feeds_unread` until the feeds have been read, as on the team page.
+  While no report links **any** person it is `not_supplied` with the new
+  reason `persons_unlinked`: D-126 keeps the person linker off until its
+  precision is measured, and an empty list then would read as "nobody wrote
+  about this player". Once any person link exists, an empty list is
+  `available` with `nothing_linked`. An unknown id is 404.
+- **Availability.** `PlayerPage.availability` reads the player's team: every
+  open spell's, else the team of the latest stored line-up that names the
+  player (`basis: 'lineup'`, and the page says so). Nothing ingests squads
+  today, so the line-up is what most players have. With several teams, the
+  team whose next match comes first is used. Then it reads that team's next
+  scheduled match still ahead, and what `fixture_absence` says about the
+  player for it (T-103):
+  - `not_supplied` with `no_team`, `no_next_match` or `not_asked`. The last
+    one means no `fixture_availability_fetch` row exists for that match: the
+    feed is asked only in the three days before kick-off, and an empty list
+    nobody asked for is not information.
+  - Once the feed was asked, `available` with `out` or `doubtful`, the kind
+    and the feed's own words, or `not_listed`. It is never "fit", because the
+    feed never says that (T-103). The status words are the key players'
+    (`KeyPlayerAvailability`).
+  - `last_updated_at` is when the feed was last asked. The page shows that
+    time and says the answer may have changed once it is more than six hours
+    old: T-103 re-asks every three hours, so six hours means at least one
+    re-ask was missed (rule 4).
+
+**Alternatives considered.** Reading only open spells: nothing writes them,
+so every player page in production would say "no team". Calling a player
+with no listing "available" or "fit": the feed does not say so. Answering an
+empty news list before any person is linked: this would be a false negative
+presented as fact (rule 3). Reusing `/news?team=`-style filters for the
+person: T-1003 owns the `player` filter of the news page, and the entity
+list needs the `persons_unlinked` state, which a filter does not have.
+
+**Consequences.** `PlayerAvailability`, `PlayerAvailabilityListing`,
+`PlayerAvailabilityReason` and `EntityNewsReason` are in the contract, and
+`EntityNewsResponse.entity.type` takes `person`. Seventeen catalogue keys were
+added (`player.availability.*`, `news.entity.nothingPlayer`,
+`news.entity.personsUnlinked`). No migration.
+
+## D-128 — Trending counts saves beside discussion
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** Trending (blueprint 3.1) ranks the stories that were discussed
+or saved in the last `TRENDING_WINDOW_HOURS` (48) by two signals, each a count
+of distinct members:
+
+- **Discussion**: members who posted or reacted on the public panel of one of
+  the story's matches, as before (T-143).
+- **Saves** (T-1008): members whose `saved_article` row for the story was
+  saved inside the window.
+
+A story's score is `participants * 1 + savers * 1` (`TRENDING_WEIGHTS` in the
+contract). Ties go to the newer story. A member who both discussed and saved
+counts in both, because they are two different acts. The card carries both
+counts (`discussion.participants`, `discussion.savers`), and the page shows
+both. The section stays `limited`, now with the reason `discussion_and_saves`,
+which says what is counted and that views and shares are not.
+
+**Why equal weights.** There is nothing yet to calibrate them against:
+production has no stored stories and no saves (D-126), and no measure of
+"interest" exists to fit weights to. One member, one count per act is the
+rule a reader can check from the numbers on the card. A different weighting
+is a one-line change to the contract constant, together with this entry.
+
+**What is not counted.** Views and shares. Counting who read or shared a
+story is product analytics that D-044 and D-102 kept out, and whether to
+count them is the maintainer's question N-3. A save is a row the product
+already keeps for its own function (T-842). Trending reads only its count per
+story, never who saved it: the saved list stays private (T-842).
+
+**Merges.** When clustering moves an emptied story's saves onto the story it
+joined (`moveToStory`, T-842), `saved_article`'s key (member, story) keeps one
+row per member, with the time of the earlier save. A member who saved both
+stories counts once, and a moved save counts in the window of its original
+time.
+
+**Budget.** The section is still two statements, the cards and their
+entities, whatever the table holds. The saves are one grouped scan of
+`saved_article` joined to the cards, inside the same statement. A spec seeds
+10,000 saves and holds the section to those two statements and under 1.5 s on
+the development database. No index or migration was needed: none was
+assigned, and the scan is bounded by the table the spec measures.
+
+**Alternatives considered.** Weighting a save above a panel post (or below
+it): a preference with no evidence behind it. Counting every save ever made
+rather than the window's: trending would then be "most saved", which never
+decays. A separate "most saved" section: blueprint 3.1 names one trending
+list built from several signals.
+
+**Consequences.** `TRENDING_WEIGHTS`, `discussion.savers` and the
+`discussion_and_saves` reason are in the contract, replacing
+`discussion_only`. The plural `news.savers` and `news.reason.discussionAndSaves`
+are catalogue keys. No migration.
+
 ## D-132 — Who may invite to a group is the owner's choice of three, applied by the schema; invite links store only a hash
 
 **Date:** 2026-09-29 · **Tasks:** T-1020, T-1021 · **Status:** accepted (revisable under the standing delegation of 2026-09-26)
@@ -5103,12 +5423,7 @@ maintainer's.
 a Persian-speaking group on an English site is exactly the case, and a
 closed list would make it lie. Storing a favourite by name: rule 1. Several
 favourites: no blueprint case, and a filter over a list is a different
-query for a problem nobody has. Editing the rules in place: a member's
-acceptance would then point at words they never read. Removing members who
-do not accept a new version: the acceptance criterion refuses it, and a
-group's owner changing a sentence should not empty the group. Showing the
-new version as a notification: a new kind and a preference for something
-the group's own page already shows once.
+query for a problem nobody has.
 
 ## D-134 — A group's owner and moderators remove messages in the group's conversations, with a reason the author is told, audited with the message as it was
 
@@ -5214,3 +5529,100 @@ own migration and the page already says it; recorded as open.
 it restricts a person, and the harm is the group. Deleting a closed group:
 destroys the record an appeal needs. Hiding a closed group from its own
 members: the criterion says they can read their own history.
+
+## D-136 — A panel post links to one incident, player, prediction or statistic of its own match
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** T-1030 lets a contributor attach **at most one** link to a panel
+post (blueprint 10.2): an incident of the match, a player in either line-up,
+their own prediction on the match, or a team statistic of the match. It is
+rendered as a card beside the post.
+
+- **Where it lives.** Columns on `panel_post` (migration `1765000000000`):
+  `link_kind` and one target column per kind, with a CHECK that a row carries
+  either no link or exactly one kind's columns. Written with the post in the
+  same INSERT; never changed afterwards (`refuse_panel_link_rewrite`, `PL007`,
+  the tombstone included).
+- **The schema refuses another match.** `panel_post_with_link_guard` (named to
+  run last of the BEFORE INSERT guards, so a member who may not post at all
+  hears that first) checks the target belongs to the post's fixture and raises
+  `PL020` with the kind in the HINT; the API answers 400 with a sentence per
+  kind. A statistic the feed has not supplied is refused too: a card for a
+  number nobody has would invent one (rule 3).
+- **Changed or removed by the feed.** An incident is linked by id **without a
+  foreign key**, and the trigger stores what it said (`link_snapshot`). On read
+  the card is `as_linked`, `changed` (shown as the feed has it now, with a note
+  saying it changed) or `removed` (nothing of the old incident is shown). A
+  statistic keeps its value at posting beside its value now; a player the feed
+  later dropped from both line-ups is said to be so.
+- **A prediction is the author's own, and only as visible as they make it.**
+  The link is the `prediction_version` in force when the post was written,
+  chosen by the trigger from the author's own call on this match (the client
+  names no id). The public panel is the same bytes for everybody, so it shows
+  the call only when the author's `prediction_history_visibility` shows it to a
+  guest; otherwise the card is `withheld` and names the setting. A viewer the
+  setting admits (the author, a friend under `friends`) receives the call on
+  `PanelPermission.linked_predictions`, asked of the profile boundary exactly as
+  D-063 asks it. A later revision does not rewrite the card; it says the call
+  was changed after posting. Rule 6: the card is labelled as the member's own
+  call, never the model's or the community's.
+- **A removed post shows no card**, as it shows no body.
+
+**Rejected.** *A link table*: "at most one" would be a unique index plus a
+promise, and a post could exist for a moment without its link. *A foreign key
+to `incident`*: RESTRICT would block the feed, SET NULL would blank the link
+through an UPDATE the rewrite guard refuses and lose the fact that something
+was linked. *Showing a withheld prediction to friends on the public document*:
+it would make the public read viewer-specific. *Player statistics as a fifth
+kind*: the task names a statistic of the match; a player card already leads to
+the player's numbers.
+
+## D-137 — A contributor below the threshold for a sustained period is flagged to administrators, never paused
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26). **The period is a proposal (N-7): the maintainer's to confirm or change.**
+
+**Decision.** T-1031 implements blueprint 9.4's "a contributor below the
+threshold for a sustained period" as a flag for a person, never an automatic
+pause.
+
+- **Below what.** The contributor rating threshold of D-059
+  (`ELIGIBILITY_V1.minRating`, 70), read from its one home. Not a tier.
+- **For how long: 30 consecutive days, as a proposal.** The number is one
+  named constant, `CONTRIBUTOR_FLAG_PROPOSED_PERIOD_DAYS = 30` in
+  `apps/api/src/modules/reputation/internal/contributor-flag.ts`, and the
+  environment variable `CONTRIBUTOR_FLAG_PERIOD_DAYS` overrides it (a whole
+  number from 1 to 365; empty or malformed falls back to 30). **Choosing the
+  period is policy, like the thresholds themselves (D-059): the maintainer
+  confirms 30 or sets another number, and changing it needs no code change.**
+  Each flag records the period it was raised under.
+- **How "below for the period" is decided, from stored ratings only (rule
+  8).** The stretch is the unbroken run of stored ratings (`rating_snapshot`)
+  below the threshold that ends with the newest one; it began at the first of
+  them. A member with no rating is not below. It is counted from the later of
+  its start and the grant, since before the grant the member was not a
+  contributor. Only live, unpaused grants are checked.
+- **One flag per stretch, told once.** A daily check (04:20 UTC, in the API
+  with `INGESTION_SCHEDULE=on`) raises one `contributor_flag` per stretch
+  (unique on member and `below_since`). Each new flag tells every
+  administrator once, as `contributor_below_threshold`. The notification is
+  administrators-only, on by default, and opens the contributors page.
+- **Nothing is paused.** The check has no path to a grant event. On the
+  console's contributors page (moderator or administrator, the same approvers
+  as the rest of the page), a person either pauses with the existing audited
+  act (T-250) or dismisses the flag with a required reason. The dismissal is
+  written with an `audit_log` row naming the actor, the reason and the
+  previous state (rule 10).
+- **Closing.** A member back at or above the threshold closes the flag as
+  `recovered`. So does a newer stretch replacing the one the flag named, and
+  the newer stretch gets its own flag when it is due. A grant a person paused
+  or withdrew closes it as `grant_not_live`. A dismissed stretch is not raised
+  again; a later stretch is. A flag is closed once and never edited.
+
+**Rejected.** *Pausing automatically*: it is the arithmetic-for-judgement
+swap blueprint 10.2 keeps out, and a pause is something the member is told
+with a reason a person gave. *A tier as the line*: tiers are display bands;
+the contributor threshold is the number contributors were admitted against.
+*Counting calendar days of snapshots*: a snapshot is stored only when the
+inputs change, so an unchanged low rating has one old snapshot, and the
+stretch began with it. *A flag per day while below*: noise; one per stretch
+is what an administrator can act on.
+

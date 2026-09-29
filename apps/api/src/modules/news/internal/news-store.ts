@@ -29,6 +29,18 @@ export interface LinkRule {
   minimumKeyLength: number;
   /** How far from the article's time a match between the linked teams may kick off. */
   fixtureWindow: string;
+  /**
+   * Whether persons are linked (T-1006, D-126). Off until the rule's
+   * precision has been measured on a hand-checked sample and met the bar.
+   */
+  persons: boolean;
+}
+
+/** A person the rule would link to an article, and the words it matched on. */
+export interface PersonCandidate {
+  person_id: string;
+  name: string;
+  key: string;
 }
 
 export interface DuplicateRule {
@@ -46,6 +58,67 @@ export interface DuplicateRule {
  */
 const KEY = (expr: string): string =>
   `btrim(regexp_replace(search_key(${expr}), '[^[:alnum:]]+', ' ', 'g'))`;
+
+/**
+ * The persons an article names (T-1006, D-126), as a CTE ending in `hit`:
+ * `$1` is the article, `$2` the minimum key length.
+ *
+ * A person is a candidate only while they hold an open spell at a team the
+ * story links, and is matched by their full name or a recorded alias, never
+ * `known_as` and never one word: a key must be at least two words and `$2`
+ * letters, so a surname alone ("Salah", "Silva") links nobody. The text is
+ * every headline and summary of the article, folded as the team linker folds
+ * them, matched on whole words. A key two squad members share links neither,
+ * and so does a match inside another candidate's longer name that also
+ * matched ("Bruno Guimaraes" inside "Bruno Guimaraes Rodrigues"): a name
+ * that could be two people is nobody (rule 1).
+ */
+const PERSON_CANDIDATES = `
+  WITH words AS (
+    SELECT ' ' || ${KEY('v.headline')} || ' ' AS text FROM article_version v WHERE v.article_id = $1
+    UNION ALL
+    SELECT ' ' || ${KEY('v.summary')} || ' ' FROM article_version v
+     WHERE v.article_id = $1 AND v.summary IS NOT NULL
+  ),
+  story_teams AS (
+    SELECT DISTINCT e.entity_id AS team_id
+      FROM article me
+      JOIN article m ON m.story_id = me.story_id
+      JOIN article_entity e ON e.article_id = m.id AND e.entity_type = 'team'
+     WHERE me.id = $1
+  ),
+  squad AS (
+    SELECT DISTINCT ps.person_id
+      FROM player_spell ps JOIN story_teams st ON st.team_id = ps.team_id
+     WHERE ps.end_date IS NULL
+  ),
+  keyed AS (
+    SELECT s.person_id, ${KEY('p.full_name')} AS key
+      FROM squad s JOIN person p ON p.id = s.person_id
+    UNION
+    SELECT s.person_id, ${KEY('a.alias')}
+      FROM squad s JOIN entity_alias a ON a.entity_type = 'person' AND a.entity_id = s.person_id
+  ),
+  unique_key AS (
+    SELECT key, (array_agg(person_id))[1] AS person_id
+      FROM keyed
+     WHERE length(key) >= $2 AND position(' ' IN key) > 0
+     GROUP BY key
+    HAVING count(DISTINCT person_id) = 1
+  ),
+  matched AS (
+    SELECT DISTINCT u.person_id, u.key
+      FROM unique_key u JOIN words w ON position(' ' || u.key || ' ' IN w.text) > 0
+  ),
+  hit AS (
+    SELECT m.person_id, m.key
+      FROM matched m
+     WHERE NOT EXISTS (
+             SELECT 1 FROM matched o
+              WHERE o.person_id <> m.person_id
+                AND (position(' ' || m.key || ' ' IN ' ' || o.key || ' ') > 0
+                  OR position(' ' || o.key || ' ' IN ' ' || m.key || ' ') > 0))
+  )`;
 
 /** SQL for the news job (T-142). Writes only what the job may write. */
 @Injectable()
@@ -125,6 +198,48 @@ export class PostgresNewsStore {
     }
   }
 
+  /**
+   * The item's category strings as the feed carried them this time (T-1002):
+   * the stored set becomes this set, in the feed's order. True when anything
+   * changed, so the caller knows the story's publisher type may have moved.
+   */
+  async replaceCategories(articleId: string, categories: readonly string[]): Promise<boolean> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const { rows } = await client.query<{ category: string }>(
+        `SELECT category FROM article_category WHERE article_id = $1 ORDER BY position FOR UPDATE`,
+        [articleId],
+      );
+      const stored = rows.map((r) => r.category);
+      if (stored.length === categories.length && stored.every((c, i) => c === categories[i])) {
+        await client.query('ROLLBACK');
+        return false;
+      }
+      // A string still carried keeps its `first_seen_at`; one no longer carried goes.
+      await client.query(
+        `DELETE FROM article_category WHERE article_id = $1 AND category <> ALL($2::text[])`,
+        [articleId, [...categories]],
+      );
+      if (categories.length > 0) {
+        await client.query(
+          `INSERT INTO article_category (article_id, category, position)
+           SELECT $1, c.category, (c.n - 1)::smallint
+             FROM unnest($2::text[]) WITH ORDINALITY AS c(category, n)
+           ON CONFLICT (article_id, category) DO UPDATE SET position = EXCLUDED.position`,
+          [articleId, [...categories]],
+        );
+      }
+      await client.query('COMMIT');
+      return true;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   /** The newest version in a language, or null when there is none yet. */
   async newestVersion(
     articleId: string,
@@ -166,10 +281,10 @@ export class PostgresNewsStore {
   /**
    * Links the teams and competitions a headline names, by a whole-word match
    * of the entity's own name or a recorded alias (rule 1: by id, never by
-   * guess), across every version the article has. A person is never linked:
-   * surnames are too common to link on without a guess. Then the match: when
+   * guess), across every version the article has. Then the match: when
    * exactly one fixture between the linked teams kicks off within the window
    * of the article's time, the article is about it; two candidates link none.
+   * Then, when `rule.persons` is on, the persons of `PERSON_CANDIDATES`.
    * Returns how many links the article has afterwards.
    */
   async linkEntities(articleId: string, rule: LinkRule): Promise<number> {
@@ -224,11 +339,63 @@ export class PostgresNewsStore {
        ON CONFLICT DO NOTHING`,
       [articleId, rule.fixtureWindow],
     );
+    if (rule.persons) {
+      await this.pool.query(
+        `${PERSON_CANDIDATES}
+         INSERT INTO article_entity (article_id, entity_type, entity_id)
+         SELECT DISTINCT $1::uuid, 'person', person_id FROM hit
+         ON CONFLICT DO NOTHING`,
+        [articleId, rule.minimumKeyLength],
+      );
+    }
     const { rows } = await this.pool.query<{ n: string }>(
       `SELECT count(*)::text AS n FROM article_entity WHERE article_id = $1`,
       [articleId],
     );
     return Number(rows[0]!.n);
+  }
+
+  /**
+   * The persons the rule would link to an article, without writing anything:
+   * what `linkEntities` inserts when persons are on, and what the precision
+   * sample (`cli/person-link-sample.ts`) shows a person to check by hand.
+   */
+  async personCandidates(articleId: string, minimumKeyLength: number): Promise<PersonCandidate[]> {
+    const { rows } = await this.pool.query<PersonCandidate>(
+      `${PERSON_CANDIDATES}
+       SELECT h.person_id, p.full_name AS name, h.key
+         FROM hit h JOIN person p ON p.id = h.person_id
+        ORDER BY h.key, h.person_id`,
+      [articleId, minimumKeyLength],
+    );
+    return rows;
+  }
+
+  /**
+   * A random sample of stored articles that link at least one team (the only
+   * ones the person rule can speak about), each with its newest headline and
+   * summary: the input of the precision check (D-126). Read-only.
+   */
+  async samplePersonArticles(
+    size: number,
+  ): Promise<{ id: string; headline: string; summary: string | null }[]> {
+    const { rows } = await this.pool.query<{
+      id: string;
+      headline: string;
+      summary: string | null;
+    }>(
+      `SELECT a.id, v.headline, v.summary
+         FROM article a
+         JOIN LATERAL (
+           SELECT headline, summary FROM article_version
+            WHERE article_id = a.id ORDER BY created_at DESC, version_number DESC LIMIT 1
+         ) v ON TRUE
+        WHERE EXISTS (SELECT 1 FROM article_entity e WHERE e.article_id = a.id AND e.entity_type = 'team')
+        ORDER BY random()
+        LIMIT $1`,
+      [size],
+    );
+    return rows;
   }
 
   /**
