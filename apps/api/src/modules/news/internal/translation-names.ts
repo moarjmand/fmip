@@ -1,10 +1,10 @@
-import {
-  containsPhrase,
-  type Glossary,
-  type GlossaryEntry,
-  type TranslationGlossaryHit,
-  type TranslationName,
+import type {
+  Glossary,
+  GlossaryEntry,
+  TranslationGlossaryHit,
+  TranslationName,
 } from '@fmip/contracts';
+import { containsPhrase } from '@fmip/contracts/translation-checks';
 import ar from '@fmip/contracts/glossary/ar.json';
 import de from '@fmip/contracts/glossary/de.json';
 import es from '@fmip/contracts/glossary/es.json';

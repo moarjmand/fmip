@@ -5251,6 +5251,11 @@ same transaction as the review. The row is immutable and goes only with its
 article; the schema refuses one on the publisher's own words. A new version
 is checked from nothing, because it is different words.
 
+**Where the function lives.** `@fmip/contracts/translation-checks`, a subpath
+of its own: the index exports only the types. The web's client bundles load
+the contracts index whole (it is CommonJS), and the checks in it pushed two
+pages over T-808's first-load budgets.
+
 **`not_checked` does not block.** Blocking on it would make every name
 nobody has localised yet a reason to refuse every review; the desk (T-1013)
 shows it beside the field so the reviewer reads it.

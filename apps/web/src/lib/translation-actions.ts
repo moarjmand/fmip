@@ -1,12 +1,8 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import {
-  TRANSLATION_CHECKS,
-  TRANSLATION_FIELDS,
-  type TranslationCheckOverride,
-  type TranslationCheckResult,
-} from '@fmip/contracts';
+import type { TranslationCheckOverride, TranslationCheckResult } from '@fmip/contracts';
+import { TRANSLATION_CHECKS, TRANSLATION_FIELDS } from '@fmip/contracts/translation-checks';
 import { apiRequest } from '@/lib/api';
 import { sessionCookieHeader } from '@/lib/session';
 

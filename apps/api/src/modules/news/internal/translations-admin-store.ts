@@ -2,8 +2,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   TRANSLATION_QUEUE_DAYS,
   TRANSLATION_QUEUE_LIMIT,
-  checkTranslation,
-  unresolvedFailures,
   type NewsRights,
   type ReviewState,
   type TranslationCheckOverride,
@@ -15,6 +13,7 @@ import {
   type TranslationQueueItem,
   type TranslationTexts,
 } from '@fmip/contracts';
+import { checkTranslation, unresolvedFailures } from '@fmip/contracts/translation-checks';
 import { Pool, type PoolClient } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 import { glossaryFor, glossaryHits, namesToCarry, type LinkedName } from './translation-names';
