@@ -5072,8 +5072,29 @@ never a publisher's word or a machine's (D-123, N-1).
   editor (D-123) is not on the strip unless an editor marks it: the type says
   what a story is, the mark says what is on the front page now.
 
+- **Who is told (T-1005).** `breaking_news` is a notification kind, **off
+  by default**: an interruption about news is something a member asks for,
+  and the strip is there for everyone else. When a mark is made, the members
+  who follow a team, competition or person any of the story's reports links,
+  and whose switch is on, are told -- one audience query and one
+  `emitToAudience` statement, as the match alerts are since T-835 (D-105), so
+  the category mute (`football`), the team and competition mutes (a story is
+  about every team and competition it links, through `notification_about`),
+  quiet hours (delay, never drop) and the dedupe key apply exactly as to
+  every kind. The kind has no hourly cap, like every kind but messages and
+  reactions (T-273): marks are made by editors, by hand, a few a day. The
+  dedupe key is the story, so a story marked, cleared and marked again is
+  told **once**; a member who starts following in between is told at the next
+  mark. A story that links nothing a member follows reaches nobody. The
+  notification's subject is the story (`story`, a new subject) and opens the
+  story page; its line is "Breaking: " and the editor's note, read from the
+  mark rather than copied.
+
 **Alternatives considered.** A flag on `story`: no author, no reason, no
 window. A scheduled job that clears expired marks: an expired mark would stay
 on the homepage until the job ran. Letting a publisher's "breaking" category
 fill the strip: the homepage would be written by whichever feed labels most
-generously.
+generously. On by default: every member following a big club would be pushed
+several times a day about stories they did not ask to be interrupted by.
+Telling on every re-mark: a correction to a note would reach everybody
+again.

@@ -73,6 +73,9 @@ export const NOTIFICATION_KINDS = [
   'founder_analysis_published',
   'analysis_reviewed',
   'contributor_eligible',
+  // An editor marked a story breaking that links something the member
+  // follows; once per story (T-1005, D-125).
+  'breaking_news',
   // Match alerts (T-830, D-098).
   ...MATCH_ALERT_KINDS,
 ] as const;
@@ -132,6 +135,9 @@ export const NOTIFICATION_DEFAULTS: Record<NotificationKind, boolean> = {
   founder_analysis_published: true,
   analysis_reviewed: true,
   contributor_eligible: true,
+  // Opt-in (T-1005, D-125): an interruption about news is something a member
+  // asks for; the strip on the homepage is there for everyone else.
+  breaking_news: false,
   // Team news and line-ups are opt-in (T-832, D-100): they arrive for every
   // followed match, most of them nobody is waiting on.
   match_availability: false,
@@ -231,7 +237,9 @@ export type NotificationSubject =
    * the fixture, and it opens the draft rather than the match. A subject of
    * its own so a team mute never silences the answer to a submission.
    */
-  | 'analysis_draft';
+  | 'analysis_draft'
+  /** A news story (T-1005): `subject_id` is the story, which opens its page. */
+  | 'story';
 
 /**
  * One notification, as its recipient sees it.
@@ -351,6 +359,7 @@ export const NOTIFICATION_CATEGORY_OF: Record<NotificationKind, NotificationCate
   founder_analysis_published: 'football',
   analysis_reviewed: 'account',
   contributor_eligible: 'account',
+  breaking_news: 'football',
   // Their own category (T-830), so every match alert can be silenced as one
   // without silencing predictions and ratings.
   match_availability: 'match',
@@ -450,6 +459,8 @@ export const NOTIFICATION_TEXT: Record<NotificationKind, { text: string; named: 
     text: 'A member now meets the contributor requirements.',
     named: false,
   },
+  // The fallback only: the line is "Breaking: " and the editor's note (T-1005).
+  breaking_news: { text: 'Breaking news about something you follow.', named: false },
   // The fallback only: a match alert's line is its headline, written when the
   // event was seen, with the teams and the score (T-830).
   match_availability: { text: 'Team news for a match you follow.', named: false },
@@ -554,6 +565,9 @@ export function notificationPath(
       // The analyst's own editor, where the decision and its reason sit
       // beside the draft (T-262, T-833).
       return `/${locale}/analyses/${id}`;
+    case 'story':
+      // A breaking alert opens the story page (T-1005).
+      return `/${locale}/news/story/${id}`;
     case 'watchdog_event':
       // The System page, where the conditions and incidents are (T-802, T-804).
       return `/${locale}/admin/system`;

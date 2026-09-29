@@ -23,6 +23,7 @@ import type {
 import { ROLE_REFUSALS } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
+import { BreakingAlertsService } from './breaking-alerts.service';
 import { PostgresBreakingAdminStore } from './internal/breaking-admin-store';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -44,6 +45,7 @@ export class BreakingAdminController {
   constructor(
     private readonly store: PostgresBreakingAdminStore,
     private readonly identity: IdentityService,
+    private readonly alerts: BreakingAlertsService,
   ) {}
 
   private async editor(request: FastifyRequest): Promise<AuthUser> {
@@ -115,6 +117,9 @@ export class BreakingAdminController {
         message: 'This story is already marked breaking. Clear it first to change the note.',
       } satisfies ApiError);
     }
+    // T-1005 (D-125): the members who opted in are told, once per story. The
+    // mark is committed first, and a failed alert is logged, never undone.
+    await this.alerts.tell(storyId.toLowerCase());
   }
 
   @Post('stories/:id/breaking/clear')

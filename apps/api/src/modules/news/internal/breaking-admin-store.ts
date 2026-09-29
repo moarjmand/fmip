@@ -113,6 +113,30 @@ export class PostgresBreakingAdminStore {
     });
   }
 
+  /**
+   * Who a breaking alert may reach (T-1005, D-125): every member following a
+   * team, competition or person any of the story's reports links, once each,
+   * whose `breaking_news` switch is on -- their own choice, else the default
+   * given. One statement whatever the audience; the notifications boundary
+   * then applies the mutes, quiet hours and the dedupe key to all of them at
+   * once. A story that links nothing a member follows reaches nobody.
+   */
+  async audience(storyId: string, onByDefault: boolean): Promise<string[]> {
+    const { rows } = await this.pool.query<{ user_id: string }>(
+      `SELECT DISTINCT f.user_id
+         FROM article m
+         JOIN article_entity e
+           ON e.article_id = m.id AND e.entity_type IN ('team', 'competition', 'person')
+         JOIN followed_entity f ON f.entity_type = e.entity_type AND f.entity_id = e.entity_id
+         LEFT JOIN notification_preference p
+                ON p.user_id = f.user_id AND p.kind = 'breaking_news'
+        WHERE m.story_id = $1
+          AND COALESCE(p.in_product, $2::boolean)`,
+      [storyId, onByDefault],
+    );
+    return rows.map((r) => r.user_id);
+  }
+
   async list(filter: BreakingFilter, limit: number): Promise<BreakingRow[]> {
     const { rows } = await this.pool.query<BreakingRow>(
       `SELECT b.story_id,
