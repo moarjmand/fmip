@@ -72,6 +72,8 @@ export { DELETED_USERNAME_PATTERN, ROLE_REFUSALS, forbidden, isDeletedMember } f
 export type {
   ApiError,
   AuthUser,
+  DataExport,
+  DataExportRequest,
   DeleteAccountRequest,
   ForgotPasswordRequest,
   LoginRequest,

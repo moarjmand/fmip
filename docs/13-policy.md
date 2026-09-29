@@ -125,6 +125,16 @@ you are told which and why.
 **Appeals.** Every decision can be appealed once, in writing, and the appeal is
 kept with the decision.
 
+**A copy of your data.** From Settings, with your password, you can download
+one file of what this site holds about you: your account and preferences,
+follows, friendships, groups, your predictions with every version and how they
+settled, your rating history and achievements, saved stories, the messages and
+match panel posts you wrote, your community analysis, the reports you filed and
+the notifications sent to you. It holds only your own words and rows -- never
+another member's messages, name or predictions. One file a day; it downloads
+to your signed-in browser and is never e-mailed. That you downloaded it is
+recorded (when), without a copy of what was in it.
+
 **Leaving.** You can delete your account, from Settings, with your password and
 your username typed again. It happens at once and cannot be undone.
 

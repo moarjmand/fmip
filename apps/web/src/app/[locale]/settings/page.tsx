@@ -26,7 +26,8 @@ import { sessionCookieHeader } from '@/lib/session';
 import type { Appearance } from '@/lib/appearance';
 import type { ThemePreference } from '@/lib/theme';
 import { readAppearance, readTheme } from '@/lib/theme-cookie';
-import { Notice } from '@/components/ui';
+import { Button, Notice, TextField } from '@/components/ui';
+import { type DataExportRefusal, REFUSAL_MESSAGES, refusalFromQuery } from '@/lib/data-export';
 
 // A member's own page: never indexed.
 export const metadata: Metadata = {
@@ -46,8 +47,15 @@ const visibilityOptions: FieldOption[] = PRIVACY_VISIBILITIES.map((value) => ({
   label: VISIBILITY_LABELS[value],
 }));
 
-export default async function SettingsPage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function SettingsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { locale } = await params;
+  const exportRefusal = refusalFromQuery((await searchParams).export);
   const cookie = await sessionCookieHeader();
   // A guest (no session, or one the API no longer knows) has no account to
   // set, but the appearance is this browser's and theirs to choose (blueprint
@@ -199,8 +207,65 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
         />
       )}
 
+      <DataExportSection locale={locale} refusal={exportRefusal} />
+
       <DeleteAccountSection locale={locale} username={account.username} />
     </main>
+  );
+}
+
+/**
+ * Settings -> Download my data (T-846, D-158). A plain form, so the browser
+ * saves the file the route handler answers with; the password is the only
+ * field, checked by the API. A refusal comes back as `?export=` and is said
+ * here, on the password field when it was the password.
+ */
+function DataExportSection({
+  locale,
+  refusal,
+}: {
+  locale: string;
+  refusal: DataExportRefusal | null;
+}) {
+  const lang = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  return (
+    <section id="download-data" className="flex flex-col gap-4" data-testid="download-data">
+      <h2 className="text-xl font-semibold">
+        <Translated locale={locale} message="account.export.heading" />
+      </h2>
+      <p className="text-sm text-muted">
+        <Translated locale={locale} message="account.export.contents" />
+      </p>
+      <p className="text-sm text-muted">
+        <Translated locale={locale} message="account.export.others" />
+      </p>
+      <p className="text-sm text-muted">
+        <Translated locale={locale} message="account.export.once" />
+      </p>
+      {refusal !== null && refusal !== 'password' ? (
+        <Notice tone="danger" data-testid="download-data-refused">
+          <Translated locale={locale} message={REFUSAL_MESSAGES[refusal]} />
+        </Notice>
+      ) : null}
+      <form
+        method="post"
+        action={`/${locale}/settings/data-export`}
+        className="flex flex-col gap-3"
+        data-testid="download-data-form"
+      >
+        <TextField
+          name="password"
+          type="password"
+          label={t(lang, 'account.export.password')}
+          required
+          autoComplete="current-password"
+          error={refusal === 'password' ? t(lang, REFUSAL_MESSAGES.password) : undefined}
+        />
+        <Button type="submit" variant="secondary">
+          <Translated locale={locale} message="account.export.submit" />
+        </Button>
+      </form>
+    </section>
   );
 }
 

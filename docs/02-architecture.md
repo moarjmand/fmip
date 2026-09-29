@@ -203,8 +203,8 @@ address never leaves a reader without a search.
 
 | Ceiling | Per hour (as shipped) | Counted per | Enforced by | Writes it holds |
 | --- | --- | --- | --- | --- |
-| `login_failure_account` | 10 | identifier | API | `POST /auth/login`, `POST /auth/account/delete` |
-| `login_failure_ip` | 50 | address | API | `POST /auth/login`, `POST /auth/account/delete` |
+| `login_failure_account` | 10 | identifier | API | `POST /auth/login`, `POST /auth/account/delete`, `POST /auth/account/export` |
+| `login_failure_ip` | 50 | address | API | `POST /auth/login`, `POST /auth/account/delete`, `POST /auth/account/export` |
 | `register_account` | 5 | identifier | API | `POST /auth/register` |
 | `register_ip` | 20 | address | API | `POST /auth/register` |
 | `password_forgot_account` | 3 | identifier | API | `POST /auth/password/forgot` |
@@ -223,6 +223,12 @@ address never leaves a reader without a search.
 | `push_subscription` | 10 | member | API | `POST /me/push-subscriptions` |
 | `ask` | 60 | member | API | `GET /ask` (a read: a model call) |
 | `ask_ip` | 120 | address | API | `GET /ask` (a read: a model call) |
+
+`POST /auth/account/export` (T-846, D-158) has a second limit of its own
+besides the password ceilings: one copy of a member's data per rolling day,
+decided from its `account.export` rows in `audit_log` rather than a
+`rate_limit` row, because the ceilings above are per hour and this one is a
+product rule, not a tunable number. A refusal is 429 with `Retry-After`.
 
 ### Writes without a ceiling, and why
 

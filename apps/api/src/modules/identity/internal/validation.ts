@@ -1,4 +1,5 @@
 import type {
+  DataExportRequest,
   DeleteAccountRequest,
   ForgotPasswordRequest,
   LoginRequest,
@@ -182,4 +183,14 @@ export function validateDeleteAccount(body: unknown): Validated<DeleteAccountReq
 
   if (Object.keys(fields).length > 0) return { ok: false, fields };
   return { ok: true, value: { password: password as string, confirm: confirm as string } };
+}
+
+/** `POST /auth/account/export` (T-846). Shape only: whether the password is right is the service's. */
+export function validateDataExport(body: unknown): Validated<DataExportRequest> {
+  if (!isRecord(body)) return { ok: false, fields: { body: 'must be a JSON object' } };
+  const password = str(body.password);
+  if (password === undefined || password === '' || password.length > PASSWORD_MAX_LENGTH) {
+    return { ok: false, fields: { password: 'required' } };
+  }
+  return { ok: true, value: { password } };
 }

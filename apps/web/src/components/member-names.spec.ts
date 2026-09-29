@@ -89,6 +89,10 @@ const FIELDS: Record<string, Rule> = {
   'identity.ts:AuthUser.display_name': {
     exempt: 'the signed-in member themself; a deleted account cannot sign in',
   },
+  'identity.ts:DataExport.display_name': {
+    exempt:
+      "the member's own name in their own file (T-846); a deleted account cannot sign in to ask",
+  },
   'identity.ts:RegisterRequest.display_name': { exempt: 'a request body, not a name shown' },
   'match-panel.ts:PanelAuthor.display_name': {
     rendered: [['components/match-panel.tsx', 'if (isDeletedMember(author.username))']],
