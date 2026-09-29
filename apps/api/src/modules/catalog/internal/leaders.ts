@@ -1,5 +1,4 @@
-import type { Covered, Leader, PlayerSeasonMinutes } from '@fmip/contracts';
-import type { Scorer } from '../../standings/standings.service';
+import type { Covered, PlayerSeasonMinutes } from '@fmip/contracts';
 import { NO_LINEUPS } from './player-store';
 
 /**
@@ -20,15 +19,16 @@ export function reachesFloor(minutes: PlayerSeasonMinutes, floor: number): boole
  * null, only those whose record shows the floor (T-824). The scorers arrive
  * in the standings boundary's order (goals, then name), which is kept; the
  * first `limit` that pass are the answer. A scorer the record cannot judge
- * is counted in `unproven` rather than dropped silently.
+ * is counted in `unproven` rather than dropped silently. The boards beyond
+ * goals (T-943) pass through the same rule in their own order.
  */
-export function leadersWithMinutes(
-  scorers: Scorer[],
+export function leadersWithMinutes<T extends { person: { id: string } }>(
+  scorers: T[],
   minutesOf: ReadonlyMap<string, PlayerSeasonMinutes>,
   floor: number | null,
   limit: number,
-): { leaders: Leader[]; unproven: number } {
-  const leaders: Leader[] = [];
+): { leaders: (T & { minutes: PlayerSeasonMinutes })[]; unproven: number } {
+  const leaders: (T & { minutes: PlayerSeasonMinutes })[] = [];
   let unproven = 0;
   for (const scorer of scorers) {
     const minutes = minutesOf.get(scorer.person.id) ?? NO_LINEUPS;
@@ -49,10 +49,10 @@ export function leadersWithMinutes(
  * floor is a list (nobody reached it), not an absence of data; without
  * scorers at all the module is what the standings boundary said.
  */
-export function leadersModule(
-  scorers: Covered<Scorer[]>,
-  result: { leaders: Leader[]; unproven: number },
-): Covered<Leader[]> {
+export function leadersModule<S, L>(
+  scorers: Covered<S[]>,
+  result: { leaders: L[]; unproven: number },
+): Covered<L[]> {
   if (scorers.data === null) return { ...scorers, data: null };
   const coverage =
     result.unproven > 0 && scorers.coverage === 'available' ? 'limited' : scorers.coverage;

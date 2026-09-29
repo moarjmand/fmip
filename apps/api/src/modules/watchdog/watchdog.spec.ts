@@ -4,6 +4,7 @@ import {
   DATA_QUALITY_STALE_SECONDS,
   DATA_QUALITY_THRESHOLD,
   DELIVERY_THRESHOLD,
+  ELO_SOURCE_THRESHOLD,
   INGEST_THRESHOLDS,
   LIVE_FEED_THRESHOLD,
   MODEL_SERVICE_THRESHOLD,
@@ -15,6 +16,7 @@ import {
   backup,
   dataQuality,
   deliveryChannel,
+  eloSource,
   ingestJob,
   levelOf,
   liveFeed,
@@ -173,6 +175,77 @@ describe('model_service', () => {
 
   it('is unknown when the deployment has no model service', () => {
     expect(modelService({ configured: false }, null).level).toBe('unknown');
+  });
+});
+
+describe('elo_source (T-920, D-111)', () => {
+  const DAY = 24 * 60 * 60;
+  const failingSince = (seconds: number, succeeded: boolean) => ({
+    source: {
+      refresh: true,
+      state: 'recorded' as const,
+      last_succeeded_day: succeeded ? '2026-09-24' : null,
+      last_error: "HTTPStatusError: Server error '502 Bad Gateway'",
+      last_error_at: '2026-09-28T06:00:12.000Z',
+      unanswered_since: ago(seconds).toISOString(),
+      detail: null,
+    },
+  });
+
+  it('is degraded after three days without an answer, failing after fourteen', () => {
+    expect(eloSource(failingSince(3 * DAY - 60, true), NOW).level).toBe('ok');
+    const degraded = eloSource(failingSince(3 * DAY, true), NOW);
+    expect(degraded).toMatchObject({ key: 'elo_source', level: 'degraded', observed: 3 * DAY });
+    expect(degraded.note).toContain('Club Elo last answered for 2026-09-24');
+    expect(degraded.note).toContain('last error 2026-09-28 06:00 UTC');
+    expect(degraded.note).toContain('502 Bad Gateway');
+    expect(eloSource(failingSince(14 * DAY, true), NOW).level).toBe('failing');
+    expect(ELO_SOURCE_THRESHOLD.degraded).toBe(3 * DAY);
+  });
+
+  it('counts from the first failed ask when the source never answered', () => {
+    const reading = eloSource(failingSince(4 * DAY, false), NOW);
+    expect(reading).toMatchObject({ level: 'degraded' });
+    expect(reading.note).toContain('never answered');
+  });
+
+  it('is ok when the source is retired on purpose, unknown when it cannot be judged', () => {
+    const off = failingSince(30 * DAY, false);
+    expect(eloSource({ source: { ...off.source, refresh: false } }, NOW)).toMatchObject({
+      level: 'ok',
+      observed: null,
+    });
+    expect(eloSource({ configured: false }, NOW).level).toBe('unknown');
+    expect(eloSource({ unreadable: 'unreachable: refused' }, NOW).level).toBe('unknown');
+    expect(eloSource({ source: null }, NOW).level).toBe('unknown');
+    const never = { ...off.source, unanswered_since: null };
+    expect(eloSource({ source: never }, NOW).level).toBe('unknown');
+    const blind = { ...off.source, state: 'unreadable' as const, detail: 'connection refused' };
+    expect(eloSource({ source: blind }, NOW)).toMatchObject({ level: 'unknown' });
+  });
+
+  it('a loader failing for days raises one incident, however many ticks see it, and recovers once', () => {
+    // The health check every minute, over four days of 502s: one raised
+    // event, then the same level again and again, which is no event (D-095).
+    let previous: StoredCondition | null = null;
+    const events: string[] = [];
+    for (let minute = 0; minute <= 4 * 24 * 60; minute += 30) {
+      const at = new Date(NOW.getTime() + minute * 60_000);
+      const reading = eloSource(failingSince(3 * DAY - 3600 + minute * 60, true), at);
+      const next = step(previous, reading, at);
+      if (next.event !== null) events.push(next.event.kind);
+      previous = {
+        key: 'elo_source',
+        level: next.level,
+        since: next.since,
+        observed: reading.observed,
+        incidentId: next.incident === 'new' ? 1 : next.incident,
+      };
+    }
+    expect(events).toEqual(['raised']);
+    // Club Elo answers again: the count restarts from the new success.
+    const answered = eloSource(failingSince(60, true), NOW);
+    expect(step(previous, answered, NOW).event?.kind).toBe('recovered');
   });
 });
 
@@ -485,6 +558,7 @@ describe('readingsOf', () => {
       'request_budget',
       'jobs:ingestion',
       'model_service',
+      'elo_source',
       'delivery:email',
       'delivery:push',
       'data_quality',
@@ -533,6 +607,35 @@ describe('readingsOf', () => {
     const failed = observations({ model: { configured: true, ok: false, reason: 'http: 500' } });
     const model = readingsOf(failed, previous, NOW, []).find((r) => r.key === 'model_service');
     expect(model).toMatchObject({ level: 'failing', observed: 3 });
+  });
+
+  it('reads through readingsOf from the model health check, unknown when that check failed', () => {
+    const seen = readingsOf(
+      observations({
+        elo: {
+          source: {
+            refresh: true,
+            state: 'recorded',
+            last_succeeded_day: '2026-09-24',
+            last_error: null,
+            last_error_at: null,
+            unanswered_since: ago(5 * 24 * 3600).toISOString(),
+            detail: null,
+          },
+        },
+      }),
+      new Map(),
+      NOW,
+      [],
+    ).find((r) => r.key === 'elo_source');
+    expect(seen?.level).toBe('degraded');
+    const blind = readingsOf(
+      observations({ elo: { unreadable: 'http: 500' } }),
+      new Map(),
+      NOW,
+      [],
+    ).find((r) => r.key === 'elo_source');
+    expect(blind?.level).toBe('unknown');
   });
 });
 

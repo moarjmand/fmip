@@ -9,6 +9,8 @@ import {
 } from '@nestjs/common';
 import {
   type ApiError,
+  ENTITY_NEWS_LIMIT,
+  type EntityNewsResponse,
   type FixtureNewsResponse,
   FIXTURE_NEWS_LIMIT,
   NEWS_PAGE_SIZE,
@@ -30,6 +32,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const LOCALE = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
 const NO_STORY: ApiError = { error: 'not_found', message: 'No such story.' };
 const NO_FIXTURE: ApiError = { error: 'not_found', message: 'No such fixture.' };
+const NO_TEAM: ApiError = { error: 'not_found', message: 'No such team.' };
+const NO_COMPETITION: ApiError = { error: 'not_found', message: 'No such competition.' };
 
 function first(value: unknown): string | undefined {
   const v = Array.isArray(value) ? value[0] : value;
@@ -240,6 +244,73 @@ export class NewsController {
       period,
       stories: { coverage: 'available', last_updated_at, data: found.page.cards },
       reason: found.page.cards.length === 0 ? 'nothing_linked' : null,
+    };
+  }
+
+  /**
+   * Related news on the team page (blueprint 5.2, T-944, D-119): the latest
+   * cards for stories any of whose reports the news boundary linked to the
+   * team, under the same rights as the news page.
+   */
+  @Get('teams/:id/news')
+  async teamNews(
+    @Param('id') id: string,
+    @Query('locale') locale: unknown,
+  ): Promise<EntityNewsResponse> {
+    return this.entityNews('team', id, locale, NO_TEAM);
+  }
+
+  /** Related news on the competition page (blueprint 5.1, T-944): as for a team. */
+  @Get('competitions/:id/news')
+  async competitionNews(
+    @Param('id') id: string,
+    @Query('locale') locale: unknown,
+  ): Promise<EntityNewsResponse> {
+    return this.entityNews('competition', id, locale, NO_COMPETITION);
+  }
+
+  /**
+   * An entity's news: 404 for an unknown id; `not_supplied` with
+   * `feeds_unread` until the feeds have been read at all, because an empty
+   * list nobody looked for is not a fact (rule 3); then `available`,
+   * possibly empty with `nothing_linked`.
+   */
+  private async entityNews(
+    type: 'team' | 'competition',
+    id: string,
+    locale: unknown,
+    missing: ApiError,
+  ): Promise<EntityNewsResponse> {
+    if (!UUID.test(id)) throw new NotFoundException(missing);
+    const entityId = id.toLowerCase();
+    const [exists, last_updated_at] = await Promise.all([
+      this.store.entityExists(type, entityId),
+      this.store.lastFetchedAt(),
+    ]);
+    if (!exists) throw new NotFoundException(missing);
+    const entity = { type, id: entityId };
+    if (last_updated_at === null) {
+      return {
+        entity,
+        stories: { coverage: 'not_supplied', last_updated_at: null, data: null },
+        reason: 'feeds_unread',
+      };
+    }
+    const page = await this.store.latest(
+      {
+        country: null,
+        competition: type === 'competition' ? entityId : null,
+        team: type === 'team' ? entityId : null,
+        language: null,
+      },
+      localeOf(locale),
+      null,
+      ENTITY_NEWS_LIMIT,
+    );
+    return {
+      entity,
+      stories: { coverage: 'available', last_updated_at, data: page.cards },
+      reason: page.cards.length === 0 ? 'nothing_linked' : null,
     };
   }
 }

@@ -97,6 +97,14 @@ describe('the three products stay three on the page', () => {
     expect(page).not.toMatch(/source:\s*'(model|founder|community)'/);
   });
 
+  it('links the three from a match story, each under its own name, never as one figure (T-941)', () => {
+    const links = source('story-links.tsx');
+    expect(links).toContain("anchor: 'forecast'");
+    expect(links).toContain("anchor: 'analysis'");
+    expect(links).toContain("anchor: 'community'");
+    expect(links).not.toMatch(/ForecastVersion|ForecastSummary|CommunityConsensus|FounderAnalysis/);
+  });
+
   it('never averages the three into one number', () => {
     // Blueprint 4.2 asks the community forecast to be shown "and comparison
     // with the model". Comparison is a difference; the failure is an average,

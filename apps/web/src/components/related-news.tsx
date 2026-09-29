@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { FixtureNewsResponse } from '@fmip/contracts';
+import type { EntityNewsResponse, FixtureNewsResponse, NewsStoryCard } from '@fmip/contracts';
 import { Translated } from '@/components/translated';
 import { formatDateTime } from '@/i18n/format';
 import { feedsStale, storyHref } from '@/lib/news';
@@ -82,38 +82,129 @@ export function RelatedNews({
         </p>
       )}
       {state === 'listed' && news.stories.data !== null && (
-        <ul className="flex flex-col gap-3" data-testid="related-news-list">
-          {news.stories.data.map((card) => (
-            <li
-              key={card.story_id}
-              className="flex flex-col gap-0.5 border-s-2 border-s-default ps-3"
-              lang={card.language}
-              data-testid="related-story"
-            >
-              <a href={card.url} rel="noopener" className="font-medium underline">
-                {card.headline}
-              </a>
-              <p className="text-xs text-muted">
-                <Translated locale={locale} message="news.readAt" />{' '}
-                <a href={card.source.homepage_url} rel="noopener" className="underline">
-                  {card.source.name}
-                </a>
+        <StoryList locale={locale} timeZone={timeZone} cards={news.stories.data} />
+      )}
+    </section>
+  );
+}
+
+/** The news page's cards as the related lists show them: headline to the publisher, then where and when. */
+function StoryList({
+  locale,
+  timeZone,
+  cards,
+}: {
+  locale: string;
+  timeZone: string;
+  cards: NewsStoryCard[];
+}) {
+  return (
+    <ul className="flex flex-col gap-3" data-testid="related-news-list">
+      {cards.map((card) => (
+        <li
+          key={card.story_id}
+          className="flex flex-col gap-0.5 border-s-2 border-s-default ps-3"
+          lang={card.language}
+          data-testid="related-story"
+        >
+          <a href={card.url} rel="noopener" className="font-medium underline">
+            {card.headline}
+          </a>
+          <p className="text-xs text-muted">
+            <Translated locale={locale} message="news.readAt" />{' '}
+            <a href={card.source.homepage_url} rel="noopener" className="underline">
+              {card.source.name}
+            </a>
+            {' · '}
+            {card.published_at === null ? (
+              <Translated locale={locale} message="news.noTime" />
+            ) : (
+              <time dateTime={card.published_at}>
+                {formatDateTime(locale, card.published_at, timeZone)}
+              </time>
+            )}
+            {' · '}
+            <Link href={storyHref(locale, card.story_id)} className="underline">
+              <Translated locale={locale} message="news.storyPage" />
+            </Link>
+          </p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * News on a team or competition page (T-944, D-119): the stories the news
+ * boundary linked to it, newest first, in the match centre's three honest
+ * states -- the feeds never read, nothing linked, or the list -- with the
+ * news page's freshness line, and never an empty box.
+ */
+export function EntityNews({
+  locale,
+  timeZone,
+  news,
+}: {
+  locale: string;
+  timeZone: string;
+  /** `null` when the news service could not be reached. */
+  news: EntityNewsResponse | null;
+}) {
+  const heading = (
+    <h2 className="text-lg font-semibold">
+      <Translated locale={locale} message="news.related.title" />
+    </h2>
+  );
+  if (news === null) {
+    return (
+      <section className="flex flex-col gap-2" data-testid="entity-news" data-state="unreachable">
+        {heading}
+        <Notice tone="danger">
+          <Translated locale={locale} message="news.unreachable" />
+        </Notice>
+      </section>
+    );
+  }
+  const read = news.stories.last_updated_at;
+  const state =
+    news.stories.coverage === 'not_supplied' || news.stories.data === null
+      ? 'not_supplied'
+      : news.stories.data.length === 0
+        ? 'nothing_linked'
+        : 'listed';
+  return (
+    <section className="flex flex-col gap-3" data-testid="entity-news" data-state={state}>
+      {heading}
+      <p className="text-xs text-muted" data-testid="entity-news-freshness">
+        {read === null ? (
+          <Translated locale={locale} message="news.neverRead" />
+        ) : (
+          <>
+            <Translated locale={locale} message="news.updated" />{' '}
+            <time dateTime={read}>{formatDateTime(locale, read, timeZone)}</time>
+            {feedsStale(read) && (
+              <>
                 {' · '}
-                {card.published_at === null ? (
-                  <Translated locale={locale} message="news.noTime" />
-                ) : (
-                  <time dateTime={card.published_at}>
-                    {formatDateTime(locale, card.published_at, timeZone)}
-                  </time>
-                )}
-                {' · '}
-                <Link href={storyHref(locale, card.story_id)} className="underline">
-                  <Translated locale={locale} message="news.storyPage" />
-                </Link>
-              </p>
-            </li>
-          ))}
-        </ul>
+                <Translated locale={locale} message="news.stale" />
+              </>
+            )}
+          </>
+        )}
+      </p>
+      {state === 'nothing_linked' && (
+        <p className="text-sm text-muted" data-testid="entity-news-nothing">
+          <Translated
+            locale={locale}
+            message={
+              news.entity.type === 'team'
+                ? 'news.entity.nothingTeam'
+                : 'news.entity.nothingCompetition'
+            }
+          />
+        </p>
+      )}
+      {state === 'listed' && news.stories.data !== null && (
+        <StoryList locale={locale} timeZone={timeZone} cards={news.stories.data} />
       )}
     </section>
   );

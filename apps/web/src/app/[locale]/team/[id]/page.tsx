@@ -4,7 +4,13 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { MatchViewing, TeamCompetitionSplits, TeamPageFixture } from '@fmip/contracts';
 import { FounderAnalysisFeed } from '@/components/founder-analysis';
-import { fetchFounderFeed, fetchMe, fetchTeam, fetchViewingBatch } from '@/lib/api';
+import {
+  fetchEntityNews,
+  fetchFounderFeed,
+  fetchMe,
+  fetchTeam,
+  fetchViewingBatch,
+} from '@/lib/api';
 import { formatFixtureDate } from '@/lib/competition';
 import { moduleState } from '@/lib/match';
 import { pageMetadata, teamJsonLd } from '@/lib/seo';
@@ -26,6 +32,7 @@ import {
 import { readTerritoryQuery, withTerritory } from '@/lib/viewing';
 import { JsonLd } from '@/components/json-ld';
 import { MinutesFigure } from '@/components/minutes-figure';
+import { EntityNews } from '@/components/related-news';
 import { Score } from '@/components/score';
 import { Translated } from '@/components/translated';
 import { ViewingPanel } from '@/components/viewing-panel';
@@ -71,10 +78,11 @@ export default async function TeamPage({
   const [{ locale, id }, query] = await Promise.all([params, searchParams]);
   if (!UUID.test(id)) notFound();
   const cookie = await sessionCookieHeader();
-  const [result, me, founder] = await Promise.all([
+  const [result, me, founder, news] = await Promise.all([
     fetchTeam(id, locale),
     fetchMe(cookie),
     fetchFounderFeed({ team: id, limit: 3 }),
+    fetchEntityNews('team', id, locale),
   ]);
   if (!result.ok) {
     if (result.status === 404) notFound();
@@ -139,6 +147,38 @@ export default async function TeamPage({
           <span data-testid="followers">
             <Translated locale={locale} message="team.followerCount" count={page.followers} />
           </span>
+        </p>
+        <p className="text-sm" data-testid="manager">
+          {page.manager.coach.data !== null && page.manager.lineup_fixture !== null ? (
+            <>
+              <span className="text-muted">
+                <Translated locale={locale} message="team.manager.label" />
+              </span>{' '}
+              <span className="font-medium">{page.manager.coach.data.name}</span>{' '}
+              <span className="text-xs text-muted">
+                <Translated locale={locale} message="team.manager.named" />{' '}
+                <Link
+                  href={`/${locale}/match/${page.manager.lineup_fixture.id}`}
+                  className="underline"
+                >
+                  <time dateTime={page.manager.lineup_fixture.kickoff_at}>
+                    {formatFixtureDate(locale, page.manager.lineup_fixture.kickoff_at, timeZone)}
+                  </time>
+                </Link>
+              </span>
+            </>
+          ) : (
+            <span className="text-muted" data-testid="manager-none">
+              <Translated
+                locale={locale}
+                message={
+                  page.manager.lineup_fixture === null
+                    ? 'team.manager.noLineup'
+                    : 'team.manager.noCoach'
+                }
+              />
+            </span>
+          )}
         </p>
       </header>
       {founder.ok && (
@@ -343,6 +383,8 @@ export default async function TeamPage({
           </p>
         )}
       </section>
+
+      <EntityNews locale={locale} timeZone={timeZone} news={news.ok ? news.data : null} />
 
       <p className="text-xs text-muted">
         {page.last_updated_at === null ? (

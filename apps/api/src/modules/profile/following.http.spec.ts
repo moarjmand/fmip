@@ -19,6 +19,7 @@ const MAN_UNITED = '00000000-0000-4000-8000-000000000601';
 const PREMIER_LEAGUE = '00000000-0000-4000-8000-000000000201';
 const SALAH = '00000000-0000-4000-8000-000000000701';
 const NOBODY = '00000000-0000-4000-8000-00000000ffff';
+const SEASON_2025 = '00000000-0000-4000-8000-000000000302';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 const RUN = `${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
@@ -42,6 +43,24 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
     let pool: Pool;
     const username = `fw_${RUN}`;
     let cookie = '';
+    const fixtures: string[] = [];
+
+    /** A Manchester United v Liverpool match, kicking off `offset` from now. */
+    async function match(status: 'scheduled' | 'finished', offset: string): Promise<string> {
+      const { rows } = await pool.query<{ id: string }>(
+        `INSERT INTO fixture (season_id, kickoff_at, status)
+         VALUES ($1, now() + $2::interval, $3) RETURNING id`,
+        [SEASON_2025, offset, status],
+      );
+      const id = rows[0]!.id;
+      fixtures.push(id);
+      await pool.query(
+        `INSERT INTO fixture_participant (fixture_id, team_id, side)
+         VALUES ($1, $2, 'home'), ($1, $3, 'away')`,
+        [id, MAN_UNITED, LIVERPOOL],
+      );
+      return id;
+    }
 
     const request = (
       method: 'GET' | 'PUT' | 'DELETE',
@@ -90,6 +109,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
 
     afterAll(async () => {
       await pool.query(`DELETE FROM user_account WHERE username = $1`, [username]);
+      await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [fixtures]);
       await pool.end();
       await app.close();
     });
@@ -176,6 +196,57 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         (await request('GET', `/profiles/${username}`, undefined, false)).json().profile
           .favourite_teams,
       ).toEqual([]);
+    });
+
+    it('follows a match by name, never as a favourite, and not once its window has closed (D-116)', async () => {
+      const upcoming = await match('scheduled', '1 day');
+      const followed = await request('PUT', `/me/following/fixture/${upcoming}`, {});
+      expect(followed.statusCode).toBe(200);
+      expect(followed.json().items).toContainEqual(
+        expect.objectContaining({
+          entity_type: 'fixture',
+          entity_id: upcoming,
+          name: 'Manchester United v Liverpool',
+          favourite: false,
+        }),
+      );
+      const pinned = await request('PUT', `/me/following/fixture/${upcoming}`, { favourite: true });
+      expect(pinned.statusCode).toBe(400);
+      expect(pinned.json().fields).toEqual({ favourite: 'must not be true for a match' });
+      // A match is not a favourite team: the id sets are unchanged.
+      expect((await request('GET', '/me/favourites')).json().team_ids).toEqual([]);
+
+      // Full-time two hours after a kick-off five hours ago: past the three-hour window.
+      const over = await match('finished', '-5 hours');
+      const late = await request('PUT', `/me/following/fixture/${over}`, {});
+      expect(late.statusCode).toBe(409);
+      expect(late.json().error).toBe('conflict');
+      // Finished an hour ago: still open.
+      const recent = await match('finished', '-3 hours');
+      expect((await request('PUT', `/me/following/fixture/${recent}`, {})).statusCode).toBe(200);
+      expect((await request('PUT', `/me/following/fixture/${NOBODY}`, {})).statusCode).toBe(404);
+
+      // The window closes on a followed match: it leaves the list by itself,
+      // and its row goes the next time the member follows a match.
+      await pool.query(`UPDATE fixture SET kickoff_at = now() - interval '6 hours' WHERE id = $1`, [
+        recent,
+      ]);
+      const listed = (await request('GET', '/me/following')).json().items as {
+        entity_id: string;
+      }[];
+      expect(listed.map((i) => i.entity_id)).toContain(upcoming);
+      expect(listed.map((i) => i.entity_id)).not.toContain(recent);
+      await request('PUT', `/me/following/fixture/${upcoming}`, {});
+      const { rows } = await pool.query<{ n: number }>(
+        `SELECT count(*)::int AS n FROM followed_entity WHERE entity_id = $1`,
+        [recent],
+      );
+      expect(rows[0]?.n).toBe(0);
+
+      const unfollowed = await request('DELETE', `/me/following/fixture/${upcoming}`);
+      expect(unfollowed.json().items.map((i: { entity_id: string }) => i.entity_id)).not.toContain(
+        upcoming,
+      );
     });
 
     it('rejects an unknown entity, an unknown type, a bad id and a bad flag', async () => {
