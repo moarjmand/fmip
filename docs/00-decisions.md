@@ -5891,3 +5891,74 @@ dynamic import in every client component*: the first render would be English
 until it arrived, the silent fallback the policy forbids. *A generated
 per-locale subset file*: a second copy of the catalogues to keep in step, for
 one rarely rendered page.
+
+---
+
+## D-139 — An input passes its backtest only by beating the current candidate on the same matches, with an interval that excludes zero
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26) · **Task:** T-1101 · **Follows:** D-016, D-031, D-082, D-083, D-111
+
+**The problem.** Phase 11 tests up to seven model inputs (rest and
+congestion, league stakes, second legs, neutral grounds, a new coach,
+head-to-head, home advantage by team). Blueprint 6.3 admits an input only
+"where they improve prediction quality". Without a bar stated before any of
+them is run, each input would be judged by numbers chosen after seeing its
+own, and a small improvement on one window would be indistinguishable from
+noise.
+
+**The decision.** One harness, `python -m fmip_model.backtest.inputs --input
+<name> --divisions … --from … --to …` (T-1101), and this bar, fixed in code as
+`BAR` in `fmip_model/backtest/inputs.py`:
+
+- **Against which versions.** Per division, one walk-forward with the fit
+  dates of `backtest.elo_prior` (fit the day before, refit at most weekly, 60
+  matches of history first) scores the published version
+  (`dixon-coles-elo@0.1.0`, with its Club Elo prior as last cached), the
+  current candidate (its own constants and prior), and the candidate *with
+  the input* -- the candidate's very fits plus the input's term fitted on the
+  same history. The input is judged against the **candidate**; the published
+  version is reported for reference only.
+- **On which matches.** Only matches all three forecast, and of those only
+  the ones where the input can be read (N-5's proposal, adopted): a match
+  where the input has no value is forecast by the candidate unchanged and is
+  not in the sample. The report states the share of matches that is. The
+  input never sees a match on or after the day it forecasts, nor, when its
+  term is fitted, a match after the fit date.
+- **Separately.** football-data.co.uk divisions and our records' divisions
+  (by the source of their loads, D-083) are judged as two groups.
+- **By how much.** In a group, with at least **300** matches where the input
+  was read (below that: `insufficient`, never a pass):
+  1. mean log loss lower than the candidate's, and the 95% paired bootstrap
+     interval of the difference (2,000 resamples of the matches, seed 1101)
+     entirely below zero;
+  2. calibration error (the ten-bin expected calibration error, mean over
+     home, draw and away) not worse: fails only if the same resamples put the
+     whole interval of its rise above zero -- a few hundred matches make a
+     point estimate too noisy to ask it not to move at all;
+  3. worse (higher log loss) in no more than **one third** of the divisions
+     with at least 50 matches where the input was read.
+- **Overall.** `passed` when at least one group passed and none failed; a
+  group that is `insufficient` is stated beside the verdict. The report
+  (`reports/<candidate>/inputs_<name>_<window>.{md,json}`) carries the bar
+  itself, so a later change to it is visible in the evidence.
+
+A passed input is a candidate for T-1150's next version, nothing more: no
+input reaches a published forecast except through a promotion with its own
+decision entry (D-082). An input that fails is recorded with its numbers in
+its own entry and carried by no candidate.
+
+**The interface.** An input is a module `fmip_model/inputs/<name>.py` with
+`build(context) -> ModelInput`; `ModelInput.fit(division, history, fit_date,
+model) -> Term` and `Term.shift(match, known) -> (home, away) | None` (the
+change to log expected goals). `FeatureInput` is the short path for a feature
+pair and fitted coefficients (time-weighted Poisson likelihood with the
+fitted model's expected goals as offsets, as D-086's line-up term). The
+harness's own control, `--input null` (a coinflip with no effect), must fail.
+
+**Rejected.** *Beating the published version*: the candidate is already
+better (D-111), so an input could pass on the candidate's merit. *A point
+estimate with a margin*: a fixed margin is either too strict for a small
+input or too loose for a noisy window; the interval is what says "not noise".
+*Every match, input or not*: dilutes the effect by the share where it is not
+read, and punishes an input for matches it never touched. *A pooled number
+across football-data and our records*: the two differ in size by an order of
+magnitude, so the larger would decide alone.
