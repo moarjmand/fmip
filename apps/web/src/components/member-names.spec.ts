@@ -53,6 +53,10 @@ const FIELDS: Record<string, Rule> = {
   'following-feed.ts:FeedPanelPost.display_name': {
     rendered: [['lib/feed.ts', 'memberName(locale, item.author)']],
   },
+  'glossary.ts:GlossaryEntry.source': { exempt: 'an English glossary term (T-1011), not a member' },
+  'glossary.ts:GlossarySourceEntry.source': {
+    exempt: 'an English glossary term (T-1011), not a member',
+  },
   'founder-analysis.ts:FounderAnalysis.display_name': {
     exempt: "the founder's own signed analysis (rule 6), keyed by account id, not a member's",
   },
