@@ -163,6 +163,12 @@ const CONSOLE: Record<string, ConsoleRoute> = {
     roles: MODERATION,
     reason: { without: {} },
   },
+  // Contributor flags (T-1031, D-137).
+  'GET /admin/contributor-flags': { roles: MODERATION },
+  'POST /admin/contributor-flags/:id/dismiss': {
+    roles: MODERATION,
+    reason: { without: {} },
+  },
 
   // Featured-match panels (T-253, T-613).
   'GET /admin/panels': { roles: MODERATION },
@@ -183,6 +189,16 @@ const CONSOLE: Record<string, ConsoleRoute> = {
   'POST /admin/stories/:id/debate/clear': {
     roles: EDITORIAL,
     reason: { without: {} },
+  },
+  'GET /admin/breaking': { roles: EDITORIAL },
+  'POST /admin/stories/:id/breaking': { roles: EDITORIAL, reason: { without: {} } },
+  'POST /admin/stories/:id/breaking/clear': {
+    roles: EDITORIAL,
+    reason: { without: {} },
+  },
+  'POST /admin/stories/:id/type': {
+    roles: EDITORIAL,
+    reason: { without: { type: 'transfer' } },
   },
   'POST /admin/articles/:id/translations': {
     roles: EDITORIAL,

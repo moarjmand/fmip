@@ -9,12 +9,15 @@ import {
 } from '@nestjs/common';
 import {
   type ApiError,
+  BREAKING_STRIP_LIMIT,
+  type BreakingNewsResponse,
   ENTITY_NEWS_LIMIT,
   type EntityNewsResponse,
   type FixtureNewsResponse,
   FIXTURE_NEWS_LIMIT,
   NEWS_PAGE_SIZE,
   NEWS_SECTIONS,
+  STORY_TYPES,
   type NewsFilters,
   type NewsSection,
   type NewsSectionReason,
@@ -22,11 +25,13 @@ import {
   type StoryPage,
   TRENDING_WINDOW_HOURS,
   isNewsSection,
+  isStoryType,
+  type StoryType,
 } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { ProfileService } from '../profile/profile.service';
-import { PostgresNewsReadStore, type StoryPage_ } from './internal/news-read-store';
+import { NO_FILTERS, PostgresNewsReadStore, type StoryPage_ } from './internal/news-read-store';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const LOCALE = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
@@ -34,6 +39,7 @@ const NO_STORY: ApiError = { error: 'not_found', message: 'No such story.' };
 const NO_FIXTURE: ApiError = { error: 'not_found', message: 'No such fixture.' };
 const NO_TEAM: ApiError = { error: 'not_found', message: 'No such team.' };
 const NO_COMPETITION: ApiError = { error: 'not_found', message: 'No such competition.' };
+const NO_PLAYER: ApiError = { error: 'not_found', message: 'No such player.' };
 
 function first(value: unknown): string | undefined {
   const v = Array.isArray(value) ? value[0] : value;
@@ -58,6 +64,37 @@ function languageFilter(value: unknown): string | null {
   if (v === undefined) return null;
   if (!LOCALE.test(v)) throw bad('language must be a language tag.');
   return v;
+}
+
+function typeFilter(value: unknown): StoryType | null {
+  const v = first(value);
+  if (v === undefined) return null;
+  if (!isStoryType(v)) throw bad(`type must be one of ${STORY_TYPES.join(', ')}.`);
+  return v;
+}
+
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+/** A calendar day, `YYYY-MM-DD`, that exists (T-1003). */
+function dayFilter(value: unknown, name: string): string | null {
+  const v = first(value);
+  if (v === undefined) return null;
+  const at = new Date(`${v}T00:00:00Z`);
+  if (!DAY.test(v) || Number.isNaN(at.getTime()) || at.toISOString().slice(0, 10) !== v) {
+    throw bad(`${name} must be a date, YYYY-MM-DD.`);
+  }
+  return v;
+}
+
+/** The zone `from` and `to` are calendar days in; an unknown one is refused, never guessed. */
+function zoneOf(value: unknown): string {
+  const v = first(value);
+  if (v === undefined) return 'UTC';
+  try {
+    return new Intl.DateTimeFormat('en', { timeZone: v }).resolvedOptions().timeZone;
+  } catch {
+    throw bad('tz must be an IANA time zone.');
+  }
 }
 
 /** A locale is a preference, not an address: an odd one is `null`, never 400 (T-303). */
@@ -105,11 +142,36 @@ export class NewsController {
       competition: uuidFilter(query.competition, 'competition'),
       team: uuidFilter(query.team, 'team'),
       language: languageFilter(query.language),
+      type: typeFilter(query.type),
+      player: uuidFilter(query.player, 'player'),
+      from: dayFilter(query.from, 'from'),
+      to: dayFilter(query.to, 'to'),
+      time_zone: zoneOf(query.tz),
     };
+    if (filters.from !== null && filters.to !== null && filters.from > filters.to) {
+      throw bad('from must not be after to.');
+    }
     const locale = localeOf(query.locale);
     const before = beforeOf(query.before);
-    const filtered = Object.values(filters).some((f) => f !== null);
-    const last_updated_at = await this.store.lastFetchedAt();
+    const { time_zone: _zone, ...narrowing } = filters;
+    const filtered = Object.values(narrowing).some((f) => f !== null);
+    const [last_updated_at, untyped] = await Promise.all([
+      this.store.lastFetchedAt(),
+      filters.type === null ? Promise.resolve(null) : this.store.untyped(filters),
+    ]);
+
+    // D-124: before any report links a person, a player filter cannot find
+    // anything, and an empty list would read as "no news about them".
+    if (filters.player !== null && !(await this.store.anyPersonLinked())) {
+      return {
+        section: wanted,
+        filters,
+        stories: { coverage: 'not_supplied', last_updated_at, data: null },
+        reason: 'persons_unlinked',
+        next_before: null,
+        untyped,
+      };
+    }
 
     const answer = (
       page: StoryPage_,
@@ -122,6 +184,7 @@ export class NewsController {
       stories: { coverage, last_updated_at, data: page.cards },
       reason: page.cards.length === 0 ? (filtered ? 'no_match' : whenEmpty) : whenFull,
       next_before: page.nextBefore,
+      untyped,
     });
 
     switch (wanted satisfies NewsSection) {
@@ -136,7 +199,7 @@ export class NewsController {
           await this.store.trending(filters, locale, TRENDING_WINDOW_HOURS, NEWS_PAGE_SIZE),
           'limited',
           'nothing_trending',
-          'discussion_only',
+          'discussion_and_saves',
         );
       case 'debate':
         return answer(
@@ -155,6 +218,7 @@ export class NewsController {
             stories: { coverage: 'not_supplied', last_updated_at, data: null },
             reason: 'needs_session',
             next_before: null,
+            untyped,
           };
         }
         const followed = await this.profiles.listFollowing(viewer.id);
@@ -167,6 +231,7 @@ export class NewsController {
             stories: { coverage: 'available', last_updated_at, data: [] },
             reason: 'nothing_followed',
             next_before: null,
+            untyped,
           };
         }
         return answer(
@@ -182,6 +247,21 @@ export class NewsController {
         );
       }
     }
+  }
+
+  /**
+   * The homepage's breaking strip (blueprint 2.3, T-1004, D-125): the stories
+   * an editor marked breaking whose window has not run out, newest mark first.
+   * Public -- a guest sees the strip. `available` with a list that may be
+   * empty; the page draws no strip then, never an empty one.
+   */
+  @Get('news/breaking')
+  async breaking(@Query('locale') locale: unknown): Promise<BreakingNewsResponse> {
+    const [page, last_updated_at] = await Promise.all([
+      this.store.breaking(localeOf(locale), BREAKING_STRIP_LIMIT),
+      this.store.lastFetchedAt(),
+    ]);
+    return { stories: { coverage: 'available', last_updated_at, data: page.cards } };
   }
 
   /**
@@ -270,13 +350,27 @@ export class NewsController {
   }
 
   /**
+   * Related news on the player page (blueprint 5.3, T-1007, D-127): as for a
+   * team, over the person links of D-126. While no story links any person at
+   * all the list is `not_supplied` with `persons_unlinked`, never an empty
+   * list that would say nobody wrote about the player.
+   */
+  @Get('players/:id/news')
+  async playerNews(
+    @Param('id') id: string,
+    @Query('locale') locale: unknown,
+  ): Promise<EntityNewsResponse> {
+    return this.entityNews('person', id, locale, NO_PLAYER);
+  }
+
+  /**
    * An entity's news: 404 for an unknown id; `not_supplied` with
    * `feeds_unread` until the feeds have been read at all, because an empty
    * list nobody looked for is not a fact (rule 3); then `available`,
    * possibly empty with `nothing_linked`.
    */
   private async entityNews(
-    type: 'team' | 'competition',
+    type: 'team' | 'competition' | 'person',
     id: string,
     locale: unknown,
     missing: ApiError,
@@ -296,12 +390,26 @@ export class NewsController {
         reason: 'feeds_unread',
       };
     }
+    if (type === 'person') {
+      if (!(await this.store.anyPersonLinked())) {
+        return {
+          entity,
+          stories: { coverage: 'not_supplied', last_updated_at, data: null },
+          reason: 'persons_unlinked',
+        };
+      }
+      const page = await this.store.forPerson(entityId, localeOf(locale), ENTITY_NEWS_LIMIT);
+      return {
+        entity,
+        stories: { coverage: 'available', last_updated_at, data: page.cards },
+        reason: page.cards.length === 0 ? 'nothing_linked' : null,
+      };
+    }
     const page = await this.store.latest(
       {
-        country: null,
+        ...NO_FILTERS,
         competition: type === 'competition' ? entityId : null,
         team: type === 'team' ? entityId : null,
-        language: null,
       },
       localeOf(locale),
       null,

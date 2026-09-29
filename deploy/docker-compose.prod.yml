@@ -159,6 +159,8 @@ services:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHANNEL: ${TELEGRAM_CHANNEL:-}
       CHANNEL_POST_HOUR: ${CHANNEL_POST_HOUR:-}
+      # Days below the contributor threshold before a flag (T-1031, D-137); empty is 30.
+      CONTRIBUTOR_FLAG_PERIOD_DAYS: ${CONTRIBUTOR_FLAG_PERIOD_DAYS:-}
       # Extra socket origins beyond https://SITE_HOST, e.g. a second domain (T-234).
       CHAT_ALLOWED_ORIGINS: ${CHAT_ALLOWED_ORIGINS:-}
     depends_on:

@@ -61,8 +61,13 @@ const KIND_LABEL: Record<ListedKind, string> = {
   panel_reaction: 'When somebody reacts to something I posted',
   briefing: 'When a briefing of mine is written',
   campaign: 'When the platform sends a message to members like me',
+  // Opt-in (T-1005, D-125): once per story, about a team, competition or player I follow.
+  breaking_news: 'When an editor marks a story about something I follow as breaking',
   // Offered to administrators only; the API leaves it out for everyone else (T-802).
   system_alert: 'When the watchdog raises or clears a system alert (at any hour)',
+  // Administrators only, like the system alert (T-1031, D-137).
+  contributor_below_threshold:
+    'When a contributor has stayed below the contributor threshold and is flagged',
 };
 
 /** The kinds this list offers: every one but those with a section of their own. */

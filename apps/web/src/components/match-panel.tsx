@@ -4,6 +4,7 @@ import { useActionState } from 'react';
 import {
   isDeletedMember,
   type MatchPanelPage,
+  type PanelLinkedPrediction,
   type PanelPermission,
   type PanelPost,
   type PanelReaction,
@@ -11,7 +12,8 @@ import {
 } from '@fmip/contracts';
 import { FollowButton, PanelReactions } from '@/components/panel-social';
 import { postToPanelAction } from '@/lib/panel-actions';
-import { Button, Card, FormStatus, Notice, TextArea } from '@/components/ui';
+import { linkCard, type LinkChoiceGroup } from '@/lib/panel-link';
+import { Button, Card, FormStatus, Notice, Select, TextArea } from '@/components/ui';
 
 /**
  * The public match discussion (blueprint 10.2, T-251).
@@ -100,6 +102,48 @@ function Standing({
   );
 }
 
+/**
+ * The one thing of this match a post links to (T-1030, D-136), beside the
+ * post. What was linked and has since changed or gone says so in a note; the
+ * old value is never shown as current (rule 4). A prediction card is labelled
+ * as the member's own call (rule 6).
+ */
+function LinkCard({
+  post,
+  names,
+  revealed,
+  deletedMemberLabel,
+}: {
+  post: PanelPost;
+  names: { home: string; away: string };
+  revealed: PanelLinkedPrediction | null;
+  deletedMemberLabel: string;
+}) {
+  // `?? null`: a panel served by an API older than T-1030 carries no field.
+  const link = post.link ?? null;
+  if (link === null) return null;
+  const author = isDeletedMember(post.author.username)
+    ? deletedMemberLabel
+    : post.author.display_name;
+  const card = linkCard(link, author, names, revealed);
+  return (
+    <aside
+      className="flex flex-col gap-1 rounded border border-default p-2 text-sm"
+      data-testid={`panel-link-${link.kind}`}
+    >
+      <span className="text-xs font-medium text-muted">{card.heading}</span>
+      {card.lines.map((line) => (
+        <span key={line}>{line}</span>
+      ))}
+      {card.note !== null && (
+        <span className="text-xs text-muted" data-testid="panel-link-note">
+          {card.note}
+        </span>
+      )}
+    </aside>
+  );
+}
+
 function Post({
   post,
   locale,
@@ -108,8 +152,12 @@ function Post({
   me,
   followed,
   deletedMemberLabel,
+  names,
+  revealed,
 }: {
   post: PanelPost;
+  names: { home: string; away: string };
+  revealed: PanelLinkedPrediction | null;
   deletedMemberLabel: string;
   locale: string;
   fixtureId: string;
@@ -155,6 +203,12 @@ function Post({
         }
       />
       <p className="whitespace-pre-wrap text-sm">{post.body}</p>
+      <LinkCard
+        post={post}
+        names={names}
+        revealed={revealed}
+        deletedMemberLabel={deletedMemberLabel}
+      />
       <PanelReactions
         locale={locale}
         fixtureId={fixtureId}
@@ -170,7 +224,15 @@ function Post({
   );
 }
 
-function Compose({ locale, fixtureId }: { locale: string; fixtureId: string }) {
+function Compose({
+  locale,
+  fixtureId,
+  choices,
+}: {
+  locale: string;
+  fixtureId: string;
+  choices: LinkChoiceGroup[];
+}) {
   const [state, formAction, pending] = useActionState(
     postToPanelAction.bind(null, locale, fixtureId),
     null,
@@ -179,6 +241,27 @@ function Compose({ locale, fixtureId }: { locale: string; fixtureId: string }) {
   return (
     <form action={formAction} className="flex flex-col gap-2" data-testid="panel-compose">
       <TextArea label="Add to the discussion" name="body" rows={3} maxLength={4000} required />
+      {choices.length > 0 && (
+        // One link at most, to something of this match (T-1030). The options
+        // come from what the match centre already carries.
+        <Select
+          label="Link one thing from this match (optional)"
+          name="link"
+          defaultValue=""
+          data-testid="panel-compose-link"
+        >
+          <option value="">No link</option>
+          {choices.map((group) => (
+            <optgroup key={group.label} label={group.label}>
+              {group.choices.map((choice) => (
+                <option key={choice.value} value={choice.value}>
+                  {choice.label}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </Select>
+      )}
       <Button type="submit" pending={pending} pendingLabel="Posting…" className="self-start">
         Post
       </Button>
@@ -203,10 +286,16 @@ export function MatchPanel({
   me,
   followed,
   deletedMemberLabel,
+  linkChoices,
+  names,
 }: {
   locale: string;
   fixtureId: string;
   page: MatchPanelPage | null;
+  /** What a post may link to (T-1030). Empty offers no link control. */
+  linkChoices?: LinkChoiceGroup[];
+  /** The two sides' names, for the link cards. */
+  names?: { home: string; away: string };
   /** "A deleted member", resolved from the catalogue by the page (T-812). */
   deletedMemberLabel: string;
   /** Null for a viewer whose permission could not be fetched, never for a guest. */
@@ -225,6 +314,12 @@ export function MatchPanel({
   const myReactions = new Map(
     (permission?.my_reactions ?? []).map((entry) => [entry.post_id, entry.reactions]),
   );
+  // Linked predictions the public document withholds and this viewer may see
+  // (T-1030, D-063): the author themselves, or a friend when the setting says so.
+  const revealed = new Map(
+    (permission?.linked_predictions ?? []).map((entry) => [entry.post_id, entry.prediction]),
+  );
+  const sides = names ?? { home: 'Home', away: 'Away' };
 
   return (
     <section className="flex flex-col gap-3" data-testid="match-panel">
@@ -264,6 +359,8 @@ export function MatchPanel({
                 me={viewer}
                 followed={follows}
                 deletedMemberLabel={deletedMemberLabel}
+                names={sides}
+                revealed={revealed.get(post.id) ?? null}
               />
             ))}
           </ul>
@@ -278,7 +375,7 @@ export function MatchPanel({
       )}
 
       {permission !== null && permission.may_post ? (
-        <Compose locale={locale} fixtureId={fixtureId} />
+        <Compose locale={locale} fixtureId={fixtureId} choices={linkChoices ?? []} />
       ) : permission !== null && permission.refusal !== null ? (
         <div className="flex flex-col gap-1" data-testid="panel-refusal">
           <p className="text-sm text-muted">{REFUSALS[permission.refusal]}</p>

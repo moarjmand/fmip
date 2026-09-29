@@ -14,8 +14,63 @@ export function isNewsSection(value: string): value is NewsSection {
 
 /** How many stories one page of a section carries. */
 export const NEWS_PAGE_SIZE = 40;
-/** How far back trending looks for discussion (hours). */
+/** How far back trending looks for discussion and saves (hours). */
 export const TRENDING_WINDOW_HOURS = 48;
+
+/**
+ * A story's type (blueprint 3.2, T-1001, D-123): the blueprint's eleven and
+ * nothing else. The database's `story_label_type_known` check is the same
+ * list; `story-label.schema.spec.ts` fails when the two differ.
+ */
+export const STORY_TYPES = [
+  'breaking_news',
+  'transfer',
+  'injury',
+  'suspension',
+  'tactical_analysis',
+  'match_preview',
+  'match_report',
+  'interview',
+  'opinion',
+  'data_analysis',
+  'explainer',
+] as const;
+export type StoryType = (typeof STORY_TYPES)[number];
+
+export function isStoryType(value: string): value is StoryType {
+  return (STORY_TYPES as readonly string[]).includes(value);
+}
+
+/**
+ * Who gave a story its type (D-123): the publisher's own category through
+ * the committed mapping (T-1002), or an editor. Never a machine (N-1): a new
+ * origin is a decision entry and a migration, and the schema spec and every
+ * total record over this union fail until both exist.
+ */
+export const STORY_LABEL_ORIGINS = ['publisher', 'editor'] as const;
+export type StoryLabelOrigin = (typeof STORY_LABEL_ORIGINS)[number];
+
+/** What a story's current type is, and whose word it is. */
+export interface StoryTypeLabel {
+  type: StoryType;
+  origin: StoryLabelOrigin;
+}
+
+/** `POST /admin/stories/:id/type` (T-1001): an editor's label, superseding the current one. */
+export interface StoryTypeRequest {
+  type: StoryType;
+  /** Recorded on the label and in the audit log; required. */
+  reason: string;
+}
+
+/**
+ * How trending weighs its two signals (T-1008, D-128): each distinct member
+ * on the public panel of the story's matches, and each distinct member who
+ * saved the story, inside the window. A story's score is
+ * `participants * discussion + savers * saves`. Views and shares are not
+ * counted (N-3).
+ */
+export const TRENDING_WEIGHTS = { discussion: 1, saves: 1 } as const;
 
 /** What a source grants (D-061); the card carries only what these allow. */
 export type NewsRights = 'headline' | 'summary' | 'full_text';
@@ -57,12 +112,31 @@ export interface NewsStoryCard {
   /** Other publishers' reports grouped under this story. */
   other_reports: number;
   /**
-   * Trending only: how many distinct members took part in the public
-   * discussion of the story's matches inside the window. `null` elsewhere.
+   * The story's type and whose word it is (T-1001, D-123): `available` with
+   * `last_updated_at` the label's time, or `not_supplied` when neither the
+   * publisher's category nor an editor gave one -- never a default type.
    */
-  discussion: { participants: number; window_hours: number } | null;
+  type: Covered<StoryTypeLabel>;
+  /**
+   * Trending only: how many distinct members took part in the public
+   * discussion of the story's matches, and how many distinct members saved
+   * the story (T-1008), inside the window. `null` elsewhere.
+   */
+  discussion: { participants: number; savers: number; window_hours: number } | null;
   /** Debate only: when an editor selected it and what they said. `null` elsewhere. */
   debate: { selected_at: string; note: string } | null;
+  /**
+   * An editor's breaking mark in force (T-1004, D-125): what they said, when,
+   * and when it ends by itself. `null` when there is none in force -- an
+   * expired mark is `null` at the next read, not at the next job.
+   */
+  breaking: BreakingMark | null;
+}
+
+export interface BreakingMark {
+  note: string;
+  marked_at: string;
+  ends_at: string;
 }
 
 export interface NewsFilters {
@@ -72,6 +146,18 @@ export interface NewsFilters {
   team: string | null;
   /** Stories with a version in this language. */
   language: string | null;
+  /** Stories whose current type is this (T-1003, D-124); untyped stories are counted, not shown. */
+  type: StoryType | null;
+  /** Stories any of whose reports links this person, by id (rule 1). */
+  player: string | null;
+  /**
+   * The story's first publication on or after this date (`YYYY-MM-DD`), and
+   * on or before `to`, as calendar days in `time_zone` (T-1003, D-124).
+   */
+  from: string | null;
+  to: string | null;
+  /** The IANA zone `from` and `to` are read in; `UTC` when none was given. */
+  time_zone: string;
 }
 
 /**
@@ -79,8 +165,11 @@ export interface NewsFilters {
  * never hidden behind an empty list (rule 3).
  */
 export type NewsSectionReason =
-  /** Trending counts public discussion only; views, saves and shares are not measured (blueprint 3.1). */
-  | 'discussion_only'
+  /**
+   * Trending counts public discussion and saves (T-1008, D-128); views and
+   * shares are not measured (blueprint 3.1, N-3).
+   */
+  | 'discussion_and_saves'
   /** Nothing was discussed inside the window. */
   | 'nothing_trending'
   /** Debate is what editors selected; nobody has selected anything. */
@@ -92,7 +181,13 @@ export type NewsSectionReason =
   /** No story matched the filters. */
   | 'no_match'
   /** Nothing has been read from any publisher yet. */
-  | 'nothing_yet';
+  | 'nothing_yet'
+  /**
+   * A player filter, while no story links any person yet (T-1003, D-124):
+   * the list would be empty because nobody is linked, not because there is
+   * no news about the player.
+   */
+  | 'persons_unlinked';
 
 export interface NewsSectionResponse {
   section: NewsSection;
@@ -107,6 +202,12 @@ export interface NewsSectionResponse {
   reason: NewsSectionReason | null;
   /** `?before=` for the next page of latest and following; `null` when this is the last. */
   next_before: string | null;
+  /**
+   * With a type filter only (T-1003, D-124): how many stories that match
+   * every other filter have no type, and so are not shown. `null` without a
+   * type filter.
+   */
+  untyped: number | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -238,17 +339,27 @@ export interface FixtureNewsResponse {
 export const ENTITY_NEWS_LIMIT = 5;
 
 /**
- * `GET /teams/:id/news` and `GET /competitions/:id/news` (T-944, D-119): the
+ * `GET /teams/:id/news`, `GET /competitions/:id/news` (T-944, D-119) and
+ * `GET /players/:id/news` (T-1007, D-127): the
  * news page's latest cards for stories the news boundary linked to the team
  * or competition, newest first. `not_supplied` with `feeds_unread` until the
  * feeds have been read at all, as on the match page; then `available`,
  * possibly empty with `nothing_linked`.
  */
 export interface EntityNewsResponse {
-  entity: { type: 'team' | 'competition'; id: string };
+  entity: { type: 'team' | 'competition' | 'person'; id: string };
   stories: Covered<NewsStoryCard[]>;
-  reason: FixtureNewsReason | null;
+  reason: EntityNewsReason | null;
 }
+
+/**
+ * Why an entity's news list says nothing. Beside the match page's reasons,
+ * `persons_unlinked` (T-1007, D-127): a player's list is `not_supplied` while
+ * no story links any person at all (D-126 keeps the linker off until its
+ * precision is measured), because an empty list would read as "nobody wrote
+ * about this player".
+ */
+export type EntityNewsReason = FixtureNewsReason | 'persons_unlinked';
 
 // ---------------------------------------------------------------------------
 // Saved articles (blueprint 3.3 and 2.1, T-842): a member's own list, under
@@ -292,4 +403,54 @@ export interface SavedArticle {
 export interface SavedArticlesResponse {
   saved: SavedArticle[];
   limit: number;
+}
+
+// ---------------------------------------------------------------------------
+// "Breaking" (blueprint 2.3 and 12.2, T-1004, D-125): an editor's mark with a
+// window, and the homepage strip of the stories marked while it lasts.
+// ---------------------------------------------------------------------------
+
+/** How long a mark lasts unless an editor clears it earlier (D-125's proposal). */
+export const BREAKING_WINDOW_HOURS = 6;
+/** The most stories the homepage strip shows. */
+export const BREAKING_STRIP_LIMIT = 5;
+
+/** `POST /admin/stories/:id/breaking`: readers see the note on the strip; it is audited. */
+export interface BreakingMarkRequest {
+  note: string;
+}
+
+/** `POST /admin/stories/:id/breaking/clear`: ends a mark early; the reason is audited. */
+export interface BreakingClearRequest {
+  reason: string;
+}
+
+/** One mark as the editor's list shows it: in force, expired or cleared. */
+export interface BreakingRecord {
+  story_id: string;
+  headline: string | null;
+  marked_by: string;
+  note: string;
+  marked_at: string;
+  ends_at: string;
+  cleared_by: string | null;
+  cleared_reason: string | null;
+  cleared_at: string | null;
+  /** `live` while in force; `expired` when its window ran out; `cleared` when an editor ended it. */
+  state: 'live' | 'expired' | 'cleared';
+}
+
+/** `GET /admin/breaking`: newest mark first. */
+export interface BreakingListResponse {
+  generated_at: string;
+  marks: BreakingRecord[];
+}
+
+/**
+ * `GET /news/breaking`: the stories marked breaking now, newest mark first.
+ * `available` with a list that may be empty; a page draws no strip when it
+ * is, never an empty one.
+ */
+export interface BreakingNewsResponse {
+  stories: Covered<NewsStoryCard[]>;
 }

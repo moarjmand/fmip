@@ -4,12 +4,15 @@ import {
   type MatchPanelPage,
   type PanelAuthor,
   type PanelLatest,
+  type PanelLink,
+  type PanelLinkRequest,
   type PanelPermission,
   type PanelPost,
   type PanelReactionTally,
   type PanelRefusal,
   type RatingTier,
 } from '@fmip/contracts';
+import { ProfileService } from '../profile/profile.service';
 import { ContributorService } from '../reputation/contributor.service';
 import { PanelSocialService } from './panel-social.service';
 import { RATING_FORMULA_V1, tierOf } from '../reputation/reputation.service';
@@ -17,8 +20,10 @@ import {
   PostgresPanelStore,
   decodeCursor,
   encodeCursor,
+  type PanelLinkRow,
   type PanelPostRow,
 } from './internal/panel-store';
+import { linkOf, predictionOf } from './internal/panel-link';
 
 /**
  * The public match discussion (blueprint 10.2, T-251).
@@ -56,6 +61,8 @@ export interface PostOutcome {
   refusal?: PanelRefusal;
   /** Set when the refusal was the hourly ceiling rather than a judgement. */
   tooMany?: boolean;
+  /** Set when the link was refused (`PL020`): which kind was not of this match. */
+  badLink?: PanelLinkRequest['kind'];
 }
 
 function authorOf(row: PanelPostRow): PanelAuthor {
@@ -71,7 +78,11 @@ function authorOf(row: PanelPostRow): PanelAuthor {
   };
 }
 
-function postOf(row: PanelPostRow, reactions: PanelReactionTally[] = []): PanelPost {
+function postOf(
+  row: PanelPostRow,
+  reactions: PanelReactionTally[] = [],
+  link: PanelLink | null = null,
+): PanelPost {
   return {
     id: row.id,
     author: authorOf(row),
@@ -82,6 +93,9 @@ function postOf(row: PanelPostRow, reactions: PanelReactionTally[] = []): PanelP
     // (T-252). Passing an empty array here as well is belt and braces on a
     // promise the contract makes out loud.
     reactions: row.removed_kind === null ? reactions : [],
+    // The link goes with the words (T-1030); the store returns none for a
+    // removed post, and this says it again.
+    link: row.removed_kind === null ? link : null,
   };
 }
 
@@ -91,7 +105,71 @@ export class PanelService {
     private readonly store: PostgresPanelStore,
     private readonly contributors: ContributorService,
     private readonly social: PanelSocialService,
+    private readonly profiles: ProfileService,
   ) {}
+
+  /**
+   * The cards for a set of posts (T-1030), in one query. A linked prediction
+   * is shown on this public document only where the author's history is
+   * visible to a guest -- asked of the profile boundary exactly as
+   * `GET /users/:username/predictions` asks it (D-063), once per author.
+   */
+  private async cardsFor(postIds: string[]): Promise<Map<string, PanelLink>> {
+    const rows = await this.store.links({ postIds });
+    const access = await this.publicPredictionAccess(rows);
+    const cards = new Map<string, PanelLink>();
+    for (const row of rows) {
+      const card = linkOf(row, access.get(row.author_username) ?? 'private');
+      if (card !== null) cards.set(row.post_id, card);
+    }
+    return cards;
+  }
+
+  private async publicPredictionAccess(
+    rows: PanelLinkRow[],
+  ): Promise<Map<string, 'visible' | 'friends' | 'private'>> {
+    const authors = [
+      ...new Set(rows.filter((r) => r.link_kind === 'prediction').map((r) => r.author_username)),
+    ];
+    const access = new Map<string, 'visible' | 'friends' | 'private'>();
+    for (const username of authors) {
+      const answer = await this.profiles.predictionHistoryAccess(username, null);
+      access.set(
+        username,
+        answer.kind === 'visible'
+          ? 'visible'
+          : answer.kind === 'restricted'
+            ? answer.visibility
+            : 'private',
+      );
+    }
+    return access;
+  }
+
+  /**
+   * The linked predictions on this match that the public panel withholds and
+   * this viewer may see: the same rule, asked with the viewer (D-063).
+   */
+  private async linkedPredictionsFor(
+    viewerId: string,
+    fixtureId: string,
+  ): Promise<PanelPermission['linked_predictions']> {
+    const rows = (await this.store.links({ fixtureId })).filter(
+      (row) => row.link_kind === 'prediction',
+    );
+    if (rows.length === 0) return [];
+    const guest = await this.publicPredictionAccess(rows);
+    const withheld = rows.filter((row) => guest.get(row.author_username) !== 'visible');
+    if (withheld.length === 0) return [];
+    const audience = await this.profiles.predictionHistoryAudience(
+      [...new Set(withheld.map((row) => row.author_id))],
+      viewerId,
+    );
+    return withheld.flatMap((row) => {
+      const prediction = audience.has(row.author_id) ? predictionOf(row) : null;
+      return prediction === null ? [] : [{ post_id: row.post_id, prediction }];
+    });
+  }
 
   /** Null when there is no such fixture — an unknown match is not an empty panel. */
   async panel(fixtureId: string, cursor?: string, limit?: number): Promise<MatchPanelPage | null> {
@@ -105,13 +183,14 @@ export class PanelService {
     // One query for the whole page. One per post would cost fifty round trips
     // to draw the cheapest thing on the screen.
     const reactions = await this.social.talliesFor(rows.map((row) => row.id));
+    const cards = await this.cardsFor(rows.map((row) => row.id));
     const last = rows.at(-1);
     return {
       // Said, never inferred. A match nobody opened a discussion on and one
       // where nobody has spoken yet both come back with no posts, and only the
       // second is something a reader can do anything about (rule 3, T-253).
       state,
-      posts: rows.map((row) => postOf(row, reactions.get(row.id) ?? [])),
+      posts: rows.map((row) => postOf(row, reactions.get(row.id) ?? [], cards.get(row.id) ?? null)),
       // Only when the page was full. A cursor on a short page would invite one
       // more request that is certain to be empty.
       cursor:
@@ -132,6 +211,7 @@ export class PanelService {
     if (fixtureIds.length === 0) return [];
     const { known, states, totals, rows } = await this.store.latest(fixtureIds, PANEL_LATEST_POSTS);
     const reactions = await this.social.talliesFor(rows.map((row) => row.id));
+    const cards = await this.cardsFor(rows.map((row) => row.id));
     return fixtureIds
       .filter((id) => known.has(id))
       .map((id) => ({
@@ -139,7 +219,7 @@ export class PanelService {
         state: states.get(id) ?? 'none',
         posts: rows
           .filter((row) => row.fixture_id === id)
-          .map((row) => postOf(row, reactions.get(row.id) ?? [])),
+          .map((row) => postOf(row, reactions.get(row.id) ?? [], cards.get(row.id) ?? null)),
         total: totals.get(id) ?? 0,
       }));
   }
@@ -161,7 +241,13 @@ export class PanelService {
     // the panel would have made every public read viewer-specific to save one
     // round trip.
     const mine = await this.social.myReactions(fixtureId, viewer?.id ?? null);
-    const none = { shortfalls: [], qualifies: false, my_reactions: mine };
+    const linked = viewer === null ? [] : await this.linkedPredictionsFor(viewer.id, fixtureId);
+    const none = {
+      shortfalls: [],
+      qualifies: false,
+      my_reactions: mine,
+      linked_predictions: linked,
+    };
 
     // First, and before anything about the viewer, because it is the refusal
     // that is true of everybody (T-253). Telling a member they are not approved
@@ -181,7 +267,7 @@ export class PanelService {
     }
     const shortfalls = status.eligibility.shortfalls.map((s) => s.message);
     const qualifies = status.eligibility.qualifies;
-    const seen = { shortfalls, qualifies, my_reactions: mine };
+    const seen = { shortfalls, qualifies, my_reactions: mine, linked_predictions: linked };
 
     if (status.grant === null) {
       return { may_post: false, refusal: 'not_approved', ...seen };
@@ -222,12 +308,21 @@ export class PanelService {
     viewer: { id: string; username: string },
     fixtureId: string,
     body: string,
+    link: PanelLinkRequest | null = null,
   ): Promise<PostOutcome> {
     try {
-      const row = await this.store.write(fixtureId, viewer.id, body);
-      return { ok: true, post: postOf(row) };
+      const row = await this.store.write(fixtureId, viewer.id, body, link);
+      const cards = await this.cardsFor([row.id]);
+      return { ok: true, post: postOf(row, [], cards.get(row.id) ?? null) };
     } catch (error) {
       const code = (error as { code?: string }).code ?? '';
+      // The link guard runs last (T-1030), so a member refused for anything
+      // else never reaches it; this one is about the link alone. A statistic
+      // naming a side with no participant fails the shape CHECK instead, and
+      // means the same thing.
+      if (link !== null && (code === 'PL020' || code === '23514')) {
+        return { ok: false, badLink: link.kind };
+      }
       const refusal = REFUSALS[code];
       if (refusal === undefined) throw error;
       if (code !== 'PL014') return { ok: false, refusal, tooMany: code === 'PL005' };
