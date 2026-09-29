@@ -1,6 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
+import {
+  checkTranslation,
+  unresolvedFailures,
+  type TranslationCheckOverride,
+  type TranslationCheckResult,
+  type TranslationTexts,
+} from '@fmip/contracts';
 import { Pool, type PoolClient } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
+import { glossaryFor, namesToCarry, type LinkedName } from './translation-names';
 
 /** Postgres' unique_violation and the article schema's rights guard (T-141). */
 const RIGHTS = 'PL016';
@@ -25,7 +33,11 @@ export type ReviewOutcome =
   | { kind: 'nothing_to_review' }
   | { kind: 'already_reviewed' }
   /** A translation is reviewed by a second fluent speaker, never by its author. */
-  | { kind: 'same_person' };
+  | { kind: 'same_person' }
+  /** Automatic checks fail and the reviewer gave no reason for passing them (T-1012). */
+  | { kind: 'checks_fail'; failures: TranslationCheckResult[] }
+  /** A reason was given for a check that does not fail: there is nothing to pass. */
+  | { kind: 'not_failing'; override: TranslationCheckOverride };
 
 interface AuditEntry {
   actorId: string;
@@ -134,7 +146,76 @@ export class PostgresTranslationsAdminStore {
     }
   }
 
-  async review(articleId: string, language: string, actorId: string): Promise<ReviewOutcome> {
+  /**
+   * The automatic checks on a translation (T-1012): the publisher's newest
+   * version against the given words, with the names the translation must
+   * carry. Read-only, and recomputed every time it is asked.
+   */
+  async checks(
+    client: Pool | PoolClient,
+    articleId: string,
+    language: string,
+    target: TranslationTexts,
+  ): Promise<TranslationCheckResult[]> {
+    const source = await client.query<{
+      language: string;
+      headline: string;
+      summary: string | null;
+      byline: string | null;
+    }>(
+      `SELECT language, headline, summary, byline FROM article_version
+        WHERE article_id = $1 AND origin = 'publisher'
+        ORDER BY created_at DESC, version_number DESC LIMIT 1`,
+      [articleId],
+    );
+    const original = source.rows[0];
+    if (original === undefined) return [];
+    const linked = await client.query<{
+      entity_type: LinkedName['entityType'];
+      entity_id: string;
+      names: string[];
+      localised: string | null;
+    }>(
+      `SELECT ae.entity_type, ae.entity_id,
+              array_remove(ARRAY[t.name, c.name, p.full_name, p.known_as], NULL)
+                || ARRAY(SELECT ea.alias FROM entity_alias ea
+                          WHERE ea.entity_type = ae.entity_type AND ea.entity_id = ae.entity_id
+                            AND ea.kind IN ('name', 'alias')
+                            AND (ea.language IS NULL OR ea.language = $2)) AS names,
+              coalesce(localised_name(ae.entity_type, ae.entity_id, $3),
+                       localised_name(ae.entity_type, ae.entity_id, split_part($3, '-', 1))) AS localised
+         FROM article_entity ae
+         LEFT JOIN team t ON ae.entity_type = 'team' AND t.id = ae.entity_id
+         LEFT JOIN competition c ON ae.entity_type = 'competition' AND c.id = ae.entity_id
+         LEFT JOIN person p ON ae.entity_type = 'person' AND p.id = ae.entity_id
+        WHERE ae.article_id = $1 AND ae.entity_type IN ('team', 'competition', 'person')`,
+      [articleId, original.language, language],
+    );
+    return checkTranslation(
+      { headline: original.headline, summary: original.summary, byline: original.byline },
+      target,
+      {
+        sourceLanguage: original.language,
+        targetLanguage: language,
+        names: namesToCarry(
+          linked.rows.map((row) => ({
+            entityType: row.entity_type,
+            entityId: row.entity_id,
+            sourceNames: row.names,
+            localised: row.localised,
+          })),
+          glossaryFor(language),
+        ),
+      },
+    );
+  }
+
+  async review(
+    articleId: string,
+    language: string,
+    actorId: string,
+    overrides: TranslationCheckOverride[] = [],
+  ): Promise<ReviewOutcome> {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
@@ -166,6 +247,66 @@ export class PostgresTranslationsAdminStore {
         await client.query('ROLLBACK');
         return { kind: 'same_person' };
       }
+      // The checks, on the version the reviewer read. A failure passes only
+      // with a reason, and a reason is given only for a failure (D-131).
+      const results = await this.checks(client, articleId, language, {
+        headline: current.headline,
+        summary: current.summary,
+        byline: current.byline,
+      });
+      const failures = unresolvedFailures(results, overrides);
+      if (failures.length > 0) {
+        await client.query('ROLLBACK');
+        return { kind: 'checks_fail', failures };
+      }
+      for (const override of overrides) {
+        const failed = results.find(
+          (result) =>
+            result.check === override.check &&
+            result.field === override.field &&
+            result.outcome === 'fail',
+        );
+        if (failed === undefined) {
+          await client.query('ROLLBACK');
+          return { kind: 'not_failing', override };
+        }
+        await client.query(
+          `INSERT INTO translation_check_override
+             (article_id, language, version_number, check_name, field, reason, reviewer_id)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [
+            articleId,
+            language,
+            current.version_number,
+            override.check,
+            override.field,
+            override.reason,
+            actorId,
+          ],
+        );
+        await record(client, {
+          actorId,
+          action: 'translation.check_override',
+          targetId: articleId,
+          reason: override.reason,
+          previous: {
+            language,
+            version_number: current.version_number,
+            check: override.check,
+            field: override.field,
+            outcome: 'fail',
+            detail: failed.detail,
+          },
+          next: {
+            language,
+            version_number: current.version_number,
+            check: override.check,
+            field: override.field,
+            outcome: 'passed_with_reason',
+          },
+        });
+      }
+
       const versionNumber = current.version_number + 1;
       await client.query(
         `INSERT INTO article_version

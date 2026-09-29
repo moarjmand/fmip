@@ -5032,3 +5032,79 @@ football word whose English changes would become a new term, orphaning the
 translation). Filling a target term from a localised name already in
 `entity_alias`: a script writing a word in another language, which this
 decision exists to refuse; the review check reads both sources instead.
+
+## D-131 — The automatic translation checks, and a reviewer's recorded reason to pass one
+
+**Date:** 2026-09-29 · **Task:** T-1012 · **Status:** accepted (revisable under the standing delegation of 2026-09-26)
+
+**Decision.** `checkTranslation(source, target, context)` in
+`@fmip/contracts` is a pure function over the publisher's newest version and
+a person's translation. For each field either carries (headline, summary,
+byline) it returns one result per check -- `pass`, `fail` or `not_checked`,
+with what it expected, what it found and one sentence:
+
+- **empty**: a field the source has is not left empty, and a field it lacks
+  is not added (the rights guard, PL016, refuses more than the source grants
+  anyway).
+- **numbers**: the same numbers as a multiset, compared as numbers: Latin,
+  Arabic-Indic (U+0660) and Persian (U+06F0) digits and the Arabic decimal
+  and thousands separators are one set of digits; `1,500` and `1.500` are a
+  thousand and a half, `2,5` and `2.5` two and a half, `09` is 9.
+- **scorelines**: the same `a-b` pairs (`-`, `–`, `—` or `:`), in order, so a
+  score written the other way round fails though every number is there.
+- **dates**: numeric dates with a year (`2026-09-29`, `29/09/2026`,
+  `29.09.2026`) and a day beside a month's name, the target's names taken
+  from `Intl` for its language (long and short, standalone and in a date) with
+  the English ones beside them; matched on day and month, and on the year
+  when both give one. Dates are taken out of the text before numbers and
+  scorelines are read, so a date reformatted is not three numbers of which
+  one went missing.
+- **names**: every entity the article links (`article_entity`: team,
+  competition, person), found in the source by its canonical name, the name
+  it is known by or an alias in the source's language, must appear in the
+  translation as its localised name (T-303, `localised_name`) or its glossary
+  term (T-1011); every locked glossary term likewise. A name nobody has
+  written in the target language -- no localised name, no glossary term --
+  is `not_checked`, said as such, never a pass.
+- **links**: the same URLs.
+- **markup**: the same tags and entities.
+
+**A check never rewrites the text.** It returns a verdict and nothing else;
+there is no "fix" and no suggestion (D-066: the words are the translator's).
+
+**The review refuses a failing check unless the reviewer records a reason.**
+`POST .../translations/:language/review` recomputes the checks on the
+version being reviewed. Any `fail` without a matching `overrides` entry
+(`{ check, field, reason }`) refuses the review with a 400 that lists every
+failure in `checks` and in `fields` keyed `<field>.<check>`. A reason given
+for a check that does not fail is refused too: a record of passing something
+that never failed is noise. Each override is a `translation_check_override`
+row (migration `1764940000000`) against the exact version read, naming the
+reviewer, the check, the field and the reason, and an `audit_log` row
+(`translation.check_override`, previous the failure and its sentence) in the
+same transaction as the review. The row is immutable and goes only with its
+article; the schema refuses one on the publisher's own words. A new version
+is checked from nothing, because it is different words.
+
+**`not_checked` does not block.** Blocking on it would make every name
+nobody has localised yet a reason to refuse every review; the desk (T-1013)
+shows it beside the field so the reviewer reads it.
+
+**Why these checks and no more.** Each is a fact about the text that
+survives translation unchanged -- a number, a score, a date, a URL, a tag, a
+name as recorded -- and so can be compared without understanding either
+language. Anything past that (tone, meaning, a mistranslated verb) is the
+second fluent speaker's job, which is what review is.
+
+**Known limits, accepted.** A number written as a word ("two") on one side
+and as digits on the other fails `numbers`; a time `20:45` reads as a
+scoreline on both sides and so passes; a month name a language spells
+several ways (Levantine Arabic's month names beside `Intl`'s) fails `dates`.
+Each is what the reason exists for.
+
+**Alternatives considered.** Storing each check's result: a cache of a pure
+function of stored rows, which goes stale the day the glossary changes.
+Blocking the write instead of the review: the plan puts the gate at review,
+and a translator saving work in progress should not be told to finish it
+first. A reviewer override without a reason: the whole point is that
+somebody can later read why.

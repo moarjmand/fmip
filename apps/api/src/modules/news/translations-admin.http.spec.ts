@@ -31,6 +31,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('article tran
   let storyId = '';
   let articleId = '';
   let headlineOnlyArticle = '';
+  const checked: string[] = [];
   const cookies = new Map<string, string>();
   const ids = new Map<string, string>();
 
@@ -72,11 +73,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('article tran
       headers: as(who),
       payload,
     });
-  const review = (who: string, article: string, language: string) =>
+  const review = (who: string, article: string, language: string, payload?: object) =>
     app.inject({
       method: 'POST',
       url: `/admin/articles/${article}/translations/${language}/review`,
       headers: as(who),
+      ...(payload === undefined ? {} : { payload: payload as Record<string, unknown> }),
     });
   const story = async (language: string | null): Promise<StoryPage> =>
     (
@@ -147,14 +149,15 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('article tran
     try {
       await client.query(`SET session_replication_role = 'replica'`);
       await client.query(
-        `DELETE FROM audit_log WHERE target_type = 'article' AND target_id IN ($1, $2)`,
-        [articleId, headlineOnlyArticle],
+        `DELETE FROM audit_log WHERE target_type = 'article' AND target_id = ANY($1::text[])`,
+        [[articleId, headlineOnlyArticle, ...checked]],
       );
     } finally {
       await client.query(`SET session_replication_role = 'origin'`);
       client.release();
     }
     await pool.query(`DELETE FROM news_source WHERE id = ANY($1::uuid[])`, [sources]);
+    await pool.query(`DELETE FROM entity_alias WHERE source = $1`, [`t1012-${RUN}`]);
     await pool.query(
       `DELETE FROM story s WHERE NOT EXISTS (SELECT 1 FROM article a WHERE a.story_id = s.id)`,
     );
@@ -262,5 +265,177 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('article tran
     expect(
       (await translate(`tl_${RUN}a`, articleId, { language: 'de', headline: '  ' })).statusCode,
     ).toBe(400);
+  });
+
+  describe('the automatic checks (T-1012)', () => {
+    /** An article whose newest headline carries a score, a date and a linked team. */
+    async function scored(): Promise<{ article: string; team: string; teamName: string }> {
+      const made = await article('summary');
+      checked.push(made.article);
+      const team = await pool.query<{ id: string; name: string }>(
+        `SELECT id, name FROM team WHERE length(name) >= 5 ORDER BY name LIMIT 1`,
+      );
+      const { id, name } = team.rows[0]!;
+      await pool.query(
+        `INSERT INTO article_version (article_id, language, version_number, headline, summary, published_at)
+         VALUES ($1, 'en', 2, $2, 'A late header settled it.', '2026-09-18T11:00:00Z')`,
+        [made.article, `${name} win 2-1 on 12 May`],
+      );
+      await pool.query(
+        `INSERT INTO article_entity (article_id, entity_type, entity_id) VALUES ($1, 'team', $2)`,
+        [made.article, id],
+      );
+      return { article: made.article, team: id, teamName: name };
+    }
+
+    it('refuses a review while a check fails, naming every failure beside its field', async () => {
+      const { article: id, teamName } = await scored();
+      // The score reversed: every number is there, the scoreline is not.
+      const written = await translate(`tl_${RUN}a`, id, {
+        language: 'de',
+        headline: `${teamName} 1-2 am 12. Mai`,
+        summary: 'Ein spaeter Kopfball.',
+      });
+      expect(written.statusCode).toBe(201);
+      const refused = await review(`tl_${RUN}b`, id, 'de');
+      expect(refused.statusCode).toBe(400);
+      const body = refused.json<{
+        error: string;
+        fields: Record<string, string>;
+        checks: { check: string }[];
+      }>();
+      expect(body.error).toBe('validation');
+      expect(Object.keys(body.fields)).toEqual(['headline.scorelines']);
+      expect(body.checks.map((c) => c.check)).toEqual(['scorelines']);
+      // Nothing was written: no reviewed version, no override, no audit row.
+      const reviewed = await pool.query(
+        `SELECT 1 FROM article_version WHERE article_id = $1 AND language = 'de' AND review_state = 'reviewed'`,
+        [id],
+      );
+      expect(reviewed.rowCount).toBe(0);
+      const audit = await pool.query<{ action: string }>(
+        `SELECT action FROM audit_log WHERE target_type = 'article' AND target_id = $1`,
+        [id],
+      );
+      expect(audit.rows.map((row) => row.action)).toEqual(['translation.write']);
+
+      // A reason must say something, and must be for a check that fails.
+      const blank = await review(`tl_${RUN}b`, id, 'de', {
+        overrides: [{ check: 'scorelines', field: 'headline', reason: '  ' }],
+      });
+      expect(blank.statusCode).toBe(400);
+      const notFailing = await review(`tl_${RUN}b`, id, 'de', {
+        overrides: [
+          { check: 'scorelines', field: 'headline', reason: 'The source has it wrong.' },
+          { check: 'numbers', field: 'headline', reason: 'Nothing to pass.' },
+        ],
+      });
+      expect(notFailing.statusCode).toBe(400);
+      expect(notFailing.json<{ message: string }>().message).toMatch(/does not fail/);
+      const overrides = await pool.query(
+        `SELECT 1 FROM translation_check_override WHERE article_id = $1`,
+        [id],
+      );
+      expect(overrides.rowCount).toBe(0);
+    });
+
+    it("passes a failing check with the reviewer's reason, recorded and audited", async () => {
+      const { article: id, teamName } = await scored();
+      await translate(`tl_${RUN}a`, id, {
+        language: 'de',
+        headline: `${teamName} 1-2 am 12. Mai`,
+        summary: 'Ein spaeter Kopfball.',
+      });
+      const reason =
+        'The publisher printed the away score first; the translation follows the match.';
+      const passed = await review(`tl_${RUN}b`, id, 'de', {
+        overrides: [{ check: 'scorelines', field: 'headline', reason }],
+      });
+      expect(passed.statusCode).toBe(204);
+      const overrides = await pool.query(
+        `SELECT version_number, check_name, field, reason, reviewer_id FROM translation_check_override
+          WHERE article_id = $1`,
+        [id],
+      );
+      expect(overrides.rows).toEqual([
+        {
+          version_number: 1,
+          check_name: 'scorelines',
+          field: 'headline',
+          reason,
+          reviewer_id: ids.get(`tl_${RUN}b`),
+        },
+      ]);
+      const audit = await pool.query<{
+        action: string;
+        actor_id: string;
+        reason: string;
+        previous: Record<string, unknown>;
+      }>(
+        `SELECT action, actor_id, reason, previous FROM audit_log
+          WHERE target_type = 'article' AND target_id = $1
+          ORDER BY created_at, CASE action WHEN 'translation.write' THEN 0
+                                           WHEN 'translation.check_override' THEN 1 ELSE 2 END`,
+        [id],
+      );
+      expect(audit.rows.map((row) => row.action)).toEqual([
+        'translation.write',
+        'translation.check_override',
+        'translation.review',
+      ]);
+      expect(audit.rows[1]).toMatchObject({
+        actor_id: ids.get(`tl_${RUN}b`),
+        reason,
+        previous: { check: 'scorelines', field: 'headline', outcome: 'fail', version_number: 1 },
+      });
+      // The override is immutable, like the version it belongs to.
+      await expect(
+        pool.query(`UPDATE translation_check_override SET reason = 'x' WHERE article_id = $1`, [
+          id,
+        ]),
+      ).rejects.toThrow(/immutable/);
+    });
+
+    it('fails a linked team not written as its localised name, and passes it once it is', async () => {
+      const { article: id, team, teamName } = await scored();
+      // A stand-in for a localised name a person recorded (T-303): the test
+      // writes a marker, never a word in another language.
+      // No digits in it: the numbers check would rightly count them.
+      const localised = `Localised${RUN.replace(/[0-9]/g, 'x')}`;
+      await pool.query(
+        `INSERT INTO entity_alias (entity_type, entity_id, alias, language, kind, source)
+         VALUES ('team', $1, $2, 'it', 'name', $3)`,
+        [team, localised, `t1012-${RUN}`],
+      );
+      await translate(`tl_${RUN}a`, id, {
+        language: 'it',
+        headline: `${teamName} 2-1 il 12 maggio`,
+        summary: 'Un colpo di testa.',
+      });
+      const refused = await review(`tl_${RUN}b`, id, 'it');
+      expect(refused.statusCode).toBe(400);
+      expect(Object.keys(refused.json<{ fields: Record<string, string> }>().fields)).toEqual([
+        'headline.names',
+      ]);
+      await translate(`tl_${RUN}a`, id, {
+        language: 'it',
+        headline: `${localised} 2-1 il 12 maggio`,
+        summary: 'Un colpo di testa.',
+      });
+      const passed = await review(`tl_${RUN}b`, id, 'it');
+      expect(passed.statusCode).toBe(204);
+    });
+
+    it("refuses a reason on the publisher's own words at the schema", async () => {
+      const { article: id } = await scored();
+      await expect(
+        pool.query(
+          `INSERT INTO translation_check_override
+             (article_id, language, version_number, check_name, field, reason, reviewer_id)
+           VALUES ($1, 'en', 1, 'numbers', 'headline', 'why', $2)`,
+          [id, ids.get(`tl_${RUN}b`)],
+        ),
+      ).rejects.toThrow(/only on a translation/);
+    });
   });
 });

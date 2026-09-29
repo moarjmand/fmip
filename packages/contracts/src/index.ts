@@ -737,3 +737,26 @@ export type {
   GlossarySourceEntry,
   GlossaryStatus,
 } from './glossary';
+
+// The automatic translation checks (T-1012, D-131): a pure function over the
+// publisher's version and a person's translation, shared by the review
+// endpoint that enforces them and the desk that shows them.
+export {
+  TRANSLATION_CHECKS,
+  TRANSLATION_FIELDS,
+  checkTranslation,
+  latinDigits,
+  unresolvedFailures,
+} from './translation-checks';
+export type {
+  TranslationCheck,
+  TranslationCheckContext,
+  TranslationCheckOutcome,
+  TranslationCheckOverride,
+  TranslationCheckResult,
+  TranslationField,
+  TranslationName,
+  TranslationReviewRefusal,
+  TranslationReviewRequest,
+  TranslationTexts,
+} from './translation-checks';

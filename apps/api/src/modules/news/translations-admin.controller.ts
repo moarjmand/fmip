@@ -10,8 +10,15 @@ import {
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
-import type { ApiError, AuthUser, TranslationRequest } from '@fmip/contracts';
-import { ROLE_REFUSALS } from '@fmip/contracts';
+import type {
+  ApiError,
+  AuthUser,
+  TranslationCheckOverride,
+  TranslationRequest,
+  TranslationReviewRefusal,
+  TranslationReviewRequest,
+} from '@fmip/contracts';
+import { ROLE_REFUSALS, TRANSLATION_CHECKS, TRANSLATION_FIELDS } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { PostgresTranslationsAdminStore } from './internal/translations-admin-store';
@@ -21,6 +28,7 @@ const LANGUAGE = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
 const NO_ARTICLE: ApiError = { error: 'not_found', message: 'No such article.' };
 const MAX_TEXT = 2000;
+const MAX_REASON = 500;
 
 /**
  * A person's language version of an article (T-304, blueprint 13): `POST
@@ -112,16 +120,63 @@ export class TranslationsAdminController {
     }
   }
 
+  /**
+   * A reviewer's reasons for passing failing checks (T-1012, D-131): each
+   * names one check on one field and says why, at most one per pair.
+   */
+  private static overrides(body: TranslationReviewRequest | undefined): TranslationCheckOverride[] {
+    const raw: unknown = body?.overrides;
+    if (raw === undefined || raw === null) return [];
+    if (!Array.isArray(raw) || raw.length > TRANSLATION_CHECKS.length * TRANSLATION_FIELDS.length) {
+      throw TranslationsAdminController.bad(
+        'overrides must be a list of { check, field, reason }.',
+      );
+    }
+    const seen = new Set<string>();
+    return raw.map((item: unknown) => {
+      const entry = (item ?? {}) as Record<string, unknown>;
+      const check = entry['check'];
+      const field = entry['field'];
+      if (
+        !TRANSLATION_CHECKS.includes(check as never) ||
+        !TRANSLATION_FIELDS.includes(field as never)
+      ) {
+        throw TranslationsAdminController.bad(
+          `An override names one of the checks (${TRANSLATION_CHECKS.join(', ')}) on one field (${TRANSLATION_FIELDS.join(', ')}).`,
+        );
+      }
+      const key = `${String(field)}.${String(check)}`;
+      if (seen.has(key)) {
+        throw TranslationsAdminController.bad(`${key} is overridden twice.`);
+      }
+      seen.add(key);
+      const reason = typeof entry['reason'] === 'string' ? entry['reason'].trim() : '';
+      if (reason === '') {
+        throw TranslationsAdminController.bad(
+          'Passing a failing check needs a reason; it is recorded with your name.',
+          { [key]: 'Say why the translation is right anyway.' },
+        );
+      }
+      return {
+        check: check as TranslationCheckOverride['check'],
+        field: field as TranslationCheckOverride['field'],
+        reason: reason.slice(0, MAX_REASON),
+      };
+    });
+  }
+
   @Post('articles/:id/translations/:language/review')
   @HttpCode(204)
   async review(
     @Param('id') articleId: string,
     @Param('language') language: string,
+    @Body() body: TranslationReviewRequest | undefined,
     @Req() request: FastifyRequest,
   ): Promise<void> {
     const user = await this.editor(request);
+    const overrides = TranslationsAdminController.overrides(body);
     if (!UUID.test(articleId) || !LANGUAGE.test(language)) throw new NotFoundException(NO_ARTICLE);
-    const outcome = await this.store.review(articleId.toLowerCase(), language, user.id);
+    const outcome = await this.store.review(articleId.toLowerCase(), language, user.id, overrides);
     switch (outcome.kind) {
       case 'reviewed':
         return;
@@ -135,6 +190,24 @@ export class TranslationsAdminController {
       case 'same_person':
         throw TranslationsAdminController.bad(
           'A translation is reviewed by a second fluent speaker, not by the person who wrote it.',
+        );
+      case 'checks_fail':
+        // Every failure at once, each beside the field it concerns, so the
+        // reviewer fixes or explains them all in one pass.
+        throw new BadRequestException({
+          error: 'validation',
+          message: `${outcome.failures.length} automatic check${outcome.failures.length === 1 ? '' : 's'} fail${outcome.failures.length === 1 ? 's' : ''} on this translation. Ask for a new version, or record why each one is right anyway.`,
+          fields: Object.fromEntries(
+            outcome.failures.map((failure) => [
+              `${failure.field}.${failure.check}`,
+              failure.detail,
+            ]),
+          ),
+          checks: outcome.failures,
+        } satisfies TranslationReviewRefusal);
+      case 'not_failing':
+        throw TranslationsAdminController.bad(
+          `The ${outcome.override.check} check on the ${outcome.override.field} does not fail; there is nothing to pass with a reason.`,
         );
     }
   }
