@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Pool } from 'pg';
+import type { PanelLinkRequest } from '@fmip/contracts';
 import { PG_POOL } from '../../../database/database.module';
 
 /**
@@ -36,6 +37,42 @@ export interface PanelPostRow {
   removed_kind: string | null;
   /** Whether the author holds a live grant **now**, not when they wrote it. */
   approved: boolean;
+}
+
+/** One post's link and what its target says now (T-1030). */
+export interface PanelLinkRow {
+  post_id: string;
+  author_id: string;
+  author_username: string;
+  link_kind: 'incident' | 'player' | 'prediction' | 'statistic';
+  /** What the incident said, or the statistic's value, when the post was written. */
+  link_snapshot: Record<string, unknown> | null;
+  /** Null when the feed no longer has the incident. */
+  incident_id: string | null;
+  incident_kind: string | null;
+  minute: number | null;
+  added_time: number | null;
+  incident_participant_id: string | null;
+  incident_side: 'home' | 'away' | null;
+  incident_person_id: string | null;
+  incident_person_name: string | null;
+  incident_related_id: string | null;
+  incident_related_name: string | null;
+  incident_detail: string | null;
+  player_id: string | null;
+  player_name: string | null;
+  /** Null when the player is in neither line-up now. */
+  player_side: 'home' | 'away' | null;
+  outcome: 'home' | 'draw' | 'away' | null;
+  home_goals: number | null;
+  away_goals: number | null;
+  confidence: number | null;
+  submitted_at: Date | null;
+  revised_since: boolean;
+  stat_side: 'home' | 'away' | null;
+  stat_metric: string | null;
+  /** Numeric as text; null when no longer supplied. */
+  stat_current: string | null;
 }
 
 export interface PanelPage {
@@ -217,11 +254,38 @@ export class PostgresPanelStore {
     return row.closed ? 'closed' : 'open';
   }
 
-  /** Writes the post and lets the triggers refuse it. */
-  async write(fixtureId: string, authorId: string, body: string): Promise<PanelPostRow> {
+  /**
+   * Writes the post, with its link if any, and lets the triggers refuse it.
+   *
+   * The link's target is not checked here: `panel_post_with_link_guard`
+   * refuses anything outside this match (`PL020`, T-1030). A statistic is
+   * named by side and resolved to the side's participant in the same INSERT;
+   * a side with no participant leaves the column null and the CHECK refuses.
+   */
+  async write(
+    fixtureId: string,
+    authorId: string,
+    body: string,
+    link: PanelLinkRequest | null = null,
+  ): Promise<PanelPostRow> {
     const { rows } = await this.pool.query<{ id: string }>(
-      `INSERT INTO panel_post (fixture_id, author_id, body) VALUES ($1, $2, $3) RETURNING id`,
-      [fixtureId, authorId, body],
+      `INSERT INTO panel_post
+         (fixture_id, author_id, body, link_kind, link_incident_id, link_person_id,
+          link_participant_id, link_metric)
+       VALUES ($1, $2, $3, $4, $5, $6,
+               (SELECT id FROM fixture_participant WHERE fixture_id = $1 AND side = $7),
+               $8)
+       RETURNING id`,
+      [
+        fixtureId,
+        authorId,
+        body,
+        link?.kind ?? null,
+        link?.kind === 'incident' ? link.incident_id : null,
+        link?.kind === 'player' ? link.person_id : null,
+        link?.kind === 'statistic' ? link.side : null,
+        link?.kind === 'statistic' ? link.metric : null,
+      ],
     );
     const written = await this.byId(rows[0]?.id ?? '');
     if (written === null) throw new Error('the post was written and then could not be read back');
@@ -245,6 +309,58 @@ export class PostgresPanelStore {
       [postId],
     );
     return rows[0] ?? null;
+  }
+
+  /**
+   * Every standing post's link, resolved against what the feed says now
+   * (T-1030): for posts `postIds`, or for every post on `fixtureId`. One query
+   * for the whole set. A removed post's link is not returned -- the card goes
+   * with the words.
+   */
+  async links(filter: { postIds: string[] } | { fixtureId: string }): Promise<PanelLinkRow[]> {
+    const byPosts = 'postIds' in filter;
+    if (byPosts && filter.postIds.length === 0) return [];
+    const { rows } = await this.pool.query<PanelLinkRow>(
+      `SELECT p.id AS post_id, p.author_id, u.username AS author_username,
+              p.link_kind, p.link_snapshot,
+              i.id AS incident_id, i.kind AS incident_kind, i.minute, i.added_time,
+              i.participant_id AS incident_participant_id, ifp.side AS incident_side,
+              i.person_id AS incident_person_id,
+              COALESCE(ip.known_as, ip.full_name) AS incident_person_name,
+              i.related_person_id AS incident_related_id,
+              COALESCE(iq.known_as, iq.full_name) AS incident_related_name,
+              i.detail AS incident_detail,
+              p.link_person_id AS player_id,
+              COALESCE(pp.known_as, pp.full_name) AS player_name,
+              pl.side AS player_side,
+              pv.outcome, pv.home_goals, pv.away_goals, pv.confidence, pv.submitted_at,
+              EXISTS (SELECT 1 FROM prediction_version nv
+                       WHERE nv.prediction_id = pv.prediction_id
+                         AND nv.version_number > pv.version_number) AS revised_since,
+              sfp.side AS stat_side, p.link_metric AS stat_metric,
+              cs.value::text AS stat_current
+         FROM panel_post p
+         JOIN user_account u ON u.id = p.author_id
+         LEFT JOIN incident i ON p.link_kind = 'incident' AND i.id = p.link_incident_id
+         LEFT JOIN fixture_participant ifp ON ifp.id = i.participant_id
+         LEFT JOIN person ip ON ip.id = i.person_id
+         LEFT JOIN person iq ON iq.id = i.related_person_id
+         LEFT JOIN person pp ON pp.id = p.link_person_id
+         LEFT JOIN LATERAL (
+           SELECT fp.side FROM lineup l
+             JOIN fixture_participant fp ON fp.id = l.participant_id
+            WHERE fp.fixture_id = p.fixture_id AND l.person_id = p.link_person_id
+            LIMIT 1
+         ) pl ON p.link_kind = 'player'
+         LEFT JOIN prediction_version pv ON pv.id = p.link_prediction_version_id
+         LEFT JOIN fixture_participant sfp ON sfp.id = p.link_participant_id
+         LEFT JOIN fixture_stat cs
+                ON cs.participant_id = p.link_participant_id AND cs.metric = p.link_metric
+        WHERE p.link_kind IS NOT NULL AND p.removed_at IS NULL
+          AND ${byPosts ? 'p.id = ANY($1::uuid[])' : 'p.fixture_id = $1'}`,
+      [byPosts ? filter.postIds : filter.fixtureId],
+    );
+    return rows;
   }
 
   /**

@@ -28,7 +28,7 @@ test.describe('news sections', () => {
     await page.getByTestId('section-trending').click();
     await expect(page).toHaveURL(/section=trending/);
     await expect(page.getByTestId('section-trending')).toHaveAttribute('aria-current', 'page');
-    // Trending is computed from discussion only, and the page says so either way.
+    // Trending is computed from discussion and saves only (T-1008), and the page says so either way.
     await expect(page.getByTestId('news-reason')).toBeVisible();
 
     await page.getByTestId('section-debate').click();
