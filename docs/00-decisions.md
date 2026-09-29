@@ -6179,6 +6179,64 @@ arguable, so that a winner is not noise.
 
 ---
 
+## D-145 — A match on neither club's usual ground is forecast without home advantage
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26) · **Task:** T-1122 · **Follows:** D-083, D-139
+
+**The problem.** The fit learns one home advantage per division and gives it
+to whichever side the fixture names at home. A final, a match moved to a third
+ground by a ban, or a cup tie played away from both clubs has no home side in
+any footballing sense, yet it is forecast as if the first-named club were at
+home. Blueprint 6.3 lists "competition format and match state" among the
+inputs; the plan (T-1122) asks for this one on our records.
+
+**The decision.** An input, `neutral_ground` (`fmip_model/inputs/neutral_ground.py`),
+judged by D-139's harness and carried by no candidate until T-1150:
+
+- **A club's usual ground** is the venue of most of its home league matches in
+  the league season that contains the match's day, or, after the league's last
+  day (a cup final in May), the latest season that ended within the year
+  before it. A tie for "most" gives every venue in it, so a ground two clubs
+  share is either club's usual ground.
+- **Neutral** is a stored venue that is neither side's usual ground. The home
+  side's log expected goals then lose the fitted `home_advantage`; the away
+  side's are unchanged. Nothing is fitted: the rule removes a parameter the
+  model already has.
+- **Nothing is read** -- the candidate's forecast, with today's home
+  advantage, stands and the match is outside the sample -- for a match with no
+  stored venue, or where either club has no usual ground (a club whose league
+  we do not carry). A match on either club's ground is not neutral and is
+  outside the sample too. In a served forecast (T-1150) such a match keeps its
+  home advantage and says so in its factors.
+- **Sources.** Venues come from `fixture.venue_id` (fixed when the match is
+  scheduled, not by its result). `fixture.is_neutral_venue` is not used:
+  ingestion always writes it false. football-data.co.uk carries no ground, so
+  only our records' divisions (`IR1`, and `XL`, T-533) can be read.
+
+**The sample and the verdict.** Not run on our records yet: the laptop's
+private database holds only the football-data.co.uk divisions (10,273 matches,
+no fixture or venue rows), where the input cannot be read on any match, so
+the group is `not run` and there is no verdict. The run on the server, where
+our records are, is the lead's; its report states the number of neutral
+matches, and this entry is amended with the verdict and the numbers either
+way. Expect few: finals and the odd relocated league match, likely below
+D-139's 300, in which case the verdict is `insufficient` and no candidate
+carries it. The server run, from `/opt/fmip`:
+
+```bash
+DIVS=$(docker compose exec -T postgres psql -U fmip -d fmip -Atc "SELECT string_agg(DISTINCT m.division, ' ') FROM training.match m JOIN training.source_load l ON l.id = m.source_load_id WHERE l.source = 'our_records'")
+docker compose run --rm -T model sh -c "python -m fmip_model.backtest.inputs --input neutral_ground --divisions $DIVS --from 2025-08-01 --to 2026-06-30 --history-from 2023-07-01 --out /tmp/reports --note server && cat /tmp/reports/*/inputs_neutral_ground_*.md"
+```
+
+**Rejected.** *Fitting a neutral-ground coefficient*: the sample is a few
+dozen matches a season, too few to fit a number that the rule already gives.
+*Halving the home advantage between the sides*: the fit's home advantage is
+the home side's alone (the away side's goals carry none), so removing it is
+the whole of "no home side". *Trusting `is_neutral_venue`*: nothing sets it.
+*The club's most frequent venue over all competitions*: a continental final
+would make its ground look usual for a club that reached two.
+
+---
+
 ## D-147 — Coach changes are read from stored line-ups by person id; a line-up naming no coach is a gap
 **Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26). T-1130's half; T-1131 adds the input's backtest verdict here.
 
