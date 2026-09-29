@@ -7,14 +7,10 @@ import type {
 } from '@fmip/contracts';
 import { IdentityService } from '../identity/identity.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import {
-  CONTRIBUTOR_FLAG_RULES,
-  flagKey,
-  flagPeriodDays,
-  planFlags,
-} from './internal/contributor-flag';
+import { RatingThresholdsService } from '../rating-thresholds/rating-thresholds.service';
+import { CONTRIBUTOR_FLAG_RULES, flagKey, planFlags } from './internal/contributor-flag';
 import { PostgresContributorFlagStore, type FlagRow } from './internal/contributor-flag-store';
-import { ELIGIBILITY_V1 } from './internal/eligibility';
+import { underThresholds } from './internal/eligibility';
 
 /**
  * Contributors below the threshold for a sustained period (blueprint 9.4,
@@ -59,11 +55,10 @@ export interface FlagCheckResult {
 @Injectable()
 export class ContributorFlagService {
   private readonly log = new Logger(ContributorFlagService.name);
-  /** Read once at boot, like every other setting; see `flagPeriodDays`. */
-  readonly periodDays = flagPeriodDays();
 
   constructor(
     private readonly store: PostgresContributorFlagStore,
+    private readonly thresholds: RatingThresholdsService,
     private readonly identity: IdentityService,
     private readonly notifications: NotificationsService,
   ) {}
@@ -72,22 +67,28 @@ export class ContributorFlagService {
    * The daily check: close the flags whose stretch is over, raise one for
    * every live contributor whose current stretch below the threshold has
    * lasted the period, and tell every administrator once per new flag.
-   * Recomputable: it reads only the stored ratings and grants (rule 8).
+   * Recomputable: it reads only the stored ratings and grants (rule 8), under
+   * the threshold version in force at `now` (T-1160), whose threshold, period
+   * and version every raised flag carries. `periodDays` overrides the
+   * version's period for a test only.
    */
-  async check(now: Date, periodDays = this.periodDays): Promise<FlagCheckResult> {
-    const threshold = ELIGIBILITY_V1.minRating;
+  async check(now: Date, periodDays?: number): Promise<FlagCheckResult> {
+    const inForce = await this.thresholds.inForce(now);
+    const threshold = inForce.contributorMinRating;
+    const period = periodDays ?? inForce.flagPeriodDays;
+    const rules = underThresholds(CONTRIBUTOR_FLAG_RULES, inForce.version);
     const [holders, open] = await Promise.all([this.store.liveHolders(), this.store.openFlags()]);
     const ratings = await this.store.ratings([
       ...new Set([...holders.map((h) => h.userId), ...open.map((f) => f.userId)]),
     ]);
-    const plan = planFlags(holders, open, ratings, threshold, periodDays, now);
+    const plan = planFlags(holders, open, ratings, threshold, period, now);
 
     for (const closure of plan.close) await this.store.close(closure.id, closure.reason);
 
     let raised = 0;
     const admins = plan.raise.length > 0 ? await this.identity.holdersOf('admin') : [];
     for (const flag of plan.raise) {
-      const id = await this.store.raise(flag, threshold, periodDays, CONTRIBUTOR_FLAG_RULES);
+      const id = await this.store.raise(flag, threshold, period, rules);
       if (id === null) continue;
       raised += 1;
       await this.notifications.emitMany(
@@ -107,16 +108,18 @@ export class ContributorFlagService {
         event: 'contributor_flag.checked',
         raised,
         closed: plan.close.length,
-        period_days: periodDays,
+        period_days: period,
+        threshold_version: inForce.version,
       });
     }
     return { raised, closed: plan.close.length };
   }
 
   async listOpen(): Promise<ContributorFlagListResponse> {
+    const inForce = await this.thresholds.inForce();
     return {
-      period_days: this.periodDays,
-      threshold: ELIGIBILITY_V1.minRating,
+      period_days: inForce.flagPeriodDays,
+      threshold: inForce.contributorMinRating,
       flags: (await this.store.listOpen()).map(flagOf),
     };
   }

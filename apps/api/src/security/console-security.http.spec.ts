@@ -99,6 +99,21 @@ const CONSOLE: Record<string, ConsoleRoute> = {
   'GET /admin/locale-holds': { roles: ADMIN },
   'POST /admin/locales/:locale/hold': { roles: ADMIN, reason: { without: {} } },
   'POST /admin/locales/:locale/release': { roles: ADMIN, reason: { without: {} } },
+  // Rating thresholds as versioned rows (T-1160, D-152).
+  'GET /admin/rating-thresholds': { roles: ADMIN },
+  'POST /admin/rating-thresholds': {
+    roles: ADMIN,
+    reason: {
+      without: {
+        provisional_below: 30,
+        established_at: 50,
+        contributor_min_rating: 70,
+        contributor_min_settled: 50,
+        conduct_window_days: 90,
+        flag_period_days: 30,
+      },
+    },
+  },
   'POST /admin/ingestion/backfill': { roles: ADMIN, reason: { without: {} } },
 
   // News sources (T-1015): add, edit and drop a publisher's feed.

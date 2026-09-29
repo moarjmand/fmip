@@ -906,6 +906,18 @@ export type {
   LocaleHoldRecord,
   LocaleHoldRequest,
 } from './locale-hold';
+// Rating thresholds as versioned rows (T-1160, D-152, D-164).
+export {
+  RATING_THRESHOLD_BOUNDS,
+  RATING_THRESHOLD_FIELDS,
+  RATING_THRESHOLD_MAX_LEAD_DAYS,
+} from './rating-threshold';
+export type {
+  RatingThresholdListResponse,
+  RatingThresholdValues,
+  RatingThresholdVersion,
+  SetRatingThresholdsRequest,
+} from './rating-threshold';
 // League zones from a committed list (T-1167, D-171). The list is
 // `zones/league-zones.json`, read as `@fmip/contracts/zones/league-zones.json`.
 export { LEAGUE_ZONE_KINDS, leagueZoneProblems, leagueZonesFor, zoneOfPlace } from './league-zones';

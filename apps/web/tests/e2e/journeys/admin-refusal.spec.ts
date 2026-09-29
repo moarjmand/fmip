@@ -30,6 +30,7 @@ const REFUSING: Record<string, string> = {
   '/en/admin/news-sources': 'news-sources-forbidden',
   '/en/admin/data-quality': 'data-quality-forbidden',
   '/en/admin/competitions': 'competition-order-forbidden',
+  '/en/admin/rating-thresholds': 'rating-thresholds-forbidden',
   '/en/admin/news-coverage': 'news-coverage-forbidden',
   '/en/admin/model-candidates': 'model-candidates-forbidden',
   '/en/admin/moderation': 'moderation-queue-forbidden',

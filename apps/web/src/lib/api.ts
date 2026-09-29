@@ -15,6 +15,7 @@ import type {
   AdminOverview,
   HeldLocalesResponse,
   LocaleHoldListResponse,
+  RatingThresholdListResponse,
   FailureCountsReport,
   RateLimitsReport,
   WatchdogReport,
@@ -152,6 +153,16 @@ export function fetchLocaleHolds(
 ): Promise<ApiResult<LocaleHoldListResponse>> {
   return apiRequest<LocaleHoldListResponse>(
     '/admin/locale-holds',
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/** `GET /admin/rating-thresholds` (T-1160, D-152): every threshold version, newest first. Administrators only. */
+export function fetchRatingThresholds(
+  cookie: string | undefined,
+): Promise<ApiResult<RatingThresholdListResponse>> {
+  return apiRequest<RatingThresholdListResponse>(
+    '/admin/rating-thresholds',
     cookie === undefined ? {} : { cookie },
   );
 }

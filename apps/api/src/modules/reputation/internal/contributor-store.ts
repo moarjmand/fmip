@@ -45,8 +45,8 @@ export interface CandidateRow {
  *
  * The window is applied in SQL rather than in TypeScript so that "now" is the
  * database's — the same clock that decided `under_sanction`. The number itself
- * still comes from `ELIGIBILITY_V1`: one home for the value, one clock for the
- * comparison.
+ * still comes from the threshold version in force (T-1160): one home for the
+ * value, one clock for the comparison.
  */
 function factColumns(windowParam: string): string {
   return `user_id,

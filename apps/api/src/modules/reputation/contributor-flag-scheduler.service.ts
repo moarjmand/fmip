@@ -61,10 +61,7 @@ export class ContributorFlagSchedulerService implements OnModuleInit, OnApplicat
       { pattern: CONTRIBUTOR_FLAG_SCHEDULE, tz: 'UTC' },
       { name: CONTRIBUTOR_FLAG_JOB, opts: { removeOnComplete: 20, removeOnFail: 20 } },
     );
-    this.log.log('contributor-flag check on', {
-      event: 'contributor_flag.schedule_on',
-      period_days: this.flags.periodDays,
-    });
+    this.log.log('contributor-flag check on', { event: 'contributor_flag.schedule_on' });
   }
 
   async onApplicationShutdown(): Promise<void> {

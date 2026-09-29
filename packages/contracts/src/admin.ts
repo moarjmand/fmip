@@ -1,3 +1,4 @@
+import type { RatingThresholdValues } from './rating-threshold';
 import type { CoverageState } from './coverage';
 import type { IngestionHealth } from './health';
 
@@ -30,12 +31,18 @@ export interface FreshnessRow {
   last_change_at: string | null;
 }
 
-/** The rule objects in force, by version. Read-only: a change is a versioned code change (D-035, D-036). */
+/**
+ * The rule objects in force, by version. The formula, points and leaderboard
+ * rules change only by a versioned code change (D-035, D-036); the thresholds
+ * are a versioned row an administrator supersedes (T-1160, D-164), and the
+ * formula and eligibility here are shown under the version in force.
+ */
 export interface RatingConfig {
   formula: { version: string } & Record<string, unknown>;
   points: { version: string } & Record<string, unknown>;
   eligibility: { version: string } & Record<string, unknown>;
   leaderboard: { version: string } & Record<string, unknown>;
+  thresholds: { version: number } & RatingThresholdValues;
 }
 
 /** `GET /admin/overview`. */

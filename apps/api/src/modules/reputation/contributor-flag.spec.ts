@@ -1,27 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import {
-  CONTRIBUTOR_FLAG_PROPOSED_PERIOD_DAYS,
-  belowSince,
-  flagPeriodDays,
-  planFlags,
-  stretchDue,
-  type RatingPoint,
-} from './internal/contributor-flag';
+import { belowSince, planFlags, stretchDue, type RatingPoint } from './internal/contributor-flag';
 
 const day = (n: number) => new Date(Date.UTC(2026, 0, 1) + n * 86_400_000);
 const points = (...pairs: [number, number][]): RatingPoint[] =>
   pairs.map(([d, rating]) => ({ at: day(d), rating }));
-
-describe('flagPeriodDays (T-1031, D-137)', () => {
-  it('is the proposal of 30 days unless the setting names another whole number of days', () => {
-    expect(CONTRIBUTOR_FLAG_PROPOSED_PERIOD_DAYS).toBe(30);
-    expect(flagPeriodDays({})).toBe(30);
-    expect(flagPeriodDays({ CONTRIBUTOR_FLAG_PERIOD_DAYS: '45' })).toBe(45);
-    for (const bad of ['0', '-3', '2.5', 'thirty', '366']) {
-      expect(flagPeriodDays({ CONTRIBUTOR_FLAG_PERIOD_DAYS: bad })).toBe(30);
-    }
-  });
-});
 
 describe('belowSince', () => {
   it('is the start of the unbroken run below that ends with the newest rating', () => {

@@ -13,11 +13,12 @@ import type { ContributorEligibility, EligibilityShortfall } from '@fmip/contrac
  * "cannot by themselves unlock expert status"). The type says so — this
  * function cannot even see them.
  *
- * **The numbers live here and nowhere else.** `13-policy.md` §1 fixes them and
- * this is the constant it points at, including the ninety-day conduct window.
- * The database deliberately holds none of them: `contributor_eligibility_input`
- * carries facts, and a copy of `70` in SQL would be a second place to change a
- * number nobody would find the day the two disagreed.
+ * **The numbers are a `rating_threshold_version` row** since T-1160 (D-164):
+ * an administrator supersedes them from the console with a reason and a
+ * start, and `eligibilityRulesUnder` turns the row in force into these rules.
+ * `ELIGIBILITY_V1` is version 1's values, the ones `13-policy.md` §1 fixed.
+ * The view still holds none of them: `contributor_eligibility_input` carries
+ * facts, and the numbers arrive as parameters.
  */
 export interface EligibilityRules {
   version: string;
@@ -44,6 +45,34 @@ export const ELIGIBILITY_V1: EligibilityRules = {
   minSettled: 50,
   conductWindowDays: 90,
 };
+
+/**
+ * The rules under a threshold version (T-1160, D-164). Version 1 keeps
+ * `privilege-eligibility@1.1.0` exactly, so a verdict recorded before and
+ * after the day T-1160 ships reads the same; a later version is named as
+ * build metadata (`privilege-eligibility@1.1.0+thresholds.2`), so every
+ * stored `rules_version` says which row it was judged by (rule 8). The
+ * requirements themselves are unchanged: a new requirement is a new version
+ * here, not a row.
+ */
+export function eligibilityRulesUnder(thresholds: {
+  version: number;
+  contributorMinRating: number;
+  contributorMinSettled: number;
+  conductWindowDays: number;
+}): EligibilityRules {
+  return {
+    version: underThresholds(ELIGIBILITY_V1.version, thresholds.version),
+    minRating: thresholds.contributorMinRating,
+    minSettled: thresholds.contributorMinSettled,
+    conductWindowDays: thresholds.conductWindowDays,
+  };
+}
+
+/** A rules version as judged under threshold version `n`: unchanged under version 1. */
+export function underThresholds(rulesVersion: string, n: number): string {
+  return n === 1 ? rulesVersion : `${rulesVersion}+thresholds.${n}`;
+}
 
 /**
  * What the four requirements are judged from. Every field is a fact somebody

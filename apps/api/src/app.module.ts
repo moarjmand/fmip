@@ -38,6 +38,7 @@ import { ActivityModule } from './modules/activity/activity.module';
 import { RateLimitsModule } from './modules/rate-limits/rate-limits.module';
 import { HomepageModule } from './modules/homepage/homepage.module';
 import { LocaleHoldsModule } from './modules/locale-holds/locale-holds.module';
+import { RatingThresholdsModule } from './modules/rating-thresholds/rating-thresholds.module';
 
 /**
  * The remaining modules from `docs/02-architecture.md` are registered here as
@@ -85,6 +86,7 @@ import { LocaleHoldsModule } from './modules/locale-holds/locale-holds.module';
     RateLimitsModule,
     HomepageModule,
     LocaleHoldsModule,
+    RatingThresholdsModule,
     AdminModule,
   ],
 })

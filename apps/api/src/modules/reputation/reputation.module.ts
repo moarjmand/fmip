@@ -6,6 +6,7 @@ import { IdentityModule } from '../identity/identity.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { PredictionsModule } from '../predictions/predictions.module';
 import { ProfileModule } from '../profile/profile.module';
+import { RatingThresholdsModule } from '../rating-thresholds/rating-thresholds.module';
 import { SocialModule } from '../social/social.module';
 import { CareerPointsService } from './career-points.service';
 import { ContributorFlagSchedulerService } from './contributor-flag-scheduler.service';
@@ -48,6 +49,8 @@ import { ReputationService } from './reputation.service';
     SocialModule,
     // The daily contributor-flag job reports its failures like every job (T-1031).
     FailureCountsModule,
+    // The thresholds in force for every rating, eligibility and flag (T-1160, D-164).
+    RatingThresholdsModule,
   ],
   controllers: [ReputationController, ContributorController],
   providers: [
