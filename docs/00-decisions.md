@@ -6070,6 +6070,70 @@ one query, so a table would be a second copy to keep in step.
 content hash) leaves the coaches out, because `training.match` does not store
 them.
 
+---
+
+## D-148 — Head-to-head is read only as what past meetings leave after current strength, and it failed its bar: no candidate carries it
+**Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26) · **Task:** T-1140 · **Follows:** D-016, D-139
+
+**The problem.** Blueprint 6.3 admits head-to-head only if it adds something
+once current strength is in the fit. A raw record (wins, draws, losses)
+mostly repeats strength: the stronger club has usually won the meetings
+too. The question is whether a pairing has an edge of its own.
+
+**The input** (`fmip_model/inputs/head_to_head.py`, `--input head_to_head`).
+For a match, every earlier meeting of the two clubs in the division (either
+venue, strictly before the match's day, at most ten years back) is scored
+against the fitted model's expected goals for that meeting's venue, and the
+residual goal difference from the home side's view is averaged with a
+two-year half-life and shrunk by two zero-residual meetings. One
+coefficient per refit (time-weighted Poisson likelihood, the model's expected
+goals as offsets, as D-086 and every `FeatureInput`) moves the home side's
+log expected goals by `beta * x` and the away side's by `-beta * x`. Two
+clubs that never met in the span give no value: the candidate's forecast
+stands and the match is outside the sample (95% of matches had a value).
+The meetings are read from the harness's rows and, where the store holds
+more, from the division's whole `training.match` history. The constants
+(half-life 730 days, two pseudo-meetings, ten years) were fixed before the
+first run and not tuned, so no window chose them.
+
+**The verdict: failed.** Laptop run, 2026-09-29, a private store (not
+production) loaded with football-data.co.uk 2012/13 to 2026/27 (to
+2026-09-20) for E0, SP1, D1, I1, F1, N1, P1, T1, B1 and SC0 (D-016: training
+only); window 2024-07-01 to 2026-09-28, history from two years before,
+against `dixon-coles-elo@0.5.0`:
+
+| Group | Scored | Applied | Log loss candidate | with head-to-head | Difference [95% interval] | Calibration candidate / with |
+|---|---|---|---|---|---|---|
+| football-data | 6,946 | 6,590 | 0.9821 | 0.9826 | +0.00056 [-0.00011, +0.00121] | 0.0134 / 0.0139 |
+
+Worse in 8 of 10 divisions (better only in E0, 1.0024 to 1.0019, and B1,
+1.0060 to 1.0039). The harness's control (`--input null`) failed on the same
+run, as it must. Our records' divisions were not run on the laptop (no
+records there). Report: `reports/dixon-coles-elo-0.5.0/inputs_head_to_head_2024-07-01..2026-09-28.{md,json}`.
+
+**The lead's re-run on the server** (it adds IR1, our records, and scores the
+server's own store; a division the store lacks is skipped and named):
+
+```
+docker compose run --rm -T model python -m fmip_model.backtest.inputs --input head_to_head --divisions E0 E1 SP1 D1 I1 F1 N1 P1 T1 B1 SC0 IR1 --from 2024-07-01 --to 2026-09-28 --out /tmp/reports --note "server"
+```
+
+The server's football-data rows start in 2023/24, so its head-to-head reads
+fewer meetings than the laptop's; if our records' group passes there while
+football-data fails, the overall verdict is still failed (D-139).
+
+**So.** No candidate carries head-to-head; T-1150 leaves it out. What members
+see as head-to-head (`head_to_head`, T-033) is a record of results, not this
+input, and is unchanged. The module stays, so the input can be re-run on a
+later window or a longer store without new code.
+
+**Rejected.** *The raw record as a feature*: it restates strength, which the
+model already has, and would pass only by double-counting it. *Tuning the
+half-life on the scoring window*: the verdict would be chosen by its own
+numbers. *Residuals against a model fitted at each past meeting's date*: the
+same question at many times the cost, and the meetings that matter are
+recent enough for today's fit to be the fair yardstick.
+
 ## D-153 — Featured matches on the homepage: an editor's placement with a window and a note, first after a member's favourites
 **Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
 
