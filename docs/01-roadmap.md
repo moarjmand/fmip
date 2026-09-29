@@ -239,25 +239,44 @@ the feeds' terms.
 
 **Where it stands (2026-09-29).** Every task in `04-tasks-phase-10.md` is built, merged and on the server (#404-#428): story types from editors and the publisher's own categories (the mapping ships empty until publishers are carried), filters by type, player and date, the breaking mark and its opt-in alert, players linked to stories (switched off, `NEWS_PERSON_LINKS`, until squads and feeds exist to measure it), the player page's news and availability, trending that counts saves, the editor's news desk and news coverage per competition; the translator's glossary, automatic checks, desk and memory (no translated word written); groups' invite policy and links, language and favourite, rules, message removal and closure; panel posts linked to their match, and contributors flagged below the threshold. Three tasks were added while building: T-1015 (news sources added, edited and dropped from the console, robots and the feed checked first), T-1026 (the group owner's controls on the web) and T-1040 (the client receives only the reader's catalogue: about 72 kB less first-load JavaScript on every page, D-138). Production carries no news source yet: which publishers to carry is the maintainer's (N-8).
 
-## After Phase 10 — outline
+## Phase 11 — Model depth and the console's configuration
 
-Not planned as tasks. Each bullet becomes a task file when its phase starts,
-from the blueprint and whatever operation has taught by then.
+- One harness that backtests a model input against the published version and
+  the current candidate, on the football-data divisions and our own records,
+  and several candidates in shadow at once, so a new input never resets
+  0.5.0's count toward its promotion.
+- The inputs blueprint 6.3 lists and the fit does not read, each a shadow
+  candidate with a backtest verdict: rest and fixture congestion, league
+  stakes, the second leg of a tie, neutral grounds, a new coach (once the
+  past seasons' line-ups are loaded), head-to-head (only if the backtest
+  supports it) and home advantage by team. The inputs that pass go into one
+  next candidate, promoted only by a task with the numbers (D-082).
+- The Power Index's rest component validated and its competition context
+  (5%) measured.
+- In the console: featured matches on the homepage, the competitions' order,
+  holding back a ready language, a member's rating history and privileges on
+  one page, the candidates' records, and, on the maintainer's answer to
+  Phase 9's N-7, rating thresholds as versioned rows.
 
-**Phase 11 — Model depth and the console's configuration.**
+**Planned in `04-tasks-phase-11.md`** (2026-09-29, from a comparison of
+blueprint 2.3, 6.1, 6.3, 6.4, 9.1, 13, 14 and 16 against what is built).
+Seven epics and twenty-two tasks (this plan included). Decision numbers
+D-139 to D-155 and migration timestamps from `1765100000000` are assigned in
+the plan. Everything is buildable by an agent except T-1160, applied only on
+the maintainer's answer to Phase 9's N-7. T-1131 waits for the past seasons'
+line-ups and T-1151 for 300 pre-kick-off forecasts. Travel was not planned as
+a task: `venue` has coordinate columns but nothing fills them, because the
+feed gives a ground's name and city only. Home advantage by team was added
+(6.3, missed by the outline). Five questions are listed under "Needs a
+decision": travel, league zones, territory settings, coaching spells from the
+feed, and how much of a season an input must cover.
 
-- The model inputs blueprint 6.3 lists and the model does not yet read: rest,
-  travel and fixture congestion; competition context (also the Power Index's
-  unmodelled 5%); manager changes; head-to-head, only if the backtest shows it
-  adds value. Each is a shadow candidate, promoted on its record (D-082).
-- Rating thresholds set from the console as versioned rows, if Phase 9's N-7
-  is answered that way. Homepage ordering, and language and territory
-  settings, in the console (16).
+## After Phase 11
 
 **Waiting on the maintainer, in no phase until answered:** Phase 8's N-1
 (T-806), N-2 (point-in-time recovery), N-4 (a copy of my data), N-5 (predicted
-line-ups) and N-6 (women's and youth football); Phase 9's N-3 to N-6; Phase
-10's N-1 to N-8;
+line-ups) and N-6 (women's and youth football); Phase 9's N-3 to N-7; Phase
+10's N-1 to N-8; Phase 11's N-1 to N-5;
 the language model's key (T-400) and the Telegram channel (T-524).
 
 **After Phase 11, nothing in the blueprint is left unplanned** except what an
