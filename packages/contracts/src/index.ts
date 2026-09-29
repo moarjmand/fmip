@@ -543,6 +543,7 @@ export type {
 // Groups (blueprint 8.2 and the exclusive groups of 10.1, T-240). Three
 // visibilities, because "found but not read" is the case a boolean would lose.
 export {
+  GROUP_INVITE_POLICIES,
   GROUP_ROLES,
   GROUP_SLUG_PATTERN,
   GROUP_STANDINGS,
@@ -570,7 +571,10 @@ export type {
   GroupPollResponse,
   GroupPollsResponse,
   GroupPollVoteRequest,
+  GroupHistoryEntry,
+  GroupHistoryResponse,
   GroupInvite,
+  GroupInvitePolicy,
   GroupInvitesResponse,
   GroupJoinRequest,
   GroupJoinRequestsResponse,
@@ -583,6 +587,7 @@ export type {
   GroupsResponse,
   JoinGroupRequest,
   RemoveGroupPollRequest,
+  SetGroupInvitePolicyRequest,
   SetGroupRoleRequest,
   UpdateGroupRequest,
 } from './groups';

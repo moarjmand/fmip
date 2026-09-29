@@ -150,6 +150,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('groups over 
       // before the accounts go, or the foreign keys that clean up credentials
       // and sessions are switched off too (03-project-map.md).
       await client.query(`SET session_replication_role = 'replica'`);
+      await client.query(`DELETE FROM audit_log WHERE actor_id = ANY($1::uuid[])`, [everyone]);
       await client.query(
         `DELETE FROM group_member WHERE user_id = ANY($1::uuid[])
             OR group_id IN (SELECT id FROM user_group WHERE created_by = ANY($1::uuid[]))`,
@@ -405,6 +406,95 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('groups over 
     );
     expect(over.statusCode).toBe(429);
     expect((over.json() as { error: string }).error).toBe('rate_limited');
+  });
+
+  describe("who may invite is the owner's choice (T-1020, D-132)", () => {
+    it('keeps what every group did before: the owner and the moderators', async () => {
+      const slug = await group(ada, 'public');
+      const body = (await get(`/groups/${slug}`, ada)).json() as { group: Group };
+      expect(body.group.invite_policy).toBe('owner_and_moderators');
+      expect(body.group.may_invite).toBe(true);
+    });
+
+    it('lets every member invite once the owner says so, and audits the change', async () => {
+      const slug = await group(ada, 'public');
+      await post(`/groups/${slug}/members`, null, bo);
+      const refused = await post(`/groups/${slug}/invites/${cass}`, null, bo);
+      expect(refused.statusCode).toBe(403);
+      expect((refused.json() as { message: string }).message).toBe(
+        "Only this group's owner and moderators invite people to it.",
+      );
+
+      expect(
+        (await put(`/groups/${slug}/invite-policy`, { invite_policy: 'members' }, ada)).statusCode,
+      ).toBe(204);
+      const seen = (await get(`/groups/${slug}`, bo)).json() as { group: Group };
+      expect(seen.group.may_invite).toBe(true);
+      expect((await post(`/groups/${slug}/invites/${cass}`, null, bo)).statusCode).toBe(204);
+      // Their own offer is theirs to take back.
+      expect((await del(`/groups/${slug}/invites/${cass}`, bo)).statusCode).toBe(204);
+
+      const history = await get(`/groups/${slug}/history`, ada);
+      expect(history.statusCode).toBe(200);
+      expect(
+        (
+          history.json() as {
+            history: { action: string; actor: string; previous: unknown; next: unknown }[];
+          }
+        ).history,
+      ).toEqual([
+        expect.objectContaining({
+          action: 'user_group.invite_policy',
+          actor: ada,
+          previous: { invite_policy: 'owner_and_moderators' },
+          next: { invite_policy: 'members' },
+        }),
+      ]);
+      // The history is for the people who run the group.
+      expect((await get(`/groups/${slug}/history`, bo)).statusCode).toBe(403);
+    });
+
+    it('refuses a moderator when only the owner invites, and says so', async () => {
+      const slug = await group(ada, 'public');
+      await post(`/groups/${slug}/members`, null, bo);
+      await put(`/groups/${slug}/members/${bo}/role`, { role: 'moderator' }, ada);
+      await put(`/groups/${slug}/invite-policy`, { invite_policy: 'owner' }, ada);
+      const refused = await post(`/groups/${slug}/invites/${cass}`, null, bo);
+      expect(refused.statusCode).toBe(403);
+      expect((refused.json() as { message: string }).message).toBe(
+        "Only this group's owner invites people to it.",
+      );
+      expect((await post(`/groups/${slug}/invites/${stranger}`, null, ada)).statusCode).toBe(204);
+    });
+
+    it("is the owner's alone to change, and only to a policy that exists", async () => {
+      const slug = await group(ada, 'public');
+      await post(`/groups/${slug}/members`, null, bo);
+      await put(`/groups/${slug}/members/${bo}/role`, { role: 'moderator' }, ada);
+      expect(
+        (await put(`/groups/${slug}/invite-policy`, { invite_policy: 'members' }, bo)).statusCode,
+      ).toBe(403);
+      expect(
+        (await put(`/groups/${slug}/invite-policy`, { invite_policy: 'anyone' }, ada)).statusCode,
+      ).toBe(400);
+      // A repeat of the same policy writes no second history line.
+      await put(`/groups/${slug}/invite-policy`, { invite_policy: 'owner' }, ada);
+      await put(`/groups/${slug}/invite-policy`, { invite_policy: 'owner' }, ada);
+      const history = (await get(`/groups/${slug}/history`, ada)).json() as { history: unknown[] };
+      expect(history.history).toHaveLength(1);
+    });
+
+    it("is the schema's rule: a direct insert the policy does not allow is refused", async () => {
+      const slug = await group(ada, 'public');
+      await post(`/groups/${slug}/members`, null, bo);
+      await expect(
+        pool.query(
+          `INSERT INTO group_invite (group_id, invitee_id, invited_by)
+           SELECT id, $2, $3 FROM user_group WHERE slug = $1`,
+          [slug, ids.get(cass), ids.get(bo)],
+        ),
+      ).rejects.toMatchObject({ code: 'PL006' });
+    });
   });
 
   it('answers a group that is not there with 404 on every verb', async () => {

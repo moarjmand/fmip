@@ -4963,3 +4963,53 @@ member product beside the others. Showing a friend's call regardless of their
 setting because the viewer is a friend: a second visibility rule, which D-063
 exists to refuse. Showing removed posts as tombstones in the excerpt: honest on
 the panel, noise on a homepage line.
+
+
+## D-132 — Who may invite to a group is the owner's choice of three, applied by the schema; invite links store only a hash
+
+**Date:** 2026-09-29 · **Tasks:** T-1020, T-1021 · **Status:** accepted (revisable under the standing delegation of 2026-09-26)
+
+Blueprint 8.2 lets a group's owner decide who may invite, and asks for invite
+links. T-241 let the owner and the moderators invite and nobody else.
+
+**Three policies, a closed list: `owner`, `owner_and_moderators`, `members`.**
+`user_group.invite_policy` is a check over those three. The default is
+`owner_and_moderators` because that is what every group already did: an
+existing group keeps today's behaviour, and the migration needs no backfill.
+Only the owner changes it (`PUT /groups/:slug/invite-policy`); a moderator
+runs a group but does not decide who opens its door.
+
+**The schema applies it, like every other membership rule (D-057).**
+`group_may_invite(group, member)` is the one question, and
+`group_invite_a_policy_guard` refuses an invitation it does not allow
+(`PL006`, hint `invite_policy`). The trigger fires before the existing guard
+and the hourly ceiling, so somebody who may not invite at all is told that,
+and a refused attempt is not counted. The API lets anybody inside the group
+try, and turns the refusal into the policy in words ("Only this group's owner
+invites people to it.") with a 403. A stranger is still 403, or 404 for an
+invite-only group, before the database is asked.
+
+**A change is audited in the group's history.** The new value and its
+`audit_log` row (`user_group.invite_policy`, the owner, the policy before and
+after) are one transaction; setting the policy it already has writes nothing.
+`GET /groups/:slug/history` reads the audit rows whose target is the group,
+newest first, for its owner and moderators. The reason recorded is a fixed
+sentence naming the owner's setting: it is the owner's own group, not an
+administrator's action, so nobody is asked to justify it.
+
+**Withdrawing follows inviting.** The owner and the moderators withdraw any
+invitation; a member a `members` policy lets invite withdraws only one they
+sent.
+
+**Invite links (T-1021)** are decided with this entry: whoever the policy
+lets invite creates one, with an expiry and a use cap, and may revoke it. Only
+a hash of the token is stored. A link obeys the same gates as a direct
+invitation -- the policy at the moment it is followed, blocks, a `groups`
+sanction and a verified e-mail -- and T-1021 records the details below.
+
+**Alternatives considered.** A boolean "members may invite": loses the
+owner-only case the blueprint's "owner-controlled" implies. Deciding the
+policy in the service: a second copy of a membership rule, which D-057
+refuses. Asking the owner for a reason on every change: rule 10 is about
+administrators' high-impact actions; an owner's setting on their own group
+is recorded with who and when, which is what the history needs.

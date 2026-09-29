@@ -2,11 +2,14 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { Pool } from 'pg';
 import {
   type CreateGroupRequest,
+  GROUP_INVITE_POLICIES,
   GROUP_ROLES,
   GROUP_SLUG_PATTERN,
   GROUP_VISIBILITIES,
   type Group,
+  type GroupHistoryEntry,
   type GroupInvite,
+  type GroupInvitePolicy,
   type GroupJoinRequest,
   type GroupMember,
   type GroupRole,
@@ -30,6 +33,29 @@ import { NotificationsService } from '../notifications/notifications.service';
 
 /** How many groups a directory page shows. */
 export const DIRECTORY_LIMIT = 50;
+/** How many entries of a group's history one read returns. */
+export const HISTORY_LIMIT = 100;
+
+/**
+ * Whether a role may invite under a policy (T-1020, D-132). The schema's
+ * `group_may_invite()` is the rule; this is the same table, read only to say
+ * `may_invite` on a group's page, never to refuse.
+ */
+export function mayInvite(policy: string, role: string | null): boolean {
+  if (role === null) return false;
+  if (policy === 'owner') return role === 'owner';
+  if (policy === 'owner_and_moderators') return role === 'owner' || role === 'moderator';
+  return true;
+}
+
+/** The sentence a refused inviter reads: which policy, in words. */
+export function policySentence(policy: string): string {
+  if (policy === 'owner') return "Only this group's owner invites people to it.";
+  if (policy === 'owner_and_moderators') {
+    return "Only this group's owner and moderators invite people to it.";
+  }
+  return 'Every member of this group may invite people to it.';
+}
 
 /**
  * Why a verb was refused. One list, mapped to status codes once, in the
@@ -48,7 +74,8 @@ export type GroupRefusal =
   | 'wrong_door'
   | 'restricted'
   | 'unavailable'
-  | 'rate_limited';
+  | 'rate_limited'
+  | 'policy';
 
 /**
  * The answer to "who is in this group, and may you ask" (T-243). Narrower than
@@ -63,10 +90,12 @@ export type GroupAudience =
   { ok: true; members: string[] } | { ok: false; reason: 'not_found' | 'members_only' };
 
 export type GroupOutcome<T> =
-  { ok: true; value: T } | { ok: false; reason: GroupRefusal; fields?: Record<string, string> };
+  | { ok: true; value: T }
+  | { ok: false; reason: GroupRefusal; fields?: Record<string, string>; message?: string };
 
 const BLOCKED = 'PL003';
 const SANCTIONED = 'PL004';
+const NOT_PERMITTED = 'PL006';
 const OVER_RATE = 'PL005';
 const SLUG_FIXED = 'PL008';
 const LAST_OWNER = 'PL009';
@@ -177,6 +206,8 @@ export class GroupsService {
           ? (await this.store.members(row.id)).map(membership)
           : null,
       pending: decides ? await this.store.pending(row.id) : null,
+      invite_policy: row.invite_policy as GroupInvitePolicy,
+      may_invite: mayInvite(row.invite_policy, role),
     };
   }
 
@@ -415,7 +446,10 @@ export class GroupsService {
     username: string,
   ): Promise<GroupOutcome<true>> {
     const viewerId = viewer.id;
-    const found = await this.decider(viewerId, slug);
+    // Inside the group, then the policy -- which is the schema's to apply
+    // (T-1020): a member the policy does not cover is refused by
+    // `group_invite_a_policy_guard` and told which policy it is.
+    const found = await this.inside(viewerId, slug);
     if (!found.ok) return found;
     if (!viewer.emailVerified) return { ok: false, reason: 'forbidden' };
 
@@ -439,21 +473,78 @@ export class GroupsService {
       return { ok: true, value: true };
     } catch (error) {
       if (code(error) === UNIQUE) return { ok: false, reason: 'conflict' };
+      if (code(error) === NOT_PERMITTED) {
+        return {
+          ok: false,
+          reason: 'policy',
+          message: policySentence(found.value.group.invite_policy),
+        };
+      }
       return this.refusal(error);
     }
   }
 
+  /**
+   * The owner and the moderators withdraw any invitation; anybody else in the
+   * group only one they sent themselves (T-1020).
+   */
   async withdrawInvite(
     viewerId: string,
     slug: string,
     username: string,
   ): Promise<GroupOutcome<true>> {
-    const found = await this.decider(viewerId, slug);
+    const found = await this.inside(viewerId, slug);
     if (!found.ok) return found;
     const invitee = await this.store.memberIdByUsername(username);
     if (invitee === null) return { ok: false, reason: 'not_found' };
-    const gone = await this.store.withdrawInvite(found.value.group.id, invitee);
+    const decides = found.value.role === 'owner' || found.value.role === 'moderator';
+    const gone = await this.store.withdrawInvite(
+      found.value.group.id,
+      invitee,
+      decides ? undefined : viewerId,
+    );
     return gone ? { ok: true, value: true } : { ok: false, reason: 'not_found' };
+  }
+
+  // -------------------------------------------------------------------------
+  // Who may invite, and the group's history (T-1020, D-132)
+  // -------------------------------------------------------------------------
+
+  /** The owner only: a moderator runs a group; the owner decides who opens its door. */
+  async setInvitePolicy(
+    viewerId: string,
+    slug: string,
+    policy: GroupInvitePolicy,
+  ): Promise<GroupOutcome<true>> {
+    if (!GROUP_INVITE_POLICIES.includes(policy)) {
+      return { ok: false, reason: 'invalid', fields: { invite_policy: 'Not a policy.' } };
+    }
+    const found = await this.owner(viewerId, slug);
+    if (!found.ok) return found;
+    try {
+      await this.store.setInvitePolicy(found.value.group.id, viewerId, policy);
+      return { ok: true, value: true };
+    } catch (error) {
+      return this.refusal(error);
+    }
+  }
+
+  /** Every audited change to the group, for the people who run it. */
+  async history(viewerId: string, slug: string): Promise<GroupOutcome<GroupHistoryEntry[]>> {
+    const found = await this.decider(viewerId, slug);
+    if (!found.ok) return found;
+    const rows = await this.store.history(found.value.group.id, HISTORY_LIMIT);
+    return {
+      ok: true,
+      value: rows.map((row) => ({
+        action: row.action,
+        actor: row.actor,
+        reason: row.reason,
+        previous: row.previous,
+        next: row.next,
+        created_at: row.created_at.toISOString(),
+      })),
+    };
   }
 
   async acceptInvite(viewerId: string, slug: string): Promise<GroupOutcome<true>> {
@@ -586,6 +677,22 @@ export class GroupsService {
         : { ok: false, reason: 'forbidden' };
     }
     if (role !== 'owner' && role !== 'moderator') return { ok: false, reason: 'forbidden' };
+    return { ok: true, value: { group: row, role } };
+  }
+
+  /** The group plus the viewer's role, when they are in it at all. */
+  private async inside(
+    viewerId: string,
+    slug: string,
+  ): Promise<GroupOutcome<{ group: GroupRow; role: string }>> {
+    const row = await this.store.bySlug(slug.toLowerCase());
+    if (row === null) return { ok: false, reason: 'not_found' };
+    const role = await this.store.role(row.id, viewerId);
+    if (role === null) {
+      return row.visibility === 'invite_only'
+        ? { ok: false, reason: 'not_found' }
+        : { ok: false, reason: 'forbidden' };
+    }
     return { ok: true, value: { group: row, role } };
   }
 

@@ -9,6 +9,16 @@ export interface GroupRow {
   visibility: string;
   created_at: Date;
   member_count: string;
+  invite_policy: string;
+}
+
+export interface HistoryRow {
+  action: string;
+  actor: string | null;
+  reason: string;
+  previous: Record<string, unknown> | null;
+  next: Record<string, unknown> | null;
+  created_at: Date;
 }
 
 export interface MemberRow {
@@ -39,7 +49,7 @@ export interface RequestRow {
  * refuse what it must. A guard re-implemented in a query here would be a second
  * copy of a rule, and the second copy is the one that drifts.
  */
-const GROUP_COLUMNS = `g.id, g.slug, g.name, g.description, g.visibility, g.created_at,
+const GROUP_COLUMNS = `g.id, g.slug, g.name, g.description, g.visibility, g.created_at, g.invite_policy,
          (SELECT count(*) FROM group_member m WHERE m.group_id = g.id) AS member_count`;
 
 export class GroupsStore {
@@ -257,12 +267,68 @@ export class GroupsStore {
     return rowCount === 1;
   }
 
-  async withdrawInvite(groupId: string, invitee: string): Promise<boolean> {
+  /**
+   * Withdraw an invitation. With `by`, only one that member sent: somebody a
+   * `members` policy lets invite may take back their own offer and nobody
+   * else's (T-1020).
+   */
+  async withdrawInvite(groupId: string, invitee: string, by?: string): Promise<boolean> {
     const { rowCount } = await this.pool.query(
-      `DELETE FROM group_invite WHERE group_id = $1 AND invitee_id = $2`,
-      [groupId, invitee],
+      `DELETE FROM group_invite
+        WHERE group_id = $1 AND invitee_id = $2 AND ($3::uuid IS NULL OR invited_by = $3::uuid)`,
+      [groupId, invitee, by ?? null],
     );
     return rowCount === 1;
+  }
+
+  /**
+   * Change who may invite, and its `audit_log` row -- the owner, the time and
+   * the policy before and after -- in one transaction (T-1020, rule 10). False
+   * when the policy was already that, so nothing is written.
+   */
+  async setInvitePolicy(groupId: string, actorId: string, policy: string): Promise<boolean> {
+    return this.inTransaction(async (client) => {
+      const { rows } = await client.query<{ invite_policy: string }>(
+        `SELECT invite_policy FROM user_group WHERE id = $1 FOR UPDATE`,
+        [groupId],
+      );
+      const previous = rows[0]?.invite_policy;
+      if (previous === undefined || previous === policy) return false;
+      await client.query(`UPDATE user_group SET invite_policy = $2 WHERE id = $1`, [
+        groupId,
+        policy,
+      ]);
+      await client.query(
+        `INSERT INTO audit_log (actor_id, action, target_type, target_id, reason, previous, next)
+         VALUES ($1::uuid, 'user_group.invite_policy', 'user_group', $2::text,
+                 'The group owner changed who may invite.', $3::jsonb, $4::jsonb)`,
+        [
+          actorId,
+          groupId,
+          JSON.stringify({ invite_policy: previous }),
+          JSON.stringify({ invite_policy: policy }),
+        ],
+      );
+      return true;
+    });
+  }
+
+  /**
+   * The group's history: every audited change whose target is the group,
+   * newest first (T-1020). The audit log is immutable, so this is a record,
+   * not a summary somebody could tidy.
+   */
+  async history(groupId: string, limit: number): Promise<HistoryRow[]> {
+    const { rows } = await this.pool.query<HistoryRow>(
+      `SELECT a.action, u.username AS actor, a.reason, a.previous, a.next, a.created_at
+         FROM audit_log a
+         LEFT JOIN user_account u ON u.id = a.actor_id
+        WHERE a.target_type = 'user_group' AND a.target_id = $1::text
+        ORDER BY a.created_at DESC, a.id
+        LIMIT $2`,
+      [groupId, limit],
+    );
+    return rows;
   }
 
   async invitesFor(userId: string): Promise<InviteRow[]> {

@@ -21,11 +21,13 @@ import type {
   ApiError,
   AuthUser,
   CreateGroupRequest,
+  GroupHistoryResponse,
   GroupInvitesResponse,
   GroupJoinRequestsResponse,
   GroupResponse,
   GroupsResponse,
   JoinGroupRequest,
+  SetGroupInvitePolicyRequest,
   SetGroupRoleRequest,
   UpdateGroupRequest,
 } from '@fmip/contracts';
@@ -188,6 +190,28 @@ export class GroupsController {
   // Invitations
   // -------------------------------------------------------------------------
 
+  /** Who may invite (T-1020, D-132). The owner only; audited. */
+  @Put('groups/:slug/invite-policy')
+  @HttpCode(204)
+  async setInvitePolicy(
+    @Param('slug') slug: string,
+    @Body() body: SetGroupInvitePolicyRequest,
+    @Req() request: FastifyRequest,
+  ): Promise<void> {
+    const viewer = await this.requireViewer(request);
+    this.unwrap(await this.groups.setInvitePolicy(viewer.id, slug, body?.invite_policy));
+  }
+
+  /** The group's audited changes, for its owner and moderators (T-1020). */
+  @Get('groups/:slug/history')
+  async history(
+    @Param('slug') slug: string,
+    @Req() request: FastifyRequest,
+  ): Promise<GroupHistoryResponse> {
+    const viewer = await this.requireViewer(request);
+    return { history: this.unwrap(await this.groups.history(viewer.id, slug)) };
+  }
+
   @Post('groups/:slug/invites/:username')
   @HttpCode(204)
   async invite(
@@ -301,6 +325,12 @@ export class GroupsController {
         throw new ForbiddenException({
           error: 'forbidden',
           message: 'That is for the people who run this group.',
+        } satisfies ApiError);
+      case 'policy':
+        // The group's own rule on who may invite (T-1020), said in words.
+        throw new ForbiddenException({
+          error: 'forbidden',
+          message: outcome.message ?? 'This group does not let you invite.',
         } satisfies ApiError);
       case 'rate_limited':
         throw new HttpException(

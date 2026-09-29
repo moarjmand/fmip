@@ -274,6 +274,7 @@ export const EXEMPT: Readonly<Record<string, string>> = {
     'Joins an open group: one membership per member and group (a primary key), and joining tells nobody.',
   'DELETE /groups/:slug/members/me': OWN_STATE,
   'PUT /groups/:slug/members/:username/role': GROUP_ADMIN,
+  'PUT /groups/:slug/invite-policy': GROUP_ADMIN,
   'DELETE /groups/:slug/members/:username': GROUP_ADMIN,
   'DELETE /groups/:slug/invites/:username': REMOVAL,
   'POST /me/group-invites/:slug/accept': ANSWER,

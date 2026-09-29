@@ -29,6 +29,15 @@ export const GROUP_ROLES = ['owner', 'moderator', 'member'] as const;
 export type GroupRole = (typeof GROUP_ROLES)[number];
 
 /**
+ * Who may invite to a group (T-1020, D-132): the owner alone, the owner and
+ * the moderators, or every member. The owner sets it. The default is
+ * `owner_and_moderators`, which is what every group did before there was a
+ * choice. The schema refuses an invitation the policy does not allow.
+ */
+export const GROUP_INVITE_POLICIES = ['owner', 'owner_and_moderators', 'members'] as const;
+export type GroupInvitePolicy = (typeof GROUP_INVITE_POLICIES)[number];
+
+/**
  * Where a viewer stands with a group — one closed set, so every surface that
  * renders a group has to say what it offers in each case.
  *
@@ -102,6 +111,10 @@ export interface Group extends GroupSummary {
   members: GroupMember[] | null;
   /** What is waiting for an owner or a moderator; `null` for everybody else. */
   pending: { invites: number; requests: number } | null;
+  /** Who may invite (T-1020); the owner changes it. */
+  invite_policy: GroupInvitePolicy;
+  /** Whether this viewer may invite under that policy. */
+  may_invite: boolean;
 }
 
 /** An invitation as the invited member sees it. */
@@ -161,6 +174,31 @@ export interface JoinGroupRequest {
 
 export interface SetGroupRoleRequest {
   role: GroupRole;
+}
+
+/** `PUT /groups/:slug/invite-policy`, the owner only (T-1020). */
+export interface SetGroupInvitePolicyRequest {
+  invite_policy: GroupInvitePolicy;
+}
+
+/**
+ * One change to a group's settings, as its owner and moderators read it
+ * (`GET /groups/:slug/history`, T-1020): who, when, why, and the value before
+ * and after. Read from the audit log, which nothing edits (rule 10).
+ */
+export interface GroupHistoryEntry {
+  /** `user_group.invite_policy`, ... : a dotted noun.verb. */
+  action: string;
+  /** The username of whoever did it; null once their account is gone. */
+  actor: string | null;
+  reason: string;
+  previous: Record<string, unknown> | null;
+  next: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface GroupHistoryResponse {
+  history: GroupHistoryEntry[];
 }
 
 // ---------------------------------------------------------------------------
