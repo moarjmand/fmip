@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { RatingComponents, RatingTier } from '@fmip/contracts';
+import type { AchievementKind, RatingComponents, RatingTier } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 
@@ -205,6 +205,45 @@ export class PostgresRatingStore {
       [userId],
     );
     return Number(rows[0]?.n ?? 0);
+  }
+
+  /** The achievements already recorded for a member (T-946, D-117). */
+  async unlockedKinds(userId: string): Promise<Set<AchievementKind>> {
+    const { rows } = await this.pool.query<{ kind: AchievementKind }>(
+      `SELECT kind FROM achievement_unlocked WHERE user_id = $1`,
+      [userId],
+    );
+    return new Set(rows.map((r) => r.kind));
+  }
+
+  /**
+   * Records each unlock once (the primary key; a racing recompute writes
+   * nothing) and returns the kinds this call recorded to be told. A deleted
+   * account records nothing, so it is never told.
+   */
+  async recordUnlocks(
+    userId: string,
+    rulesVersion: string,
+    unlocks: readonly { kind: AchievementKind; earnedAt: string; tell: boolean }[],
+  ): Promise<AchievementKind[]> {
+    if (unlocks.length === 0) return [];
+    const { rows } = await this.pool.query<{ kind: AchievementKind; told: boolean }>(
+      `INSERT INTO achievement_unlocked (user_id, kind, earned_at, rules_version, told)
+       SELECT u.id, x.kind, x.earned_at, $2, x.told
+         FROM user_account u
+        CROSS JOIN unnest($3::text[], $4::timestamptz[], $5::boolean[]) AS x (kind, earned_at, told)
+        WHERE u.id = $1 AND u.status <> 'deleted'
+       ON CONFLICT (user_id, kind) DO NOTHING
+       RETURNING kind, told`,
+      [
+        userId,
+        rulesVersion,
+        unlocks.map((u) => u.kind),
+        unlocks.map((u) => u.earnedAt),
+        unlocks.map((u) => u.tell),
+      ],
+    );
+    return rows.filter((r) => r.told).map((r) => r.kind);
   }
 }
 
