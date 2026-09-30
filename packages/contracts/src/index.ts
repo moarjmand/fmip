@@ -803,6 +803,7 @@ export type {
   DataQualityCheck,
   DataQualityCheckState,
   DataQualityCount,
+  DataQualityCoverageProposal,
   DataQualityFinding,
   DataQualityFixtureRef,
   DataQualityReport,

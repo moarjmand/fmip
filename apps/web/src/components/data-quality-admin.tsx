@@ -5,10 +5,12 @@ import Link from 'next/link';
 import type {
   DataQualityCheck,
   DataQualityCount,
+  DataQualityCoverageProposal,
   DataQualityFinding,
   DataQualityFixtureRef,
   DataQualityReport,
 } from '@fmip/contracts';
+import { setCoverageAction } from '@/lib/admin-actions';
 import { refetchAction, reviewBatchAction, reviewFindingAction } from '@/lib/data-quality-actions';
 import { Button, Card, FormStatus, Notice, TextArea } from '@/components/ui';
 
@@ -19,7 +21,10 @@ import { Button, Card, FormStatus, Notice, TextArea } from '@/components/ui';
  * with a reason (audited), one at a time or every open one of a check in a
  * season at once (T-912, one audit row per batch). The feed can be asked again
  * for one match or for a check's matches in a season (T-913, audited); nothing
- * here edits the feed.
+ * here edits the feed. Where D-109's conditions hold, a past season's
+ * `lineups` or `incidents` coverage is proposed as `limited` with the counts
+ * it rests on (T-914); an administrator applies it through the audited
+ * coverage write (T-070), or leaves it.
  */
 
 export const CHECK_LABEL: Record<DataQualityCheck, string> = {
@@ -195,6 +200,79 @@ function AskedAgain({ asked }: { asked: NonNullable<DataQualityFinding['asked_ag
   );
 }
 
+/**
+ * One proposal to declare a past season's coverage `limited` (T-914). It is
+ * applied only by submitting this form, which is the audited coverage write
+ * of the administration page: the note is editable and the reason required.
+ */
+function CoverageProposalCard({
+  locale,
+  proposal,
+}: {
+  locale: string;
+  proposal: DataQualityCoverageProposal;
+}) {
+  const [state, formAction, pending] = useActionState(setCoverageAction.bind(null, locale), null);
+  const testId = `coverage-proposal-${proposal.season.id}-${proposal.module}`;
+  const { counts } = proposal;
+  return (
+    <Card as="li" className="flex flex-col gap-2 text-sm" data-testid={testId}>
+      <p className="flex flex-wrap gap-x-2">
+        <Link href={`/${locale}/competition/${proposal.competition.id}`} className="underline">
+          {proposal.competition.name}
+        </Link>
+        <span className="text-muted">{proposal.season.label}</span>
+        <span>· {proposal.module === 'lineups' ? 'Line-ups' : 'Incidents'}</span>
+      </p>
+      <p>
+        Now {proposal.current.state ?? 'not declared'}; proposed <strong>limited</strong>.
+      </p>
+      <p className="tabular-nums" data-testid={`${testId}-counts`}>
+        {counts.open_after_reask} of {counts.finished} finished matches still show{' '}
+        {proposal.check === 'lineup_not_eleven'
+          ? 'a line-up that is not eleven'
+          : 'goals in the timeline that disagree with the score'}{' '}
+        after the feed was asked again ({counts.open} open in all; {counts.fetched} of{' '}
+        {counts.finished} fetched; nobody from the provider waiting to be adopted).
+      </p>
+      <details className="w-full">
+        <summary className="cursor-pointer underline">Declare it limited</summary>
+        <form action={formAction} className="mt-1 flex flex-col gap-1">
+          <input type="hidden" name="season_id" value={proposal.season.id} />
+          <input type="hidden" name="module" value={proposal.module} />
+          <input type="hidden" name="state" value={proposal.proposed.state} />
+          <input type="hidden" name="provider" value={proposal.proposed.provider} />
+          <TextArea
+            label="Note shown with the coverage"
+            name="note"
+            rows={2}
+            defaultValue={proposal.proposed.note}
+          />
+          <TextArea
+            label="Why it is declared limited"
+            name="reason"
+            rows={2}
+            required
+            placeholder="Say what was checked. This is recorded."
+          />
+          <Button
+            type="submit"
+            size="sm"
+            variant="secondary"
+            pending={pending}
+            pendingLabel="Recording…"
+            data-testid={`${testId}-apply`}
+            className="self-start"
+          >
+            Declare limited
+          </Button>
+          {state !== null && <FormStatus ok={state.ok}>{state.message}</FormStatus>}
+        </form>
+      </details>
+    </Card>
+  );
+}
+
 function FindingCard({ locale, finding }: { locale: string; finding: DataQualityFinding }) {
   return (
     <Card as="li" className="flex flex-col gap-2 text-sm" data-testid={`finding-${finding.id}`}>
@@ -308,6 +386,25 @@ export function DataQualityAdmin({
           {report.refetch.pending} match{report.refetch.pending === 1 ? '' : 'es'} waiting to be
           asked again, {report.refetch.fetched_today} asked since 00:00 UTC.
         </p>
+      </section>
+
+      <section className="flex flex-col gap-2" data-testid="data-quality-coverage-proposals">
+        <h2 className="text-lg font-semibold">What the findings mean for coverage</h2>
+        {report.coverage_proposals.length === 0 ? (
+          <p className="text-sm text-muted">
+            No past season&apos;s line-ups or incidents are proposed as limited.
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {report.coverage_proposals.map((proposal) => (
+              <CoverageProposalCard
+                key={`${proposal.season.id}:${proposal.module}`}
+                locale={locale}
+                proposal={proposal}
+              />
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="flex flex-col gap-2" data-testid="data-quality-by-competition">

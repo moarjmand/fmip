@@ -4452,6 +4452,23 @@ without a change.
    Before those conditions hold, the season's coverage is not proposed at
    all. Our own lag is not reported as the feed's gap.
 
+   *As built (T-914, 2026-09-30).* `GET /admin/data-quality` carries
+   `coverage_proposals`, one per past season (`is_current` false) and module
+   where all three conditions hold and the module is not already declared
+   `limited` or `not_supplied`. "Fetched" is a `fixture_detail_fetch` row
+   for every finished match. `unresolved_entity` does not say which season
+   a person played in, so "no person pending" means no pending `person` of
+   any provider that fetched the season's details. A match counts toward
+   the 10% only when a re-ask of it (T-913) was fetched after its finding
+   was first seen; the matches open but not yet asked again are shown
+   beside it and do not count. The proposal names the finished, fetched,
+   open and still-open-after-a-re-ask counts, and carries a note saying
+   them. The page's "Declare limited" form submits the administration
+   page's own `PUT /admin/coverage/:seasonId/:module` (T-070) with the
+   provider (the one declared, else the one that fetched most of the
+   season), the editable note and a required reason, audited as
+   `coverage.set`. No new write, route or table.
+
 **Why 10%.** A season whose line-ups are "mostly incomplete" must never show
 as `available` (rule 3). One match in ten, left short after a re-ask, is
 already a line-up page that misleads often enough to say so. A handful of

@@ -13,6 +13,7 @@ import {
   type PairRow,
   type ScoreKindsRow,
 } from './checks';
+import type { CoverageCandidateRow } from './coverage-proposals';
 
 /**
  * The key of the transaction-scoped advisory lock one write holds (T-820):
@@ -410,6 +411,64 @@ export class DataQualityStore {
       [since],
     );
     return rows[0] ?? { pending: 0, fetched: 0 };
+  }
+
+  /**
+   * One row per past season and check (`lineup_not_eleven`, `goals_disagree`)
+   * with an open finding about a finished match: the counts D-109 judges a
+   * season's coverage on (T-914). A match counts as still short after a
+   * re-ask when a re-ask of it was fetched after the finding was first seen.
+   * The people waiting are those of every provider that fetched the season's
+   * details: `unresolved_entity` does not say which season a person played in.
+   */
+  async coverageCandidates(): Promise<CoverageCandidateRow[]> {
+    const { rows } = await this.pool.query<CoverageCandidateRow>(
+      `WITH short AS (
+         SELECT d.season_id, d.check_kind,
+                count(DISTINCT d.fixture_id)::int AS open,
+                (count(DISTINCT d.fixture_id) FILTER (WHERE EXISTS (
+                   SELECT 1 FROM fixture_refetch_request r
+                    WHERE r.fixture_id = d.fixture_id
+                      AND r.fetched_at IS NOT NULL
+                      AND r.fetched_at >= d.first_seen_at)))::int AS open_after_reask
+           FROM data_quality_finding d
+           JOIN fixture f ON f.id = d.fixture_id AND f.status = 'finished'
+           JOIN season se ON se.id = d.season_id AND NOT se.is_current
+          WHERE d.resolved_at IS NULL
+            AND d.check_kind IN ('lineup_not_eleven', 'goals_disagree')
+          GROUP BY d.season_id, d.check_kind
+       ),
+       played AS (
+         SELECT f.season_id,
+                count(*)::int AS finished,
+                count(dff.fixture_id)::int AS fetched,
+                mode() WITHIN GROUP (ORDER BY dff.provider) AS fetch_provider,
+                array_remove(array_agg(DISTINCT dff.provider), NULL) AS providers
+           FROM fixture f
+           LEFT JOIN fixture_detail_fetch dff ON dff.fixture_id = f.id
+          WHERE f.status = 'finished'
+            AND f.season_id IN (SELECT season_id FROM short)
+          GROUP BY f.season_id
+       )
+       SELECT s.season_id, se.label AS season_label,
+              c.id AS competition_id, c.name AS competition_name,
+              s.check_kind, p.finished, p.fetched, s.open, s.open_after_reask,
+              p.fetch_provider,
+              (SELECT count(*)::int FROM unresolved_entity u
+                WHERE u.status = 'pending' AND u.entity_type = 'person'
+                  AND u.provider = ANY (p.providers)) AS pending_people,
+              cp.state AS coverage_state, cp.provider AS coverage_provider,
+              cp.note AS coverage_note
+         FROM short s
+         JOIN played p ON p.season_id = s.season_id
+         JOIN season se ON se.id = s.season_id
+         JOIN competition c ON c.id = se.competition_id
+         LEFT JOIN coverage_profile cp
+           ON cp.season_id = s.season_id
+          AND cp.module = CASE s.check_kind WHEN 'lineup_not_eleven' THEN 'lineups' ELSE 'incidents' END
+        ORDER BY c.name, se.label DESC, s.check_kind`,
+    );
+    return rows;
   }
 
   /**
