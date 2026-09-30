@@ -7229,6 +7229,34 @@ endpoints are not read: they spend the live data's request budget, and their
 terms for alerts are unchecked. A player's availability on his page stays
 D-127's.
 
+**As built (T-1032).** The kinds are `transfer_news` (a story whose current
+type is `transfer`) and `availability_news` (`injury` or `suspension`), both
+`football` category, both off by default; migration `1765600000000` widens
+the kind checks, and the subject is the story D-125 already admits.
+
+- **When.** The moment a label commits that makes the story's current type
+  one of the three: an editor's label over `POST /admin/stories/:id/type`, or
+  the feed job's `refreshPublisher` writing a publisher label. A story typed
+  later is told then; a story whose label is rewritten (withdrawn and given
+  again, `injury` then `suspension`, publisher then editor) is told **once
+  per kind**, because the dedupe key is the kind and the story. Nothing is
+  told for labels that existed before the deploy, and nothing re-tells a
+  member who starts following afterwards.
+- **Who.** Members following a **team or person** any of the story's reports
+  links, whose switch is on. Following only the competition is not enough:
+  the settings line promises "a team or player I follow", and a league-wide
+  transfer feed would be the interruption D-125 kept opt-in. The team and
+  competition mutes still apply through `notification_about`, as for the
+  breaking alert.
+- **The cap.** No hourly cap, like every kind but messages and reactions
+  (T-273): one alert per story and kind, and publisher types arrive only
+  through the committed mapping, which ships empty (D-123). If a mapped feed
+  makes these frequent, a cap is a revision of this entry.
+- **The line.** "Transfer: " or "Availability: " and the headline of the
+  story's promoted original, the newest publisher version in its source's
+  language, read at render (a corrected headline shows corrected; never a
+  translation). The fallback text names the kind. It opens the story page.
+
 ## D-167 — Trending does not count views or shares
 **Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers:** N-3 in `04-tasks-phase-10.md` · **Follows:** D-044, D-102, D-128
 

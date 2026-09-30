@@ -18,6 +18,7 @@ import { NewsIngestionService } from './news-ingestion.service';
 import { NewsSchedulerService } from './news-scheduler.service';
 import { BreakingAdminController } from './breaking-admin.controller';
 import { BreakingAlertsService } from './breaking-alerts.service';
+import { StoryTypeAlertsService } from './story-type-alerts.service';
 import { DebateAdminController } from './debate-admin.controller';
 import { StoryTypeAdminController } from './story-type-admin.controller';
 import { PostgresTranslationsAdminStore } from './internal/translations-admin-store';
@@ -37,7 +38,8 @@ import { NewsSourcesAdminController } from './news-sources-admin.controller';
  * provider so a spec can script every response.
  */
 @Module({
-  // Notifications for the breaking alert (T-1005); it imports nothing back.
+  // Notifications for the breaking alert (T-1005) and the transfer and
+  // availability alerts (T-1032); it imports nothing back.
   imports: [IdentityModule, ProfileModule, FailureCountsModule, NotificationsModule],
   controllers: [
     NewsController,
@@ -56,6 +58,7 @@ import { NewsSourcesAdminController } from './news-sources-admin.controller';
     PostgresDebateAdminStore,
     PostgresBreakingAdminStore,
     BreakingAlertsService,
+    StoryTypeAlertsService,
     PostgresTranslationsAdminStore,
     PostgresSavedArticlesStore,
     PostgresStoryLabelStore,

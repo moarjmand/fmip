@@ -5,6 +5,7 @@ import { type NewsSourceRow, PostgresNewsStore, type VersionFields } from './int
 import { NEWS_USER_AGENT, robotsAllows } from './internal/robots';
 import { PostgresStoryLabelStore } from './internal/story-label-store';
 import { NewsClusteringService } from './news-clustering.service';
+import { StoryTypeAlertsService } from './story-type-alerts.service';
 
 /** Postgres' unique_violation: a run of this source is already open. */
 const UNIQUE_VIOLATION = '23505';
@@ -42,6 +43,7 @@ export class NewsIngestionService {
     private readonly store: PostgresNewsStore,
     private readonly clustering: NewsClusteringService,
     private readonly labels: PostgresStoryLabelStore,
+    private readonly alerts: StoryTypeAlertsService,
     @Inject(NEWS_TRANSPORT) private readonly transport: Transport,
   ) {}
 
@@ -152,7 +154,12 @@ export class NewsIngestionService {
       }
       // The story's publisher type follows its promoted original's categories;
       // an editor's label is never touched (D-123).
-      await this.labels.refreshPublisher(await this.store.storyOf(article.id));
+      const storyId = await this.store.storyOf(article.id);
+      // A story that gains a transfer, injury or suspension type is told to
+      // the followers who asked, once (T-1032, D-166).
+      if ((await this.labels.refreshPublisher(storyId)) === 'labelled') {
+        await this.alerts.tell(storyId);
+      }
     }
 
     const skipped =
