@@ -15,6 +15,7 @@ import { ROLE_REFUSALS, STORY_TYPES, isStoryType } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { PostgresStoryLabelStore } from './internal/story-label-store';
+import { StoryTypeAlertsService } from './story-type-alerts.service';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
@@ -39,6 +40,7 @@ export class StoryTypeAdminController {
   constructor(
     private readonly store: PostgresStoryLabelStore,
     private readonly identity: IdentityService,
+    private readonly alerts: StoryTypeAlertsService,
   ) {}
 
   private async editor(request: FastifyRequest): Promise<AuthUser> {
@@ -79,5 +81,8 @@ export class StoryTypeAdminController {
     if (outcome === 'unchanged') {
       throw bad('An editor already gave this story that type.');
     }
+    // A transfer, injury or suspension type tells the followers who asked,
+    // once per story (T-1032, D-166); it never fails the editor's request.
+    await this.alerts.tell(storyId.toLowerCase());
   }
 }
