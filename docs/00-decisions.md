@@ -7466,6 +7466,13 @@ DIVS=$(docker compose exec -T postgres psql -U fmip -d fmip -Atc "SELECT string_
 docker compose run --rm -T -v $HOME/reports/inputs:/tmp/reports model sh -c "python -m fmip_model.backtest.inputs --input cross_border --divisions $DIVS --from 2025-08-01 --to 2026-06-30 --history-from 2023-07-01 --out /tmp/reports --note server && cat /tmp/reports/*/inputs_cross_border_*.md"
 ```
 
+**The server's run, 2026-09-30.** **Verdict: `insufficient`.** Our records,
+2025-08-01 to 2026-06-30: IR1 177 matches scored and none read (every match is
+between two Iranian clubs); XL 713 scored, 217 read (30%), the continental ties
+between clubs of two countries. 217 is under D-139's 300, so no candidate
+carries the input. It is worth re-running when the past seasons' continental
+ties are loaded (the backlog), which should lift the sample over 300.
+
 ## D-171 — League zones: a committed list per competition and season, from the published regulations
 **Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers:** N-2 in `04-tasks-phase-11.md` · **Task:** T-1167 · **Follows:** D-038, D-143, D-146
 
