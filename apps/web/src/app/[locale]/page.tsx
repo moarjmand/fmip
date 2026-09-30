@@ -9,7 +9,14 @@ import {
   GroupDiscussionsSection,
   PanelsSection,
 } from '@/components/home-member';
+import { LinkedSentence } from '@/components/linked-sentence';
+import { LtrNumeric } from '@/components/score';
 import { CardViewingLine } from '@/components/score-card';
+import { Translated } from '@/components/translated';
+import { formatNumber } from '@/i18n/format';
+import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
+import { type Message, type MessageKey, attribute, interpolate, message, t } from '@/i18n/messages';
+import { MessageText } from '@/components/message-text';
 import {
   fetchBreakingNews,
   fetchCompetition,
@@ -59,8 +66,7 @@ export async function generateMetadata({
     // The only page in the layout's own segment, so the layout's title
     // template does not reach it and it carries the marker itself (T-087).
     title: rootTitle('FMIP'),
-    description:
-      'Football match intelligence: live scores, match centre, forecasts and predictions.',
+    description: t(isLocale(locale) ? locale : DEFAULT_LOCALE, 'shell.meta.description'),
   });
 }
 
@@ -71,6 +77,13 @@ const ROW_LINK = 'font-medium hover:underline focus-visible:underline';
 
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
+  const lang = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  const num = (value: number) => formatNumber(lang, value);
+  /** A sentence with its `{placeholders}` filled, keeping where its words came from. */
+  const filled = (key: MessageKey, values: Record<string, string>): Message => {
+    const said = message(lang, key);
+    return { ...said, text: interpolate(said.text, values) };
+  };
   const cookie = await sessionCookieHeader();
   // The API's uptime and the locale code were printed at the foot of this
   // page since Phase 0; they are the System page's business (T-804), not a
@@ -153,6 +166,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const tableRows =
     table !== null && table.ok ? (table.data.table.data ?? []).slice(0, HOME_TABLE_ROWS) : [];
   const stories = news.ok ? (news.data.stories.data ?? []).slice(0, 5) : [];
+  const played = attribute(lang, 'home.table.played');
+  const points = attribute(lang, 'home.table.points');
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-6 sm:p-8">
@@ -168,11 +183,11 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         FMIP
       </h1>
       <p>
-        Football Match Intelligence Platform. Start with the{' '}
-        <Link href={`/${locale}/scores`} className="underline">
-          scores
-        </Link>
-        .
+        <LinkedSentence
+          sentence={message(lang, 'home.tagline')}
+          link={message(lang, 'home.tagline.link')}
+          href={`/${locale}/scores`}
+        />
       </p>
       {breaking.ok && breaking.data.stories.data !== null && (
         <BreakingStrip locale={locale} stories={breaking.data.stories.data} />
@@ -180,33 +195,37 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       {offerFirstRun && <FirstRunOffer locale={locale} />}
       {me === null && (
         <p data-testid="first-visit">
-          New here?{' '}
-          <Link href={`/${locale}/about`} className="underline">
-            What FMIP is, and how a rating is earned
-          </Link>
-          .
+          <LinkedSentence
+            sentence={message(lang, 'home.firstVisit')}
+            link={message(lang, 'home.firstVisit.link')}
+            href={`/${locale}/about`}
+          />
         </p>
       )}
       {me === null && (
         <p className="text-sm" data-testid="guest-invite">
-          <Link href={`/${locale}/register`} className="underline">
-            Create an account
-          </Link>{' '}
-          to follow your teams, predict matches and earn a rating.
+          <LinkedSentence
+            sentence={message(lang, 'home.guestInvite')}
+            link={message(lang, 'home.guestInvite.link')}
+            href={`/${locale}/register`}
+          />
         </p>
       )}
       {me !== null && (
         <p className="text-sm">
-          <Link href={`/${locale}/following`} className="underline">
-            Your feed
-          </Link>{' '}
-          &mdash; your teams, competitions, friends and groups.
+          <LinkedSentence
+            sentence={message(lang, 'home.feed')}
+            link={message(lang, 'home.feed.link')}
+            href={`/${locale}/following`}
+          />
         </p>
       )}
 
       {matches.length > 0 && (
         <section className="flex flex-col gap-2" data-testid="home-matches">
-          <h2 className="text-lg font-semibold">Live and upcoming</h2>
+          <h2 className="text-lg font-semibold">
+            <Translated locale={lang} message="home.matches.title" />
+          </h2>
           {/*
             A fixed time column and the match beside it, so every row lines up
             however long the names are (the design pass, T-1201).
@@ -216,15 +235,19 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               <li key={card.id} className="grid grid-cols-[6.5rem_1fr] gap-x-3 px-3 py-2">
                 <span className="text-sm text-muted tabular-nums">
                   {card.status === 'scheduled'
-                    ? `${shortDay(card.kickoff_at, timeZone)} ${formatKickoff(locale, card.kickoff_at, timeZone)}`
+                    ? `${shortDay(locale, card.kickoff_at, timeZone)} ${formatKickoff(locale, card.kickoff_at, timeZone)}`
                     : statusLabel(card, locale, timeZone)}
                 </span>
                 <span className="flex min-w-0 flex-col">
                   <Link href={`/${locale}/match/${card.id}`} className={ROW_LINK}>
                     {card.home.name}{' '}
-                    {card.scores.current !== null
-                      ? `${card.scores.current.home}–${card.scores.current.away}`
-                      : 'v'}{' '}
+                    {card.scores.current !== null ? (
+                      <LtrNumeric>
+                        {num(card.scores.current.home)}–{num(card.scores.current.away)}
+                      </LtrNumeric>
+                    ) : (
+                      <Translated locale={lang} message="home.versus" />
+                    )}{' '}
                     {card.away.name}
                   </Link>
                   <span className="text-xs text-muted">
@@ -234,7 +257,10 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                     // The editor's placement, in their words; it says nothing
                     // about who will win (rule 6).
                     <span className="text-xs" data-testid="home-featured-note">
-                      <span className="font-semibold">Featured</span>: {notes.get(card.id)}
+                      <span className="font-semibold">
+                        <Translated locale={lang} message="home.featured" />
+                      </span>
+                      : {notes.get(card.id)}
                     </span>
                   )}
                   {watch?.state === 'lines' && (
@@ -249,45 +275,63 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           {watch?.state === 'ask' && (
             // Once for the list, not the same question on every line (D-115).
             <p className="text-sm" data-testid="home-viewing-ask">
-              <Link href={`/${locale}/watch`} className="underline">
-                Choose your territory
-              </Link>{' '}
-              to see where these matches are shown.
+              <LinkedSentence
+                sentence={message(lang, 'home.watch.ask')}
+                link={message(lang, 'viewing.choose')}
+                href={`/${locale}/watch`}
+              />
             </p>
           )}
           {watch?.state === 'unreachable' && (
             <p className="text-sm text-muted" data-testid="home-viewing-unreachable">
-              Where to watch these matches could not be loaded.
+              <Translated locale={lang} message="home.watch.unreachable" />
             </p>
           )}
           <p className="text-sm">
             <Link href={`/${locale}/scores`} className="underline">
-              All scores
+              <Translated locale={lang} message="home.allScores" />
             </Link>{' '}
-            <span className="text-muted">(times in {timeZone})</span>
+            <MessageText
+              className="text-muted"
+              message={filled('home.timesIn', { zone: timeZone })}
+            />
           </p>
         </section>
       )}
 
       {modelView.length > 0 && (
         <section className="flex flex-col gap-2" data-testid="home-forecasts">
-          <h2 className="text-lg font-semibold">The model&rsquo;s view</h2>
+          <h2 className="text-lg font-semibold">
+            <Translated locale={lang} message="home.model.title" />
+          </h2>
           <ul className={LIST}>
             {modelView.map(({ card, percent }) => (
               <li key={card.id} className="flex flex-col px-3 py-2">
                 <Link href={`/${locale}/match/${card.id}`} className={ROW_LINK}>
-                  {card.home.name} v {card.away.name}
+                  <MessageText
+                    message={filled('home.fixture', {
+                      home: card.home.name,
+                      away: card.away.name,
+                    })}
+                  />
                 </Link>
-                <span className="text-sm text-muted tabular-nums">
-                  {card.home.short_name ?? card.home.name} {percent.home}% · draw {percent.draw}% ·{' '}
-                  {card.away.short_name ?? card.away.name} {percent.away}%
-                </span>
+                <MessageText
+                  className="text-sm text-muted tabular-nums"
+                  message={filled('home.model.line', {
+                    home: card.home.short_name ?? card.home.name,
+                    homePercent: num(percent.home),
+                    draw: num(percent.draw),
+                    away: card.away.short_name ?? card.away.name,
+                    awayPercent: num(percent.away),
+                  })}
+                />
               </li>
             ))}
           </ul>
           <p className="text-xs text-muted">
-            The statistical model&rsquo;s forecasts ({modelView[0]?.modelVersion}). Not the
-            founder&rsquo;s view, and not the community&rsquo;s.
+            <MessageText
+              message={filled('home.model.note', { version: modelView[0]?.modelVersion ?? '' })}
+            />
           </p>
         </section>
       )}
@@ -315,7 +359,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           analyses={founder.data.analyses}
           locale={locale}
           timeZone="UTC"
-          heading="Founder's analysis of what is coming"
+          heading={t(lang, 'home.founder.heading')}
         />
       )}
 
@@ -336,23 +380,27 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                   #
                 </th>
                 <th scope="col" className="py-1 text-start font-normal">
-                  Team
+                  <Translated locale={lang} message="home.table.team" />
                 </th>
                 <th scope="col" className="w-10 py-1 text-end font-normal">
-                  <abbr title="Played">P</abbr>
+                  <abbr title={played.text} lang={played.lang}>
+                    <Translated locale={lang} message="home.table.playedShort" />
+                  </abbr>
                 </th>
                 <th scope="col" className="w-12 py-1 text-end font-normal">
-                  <abbr title="Points">Pts</abbr>
+                  <abbr title={points.text} lang={points.lang}>
+                    <Translated locale={lang} message="home.table.pointsShort" />
+                  </abbr>
                 </th>
               </tr>
             </thead>
             <tbody>
               {tableRows.map((row) => (
                 <tr key={row.team.id} className="border-b border-default last:border-b-0">
-                  <td className="py-1.5 text-muted">{row.position}</td>
+                  <td className="py-1.5 text-muted">{num(row.position)}</td>
                   <td className="py-1.5">{row.team.name}</td>
-                  <td className="py-1.5 text-end text-muted">{row.played}</td>
-                  <td className="py-1.5 text-end font-semibold">{row.points}</td>
+                  <td className="py-1.5 text-end text-muted">{num(row.played)}</td>
+                  <td className="py-1.5 text-end font-semibold">{num(row.points)}</td>
                 </tr>
               ))}
             </tbody>
@@ -362,7 +410,9 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
       {stories.length > 0 && (
         <section className="flex flex-col gap-2" data-testid="home-news">
-          <h2 className="text-lg font-semibold">Latest stories</h2>
+          <h2 className="text-lg font-semibold">
+            <Translated locale={lang} message="home.news.title" />
+          </h2>
           <ul className={LIST}>
             {stories.map((story) => (
               <li key={story.story_id} className="px-3 py-2">

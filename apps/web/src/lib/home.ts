@@ -7,6 +7,7 @@ import {
   type ScoreCard,
   type ScoresResponse,
 } from '@fmip/contracts';
+import { formatDate } from '@/i18n/format';
 import { percentages } from './forecast';
 import { dateIn } from './scores';
 import { type CardViewing, cardViewing } from './score-card-products';
@@ -121,11 +122,12 @@ export function homeForecasts(
     .slice(0, limit);
 }
 
-/** "4 Oct" in the reader's zone, beside a kick-off time in the same zone. */
-export function shortDay(iso: string, timeZone: string): string {
-  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone }).format(
-    new Date(iso),
-  );
+/**
+ * "4 Oct" in the reader's zone, beside a kick-off time in the same zone, in
+ * the page's language (T-1302): "۱۳ مهر" on `/fa`.
+ */
+export function shortDay(locale: string, iso: string, timeZone: string): string {
+  return formatDate(locale, iso, timeZone, { day: 'numeric', month: 'short' });
 }
 
 // ---------------------------------------------------------------------------

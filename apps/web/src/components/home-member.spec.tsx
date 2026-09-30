@@ -49,7 +49,8 @@ describe("the homepage's friends' predictions", () => {
   it('shows who called what, on which match, as their own call', () => {
     const html = friends([call()]);
     expect(html).toContain('Ada');
-    expect(html).toContain('called HFC to win (2–1)');
+    // The score is its own left-to-right run (T-1302), so the words are read without tags.
+    expect(html.replace(/<[^>]+>/g, '')).toContain('called HFC to win (2–1)');
     expect(html).toContain('href="/en/match/f1"');
     expect(html).toMatch(/Not\s+the model&#x27;s forecast|Not the model’s forecast/);
     // No probability and no consensus wording beside a member's call.
@@ -179,5 +180,25 @@ describe("the homepage's panels", () => {
     expect(empty.match(/home-panels-empty/g)).toHaveLength(1);
     const failed = renderToStaticMarkup(<PanelsSection locale="en" panels={null} cards={cards} />);
     expect(failed).toContain('home-panels-unreachable');
+  });
+});
+
+describe('the homepage in Persian (T-1302)', () => {
+  it("renders a group's discussion in Persian, with the count in Persian digits", () => {
+    const html = renderToStaticMarkup(
+      <GroupDiscussionsSection locale="fa" viewer="ada" result={[discussion()]} />,
+    );
+    expect(html).toContain('در گروه‌های شما');
+    expect(html).toContain('۲ خوانده‌نشده');
+    expect(html).not.toContain('data-translation="untranslated"');
+  });
+
+  it('says in Persian that a section is empty or could not be loaded', () => {
+    expect(
+      renderToStaticMarkup(<FriendPredictionsSection locale="fa" timeZone="UTC" result={null} />),
+    ).toContain('پیش‌بینی‌های دوستان شما بارگیری نشد.');
+    expect(
+      renderToStaticMarkup(<PanelsSection locale="fa" panels={[]} cards={new Map()} />),
+    ).toContain('هنوز چیزی در میزگردهای مسابقه‌های امروز منتشر نشده است.');
   });
 });

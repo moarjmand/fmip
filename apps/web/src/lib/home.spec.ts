@@ -127,8 +127,9 @@ describe('the homepage', () => {
   });
 
   it('writes a kick-off day in the reader’s zone, not in UTC', () => {
-    expect(shortDay('2026-10-04T22:30:00Z', 'UTC')).toBe('4 Oct');
-    expect(shortDay('2026-10-04T22:30:00Z', 'Asia/Tehran')).toBe('5 Oct');
+    expect(shortDay('en', '2026-10-04T22:30:00Z', 'UTC')).toBe('4 Oct');
+    expect(shortDay('en', '2026-10-04T22:30:00Z', 'Asia/Tehran')).toBe('5 Oct');
+    expect(shortDay('fa', '2026-10-04T22:30:00Z', 'Asia/Tehran')).toBe('۱۳ مهر');
   });
 });
 

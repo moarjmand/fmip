@@ -85,14 +85,14 @@ describe('the title template reaches the pages pageMetadata never sees', () => {
   });
 
   it('covers a page that sets its own metadata object', () => {
-    // The offline page is one of nine that export `metadata` directly. A
+    // The offline page sets its own metadata, without `pageMetadata`. A
     // template applies to whatever a child segment set, however it set it --
     // which is the reason the marker lives there and not in `pageMetadata`.
     const OFFLINE = readFileSync(
       join(__dirname, '..', 'app', '[locale]', 'offline', 'page.tsx'),
       'utf8',
     );
-    expect(OFFLINE).toContain('export const metadata');
+    expect(OFFLINE).toContain('export async function generateMetadata');
     expect(OFFLINE).not.toContain('pageMetadata');
     // `absolute` would opt the page out of the template and lose the marker.
     expect(OFFLINE).not.toContain('absolute:');
@@ -179,8 +179,8 @@ describe('the banner itself', () => {
   });
 
   it('is rendered on every page, above the content', () => {
-    expect(LAYOUT).toContain('<DemonstrationBanner />');
-    const banner = LAYOUT.indexOf('<DemonstrationBanner />');
+    expect(LAYOUT).toContain('<DemonstrationBanner locale={locale} />');
+    const banner = LAYOUT.indexOf('<DemonstrationBanner locale={locale} />');
     const content = LAYOUT.indexOf('id="content"');
     expect(banner).toBeLessThan(content);
     // After the skip link, which must stay first in the tab order (T-081).

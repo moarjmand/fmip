@@ -119,6 +119,564 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "shell.meta.description": {
+    "source": "Football match intelligence: live scores, match centre, forecasts and predictions.",
+    "text": "اطلاعات هوشمند فوتبال: نتایج زنده، مرکز مسابقه، پیش‌بینی‌های مدل آماری و پیش‌بینی‌های کاربران.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.nav.primary": {
+    "source": "Primary",
+    "text": "ناوبری اصلی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.register": {
+    "source": "Register",
+    "text": "ثبت‌نام",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.language": {
+    "source": "Language",
+    "text": "زبان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.demonstration": {
+    "source": "Demonstration data. Every match, score, team and member on this site is development fixture data. None of it is real football, and nothing here has happened.",
+    "text": "داده‌های نمایشی. همه‌ی بازی‌ها، نتیجه‌ها، تیم‌ها و اعضای این سایت داده‌های آزمایشیِ توسعه هستند. هیچ‌کدام فوتبال واقعی نیست و هیچ‌یک از این رویدادها رخ نداده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.accountDeleted.title": {
+    "source": "Account deleted",
+    "text": "حساب کاربری حذف شد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.tagline": {
+    "source": "Football Match Intelligence Platform. Start with the {link}.",
+    "text": "سامانه‌ی هوشمند اطلاعات فوتبال. از {link} شروع کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.tagline.link": {
+    "source": "scores",
+    "text": "نتایج",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.firstVisit": {
+    "source": "New here? {link}.",
+    "text": "تازه آمده‌اید؟ {link}.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.firstVisit.link": {
+    "source": "What FMIP is, and how a rating is earned",
+    "text": "FMIP چیست و امتیاز عملکرد چگونه به دست می‌آید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.guestInvite": {
+    "source": "{link} to follow your teams, predict matches and earn a rating.",
+    "text": "برای دنبال کردن تیم‌هایتان، پیش‌بینی بازی‌ها و کسب امتیاز عملکرد، {link}.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.guestInvite.link": {
+    "source": "Create an account",
+    "text": "حساب کاربری بسازید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.feed": {
+    "source": "{link} — your teams, competitions, friends and groups.",
+    "text": "{link} — تیم‌ها، رقابت‌ها، دوستان و گروه‌های شما.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.feed.link": {
+    "source": "Your feed",
+    "text": "خوراک شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.matches.title": {
+    "source": "Live and upcoming",
+    "text": "زنده و پیش رو",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.fixture": {
+    "source": "{home} v {away}",
+    "text": "{home} مقابل {away}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.versus": {
+    "source": "v",
+    "text": "مقابل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.featured": {
+    "source": "Featured",
+    "text": "ویژه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.watch.ask": {
+    "source": "{link} to see where these matches are shown.",
+    "text": "{link} تا ببینید این بازی‌ها کجا پخش می‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.watch.unreachable": {
+    "source": "Where to watch these matches could not be loaded.",
+    "text": "اطلاعات محل تماشای این بازی‌ها بارگیری نشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.allScores": {
+    "source": "All scores",
+    "text": "همه‌ی نتایج",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.timesIn": {
+    "source": "(times in {zone})",
+    "text": "(زمان‌ها به وقت {zone})",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.model.title": {
+    "source": "The model’s view",
+    "text": "نظر مدل آماری",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.model.line": {
+    "source": "{home} {homePercent}% · draw {draw}% · {away} {awayPercent}%",
+    "text": "{home} {homePercent}٪ · مساوی {draw}٪ · {away} {awayPercent}٪",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.model.note": {
+    "source": "The statistical model’s forecasts ({version}). Not the founder’s view, and not the community’s.",
+    "text": "پیش‌بینی‌های مدل آماری ({version}). نه نظر بنیان‌گذار است و نه نظر جمعی کاربران.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.founder.heading": {
+    "source": "Founder's analysis of what is coming",
+    "text": "تحلیل بنیان‌گذار از بازی‌های پیش رو",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.table.team": {
+    "source": "Team",
+    "text": "تیم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.table.played": {
+    "source": "Played",
+    "text": "بازی‌شده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.table.playedShort": {
+    "source": "P",
+    "text": "بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.table.points": {
+    "source": "Points",
+    "text": "امتیاز",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.table.pointsShort": {
+    "source": "Pts",
+    "text": "امتیاز",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.news.title": {
+    "source": "Latest stories",
+    "text": "تازه‌ترین اخبار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.friends.title": {
+    "source": "Your friends’ predictions",
+    "text": "پیش‌بینی‌های دوستان شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.friends.unreachable": {
+    "source": "Your friends’ predictions could not be loaded.",
+    "text": "پیش‌بینی‌های دوستان شما بارگیری نشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.friends.empty": {
+    "source": "No predictions from your friends in the last seven days that you can see.",
+    "text": "در هفت روز گذشته پیش‌بینی‌ای از دوستانتان که شما اجازه‌ی دیدنش را داشته باشید ثبت نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.friends.note": {
+    "source": "Your friends’ own calls, shown as each of them lets you see their history. Not the model’s forecast, and not the community’s.",
+    "text": "پیش‌بینی‌های خود دوستانتان، به همان اندازه که هر کدام اجازه‌ی دیدن سابقه‌شان را به شما داده‌اند. نه پیش‌بینی مدل آماری است و نه نظر جمعی کاربران.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.friends.called": {
+    "source": "called {outcome}",
+    "text": "پیش‌بینی کرد: {outcome}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.friends.toWin": {
+    "source": "{team} to win",
+    "text": "برد {team}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.friends.draw": {
+    "source": "a draw",
+    "text": "مساوی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.friends.right": {
+    "source": "right",
+    "text": "درست",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.friends.wrong": {
+    "source": "wrong",
+    "text": "نادرست",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.friends.void": {
+    "source": "void",
+    "text": "باطل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.groups.title": {
+    "source": "In your groups",
+    "text": "در گروه‌های شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.groups.unreachable": {
+    "source": "Your groups’ discussions could not be loaded.",
+    "text": "گفت‌وگوهای گروه‌های شما بارگیری نشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.groups.empty": {
+    "source": "Nothing has been said in your groups in the last two days.",
+    "text": "در دو روز گذشته در گروه‌های شما چیزی گفته نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.groups.nothingYet": {
+    "source": "Nothing said yet.",
+    "text": "هنوز چیزی گفته نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.groups.removed": {
+    "source": "A message was removed.",
+    "text": "یک پیام حذف شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.groups.card": {
+    "source": "shared a football card.",
+    "text": "یک کارت فوتبالی هم‌رسانی کرد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.groups.last": {
+    "source": "{name}: {text}",
+    "text": "{name}: {text}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.groups.unread": {
+    "source": {
+      "one": "{count} unread",
+      "other": "{count} unread"
+    },
+    "forms": {
+      "one": "{count} خوانده‌نشده",
+      "other": "{count} خوانده‌نشده"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.panels.title": {
+    "source": "On today’s match discussions",
+    "text": "در میزگردهای مسابقه‌های امروز",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.panels.unreachable": {
+    "source": "Today’s match discussions could not be loaded.",
+    "text": "میزگردهای مسابقه‌های امروز بارگیری نشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.panels.empty": {
+    "source": "Nothing has been posted on today’s match discussions yet.",
+    "text": "هنوز چیزی در میزگردهای مسابقه‌های امروز منتشر نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.panels.theMatch": {
+    "source": "The match",
+    "text": "بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.panels.notRated": {
+    "source": "not rated yet",
+    "text": "هنوز امتیازی ندارد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.panels.standing": {
+    "source": "({standing})",
+    "text": "({standing})",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.panels.standingFormer": {
+    "source": "({standing}, formerly approved)",
+    "text": "({standing}، پیش‌تر تأییدشده)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.panels.tierRating": {
+    "source": "{tier} · {rating}",
+    "text": "{tier} · {rating}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.panels.total": {
+    "source": {
+      "one": "{count} post in all, on the match page.",
+      "other": "{count} posts in all, on the match page."
+    },
+    "forms": {
+      "one": "در مجموع {count} پست، در صفحه‌ی بازی.",
+      "other": "در مجموع {count} پست، در صفحه‌ی بازی."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.tier.bronze": {
+    "source": "Bronze",
+    "text": "برنزی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.tier.silver": {
+    "source": "Silver",
+    "text": "نقره‌ای",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.tier.gold": {
+    "source": "Gold",
+    "text": "طلایی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.tier.platinum": {
+    "source": "Platinum",
+    "text": "پلاتینی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "home.tier.elite": {
+    "source": "Elite",
+    "text": "نخبه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "about.meta.title": {
+    "source": "What FMIP is",
+    "text": "FMIP چیست",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "about.meta.description": {
+    "source": "Live scores and match centres, a statistical forecast, the founder’s analysis and members’ predictions, kept apart, and a rating earned by predicting.",
+    "text": "نتایج زنده و مرکز مسابقه، پیش‌بینی مدل آماری، تحلیل بنیان‌گذار و پیش‌بینی‌های اعضا، جدا از هم، و امتیاز عملکردی که با پیش‌بینی به دست می‌آید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "about.football.title": {
+    "source": "Football, match by match",
+    "text": "فوتبال، بازی به بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "about.football.body": {
+    "source": "Live scores and a page for every match: the timeline, line-ups, statistics, who will miss it and each side’s form, with every competition’s table beside them. When something is missing for a match, its page says so rather than showing an empty box, and every live number says when it last changed.",
+    "text": "نتایج زنده و صفحه‌ای برای هر بازی: روند بازی، ترکیب‌ها، آمار، بازیکنانی که بازی را از دست می‌دهند و فرم هر تیم، همراه با جدول رده‌بندی هر رقابت. وقتی چیزی برای بازی‌ای موجود نیست، صفحه‌ی آن به‌جای نشان دادن کادری خالی همین را می‌گوید، و هر عدد زنده نشان می‌دهد آخرین بار کی تغییر کرده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "about.competitions": {
+    "source": "Covered now: {names}.",
+    "text": "رقابت‌های پوشش‌داده‌شده: {names}.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "about.competitions.unreachable": {
+    "source": "The list of competitions could not be read just now.",
+    "text": "فهرست رقابت‌ها در این لحظه خوانده نشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "about.three.title": {
+    "source": "Three kinds of prediction, never mixed",
+    "text": "سه نوع پیش‌بینی، هرگز درهم‌آمیخته",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "about.three.model.name": {
+    "source": "The statistical model.",
+    "text": "مدل آماری.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "about.three.model.body": {
+    "source": "A forecast computed before kick-off from the teams’ results, with the probabilities of a home win, a draw and an away win. Each version is kept as it was made, and after the match it is scored against what happened.",
+    "text": "پیش‌بینی‌ای که پیش از شروع بازی از روی نتایج تیم‌ها محاسبه می‌شود، با احتمال برد میزبان، مساوی و برد میهمان. هر نسخه همان‌طور که ساخته شده نگه داشته می‌شود و پس از بازی با آنچه رخ داد سنجیده می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "about.three.founder.name": {
+    "source": "The founder’s analysis.",
+    "text": "تحلیل بنیان‌گذار.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "about.three.founder.body": {
+    "source": "Written and signed by a person, for selected matches.",
+    "text": "نوشته و امضاشده به دست یک نفر، برای بازی‌های منتخب.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "about.three.community.name": {
+    "source": "The community.",
+    "text": "کاربران.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "about.three.community.body": {
+    "source": "Members’ own predictions. Their combined view appears once at least five members have predicted a match, beside a second one weighted only by members whose ratings are established.",
+    "text": "پیش‌بینی‌های خود اعضا. نظر جمعی آن‌ها وقتی نمایش داده می‌شود که دست‌کم پنج عضو برای یک بازی پیش‌بینی ثبت کرده باشند، در کنار نظر دومی که فقط اعضایی با امتیاز عملکرد تثبیت‌شده در آن وزن دارند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "about.three.apart": {
+    "source": "The three are shown side by side and never blended into one number.",
+    "text": "این سه کنار هم نمایش داده می‌شوند و هرگز در یک عدد ترکیب نمی‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "about.rating.title": {
+    "source": "A rating you earn by predicting",
+    "text": "امتیازی که با پیش‌بینی به دست می‌آورید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "about.rating.body": {
+    "source": "Predict the outcome before kick-off, with how confident you are and, if you like, the exact score; at kick-off the prediction is locked, and every version you submitted is kept. Your rating grows most from being right when it was hard to be right — how hard is the model’s own probability, fixed before kick-off — and also from exact scores, consistency, and confidence that matched the outcome.",
+    "text": "نتیجه را پیش از شروع بازی پیش‌بینی کنید، همراه با میزان اطمینانتان و اگر خواستید نتیجه‌ی دقیق؛ با شروع بازی پیش‌بینی قفل می‌شود و هر نسخه‌ای که ثبت کرده‌اید نگه داشته می‌شود. امتیاز عملکرد شما بیش از همه با درست گفتن در جایی رشد می‌کند که درست گفتن دشوار بود — میزان این دشواری همان احتمالی است که مدل آماری پیش از شروع بازی تعیین کرده — و همچنین با نتیجه‌های دقیق، ثبات و اطمینانی که با نتیجه‌ی بازی جور درآمد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "about.rating.provisional": {
+    "source": {
+      "one": "A rating is provisional until {count} prediction has been settled.",
+      "other": "A rating is provisional until {count} predictions have been settled."
+    },
+    "forms": {
+      "one": "امتیاز عملکرد تا تسویه‌ی {count} پیش‌بینی موقت است.",
+      "other": "امتیاز عملکرد تا تسویه‌ی {count} پیش‌بینی موقت است."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "about.rating.recompute": {
+    "source": "A rating can always be recomputed from the stored predictions and results alone. The {link} names the formula version in force.",
+    "text": "امتیاز عملکرد همیشه فقط از روی پیش‌بینی‌ها و نتایج ذخیره‌شده دوباره قابل محاسبه است. {link} نسخه‌ی فرمول جاری را نشان می‌دهد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "about.rating.leaderboard": {
+    "source": "leaderboard",
+    "text": "جدول برترین‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "about.todayScores": {
+    "source": "Today’s scores",
+    "text": "نتایج امروز",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "about.account": {
+    "source": "Predicting needs an account with a verified e-mail address.",
+    "text": "برای پیش‌بینی به حساب کاربری با ایمیل تأییدشده نیاز دارید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "welcome.meta.title": {
+    "source": "Welcome",
+    "text": "خوش آمدید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "rulesPage.meta.description": {
+    "source": "The rules every member accepts: what FMIP is for, what is not allowed, and how leaving works.",
+    "text": "قوانینی که هر عضو می‌پذیرد: FMIP برای چیست، چه کارهایی مجاز نیست و ترک آن چگونه است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "offline.title": {
+    "source": "You are offline",
+    "text": "شما آفلاین هستید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "offline.body": {
+    "source": "FMIP needs a connection for live scores, matches and predictions. Nothing cached is shown as current: when you are back online, the pages will load fresh.",
+    "text": "FMIP برای نتایج زنده، بازی‌ها و پیش‌بینی‌ها به اتصال اینترنت نیاز دارد. هیچ داده‌ی ذخیره‌شده‌ای به‌عنوان داده‌ی جاری نشان داده نمی‌شود: وقتی دوباره آنلاین شوید، صفحه‌ها از نو بارگیری می‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "offline.retry": {
+    "source": "Try the scores again",
+    "text": "دوباره نتایج را امتحان کنید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "theme.label": {
     "source": "Theme",
     "text": "پوسته",
