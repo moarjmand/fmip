@@ -304,6 +304,740 @@
     "text": "",
     "status": "untranslated"
   },
+  "auth.form.done": {
+    "source": "Done.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.form.working": {
+    "source": "Working…",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.unreachable": {
+    "source": "The service is unreachable right now. Please try again shortly.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.failed": {
+    "source": "The request failed (HTTP {status}).",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.username": {
+    "source": "Username",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.displayName": {
+    "source": "Display name",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.email": {
+    "source": "E-mail",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.password": {
+    "source": "Password",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.passwordHint": {
+    "source": "At least 10 characters.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.needsLink": {
+    "source": "This page needs the link from your e-mail.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.login.passwordChanged": {
+    "source": "Your password was changed and every other session was signed out. Sign in with the new one.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.login.identifier": {
+    "source": "Username or e-mail",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.login.forgot": {
+    "source": "Forgot your password?",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.login.register": {
+    "source": "Create an account",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.title": {
+    "source": "Register",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.unreachable": {
+    "source": "The service is unreachable right now, so registration is unavailable.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.closed": {
+    "source": "Registration is not open yet: no country has been set up to choose from.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.usernameHint": {
+    "source": "3 to 20 characters: lower-case letters, digits, underscore. Shown on leaderboards.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.country": {
+    "source": "Country or territory",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.language": {
+    "source": "Language",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.timezone": {
+    "source": "Time zone",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.acceptRules": {
+    "source": "I accept the platform rules.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.invited": {
+    "source": "@{username} invited you. After you register you can send them a friend request, or not.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.submit": {
+    "source": "Create account",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.already": {
+    "source": "Already a member?",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.verify.metaTitle": {
+    "source": "Verify e-mail",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.verify.title": {
+    "source": "E-mail verification",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.verify.done": {
+    "source": "Your e-mail address is verified. You can now submit predictions.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.verify.unreachable": {
+    "source": "The service is unreachable right now. Open the link again in a moment.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.verify.invalid": {
+    "source": "This link is invalid, has expired, or was already used.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.verify.back": {
+    "source": "Back to FMIP",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.forgot.metaTitle": {
+    "source": "Forgot password",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.forgot.lead": {
+    "source": "Enter the e-mail address of your account. If it is known, a one-time reset link will be sent to it.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.forgot.submit": {
+    "source": "Send reset link",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.forgot.sent": {
+    "source": "If that address belongs to an account, a reset link is on its way.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.reset.title": {
+    "source": "Reset password",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.reset.requestNew": {
+    "source": "Request a new one",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.reset.heading": {
+    "source": "Choose a new password",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.reset.lead": {
+    "source": "Every other session of your account will be signed out.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.reset.newPassword": {
+    "source": "New password",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.reset.submit": {
+    "source": "Change password",
+    "text": "",
+    "status": "untranslated"
+  },
+  "settingsPage.profile": {
+    "source": "Profile",
+    "text": "",
+    "status": "untranslated"
+  },
+  "settingsPage.signedInVerified": {
+    "source": "Signed in as @{username} ({email}, verified).",
+    "text": "",
+    "status": "untranslated"
+  },
+  "settingsPage.signedInUnverified": {
+    "source": "Signed in as @{username} ({email}, not yet verified).",
+    "text": "",
+    "status": "untranslated"
+  },
+  "settingsPage.bio": {
+    "source": "Short biography",
+    "text": "",
+    "status": "untranslated"
+  },
+  "settingsPage.bioHint": {
+    "source": "Up to 500 characters.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "settingsPage.avatar": {
+    "source": "Avatar URL",
+    "text": "",
+    "status": "untranslated"
+  },
+  "settingsPage.avatarHint": {
+    "source": "An http(s) link to an image. Leave empty for none.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "settingsPage.saveProfile": {
+    "source": "Save profile",
+    "text": "",
+    "status": "untranslated"
+  },
+  "settingsPage.profileSaved": {
+    "source": "Profile saved.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "settingsPage.privacy": {
+    "source": "Privacy",
+    "text": "",
+    "status": "untranslated"
+  },
+  "settingsPage.privacyLead": {
+    "source": "Your username and display name are always public, because leaderboards show them.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "settingsPage.visibility.public": {
+    "source": "Public: anyone",
+    "text": "",
+    "status": "untranslated"
+  },
+  "settingsPage.visibility.friends": {
+    "source": "Friends only (friendships arrive in a later release; until then, only you)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "settingsPage.visibility.private": {
+    "source": "Private: only you",
+    "text": "",
+    "status": "untranslated"
+  },
+  "settingsPage.profileVisibility": {
+    "source": "Who can see your profile",
+    "text": "",
+    "status": "untranslated"
+  },
+  "settingsPage.historyVisibility": {
+    "source": "Who can see your prediction history",
+    "text": "",
+    "status": "untranslated"
+  },
+  "settingsPage.savePrivacy": {
+    "source": "Save privacy settings",
+    "text": "",
+    "status": "untranslated"
+  },
+  "settingsPage.privacySaved": {
+    "source": "Privacy settings saved.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "settingsPage.territory.heading": {
+    "source": "Viewing territory",
+    "text": "",
+    "status": "untranslated"
+  },
+  "settingsPage.territory.chosen": {
+    "source": "Viewing options are shown for {territory}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "settingsPage.territory.none": {
+    "source": "You have not chosen a territory yet. Where a match can be watched depends on it, so you will be asked rather than guessed at.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "settingsPage.territory.unreachable": {
+    "source": "The territory list could not be loaded right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "settingsPage.territory.label": {
+    "source": "Where you watch from",
+    "text": "",
+    "status": "untranslated"
+  },
+  "settingsPage.territory.hint": {
+    "source": "Rights are sold by country, so this is the country you are in, not the team you support.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "settingsPage.territory.submit": {
+    "source": "Save viewing territory",
+    "text": "",
+    "status": "untranslated"
+  },
+  "settingsPage.territory.set": {
+    "source": "Viewing territory set to {territory}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "settingsPage.territory.cleared": {
+    "source": "Viewing territory cleared; you will be asked when it matters.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "settingsPage.followingUnreachable": {
+    "source": "Following could not be loaded right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.unreachable": {
+    "source": "The service is unreachable right now, so this profile cannot be shown.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.invited": {
+    "source": "You joined through {name}’s invitation. Send them a friend request below if you like; nothing has been sent.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.restrictedFriends": {
+    "source": "This profile is visible to friends only.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.restrictedPrivate": {
+    "source": "This profile is private.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.memberSince": {
+    "source": "Member since",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.edit": {
+    "source": "Edit profile",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.inviteTitle": {
+    "source": "Join me on FMIP",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.inviteLabel": {
+    "source": "Invite a friend",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compareLink": {
+    "source": "Compare records",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.noBio": {
+    "source": "No biography yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.favourites": {
+    "source": "Favourite teams",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.noFavourites": {
+    "source": "No favourite teams yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.rating.heading": {
+    "source": "Performance Rating",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.rating.unreachable": {
+    "source": "The rating cannot be shown right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.rating.none": {
+    "source": "No rating yet: a rating starts with the first settled prediction.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.rating.rating": {
+    "source": "Rating",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.rating.tier": {
+    "source": "Tier",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.rating.status": {
+    "source": "Status",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.rating.settled": {
+    "source": "Settled",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.rating.computed": {
+    "source": "computed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.ratingOverTime": {
+    "source": "Rating over time",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.history.unreachable": {
+    "source": "The prediction history cannot be shown right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.history.restrictedFriends": {
+    "source": "Prediction history is visible to friends only.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.history.restrictedPrivate": {
+    "source": "Prediction history is private.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.ratingHistory.unreachable": {
+    "source": "The rating history cannot be shown right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.ratingHistory.restrictedFriends": {
+    "source": "The rating history is visible to friends only.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.ratingHistory.restrictedPrivate": {
+    "source": "The rating history is private.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.ratingHistory.none": {
+    "source": "Nothing has settled yet, so there is no rating to follow over time.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.ratingHistory.caption": {
+    "source": "Rating at the end of each day with a settled prediction",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.ratingHistory.date": {
+    "source": "Date",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.ratingHistory.settledSoFar": {
+    "source": "Settled so far",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.ratingHistory.provisionalValue": {
+    "source": "{rating} (provisional)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.ratingHistory.highest": {
+    "source": "Highest: {rating}, on {date}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.ratingHistory.highestProvisional": {
+    "source": "Highest: {rating}, on {date} (while still provisional).",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.ratingHistory.byCompetition": {
+    "source": "By competition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.ratingHistory.competition": {
+    "source": "Competition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.ratingHistory.outcomes": {
+    "source": "Outcomes",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.ratingHistory.exactScores": {
+    "source": "Exact scores",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.ratingHistory.provisional": {
+    "source": "provisional",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.ratingHistory.formula": {
+    "source": "Each competition is rated on its own predictions under {version}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.ratingHistory.nothingSettled": {
+    "source": "Nothing settled",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.ratingHistory.accuracy": {
+    "source": "{correct} of {settled} correct ({share}%)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.ratingHistory.summaryNone": {
+    "source": "No rating yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.ratingHistory.summaryOne": {
+    "source": "Rating {rating} on {date}, the only day with a settled prediction.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.ratingHistory.summary": {
+    "source": "Rating from {first} on {firstDate} to {last} on {lastDate}, over {days} days with settled predictions.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compare.metaTitle": {
+    "source": "Compare with @{username}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compare.title": {
+    "source": "You and @{username}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compare.back": {
+    "source": "Back to their profile",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compare.ratings": {
+    "source": "Ratings",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compare.you": {
+    "source": "You",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compare.settledCount": {
+    "source": {
+      "one": "{count} settled",
+      "other": "{count} settled"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "profile.compare.myRatingUnreachable": {
+    "source": "Your rating is unreachable right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compare.theirRatingUnreachable": {
+    "source": "Their rating is unreachable right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compare.ratingNote": {
+    "source": "A Performance Rating is earned from settled predictions and adjusted for how hard each call was — it is not a count of how often somebody posts.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compare.record": {
+    "source": "Matches you both predicted",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compare.unreachable": {
+    "source": "One of the two histories is unreachable right now, so there is nothing to compare.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compare.restrictedFriends": {
+    "source": "@{username} shows their prediction history to friends only.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compare.restrictedPrivate": {
+    "source": "@{username} keeps their prediction history private.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compare.mineRestricted": {
+    "source": "Your own prediction history is hidden, and this comparison reads it the same way everyone else does.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compare.privacyLink": {
+    "source": "Privacy settings",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compare.none": {
+    "source": "You have not predicted any of the same matches yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compare.inCommon": {
+    "source": {
+      "one": "{count} match in common, none of them settled yet.",
+      "other": "{count} matches in common, none of them settled yet."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "profile.compare.tally": {
+    "source": {
+      "one": "Over {count} settled match in common: both right {both}, only you {mine}, only @{username} {theirs}, neither {neither}.",
+      "other": "Over {count} settled matches in common: both right {both}, only you {mine}, only @{username} {theirs}, neither {neither}."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "profile.compare.window": {
+    "source": "This is the most recent {count} predictions from each of you, not the whole record.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compare.fixture": {
+    "source": "{home} v {away}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compare.yourCall": {
+    "source": "you: {outcome}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compare.theirCall": {
+    "source": "@{username}: {outcome}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compare.outcome.home": {
+    "source": "home",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compare.outcome.draw": {
+    "source": "draw",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compare.outcome.away": {
+    "source": "away",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compare.verdict": {
+    "source": "{you}, {they}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compare.youRight": {
+    "source": "you were right",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compare.youWrong": {
+    "source": "you were wrong",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compare.theyRight": {
+    "source": "they were right",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compare.theyWrong": {
+    "source": "they were wrong",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.compare.notSettled": {
+    "source": "not settled",
+    "text": "",
+    "status": "untranslated"
+  },
   "language.name.en": {
     "source": "English",
     "text": "",

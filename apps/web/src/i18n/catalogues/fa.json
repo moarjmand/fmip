@@ -365,6 +365,894 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "auth.form.done": {
+    "source": "Done.",
+    "text": "انجام شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.form.working": {
+    "source": "Working…",
+    "text": "در حال انجام…",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.unreachable": {
+    "source": "The service is unreachable right now. Please try again shortly.",
+    "text": "این سرویس در حال حاضر در دسترس نیست. لطفاً کمی بعد دوباره تلاش کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.failed": {
+    "source": "The request failed (HTTP {status}).",
+    "text": "درخواست انجام نشد (HTTP {status}).",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.username": {
+    "source": "Username",
+    "text": "نام کاربری",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.displayName": {
+    "source": "Display name",
+    "text": "نام نمایشی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.email": {
+    "source": "E-mail",
+    "text": "ایمیل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.password": {
+    "source": "Password",
+    "text": "گذرواژه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.passwordHint": {
+    "source": "At least 10 characters.",
+    "text": "دست‌کم ۱۰ نویسه.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.needsLink": {
+    "source": "This page needs the link from your e-mail.",
+    "text": "این صفحه به پیوندی نیاز دارد که به ایمیل شما فرستاده شده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.login.passwordChanged": {
+    "source": "Your password was changed and every other session was signed out. Sign in with the new one.",
+    "text": "گذرواژه‌ی شما تغییر کرد و از همه‌ی نشست‌های دیگر خارج شدید. با گذرواژه‌ی جدید وارد شوید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.login.identifier": {
+    "source": "Username or e-mail",
+    "text": "نام کاربری یا ایمیل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.login.forgot": {
+    "source": "Forgot your password?",
+    "text": "گذرواژه‌ی خود را فراموش کرده‌اید؟",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.login.register": {
+    "source": "Create an account",
+    "text": "ساخت حساب کاربری",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.register.title": {
+    "source": "Register",
+    "text": "ثبت‌نام",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.register.unreachable": {
+    "source": "The service is unreachable right now, so registration is unavailable.",
+    "text": "این سرویس در حال حاضر در دسترس نیست، بنابراین ثبت‌نام امکان‌پذیر نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.register.closed": {
+    "source": "Registration is not open yet: no country has been set up to choose from.",
+    "text": "ثبت‌نام هنوز باز نشده است: هیچ کشوری برای انتخاب تعریف نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.register.usernameHint": {
+    "source": "3 to 20 characters: lower-case letters, digits, underscore. Shown on leaderboards.",
+    "text": "۳ تا ۲۰ نویسه: حروف کوچک لاتین، رقم و زیرخط (_). در جدول برترین‌ها نمایش داده می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.register.country": {
+    "source": "Country or territory",
+    "text": "کشور یا قلمرو",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.register.language": {
+    "source": "Language",
+    "text": "زبان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.register.timezone": {
+    "source": "Time zone",
+    "text": "منطقه‌ی زمانی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.register.acceptRules": {
+    "source": "I accept the platform rules.",
+    "text": "قوانین پلتفرم را می‌پذیرم.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.register.invited": {
+    "source": "@{username} invited you. After you register you can send them a friend request, or not.",
+    "text": "@{username} شما را دعوت کرده است. پس از ثبت‌نام می‌توانید برایش درخواست دوستی بفرستید، یا نفرستید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.register.submit": {
+    "source": "Create account",
+    "text": "ساخت حساب کاربری",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.register.already": {
+    "source": "Already a member?",
+    "text": "عضو هستید؟",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.verify.metaTitle": {
+    "source": "Verify e-mail",
+    "text": "تأیید ایمیل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.verify.title": {
+    "source": "E-mail verification",
+    "text": "تأیید ایمیل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.verify.done": {
+    "source": "Your e-mail address is verified. You can now submit predictions.",
+    "text": "نشانی ایمیل شما تأیید شد. اکنون می‌توانید پیش‌بینی ثبت کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.verify.unreachable": {
+    "source": "The service is unreachable right now. Open the link again in a moment.",
+    "text": "این سرویس در حال حاضر در دسترس نیست. کمی بعد دوباره پیوند را باز کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.verify.invalid": {
+    "source": "This link is invalid, has expired, or was already used.",
+    "text": "این پیوند نامعتبر است، منقضی شده، یا پیش‌تر استفاده شده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.verify.back": {
+    "source": "Back to FMIP",
+    "text": "بازگشت به FMIP",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.forgot.metaTitle": {
+    "source": "Forgot password",
+    "text": "فراموشی گذرواژه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.forgot.lead": {
+    "source": "Enter the e-mail address of your account. If it is known, a one-time reset link will be sent to it.",
+    "text": "نشانی ایمیل حساب کاربری خود را وارد کنید. اگر این نشانی شناخته‌شده باشد، یک پیوند یک‌بارمصرف برای بازنشانی گذرواژه به آن فرستاده می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.forgot.submit": {
+    "source": "Send reset link",
+    "text": "ارسال پیوند بازنشانی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.forgot.sent": {
+    "source": "If that address belongs to an account, a reset link is on its way.",
+    "text": "اگر این نشانی به حسابی تعلق داشته باشد، پیوند بازنشانی در راه است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.reset.title": {
+    "source": "Reset password",
+    "text": "بازنشانی گذرواژه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.reset.requestNew": {
+    "source": "Request a new one",
+    "text": "درخواست پیوند جدید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.reset.heading": {
+    "source": "Choose a new password",
+    "text": "گذرواژه‌ی جدیدی انتخاب کنید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.reset.lead": {
+    "source": "Every other session of your account will be signed out.",
+    "text": "از همه‌ی نشست‌های دیگر حساب شما خارج می‌شوید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.reset.newPassword": {
+    "source": "New password",
+    "text": "گذرواژه‌ی جدید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.reset.submit": {
+    "source": "Change password",
+    "text": "تغییر گذرواژه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "settingsPage.profile": {
+    "source": "Profile",
+    "text": "نمایه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "settingsPage.signedInVerified": {
+    "source": "Signed in as @{username} ({email}, verified).",
+    "text": "با حساب @{username} وارد شده‌اید ({email}، تأییدشده).",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "settingsPage.signedInUnverified": {
+    "source": "Signed in as @{username} ({email}, not yet verified).",
+    "text": "با حساب @{username} وارد شده‌اید ({email}، هنوز تأیید نشده).",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "settingsPage.bio": {
+    "source": "Short biography",
+    "text": "زندگی‌نامه‌ی کوتاه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "settingsPage.bioHint": {
+    "source": "Up to 500 characters.",
+    "text": "حداکثر ۵۰۰ نویسه.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "settingsPage.avatar": {
+    "source": "Avatar URL",
+    "text": "نشانی (URL) تصویر نمایه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "settingsPage.avatarHint": {
+    "source": "An http(s) link to an image. Leave empty for none.",
+    "text": "پیوند http(s) به یک تصویر. برای نداشتن تصویر، خالی بگذارید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "settingsPage.saveProfile": {
+    "source": "Save profile",
+    "text": "ذخیره‌ی نمایه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "settingsPage.profileSaved": {
+    "source": "Profile saved.",
+    "text": "نمایه ذخیره شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "settingsPage.privacy": {
+    "source": "Privacy",
+    "text": "حریم خصوصی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "settingsPage.privacyLead": {
+    "source": "Your username and display name are always public, because leaderboards show them.",
+    "text": "نام کاربری و نام نمایشی شما همیشه عمومی‌اند، چون در جدول برترین‌ها نمایش داده می‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "settingsPage.visibility.public": {
+    "source": "Public: anyone",
+    "text": "عمومی: همه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "settingsPage.visibility.friends": {
+    "source": "Friends only (friendships arrive in a later release; until then, only you)",
+    "text": "فقط دوستان (دوستی‌ها در نسخه‌ای بعدی می‌آیند؛ تا آن زمان، فقط خودتان)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "settingsPage.visibility.private": {
+    "source": "Private: only you",
+    "text": "خصوصی: فقط خودتان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "settingsPage.profileVisibility": {
+    "source": "Who can see your profile",
+    "text": "چه کسی نمایه‌ی شما را می‌بیند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "settingsPage.historyVisibility": {
+    "source": "Who can see your prediction history",
+    "text": "چه کسی سابقه‌ی پیش‌بینی‌های شما را می‌بیند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "settingsPage.savePrivacy": {
+    "source": "Save privacy settings",
+    "text": "ذخیره‌ی تنظیمات حریم خصوصی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "settingsPage.privacySaved": {
+    "source": "Privacy settings saved.",
+    "text": "تنظیمات حریم خصوصی ذخیره شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "settingsPage.territory.heading": {
+    "source": "Viewing territory",
+    "text": "کشور محل تماشا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "settingsPage.territory.chosen": {
+    "source": "Viewing options are shown for {territory}.",
+    "text": "گزینه‌های تماشا برای {territory} نمایش داده می‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "settingsPage.territory.none": {
+    "source": "You have not chosen a territory yet. Where a match can be watched depends on it, so you will be asked rather than guessed at.",
+    "text": "هنوز کشور محل تماشا را انتخاب نکرده‌اید. اینکه یک بازی را کجا می‌توان دید به آن بستگی دارد، پس از شما پرسیده می‌شود و حدس زده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "settingsPage.territory.unreachable": {
+    "source": "The territory list could not be loaded right now.",
+    "text": "فهرست کشورها در حال حاضر بارگیری نشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "settingsPage.territory.label": {
+    "source": "Where you watch from",
+    "text": "از کجا تماشا می‌کنید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "settingsPage.territory.hint": {
+    "source": "Rights are sold by country, so this is the country you are in, not the team you support.",
+    "text": "حق پخش به تفکیک کشور فروخته می‌شود، پس این کشوری است که در آن هستید، نه تیمی که طرفدارش هستید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "settingsPage.territory.submit": {
+    "source": "Save viewing territory",
+    "text": "ذخیره‌ی کشور محل تماشا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "settingsPage.territory.set": {
+    "source": "Viewing territory set to {territory}.",
+    "text": "کشور محل تماشا روی {territory} تنظیم شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "settingsPage.territory.cleared": {
+    "source": "Viewing territory cleared; you will be asked when it matters.",
+    "text": "کشور محل تماشا پاک شد؛ هر وقت لازم باشد از شما پرسیده می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "settingsPage.followingUnreachable": {
+    "source": "Following could not be loaded right now.",
+    "text": "دنبال‌شده‌ها در حال حاضر بارگیری نشدند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.unreachable": {
+    "source": "The service is unreachable right now, so this profile cannot be shown.",
+    "text": "این سرویس در حال حاضر در دسترس نیست، بنابراین این نمایه نمایش داده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.invited": {
+    "source": "You joined through {name}’s invitation. Send them a friend request below if you like; nothing has been sent.",
+    "text": "شما با دعوت {name} عضو شدید. اگر مایلید، از پایین برایش درخواست دوستی بفرستید؛ چیزی فرستاده نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.restrictedFriends": {
+    "source": "This profile is visible to friends only.",
+    "text": "این نمایه فقط برای دوستان قابل مشاهده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.restrictedPrivate": {
+    "source": "This profile is private.",
+    "text": "این نمایه خصوصی است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.memberSince": {
+    "source": "Member since",
+    "text": "عضو از",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.edit": {
+    "source": "Edit profile",
+    "text": "ویرایش نمایه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.inviteTitle": {
+    "source": "Join me on FMIP",
+    "text": "در FMIP به من بپیوندید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.inviteLabel": {
+    "source": "Invite a friend",
+    "text": "دعوت از یک دوست",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compareLink": {
+    "source": "Compare records",
+    "text": "مقایسه‌ی کارنامه‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.noBio": {
+    "source": "No biography yet.",
+    "text": "هنوز زندگی‌نامه‌ای نوشته نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.favourites": {
+    "source": "Favourite teams",
+    "text": "تیم‌های محبوب",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.noFavourites": {
+    "source": "No favourite teams yet.",
+    "text": "هنوز تیم محبوبی انتخاب نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.rating.heading": {
+    "source": "Performance Rating",
+    "text": "امتیاز عملکرد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.rating.unreachable": {
+    "source": "The rating cannot be shown right now.",
+    "text": "امتیاز در حال حاضر قابل نمایش نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.rating.none": {
+    "source": "No rating yet: a rating starts with the first settled prediction.",
+    "text": "هنوز امتیازی نیست: امتیاز با نخستین پیش‌بینی تسویه‌شده آغاز می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.rating.rating": {
+    "source": "Rating",
+    "text": "امتیاز",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.rating.tier": {
+    "source": "Tier",
+    "text": "رده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.rating.status": {
+    "source": "Status",
+    "text": "وضعیت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.rating.settled": {
+    "source": "Settled",
+    "text": "تسویه‌شده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.rating.computed": {
+    "source": "computed",
+    "text": "محاسبه در",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.ratingOverTime": {
+    "source": "Rating over time",
+    "text": "امتیاز در گذر زمان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.history.unreachable": {
+    "source": "The prediction history cannot be shown right now.",
+    "text": "سابقه‌ی پیش‌بینی‌ها در حال حاضر قابل نمایش نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.history.restrictedFriends": {
+    "source": "Prediction history is visible to friends only.",
+    "text": "سابقه‌ی پیش‌بینی‌ها فقط برای دوستان قابل مشاهده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.history.restrictedPrivate": {
+    "source": "Prediction history is private.",
+    "text": "سابقه‌ی پیش‌بینی‌ها خصوصی است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.ratingHistory.unreachable": {
+    "source": "The rating history cannot be shown right now.",
+    "text": "روند امتیاز در حال حاضر قابل نمایش نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.ratingHistory.restrictedFriends": {
+    "source": "The rating history is visible to friends only.",
+    "text": "روند امتیاز فقط برای دوستان قابل مشاهده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.ratingHistory.restrictedPrivate": {
+    "source": "The rating history is private.",
+    "text": "روند امتیاز خصوصی است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.ratingHistory.none": {
+    "source": "Nothing has settled yet, so there is no rating to follow over time.",
+    "text": "هنوز هیچ پیش‌بینی‌ای تسویه نشده است، پس امتیازی برای دنبال کردن در گذر زمان وجود ندارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.ratingHistory.caption": {
+    "source": "Rating at the end of each day with a settled prediction",
+    "text": "امتیاز در پایان هر روزی که پیش‌بینی تسویه‌شده داشته است",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.ratingHistory.date": {
+    "source": "Date",
+    "text": "تاریخ",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.ratingHistory.settledSoFar": {
+    "source": "Settled so far",
+    "text": "تسویه‌شده تا آن روز",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.ratingHistory.provisionalValue": {
+    "source": "{rating} (provisional)",
+    "text": "{rating} (موقت)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.ratingHistory.highest": {
+    "source": "Highest: {rating}, on {date}.",
+    "text": "بالاترین: {rating}، در {date}.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.ratingHistory.highestProvisional": {
+    "source": "Highest: {rating}, on {date} (while still provisional).",
+    "text": "بالاترین: {rating}، در {date} (زمانی که هنوز موقت بود).",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.ratingHistory.byCompetition": {
+    "source": "By competition",
+    "text": "به تفکیک رقابت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.ratingHistory.competition": {
+    "source": "Competition",
+    "text": "رقابت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.ratingHistory.outcomes": {
+    "source": "Outcomes",
+    "text": "نتیجه‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.ratingHistory.exactScores": {
+    "source": "Exact scores",
+    "text": "نتیجه‌های دقیق",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.ratingHistory.provisional": {
+    "source": "provisional",
+    "text": "موقت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.ratingHistory.formula": {
+    "source": "Each competition is rated on its own predictions under {version}.",
+    "text": "هر رقابت بر پایه‌ی پیش‌بینی‌های خودش و با {version} امتیازدهی می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.ratingHistory.nothingSettled": {
+    "source": "Nothing settled",
+    "text": "چیزی تسویه نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.ratingHistory.accuracy": {
+    "source": "{correct} of {settled} correct ({share}%)",
+    "text": "{correct} درست از {settled} ({share}٪)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.ratingHistory.summaryNone": {
+    "source": "No rating yet.",
+    "text": "هنوز امتیازی نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.ratingHistory.summaryOne": {
+    "source": "Rating {rating} on {date}, the only day with a settled prediction.",
+    "text": "امتیاز {rating} در {date}، تنها روزی که پیش‌بینی تسویه‌شده داشته است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.ratingHistory.summary": {
+    "source": "Rating from {first} on {firstDate} to {last} on {lastDate}, over {days} days with settled predictions.",
+    "text": "امتیاز از {first} در {firstDate} به {last} در {lastDate}، در {days} روز دارای پیش‌بینی تسویه‌شده.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.metaTitle": {
+    "source": "Compare with @{username}",
+    "text": "مقایسه با @{username}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.title": {
+    "source": "You and @{username}",
+    "text": "شما و @{username}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.back": {
+    "source": "Back to their profile",
+    "text": "بازگشت به نمایه‌ی او",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.ratings": {
+    "source": "Ratings",
+    "text": "امتیازها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.you": {
+    "source": "You",
+    "text": "شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.settledCount": {
+    "source": {
+      "one": "{count} settled",
+      "other": "{count} settled"
+    },
+    "forms": {
+      "one": "{count} تسویه‌شده",
+      "other": "{count} تسویه‌شده"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.myRatingUnreachable": {
+    "source": "Your rating is unreachable right now.",
+    "text": "امتیاز شما در حال حاضر در دسترس نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.theirRatingUnreachable": {
+    "source": "Their rating is unreachable right now.",
+    "text": "امتیاز او در حال حاضر در دسترس نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.ratingNote": {
+    "source": "A Performance Rating is earned from settled predictions and adjusted for how hard each call was — it is not a count of how often somebody posts.",
+    "text": "امتیاز عملکرد از پیش‌بینی‌های تسویه‌شده به دست می‌آید و بر اساس دشواری هر پیش‌بینی تعدیل می‌شود — شمارش اینکه کسی چند بار مطلب می‌فرستد نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.record": {
+    "source": "Matches you both predicted",
+    "text": "بازی‌هایی که هر دو پیش‌بینی کرده‌اید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.unreachable": {
+    "source": "One of the two histories is unreachable right now, so there is nothing to compare.",
+    "text": "یکی از دو سابقه در حال حاضر در دسترس نیست، پس چیزی برای مقایسه وجود ندارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.restrictedFriends": {
+    "source": "@{username} shows their prediction history to friends only.",
+    "text": "@{username} سابقه‌ی پیش‌بینی‌هایش را فقط به دوستان نشان می‌دهد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.restrictedPrivate": {
+    "source": "@{username} keeps their prediction history private.",
+    "text": "@{username} سابقه‌ی پیش‌بینی‌هایش را خصوصی نگه می‌دارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.mineRestricted": {
+    "source": "Your own prediction history is hidden, and this comparison reads it the same way everyone else does.",
+    "text": "سابقه‌ی پیش‌بینی‌های خودتان پنهان است و این مقایسه آن را همان‌طور می‌خواند که بقیه می‌خوانند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.privacyLink": {
+    "source": "Privacy settings",
+    "text": "تنظیمات حریم خصوصی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.none": {
+    "source": "You have not predicted any of the same matches yet.",
+    "text": "هنوز هیچ بازی مشترکی را پیش‌بینی نکرده‌اید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.inCommon": {
+    "source": {
+      "one": "{count} match in common, none of them settled yet.",
+      "other": "{count} matches in common, none of them settled yet."
+    },
+    "forms": {
+      "one": "{count} بازی مشترک، که هیچ‌کدام هنوز تسویه نشده است.",
+      "other": "{count} بازی مشترک، که هیچ‌کدام هنوز تسویه نشده است."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.tally": {
+    "source": {
+      "one": "Over {count} settled match in common: both right {both}, only you {mine}, only @{username} {theirs}, neither {neither}.",
+      "other": "Over {count} settled matches in common: both right {both}, only you {mine}, only @{username} {theirs}, neither {neither}."
+    },
+    "forms": {
+      "one": "در {count} بازی مشترک تسویه‌شده: هر دو درست {both}، فقط شما {mine}، فقط @{username} {theirs}، هیچ‌کدام {neither}.",
+      "other": "در {count} بازی مشترک تسویه‌شده: هر دو درست {both}، فقط شما {mine}، فقط @{username} {theirs}، هیچ‌کدام {neither}."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.window": {
+    "source": "This is the most recent {count} predictions from each of you, not the whole record.",
+    "text": "این‌ها {count} پیش‌بینی اخیر هر یک از شماست، نه کل کارنامه.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.fixture": {
+    "source": "{home} v {away}",
+    "text": "{home} مقابل {away}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.yourCall": {
+    "source": "you: {outcome}",
+    "text": "شما: {outcome}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.theirCall": {
+    "source": "@{username}: {outcome}",
+    "text": "@{username}: {outcome}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.outcome.home": {
+    "source": "home",
+    "text": "برد میزبان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.outcome.draw": {
+    "source": "draw",
+    "text": "مساوی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.outcome.away": {
+    "source": "away",
+    "text": "برد مهمان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.verdict": {
+    "source": "{you}, {they}",
+    "text": "{you}، {they}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.youRight": {
+    "source": "you were right",
+    "text": "شما درست گفتید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.youWrong": {
+    "source": "you were wrong",
+    "text": "شما اشتباه کردید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.theyRight": {
+    "source": "they were right",
+    "text": "او درست گفت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.theyWrong": {
+    "source": "they were wrong",
+    "text": "او اشتباه کرد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.compare.notSettled": {
+    "source": "not settled",
+    "text": "تسویه نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "language.name.en": {
     "source": "English",
     "text": "انگلیسی",
