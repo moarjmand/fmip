@@ -100,7 +100,7 @@ export class IngestionSchedulerService implements OnModuleInit, OnApplicationShu
   async start(url: string): Promise<void> {
     const conn = connection(url);
     this.queue = new Queue(INGESTION_QUEUE, { connection: conn });
-    this.worker = new Worker(INGESTION_QUEUE, async (job) => this.jobs.run(job.name as IngestJob), {
+    this.worker = new Worker(INGESTION_QUEUE, async (job) => this.dispatch(job.name), {
       connection: conn,
       concurrency: 1,
     });
@@ -131,6 +131,25 @@ export class IngestionSchedulerService implements OnModuleInit, OnApplicationShu
       event: 'ingest.schedule_on',
       jobs: INGEST_JOBS.length + 1,
     });
+  }
+
+  /**
+   * Runs the job a scheduled tick names. The forecast tick shares the queue but
+   * is not an ingestion job: it goes to the forecast triggers (T-120). Handing
+   * it to `IngestionJobsService.run`, as the worker once did, matched no case
+   * and returned nothing, so every tick "succeeded" and no forecast was ever
+   * written.
+   */
+  async dispatch(name: string): Promise<unknown> {
+    if (name === FORECAST_JOB) {
+      const report = await this.forecasts.runDue();
+      this.log.log('forecast versions', { event: 'forecast.tick', ...report });
+      return report;
+    }
+    if (!(INGEST_JOBS as readonly string[]).includes(name)) {
+      throw new Error(`unknown scheduled job: ${name}`);
+    }
+    return this.jobs.run(name as IngestJob);
   }
 
   async onApplicationShutdown(): Promise<void> {
