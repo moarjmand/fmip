@@ -1,11 +1,24 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import type {
   FounderAnalysisResponse,
   FounderAnalysisSummary,
   FounderOutcome,
 } from '@fmip/contracts';
 import { formatKickoff } from '@/lib/scores';
-import { Score } from '@/components/score';
+import { LtrNumeric } from '@/components/score';
+import { Translated } from '@/components/translated';
+import { interpolate, message, t } from '@/i18n/messages';
+import {
+  asLocale,
+  confidenceText,
+  isoDay,
+  matchTitle,
+  outcomeText,
+  plainNumber,
+  richMessage,
+  scoreText,
+} from '@/lib/prediction-text';
 
 /**
  * The founder's analysis on the pages a reader meets it (blueprint 6.5, T-132).
@@ -18,11 +31,15 @@ import { Score } from '@/components/score';
  * **Never blended.** This component takes only a founder analysis. It cannot
  * render a model forecast or a community consensus, and the panel says out loud
  * which of the three it is, because a reader who cannot tell them apart is
- * reading something the product did not say (rule 6).
+ * reading something the product did not say (rule 6). Its words are its own
+ * keys (`analysis.founder.*`), in every language (T-1307).
  */
 
-function outcomeLabel(outcome: FounderOutcome, home: string, away: string): string {
-  return outcome === 'home' ? `${home} win` : outcome === 'away' ? `${away} win` : 'Draw';
+function outcomeLabel(locale: string, outcome: FounderOutcome, home: string, away: string): string {
+  if (outcome === 'draw') return outcomeText(locale, 'draw');
+  return interpolate(t(asLocale(locale), 'predictions.outcome.teamWin'), {
+    team: outcome === 'home' ? home : away,
+  });
 }
 
 function Signature({
@@ -38,13 +55,23 @@ function Signature({
   timeZone: string;
   locale: string;
 }) {
+  const l = asLocale(locale);
+  const key = version > 1 ? 'analysis.founder.signedUpdated' : 'analysis.founder.signed';
   return (
     <p className="text-xs text-muted" data-testid="founder-signature">
-      Written by {author} · published{' '}
-      <time dateTime={publishedAt}>
-        {publishedAt.slice(0, 10)} {formatKickoff(locale, publishedAt, timeZone)}
-      </time>
-      {version > 1 ? ` · updated, version ${version}` : ''}
+      {richMessage(
+        {
+          ...message(l, key),
+          text: interpolate(t(l, key), { author, version: plainNumber(l, version) }),
+        },
+        {
+          time: (
+            <time dateTime={publishedAt}>
+              {isoDay(l, publishedAt)} {formatKickoff(locale, publishedAt, timeZone)}
+            </time>
+          ),
+        },
+      )}
     </p>
   );
 }
@@ -63,47 +90,68 @@ export function FounderAnalysisPanel({
   timeZone: string;
   locale: string;
 }) {
+  const l = asLocale(locale);
   const current = analysis?.analysis?.versions[0] ?? null;
   if (analysis === null || analysis.analysis === null || current === null) {
     // Most matches have none — the blueprint scopes this to important fixtures —
     // so its absence is stated once and quietly, not as a gap.
     return (
       <section className="flex flex-col gap-2" data-testid="founder-analysis" data-state="none">
-        <h2 className="text-lg font-semibold">Founder&rsquo;s analysis</h2>
-        <p className="text-sm text-muted">The founder has not written an analysis of this match.</p>
+        <h2 className="text-lg font-semibold">
+          <Translated locale={l} message="analysis.founder.title" />
+        </h2>
+        <p className="text-sm text-muted">
+          <Translated locale={l} message="analysis.founder.none" />
+        </p>
       </section>
     );
   }
 
-  const sections: [string, string | null][] = [
-    ['Expected line-up impact', current.lineup_impact],
-    ['Key players and battles', current.key_players],
-    ['Recent form and context', current.form_and_context],
+  const sections: [string, ReactNode, string | null][] = [
+    [
+      'lineup',
+      <Translated key="lineup" locale={l} message="analysis.founder.lineup" />,
+      current.lineup_impact,
+    ],
+    [
+      'players',
+      <Translated key="players" locale={l} message="analysis.founder.keyPlayers" />,
+      current.key_players,
+    ],
+    [
+      'form',
+      <Translated key="form" locale={l} message="analysis.founder.form" />,
+      current.form_and_context,
+    ],
   ];
 
   return (
     <section className="flex flex-col gap-3" data-testid="founder-analysis" data-state="available">
-      <h2 className="text-lg font-semibold">Founder&rsquo;s analysis</h2>
+      <h2 className="text-lg font-semibold">
+        <Translated locale={l} message="analysis.founder.title" />
+      </h2>
       <p className="text-xs text-muted">
-        One person&rsquo;s view, signed. Not the statistical model, and not the community.
+        <Translated locale={l} message="analysis.founder.notOthers" />
       </p>
 
       <p className="text-sm">
-        <strong>{outcomeLabel(current.predicted_outcome, home, away)}</strong>
+        <strong>{outcomeLabel(l, current.predicted_outcome, home, away)}</strong>
         {current.predicted_score !== null ? (
           <>
             {' — '}
-            <Score home={current.predicted_score.home} away={current.predicted_score.away} />
+            <LtrNumeric>
+              {scoreText(l, current.predicted_score.home, current.predicted_score.away)}
+            </LtrNumeric>
           </>
         ) : null}{' '}
-        <span className="text-muted">· confidence {current.confidence}/5</span>
+        <span className="text-muted">· {confidenceText(l, current.confidence)}</span>
       </p>
 
       <p className="text-sm whitespace-pre-line">{current.reasoning}</p>
 
-      {sections.map(([label, text]) =>
+      {sections.map(([id, label, text]) =>
         text === null ? null : (
-          <div key={label} className="flex flex-col gap-0.5">
+          <div key={id} className="flex flex-col gap-0.5">
             <h3 className="text-sm font-medium">{label}</h3>
             <p className="text-sm whitespace-pre-line text-muted">{text}</p>
           </div>
@@ -121,16 +169,23 @@ export function FounderAnalysisPanel({
       {analysis.analysis.versions.length > 1 && (
         <details className="text-xs text-muted">
           <summary className="cursor-pointer">
-            {analysis.analysis.versions.length} versions — what was said before
+            <Translated
+              locale={l}
+              message="analysis.founder.versions"
+              count={analysis.analysis.versions.length}
+            />
           </summary>
           <ol className="mt-2 flex flex-col gap-2">
             {analysis.analysis.versions.slice(1).map((version) => (
               <li key={version.id}>
                 <time dateTime={version.published_at}>
-                  v{version.version_number} · {version.published_at.slice(0, 10)}
+                  {interpolate(t(l, 'predictions.versionShort'), {
+                    version: plainNumber(l, version.version_number),
+                  })}{' '}
+                  · {isoDay(l, version.published_at)}
                 </time>{' '}
-                · {outcomeLabel(version.predicted_outcome, home, away)} · confidence{' '}
-                {version.confidence}/5
+                · {outcomeLabel(l, version.predicted_outcome, home, away)} ·{' '}
+                {confidenceText(l, version.confidence)}
                 <p className="mt-1 whitespace-pre-line">{version.reasoning}</p>
               </li>
             ))}
@@ -152,34 +207,39 @@ export function FounderAnalysisFeed({
   analyses,
   locale,
   timeZone,
-  heading = "Founder's analysis",
+  heading,
 }: {
   analyses: FounderAnalysisSummary[];
   locale: string;
   timeZone: string;
-  heading?: string;
+  /** The section's heading; a server page may pass a `<Translated>` message. */
+  heading?: ReactNode;
 }) {
   if (analyses.length === 0) return null;
+  const l = asLocale(locale);
 
   return (
     <section className="flex flex-col gap-2" data-testid="founder-feed">
-      <h2 className="text-lg font-semibold">{heading}</h2>
+      <h2 className="text-lg font-semibold">
+        {heading ?? <Translated locale={l} message="feed.kind.founderAnalysis" />}
+      </h2>
       <ul className="flex flex-col gap-3">
         {analyses.map((entry) => (
           <li key={entry.fixture.id} className="flex flex-col gap-1">
             <Link href={`/${locale}/match/${entry.fixture.id}`} className="text-sm underline">
-              {entry.fixture.home.name} v {entry.fixture.away.name}
+              {matchTitle(l, entry.fixture.home.name, entry.fixture.away.name)}
             </Link>
             <p className="text-xs text-muted">
               {entry.fixture.competition.name} ·{' '}
               <time dateTime={entry.fixture.kickoff_at}>
-                {entry.fixture.kickoff_at.slice(0, 10)}{' '}
+                {isoDay(l, entry.fixture.kickoff_at)}{' '}
                 {formatKickoff(locale, entry.fixture.kickoff_at, timeZone)}
               </time>
             </p>
             <p className="text-sm">
               <strong>
                 {outcomeLabel(
+                  l,
                   entry.predicted_outcome,
                   entry.fixture.home.name,
                   entry.fixture.away.name,
@@ -188,10 +248,12 @@ export function FounderAnalysisFeed({
               {entry.predicted_score !== null ? (
                 <>
                   {' — '}
-                  <Score home={entry.predicted_score.home} away={entry.predicted_score.away} />
+                  <LtrNumeric>
+                    {scoreText(l, entry.predicted_score.home, entry.predicted_score.away)}
+                  </LtrNumeric>
                 </>
               ) : null}{' '}
-              <span className="text-muted">· confidence {entry.confidence}/5</span>
+              <span className="text-muted">· {confidenceText(l, entry.confidence)}</span>
             </p>
             <p className="text-sm text-muted">{entry.excerpt}</p>
             <Signature

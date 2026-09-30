@@ -60,7 +60,14 @@ describe('the three products stay three on the page', () => {
     // signed personally, and the signature is also what separates it from the
     // model on a page that shows both.
     const founder = source('founder-analysis.tsx');
-    expect(founder).toContain('Not the statistical model, and not the community');
+    // The sentence lives in the catalogue (T-1307); the panel names its key.
+    expect(founder).toContain('message="analysis.founder.notOthers"');
+    const en = JSON.parse(
+      readFileSync(join(COMPONENTS, '..', 'i18n', 'catalogues', 'en.json'), 'utf8'),
+    ) as Record<string, string>;
+    expect(en['analysis.founder.notOthers']).toContain(
+      'Not the statistical model, and not the community',
+    );
     expect(founder).toMatch(/data-testid="founder-signature"/);
   });
 

@@ -6,6 +6,8 @@ import { apiRequest } from '@/lib/api';
 import type { ActionState } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
 import { failureState } from './action-failure';
+import { interpolate, t } from '@/i18n/messages';
+import { asLocale, plainNumber } from './prediction-text';
 
 /**
  * Publishing the founder's analysis (T-131).
@@ -68,6 +70,8 @@ export async function publishAnalysisAction(
   revalidatePath(`/${locale}/match/${fixtureId}`);
   return {
     ok: true,
-    message: `Published as version ${result.data.version_number}. The previous versions stay readable.`,
+    message: interpolate(t(asLocale(locale), 'analysis.action.published'), {
+      version: plainNumber(locale, result.data.version_number),
+    }),
   };
 }

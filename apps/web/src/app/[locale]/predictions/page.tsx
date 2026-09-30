@@ -17,6 +17,11 @@ import { apiQuery, readScoresQuery } from '@/lib/scores';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { Notice } from '@/components/ui';
+import { Translated } from '@/components/translated';
+import { formatDate } from '@/i18n/format';
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/locales';
+import { interpolate, t } from '@/i18n/messages';
+import { asLocale, plainNumber, ratingText } from '@/lib/prediction-text';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,12 +31,22 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  const l = asLocale(locale);
   return pageMetadata({
     locale,
     path: '/predictions',
-    title: 'Predictions · FMIP',
-    description:
-      'Model forecasts, the founder’s analysis, community consensus and the prediction leaderboard — each one separate, each one attributed.',
+    title: t(l, 'predictions.page.title'),
+    description: t(l, 'predictions.page.description'),
+  });
+}
+
+/** The scores day, `2026-10-01`, as English has always shown it; the locale's own date elsewhere. */
+function dayLabel(locale: Locale, date: string): string {
+  if (locale === DEFAULT_LOCALE) return date;
+  return formatDate(locale, `${date}T12:00:00Z`, 'UTC', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
   });
 }
 
@@ -62,6 +77,7 @@ export default async function PredictionsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const [{ locale }, query] = await Promise.all([params, searchParams]);
+  const l = asLocale(locale);
   const cookie = await sessionCookieHeader();
   const me = await fetchMe(cookie);
   const q = readScoresQuery(query, me?.timezone ?? null);
@@ -92,28 +108,29 @@ export default async function PredictionsPage({
     <main className="mx-auto flex max-w-3xl flex-col gap-8 p-8">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold" data-testid="title">
-          Predictions
+          <Translated locale={l} message="nav.predictions" />
         </h1>
         <p className="text-sm text-muted">
-          Three separate answers to the same question, and the leaderboard of who gets them right.
-          The site never averages them or presents one as another.
+          <Translated locale={l} message="predictions.page.intro" />
         </p>
         <p className="text-sm text-muted" data-testid="predictions-day">
-          Matches on {q.date}, times in {q.timezone}.{' '}
+          {interpolate(t(l, 'predictions.page.day'), {
+            date: dayLabel(l, q.date),
+            timezone: q.timezone,
+          })}{' '}
           <Link href={`/${locale}/scores`} className="underline">
-            All scores
+            <Translated locale={l} message="predictions.page.allScores" />
           </Link>
         </p>
       </div>
 
       {!scores.ok ? (
         <Notice tone="danger" data-testid="predictions-unreachable">
-          The scores service is unreachable right now, so the matches to predict on cannot be
-          listed.
+          <Translated locale={l} message="predictions.page.unreachable" />
         </Notice>
       ) : shown.length === 0 ? (
         <p className="text-sm text-muted" data-testid="predictions-empty">
-          No matches on this day.
+          <Translated locale={l} message="predictions.page.empty" />
         </p>
       ) : (
         <>
@@ -137,11 +154,18 @@ export default async function PredictionsPage({
             />
           ) : (
             <section className="flex flex-col gap-2" data-testid="predictions-founder">
-              <h2 className="text-lg font-semibold">Founder&rsquo;s analysis</h2>
+              <h2 className="text-lg font-semibold">
+                <Translated locale={l} message="analysis.founder.title" />
+              </h2>
               <p className="text-sm text-muted">
-                {founder.ok
-                  ? 'The founder has not published an analysis recently. These are written for selected matches, not for every fixture.'
-                  : 'The analysis service is unreachable right now.'}
+                <Translated
+                  locale={l}
+                  message={
+                    founder.ok
+                      ? 'predictions.page.founderNone'
+                      : 'predictions.page.founderUnreachable'
+                  }
+                />
               </p>
             </section>
           )}
@@ -154,33 +178,44 @@ export default async function PredictionsPage({
       )}
 
       <section className="flex flex-col gap-2" data-testid="predictions-leaderboard">
-        <h2 className="text-lg font-semibold">Prediction leaderboard</h2>
+        <h2 className="text-lg font-semibold">
+          <Translated locale={l} message="predictions.page.leaderboardTitle" />
+        </h2>
         <p className="text-xs text-muted">
-          Ranked by Performance Rating, which is earned from settled predictions — never bought with
-          activity.
+          <Translated locale={l} message="predictions.page.leaderboardNote" />
         </p>
         {!leaderboard.ok ? (
-          <p className="text-sm text-muted">The leaderboard is unreachable right now.</p>
+          <p className="text-sm text-muted">
+            <Translated locale={l} message="predictions.page.leaderboardUnreachable" />
+          </p>
         ) : leaderboard.data.entries.length === 0 ? (
           <p className="text-sm text-muted">
-            Nobody has enough settled predictions for a rating yet.
+            <Translated locale={l} message="predictions.page.leaderboardEmpty" />
           </p>
         ) : (
           <ol className="flex flex-col gap-1">
             {leaderboard.data.entries.map((entry) => (
               <li key={entry.username} className="text-sm">
-                <span className="text-muted">{entry.rank}.</span>{' '}
+                <span className="text-muted">{plainNumber(l, entry.rank)}.</span>{' '}
                 <MemberName locale={locale} member={entry} link className="underline" />{' '}
                 <span className="text-muted">
-                  · {entry.rating.toFixed(1)} from {entry.settled_count} settled
-                  {entry.provisional ? ', provisional' : ''}
+                  <Translated
+                    locale={l}
+                    message={
+                      entry.provisional
+                        ? 'predictions.page.entryProvisional'
+                        : 'predictions.page.entry'
+                    }
+                    count={entry.settled_count}
+                    params={{ rating: ratingText(l, entry.rating) }}
+                  />
                 </span>
               </li>
             ))}
           </ol>
         )}
         <Link href={`/${locale}/leaderboard`} className="text-sm underline">
-          The full leaderboard
+          <Translated locale={l} message="predictions.page.fullLeaderboard" />
         </Link>
       </section>
     </main>

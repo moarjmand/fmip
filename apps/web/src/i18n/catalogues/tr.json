@@ -2763,6 +2763,1082 @@
     "text": "",
     "status": "untranslated"
   },
+  "predictions.outcome.home": {
+    "source": "Home win",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.outcome.draw": {
+    "source": "Draw",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.outcome.away": {
+    "source": "Away win",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.outcome.teamWin": {
+    "source": "{team} win",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.confidence": {
+    "source": "confidence {value}/{max}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.reason.form": {
+    "source": "Form",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.reason.lineup": {
+    "source": "Line-up",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.reason.homeAdvantage": {
+    "source": "Home advantage",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.reason.injuries": {
+    "source": "Injuries",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.reason.tactics": {
+    "source": "Tactics",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.reason.fatigue": {
+    "source": "Fatigue",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.reason.competitionImportance": {
+    "source": "Competition importance",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.reason.headToHead": {
+    "source": "Head-to-head",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.reason.motivation": {
+    "source": "Motivation",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.matchTitle": {
+    "source": "{home} v {away}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.versionShort": {
+    "source": "v{version}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.utc": {
+    "source": "{time} UTC",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.section.title": {
+    "source": "Your prediction",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.section.locked": {
+    "source": "locked at kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.section.open": {
+    "source": "open until kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.section.guest": {
+    "source": "{signIn} to predict this match. Predictions need a verified account and lock at kick-off.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.section.signIn": {
+    "source": "Sign in",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.section.none": {
+    "source": "You did not predict this match before kick-off.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.section.verify": {
+    "source": "Verify your e-mail address before predicting; the link is in your inbox.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.section.note": {
+    "source": "Community distribution and settlement arrive with the predictions release (E5); your prediction is never blended with the model forecast (rule 6).",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.section.final": {
+    "source": "Final version {version} of {total}, submitted {time} UTC. Settlement arrives with T-052.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.form.call": {
+    "source": "Your call",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.form.score": {
+    "source": "Exact score (optional)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.form.goals": {
+    "source": "{team} goals",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.form.confidence": {
+    "source": "Confidence",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.form.reasons": {
+    "source": {
+      "one": "Reasons (up to {count})",
+      "other": "Reasons (up to {count})"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "predictions.form.why": {
+    "source": "Why (optional, 280 characters)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.form.submit": {
+    "source": "Submit prediction",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.form.update": {
+    "source": "Update prediction",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.form.version": {
+    "source": "Version {version}, submitted {time} UTC. Every version is kept.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.form.share": {
+    "source": "Share this match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.action.signIn": {
+    "source": "Sign in to predict.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.action.saved": {
+    "source": "Saved as version {version}. You can change it until kick-off.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.page.title": {
+    "source": "Predictions · FMIP",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.page.description": {
+    "source": "Model forecasts, the founder’s analysis, community consensus and the prediction leaderboard — each one separate, each one attributed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.page.intro": {
+    "source": "Three separate answers to the same question, and the leaderboard of who gets them right. The site never averages them or presents one as another.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.page.day": {
+    "source": "Matches on {date}, times in {timezone}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.page.allScores": {
+    "source": "All scores",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.page.unreachable": {
+    "source": "The scores service is unreachable right now, so the matches to predict on cannot be listed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.page.empty": {
+    "source": "No matches on this day.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.page.founderNone": {
+    "source": "The founder has not published an analysis recently. These are written for selected matches, not for every fixture.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.page.founderUnreachable": {
+    "source": "The analysis service is unreachable right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.page.leaderboardTitle": {
+    "source": "Prediction leaderboard",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.page.leaderboardNote": {
+    "source": "Ranked by Performance Rating, which is earned from settled predictions — never bought with activity.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.page.leaderboardUnreachable": {
+    "source": "The leaderboard is unreachable right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.page.leaderboardEmpty": {
+    "source": "Nobody has enough settled predictions for a rating yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "predictions.page.entry": {
+    "source": {
+      "one": "· {rating} from {count} settled",
+      "other": "· {rating} from {count} settled"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "predictions.page.entryProvisional": {
+    "source": {
+      "one": "· {rating} from {count} settled, provisional",
+      "other": "· {rating} from {count} settled, provisional"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "predictions.page.fullLeaderboard": {
+    "source": "The full leaderboard",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.title": {
+    "source": "Leaderboard · FMIP",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.description": {
+    "source": "Members ranked by Performance Rating, behind a minimum-sample filter.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.board": {
+    "source": "Board",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.who": {
+    "source": "Who:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.everyone": {
+    "source": "Everyone",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.friends": {
+    "source": "You and your friends",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.when": {
+    "source": "When:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.allTime": {
+    "source": "All time",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.byMonth": {
+    "source": "By month",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.bySeason": {
+    "source": "By season",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.friendsSignIn": {
+    "source": "{signIn} to see your friends' board: it ranks you and the members you are friends with.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.invalid": {
+    "source": "That filter is not one the board accepts. {link}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.defaultBoard": {
+    "source": "Show the default board",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.unreachable": {
+    "source": "The service is unreachable right now, so the leaderboard cannot be shown.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.month": {
+    "source": "Month:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.season": {
+    "source": "Season:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.minSample": {
+    "source": "Minimum settled predictions:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.column.member": {
+    "source": "Member",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.column.rating": {
+    "source": "Rating",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.column.tier": {
+    "source": "Tier",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.column.settled": {
+    "source": "Settled",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.column.status": {
+    "source": "Status",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.tier.bronze": {
+    "source": "Bronze",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.tier.silver": {
+    "source": "Silver",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.tier.gold": {
+    "source": "Gold",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.tier.platinum": {
+    "source": "Platinum",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.tier.elite": {
+    "source": "Elite",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.status.established": {
+    "source": "Established",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.status.provisional": {
+    "source": "Provisional",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.status.building": {
+    "source": "Building",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.pages": {
+    "source": "Pages",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.previous": {
+    "source": "Previous",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.next": {
+    "source": "Next",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.pageOf": {
+    "source": {
+      "one": "Page {page} of {pages} · {count} ranked",
+      "other": "Page {page} of {pages} · {count} ranked"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "leaderboardPage.footer": {
+    "source": "Formula {formula} · board rules {rules} · as of {time}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.ranked.current": {
+    "source": "Ranked by current Performance Rating",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.ranked.competition": {
+    "source": "Ranked by the Performance Rating computed over predictions on {competition} fixtures only",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.ranked.month": {
+    "source": "Ranked by the Performance Rating computed over predictions settled in {month} (UTC) only",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.ranked.monthCompetition": {
+    "source": "Ranked by the Performance Rating computed over predictions on {competition} fixtures settled in {month} (UTC) only",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.ranked.noSeason": {
+    "source": "No season has a settled prediction yet",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.ranked.season": {
+    "source": "Ranked by the Performance Rating computed over predictions on {season} season fixtures, in every competition, only",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.ranked.seasonCompetition": {
+    "source": "Ranked by the Performance Rating computed over predictions on {competition} fixtures in its {season} season only",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.among.friends": {
+    "source": "among you and your friends",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.among.friendsLanguage": {
+    "source": "among you and your friends who use FMIP in {language}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.among.membersLanguage": {
+    "source": "among members who use FMIP in {language}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.inPeriod.period": {
+    "source": "in that period",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.inPeriod.competition": {
+    "source": "in that competition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.explainer": {
+    "source": {
+      "one": "{ranked}{among}, counting members with at least {count} settled prediction{inPeriod}.",
+      "other": "{ranked}{among}, counting members with at least {count} settled predictions{inPeriod}."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "leaderboardPage.provisionalBelow": {
+    "source": "Ratings are provisional below {floor}, so no smaller sample is ranked.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.privacy": {
+    "source": "A member appears only where their prediction history is visible to you.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.empty.pastEnd": {
+    "source": "There is nobody on this page of the board.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.empty.noSeason": {
+    "source": "No season has a settled prediction yet, so there is no season board.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.empty.friends": {
+    "source": {
+      "one": "Neither you nor any of your friends has {count} settled prediction{where}{when} yet.",
+      "other": "Neither you nor any of your friends has {count} settled predictions{where}{when} yet."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "leaderboardPage.empty.friendsLanguage": {
+    "source": {
+      "one": "Neither you nor any of your friends who uses FMIP in {language} has {count} settled prediction{where}{when} yet.",
+      "other": "Neither you nor any of your friends who uses FMIP in {language} has {count} settled predictions{where}{when} yet."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "leaderboardPage.empty.members": {
+    "source": {
+      "one": "No member has {count} settled prediction{where}{when} yet.",
+      "other": "No member has {count} settled predictions{where}{when} yet."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "leaderboardPage.empty.membersLanguage": {
+    "source": {
+      "one": "No member who uses FMIP in {language} has {count} settled prediction{where}{when} yet.",
+      "other": "No member who uses FMIP in {language} has {count} settled predictions{where}{when} yet."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "leaderboardPage.empty.where": {
+    "source": "in {competition}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.empty.whenMonth": {
+    "source": "in {month}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.empty.whenSeason": {
+    "source": "on {season} season fixtures",
+    "text": "",
+    "status": "untranslated"
+  },
+  "history.empty": {
+    "source": "No predictions yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "history.emptyPage": {
+    "source": "No predictions on this page.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "history.versionLabel": {
+    "source": "{outcome} · {confidence}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "history.versionLabelScore": {
+    "source": "{outcome} {score} · {confidence}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "history.fixtureScore": {
+    "source": "{home} {score} {away}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "history.submitted": {
+    "source": "submitted {time}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "history.fullTime": {
+    "source": "full time {score}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "history.settlement.awaiting": {
+    "source": "Awaiting result",
+    "text": "",
+    "status": "untranslated"
+  },
+  "history.settlement.open": {
+    "source": "Open until kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "history.settlement.void": {
+    "source": "Void",
+    "text": "",
+    "status": "untranslated"
+  },
+  "history.settlement.voidReason": {
+    "source": "Void — {reason}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "history.settlement.exact": {
+    "source": "Exact score",
+    "text": "",
+    "status": "untranslated"
+  },
+  "history.settlement.correct": {
+    "source": "Correct outcome",
+    "text": "",
+    "status": "untranslated"
+  },
+  "history.settlement.wrong": {
+    "source": "Wrong outcome",
+    "text": "",
+    "status": "untranslated"
+  },
+  "history.void.postponed": {
+    "source": "match postponed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "history.void.abandoned": {
+    "source": "match abandoned",
+    "text": "",
+    "status": "untranslated"
+  },
+  "history.void.cancelled": {
+    "source": "match cancelled",
+    "text": "",
+    "status": "untranslated"
+  },
+  "history.void.awarded": {
+    "source": "result awarded off the pitch",
+    "text": "",
+    "status": "untranslated"
+  },
+  "history.earlier": {
+    "source": {
+      "one": "{count} earlier version",
+      "other": "{count} earlier versions"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "history.pages": {
+    "source": "History pages",
+    "text": "",
+    "status": "untranslated"
+  },
+  "history.newer": {
+    "source": "Newer",
+    "text": "",
+    "status": "untranslated"
+  },
+  "history.older": {
+    "source": "Older",
+    "text": "",
+    "status": "untranslated"
+  },
+  "history.pageOf": {
+    "source": {
+      "one": "Page {page} of {pages} · {count} prediction",
+      "other": "Page {page} of {pages} · {count} predictions"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "analysis.founder.title": {
+    "source": "Founder’s analysis",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.founder.none": {
+    "source": "The founder has not written an analysis of this match.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.founder.notOthers": {
+    "source": "One person’s view, signed. Not the statistical model, and not the community.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.founder.lineup": {
+    "source": "Expected line-up impact",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.founder.keyPlayers": {
+    "source": "Key players and battles",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.founder.form": {
+    "source": "Recent form and context",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.founder.signed": {
+    "source": "Written by {author} · published {time}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.founder.signedUpdated": {
+    "source": "Written by {author} · published {time} · updated, version {version}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.founder.versions": {
+    "source": {
+      "one": "{count} version — what was said before",
+      "other": "{count} versions — what was said before"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "analysis.desk.title": {
+    "source": "Founder's analysis · FMIP",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.desk.back": {
+    "source": "← Match centre",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.desk.kickoff": {
+    "source": "{competition} · kick-off {time}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.desk.signedOut": {
+    "source": "You are not signed in, so publishing will be refused.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.desk.locked": {
+    "source": "This match has started. An analysis cannot be published or updated after kick-off — the record of what was said, and when, is the point of it.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.desk.predictedResult": {
+    "source": "Predicted result",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.desk.scoreHome": {
+    "source": "Predicted score — home (optional)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.desk.scoreAway": {
+    "source": "Predicted score — away (optional)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.desk.scoreHint": {
+    "source": "Leave both blank to call the result without a score.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.desk.confidenceOption": {
+    "source": "{value} of {max}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.desk.reasoning": {
+    "source": "Main reasoning and tactical view",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.desk.reasoningHint": {
+    "source": "The analysis is the reasoning. Without it this is a prediction, and the site already has those.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.desk.lineup": {
+    "source": "Expected line-up impact (optional)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.desk.keyPlayers": {
+    "source": "Key players and individual battles (optional)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.desk.form": {
+    "source": "Recent form and competition context (optional)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.desk.publish": {
+    "source": "Publish",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.desk.publishUpdate": {
+    "source": "Publish an update",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.desk.versions": {
+    "source": "Published versions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.desk.versionsNote": {
+    "source": "An update is a new version. Earlier ones stay readable, because the record of what was said when is what makes this worth anything.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.action.published": {
+    "source": "Published as version {version}. The previous versions stay readable.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.community.title": {
+    "source": "Analysis from approved contributors",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.community.notOthers": {
+    "source": "Written by members the platform approved. Not the founder’s analysis, not the statistical model, and not the community consensus.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.community.unreachable": {
+    "source": "Contributor analysis cannot be shown right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.community.empty": {
+    "source": "No contributor has published an analysis of this match.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.community.unrated": {
+    "source": "Not rated yet",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.community.rating": {
+    "source": "Rating {rating}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.community.approved": {
+    "source": "Approved contributor",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.community.former": {
+    "source": "Formerly approved",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.community.lineup": {
+    "source": "Lineup impact:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.community.keyPlayers": {
+    "source": "Key players:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.community.form": {
+    "source": "Form and context:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.community.revised": {
+    "source": "revised · version {version}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.editor.title": {
+    "source": "Write an analysis",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.editor.description": {
+    "source": "Your draft, what you sent, and what an editor said about it.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.editor.back": {
+    "source": "← Back to the match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.state.draft": {
+    "source": "Not sent yet. Nobody has seen this.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.state.submitted": {
+    "source": "Waiting to be read.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.state.approved": {
+    "source": "Approved.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.state.changesRequested": {
+    "source": "An editor asked for changes. What they said is below.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.state.rejected": {
+    "source": "An editor declined this. What they said is below.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.state.published": {
+    "source": "Published. Anybody can read it.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.decision.approved": {
+    "source": "Approved",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.decision.changesRequested": {
+    "source": "Changes requested",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.decision.rejected": {
+    "source": "Declined",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.editor.decidedBy": {
+    "source": "{decision} by {reviewer}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.editor.attempt": {
+    "source": "Attempt {attempt}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.editor.homeGoals": {
+    "source": "Home goals (optional)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.editor.awayGoals": {
+    "source": "Away goals (optional)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.editor.confidence": {
+    "source": "Confidence, 1 to 5",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.editor.reasoning": {
+    "source": "Reasoning",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.editor.reasoningHint": {
+    "source": "An analysis without reasoning is a prediction, and we already have those.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.editor.lineup": {
+    "source": "Lineup impact (optional)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.editor.keyPlayers": {
+    "source": "Key players (optional)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.editor.form": {
+    "source": "Form and context (optional)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.editor.saving": {
+    "source": "Saving…",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.editor.save": {
+    "source": "Save draft",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.editor.sending": {
+    "source": "Sending…",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.editor.submit": {
+    "source": "Send for review",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.editor.history": {
+    "source": "What you sent, and what was said",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.editor.published": {
+    "source": "Published",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.editor.version": {
+    "source": "Version {version}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.action.saved": {
+    "source": "Draft saved.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.action.sent": {
+    "source": "Sent for review.",
+    "text": "",
+    "status": "untranslated"
+  },
   "competition.boards.assists": {
     "source": "Assists",
     "text": "",
