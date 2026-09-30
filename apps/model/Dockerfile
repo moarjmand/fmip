@@ -8,6 +8,8 @@ WORKDIR /app
 # the install layer. The package itself is installed in the next stage.
 FROM base AS deps
 COPY apps/model/pyproject.toml ./
+# The league-zone list (T-1167, D-171), read from the working directory.
+COPY packages/contracts/zones/league-zones.json ./league-zones.json
 RUN --mount=type=cache,target=/root/.cache/pip \
     python - <<'PY'
 import tomllib, subprocess, sys
