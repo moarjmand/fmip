@@ -221,7 +221,7 @@ candidate is ever shown beside the published version.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-1130 | Coach changes read from stored line-ups: the model's records loader carries each side's named coach (`fixture_participant.coach_id`), and a change is recorded where two consecutive line-ups of a club both name a coach and the coaches differ. Matches under the current coach are counted from their first stored line-up. D-147 | T-512, T-944 | Rule 1: a coach is a person id, never a name. A line-up that names no coach is a gap, never a change and never a carry-forward (D-119). A caretaker is a change like any other, and the entry says so. A test for a gap, a return and a change |
-| `[ ]` T-1131 | A new coach as an input: a decaying term over the first matches under a new coach, fitted and backtested with T-1101 on our records' divisions. **Waits for data** (the past seasons' line-ups). D-147 | T-1130, T-1101 | Blueprint 6.3: only "where they improve prediction quality". The entry states the number of changes in the sample; below the bar's minimum, no candidate carries it and the entry says so. football-data divisions are not scored (they hold no coaches) |
+| `[x]` T-1131 | A new coach as an input: a decaying term over the first matches under a new coach, fitted and backtested with T-1101 on our records' divisions. **Waits for data** (the past seasons' line-ups). D-147 | T-1130, T-1101 | Blueprint 6.3: only "where they improve prediction quality". The entry states the number of changes in the sample; below the bar's minimum, no candidate carries it and the entry says so. football-data divisions are not scored (they hold no coaches) |
 
 ## E114 — Head-to-head and home advantage by team
 

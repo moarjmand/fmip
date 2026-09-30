@@ -68,8 +68,11 @@ functions from what our records held before the kick-off. The XI that started
 stands for the announced one. A match that is not a fixture of our records has
 neither, and their weight is redistributed. `without-lineup`, `lineup-heavy`
 (35%), `without-stability` and `stability-heavy` (15%) ask the question against
-the published arithmetic at the usual bar; until the server's run is recorded
-in D-122, the blueprint's 20% and 5% stand as published.
+the published arithmetic at the usual bar. The server's run (2026-09-30,
+D-122) found none of them beating the blueprint by 0.01 in any of the twelve
+divisions, so the 20% and 5% stand, validated: line-up quality helped in 8 of
+11 divisions, stability was mixed, and neither moved held-out log loss by more
+than 0.0036.
 
 ---
 

@@ -5123,7 +5123,7 @@ and `ENTITY_NEWS_LIMIT` are in the contract. No migration.
 
 ## D-121 — The line-up term is judged by D-139's bar on held-out matches; the candidate carries `lineup_beta` only if it passes
 
-**Status:** Accepted · 2026-09-30 (revisable under the standing delegation of 2026-09-26). T-923. **Verdict: pending the server run** (the lead amends this entry with the numbers). Follows D-086, D-139.
+**Status:** Accepted · 2026-09-30 (revisable under the standing delegation of 2026-09-26). T-923. **Verdict: failed** (the server's run, 2026-09-30, below). Follows D-086, D-139.
 
 **The problem.** D-086 fits the line-up term's one number, `beta`, and says a
 candidate carries it "only if the gain is real", without saying what real is.
@@ -5152,9 +5152,21 @@ every input, for the same reason. *A bar of its own for this term*: the term
 is an input like the others, and a separate bar would be one chosen after
 seeing its numbers.
 
+**The server's run, 2026-09-30.** The deciding run (fit on 2023/24 and
+2024/25, scored on 2025/26) could not be made: no match before 2025-07-01 had
+both XIs measured, because the ratings the XI is measured with are built from
+line-ups stored from 2025/26 on, so the fitting side of the split was empty
+(`both sides of the split need matches with both XIs measured`). The 2025/26
+run stands in its place: `beta` -0.2451 fitted on 1,078 matches, scored on
+1,370, log loss 1.0203 with the term and 1.0187 without (gain -0.0016), 95%
+interval of with-minus-without [-0.0013, +0.0044]. **Failed**: the term makes
+the forecast worse on the point estimate and the interval does not exclude
+zero. No candidate carries `lineup_beta`. Worth re-running when 2026/27 is
+complete, which gives a whole measured season on each side of a split.
+
 ## D-122 — The Power Index's line-up quality and stability are validated on our own recorded line-ups, at the published bar
 
-**Status:** Accepted · 2026-09-30 (revisable under the standing delegation of 2026-09-26). T-924. **Verdict: pending the server run** (the lead amends this entry with the numbers). Follows D-081, T-113, D-142, D-146.
+**Status:** Accepted · 2026-09-30 (revisable under the standing delegation of 2026-09-26). T-924. **Verdict: the weights stand** (the server's run, 2026-09-30, below). Follows D-081, T-113, D-142, D-146.
 
 **The problem.** `12-power-index.md` said line-up quality (20%) and stability
 (5%) "cannot be validated": the backtest walked the training store, which holds
@@ -5186,6 +5198,20 @@ edit.
 the backtest asks whether the weights carry signal; the live index reads the
 announced XI whenever one is confirmed, and our records hold the one that
 started. *A finer grid of weights*: the candidates stay few (T-113).
+
+**The server's run, 2026-09-30,** from 2023-07-01 over the twelve divisions,
+each training match paired with our records' fixture through `team_alias`
+(199 to 349 of each division's matches had both XIs measured; IR1 none for
+quality, 600 for stability). No line-up or stability alternative beat the
+blueprint by the 0.01 bar in any division: removing line-up quality raised
+held-out log loss (the component helped) in 8 of 11 divisions, by at most
+0.0036 (D1), and lowered it in E0, N1 and T1 (by at most 0.0023); removing
+stability helped in 5 and hurt in 7, never by more than 0.0019. **The 20% and
+5% weights stand**, now validated rather than assumed, and `12-power-index.md`
+says so. One unrelated alternative crossed the bar in one division
+(`venue-heavy` in SP1, 0.0105): one division of twelve over the line by
+0.0005 is what twelve tries produce by chance, and the venue weight is not
+this task's question; `power-index@1.1.0` is unchanged.
 
 ## D-123 — Story types: blueprint 3.2's eleven, from the publisher's own category by an exact committed mapping or from an editor, never from a machine
 **Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
@@ -6826,6 +6852,13 @@ DIVS=$(docker compose exec -T postgres psql -U fmip -d fmip -Atc "SELECT string_
 docker compose run --rm -T -v $HOME/reports/inputs:/tmp/reports model sh -c "python -m fmip_model.backtest.inputs --input new_coach --divisions $DIVS --from 2024-07-01 --to 2026-09-29 --history-from 2023-07-01 --out /tmp/reports --note server && cat /tmp/reports/*/inputs_new_coach_*.md"
 ```
 
+**T-1131's server run, 2026-09-30: `insufficient`.** `new_coach` over our
+records from 2024-07-01 to 2026-09-29 (2023/24 establishing each club's first
+coach): IR1 472 matches scored, 5 read; XL 2,236 scored, 212 read, 217 in all,
+under D-139's 300. No candidate carries the input. The football-data
+divisions hold no coaches and were not scored. It is re-run when 2026/27's
+line-ups add changes.
+
 ---
 
 ## D-148 — Head-to-head is read only as what past meetings leave after current strength, and it failed its bar: no candidate carries it
@@ -7599,6 +7632,12 @@ between two Iranian clubs); XL 713 scored, 217 read (30%), the continental ties
 between clubs of two countries. 217 is under D-139's 300, so no candidate
 carries the input. It is worth re-running when the past seasons' continental
 ties are loaded (the backlog), which should lift the sample over 300.
+
+**Widened, 2026-09-30: `failed`.** Once the past seasons' continental ties
+were loaded, the run from 2023-08-01 to 2026-09-28 read 602 of 3,465 matches
+(IR1 none, XL 602): log loss 1.0461 for the candidate and 1.0502 with the
+input, +0.00409 [+0.00037, +0.00781], worse. No candidate carries it; this
+supersedes the `insufficient` above.
 
 ## D-171 — League zones: a committed list per competition and season, from the published regulations
 **Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers:** N-2 in `04-tasks-phase-11.md` · **Task:** T-1167 · **Follows:** D-038, D-143, D-146
