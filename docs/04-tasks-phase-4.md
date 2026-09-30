@@ -520,7 +520,7 @@ E27 builds the inbox. This is where it reaches somebody who is not looking.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[~]` T-330 | Delivery behind one port: email and push, with a provider chosen at deployment | T-270, T-074 | A deployment with no provider says so and delivers nothing, rather than appearing to |
+| `[x]` T-330 | Delivery behind one port: email and push, with a provider chosen at deployment | T-270, T-074 | A deployment with no provider says so and delivers nothing, rather than appearing to |
 | `[x]` T-331 | Per-team, per-competition and per-category controls | T-270 | A member can silence one team without silencing football |
 | `[x]` T-332 | Campaigns: an audience is a saved query, a send is a row | T-330 | Nobody receives the same campaign twice, and every send says who it reached |
 | `[x]` T-333 | The Following feed, ranked | T-042, T-141 | Ranking is from qualified signals, never raw volume, and says what it is showing |
@@ -633,7 +633,9 @@ shown by `sw.js` and opened at the inbox's route on a click. A member with
 no device is `skipped`, a fourth outcome. Nothing is bought and no account
 is opened; what waits for you is one command on the server to generate the
 key pair. With this, T-330 is built end to end; the `[~]` stands only for
-the credentials on a server that does not exist yet (T-074).
+the credentials on a server that does not exist yet (T-074). Ticked on
+2026-09-30: both channels are configured on the server and a password-reset
+e-mail reached a real inbox.
 
 **Both channels proven end to end on 2026-09-20, without buying anything.**
 The e-mail and push code had only ever met their own unit tests, so the whole
