@@ -7,7 +7,10 @@ import { FORECAST_JOB, IngestionSchedulerService } from './ingestion-scheduler.s
 function scheduler() {
   const report = { considered: 3, computed: { early: 2 }, indexes: 4, skipped: {} };
   const jobs = { run: vi.fn().mockResolvedValue({ job: 'fixtures' }) };
-  const forecasts = { runDue: vi.fn().mockResolvedValue(report) };
+  const forecasts = {
+    runDue: vi.fn().mockResolvedValue(report),
+    evaluateFinished: vi.fn().mockResolvedValue({ fixtures: 1, added: 2 }),
+  };
   const service = new IngestionSchedulerService(
     jobs as unknown as IngestionJobsService,
     forecasts as unknown as ForecastTriggersService,
@@ -17,10 +20,14 @@ function scheduler() {
 }
 
 describe('IngestionSchedulerService.dispatch', () => {
-  it('sends the forecast tick to the forecast triggers, not to the ingestion jobs', async () => {
+  it('sends the forecast tick to the forecast triggers and the evaluation, not to the ingestion jobs', async () => {
     const { service, jobs, forecasts, report } = scheduler();
-    await expect(service.dispatch(FORECAST_JOB)).resolves.toEqual(report);
+    await expect(service.dispatch(FORECAST_JOB)).resolves.toEqual({
+      ...report,
+      evaluated: { fixtures: 1, added: 2 },
+    });
     expect(forecasts.runDue).toHaveBeenCalledOnce();
+    expect(forecasts.evaluateFinished).toHaveBeenCalledOnce();
     expect(jobs.run).not.toHaveBeenCalled();
   });
 

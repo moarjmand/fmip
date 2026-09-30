@@ -143,8 +143,9 @@ export class IngestionSchedulerService implements OnModuleInit, OnApplicationShu
   async dispatch(name: string): Promise<unknown> {
     if (name === FORECAST_JOB) {
       const report = await this.forecasts.runDue();
-      this.log.log('forecast versions', { event: 'forecast.tick', ...report });
-      return report;
+      const evaluated = await this.forecasts.evaluateFinished();
+      this.log.log('forecast versions', { event: 'forecast.tick', ...report, evaluated });
+      return { ...report, evaluated };
     }
     if (!(INGEST_JOBS as readonly string[]).includes(name)) {
       throw new Error(`unknown scheduled job: ${name}`);
