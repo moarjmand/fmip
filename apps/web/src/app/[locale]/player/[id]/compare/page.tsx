@@ -21,6 +21,7 @@ import {
 import { MIN_QUERY_LENGTH, readSearchTerm } from '@/lib/search';
 import { pageMetadata } from '@/lib/seo';
 import { Button, Notice, controlClasses } from '@/components/ui';
+import { Stamp } from '@/components/stamp';
 
 export const dynamic = 'force-dynamic';
 
@@ -315,7 +316,7 @@ export default async function ComparePlayersPage({
               'no match data stored yet'
             ) : (
               <>
-                last data update <time dateTime={page.last_updated_at}>{page.last_updated_at}</time>
+                last data update <Stamp iso={page.last_updated_at} locale={locale} />
               </>
             )}
           </span>

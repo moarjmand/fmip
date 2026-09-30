@@ -32,6 +32,12 @@ const INCIDENT_LABEL: Record<ScoreCardIncident['kind'], string> = {
  * score means) and a feed that is behind (rule 4), which is said on the row.
  * The block's "Updated" line is the list's (`LiveScores`), per competition.
  */
+/**
+ * A team's name wraps onto a second line before it is cut: at 360 px one line
+ * left "Nassaji Maz…" and "Aluminium …" on a real match day (T-1202).
+ */
+const NAME = 'line-clamp-2 break-words leading-tight';
+
 export function ScoreCard({
   card,
   timeZone,
@@ -111,7 +117,7 @@ export function ScoreCard({
             className="flex min-w-0 flex-1 items-center justify-end gap-1 text-end"
             data-testid="home-team"
           >
-            <bdi className="truncate" title={card.home.name}>
+            <bdi className={NAME} title={card.home.name}>
               {card.home.name}
             </bdi>
             {sentOff(card.red_cards.home)}
@@ -124,7 +130,7 @@ export function ScoreCard({
           </LtrNumeric>
           <span className="flex min-w-0 flex-1 items-center gap-1" data-testid="away-team">
             {sentOff(card.red_cards.away)}
-            <bdi className="truncate" title={card.away.name}>
+            <bdi className={NAME} title={card.away.name}>
               {card.away.name}
             </bdi>
           </span>

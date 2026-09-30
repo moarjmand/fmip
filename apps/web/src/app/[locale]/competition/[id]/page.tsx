@@ -8,6 +8,7 @@ import type {
   Covered,
   LeagueZones,
   SeasonFixture,
+  TableRow,
 } from '@fmip/contracts';
 import { zoneOfPlace } from '@fmip/contracts';
 import { FounderAnalysisFeed } from '@/components/founder-analysis';
@@ -36,6 +37,7 @@ import { competitionJsonLd, pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { JsonLd } from '@/components/json-ld';
 import { Notice } from '@/components/ui';
+import { Stamp } from '@/components/stamp';
 
 export const dynamic = 'force-dynamic';
 
@@ -154,7 +156,7 @@ export default async function CompetitionPage({
         />
       )}
 
-      <Module title="Table" module={page.table} testId="table">
+      <Module locale={locale} timeZone={timeZone} title="Table" module={page.table} testId="table">
         {(rows) => (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -166,12 +168,19 @@ export default async function CompetitionPage({
                   <th scope="col" className="py-1 pe-2 text-start">
                     Team
                   </th>
-                  {['P', 'W', 'D', 'L', 'GF', 'GA', 'GD', 'Pts'].map((h) => (
-                    <th key={h} scope="col" className="py-1 pe-2 text-end">
-                      {h}
+                  {TABLE_COLUMNS.map((c) => (
+                    <th
+                      key={c.label}
+                      scope="col"
+                      className={cellClass(c.phone, 'py-1 pe-2 text-end')}
+                    >
+                      <abbr title={c.title}>{c.label}</abbr>
                     </th>
                   ))}
-                  <th scope="col" className="py-1 text-start">
+                  <th scope="col" className="py-1 pe-2 text-end">
+                    <abbr title="Points">Pts</abbr>
+                  </th>
+                  <th scope="col" className="hidden py-1 text-start md:table-cell">
                     Form
                   </th>
                 </tr>
@@ -181,25 +190,25 @@ export default async function CompetitionPage({
                   <tr key={row.team.id} className="border-b border-default" data-testid="table-row">
                     <PlaceCell position={row.position} zones={page.zones} />
                     <td className="py-1 pe-2">
-                      <Link href={`/${locale}/team/${row.team.id}`} className="underline">
+                      <Link
+                        href={`/${locale}/team/${row.team.id}`}
+                        className="font-medium hover:underline focus-visible:underline"
+                      >
                         {row.team.name}
                       </Link>
                     </td>
-                    {[
-                      row.played,
-                      row.won,
-                      row.drawn,
-                      row.lost,
-                      row.goals_for,
-                      row.goals_against,
-                      row.goal_difference,
-                    ].map((n, i) => (
-                      <td key={i} className="py-1 pe-2 text-end tabular-nums">
-                        {n}
+                    {TABLE_COLUMNS.map((c) => (
+                      <td
+                        key={c.label}
+                        className={cellClass(c.phone, 'py-1 pe-2 text-end tabular-nums')}
+                      >
+                        {c.value(row)}
                       </td>
                     ))}
                     <td className="py-1 pe-2 text-end font-semibold tabular-nums">{row.points}</td>
-                    <td className="py-1 font-mono text-xs">{formLine(row.form)}</td>
+                    <td className="hidden py-1 font-mono text-xs whitespace-nowrap md:table-cell">
+                      {formLine(row.form)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -232,6 +241,8 @@ export default async function CompetitionPage({
       </section>
 
       <Module
+        locale={locale}
+        timeZone={timeZone}
         title="Top scorers"
         module={page.leaders}
         testId="leaders"
@@ -324,6 +335,8 @@ export default async function CompetitionPage({
         const unproven = page.boards.unproven[board.key];
         return (
           <Module
+            locale={locale}
+            timeZone={timeZone}
             key={board.key}
             title={<Translated locale={locale} message={board.title} />}
             module={boardModule}
@@ -398,7 +411,8 @@ export default async function CompetitionPage({
             'No fixture data stored yet.'
           ) : (
             <>
-              Last data update <time dateTime={page.last_updated_at}>{page.last_updated_at}</time>
+              Last data update{' '}
+              <Stamp iso={page.last_updated_at} locale={locale} timeZone={timeZone} />
             </>
           )}
         </p>
@@ -477,6 +491,32 @@ function BoardFigure({
   return null;
 }
 
+/**
+ * The table's figure columns (T-1203). On a phone the table keeps position,
+ * team, played, goal difference and points, the columns a reader ranks by;
+ * won, drawn, lost and the goals, and the form, appear from the tablet width
+ * up. At 375 px all eleven columns squeezed the form into a stack of letters
+ * and wrapped every club's name onto two lines.
+ */
+const TABLE_COLUMNS: {
+  label: string;
+  title: string;
+  phone: boolean;
+  value: (row: TableRow) => number;
+}[] = [
+  { label: 'P', title: 'Played', phone: true, value: (r) => r.played },
+  { label: 'W', title: 'Won', phone: false, value: (r) => r.won },
+  { label: 'D', title: 'Drawn', phone: false, value: (r) => r.drawn },
+  { label: 'L', title: 'Lost', phone: false, value: (r) => r.lost },
+  { label: 'GF', title: 'Goals for', phone: false, value: (r) => r.goals_for },
+  { label: 'GA', title: 'Goals against', phone: false, value: (r) => r.goals_against },
+  { label: 'GD', title: 'Goal difference', phone: true, value: (r) => r.goal_difference },
+];
+
+function cellClass(phone: boolean, base: string): string {
+  return phone ? base : `hidden sm:table-cell ${base}`;
+}
+
 function Module<T>({
   title,
   module,
@@ -484,9 +524,14 @@ function Module<T>({
   intro,
   empty,
   children,
+  locale,
+  timeZone,
 }: {
   title: React.ReactNode;
   module: Covered<T[]>;
+  /** For the "Updated" line, in the viewer's zone (T-1201). */
+  locale: string;
+  timeZone: string;
   testId: string;
   /** Above the list: a filter, and what it did (T-824). */
   intro?: React.ReactNode;
@@ -514,7 +559,7 @@ function Module<T>({
       )}
       {module.last_updated_at !== null && (
         <p className="text-xs text-muted">
-          Updated <time dateTime={module.last_updated_at}>{module.last_updated_at}</time>
+          Updated <Stamp iso={module.last_updated_at} locale={locale} timeZone={timeZone} />
         </p>
       )}
     </section>
