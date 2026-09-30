@@ -8,6 +8,16 @@
 #     bash scripts/backup/restore-drill.sh --offsite       # newest dump on BACKUP_RCLONE_REMOTE
 #     bash scripts/backup/restore-drill.sh --scheduled     # what the monthly timer runs (T-805)
 #     bash scripts/backup/restore-drill.sh --scheduled --dry-run   # say what it would do, do nothing
+#     bash scripts/backup/restore-drill.sh --pitr '2026-10-01 14:05'  # base + WAL replayed to that minute (UTC)
+#     bash scripts/backup/restore-drill.sh --scheduled --pitr auto    # the monthly replay, to an hour ago
+#
+# --pitr (T-845, D-157) restores the newest weekly base backup before the
+# stated minute and replays the archived WAL to it (scripts/backup/pitr.sh
+# restore), then runs the checks that do not need a dump's manifest: the
+# constraints and triggers, and with --scheduled the comparison with live,
+# plus the last transaction replayed being no more than 15 minutes before the
+# stated minute (the live database writes every minute). With PG_ARCHIVE_MODE
+# not `on` it says so and exits 0 without recording anything.
 #
 # --scheduled is the monthly timer's run (fmip-restore-drill.timer, D-101):
 # the newest dump on the off-provider remote (the local one only when no
@@ -53,7 +63,7 @@ CONTAINER="fmip-restore-drill-$$"
 KEY_TABLES=(user_account user_prediction settlement forecast fixture message)
 
 usage() {
-  sed -n '2,31p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,42p' "$0" | sed 's/^# \{0,1\}//'
 }
 
 SCHEDULED=0
@@ -61,12 +71,21 @@ OFFSITE=0
 RECORD=1
 DRY_RUN=0
 DUMP=''
+PITR=''
 while [ $# -gt 0 ]; do
   case "$1" in
     --scheduled) SCHEDULED=1 ;;
     --offsite) OFFSITE=1 ;;
     --no-record) RECORD=0 ;;
     --dry-run) DRY_RUN=1 ;;
+    --pitr)
+      [ $# -ge 2 ] || {
+        echo "ERROR: --pitr needs a time ('YYYY-MM-DD HH:MM', UTC) or auto" >&2
+        exit 2
+      }
+      PITR="$2"
+      shift
+      ;;
     -h | --help)
       usage
       exit 0
@@ -81,15 +100,27 @@ while [ $# -gt 0 ]; do
 done
 [ "${BACKUP_RECORD:-on}" = 'off' ] && RECORD=0
 
+if [ -n "$PITR" ] && [ "${PG_ARCHIVE_MODE:-off}" != 'on' ]; then
+  echo "point-in-time recovery is off (PG_ARCHIVE_MODE is not on): no replay to drill"
+  exit 0
+fi
+
 SOURCE='local'
-if [ "$SCHEDULED" -eq 1 ]; then
+if [ -n "$PITR" ]; then
+  [ -z "$DUMP" ] || {
+    echo "ERROR: a dump path and --pitr do not go together" >&2
+    exit 2
+  }
+  [ "$PITR" = 'auto' ] && PITR="$(date -u -d '1 hour ago' '+%Y-%m-%d %H:%M')"
+  SOURCE="pitr to $PITR UTC"
+elif [ "$SCHEDULED" -eq 1 ]; then
   if [ -n "${BACKUP_RCLONE_REMOTE:-}" ]; then
     OFFSITE=1
   else
     SOURCE='local (BACKUP_RCLONE_REMOTE is not set)'
   fi
 fi
-if [ "$OFFSITE" -eq 1 ]; then
+if [ "$OFFSITE" -eq 1 ] && [ -z "$PITR" ]; then
   SOURCE='offsite'
   if [ -n "$DUMP" ]; then
     echo "ERROR: a dump path and --offsite/--scheduled with a remote do not go together" >&2
@@ -115,9 +146,10 @@ fail() {
 finish() {
   local status=$?
   docker rm -f "$CONTAINER" > /dev/null 2>&1 || true
+  docker volume rm "$CONTAINER-data" > /dev/null 2>&1 || true
   if [ -n "$WORKDIR" ]; then rm -rf "$WORKDIR"; fi
   if [ "$FINISHED" -eq 0 ] && [ "$DRY_RUN" -eq 0 ] && [ "$RECORD" -eq 1 ] && [ "$status" -ne 0 ]; then
-    record_run restore_drill false "$(basename "${DUMP:-none}")" \
+    record_run restore_drill false "$(subject)" \
       "$SOURCE; stopped with status $status during: $STEP${REASONS:+; $REASONS}" "$STARTED" || true
   fi
 }
@@ -125,6 +157,11 @@ trap finish EXIT
 # systemd's TimeoutStartSec ends a stuck drill with SIGTERM: leave through the
 # EXIT trap, so the container goes and the failure is recorded.
 trap 'exit 143' TERM INT
+
+# What the backup_run row names: the dump, or the minute replayed to.
+subject() {
+  if [ -n "$PITR" ]; then echo "pitr $PITR"; else basename "${DUMP:-none}"; fi
+}
 
 die() {
   echo "ERROR: $*" >&2
@@ -138,7 +175,9 @@ psql_live() {
 
 # --- which dump ---------------------------------------------------------------
 STEP='find the dump'
-if [ "$OFFSITE" -eq 1 ]; then
+if [ -n "$PITR" ]; then
+  : # pitr.sh chooses the base backup
+elif [ "$OFFSITE" -eq 1 ]; then
   [ -n "${BACKUP_RCLONE_REMOTE:-}" ] || die "--offsite needs BACKUP_RCLONE_REMOTE"
   [ -f "$BACKUP_RCLONE_CONFIG" ] || die "$BACKUP_RCLONE_CONFIG does not exist"
   mkdir -p "$BACKUP_DIR"
@@ -150,6 +189,8 @@ elif [ -z "$DUMP" ]; then
   [ -n "$DUMP" ] || die "no fmip-*.dump in $BACKUP_DIR; run scripts/backup/backup.sh first"
 fi
 MANIFEST="${DUMP%.dump}.manifest"
+DRILL_USER=drill
+DRILL_DB=drill
 
 # fmip-20260910T120000Z.dump -> seconds since it was taken; empty when the
 # name does not carry a stamp (a renamed file).
@@ -163,9 +204,11 @@ dump_age_seconds() {
 if [ "$DRY_RUN" -eq 1 ]; then
   echo "==> dry run: nothing is downloaded, restored or recorded"
   echo "    mode:      $([ "$SCHEDULED" -eq 1 ] && echo scheduled || echo manual), source $SOURCE"
-  AGE="$(dump_age_seconds "$DUMP")"
-  if [ -n "$AGE" ]; then AGE_TEXT="$((AGE / 3600))h old"; else AGE_TEXT='age unknown'; fi
-  echo "    dump:      $(basename "$DUMP") ($AGE_TEXT)"
+  if [ -z "$PITR" ]; then
+    AGE="$(dump_age_seconds "$DUMP")"
+    if [ -n "$AGE" ]; then AGE_TEXT="$((AGE / 3600))h old"; else AGE_TEXT='age unknown'; fi
+    echo "    dump:      $(basename "$DUMP") ($AGE_TEXT)"
+  fi
   echo "    image:     $IMAGE"
   if docker info > /dev/null 2>&1; then echo "    docker:    reachable"; else echo "    docker:    NOT reachable"; fi
   if [ "$SCHEDULED" -eq 1 ]; then
@@ -183,102 +226,145 @@ if [ "$DRY_RUN" -eq 1 ]; then
   exit 0
 fi
 
-echo "==> drill: $DUMP ($SOURCE)"
-
-if [ "$OFFSITE" -eq 1 ]; then
-  STEP='download from the off-provider copy'
-  WORKDIR="$BACKUP_DIR/drill-$$"
-  mkdir -p "$WORKDIR"
-  echo "==> download $NEWEST and its manifest from $BACKUP_RCLONE_REMOTE"
-  rclone copy "$BACKUP_RCLONE_REMOTE/$NEWEST" "/data/drill-$$/"
-  rclone copy "$BACKUP_RCLONE_REMOTE/${NEWEST%.dump}.manifest" "/data/drill-$$/"
-fi
-[ -f "$DUMP" ] || die "$DUMP not found"
-[ -f "$MANIFEST" ] || die "$(basename "$MANIFEST") not found beside the dump"
-
-if [ "$SCHEDULED" -eq 1 ]; then
-  STEP='dump age'
-  AGE="$(dump_age_seconds "$DUMP")"
-  if [ -z "$AGE" ]; then
-    fail "cannot tell the age of $(basename "$DUMP") from its name"
-  elif [ "$AGE" -gt $((MAX_AGE_HOURS * 3600)) ]; then
-    fail "the newest $SOURCE dump is $((AGE / 3600))h old (more than ${MAX_AGE_HOURS}h): the daily backup is not reaching it"
-  else
-    echo "==> age: $((AGE / 3600))h"
-  fi
-fi
-
-STEP='checksum'
-echo "==> checksum"
-EXPECTED="$(grep '^sha256 ' "$MANIFEST" | cut -d' ' -f2)"
-ACTUAL="$(sha256sum "$DUMP" | cut -d' ' -f1)"
-if [ "$EXPECTED" = "$ACTUAL" ]; then echo "    ok $ACTUAL"; else fail "sha256 is $ACTUAL, manifest says $EXPECTED"; fi
-
-STEP='throwaway postgres'
-echo "==> throwaway postgres ($IMAGE)"
-docker run -d --name "$CONTAINER" \
-  -e POSTGRES_USER=drill -e POSTGRES_PASSWORD=drill -e POSTGRES_DB=drill \
-  "$IMAGE" > /dev/null
-for _ in $(seq 1 60); do
-  if docker exec "$CONTAINER" pg_isready -U drill -d drill > /dev/null 2>&1; then break; fi
-  sleep 1
-done
-docker exec "$CONTAINER" pg_isready -U drill -d drill > /dev/null
-
 psql_drill() {
-  docker exec -i "$CONTAINER" psql -U drill -d drill -tA -v ON_ERROR_STOP=1 "$@"
+  docker exec -i "$CONTAINER" psql -U "$DRILL_USER" -d "$DRILL_DB" -tA -v ON_ERROR_STOP=1 "$@"
 }
 
-STEP='pg_restore'
-echo "==> pg_restore"
-# --exit-on-error: a partially restored database must not pass. The dump was
-# taken with --no-owner/--no-privileges, so the drill role owns everything.
-#
-# A failure here is reported like every other check rather than killing the
-# script: `set -e` on this one line meant the most likely failure of all -- the
-# dump does not restore -- ended the run before the verdict was printed, so a
-# maintainer running this monthly got a wall of pg_restore output and no
-# answer. The checks below are then skipped, because a half-restored database
-# fails all of them for the same single reason and the diff would bury it.
-RESTORED=1
-if docker exec -i "$CONTAINER" pg_restore -U drill -d drill --no-owner --no-privileges --exit-on-error < "$DUMP"; then
-  echo "    ok"
+REPLAYED_TO=''
+if [ -n "$PITR" ]; then
+  echo "==> drill: $SOURCE"
+  STEP='point-in-time restore'
+  DRILL_USER="$POSTGRES_USER"
+  DRILL_DB="$POSTGRES_DB"
+  RESTORED=1
+  PITR_LOG="$(mktemp)"
+  if bash scripts/backup/pitr.sh restore --to "$PITR" --name "$CONTAINER" --keep 2>&1 | tee "$PITR_LOG"; then
+    REPLAYED_TO="$(sed -nE 's/.*last transaction replayed: ([^)]*)[)].*/\1/p' "$PITR_LOG" | tail -n 1)"
+  else
+    RESTORED=0
+    fail "the base backup and WAL did not replay to $PITR UTC (the reason is above)"
+  fi
+  rm -f "$PITR_LOG"
 else
-  RESTORED=0
-  fail "pg_restore did not complete: this dump does not restore as it stands (its reason is above)"
+  echo "==> drill: $DUMP ($SOURCE)"
+
+  if [ "$OFFSITE" -eq 1 ]; then
+    STEP='download from the off-provider copy'
+    WORKDIR="$BACKUP_DIR/drill-$$"
+    mkdir -p "$WORKDIR"
+    echo "==> download $NEWEST and its manifest from $BACKUP_RCLONE_REMOTE"
+    rclone copy "$BACKUP_RCLONE_REMOTE/$NEWEST" "/data/drill-$$/"
+    rclone copy "$BACKUP_RCLONE_REMOTE/${NEWEST%.dump}.manifest" "/data/drill-$$/"
+  fi
+  [ -f "$DUMP" ] || die "$DUMP not found"
+  [ -f "$MANIFEST" ] || die "$(basename "$MANIFEST") not found beside the dump"
+
+  if [ "$SCHEDULED" -eq 1 ]; then
+    STEP='dump age'
+    AGE="$(dump_age_seconds "$DUMP")"
+    if [ -z "$AGE" ]; then
+      fail "cannot tell the age of $(basename "$DUMP") from its name"
+    elif [ "$AGE" -gt $((MAX_AGE_HOURS * 3600)) ]; then
+      fail "the newest $SOURCE dump is $((AGE / 3600))h old (more than ${MAX_AGE_HOURS}h): the daily backup is not reaching it"
+    else
+      echo "==> age: $((AGE / 3600))h"
+    fi
+  fi
+
+  STEP='checksum'
+  echo "==> checksum"
+  EXPECTED="$(grep '^sha256 ' "$MANIFEST" | cut -d' ' -f2)"
+  ACTUAL="$(sha256sum "$DUMP" | cut -d' ' -f1)"
+  if [ "$EXPECTED" = "$ACTUAL" ]; then echo "    ok $ACTUAL"; else fail "sha256 is $ACTUAL, manifest says $EXPECTED"; fi
+
+  STEP='throwaway postgres'
+  echo "==> throwaway postgres ($IMAGE)"
+  docker run -d --name "$CONTAINER" \
+    -e POSTGRES_USER=drill -e POSTGRES_PASSWORD=drill -e POSTGRES_DB=drill \
+    "$IMAGE" > /dev/null
+  for _ in $(seq 1 60); do
+    if docker exec "$CONTAINER" pg_isready -U drill -d drill > /dev/null 2>&1; then break; fi
+    sleep 1
+  done
+  docker exec "$CONTAINER" pg_isready -U drill -d drill > /dev/null
+
+  STEP='pg_restore'
+  echo "==> pg_restore"
+  # --exit-on-error: a partially restored database must not pass. The dump was
+  # taken with --no-owner/--no-privileges, so the drill role owns everything.
+  #
+  # A failure here is reported like every other check rather than killing the
+  # script: `set -e` on this one line meant the most likely failure of all -- the
+  # dump does not restore -- ended the run before the verdict was printed, so a
+  # maintainer running this monthly got a wall of pg_restore output and no
+  # answer. The checks below are then skipped, because a half-restored database
+  # fails all of them for the same single reason and the diff would bury it.
+  RESTORED=1
+  if docker exec -i "$CONTAINER" pg_restore -U drill -d drill --no-owner --no-privileges --exit-on-error < "$DUMP"; then
+    echo "    ok"
+  else
+    RESTORED=0
+    fail "pg_restore did not complete: this dump does not restore as it stands (its reason is above)"
+  fi
 fi
 
 SUMMARY=''
 if [ "$RESTORED" -eq 1 ]; then
-  STEP='migrations'
-  echo "==> migrations"
-  EXPECTED_MIGRATIONS="$(grep '^migration ' "$MANIFEST" | cut -d' ' -f2-)"
-  ACTUAL_MIGRATIONS="$(psql_drill -c "SELECT name FROM schema_migration ORDER BY id" | tr -d '\r')"
-  if [ "$EXPECTED_MIGRATIONS" = "$ACTUAL_MIGRATIONS" ]; then
-    echo "    ok $(printf '%s\n' "$ACTUAL_MIGRATIONS" | grep -c .) migrations, last: $(printf '%s\n' "$ACTUAL_MIGRATIONS" | tail -n 1)"
+  if [ -n "$PITR" ]; then
+    # No manifest for a replay: what it restored is judged by the checks below
+    # and, when scheduled, against live (D-101).
+    ACTUAL_MIGRATIONS="$(psql_drill -c "SELECT name FROM schema_migration ORDER BY id" | tr -d '\r')"
+    SUMMARY="$(printf '%s\n' "$ACTUAL_MIGRATIONS" | grep -c .) migrations${REPLAYED_TO:+, last transaction replayed $REPLAYED_TO}"
+    if [ -n "$REPLAYED_TO" ]; then
+      STEP='replayed to the stated minute'
+      echo "==> replayed to the stated minute"
+      TARGET_S="$(date -u -d "$PITR" +%s 2> /dev/null || true)"
+      REPLAYED_S="$(date -u -d "$REPLAYED_TO" +%s 2> /dev/null || true)"
+      GAP=''
+      if [ -n "$TARGET_S" ] && [ -n "$REPLAYED_S" ]; then GAP=$((TARGET_S - REPLAYED_S)); fi
+      if [ -z "$GAP" ]; then
+        fail "cannot compare the last transaction replayed ('$REPLAYED_TO') with $PITR UTC"
+      elif [ "$GAP" -lt -60 ]; then
+        fail "replay went past the stated minute: last transaction $REPLAYED_TO, target $PITR UTC"
+      elif [ "$SCHEDULED" -eq 1 ] && [ "$GAP" -gt 900 ]; then
+        fail "the last transaction replayed ($REPLAYED_TO) is $((GAP / 60)) minutes before $PITR UTC: WAL is missing from the archive"
+      else
+        echo "    ok last transaction $REPLAYED_TO, $((GAP / 60)) min before $PITR UTC"
+      fi
+    elif [ "$SCHEDULED" -eq 1 ]; then
+      fail "replay reported no last transaction: nothing after the base backup was replayed"
+    fi
   else
-    fail "migrations differ from the manifest"
-    diff <(printf '%s\n' "$EXPECTED_MIGRATIONS") <(printf '%s\n' "$ACTUAL_MIGRATIONS") >&2 || true
-  fi
+    STEP='migrations'
+    echo "==> migrations"
+    EXPECTED_MIGRATIONS="$(grep '^migration ' "$MANIFEST" | cut -d' ' -f2-)"
+    ACTUAL_MIGRATIONS="$(psql_drill -c "SELECT name FROM schema_migration ORDER BY id" | tr -d '\r')"
+    if [ "$EXPECTED_MIGRATIONS" = "$ACTUAL_MIGRATIONS" ]; then
+      echo "    ok $(printf '%s\n' "$ACTUAL_MIGRATIONS" | grep -c .) migrations, last: $(printf '%s\n' "$ACTUAL_MIGRATIONS" | tail -n 1)"
+    else
+      fail "migrations differ from the manifest"
+      diff <(printf '%s\n' "$EXPECTED_MIGRATIONS") <(printf '%s\n' "$ACTUAL_MIGRATIONS") >&2 || true
+    fi
 
-  STEP='row counts'
-  echo "==> row counts"
-  COUNT_SQL="$(psql_drill -c "
-    SELECT string_agg(
-             format('SELECT %L AS t, count(*) AS n FROM %I.%I', schemaname || '.' || tablename, schemaname, tablename),
-             ' UNION ALL ' ORDER BY schemaname, tablename)
-      FROM pg_tables WHERE schemaname IN ('public', 'training')")"
-  EXPECTED_ROWS="$(grep '^rows ' "$MANIFEST" | cut -d' ' -f2- | sort)"
-  ACTUAL_ROWS="$(psql_drill -c "$COUNT_SQL" | tr -d '\r' | tr '|' ' ' | sort)"
-  TABLE_COUNT="$(printf '%s\n' "$ACTUAL_ROWS" | grep -c .)"
-  ROW_COUNT="$(printf '%s\n' "$ACTUAL_ROWS" | awk '{s+=$2} END{print s+0}')"
-  if [ "$EXPECTED_ROWS" = "$ACTUAL_ROWS" ]; then
-    echo "    ok $TABLE_COUNT tables, $ROW_COUNT rows"
-  else
-    fail "row counts differ from the manifest"
-    diff <(printf '%s\n' "$EXPECTED_ROWS") <(printf '%s\n' "$ACTUAL_ROWS") >&2 || true
+    STEP='row counts'
+    echo "==> row counts"
+    COUNT_SQL="$(psql_drill -c "
+      SELECT string_agg(
+               format('SELECT %L AS t, count(*) AS n FROM %I.%I', schemaname || '.' || tablename, schemaname, tablename),
+               ' UNION ALL ' ORDER BY schemaname, tablename)
+        FROM pg_tables WHERE schemaname IN ('public', 'training')")"
+    EXPECTED_ROWS="$(grep '^rows ' "$MANIFEST" | cut -d' ' -f2- | sort)"
+    ACTUAL_ROWS="$(psql_drill -c "$COUNT_SQL" | tr -d '\r' | tr '|' ' ' | sort)"
+    TABLE_COUNT="$(printf '%s\n' "$ACTUAL_ROWS" | grep -c .)"
+    ROW_COUNT="$(printf '%s\n' "$ACTUAL_ROWS" | awk '{s+=$2} END{print s+0}')"
+    if [ "$EXPECTED_ROWS" = "$ACTUAL_ROWS" ]; then
+      echo "    ok $TABLE_COUNT tables, $ROW_COUNT rows"
+    else
+      fail "row counts differ from the manifest"
+      diff <(printf '%s\n' "$EXPECTED_ROWS") <(printf '%s\n' "$ACTUAL_ROWS") >&2 || true
+    fi
+    SUMMARY="$(printf '%s\n' "$ACTUAL_MIGRATIONS" | grep -c .) migrations, $TABLE_COUNT tables, $ROW_COUNT rows"
   fi
-  SUMMARY="$(printf '%s\n' "$ACTUAL_MIGRATIONS" | grep -c .) migrations, $TABLE_COUNT tables, $ROW_COUNT rows"
 
   STEP='constraints and triggers'
   echo "==> constraints and triggers came along"
@@ -328,9 +414,13 @@ fi
 STEP='record'
 FINISHED=1
 if [ "$FAILED" -ne 0 ]; then
-  [ "$RECORD" -eq 1 ] && record_run restore_drill false "$(basename "$DUMP")" "$SOURCE; $REASONS" "$STARTED"
-  echo "DRILL FAILED: $DUMP" >&2
+  [ "$RECORD" -eq 1 ] && record_run restore_drill false "$(subject)" "$SOURCE; $REASONS" "$STARTED"
+  echo "DRILL FAILED: ${PITR:+$SOURCE}${DUMP}" >&2
   exit 1
 fi
-[ "$RECORD" -eq 1 ] && record_run restore_drill true "$(basename "$DUMP")" "$SOURCE; $SUMMARY" "$STARTED"
-echo "DRILL PASSED: $DUMP restores and matches its manifest"
+[ "$RECORD" -eq 1 ] && record_run restore_drill true "$(subject)" "$SOURCE; $SUMMARY" "$STARTED"
+if [ -n "$PITR" ]; then
+  echo "DRILL PASSED: $SOURCE"
+else
+  echo "DRILL PASSED: $DUMP restores and matches its manifest"
+fi

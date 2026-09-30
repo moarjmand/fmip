@@ -15,6 +15,8 @@ import {
   RESTORE_DRILL_THRESHOLD,
   type Reading,
   type RunRecord,
+  WAL_ARCHIVE_THRESHOLD,
+  type WalArchiveRecord,
   backup,
   candidateShadow,
   dataQuality,
@@ -322,6 +324,83 @@ describe('backup', () => {
       newest: { at: ago(10), ok: false, detail: 'x'.repeat(2000) },
     };
     expect(backup(seen, NOW).note?.length).toBeLessThan(400);
+  });
+});
+
+describe('backup: the WAL archive of point-in-time recovery (T-845, D-157)', () => {
+  const archiving = (over: Partial<WalArchiveRecord>): WalArchiveRecord => ({
+    on: true,
+    lastArchivedAt: ago(120),
+    lastFailedAt: null,
+    lastFailedWal: null,
+    waiting: 0,
+    ...over,
+  });
+  const fresh = passed(ago(3600));
+
+  it('changes nothing while archiving is off, or its state was not read', () => {
+    expect(backup(fresh, NOW, { ...archiving({}), on: false })).toEqual(backup(fresh, NOW));
+    expect(backup(fresh, NOW, undefined)).toEqual(backup(fresh, NOW));
+  });
+
+  it('is ok, saying how old the newest archived segment is, when nothing waits', () => {
+    const r = backup(fresh, NOW, archiving({ lastArchivedAt: ago(3 * 3600), waiting: 0 }));
+    // A quiet database archives nothing because it has nothing to archive.
+    expect(r).toMatchObject({ level: 'ok', observed: 3600 });
+    expect(r.note).toMatch(/newest WAL segment archived 180 min ago/);
+  });
+
+  it('is measured from the newest archived segment while segments wait: 30 minutes degraded, 2 hours failing', () => {
+    expect(backup(fresh, NOW, archiving({ lastArchivedAt: ago(600), waiting: 3 })).level).toBe(
+      'ok',
+    );
+    const late = backup(
+      fresh,
+      NOW,
+      archiving({ lastArchivedAt: ago(WAL_ARCHIVE_THRESHOLD.degraded), waiting: 3 }),
+    );
+    expect(late).toMatchObject({ level: 'degraded', observed: 3600 });
+    expect(late.note).toMatch(/3 WAL segment\(s\) waiting/);
+    expect(
+      backup(
+        fresh,
+        NOW,
+        archiving({ lastArchivedAt: ago(WAL_ARCHIVE_THRESHOLD.failing), waiting: 9 }),
+      ).level,
+    ).toBe('failing');
+  });
+
+  it('a refusal newer than the newest success is degraded at once, and names the segment', () => {
+    const r = backup(
+      fresh,
+      NOW,
+      archiving({
+        lastArchivedAt: ago(300),
+        lastFailedAt: ago(20),
+        lastFailedWal: '000000010000000000000042',
+      }),
+    );
+    expect(r.level).toBe('degraded');
+    expect(r.note).toMatch(/000000010000000000000042 was refused/);
+    expect(r.note).toMatch(/fmip-wal-ship\.timer/);
+    // Refused, then archived again: recovered.
+    expect(
+      backup(fresh, NOW, archiving({ lastArchivedAt: ago(20), lastFailedAt: ago(300) })).level,
+    ).toBe('ok');
+    // Refused for two hours: failing.
+    expect(
+      backup(
+        fresh,
+        NOW,
+        archiving({ lastArchivedAt: ago(WAL_ARCHIVE_THRESHOLD.failing), lastFailedAt: ago(20) }),
+      ).level,
+    ).toBe('failing');
+  });
+
+  it('never makes a worse dump reading better', () => {
+    const stale = passed(ago(BACKUP_THRESHOLD.failing));
+    expect(backup(stale, NOW, archiving({})).level).toBe('failing');
+    expect(backup(NONE, NOW, archiving({})).level).toBe('unknown');
   });
 });
 
