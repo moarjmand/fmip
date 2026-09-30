@@ -179,6 +179,16 @@ export class WatchdogStore {
     );
   }
 
+  /**
+   * Removes a condition whose subject is gone for good (T-947, D-162). Its
+   * events stay: the record of what happened is not rewritten.
+   */
+  async removeCondition(client: PoolClient, key: string): Promise<void> {
+    await client.query('DELETE FROM watchdog_condition WHERE key = $1 AND incident_id IS NULL', [
+      key,
+    ]);
+  }
+
   async conditions(): Promise<WatchdogCondition[]> {
     const { rows } = await this.pool.query<ConditionRow>(
       `SELECT key, level, since, checked_at, observed, unit, degraded_at, failing_at, note, incident_id

@@ -483,4 +483,45 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the watchdog
       await clearWatchdog(pool);
     }
   }, 20_000);
+
+  it('a retired Club Elo closes its incident, then leaves the report (T-947, D-162)', async () => {
+    await clearWatchdog(pool);
+    const now = new Date();
+    const at = (seconds: number) => new Date(now.getTime() + seconds * 1000);
+    const elo = (retired: boolean): Observations['elo'] => ({
+      source: {
+        refresh: !retired,
+        retired,
+        state: 'recorded',
+        last_succeeded_day: '2026-09-24',
+        last_error: null,
+        last_error_at: null,
+        unanswered_since: new Date(now.getTime() - 20 * 24 * 3600_000).toISOString(),
+        detail: null,
+      },
+    });
+    const kinds = (outcome: Awaited<ReturnType<WatchdogService['tick']>>) =>
+      outcome?.events.filter((e) => e.condition === 'elo_source').map((e) => e.kind);
+
+    seen = { ...quiet(now), elo: elo(false) };
+    expect(kinds(await watchdog.tick(at(1)))).toEqual(['raised']);
+
+    seen = { ...quiet(now), elo: elo(true) };
+    expect(kinds(await watchdog.tick(at(2)))).toEqual(['recovered']);
+    let report = (await get(admin)).json() as WatchdogReport;
+    expect(report.conditions.find((c) => c.key === 'elo_source')).toMatchObject({
+      level: 'ok',
+      incident: null,
+    });
+
+    expect(kinds(await watchdog.tick(at(3)))).toEqual([]);
+    report = (await get(admin)).json() as WatchdogReport;
+    expect(report.conditions.map((c) => c.key)).not.toContain('elo_source');
+    // The record of what happened stays.
+    expect(report.events.filter((e) => e.condition === 'elo_source').map((e) => e.kind)).toEqual([
+      'recovered',
+      'raised',
+    ]);
+    await clearWatchdog(pool);
+  });
 });
