@@ -17,6 +17,10 @@ import { describe, expect, it } from 'vitest';
 
 const HERE = __dirname;
 const CONTROLS = readFileSync(join(HERE, 'group-controls.tsx'), 'utf8');
+// Since T-1308 the controls are server components over one client form, and
+// their words live in the catalogue.
+const EN = readFileSync(join(HERE, '..', 'i18n', 'catalogues', 'en.json'), 'utf8');
+const ACTION = readFileSync(join(HERE, 'community-action.tsx'), 'utf8');
 const DIRECTORY = readFileSync(join(HERE, '..', 'app', '[locale]', 'groups', 'page.tsx'), 'utf8');
 const PAGE = readFileSync(
   join(HERE, '..', 'app', '[locale]', 'groups', '[slug]', 'page.tsx'),
@@ -53,7 +57,7 @@ describe('every standing a group can have is answered', () => {
   });
 
   it('asks rather than joins where asking is the way in', () => {
-    expect(CONTROLS).toContain('data-testid="group-ask"');
+    expect(CONTROLS).toContain('testId="group-ask"');
     expect(CONTROLS).toContain('testId="group-join"');
     expect(CONTROLS).toContain('askToJoinGroupAction');
   });
@@ -80,7 +84,8 @@ describe('what the surfaces say about what they were not given', () => {
     // answer, and a reader is told that rather than left to assume the list is
     // the world.
     expect(DIRECTORY).toContain('data-testid="group-directory-note"');
-    expect(DIRECTORY).toMatch(/joined by invitation are not listed/);
+    expect(DIRECTORY).toContain('message="groupsPage.directoryNote"');
+    expect(EN).toMatch(/"groupsPage.directoryNote": "[^"]*joined by invitation are not listed/);
   });
 
   it('states each absence rather than rendering nothing', () => {
@@ -126,7 +131,8 @@ describe('the group board is the global board, scoped (T-243)', () => {
 
   it('says what the rank is measured against', () => {
     expect(PAGE).toContain('data-testid="group-board-note"');
-    expect(PAGE).toMatch(/same rating as the/);
+    expect(PAGE).toContain('message="groupsPage.board.note"');
+    expect(EN).toMatch(/"groupsPage.board.note": "[^"]*same rating as the \{link\}/);
   });
 });
 
@@ -140,8 +146,10 @@ describe('correct before fast', () => {
     // Joining, asking and leaving are the controls a member reaches for when
     // they want out of something or into something; none of them may depend on
     // a script having loaded.
-    expect(CONTROLS).toContain('<form action={formAction}');
+    expect(CONTROLS).toContain('<CommunityAction');
+    expect(ACTION).toContain('<form action={formAction}');
     expect(CONTROLS).not.toMatch(/onClick|useEffect|addEventListener/);
+    expect(ACTION).not.toMatch(/onClick|useEffect|addEventListener/);
   });
 });
 
@@ -181,13 +189,15 @@ describe("a group's rules, accepted on the way in (T-1023)", () => {
       expect(at, control).toBeGreaterThan(-1);
       expect(CONTROLS.slice(at, at + 200), control).toContain('rulesVersion={rulesVersion}');
     }
-    expect(CONTROLS).toContain('<AcceptRules version={rulesVersion} />');
+    expect(CONTROLS).toContain('<AcceptRules locale={locale} version={rulesVersion} />');
     expect(CONTROLS).toContain('name="accept_rules" required');
   });
 
   it("says the rules are the group's, not the platform's", () => {
-    expect(PAGE).toContain('not the platform&rsquo;s');
-    expect(PAGE).toContain('You stay a member either way.');
+    expect(PAGE).toContain('message="groupsPage.rulesWhose"');
+    expect(PAGE).toContain('message="groupsPage.rulesChanged"');
+    expect(EN).toContain('not the platform’s');
+    expect(EN).toContain('You stay a member either way.');
   });
 });
 
@@ -213,7 +223,8 @@ describe("a group's owner and moderators removing messages (T-1024)", () => {
 describe('a group an administrator closed (T-1025)', () => {
   it('says why, keeps the way out, and offers the appeal to the owner only', () => {
     expect(PAGE).toContain('data-testid="group-closed-reason"');
-    expect(PAGE).toContain('Its members can read it and leave it.');
+    expect(PAGE).toContain('message="groupsPage.closedNote"');
+    expect(EN).toContain('Its members can read it and leave it.');
     expect(PAGE).toContain("group.closed !== null && group.standing === 'owner'");
   });
 });

@@ -59,7 +59,7 @@ describe('reacting is open to members, and looks it', () => {
     // count.
     expect(SOCIAL).toContain('aria-pressed={mine}');
     expect(SOCIAL).toContain('aria-label=');
-    expect(SOCIAL).toMatch(/mine \? ', yours' : ''/);
+    expect(SOCIAL).toMatch(/mine \? `, \$\{yours\}` : ''/);
   });
 });
 

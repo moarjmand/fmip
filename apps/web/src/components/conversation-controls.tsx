@@ -1,12 +1,13 @@
-'use client';
-
-import { useActionState } from 'react';
+import type { ReactNode } from 'react';
 import {
   MAX_MESSAGE_REMOVAL_REASON,
   REACTIONS,
   type Reaction,
   type ReactionCount,
 } from '@fmip/contracts';
+import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
+import { formatNumber } from '@/i18n/format';
+import { type MessageKey, attribute } from '@/i18n/messages';
 import type { ActionState } from '@/lib/auth-actions';
 import {
   leaveConversationAction,
@@ -18,26 +19,33 @@ import {
   setMutedAction,
   setPinnedAction,
 } from '@/lib/conversation-actions';
-import { Button, FormStatus, TextArea } from '@/components/ui';
+import { CommunityAction, CommunityChip } from '@/components/community-action';
+import { Said } from '@/components/community-text';
+import { Translated } from '@/components/translated';
+import { TextArea } from '@/components/ui';
 
 type BoundAction = (state: ActionState, formData: FormData) => Promise<ActionState>;
 
-function Result({ state, testId }: { state: ActionState; testId: string }) {
-  if (state === null) return null;
-  return (
-    <FormStatus ok={state.ok} data-testid={testId}>
-      {state.ok ? (state.message ?? 'Done.') : state.message}
-    </FormStatus>
-  );
+/*
+ * Server components since T-1308: each control's words are chosen from the
+ * catalogue here and handed to the client form (`CommunityAction`) already
+ * resolved, so the catalogues stay on the server (T-1040). Every control is
+ * still its own `<form action={formAction}>` over a server action, and works
+ * without JavaScript.
+ */
+
+function done(locale: string) {
+  return <Translated locale={locale} message="messagesPage.control.done" />;
 }
 
 /**
  * The composer (blueprint 8.3, T-224).
  *
- * A plain form over a server action: it works without JavaScript, and there is
- * **no socket behind it** — T-230 is the transport, and this surface is correct
- * before it exists. After sending, the page re-renders from the store, which is
- * the same thing a reconnecting client will do.
+ * A plain form over a server action (`sendMessageAction`): it works without
+ * JavaScript, and there is **no socket behind it** — T-230 is the transport,
+ * and this surface is correct before it exists. After sending, the page
+ * re-renders from the store, which is the same thing a reconnecting client
+ * will do.
  *
  * The card fields are hidden inputs carrying a kind and a UUID, because that is
  * all a card is (rule 1): a page that posted a team name would be inventing the
@@ -52,12 +60,9 @@ export function Composer({
   locale: string;
   conversationId: string;
   /** Set when the viewer has left: they can read every word and write none. */
-  disabled?: string;
+  disabled?: ReactNode;
   card?: { kind: string; id: string; label: string };
 }) {
-  const action = sendMessageAction.bind(null, locale, conversationId) as BoundAction;
-  const [state, formAction, pending] = useActionState(action, null);
-
   if (disabled !== undefined) {
     return (
       <p className="text-sm text-muted" data-testid="composer-closed">
@@ -66,37 +71,50 @@ export function Composer({
     );
   }
 
+  const here = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  const placeholder = attribute(
+    here,
+    card === undefined ? 'messagesPage.composer.placeholder' : 'messagesPage.composer.aboutCard',
+  );
+
   return (
-    <form action={formAction} className="flex flex-col gap-2" data-testid="composer">
+    <CommunityAction
+      action={sendMessageAction.bind(null, locale, conversationId) as BoundAction}
+      submit={<Translated locale={locale} message="messagesPage.composer.send" />}
+      working={<Translated locale={locale} message="messagesPage.composer.sending" />}
+      done={done(locale)}
+      variant="primary"
+      size="md"
+      buttonClassName="self-start text-sm"
+      formClassName="flex flex-col gap-2"
+      formTestId="composer"
+      testId="composer-send"
+      resultTestId="composer-result"
+    >
       {card !== undefined && (
         <>
           <input type="hidden" name="card_kind" value={card.kind} />
           <input type="hidden" name="card_id" value={card.id} />
-          <p className="text-sm text-muted">Sharing: {card.label}</p>
+          <p className="text-sm text-muted">
+            <Said
+              locale={locale}
+              message="messagesPage.composer.sharing"
+              params={{ card: card.label }}
+            />
+          </p>
         </>
       )}
       <TextArea
-        label="Your message"
+        label={<Translated locale={locale} message="messagesPage.composer.label" />}
         hideLabel
         id="message-body"
         name="body"
         rows={3}
         maxLength={4000}
-        placeholder={card === undefined ? 'Write a message' : 'Say something about it (optional)'}
+        placeholder={placeholder.text}
+        lang={placeholder.lang}
       />
-      <Button
-        type="submit"
-        variant="primary"
-        size="md"
-        pending={pending}
-        pendingLabel="Sending…"
-        className="self-start text-sm"
-        data-testid="composer-send"
-      >
-        Send
-      </Button>
-      <Result state={state} testId="composer-result" />
-    </form>
+    </CommunityAction>
   );
 }
 
@@ -112,37 +130,27 @@ export function ConversationExits({
   muted: boolean;
   left: boolean;
 }) {
-  const mute = setMutedAction.bind(null, locale, conversationId, !muted) as BoundAction;
-  const leave = leaveConversationAction.bind(null, locale, conversationId) as BoundAction;
-  const [muteState, muteAction, mutePending] = useActionState(mute, null);
-  const [leaveState, leaveAction, leavePending] = useActionState(leave, null);
-
   return (
     <div className="flex flex-wrap items-start gap-3" data-testid="conversation-exits">
-      <form action={muteAction} className="flex flex-col gap-1">
-        <Button
-          type="submit"
-          pending={mutePending}
-          className="self-start"
-          data-testid="conversation-mute"
-        >
-          {muted ? 'Unmute' : 'Mute'}
-        </Button>
-        <Result state={muteState} testId="conversation-mute-result" />
-      </form>
+      <CommunityAction
+        action={setMutedAction.bind(null, locale, conversationId, !muted) as BoundAction}
+        submit={
+          <Translated
+            locale={locale}
+            message={muted ? 'messagesPage.control.unmute' : 'messagesPage.control.mute'}
+          />
+        }
+        done={done(locale)}
+        testId="conversation-mute"
+      />
 
       {!left && (
-        <form action={leaveAction} className="flex flex-col gap-1">
-          <Button
-            type="submit"
-            pending={leavePending}
-            className="self-start"
-            data-testid="conversation-leave"
-          >
-            Leave
-          </Button>
-          <Result state={leaveState} testId="conversation-leave-result" />
-        </form>
+        <CommunityAction
+          action={leaveConversationAction.bind(null, locale, conversationId) as BoundAction}
+          submit={<Translated locale={locale} message="messagesPage.control.leave" />}
+          done={done(locale)}
+          testId="conversation-leave"
+        />
       )}
     </div>
   );
@@ -158,28 +166,18 @@ export function RemoveMessage({
   conversationId: string;
   messageId: string;
 }) {
-  const action = removeMessageAction.bind(
-    null,
-    locale,
-    conversationId,
-    messageId,
-  ) as unknown as BoundAction;
-  const [state, formAction, pending] = useActionState(action, null);
-
   return (
-    <form action={formAction} className="flex flex-col gap-1">
-      <Button
-        type="submit"
-        variant="ghost"
-        size="xs"
-        pending={pending}
-        className="self-start text-muted"
-        data-testid="message-remove"
-      >
-        Remove
-      </Button>
-      <Result state={state} testId="message-remove-result" />
-    </form>
+    <CommunityAction
+      action={
+        removeMessageAction.bind(null, locale, conversationId, messageId) as unknown as BoundAction
+      }
+      submit={<Translated locale={locale} message="messagesPage.control.remove" />}
+      done={done(locale)}
+      variant="ghost"
+      size="xs"
+      buttonClassName="self-start text-muted"
+      testId="message-remove"
+    />
   );
 }
 
@@ -197,20 +195,30 @@ export function ModerateMessage({
   conversationId: string;
   messageId: string;
 }) {
-  const action = removeAsGroupModeratorAction.bind(
-    null,
-    locale,
-    conversationId,
-    messageId,
-  ) as unknown as BoundAction;
-  const [state, formAction, pending] = useActionState(action, null);
-
   return (
     <details className="text-xs" data-testid="message-moderate">
-      <summary className="cursor-pointer text-muted">Remove as a group moderator</summary>
-      <form action={formAction} className="mt-2 flex flex-col gap-2">
+      <summary className="cursor-pointer text-muted">
+        <Translated locale={locale} message="messagesPage.moderate.summary" />
+      </summary>
+      <CommunityAction
+        action={
+          removeAsGroupModeratorAction.bind(
+            null,
+            locale,
+            conversationId,
+            messageId,
+          ) as unknown as BoundAction
+        }
+        submit={<Translated locale={locale} message="messagesPage.control.remove" />}
+        done={done(locale)}
+        variant="secondary"
+        size="xs"
+        formClassName="mt-2 flex flex-col gap-2"
+        testId="message-moderate-submit"
+        resultTestId="message-moderate-result"
+      >
         <TextArea
-          label="Why (the author is told)"
+          label={<Translated locale={locale} message="messagesPage.moderate.reason" />}
           id={`moderate-reason-${messageId}`}
           name="reason"
           rows={2}
@@ -218,53 +226,34 @@ export function ModerateMessage({
           required
           data-testid="message-moderate-reason"
         />
-        <Button
-          type="submit"
-          variant="secondary"
-          size="xs"
-          pending={pending}
-          className="self-start"
-          data-testid="message-moderate-submit"
-        >
-          Remove
-        </Button>
-        <Result state={state} testId="message-moderate-result" />
-      </form>
+      </CommunityAction>
     </details>
   );
 }
 
 /** "Message them", from a member's profile. */
 export function StartConversation({ locale, username }: { locale: string; username: string }) {
-  const action = openConversationAction.bind(null, locale, username) as BoundAction;
-  const [state, formAction, pending] = useActionState(action, null);
-
+  // The refusal is the API's, including the one that says you can message
+  // members you are friends with.
   return (
-    <form action={formAction} className="flex flex-col gap-1">
-      <Button
-        type="submit"
-        pending={pending}
-        pendingLabel="Opening…"
-        className="self-start"
-        data-testid="start-conversation"
-      >
-        Message
-      </Button>
-      {/* The refusal is the API's, including the one that says you can message
-          members you are friends with. */}
-      <Result state={state} testId="start-conversation-result" />
-    </form>
+    <CommunityAction
+      action={openConversationAction.bind(null, locale, username) as BoundAction}
+      submit={<Translated locale={locale} message="messagesPage.control.message" />}
+      working={<Translated locale={locale} message="messagesPage.control.opening" />}
+      done={done(locale)}
+      testId="start-conversation"
+    />
   );
 }
 
 /** What each reaction is called where a reader can see it. */
-const REACTION_LABELS: Record<Reaction, string> = {
-  agree: 'Agree',
-  disagree: 'Disagree',
-  laugh: 'Ha',
-  surprise: 'Oh',
-  sad: 'Sad',
-  celebrate: 'Yes',
+const REACTION_LABELS: Record<Reaction, MessageKey> = {
+  agree: 'messagesPage.reaction.agree',
+  disagree: 'messagesPage.reaction.disagree',
+  laugh: 'messagesPage.reaction.laugh',
+  surprise: 'messagesPage.reaction.surprise',
+  sad: 'messagesPage.reaction.sad',
+  celebrate: 'messagesPage.reaction.celebrate',
 };
 
 function ReactionButton({
@@ -282,37 +271,27 @@ function ReactionButton({
   count: number;
   mine: boolean;
 }) {
-  const action = reactAction.bind(
-    null,
-    locale,
-    conversationId,
-    messageId,
-    reaction,
-    mine,
-  ) as unknown as BoundAction;
-  const [state, formAction, pending] = useActionState(action, null);
-
   return (
-    <form action={formAction} className="inline">
-      <button
-        type="submit"
-        disabled={pending}
-        aria-pressed={mine}
-        className={`rounded-full border px-2 py-0.5 text-xs disabled:opacity-50 ${
-          mine ? 'border-accent' : 'border-strong text-muted'
-        }`}
-        data-testid={`reaction-${reaction}`}
-      >
-        {REACTION_LABELS[reaction]}
-        {count > 0 ? ` ${count}` : ''}
-      </button>
-      {state !== null && !state.ok && (
-        <FormStatus ok={false} as="span" size="xs">
-          {' '}
-          {state.message}
-        </FormStatus>
-      )}
-    </form>
+    <CommunityChip
+      action={
+        reactAction.bind(
+          null,
+          locale,
+          conversationId,
+          messageId,
+          reaction,
+          mine,
+        ) as unknown as BoundAction
+      }
+      pressed={mine}
+      className={`rounded-full border px-2 py-0.5 text-xs disabled:opacity-50 ${
+        mine ? 'border-accent' : 'border-strong text-muted'
+      }`}
+      testId={`reaction-${reaction}`}
+    >
+      <Translated locale={locale} message={REACTION_LABELS[reaction]} />
+      {count > 0 ? ` ${formatNumber(locale, count)}` : ''}
+    </CommunityChip>
   );
 }
 
@@ -354,7 +333,9 @@ export function Reactions({
       ))}
       {unused.length > 0 && (
         <details className="inline">
-          <summary className="cursor-pointer text-xs text-muted">React</summary>
+          <summary className="cursor-pointer text-xs text-muted">
+            <Translated locale={locale} message="messagesPage.reaction.react" />
+          </summary>
           <div className="mt-1 flex flex-wrap gap-2">
             {unused.map((reaction) => (
               <ReactionButton
@@ -386,33 +367,29 @@ export function PinMessage({
   messageId: string;
   pinned: boolean;
 }) {
-  const action = setPinnedAction.bind(
-    null,
-    locale,
-    conversationId,
-    messageId,
-    !pinned,
-  ) as unknown as BoundAction;
-  const [state, formAction, pending] = useActionState(action, null);
-
   return (
-    <form action={formAction} className="inline">
-      <Button
-        type="submit"
-        variant="ghost"
-        size="xs"
-        pending={pending}
-        className="text-muted"
-        data-testid="message-pin"
-      >
-        {pinned ? 'Unpin' : 'Pin'}
-      </Button>
-      {state !== null && !state.ok && (
-        <FormStatus ok={false} as="span" size="xs">
-          {' '}
-          {state.message}
-        </FormStatus>
-      )}
-    </form>
+    <CommunityAction
+      action={
+        setPinnedAction.bind(
+          null,
+          locale,
+          conversationId,
+          messageId,
+          !pinned,
+        ) as unknown as BoundAction
+      }
+      submit={
+        <Translated
+          locale={locale}
+          message={pinned ? 'messagesPage.control.unpin' : 'messagesPage.control.pin'}
+        />
+      }
+      variant="ghost"
+      size="xs"
+      buttonClassName="text-muted"
+      formClassName="inline"
+      result="failure-inline"
+      testId="message-pin"
+    />
   );
 }

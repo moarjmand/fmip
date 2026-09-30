@@ -1,6 +1,3 @@
-'use client';
-
-import { useActionState } from 'react';
 import {
   isDeletedMember,
   type MatchPanelPage,
@@ -13,7 +10,19 @@ import {
 import { FollowButton, PanelReactions } from '@/components/panel-social';
 import { postToPanelAction } from '@/lib/panel-actions';
 import { linkCard, type LinkChoiceGroup } from '@/lib/panel-link';
-import { Button, Card, FormStatus, Notice, Select, TextArea } from '@/components/ui';
+import { CommunityAction } from '@/components/community-action';
+import { Said } from '@/components/community-text';
+import { Translated } from '@/components/translated';
+import { formatDateTime, formatNumber } from '@/i18n/format';
+import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
+import { type MessageKey, resolveMessages, t } from '@/i18n/messages';
+import { Card, Notice, Select, TextArea } from '@/components/ui';
+
+/*
+ * A server component since T-1308: the words are chosen from the catalogue
+ * here, and the few client pieces (the compose form, the reactions, the
+ * follow control) are handed them already resolved (T-1040).
+ */
 
 /**
  * The public match discussion (blueprint 10.2, T-251).
@@ -30,22 +39,30 @@ import { Button, Card, FormStatus, Notice, Select, TextArea } from '@/components
  */
 
 /** What each refusal says, and what it offers doing about it. */
-const REFUSALS: Record<PanelPermission['refusal'] & string, string> = {
-  no_panel: 'Nobody has opened a discussion on this match.',
-  panel_closed: 'This discussion is closed. It can still be read.',
-  not_signed_in: 'Sign in to join the discussion. Reading it needs no account.',
-  not_approved: 'Posting here is a granted privilege. Reading is open to everybody.',
-  paused: 'Your contributor approval is paused, so you cannot post for now.',
-  withdrawn: 'Your contributor approval was withdrawn.',
-  restricted: 'A moderation restriction stops you posting here.',
+const REFUSALS: Record<PanelPermission['refusal'] & string, MessageKey> = {
+  no_panel: 'panel.none',
+  panel_closed: 'panel.refusal.closed',
+  not_signed_in: 'panel.refusal.signIn',
+  not_approved: 'panel.refusal.notApproved',
+  paused: 'panel.refusal.paused',
+  withdrawn: 'panel.refusal.withdrawn',
+  restricted: 'panel.refusal.restricted',
 };
 
-const TIER_LABEL: Record<RatingTier, string> = {
-  bronze: 'Bronze',
-  silver: 'Silver',
-  gold: 'Gold',
-  platinum: 'Platinum',
-  elite: 'Elite',
+const TIER_LABEL: Record<RatingTier, MessageKey> = {
+  bronze: 'panel.tier.bronze',
+  silver: 'panel.tier.silver',
+  gold: 'panel.tier.gold',
+  platinum: 'panel.tier.platinum',
+  elite: 'panel.tier.elite',
+};
+
+/** What each link group offers, named in the reader's language (T-1030, T-1308). */
+const LINK_GROUP: Record<LinkChoiceGroup['kind'], MessageKey> = {
+  incidents: 'panel.compose.group.incidents',
+  players: 'panel.compose.group.players',
+  statistics: 'panel.compose.group.statistics',
+  prediction: 'panel.compose.group.prediction',
 };
 
 /**
@@ -60,10 +77,12 @@ const TIER_LABEL: Record<RatingTier, string> = {
  * still calling them approved would be false (rule 3).
  */
 function Standing({
+  locale,
   author,
   follow,
   deletedMemberLabel,
 }: {
+  locale: string;
   author: PanelPost['author'];
   /** The control, when the viewer is a member who is not this author. */
   follow: React.ReactNode;
@@ -85,17 +104,23 @@ function Standing({
       {author.rating === null || author.tier === null ? (
         // Said, not left blank. "Not rated yet" and "rated badly" are different
         // facts and a missing number reads as neither.
-        <span data-testid="panel-author-unrated">Not rated yet</span>
+        <span data-testid="panel-author-unrated">
+          <Translated locale={locale} message="panel.unrated" />
+        </span>
       ) : (
         <span data-testid="panel-author-rating">
-          {TIER_LABEL[author.tier]} · {author.rating}
+          <Translated locale={locale} message={TIER_LABEL[author.tier]} /> ·{' '}
+          {formatNumber(locale, author.rating)}
         </span>
       )}
       <span
         data-testid={author.approved ? 'panel-author-approved' : 'panel-author-former'}
         className="rounded border border-default px-1"
       >
-        {author.approved ? 'Approved contributor' : 'Formerly approved'}
+        <Translated
+          locale={locale}
+          message={author.approved ? 'panel.approved' : 'panel.formerlyApproved'}
+        />
       </span>
       {follow}
     </span>
@@ -109,11 +134,13 @@ function Standing({
  * as the member's own call (rule 6).
  */
 function LinkCard({
+  locale,
   post,
   names,
   revealed,
   deletedMemberLabel,
 }: {
+  locale: string;
   post: PanelPost;
   names: { home: string; away: string };
   revealed: PanelLinkedPrediction | null;
@@ -125,7 +152,7 @@ function LinkCard({
   const author = isDeletedMember(post.author.username)
     ? deletedMemberLabel
     : post.author.display_name;
-  const card = linkCard(link, author, names, revealed);
+  const card = linkCard(link, author, names, revealed, locale);
   return (
     <aside
       className="flex flex-col gap-1 rounded border border-default p-2 text-sm"
@@ -148,6 +175,7 @@ function Post({
   post,
   locale,
   fixtureId,
+  timeZone,
   mine,
   me,
   followed,
@@ -156,6 +184,7 @@ function Post({
   revealed,
 }: {
   post: PanelPost;
+  timeZone: string;
   names: { home: string; away: string };
   revealed: PanelLinkedPrediction | null;
   deletedMemberLabel: string;
@@ -177,15 +206,17 @@ function Post({
         className="rounded border border-default p-3 text-sm text-muted"
         data-testid="panel-post-removed"
       >
-        {post.removed === 'author'
-          ? 'The author removed this post.'
-          : 'A moderator removed this post.'}
+        <Translated
+          locale={locale}
+          message={post.removed === 'author' ? 'panel.removedByAuthor' : 'panel.removedByModerator'}
+        />
       </li>
     );
   }
   return (
     <Card as="li" padding="sm" data-testid="panel-post">
       <Standing
+        locale={locale}
         author={post.author}
         deletedMemberLabel={deletedMemberLabel}
         follow={
@@ -198,12 +229,18 @@ function Post({
               fixtureId={fixtureId}
               username={post.author.username}
               following={followed.has(post.author.username)}
+              labels={{
+                follow: <Translated locale={locale} message="panel.follow" />,
+                following: <Translated locale={locale} message="panel.following" />,
+                working: <Translated locale={locale} message="panel.working" />,
+              }}
             />
           ) : null
         }
       />
       <p className="whitespace-pre-wrap text-sm">{post.body}</p>
       <LinkCard
+        locale={locale}
         post={post}
         names={names}
         revealed={revealed}
@@ -216,14 +253,46 @@ function Post({
         tallies={post.reactions}
         mine={mine}
         signedIn={me !== null}
+        labels={reactionLabels(locale)}
+        yours={t(here(locale), 'panel.reaction.yours')}
       />
       <time className="text-xs text-muted" dateTime={post.created_at}>
-        {post.created_at}
+        {formatDateTime(locale, post.created_at, timeZone)}
+        {timeZone === 'UTC' ? ' UTC' : ''}
       </time>
     </Card>
   );
 }
 
+function here(locale: string) {
+  return isLocale(locale) ? locale : DEFAULT_LOCALE;
+}
+
+/** The six reactions' names, resolved here for the client buttons. */
+function reactionLabels(locale: string) {
+  const m = resolveMessages(here(locale), [
+    'panel.reaction.agree',
+    'panel.reaction.disagree',
+    'panel.reaction.laugh',
+    'panel.reaction.surprise',
+    'panel.reaction.sad',
+    'panel.reaction.celebrate',
+  ]);
+  return {
+    agree: m['panel.reaction.agree'],
+    disagree: m['panel.reaction.disagree'],
+    laugh: m['panel.reaction.laugh'],
+    surprise: m['panel.reaction.surprise'],
+    sad: m['panel.reaction.sad'],
+    celebrate: m['panel.reaction.celebrate'],
+  };
+}
+
+/**
+ * The compose form. The refusal the API worded is shown as it came: the
+ * server decided, and this repeats the sentence rather than composing a
+ * second one that could disagree with it.
+ */
 function Compose({
   locale,
   fixtureId,
@@ -233,47 +302,49 @@ function Compose({
   fixtureId: string;
   choices: LinkChoiceGroup[];
 }) {
-  const [state, formAction, pending] = useActionState(
-    postToPanelAction.bind(null, locale, fixtureId),
-    null,
-  );
-
+  const at = here(locale);
   return (
-    <form action={formAction} className="flex flex-col gap-2" data-testid="panel-compose">
-      <TextArea label="Add to the discussion" name="body" rows={3} maxLength={4000} required />
+    <CommunityAction
+      action={postToPanelAction.bind(null, locale, fixtureId)}
+      submit={<Translated locale={locale} message="panel.compose.post" />}
+      working={<Translated locale={locale} message="panel.compose.posting" />}
+      formClassName="flex flex-col gap-2"
+      formTestId="panel-compose"
+      testId="panel-compose-submit"
+      resultTestId="panel-compose-result"
+    >
+      <TextArea
+        label={<Translated locale={locale} message="panel.compose.label" />}
+        name="body"
+        rows={3}
+        maxLength={4000}
+        required
+      />
       {choices.length > 0 && (
         // One link at most, to something of this match (T-1030). The options
-        // come from what the match centre already carries.
+        // come from what the match centre already carries. An <option> holds
+        // text, not markup, so the words come as text.
         <Select
-          label="Link one thing from this match (optional)"
+          label={<Translated locale={locale} message="panel.compose.link" />}
           name="link"
           defaultValue=""
           data-testid="panel-compose-link"
         >
-          <option value="">No link</option>
+          <option value="">{t(at, 'panel.compose.noLink')}</option>
           {choices.map((group) => (
-            <optgroup key={group.label} label={group.label}>
+            <optgroup key={group.kind} label={t(at, LINK_GROUP[group.kind])}>
               {group.choices.map((choice) => (
                 <option key={choice.value} value={choice.value}>
-                  {choice.label}
+                  {choice.value === 'prediction'
+                    ? t(at, 'panel.compose.myPrediction')
+                    : choice.label}
                 </option>
               ))}
             </optgroup>
           ))}
         </Select>
       )}
-      <Button type="submit" pending={pending} pendingLabel="Posting…" className="self-start">
-        Post
-      </Button>
-      {state !== null && (
-        // The refusal the API worded, shown as it came. The server decided; this
-        // repeats the sentence rather than composing a second one that could
-        // disagree with it.
-        <FormStatus ok={state.ok} data-testid="panel-compose-result">
-          {state.message}
-        </FormStatus>
-      )}
-    </form>
+    </CommunityAction>
   );
 }
 
@@ -288,9 +359,12 @@ export function MatchPanel({
   deletedMemberLabel,
   linkChoices,
   names,
+  timeZone,
 }: {
   locale: string;
   fixtureId: string;
+  /** The reader's zone, for when each post was written; UTC when the page has none. */
+  timeZone?: string;
   page: MatchPanelPage | null;
   /** What a post may link to (T-1030). Empty offers no link control. */
   linkChoices?: LinkChoiceGroup[];
@@ -319,18 +393,24 @@ export function MatchPanel({
   const revealed = new Map(
     (permission?.linked_predictions ?? []).map((entry) => [entry.post_id, entry.prediction]),
   );
-  const sides = names ?? { home: 'Home', away: 'Away' };
+  const sides = names ?? {
+    home: t(here(locale), 'panel.home'),
+    away: t(here(locale), 'panel.away'),
+  };
+  const zone = timeZone ?? 'UTC';
 
   return (
     <section className="flex flex-col gap-3" data-testid="match-panel">
-      <h2 className="text-lg font-semibold">Match discussion</h2>
+      <h2 className="text-lg font-semibold">
+        <Translated locale={locale} message="panel.title" />
+      </h2>
 
       {!reachable || page === null ? (
         // Stated, not vanished: "the discussion could not be fetched" and "nobody
         // has posted" are different facts and a reader must be able to tell them
         // apart (rule 3).
         <Notice tone="danger" data-testid="panel-unreachable">
-          The discussion cannot be shown right now.
+          <Translated locale={locale} message="panel.unreachable" />
         </Notice>
       ) : page.state === 'none' ? (
         // Not the same as an empty discussion, and it must not read like one
@@ -338,13 +418,14 @@ export function MatchPanel({
         // where nobody has spoken yet, and only the second is something a
         // reader can act on.
         <p className="text-sm text-muted" data-testid="panel-none">
-          Nobody has opened a discussion on this match.
+          <Translated locale={locale} message="panel.none" />
         </p>
       ) : page.posts.length === 0 ? (
         <p className="text-sm text-muted" data-testid="panel-empty">
-          {page.state === 'closed'
-            ? 'This discussion is closed, and nothing was posted on it.'
-            : 'Nobody has posted about this match yet.'}
+          <Translated
+            locale={locale}
+            message={page.state === 'closed' ? 'panel.emptyClosed' : 'panel.empty'}
+          />
         </p>
       ) : (
         <>
@@ -355,6 +436,7 @@ export function MatchPanel({
                 post={post}
                 locale={locale}
                 fixtureId={fixtureId}
+                timeZone={zone}
                 mine={myReactions.get(post.id) ?? []}
                 me={viewer}
                 followed={follows}
@@ -368,7 +450,14 @@ export function MatchPanel({
             // The count, so a first page never implies the whole discussion is
             // this short.
             <p className="text-sm text-muted" data-testid="panel-more">
-              Showing {page.posts.length} of {page.total} posts.
+              <Said
+                locale={locale}
+                message="panel.more"
+                params={{
+                  shown: formatNumber(locale, page.posts.length),
+                  total: formatNumber(locale, page.total),
+                }}
+              />
             </p>
           )}
         </>
@@ -378,7 +467,9 @@ export function MatchPanel({
         <Compose locale={locale} fixtureId={fixtureId} choices={linkChoices ?? []} />
       ) : permission !== null && permission.refusal !== null ? (
         <div className="flex flex-col gap-1" data-testid="panel-refusal">
-          <p className="text-sm text-muted">{REFUSALS[permission.refusal]}</p>
+          <p className="text-sm text-muted">
+            <Translated locale={locale} message={REFUSALS[permission.refusal]} />
+          </p>
           {permission.refusal === 'not_approved' &&
             (permission.shortfalls.length > 0 ? (
               <ul
@@ -396,8 +487,7 @@ export function MatchPanel({
               // saying nothing.
               permission.qualifies && (
                 <p className="text-sm text-muted" data-testid="panel-qualifies">
-                  You meet every requirement. Approval is a person&rsquo;s decision and has not been
-                  made yet.
+                  <Translated locale={locale} message="panel.qualifies" />
                 </p>
               )
             ))}

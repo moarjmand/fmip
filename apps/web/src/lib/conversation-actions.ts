@@ -6,6 +6,8 @@ import type { CardKind, Reaction, SendMessageResponse } from '@fmip/contracts';
 import { type ApiResult, apiRequest } from '@/lib/api';
 import type { ActionState } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
+import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
+import { type MessageKey, t } from '@/i18n/messages';
 import { failureState } from './action-failure';
 
 /**
@@ -26,6 +28,11 @@ import { failureState } from './action-failure';
 
 function failure(result: Extract<ApiResult<unknown>, { ok: false }>): ActionState {
   return failureState(result);
+}
+
+/** The sentence a success says, in the reader's language (T-1308). */
+function said(locale: string, key: MessageKey): string {
+  return t(isLocale(locale) ? locale : DEFAULT_LOCALE, key);
 }
 
 function text(formData: FormData, name: string): string {
@@ -85,7 +92,7 @@ export async function removeMessageAction(
   if (!result.ok) return failure(result);
 
   revalidatePath(`/${locale}/messages/${conversationId}`);
-  return { ok: true, message: 'Removed. What you wrote is gone; the place it was is not.' };
+  return { ok: true, message: said(locale, 'messagesPage.done.removed') };
 }
 
 /**
@@ -111,7 +118,7 @@ export async function removeAsGroupModeratorAction(
   if (!result.ok) return failure(result);
 
   revalidatePath(`/${locale}/messages/${conversationId}`);
-  return { ok: true, message: 'Removed. Its author is told why.' };
+  return { ok: true, message: said(locale, 'messagesPage.done.moderated') };
 }
 
 /**
@@ -145,7 +152,10 @@ export async function setMutedAction(
 
   revalidatePath(`/${locale}/messages/${conversationId}`);
   revalidatePath(`/${locale}/messages`);
-  return { ok: true, message: muted ? 'Muted.' : 'Unmuted.' };
+  return {
+    ok: true,
+    message: said(locale, muted ? 'messagesPage.done.muted' : 'messagesPage.done.unmuted'),
+  };
 }
 
 /** Leaving is never gated. It is the exit. */
@@ -165,7 +175,7 @@ export async function leaveConversationAction(
   revalidatePath(`/${locale}/messages`);
   return {
     ok: true,
-    message: 'You have left. You can still read what was said; you cannot add to it.',
+    message: said(locale, 'messagesPage.done.left'),
   };
 }
 
@@ -234,5 +244,8 @@ export async function setPinnedAction(
   if (!result.ok) return failure(result);
 
   revalidatePath(`/${locale}/messages/${conversationId}`);
-  return { ok: true, message: pinned ? 'Pinned.' : 'Unpinned.' };
+  return {
+    ok: true,
+    message: said(locale, pinned ? 'messagesPage.done.pinned' : 'messagesPage.done.unpinned'),
+  };
 }

@@ -2455,6 +2455,1740 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "friendsPage.title": {
+    "source": "Friends",
+    "text": "دوستان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.description": {
+    "source": "Your friends, your pending requests and the members you have blocked.",
+    "text": "دوستان شما، درخواست‌های در انتظار و کاربرانی که مسدود کرده‌اید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.lead": {
+    "source": "Friends can see one another’s friends-only profile and prediction history, and nothing more than that until you share it.",
+    "text": "دوستان می‌توانند نمایه‌ی ویژه‌ی دوستان و سابقه‌ی پیش‌بینی‌های یکدیگر را ببینند و تا وقتی خودتان چیز دیگری را به اشتراک نگذارید، بیش از این نمی‌بینند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.requests": {
+    "source": "Requests",
+    "text": "درخواست‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.requestsUnreachable": {
+    "source": "Your requests cannot be listed right now.",
+    "text": "فهرست درخواست‌های شما اکنون در دسترس نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.requestsNone": {
+    "source": "Nobody has asked to be your friend, and you have no request waiting for an answer.",
+    "text": "کسی به شما درخواست دوستی نداده است و درخواستی هم از شما در انتظار پاسخ نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.askedAt": {
+    "source": "asked {when}",
+    "text": "درخواست در {when}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.youAskedAt": {
+    "source": "you asked {when}",
+    "text": "درخواست شما در {when}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.yours": {
+    "source": "Your friends",
+    "text": "دوستان شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.friendsUnreachable": {
+    "source": "Your friends cannot be listed right now.",
+    "text": "فهرست دوستان شما اکنون در دسترس نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.friendsNone": {
+    "source": "You have no friends here yet. Open a member’s profile to send a request.",
+    "text": "هنوز اینجا دوستی ندارید. برای فرستادن درخواست دوستی، نمایه‌ی یک کاربر را باز کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.friendsSince": {
+    "source": "friends since {when}",
+    "text": "دوست از {when}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.compare": {
+    "source": "Compare records",
+    "text": "مقایسه‌ی کارنامه‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.blocked": {
+    "source": "Blocked",
+    "text": "مسدودشده‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.blockedHint": {
+    "source": "A blocked member cannot send you a friend request, and is not told. Lifting a block makes contact possible again; it does not restore a friendship the block ended.",
+    "text": "کاربر مسدودشده نمی‌تواند به شما درخواست دوستی بدهد و از مسدود شدنش هم باخبر نمی‌شود. برداشتن مسدودیت امکان ارتباط را دوباره فراهم می‌کند، اما دوستی‌ای را که با مسدود کردن پایان یافته برنمی‌گرداند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.blocksUnreachable": {
+    "source": "Your block list cannot be shown right now.",
+    "text": "فهرست مسدودشده‌های شما اکنون در دسترس نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.blocksNone": {
+    "source": "You have blocked nobody.",
+    "text": "کسی را مسدود نکرده‌اید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.blockedAt": {
+    "source": "blocked {when}",
+    "text": "مسدودشده در {when}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.control.working": {
+    "source": "Working…",
+    "text": "در حال انجام…",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.control.done": {
+    "source": "Done.",
+    "text": "انجام شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.control.block": {
+    "source": "Block",
+    "text": "مسدود کردن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.control.add": {
+    "source": "Add friend",
+    "text": "افزودن به دوستان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.control.sent": {
+    "source": "Friend request sent.",
+    "text": "درخواست دوستی فرستاده شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.control.cancel": {
+    "source": "Cancel request",
+    "text": "لغو درخواست",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.control.received": {
+    "source": "@{username} asked to be your friend.",
+    "text": "@{username} به شما درخواست دوستی داده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.control.accept": {
+    "source": "Accept",
+    "text": "پذیرفتن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.control.decline": {
+    "source": "Decline",
+    "text": "نپذیرفتن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.control.friends": {
+    "source": "You are friends.",
+    "text": "شما با هم دوست هستید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.control.remove": {
+    "source": "Remove friend",
+    "text": "حذف از دوستان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.control.youBlocked": {
+    "source": "You blocked @{username}. They are not told.",
+    "text": "@{username} را مسدود کرده‌اید. او از این موضوع باخبر نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.control.unblock": {
+    "source": "Unblock",
+    "text": "رفع مسدودیت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.control.unavailable": {
+    "source": "You cannot send @{username} a friend request.",
+    "text": "نمی‌توانید به @{username} درخواست دوستی بدهید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.done.sent": {
+    "source": "Request sent to @{username}.",
+    "text": "درخواست برای @{username} فرستاده شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.done.accepted": {
+    "source": "You and @{username} are now friends.",
+    "text": "شما و @{username} اکنون با هم دوست هستید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.done.withdrawn": {
+    "source": "The request between you and @{username} is withdrawn.",
+    "text": "درخواست دوستی میان شما و @{username} پس گرفته شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.done.unfriended": {
+    "source": "@{username} is no longer in your friends.",
+    "text": "@{username} دیگر در فهرست دوستان شما نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.done.blocked": {
+    "source": "@{username} is blocked. They are not told.",
+    "text": "@{username} مسدود شد. او از این موضوع باخبر نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friendsPage.done.unblocked": {
+    "source": "@{username} is unblocked. Any friendship the block ended is not restored.",
+    "text": "مسدودیت @{username} برداشته شد. دوستی‌ای که با مسدود کردن پایان یافته بود برنمی‌گردد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.title": {
+    "source": "Messages",
+    "text": "پیام‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.description": {
+    "source": "Your conversations.",
+    "text": "گفت‌وگوهای شما.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.lead": {
+    "source": "You can open a conversation with a member you are friends with, from their profile.",
+    "text": "با کاربری که با او دوست هستید می‌توانید از نمایه‌اش گفت‌وگو را آغاز کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.listUnreachable": {
+    "source": "Your conversations cannot be listed right now.",
+    "text": "فهرست گفت‌وگوهای شما اکنون در دسترس نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.none": {
+    "source": "You have no conversations yet.",
+    "text": "هنوز گفت‌وگویی ندارید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.nothingSaid": {
+    "source": "Nothing said yet.",
+    "text": "هنوز چیزی گفته نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.lastRemoved": {
+    "source": "A message was removed.",
+    "text": "پیامی حذف شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.sharedCard": {
+    "source": "Shared a football card.",
+    "text": "یک کارت فوتبالی به اشتراک گذاشت.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.unread": {
+    "source": "{count} unread",
+    "text": "{count} خوانده‌نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.muted": {
+    "source": "muted",
+    "text": "بی‌صدا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.youLeft": {
+    "source": "you have left",
+    "text": "شما خارج شده‌اید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.conversation": {
+    "source": "A conversation",
+    "text": "یک گفت‌وگو",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.conversationUnreachable": {
+    "source": "This conversation cannot be shown right now.",
+    "text": "این گفت‌وگو اکنون قابل نمایش نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.all": {
+    "source": "All conversations",
+    "text": "همه‌ی گفت‌وگوها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.thisGroup": {
+    "source": "this group",
+    "text": "این گروه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.comparisonUnreachable": {
+    "source": "What the group called cannot be shown right now.",
+    "text": "پیش‌بینی‌های گروه اکنون قابل نمایش نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.search.label": {
+    "source": "Search this conversation",
+    "text": "جست‌وجو در این گفت‌وگو",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.search.submit": {
+    "source": "Search",
+    "text": "جست‌وجو",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.search.clear": {
+    "source": "Clear",
+    "text": "پاک کردن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.search.more": {
+    "source": ", and more",
+    "text": "، و بیشتر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.search.unreachable": {
+    "source": "The search is unreachable right now.",
+    "text": "جست‌وجو اکنون در دسترس نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.search.none": {
+    "source": "Nothing matches that here.",
+    "text": "اینجا چیزی با این جست‌وجو مطابقت ندارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.pinned": {
+    "source": "Pinned",
+    "text": "سنجاق‌شده‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.earlier": {
+    "source": "Earlier messages",
+    "text": "پیام‌های قبلی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.empty": {
+    "source": "Nothing has been said yet.",
+    "text": "هنوز چیزی گفته نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.live.live": {
+    "source": "New messages appear here as they are sent.",
+    "text": "پیام‌های تازه همان لحظه‌ای که فرستاده می‌شوند اینجا نمایش داده می‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.live.connecting": {
+    "source": "Connecting…",
+    "text": "در حال اتصال…",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.live.offline": {
+    "source": "Not live right now. Reload to see anything new.",
+    "text": "اکنون زنده نیست. برای دیدن پیام‌های تازه صفحه را دوباره بارگذاری کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.composer.left": {
+    "source": "You have left this conversation. You can still read it.",
+    "text": "شما از این گفت‌وگو خارج شده‌اید. همچنان می‌توانید آن را بخوانید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.composer.closed": {
+    "source": "The platform’s moderators closed this group. You can read it and leave it; nothing new can be written.",
+    "text": "ناظران پلتفرم این گروه را بسته‌اند. می‌توانید آن را بخوانید و از آن خارج شوید؛ نوشتن مطلب تازه ممکن نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.composer.label": {
+    "source": "Your message",
+    "text": "پیام شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.composer.placeholder": {
+    "source": "Write a message",
+    "text": "پیامی بنویسید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.composer.aboutCard": {
+    "source": "Say something about it (optional)",
+    "text": "درباره‌ی آن چیزی بگویید (اختیاری)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.composer.sharing": {
+    "source": "Sharing: {card}",
+    "text": "در حال اشتراک‌گذاری: {card}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.composer.send": {
+    "source": "Send",
+    "text": "ارسال",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.composer.sending": {
+    "source": "Sending…",
+    "text": "در حال ارسال…",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.control.done": {
+    "source": "Done.",
+    "text": "انجام شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.control.mute": {
+    "source": "Mute",
+    "text": "بی‌صدا کردن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.control.unmute": {
+    "source": "Unmute",
+    "text": "باصدا کردن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.control.leave": {
+    "source": "Leave",
+    "text": "خروج",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.control.remove": {
+    "source": "Remove",
+    "text": "حذف",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.control.message": {
+    "source": "Message",
+    "text": "پیام",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.control.opening": {
+    "source": "Opening…",
+    "text": "در حال باز کردن…",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.control.pin": {
+    "source": "Pin",
+    "text": "سنجاق کردن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.control.unpin": {
+    "source": "Unpin",
+    "text": "برداشتن سنجاق",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.moderate.summary": {
+    "source": "Remove as a group moderator",
+    "text": "حذف به‌عنوان ناظر گروه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.moderate.reason": {
+    "source": "Why (the author is told)",
+    "text": "دلیل (به نویسنده گفته می‌شود)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.reaction.agree": {
+    "source": "Agree",
+    "text": "موافقم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.reaction.disagree": {
+    "source": "Disagree",
+    "text": "مخالفم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.reaction.laugh": {
+    "source": "Ha",
+    "text": "خنده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.reaction.surprise": {
+    "source": "Oh",
+    "text": "عجب",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.reaction.sad": {
+    "source": "Sad",
+    "text": "ناراحت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.reaction.celebrate": {
+    "source": "Yes",
+    "text": "عالی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.reaction.react": {
+    "source": "React",
+    "text": "واکنش",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.done.removed": {
+    "source": "Removed. What you wrote is gone; the place it was is not.",
+    "text": "حذف شد. آنچه نوشته بودید دیگر نیست؛ اما جای خالی‌اش در گفت‌وگو می‌ماند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.done.moderated": {
+    "source": "Removed. Its author is told why.",
+    "text": "حذف شد. دلیلش به نویسنده گفته می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.done.muted": {
+    "source": "Muted.",
+    "text": "بی‌صدا شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.done.unmuted": {
+    "source": "Unmuted.",
+    "text": "باصدا شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.done.left": {
+    "source": "You have left. You can still read what was said; you cannot add to it.",
+    "text": "خارج شدید. همچنان می‌توانید آنچه گفته شده را بخوانید، اما نمی‌توانید چیزی به آن اضافه کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.done.pinned": {
+    "source": "Pinned.",
+    "text": "سنجاق شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.done.unpinned": {
+    "source": "Unpinned.",
+    "text": "سنجاق برداشته شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.versus": {
+    "source": "{home} v {away}",
+    "text": "{home} – {away}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.card.gone": {
+    "source": "Something was shared here that no longer exists.",
+    "text": "چیزی اینجا به اشتراک گذاشته شده بود که دیگر وجود ندارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.card.unknown": {
+    "source": "Something was shared here that this page cannot show yet.",
+    "text": "چیزی اینجا به اشتراک گذاشته شده که این صفحه هنوز نمی‌تواند نمایشش دهد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.card.updated": {
+    "source": "Updated",
+    "text": "به‌روزرسانی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.card.says": {
+    "source": "says {outcome} · confidence {confidence}",
+    "text": "پیش‌بینی: {outcome} · اطمینان {confidence}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.card.outcome.home": {
+    "source": "home",
+    "text": "برد میزبان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.card.outcome.draw": {
+    "source": "draw",
+    "text": "مساوی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.card.outcome.away": {
+    "source": "away",
+    "text": "برد مهمان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.removedByModerator": {
+    "source": "Removed by a moderator.",
+    "text": "ناظر آن را حذف کرد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.removedByAuthor": {
+    "source": "The author removed this.",
+    "text": "نویسنده آن را حذف کرد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.removedWhy": {
+    "source": "Why: {reason}",
+    "text": "دلیل: {reason}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.mentioned": {
+    "source": "Mentioned {names}",
+    "text": "نام‌برده: {names}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.pinnedHere": {
+    "source": "Pinned in this conversation",
+    "text": "در این گفت‌وگو سنجاق شده است",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.yours": {
+    "source": "Yours",
+    "text": "پیام شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "messagesPage.blockingNote": {
+    "source": "Blocking and reporting live on a member’s profile, where they work the same way everywhere else in the product.",
+    "text": "مسدود کردن و گزارش تخلف در نمایه‌ی هر کاربر قرار دارد و همان‌جا به همان شیوه‌ای کار می‌کند که در همه‌جای سایت.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.title": {
+    "source": "Groups",
+    "text": "گروه‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.group": {
+    "source": "A group",
+    "text": "یک گروه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.unreachable": {
+    "source": "This group cannot be shown right now.",
+    "text": "این گروه اکنون قابل نمایش نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.all": {
+    "source": "All groups",
+    "text": "همه‌ی گروه‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.row.public": {
+    "source": "Anyone can join",
+    "text": "عضویت برای همه آزاد است",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.row.discoverable": {
+    "source": "Ask to join",
+    "text": "عضویت با درخواست",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.row.invite_only": {
+    "source": "By invitation",
+    "text": "فقط با دعوت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.visibility.public": {
+    "source": "Anyone can find this group and join it.",
+    "text": "همه می‌توانند این گروه را پیدا کنند و عضو آن شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.visibility.discoverable": {
+    "source": "Anyone can find this group. Joining it is by request.",
+    "text": "همه می‌توانند این گروه را پیدا کنند. عضویت در آن با درخواست است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.invited": {
+    "source": "You have been invited",
+    "text": "از شما دعوت شده است",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.invitedBy": {
+    "source": "Invited by",
+    "text": "دعوت از طرف",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.yours": {
+    "source": "Yours",
+    "text": "گروه‌های شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.yoursUnreachable": {
+    "source": "Your groups cannot be shown right now.",
+    "text": "گروه‌های شما اکنون قابل نمایش نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.yoursNone": {
+    "source": "You are not in a group yet.",
+    "text": "هنوز عضو هیچ گروهی نیستید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.find": {
+    "source": "Find a group",
+    "text": "یافتن گروه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.search": {
+    "source": "Search groups",
+    "text": "جست‌وجوی گروه‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.directoryUnreachable": {
+    "source": "The directory is unreachable right now.",
+    "text": "فهرست گروه‌ها اکنون در دسترس نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.directoryNone": {
+    "source": "No groups yet.",
+    "text": "هنوز گروهی وجود ندارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.directoryNoMatch": {
+    "source": "Nothing matches that.",
+    "text": "چیزی با این جست‌وجو مطابقت ندارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.directoryNote": {
+    "source": "Groups that are joined by invitation are not listed here.",
+    "text": "گروه‌هایی که فقط با دعوت عضو می‌پذیرند در این فهرست نمی‌آیند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.closed": {
+    "source": "The platform’s moderators closed this group:",
+    "text": "ناظران پلتفرم این گروه را بسته‌اند:",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.closedNote": {
+    "source": "Its members can read it and leave it. Nothing new can be written in it.",
+    "text": "اعضای آن می‌توانند آن را بخوانند و از آن خارج شوند. نوشتن مطلب تازه در آن ممکن نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.appeal.title": {
+    "source": "Appeal",
+    "text": "درخواست تجدیدنظر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.appeal.unreachable": {
+    "source": "The appeal cannot be shown right now.",
+    "text": "درخواست تجدیدنظر اکنون قابل نمایش نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.appeal.none": {
+    "source": "No appeal has been written.",
+    "text": "هنوز درخواست تجدیدنظری نوشته نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.appeal.body": {
+    "source": "Why the group should be reopened",
+    "text": "چرا گروه باید دوباره باز شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.appeal.send": {
+    "source": "Send the appeal",
+    "text": "ارسال درخواست تجدیدنظر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.appeal.sent": {
+    "source": "Sent.",
+    "text": "فرستاده شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.rulesChanged": {
+    "source": "This group’s rules have changed (version {version}). Read them below. You stay a member either way.",
+    "text": "قوانین این گروه تغییر کرده است (نسخه‌ی {version}). آن‌ها را در پایین بخوانید. در هر حال عضو گروه می‌مانید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.rulesTitle": {
+    "source": "This group’s rules",
+    "text": "قوانین این گروه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.rulesWhose": {
+    "source": "Version {version}. Written by the group’s owner: these are the group’s own rules, not the platform’s, and they sit beside the platform rules every member already accepted.",
+    "text": "نسخه‌ی {version}. نوشته‌ی مالک گروه: این‌ها قوانین خود گروه‌اند، نه قوانین پلتفرم، و در کنار قوانین پلتفرم قرار می‌گیرند که همه‌ی اعضا پیش‌تر پذیرفته‌اند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.rulesOwner": {
+    "source": "Rules",
+    "text": "قوانین",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.openConversation": {
+    "source": "Open the group conversation",
+    "text": "باز کردن گفت‌وگوی گروه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.members": {
+    "source": "Members",
+    "text": "اعضا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.membersHidden": {
+    "source": "Who is in this group is shown to its members.",
+    "text": "فهرست اعضای این گروه فقط به اعضای آن نشان داده می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.role.owner": {
+    "source": "owner",
+    "text": "مالک",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.role.moderator": {
+    "source": "moderator",
+    "text": "ناظر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.board.title": {
+    "source": "The board",
+    "text": "جدول گروه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.board.unreachable": {
+    "source": "The board cannot be shown right now.",
+    "text": "جدول گروه اکنون قابل نمایش نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.board.none": {
+    "source": "Nobody in this group has settled {count} predictions yet, so there is nobody to rank. That is the same filter the whole product uses.",
+    "text": "هنوز هیچ‌کس در این گروه {count} پیش‌بینی تسویه‌شده ندارد، پس کسی برای رتبه‌بندی نیست. این همان معیاری است که در سراسر سایت به کار می‌رود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.board.more": {
+    "source": "Showing {shown} of {total} ranked members.",
+    "text": "نمایش {shown} از {total} عضو رتبه‌بندی‌شده.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.board.note": {
+    "source": "Ranked among this group’s members by the same rating as the {link}. The rating is the one number; only who it is measured against changes.",
+    "text": "رتبه‌بندی میان اعضای این گروه با همان امتیاز {link} است. امتیاز یک عدد است؛ تنها کسانی که با آن‌ها سنجیده می‌شود فرق می‌کنند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.board.global": {
+    "source": "global board",
+    "text": "جدول برترین‌های کل سایت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.queue.title": {
+    "source": "Asking to join",
+    "text": "درخواست‌های عضویت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.queue.unreachable": {
+    "source": "The queue cannot be shown right now.",
+    "text": "صف درخواست‌ها اکنون قابل نمایش نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.queue.none": {
+    "source": "Nobody is waiting.",
+    "text": "کسی در انتظار نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.control.working": {
+    "source": "Working…",
+    "text": "در حال انجام…",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.control.done": {
+    "source": "Done.",
+    "text": "انجام شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.control.acceptRules": {
+    "source": "I have read this group’s rules and I accept them.",
+    "text": "قوانین این گروه را خوانده‌ام و می‌پذیرم.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.control.ask": {
+    "source": "Ask to join",
+    "text": "درخواست عضویت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.control.askNote": {
+    "source": "Say something to whoever decides (optional)",
+    "text": "پیامی برای کسی که تصمیم می‌گیرد (اختیاری)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.control.owner": {
+    "source": "You own this group. Hand it to somebody else before you can leave it.",
+    "text": "شما مالک این گروه هستید. پیش از خروج باید مالکیت آن را به کس دیگری بسپارید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.control.leave": {
+    "source": "Leave group",
+    "text": "خروج از گروه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.control.acceptInvite": {
+    "source": "Accept invitation",
+    "text": "پذیرفتن دعوت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.control.decline": {
+    "source": "Decline",
+    "text": "نپذیرفتن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.control.requested": {
+    "source": "You have asked to join. Somebody who runs the group will answer.",
+    "text": "درخواست عضویت داده‌اید. یکی از گردانندگان گروه پاسخ خواهد داد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.control.withdraw": {
+    "source": "Take it back",
+    "text": "پس گرفتن درخواست",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.control.join": {
+    "source": "Join group",
+    "text": "عضویت در گروه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.control.inviteOnly": {
+    "source": "This group is joined by invitation.",
+    "text": "عضویت در این گروه فقط با دعوت است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.control.unavailable": {
+    "source": "You cannot join this group at the moment.",
+    "text": "در حال حاضر نمی‌توانید عضو این گروه شوید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.control.unknown": {
+    "source": "There is nothing to do here yet.",
+    "text": "فعلاً اینجا کاری برای انجام دادن نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.control.rulesSeen": {
+    "source": "I have read them",
+    "text": "آن‌ها را خوانده‌ام",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.control.letIn": {
+    "source": "Let them in",
+    "text": "پذیرفتن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.control.refuse": {
+    "source": "No",
+    "text": "رد درخواست",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.rules.publish": {
+    "source": "Publish",
+    "text": "انتشار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.rules.write": {
+    "source": "Write the group’s rules",
+    "text": "قوانین گروه را بنویسید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.rules.writeNew": {
+    "source": "Write a new version of the rules",
+    "text": "نسخه‌ی تازه‌ای از قوانین بنویسید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.rules.hint": {
+    "source": "Publishing makes a new version. Joining will ask for it to be accepted; members already in are shown it once and stay members either way.",
+    "text": "انتشار، نسخه‌ی تازه‌ای می‌سازد. برای عضویت باید آن پذیرفته شود؛ اعضای فعلی یک بار آن را می‌بینند و در هر حال عضو می‌مانند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.done.in": {
+    "source": "You are in.",
+    "text": "عضو شدید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.done.published": {
+    "source": "Published as version {version}.",
+    "text": "به‌عنوان نسخه‌ی {version} منتشر شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.done.appealed": {
+    "source": "Sent. A moderator reads every appeal.",
+    "text": "فرستاده شد. ناظری همه‌ی درخواست‌های تجدیدنظر را می‌خواند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.done.noted": {
+    "source": "Noted.",
+    "text": "ثبت شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.done.asked": {
+    "source": "Asked. Somebody who runs the group will answer.",
+    "text": "درخواست داده شد. یکی از گردانندگان گروه پاسخ خواهد داد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.done.withdrawn": {
+    "source": "Taken back.",
+    "text": "پس گرفته شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.done.left": {
+    "source": "You have left.",
+    "text": "از گروه خارج شدید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.done.declined": {
+    "source": "Declined.",
+    "text": "دعوت را نپذیرفتید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.done.letIn": {
+    "source": "@{username} is in.",
+    "text": "@{username} عضو شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.done.refused": {
+    "source": "@{username} was not let in.",
+    "text": "@{username} پذیرفته نشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.invite.title": {
+    "source": "A group invitation",
+    "text": "دعوت به گروه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.invite.unreachable": {
+    "source": "This invitation cannot be shown right now.",
+    "text": "این دعوت اکنون قابل نمایش نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.invite.member": {
+    "source": "You are already in this group.",
+    "text": "شما از قبل عضو این گروه هستید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.invite.open": {
+    "source": "Open it",
+    "text": "باز کردن گروه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.invite.revoked": {
+    "source": "This invite link was revoked.",
+    "text": "این پیوند دعوت باطل شده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.invite.expired": {
+    "source": "This invite link has expired.",
+    "text": "مهلت این پیوند دعوت تمام شده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.invite.exhausted": {
+    "source": "This invite link has been used as many times as it allows.",
+    "text": "این پیوند دعوت به تعداد مجازش استفاده شده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.invite.orphaned": {
+    "source": "Whoever made this invite link can no longer invite people to this group.",
+    "text": "سازنده‌ی این پیوند دعوت دیگر نمی‌تواند کسی را به این گروه دعوت کند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.invite.dead": {
+    "source": "This invite link no longer works.",
+    "text": "این پیوند دعوت دیگر کار نمی‌کند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.invite.join": {
+    "source": "This link lets you into the group.",
+    "text": "این پیوند شما را عضو گروه می‌کند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.invite.ask": {
+    "source": "This group is joined by request. The link sends yours to the people who run it.",
+    "text": "عضویت در این گروه با درخواست است. این پیوند درخواست شما را برای گردانندگان گروه می‌فرستد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.invite.rulesWhose": {
+    "source": "Written by the group’s owner: the group’s own rules, not the platform’s.",
+    "text": "نوشته‌ی مالک گروه: قوانین خود گروه، نه قوانین پلتفرم.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.comparison.title": {
+    "source": "What {group} called",
+    "text": "پیش‌بینی‌های {group}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.comparison.none": {
+    "source": "Nobody here has called this match.",
+    "text": "هنوز کسی در اینجا این بازی را پیش‌بینی نکرده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.comparison.home": {
+    "source": "Home win",
+    "text": "برد میزبان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.comparison.draw": {
+    "source": "Draw",
+    "text": "مساوی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.comparison.away": {
+    "source": "Away win",
+    "text": "برد مهمان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.comparison.confidence": {
+    "source": "confidence {confidence}/{max}",
+    "text": "اطمینان {confidence} از {max}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.comparison.changed": {
+    "source": "changed {count}×",
+    "text": "{count} بار تغییر کرده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.comparison.unsettled": {
+    "source": "Not settled yet",
+    "text": "هنوز تسویه نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.comparison.void": {
+    "source": "Void — {reason}",
+    "text": "باطل — {reason}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.comparison.noReason": {
+    "source": "no reason given",
+    "text": "بدون ذکر دلیل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.comparison.wrong": {
+    "source": "Wrong",
+    "text": "نادرست",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.comparison.right": {
+    "source": "Right",
+    "text": "درست",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.comparison.rightScore": {
+    "source": "Right, with the score",
+    "text": "درست، با نتیجه‌ی دقیق",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupsPage.comparison.open": {
+    "source": "This match has not kicked off. Calls can still change until it does.",
+    "text": "این بازی هنوز شروع نشده است. تا شروع بازی می‌توان پیش‌بینی‌ها را تغییر داد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.title": {
+    "source": "Match discussion",
+    "text": "میزگرد مسابقه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.unreachable": {
+    "source": "The discussion cannot be shown right now.",
+    "text": "میزگرد اکنون قابل نمایش نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.none": {
+    "source": "Nobody has opened a discussion on this match.",
+    "text": "هنوز کسی برای این بازی میزگردی باز نکرده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.empty": {
+    "source": "Nobody has posted about this match yet.",
+    "text": "هنوز کسی درباره‌ی این بازی مطلبی ننوشته است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.emptyClosed": {
+    "source": "This discussion is closed, and nothing was posted on it.",
+    "text": "این میزگرد بسته شده و مطلبی در آن نوشته نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.more": {
+    "source": "Showing {shown} of {total} posts.",
+    "text": "نمایش {shown} از {total} مطلب.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.qualifies": {
+    "source": "You meet every requirement. Approval is a person’s decision and has not been made yet.",
+    "text": "همه‌ی شرایط را دارید. تأیید، تصمیم یک فرد است و هنوز گرفته نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.refusal.closed": {
+    "source": "This discussion is closed. It can still be read.",
+    "text": "این میزگرد بسته شده است. همچنان می‌توان آن را خواند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.refusal.signIn": {
+    "source": "Sign in to join the discussion. Reading it needs no account.",
+    "text": "برای شرکت در میزگرد وارد شوید. خواندن آن به حساب کاربری نیاز ندارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.refusal.notApproved": {
+    "source": "Posting here is a granted privilege. Reading is open to everybody.",
+    "text": "نوشتن در اینجا امتیازی است که اعطا می‌شود. خواندن برای همه آزاد است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.refusal.paused": {
+    "source": "Your contributor approval is paused, so you cannot post for now.",
+    "text": "تأیید شما به‌عنوان تحلیلگر موقتاً متوقف شده است و فعلاً نمی‌توانید مطلب بنویسید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.refusal.withdrawn": {
+    "source": "Your contributor approval was withdrawn.",
+    "text": "تأیید شما به‌عنوان تحلیلگر لغو شده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.refusal.restricted": {
+    "source": "A moderation restriction stops you posting here.",
+    "text": "یک محدودیت نظارتی مانع نوشتن شما در اینجاست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.tier.bronze": {
+    "source": "Bronze",
+    "text": "برنز",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.tier.silver": {
+    "source": "Silver",
+    "text": "نقره",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.tier.gold": {
+    "source": "Gold",
+    "text": "طلا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.tier.platinum": {
+    "source": "Platinum",
+    "text": "پلاتین",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.tier.elite": {
+    "source": "Elite",
+    "text": "نخبه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.unrated": {
+    "source": "Not rated yet",
+    "text": "هنوز امتیازی ندارد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.approved": {
+    "source": "Approved contributor",
+    "text": "تحلیلگر تأییدشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.formerlyApproved": {
+    "source": "Formerly approved",
+    "text": "پیش‌تر تأییدشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.removedByAuthor": {
+    "source": "The author removed this post.",
+    "text": "نویسنده این مطلب را حذف کرد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.removedByModerator": {
+    "source": "A moderator removed this post.",
+    "text": "ناظر این مطلب را حذف کرد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.follow": {
+    "source": "Follow",
+    "text": "دنبال کردن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.following": {
+    "source": "Following",
+    "text": "دنبال می‌کنید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.working": {
+    "source": "Working…",
+    "text": "در حال انجام…",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.home": {
+    "source": "Home",
+    "text": "میزبان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.away": {
+    "source": "Away",
+    "text": "مهمان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.reaction.agree": {
+    "source": "Agree",
+    "text": "موافقم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.reaction.disagree": {
+    "source": "Disagree",
+    "text": "مخالفم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.reaction.laugh": {
+    "source": "Laugh",
+    "text": "خنده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.reaction.surprise": {
+    "source": "Surprise",
+    "text": "شگفتی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.reaction.sad": {
+    "source": "Sad",
+    "text": "ناراحتی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.reaction.celebrate": {
+    "source": "Celebrate",
+    "text": "جشن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.reaction.yours": {
+    "source": "yours",
+    "text": "واکنش شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.compose.label": {
+    "source": "Add to the discussion",
+    "text": "افزودن به میزگرد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.compose.link": {
+    "source": "Link one thing from this match (optional)",
+    "text": "پیوند به یک مورد از این بازی (اختیاری)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.compose.noLink": {
+    "source": "No link",
+    "text": "بدون پیوند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.compose.group.incidents": {
+    "source": "Incidents",
+    "text": "رویدادها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.compose.group.players": {
+    "source": "Players",
+    "text": "بازیکنان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.compose.group.statistics": {
+    "source": "Statistics",
+    "text": "آمار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.compose.group.prediction": {
+    "source": "Your prediction",
+    "text": "پیش‌بینی شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.compose.myPrediction": {
+    "source": "My prediction on this match",
+    "text": "پیش‌بینی من برای این بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.compose.post": {
+    "source": "Post",
+    "text": "انتشار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.compose.posting": {
+    "source": "Posting…",
+    "text": "در حال انتشار…",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.compose.empty": {
+    "source": "Write something first.",
+    "text": "اول چیزی بنویسید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.compose.posted": {
+    "source": "Posted.",
+    "text": "منتشر شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.link.incident": {
+    "source": "Linked incident",
+    "text": "رویداد پیوندشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.link.incidentGone": {
+    "source": "The data feed has since removed this incident.",
+    "text": "منبع داده از آن پس این رویداد را حذف کرده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.link.incidentChanged": {
+    "source": "The data feed changed this incident after it was linked. This is how it stands now.",
+    "text": "منبع داده پس از پیوند خوردن، این رویداد را تغییر داده است. وضعیت کنونی آن این است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.link.withSide": {
+    "source": "{name} ({side})",
+    "text": "{name} ({side})",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.link.player": {
+    "source": "Linked player",
+    "text": "بازیکن پیوندشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.link.playerGone": {
+    "source": "The data feed no longer lists this player in either line-up.",
+    "text": "منبع داده دیگر این بازیکن را در ترکیب هیچ‌یک از دو تیم نشان نمی‌دهد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.link.statistic": {
+    "source": "Linked statistic",
+    "text": "آمار پیوندشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.link.statisticLine": {
+    "source": "{metric}, {side}: {value} when posted",
+    "text": "{metric}، {side}: {value} هنگام انتشار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.link.statisticGone": {
+    "source": "The data feed no longer supplies this statistic.",
+    "text": "منبع داده دیگر این آمار را ارائه نمی‌کند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.link.statisticNow": {
+    "source": "Now {value}.",
+    "text": "اکنون {value}.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.link.prediction": {
+    "source": "{author}'s prediction",
+    "text": "پیش‌بینی {author}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.link.predictionFriends": {
+    "source": "This member shows their predictions to friends only.",
+    "text": "این کاربر پیش‌بینی‌هایش را فقط به دوستانش نشان می‌دهد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.link.predictionPrivate": {
+    "source": "This member keeps their predictions private.",
+    "text": "این کاربر پیش‌بینی‌هایش را خصوصی نگه می‌دارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.link.predictionLine": {
+    "source": "{author}'s prediction: {outcome}, confidence {confidence} of {max}.",
+    "text": "پیش‌بینی {author}: {outcome}، اطمینان {confidence} از {max}.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.link.predictionLineScore": {
+    "source": "{author}'s prediction: {outcome} {score}, confidence {confidence} of {max}.",
+    "text": "پیش‌بینی {author}: {outcome} {score}، اطمینان {confidence} از {max}.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.link.predictionOwn": {
+    "source": "A member's own call. Not the model's forecast or the community's.",
+    "text": "پیش‌بینی شخصی یک کاربر؛ نه پیش‌بینی مدل آماری و نه نظر جمعی کاربران.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.link.predictionRevised": {
+    "source": "They changed this call after posting.",
+    "text": "این کاربر پس از انتشار، پیش‌بینی‌اش را تغییر داده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.link.outcome.home": {
+    "source": "home win",
+    "text": "برد میزبان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.link.outcome.draw": {
+    "source": "draw",
+    "text": "مساوی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "panel.link.outcome.away": {
+    "source": "away win",
+    "text": "برد مهمان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "threads.title": {
+    "source": "Talk about this match",
+    "text": "گفت‌وگو درباره‌ی این بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "threads.none": {
+    "source": "A match thread happens inside a group. You are not in one yet.",
+    "text": "گفت‌وگوی بازی درون یک گروه انجام می‌شود. شما هنوز عضو هیچ گروهی نیستید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "threads.discussIn": {
+    "source": "Discuss in {group}",
+    "text": "گفت‌وگو در {group}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "threads.working": {
+    "source": "Working…",
+    "text": "در حال انجام…",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "groupSettings.title": {
     "source": "Running the group",
     "text": "اداره‌ی گروه",

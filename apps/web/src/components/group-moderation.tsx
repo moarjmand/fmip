@@ -1,10 +1,9 @@
 'use client';
 
-import { useActionState } from 'react';
+import { type ReactNode, useActionState } from 'react';
 import Link from 'next/link';
 import type { GroupAppealNote, GroupQueueSubject, QueuedReport } from '@fmip/contracts';
 import type { ActionState } from '@/lib/auth-actions';
-import { appealGroupClosureAction } from '@/lib/group-actions';
 import { type GroupDecisionKind, groupDecisionAction } from '@/lib/moderation-actions';
 import { Button, Card, Checkbox, FormStatus, TextArea } from '@/components/ui';
 
@@ -130,12 +129,27 @@ export function GroupDecisionForm({
   );
 }
 
-/** The appeal notes on a closure, oldest first. */
-export function AppealNotes({ notes }: { notes: GroupAppealNote[] }) {
+/**
+ * The appeal notes on a closure, oldest first.
+ *
+ * On the group's own page the words and the times come from the page, in the
+ * reader's language and zone (T-1308); the administrators' console, which
+ * stays in English (D-175), passes neither and reads the stored stamp.
+ */
+export function AppealNotes({
+  notes,
+  empty,
+  times,
+}: {
+  notes: GroupAppealNote[];
+  empty?: ReactNode;
+  /** Each note's time, formatted for the reader, by note id. */
+  times?: Record<string, string>;
+}) {
   if (notes.length === 0) {
     return (
       <p className="text-sm text-muted" data-testid="group-appeal-none">
-        No appeal has been written.
+        {empty ?? 'No appeal has been written.'}
       </p>
     );
   }
@@ -144,39 +158,11 @@ export function AppealNotes({ notes }: { notes: GroupAppealNote[] }) {
       {notes.map((note) => (
         <li key={note.id} className="text-sm">
           <span className="text-muted">
-            <time dateTime={note.created_at}>{note.created_at}</time>
+            <time dateTime={note.created_at}>{times?.[note.id] ?? note.created_at}</time>
           </span>{' '}
           <span className="whitespace-pre-line">{note.body}</span>
         </li>
       ))}
     </ol>
-  );
-}
-
-/** The owner's appeal of a closure (T-211's notes, on the decision that closed it). */
-export function GroupAppealForm({ locale, slug }: { locale: string; slug: string }) {
-  const [state, formAction, pending] = useActionState<ActionState, FormData>(
-    appealGroupClosureAction.bind(null, locale, slug),
-    null,
-  );
-  return (
-    <form action={formAction} className="flex flex-col gap-2" data-testid="group-appeal-form">
-      <TextArea
-        label="Why the group should be reopened"
-        id="group-appeal-body"
-        name="body"
-        rows={4}
-        maxLength={4000}
-        required
-      />
-      <Button type="submit" variant="secondary" pending={pending} className="self-start">
-        Send the appeal
-      </Button>
-      {state !== null && (
-        <FormStatus ok={state.ok} data-testid="group-appeal-result">
-          {state.ok ? (state.message ?? 'Sent.') : state.message}
-        </FormStatus>
-      )}
-    </form>
   );
 }

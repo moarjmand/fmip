@@ -6,6 +6,15 @@ import type {
   PanelLinkedPrediction,
 } from '@fmip/contracts';
 import { INCIDENT_LABEL, STAT_LABEL, minuteLabel, statValue } from '@/lib/match';
+import { formatNumber } from '@/i18n/format';
+import { DEFAULT_LOCALE, directionOf, isLocale } from '@/i18n/locales';
+import { ltrIsolate } from '@/components/score';
+import { type MessageKey, interpolate, t } from '@/i18n/messages';
+
+/** A catalogue sentence with its values in, in `locale` (T-1308). */
+function say(locale: string, key: MessageKey, params: Record<string, string> = {}): string {
+  return interpolate(t(isLocale(locale) ? locale : DEFAULT_LOCALE, key), params);
+}
 
 /**
  * A panel post's link on the page (T-1030, D-136): what the compose box offers
@@ -20,6 +29,8 @@ export interface LinkChoice {
 }
 
 export interface LinkChoiceGroup {
+  /** Which kind of thing the group offers; the page names it in the reader's language. */
+  kind: 'incidents' | 'players' | 'statistics' | 'prediction';
   label: string;
   choices: LinkChoice[];
 }
@@ -40,6 +51,7 @@ export function linkChoices(centre: MatchCentre, hasPrediction: boolean): LinkCh
   const incidents = centre.timeline.data ?? [];
   if (incidents.length > 0) {
     groups.push({
+      kind: 'incidents',
       label: 'Incidents',
       choices: incidents.map((incident) => ({
         value: `incident:${incident.id}`,
@@ -62,7 +74,7 @@ export function linkChoices(centre: MatchCentre, hasPrediction: boolean): LinkCh
         label: `${player.name} (${sideName[side]})`,
       })),
     );
-    if (players.length > 0) groups.push({ label: 'Players', choices: players });
+    if (players.length > 0) groups.push({ kind: 'players', label: 'Players', choices: players });
   }
 
   const stats = (centre.statistics.data ?? []).flatMap((row) =>
@@ -77,10 +89,11 @@ export function linkChoices(centre: MatchCentre, hasPrediction: boolean): LinkCh
           ],
     ),
   );
-  if (stats.length > 0) groups.push({ label: 'Statistics', choices: stats });
+  if (stats.length > 0) groups.push({ kind: 'statistics', label: 'Statistics', choices: stats });
 
   if (hasPrediction) {
     groups.push({
+      kind: 'prediction',
       label: 'Your prediction',
       choices: [{ value: 'prediction', label: 'My prediction on this match' }],
     });
@@ -108,15 +121,29 @@ export function parseLinkChoice(value: string): PanelLinkRequest | null {
   return null;
 }
 
-const OUTCOME = { home: 'home win', draw: 'draw', away: 'away win' } as const;
+const OUTCOME: Record<PanelLinkedPrediction['outcome'], MessageKey> = {
+  home: 'panel.link.outcome.home',
+  draw: 'panel.link.outcome.draw',
+  away: 'panel.link.outcome.away',
+};
 
 /** One line for a member's call, labelled as theirs (rule 6). */
-export function predictionLine(author: string, prediction: PanelLinkedPrediction): string {
+export function predictionLine(
+  author: string,
+  prediction: PanelLinkedPrediction,
+  locale: string,
+): string {
+  const outcome = say(locale, OUTCOME[prediction.outcome]);
+  const confidence = formatNumber(locale, prediction.confidence);
+  const max = formatNumber(locale, 5);
+  if (prediction.home_goals === null || prediction.away_goals === null) {
+    return say(locale, 'panel.link.predictionLine', { author, outcome, confidence, max });
+  }
+  const bare = `${formatNumber(locale, prediction.home_goals)}-${formatNumber(locale, prediction.away_goals)}`;
+  // On a right-to-left page the score is isolated so it still reads home first (rule 7).
   const score =
-    prediction.home_goals === null || prediction.away_goals === null
-      ? ''
-      : ` ${prediction.home_goals}-${prediction.away_goals}`;
-  return `${author}'s prediction: ${OUTCOME[prediction.outcome]}${score}, confidence ${prediction.confidence} of 5.`;
+    directionOf(isLocale(locale) ? locale : DEFAULT_LOCALE) === 'rtl' ? ltrIsolate(bare) : bare;
+  return say(locale, 'panel.link.predictionLineScore', { author, outcome, score, confidence, max });
 }
 
 /**
@@ -130,74 +157,80 @@ export function linkCard(
   names: { home: string; away: string },
   /** A withheld prediction this viewer may see (`PanelPermission.linked_predictions`). */
   revealed: PanelLinkedPrediction | null,
+  locale: string,
 ): { heading: string; lines: string[]; note: string | null } {
+  const withSide = (name: string, side: string | null): string =>
+    side === null ? name : say(locale, 'panel.link.withSide', { name, side });
   switch (link.kind) {
     case 'incident': {
       if (link.incident === null) {
         return {
-          heading: 'Linked incident',
+          heading: say(locale, 'panel.link.incident'),
           lines: [],
-          note: 'The data feed has since removed this incident.',
+          note: say(locale, 'panel.link.incidentGone'),
         };
       }
       const i = link.incident;
       const side = i.side === null ? null : names[i.side];
       return {
-        heading: 'Linked incident',
+        heading: say(locale, 'panel.link.incident'),
         lines: [
-          [minuteLabel(i.minute, i.added_time), INCIDENT_LABEL[i.kind], i.player?.name]
-            .filter((part) => part !== undefined && part !== '')
-            .join(' ') + (side === null ? '' : ` (${side})`),
+          withSide(
+            [minuteLabel(i.minute, i.added_time), INCIDENT_LABEL[i.kind], i.player?.name]
+              .filter((part) => part !== undefined && part !== '')
+              .join(' '),
+            side,
+          ),
           ...(i.detail === null ? [] : [i.detail]),
         ],
-        note:
-          link.state === 'changed'
-            ? 'The data feed changed this incident after it was linked. This is how it stands now.'
-            : null,
+        note: link.state === 'changed' ? say(locale, 'panel.link.incidentChanged') : null,
       };
     }
     case 'player':
       return {
-        heading: 'Linked player',
-        lines: [
-          link.side === null ? link.player.name : `${link.player.name} (${names[link.side]})`,
-        ],
-        note: link.in_lineup
-          ? null
-          : 'The data feed no longer lists this player in either line-up.',
+        heading: say(locale, 'panel.link.player'),
+        lines: [withSide(link.player.name, link.side === null ? null : names[link.side])],
+        note: link.in_lineup ? null : say(locale, 'panel.link.playerGone'),
       };
     case 'statistic': {
       const at = statValue(link.metric, link.value_at_post);
       return {
-        heading: 'Linked statistic',
-        lines: [`${STAT_LABEL[link.metric]}, ${names[link.side]}: ${at} when posted`],
+        heading: say(locale, 'panel.link.statistic'),
+        lines: [
+          say(locale, 'panel.link.statisticLine', {
+            metric: STAT_LABEL[link.metric],
+            side: names[link.side],
+            value: at,
+          }),
+        ],
         note:
           link.current === null
-            ? 'The data feed no longer supplies this statistic.'
+            ? say(locale, 'panel.link.statisticGone')
             : link.current === link.value_at_post
               ? null
-              : `Now ${statValue(link.metric, link.current)}.`,
+              : say(locale, 'panel.link.statisticNow', {
+                  value: statValue(link.metric, link.current),
+                }),
       };
     }
     case 'prediction': {
       const shown = link.prediction ?? revealed;
       if (shown === null) {
         return {
-          heading: `${author}'s prediction`,
+          heading: say(locale, 'panel.link.prediction', { author }),
           lines: [],
-          note:
+          note: say(
+            locale,
             link.visibility === 'friends'
-              ? 'This member shows their predictions to friends only.'
-              : 'This member keeps their predictions private.',
+              ? 'panel.link.predictionFriends'
+              : 'panel.link.predictionPrivate',
+          ),
         };
       }
       return {
-        heading: `${author}'s prediction`,
-        lines: [
-          predictionLine(author, shown),
-          "A member's own call. Not the model's forecast or the community's.",
-        ],
-        note: shown.revised_since ? 'They changed this call after posting.' : null,
+        heading: say(locale, 'panel.link.prediction', { author }),
+        lines: [predictionLine(author, shown, locale), say(locale, 'panel.link.predictionOwn')],
+        note: shown.revised_since ? say(locale, 'panel.link.predictionRevised') : null,
       };
     }
   }
