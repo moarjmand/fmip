@@ -2,6 +2,9 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import type { PushState } from '@fmip/contracts';
+import { MessageText } from '@/components/message-text';
+import type { Message } from '@/i18n/messages';
+import type { PushToggleMessages } from '@/lib/notification-messages';
 import { subscribePushAction, unsubscribePushAction } from '@/lib/push-actions';
 import { Button } from '@/components/ui';
 
@@ -12,6 +15,9 @@ import { Button } from '@/components/ui';
  * keeps it as one of the member's devices. Turning it off is the same in
  * reverse. Where the deployment has no push channel the section says so
  * instead of offering a switch that would do nothing.
+ *
+ * Its words are resolved on the server for the reader's locale and handed
+ * down (T-1040, T-1305); the device count is a plural resolved there too.
  */
 type Phase = 'checking' | 'unsupported' | 'off' | 'on' | 'working';
 
@@ -24,9 +30,22 @@ function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
   return bytes;
 }
 
-export function PushToggle({ locale, push }: { locale: string; push: PushState }) {
+export function PushToggle({
+  locale,
+  push,
+  messages,
+  devices,
+}: {
+  locale: string;
+  push: PushState;
+  /** `PUSH_TOGGLE_KEYS`, resolved on the server. */
+  messages: PushToggleMessages;
+  /** "N devices registered.", resolved as a plural on the server; `null` when there are none. */
+  devices: Message | null;
+}) {
   const [phase, setPhase] = useState<Phase>('checking');
-  const [message, setMessage] = useState<string | null>(null);
+  // A catalogue message, or the browser's or the API's own words for a failure.
+  const [message, setMessage] = useState<Message | string | null>(null);
   const [pending, start] = useTransition();
 
   useEffect(() => {
@@ -55,8 +74,9 @@ export function PushToggle({ locale, push }: { locale: string; push: PushState }
   if (push.state !== 'configured') {
     return (
       <p className="text-sm text-muted" data-testid="push-absent">
-        This deployment has no push channel, so nothing reaches a device; notifications stay in your
-        inbox{push.email ? ' and your e-mail' : ''}.
+        <MessageText
+          message={messages[push.email ? 'alerts.push.absentEmail' : 'alerts.push.absent']}
+        />
       </p>
     );
   }
@@ -71,7 +91,7 @@ export function PushToggle({ locale, push }: { locale: string; push: PushState }
         const permission = await Notification.requestPermission();
         if (permission !== 'granted') {
           setPhase('off');
-          setMessage('The browser did not allow notifications for this site.');
+          setMessage(messages['alerts.push.denied']);
           return;
         }
         const registration = await navigator.serviceWorker.ready;
@@ -83,14 +103,14 @@ export function PushToggle({ locale, push }: { locale: string; push: PushState }
         if (!outcome?.ok) {
           await subscription.unsubscribe();
           setPhase('off');
-          setMessage(outcome?.message ?? 'The device could not be registered.');
+          setMessage(outcome?.message ?? messages['alerts.push.notRegistered']);
           return;
         }
         setPhase('on');
-        setMessage('Push is on for this device.');
+        setMessage(messages['alerts.push.isOn']);
       } catch (error) {
         setPhase('off');
-        setMessage(error instanceof Error ? error.message : 'Push could not be turned on.');
+        setMessage(error instanceof Error ? error.message : messages['alerts.push.couldNotOn']);
       }
     });
 
@@ -106,25 +126,22 @@ export function PushToggle({ locale, push }: { locale: string; push: PushState }
           await subscription.unsubscribe();
         }
         setPhase('off');
-        setMessage('Push is off for this device.');
+        setMessage(messages['alerts.push.isOff']);
       } catch (error) {
         setPhase('on');
-        setMessage(error instanceof Error ? error.message : 'Push could not be turned off.');
+        setMessage(error instanceof Error ? error.message : messages['alerts.push.couldNotOff']);
       }
     });
 
   return (
     <div className="flex flex-col gap-2" data-testid="push-toggle" data-phase={phase}>
       <p className="text-sm text-muted">
-        A push is the same notification your inbox has, shown by this browser even when the site is
-        closed.{' '}
-        {push.devices === 0
-          ? 'No device is registered yet.'
-          : `${push.devices} device${push.devices === 1 ? '' : 's'} registered.`}
+        <MessageText message={messages['alerts.push.intro']} />{' '}
+        <MessageText message={devices ?? messages['alerts.push.noDevice']} />
       </p>
       {phase === 'unsupported' && (
         <p className="text-sm" data-testid="push-unsupported">
-          This browser does not support push notifications.
+          <MessageText message={messages['alerts.push.unsupported']} />
         </p>
       )}
       {(phase === 'off' || phase === 'on' || phase === 'working') && (
@@ -135,12 +152,14 @@ export function PushToggle({ locale, push }: { locale: string; push: PushState }
           className="w-fit"
           data-testid="push-switch"
         >
-          {phase === 'on' ? 'Turn push off on this device' : 'Turn push on for this device'}
+          <MessageText
+            message={messages[phase === 'on' ? 'alerts.push.turnOff' : 'alerts.push.turnOn']}
+          />
         </Button>
       )}
       {message !== null && (
         <p className="text-sm" role="status" data-testid="push-message">
-          {message}
+          {typeof message === 'string' ? message : <MessageText message={message} />}
         </p>
       )}
     </div>

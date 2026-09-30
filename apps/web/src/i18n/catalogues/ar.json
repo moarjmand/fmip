@@ -2555,6 +2555,535 @@
     "text": "",
     "status": "untranslated"
   },
+  "newsPage.description": {
+    "source": "Football news as publishers report it: the latest, what is being discussed, the debates editors picked, and stories about what you follow.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "newsPage.filters": {
+    "source": "Filters",
+    "text": "",
+    "status": "untranslated"
+  },
+  "newsPage.filtersOn": {
+    "source": "Filters (on)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "storyPage.title": {
+    "source": "Story",
+    "text": "",
+    "status": "untranslated"
+  },
+  "storyPage.description": {
+    "source": "{headline} — reported by {source}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "followingPage.description": {
+    "source": "What is happening around the teams, competitions and contributors you follow.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "followingPage.savedDescription": {
+    "source": "The stories you saved.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "followingPage.panelPostTitle": {
+    "source": "{member} on {home} – {away}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "followingPage.intro": {
+    "source": "Favourites are pinned first on the scores page and shown on your profile. Everything you follow feeds your Following views.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "followingPage.nothing": {
+    "source": "You are not following anything yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "followingPage.favourite": {
+    "source": "favourite",
+    "text": "",
+    "status": "untranslated"
+  },
+  "followingPage.player": {
+    "source": "Player",
+    "text": "",
+    "status": "untranslated"
+  },
+  "followingPage.unpin": {
+    "source": "Unpin",
+    "text": "",
+    "status": "untranslated"
+  },
+  "followingPage.makeFavourite": {
+    "source": "Make favourite",
+    "text": "",
+    "status": "untranslated"
+  },
+  "followingPage.followTeam": {
+    "source": "Follow a team",
+    "text": "",
+    "status": "untranslated"
+  },
+  "followingPage.chooseTeam": {
+    "source": "Choose a team…",
+    "text": "",
+    "status": "untranslated"
+  },
+  "followingPage.nationalTeam": {
+    "source": "{name} (national team)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "followingPage.followCompetition": {
+    "source": "Follow a competition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "followingPage.chooseCompetition": {
+    "source": "Choose a competition…",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notificationsPage.title": {
+    "source": "Notifications",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notificationsPage.description": {
+    "source": "What happened while you were away.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notificationsPage.manage": {
+    "source": "Choose what arrives",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notificationsPage.inProductOnly": {
+    "source": "Notifications appear here only. E-mail and push are not set up on this deployment, so nothing is on its way to your inbox or your phone.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notificationsPage.unreachable": {
+    "source": "Your notifications cannot be shown right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notificationsPage.empty": {
+    "source": "Nothing yet. Things that happen to you and to what you wrote turn up here.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notificationsPage.markRead": {
+    "source": "Mark read",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notificationsPage.markAllRead": {
+    "source": {
+      "one": "Mark all {count} read",
+      "other": "Mark all {count} read"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "notificationsPage.held": {
+    "source": "Held:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notificationsPage.settingsTitle": {
+    "source": "Notification settings",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notificationsPage.settingsDescription": {
+    "source": "Choose what reaches you, and when.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notificationsPage.back": {
+    "source": "← Notifications",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notificationsPage.settingsHeading": {
+    "source": "What reaches you",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notificationsPage.onThisDevice": {
+    "source": "On this device",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notificationsPage.pushUnreadable": {
+    "source": "Whether push is available could not be read right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "notificationsPage.settingsUnreachable": {
+    "source": "Your settings cannot be shown right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.kind.predictionSettled": {
+    "source": "When a prediction of mine is settled",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.kind.ratingChanged": {
+    "source": "When my Performance Rating changes",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.kind.careerPointsAwarded": {
+    "source": "When I earn Career Points",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.kind.achievementUnlocked": {
+    "source": "When I earn an achievement (once each)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.kind.friendRequest": {
+    "source": "When somebody sends me a friend request",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.kind.friendAccepted": {
+    "source": "When somebody accepts my friend request",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.kind.messageReceived": {
+    "source": "When somebody sends me a message",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.kind.mentioned": {
+    "source": "When somebody mentions me",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.kind.groupInvite": {
+    "source": "When somebody invites me to a group",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.kind.groupJoinRequest": {
+    "source": "When somebody asks to join a group I run",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.kind.moderationDecision": {
+    "source": "When a moderation decision is made about my account",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.kind.contributorGranted": {
+    "source": "When I am approved as a contributor",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.kind.contributorGrantChanged": {
+    "source": "When my contributor approval changes",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.kind.panelReaction": {
+    "source": "When somebody reacts to something I posted",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.kind.briefing": {
+    "source": "When a briefing of mine is written",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.kind.campaign": {
+    "source": "When the platform sends a message to members like me",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.kind.breakingNews": {
+    "source": "When an editor marks a story about something I follow as breaking",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.kind.transferNews": {
+    "source": "When a story about a team or player I follow is typed as a transfer",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.kind.availabilityNews": {
+    "source": "When a story about a team or player I follow is typed as an injury or suspension",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.kind.systemAlert": {
+    "source": "When the watchdog raises or clears a system alert (at any hour)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.kind.contributorBelowThreshold": {
+    "source": "When a contributor has stayed below the contributor threshold and is flagged",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.category.football": {
+    "source": "Football: my predictions, my rating and my points, and the founder's analyses",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.category.social": {
+    "source": "Social: friends, friends' predictions, messages, mentions, groups and reactions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.category.account": {
+    "source": "My account: moderation and contributor decisions, and reviews of my analyses",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.category.match": {
+    "source": "Match alerts: team news, line-ups, kick-off, goals, red cards, half-time and full-time",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.mute.team": {
+    "source": "Team: nothing about its matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.mute.competition": {
+    "source": "Competition: nothing about its matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.mute.category": {
+    "source": "Category: nothing of these kinds",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.unmute": {
+    "source": "Unmute",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.choose": {
+    "source": "Choose…",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.silence": {
+    "source": "Silence",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.done": {
+    "source": "Done.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.yourChoice": {
+    "source": "Your choice",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.default": {
+    "source": "Default",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.cap": {
+    "source": {
+      "one": "at most {count} an hour",
+      "other": "at most {count} an hour"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "alerts.on": {
+    "source": "On",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.off": {
+    "source": "Off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.whatArrives": {
+    "source": "What arrives",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.whatStaysQuiet": {
+    "source": "What stays quiet",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.quietIntro": {
+    "source": "Silence one team without silencing football. A silenced team or competition stops what is about its matches and nothing else; a silenced category stops every kind in it. The switches above are untouched.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.nothingSilenced": {
+    "source": "Nothing is silenced.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.teamsUnavailable": {
+    "source": "The team list could not be loaded right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.competitionsUnavailable": {
+    "source": "The competition list could not be loaded right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.silenceTeam": {
+    "source": "Silence a team",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.silenceCompetition": {
+    "source": "Silence a competition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.silenceCategory": {
+    "source": "Silence a category",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.quietHours": {
+    "source": "Quiet hours",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.quietExplainer": {
+    "source": "Nothing is thrown away. A notification that arrives during your quiet hours waits until they end, and says so. Times are on your own clock ({timezone}).",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.until": {
+    "source": "Until",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.save": {
+    "source": "Save",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.clearHint": {
+    "source": "Leave both empty to clear them.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.chooseFirst": {
+    "source": "Choose something to silence first.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.silenced": {
+    "source": "Silenced.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.quietCleared": {
+    "source": "Quiet hours cleared.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.quietSaved": {
+    "source": "Quiet hours saved.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.push.absent": {
+    "source": "This deployment has no push channel, so nothing reaches a device; notifications stay in your inbox.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.push.absentEmail": {
+    "source": "This deployment has no push channel, so nothing reaches a device; notifications stay in your inbox and your e-mail.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.push.intro": {
+    "source": "A push is the same notification your inbox has, shown by this browser even when the site is closed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.push.noDevice": {
+    "source": "No device is registered yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.push.devices": {
+    "source": {
+      "one": "{count} device registered.",
+      "other": "{count} devices registered."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "alerts.push.unsupported": {
+    "source": "This browser does not support push notifications.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.push.denied": {
+    "source": "The browser did not allow notifications for this site.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.push.notRegistered": {
+    "source": "The device could not be registered.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.push.isOn": {
+    "source": "Push is on for this device.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.push.couldNotOn": {
+    "source": "Push could not be turned on.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.push.isOff": {
+    "source": "Push is off for this device.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.push.couldNotOff": {
+    "source": "Push could not be turned off.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.push.turnOff": {
+    "source": "Turn push off on this device",
+    "text": "",
+    "status": "untranslated"
+  },
+  "alerts.push.turnOn": {
+    "source": "Turn push on for this device",
+    "text": "",
+    "status": "untranslated"
+  },
   "story.bodyAtSource": {
     "source": "This publisher grants the headline and summary here; the article itself is on their site.",
     "text": "",

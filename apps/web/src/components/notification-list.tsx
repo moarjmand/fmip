@@ -3,8 +3,11 @@
 import { useTransition } from 'react';
 import Link from 'next/link';
 import type { Notification, NotificationsResponse } from '@fmip/contracts';
+import { MessageText } from '@/components/message-text';
+import type { Message } from '@/i18n/messages';
 import { notificationHref, notificationLine } from '@/lib/notification-links';
 import { readAllAction, readOneAction } from '@/lib/notification-actions';
+import type { NotificationListMessages } from '@/lib/notification-messages';
 import { Button, Notice } from '@/components/ui';
 
 /**
@@ -24,10 +27,15 @@ function Row({
   locale,
   notification,
   deletedMemberLabel,
+  messages,
+  time,
 }: {
   locale: string;
   notification: Notification;
   deletedMemberLabel: string;
+  messages: NotificationListMessages;
+  /** `created_at` in the reader's language and zone, formatted on the server. */
+  time: string;
 }) {
   const [pending, start] = useTransition();
   const href = notificationHref(locale, notification);
@@ -38,11 +46,11 @@ function Row({
     <span className="flex flex-col gap-1">
       <span className={unread ? 'font-medium' : ''}>{line}</span>
       <time className="text-xs text-muted" dateTime={notification.created_at}>
-        {notification.created_at}
+        {time}
       </time>
       {notification.held_reason !== null && (
         <span className="text-xs text-muted" data-testid="notification-held">
-          Held: {notification.held_reason}
+          <MessageText message={messages['notificationsPage.held']} /> {notification.held_reason}
         </span>
       )}
     </span>
@@ -73,7 +81,7 @@ function Row({
           className="shrink-0"
           data-testid={`notification-read-${notification.id}`}
         >
-          Mark read
+          <MessageText message={messages['notificationsPage.markRead']} />
         </Button>
       )}
     </li>
@@ -85,8 +93,17 @@ export function NotificationList({
   page,
   reachable,
   deletedMemberLabel,
+  messages,
+  markAll,
+  times,
 }: {
   locale: string;
+  /** Resolved on the server for the reader's locale (T-1040): `NOTIFICATION_LIST_KEYS`. */
+  messages: NotificationListMessages;
+  /** "Mark all N read", resolved as a plural on the server; `null` when nothing is unread. */
+  markAll: Message | null;
+  /** Each notification's time, by id, formatted on the server. */
+  times: Record<string, string>;
   /** `account.deletedMember` in the reader's language, from the server (T-908). */
   deletedMemberLabel: string;
   page: NotificationsResponse | null;
@@ -101,7 +118,7 @@ export function NotificationList({
     // apart.
     return (
       <Notice tone="danger" data-testid="notifications-unreachable">
-        Your notifications cannot be shown right now.
+        <MessageText message={messages['notificationsPage.unreachable']} />
       </Notice>
     );
   }
@@ -109,14 +126,14 @@ export function NotificationList({
   if (page.notifications.length === 0) {
     return (
       <p className="text-sm text-muted" data-testid="notifications-empty">
-        Nothing yet. Things that happen to you and to what you wrote turn up here.
+        <MessageText message={messages['notificationsPage.empty']} />
       </p>
     );
   }
 
   return (
     <div className="flex flex-col gap-3">
-      {page.unread > 0 && (
+      {page.unread > 0 && markAll !== null && (
         <Button
           pending={pending}
           onClick={() => {
@@ -127,7 +144,7 @@ export function NotificationList({
           className="self-start"
           data-testid="notifications-read-all"
         >
-          Mark all {page.unread} read
+          <MessageText message={markAll} />
         </Button>
       )}
       <ul className="flex flex-col gap-2">
@@ -137,6 +154,8 @@ export function NotificationList({
             locale={locale}
             notification={notification}
             deletedMemberLabel={deletedMemberLabel}
+            messages={messages}
+            time={times[notification.id] ?? notification.created_at}
           />
         ))}
       </ul>
