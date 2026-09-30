@@ -1,3 +1,5 @@
+import type { CoverageState } from './coverage';
+
 /**
  * Data-quality checks over the stored feed (T-820, E82, D-097).
  *
@@ -109,6 +111,43 @@ export interface DataQualityReport {
   resolved_last_day: number;
   /** Re-asks of the feed waiting for the post-match job, and those it carried since 00:00 UTC (T-913). */
   refetch: { pending: number; fetched_today: number };
+  /**
+   * Past seasons whose `lineups` or `incidents` coverage the findings say is
+   * `limited` (T-914, D-109). Only seasons where every condition of D-109
+   * holds are listed; nothing here is applied until an administrator does so
+   * through the audited coverage write (T-070).
+   */
+  coverage_proposals: DataQualityCoverageProposal[];
+}
+
+/**
+ * A proposal to declare one past season's `lineups` or `incidents` coverage
+ * `limited` (T-914, D-109). It is made only when every finished match of the
+ * season has had its details fetched, no person from the season's provider is
+ * waiting in the unresolved queue, and at least 10% of the finished matches
+ * still carry an open finding of the module's check after the feed was asked
+ * again. It names the counts it rests on. A person applies it, or does not.
+ */
+export interface DataQualityCoverageProposal {
+  competition: { id: string; name: string };
+  season: { id: string; label: string };
+  module: 'lineups' | 'incidents';
+  /** The check whose findings the proposal rests on. */
+  check: Extract<DataQualityCheck, 'lineup_not_eleven' | 'goals_disagree'>;
+  /** The season's declared coverage for the module today; `null` state if none is declared. */
+  current: { state: CoverageState | null; provider: string | null; note: string | null };
+  /** What an administrator would write: always `limited`, with a provider and a note naming the counts. */
+  proposed: { state: 'limited'; provider: string; note: string };
+  counts: {
+    /** Finished matches of the season. */
+    finished: number;
+    /** Of those, matches whose details have been fetched (equal to `finished` here). */
+    fetched: number;
+    /** Matches with an open finding of the check. */
+    open: number;
+    /** Of those, matches still open after the feed was asked again: what the 10% is measured on. */
+    open_after_reask: number;
+  };
 }
 
 /** `POST /admin/data-quality/:id/review`: marks an open finding reviewed. */

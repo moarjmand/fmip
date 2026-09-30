@@ -613,4 +613,60 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('data-quality
     expect((await lineup())?.asked_again?.changed).toBe(false);
     expect((await refetch({ fixture_id: fixtures.lineup, reason: why })).statusCode).toBe(202);
   });
+
+  // T-914, D-109. Runs after the re-ask above: the line-up match is still
+  // short after the feed was asked again. The batch test added a fourth
+  // finished match, short too, which nobody asked about again. The details are fetched from a provider no other suite queues
+  // people for, so "nobody waiting" is this spec's to decide.
+  it('proposes limited line-ups for a past season only when D-109 holds, naming the counts', async () => {
+    const proposals = async () =>
+      ((await get(admin.cookie)).json() as DataQualityReport).coverage_proposals.filter(
+        (p) => p.season.id === SEASON,
+      );
+    // Not every finished match has had its details fetched: nothing is proposed.
+    expect(await proposals()).toEqual([]);
+
+    await pool.query(
+      `INSERT INTO fixture_detail_fetch (fixture_id, provider)
+       SELECT id, 'highlightly' FROM fixture WHERE season_id = $1 AND status = 'finished'`,
+      [SEASON],
+    );
+    expect(await proposals()).toEqual([
+      {
+        competition: { id: COMPETITION, name: `Data Quality League ${RUN}` },
+        season: { id: SEASON, label: '2030/31' },
+        module: 'lineups',
+        check: 'lineup_not_eleven',
+        current: { state: null, provider: null, note: null },
+        proposed: {
+          state: 'limited',
+          provider: 'highlightly',
+          note: '1 of 4 finished matches still show a line-up that is not eleven after the feed was asked again.',
+        },
+        counts: { finished: 4, fetched: 4, open: 2, open_after_reask: 1 },
+      },
+    ]);
+
+    // A person from that provider waiting to be adopted: the gap may be ours.
+    const person = `dq-${RUN}-person`;
+    await pool.query(
+      `INSERT INTO unresolved_entity (provider, entity_type, external_id) VALUES ('highlightly', 'person', $1)`,
+      [person],
+    );
+    try {
+      expect(await proposals()).toEqual([]);
+    } finally {
+      await pool.query(
+        `DELETE FROM unresolved_entity WHERE provider = 'highlightly' AND external_id = $1`,
+        [person],
+      );
+    }
+
+    // Once a person has declared it limited, it is not proposed again.
+    await pool.query(
+      `INSERT INTO coverage_profile (season_id, module, state, provider) VALUES ($1, 'lineups', 'limited', 'highlightly')`,
+      [SEASON],
+    );
+    expect(await proposals()).toEqual([]);
+  });
 });

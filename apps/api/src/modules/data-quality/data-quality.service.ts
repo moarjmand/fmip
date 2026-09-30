@@ -28,6 +28,7 @@ import {
   type ReviewOutcome,
   type WriteOutcome,
 } from './internal/data-quality-store';
+import { coverageProposal } from './internal/coverage-proposals';
 
 export type { TableComparison } from './internal/checks';
 
@@ -60,7 +61,9 @@ export function findingsOf(rows: CheckRows, now: Date): Finding[] {
  *   with ours, which is the one check that needs the provider's answer -- so
  *   it rides on the request that job already makes, never a new one.
  * - `report()` and `review()`: the admin page (T-821); `reviewBatch()`
- *   (T-912).
+ *   (T-912). The report proposes past seasons' `lineups` / `incidents`
+ *   coverage as `limited` where D-109's conditions hold (T-914); an
+ *   administrator applies a proposal through the audited coverage write.
  * - `requestRefetch()`: an administrator asks the feed again (T-913, D-110);
  *   `refetchesDue()`, `recordRefetch()` and `refetchedSince()` are how the
  *   post-match job carries that queue within its share of the budget.
@@ -115,12 +118,13 @@ export class DataQualityService {
 
   /** `GET /admin/data-quality` (T-821): each check's last run, counts, and the open findings. */
   async report(now: Date = new Date()): Promise<DataQualityReport> {
-    const [runs, counts, findings, resolved, refetch] = await Promise.all([
+    const [runs, counts, findings, resolved, refetch, candidates] = await Promise.all([
       this.store.checkRuns(),
       this.store.counts(),
       this.store.openFindings(REPORT_FINDINGS),
       this.store.resolvedSince(new Date(now.getTime() - DAY_MS)),
       this.store.refetchCounts(utcDayStart(now)),
+      this.store.coverageCandidates(),
     ]);
     const openByCheck = new Map<string, number>();
     for (const c of counts)
@@ -150,6 +154,9 @@ export class DataQualityService {
       open_total: counts.reduce((sum, c) => sum + c.open, 0),
       resolved_last_day: resolved,
       refetch: { pending: refetch.pending, fetched_today: refetch.fetched },
+      coverage_proposals: candidates
+        .map(coverageProposal)
+        .filter((p): p is NonNullable<typeof p> => p !== null),
     };
   }
 

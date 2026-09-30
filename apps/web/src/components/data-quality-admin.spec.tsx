@@ -10,6 +10,7 @@ vi.mock('@/lib/data-quality-actions', () => ({
   reviewBatchAction: vi.fn(),
   refetchAction: vi.fn(),
 }));
+vi.mock('@/lib/admin-actions', () => ({ setCoverageAction: vi.fn() }));
 const { CHECK_LABEL, DataQualityAdmin } = await import('./data-quality-admin');
 
 /** The data-quality page (T-821): open findings by check and competition, linked, reviewable. */
@@ -81,6 +82,7 @@ const report = (over: Partial<DataQualityReport> = {}): DataQualityReport => ({
   open_total: 2,
   resolved_last_day: 4,
   refetch: { pending: 3, fetched_today: 7 },
+  coverage_proposals: [],
   ...over,
 });
 const html = (r: DataQualityReport | null) =>
@@ -153,6 +155,41 @@ describe('the data-quality page', () => {
     expect(out).toContain('3 matches waiting to be');
     expect(out).toContain('7 asked since 00:00 UTC');
     expect(ACTIONS).toContain("'/admin/data-quality/refetch'");
+  });
+
+  it('proposes a past season as limited with its counts, applied only through the audited coverage form', () => {
+    expect(html(report())).toContain('No past season&#x27;s line-ups or incidents are proposed');
+    const out = html(
+      report({
+        coverage_proposals: [
+          {
+            competition: PL,
+            season: { id: 's-0', label: '2025-26' },
+            module: 'lineups',
+            check: 'lineup_not_eleven',
+            current: { state: 'available', provider: 'api_football', note: null },
+            proposed: {
+              state: 'limited',
+              provider: 'api_football',
+              note: '40 of 380 finished matches still show a line-up that is not eleven after the feed was asked again.',
+            },
+            counts: { finished: 380, fetched: 380, open: 52, open_after_reask: 40 },
+          },
+        ],
+      }),
+    );
+    expect(out).toContain('data-testid="coverage-proposal-s-0-lineups"');
+    expect(out).toContain('Now available; proposed <strong>limited</strong>');
+    expect(out).toContain('40 of 380 finished matches still show');
+    expect(out).toContain('52 open in all');
+    // The write is the administration page's audited coverage form, with a reason.
+    expect(out).toContain('name="season_id" value="s-0"');
+    expect(out).toContain('name="module" value="lineups"');
+    expect(out).toContain('name="state" value="limited"');
+    expect(out).toContain('name="provider" value="api_football"');
+    expect(out).toMatch(/<textarea[^>]*name="reason"[^>]*required/);
+    const view = readFileSync(join(HERE, 'data-quality-admin.tsx'), 'utf8');
+    expect(view).toContain("import { setCoverageAction } from '@/lib/admin-actions'");
   });
 
   it('says a check not run lately, rather than showing no findings as a clean bill', () => {

@@ -12,6 +12,7 @@ import {
   liveOverrun,
   tableDisagreements,
 } from './internal/checks';
+import { type CoverageCandidateRow, coverageProposal } from './internal/coverage-proposals';
 
 // Each check against the row shapes the store reads, recorded from the feed's
 // tables. A check that cannot judge a row says nothing: absence is coverage.
@@ -325,5 +326,69 @@ describe('findingsOf', () => {
       NOW,
     );
     expect(found.map((f) => f.check)).toEqual(['finished_without_score', 'lineup_not_eleven']);
+  });
+});
+
+// T-914, D-109: a past season's coverage is proposed as `limited` only on what
+// is left after adoption and one re-ask, and the proposal names its counts.
+describe('coverage proposals', () => {
+  const ROW: CoverageCandidateRow = {
+    season_id: REF.seasonId,
+    season_label: '2024/25',
+    competition_id: REF.competitionId,
+    competition_name: 'Cup',
+    check_kind: 'lineup_not_eleven',
+    finished: 200,
+    fetched: 200,
+    open: 30,
+    open_after_reask: 20,
+    fetch_provider: 'api_football',
+    pending_people: 0,
+    coverage_state: 'available',
+    coverage_provider: 'api_football',
+    coverage_note: null,
+  };
+
+  it('proposes limited line-ups when a tenth of the season is still short after a re-ask', () => {
+    expect(coverageProposal(ROW)).toEqual({
+      competition: { id: REF.competitionId, name: 'Cup' },
+      season: { id: REF.seasonId, label: '2024/25' },
+      module: 'lineups',
+      check: 'lineup_not_eleven',
+      current: { state: 'available', provider: 'api_football', note: null },
+      proposed: {
+        state: 'limited',
+        provider: 'api_football',
+        note: '20 of 200 finished matches still show a line-up that is not eleven after the feed was asked again.',
+      },
+      counts: { finished: 200, fetched: 200, open: 30, open_after_reask: 20 },
+    });
+  });
+
+  it('proposes incidents for goals that disagree, with the fetching provider when none is declared', () => {
+    const proposal = coverageProposal({
+      ...ROW,
+      check_kind: 'goals_disagree',
+      coverage_state: null,
+      coverage_provider: null,
+    });
+    expect(proposal?.module).toBe('incidents');
+    expect(proposal?.proposed.provider).toBe('api_football');
+    expect(proposal?.current.state).toBeNull();
+  });
+
+  it('says nothing while any condition does not hold', () => {
+    expect(coverageProposal({ ...ROW, open_after_reask: 19 })).toBeNull(); // under 10%
+    expect(coverageProposal({ ...ROW, fetched: 199 })).toBeNull(); // a match not yet fetched
+    expect(coverageProposal({ ...ROW, pending_people: 1 })).toBeNull(); // our adoption lag
+    expect(coverageProposal({ ...ROW, finished: 0, fetched: 0 })).toBeNull();
+    expect(coverageProposal({ ...ROW, coverage_state: 'limited' })).toBeNull(); // already said
+    expect(coverageProposal({ ...ROW, coverage_state: 'not_supplied' })).toBeNull();
+    expect(coverageProposal({ ...ROW, coverage_provider: null, fetch_provider: null })).toBeNull();
+  });
+
+  it('never leaves a mostly incomplete season available (rule 3)', () => {
+    const proposal = coverageProposal({ ...ROW, open: 150, open_after_reask: 120 });
+    expect(proposal?.proposed.state).toBe('limited');
   });
 });

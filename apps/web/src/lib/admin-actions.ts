@@ -76,6 +76,8 @@ export async function setCoverageAction(
   );
   if (!result.ok) return failure(result);
   revalidatePath(`/${locale}/admin`);
+  // A proposal applied from the data-quality page (T-914) leaves its list there.
+  revalidatePath(`/${locale}/admin/data-quality`);
   return { ok: true, message: 'Coverage updated and recorded.' };
 }
 
