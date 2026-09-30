@@ -46,6 +46,29 @@ export class PostgresStoryLabelStore {
   }
 
   /**
+   * Who a transfer or availability alert may reach (T-1032, D-166): every
+   * member following a team or person any of the story's reports links, once
+   * each, whose switch for `kind` is on -- their own choice, else the default
+   * given. A competition is not enough: "a team or player I follow" is what
+   * the member switched on. One statement whatever the audience; the
+   * notifications boundary applies the mutes, quiet hours and dedupe key.
+   */
+  async audience(storyId: string, kind: string, onByDefault: boolean): Promise<string[]> {
+    const { rows } = await this.pool.query<{ user_id: string }>(
+      `SELECT DISTINCT f.user_id
+         FROM article m
+         JOIN article_entity e
+           ON e.article_id = m.id AND e.entity_type IN ('team', 'person')
+         JOIN followed_entity f ON f.entity_type = e.entity_type AND f.entity_id = e.entity_id
+         LEFT JOIN notification_preference p ON p.user_id = f.user_id AND p.kind = $2
+        WHERE m.story_id = $1
+          AND COALESCE(p.in_product, $3::boolean)`,
+      [storyId, kind, onByDefault],
+    );
+    return rows.map((r) => r.user_id);
+  }
+
+  /**
    * The story's publisher type, recomputed from its promoted original's
    * categories as stored (T-1002, D-123). An editor's label always wins and is
    * never superseded here. A publisher label is replaced only when the type,

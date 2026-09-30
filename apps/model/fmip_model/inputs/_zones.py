@@ -16,7 +16,14 @@ from pathlib import Path
 
 FILE = "league-zones.json"
 #: A checkout: apps/model/fmip_model/inputs/_zones.py -> the repository root.
-REPOSITORY = Path(__file__).resolve().parents[4] / "packages" / "contracts" / "zones" / FILE
+#: In the image the module sits at /app/fmip_model/inputs, which has no
+#: repository above it; the copy in the working directory is read there.
+_PARENTS = Path(__file__).resolve().parents
+REPOSITORY = (
+    _PARENTS[4] / "packages" / "contracts" / "zones" / FILE
+    if len(_PARENTS) > 4
+    else Path("/nonexistent") / FILE
+)
 
 
 @dataclass(frozen=True)

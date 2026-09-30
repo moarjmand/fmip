@@ -16,6 +16,8 @@
 #                            (unset = local only, and the script says so)
 #   BACKUP_KEEP_REMOTE_DAYS  remote copies older than this go     (default 90)
 #   BACKUP_RCLONE_CONFIG     rclone.conf with the remote          (default ~/.config/rclone/rclone.conf)
+#   PG_ARCHIVE_MODE          `on`: also the weekly base backup of point-in-time
+#                            recovery (pitr.sh base --if-due; T-845, D-157)
 #
 # Every run, pass or fail, ends with a row in the `backup_run` table (T-805),
 # which the API's watchdog reads for its `backup` condition. BACKUP_RECORD=off
@@ -124,6 +126,19 @@ else
   echo "WARNING: BACKUP_RCLONE_REMOTE is not set; this copy exists only on this machine." >&2
   echo "         A backup on the same provider as the database is not a backup (D-032)." >&2
   COPIES='local only, BACKUP_RCLONE_REMOTE is not set'
+fi
+
+# --- weekly base backup for point-in-time recovery (T-845, D-157) -----------
+# Only with archiving on. pitr.sh decides whether a week has passed since the
+# newest base on the remote, so a missed Sunday is made up the next day; a
+# failure fails this run, and the watchdog's `backup` condition says so.
+if [ "${PG_ARCHIVE_MODE:-off}" = 'on' ]; then
+  STEP='weekly base backup (pitr.sh base --if-due)'
+  echo "==> point-in-time recovery: weekly base backup"
+  BASE_LOG="$(mktemp)"
+  bash scripts/backup/pitr.sh base --if-due | tee "$BASE_LOG"
+  COPIES="$COPIES; $(grep -E '^base backup not due|^    base-' "$BASE_LOG" | head -n 1 | sed 's/^ *//')"
+  rm -f "$BASE_LOG"
 fi
 
 STEP='local prune'

@@ -38,6 +38,11 @@ class CrossLeague:
 #: Club Elo has no ratings for.
 EloPrior = Literal["clubelo", "own", "clubelo_then_own"]
 ELO_PRIORS: tuple[EloPrior, ...] = ("clubelo", "own", "clubelo_then_own")
+#: The priors that read Club Elo. Club Elo is retired (D-162, T-947): only the
+#: published ``dixon-coles-elo@0.1.0`` keeps reading it, because a stored
+#: version never changes (rule 5); no new version may declare one of these, and
+#: ``tests/test_club_elo_retired.py`` refuses a candidate file that does.
+CLUB_ELO_PRIORS: frozenset[EloPrior] = frozenset({"clubelo", "clubelo_then_own"})
 
 #: How far back the service fits from, unless a version says otherwise.
 DEFAULT_HISTORY_DAYS = 400
@@ -93,6 +98,11 @@ BASELINE = ModelVersion(
     elo_scale=ELO_SCALE,
     max_goals=10,
 )
+
+
+def reads_club_elo(version: ModelVersion) -> bool:
+    """Whether fitting ``version`` reads Club Elo's snapshots (D-162)."""
+    return version.elo_prior in CLUB_ELO_PRIORS
 
 
 def _version_key(version: ModelVersion) -> tuple[int, ...]:

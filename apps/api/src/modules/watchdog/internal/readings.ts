@@ -8,6 +8,7 @@ import {
   dataQuality,
   deliveryChannel,
   eloSource,
+  eloSourceRetired,
   type EloSourceSeen,
   ingestJob,
   liveFeed,
@@ -16,6 +17,7 @@ import {
   requestBudget,
   restoreDrill,
   type RunRecord,
+  type WalArchiveRecord,
 } from './conditions';
 import type { StoredCondition } from './transition';
 
@@ -61,8 +63,12 @@ export interface Observations {
         push: { configured: false } | { configured: true; sent: number; failed: number };
       }
     | Unreadable;
-  /** What the backup and the restore drill recorded in `backup_run` (T-805). */
-  backups: { backup: RunRecord; drill: RunRecord } | Unreadable;
+  /**
+   * What the backup and the restore drill recorded in `backup_run` (T-805),
+   * and the WAL archiver's state for point-in-time recovery (T-845); `wal`
+   * absent when it could not be read.
+   */
+  backups: { backup: RunRecord; drill: RunRecord; wal?: WalArchiveRecord } | Unreadable;
   /** Open findings about live matches and the newest complete sweep (T-821). */
   dataQuality: { open: number; sweptAt: Date | null } | Unreadable;
   /**
@@ -136,7 +142,8 @@ export function readingsOf(
     modelService(seen.model, model !== undefined && model.level !== 'ok' ? model.observed : null),
   );
 
-  out.push(eloSource(seen.elo ?? { source: null }, now));
+  if (!clubEloRetired(seen)) out.push(eloSource(seen.elo ?? { source: null }, now));
+  else if (previous.get('elo_source')?.incidentId != null) out.push(eloSourceRetired());
 
   if (unreadable(seen.delivery)) {
     const why = seen.delivery.unreadable;
@@ -162,7 +169,7 @@ export function readingsOf(
     out.push({ ...backup(undefined, now), note: why });
     out.push({ ...restoreDrill(undefined, now), note: why });
   } else {
-    out.push(backup(seen.backups.backup, now));
+    out.push(backup(seen.backups.backup, now, seen.backups.wal));
     out.push(restoreDrill(seen.backups.drill, now));
   }
 
@@ -202,6 +209,26 @@ function candidateReadings(
     if (!offered.includes(version)) out.push(candidateShadow(version, { state: 'left' }));
   }
   return out;
+}
+
+/** Whether the model service says no version it serves reads Club Elo (D-162). */
+function clubEloRetired(seen: Observations): boolean {
+  const elo = seen.elo;
+  return elo !== undefined && 'source' in elo && elo.source?.retired === true;
+}
+
+/**
+ * The stored conditions a tick removes (T-947): a condition whose subject is
+ * gone for good and that has no incident open -- Club Elo's once it is retired
+ * (D-162). One with an incident open is first closed by an `ok` reading
+ * (`readingsOf`), and removed on the next tick.
+ */
+export function retiredConditions(
+  seen: Observations,
+  previous: ReadonlyMap<string, StoredCondition>,
+): string[] {
+  const elo = previous.get('elo_source');
+  return clubEloRetired(seen) && elo !== undefined && elo.incidentId === null ? ['elo_source'] : [];
 }
 
 function noSource(reason: string) {

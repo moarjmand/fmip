@@ -102,7 +102,12 @@ export class LiveProbes implements WatchdogProbes, OnApplicationShutdown {
           };
         }),
         orUnreadable(() => this.dataQuality.liveContradictions(now)),
-        orUnreadable(() => this.store.backupRuns()),
+        orUnreadable(async () => ({
+          ...(await this.store.backupRuns()),
+          // The archiver's state is Postgres's own view (T-845); a server that
+          // cannot report it leaves the dump alone to decide `backup`.
+          wal: await this.store.walArchive().catch(() => undefined),
+        })),
         this.ranges.seen(now, process.env.CLOUDFLARE_RANGES_CHECK),
       ]);
     const { model, elo, candidates } = health;

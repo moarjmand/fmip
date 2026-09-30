@@ -13,8 +13,11 @@ import {
   QUEUE_FAILURE_THRESHOLD,
   REQUEST_BUDGET_THRESHOLD,
   RESTORE_DRILL_THRESHOLD,
+  type EloSourceSeen,
   type Reading,
   type RunRecord,
+  WAL_ARCHIVE_THRESHOLD,
+  type WalArchiveRecord,
   backup,
   candidateShadow,
   dataQuality,
@@ -28,7 +31,7 @@ import {
   requestBudget,
   restoreDrill,
 } from './internal/conditions';
-import { type Observations, readingsOf } from './internal/readings';
+import { type Observations, readingsOf, retiredConditions } from './internal/readings';
 import { type StoredCondition, isAlert, step } from './internal/transition';
 import { freshnessOf } from './watchdog.service';
 
@@ -322,6 +325,83 @@ describe('backup', () => {
       newest: { at: ago(10), ok: false, detail: 'x'.repeat(2000) },
     };
     expect(backup(seen, NOW).note?.length).toBeLessThan(400);
+  });
+});
+
+describe('backup: the WAL archive of point-in-time recovery (T-845, D-157)', () => {
+  const archiving = (over: Partial<WalArchiveRecord>): WalArchiveRecord => ({
+    on: true,
+    lastArchivedAt: ago(120),
+    lastFailedAt: null,
+    lastFailedWal: null,
+    waiting: 0,
+    ...over,
+  });
+  const fresh = passed(ago(3600));
+
+  it('changes nothing while archiving is off, or its state was not read', () => {
+    expect(backup(fresh, NOW, { ...archiving({}), on: false })).toEqual(backup(fresh, NOW));
+    expect(backup(fresh, NOW, undefined)).toEqual(backup(fresh, NOW));
+  });
+
+  it('is ok, saying how old the newest archived segment is, when nothing waits', () => {
+    const r = backup(fresh, NOW, archiving({ lastArchivedAt: ago(3 * 3600), waiting: 0 }));
+    // A quiet database archives nothing because it has nothing to archive.
+    expect(r).toMatchObject({ level: 'ok', observed: 3600 });
+    expect(r.note).toMatch(/newest WAL segment archived 180 min ago/);
+  });
+
+  it('is measured from the newest archived segment while segments wait: 30 minutes degraded, 2 hours failing', () => {
+    expect(backup(fresh, NOW, archiving({ lastArchivedAt: ago(600), waiting: 3 })).level).toBe(
+      'ok',
+    );
+    const late = backup(
+      fresh,
+      NOW,
+      archiving({ lastArchivedAt: ago(WAL_ARCHIVE_THRESHOLD.degraded), waiting: 3 }),
+    );
+    expect(late).toMatchObject({ level: 'degraded', observed: 3600 });
+    expect(late.note).toMatch(/3 WAL segment\(s\) waiting/);
+    expect(
+      backup(
+        fresh,
+        NOW,
+        archiving({ lastArchivedAt: ago(WAL_ARCHIVE_THRESHOLD.failing), waiting: 9 }),
+      ).level,
+    ).toBe('failing');
+  });
+
+  it('a refusal newer than the newest success is degraded at once, and names the segment', () => {
+    const r = backup(
+      fresh,
+      NOW,
+      archiving({
+        lastArchivedAt: ago(300),
+        lastFailedAt: ago(20),
+        lastFailedWal: '000000010000000000000042',
+      }),
+    );
+    expect(r.level).toBe('degraded');
+    expect(r.note).toMatch(/000000010000000000000042 was refused/);
+    expect(r.note).toMatch(/fmip-wal-ship\.timer/);
+    // Refused, then archived again: recovered.
+    expect(
+      backup(fresh, NOW, archiving({ lastArchivedAt: ago(20), lastFailedAt: ago(300) })).level,
+    ).toBe('ok');
+    // Refused for two hours: failing.
+    expect(
+      backup(
+        fresh,
+        NOW,
+        archiving({ lastArchivedAt: ago(WAL_ARCHIVE_THRESHOLD.failing), lastFailedAt: ago(20) }),
+      ).level,
+    ).toBe('failing');
+  });
+
+  it('never makes a worse dump reading better', () => {
+    const stale = passed(ago(BACKUP_THRESHOLD.failing));
+    expect(backup(stale, NOW, archiving({})).level).toBe('failing');
+    expect(backup(NONE, NOW, archiving({})).level).toBe('unknown');
   });
 });
 
@@ -640,6 +720,57 @@ describe('readingsOf', () => {
       [],
     ).find((r) => r.key === 'elo_source');
     expect(blind?.level).toBe('unknown');
+  });
+
+  describe('once Club Elo is retired (T-947, D-162)', () => {
+    const retired = observations({
+      elo: {
+        source: {
+          refresh: false,
+          retired: true,
+          state: 'recorded',
+          last_succeeded_day: '2026-09-24',
+          last_error: null,
+          last_error_at: null,
+          unanswered_since: ago(20 * 24 * 3600).toISOString(),
+          detail: null,
+        },
+      },
+    });
+    const stored = (level: StoredCondition['level'], incidentId: number | null) =>
+      new Map<string, StoredCondition>([
+        ['elo_source', { key: 'elo_source', level, since: ago(3600), observed: null, incidentId }],
+      ]);
+    const eloOf = (previous: Map<string, StoredCondition>) =>
+      readingsOf(retired, previous, NOW, []).filter((r) => r.key === 'elo_source');
+
+    it('has no condition at all, and a stored one without an incident is removed', () => {
+      expect(eloOf(new Map())).toEqual([]);
+      expect(retiredConditions(retired, new Map())).toEqual([]);
+      for (const level of ['ok', 'unknown'] as const) {
+        expect(eloOf(stored(level, null))).toEqual([]);
+        expect(retiredConditions(retired, stored(level, null))).toEqual(['elo_source']);
+      }
+    });
+
+    it('closes an open incident with one ok first, then removes the condition', () => {
+      const open = stored('failing', 7);
+      const [closing] = eloOf(open);
+      expect(closing).toMatchObject({ key: 'elo_source', level: 'ok' });
+      expect(closing?.note).toContain('retired (D-162)');
+      expect(retiredConditions(retired, open)).toEqual([]);
+      const next = step(open.get('elo_source') ?? null, closing as Reading, NOW);
+      expect(next.event).toMatchObject({ kind: 'recovered', incident: 7 });
+      expect(retiredConditions(retired, stored('ok', null))).toEqual(['elo_source']);
+    });
+
+    it('keeps the condition while the published version reads Club Elo', () => {
+      const published = observations({
+        elo: { source: { ...(retired.elo as { source: EloSourceSeen }).source, retired: false } },
+      });
+      expect(readingsOf(published, new Map(), NOW, []).map((r) => r.key)).toContain('elo_source');
+      expect(retiredConditions(published, stored('ok', null))).toEqual([]);
+    });
   });
 });
 

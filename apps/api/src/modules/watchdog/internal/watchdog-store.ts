@@ -8,7 +8,7 @@ import type {
 } from '@fmip/contracts';
 import type { Pool, PoolClient } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
-import type { Reading, RunRecord } from './conditions';
+import type { Reading, RunRecord, WalArchiveRecord } from './conditions';
 import { type StoredCondition, isAlert } from './transition';
 
 /**
@@ -179,6 +179,16 @@ export class WatchdogStore {
     );
   }
 
+  /**
+   * Removes a condition whose subject is gone for good (T-947, D-162). Its
+   * events stay: the record of what happened is not rewritten.
+   */
+  async removeCondition(client: PoolClient, key: string): Promise<void> {
+    await client.query('DELETE FROM watchdog_condition WHERE key = $1 AND incident_id IS NULL', [
+      key,
+    ]);
+  }
+
   async conditions(): Promise<WatchdogCondition[]> {
     const { rows } = await this.pool.query<ConditionRow>(
       `SELECT key, level, since, checked_at, observed, unit, degraded_at, failing_at, note, incident_id
@@ -331,5 +341,41 @@ export class WatchdogStore {
           };
     };
     return { backup: of('backup'), drill: of('restore_drill') };
+  }
+
+  /**
+   * The WAL archiver (T-845, D-157), from Postgres itself: whether
+   * `archive_mode` is on, the newest segment archived and refused, and how
+   * many finished segments wait -- the current segment's number less the
+   * newest archived one's, less the one being written. `last_archived_wal`
+   * can name a `.backup` marker, whose first 24 characters are its segment.
+   */
+  async walArchive(): Promise<WalArchiveRecord> {
+    const { rows } = await this.pool.query<{
+      mode: string;
+      last_archived_time: Date | null;
+      last_failed_time: Date | null;
+      last_failed_wal: string | null;
+      waiting: number | null;
+    }>(
+      `SELECT current_setting('archive_mode') AS mode,
+              a.last_archived_time, a.last_failed_time, a.last_failed_wal,
+              CASE WHEN pg_is_in_recovery() OR a.last_archived_wal IS NULL
+                        OR a.last_archived_wal !~ '^[0-9A-F]{24}' THEN NULL
+                   ELSE greatest(0,
+                          (pg_split_walfile_name(pg_walfile_name(pg_current_wal_lsn()))).segment_number
+                          - (pg_split_walfile_name(left(a.last_archived_wal, 24))).segment_number
+                          - 1)::int
+              END AS waiting
+         FROM pg_stat_archiver a`,
+    );
+    const row = rows[0];
+    return {
+      on: row?.mode === 'on' || row?.mode === 'always',
+      lastArchivedAt: row?.last_archived_time ?? null,
+      lastFailedAt: row?.last_failed_time ?? null,
+      lastFailedWal: row?.last_failed_wal ?? null,
+      waiting: row?.waiting ?? null,
+    };
   }
 }

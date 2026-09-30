@@ -268,6 +268,8 @@ export const ELO_SOURCE_THRESHOLD: WatchdogThreshold = {
 
 export interface EloSourceSeen {
   refresh: boolean;
+  /** D-162: no served version reads Club Elo; see `eloSourceRetired`. Absent from an older service. */
+  retired?: boolean;
   state: 'recorded' | 'unreadable';
   last_succeeded_day: string | null;
   last_error: string | null;
@@ -322,6 +324,24 @@ export function eloSource(
       ? ''
       : `; last error${source.last_error_at === null ? '' : ` ${source.last_error_at.slice(0, 16).replace('T', ' ')} UTC`}${detailOf(source.last_error)}`;
   return { key, level: levelOf(observed, threshold), observed, threshold, note: answered + error };
+}
+
+/**
+ * Club Elo retired (D-162, T-947): from the promotion that replaces
+ * `dixon-coles-elo@0.1.0`, no version the model service serves reads it and
+ * the service says `retired`. The condition then goes: an incident still open
+ * is closed by this one `ok`, and a condition with none is removed from the
+ * watchdog (`retiredConditions` in `readings.ts`), so the System page's line
+ * goes with it.
+ */
+export function eloSourceRetired(): Reading {
+  return {
+    key: 'elo_source',
+    level: 'ok',
+    observed: null,
+    threshold: ELO_SOURCE_THRESHOLD,
+    note: 'Club Elo is retired (D-162): no model version reads it any more',
+  };
 }
 
 /**
@@ -589,7 +609,99 @@ export const BACKUP_THRESHOLD: WatchdogThreshold = {
   failing: 50 * HOUR,
 };
 
-export function backup(seen: RunRecord | undefined, now: Date): Reading {
+/**
+ * Postgres's WAL archiver as `pg_stat_archiver` reports it (T-845, D-157):
+ * point-in-time recovery is only as good as the newest segment archived.
+ * `waiting` is the finished segments not yet archived (null when it cannot
+ * be told, as during recovery).
+ */
+export interface WalArchiveRecord {
+  on: boolean;
+  lastArchivedAt: Date | null;
+  lastFailedAt: Date | null;
+  lastFailedWal: string | null;
+  waiting: number | null;
+}
+
+/**
+ * How long finished WAL may wait to be archived. Postgres switches segments at
+ * least every five minutes (`archive_timeout`) and the shipper runs every five
+ * (`fmip-wal-ship.timer`); `wal-archive.sh` refuses once a spooled segment has
+ * waited 30 minutes. So `degraded` at 30 minutes (the recovery point has
+ * slipped past what D-157 promises) and `failing` at two hours (pg_wal is
+ * growing on the server's disk).
+ */
+export const WAL_ARCHIVE_THRESHOLD: WatchdogThreshold = {
+  unit: 'seconds',
+  degraded: 30 * MINUTE,
+  failing: 2 * HOUR,
+};
+
+/**
+ * The WAL archiver's part of the `backup` condition: null while archiving is
+ * off (the daily dump is then the whole story), else a level and a note.
+ */
+export function walArchive(
+  seen: WalArchiveRecord | undefined,
+  now: Date,
+): { level: WatchdogLevel; note: string } | null {
+  if (seen === undefined || !seen.on) return null;
+  const threshold = WAL_ARCHIVE_THRESHOLD;
+  const age =
+    seen.lastArchivedAt === null
+      ? null
+      : Math.max(0, Math.round((now.getTime() - seen.lastArchivedAt.getTime()) / 1000));
+  const minutes = (s: number): string => `${Math.floor(s / MINUTE)} min`;
+  const failingNow =
+    seen.lastFailedAt !== null &&
+    (seen.lastArchivedAt === null || seen.lastFailedAt > seen.lastArchivedAt);
+  if (failingNow) {
+    const byAge = age === null ? 'degraded' : levelOf(age, threshold);
+    return {
+      level: byAge === 'failing' ? 'failing' : 'degraded',
+      note:
+        `WAL archiving is failing (${seen.lastFailedWal ?? 'a segment'} was refused` +
+        `${age === null ? ', none archived yet' : `; the newest archived is ${minutes(age)} old`})` +
+        ': is fmip-wal-ship.timer running? docs/07-backups.md',
+    };
+  }
+  if (age !== null && (seen.waiting ?? 0) > 0) {
+    const level = levelOf(age, threshold);
+    if (level !== 'ok') {
+      return {
+        level,
+        note: `${seen.waiting} WAL segment(s) waiting to be archived; the newest archived is ${minutes(age)} old`,
+      };
+    }
+  }
+  return {
+    level: 'ok',
+    note:
+      age === null
+        ? 'point-in-time recovery: no WAL segment archived yet'
+        : `point-in-time recovery: newest WAL segment archived ${minutes(age)} ago`,
+  };
+}
+
+const LEVEL_RANK: Record<WatchdogLevel, number> = { ok: 0, unknown: 1, degraded: 2, failing: 3 };
+
+/**
+ * The `backup` condition: the daily dump (below) and, when point-in-time
+ * recovery is on, the WAL archiver (T-845, D-157). The worse of the two
+ * decides the level; `observed` stays the dump's age, which is what the
+ * threshold is stated in.
+ */
+export function backup(seen: RunRecord | undefined, now: Date, wal?: WalArchiveRecord): Reading {
+  const dump = dumpBackup(seen, now);
+  const archive = walArchive(wal, now);
+  if (archive === null) return dump;
+  if (LEVEL_RANK[archive.level] > LEVEL_RANK[dump.level]) {
+    return { ...dump, level: archive.level, note: archive.note };
+  }
+  return { ...dump, note: `${dump.note ?? ''}; ${archive.note}` };
+}
+
+function dumpBackup(seen: RunRecord | undefined, now: Date): Reading {
   const threshold = BACKUP_THRESHOLD;
   if (seen === undefined) {
     return {

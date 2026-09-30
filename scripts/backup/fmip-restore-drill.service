@@ -22,9 +22,14 @@ Type=oneshot
 User=fmip
 WorkingDirectory=/opt/fmip
 ExecStart=/usr/bin/bash scripts/backup/restore-drill.sh --scheduled
-# A restore of a few hundred megabytes takes minutes; an hour means it is stuck,
+# Then the point-in-time replay to an hour ago (T-845, D-157); it exits 0
+# without doing anything while PG_ARCHIVE_MODE is not on. Runs only if the
+# dump drill passed, which is the drill that matters most.
+ExecStart=/usr/bin/bash scripts/backup/restore-drill.sh --scheduled --pitr auto
+# A restore of a few hundred megabytes takes minutes, a replay of a week of
+# WAL a little more; two hours for both means it is stuck,
 # and the exit on timeout is recorded as a failed drill by the script's trap.
-TimeoutStartSec=1h
+TimeoutStartSec=2h
 Nice=10
 IOSchedulingClass=best-effort
 IOSchedulingPriority=7

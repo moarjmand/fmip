@@ -130,6 +130,25 @@ const BREAKING_HEADLINE = `CASE WHEN n.kind = 'breaking_news' AND n.subject_id ~
     ORDER BY b.marked_at DESC LIMIT 1)
 END`;
 
+/**
+ * A transfer or availability alert's line (T-1032, D-166): "Transfer: " or
+ * "Availability: " and the headline of the story's promoted original, in the
+ * language its publisher writes in, newest version -- read at render rather
+ * than copied, so a corrected headline shows corrected. Null when the story
+ * is gone, and the kind's fallback text is shown instead.
+ */
+const STORY_TYPE_HEADLINE = `CASE WHEN n.kind IN ('transfer_news', 'availability_news')
+                                  AND n.subject_id ~ '^[0-9a-f-]{36}$' THEN
+  (SELECT CASE n.kind WHEN 'transfer_news' THEN 'Transfer: ' ELSE 'Availability: ' END || v.headline
+     FROM story st
+     JOIN article a ON a.id = st.promoted_article_id
+     JOIN news_source src ON src.id = a.source_id
+     JOIN article_version v ON v.article_id = a.id AND v.language = src.language
+                           AND v.origin = 'publisher'
+    WHERE st.id = CASE WHEN n.subject_id ~ '^[0-9a-f-]{36}$' THEN n.subject_id::uuid END
+    ORDER BY v.version_number DESC LIMIT 1)
+END`;
+
 @Injectable()
 export class PostgresNotificationsStore {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
@@ -439,7 +458,8 @@ export class PostgresNotificationsStore {
                 ELSE NULL
               END AS subject_label,
               coalesce(subject_campaign.title, ${WATCHDOG_HEADLINE}, subject_match_alert.line,
-                       ${ELIGIBLE_HEADLINE}, ${BREAKING_HEADLINE}) AS headline,
+                       ${ELIGIBLE_HEADLINE}, ${BREAKING_HEADLINE},
+                       ${STORY_TYPE_HEADLINE}) AS headline,
               source.username AS source,
               n.created_at,
               n.read_at,
@@ -586,7 +606,8 @@ export class PostgresNotificationsStore {
                 ELSE NULL
               END AS subject_label,
               coalesce(subject_campaign.title, ${WATCHDOG_HEADLINE}, subject_match_alert.line,
-                       ${ELIGIBLE_HEADLINE}, ${BREAKING_HEADLINE}) AS headline,
+                       ${ELIGIBLE_HEADLINE}, ${BREAKING_HEADLINE},
+                       ${STORY_TYPE_HEADLINE}) AS headline,
               source.username AS source,
               u.email,
               -- A held language (T-1163, D-155) is not offered, so its links

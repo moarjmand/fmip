@@ -152,11 +152,153 @@ run succeeds. `BACKUP_RECORD=off` skips the row (a rehearsal against a
 database without the table); a row that cannot be written is a warning in
 the run's output, not a failed backup.
 
-Recovery point: up to 24 hours of data (one dump a day). That is accepted for
-Phase 1 — forecasts and evaluations are recomputable from the training store
-and the results, and user activity is light. Point-in-time recovery (WAL
-archiving) is the upgrade when predictions and reputation carry real weight
-(Phase 2); it is a change to `docker-compose.yml`, not to this runbook.
+Recovery point: up to 24 hours of data from the dumps alone (one a day).
+With point-in-time recovery switched on (below, T-845, D-157) it is about ten
+minutes, to any minute of the last seven days.
+
+With `PG_ARCHIVE_MODE=on` the `backup` condition also watches the WAL archiver
+(`pg_stat_archiver`, Postgres's own view): `degraded` when finished segments
+have waited 30 minutes to be archived or the newest attempt was refused,
+`failing` at two hours. The worse of the dump and the archiver decides; the
+observed number stays the dump's age. With archiving off nothing changes.
+
+## Point-in-time recovery (T-845, D-157)
+
+The daily dump loses up to a day. Point-in-time recovery keeps every change:
+Postgres's own WAL archiving, shipped through the same crypt remote. No new
+component -- Postgres, rclone and systemd, as for the dumps.
+
+```
+postgres --archive_command--> wal-archive.sh --gzip--> `wal-spool` volume
+                               (inside the container, once per 16 MB segment)
+fmip-wal-ship.timer (5 min) --pitr.sh ship--> $BACKUP_RCLONE_REMOTE/wal/
+backup.sh (daily) --pitr.sh base --if-due--> $BACKUP_RCLONE_REMOTE/base/  (weekly)
+restore-drill.sh --pitr --pitr.sh restore--> throwaway postgres, replayed to a minute
+```
+
+- **Archiving.** `PG_ARCHIVE_MODE=on` in `.env`, read by
+  `deploy/docker-compose.prod.yml` (`archive_mode`, `archive_command`,
+  `archive_timeout` = `PG_ARCHIVE_TIMEOUT`, 300 s, and `wal_recycle=off`).
+  Changing it restarts Postgres. `wal-archive.sh` gzips each finished segment
+  into the spool; a segment closed early by the timeout is mostly zeros and
+  gzips to about 16 KB, so a quiet day costs about 5 MB.
+- **Back-pressure.** If a spooled segment has waited 30 minutes, the shipper
+  has stopped, and `wal-archive.sh` refuses the next one. Postgres keeps it in
+  `pg_wal` and retries every minute, and the watchdog raises `backup`. The
+  server's disk is what fills while this lasts; the alert is the reason to act.
+- **Shipping.** `pitr.sh ship`, from `fmip-wal-ship.timer` every five
+  minutes: `rclone move` from the spool (upload, check, delete locally) to
+  `wal/`. It also makes the spool directory writable by the postgres user, so
+  the first run after switching on is what lets archiving start.
+- **Base backups.** `pitr.sh base`: `pg_basebackup` as one gzipped tar with
+  the WAL it needs inside, named `base-<finished UTC>-<first segment>.tar.gz`,
+  copied to `base/` and checked by size. `backup.sh` calls it every day with
+  `--if-due`, which does nothing unless the newest base on the remote is six
+  days old -- so it is weekly, and a failed one is retried the next morning.
+  A failure fails that morning's backup run, which the watchdog reports. The
+  newest base stays in `BACKUP_DIR` as well.
+- **Retention.** Every base of the last `PITR_KEEP_DAYS` (7) and the newest
+  one before that window, and the WAL from the oldest kept base on. So any
+  minute of the last seven days can be replayed to, and at most about two
+  weeks of WAL are held. The dumps keep their 90 days (`backup.sh`'s remote
+  prune reaches `wal/` and `base/` only past 90 days, long after this one).
+- **Restore.** `pitr.sh restore --to 'YYYY-MM-DD HH:MM'` (UTC): the newest
+  base finished before that minute and the WAL after it, unpacked into a new
+  Docker volume and replayed in a throwaway `postgres:18-alpine` with
+  `recovery_target_time` and `recovery_target_action = promote`. For a target
+  in the last fifteen minutes it first closes and ships the live database's
+  current segment. It prints where replay stopped in Postgres's own words
+  (`recovery stopping before commit ... time ...`, `last completed transaction
+  was at log time ...`). `--keep` leaves the container for inspection or a
+  dump; without it everything is removed.
+
+### Before switching it on: the measurement (D-157's gate)
+
+```bash
+sudo -u fmip bash -lc 'cd /opt/fmip && bash scripts/backup/pitr.sh measure'
+```
+
+It prints the database size, the WAL written per day, how well this
+database's own segments gzip, what the remote holds now, and the projected
+total with point-in-time recovery against `PITR_REMOTE_BUDGET_GB` (10 GB,
+B2's free allowance), ending `FITS` or `DOES NOT FIT` (exit 3). Every run
+appends a sample to `BACKUP_DIR/wal-measure.log`; the first run's figure is
+marked `PROVISIONAL` (the larger of `pg_stat_wal` since its reset and the
+cluster's whole-life average, which counts the initial backfill), and a run
+six or more days later measures the real week. **If it does not fit, stop:
+a bigger storage plan is the maintainer's purchase, and nothing here is
+switched on.** The projection counts two base backups at the database's full
+size and two weeks of WAL, so it errs high.
+
+### The drill
+
+`restore-drill.sh --pitr '<minute>'` runs `pitr.sh restore` into its own
+container and checks what D-101 checks without a manifest: the forecast
+CHECK and the immutability trigger, and with `--scheduled` the migrations and
+key tables against live, and that the last transaction replayed is within 15
+minutes before the stated minute (the live database writes every minute, so
+a larger gap means WAL missing from the archive). The monthly
+`fmip-restore-drill.service` runs `--scheduled --pitr auto` (an hour before
+the drill) after the dump drill; both record a `restore_drill` row, the
+replay's subject being `pitr <minute>`. With archiving off it exits 0 and
+records nothing.
+
+### Recovering for real to a minute
+
+When the damage has a time (a bad migration at 14:07, an operator mistake):
+
+```bash
+# 1. Replay to the minute before it, into a throwaway container, and keep it.
+bash scripts/backup/pitr.sh restore --to '2026-10-01 14:06' --keep --name fmip-pitr
+# 2. Look: docker exec -it fmip-pitr psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+# 3. Carry it over the way a dump is restored (below): dump from the replay,
+#    restore beside live as fmip_restore, inspect, swap.
+docker exec fmip-pitr pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom \
+  --no-owner --no-privileges > backups/pitr-20261001T1406.dump
+# ...then "The data is wrong, the server is fine" below, with this file.
+docker rm -f fmip-pitr && docker volume rm fmip-pitr-data
+```
+
+On a new server the same works once `.env` (with `BACKUP_RCLONE_REMOTE`) and
+`rclone.conf` are back and Postgres is up: `restore` reads only the remote.
+
+Switching it on and rolling it back on the server: `09-deploy.md`,
+"Point-in-time recovery".
+
+### Rehearsed on 2026-09-30
+
+On the maintainer's laptop: the production compose file under its own
+project (`COMPOSE_PROJECT_NAME=fmip-pitr`), `PG_ARCHIVE_MODE=on`,
+`PG_ARCHIVE_TIMEOUT=60`, a `type = local` rclone remote inside `BACKUP_DIR`
+(as in "Verifying on a developer machine" below), loaded with the
+development database (106 migrations).
+
+- Before the first `ship`, Postgres refused segment 1 with
+  `fmip-wal-archive: /wal-spool is missing or not writable` -- why the
+  switch-on runs `ship` at once. After it, a segment arrived every minute.
+- `pitr.sh base`: a 5 MB base, verified on the remote; the one segment older
+  than it pruned.
+- **The proof.** A row `before` written at 23:53:11 UTC; the target stated as
+  23:54; a row `after` written at 23:54:19. `pitr.sh restore --to '2026-09-29
+  23:54' --keep` closed and shipped the current segment, downloaded the base
+  and four segments, and replayed: `recovery stopping before commit of
+  transaction 1840, time 2026-09-29 23:54:19.52`, `last completed transaction
+  was at log time 2026-09-29 23:53:11.56`. The restored copy held `before`
+  and not `after`, 106 migrations and 64 fixtures, on timeline 2 (promoted).
+  About two minutes end to end.
+- **The drill.** `restore-drill.sh --scheduled --pitr '2026-09-30 00:12'`:
+  last transaction 3 minutes before the stated minute, the CHECK and the
+  trigger present, migrations live's, the six key tables equal to live,
+  `DRILL PASSED`, and a `restore_drill` row. An earlier attempt at a minute
+  after which the quiet database had committed nothing failed with Postgres's
+  `recovery ended before configured recovery target was reached`; `restore`
+  now commits one empty transaction before closing the current segment, and
+  says what that message means when it appears.
+- **Back-pressure.** A spooled file dated a day back made the next segment
+  refused (`... has waited more than 30 minutes; fmip-wal-ship.timer is not
+  shipping`, `last_failed_time` after `last_archived_time`, which is what the
+  watchdog reads); one `ship` later the next segment archived.
+- Segments closed by the timeout gzipped to about 16 KB each.
 
 ## The restore drill
 
