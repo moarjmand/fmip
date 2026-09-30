@@ -7271,6 +7271,61 @@ modelled unless the proxy passes. **Still the maintainer's:** placing grounds
 from OpenStreetMap (ODbL) or Wikidata (CC0), because each is a third-party
 source with its own terms on the model's path (D-014).
 
+**Amended 2026-09-30 (T-1166): the input as built.** `cross_border`
+(`fmip_model/inputs/cross_border.py`), judged by D-139's harness and carried
+by no candidate until it passes and T-1150 takes it:
+
+- **A club's country, by id.** Its own `team.country_id` where the catalogue
+  states one; otherwise the country (`competition.country_id`) of the
+  domestic competitions it has stored fixtures in, when one country is the
+  commonest outright -- a tie gives none. Never a name: football-data.co.uk
+  clubs are reached only through `training.team_alias`, and a name with no
+  alias has no country. The fallback is needed because the catalogue never
+  infers a team's country (`packages/db/scripts/catalog.mjs`): an adopted
+  club arrives without one, while every domestic competition must state one.
+  Reading a club's fixtures for its country reads its schedule, not a score,
+  so nothing after a match's day reaches its forecast.
+- **Read only where both countries are known and differ.** A match between
+  two clubs of one country, or with a club whose country is unknown (its
+  domestic league is not carried and its row states none), gives no value:
+  the candidate's forecast stands and the match is outside the sample. A
+  club playing in a neighbouring country's league (Monaco, the Welsh clubs in
+  England) counts as its league's country unless its own row states another.
+- **The term.** Two coefficients fitted per refit by `FeatureInput` on the
+  cross-border matches of the history: one on the home side's log expected
+  goals, one on the away side's, so "a larger home advantage against a
+  travelling visitor" and "a visitor abroad scores less" are not forced to be
+  one number. Bounded at +/-2 as every `FeatureInput`.
+- **Where it can be read.** In practice our records' continental division
+  (`XL`, T-533): continental ties between two clubs whose leagues we carry.
+  The football-data.co.uk divisions are domestic: a match there is read only
+  where the catalogue states a club's country apart from its league's, which
+  it never does by itself, so the server run passes only our records'
+  divisions. The
+  candidate's cross-league scale (D-085) already puts both leagues' clubs on
+  one scale, so what the term can find is what is left over: the visit abroad
+  itself.
+
+**The sample and the verdict.** Run on the laptop (2026-09-30) on its only
+populated store, the ten football-data.co.uk divisions (B1 D1 E0 F1 I1 N1 P1
+SC0 SP1 T1, window 2025-08-01 to 2026-06-30, history from 2023-07-01): 3,185
+matches scored by all three versions, **0 read** -- that store holds no
+catalogue rows (no `training.team_alias`, no fixtures, no team countries) --
+so the football_data group is `insufficient` and our records' group `not
+run`: no verdict. This confirms only that the input loads against the real
+schema and reads nothing it cannot place. The run on the server, where our
+records and the catalogue are, is the lead's; its report states the share of
+matches read, and this entry is amended with the verdict and the numbers
+either way. Continental ties between two carried leagues' clubs are a few
+hundred a season at most, so `insufficient` (below D-139's 300) is a likely
+verdict; then no candidate carries it and the Power Index keeps saying
+travel is not modelled. The server run, from `/opt/fmip`:
+
+```bash
+DIVS=$(docker compose exec -T postgres psql -U fmip -d fmip -Atc "SELECT string_agg(DISTINCT m.division, ' ') FROM training.match m JOIN training.source_load l ON l.id = m.source_load_id WHERE l.source = 'our_records'")
+docker compose run --rm -T -v $HOME/reports/inputs:/tmp/reports model sh -c "python -m fmip_model.backtest.inputs --input cross_border --divisions $DIVS --from 2025-08-01 --to 2026-06-30 --history-from 2023-07-01 --out /tmp/reports --note server && cat /tmp/reports/*/inputs_cross_border_*.md"
+```
+
 ## D-171 — League zones: a committed list per competition and season, from the published regulations
 **Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers:** N-2 in `04-tasks-phase-11.md` · **Task:** T-1167 · **Follows:** D-038, D-143, D-146
 
