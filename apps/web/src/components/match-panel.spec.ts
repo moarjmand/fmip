@@ -18,6 +18,10 @@ import { describe, expect, it } from 'vitest';
  */
 const HERE = __dirname;
 const PANEL = readFileSync(join(HERE, 'match-panel.tsx'), 'utf8');
+// Since T-1308 the panel is a server component over one client form, and its
+// words live in the catalogue.
+const EN = readFileSync(join(HERE, '..', 'i18n', 'catalogues', 'en.json'), 'utf8');
+const ACTION = readFileSync(join(HERE, 'community-action.tsx'), 'utf8');
 const ACTIONS = readFileSync(join(HERE, '..', 'lib', 'panel-actions.ts'), 'utf8');
 const API = readFileSync(join(HERE, '..', 'lib', 'api.ts'), 'utf8');
 const MATCH = readFileSync(
@@ -73,9 +77,11 @@ describe('a guest reads', () => {
     // spoken yet, and only the second is something a reader can act on (rule 3).
     expect(PANEL).toContain('data-testid="panel-none"');
     expect(PANEL).toContain('data-testid="panel-empty"');
-    expect(PANEL).toMatch(/Nobody has opened a discussion/);
-    expect(PANEL).toMatch(/Nobody has posted about this match yet/);
-    expect(PANEL).toMatch(/This discussion is closed/);
+    expect(PANEL).toContain('message="panel.none"');
+    expect(PANEL).toContain("'panel.emptyClosed' : 'panel.empty'");
+    expect(EN).toMatch(/"panel.none": "Nobody has opened a discussion/);
+    expect(EN).toMatch(/"panel.empty": "Nobody has posted about this match yet/);
+    expect(EN).toMatch(/"panel.emptyClosed": "This discussion is closed/);
   });
 
   it('fetches the discussion without a session, and the permission with one', () => {
@@ -114,7 +120,7 @@ describe('an unapproved member is told why', () => {
     ]) {
       expect(PANEL, `no words for ${refusal}`).toContain(`${refusal}:`);
     }
-    expect(PANEL).toContain("Record<PanelPermission['refusal'] & string, string>");
+    expect(PANEL).toContain("Record<PanelPermission['refusal'] & string, MessageKey>");
     expect(PANEL).toContain('data-testid="panel-refusal"');
   });
 
@@ -123,13 +129,15 @@ describe('an unapproved member is told why', () => {
     // silence. The two states render differently.
     expect(PANEL).toContain('data-testid="panel-shortfalls"');
     expect(PANEL).toContain('data-testid="panel-qualifies"');
-    expect(PANEL).toMatch(/person&rsquo;s decision and has not been\s*\n?\s*made yet/);
+    expect(PANEL).toContain('message="panel.qualifies"');
+    expect(EN).toMatch(/"panel.qualifies": "[^"]*person’s decision and has not been made yet/);
   });
 
   it('shows the refusal the server worded rather than composing a second one', () => {
     // A message invented here could disagree with the API's, and the API's is
     // the one derived from what the database actually refused.
-    expect(PANEL).toContain('{state.message}');
+    expect(PANEL).toContain('resultTestId="panel-compose-result"');
+    expect(ACTION).toContain('{state.message}');
     // Through the shared failure (T-907): the API's sentence, led by "you may
     // not do this" when its code is `forbidden`.
     expect(ACTIONS).toContain('failureState(result)');
@@ -143,7 +151,7 @@ describe('what a post carries, and what a removal leaves behind', () => {
   it('shows the author standing beside every post', () => {
     // Blueprint 10.2: on a public panel it is the only thing separating an
     // approved contributor's opinion from anybody else's.
-    expect(PANEL).toMatch(/<Standing\s+author=\{post\.author\}/);
+    expect(PANEL).toMatch(/<Standing\s+locale=\{locale\}\s+author=\{post\.author\}/);
     // Both marks, and they are chosen by the same expression: a contributor
     // whose approval has since ended is shown as former rather than as approved.
     // Hiding their post would rewrite the record; still calling them approved
@@ -154,8 +162,9 @@ describe('what a post carries, and what a removal leaves behind', () => {
 
   it('keeps a removed post as a tombstone that says which kind of removal it was', () => {
     expect(PANEL).toContain('data-testid="panel-post-removed"');
-    expect(PANEL).toMatch(/The author removed this post/);
-    expect(PANEL).toMatch(/A moderator removed this post/);
+    expect(PANEL).toContain("'panel.removedByAuthor' : 'panel.removedByModerator'");
+    expect(EN).toMatch(/"panel.removedByAuthor": "The author removed this post/);
+    expect(EN).toMatch(/"panel.removedByModerator": "A moderator removed this post/);
   });
 
   it('states unreachable apart from empty', () => {
@@ -171,8 +180,10 @@ describe('what a post carries, and what a removal leaves behind', () => {
 
 describe('the surface works the way the rest of the app does', () => {
   it('posts through a form and a server action, with no click handler', () => {
-    expect(PANEL).toContain('<form action={formAction}');
+    expect(PANEL).toContain('<CommunityAction');
+    expect(ACTION).toContain('<form action={formAction}');
     expect(PANEL).not.toMatch(/onClick|useEffect|addEventListener/);
+    expect(ACTION).not.toMatch(/onClick|useEffect|addEventListener/);
   });
 
   it('revalidates the match page, so a contributor sees what they posted', () => {

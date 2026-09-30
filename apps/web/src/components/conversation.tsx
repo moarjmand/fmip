@@ -4,7 +4,21 @@ import type { ConversationSummary, Message, SharedCard } from '@fmip/contracts';
 import { MemberName } from '@/components/member-name';
 import { Score } from '@/components/score';
 import { memberName } from '@/lib/member-name';
-import { formatDateTime } from '@/i18n/format';
+import { formatDateTime, formatNumber } from '@/i18n/format';
+import type { MessageKey } from '@/i18n/messages';
+import { Said, said } from '@/components/community-text';
+import { Translated } from '@/components/translated';
+
+/**
+ * A member's call on a shared prediction card, in words. The English is the
+ * contract's own value, so an English page reads as it always did; an
+ * outcome this map does not know is shown as it came.
+ */
+const OUTCOME: Record<string, MessageKey> = {
+  home: 'messagesPage.card.outcome.home',
+  draw: 'messagesPage.card.outcome.draw',
+  away: 'messagesPage.card.outcome.away',
+};
 
 /**
  * One conversation, read (blueprint 8.3, T-224).
@@ -23,13 +37,22 @@ import { formatDateTime } from '@/i18n/format';
  * score goes through `<Score>` so a right-to-left paragraph cannot lay `2 – 1`
  * out backwards (T-153, rule 7).
  */
-export function FootballCard({ card, locale }: { card: SharedCard; locale: string }) {
+export function FootballCard({
+  card,
+  locale,
+  timeZone,
+}: {
+  card: SharedCard;
+  locale: string;
+  /** The reader's zone, for the card's "updated" stamp. */
+  timeZone: string;
+}) {
   const frame = 'rounded border border-default p-3 text-sm';
 
   if (card.kind === 'gone') {
     return (
       <p className={`${frame} text-muted`} data-testid="card-gone">
-        Something was shared here that no longer exists.
+        <Translated locale={locale} message="messagesPage.card.gone" />
       </p>
     );
   }
@@ -42,7 +65,11 @@ export function FootballCard({ card, locale }: { card: SharedCard; locale: strin
         data-testid="card-fixture"
       >
         <span className="font-medium">
-          {card.home} v {card.away}
+          <Said
+            locale={locale}
+            message="messagesPage.versus"
+            params={{ home: card.home, away: card.away }}
+          />
         </span>
         <span className="text-muted">
           {card.score === null ? (
@@ -56,7 +83,10 @@ export function FootballCard({ card, locale }: { card: SharedCard; locale: strin
         </span>
         {/* Rule 4: a live surface says when it last changed. */}
         <span className="text-xs text-muted">
-          Updated <time dateTime={card.last_updated_at}>{card.last_updated_at.slice(0, 16)}</time>
+          <Translated locale={locale} message="messagesPage.card.updated" />{' '}
+          <time dateTime={card.last_updated_at}>
+            {formatDateTime(locale, card.last_updated_at, timeZone)}
+          </time>
         </span>
       </Link>
     );
@@ -82,13 +112,27 @@ export function FootballCard({ card, locale }: { card: SharedCard; locale: strin
     return (
       <div className={`${frame} flex flex-col gap-1`} data-testid="card-prediction">
         <span className="font-medium">
-          {card.home} v {card.away}
+          <Said
+            locale={locale}
+            message="messagesPage.versus"
+            params={{ home: card.home, away: card.away }}
+          />
         </span>
         {/* A shared prediction is always attributed: it is one member's call, and
             never any of the three prediction products (rule 6). */}
         <span className="text-muted">
-          <MemberName locale={locale} member={{ username: card.by }} /> says {card.outcome} ·
-          confidence {card.confidence}
+          <MemberName locale={locale} member={{ username: card.by }} />{' '}
+          <Said
+            locale={locale}
+            message="messagesPage.card.says"
+            params={{
+              outcome:
+                OUTCOME[card.outcome] === undefined
+                  ? card.outcome
+                  : said(locale, OUTCOME[card.outcome]!).text,
+              confidence: formatNumber(locale, card.confidence),
+            }}
+          />
         </span>
       </div>
     );
@@ -101,7 +145,7 @@ export function FootballCard({ card, locale }: { card: SharedCard; locale: strin
   // this says something true if it ever gets past.
   return (
     <p className={`${frame} text-muted`} data-testid="card-unknown">
-      Something was shared here that this page cannot show yet.
+      <Translated locale={locale} message="messagesPage.card.unknown" />
     </p>
   );
 }
@@ -142,12 +186,24 @@ export function MessageRow({
         // A tombstone rather than a hole: the conversation around it still
         // reads, and a reader can tell who took it down.
         <p className="text-sm italic text-muted" data-testid="message-removed">
-          {message.removed.by === 'moderator'
-            ? 'Removed by a moderator.'
-            : 'The author removed this.'}
+          <Translated
+            locale={locale}
+            message={
+              message.removed.by === 'moderator'
+                ? 'messagesPage.removedByModerator'
+                : 'messagesPage.removedByAuthor'
+            }
+          />
           {/* Only the author is sent the reason (T-1024): they are told why. */}
           {message.removed.reason !== undefined && (
-            <span data-testid="message-removed-reason"> Why: {message.removed.reason}</span>
+            <span data-testid="message-removed-reason">
+              {' '}
+              <Said
+                locale={locale}
+                message="messagesPage.removedWhy"
+                params={{ reason: message.removed.reason }}
+              />
+            </span>
           )}
         </p>
       ) : (
@@ -157,7 +213,9 @@ export function MessageRow({
               {message.body}
             </p>
           )}
-          {message.card !== null && <FootballCard card={message.card} locale={locale} />}
+          {message.card !== null && (
+            <FootballCard card={message.card} locale={locale} timeZone={timeZone} />
+          )}
         </>
       )}
 
@@ -168,20 +226,27 @@ export function MessageRow({
         // especially after somebody renames themselves, which is exactly what
         // storing the mention was meant to survive (T-225).
         <p className="text-xs text-muted" data-testid="message-mentions">
-          Mentioned{' '}
-          {message.mentions.map((username) => memberName(locale, { username })).join(', ')}
+          <Said
+            locale={locale}
+            message="messagesPage.mentioned"
+            params={{
+              names: message.mentions
+                .map((username) => memberName(locale, { username }))
+                .join(', '),
+            }}
+          />
         </p>
       )}
 
       {message.pinned && (
         <p className="text-xs text-muted" data-testid="message-pinned">
-          Pinned in this conversation
+          <Translated locale={locale} message="messagesPage.pinnedHere" />
         </p>
       )}
 
       {isMine && message.removed === null && (
         <span className="text-xs text-muted" data-testid="message-mine">
-          Yours
+          <Translated locale={locale} message="messagesPage.yours" />
         </span>
       )}
     </li>
@@ -218,7 +283,11 @@ export function ConversationHeader({
       {match !== null && (
         <p className="text-sm" data-testid="conversation-fixture">
           <Link href={`/${locale}/match/${match.id}`} className="underline">
-            {match.home} v {match.away}
+            <Said
+              locale={locale}
+              message="messagesPage.versus"
+              params={{ home: match.home, away: match.away }}
+            />
           </Link>
           <span className="text-muted"> · {threadStanding(conversation)}</span>
           {conversation.group !== null && (
@@ -244,12 +313,21 @@ export function ConversationHeader({
             className="underline"
           />
         ))}
-        {conversation.muted && <span data-testid="conversation-muted"> · muted</span>}
-        {conversation.left && <span data-testid="conversation-left"> · you have left</span>}
+        {conversation.muted && (
+          <span data-testid="conversation-muted">
+            {' · '}
+            <Translated locale={locale} message="messagesPage.muted" />
+          </span>
+        )}
+        {conversation.left && (
+          <span data-testid="conversation-left">
+            {' · '}
+            <Translated locale={locale} message="messagesPage.youLeft" />
+          </span>
+        )}
       </p>
       <p className="text-xs text-muted">
-        Blocking and reporting live on a member&rsquo;s profile, where they work the same way
-        everywhere else in the product.
+        <Translated locale={locale} message="messagesPage.blockingNote" />
       </p>
     </div>
   );

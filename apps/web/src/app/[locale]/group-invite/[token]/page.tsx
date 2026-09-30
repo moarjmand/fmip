@@ -5,6 +5,9 @@ import { FollowInviteLink } from '@/components/group-controls';
 import { fetchInviteLinkPreview, fetchMe } from '@/lib/api';
 import { sessionCookieHeader } from '@/lib/session';
 import { Notice } from '@/components/ui';
+import { Translated } from '@/components/translated';
+import { DEFAULT_LOCALE, type Locale, isLocale } from '@/i18n/locales';
+import { type MessageKey, t } from '@/i18n/messages';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,17 +15,25 @@ export const dynamic = 'force-dynamic';
  * A link is a key: never indexed, and never sent onward in a `Referer` to
  * whatever the page links to.
  */
-export const metadata: Metadata = {
-  title: 'A group invitation · FMIP',
-  robots: { index: false, follow: false },
-  referrer: 'no-referrer',
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const resolved: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  return {
+    title: `${t(resolved, 'groupsPage.invite.title')} · FMIP`,
+    robots: { index: false, follow: false },
+    referrer: 'no-referrer',
+  };
+}
 
-const DEAD: Record<string, string> = {
-  revoked: 'This invite link was revoked.',
-  expired: 'This invite link has expired.',
-  exhausted: 'This invite link has been used as many times as it allows.',
-  orphaned: 'Whoever made this invite link can no longer invite people to this group.',
+const DEAD: Record<string, MessageKey> = {
+  revoked: 'groupsPage.invite.revoked',
+  expired: 'groupsPage.invite.expired',
+  exhausted: 'groupsPage.invite.exhausted',
+  orphaned: 'groupsPage.invite.orphaned',
 };
 
 /**
@@ -49,9 +60,11 @@ export default async function GroupInvitePage({
     if (result.status === 404) notFound();
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-4 p-8">
-        <h1 className="text-2xl font-semibold">A group invitation</h1>
+        <h1 className="text-2xl font-semibold">
+          <Translated locale={locale} message="groupsPage.invite.title" />
+        </h1>
         <Notice tone="danger" data-testid="invite-link-unreachable">
-          This invitation cannot be shown right now.
+          <Translated locale={locale} message="groupsPage.invite.unreachable" />
         </Notice>
       </main>
     );
@@ -73,32 +86,34 @@ export default async function GroupInvitePage({
 
       {member ? (
         <p className="text-sm" data-testid="invite-link-member">
-          You are already in this group.{' '}
+          <Translated locale={locale} message="groupsPage.invite.member" />{' '}
           <Link href={groupHref} className="underline">
-            Open it
+            <Translated locale={locale} message="groupsPage.invite.open" />
           </Link>
           .
         </p>
       ) : state !== 'live' ? (
         <Notice tone="danger" data-testid="invite-link-dead">
-          {DEAD[state] ?? 'This invite link no longer works.'}
+          <Translated locale={locale} message={DEAD[state] ?? 'groupsPage.invite.dead'} />
         </Notice>
       ) : (
         <>
           <p className="text-sm text-muted" data-testid="invite-link-how">
-            {follow === 'join'
-              ? 'This link lets you into the group.'
-              : 'This group is joined by request. The link sends yours to the people who run it.'}
+            <Translated
+              locale={locale}
+              message={follow === 'join' ? 'groupsPage.invite.join' : 'groupsPage.invite.ask'}
+            />
           </p>
           {rules !== null && (
             <section className="flex flex-col gap-2" data-testid="invite-link-rules">
-              <h2 className="text-lg font-semibold">This group&rsquo;s rules</h2>
+              <h2 className="text-lg font-semibold">
+                <Translated locale={locale} message="groupsPage.rulesTitle" />
+              </h2>
               <p className="whitespace-pre-line text-sm" lang={group.language ?? undefined}>
                 {rules.body}
               </p>
               <p className="text-sm text-muted">
-                Written by the group&rsquo;s owner: the group&rsquo;s own rules, not the
-                platform&rsquo;s.
+                <Translated locale={locale} message="groupsPage.invite.rulesWhose" />
               </p>
             </section>
           )}

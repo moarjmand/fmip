@@ -3716,6 +3716,1451 @@
     "text": "",
     "status": "untranslated"
   },
+  "friendsPage.title": {
+    "source": "Friends",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.description": {
+    "source": "Your friends, your pending requests and the members you have blocked.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.lead": {
+    "source": "Friends can see one another’s friends-only profile and prediction history, and nothing more than that until you share it.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.requests": {
+    "source": "Requests",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.requestsUnreachable": {
+    "source": "Your requests cannot be listed right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.requestsNone": {
+    "source": "Nobody has asked to be your friend, and you have no request waiting for an answer.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.askedAt": {
+    "source": "asked {when}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.youAskedAt": {
+    "source": "you asked {when}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.yours": {
+    "source": "Your friends",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.friendsUnreachable": {
+    "source": "Your friends cannot be listed right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.friendsNone": {
+    "source": "You have no friends here yet. Open a member’s profile to send a request.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.friendsSince": {
+    "source": "friends since {when}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.compare": {
+    "source": "Compare records",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.blocked": {
+    "source": "Blocked",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.blockedHint": {
+    "source": "A blocked member cannot send you a friend request, and is not told. Lifting a block makes contact possible again; it does not restore a friendship the block ended.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.blocksUnreachable": {
+    "source": "Your block list cannot be shown right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.blocksNone": {
+    "source": "You have blocked nobody.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.blockedAt": {
+    "source": "blocked {when}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.control.working": {
+    "source": "Working…",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.control.done": {
+    "source": "Done.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.control.block": {
+    "source": "Block",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.control.add": {
+    "source": "Add friend",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.control.sent": {
+    "source": "Friend request sent.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.control.cancel": {
+    "source": "Cancel request",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.control.received": {
+    "source": "@{username} asked to be your friend.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.control.accept": {
+    "source": "Accept",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.control.decline": {
+    "source": "Decline",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.control.friends": {
+    "source": "You are friends.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.control.remove": {
+    "source": "Remove friend",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.control.youBlocked": {
+    "source": "You blocked @{username}. They are not told.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.control.unblock": {
+    "source": "Unblock",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.control.unavailable": {
+    "source": "You cannot send @{username} a friend request.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.done.sent": {
+    "source": "Request sent to @{username}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.done.accepted": {
+    "source": "You and @{username} are now friends.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.done.withdrawn": {
+    "source": "The request between you and @{username} is withdrawn.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.done.unfriended": {
+    "source": "@{username} is no longer in your friends.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.done.blocked": {
+    "source": "@{username} is blocked. They are not told.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "friendsPage.done.unblocked": {
+    "source": "@{username} is unblocked. Any friendship the block ended is not restored.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.title": {
+    "source": "Messages",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.description": {
+    "source": "Your conversations.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.lead": {
+    "source": "You can open a conversation with a member you are friends with, from their profile.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.listUnreachable": {
+    "source": "Your conversations cannot be listed right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.none": {
+    "source": "You have no conversations yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.nothingSaid": {
+    "source": "Nothing said yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.lastRemoved": {
+    "source": "A message was removed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.sharedCard": {
+    "source": "Shared a football card.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.unread": {
+    "source": "{count} unread",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.muted": {
+    "source": "muted",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.youLeft": {
+    "source": "you have left",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.conversation": {
+    "source": "A conversation",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.conversationUnreachable": {
+    "source": "This conversation cannot be shown right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.all": {
+    "source": "All conversations",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.thisGroup": {
+    "source": "this group",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.comparisonUnreachable": {
+    "source": "What the group called cannot be shown right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.search.label": {
+    "source": "Search this conversation",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.search.submit": {
+    "source": "Search",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.search.clear": {
+    "source": "Clear",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.search.more": {
+    "source": ", and more",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.search.unreachable": {
+    "source": "The search is unreachable right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.search.none": {
+    "source": "Nothing matches that here.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.pinned": {
+    "source": "Pinned",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.earlier": {
+    "source": "Earlier messages",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.empty": {
+    "source": "Nothing has been said yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.live.live": {
+    "source": "New messages appear here as they are sent.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.live.connecting": {
+    "source": "Connecting…",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.live.offline": {
+    "source": "Not live right now. Reload to see anything new.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.composer.left": {
+    "source": "You have left this conversation. You can still read it.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.composer.closed": {
+    "source": "The platform’s moderators closed this group. You can read it and leave it; nothing new can be written.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.composer.label": {
+    "source": "Your message",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.composer.placeholder": {
+    "source": "Write a message",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.composer.aboutCard": {
+    "source": "Say something about it (optional)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.composer.sharing": {
+    "source": "Sharing: {card}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.composer.send": {
+    "source": "Send",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.composer.sending": {
+    "source": "Sending…",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.control.done": {
+    "source": "Done.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.control.mute": {
+    "source": "Mute",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.control.unmute": {
+    "source": "Unmute",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.control.leave": {
+    "source": "Leave",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.control.remove": {
+    "source": "Remove",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.control.message": {
+    "source": "Message",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.control.opening": {
+    "source": "Opening…",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.control.pin": {
+    "source": "Pin",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.control.unpin": {
+    "source": "Unpin",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.moderate.summary": {
+    "source": "Remove as a group moderator",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.moderate.reason": {
+    "source": "Why (the author is told)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.reaction.agree": {
+    "source": "Agree",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.reaction.disagree": {
+    "source": "Disagree",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.reaction.laugh": {
+    "source": "Ha",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.reaction.surprise": {
+    "source": "Oh",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.reaction.sad": {
+    "source": "Sad",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.reaction.celebrate": {
+    "source": "Yes",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.reaction.react": {
+    "source": "React",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.done.removed": {
+    "source": "Removed. What you wrote is gone; the place it was is not.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.done.moderated": {
+    "source": "Removed. Its author is told why.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.done.muted": {
+    "source": "Muted.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.done.unmuted": {
+    "source": "Unmuted.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.done.left": {
+    "source": "You have left. You can still read what was said; you cannot add to it.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.done.pinned": {
+    "source": "Pinned.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.done.unpinned": {
+    "source": "Unpinned.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.versus": {
+    "source": "{home} v {away}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.card.gone": {
+    "source": "Something was shared here that no longer exists.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.card.unknown": {
+    "source": "Something was shared here that this page cannot show yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.card.updated": {
+    "source": "Updated",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.card.says": {
+    "source": "says {outcome} · confidence {confidence}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.card.outcome.home": {
+    "source": "home",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.card.outcome.draw": {
+    "source": "draw",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.card.outcome.away": {
+    "source": "away",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.removedByModerator": {
+    "source": "Removed by a moderator.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.removedByAuthor": {
+    "source": "The author removed this.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.removedWhy": {
+    "source": "Why: {reason}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.mentioned": {
+    "source": "Mentioned {names}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.pinnedHere": {
+    "source": "Pinned in this conversation",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.yours": {
+    "source": "Yours",
+    "text": "",
+    "status": "untranslated"
+  },
+  "messagesPage.blockingNote": {
+    "source": "Blocking and reporting live on a member’s profile, where they work the same way everywhere else in the product.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.title": {
+    "source": "Groups",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.group": {
+    "source": "A group",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.unreachable": {
+    "source": "This group cannot be shown right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.all": {
+    "source": "All groups",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.row.public": {
+    "source": "Anyone can join",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.row.discoverable": {
+    "source": "Ask to join",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.row.invite_only": {
+    "source": "By invitation",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.visibility.public": {
+    "source": "Anyone can find this group and join it.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.visibility.discoverable": {
+    "source": "Anyone can find this group. Joining it is by request.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.invited": {
+    "source": "You have been invited",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.invitedBy": {
+    "source": "Invited by",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.yours": {
+    "source": "Yours",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.yoursUnreachable": {
+    "source": "Your groups cannot be shown right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.yoursNone": {
+    "source": "You are not in a group yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.find": {
+    "source": "Find a group",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.search": {
+    "source": "Search groups",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.directoryUnreachable": {
+    "source": "The directory is unreachable right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.directoryNone": {
+    "source": "No groups yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.directoryNoMatch": {
+    "source": "Nothing matches that.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.directoryNote": {
+    "source": "Groups that are joined by invitation are not listed here.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.closed": {
+    "source": "The platform’s moderators closed this group:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.closedNote": {
+    "source": "Its members can read it and leave it. Nothing new can be written in it.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.appeal.title": {
+    "source": "Appeal",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.appeal.unreachable": {
+    "source": "The appeal cannot be shown right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.appeal.none": {
+    "source": "No appeal has been written.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.appeal.body": {
+    "source": "Why the group should be reopened",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.appeal.send": {
+    "source": "Send the appeal",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.appeal.sent": {
+    "source": "Sent.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.rulesChanged": {
+    "source": "This group’s rules have changed (version {version}). Read them below. You stay a member either way.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.rulesTitle": {
+    "source": "This group’s rules",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.rulesWhose": {
+    "source": "Version {version}. Written by the group’s owner: these are the group’s own rules, not the platform’s, and they sit beside the platform rules every member already accepted.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.rulesOwner": {
+    "source": "Rules",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.openConversation": {
+    "source": "Open the group conversation",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.members": {
+    "source": "Members",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.membersHidden": {
+    "source": "Who is in this group is shown to its members.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.role.owner": {
+    "source": "owner",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.role.moderator": {
+    "source": "moderator",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.board.title": {
+    "source": "The board",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.board.unreachable": {
+    "source": "The board cannot be shown right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.board.none": {
+    "source": "Nobody in this group has settled {count} predictions yet, so there is nobody to rank. That is the same filter the whole product uses.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.board.more": {
+    "source": "Showing {shown} of {total} ranked members.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.board.note": {
+    "source": "Ranked among this group’s members by the same rating as the {link}. The rating is the one number; only who it is measured against changes.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.board.global": {
+    "source": "global board",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.queue.title": {
+    "source": "Asking to join",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.queue.unreachable": {
+    "source": "The queue cannot be shown right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.queue.none": {
+    "source": "Nobody is waiting.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.control.working": {
+    "source": "Working…",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.control.done": {
+    "source": "Done.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.control.acceptRules": {
+    "source": "I have read this group’s rules and I accept them.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.control.ask": {
+    "source": "Ask to join",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.control.askNote": {
+    "source": "Say something to whoever decides (optional)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.control.owner": {
+    "source": "You own this group. Hand it to somebody else before you can leave it.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.control.leave": {
+    "source": "Leave group",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.control.acceptInvite": {
+    "source": "Accept invitation",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.control.decline": {
+    "source": "Decline",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.control.requested": {
+    "source": "You have asked to join. Somebody who runs the group will answer.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.control.withdraw": {
+    "source": "Take it back",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.control.join": {
+    "source": "Join group",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.control.inviteOnly": {
+    "source": "This group is joined by invitation.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.control.unavailable": {
+    "source": "You cannot join this group at the moment.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.control.unknown": {
+    "source": "There is nothing to do here yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.control.rulesSeen": {
+    "source": "I have read them",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.control.letIn": {
+    "source": "Let them in",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.control.refuse": {
+    "source": "No",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.rules.publish": {
+    "source": "Publish",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.rules.write": {
+    "source": "Write the group’s rules",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.rules.writeNew": {
+    "source": "Write a new version of the rules",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.rules.hint": {
+    "source": "Publishing makes a new version. Joining will ask for it to be accepted; members already in are shown it once and stay members either way.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.done.in": {
+    "source": "You are in.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.done.published": {
+    "source": "Published as version {version}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.done.appealed": {
+    "source": "Sent. A moderator reads every appeal.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.done.noted": {
+    "source": "Noted.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.done.asked": {
+    "source": "Asked. Somebody who runs the group will answer.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.done.withdrawn": {
+    "source": "Taken back.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.done.left": {
+    "source": "You have left.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.done.declined": {
+    "source": "Declined.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.done.letIn": {
+    "source": "@{username} is in.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.done.refused": {
+    "source": "@{username} was not let in.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.invite.title": {
+    "source": "A group invitation",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.invite.unreachable": {
+    "source": "This invitation cannot be shown right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.invite.member": {
+    "source": "You are already in this group.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.invite.open": {
+    "source": "Open it",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.invite.revoked": {
+    "source": "This invite link was revoked.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.invite.expired": {
+    "source": "This invite link has expired.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.invite.exhausted": {
+    "source": "This invite link has been used as many times as it allows.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.invite.orphaned": {
+    "source": "Whoever made this invite link can no longer invite people to this group.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.invite.dead": {
+    "source": "This invite link no longer works.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.invite.join": {
+    "source": "This link lets you into the group.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.invite.ask": {
+    "source": "This group is joined by request. The link sends yours to the people who run it.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.invite.rulesWhose": {
+    "source": "Written by the group’s owner: the group’s own rules, not the platform’s.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.comparison.title": {
+    "source": "What {group} called",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.comparison.none": {
+    "source": "Nobody here has called this match.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.comparison.home": {
+    "source": "Home win",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.comparison.draw": {
+    "source": "Draw",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.comparison.away": {
+    "source": "Away win",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.comparison.confidence": {
+    "source": "confidence {confidence}/{max}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.comparison.changed": {
+    "source": "changed {count}×",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.comparison.unsettled": {
+    "source": "Not settled yet",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.comparison.void": {
+    "source": "Void — {reason}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.comparison.noReason": {
+    "source": "no reason given",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.comparison.wrong": {
+    "source": "Wrong",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.comparison.right": {
+    "source": "Right",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.comparison.rightScore": {
+    "source": "Right, with the score",
+    "text": "",
+    "status": "untranslated"
+  },
+  "groupsPage.comparison.open": {
+    "source": "This match has not kicked off. Calls can still change until it does.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.title": {
+    "source": "Match discussion",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.unreachable": {
+    "source": "The discussion cannot be shown right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.none": {
+    "source": "Nobody has opened a discussion on this match.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.empty": {
+    "source": "Nobody has posted about this match yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.emptyClosed": {
+    "source": "This discussion is closed, and nothing was posted on it.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.more": {
+    "source": "Showing {shown} of {total} posts.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.qualifies": {
+    "source": "You meet every requirement. Approval is a person’s decision and has not been made yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.refusal.closed": {
+    "source": "This discussion is closed. It can still be read.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.refusal.signIn": {
+    "source": "Sign in to join the discussion. Reading it needs no account.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.refusal.notApproved": {
+    "source": "Posting here is a granted privilege. Reading is open to everybody.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.refusal.paused": {
+    "source": "Your contributor approval is paused, so you cannot post for now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.refusal.withdrawn": {
+    "source": "Your contributor approval was withdrawn.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.refusal.restricted": {
+    "source": "A moderation restriction stops you posting here.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.tier.bronze": {
+    "source": "Bronze",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.tier.silver": {
+    "source": "Silver",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.tier.gold": {
+    "source": "Gold",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.tier.platinum": {
+    "source": "Platinum",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.tier.elite": {
+    "source": "Elite",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.unrated": {
+    "source": "Not rated yet",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.approved": {
+    "source": "Approved contributor",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.formerlyApproved": {
+    "source": "Formerly approved",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.removedByAuthor": {
+    "source": "The author removed this post.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.removedByModerator": {
+    "source": "A moderator removed this post.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.follow": {
+    "source": "Follow",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.following": {
+    "source": "Following",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.working": {
+    "source": "Working…",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.home": {
+    "source": "Home",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.away": {
+    "source": "Away",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.reaction.agree": {
+    "source": "Agree",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.reaction.disagree": {
+    "source": "Disagree",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.reaction.laugh": {
+    "source": "Laugh",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.reaction.surprise": {
+    "source": "Surprise",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.reaction.sad": {
+    "source": "Sad",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.reaction.celebrate": {
+    "source": "Celebrate",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.reaction.yours": {
+    "source": "yours",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.compose.label": {
+    "source": "Add to the discussion",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.compose.link": {
+    "source": "Link one thing from this match (optional)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.compose.noLink": {
+    "source": "No link",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.compose.group.incidents": {
+    "source": "Incidents",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.compose.group.players": {
+    "source": "Players",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.compose.group.statistics": {
+    "source": "Statistics",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.compose.group.prediction": {
+    "source": "Your prediction",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.compose.myPrediction": {
+    "source": "My prediction on this match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.compose.post": {
+    "source": "Post",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.compose.posting": {
+    "source": "Posting…",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.compose.empty": {
+    "source": "Write something first.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.compose.posted": {
+    "source": "Posted.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.link.incident": {
+    "source": "Linked incident",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.link.incidentGone": {
+    "source": "The data feed has since removed this incident.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.link.incidentChanged": {
+    "source": "The data feed changed this incident after it was linked. This is how it stands now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.link.withSide": {
+    "source": "{name} ({side})",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.link.player": {
+    "source": "Linked player",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.link.playerGone": {
+    "source": "The data feed no longer lists this player in either line-up.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.link.statistic": {
+    "source": "Linked statistic",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.link.statisticLine": {
+    "source": "{metric}, {side}: {value} when posted",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.link.statisticGone": {
+    "source": "The data feed no longer supplies this statistic.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.link.statisticNow": {
+    "source": "Now {value}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.link.prediction": {
+    "source": "{author}'s prediction",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.link.predictionFriends": {
+    "source": "This member shows their predictions to friends only.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.link.predictionPrivate": {
+    "source": "This member keeps their predictions private.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.link.predictionLine": {
+    "source": "{author}'s prediction: {outcome}, confidence {confidence} of {max}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.link.predictionLineScore": {
+    "source": "{author}'s prediction: {outcome} {score}, confidence {confidence} of {max}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.link.predictionOwn": {
+    "source": "A member's own call. Not the model's forecast or the community's.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.link.predictionRevised": {
+    "source": "They changed this call after posting.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.link.outcome.home": {
+    "source": "home win",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.link.outcome.draw": {
+    "source": "draw",
+    "text": "",
+    "status": "untranslated"
+  },
+  "panel.link.outcome.away": {
+    "source": "away win",
+    "text": "",
+    "status": "untranslated"
+  },
+  "threads.title": {
+    "source": "Talk about this match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "threads.none": {
+    "source": "A match thread happens inside a group. You are not in one yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "threads.discussIn": {
+    "source": "Discuss in {group}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "threads.working": {
+    "source": "Working…",
+    "text": "",
+    "status": "untranslated"
+  },
   "groupSettings.title": {
     "source": "Running the group",
     "text": "",

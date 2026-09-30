@@ -17,6 +17,9 @@ const COMPARISON = readFileSync(join(HERE, 'group-comparison.tsx'), 'utf8');
 const THREADS = readFileSync(join(HERE, 'match-threads.tsx'), 'utf8');
 const ACTIONS = readFileSync(join(HERE, '..', 'lib', 'thread-actions.ts'), 'utf8');
 const HEADER = readFileSync(join(HERE, 'conversation.tsx'), 'utf8');
+const ACTION = readFileSync(join(HERE, 'community-action.tsx'), 'utf8');
+// The words live in the catalogue since T-1308.
+const EN = readFileSync(join(HERE, '..', 'i18n', 'catalogues', 'en.json'), 'utf8');
 const MATCH = readFileSync(
   join(HERE, '..', 'app', '[locale]', 'match', '[id]', 'page.tsx'),
   'utf8',
@@ -34,8 +37,10 @@ describe('the comparison repeats a verdict and never reaches one', () => {
   });
 
   it('says a call is not settled rather than leaving the verdict blank', () => {
-    expect(COMPARISON).toMatch(/Not settled yet/);
-    expect(COMPARISON).toMatch(/Void/);
+    expect(COMPARISON).toContain("'groupsPage.comparison.unsettled'");
+    expect(COMPARISON).toContain("'groupsPage.comparison.void'");
+    expect(EN).toMatch(/"groupsPage.comparison.unsettled": "Not settled yet"/);
+    expect(EN).toMatch(/"groupsPage.comparison.void": "Void/);
   });
 
   it('counts the silent and the withheld separately, and says both', () => {
@@ -49,7 +54,8 @@ describe('the comparison repeats a verdict and never reaches one', () => {
 
   it('says when a match has not kicked off, because calls can still change', () => {
     expect(COMPARISON).toContain('data-testid="group-comparison-open"');
-    expect(COMPARISON).toMatch(/not kicked off/);
+    expect(COMPARISON).toContain('message="groupsPage.comparison.open"');
+    expect(EN).toMatch(/"groupsPage.comparison.open": "[^"]*not kicked off/);
   });
 });
 
@@ -75,12 +81,15 @@ describe('a thread is opened from the match it is about', () => {
   it('tells a member with no groups what a thread needs, and states unreachable apart from empty', () => {
     expect(THREADS).toContain('data-testid="match-threads-none"');
     expect(THREADS).toContain('data-testid="match-threads-unreachable"');
-    expect(THREADS).toMatch(/happens inside a group/);
+    expect(THREADS).toContain('message="threads.none"');
+    expect(EN).toMatch(/"threads.none": "[^"]*happens inside a group/);
   });
 
   it('works without JavaScript: a form per control, no click handlers', () => {
-    expect(THREADS).toContain('<form action={formAction}');
+    expect(THREADS).toContain('<CommunityAction');
+    expect(ACTION).toContain('<form action={formAction}');
     expect(THREADS).not.toMatch(/onClick|useEffect|addEventListener/);
+    expect(ACTION).not.toMatch(/onClick|useEffect|addEventListener/);
   });
 });
 

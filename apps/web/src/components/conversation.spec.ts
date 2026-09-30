@@ -28,6 +28,10 @@ const CONTROLS = source('conversation-controls.tsx');
 const LIVE = source('live-conversation.tsx');
 const PAGE = source('..', 'app', '[locale]', 'messages', '[id]', 'page.tsx');
 const LIST = source('..', 'app', '[locale]', 'messages', 'page.tsx');
+// Since T-1308 the controls are server components over one client form, and
+// their words live in the catalogue.
+const ACTION = source('community-action.tsx');
+const EN = source('..', 'i18n', 'catalogues', 'en.json');
 
 /** Read from the contract rather than typed out here. */
 function reactions(): string[] {
@@ -76,15 +80,16 @@ describe('every shared card has somewhere to be rendered', () => {
 
 describe('the way out is on the surface it belongs to', () => {
   it('offers mute and leave', () => {
-    expect(CONTROLS).toContain('data-testid="conversation-mute"');
-    expect(CONTROLS).toContain('data-testid="conversation-leave"');
+    expect(CONTROLS).toContain('testId="conversation-mute"');
+    expect(CONTROLS).toContain('testId="conversation-leave"');
     expect(PAGE).toContain('<ConversationExits');
   });
 
   it('points at the profile, where blocking and reporting already live', () => {
     // Re-implementing them here would give one member two block buttons that
     // could disagree.
-    expect(CARD).toMatch(/Blocking and reporting/);
+    expect(CARD).toContain('message="messagesPage.blockingNote"');
+    expect(EN).toMatch(/"messagesPage.blockingNote": "Blocking and reporting/);
     // Through `MemberName` (T-908), which links a live member's profile and
     // no deleted one's.
     expect(CARD).toContain('member={{ username: member.username }}');
@@ -101,7 +106,8 @@ describe('correct before fast', () => {
   });
 
   it('sends through a form over a server action', () => {
-    expect(CONTROLS).toContain('<form action={formAction}');
+    expect(ACTION).toContain('<form action={formAction}');
+    expect(CONTROLS).toContain('<CommunityAction');
     expect(CONTROLS).toContain('sendMessageAction');
   });
 });
@@ -131,7 +137,9 @@ describe('the socket adds, and takes nothing away (T-237)', () => {
     // Rule 4 on a surface with no timestamp of its own: what it must not do is
     // sit there silently while nothing is arriving.
     expect(LIVE).toContain('data-testid="conversation-live"');
-    expect(LIVE).toMatch(/Not live right now/);
+    expect(LIVE).toContain('labels.offline');
+    expect(PAGE).toContain('messagesPage.live.offline');
+    expect(EN).toMatch(/"messagesPage.live.offline": "Not live right now/);
     expect(LIVE).toContain("setState('offline')");
   });
 
@@ -157,9 +165,11 @@ describe('reactions, mentions and pins (T-226)', () => {
     // The acceptance criterion. A popover would have needed a script and would
     // have made this the first control on the surface that did -- on a page
     // whose whole point is being correct before the socket of T-230 exists.
-    expect(CONTROLS).toMatch(/<form action=\{formAction\} className="inline">/);
+    expect(ACTION).toMatch(/<form action=\{formAction\} className="inline">/);
+    expect(CONTROLS).toContain('<CommunityChip');
     expect(CONTROLS).toContain('<details');
     expect(CONTROLS).not.toMatch(/onClick|useEffect|addEventListener/);
+    expect(ACTION).not.toMatch(/onClick|useEffect|addEventListener/);
   });
 
   it('shows the pinned messages whatever page is being read', () => {
@@ -187,7 +197,9 @@ describe('what a conversation says when it has nothing to show', () => {
     // A message that silently vanished would make the conversation around it
     // unreadable and the moderation record unverifiable.
     expect(CARD).toContain('data-testid="message-removed"');
-    expect(CARD).toMatch(/Removed by a moderator/);
-    expect(CARD).toMatch(/The author removed this/);
+    expect(CARD).toContain('messagesPage.removedByModerator');
+    expect(CARD).toContain('messagesPage.removedByAuthor');
+    expect(EN).toMatch(/"messagesPage.removedByModerator": "Removed by a moderator/);
+    expect(EN).toMatch(/"messagesPage.removedByAuthor": "The author removed this/);
   });
 });

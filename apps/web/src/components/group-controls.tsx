@@ -1,10 +1,10 @@
-'use client';
-
-import { useActionState } from 'react';
 import type { GroupStanding } from '@fmip/contracts';
+import { MAX_GROUP_RULES } from '@fmip/contracts';
+import type { MessageKey } from '@/i18n/messages';
 import type { ActionState } from '@/lib/auth-actions';
 import {
   acceptGroupInviteAction,
+  appealGroupClosureAction,
   answerJoinRequestAction,
   askToJoinGroupAction,
   declineGroupInviteAction,
@@ -15,66 +15,71 @@ import {
   leaveGroupAction,
   withdrawGroupRequestAction,
 } from '@/lib/group-actions';
-import { Button, FormStatus, TextArea } from '@/components/ui';
-import { MAX_GROUP_RULES } from '@fmip/contracts';
+import { CommunityAction } from '@/components/community-action';
+import { Translated } from '@/components/translated';
+import { TextArea } from '@/components/ui';
 
 type BoundAction = (state: ActionState, formData: FormData) => Promise<ActionState>;
 
-/**
- * One button, its own form, and whatever the API said about it — the same shape
- * as `friend-controls.tsx`, for the same reason: each control works on its own
- * without JavaScript, and a failure is shown beside the thing that failed.
+/*
+ * Server components since T-1308: the words are chosen from the catalogue here
+ * and handed to the client form (`CommunityAction`) already resolved, so the
+ * catalogues stay on the server (T-1040). Each control is still its own form
+ * over a server action, the same shape as `friend-controls.tsx`, for the same
+ * reason: each works without JavaScript, and a failure is shown beside the
+ * thing that failed.
  */
+
+function working(locale: string) {
+  return <Translated locale={locale} message="groupsPage.control.working" />;
+}
+
+function done(locale: string) {
+  return <Translated locale={locale} message="groupsPage.control.done" />;
+}
+
 /**
  * The rules a member accepts to get in (T-1023): a box they tick, and the
  * version they were shown, so what they accept is the text on the screen.
  * Nothing at all when the group has no rules.
  */
-function AcceptRules({ version }: { version: number | null | undefined }) {
+function AcceptRules({ locale, version }: { locale: string; version: number | null | undefined }) {
   if (version === null || version === undefined) return null;
   return (
     <label className="flex items-center gap-2 text-sm">
       <input type="hidden" name="rules_version" value={version} />
-      <input type="checkbox" name="accept_rules" required data-testid="group-accept-rules" />I have
-      read this group&rsquo;s rules and I accept them.
+      <input type="checkbox" name="accept_rules" required data-testid="group-accept-rules" />
+      <Translated locale={locale} message="groupsPage.control.acceptRules" />
     </label>
   );
 }
 
 function ActionButton({
+  locale,
   action,
   label,
   testId,
   quiet,
   rulesVersion,
 }: {
+  locale: string;
   action: BoundAction;
-  label: string;
+  label: MessageKey;
   testId: string;
   quiet?: boolean;
   rulesVersion?: number | null;
 }) {
-  const [state, formAction, pending] = useActionState(action, null);
-
   return (
-    <form action={formAction} className="flex flex-col gap-1">
-      <AcceptRules version={rulesVersion} />
-      <Button
-        type="submit"
-        variant={quiet ? 'secondary' : 'primary'}
-        pending={pending}
-        pendingLabel="Working…"
-        data-testid={testId}
-        className="self-start"
-      >
-        {label}
-      </Button>
-      {state !== null && (
-        <FormStatus ok={state.ok} data-testid={`${testId}-result`}>
-          {state.ok ? (state.message ?? 'Done.') : state.message}
-        </FormStatus>
-      )}
-    </form>
+    <CommunityAction
+      action={action}
+      submit={<Translated locale={locale} message={label} />}
+      working={working(locale)}
+      done={done(locale)}
+      variant={quiet ? 'secondary' : 'primary'}
+      testId={testId}
+    >
+      <AcceptRules locale={locale} version={rulesVersion} />
+    </CommunityAction>
   );
 }
 
@@ -88,38 +93,27 @@ function AskToJoin({
   slug: string;
   rulesVersion: number | null;
 }) {
-  const [state, formAction, pending] = useActionState(
-    askToJoinGroupAction.bind(null, locale, slug),
-    null,
-  );
-
   return (
-    <form action={formAction} className="flex flex-col gap-2" data-testid="group-ask-form">
+    <CommunityAction
+      action={askToJoinGroupAction.bind(null, locale, slug)}
+      submit={<Translated locale={locale} message="groupsPage.control.ask" />}
+      working={working(locale)}
+      done={done(locale)}
+      variant="primary"
+      formClassName="flex flex-col gap-2"
+      formTestId="group-ask-form"
+      testId="group-ask"
+    >
       <TextArea
-        label="Say something to whoever decides (optional)"
+        label={<Translated locale={locale} message="groupsPage.control.askNote" />}
         id="group-note"
         name="note"
         rows={2}
         maxLength={300}
         data-testid="group-note"
       />
-      <AcceptRules version={rulesVersion} />
-      <Button
-        type="submit"
-        variant="primary"
-        pending={pending}
-        pendingLabel="Working…"
-        data-testid="group-ask"
-        className="self-start"
-      >
-        Ask to join
-      </Button>
-      {state !== null && (
-        <FormStatus ok={state.ok} data-testid="group-ask-result">
-          {state.ok ? (state.message ?? 'Done.') : state.message}
-        </FormStatus>
-      )}
-    </form>
+      <AcceptRules locale={locale} version={rulesVersion} />
+    </CommunityAction>
   );
 }
 
@@ -158,7 +152,7 @@ export function GroupControls({
   if (standing === 'owner') {
     return (
       <p className="text-sm text-muted" data-testid="group-owner-note">
-        You own this group. Hand it to somebody else before you can leave it.
+        <Translated locale={locale} message="groupsPage.control.owner" />
       </p>
     );
   }
@@ -166,8 +160,9 @@ export function GroupControls({
   if (standing === 'moderator' || standing === 'member') {
     return (
       <ActionButton
+        locale={locale}
         action={leaveGroupAction.bind(null, locale, slug)}
-        label="Leave group"
+        label="groupsPage.control.leave"
         testId="group-leave"
         quiet
       />
@@ -178,14 +173,16 @@ export function GroupControls({
     return (
       <div className="flex flex-wrap gap-3" data-testid="group-invited">
         <ActionButton
+          locale={locale}
           action={acceptGroupInviteAction.bind(null, locale, slug)}
-          label="Accept invitation"
+          label="groupsPage.control.acceptInvite"
           testId="group-accept-invite"
           rulesVersion={rulesVersion}
         />
         <ActionButton
+          locale={locale}
           action={declineGroupInviteAction.bind(null, locale, slug)}
-          label="Decline"
+          label="groupsPage.control.decline"
           testId="group-decline-invite"
           quiet
         />
@@ -197,11 +194,12 @@ export function GroupControls({
     return (
       <div className="flex flex-col gap-2">
         <p className="text-sm text-muted" data-testid="group-requested">
-          You have asked to join. Somebody who runs the group will answer.
+          <Translated locale={locale} message="groupsPage.control.requested" />
         </p>
         <ActionButton
+          locale={locale}
           action={withdrawGroupRequestAction.bind(null, locale, slug)}
-          label="Take it back"
+          label="groupsPage.control.withdraw"
           testId="group-withdraw"
           quiet
         />
@@ -212,8 +210,9 @@ export function GroupControls({
   if (standing === 'may_join') {
     return (
       <ActionButton
+        locale={locale}
         action={joinGroupAction.bind(null, locale, slug)}
-        label="Join group"
+        label="groupsPage.control.join"
         testId="group-join"
         rulesVersion={rulesVersion}
       />
@@ -229,7 +228,7 @@ export function GroupControls({
     // always be refused is a worse answer than the sentence.
     return (
       <p className="text-sm text-muted" data-testid="group-invite-only">
-        This group is joined by invitation.
+        <Translated locale={locale} message="groupsPage.control.inviteOnly" />
       </p>
     );
   }
@@ -239,7 +238,7 @@ export function GroupControls({
     // surface that owns that conversation, not from every group page.
     return (
       <p className="text-sm text-muted" data-testid="group-unavailable">
-        You cannot join this group at the moment.
+        <Translated locale={locale} message="groupsPage.control.unavailable" />
       </p>
     );
   }
@@ -249,7 +248,7 @@ export function GroupControls({
   // than shown whichever branch happened to be last.
   return (
     <p className="text-sm text-muted" data-testid="group-standing-unknown">
-      There is nothing to do here yet.
+      <Translated locale={locale} message="groupsPage.control.unknown" />
     </p>
   );
 }
@@ -272,8 +271,9 @@ export function FollowInviteLink({
 }) {
   return (
     <ActionButton
+      locale={locale}
       action={followInviteLinkAction.bind(null, locale, token)}
-      label={follow === 'join' ? 'Join group' : 'Ask to join'}
+      label={follow === 'join' ? 'groupsPage.control.join' : 'groupsPage.control.ask'}
       testId="invite-link-follow"
       rulesVersion={rulesVersion}
     />
@@ -284,8 +284,9 @@ export function FollowInviteLink({
 export function RulesSeen({ locale, slug }: { locale: string; slug: string }) {
   return (
     <ActionButton
+      locale={locale}
       action={groupRulesSeenAction.bind(null, locale, slug)}
-      label="I have read them"
+      label="groupsPage.control.rulesSeen"
       testId="group-rules-seen"
       quiet
     />
@@ -306,14 +307,25 @@ export function GroupRulesForm({
   slug: string;
   current: string | null;
 }) {
-  const [state, formAction, pending] = useActionState(
-    setGroupRulesAction.bind(null, locale, slug),
-    null,
-  );
   return (
-    <form action={formAction} className="flex flex-col gap-2" data-testid="group-rules-form">
+    <CommunityAction
+      action={setGroupRulesAction.bind(null, locale, slug)}
+      submit={<Translated locale={locale} message="groupsPage.rules.publish" />}
+      working={working(locale)}
+      done={done(locale)}
+      variant="secondary"
+      formClassName="flex flex-col gap-2"
+      formTestId="group-rules-form"
+      testId="group-rules-publish"
+      resultTestId="group-rules-result"
+    >
       <TextArea
-        label={current === null ? 'Write the group’s rules' : 'Write a new version of the rules'}
+        label={
+          <Translated
+            locale={locale}
+            message={current === null ? 'groupsPage.rules.write' : 'groupsPage.rules.writeNew'}
+          />
+        }
         id="group-rules-body"
         name="body"
         rows={6}
@@ -323,25 +335,9 @@ export function GroupRulesForm({
         data-testid="group-rules-body"
       />
       <p className="text-sm text-muted">
-        Publishing makes a new version. Joining will ask for it to be accepted; members already in
-        are shown it once and stay members either way.
+        <Translated locale={locale} message="groupsPage.rules.hint" />
       </p>
-      <Button
-        type="submit"
-        variant="secondary"
-        pending={pending}
-        pendingLabel="Working…"
-        data-testid="group-rules-publish"
-        className="self-start"
-      >
-        Publish
-      </Button>
-      {state !== null && (
-        <FormStatus ok={state.ok} data-testid="group-rules-result">
-          {state.ok ? (state.message ?? 'Done.') : state.message}
-        </FormStatus>
-      )}
-    </form>
+    </CommunityAction>
   );
 }
 
@@ -358,16 +354,47 @@ export function JoinRequestControls({
   return (
     <div className="flex flex-wrap gap-3">
       <ActionButton
+        locale={locale}
         action={answerJoinRequestAction.bind(null, locale, slug, username, true)}
-        label="Let them in"
+        label="groupsPage.control.letIn"
         testId={`group-request-accept-${username}`}
       />
       <ActionButton
+        locale={locale}
         action={answerJoinRequestAction.bind(null, locale, slug, username, false)}
-        label="No"
+        label="groupsPage.control.refuse"
         testId={`group-request-refuse-${username}`}
         quiet
       />
     </div>
+  );
+}
+
+/**
+ * The owner's appeal of a closure (T-1025; T-211's notes, on the decision
+ * that closed it). Here rather than beside the administrators' forms since
+ * T-1308, so its words come from the catalogue on the server.
+ */
+export function GroupAppealForm({ locale, slug }: { locale: string; slug: string }) {
+  return (
+    <CommunityAction
+      action={appealGroupClosureAction.bind(null, locale, slug)}
+      submit={<Translated locale={locale} message="groupsPage.appeal.send" />}
+      done={<Translated locale={locale} message="groupsPage.appeal.sent" />}
+      variant="secondary"
+      formClassName="flex flex-col gap-2"
+      formTestId="group-appeal-form"
+      testId="group-appeal-submit"
+      resultTestId="group-appeal-result"
+    >
+      <TextArea
+        label={<Translated locale={locale} message="groupsPage.appeal.body" />}
+        id="group-appeal-body"
+        name="body"
+        rows={4}
+        maxLength={4000}
+        required
+      />
+    </CommunityAction>
   );
 }

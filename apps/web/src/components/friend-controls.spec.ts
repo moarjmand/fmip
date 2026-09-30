@@ -24,6 +24,8 @@ function source(file: string): string {
 }
 
 const CONTROLS = source('friend-controls.tsx');
+// The words live in the catalogue since T-1308.
+const EN = readFileSync(join(HERE, '..', 'i18n', 'catalogues', 'en.json'), 'utf8');
 
 /**
  * The states a viewer can be in, from `@fmip/contracts`. Read from the contract
@@ -72,10 +74,12 @@ describe('what the controls never say', () => {
     // The contract returns `unavailable` rather than `blocked_by` for this
     // reason; a component that then wrote the sentence out would undo it.
     expect(CONTROLS).not.toMatch(/blocked you|has blocked|they blocked/i);
+    expect(EN).not.toMatch(/"friendsPage\.[^"]*": "[^"]*(blocked you|has blocked|they blocked)/i);
   });
 
   it('names the viewer’s own block plainly, because it is theirs to undo', () => {
-    expect(CONTROLS).toMatch(/You blocked @\{username\}/);
+    expect(CONTROLS).toContain('message="friendsPage.control.youBlocked"');
+    expect(EN).toMatch(/"friendsPage.control.youBlocked": "You blocked @\{username\}/);
   });
 });
 
@@ -95,6 +99,9 @@ describe('the friends page', () => {
   it('puts the block list where a member can find it', () => {
     // A block a member cannot find is a block they cannot lift.
     expect(PAGE).toContain('data-testid="block-list"');
-    expect(PAGE).toMatch(/does not restore a friendship the block ended/);
+    expect(PAGE).toContain('message="friendsPage.blockedHint"');
+    expect(EN).toMatch(
+      /"friendsPage.blockedHint": "[^"]*does not restore a friendship the block ended/,
+    );
   });
 });
