@@ -7,14 +7,19 @@ import {
   fitConverged,
   logLoss,
   openPlaces,
+  pairFixture,
   probabilities,
   restBefore,
   scheduleOf,
   score,
   seasonListOf,
+  squadContextBefore,
+  squadMeasurements,
   stakesBefore,
   spread,
   type Observation,
+  type RecordedFixture,
+  type RecordedRating,
 } from './internal/power-index-backtest';
 
 // Validating the weights against history (T-113).
@@ -317,5 +322,99 @@ describe("the context component's contribution", () => {
       ]),
     );
     expect(result.contextContribution ?? 0).toBeGreaterThan(0);
+  });
+});
+
+describe('line-up quality and stability from our recorded line-ups (T-924)', () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const start = Date.parse('2025-08-16T15:00:00Z');
+  const teams = ['t0', 't1', 't2', 't3', 't4', 't5', 't6', 't7'];
+  const xi = (team: string): string[] => Array.from({ length: 11 }, (_, i) => `${team}-p${i}`);
+
+  // Four rounds of eight teams; t0's players rate highest, t7's lowest.
+  const fixtures: RecordedFixture[] = [];
+  const ratings: RecordedRating[] = [];
+  for (let round = 0; round < 4; round += 1) {
+    for (let pair = 0; pair < 4; pair += 1) {
+      const home = teams[(pair + round) % 8] as string;
+      const away = teams[(7 - pair + round) % 8] as string;
+      const kickoffAt = start + round * 7 * DAY;
+      fixtures.push({
+        id: `r${round}-${pair}`,
+        seasonId: 's',
+        kickoffAt,
+        home: { teamId: home, coachId: `${home}-coach`, starters: xi(home) },
+        away: { teamId: away, coachId: `${away}-coach`, starters: xi(away) },
+      });
+      for (const team of [home, away]) {
+        const level = 8 - Number(team.slice(1)) / 2;
+        for (const personId of xi(team)) {
+          ratings.push({ seasonId: 's', kickoffAt, personId, rating: level });
+        }
+      }
+    }
+  }
+  const last = fixtures.at(-1) as RecordedFixture;
+
+  it('pairs a training match with the same catalogue clubs a day apart at most, never by name', () => {
+    const day = new Date(last.kickoffAt).toISOString().slice(0, 10);
+    const next = new Date(last.kickoffAt + DAY).toISOString().slice(0, 10);
+    const far = new Date(last.kickoffAt + 3 * DAY).toISOString().slice(0, 10);
+    expect(pairFixture(fixtures, day, last.home.teamId, last.away.teamId)).toBe(last);
+    expect(pairFixture(fixtures, next, last.home.teamId, last.away.teamId)).toBe(last);
+    expect(pairFixture(fixtures, far, last.home.teamId, last.away.teamId)).toBeUndefined();
+    expect(pairFixture(fixtures, day, last.away.teamId, last.home.teamId)).toBeUndefined();
+    expect(pairFixture(fixtures, day, 'E0:Some Name', last.away.teamId)).toBeUndefined();
+  });
+
+  it('reads only the season before the kick-off, and the XI that started as the announced one', () => {
+    const context = squadContextBefore(fixtures, ratings, last);
+    for (const matches of context.matches.values()) {
+      expect(matches.every((m) => m.kickoffAt.getTime() < last.kickoffAt)).toBe(true);
+    }
+    expect(context.matches.get(last.home.teamId)).toHaveLength(3);
+    expect(context.confirmed.get(last.home.teamId)).toEqual(last.home.starters);
+    expect(context.out.size).toBe(0);
+    // A rating from this kick-off or later is never read.
+    const later: RecordedRating = {
+      seasonId: 's',
+      kickoffAt: last.kickoffAt,
+      personId: 't0-p0',
+      rating: 0,
+    };
+    expect(squadContextBefore(fixtures, [...ratings, later], last).ratings.get('t0-p0')).toBe(8);
+  });
+
+  it('measures both components as the live index does, and nothing before the season has a line-up', () => {
+    const measured = squadMeasurements(squadContextBefore(fixtures, ratings, last), last);
+    const [home, away] = [Number(last.home.teamId.slice(1)), Number(last.away.teamId.slice(1))];
+    const stronger = home < away ? measured.home : measured.away;
+    const weaker = home < away ? measured.away : measured.home;
+    expect(stronger.lineup_quality?.value ?? 0).toBeGreaterThan(weaker.lineup_quality?.value ?? 1);
+    expect(measured.home.stability?.value).not.toBeNull();
+
+    const first = fixtures[0] as RecordedFixture;
+    const opening = squadMeasurements(squadContextBefore(fixtures, ratings, first), first);
+    expect(opening.home.lineup_quality?.value).toBeNull();
+    expect(opening.home.stability?.value).toBeNull();
+  });
+
+  it("reports each component's contribution as what removing it costs on held-out matches", () => {
+    const observations = signal(400);
+    const half = { train: observations.slice(0, 200), test: observations.slice(200) };
+    const worse = {
+      train: half.train,
+      test: half.test.map((o) => ({ ...o, difference: -o.difference })),
+    };
+    const result = score(
+      'E0',
+      new Map([
+        ['blueprint', half],
+        ['without-lineup', worse],
+        ['without-stability', half],
+      ]),
+    );
+    expect(result.lineupContribution ?? 0).toBeGreaterThan(0);
+    expect(result.stabilityContribution).toBe(0);
   });
 });

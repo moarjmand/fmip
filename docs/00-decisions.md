@@ -5104,6 +5104,72 @@ written, and the list is short.
 **Consequences.** `TeamPage.manager` (`TeamManager`), `EntityNewsResponse`
 and `ENTITY_NEWS_LIMIT` are in the contract. No migration.
 
+## D-121 — The line-up term is judged by D-139's bar on held-out matches; the candidate carries `lineup_beta` only if it passes
+
+**Status:** Accepted · 2026-09-30 (revisable under the standing delegation of 2026-09-26). T-923. **Verdict: pending the server run** (the lead amends this entry with the numbers). Follows D-086, D-139.
+
+**The problem.** D-086 fits the line-up term's one number, `beta`, and says a
+candidate carries it "only if the gain is real", without saying what real is.
+The harness printed a held-out gain and nothing to tell it from noise. The
+line-ups the fit needs are in the production store only (4,929 of 4,948 played
+2025/26 fixtures, and 2023/24 and 2024/25 nearly complete); the laptop has none.
+
+**The decision.** "Real" is D-139's bar, the one every model input answers,
+applied to the term on its held-out matches: at least **300** of them, and the
+95% paired bootstrap interval of the with-minus-without mean log loss (2,000
+resamples, seed 1101, `paired_bootstrap` of `backtest.inputs` itself) entirely
+below zero. `python -m fmip_model.backtest.lineups` states the interval and a
+verdict (`passed`, `failed`, `insufficient`) beside `beta` and the two log
+losses, and writes them to `lineups_[<from>_]<split>.json` under `--out`.
+`--from` keeps only the XIs measured on or after a day, so one season can be
+fitted and scored on its own. The run that decides is the one over every
+season our records hold line-ups for, `beta` fitted on 2023/24 and 2024/25
+(`--split 2025-07-01`) and scored on the whole of 2025/26; the 2025/26-only
+run (`--from 2025-07-01 --split 2026-01-01`) is stated beside it. Only
+`passed` puts `lineup_beta` in the next candidate (a new version in shadow,
+D-082); otherwise no candidate carries it and this entry says why, with the
+numbers.
+
+**Rejected.** *A margin on the point gain*: D-139 already rejected it for
+every input, for the same reason. *A bar of its own for this term*: the term
+is an input like the others, and a separate bar would be one chosen after
+seeing its numbers.
+
+## D-122 — The Power Index's line-up quality and stability are validated on our own recorded line-ups, at the published bar
+
+**Status:** Accepted · 2026-09-30 (revisable under the standing delegation of 2026-09-26). T-924. **Verdict: pending the server run** (the lead amends this entry with the numbers). Follows D-081, T-113, D-142, D-146.
+
+**The problem.** `12-power-index.md` said line-up quality (20%) and stability
+(5%) "cannot be validated": the backtest walked the training store, which holds
+results, not line-ups. Our own records now hold them for three seasons.
+
+**The decision.** `power-index-backtest.mjs` pairs each training match with
+the fixture of our records that is the same match (the same two catalogue
+clubs through `training.team_alias`, a day apart at most, as D-086 pairs them;
+a club the bridge does not know is never paired, never matched by name) and
+measures both components with the live index's own functions
+(`measureLineup`, `measureStability`) from what our records held before the
+kick-off: the season's earlier fixtures with their coach and XI, and each
+player's mean rating over the season's earlier matches of 20 minutes or more.
+The XI that started stands for the announced one; absences are not read. A
+match that is not a fixture of our records has neither component, and its
+weight is redistributed as the live index does. Four candidates ask the
+components' question against the published arithmetic: `without-lineup`,
+`lineup-heavy` (35%), `without-stability`, `stability-heavy` (15%); the report
+states the matches paired and read and each component's contribution (removing
+it minus the blueprint, positive: it helped). `--from` scores only matches on
+or after a day, so the held-out half lies in the seasons our line-ups cover;
+`--out` writes the report to a directory and leaves the docs alone, the form
+the server runs it in. The bar is unchanged: a candidate replaces the
+published weights only by beating them by more than **0.01** held-out log
+loss, and a change is a new `power-index@x.y.z` with its own entry, never an
+edit.
+
+**Rejected.** *Reading the expected XI (last XI less those reported out)*:
+the backtest asks whether the weights carry signal; the live index reads the
+announced XI whenever one is confirmed, and our records hold the one that
+started. *A finer grid of weights*: the candidates stay few (T-113).
+
 ## D-123 — Story types: blueprint 3.2's eleven, from the publisher's own category by an exact committed mapping or from an editor, never from a machine
 **Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26)
 

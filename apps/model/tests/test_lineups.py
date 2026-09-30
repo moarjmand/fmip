@@ -16,7 +16,7 @@ from datetime import UTC, date, datetime, timedelta
 import numpy as np
 import pytest
 
-from fmip_model.backtest.lineups import Dated, evaluate, pair
+from fmip_model.backtest.lineups import Dated, evaluate, pair, verdict_of
 from fmip_model.model.dixon_coles import MatchObservation
 from fmip_model.model.lineups import (
     LineupSample,
@@ -83,6 +83,25 @@ def test_the_split_scores_the_same_matches_with_and_without_the_term() -> None:
     assert report.fitted_on + report.tested_on == len(samples)
     assert report.beta == pytest.approx(0.5, abs=0.15)
     assert report.gain > 0
+    lo, hi = report.log_loss_difference_interval
+    assert lo <= -report.gain <= hi
+    assert report.verdict == "passed"
+
+
+def test_a_term_the_matches_were_not_played_with_does_not_pass_d139s_bar() -> None:
+    start = date(2026, 8, 1)
+    samples = [
+        Dated(start + timedelta(days=i // 10), s) for i, s in enumerate(simulate(0.0, 3000, seed=4))
+    ]
+    report = evaluate(samples, start + timedelta(days=200))
+    assert report.verdict == "failed"
+    assert report.log_loss_difference_interval[1] >= 0
+
+
+def test_the_bar_needs_enough_held_out_matches_and_an_interval_below_zero() -> None:
+    assert verdict_of(299, (-0.02, -0.01)) == "insufficient"
+    assert verdict_of(300, (-0.02, -0.01)) == "passed"
+    assert verdict_of(300, (-0.02, 0.001)) == "failed"
 
 
 # --- the measurement, against the schema ------------------------------------------
