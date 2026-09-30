@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Pool } from 'pg';
 import type { ForecastKind } from '@fmip/contracts';
 import { PG_POOL } from '../../database/database.module';
+import { EvaluationService } from './evaluation.service';
 import { ForecastService } from './forecast.service';
 import { PowerIndexService } from './power-index.service';
 import {
@@ -39,6 +40,11 @@ export interface TriggerReport {
  * forecast is not ingestion, and giving it its own tick keeps it out of the
  * `ingest_run` record, which is about what a provider was asked for.
  */
+/** How far back a finished fixture is still scored by the tick, in days. */
+export const EVALUATE_WINDOW_DAYS = 14;
+/** Fixtures scored per tick at most. */
+export const EVALUATE_BATCH = 200;
+
 @Injectable()
 export class ForecastTriggersService {
   private readonly log = new Logger('Forecast');
@@ -47,7 +53,38 @@ export class ForecastTriggersService {
     @Inject(PG_POOL) private readonly pool: Pool,
     private readonly forecasts: ForecastService,
     private readonly indexes: PowerIndexService,
+    private readonly evaluations: EvaluationService,
   ) {}
+
+  /**
+   * Scores every finished fixture that still has an available version with no
+   * evaluation (T-066), on the same tick. Evaluation was only ever reached from
+   * the administrator's `POST /fixtures/:id/evaluations`, so no forecast was
+   * scored by itself and no candidate could reach T-535's 300. A fixture is
+   * taken while its result can still be corrected upstream (14 days), and at
+   * most `EVALUATE_BATCH` a tick so a backlog drains without a long tick.
+   */
+  async evaluateFinished(now: Date = new Date()): Promise<{ fixtures: number; added: number }> {
+    const since = new Date(now.getTime() - EVALUATE_WINDOW_DAYS * MILLISECONDS_PER_DAY);
+    const { rows } = await this.pool.query<{ id: string }>(
+      `SELECT f.id
+         FROM fixture f
+        WHERE f.status = 'finished' AND f.kickoff_at >= $1 AND f.kickoff_at <= $2
+          AND EXISTS (
+            SELECT 1 FROM forecast fc
+             WHERE fc.fixture_id = f.id AND fc.status = 'available'
+               AND NOT EXISTS (SELECT 1 FROM evaluation e WHERE e.forecast_id = fc.id))
+        ORDER BY f.kickoff_at
+        LIMIT $3`,
+      [since, now, EVALUATE_BATCH],
+    );
+    let added = 0;
+    for (const row of rows) {
+      const outcome = await this.evaluations.evaluateFixture(row.id);
+      if (outcome.kind === 'evaluated') added += outcome.added;
+    }
+    return { fixtures: rows.length, added };
+  }
 
   /** Computes whatever is due across the window. Safe to run as often as you like. */
   async runDue(now: Date = new Date()): Promise<TriggerReport> {

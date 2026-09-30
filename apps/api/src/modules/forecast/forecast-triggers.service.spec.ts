@@ -3,8 +3,10 @@ import { Test } from '@nestjs/testing';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
+import { EvaluationService } from './evaluation.service';
 import { ForecastTriggersService } from './forecast-triggers.service';
 import { MODEL_CLIENT, ForecastService } from './forecast.service';
+import { PostgresEvaluationStore } from './internal/evaluation-store';
 import { PostgresForecastStore } from './internal/forecast-store';
 import { ModelClient } from './internal/model-client';
 import { PowerIndexService } from './power-index.service';
@@ -77,6 +79,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
           ForecastService,
           PostgresForecastStore,
           PowerIndexService,
+          EvaluationService,
+          PostgresEvaluationStore,
           { provide: MODEL_CLIENT, useValue: unreachable },
         ],
       }).compile();
@@ -147,6 +151,16 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       const fourth = await triggers.runDue(NOW);
       expect(fourth.computed.lineups_confirmed ?? 0).toBe(0);
       expect(await kinds()).toEqual(['early', 'lineups_confirmed']);
+    });
+
+    it('scores nothing while the fixture is unfinished, and never an unavailable version', async () => {
+      // Only unavailable versions exist here (the model is unreachable), so
+      // even once the match is finished there is nothing to score.
+      expect(await triggers.evaluateFinished(NOW)).toEqual({ fixtures: 0, added: 0 });
+      await pool.query(`UPDATE fixture SET status = 'finished' WHERE id = $1`, [FIXTURE]);
+      const later = new Date(KICKOFF.getTime() + 3 * 60 * 60 * 1000);
+      expect(await triggers.evaluateFinished(later)).toEqual({ fixtures: 0, added: 0 });
+      await pool.query(`UPDATE fixture SET status = 'scheduled' WHERE id = $1`, [FIXTURE]);
     });
 
     it('stops once kick-off has passed, rather than adding a version to a live match', async () => {
