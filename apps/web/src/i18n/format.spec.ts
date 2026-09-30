@@ -74,7 +74,8 @@ describe('what the other seven see', () => {
 
   it('keeps the clock on the 24-hour cycle everywhere', () => {
     for (const locale of UNFINISHED_LOCALES) {
-      expect(formatTime(locale, '2025-01-05T20:31:00Z', ZONE), locale).toMatch(/20.31/);
+      // Persian writes its own digits (۲۰:۳۱); the cycle is what is asserted.
+      expect(formatTime(locale, '2025-01-05T20:31:00Z', ZONE), locale).toMatch(/(20|۲۰).(31|۳۱)/);
     }
   });
 

@@ -37,10 +37,29 @@ export const PSEUDO_LOCALES = ['x-rtl'] as const;
  * on purpose.** Their failures are quiet -- a wrong plural form, a date in the
  * wrong order -- and quiet failures are what the machinery has to survive
  * before it carries the language whose failures are visible from across a room.
+ *
+ * **Persian (`fa`) joined on 2026-10-01 (T-1301, D-175),** outside the
+ * blueprint's eight, at the maintainer's request: the product's home market.
+ * It sits in this list for the machinery (a translation file, the fallback,
+ * the picker's completeness test) and leaves the "unfinished" meaning behind
+ * once its pages are written (T-1310).
  */
-export const UNFINISHED_LOCALES = ['ar', 'de', 'es', 'fr', 'it', 'pt', 'tr'] as const;
+export const UNFINISHED_LOCALES = ['ar', 'de', 'es', 'fa', 'fr', 'it', 'pt', 'tr'] as const;
 
 export const LOCALES = ['en', ...UNFINISHED_LOCALES, ...PSEUDO_LOCALES] as const;
+
+/**
+ * Locales whose words are being written into the pages themselves (T-1310):
+ * they route and render, but are not offered in the picker even when their
+ * catalogue is complete, because most of a page's text is still English
+ * written in the page. Persian leaves this list when its pages are done.
+ */
+export const PREPARING_LOCALES: readonly string[] = ['fa'];
+
+/** Whether a locale is still being written into the pages (T-1310). */
+export function isPreparingLocale(value: string): boolean {
+  return PREPARING_LOCALES.includes(value);
+}
 
 export type Locale = (typeof LOCALES)[number];
 

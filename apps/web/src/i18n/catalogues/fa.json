@@ -1,0 +1,3556 @@
+{
+  "nav.scores": {
+    "source": "Scores",
+    "text": "نتایج",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "nav.search": {
+    "source": "Search",
+    "text": "جست‌وجو",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "nav.predictions": {
+    "source": "Predictions",
+    "text": "پیش‌بینی‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "nav.leaderboard": {
+    "source": "Leaderboard",
+    "text": "جدول برترین‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "nav.friends": {
+    "source": "Friends",
+    "text": "دوستان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "nav.messages": {
+    "source": "Messages",
+    "text": "پیام‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "nav.groups": {
+    "source": "Groups",
+    "text": "گروه‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "nav.signIn": {
+    "source": "Sign in",
+    "text": "ورود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "nav.signOut": {
+    "source": "Sign out",
+    "text": "خروج",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "nav.settings": {
+    "source": "Settings",
+    "text": "تنظیمات",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "nav.menu": {
+    "source": "Menu",
+    "text": "منو",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "nav.skipToContent": {
+    "source": "Skip to content",
+    "text": "رفتن به محتوای اصلی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "nav.searchLabel": {
+    "source": "Search teams, competitions, players, news, groups and members",
+    "text": "جست‌وجوی تیم‌ها، رقابت‌ها، بازیکنان، اخبار، گروه‌ها و اعضا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "common.unreachable": {
+    "source": "The service is unreachable right now.",
+    "text": "این سرویس در حال حاضر در دسترس نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "error.notFound.title": {
+    "source": "Page not found",
+    "text": "صفحه پیدا نشد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "error.notFound.body": {
+    "source": "There is no page at this address. It may have moved, or the link may be mistyped.",
+    "text": "در این نشانی صفحه‌ای وجود ندارد. ممکن است جابه‌جا شده باشد، یا پیوند اشتباه نوشته شده باشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "error.failed.title": {
+    "source": "This page could not be shown",
+    "text": "نمایش این صفحه ممکن نشد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "error.failed.body": {
+    "source": "Something went wrong while building this page. Trying again usually works; the rest of the site is still here.",
+    "text": "هنگام ساختن این صفحه مشکلی پیش آمد. معمولاً تلاش دوباره نتیجه می‌دهد؛ بقیه‌ی سایت همچنان در دسترس است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "error.failed.retry": {
+    "source": "Try again",
+    "text": "تلاش دوباره",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "error.toScores": {
+    "source": "Go to scores",
+    "text": "رفتن به نتایج",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "theme.label": {
+    "source": "Theme",
+    "text": "پوسته",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "theme.light": {
+    "source": "Light",
+    "text": "روشن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "theme.dark": {
+    "source": "Dark",
+    "text": "تیره",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "theme.system": {
+    "source": "Device",
+    "text": "مطابق دستگاه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "theme.heading": {
+    "source": "Appearance",
+    "text": "ظاهر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "theme.hint": {
+    "source": "Device follows the light or dark setting of your phone or computer. Your choice is kept in this browser and on your account, so signing in elsewhere brings it with you.",
+    "text": "«مطابق دستگاه» از تنظیم روشن یا تیره‌ی گوشی یا رایانه‌ی شما پیروی می‌کند. انتخاب شما در این مرورگر و در حساب کاربری‌تان ذخیره می‌شود، پس اگر جای دیگری وارد شوید، همراهتان می‌آید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "appearance.device": {
+    "source": "Device",
+    "text": "مطابق دستگاه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "appearance.textSize.label": {
+    "source": "Text size",
+    "text": "اندازه‌ی متن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "appearance.textSize.default": {
+    "source": "Standard",
+    "text": "معمولی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "appearance.textSize.large": {
+    "source": "Large",
+    "text": "بزرگ",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "appearance.textSize.larger": {
+    "source": "Larger",
+    "text": "بزرگ‌تر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "appearance.contrast.label": {
+    "source": "Contrast",
+    "text": "تضاد رنگ",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "appearance.contrast.standard": {
+    "source": "Standard",
+    "text": "معمولی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "appearance.contrast.more": {
+    "source": "More",
+    "text": "بیشتر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "appearance.motion.label": {
+    "source": "Motion",
+    "text": "جلوه‌های حرکتی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "appearance.motion.reduce": {
+    "source": "Reduced",
+    "text": "کاهش‌یافته",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "appearance.hint": {
+    "source": "Larger text makes every size on the page bigger. More contrast darkens secondary text and edges so all text reaches the highest readability standard. Reduced motion stops animations. Device follows the setting of your phone or computer.",
+    "text": "متن بزرگ‌تر همه‌ی اندازه‌های صفحه را بزرگ‌تر می‌کند. تضاد بیشتر، متن‌های فرعی و لبه‌ها را تیره‌تر می‌کند تا همه‌ی متن‌ها به بالاترین استاندارد خوانایی برسند. جلوه‌های حرکتی کاهش‌یافته، پویانمایی‌ها را متوقف می‌کند. «مطابق دستگاه» از تنظیم گوشی یا رایانه‌ی شما پیروی می‌کند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "appearance.guest": {
+    "source": "Sign in to change your profile, privacy, following and viewing territory. Your appearance choices are kept in this browser, and on your account once you sign in.",
+    "text": "برای تغییر نمایه، حریم خصوصی، دنبال‌شده‌ها و کشور محل تماشا وارد شوید. انتخاب‌های ظاهری شما در این مرورگر ذخیره می‌شود، و پس از ورود، در حساب کاربری‌تان هم.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "account.delete.heading": {
+    "source": "Delete my account",
+    "text": "حذف حساب کاربری من",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "account.delete.removed": {
+    "source": "Deleting your account signs you out on every device and removes your e-mail address, password, display name, biography, preferences, follows, friendships, blocks, group memberships and invitations, and your push subscriptions.",
+    "text": "با حذف حساب کاربری، از همه‌ی دستگاه‌ها خارج می‌شوید و نشانی ایمیل، گذرواژه، نام نمایشی، زندگی‌نامه، ترجیحات، دنبال‌شده‌ها، دوستی‌ها، مسدودسازی‌ها، عضویت‌ها و دعوت‌های گروه، و اشتراک‌های اعلان پوش شما پاک می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "account.delete.kept": {
+    "source": "Your messages and match panel posts stay where they were written, shown as by a deleted member. Your published community analysis is taken down. Your predictions and their settlements stay as records without your name, because other members' ratings were computed against them. Reports you made are kept for the moderation record.",
+    "text": "پیام‌ها و پست‌های شما در میزگرد مسابقه همان‌جا که نوشته شده‌اند باقی می‌مانند و به نام «عضو حذف‌شده» نمایش داده می‌شوند. تحلیل‌های منتشرشده‌ی شما در تحلیل کاربران برداشته می‌شود. پیش‌بینی‌های شما و تسویه‌ی آن‌ها بدون نام شما، به‌عنوان سابقه باقی می‌مانند، چون امتیاز دیگر اعضا با آن‌ها محاسبه شده است. گزارش‌های تخلفی که ثبت کرده‌اید برای سوابق نظارت نگه داشته می‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "account.delete.username": {
+    "source": "Your username is retired: nobody can register it after you. A group you own passes to its longest-standing moderator, or member; a group with nobody else in it is closed.",
+    "text": "نام کاربری شما بازنشسته می‌شود: پس از شما هیچ‌کس نمی‌تواند با آن ثبت‌نام کند. گروهی که مالک آن هستید به قدیمی‌ترین ناظرش، یا اگر ناظری نداشته باشد به قدیمی‌ترین عضوش، سپرده می‌شود؛ گروهی که عضو دیگری ندارد بسته می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "account.delete.final": {
+    "source": "This cannot be undone.",
+    "text": "این کار برگشت‌پذیر نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "account.delete.password": {
+    "source": "Your password",
+    "text": "گذرواژه‌ی شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "account.delete.confirm": {
+    "source": "Type your username to confirm",
+    "text": "برای تأیید، نام کاربری خود را بنویسید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "account.delete.confirmHint": {
+    "source": "Type {username} exactly as it is written here.",
+    "text": "{username} را دقیقاً همان‌طور که این‌جا نوشته شده است بنویسید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "account.delete.submit": {
+    "source": "Delete my account",
+    "text": "حذف حساب کاربری من",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "account.deleted.title": {
+    "source": "Your account was deleted",
+    "text": "حساب کاربری شما حذف شد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "account.deleted.body": {
+    "source": "Your account was deleted and every session was signed out. Your predictions remain as records without your name.",
+    "text": "حساب کاربری شما حذف شد و همه‌ی نشست‌هایتان بسته شد. پیش‌بینی‌های شما بدون نام، به‌عنوان سابقه باقی می‌مانند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "account.deletedMember": {
+    "source": "A deleted member",
+    "text": "عضو حذف‌شده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "account.export.heading": {
+    "source": "Download my data",
+    "text": "دریافت داده‌های من",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "account.export.contents": {
+    "source": "One file (JSON) of what this site holds about you: your account and preferences, follows, friendships, groups, every version of your predictions and how they settled, your rating history and achievements, saved stories, the messages and match panel posts you wrote, your community analysis, the reports you filed and the notifications sent to you.",
+    "text": "یک فایل (JSON) از آنچه این سایت درباره‌ی شما نگه می‌دارد: حساب کاربری و ترجیحات، دنبال‌شده‌ها، دوستی‌ها، گروه‌ها، همه‌ی نسخه‌های پیش‌بینی‌هایتان و نتیجه‌ی تسویه‌ی آن‌ها، سابقه‌ی امتیاز و دستاوردهایتان، خبرهای ذخیره‌شده، پیام‌ها و پست‌هایی که در میزگرد مسابقه نوشته‌اید، تحلیل‌هایتان در تحلیل کاربران، گزارش‌های تخلفی که ثبت کرده‌اید و اعلان‌هایی که برایتان فرستاده شده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "account.export.others": {
+    "source": "Only your own words and rows are in it: never another member's messages, name or predictions. A conversation shows only what you wrote.",
+    "text": "فقط نوشته‌ها و داده‌های خود شما در آن است: هرگز پیام، نام یا پیش‌بینی عضوی دیگر در آن نیست. از هر گفت‌وگو فقط آنچه خودتان نوشته‌اید آمده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "account.export.once": {
+    "source": "One file a day. It downloads here, in this browser, and is never sent by e-mail.",
+    "text": "روزی یک فایل. فایل همین‌جا، در همین مرورگر، دانلود می‌شود و هرگز با ایمیل فرستاده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "account.export.password": {
+    "source": "Your password",
+    "text": "گذرواژه‌ی شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "account.export.submit": {
+    "source": "Download my data",
+    "text": "دریافت داده‌های من",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "account.export.refused.password": {
+    "source": "That password is not right. No file was made.",
+    "text": "گذرواژه درست نیست. فایلی ساخته نشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "account.export.refused.daily": {
+    "source": "You downloaded a copy less than a day ago. The next one is possible a day after that.",
+    "text": "کمتر از یک روز پیش یک نسخه دریافت کرده‌اید. نسخه‌ی بعدی یک روز پس از آن ممکن است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "account.export.refused.limited": {
+    "source": "Too many wrong passwords. Wait a while and try again.",
+    "text": "گذرواژه بیش از حد اشتباه وارد شده است. کمی صبر کنید و دوباره تلاش کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "account.export.refused.signed_out": {
+    "source": "Your session has ended. Sign in again to download your data.",
+    "text": "نشست شما به پایان رسیده است. برای دریافت داده‌هایتان دوباره وارد شوید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "account.export.refused.unavailable": {
+    "source": "The service is unreachable right now. No file was made.",
+    "text": "این سرویس در حال حاضر در دسترس نیست. فایلی ساخته نشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "language.name.en": {
+    "source": "English",
+    "text": "انگلیسی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "language.name.ar": {
+    "source": "Arabic",
+    "text": "عربی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "language.name.de": {
+    "source": "German",
+    "text": "آلمانی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "language.name.es": {
+    "source": "Spanish",
+    "text": "اسپانیایی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "language.name.fa": {
+    "source": "Persian",
+    "text": "فارسی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "language.name.fr": {
+    "source": "French",
+    "text": "فرانسوی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "language.name.it": {
+    "source": "Italian",
+    "text": "ایتالیایی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "language.name.pt": {
+    "source": "Portuguese",
+    "text": "پرتغالی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "language.name.tr": {
+    "source": "Turkish",
+    "text": "ترکی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "languageHold.notice": {
+    "source": "this language is held back for now, so FMIP is shown in English. Your choice is kept, and applies again when the language returns.",
+    "text": "این زبان فعلاً کنار گذاشته شده است، برای همین FMIP به انگلیسی نمایش داده می‌شود. انتخاب شما حفظ می‌شود و با بازگشت این زبان دوباره اعمال می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "friends.mutualCount": {
+    "source": {
+      "one": "{count} friend in common",
+      "other": "{count} friends in common"
+    },
+    "forms": {
+      "one": "{count} دوست مشترک",
+      "other": "{count} دوست مشترک"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groups.memberCount": {
+    "source": {
+      "one": "{count} member",
+      "other": "{count} members"
+    },
+    "forms": {
+      "one": "{count} عضو",
+      "other": "{count} عضو"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "conversation.matchCount": {
+    "source": {
+      "one": "{count} message matching “{term}”",
+      "other": "{count} messages matching “{term}”"
+    },
+    "forms": {
+      "one": "{count} پیام شامل «{term}»",
+      "other": "{count} پیام شامل «{term}»"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "team.followerCount": {
+    "source": {
+      "one": "{count} follower",
+      "other": "{count} followers"
+    },
+    "forms": {
+      "one": "{count} دنبال‌کننده",
+      "other": "{count} دنبال‌کننده"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupComparison.silent": {
+    "source": {
+      "one": "{count} member did not call this match.",
+      "other": "{count} members did not call this match."
+    },
+    "forms": {
+      "one": "{count} عضو برای این بازی پیش‌بینی ثبت نکرده است.",
+      "other": "{count} عضو برای این بازی پیش‌بینی ثبت نکرده‌اند."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupComparison.withheld": {
+    "source": {
+      "one": "{count} keeps their predictions to themselves.",
+      "other": "{count} keep their predictions to themselves."
+    },
+    "forms": {
+      "one": "{count} نفر پیش‌بینی‌هایش را خصوصی نگه می‌دارد.",
+      "other": "{count} نفر پیش‌بینی‌هایشان را خصوصی نگه می‌دارند."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "team.position": {
+    "source": {
+      "type": "ordinal",
+      "one": "{count}st",
+      "two": "{count}nd",
+      "few": "{count}rd",
+      "other": "{count}th"
+    },
+    "forms": {
+      "other": "رده‌ی {count}"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "nav.news": {
+    "source": "News",
+    "text": "اخبار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "nav.watch": {
+    "source": "Watch",
+    "text": "تماشا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.title": {
+    "source": "Where to watch",
+    "text": "کجا ببینیم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.pageTitle": {
+    "source": "Watch",
+    "text": "تماشا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.pageLead": {
+    "source": "Official services for each match, in the territory you choose. Nothing is guessed from your address, and a territory nobody has covered says so.",
+    "text": "سرویس‌های رسمی پخش هر بازی، در کشوری که انتخاب می‌کنید. هیچ‌چیز از روی نشانی اینترنتی شما حدس زده نمی‌شود، و اگر کشوری را هنوز کسی پوشش نداده باشد، همین صریحاً گفته می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.in": {
+    "source": "Shown for",
+    "text": "نمایش برای",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.change": {
+    "source": "Change territory",
+    "text": "تغییر کشور",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.choose": {
+    "source": "Choose your territory",
+    "text": "کشور خود را انتخاب کنید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.ask": {
+    "source": "Choose your territory to see where this match is shown. It is never guessed from your address.",
+    "text": "کشور خود را انتخاب کنید تا ببینید این بازی از کجا پخش می‌شود. کشور شما هرگز از روی نشانی اینترنتی‌تان حدس زده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.askLabel": {
+    "source": "Territory",
+    "text": "کشور محل تماشا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.askSubmit": {
+    "source": "Show viewing options",
+    "text": "نمایش گزینه‌های تماشا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.notChosen": {
+    "source": "Not chosen",
+    "text": "انتخاب نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.noInfo": {
+    "source": "No viewing information yet for",
+    "text": "هنوز اطلاعات پخشی ثبت نشده است برای",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.nothingListed": {
+    "source": "No official service listed for this match in",
+    "text": "هیچ سرویس رسمی‌ای برای پخش این بازی ثبت نشده است در",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.on": {
+    "source": "On",
+    "text": "از",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.kickoff": {
+    "source": "Kick-off",
+    "text": "شروع بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.officialPage": {
+    "source": "Official page",
+    "text": "صفحه‌ی رسمی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.access.free": {
+    "source": "Free",
+    "text": "رایگان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.access.registration": {
+    "source": "Free with registration",
+    "text": "رایگان با ثبت‌نام",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.access.subscription": {
+    "source": "Subscription",
+    "text": "با اشتراک",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.access.payPerView": {
+    "source": "Pay per view",
+    "text": "پرداخت برای هر بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.kind.tv": {
+    "source": "TV",
+    "text": "تلویزیون",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.kind.streaming": {
+    "source": "Streaming",
+    "text": "پخش اینترنتی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.kind.radio": {
+    "source": "Radio",
+    "text": "رادیو",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.highlights": {
+    "source": "Highlights",
+    "text": "خلاصه‌ی بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.highlightsNoInfo": {
+    "source": "No highlight information yet for",
+    "text": "هنوز اطلاعاتی از خلاصه‌ی بازی ثبت نشده است برای",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.highlightsNone": {
+    "source": "No official highlight listed for",
+    "text": "هیچ خلاصه‌ی رسمی‌ای ثبت نشده است برای",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.highlightsPage": {
+    "source": "Official highlights",
+    "text": "خلاصه‌ی رسمی بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.highlightsPlayer": {
+    "source": "Official highlights player",
+    "text": "ویدیوی خلاصه‌ی رسمی بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.source": {
+    "source": "Source",
+    "text": "منبع",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.confirmed": {
+    "source": "confirmed",
+    "text": "تأییدشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.unreachable": {
+    "source": "The viewing service is unreachable right now, so where to watch cannot be shown.",
+    "text": "سرویس اطلاعات تماشا در حال حاضر در دسترس نیست، بنابراین نمی‌توان نشان داد این بازی از کجا پخش می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.noMatches": {
+    "source": "No matches on this day.",
+    "text": "در این روز بازی‌ای نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.matchCentre": {
+    "source": "Match centre",
+    "text": "مرکز مسابقه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.title": {
+    "source": "Editorial desk",
+    "text": "میز تحریریه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.lead": {
+    "source": "Listings are entered by hand from public schedules, link-only, and every entry is recorded with your name. Declare coverage for a territory before listing anything in it.",
+    "text": "فهرست‌ها به‌صورت دستی و از روی برنامه‌های عمومی وارد می‌شوند، فقط به‌صورت پیوند، و هر ورودی با نام شما ثبت می‌شود. پیش از ثبت هر چیزی برای یک کشور، وضعیت پوشش آن کشور را اعلام کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.territory": {
+    "source": "Territory code",
+    "text": "کد کشور",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.territoryHint": {
+    "source": "ISO 3166-1 alpha-2, such as GB or IR.",
+    "text": "ISO 3166-1 alpha-2، مانند GB یا IR.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.coverage": {
+    "source": "Declare coverage for this season",
+    "text": "اعلام پوشش برای این فصل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.module": {
+    "source": "Module",
+    "text": "بخش",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.moduleViewing": {
+    "source": "Viewing",
+    "text": "تماشا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.moduleHighlights": {
+    "source": "Highlights",
+    "text": "خلاصه‌ی بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.state": {
+    "source": "State",
+    "text": "وضعیت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.stateAvailable": {
+    "source": "Covered: what is listed is what there is",
+    "text": "پوشش کامل: آنچه فهرست شده، همه‌ی چیزی است که وجود دارد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.stateLimited": {
+    "source": "Partly covered",
+    "text": "پوشش ناقص",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.stateNotSupplied": {
+    "source": "Not covered",
+    "text": "بدون پوشش",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.note": {
+    "source": "Which schedule you are working from",
+    "text": "از روی کدام برنامه کار می‌کنید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.declare": {
+    "source": "Declare coverage",
+    "text": "اعلام پوشش",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.broadcaster": {
+    "source": "New broadcaster",
+    "text": "پخش‌کننده‌ی جدید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.name": {
+    "source": "Name",
+    "text": "نام",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.homepage": {
+    "source": "Homepage (optional)",
+    "text": "صفحه‌ی اصلی (اختیاری)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.kind": {
+    "source": "Kind",
+    "text": "نوع",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.addBroadcaster": {
+    "source": "Add broadcaster",
+    "text": "افزودن پخش‌کننده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.listing": {
+    "source": "List this match on a service",
+    "text": "ثبت این بازی روی یک سرویس",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.service": {
+    "source": "Service",
+    "text": "سرویس",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.access": {
+    "source": "Access",
+    "text": "نحوه‌ی دسترسی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.url": {
+    "source": "Official page",
+    "text": "صفحه‌ی رسمی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.list": {
+    "source": "Add listing",
+    "text": "افزودن به فهرست",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.highlight": {
+    "source": "Official highlight page",
+    "text": "صفحه‌ی رسمی خلاصه‌ی بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.setHighlight": {
+    "source": "Set highlight page",
+    "text": "ثبت صفحه‌ی خلاصه‌ی بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.remove": {
+    "source": "Remove",
+    "text": "حذف",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.reason": {
+    "source": "Why",
+    "text": "دلیل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "viewing.desk.noBroadcasters": {
+    "source": "No broadcasters yet. Add one below before listing.",
+    "text": "هنوز هیچ پخش‌کننده‌ای ثبت نشده است. پیش از ثبت فهرست، یکی را در پایین اضافه کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "summary.title": {
+    "source": "Match summary",
+    "text": "خلاصه‌ی متنی بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "summary.label": {
+    "source": "Written by a language model from the match record, not by a person. Not the founder's analysis, not the statistical forecast, not the community's view.",
+    "text": "نوشته‌شده توسط یک مدل زبانی بر پایه‌ی سوابق بازی، نه به دست یک انسان. این نه تحلیل بنیان‌گذار است، نه پیش‌بینی مدل آماری، و نه نظر جمعی کاربران.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "summary.model": {
+    "source": "Model",
+    "text": "مدل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "summary.written": {
+    "source": "written",
+    "text": "نوشته‌شده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "summary.version": {
+    "source": "version",
+    "text": "نسخه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "summary.groundedOn": {
+    "source": "Written from",
+    "text": "نوشته‌شده بر پایه‌ی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "summary.reason.notFinished": {
+    "source": "A summary is written from the full record, after the match.",
+    "text": "خلاصه پس از پایان بازی و بر پایه‌ی سوابق کامل آن نوشته می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "summary.reason.noModel": {
+    "source": "No language model is configured on this deployment, so there is no machine-written summary.",
+    "text": "روی این سایت هیچ مدل زبانی پیکربندی نشده است، پس خلاصه‌ی ماشینی وجود ندارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "summary.reason.notGenerated": {
+    "source": "No summary has been written for this match yet.",
+    "text": "هنوز خلاصه‌ای برای این بازی نوشته نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "summary.reason.rejected": {
+    "source": "The last attempt was turned down by the grounding check and is not shown.",
+    "text": "آخرین تلاش در بررسی انطباق با سوابق بازی رد شد و نمایش داده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "summary.reason.thinRecord": {
+    "source": "The record of this match holds only the score, so there is no summary: nothing else would be from the record.",
+    "text": "سوابق این بازی فقط شامل نتیجه است، پس خلاصه‌ای وجود ندارد: هر چیز دیگری که نوشته می‌شد، از سوابق بازی نبود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "summary.unreachable": {
+    "source": "The summary service is unreachable right now.",
+    "text": "سرویس خلاصه در حال حاضر در دسترس نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "summary.part.timeline": {
+    "source": "timeline",
+    "text": "رویدادهای بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "summary.part.statistics": {
+    "source": "statistics",
+    "text": "آمار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "summary.part.lineups": {
+    "source": "line-ups",
+    "text": "ترکیب‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "summary.part.forecast": {
+    "source": "forecast",
+    "text": "پیش‌بینی مدل آماری",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "summary.part.consensus": {
+    "source": "consensus",
+    "text": "نظر جمعی کاربران",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "summary.part.score": {
+    "source": "the score",
+    "text": "نتیجه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "search.readAs": {
+    "source": "Read as",
+    "text": "برداشت از پرسش",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "search.kinds": {
+    "source": "kinds",
+    "text": "دسته‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "search.reason.noModel": {
+    "source": "No language model is configured, so this is a keyword search.",
+    "text": "هیچ مدل زبانی پیکربندی نشده است، پس این یک جست‌وجوی کلیدواژه‌ای است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "search.reason.unreadable": {
+    "source": "The question could not be read as one, so it was searched as keywords.",
+    "text": "پرسش را نمی‌شد به‌صورت یک پرسش فهمید، پس با کلیدواژه‌ها جست‌وجو شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "search.reason.nothingNamed": {
+    "source": "The question names nothing the search could look for, so it was searched as keywords.",
+    "text": "پرسش به چیزی اشاره نمی‌کند که جست‌وجو بتواند دنبالش بگردد، پس با کلیدواژه‌ها جست‌وجو شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "search.reason.failed": {
+    "source": "The language model could not be reached, so this is a keyword search.",
+    "text": "دسترسی به مدل زبانی ممکن نشد، پس این یک جست‌وجوی کلیدواژه‌ای است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "search.section.team": {
+    "source": "Teams",
+    "text": "تیم‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "search.section.competition": {
+    "source": "Competitions",
+    "text": "رقابت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "search.section.person": {
+    "source": "Players",
+    "text": "بازیکنان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "search.section.story": {
+    "source": "News",
+    "text": "اخبار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "search.section.group": {
+    "source": "Groups",
+    "text": "گروه‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "search.section.member": {
+    "source": "Members",
+    "text": "اعضا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "search.empty.team": {
+    "source": "No team matches.",
+    "text": "هیچ تیمی پیدا نشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "search.empty.competition": {
+    "source": "No competition matches.",
+    "text": "هیچ رقابتی پیدا نشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "search.empty.person": {
+    "source": "No player matches.",
+    "text": "هیچ بازیکنی پیدا نشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "search.empty.story": {
+    "source": "No story's headline matches.",
+    "text": "تیتر هیچ خبری با جست‌وجو مطابقت ندارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "search.empty.group": {
+    "source": "No group that can be found matches. Invite-only groups are never listed.",
+    "text": "هیچ گروه قابل‌جست‌وجویی پیدا نشد. گروه‌هایی که فقط با دعوت می‌شود عضوشان شد، هرگز فهرست نمی‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "search.empty.member": {
+    "source": "No member with a public profile matches. Private and friends-only profiles are never listed.",
+    "text": "هیچ عضوی با نمایه‌ی عمومی پیدا نشد. نمایه‌های خصوصی و مخصوص دوستان هرگز فهرست نمی‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "search.group.public": {
+    "source": "Open to join",
+    "text": "عضویت آزاد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "search.group.discoverable": {
+    "source": "Ask to join",
+    "text": "عضویت با درخواست",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "search.communityUnreachable": {
+    "source": "News, groups and members cannot be searched right now.",
+    "text": "جست‌وجو در اخبار، گروه‌ها و اعضا در حال حاضر ممکن نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "briefing.title": {
+    "source": "Your briefing",
+    "text": "خلاصه‌ی خبری شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "briefing.label": {
+    "source": "Written by a language model from your feed, not by a person, and only about what is in it.",
+    "text": "نوشته‌شده توسط یک مدل زبانی بر پایه‌ی فید شما، نه به دست یک انسان، و فقط درباره‌ی آنچه در آن است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "briefing.window": {
+    "source": "Covering",
+    "text": "بازه‌ی زمانی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "briefing.write": {
+    "source": "Write my briefing",
+    "text": "نوشتن خلاصه‌ی خبری من",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "briefing.reason.noModel": {
+    "source": "No language model is configured on this deployment; your feed below is the briefing.",
+    "text": "روی این سایت هیچ مدل زبانی پیکربندی نشده است؛ فید زیر همان خلاصه‌ی خبری شماست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "briefing.reason.nothingToBrief": {
+    "source": "Nothing happened around what you follow in this window, so there is nothing to brief.",
+    "text": "در این بازه‌ی زمانی اتفاقی درباره‌ی آنچه دنبال می‌کنید نیفتاده است، پس چیزی برای خلاصه کردن نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "briefing.reason.notWritten": {
+    "source": "No briefing has been written yet. Ask for one and it is written from the feed below.",
+    "text": "هنوز خلاصه‌ی خبری‌ای نوشته نشده است. درخواست کنید تا از روی فید زیر نوشته شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "briefing.reason.rejected": {
+    "source": "The last attempt was turned down by the check that holds it to your feed, and is not shown.",
+    "text": "آخرین تلاش در بررسی‌ای که آن را به محتوای فید شما پایبند نگه می‌دارد رد شد و نمایش داده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "briefing.unreachable": {
+    "source": "The briefing service is unreachable right now.",
+    "text": "سرویس خلاصه‌ی خبری در حال حاضر در دسترس نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.title": {
+    "source": "News",
+    "text": "اخبار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.related.title": {
+    "source": "Related news",
+    "text": "اخبار مرتبط",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.related.nothing": {
+    "source": "No publisher has reported on this match or its sides in the week around it.",
+    "text": "هیچ منبعی در هفته‌ی پیرامون این بازی درباره‌ی آن یا دو تیمش خبری منتشر نکرده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.related.window": {
+    "source": "Stories from",
+    "text": "خبرها از",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.entity.nothingTeam": {
+    "source": "No publisher we read has reported on this team yet.",
+    "text": "هیچ‌یک از منابعی که می‌خوانیم هنوز درباره‌ی این تیم خبری منتشر نکرده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.entity.nothingCompetition": {
+    "source": "No publisher we read has reported on this competition yet.",
+    "text": "هیچ‌یک از منابعی که می‌خوانیم هنوز درباره‌ی این رقابت خبری منتشر نکرده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.entity.nothingPlayer": {
+    "source": "No publisher we read has reported on this player yet.",
+    "text": "هیچ‌یک از منابعی که می‌خوانیم هنوز درباره‌ی این بازیکن خبری منتشر نکرده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.entity.personsUnlinked": {
+    "source": "Stories are not linked to players yet, so this list cannot say whether anyone has written about this one.",
+    "text": "خبرها هنوز به بازیکنان پیوند داده نشده‌اند، بنابراین این فهرست نمی‌تواند بگوید کسی درباره‌ی این بازیکن چیزی نوشته است یا نه.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.entity.noCarriedSource": {
+    "source": {
+      "one": "None of the publishers we read has written about this competition in the last {count} day, so this is not a picture of its news.",
+      "other": "None of the publishers we read has written about this competition in the last {count} days, so this is not a picture of its news."
+    },
+    "forms": {
+      "one": "هیچ‌یک از منابعی که می‌خوانیم در {count} روز گذشته درباره‌ی این رقابت چیزی ننوشته است، بنابراین این فهرست تصویری از اخبار آن نیست.",
+      "other": "هیچ‌یک از منابعی که می‌خوانیم در {count} روز گذشته درباره‌ی این رقابت چیزی ننوشته است، بنابراین این فهرست تصویری از اخبار آن نیست."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.entity.belowFloor": {
+    "source": {
+      "one": "Only {count} story about this competition from the publishers we read in the last {days} days: our coverage of it is thin.",
+      "other": "Only {count} stories about this competition from the publishers we read in the last {days} days: our coverage of it is thin."
+    },
+    "forms": {
+      "one": "در {days} روز گذشته تنها {count} خبر درباره‌ی این رقابت از منابعی که می‌خوانیم منتشر شده است: پوشش ما از این رقابت اندک است.",
+      "other": "در {days} روز گذشته تنها {count} خبر درباره‌ی این رقابت از منابعی که می‌خوانیم منتشر شده است: پوشش ما از این رقابت اندک است."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "player.availability.title": {
+    "source": "Availability",
+    "text": "وضعیت حضور",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "player.availability.noTeam": {
+    "source": "No current team on record, so there is no next match to read availability for.",
+    "text": "تیم فعلی‌ای برای این بازیکن ثبت نشده است، بنابراین بازی بعدی‌ای نیست که وضعیت حضور او در آن بررسی شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "player.availability.noNextMatch": {
+    "source": "No scheduled match ahead for this team in our records.",
+    "text": "در سوابق ما، بازی برنامه‌ریزی‌شده‌ای برای این تیم در پیش نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "player.availability.fromLineup": {
+    "source": "Team taken from the latest line-up that names this player.",
+    "text": "تیم از آخرین ترکیبی گرفته شده است که نام این بازیکن در آن آمده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "player.availability.nextMatch": {
+    "source": "Next match",
+    "text": "بازی بعدی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "player.availability.notAsked": {
+    "source": "The feed has not yet been asked who will miss this match. It is asked in the three days before kick-off.",
+    "text": "هنوز از منبع داده پرسیده نشده است که چه کسانی این بازی را از دست می‌دهند. این پرسش در سه روز پیش از شروع بازی انجام می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "player.availability.out": {
+    "source": "Listed out",
+    "text": "غایب",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "player.availability.doubtful": {
+    "source": "Listed doubtful",
+    "text": "احتمال غیبت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "player.availability.notListed": {
+    "source": "Not on the feed's list of players who will or may miss this match. The feed never confirms that a player is fit.",
+    "text": "در فهرست منبع داده از بازیکنانی که این بازی را از دست می‌دهند یا ممکن است از دست بدهند، نیست. منبع داده هرگز آماده بودن یک بازیکن را تأیید نمی‌کند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "player.availability.asked": {
+    "source": "Feed asked",
+    "text": "زمان پرسش از منبع داده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "player.availability.stale": {
+    "source": "This answer is more than six hours old and may have changed.",
+    "text": "این پاسخ مربوط به بیش از شش ساعت پیش است و ممکن است تغییر کرده باشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "player.availability.kind.injury": {
+    "source": "Injury",
+    "text": "مصدومیت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "player.availability.kind.suspension": {
+    "source": "Suspension",
+    "text": "محرومیت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "player.availability.kind.illness": {
+    "source": "Illness",
+    "text": "بیماری",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "player.availability.kind.other": {
+    "source": "Other reason",
+    "text": "دلیل دیگر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.section.latest": {
+    "source": "Latest",
+    "text": "تازه‌ترین",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.section.trending": {
+    "source": "Trending",
+    "text": "داغ",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.section.debate": {
+    "source": "Debate",
+    "text": "بحث",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.section.following": {
+    "source": "Following",
+    "text": "دنبال‌شده‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.filter.country": {
+    "source": "Country",
+    "text": "کشور",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.filter.competition": {
+    "source": "Competition",
+    "text": "رقابت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.filter.team": {
+    "source": "Team",
+    "text": "تیم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.filter.language": {
+    "source": "Language",
+    "text": "زبان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.filter.any": {
+    "source": "Any",
+    "text": "همه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.filter.apply": {
+    "source": "Filter",
+    "text": "اعمال فیلتر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.filter.clear": {
+    "source": "Clear filters",
+    "text": "پاک کردن فیلترها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.filter.unavailable": {
+    "source": "Some filter lists could not be loaded.",
+    "text": "برخی از فهرست‌های فیلتر بارگیری نشدند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.filter.type": {
+    "source": "Story type",
+    "text": "نوع خبر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.filter.from": {
+    "source": "From",
+    "text": "از",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.filter.to": {
+    "source": "To",
+    "text": "تا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.filter.player": {
+    "source": "Player:",
+    "text": "بازیکن:",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.filter.playerClear": {
+    "source": "Remove the player filter",
+    "text": "حذف فیلتر بازیکن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.filter.untyped": {
+    "source": {
+      "one": "{count} story that matches the other filters has no type, so it is not shown.",
+      "other": "{count} stories that match the other filters have no type, so they are not shown."
+    },
+    "forms": {
+      "one": "{count} خبر که با دیگر فیلترها مطابقت دارد، نوعی ندارد و بنابراین نمایش داده نمی‌شود.",
+      "other": "{count} خبر که با دیگر فیلترها مطابقت دارد، نوعی ندارد و بنابراین نمایش داده نمی‌شود."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.updated": {
+    "source": "Feeds last read",
+    "text": "آخرین خواندن منابع خبری",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.neverRead": {
+    "source": "The feeds have not been read yet.",
+    "text": "منابع خبری هنوز خوانده نشده‌اند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.stale": {
+    "source": "The feeds have not been read for a while, so this list may be behind.",
+    "text": "مدتی است منابع خبری خوانده نشده‌اند، بنابراین ممکن است این فهرست به‌روز نباشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.unreachable": {
+    "source": "The news service is unreachable right now, so nothing can be shown.",
+    "text": "سرویس اخبار در حال حاضر در دسترس نیست، بنابراین چیزی برای نمایش وجود ندارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.reason.discussionAndSaves": {
+    "source": "Trending counts members discussing a story's matches and members saving the story in the last 48 hours, one each. Views and shares are not measured.",
+    "text": "در بخش «داغ»، طی ۴۸ ساعت گذشته هر عضوی که درباره‌ی بازی‌های یک خبر گفت‌وگو کرده و هر عضوی که آن خبر را ذخیره کرده، یک بار شمرده می‌شود. بازدیدها و اشتراک‌گذاری‌ها سنجیده نمی‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.reason.nothingTrending": {
+    "source": "Nothing has been discussed in the last two days.",
+    "text": "در دو روز گذشته درباره‌ی هیچ موضوعی گفت‌وگو نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.reason.nothingSelected": {
+    "source": "Editors have not selected any debates yet.",
+    "text": "ویراستاران هنوز هیچ بحثی انتخاب نکرده‌اند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.reason.needsSession": {
+    "source": "Sign in to see stories about what you follow.",
+    "text": "برای دیدن خبرهای مربوط به آنچه دنبال می‌کنید، وارد شوید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.reason.nothingFollowed": {
+    "source": "You follow nothing yet. Follow a team or a competition to see its stories here.",
+    "text": "هنوز چیزی را دنبال نمی‌کنید. یک تیم یا رقابت را دنبال کنید تا خبرهایش اینجا نمایش داده شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.reason.noMatch": {
+    "source": "No story matches these filters.",
+    "text": "هیچ خبری با این فیلترها مطابقت ندارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.signIn": {
+    "source": "Sign in",
+    "text": "ورود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.readAt": {
+    "source": "Read at",
+    "text": "زمان خواندن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.noTime": {
+    "source": "time not given by the publisher",
+    "text": "زمان را منبع اعلام نکرده است",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.match": {
+    "source": "Match",
+    "text": "بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.otherReports": {
+    "source": {
+      "one": "{count} more report on this story",
+      "other": "{count} more reports on this story"
+    },
+    "forms": {
+      "one": "{count} گزارش دیگر از این خبر",
+      "other": "{count} گزارش دیگر از این خبر"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.discussion": {
+    "source": {
+      "one": "{count} member in the match discussion in the last {hours} hours",
+      "other": "{count} members in the match discussion in the last {hours} hours"
+    },
+    "forms": {
+      "one": "{count} عضو در گفت‌وگوی بازی در {hours} ساعت گذشته",
+      "other": "{count} عضو در گفت‌وگوی بازی در {hours} ساعت گذشته"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.savers": {
+    "source": {
+      "one": "{count} member saved it in the last {hours} hours",
+      "other": "{count} members saved it in the last {hours} hours"
+    },
+    "forms": {
+      "one": "{count} عضو در {hours} ساعت گذشته آن را ذخیره کرده است",
+      "other": "{count} عضو در {hours} ساعت گذشته آن را ذخیره کرده‌اند"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.debateNote": {
+    "source": "Why this is a debate:",
+    "text": "دلیل انتخاب برای بحث:",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.breaking.title": {
+    "source": "Breaking",
+    "text": "فوری",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.breaking.badge": {
+    "source": "Breaking:",
+    "text": "فوری:",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.breaking.noteLabel": {
+    "source": "What is breaking (readers see this on the homepage)",
+    "text": "موضوع خبر فوری (در صفحه‌ی اصلی به خوانندگان نشان داده می‌شود)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.breaking.mark": {
+    "source": "Mark breaking",
+    "text": "علامت‌گذاری به‌عنوان فوری",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.breaking.reasonLabel": {
+    "source": "Why the mark ends early (recorded)",
+    "text": "دلیل پایان زودهنگام علامت فوری (ثبت می‌شود)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.breaking.clear": {
+    "source": "End the breaking mark",
+    "text": "برداشتن علامت فوری",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.older": {
+    "source": "Older",
+    "text": "قدیمی‌تر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.reason.nothingYet": {
+    "source": "No stories have been read from any publisher yet.",
+    "text": "هنوز هیچ خبری از هیچ منبعی خوانده نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.reason.personsUnlinked": {
+    "source": "Stories are not linked to players yet, so this list cannot say whether there is news about this player.",
+    "text": "خبرها هنوز به بازیکنان پیوند داده نشده‌اند، بنابراین این فهرست نمی‌تواند بگوید خبری درباره‌ی این بازیکن هست یا نه.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.debate.noteLabel": {
+    "source": "Why this is a debate (readers see this)",
+    "text": "دلیل انتخاب برای بحث (به خوانندگان نشان داده می‌شود)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.debate.select": {
+    "source": "Select for debate",
+    "text": "انتخاب برای بحث",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.debate.reasonLabel": {
+    "source": "Reason (recorded)",
+    "text": "دلیل (ثبت می‌شود)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.debate.clear": {
+    "source": "Take off the debate page",
+    "text": "برداشتن از صفحه‌ی بحث",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.storyPage": {
+    "source": "Story, languages and other reports",
+    "text": "خبر، زبان‌ها و گزارش‌های دیگر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.bodyAtSource": {
+    "source": "This publisher grants the headline and summary here; the article itself is on their site.",
+    "text": "این منبع اجازه‌ی نمایش تیتر و خلاصه را در اینجا داده است؛ متن کامل خبر در سایت خود منبع است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.readOriginal": {
+    "source": "Read the original",
+    "text": "خواندن متن اصلی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.updated": {
+    "source": "These words were last updated",
+    "text": "آخرین به‌روزرسانی این متن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.languages": {
+    "source": "Languages",
+    "text": "زبان‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.translationStatus": {
+    "source": "Each language is either the publisher’s own version or a translation a fluent speaker wrote and a second one reviewed. Nothing here is machine-translated.",
+    "text": "هر زبان یا نسخه‌ی خود منبع است یا ترجمه‌ای که فردی مسلط به آن زبان نوشته و فرد مسلط دیگری بازبینی کرده است. هیچ متنی در اینجا ترجمه‌ی ماشینی نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.corrections": {
+    "source": "Corrections",
+    "text": "اصلاحیه‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.noCorrections": {
+    "source": "No corrections have been noted.",
+    "text": "هیچ اصلاحیه‌ای ثبت نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.about": {
+    "source": "About",
+    "text": "مرتبط با",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.noEntities": {
+    "source": "No team, competition or match has been linked to this story.",
+    "text": "هیچ تیم، رقابت یا بازی‌ای به این خبر پیوند داده نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.matchCentre": {
+    "source": "Open the match centre",
+    "text": "باز کردن مرکز مسابقه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.otherReports": {
+    "source": "Other reports of this story",
+    "text": "گزارش‌های دیگر از این خبر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.noOtherReports": {
+    "source": "No other publisher has reported this story.",
+    "text": "هیچ منبع دیگری این خبر را گزارش نکرده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.share": {
+    "source": "Share this story",
+    "text": "اشتراک‌گذاری این خبر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.follow.title": {
+    "source": "Follow what this story is about",
+    "text": "دنبال کردن موضوعات این خبر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.follow.follow": {
+    "source": "Follow",
+    "text": "دنبال کردن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.follow.following": {
+    "source": "Following",
+    "text": "دنبال‌شده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.follow.unfollow": {
+    "source": "Unfollow",
+    "text": "لغو دنبال کردن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.follow.signIn": {
+    "source": "Sign in to follow these teams and competitions.",
+    "text": "برای دنبال کردن این تیم‌ها و رقابت‌ها وارد شوید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.follow.unavailable": {
+    "source": "Your follows could not be read just now, so they cannot be changed here.",
+    "text": "فهرست دنبال‌شده‌های شما هم‌اکنون خوانده نشد، بنابراین اینجا نمی‌توان آن را تغییر داد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.predictions.title": {
+    "source": "Predictions for this match",
+    "text": "پیش‌بینی‌های این بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.predictions.intro": {
+    "source": "Three separate products, each on the match centre under its own name. None is shown here, and they are never combined.",
+    "text": "سه محصول جداگانه که هر کدام با نام خودش در مرکز مسابقه آمده است. هیچ‌کدام اینجا نمایش داده نمی‌شود و هرگز با هم ترکیب نمی‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.predictions.model": {
+    "source": "The model's forecast",
+    "text": "پیش‌بینی مدل آماری",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.predictions.modelNote": {
+    "source": "probabilities from the versioned statistical model",
+    "text": "احتمالات به‌دست‌آمده از مدل آماری نسخه‌دار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.predictions.founder": {
+    "source": "The founder's analysis",
+    "text": "تحلیل بنیان‌گذار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.predictions.founderNote": {
+    "source": "one person's signed view, not the model",
+    "text": "دیدگاه امضاشده‌ی یک نفر، نه مدل آماری",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.predictions.community": {
+    "source": "The community consensus",
+    "text": "نظر جمعی کاربران",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.predictions.communityNote": {
+    "source": "what members predicted, published from five predictors",
+    "text": "آنچه اعضا پیش‌بینی کرده‌اند؛ از پنج پیش‌بینی‌کننده به بالا منتشر می‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.version.publisher": {
+    "source": "the publisher's own words",
+    "text": "متن خود منبع",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.version.translated": {
+    "source": "translated by a fluent speaker, awaiting review",
+    "text": "ترجمه‌ی فردی مسلط به زبان، در انتظار بازبینی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.version.reviewed": {
+    "source": "translated and reviewed by two fluent speakers",
+    "text": "ترجمه و بازبینی‌شده به دست دو فرد مسلط به زبان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.type.none": {
+    "source": "No type: neither the publisher's category nor an editor gave this story one.",
+    "text": "بدون نوع: نه دسته‌بندی منبع و نه ویراستار، نوعی برای این خبر تعیین نکرده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.type.origin.publisher": {
+    "source": "from the publisher's own category",
+    "text": "برگرفته از دسته‌بندی خود منبع",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.type.origin.editor": {
+    "source": "set by an editor",
+    "text": "تعیین‌شده به دست ویراستار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.type.breakingNews": {
+    "source": "Breaking news",
+    "text": "خبر فوری",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.type.transfer": {
+    "source": "Transfer",
+    "text": "نقل‌وانتقال",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.type.injury": {
+    "source": "Injury",
+    "text": "مصدومیت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.type.suspension": {
+    "source": "Suspension",
+    "text": "محرومیت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.type.tacticalAnalysis": {
+    "source": "Tactical analysis",
+    "text": "تحلیل تاکتیکی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.type.matchPreview": {
+    "source": "Match preview",
+    "text": "پیش‌نمایش بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.type.matchReport": {
+    "source": "Match report",
+    "text": "گزارش بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.type.interview": {
+    "source": "Interview",
+    "text": "مصاحبه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.type.opinion": {
+    "source": "Opinion",
+    "text": "دیدگاه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.type.dataAnalysis": {
+    "source": "Data analysis",
+    "text": "تحلیل داده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.type.explainer": {
+    "source": "Explainer",
+    "text": "مقاله‌ی توضیحی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "nav.following": {
+    "source": "Following",
+    "text": "دنبال‌شده‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.title": {
+    "source": "Following",
+    "text": "دنبال‌شده‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.manage": {
+    "source": "Choose what you follow",
+    "text": "انتخاب آنچه دنبال می‌کنید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.unreachable": {
+    "source": "Your feed cannot be shown right now.",
+    "text": "صفحه‌ی دنبال‌شده‌های شما در حال حاضر قابل نمایش نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.showing": {
+    "source": "Showing",
+    "text": "نمایش",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.followedTeams": {
+    "source": {
+      "one": "{count} team",
+      "other": "{count} teams"
+    },
+    "forms": {
+      "one": "{count} تیم",
+      "other": "{count} تیم"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.followedCompetitions": {
+    "source": {
+      "one": "{count} competition",
+      "other": "{count} competitions"
+    },
+    "forms": {
+      "one": "{count} رقابت",
+      "other": "{count} رقابت"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.followedMembers": {
+    "source": {
+      "one": "{count} contributor",
+      "other": "{count} contributors"
+    },
+    "forms": {
+      "one": "{count} تحلیلگر",
+      "other": "{count} تحلیلگر"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.rankingRule": {
+    "source": "ranked by",
+    "text": "مرتب‌شده بر اساس",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.rank": {
+    "source": "Rank",
+    "text": "رتبه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.analysisCall": {
+    "source": "The founder's call:",
+    "text": "نظر بنیان‌گذار:",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.kind.fixture": {
+    "source": "Match",
+    "text": "بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.kind.story": {
+    "source": "Story",
+    "text": "خبر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.kind.founderAnalysis": {
+    "source": "Founder's analysis",
+    "text": "تحلیل بنیان‌گذار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.kind.panelPost": {
+    "source": "Panel post",
+    "text": "پست میزگرد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.signal.follows": {
+    "source": "you follow",
+    "text": "دنبال می‌کنید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.signal.favourite": {
+    "source": "a favourite:",
+    "text": "محبوب شما:",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.signal.live": {
+    "source": "live now",
+    "text": "هم‌اکنون زنده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.signal.imminent": {
+    "source": "kicks off within a day",
+    "text": "کمتر از یک روز تا شروع بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.signal.discussed": {
+    "source": {
+      "one": "{count} member discussing in the last {hours} hours",
+      "other": "{count} members discussing in the last {hours} hours"
+    },
+    "forms": {
+      "one": "{count} عضو در {hours} ساعت گذشته گفت‌وگو کرده است",
+      "other": "{count} عضو در {hours} ساعت گذشته گفت‌وگو کرده‌اند"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.signal.fresh": {
+    "source": "new today",
+    "text": "تازه‌ی امروز",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.reason.nothingFollowed": {
+    "source": "You follow nothing yet. Follow a team, a competition or a contributor and what happens around them will appear here.",
+    "text": "هنوز چیزی را دنبال نمی‌کنید. یک تیم، رقابت یا تحلیلگر را دنبال کنید تا رویدادهای مربوط به آن اینجا نمایش داده شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.reason.nothingInWindow": {
+    "source": "Nothing has happened around what you follow in the last week, and nothing is due in the next.",
+    "text": "در هفته‌ی گذشته پیرامون آنچه دنبال می‌کنید اتفاقی نیفتاده و در هفته‌ی آینده هم چیزی در برنامه نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.nextSteps.title": {
+    "source": "Where to start",
+    "text": "از کجا شروع کنید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.nextSteps.intro": {
+    "source": "Follow one of the competitions below, or a team that plays in it. Its matches, news and analysis will then appear on this page.",
+    "text": "یکی از رقابت‌های زیر، یا تیمی را که در آن بازی می‌کند، دنبال کنید. آن‌گاه بازی‌ها، اخبار و تحلیل‌های آن در این صفحه نمایش داده می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.nextSteps.ranked": {
+    "source": "Teams in this season, most followed first:",
+    "text": "تیم‌های این فصل، به ترتیب بیشترین دنبال‌کننده:",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.nextSteps.noTeams": {
+    "source": "No fixture of this season names a team yet.",
+    "text": "هنوز در هیچ دیدار این فصل نام تیمی ثبت نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.nextSteps.follow": {
+    "source": "Follow",
+    "text": "دنبال کردن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.nextSteps.nothingHeld": {
+    "source": "The site holds no competitions yet, so there is nothing to suggest.",
+    "text": "سایت هنوز هیچ رقابتی ندارد، بنابراین پیشنهادی برای ارائه نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.nextSteps.unreachable": {
+    "source": "Suggestions cannot be loaded right now.",
+    "text": "پیشنهادها در حال حاضر بارگیری نمی‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.nextSteps.search": {
+    "source": "Search for a team, a player or a competition",
+    "text": "جست‌وجوی تیم، بازیکن یا رقابت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.nextSteps.everything": {
+    "source": "Choose from every team and competition in Settings",
+    "text": "انتخاب از میان همه‌ی تیم‌ها و رقابت‌ها در تنظیمات",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.title": {
+    "source": "Make FMIP yours",
+    "text": "FMIP را به سلیقه‌ی خودتان تنظیم کنید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.intro": {
+    "source": "Four short questions, each one skippable. You can change every answer later in Settings.",
+    "text": "چهار پرسش کوتاه که از هر کدام می‌توانید بگذرید. همه‌ی پاسخ‌ها را بعداً در تنظیمات می‌توانید تغییر دهید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.guestNote": {
+    "source": "You are not signed in, so your answers are kept in this browser and saved to your account when you register or sign in.",
+    "text": "وارد حساب کاربری نشده‌اید، بنابراین پاسخ‌هایتان در همین مرورگر نگه داشته می‌شود و هنگام ثبت‌نام یا ورود، در حساب شما ذخیره می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.steps": {
+    "source": "Steps",
+    "text": "مراحل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.step.language": {
+    "source": "Language",
+    "text": "زبان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.step.territory": {
+    "source": "Territory",
+    "text": "کشور محل تماشا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.step.timezone": {
+    "source": "Time zone",
+    "text": "منطقه‌ی زمانی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.step.teams": {
+    "source": "Favourite teams",
+    "text": "تیم‌های محبوب",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.language.question": {
+    "source": "Which language should FMIP use?",
+    "text": "FMIP به چه زبانی نمایش داده شود؟",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.language.onlyOne": {
+    "source": "FMIP speaks English for now. Other languages are offered here once their translation is finished, and not before.",
+    "text": "FMIP فعلاً فقط به زبان انگلیسی است. زبان‌های دیگر پس از تکمیل ترجمه‌شان اینجا ارائه می‌شوند، نه پیش از آن.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.territory.question": {
+    "source": "Where do you watch from?",
+    "text": "بازی‌ها را از کجا تماشا می‌کنید؟",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.territory.hint": {
+    "source": "Rights are sold by country, so this decides which viewing options you are shown. It is the country you are in, not the team you support.",
+    "text": "حق پخش بر اساس کشور فروخته می‌شود، بنابراین این انتخاب تعیین می‌کند کدام گزینه‌های تماشا به شما نشان داده شود. منظور کشوری است که در آن هستید، نه تیمی که طرفدارش هستید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.territory.notChosen": {
+    "source": "Not chosen",
+    "text": "انتخاب نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.territory.unreachable": {
+    "source": "The territory list cannot be loaded right now. Skip this step and choose later in Settings.",
+    "text": "فهرست کشورها در حال حاضر بارگیری نمی‌شود. از این مرحله بگذرید و بعداً در تنظیمات انتخاب کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.timezone.question": {
+    "source": "Which time zone should kick-off times be shown in?",
+    "text": "زمان شروع بازی‌ها به وقت کدام منطقه‌ی زمانی نشان داده شود؟",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.timezone.browser": {
+    "source": "Your device reports the time zone",
+    "text": "منطقه‌ی زمانی گزارش‌شده از سوی دستگاه شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.timezone.confirm": {
+    "source": "It is selected below: save to confirm it, or choose another.",
+    "text": "این منطقه در زیر انتخاب شده است: برای تأیید آن ذخیره کنید، یا منطقه‌ی دیگری انتخاب کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.teams.question": {
+    "source": "Which teams are your favourites?",
+    "text": "تیم‌های محبوب شما کدام‌اند؟",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.teams.hint": {
+    "source": "Favourites are pinned first on the scores page and followed on your Following page.",
+    "text": "تیم‌های محبوب در صفحه‌ی نتایج بالاتر از همه سنجاق می‌شوند و در صفحه‌ی دنبال‌شده‌های شما دنبال می‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.teams.search": {
+    "source": "Search teams",
+    "text": "جست‌وجوی تیم‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.teams.searchButton": {
+    "source": "Search",
+    "text": "جست‌وجو",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.teams.none": {
+    "source": "No team matches that search.",
+    "text": "هیچ تیمی با این جست‌وجو پیدا نشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.teams.unreachable": {
+    "source": "The team list cannot be loaded right now. Skip this step and choose later in Settings.",
+    "text": "فهرست تیم‌ها در حال حاضر بارگیری نمی‌شود. از این مرحله بگذرید و بعداً در تنظیمات انتخاب کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.save": {
+    "source": "Save and continue",
+    "text": "ذخیره و ادامه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.skip": {
+    "source": "Skip this step",
+    "text": "رد شدن از این مرحله",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.skipAndFinish": {
+    "source": "Skip and finish",
+    "text": "رد شدن و پایان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.later": {
+    "source": "Not now",
+    "text": "بعداً",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.offer.text": {
+    "source": "Make FMIP yours: choose a language, where you watch from, your time zone and your favourite teams. Every step can be skipped.",
+    "text": "FMIP را به سلیقه‌ی خودتان تنظیم کنید: زبان، کشور محل تماشا، منطقه‌ی زمانی و تیم‌های محبوبتان را انتخاب کنید. از هر مرحله می‌توانید بگذرید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "firstRun.offer.start": {
+    "source": "Start",
+    "text": "شروع",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "achievements.title": {
+    "source": "Achievements",
+    "text": "دستاوردها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "achievements.none": {
+    "source": "No achievements yet. They are earned by predicting matches and having the predictions settled.",
+    "text": "هنوز دستاوردی کسب نشده است. دستاوردها با پیش‌بینی بازی‌ها و تسویه‌ی آن پیش‌بینی‌ها به دست می‌آیند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "achievements.restrictedFriends": {
+    "source": "Achievements are visible to friends only.",
+    "text": "دستاوردها فقط برای دوستان قابل مشاهده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "achievements.restrictedPrivate": {
+    "source": "Achievements are private.",
+    "text": "دستاوردها خصوصی است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "achievements.unreachable": {
+    "source": "The achievements cannot be shown right now.",
+    "text": "دستاوردها در حال حاضر قابل نمایش نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "achievements.note": {
+    "source": "Achievements record taking part. They never change the rating, a leaderboard position or a privilege.",
+    "text": "دستاوردها فقط مشارکت را ثبت می‌کنند. هرگز امتیاز عملکرد، جایگاه در جدول برترین‌ها یا هیچ دسترسی ویژه‌ای را تغییر نمی‌دهند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "achievements.kind.firstSettled": {
+    "source": "First prediction settled",
+    "text": "نخستین پیش‌بینی تسویه‌شده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "achievements.kind.settled10": {
+    "source": "10 predictions settled",
+    "text": "۱۰ پیش‌بینی تسویه‌شده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "achievements.kind.settled50": {
+    "source": "50 predictions settled",
+    "text": "۵۰ پیش‌بینی تسویه‌شده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "achievements.kind.settled100": {
+    "source": "100 predictions settled",
+    "text": "۱۰۰ پیش‌بینی تسویه‌شده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "achievements.kind.firstExactScore": {
+    "source": "First exact score",
+    "text": "نخستین پیش‌بینی دقیق نتیجه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "achievements.kind.exactScores5": {
+    "source": "5 exact scores",
+    "text": "۵ پیش‌بینی دقیق نتیجه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "achievements.kind.streak5": {
+    "source": "5 correct outcomes in a row",
+    "text": "۵ پیش‌بینی درست پیاپی از برنده یا تساوی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "achievements.kind.streak10": {
+    "source": "10 correct outcomes in a row",
+    "text": "۱۰ پیش‌بینی درست پیاپی از برنده یا تساوی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "achievements.kind.fullMatchday": {
+    "source": "A whole matchday predicted",
+    "text": "پیش‌بینی همه‌ی بازی‌های یک هفته",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "achievements.kind.competitions5": {
+    "source": "Predictions in 5 competitions",
+    "text": "پیش‌بینی در ۵ رقابت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groups.about.language": {
+    "source": "Members write in",
+    "text": "زبان نوشتن اعضا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groups.about.favourite": {
+    "source": "About",
+    "text": "درباره‌ی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groups.about.moreGroups": {
+    "source": "Other groups about it",
+    "text": "گروه‌های دیگر درباره‌ی آن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groups.filter.language": {
+    "source": "Language",
+    "text": "زبان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groups.filter.anyLanguage": {
+    "source": "Any language",
+    "text": "هر زبانی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groups.filter.showing": {
+    "source": "Showing groups about",
+    "text": "نمایش گروه‌های مربوط به",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groups.filter.clear": {
+    "source": "Show every group",
+    "text": "نمایش همه‌ی گروه‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.title": {
+    "source": "Running the group",
+    "text": "اداره‌ی گروه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.working": {
+    "source": "Working…",
+    "text": "در حال انجام…",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.policy.title": {
+    "source": "Who may invite",
+    "text": "چه کسی می‌تواند دعوت کند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.policy.owner": {
+    "source": "Only the owner",
+    "text": "فقط مالک",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.policy.owner_and_moderators": {
+    "source": "The owner and the group's moderators",
+    "text": "مالک و ناظران گروه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.policy.members": {
+    "source": "Every member",
+    "text": "همه‌ی اعضا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.policy.hint": {
+    "source": "The change is recorded in the group's history. A link somebody made stops working if the new choice leaves them out.",
+    "text": "این تغییر در تاریخچه‌ی گروه ثبت می‌شود. اگر گزینه‌ی تازه کسی را که پیوندی ساخته است کنار بگذارد، آن پیوند دیگر کار نمی‌کند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.policy.save": {
+    "source": "Save who may invite",
+    "text": "ذخیره‌ی تنظیم دعوت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.policy.done": {
+    "source": "Saved. The change is in the group's history.",
+    "text": "ذخیره شد. این تغییر در تاریخچه‌ی گروه ثبت شده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.about.title": {
+    "source": "Language and favourite",
+    "text": "زبان و موضوع گروه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.about.language": {
+    "source": "The language members write in",
+    "text": "زبانی که اعضا به آن می‌نویسند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.about.favourite": {
+    "source": "The club or competition the group is about",
+    "text": "باشگاه یا رقابتی که گروه درباره‌ی آن است",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.about.none": {
+    "source": "None",
+    "text": "هیچ‌کدام",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.about.clubs": {
+    "source": "Clubs",
+    "text": "باشگاه‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.about.competitions": {
+    "source": "Competitions",
+    "text": "رقابت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.about.listUnavailable": {
+    "source": "The list of clubs and competitions cannot be shown right now, so the favourite stays as it is.",
+    "text": "فهرست باشگاه‌ها و رقابت‌ها اکنون قابل نمایش نیست، بنابراین موضوع گروه همان‌طور که هست باقی می‌ماند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.about.save": {
+    "source": "Save language and favourite",
+    "text": "ذخیره‌ی زبان و موضوع",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.about.done": {
+    "source": "Saved.",
+    "text": "ذخیره شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.links.title": {
+    "source": "Invite links",
+    "text": "پیوندهای دعوت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.links.hint": {
+    "source": "Anyone holding a live link can follow it until it expires, is used up or is revoked. Blocks, sanctions and the e-mail check apply to them as to an invitation.",
+    "text": "هر کسی که پیوند فعالی در دست دارد، تا وقتی پیوند منقضی نشده، ظرفیتش تمام نشده یا لغو نشده است، می‌تواند از آن استفاده کند. مسدودسازی‌ها، محرومیت‌ها و بررسی ایمیل درست مانند دعوت‌نامه برای آن‌ها هم اعمال می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.links.none": {
+    "source": "No invite links yet.",
+    "text": "هنوز پیوند دعوتی ساخته نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.links.unreachable": {
+    "source": "The invite links cannot be shown right now.",
+    "text": "پیوندهای دعوت اکنون قابل نمایش نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.links.madeBy": {
+    "source": "Made by",
+    "text": "سازنده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.links.madeByGone": {
+    "source": "Made by a deleted account",
+    "text": "سازنده: یک حساب حذف‌شده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.links.expires": {
+    "source": "Expires",
+    "text": "انقضا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.links.used": {
+    "source": "Used",
+    "text": "دفعات استفاده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.links.state.live": {
+    "source": "Live",
+    "text": "فعال",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.links.state.revoked": {
+    "source": "Revoked",
+    "text": "لغوشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.links.state.expired": {
+    "source": "Expired",
+    "text": "منقضی‌شده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.links.state.exhausted": {
+    "source": "Used up",
+    "text": "ظرفیت تمام‌شده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.links.state.orphaned": {
+    "source": "Not working: its maker may no longer invite",
+    "text": "از کار افتاده: شاید سازنده‌اش دیگر اجازه‌ی دعوت نداشته باشد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.links.revoke": {
+    "source": "Revoke",
+    "text": "لغو",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.links.revoked": {
+    "source": "Revoked. The link no longer works.",
+    "text": "لغو شد. این پیوند دیگر کار نمی‌کند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.links.createTitle": {
+    "source": "Make a link",
+    "text": "ساختن پیوند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.links.lasts": {
+    "source": "Lasts",
+    "text": "مدت اعتبار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.links.oneHour": {
+    "source": "1 hour",
+    "text": "یک ساعت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.links.days": {
+    "source": {
+      "one": "{count} day",
+      "other": "{count} days"
+    },
+    "forms": {
+      "one": "{count} روز",
+      "other": "{count} روز"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.links.maxUses": {
+    "source": "How many people it lets in",
+    "text": "چند نفر می‌توانند با آن وارد شوند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.links.create": {
+    "source": "Make the link",
+    "text": "ساختن پیوند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.links.created": {
+    "source": "Made. Copy it now: it is shown only this once.",
+    "text": "ساخته شد. همین حالا آن را کپی کنید: فقط همین یک بار نمایش داده می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.links.newLink": {
+    "source": "The new link",
+    "text": "پیوند تازه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.links.copy": {
+    "source": "Copy the link",
+    "text": "کپی پیوند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.links.copied": {
+    "source": "Copied.",
+    "text": "کپی شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.links.copyFailed": {
+    "source": "Copying did not work here. Select the link and copy it yourself.",
+    "text": "کپی کردن در اینجا انجام نشد. پیوند را انتخاب کنید و خودتان آن را کپی کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.history.link": {
+    "source": "The group's history",
+    "text": "تاریخچه‌ی گروه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.history.title": {
+    "source": "History",
+    "text": "تاریخچه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.history.intro": {
+    "source": "Every recorded change to this group, newest first: who made it, when, why, and what it was before. Nobody can edit this list.",
+    "text": "همه‌ی تغییرهای ثبت‌شده‌ی این گروه، از تازه‌ترین: چه کسی، کی و چرا آن را انجام داد و پیش از آن چه بود. هیچ‌کس نمی‌تواند این فهرست را ویرایش کند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.history.none": {
+    "source": "Nothing has been changed yet.",
+    "text": "هنوز هیچ تغییری انجام نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.history.unreachable": {
+    "source": "The history cannot be shown right now.",
+    "text": "تاریخچه اکنون قابل نمایش نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.history.by": {
+    "source": "By",
+    "text": "توسط",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.history.accountGone": {
+    "source": "a deleted account",
+    "text": "یک حساب حذف‌شده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.history.reason": {
+    "source": "Reason",
+    "text": "دلیل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.history.before": {
+    "source": "Before",
+    "text": "پیش از تغییر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.history.after": {
+    "source": "After",
+    "text": "پس از تغییر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.history.action.invitePolicy": {
+    "source": "Who may invite changed",
+    "text": "تغییر در اینکه چه کسی می‌تواند دعوت کند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.history.action.rules": {
+    "source": "A new version of the rules",
+    "text": "نسخه‌ی تازه‌ی قوانین",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.history.action.other": {
+    "source": "A change",
+    "text": "یک تغییر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupSettings.history.back": {
+    "source": "Back to the group",
+    "text": "بازگشت به گروه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.title": {
+    "source": "Polls",
+    "text": "نظرسنجی‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.unreachable": {
+    "source": "The polls cannot be shown right now.",
+    "text": "نظرسنجی‌ها اکنون قابل نمایش نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.none": {
+    "source": "No polls yet. Ask the group something below.",
+    "text": "هنوز نظرسنجی‌ای نیست. از بخش پایین، پرسشی از گروه بپرسید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.noNames": {
+    "source": "Polls show counts only. Who voted is never shown, to anyone.",
+    "text": "نظرسنجی‌ها فقط تعداد آرا را نشان می‌دهند. اینکه چه کسی رأی داده است هرگز به هیچ‌کس نشان داده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.askedBy": {
+    "source": "Asked by",
+    "text": "پرسشگر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.closes": {
+    "source": "Closes",
+    "text": "پایان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.closed": {
+    "source": "Closed",
+    "text": "بسته‌شده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.yourAnswer": {
+    "source": "your answer",
+    "text": "پاسخ شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.hiddenUntilVoted": {
+    "source": "The counts are shown once you have voted, or when the poll closes.",
+    "text": "تعداد آرا پس از رأی دادن شما یا با بسته شدن نظرسنجی نمایش داده می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.vote": {
+    "source": "Vote",
+    "text": "ثبت رأی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.changeVote": {
+    "source": "Change my vote",
+    "text": "تغییر رأی من",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.withdraw": {
+    "source": "Take my vote back",
+    "text": "پس گرفتن رأی من",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.close": {
+    "source": "Close the poll now",
+    "text": "بستن نظرسنجی از همین حالا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.removeReason": {
+    "source": "Why remove it (recorded with the removal)",
+    "text": "دلیل حذف (همراه با حذف ثبت می‌شود)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.remove": {
+    "source": "Remove poll",
+    "text": "حذف نظرسنجی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.createTitle": {
+    "source": "Ask the group",
+    "text": "از گروه بپرسید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.question": {
+    "source": "Question",
+    "text": "پرسش",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.option": {
+    "source": "Option",
+    "text": "گزینه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.optionsHint": {
+    "source": "Two to six answers; leave the rest empty.",
+    "text": "دو تا شش پاسخ؛ بقیه را خالی بگذارید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.duration": {
+    "source": "Closes after",
+    "text": "بسته شدن پس از",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.create": {
+    "source": "Ask",
+    "text": "طرح پرسش",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.limitReached": {
+    "source": "This group has three open polls. A new one can be asked when one closes or is removed.",
+    "text": "این گروه سه نظرسنجی باز دارد. وقتی یکی از آن‌ها بسته یا حذف شود، می‌توان نظرسنجی تازه‌ای طرح کرد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.working": {
+    "source": "Working…",
+    "text": "در حال انجام…",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.done.created": {
+    "source": "Asked.",
+    "text": "پرسش طرح شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.done.voted": {
+    "source": "Vote recorded.",
+    "text": "رأی ثبت شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.done.withdrawn": {
+    "source": "Vote taken back.",
+    "text": "رأی پس گرفته شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.done.closed": {
+    "source": "Closed.",
+    "text": "بسته شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.done.removed": {
+    "source": "Removed.",
+    "text": "حذف شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.voteCount": {
+    "source": {
+      "one": "{count} vote",
+      "other": "{count} votes"
+    },
+    "forms": {
+      "one": "{count} رأی",
+      "other": "{count} رأی"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "groupPolls.days": {
+    "source": {
+      "one": "{count} day",
+      "other": "{count} days"
+    },
+    "forms": {
+      "one": "{count} روز",
+      "other": "{count} روز"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notifications.match.heading": {
+    "source": "Match alerts",
+    "text": "اعلان‌های بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notifications.match.intro": {
+    "source": "For the matches you follow, and the matches of the teams and competitions you follow. Alerts from the same minute arrive together, a goal taken off the board is corrected, and nothing arrives twice.",
+    "text": "برای بازی‌هایی که دنبال می‌کنید و بازی‌های تیم‌ها و رقابت‌هایی که دنبال می‌کنید. اعلان‌های یک دقیقه با هم می‌رسند، اگر گلی از نتیجه حذف شود اعلان اصلاحی می‌رسد و هیچ اعلانی دو بار نمی‌رسد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notifications.match.availability": {
+    "source": "Team news: a player ruled out of the match",
+    "text": "اخبار تیم: بازیکنی که این بازی را از دست می‌دهد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notifications.match.lineups": {
+    "source": "Line-ups, when both are announced",
+    "text": "ترکیب‌ها، وقتی ترکیب هر دو تیم اعلام شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notifications.match.kickoff": {
+    "source": "Kick-off",
+    "text": "شروع بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notifications.match.goal": {
+    "source": "Goals, and a correction when one is taken off the board",
+    "text": "گل‌ها، و اعلان اصلاحی وقتی گلی از نتیجه حذف شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notifications.match.redCard": {
+    "source": "Red cards",
+    "text": "کارت‌های قرمز",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notifications.match.halfTime": {
+    "source": "Half-time",
+    "text": "بین دو نیمه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notifications.match.fullTime": {
+    "source": "Full-time, with the result",
+    "text": "پایان بازی، همراه با نتیجه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notifications.match.quiet": {
+    "source": "To silence one team or one competition, or every match alert at once, use What stays quiet below. Quiet hours hold match alerts too.",
+    "text": "برای بی‌صدا کردن یک تیم یا یک رقابت، یا همه‌ی اعلان‌های بازی با هم، از بخش «چه چیزی بی‌صدا بماند» در پایین استفاده کنید. در ساعت‌های سکوت، اعلان‌های بازی هم نگه داشته می‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "match.follow.start": {
+    "source": "Follow this match",
+    "text": "دنبال کردن این بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "match.follow.stop": {
+    "source": "Stop following",
+    "text": "لغو دنبال کردن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "match.follow.note": {
+    "source": "Its alerts reach you under your match alert settings, once each even if you follow its teams too. The follow ends by itself three hours after full-time.",
+    "text": "اعلان‌های این بازی طبق تنظیمات اعلان بازی شما می‌رسد، هر کدام فقط یک بار، حتی اگر تیم‌هایش را هم دنبال کنید. دنبال کردن سه ساعت پس از پایان بازی خودبه‌خود تمام می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "match.follow.following": {
+    "source": "You follow this match. The follow ends by itself three hours after full-time.",
+    "text": "شما این بازی را دنبال می‌کنید. دنبال کردن سه ساعت پس از پایان بازی خودبه‌خود تمام می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "match.follow.over": {
+    "source": "This match is over, so it can no longer be followed.",
+    "text": "این بازی تمام شده است، بنابراین دیگر نمی‌توان آن را دنبال کرد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "match.follow.signIn": {
+    "source": "Sign in to follow this match",
+    "text": "برای دنبال کردن این بازی وارد شوید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "match.follow.unreachable": {
+    "source": "Whether you follow this match cannot be checked right now.",
+    "text": "اکنون نمی‌توان بررسی کرد که این بازی را دنبال می‌کنید یا نه.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notifications.friends.heading": {
+    "source": "Friends' predictions",
+    "text": "پیش‌بینی‌های دوستان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notifications.friends.intro": {
+    "source": "When a friend predicts a match you follow or predicted too. It says that they predicted, never what, and only if their own privacy setting lets you see their predictions.",
+    "text": "وقتی دوستی بازی‌ای را پیش‌بینی می‌کند که شما دنبال می‌کنید یا خودتان هم پیش‌بینی کرده‌اید. اعلان فقط می‌گوید که او پیش‌بینی کرده است، هرگز نمی‌گوید چه پیش‌بینی‌ای، و فقط در صورتی که تنظیم حریم خصوصی خودِ او اجازه دهد پیش‌بینی‌هایش را ببینید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notifications.friends.predicted": {
+    "source": "A friend predicted a match you follow or predicted",
+    "text": "دوستی بازی‌ای را پیش‌بینی کرد که دنبال می‌کنید یا پیش‌بینی کرده‌اید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notifications.editorial.heading": {
+    "source": "Analysis",
+    "text": "تحلیل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notifications.editorial.intro": {
+    "source": "The founder's analysis of the matches you follow, and the review of any analysis you submit.",
+    "text": "تحلیل بنیان‌گذار از بازی‌هایی که دنبال می‌کنید، و نتیجه‌ی بررسی هر تحلیلی که ارسال می‌کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notifications.editorial.founder": {
+    "source": "The founder publishes an analysis of a match you follow",
+    "text": "بنیان‌گذار تحلیلی از بازی‌ای که دنبال می‌کنید منتشر می‌کند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notifications.editorial.reviewed": {
+    "source": "An analysis I submitted is reviewed",
+    "text": "تحلیلی که ارسال کرده‌ام بررسی می‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notifications.editorial.eligible": {
+    "source": "A member newly meets the contributor requirements (administrators)",
+    "text": "عضوی تازه شرایط تحلیلگر شدن را پیدا می‌کند (ویژه‌ی مدیران)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "minutes.total": {
+    "source": {
+      "one": "{count} minute",
+      "other": "{count} minutes"
+    },
+    "forms": {
+      "one": "{count} دقیقه",
+      "other": "{count} دقیقه"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "minutes.atLeast": {
+    "source": {
+      "one": "at least {count} minute",
+      "other": "at least {count} minutes"
+    },
+    "forms": {
+      "one": "دست‌کم {count} دقیقه",
+      "other": "دست‌کم {count} دقیقه"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "minutes.covers": {
+    "source": {
+      "one": "{with} of {count} match",
+      "other": "{with} of {count} matches"
+    },
+    "forms": {
+      "one": "{with} از {count} بازی",
+      "other": "{with} از {count} بازی"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "minutes.notSupplied": {
+    "source": "minutes not supplied",
+    "text": "دقیقه‌ها ارائه نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "minutes.noneRecorded": {
+    "source": "no minutes recorded",
+    "text": "هیچ دقیقه‌ای ثبت نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competition.leaders.filter": {
+    "source": "Minimum minutes",
+    "text": "حداقل دقیقه‌ی بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competition.leaders.anyMinutes": {
+    "source": "Any",
+    "text": "هر مقدار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competition.leaders.floor": {
+    "source": {
+      "one": "Only scorers whose recorded minutes reach {count} minute.",
+      "other": "Only scorers whose recorded minutes reach {count} minutes."
+    },
+    "forms": {
+      "one": "فقط گلزنانی که دقیقه‌های ثبت‌شده‌شان به {count} دقیقه می‌رسد.",
+      "other": "فقط گلزنانی که دقیقه‌های ثبت‌شده‌شان به {count} دقیقه می‌رسد."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competition.leaders.unproven": {
+    "source": {
+      "one": "{count} scorer is left out because the feed did not send minutes for every match they played, so the record cannot show they reached it.",
+      "other": "{count} scorers are left out because the feed did not send minutes for every match they played, so the record cannot show they reached it."
+    },
+    "forms": {
+      "one": "{count} گلزن کنار گذاشته شده است، چون منبع داده دقیقه‌های همه‌ی بازی‌هایش را نفرستاده و سوابق نمی‌تواند نشان دهد که به این حد رسیده است.",
+      "other": "{count} گلزن کنار گذاشته شده‌اند، چون منبع داده دقیقه‌های همه‌ی بازی‌هایشان را نفرستاده و سوابق نمی‌تواند نشان دهد که به این حد رسیده‌اند."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competition.leaders.noneReach": {
+    "source": "No scorer's recorded minutes reach this floor.",
+    "text": "دقیقه‌های ثبت‌شده‌ی هیچ گلزنی به این حد نمی‌رسد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "team.manager.label": {
+    "source": "Manager",
+    "text": "سرمربی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "team.manager.named": {
+    "source": "named on the line-up for",
+    "text": "نام‌برده در ترکیب بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "team.manager.noCoach": {
+    "source": "No manager shown: the team's latest line-up names no coach.",
+    "text": "سرمربی نشان داده نمی‌شود: در آخرین ترکیب تیم نام هیچ مربی‌ای نیامده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "team.manager.noLineup": {
+    "source": "No manager shown: no line-up of this team is stored yet.",
+    "text": "سرمربی نشان داده نمی‌شود: هنوز هیچ ترکیبی از این تیم ذخیره نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "team.squad.minutes": {
+    "source": "Minutes are for this team in the competitions above, from the feed's per-player figures: \"at least\" where some matches have none.",
+    "text": "دقیقه‌ها مربوط به این تیم در رقابت‌های بالا است و از آمار تک‌تک بازیکنان در منبع داده گرفته شده است؛ جایی که برای برخی بازی‌ها رقمی نیامده، «دست‌کم» نوشته شده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "saved.title": {
+    "source": "Saved",
+    "text": "ذخیره‌شده‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "saved.intro": {
+    "source": "Stories you saved, newest first. Only you can see this list, and it goes when your account does. Each is the publisher's headline and a link to their original.",
+    "text": "خبرهایی که ذخیره کرده‌اید، از تازه‌ترین. این فهرست را فقط شما می‌بینید و با حذف حساب کاربری‌تان پاک می‌شود. هر مورد، تیتر منبع و پیوندی به خبر اصلی آن است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "saved.empty": {
+    "source": "You have not saved a story yet. Save one from News or from a story's page.",
+    "text": "هنوز خبری ذخیره نکرده‌اید. از بخش اخبار یا از صفحه‌ی یک خبر، آن را ذخیره کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "saved.toNews": {
+    "source": "Go to News",
+    "text": "رفتن به اخبار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "saved.unreachable": {
+    "source": "Your saved list cannot be reached right now, so nothing can be shown.",
+    "text": "فهرست ذخیره‌شده‌های شما اکنون در دسترس نیست، بنابراین چیزی نمایش داده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "saved.savedAt": {
+    "source": "Saved",
+    "text": "ذخیره‌شده در",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "saved.dropped": {
+    "source": "this publisher is no longer carried here and their stories went with them, so this one cannot be shown.",
+    "text": "این منبع دیگر در اینجا پوشش داده نمی‌شود و خبرهایش هم همراه آن حذف شده‌اند، بنابراین این خبر قابل نمایش نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "saved.unavailable": {
+    "source": "this story is no longer held here.",
+    "text": "این خبر دیگر در اینجا نگهداری نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "saved.save": {
+    "source": "Save",
+    "text": "ذخیره",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "saved.remove": {
+    "source": "Remove from saved",
+    "text": "حذف از ذخیره‌شده‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "saved.isSaved": {
+    "source": "Saved",
+    "text": "ذخیره‌شده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "saved.signIn": {
+    "source": "Sign in to save this story.",
+    "text": "برای ذخیره‌ی این خبر وارد شوید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "leaderboard.competition.label": {
+    "source": "Competition:",
+    "text": "رقابت:",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "leaderboard.competition.all": {
+    "source": "All competitions",
+    "text": "همه‌ی رقابت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "leaderboard.language.label": {
+    "source": "Language:",
+    "text": "زبان:",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "leaderboard.language.all": {
+    "source": "All languages",
+    "text": "همه‌ی زبان‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "leaderboard.language.note": {
+    "source": "A member's language is the one they chose for FMIP in Settings. It is not public, so this board shows only members whose prediction history you may see.",
+    "text": "زبان هر عضو همان زبانی است که در تنظیمات برای FMIP انتخاب کرده است. این زبان عمومی نیست، بنابراین این جدول فقط اعضایی را نشان می‌دهد که اجازه دارید سابقه‌ی پیش‌بینی‌هایشان را ببینید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competition.boards.assists": {
+    "source": "Assists",
+    "text": "پاس گل‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competition.boards.cleanSheets": {
+    "source": "Clean sheets",
+    "text": "کلین‌شیت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competition.boards.cards": {
+    "source": "Cards",
+    "text": "کارت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competition.boards.noAssists": {
+    "source": "No goal of this season names an assist yet.",
+    "text": "هنوز برای هیچ گلی در این فصل پاس گل ثبت نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competition.boards.noCleanSheets": {
+    "source": "No goalkeeper on our line-ups has kept a clean sheet yet this season.",
+    "text": "هنوز هیچ دروازه‌بانی در ترکیب‌های ثبت‌شده‌ی ما در این فصل کلین‌شیت نکرده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competition.boards.noCards": {
+    "source": "No card is recorded for this season yet.",
+    "text": "هنوز هیچ کارتی برای این فصل ثبت نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competition.boards.noneReach": {
+    "source": "No player's recorded minutes reach this floor.",
+    "text": "دقیقه‌های ثبت‌شده‌ی هیچ بازیکنی به این حد نمی‌رسد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competition.boards.unproven": {
+    "source": {
+      "one": "{count} player is left out because the feed did not send minutes for every match they played, so the record cannot show they reached the floor.",
+      "other": "{count} players are left out because the feed did not send minutes for every match they played, so the record cannot show they reached the floor."
+    },
+    "forms": {
+      "one": "{count} بازیکن کنار گذاشته شده است، چون منبع داده دقیقه‌های همه‌ی بازی‌هایش را نفرستاده و سوابق نمی‌تواند نشان دهد که به این حد رسیده است.",
+      "other": "{count} بازیکن کنار گذاشته شده‌اند، چون منبع داده دقیقه‌های همه‌ی بازی‌هایشان را نفرستاده و سوابق نمی‌تواند نشان دهد که به این حد رسیده‌اند."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competition.boards.startsInGoal": {
+    "source": {
+      "one": "{count} start in goal",
+      "other": "{count} starts in goal"
+    },
+    "forms": {
+      "one": "{count} بازی در ترکیب اصلی به‌عنوان دروازه‌بان",
+      "other": "{count} بازی در ترکیب اصلی به‌عنوان دروازه‌بان"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competition.boards.red": {
+    "source": {
+      "one": "{count} red",
+      "other": "{count} red"
+    },
+    "forms": {
+      "one": "{count} قرمز",
+      "other": "{count} قرمز"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competition.boards.yellow": {
+    "source": {
+      "one": "{count} yellow",
+      "other": "{count} yellow"
+    },
+    "forms": {
+      "one": "{count} زرد",
+      "other": "{count} زرد"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "rules.title": {
+    "source": "Platform rules",
+    "text": "قوانین پلتفرم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "rules.version": {
+    "source": "Version",
+    "text": "نسخه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "rules.published": {
+    "source": "Published",
+    "text": "تاریخ انتشار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "rules.englishOnly": {
+    "source": "The rules are published in English, the language they were approved in.",
+    "text": "قوانین به زبان انگلیسی منتشر می‌شوند، یعنی همان زبانی که با آن تصویب شده‌اند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "rules.guest": {
+    "source": "Registering means accepting this version.",
+    "text": "ثبت‌نام به معنای پذیرفتن این نسخه است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "rules.pendingIntro": {
+    "source": "This version is newer than the one you accepted. Read it first: once you accept it, it applies to you from then on. Until then the version you accepted before still applies, and nothing you wrote is hidden.",
+    "text": "این نسخه از نسخه‌ای که پذیرفته‌اید تازه‌تر است. ابتدا آن را بخوانید: پس از پذیرفتن، از همان لحظه به بعد برای شما اعمال می‌شود. تا آن زمان، نسخه‌ای که پیش‌تر پذیرفته‌اید همچنان اعمال می‌شود و هیچ‌یک از نوشته‌های شما پنهان نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "rules.accept": {
+    "source": "I accept these rules",
+    "text": "این قوانین را می‌پذیرم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "rules.acceptedCurrent": {
+    "source": "You accepted this version on",
+    "text": "تاریخ پذیرش این نسخه از سوی شما:",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "rules.outcome.accepted": {
+    "source": "Accepted. This version now applies to you.",
+    "text": "پذیرفته شد. این نسخه اکنون برای شما اعمال می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "rules.outcome.newer": {
+    "source": "A newer version was published while you were reading. This is it: read it before accepting.",
+    "text": "در حالی که مشغول خواندن بودید، نسخه‌ی تازه‌تری منتشر شد. همین نسخه است: پیش از پذیرفتن، آن را بخوانید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "rules.outcome.signedOut": {
+    "source": "Sign in to accept the rules.",
+    "text": "برای پذیرفتن قوانین وارد شوید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "rules.outcome.failed": {
+    "source": "The acceptance did not go through. Please try again shortly.",
+    "text": "پذیرش ثبت نشد. لطفاً کمی بعد دوباره تلاش کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "rules.prompt": {
+    "source": "The platform rules have a new version. Until you accept it, the version you accepted before still applies to you, and nothing you wrote is hidden.",
+    "text": "قوانین پلتفرم نسخه‌ی تازه‌ای دارد. تا زمانی که آن را نپذیرید، نسخه‌ای که پیش‌تر پذیرفته‌اید همچنان برای شما اعمال می‌شود و هیچ‌یک از نوشته‌های شما پنهان نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "rules.promptLink": {
+    "source": "Read the new rules",
+    "text": "خواندن قوانین تازه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "rules.registerLink": {
+    "source": "Read the platform rules",
+    "text": "خواندن قوانین پلتفرم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  }
+}

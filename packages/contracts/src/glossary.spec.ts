@@ -22,7 +22,7 @@ const locales = readdirSync(DIR)
 
 describe('the glossary files', () => {
   it('has the seven non-English locales and some terms', () => {
-    expect(locales.sort()).toEqual(['ar', 'de', 'es', 'fr', 'it', 'pt', 'tr']);
+    expect(locales.sort()).toEqual(['ar', 'de', 'es', 'fa', 'fr', 'it', 'pt', 'tr']);
     expect(Object.keys(english).length).toBeGreaterThan(0);
   });
 

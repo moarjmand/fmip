@@ -325,6 +325,11 @@
     "status": "translated",
     "note": "The language's own name: a fact, not a translation of the English."
   },
+  "language.name.fa": {
+    "source": "Persian",
+    "text": "",
+    "status": "untranslated"
+  },
   "language.name.fr": {
     "source": "French",
     "text": "",
