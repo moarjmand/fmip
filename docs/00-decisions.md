@@ -6408,6 +6408,13 @@ touches, hiding how small the real sample is. *Using a season's list when it
 is not a double round robin*: in a split or play-off season "matches left" is
 not knowable from the list before the split is drawn.
 
+**The server's run, 2026-09-29** (the full store, report under `~/reports/inputs` on the server). **Verdict: `insufficient`.** Over the twelve
+divisions (the eleven football-data ones and IR1), 2024-08-01 to 2026-06-30,
+only 110 matches had a side whose place was locked: E0 11, E1 13, SP1 19, D1
+10, I1 10, F1 14, N1 11, P1 4, T1 15, IR1 3, B1 and SC0 none. That is far
+under D-139's 300, so no candidate carries the input. The zone-aware reading
+(T-1167, D-171) widened the sample and failed on its own numbers.
+
 ---
 
 ## D-144 — The second leg of a tie is forecast given the first leg's score, from our records' cup ties
@@ -6474,6 +6481,15 @@ on or after its day, and every input keeps to it. *Treating every domestic
 pair met twice in a round as a tie*: replays would pass as second legs.
 *Extra time and penalties in the first leg's score*: a first leg has neither.
 
+**The server's run, 2026-09-29** (the full store, report under `~/reports/inputs` on the server). **Verdict: `failed`.** XL, our records' cup ties,
+2024-07-01 to 2026-06-30: 1,807 matches scored, 560 second legs (31%). Log
+loss 1.0913 for the candidate and 1.0867 with the input, a difference of
+-0.00459 with a 95% interval of [-0.01424, +0.00468]: better on the point
+estimate, but the interval does not exclude zero, so the bar is not met.
+Calibration 0.1004 against 0.0946. No candidate carries the input; it is the
+closest of Phase 11's inputs and worth re-running when a second season of
+cup ties is stored.
+
 ---
 
 ## D-145 — A match on neither club's usual ground is forecast without home advantage
@@ -6531,6 +6547,10 @@ the home side's alone (the away side's goals carry none), so removing it is
 the whole of "no home side". *Trusting `is_neutral_venue`*: nothing sets it.
 *The club's most frequent venue over all competitions*: a continental final
 would make its ground look usual for a club that reached two.
+
+**The server's run, 2026-09-29** (the full store, report under `~/reports/inputs` on the server). **Verdict: `insufficient`.** IR1 (177 matches) and
+XL (713) from 2025-08-01: no match in our records was played on neither
+club's usual ground, so the input applied to none. No candidate carries it.
 
 ---
 
@@ -6743,6 +6763,13 @@ numbers. *Residuals against a model fitted at each past meeting's date*: the
 same question at many times the cost, and the meetings that matter are
 recent enough for today's fit to be the fair yardstick.
 
+**The server's run, 2026-09-29** (the full store, report under `~/reports/inputs` on the server). **Verdict: `failed`, confirmed.** football_data:
+7,511 matches scored, 6,646 applied (88%), log loss 0.9939 against 0.9951
+with head-to-head, a difference of +0.00121 [+0.00001, +0.00239]: worse,
+and the interval excludes zero on the wrong side. our_records (IR1): 415
+scored, 372 applied, -0.00229 [-0.00780, +0.00353], not better on the
+bar. No candidate carries it.
+
 ## D-149 — Home advantage by team is a penalised deviation fitted with the strengths, and it failed its bar: no candidate carries it
 **Status:** Accepted · 2026-09-29 (revisable under the standing delegation of 2026-09-26) · **Task:** T-1141 · **Follows:** D-016, D-139, T-533
 
@@ -6822,6 +6849,37 @@ Dixon-Coles fit itself to add the deviations*: a change to every version's
 fit for an input that has not passed. *Choosing the penalty on the scoring
 window*: the verdict would be chosen by its own numbers.
 
+**The server's run, 2026-09-29** (the full store, report under `~/reports/inputs` on the server). **Verdict: `failed`, confirmed.** football_data:
+7,511 scored and applied, +0.00003 [-0.00011, +0.00016]; our_records (IR1):
+415, +0.00024 [+0.00006, +0.00043], worse. No candidate carries it.
+
+## D-150 — No next candidate: none of Phase 11's inputs passed its bar
+
+**Status:** Accepted · 2026-09-30 · **Task:** T-1150 · **Follows:** D-139, D-140, D-141 to D-149, D-171
+
+**The question.** T-1150 builds one version from the inputs whose own
+entries say "passed", backtested together, and puts it in shadow beside
+0.5.0.
+
+**Decision: there is no such version.** On the server's full store every
+input was judged: rest (D-141) failed, league stakes (D-143) insufficient,
+the second leg (D-144) failed, neutral ground (D-145) insufficient,
+head-to-head (D-148) failed, home advantage by team (D-149) failed, and the
+zone-aware league stakes (D-171) failed. The Power Index's rest and context
+components (D-142, D-146) were measured and not adopted, so
+`power-index@1.1.0` stays. With nothing passed, a `dixon-coles-elo@0.6.0`
+would be 0.5.0 under a new name; none is built, `dixon-coles-elo@0.5.0`
+keeps running in shadow, and T-1151 judges it on its own pre-kick-off
+record. A coach-change input (T-1131) still waits for line-up data; it is
+judged on its own entry when it runs, and a candidate is built then only if
+it passes.
+
+**Rejected.** *Combining the near-misses* (the second leg's
+-0.0046 with an interval across zero): D-139's bar exists so that a version
+is not assembled from inputs that each failed it. *Loosening the bar after
+the verdicts*: the verdicts would choose the bar.
+
+---
 
 ## D-152 — Rating thresholds are versioned rows set from the console
 **Status:** Accepted · 2026-09-30 (the maintainer's yes of 2026-09-30; the gate answered by D-164) · **Task:** T-1160 · **Follows:** D-025, D-035, D-059, D-137, D-164, D-169
@@ -7215,6 +7273,22 @@ keeps Club Elo's past snapshots only as the record of what 0.1.0 read.
 Retiring a source needs no licence; this is the conservative side of the
 third-party-terms question.
 
+**How it is built (T-947, amended 2026-09-30).** "From the promotion on" is
+not a later edit: it follows from the published version itself, so the
+promotion PR that replaces `BASELINE` changes nothing else. `reads_club_elo`
+(`clubelo` or `clubelo_then_own`) decides; the model service asks Club Elo
+only while a version it serves (the published one or a candidate) reads it.
+`MODEL_CLUBELO_REFRESH` is empty by default, which follows that rule; `off`
+stops the asking sooner, and `on` does not bring back a source nothing would
+read. `/health`'s `elo_source` carries `retired: true` once none reads it,
+still with Club Elo's past loads. The watchdog then drops `elo_source`: an
+incident still open is closed by one `ok` ("retired"), and the stored
+condition, with no incident, is removed (its events stay), so the System
+page's line goes with it. The refusal is `tests/test_club_elo_retired.py` over
+the committed candidate files, including one that names no prior and so
+inherits 0.1.0's `clubelo`. `dixon-coles-elo@0.1.0`'s constants and every
+stored forecast are untouched.
+
 ## D-163 — High-rating privileges are contributor access, exclusive groups and the badge; leaderboards stay ordered by rating alone
 **Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers:** N-6 in `04-tasks-phase-9.md` · **Follows:** D-059, D-091
 
@@ -7266,6 +7340,34 @@ mutes and cap as every kind. The licensed feed's transfer and injury
 endpoints are not read: they spend the live data's request budget, and their
 terms for alerts are unchecked. A player's availability on his page stays
 D-127's.
+
+**As built (T-1032).** The kinds are `transfer_news` (a story whose current
+type is `transfer`) and `availability_news` (`injury` or `suspension`), both
+`football` category, both off by default; migration `1765600000000` widens
+the kind checks, and the subject is the story D-125 already admits.
+
+- **When.** The moment a label commits that makes the story's current type
+  one of the three: an editor's label over `POST /admin/stories/:id/type`, or
+  the feed job's `refreshPublisher` writing a publisher label. A story typed
+  later is told then; a story whose label is rewritten (withdrawn and given
+  again, `injury` then `suspension`, publisher then editor) is told **once
+  per kind**, because the dedupe key is the kind and the story. Nothing is
+  told for labels that existed before the deploy, and nothing re-tells a
+  member who starts following afterwards.
+- **Who.** Members following a **team or person** any of the story's reports
+  links, whose switch is on. Following only the competition is not enough:
+  the settings line promises "a team or player I follow", and a league-wide
+  transfer feed would be the interruption D-125 kept opt-in. The team and
+  competition mutes still apply through `notification_about`, as for the
+  breaking alert.
+- **The cap.** No hourly cap, like every kind but messages and reactions
+  (T-273): one alert per story and kind, and publisher types arrive only
+  through the committed mapping, which ships empty (D-123). If a mapped feed
+  makes these frequent, a cap is a revision of this entry.
+- **The line.** "Transfer: " or "Availability: " and the headline of the
+  story's promoted original, the newest publisher version in its source's
+  language, read at render (a corrected headline shows corrected; never a
+  translation). The fallback text names the kind. It opens the story page.
 
 ## D-167 — Trending does not count views or shares
 **Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers:** N-3 in `04-tasks-phase-10.md` · **Follows:** D-044, D-102, D-128
@@ -7385,6 +7487,16 @@ D-139's bar.
   ```
 
   and the verdict is recorded here with its numbers, passed or not.
+
+**The server's run, 2026-09-29** (the full store, report under `~/reports/inputs` on the server). **The zone-aware input `league_stakes_zones`:
+`failed`.** 2024-08-01 to 2026-06-30 over the twelve divisions: football_data
+7,505 scored, 476 applied (6%), log loss 1.0254 for the candidate and 1.0886
+with the input, +0.06320 [+0.03323, +0.09602], clearly worse, calibration
+0.0361 against 0.0628; our_records (IR1) 21 applied, `insufficient`. The
+zones stay on the competition page, where they are a statement of the
+regulations; no candidate carries the input. (The first server run died on
+import, `IndexError` in `_zones.py` inside the image; fixed in #458 before
+this run.)
 
 ## D-172 — Territory settings: viewing coverage and language holds; nothing is proposed from a territory
 **Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers:** N-3 in `04-tasks-phase-11.md` · **Follows:** T-312, T-313, D-155

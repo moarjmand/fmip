@@ -268,6 +268,8 @@ export const ELO_SOURCE_THRESHOLD: WatchdogThreshold = {
 
 export interface EloSourceSeen {
   refresh: boolean;
+  /** D-162: no served version reads Club Elo; see `eloSourceRetired`. Absent from an older service. */
+  retired?: boolean;
   state: 'recorded' | 'unreadable';
   last_succeeded_day: string | null;
   last_error: string | null;
@@ -322,6 +324,24 @@ export function eloSource(
       ? ''
       : `; last error${source.last_error_at === null ? '' : ` ${source.last_error_at.slice(0, 16).replace('T', ' ')} UTC`}${detailOf(source.last_error)}`;
   return { key, level: levelOf(observed, threshold), observed, threshold, note: answered + error };
+}
+
+/**
+ * Club Elo retired (D-162, T-947): from the promotion that replaces
+ * `dixon-coles-elo@0.1.0`, no version the model service serves reads it and
+ * the service says `retired`. The condition then goes: an incident still open
+ * is closed by this one `ok`, and a condition with none is removed from the
+ * watchdog (`retiredConditions` in `readings.ts`), so the System page's line
+ * goes with it.
+ */
+export function eloSourceRetired(): Reading {
+  return {
+    key: 'elo_source',
+    level: 'ok',
+    observed: null,
+    threshold: ELO_SOURCE_THRESHOLD,
+    note: 'Club Elo is retired (D-162): no model version reads it any more',
+  };
 }
 
 /**

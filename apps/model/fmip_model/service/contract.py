@@ -136,6 +136,10 @@ class EloSourceState(BaseModel):
     source: Literal["clubelo"] = "clubelo"
     #: Whether this service asks Club Elo itself each day (MODEL_CLUBELO_REFRESH).
     refresh: bool
+    #: Retired (D-162, T-947): no version this service serves reads Club Elo,
+    #: so it is never asked and the watchdog drops its condition. False while
+    #: the published ``dixon-coles-elo@0.1.0`` reads it.
+    retired: bool = False
     #: ``recorded``: the loads were read; ``unreadable``: the store did not answer.
     state: Literal["recorded", "unreadable"]
     #: The day of the newest snapshot that loaded, and when it finished.

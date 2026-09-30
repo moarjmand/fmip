@@ -76,6 +76,10 @@ export const NOTIFICATION_KINDS = [
   // An editor marked a story breaking that links something the member
   // follows; once per story (T-1005, D-125).
   'breaking_news',
+  // A story typed `transfer`, or `injury` or `suspension`, links a team or
+  // person the member follows; once per story (T-1032, D-166).
+  'transfer_news',
+  'availability_news',
   // A contributor below the threshold for the sustained period, to
   // administrators only (T-1031, D-137).
   'contributor_below_threshold',
@@ -141,6 +145,9 @@ export const NOTIFICATION_DEFAULTS: Record<NotificationKind, boolean> = {
   // Opt-in (T-1005, D-125): an interruption about news is something a member
   // asks for; the strip on the homepage is there for everyone else.
   breaking_news: false,
+  // Opt-in (T-1032, D-166), for the same reason as breaking news.
+  transfer_news: false,
+  availability_news: false,
   // On: the one person who decides whether to pause somebody must know a
   // flag is waiting (T-1031).
   contributor_below_threshold: true,
@@ -246,7 +253,7 @@ export type NotificationSubject =
    * its own so a team mute never silences the answer to a submission.
    */
   | 'analysis_draft'
-  /** A news story (T-1005): `subject_id` is the story, which opens its page. */
+  /** A news story (T-1005, T-1032): `subject_id` is the story, which opens its page. */
   | 'story';
 
 /**
@@ -368,6 +375,8 @@ export const NOTIFICATION_CATEGORY_OF: Record<NotificationKind, NotificationCate
   analysis_reviewed: 'account',
   contributor_eligible: 'account',
   breaking_news: 'football',
+  transfer_news: 'football',
+  availability_news: 'football',
   contributor_below_threshold: 'account',
   // Their own category (T-830), so every match alert can be silenced as one
   // without silencing predictions and ratings.
@@ -470,6 +479,12 @@ export const NOTIFICATION_TEXT: Record<NotificationKind, { text: string; named: 
   },
   // The fallback only: the line is "Breaking: " and the editor's note (T-1005).
   breaking_news: { text: 'Breaking news about something you follow.', named: false },
+  // The fallback only: the line is the type and the story's headline (T-1032).
+  transfer_news: { text: 'Transfer news about a team or player you follow.', named: false },
+  availability_news: {
+    text: 'Injury or suspension news about a team or player you follow.',
+    named: false,
+  },
   // The fallback only: the line names the member (T-1031).
   contributor_below_threshold: {
     text: 'A contributor has stayed below the contributor threshold and is flagged for review.',
@@ -584,7 +599,8 @@ export function notificationPath(
       // beside the draft (T-262, T-833).
       return `/${locale}/analyses/${id}`;
     case 'story':
-      // A breaking alert opens the story page (T-1005).
+      // A breaking alert, and a transfer or availability alert (T-1032),
+      // opens the story page (T-1005).
       return `/${locale}/news/story/${id}`;
     case 'watchdog_event':
       // The System page, where the conditions and incidents are (T-802, T-804).

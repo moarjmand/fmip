@@ -8,6 +8,7 @@ import {
   dataQuality,
   deliveryChannel,
   eloSource,
+  eloSourceRetired,
   type EloSourceSeen,
   ingestJob,
   liveFeed,
@@ -141,7 +142,8 @@ export function readingsOf(
     modelService(seen.model, model !== undefined && model.level !== 'ok' ? model.observed : null),
   );
 
-  out.push(eloSource(seen.elo ?? { source: null }, now));
+  if (!clubEloRetired(seen)) out.push(eloSource(seen.elo ?? { source: null }, now));
+  else if (previous.get('elo_source')?.incidentId != null) out.push(eloSourceRetired());
 
   if (unreadable(seen.delivery)) {
     const why = seen.delivery.unreadable;
@@ -207,6 +209,26 @@ function candidateReadings(
     if (!offered.includes(version)) out.push(candidateShadow(version, { state: 'left' }));
   }
   return out;
+}
+
+/** Whether the model service says no version it serves reads Club Elo (D-162). */
+function clubEloRetired(seen: Observations): boolean {
+  const elo = seen.elo;
+  return elo !== undefined && 'source' in elo && elo.source?.retired === true;
+}
+
+/**
+ * The stored conditions a tick removes (T-947): a condition whose subject is
+ * gone for good and that has no incident open -- Club Elo's once it is retired
+ * (D-162). One with an incident open is first closed by an `ok` reading
+ * (`readingsOf`), and removed on the next tick.
+ */
+export function retiredConditions(
+  seen: Observations,
+  previous: ReadonlyMap<string, StoredCondition>,
+): string[] {
+  const elo = previous.get('elo_source');
+  return clubEloRetired(seen) && elo !== undefined && elo.incidentId === null ? ['elo_source'] : [];
 }
 
 function noSource(reason: string) {

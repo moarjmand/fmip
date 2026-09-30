@@ -128,6 +128,12 @@ export interface ModelEloSource {
   source: 'clubelo';
   /** Whether the service asks Club Elo itself each day (`MODEL_CLUBELO_REFRESH`). */
   refresh: boolean;
+  /**
+   * Retired (D-162, T-947): no version the service serves reads Club Elo, so
+   * it is never asked and the watchdog drops its condition. Absent (read as
+   * false) from a service older than T-947.
+   */
+  retired?: boolean;
   state: 'recorded' | 'unreadable';
   /** ISO date of the newest snapshot that loaded. */
   last_succeeded_day: string | null;
