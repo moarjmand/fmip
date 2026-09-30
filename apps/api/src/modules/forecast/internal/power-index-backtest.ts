@@ -21,7 +21,14 @@
 
 import type { PowerIndexComponent } from '@fmip/contracts';
 import { POWER_INDEX_WEIGHTS } from '@fmip/contracts';
+import type { Measurements } from './power-index';
 import { CONGESTION_WINDOW_DAYS, percentile, type RestInput } from './power-index-measure';
+import {
+  measureLineup,
+  measureStability,
+  type SeasonMatch,
+  type SquadContext,
+} from './power-index-squad';
 
 export type Outcome = 'H' | 'D' | 'A';
 
@@ -358,6 +365,118 @@ export function stakesBefore(
   );
 }
 
+/**
+ * One side of a finished match in our own records (T-924, D-122): the club by
+ * its catalogue id, the coach the line-up named, and the XI that started.
+ */
+export interface RecordedSide {
+  teamId: string;
+  coachId: string | null;
+  /** Empty when no line-up was recorded. */
+  starters: string[];
+}
+
+/** A finished fixture of the division's competition in our records. */
+export interface RecordedFixture {
+  id: string;
+  seasonId: string;
+  /** Milliseconds since the epoch. */
+  kickoffAt: number;
+  home: RecordedSide;
+  away: RecordedSide;
+}
+
+/** One provider rating of a player who was on the pitch `RATED_MINUTES` (power-index-squad) or more. */
+export interface RecordedRating {
+  seasonId: string;
+  kickoffAt: number;
+  personId: string;
+  rating: number;
+}
+
+/** A training match's day is local and our kick-off UTC: a day apart at most (as D-086 pairs). */
+export const PAIRING_DAYS = 1;
+
+/**
+ * The fixture of our records that is this training match: the same two
+ * catalogue clubs, home and away, a day apart at most. A club the bridge does
+ * not know (`<division>:<name>`) is never paired -- never matched by name.
+ */
+export function pairFixture(
+  fixtures: readonly RecordedFixture[],
+  date: string,
+  homeKey: string,
+  awayKey: string,
+): RecordedFixture | undefined {
+  const day = Date.parse(`${date}T00:00:00Z`);
+  return fixtures.find(
+    (f) =>
+      f.home.teamId === homeKey &&
+      f.away.teamId === awayKey &&
+      Math.abs(Math.floor(f.kickoffAt / DAY_MS) * DAY_MS - day) <= PAIRING_DAYS * DAY_MS,
+  );
+}
+
+/**
+ * What the live index would have read before this fixture's kick-off (T-112),
+ * built from our records alone: every team's matches of the same season before
+ * the kick-off with their coach and XI, each player's mean rating over the
+ * season's earlier matches, and the XI that actually started as the announced
+ * one (as D-086's fit measures it). Absences are not read: with the XI that
+ * started in hand, they change nothing.
+ */
+export function squadContextBefore(
+  seasonFixtures: readonly RecordedFixture[],
+  seasonRatings: readonly RecordedRating[],
+  subject: RecordedFixture,
+): SquadContext {
+  const matches = new Map<string, SeasonMatch[]>();
+  const earlier = seasonFixtures
+    .filter((f) => f.seasonId === subject.seasonId && f.kickoffAt < subject.kickoffAt)
+    .sort((a, b) => a.kickoffAt - b.kickoffAt);
+  for (const f of earlier) {
+    for (const side of [f.home, f.away]) {
+      const list = matches.get(side.teamId) ?? [];
+      list.push({
+        kickoffAt: new Date(f.kickoffAt),
+        coachId: side.coachId,
+        starters: side.starters,
+      });
+      matches.set(side.teamId, list);
+    }
+  }
+  const sums = new Map<string, { total: number; count: number }>();
+  for (const r of seasonRatings) {
+    if (r.seasonId !== subject.seasonId || r.kickoffAt >= subject.kickoffAt) continue;
+    const sum = sums.get(r.personId) ?? { total: 0, count: 0 };
+    sum.total += r.rating;
+    sum.count += 1;
+    sums.set(r.personId, sum);
+  }
+  const confirmed = new Map<string, string[]>();
+  for (const side of [subject.home, subject.away]) {
+    if (side.starters.length > 0) confirmed.set(side.teamId, side.starters);
+  }
+  return {
+    matches,
+    ratings: new Map([...sums].map(([id, { total, count }]) => [id, total / count])),
+    confirmed,
+    out: new Map(),
+  };
+}
+
+/** Line-up quality and stability for both sides of a recorded fixture, as the live index measures them. */
+export function squadMeasurements(
+  context: SquadContext,
+  fixture: RecordedFixture,
+): { home: Measurements; away: Measurements } {
+  const of = (teamId: string): Measurements => ({
+    lineup_quality: measureLineup(context, teamId),
+    stability: measureStability(context, teamId),
+  });
+  return { home: of(fixture.home.teamId), away: of(fixture.away.teamId) };
+}
+
 export type WeightSet = Partial<Record<PowerIndexComponent, number>>;
 
 /**
@@ -409,6 +528,12 @@ export const CANDIDATE_WEIGHTS: { name: string; weights: WeightSet }[] = [
   // division's -- at the blueprint's 5%, and heavier.
   { name: 'with-context', weights: { ...BLUEPRINT_WEIGHTS, competition_context: 0.05 } },
   { name: 'context-heavy', weights: { ...BLUEPRINT_WEIGHTS, competition_context: 0.15 } },
+  // T-924: line-up quality (20%) and stability (5%), read from our recorded
+  // line-ups -- does each earn its weight, or more?
+  { name: 'without-lineup', weights: { ...BLUEPRINT_WEIGHTS, lineup_quality: 0 } },
+  { name: 'lineup-heavy', weights: { ...BLUEPRINT_WEIGHTS, lineup_quality: 0.35 } },
+  { name: 'without-stability', weights: { ...BLUEPRINT_WEIGHTS, stability: 0 } },
+  { name: 'stability-heavy', weights: { ...BLUEPRINT_WEIGHTS, stability: 0.15 } },
   {
     name: 'equal',
     weights: {
@@ -455,6 +580,13 @@ export interface BacktestResult {
    * Positive: measuring competition context helped. `null` when either was not scored.
    */
   contextContribution: number | null;
+  /**
+   * T-924: held-out log loss without line-up quality minus the blueprint's.
+   * Positive: line-up quality helped. `null` when either was not scored.
+   */
+  lineupContribution: number | null;
+  /** T-924: the same for stability. Positive: stability helped. */
+  stabilityContribution: number | null;
   verdict: string;
 }
 
@@ -520,6 +652,13 @@ export function score(
       ? blueprint.testLogLoss - withContext.testLogLoss
       : null;
 
+  const without = (name: string): number | null => {
+    const candidate = candidates.find((c) => c.name === name);
+    return candidate?.converged === true && blueprint?.converged === true
+      ? candidate.testLogLoss - blueprint.testLogLoss
+      : null;
+  };
+
   return {
     division,
     matches,
@@ -531,6 +670,8 @@ export function score(
     margin,
     restContribution,
     contextContribution,
+    lineupContribution: without('without-lineup'),
+    stabilityContribution: without('without-stability'),
     verdict: verdictOf(
       best?.name ?? 'none',
       margin,

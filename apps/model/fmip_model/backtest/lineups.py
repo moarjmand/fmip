@@ -8,7 +8,14 @@ the API measures them before a kick-off is forecast by the candidate's
 per-division fit on the matches before it, refitted weekly: its expected goals
 are the offsets, and ``beta`` is the one number fitted on the matches before
 ``--split``. The matches after it are scored with and without the term, the
-same matches both ways, so the gain is the term's alone.
+same matches both ways, so the gain is the term's alone. ``--from`` keeps
+only the XIs measured on or after that day (one season, say).
+
+Whether the gain is real is D-139's bar, the one every model input answers
+(T-923, D-121): at least ``BAR.min_applied`` held-out matches, and the 95%
+paired bootstrap interval of the with-minus-without mean log loss (the same
+resamples and seed as ``backtest.inputs``) entirely below zero. The report
+states the interval and the verdict; it decides nothing on its own.
 """
 
 from __future__ import annotations
@@ -21,11 +28,13 @@ from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from datetime import date, timedelta
 from pathlib import Path
+from typing import Literal
 
 from ..model.dixon_coles import FittedModel, MatchObservation, fit
 from ..model.lineups import LineupSample, RecordedXi, adjusted, fit_beta
 from ..model.poisson import outcome_from_matrix, score_matrix
 from ..model.version import BASELINE, ModelVersion, load_candidate
+from .inputs import BAR, Bar, paired_bootstrap
 from .metrics import Forecast, Result, log_loss
 
 REFIT_EVERY_DAYS = 7
@@ -103,6 +112,9 @@ def result_of(sample: LineupSample) -> Result:
     return "A" if sample.home_goals < sample.away_goals else "D"
 
 
+Verdict = Literal["passed", "failed", "insufficient"]
+
+
 @dataclass(frozen=True)
 class LineupReport:
     beta: float
@@ -110,31 +122,53 @@ class LineupReport:
     tested_on: int
     test_log_loss_with: float
     test_log_loss_without: float
+    #: The 95% paired bootstrap interval of mean log loss, with minus without the term.
+    log_loss_difference_interval: tuple[float, float]
+    #: D-139's bar: ``passed`` only on enough held-out matches with the interval below zero.
+    verdict: Verdict
 
     @property
     def gain(self) -> float:
         return self.test_log_loss_without - self.test_log_loss_with
 
 
-def evaluate(samples: Sequence[Dated], split: date) -> LineupReport:
+def verdict_of(tested_on: int, interval: tuple[float, float], bar: Bar = BAR) -> Verdict:
+    if tested_on < bar.min_applied:
+        return "insufficient"
+    return "passed" if interval[1] < 0 else "failed"
+
+
+def evaluate(samples: Sequence[Dated], split: date, bar: Bar = BAR) -> LineupReport:
     fitting = [d.sample for d in samples if d.day < split]
     testing = [d.sample for d in samples if d.day >= split]
     if not fitting or not testing:
         raise ValueError("both sides of the split need matches with both XIs measured")
     beta = fit_beta(fitting)
     results = [result_of(s) for s in testing]
+    with_term = [one_x_two(s, beta) for s in testing]
+    without = [one_x_two(s, 0.0) for s in testing]
+    interval = paired_bootstrap(without, with_term, results, bar).log_loss
     return LineupReport(
         beta=beta,
         fitted_on=len(fitting),
         tested_on=len(testing),
-        test_log_loss_with=log_loss([one_x_two(s, beta) for s in testing], results),
-        test_log_loss_without=log_loss([one_x_two(s, 0.0) for s in testing], results),
+        test_log_loss_with=log_loss(with_term, results),
+        test_log_loss_without=log_loss(without, results),
+        log_loss_difference_interval=interval,
+        verdict=verdict_of(len(testing), interval, bar),
     )
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="fmip_model.backtest.lineups", description=__doc__)
     parser.add_argument("--divisions", nargs="+", required=True)
+    parser.add_argument(
+        "--from",
+        dest="from_",
+        type=date.fromisoformat,
+        default=None,
+        help="only the XIs measured on or after this day",
+    )
     parser.add_argument("--split", type=date.fromisoformat, required=True)
     parser.add_argument("--until", type=date.fromisoformat, required=True)
     parser.add_argument("--out", type=Path, default=Path("reports"))
@@ -152,6 +186,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     version = load_candidate() or BASELINE
     with psycopg.connect(database_url) as conn:
         xis = xi_before_kickoff(conn, args.divisions)
+        if args.from_ is not None:
+            xis = [x for x in xis if x.day >= args.from_]
         if not xis:
             print("no finished match with both XIs measured yet", file=sys.stderr)
             return 1
@@ -169,15 +205,25 @@ def main(argv: Sequence[str] | None = None) -> int:
     report = evaluate(samples, args.split)
 
     args.out.mkdir(parents=True, exist_ok=True)
-    path = args.out / f"lineups_{args.split.isoformat()}.json"
+    window = f"{args.from_.isoformat()}_" if args.from_ is not None else ""
+    path = args.out / f"lineups_{window}{args.split.isoformat()}.json"
     path.write_text(
         json.dumps(
             {
                 "base_version": version.id,
+                "from": args.from_.isoformat() if args.from_ is not None else None,
                 "split": args.split.isoformat(),
+                "until": args.until.isoformat(),
+                "measured_xis": len(xis),
                 "per_division": per_division,
                 **asdict(report),
                 "gain": report.gain,
+                "bar": {
+                    "min_tested": BAR.min_applied,
+                    "resamples": BAR.resamples,
+                    "level": BAR.level,
+                    "seed": BAR.seed,
+                },
             },
             indent=2,
         )
@@ -185,7 +231,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(
         f"beta {report.beta:.4f} from {report.fitted_on} matches | test {report.tested_on}: "
         f"with {report.test_log_loss_with:.4f}, without {report.test_log_loss_without:.4f} "
-        f"(gain {report.gain:+.4f}) -> {path}"
+        f"(gain {report.gain:+.4f}) | 95% interval of with-minus-without "
+        f"[{report.log_loss_difference_interval[0]:+.4f}, "
+        f"{report.log_loss_difference_interval[1]:+.4f}] -> {report.verdict} | {path}"
     )
     return 0
 

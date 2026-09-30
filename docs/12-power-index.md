@@ -60,9 +60,16 @@ recorded before the kick-off.
   next over its last three pairs. Either alone is used, as `limited`, when the
   other cannot be read.
 
-Neither can be validated by the backtest below: the training data holds results,
-not line-ups or ratings, so the blueprint's 20% and 5% stand as published, and
-this section says so rather than claiming a fit it never had.
+**Validated on our own line-ups (T-924, D-122).** The training data holds
+results, not line-ups, so the backtest below pairs each of its matches with the
+fixture of our records that is the same match (the same two catalogue clubs, a
+day apart at most; never by name) and measures both components with the live
+functions from what our records held before the kick-off. The XI that started
+stands for the announced one. A match that is not a fixture of our records has
+neither, and their weight is redistributed. `without-lineup`, `lineup-heavy`
+(35%), `without-stability` and `stability-heavy` (15%) ask the question against
+the published arithmetic at the usual bar; until the server's run is recorded
+in D-122, the blueprint's 20% and 5% stand as published.
 
 ---
 
@@ -138,6 +145,14 @@ small sample, and the verdict wording is deliberately conservative about it.
 ```bash
 pnpm --filter @fmip/api build
 node apps/api/scripts/power-index-backtest.mjs --division E0
+```
+
+On the server, from the deployed api image (it holds the built code; the script
+is mounted in), writing the report to a directory instead of the docs, and
+scoring only the seasons our line-ups cover:
+
+```bash
+docker compose run --rm -T --no-deps -v /opt/fmip/apps/api/scripts:/app/scripts:ro   -v $HOME/reports/power-index:/tmp/reports api   node scripts/power-index-backtest.mjs --division E0 --from 2023-07-01 --out /tmp/reports
 ```
 
 It needs a loaded training store, which needs the network, so it is run by hand
