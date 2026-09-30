@@ -3,10 +3,19 @@ import type {
   PredictionHistoryFixture,
   PredictionVersion,
   Settlement,
-  SettlementVoidReason,
 } from '@fmip/contracts';
 import { formatDate } from '@/i18n/format';
-import { OUTCOME_LABEL } from './prediction-form';
+import { DEFAULT_LOCALE } from '@/i18n/locales';
+import { interpolate, t } from '@/i18n/messages';
+import { ltrIsolate } from '@/components/score';
+import {
+  VOID_REASON_KEY,
+  asLocale,
+  confidenceText,
+  matchTitle,
+  outcomeText,
+  scoreText,
+} from './prediction-text';
 
 /**
  * The prediction history's pure helpers (T-056): how a version, its time and
@@ -33,9 +42,26 @@ export function historyPageCount(total: number): number {
 }
 
 /** "Home win 2–1 · confidence 4/5" — the version as the member submitted it. */
-export function versionLabel(version: PredictionVersion): string {
-  const score = version.score === null ? '' : ` ${version.score.home}–${version.score.away}`;
-  return `${OUTCOME_LABEL[version.outcome]}${score} · confidence ${version.confidence}/5`;
+export function versionLabel(version: PredictionVersion, locale = 'en'): string {
+  const l = asLocale(locale);
+  const outcome = outcomeText(l, version.outcome);
+  const confidence = confidenceText(l, version.confidence);
+  if (version.score === null) {
+    return interpolate(t(l, 'history.versionLabel'), { outcome, confidence });
+  }
+  return interpolate(t(l, 'history.versionLabelScore'), {
+    outcome,
+    score: isolated(l, scoreText(l, version.score.home, version.score.away)),
+    confidence,
+  });
+}
+
+/**
+ * A score inside a sentence, isolated left to right where the page is not
+ * English (the English string is left exactly as it always read).
+ */
+function isolated(locale: string, score: string): string {
+  return asLocale(locale) === DEFAULT_LOCALE ? score : ltrIsolate(score);
 }
 
 /** Date and time in the viewer's zone, e.g. "05 Jan 2025, 16:28". */
@@ -50,43 +76,51 @@ export function formatSubmitted(locale: string, iso: string, timeZone: string): 
   });
 }
 
-export const VOID_LABEL: Record<SettlementVoidReason, string> = {
-  postponed: 'match postponed',
-  abandoned: 'match abandoned',
-  cancelled: 'match cancelled',
-  awarded: 'result awarded off the pitch',
-};
-
 export type SettlementTone = 'correct' | 'wrong' | 'void' | 'pending' | 'open';
 
 /**
  * How the prediction stands: settled right (exact or outcome), settled wrong,
  * void with the reason, awaiting the result after kick-off, or still open.
  */
-export function settlementLabel(prediction: Prediction): { text: string; tone: SettlementTone } {
+export function settlementLabel(
+  prediction: Prediction,
+  locale = 'en',
+): { text: string; tone: SettlementTone } {
+  const l = asLocale(locale);
   const s: Settlement | null = prediction.settlement;
   if (s === null) {
     return prediction.locked
-      ? { text: 'Awaiting result', tone: 'pending' }
-      : { text: 'Open until kick-off', tone: 'open' };
+      ? { text: t(l, 'history.settlement.awaiting'), tone: 'pending' }
+      : { text: t(l, 'history.settlement.open'), tone: 'open' };
   }
   if (s.status === 'void') {
-    const reason = s.void_reason === null ? '' : ` — ${VOID_LABEL[s.void_reason]}`;
-    return { text: `Void${reason}`, tone: 'void' };
+    return {
+      text:
+        s.void_reason === null
+          ? t(l, 'history.settlement.void')
+          : interpolate(t(l, 'history.settlement.voidReason'), {
+              reason: t(l, VOID_REASON_KEY[s.void_reason]),
+            }),
+      tone: 'void',
+    };
   }
   if (s.outcome_correct === true) {
     return s.score_correct === true
-      ? { text: 'Exact score', tone: 'correct' }
-      : { text: 'Correct outcome', tone: 'correct' };
+      ? { text: t(l, 'history.settlement.exact'), tone: 'correct' }
+      : { text: t(l, 'history.settlement.correct'), tone: 'correct' };
   }
-  return { text: 'Wrong outcome', tone: 'wrong' };
+  return { text: t(l, 'history.settlement.wrong'), tone: 'wrong' };
 }
 
 /** "Test Home 2–1 Test Away" after the match, "Test Home v Test Away" before. */
-export function fixtureLabel(fixture: PredictionHistoryFixture): string {
+export function fixtureLabel(fixture: PredictionHistoryFixture, locale = 'en'): string {
   const home = fixture.home.short_name ?? fixture.home.name;
   const away = fixture.away.short_name ?? fixture.away.name;
   return fixture.score === null
-    ? `${home} v ${away}`
-    : `${home} ${fixture.score.home}–${fixture.score.away} ${away}`;
+    ? matchTitle(locale, home, away)
+    : interpolate(t(asLocale(locale), 'history.fixtureScore'), {
+        home,
+        away,
+        score: isolated(locale, scoreText(locale, fixture.score.home, fixture.score.away)),
+      });
 }

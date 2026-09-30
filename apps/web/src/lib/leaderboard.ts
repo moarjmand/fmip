@@ -6,6 +6,9 @@ import type {
   LeaderboardScope,
   RatingTier,
 } from '@fmip/contracts';
+import { formatNumber, intlLocale } from '@/i18n/format';
+import { type MessageKey, interpolate, plural, t } from '@/i18n/messages';
+import { asLocale, ratingText } from './prediction-text';
 
 /**
  * The leaderboard page's pure helpers (T-055): reading the minimum-sample
@@ -128,13 +131,18 @@ export function languageLabel(code: string, locale = 'en'): string {
   }
 }
 
-/** `2026-09` as "September 2026", in UTC so the name is the month the API rated. */
+/**
+ * `2026-09` as "September 2026", in UTC so the name is the month the API rated.
+ * Always the Gregorian month, in the locale's words and digits: the board is
+ * cut on Gregorian months, and a Solar Hijri name would straddle two of them.
+ */
 export function monthLabel(month: string, locale = 'en'): string {
   const [year, index] = month.split('-').map(Number) as [number, number];
-  return new Intl.DateTimeFormat(locale, {
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     month: 'long',
     year: 'numeric',
     timeZone: 'UTC',
+    calendar: 'gregory',
   }).format(new Date(Date.UTC(year, index - 1, 1)));
 }
 
@@ -147,21 +155,32 @@ export function periodSentence(
   locale = 'en',
   competition: string | null = null,
 ): string {
-  const where = competition === null ? '' : ` on ${competition} fixtures`;
+  const l = asLocale(locale);
+  const say = (key: MessageKey, params: Record<string, string> = {}): string =>
+    interpolate(t(l, key), params);
   switch (period.kind) {
     case 'all':
       return competition === null
-        ? 'Ranked by current Performance Rating'
-        : `Ranked by the Performance Rating computed over predictions${where} only`;
-    case 'month':
-      return `Ranked by the Performance Rating computed over predictions${where} settled in ${monthLabel(period.month, locale)} (UTC) only`;
+        ? say('leaderboardPage.ranked.current')
+        : say('leaderboardPage.ranked.competition', { competition });
+    case 'month': {
+      const month = monthLabel(period.month, l);
+      return competition === null
+        ? say('leaderboardPage.ranked.month', { month })
+        : say('leaderboardPage.ranked.monthCompetition', { competition, month });
+    }
     case 'season':
       return period.label === null
-        ? 'No season has a settled prediction yet'
+        ? say('leaderboardPage.ranked.noSeason')
         : competition === null
-          ? `Ranked by the Performance Rating computed over predictions on ${period.label} season fixtures, in every competition, only`
-          : `Ranked by the Performance Rating computed over predictions${where} in its ${period.label} season only`;
+          ? say('leaderboardPage.ranked.season', { season: period.label })
+          : say('leaderboardPage.ranked.seasonCompetition', { competition, season: period.label });
   }
+}
+
+/** A phrase that follows another in a sentence: a space before it, or nothing. */
+function after(phrase: string | null): string {
+  return phrase === null ? '' : ` ${phrase}`;
 }
 
 /**
@@ -176,30 +195,37 @@ export function boardExplainer(
   },
   locale = 'en',
 ): string {
+  const l = asLocale(locale);
   const competition = board.competition?.name ?? null;
   const language = board.language ?? null;
-  const readers = language === null ? '' : ` who use FMIP in ${languageLabel(language, locale)}`;
+  const readers = language === null ? '' : languageLabel(language, l);
   const among =
     board.scope === 'friends'
-      ? ` among you and your friends${readers}`
+      ? language === null
+        ? t(l, 'leaderboardPage.among.friends')
+        : interpolate(t(l, 'leaderboardPage.among.friendsLanguage'), { language: readers })
       : language === null
-        ? ''
-        : ` among members${readers}`;
+        ? null
+        : interpolate(t(l, 'leaderboardPage.among.membersLanguage'), { language: readers });
   const inPeriod =
     board.period.kind !== 'all'
-      ? ' in that period'
+      ? t(l, 'leaderboardPage.inPeriod.period')
       : competition !== null
-        ? ' in that competition'
-        : '';
+        ? t(l, 'leaderboardPage.inPeriod.competition')
+        : null;
   const privacy =
     board.period.kind === 'all' && competition === null && language === null
       ? ''
-      : ' A member appears only where their prediction history is visible to you.';
-  return (
-    `${periodSentence(board.period, locale, competition)}${among}, counting members with at least ` +
-    `${board.min_settled} settled predictions${inPeriod}. Ratings are provisional below ` +
-    `${board.floor}, so no smaller sample is ranked.${privacy}`
-  );
+      : ` ${t(l, 'leaderboardPage.privacy')}`;
+  const ranked = plural(l, 'leaderboardPage.explainer', board.min_settled, {
+    ranked: periodSentence(board.period, l, competition),
+    among: after(among),
+    inPeriod: after(inPeriod),
+  }).text;
+  const floor = interpolate(t(l, 'leaderboardPage.provisionalBelow'), {
+    floor: formatNumber(l, board.floor),
+  });
+  return `${ranked} ${floor}${privacy}`;
 }
 
 /**
@@ -215,22 +241,34 @@ export function emptyBoardSentence(
   competition: string | null = null,
   language: string | null = null,
 ): string {
-  if (pastTheEnd) return 'There is nobody on this page of the board.';
-  if (period.kind === 'season' && period.label === null)
-    return 'No season has a settled prediction yet, so there is no season board.';
-  const readers = language === null ? '' : ` who uses FMIP in ${languageLabel(language, locale)}`;
-  const who =
+  const l = asLocale(locale);
+  if (pastTheEnd) return t(l, 'leaderboardPage.empty.pastEnd');
+  if (period.kind === 'season' && period.label === null) {
+    return t(l, 'leaderboardPage.empty.noSeason');
+  }
+  const key =
     scope === 'friends'
-      ? `Neither you nor any of your friends${readers} has`
-      : `No member${readers} has`;
+      ? language === null
+        ? 'leaderboardPage.empty.friends'
+        : 'leaderboardPage.empty.friendsLanguage'
+      : language === null
+        ? 'leaderboardPage.empty.members'
+        : 'leaderboardPage.empty.membersLanguage';
   const when =
     period.kind === 'month'
-      ? ` in ${monthLabel(period.month, locale)}`
+      ? interpolate(t(l, 'leaderboardPage.empty.whenMonth'), {
+          month: monthLabel(period.month, l),
+        })
       : period.kind === 'season'
-        ? ` on ${period.label} season fixtures`
-        : '';
-  const where = competition === null ? '' : ` in ${competition}`;
-  return `${who} ${minSettled} settled predictions${where}${when} yet.`;
+        ? interpolate(t(l, 'leaderboardPage.empty.whenSeason'), { season: period.label ?? '' })
+        : null;
+  const where =
+    competition === null ? null : interpolate(t(l, 'leaderboardPage.empty.where'), { competition });
+  return plural(l, key, minSettled, {
+    language: language === null ? '' : languageLabel(language, l),
+    where: after(where),
+    when: after(when),
+  }).text;
 }
 
 /** How many pages a board of `total` entries has, at least one. */
@@ -238,29 +276,31 @@ export function pageCount(total: number): number {
   return Math.max(1, Math.ceil(total / PAGE_SIZE));
 }
 
-export function tierLabel(tier: RatingTier): string {
-  switch (tier) {
-    case 'bronze':
-      return 'Bronze';
-    case 'silver':
-      return 'Silver';
-    case 'gold':
-      return 'Gold';
-    case 'platinum':
-      return 'Platinum';
-    case 'elite':
-      return 'Elite';
-  }
+const TIER_KEY: Record<RatingTier, MessageKey> = {
+  bronze: 'leaderboardPage.tier.bronze',
+  silver: 'leaderboardPage.tier.silver',
+  gold: 'leaderboardPage.tier.gold',
+  platinum: 'leaderboardPage.tier.platinum',
+  elite: 'leaderboardPage.tier.elite',
+};
+
+/** A tier's name; English unless a caller passes its page's locale (T-1307). */
+export function tierLabel(tier: RatingTier, locale = 'en'): string {
+  return t(asLocale(locale), TIER_KEY[tier]);
 }
 
 /** One decimal, always: 72 reads as "72.0" so the column lines up and the precision is honest. */
-export function ratingLabel(entry: Pick<LeaderboardEntry, 'rating'>): string {
-  return entry.rating.toFixed(1);
+export function ratingLabel(entry: Pick<LeaderboardEntry, 'rating'>, locale = 'en'): string {
+  return ratingText(locale, entry.rating);
 }
 
 /** Established, or provisional (never on the board, but the API says so), or neither. */
-export function statusLabel(entry: Pick<LeaderboardEntry, 'provisional' | 'established'>): string {
-  if (entry.established) return 'Established';
-  if (entry.provisional) return 'Provisional';
-  return 'Building';
+export function statusLabel(
+  entry: Pick<LeaderboardEntry, 'provisional' | 'established'>,
+  locale = 'en',
+): string {
+  const l = asLocale(locale);
+  if (entry.established) return t(l, 'leaderboardPage.status.established');
+  if (entry.provisional) return t(l, 'leaderboardPage.status.provisional');
+  return t(l, 'leaderboardPage.status.building');
 }

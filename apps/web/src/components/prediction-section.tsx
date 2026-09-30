@@ -1,8 +1,31 @@
-import type { AuthUser, MatchHeader, Prediction } from '@fmip/contracts';
+import {
+  MAX_REASON_TAGS,
+  PREDICTION_REASON_TAGS,
+  type AuthUser,
+  type MatchHeader,
+  type Prediction,
+  type PredictionReasonTag,
+} from '@fmip/contracts';
 import Link from 'next/link';
-import { PredictionForm } from '@/components/prediction-form';
+import type { ReactNode } from 'react';
+import { PredictionForm, type PredictionFormWords } from '@/components/prediction-form';
+import { Translated } from '@/components/translated';
+import { LtrNumeric } from '@/components/score';
+import { type Locale } from '@/i18n/locales';
+import { attribute, interpolate, message, t } from '@/i18n/messages';
 import { canonicalUrl } from '@/lib/seo';
-import { OUTCOME_LABEL, REASON_TAG_LABEL, isLocked } from '@/lib/prediction-form';
+import { isLocked } from '@/lib/prediction-form';
+import {
+  REASON_TAG_KEY,
+  asLocale,
+  confidenceText,
+  listText,
+  matchTitle,
+  plainNumber,
+  richMessage,
+  scoreText,
+  utcStamp,
+} from '@/lib/prediction-text';
 import { submitPredictionAction } from '@/lib/prediction-actions';
 
 /**
@@ -22,37 +45,49 @@ export function PredictionSection({
   me: AuthUser | null;
   current: Prediction | null;
 }) {
+  const l = asLocale(locale);
   const locked = current?.locked ?? isLocked(fixture.kickoff_at);
 
   return (
     <section className="flex flex-col gap-2" data-testid="prediction">
       <h2 className="text-lg font-semibold">
-        Your prediction
+        <Translated locale={l} message="predictions.section.title" />
         <span className="ms-2 text-xs font-normal uppercase text-muted">
-          {locked ? 'locked at kick-off' : 'open until kick-off'}
+          <Translated
+            locale={l}
+            message={locked ? 'predictions.section.locked' : 'predictions.section.open'}
+          />
         </span>
       </h2>
 
       {me === null ? (
         <p className="text-sm" data-testid="prediction-guest">
-          <Link href={`/${locale}/login`} className="underline">
-            Sign in
-          </Link>{' '}
-          to predict this match. Predictions need a verified account and lock at kick-off.
+          {richMessage(message(l, 'predictions.section.guest'), {
+            signIn: (
+              <Link href={`/${locale}/login`} className="underline">
+                <Translated locale={l} message="predictions.section.signIn" />
+              </Link>
+            ),
+          })}
         </p>
       ) : locked ? (
         current === null ? (
           <p className="text-sm text-muted" data-testid="prediction-none">
-            You did not predict this match before kick-off.
+            <Translated locale={l} message="predictions.section.none" />
           </p>
         ) : (
-          <Final prediction={current} home={fixture.home.name} away={fixture.away.name} />
+          <Final
+            locale={l}
+            prediction={current}
+            home={fixture.home.name}
+            away={fixture.away.name}
+          />
         )
       ) : (
         <>
           {!me.email_verified && (
             <p className="text-sm" role="status">
-              Verify your e-mail address before predicting; the link is in your inbox.
+              <Translated locale={l} message="predictions.section.verify" />
             </p>
           )}
           <PredictionForm
@@ -61,37 +96,127 @@ export function PredictionSection({
             home={fixture.home.name}
             away={fixture.away.name}
             shareUrl={canonicalUrl(locale, `/match/${fixture.id}`)}
+            words={formWords(l, fixture.home.name, fixture.away.name, current)}
           />
         </>
       )}
       <p className="text-xs text-muted">
-        Community distribution and settlement arrive with the predictions release (E5); your
-        prediction is never blended with the model forecast (rule 6).
+        <Translated locale={l} message="predictions.section.note" />
       </p>
     </section>
   );
 }
 
-function Final({ prediction, home, away }: { prediction: Prediction; home: string; away: string }) {
+/** The form's words, resolved here so the catalogues stay on the server (T-1040). */
+function formWords(
+  locale: Locale,
+  home: string,
+  away: string,
+  current: Prediction | null,
+): PredictionFormWords {
+  const goals = (team: string): { text: string; lang?: string } => {
+    const { text, lang } = attribute(locale, 'predictions.form.goals');
+    return { text: interpolate(text, { team }), ...(lang === undefined ? {} : { lang }) };
+  };
+  const latest = current?.latest ?? null;
+  const reasonTags = Object.fromEntries(
+    PREDICTION_REASON_TAGS.map((tag) => [
+      tag,
+      <Translated key={tag} locale={locale} message={REASON_TAG_KEY[tag]} />,
+    ]),
+  ) as Record<PredictionReasonTag, ReactNode>;
+  return {
+    call: <Translated locale={locale} message="predictions.form.call" />,
+    draw: <Translated locale={locale} message="predictions.outcome.draw" />,
+    score: <Translated locale={locale} message="predictions.form.score" />,
+    homeGoals: goals(home),
+    awayGoals: goals(away),
+    confidence: <Translated locale={locale} message="predictions.form.confidence" />,
+    confidenceOptions: [1, 2, 3, 4, 5].map((n) => plainNumber(locale, n)),
+    reasons: (
+      <Translated locale={locale} message="predictions.form.reasons" count={MAX_REASON_TAGS} />
+    ),
+    reasonTags,
+    why: <Translated locale={locale} message="predictions.form.why" />,
+    submit: <Translated locale={locale} message="predictions.form.submit" />,
+    update: <Translated locale={locale} message="predictions.form.update" />,
+    version:
+      latest === null
+        ? null
+        : richMessage(
+            {
+              ...message(locale, 'predictions.form.version'),
+              text: interpolate(t(locale, 'predictions.form.version'), {
+                version: plainNumber(locale, latest.version_number),
+              }),
+            },
+            {
+              time: (
+                <time dateTime={latest.submitted_at}>{utcStamp(locale, latest.submitted_at)}</time>
+              ),
+            },
+          ),
+    share: <Translated locale={locale} message="predictions.form.share" />,
+    shareTitle: matchTitle(locale, home, away),
+  };
+}
+
+function Final({
+  locale,
+  prediction,
+  home,
+  away,
+}: {
+  locale: Locale;
+  prediction: Prediction;
+  home: string;
+  away: string;
+}) {
   const v = prediction.latest;
   return (
     <div className="flex flex-col gap-1 text-sm" data-testid="prediction-final">
       <p>
         <span className="font-medium">
-          {v.outcome === 'home' ? home : v.outcome === 'away' ? away : OUTCOME_LABEL.draw}
+          {v.outcome === 'home' ? (
+            home
+          ) : v.outcome === 'away' ? (
+            away
+          ) : (
+            <Translated locale={locale} message="predictions.outcome.draw" />
+          )}
         </span>
-        {v.score !== null ? ` · ${v.score.home}–${v.score.away}` : ''} · confidence {v.confidence}/5
+        {v.score !== null ? (
+          <>
+            {' · '}
+            <LtrNumeric>{scoreText(locale, v.score.home, v.score.away)}</LtrNumeric>
+          </>
+        ) : (
+          ''
+        )}{' '}
+        · {confidenceText(locale, v.confidence)}
       </p>
       {v.reason_tags.length > 0 && (
         <p className="text-xs text-muted">
-          {v.reason_tags.map((t) => REASON_TAG_LABEL[t]).join(', ')}
+          {listText(
+            locale,
+            v.reason_tags.map((tag) => t(locale, REASON_TAG_KEY[tag])),
+          )}
         </p>
       )}
       {v.explanation !== null && <p className="text-xs">{v.explanation}</p>}
       <p className="text-xs text-muted">
-        Final version {v.version_number} of {prediction.versions.length}, submitted{' '}
-        <time dateTime={v.submitted_at}>{v.submitted_at.slice(0, 16).replace('T', ' ')}</time> UTC.
-        Settlement arrives with T-052.
+        {richMessage(
+          {
+            ...message(locale, 'predictions.section.final'),
+            text: interpolate(t(locale, 'predictions.section.final'), {
+              version: plainNumber(locale, v.version_number),
+              total: plainNumber(locale, prediction.versions.length),
+            }),
+          },
+          {
+            time: <time dateTime={v.submitted_at}>{utcStamp(locale, v.submitted_at)}</time>,
+          },
+        )}
       </p>
     </div>
   );
