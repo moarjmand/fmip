@@ -77,11 +77,16 @@ test('a match row is one thumb-sized line, and its details open in place', async
   const link = row.getByTestId('match-link');
   const box = await link.boundingBox();
   expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
-  // One line: status, the two names and the score share a baseline.
-  const top = async (id: string) => (await row.getByTestId(id).boundingBox())?.y ?? -1;
-  const status = await top('score-status');
-  expect(Math.abs((await top('home-team')) - status)).toBeLessThan(12);
-  expect(Math.abs((await top('away-team')) - status)).toBeLessThan(12);
+  // One row: status, the two names and the score share a centre line. A
+  // long name wraps onto a second line before it is cut (T-1202), so the
+  // parts are compared by their middles, not their tops.
+  const middle = async (id: string) => {
+    const b = await row.getByTestId(id).boundingBox();
+    return b === null ? -1 : b.y + b.height / 2;
+  };
+  const status = await middle('score-status');
+  expect(Math.abs((await middle('home-team')) - status)).toBeLessThan(12);
+  expect(Math.abs((await middle('away-team')) - status)).toBeLessThan(12);
 
   // The labels, the model's and the community's lines are there, one press away.
   await expect(row.getByTestId('card-labels')).toBeHidden();
