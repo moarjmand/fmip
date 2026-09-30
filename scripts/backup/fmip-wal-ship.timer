@@ -1,0 +1,15 @@
+# Runs fmip-wal-ship.service every five minutes (T-845). With Postgres
+# switching segments at least every PG_ARCHIVE_TIMEOUT (300 s), the newest
+# minute the off-provider copy can be replayed to is about ten minutes old
+# at worst. See docs/07-backups.md.
+
+[Unit]
+Description=Ship FMIP WAL segments off-provider every five minutes
+
+[Timer]
+OnCalendar=*:0/5
+Persistent=true
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

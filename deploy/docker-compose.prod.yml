@@ -61,10 +61,30 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:?missing in .env}
       PGDATA: /var/lib/postgresql/data/pgdata
       POSTGRES_INITDB_ARGS: --data-checksums
+    # Point-in-time recovery (T-845, D-157), off until `.env` says
+    # PG_ARCHIVE_MODE=on (docs/07-backups.md). Each finished WAL segment is
+    # gzipped into the `wal-spool` volume by wal-archive.sh; the host's
+    # fmip-wal-ship.timer moves it through the rclone crypt remote. A switch
+    # every PG_ARCHIVE_TIMEOUT seconds bounds the loss on a quiet database;
+    # wal_recycle=off makes such a half-empty segment zeros after its last
+    # record, so it compresses to almost nothing. Changing archive_mode
+    # restarts Postgres (`docker compose up -d postgres`, a few seconds).
+    command:
+      - postgres
+      - -c
+      - archive_mode=${PG_ARCHIVE_MODE:-off}
+      - -c
+      - archive_command=/bin/sh /usr/local/bin/fmip-wal-archive %p %f
+      - -c
+      - archive_timeout=${PG_ARCHIVE_TIMEOUT:-300}
+      - -c
+      - wal_recycle=off
     ports:
       - '127.0.0.1:${POSTGRES_PORT:-5432}:5432'
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - wal-spool:/wal-spool
+      - ../scripts/backup/wal-archive.sh:/usr/local/bin/fmip-wal-archive:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
       interval: 5s
@@ -221,6 +241,9 @@ services:
 
 volumes:
   postgres-data:
+  # Finished WAL segments waiting for fmip-wal-ship.timer (T-845); empty
+  # while archiving is off, and normally within minutes of empty when on.
+  wal-spool:
   redis-data:
   caddy-data:
   caddy-config:

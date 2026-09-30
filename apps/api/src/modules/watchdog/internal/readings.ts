@@ -17,6 +17,7 @@ import {
   requestBudget,
   restoreDrill,
   type RunRecord,
+  type WalArchiveRecord,
 } from './conditions';
 import type { StoredCondition } from './transition';
 
@@ -62,8 +63,12 @@ export interface Observations {
         push: { configured: false } | { configured: true; sent: number; failed: number };
       }
     | Unreadable;
-  /** What the backup and the restore drill recorded in `backup_run` (T-805). */
-  backups: { backup: RunRecord; drill: RunRecord } | Unreadable;
+  /**
+   * What the backup and the restore drill recorded in `backup_run` (T-805),
+   * and the WAL archiver's state for point-in-time recovery (T-845); `wal`
+   * absent when it could not be read.
+   */
+  backups: { backup: RunRecord; drill: RunRecord; wal?: WalArchiveRecord } | Unreadable;
   /** Open findings about live matches and the newest complete sweep (T-821). */
   dataQuality: { open: number; sweptAt: Date | null } | Unreadable;
   /**
@@ -164,7 +169,7 @@ export function readingsOf(
     out.push({ ...backup(undefined, now), note: why });
     out.push({ ...restoreDrill(undefined, now), note: why });
   } else {
-    out.push(backup(seen.backups.backup, now));
+    out.push(backup(seen.backups.backup, now, seen.backups.wal));
     out.push(restoreDrill(seen.backups.drill, now));
   }
 

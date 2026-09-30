@@ -7139,6 +7139,44 @@ size. *Dumping every hour instead*: 24 times the dump storage for a recovery
 point that is still an hour. *Provider snapshots*: same-provider, D-032's
 objection.
 
+**Amended 2026-09-30 (T-845, as built).** The details the decision left open:
+
+- *How WAL leaves the container.* The postgres image has no rclone, so
+  `archive_command` (`scripts/backup/wal-archive.sh`, mounted read-only into
+  the container) gzips each segment into a `wal-spool` volume, and
+  `fmip-wal-ship.timer` moves the spool through the crypt remote every five
+  minutes (`pitr.sh ship`). The archive command refuses once a spooled
+  segment has waited 30 minutes, so a stopped shipper shows up as archiver
+  failures (and an alert) rather than as a spool that silently never leaves
+  the machine; the price is `pg_wal` growing on the server while it lasts.
+- *Recovery point.* `archive_timeout` 300 s plus the five-minute shipper:
+  about ten minutes at worst. `wal_recycle=off`, so a segment closed early is
+  zeros after its last record and gzips to about 16 KB (measured).
+- *"7 days" means any minute of the last seven days can be replayed to.*
+  That needs the newest base from before the window, so what is held is
+  every base of the last 7 days plus that one, and the WAL from it on: up to
+  two weeks of WAL at worst. `PITR_KEEP_DAYS` sets it.
+- *The weekly base backup has no timer of its own.* `backup.sh` asks for one
+  every day (`pitr.sh base --if-due`) and one is taken when the newest on the
+  remote is six days old; a failure fails that day's backup run, which the
+  watchdog already reports, and is retried the next morning.
+- *The drill.* `restore-drill.sh --pitr <minute>` replays into a throwaway
+  container and checks what D-101 can check without a manifest (constraints,
+  migrations and key tables against live, and the last transaction replayed
+  within 15 minutes before the stated minute). The monthly unit runs it an
+  hour back, after the dump drill; both record `restore_drill` rows.
+- *The watchdog.* `backup` reads `pg_stat_archiver` beside `backup_run`, so
+  no migration: `degraded` when segments have waited 30 minutes or the newest
+  attempt was refused, `failing` at two hours, nothing while archiving is off.
+- *The gate.* `pitr.sh measure` projects the remote's total (today's use, two
+  bases at full size, two weeks of WAL at this database's measured gzip
+  ratio) against `PITR_REMOTE_BUDGET_GB`, 10 GB by default -- B2's free
+  allowance; if the maintainer already pays for more, that figure goes in
+  `.env`. Its first run is
+  provisional; the switch-on in `09-deploy.md` §9 waits for a run a week
+  later. The switch and its rollback are one `.env` line and a Postgres
+  restart.
+
 ## D-158 — A member can download a copy of their own data
 **Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers:** N-4 in `04-tasks-phase-8.md` · **Task:** T-846 · **Follows:** D-094
 

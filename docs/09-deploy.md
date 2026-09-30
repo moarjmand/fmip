@@ -421,6 +421,106 @@ one outside (`10.99.0.0/24`). The rehearsal stack below sets
 `ORIGIN_EXTRA_RANGES=private_ranges`, because Docker Desktop hands Caddy the
 laptop's own requests from the bridge gateway.
 
+## 9. Point-in-time recovery (T-845, D-157)
+
+What it is and how it works: `07-backups.md`, "Point-in-time recovery". It
+is **off** until step 2 below; merging and deploying the release that
+carries it changes nothing on the server (`rollout.sh` never recreates
+`postgres`). Everything here runs **as `fmip`, in `/opt/fmip`**, except the
+`sudo` lines. The off-provider backups must already be working
+(`bash deploy/check-setup.sh` says `Backups ... ON`).
+
+**1. Measure -- the gate.**
+
+```bash
+bash scripts/backup/pitr.sh measure
+```
+
+The last line must be `FITS`. The first run is marked `PROVISIONAL`; run the
+same line again six or more days later, and decide on that measured week.
+If it says `DOES NOT FIT` (exit 3), stop here: the numbers go to the
+maintainer, and a bigger storage plan is theirs to buy (D-157).
+
+**2. Switch archiving on.** Postgres restarts once: a few seconds in which
+the API's queries fail and are retried; nothing else is touched.
+
+```bash
+git pull --ff-only        # the release with T-845, if not deployed yet
+grep -q '^PG_ARCHIVE_MODE=' .env \
+  && sed -i 's/^PG_ARCHIVE_MODE=.*/PG_ARCHIVE_MODE=on/' .env \
+  || echo 'PG_ARCHIVE_MODE=on' >> .env
+docker compose up -d postgres
+docker compose exec postgres psql -U fmip -d fmip -tAc 'SHOW archive_mode'   # on
+# The first ship makes the spool Postgres writes into; until it runs, the log
+# shows "fmip-wal-archive: /wal-spool is missing" once a minute. That is expected.
+bash scripts/backup/pitr.sh ship
+```
+
+**3. Install the shipper, and the drill unit that now also replays.**
+
+```bash
+sudo cp scripts/backup/fmip-wal-ship.{service,timer} scripts/backup/fmip-restore-drill.service \
+  /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now fmip-wal-ship.timer
+systemctl list-timers fmip-wal-ship.timer          # NEXT within five minutes
+```
+
+**4. The first base backup, now** (afterwards `backup.sh` takes one a week
+by itself):
+
+```bash
+bash scripts/backup/pitr.sh base                   # ends "kept 1 base(s) ..."
+```
+
+**5. Check it is flowing** (after ten minutes):
+
+```bash
+docker compose exec postgres psql -U fmip -d fmip -c \
+  'SELECT archived_count, last_archived_wal, last_archived_time, failed_count, last_failed_time FROM pg_stat_archiver'
+journalctl -u fmip-wal-ship.service -n 10          # "shipped <n> segment(s) ..."
+```
+
+`archived_count` grows and `last_failed_time` is older than
+`last_archived_time` (the failures from before the first ship are expected).
+The admin System page shows `backup` `ok` with "point-in-time recovery:
+newest WAL segment archived ... ago".
+
+**6. Prove it: replay to a stated minute** (fifteen minutes or more after
+step 4, so there is WAL after the base):
+
+```bash
+bash scripts/backup/restore-drill.sh --scheduled --pitr "$(date -u -d '10 minutes ago' '+%Y-%m-%d %H:%M')"
+```
+
+It ends `DRILL PASSED: pitr to <minute> UTC`, having printed Postgres's
+`recovery stopping before commit ... time ...` and the last transaction
+replayed; the System page's `restore_drill` stays `ok`. From now on the
+monthly drill does this by itself, an hour back. Record the date and the
+minute in the table below.
+
+**Rollback** (archiving off; the dumps carry on exactly as before):
+
+```bash
+sed -i 's/^PG_ARCHIVE_MODE=.*/PG_ARCHIVE_MODE=off/' .env
+docker compose up -d postgres                      # restarts Postgres once more
+sudo systemctl disable --now fmip-wal-ship.timer
+bash scripts/backup/pitr.sh ship || true           # send what is still spooled
+```
+
+With archiving off, `backup.sh` takes no base backups, the monthly unit's
+replay step exits 0 without recording, and the watchdog's `backup` is the dump
+alone again. What is on the remote stays, and can still be replayed from, until
+`backup.sh`'s 90-day prune removes it; to remove it sooner:
+`docker run --rm -v ~/.config/rclone/rclone.conf:/config/rclone/rclone.conf:ro rclone/rclone:1 purge offsite:/wal`
+(and the same with `offsite:/base`). To undo the code as well, revert the T-845 merge commit
+and `docker compose up -d postgres`. The `wal-spool` volume can then be
+removed with `docker volume rm fmip_wal-spool`.
+
+| Date | Where | Result |
+|---|---|---|
+| 2026-09-30 | Maintainer's laptop, production compose file under `COMPOSE_PROJECT_NAME=fmip-pitr`, `PG_ARCHIVE_MODE=on`, `PG_ARCHIVE_TIMEOUT=60`, a `type = local` rclone remote | See `07-backups.md`, "Rehearsed on 2026-09-30": a row written before the stated minute present after the replay, a row written after it absent. |
+
 ## Uptime check (from outside, T-806)
 
 `.github/workflows/uptime.yml` asks `https://traveltohormuz.ir/health` every

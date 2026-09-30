@@ -459,6 +459,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the watchdog
       });
       expect(observed.backups.drill.lastSucceededAt?.getTime()).toBe(ahead(1).getTime());
       expect(observed.backups.drill.newest?.ok).toBe(false);
+      // The WAL archiver is read from Postgres itself (T-845): the development
+      // and test database does not archive, so it leaves `backup` to the dump.
+      expect(observed.backups.wal).toMatchObject({ on: false });
 
       seen = { ...quiet(new Date()), backups: observed.backups };
       await clearWatchdog(pool);

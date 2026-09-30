@@ -1,0 +1,27 @@
+# systemd unit for the VPS (T-845, D-157). Install with fmip-wal-ship.timer:
+#
+#     sudo cp scripts/backup/fmip-wal-ship.{service,timer} /etc/systemd/system/
+#     sudo systemctl daemon-reload
+#     sudo systemctl enable --now fmip-wal-ship.timer
+#
+# Moves the WAL segments Postgres archived into the `wal-spool` volume to
+# BACKUP_RCLONE_REMOTE/wal/ through the rclone crypt remote
+# (docs/07-backups.md, "Point-in-time recovery").
+
+[Unit]
+Description=FMIP WAL shipping (archived segments to the off-provider remote)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+# As fmip, like fmip-backup.service: rclone.conf lives in fmip's home.
+User=fmip
+WorkingDirectory=/opt/fmip
+ExecStart=/usr/bin/bash scripts/backup/pitr.sh ship
+# A run that cannot finish in four minutes overlaps the next; stop it, and
+# wal-archive.sh's back-pressure turns a stuck shipper into an alert.
+TimeoutStartSec=4min
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
