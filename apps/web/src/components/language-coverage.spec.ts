@@ -34,9 +34,11 @@ describe('the language rows', () => {
     }
   });
 
-  it('offers English and none of the seven, today', () => {
+  it('offers English and none of the others, today', () => {
     const rows = languageRows();
     expect(rows.find((row) => row.locale === 'en')?.offered).toBe(true);
+    // Persian is ready (D-175) but still being written into the pages (T-1310).
+    expect(rows.find((row) => row.locale === 'fa')?.ready).toBe(true);
     for (const locale of UNFINISHED_LOCALES) {
       expect(rows.find((row) => row.locale === locale)?.offered, locale).toBe(false);
     }
@@ -48,7 +50,7 @@ describe('the language rows', () => {
     for (const row of languageRows()) {
       const exact = ((row.coverage.total - row.coverage.untranslated) / row.coverage.total) * 100;
       expect(row.percent).toBeLessThanOrEqual(exact);
-      if (row.percent >= SHIPPABLE_COMPLETENESS * 100) expect(row.offered).toBe(true);
+      if (row.percent >= SHIPPABLE_COMPLETENESS * 100) expect(row.ready).toBe(true);
     }
   });
 

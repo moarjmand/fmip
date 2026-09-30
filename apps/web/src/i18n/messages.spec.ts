@@ -63,7 +63,7 @@ describe('what the catalogue may contain', () => {
   });
 
   it('gives every unfinished locale its own name, and claims nothing else', () => {
-    for (const locale of UNFINISHED_LOCALES) {
+    for (const locale of WAITING) {
       const own = message(locale, `language.name.${locale}` as MessageKey);
       expect(own.status, `${locale} does not name itself`).toBe('translated');
       // Any other key is English, and says so. A catalogue that quietly held a
@@ -184,7 +184,9 @@ describe("the translator's files (T-302)", () => {
   });
 
   it('answers how far a locale has got, in numbers that add up', () => {
-    for (const locale of UNFINISHED_LOCALES) {
+    const fa = coverage('fa');
+    expect(fa.translated + fa.reviewed).toBe(fa.total);
+    for (const locale of WAITING) {
       const c = coverage(locale);
       expect(c.total).toBe(Object.keys(EN).length);
       expect(c.untranslated + c.translated + c.reviewed, locale).toBe(c.total);
@@ -301,10 +303,15 @@ describe('plurals (T-301)', () => {
   });
 });
 
+// Persian's catalogue is complete (D-175); the claims below about unfinished
+// catalogues are about the others. Persian's own state is asserted apart.
+const WAITING = UNFINISHED_LOCALES.filter((locale) => locale !== 'fa');
+
 describe('how finished a locale is', () => {
   it('is complete for the source language and nearly empty for the other seven', () => {
     expect(completeness('en')).toBe(1);
-    for (const locale of UNFINISHED_LOCALES) {
+    expect(completeness('fa')).toBe(1);
+    for (const locale of WAITING) {
       expect(completeness(locale), locale).toBeGreaterThan(0);
       expect(completeness(locale), locale).toBeLessThan(SHIPPABLE_COMPLETENESS);
     }
@@ -315,7 +322,7 @@ describe('how finished a locale is', () => {
     // work in place — but it is not offered as a language the product speaks.
     // Shipping it as finished is the language version of faking coverage.
     expect(isShippable('en')).toBe(true);
-    for (const locale of UNFINISHED_LOCALES) {
+    for (const locale of WAITING) {
       expect(isShippable(locale), locale).toBe(false);
     }
   });

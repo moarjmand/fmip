@@ -7755,3 +7755,29 @@ how much the input changes, not how surely it was measured on what it
 changes (the 300-match floor and the interval see to that). A promotion's own entry (D-082)
 repeats the share, so a reader sees how much of the season the new input
 touched.
+
+## D-175 — Persian joins as a product language, its words written by the agent and reviewed by the maintainer
+**Status:** Accepted · 2026-10-01 (the maintainer, in chat: "add Persian professionally, right now") · **Tasks:** T-1300 to T-1311 · **Amends:** D-089 (Persian "not now"), D-066 for Persian only · **Follows:** D-003, D-067, D-130
+
+**Decision.** Persian (`fa`) is added as a routed, right-to-left product
+language beside the blueprint's eight: Iran is the product's home market and
+its league and news sources are already carried. Its catalogue, the shared
+glossary's Persian terms and the text moved out of the pages are written by
+the agent at the maintainer's request and reviewed by the maintainer, a
+native speaker, on the live site. Each Persian entry is `translated` (never
+`reviewed` until the maintainer marks it) and carries the note "Written by
+the agent at the maintainer's request (D-175)", so the files say who wrote
+them; D-066's rule that a translation is a person's words stands for every
+other language.
+
+Dates in Persian use the Solar Hijri calendar and Persian digits, which is
+what `Intl` gives for `fa` (for example "۹ مهر ۱۴۰۵، ۲۲:۰۰"); the clock stays
+on the 24-hour cycle. Persian is not offered in the picker, and not indexed,
+until the reader-facing pages carry their text through the catalogue
+(`PREPARING_LOCALES`, T-1310): a page that says it is Persian while most of
+it is English would be the language version of faking coverage. The console
+for operators (`/admin`) stays in English.
+
+**Rejected.** *A machine-translation service*: D-066's objection holds, and
+nobody would review its output. *Waiting for a hired translator*: the
+maintainer is a native speaker and asked for it now.
