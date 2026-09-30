@@ -171,6 +171,20 @@ export function averageNote(average: TeamStatAverage, played: number): string | 
   return `Held for ${average.matches_with_figure.total} of ${played} matches; no average where a match lacks it`;
 }
 
+/**
+ * The figures the feed never supplied for one competition's matches, named
+ * once under its table (T-1205): "Not supplied for these matches: possession,
+ * shots and corners."
+ */
+export function notSuppliedNote(labels: string[]): string {
+  const names = labels.map((label, i) => (i === 0 ? label : label.toLowerCase()));
+  const list =
+    names.length <= 1
+      ? (names[0] ?? '')
+      : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+  return `Not supplied for these matches: ${list}.`;
+}
+
 /** The section's standing footnote: how the figures are counted. */
 export const SPLITS_FOOTNOTE =
   'From the finished matches we hold. A match decided on penalties counts as a draw; goals include extra time, never the shoot-out.';

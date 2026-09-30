@@ -32,7 +32,9 @@ import type { ThemePreference } from '@/lib/theme';
  * search, the member's own pages, Settings and the theme. From `sm` up the
  * disclosure is not a disclosure at all: `.site-menu` in globals.css lays its
  * contents inline in the bar, in the order they always had. There is one copy
- * of every link, so every `data-testid` is still one element.
+ * of every link, so every `data-testid` is still one element. From `lg` the
+ * bar is wider than the reading column (T-1207): at 1280 px a guest's bar
+ * wrapped onto two rows inside `max-w-3xl`.
  */
 export async function SiteHeader({ locale, theme }: { locale: string; theme: ThemePreference }) {
   const [session, holds, jar] = await Promise.all([
@@ -62,7 +64,7 @@ export async function SiteHeader({ locale, theme }: { locale: string; theme: The
     <header className="border-b border-default">
       <nav
         aria-label="Primary"
-        className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-4 gap-y-1 px-4 py-1 text-sm sm:px-8 sm:py-3"
+        className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-4 gap-y-1 px-4 py-1 text-sm sm:px-8 sm:py-3 lg:max-w-7xl"
       >
         <Link
           href={href('')}

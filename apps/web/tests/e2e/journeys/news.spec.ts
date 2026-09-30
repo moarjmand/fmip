@@ -49,6 +49,8 @@ test.describe('news sections', () => {
 
   test('a filter that matches nothing says so, and clears', async ({ page }) => {
     await page.goto('/en/news');
+    // Closed until opened, or until a filter is set (T-1206).
+    await page.getByTestId('news-filters-toggle').locator('summary').click();
     const form = page.getByTestId('news-filters');
     const team = form.locator('select[name="team"]');
     await expect(team).toBeVisible();
