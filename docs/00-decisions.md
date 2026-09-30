@@ -6782,6 +6782,50 @@ one query, so a table would be a second copy to keep in step.
 content hash) leaves the coaches out, because `training.match` does not store
 them.
 
+**The input, as built (T-1131, 2026-09-30).** `fmip_model/inputs/new_coach.py`,
+run by D-139's harness (`--input new_coach`).
+
+- **A side's coach** at a match is the person its own line-up names, by id.
+  The line-up is announced before kick-off, as the XI D-086's term reads is,
+  so serving has it when it has the line-up. His match number is the one
+  above (`coach_contexts`): every competition we carry counts, a gap counts
+  for no one.
+- **The feature** is `0.5 ** ((n - 1) / 3)` for the `n`-th match of a coach
+  whose spell began with a change we saw, up to his 10th match (0.125), and
+  0 after it. `HALF_LIFE = 3` and `WINDOW = 10` were fixed before any run and
+  are not tuned. Each side's vector is `[own, opponent's]`, two coefficients
+  fitted by `FeatureInput` (time-weighted Poisson with the candidate's
+  expected goals as offsets), so "scores more" and "concedes less" are not
+  tied.
+- **Not read** (the candidate's forecast stands, the match is outside the
+  sample): a side whose line-up names no coach or is not stored; a side under
+  the club's first stored coach within his first 10 stored matches (he may be
+  new or years old, and is never guessed; past 10 he is not new, however he
+  came); and a match where neither side's coach is new (the term would be
+  zero). Two finished matches of one club on one day are both unread.
+- **Only our records' divisions** name clubs by team id and carry line-ups;
+  a football-data match reaches no line-up and is never read, so that group
+  is not scored.
+- **The number of changes.** The report's description lists the changes in
+  the stored line-ups by season (up to `--to`); the matches read are the
+  harness's own count. Below D-139's 300, the verdict is `insufficient` and
+  no candidate carries the input.
+- A change seen across unnamed line-ups is counted from the first line-up
+  that names the new coach, so his true match number may be higher by the
+  gaps (`gaps_between`); with nearly every stored match named, rare.
+
+`tests/test_input_new_coach.py`: the decay, a first stored coach unknown
+until past the window, a gap never read and a change restarting the count, a
+match read only with both sides known and one new, and a planted bounce the
+harness fits. The laptop has no line-ups, so the run is the lead's, on the
+server, from `/opt/fmip` (the window starts a season after the first stored
+line-ups, so a change can have been seen):
+
+```bash
+DIVS=$(docker compose exec -T postgres psql -U fmip -d fmip -Atc "SELECT string_agg(DISTINCT m.division, ' ') FROM training.match m JOIN training.source_load l ON l.id = m.source_load_id WHERE l.source = 'our_records'")
+docker compose run --rm -T -v $HOME/reports/inputs:/tmp/reports model sh -c "python -m fmip_model.backtest.inputs --input new_coach --divisions $DIVS --from 2024-07-01 --to 2026-09-29 --history-from 2023-07-01 --out /tmp/reports --note server && cat /tmp/reports/*/inputs_new_coach_*.md"
+```
+
 ---
 
 ## D-148 — Head-to-head is read only as what past meetings leave after current strength, and it failed its bar: no candidate carries it
