@@ -470,9 +470,9 @@ claim this epic tests rather than assumes.
 |---|---|---|---|
 | `[x]` T-320 | **Decision gate:** a native app at all, the framework, and the store accounts | — | New entry in `00-decisions.md`; `CLAUDE.md` §2 is explicit that a framework needs one |
 | `[x]` T-321 | `@fmip/contracts` proven platform-independent | — | A test fails if the contracts package imports anything web-only or Node-only |
-| `[ ]` T-322 | The app shell: routing, session, locale, writing direction | T-320, T-321 | A right-to-left locale lays out correctly on a device, not only in a browser |
-| `[ ]` T-323 | Scores, match centre, predictions against the same endpoints | T-322 | No endpoint exists only for the app |
-| `[ ]` T-324 | Push delivery on the device | T-322, T-330 | A push is the same notification the inbox already has, not a second one |
+| `[ ]` T-322 | **Not built: D-084 decided no native app for now; the PWA is the mobile product. Reopened only by a new decision.** The app shell: routing, session, locale, writing direction | T-320, T-321 | A right-to-left locale lays out correctly on a device, not only in a browser |
+| `[ ]` T-323 | **Not built: D-084 decided no native app for now; the PWA is the mobile product. Reopened only by a new decision.** Scores, match centre, predictions against the same endpoints | T-322 | No endpoint exists only for the app |
+| `[ ]` T-324 | **Not built: D-084 decided no native app for now; the PWA is the mobile product. Reopened only by a new decision.** Push delivery on the device | T-322, T-330 | A push is the same notification the inbox already has, not a second one |
 
 **T-321 is the one worth doing first and can be done today.** The claim that a
 second client is cheap rests entirely on the contracts being free of web
