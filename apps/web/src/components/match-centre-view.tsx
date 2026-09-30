@@ -16,7 +16,7 @@ import {
 } from '@/lib/match';
 import { isBehind } from '@/lib/live';
 import { formatKickoff } from '@/lib/scores';
-import { formatDateTime } from '@/i18n/format';
+import { formatDate, formatDateTime } from '@/i18n/format';
 import { Score } from '@/components/score';
 
 /** The server-rendered panels the page slots between the live modules (T-605). */
@@ -391,19 +391,25 @@ export function MatchCentreView({
 
         <Module title="Head-to-head" module={centre.head_to_head} testId="head-to-head">
           {(meetings) => (
-            <ul className="flex flex-col gap-1 text-sm">
+            <ul className="flex flex-col divide-y divide-default text-sm">
               {meetings.map((m) => (
-                <li key={m.fixture_id} className="flex flex-wrap gap-x-3">
-                  <time dateTime={m.kickoff_at} className="text-muted">
-                    {m.kickoff_at.slice(0, 10)}
+                <li
+                  key={m.fixture_id}
+                  className="grid grid-cols-[6.5rem_1fr] items-start gap-x-3 py-1.5"
+                >
+                  <time dateTime={m.kickoff_at} className="text-xs text-muted tabular-nums">
+                    {formatShortDate(locale, m.kickoff_at, timeZone)}
                   </time>
-                  <span>
-                    {m.home.name} <Score home={m.full_time.home} away={m.full_time.away} />{' '}
-                    {m.away.name}
-                  </span>
-                  <span className="text-muted">
-                    {m.competition.name}
-                    {m.venue !== null ? ` · ${m.venue}` : ''}
+                  <span className="flex min-w-0 flex-col">
+                    <span>
+                      <bdi>{m.home.name}</bdi>{' '}
+                      <Score home={m.full_time.home} away={m.full_time.away} />{' '}
+                      <bdi>{m.away.name}</bdi>
+                    </span>
+                    <span className="text-xs text-muted">
+                      {m.competition.name}
+                      {m.venue !== null ? ` · ${m.venue}` : ''}
+                    </span>
                   </span>
                 </li>
               ))}
@@ -613,6 +619,18 @@ function Side({
   );
 }
 
+/** A form letter's badge: won, drawn, lost in the theme's own tones (T-1204). */
+const RESULT_TONE: Record<FormEntry['result'], string> = {
+  W: 'bg-success text-canvas',
+  D: 'bg-surface-raised text-fg',
+  L: 'bg-danger text-canvas',
+};
+
+/** "13 Sept 2026" in the viewer's zone. */
+function formatShortDate(locale: string, iso: string, timeZone: string): string {
+  return formatDate(locale, iso, timeZone, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 function Form({
   name,
   module,
@@ -635,18 +653,31 @@ function Form({
           No competitive results held.
         </p>
       ) : (
-        <ul className="flex flex-col gap-1">
+        // Result, match and date in fixed columns, the competition under the
+        // match, so the rows line up whatever the opponent's name (T-1204).
+        <ul className="flex flex-col divide-y divide-default">
           {module.data.map((e) => (
-            <li key={e.fixture_id} className="flex gap-2">
-              <span className="w-4 font-semibold">{e.result}</span>
-              <span>
-                {e.goals_for}–{e.goals_against} {e.home ? 'v' : 'at'} {e.opponent.name}
+            <li
+              key={e.fixture_id}
+              className="grid grid-cols-[1.75rem_1fr_auto] items-start gap-x-2 py-1.5"
+            >
+              <span
+                className={`flex size-6 items-center justify-center rounded text-xs font-semibold ${RESULT_TONE[e.result]}`}
+              >
+                {e.result}
               </span>
-              <span className="text-muted">
-                {e.competition.name} ·{' '}
-                <time dateTime={e.kickoff_at}>{formatKickoff(locale, e.kickoff_at, timeZone)}</time>{' '}
-                {e.kickoff_at.slice(0, 10)}
+              <span className="flex min-w-0 flex-col">
+                <span>
+                  <span className="font-semibold tabular-nums">
+                    {e.goals_for}–{e.goals_against}
+                  </span>{' '}
+                  {e.home ? 'v' : 'at'} <bdi>{e.opponent.name}</bdi>
+                </span>
+                <span className="text-xs text-muted">{e.competition.name}</span>
               </span>
+              <time dateTime={e.kickoff_at} className="text-xs text-muted tabular-nums">
+                {formatShortDate(locale, e.kickoff_at, timeZone)}
+              </time>
             </li>
           ))}
         </ul>

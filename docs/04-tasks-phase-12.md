@@ -44,7 +44,7 @@ said changes.
 | `[x]` T-1201 | The homepage: the developer lines gone, the match list in a fixed time column, each list a bordered box of rows, the table with its headings; and every stored moment printed for a reader (`components/stamp.tsx`), in the viewer's zone and saying "UTC" when that is the zone | T-1200 | No ISO string printed as text on the homepage, scores, competition, team, player, comparison or leaderboard pages |
 | `[x]` T-1202 | The scores list: a team's name wraps onto a second line before it is cut | T-1200 | At 360 px a two-word name reads whole; the row stays one link |
 | `[x]` T-1203 | The competition table on a phone: position, team, played, goal difference and points; the rest from the tablet width up | T-1200 | At 375 px no name wraps for want of room and no column is cut |
-| `[ ]` T-1204 | The match centre's recent form and head-to-head as aligned rows | T-1200 | Result, score and opponent, date in fixed columns |
-| `[ ]` T-1205 | The team page's figures: the figures the feed does not supply named once per table, not once per row | T-1200 | Rule 3 still holds: each missing figure is named |
-| `[ ]` T-1206 | The news filters behind a disclosure on a phone | T-1200 | The first story is on the first screen at 375 px |
-| `[ ]` T-1207 | The header on one row at 1280 px | T-1200 | Navigation, search, account and theme on one line from 1280 px |
+| `[x]` T-1204 | The match centre's recent form and head-to-head as aligned rows | T-1200 | Result, score and opponent, date in fixed columns |
+| `[x]` T-1205 | The team page's figures: the figures the feed does not supply named once per table, not once per row | T-1200 | Rule 3 still holds: each missing figure is named |
+| `[x]` T-1206 | The news filters behind a disclosure on a phone | T-1200 | The first story is on the first screen at 375 px |
+| `[x]` T-1207 | The header on one row at 1280 px | T-1200 | A guest's navigation, search, account and theme on one line from 1280 px; a member's longer bar (seven more links) may still take two rows below about 1600 px |

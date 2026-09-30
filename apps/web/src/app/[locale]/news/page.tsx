@@ -143,141 +143,156 @@ export default async function NewsPage({
         ))}
       </nav>
 
-      <form
-        action={`/${locale}/news`}
-        method="get"
-        className="flex flex-wrap items-end gap-3 text-sm"
-        data-testid="news-filters"
-      >
-        {q.section !== 'latest' && <input type="hidden" name="section" value={q.section} />}
-        {countries !== null && (
+      {/*
+        On a phone the six filters filled the first screen before a single
+        story (T-1206): they wait behind a disclosure, open when one is set.
+      */}
+      <details open={filtered} className="group text-sm" data-testid="news-filters-toggle">
+        <summary className="cursor-pointer font-medium">Filters{filtered ? ' (on)' : ''}</summary>
+        <form
+          action={`/${locale}/news`}
+          method="get"
+          className="mt-2 flex flex-wrap items-end gap-3 text-sm"
+          data-testid="news-filters"
+        >
+          {q.section !== 'latest' && <input type="hidden" name="section" value={q.section} />}
+          {countries !== null && (
+            <label className="flex flex-col gap-1">
+              <Translated locale={locale} message="news.filter.country" />
+              <select
+                name="country"
+                defaultValue={q.country ?? ''}
+                className={controlClasses('sm')}
+              >
+                <option value="">{label('news.filter.any')}</option>
+                {countries.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {competitions !== null && (
+            <label className="flex flex-col gap-1">
+              <Translated locale={locale} message="news.filter.competition" />
+              <select
+                name="competition"
+                defaultValue={q.competition ?? ''}
+                className={controlClasses('sm')}
+              >
+                <option value="">{label('news.filter.any')}</option>
+                {competitions.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {teams !== null && (
+            <label className="flex flex-col gap-1">
+              <Translated locale={locale} message="news.filter.team" />
+              <select name="team" defaultValue={q.team ?? ''} className={controlClasses('sm')}>
+                <option value="">{label('news.filter.any')}</option>
+                {teams.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <label className="flex flex-col gap-1">
-            <Translated locale={locale} message="news.filter.country" />
-            <select name="country" defaultValue={q.country ?? ''} className={controlClasses('sm')}>
-              <option value="">{label('news.filter.any')}</option>
-              {countries.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        {competitions !== null && (
-          <label className="flex flex-col gap-1">
-            <Translated locale={locale} message="news.filter.competition" />
+            <Translated locale={locale} message="news.filter.language" />
             <select
-              name="competition"
-              defaultValue={q.competition ?? ''}
+              name="language"
+              defaultValue={q.language ?? ''}
               className={controlClasses('sm')}
             >
               <option value="">{label('news.filter.any')}</option>
-              {competitions.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
+              {LANGUAGES.map((language) => (
+                <option key={language} value={language}>
+                  {language}
                 </option>
               ))}
             </select>
           </label>
-        )}
-        {teams !== null && (
           <label className="flex flex-col gap-1">
-            <Translated locale={locale} message="news.filter.team" />
-            <select name="team" defaultValue={q.team ?? ''} className={controlClasses('sm')}>
+            <Translated locale={locale} message="news.filter.type" />
+            <select
+              name="type"
+              defaultValue={q.type ?? ''}
+              className={controlClasses('sm')}
+              data-testid="news-filter-type"
+            >
               <option value="">{label('news.filter.any')}</option>
-              {teams.map((team) => (
-                <option key={team.id} value={team.id}>
-                  {team.name}
+              {STORY_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {label(STORY_TYPE_KEY[type])}
                 </option>
               ))}
             </select>
           </label>
-        )}
-        <label className="flex flex-col gap-1">
-          <Translated locale={locale} message="news.filter.language" />
-          <select name="language" defaultValue={q.language ?? ''} className={controlClasses('sm')}>
-            <option value="">{label('news.filter.any')}</option>
-            {LANGUAGES.map((language) => (
-              <option key={language} value={language}>
-                {language}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          <Translated locale={locale} message="news.filter.type" />
-          <select
-            name="type"
-            defaultValue={q.type ?? ''}
-            className={controlClasses('sm')}
-            data-testid="news-filter-type"
-          >
-            <option value="">{label('news.filter.any')}</option>
-            {STORY_TYPES.map((type) => (
-              <option key={type} value={type}>
-                {label(STORY_TYPE_KEY[type])}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          <Translated locale={locale} message="news.filter.from" />
-          <input
-            type="date"
-            name="from"
-            defaultValue={q.from ?? ''}
-            className={controlClasses('sm')}
-            data-testid="news-filter-from"
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          <Translated locale={locale} message="news.filter.to" />
-          <input
-            type="date"
-            name="to"
-            defaultValue={q.to ?? ''}
-            className={controlClasses('sm')}
-            data-testid="news-filter-to"
-          />
-        </label>
-        {q.player !== null && (
-          <p className="flex flex-wrap items-center gap-2" data-testid="news-filter-player">
-            <input type="hidden" name="player" value={q.player} />
-            <Translated locale={locale} message="news.filter.player" />{' '}
-            <Link href={`/${locale}/player/${q.player}`} className="underline">
-              {playerName ?? q.player}
+          <label className="flex flex-col gap-1">
+            <Translated locale={locale} message="news.filter.from" />
+            <input
+              type="date"
+              name="from"
+              defaultValue={q.from ?? ''}
+              className={controlClasses('sm')}
+              data-testid="news-filter-from"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <Translated locale={locale} message="news.filter.to" />
+            <input
+              type="date"
+              name="to"
+              defaultValue={q.to ?? ''}
+              className={controlClasses('sm')}
+              data-testid="news-filter-to"
+            />
+          </label>
+          {q.player !== null && (
+            <p className="flex flex-wrap items-center gap-2" data-testid="news-filter-player">
+              <input type="hidden" name="player" value={q.player} />
+              <Translated locale={locale} message="news.filter.player" />{' '}
+              <Link href={`/${locale}/player/${q.player}`} className="underline">
+                {playerName ?? q.player}
+              </Link>
+              <Link href={pageHref(locale, q, { player: null })} className="underline">
+                <Translated locale={locale} message="news.filter.playerClear" />
+              </Link>
+            </p>
+          )}
+          <Button type="submit" className="font-medium">
+            <Translated locale={locale} message="news.filter.apply" />
+          </Button>
+          {filtered && (
+            <Link
+              href={pageHref(locale, q, {
+                country: null,
+                competition: null,
+                team: null,
+                language: null,
+                type: null,
+                player: null,
+                from: null,
+                to: null,
+              })}
+              className="underline"
+            >
+              <Translated locale={locale} message="news.filter.clear" />
             </Link>
-            <Link href={pageHref(locale, q, { player: null })} className="underline">
-              <Translated locale={locale} message="news.filter.playerClear" />
-            </Link>
-          </p>
-        )}
-        <Button type="submit" className="font-medium">
-          <Translated locale={locale} message="news.filter.apply" />
-        </Button>
-        {filtered && (
-          <Link
-            href={pageHref(locale, q, {
-              country: null,
-              competition: null,
-              team: null,
-              language: null,
-              type: null,
-              player: null,
-              from: null,
-              to: null,
-            })}
-            className="underline"
-          >
-            <Translated locale={locale} message="news.filter.clear" />
-          </Link>
-        )}
-        {(countries === null || competitions === null || teams === null) && (
-          <span role="status" className="text-muted">
-            <Translated locale={locale} message="news.filter.unavailable" />
-          </span>
-        )}
-      </form>
+          )}
+          {(countries === null || competitions === null || teams === null) && (
+            <span role="status" className="text-muted">
+              <Translated locale={locale} message="news.filter.unavailable" />
+            </span>
+          )}
+        </form>
+      </details>
 
       {!result.ok ? (
         <Notice tone="danger" data-testid="news-unreachable">

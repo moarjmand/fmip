@@ -24,6 +24,7 @@ import {
   averageCell,
   afterTimeNote,
   averageNote,
+  notSuppliedNote,
   contextLine,
   fromTeamSide,
   groupSquad,
@@ -409,6 +410,10 @@ export default async function TeamPage({
 function SplitsTable({ splits, locale }: { splits: TeamCompetitionSplits; locale: string }) {
   const played = splits.total.played;
   const notes = splitNotes(splits);
+  // A figure the feed never supplied for these matches is named once under
+  // the table, not given a row of dashes each (T-1205); rule 3 still holds.
+  const shown = splits.averages.filter((a) => a.coverage !== 'not_supplied');
+  const missing = splits.averages.filter((a) => a.coverage === 'not_supplied');
   return (
     <div className="flex flex-col gap-1" data-testid="splits-competition">
       <h3 className="font-medium">
@@ -445,7 +450,7 @@ function SplitsTable({ splits, locale }: { splits: TeamCompetitionSplits; locale
                 ))}
               </tr>
             ))}
-            {splits.averages.map((average) => {
+            {shown.map((average) => {
               const note = averageNote(average, played);
               return (
                 <tr
@@ -470,6 +475,11 @@ function SplitsTable({ splits, locale }: { splits: TeamCompetitionSplits; locale
             })}
           </tbody>
         </table>
+      )}
+      {played > 0 && missing.length > 0 && (
+        <p className="text-xs text-muted" data-testid="splits-not-supplied">
+          {notSuppliedNote(missing.map((a) => METRIC_LABEL[a.metric]))}
+        </p>
       )}
       {notes.map((note) => (
         <p key={note} className="text-xs text-muted">

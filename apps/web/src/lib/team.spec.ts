@@ -6,6 +6,7 @@ import type {
 } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
 import {
+  notSuppliedNote,
   SPLITS_FOOTNOTE,
   averageCell,
   afterTimeNote,
@@ -186,5 +187,14 @@ describe('home and away figures', () => {
       '2 finished matches have no score on record and are not counted.',
     ]);
     expect(SPLITS_FOOTNOTE).toMatch(/penalties counts as a draw/);
+  });
+});
+
+describe('notSuppliedNote (T-1205)', () => {
+  it('names every missing figure once, in one sentence', () => {
+    expect(notSuppliedNote(['Possession'])).toBe('Not supplied for these matches: Possession.');
+    expect(notSuppliedNote(['Possession', 'Shots', 'Expected goals'])).toBe(
+      'Not supplied for these matches: Possession, shots and expected goals.',
+    );
   });
 });
