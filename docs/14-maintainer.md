@@ -33,7 +33,7 @@ product.
 
 ---
 
-## Now: what waits for you, in order (2026-09-26)
+## Now: what waits for you, in order (2026-10-01)
 
 Everything an agent can do on its own is done or runs by itself (the
 scheduled follow-up below). What is left is this list, most urgent first. For
@@ -52,36 +52,20 @@ took. Its output holds no secret and is safe to paste to whoever is helping.
    server. *How to know:* the provider's `/status` shows the new end date (an
    agent reads it from inside the API container without seeing the key), and
    `check-setup.sh` keeps `Match data ... ON`.
-2. **E-mail (T-330)**: without it no reset or notification mail leaves. An
-   account with a transactional e-mail service you can use from where you
-   are (Brevo, Mailjet, Postmark, Amazon SES, ...); your domain verified there
-   with the DNS records it gives you, added in Cloudflare (a CNAME as "DNS
-   only"); then in `.env`: `DELIVERY_EMAIL_PROVIDER=smtp`,
-   `SMTP_URL=smtp://USER:PASSWORD@HOST:587` (an `@` inside the user becomes
-   `%40`), `DELIVERY_EMAIL_FROM="FMIP <no-reply@traveltohormuz.ir>"`; then
-   `cd /opt/fmip && bash deploy/rollout.sh api`. *How to know:* `E-mail ... ON
-   smtp`, and "Forgot password" on the site with your own address delivers.
-3. **The Telegram channel (T-524)** for the daily post, which is built: the
-   steps are §10. Posts are in English with times in UTC, from 06:00 UTC
-   (`CHANNEL_POST_HOUR` moves it).
-4. **Push (T-330)**, five minutes and no account: on the server
-   `cd /opt/fmip && docker compose run --rm --no-deps api npx web-push generate-vapid-keys`;
-   the two keys it prints into `.env` as `VAPID_PUBLIC_KEY` and
-   `VAPID_PRIVATE_KEY`, with `VAPID_SUBJECT=mailto:<your address>` and
-   `DELIVERY_PUSH_PROVIDER=webpush`; roll the API. *How to know:* `Push ... ON
-   webpush`; on a phone, Settings, Notifications, "On this device" (an iPhone
-   needs the site added to its home screen first).
-5. **A language model (T-400)**, §9: Mistral's free plan on the server is
-   `INTELLIGENCE_PROVIDER=mistral`, `MISTRAL_API_KEY=<key>`,
-   `INTELLIGENCE_MODEL=ministral-14b-latest`; Anthropic is
-   `INTELLIGENCE_PROVIDER=anthropic` with `ANTHROPIC_API_KEY`, billed per use.
-   Roll the API. *How to know:* the language model line is on; a finished
-   match's summary, a question in search and Following's briefing answer.
-6. **One prediction of your own, from 2026-10-08** when club football
+**Done on 2026-09-30:** e-mail (T-330) through a dedicated Gmail with an app
+password, `SMTP_URL=smtp://NAME%40gmail.com:APP_PASSWORD@smtp.gmail.com:587`
+(Brevo asked for a non-Iranian phone number and Mailjet was unreachable; the
+server's provider blocks outbound 465 and 25, so 587 with STARTTLS is the one
+that works), with "Forgot password" delivering to the maintainer; push
+(`webpush`); the language model (T-400, Mistral's free plan,
+`ministral-14b-latest`); and the Telegram channel (T-524, `@fmipbot1`, the
+bot an administrator allowed to post). `check-setup.sh` shows all four ON.
+
+2. **One prediction of your own, from 2026-10-08** when club football
    resumes: sign in, predict an upcoming match before kick-off, and after it
    see it settled on your profile. The real-fixture re-check of D-071 needs a
    member's settled prediction.
-7. **Optional: an editor for broadcast listings (T-310)**:
+3. **Optional: an editor for broadcast listings (T-310)**:
    `cd /opt/fmip && docker compose run --rm -T migrate node scripts/grant-role.mjs --email <address> --role editor --reason "enters broadcast listings"`;
    the desk appears at the bottom of every match page for them.
 
