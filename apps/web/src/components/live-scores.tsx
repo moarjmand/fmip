@@ -7,7 +7,7 @@ import { ScoreCard } from '@/components/score-card';
 import { scoresAnnouncements } from '@/lib/announce';
 import { INITIAL_CLOCK, type LiveClock, liveLabel, liveState } from '@/lib/live';
 import type { ScoreCardProducts } from '@/lib/score-card-products';
-import { blockUpdatedLabel } from '@/lib/scores';
+import { blockUpdatedLabel, formatKickoff } from '@/lib/scores';
 import { applyFilters, isFiltered, type ScoresFilterSelection } from '@/lib/scores-filters';
 
 /**
@@ -211,7 +211,11 @@ export function LiveScores({
             </section>
           ))}
           <p dir="auto" className="text-xs text-muted">
-            Snapshot <time dateTime={scores.generated_at}>{scores.generated_at}</time>.
+            List loaded at{' '}
+            <time dateTime={scores.generated_at}>
+              {formatKickoff(locale, scores.generated_at, timeZone)}
+            </time>
+            .
           </p>
         </div>
       )}

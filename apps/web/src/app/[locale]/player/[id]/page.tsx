@@ -26,6 +26,7 @@ import { PlayerAvailabilitySection } from '@/components/player-availability';
 import { EntityNews } from '@/components/related-news';
 import { ltrIsolate } from '@/components/score';
 import { Button, Notice, controlClasses, inlineTargetClasses } from '@/components/ui';
+import { Stamp } from '@/components/stamp';
 
 export const dynamic = 'force-dynamic';
 
@@ -381,7 +382,8 @@ export default async function PlayerPage({
           'No match data stored for this player yet.'
         ) : (
           <>
-            Last data update <time dateTime={page.last_updated_at}>{page.last_updated_at}</time>
+            Last data update{' '}
+            <Stamp iso={page.last_updated_at} locale={locale} timeZone={timeZone} />
           </>
         )}
       </p>

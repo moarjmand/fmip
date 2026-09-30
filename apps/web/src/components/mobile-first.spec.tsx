@@ -51,13 +51,17 @@ describe('a match on the scores list', () => {
     </ul>,
   );
 
-  it('is one link to the match with the live minute, both names isolated and cut short', () => {
+  it('is one link to the match with the live minute, both names isolated and wrapped before they are cut', () => {
     expect(html).toContain('data-testid="match-link"');
     expect(html).toContain('href="/en/match/00000000-0000-4000-8000-000000000901"');
     expect(html).toMatch(/data-testid="score-status"[^>]*>67′</);
     expect(html).toMatch(/text-live[^"]*" data-testid="score-status"/);
-    expect(html).toMatch(/<bdi class="truncate" title="Liverpool">Liverpool<\/bdi>/);
-    expect(html).toMatch(/<bdi class="truncate" title="Manchester United">/);
+    expect(html).toMatch(
+      /<bdi class="line-clamp-2 break-words leading-tight" title="Liverpool">Liverpool<\/bdi>/,
+    );
+    expect(html).toMatch(
+      /<bdi class="line-clamp-2 break-words leading-tight" title="Manchester United">/,
+    );
     expect(html).toContain('min-h-11');
     expect(html).toContain('aria-label="one red card"');
   });

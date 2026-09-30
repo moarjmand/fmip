@@ -20,6 +20,7 @@ import { Notice } from '@/components/ui';
 import { Translated } from '@/components/translated';
 import { MemberName } from '@/components/member-name';
 import { UNFINISHED_LOCALES } from '@/i18n/locales';
+import { Stamp } from '@/components/stamp';
 
 /** The languages a board can be drawn by (T-844): the ones the site is offered in. */
 const BOARD_LANGUAGES: readonly string[] = ['en', ...UNFINISHED_LOCALES];
@@ -357,7 +358,7 @@ export default async function LeaderboardPage({
           <p className="text-xs text-muted">
             Formula {result.data.entries[0]?.formula_version ?? 'performance-rating'} · board rules{' '}
             {result.data.rules_version} · as of{' '}
-            <time dateTime={result.data.generated_at}>{result.data.generated_at}</time>
+            <Stamp iso={result.data.generated_at} locale={locale} />
           </p>
         </>
       )}

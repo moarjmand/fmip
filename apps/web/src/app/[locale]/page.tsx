@@ -11,7 +11,6 @@ import {
 } from '@/components/home-member';
 import { CardViewingLine } from '@/components/score-card';
 import {
-  fetchApiHealth,
   fetchBreakingNews,
   fetchCompetition,
   fetchFeaturedMatches,
@@ -65,11 +64,18 @@ export async function generateMetadata({
   });
 }
 
+/** A list of rows in one bordered box, a hairline between rows (T-1201). */
+const LIST = 'flex flex-col divide-y divide-default rounded border border-default bg-surface';
+/** A row's own link: the row is the target, so the underline waits for a pointer or focus. */
+const ROW_LINK = 'font-medium hover:underline focus-visible:underline';
+
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const cookie = await sessionCookieHeader();
-  const [health, founder, me] = await Promise.all([
-    fetchApiHealth(),
+  // The API's uptime and the locale code were printed at the foot of this
+  // page since Phase 0; they are the System page's business (T-804), not a
+  // reader's, and went in the design pass (T-1201).
+  const [founder, me] = await Promise.all([
     // The blueprint puts the founder's analysis on the homepage "for selected
     // matches"; the feed is upcoming matches only, so there is nothing to
     // select — what exists is what is coming (T-132).
@@ -149,7 +155,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const stories = news.ok ? (news.data.stories.data ?? []).slice(0, 5) : [];
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-4 p-8">
+    <main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-6 sm:p-8">
       <JsonLd data={websiteJsonLd(locale)} />
       {/*
         The accent bar is deliberately asymmetric and deliberately logical:
@@ -201,36 +207,42 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       {matches.length > 0 && (
         <section className="flex flex-col gap-2" data-testid="home-matches">
           <h2 className="text-lg font-semibold">Live and upcoming</h2>
-          <ul className="flex flex-col gap-1">
+          {/*
+            A fixed time column and the match beside it, so every row lines up
+            however long the names are (the design pass, T-1201).
+          */}
+          <ul className={LIST}>
             {matches.map((card) => (
-              <li key={card.id} className="flex flex-wrap items-baseline gap-x-3">
-                <span className="w-24 shrink-0 text-sm text-muted">
+              <li key={card.id} className="grid grid-cols-[6.5rem_1fr] gap-x-3 px-3 py-2">
+                <span className="text-sm text-muted tabular-nums">
                   {card.status === 'scheduled'
                     ? `${shortDay(card.kickoff_at, timeZone)} ${formatKickoff(locale, card.kickoff_at, timeZone)}`
                     : statusLabel(card, locale, timeZone)}
                 </span>
-                <Link href={`/${locale}/match/${card.id}`} className="underline">
-                  {card.home.name}{' '}
-                  {card.scores.current !== null
-                    ? `${card.scores.current.home}–${card.scores.current.away}`
-                    : 'v'}{' '}
-                  {card.away.name}
-                </Link>
-                <span className="text-xs text-muted">
-                  {card.competition.short_name ?? card.competition.name}
+                <span className="flex min-w-0 flex-col">
+                  <Link href={`/${locale}/match/${card.id}`} className={ROW_LINK}>
+                    {card.home.name}{' '}
+                    {card.scores.current !== null
+                      ? `${card.scores.current.home}–${card.scores.current.away}`
+                      : 'v'}{' '}
+                    {card.away.name}
+                  </Link>
+                  <span className="text-xs text-muted">
+                    {card.competition.short_name ?? card.competition.name}
+                  </span>
+                  {notes.has(card.id) && (
+                    // The editor's placement, in their words; it says nothing
+                    // about who will win (rule 6).
+                    <span className="text-xs" data-testid="home-featured-note">
+                      <span className="font-semibold">Featured</span>: {notes.get(card.id)}
+                    </span>
+                  )}
+                  {watch?.state === 'lines' && (
+                    <span className="text-xs">
+                      <CardViewingLine viewing={watch.byFixture.get(card.id)} locale={locale} />
+                    </span>
+                  )}
                 </span>
-                {notes.has(card.id) && (
-                  // The editor's placement, in their words; it says nothing
-                  // about who will win (rule 6).
-                  <span className="w-full text-xs" data-testid="home-featured-note">
-                    <span className="font-semibold">Featured</span>: {notes.get(card.id)}
-                  </span>
-                )}
-                {watch?.state === 'lines' && (
-                  <span className="w-full text-xs">
-                    <CardViewingLine viewing={watch.byFixture.get(card.id)} locale={locale} />
-                  </span>
-                )}
               </li>
             ))}
           </ul>
@@ -260,14 +272,16 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       {modelView.length > 0 && (
         <section className="flex flex-col gap-2" data-testid="home-forecasts">
           <h2 className="text-lg font-semibold">The model&rsquo;s view</h2>
-          <ul className="flex flex-col gap-1">
+          <ul className={LIST}>
             {modelView.map(({ card, percent }) => (
-              <li key={card.id}>
-                <Link href={`/${locale}/match/${card.id}`} className="underline">
+              <li key={card.id} className="flex flex-col px-3 py-2">
+                <Link href={`/${locale}/match/${card.id}`} className={ROW_LINK}>
                   {card.home.name} v {card.away.name}
                 </Link>
-                : {card.home.short_name ?? card.home.name} {percent.home}% · draw {percent.draw}% ·{' '}
-                {card.away.short_name ?? card.away.name} {percent.away}%
+                <span className="text-sm text-muted tabular-nums">
+                  {card.home.short_name ?? card.home.name} {percent.home}% · draw {percent.draw}% ·{' '}
+                  {card.away.short_name ?? card.away.name} {percent.away}%
+                </span>
               </li>
             ))}
           </ul>
@@ -315,14 +329,30 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               {table.data.competition.name}
             </Link>
           </h2>
-          <table className="text-sm">
+          <table className="w-full text-sm tabular-nums">
+            <thead>
+              <tr className="border-b border-default text-xs text-muted">
+                <th scope="col" className="w-8 py-1 text-start font-normal">
+                  #
+                </th>
+                <th scope="col" className="py-1 text-start font-normal">
+                  Team
+                </th>
+                <th scope="col" className="w-10 py-1 text-end font-normal">
+                  <abbr title="Played">P</abbr>
+                </th>
+                <th scope="col" className="w-12 py-1 text-end font-normal">
+                  <abbr title="Points">Pts</abbr>
+                </th>
+              </tr>
+            </thead>
             <tbody>
               {tableRows.map((row) => (
-                <tr key={row.team.id}>
-                  <td className="pe-3 text-muted">{row.position}</td>
-                  <td className="pe-3">{row.team.name}</td>
-                  <td className="pe-3 text-muted">{row.played}</td>
-                  <td className="font-semibold">{row.points}</td>
+                <tr key={row.team.id} className="border-b border-default last:border-b-0">
+                  <td className="py-1.5 text-muted">{row.position}</td>
+                  <td className="py-1.5">{row.team.name}</td>
+                  <td className="py-1.5 text-end text-muted">{row.played}</td>
+                  <td className="py-1.5 text-end font-semibold">{row.points}</td>
                 </tr>
               ))}
             </tbody>
@@ -333,10 +363,10 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       {stories.length > 0 && (
         <section className="flex flex-col gap-2" data-testid="home-news">
           <h2 className="text-lg font-semibold">Latest stories</h2>
-          <ul className="flex flex-col gap-1">
+          <ul className={LIST}>
             {stories.map((story) => (
-              <li key={story.story_id}>
-                <Link href={`/${locale}/news/story/${story.story_id}`} className="underline">
+              <li key={story.story_id} className="px-3 py-2">
+                <Link href={`/${locale}/news/story/${story.story_id}`} className={ROW_LINK}>
                   {story.headline}
                 </Link>
               </li>
@@ -344,22 +374,6 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           </ul>
         </section>
       )}
-      <p className="text-sm text-muted">
-        Locale: <code>{locale}</code>
-      </p>
-      <p className="text-sm text-muted">
-        {health.reachable ? (
-          <>
-            API: <code>{health.report.status}</code>, up for{' '}
-            {Math.round(health.report.uptime_seconds)}s as of{' '}
-            <time dateTime={health.report.checked_at}>{health.report.checked_at}</time>
-          </>
-        ) : (
-          // Never render a healthy-looking placeholder for something we could
-          // not reach (rule 3).
-          <>API: unreachable</>
-        )}
-      </p>
     </main>
   );
 }
