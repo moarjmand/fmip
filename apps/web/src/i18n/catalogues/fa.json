@@ -1663,6 +1663,648 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "newsPage.description": {
+    "source": "Football news as publishers report it: the latest, what is being discussed, the debates editors picked, and stories about what you follow.",
+    "text": "اخبار فوتبال همان‌طور که منابع گزارش می‌کنند: تازه‌ترین‌ها، آنچه درباره‌اش بحث می‌شود، بحث‌هایی که ویراستاران برگزیده‌اند و خبرهای مربوط به آنچه دنبال می‌کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "newsPage.filters": {
+    "source": "Filters",
+    "text": "فیلترها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "newsPage.filtersOn": {
+    "source": "Filters (on)",
+    "text": "فیلترها (فعال)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "storyPage.title": {
+    "source": "Story",
+    "text": "خبر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "storyPage.description": {
+    "source": "{headline} — reported by {source}.",
+    "text": "{headline} — به گزارش {source}.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "followingPage.description": {
+    "source": "What is happening around the teams, competitions and contributors you follow.",
+    "text": "آنچه پیرامون تیم‌ها، رقابت‌ها و تحلیلگرانی که دنبال می‌کنید می‌گذرد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "followingPage.savedDescription": {
+    "source": "The stories you saved.",
+    "text": "خبرهایی که ذخیره کرده‌اید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "followingPage.panelPostTitle": {
+    "source": "{member} on {home} – {away}",
+    "text": "{member} درباره‌ی {home} – {away}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "followingPage.intro": {
+    "source": "Favourites are pinned first on the scores page and shown on your profile. Everything you follow feeds your Following views.",
+    "text": "محبوب‌ها در صفحه‌ی نتایج پیش از همه سنجاق می‌شوند و در نمایه‌ی شما نشان داده می‌شوند. هر چه دنبال می‌کنید، بخش دنبال‌شده‌های شما را می‌سازد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "followingPage.nothing": {
+    "source": "You are not following anything yet.",
+    "text": "هنوز چیزی را دنبال نمی‌کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "followingPage.favourite": {
+    "source": "favourite",
+    "text": "محبوب",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "followingPage.player": {
+    "source": "Player",
+    "text": "بازیکن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "followingPage.unpin": {
+    "source": "Unpin",
+    "text": "برداشتن سنجاق",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "followingPage.makeFavourite": {
+    "source": "Make favourite",
+    "text": "افزودن به محبوب‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "followingPage.followTeam": {
+    "source": "Follow a team",
+    "text": "دنبال کردن یک تیم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "followingPage.chooseTeam": {
+    "source": "Choose a team…",
+    "text": "یک تیم انتخاب کنید…",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "followingPage.nationalTeam": {
+    "source": "{name} (national team)",
+    "text": "{name} (تیم ملی)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "followingPage.followCompetition": {
+    "source": "Follow a competition",
+    "text": "دنبال کردن یک رقابت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "followingPage.chooseCompetition": {
+    "source": "Choose a competition…",
+    "text": "یک رقابت انتخاب کنید…",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notificationsPage.title": {
+    "source": "Notifications",
+    "text": "اعلان‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notificationsPage.description": {
+    "source": "What happened while you were away.",
+    "text": "آنچه در غیاب شما رخ داد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notificationsPage.manage": {
+    "source": "Choose what arrives",
+    "text": "انتخاب آنچه دریافت می‌کنید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notificationsPage.inProductOnly": {
+    "source": "Notifications appear here only. E-mail and push are not set up on this deployment, so nothing is on its way to your inbox or your phone.",
+    "text": "اعلان‌ها فقط همین‌جا نمایش داده می‌شوند. ایمیل و اعلان مرورگر روی این نسخه راه‌اندازی نشده‌اند، بنابراین چیزی به صندوق ایمیل یا تلفن شما فرستاده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notificationsPage.unreachable": {
+    "source": "Your notifications cannot be shown right now.",
+    "text": "اعلان‌های شما در حال حاضر قابل نمایش نیستند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notificationsPage.empty": {
+    "source": "Nothing yet. Things that happen to you and to what you wrote turn up here.",
+    "text": "هنوز چیزی نیست. آنچه برای شما و نوشته‌هایتان رخ دهد، اینجا نشان داده می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notificationsPage.markRead": {
+    "source": "Mark read",
+    "text": "خوانده شد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notificationsPage.markAllRead": {
+    "source": {
+      "one": "Mark all {count} read",
+      "other": "Mark all {count} read"
+    },
+    "forms": {
+      "one": "علامت خوانده‌شده برای هر {count} اعلان",
+      "other": "علامت خوانده‌شده برای هر {count} اعلان"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notificationsPage.held": {
+    "source": "Held:",
+    "text": "نگه داشته شد:",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notificationsPage.settingsTitle": {
+    "source": "Notification settings",
+    "text": "تنظیمات اعلان‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notificationsPage.settingsDescription": {
+    "source": "Choose what reaches you, and when.",
+    "text": "انتخاب کنید چه چیزی و چه زمانی به دستتان برسد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notificationsPage.back": {
+    "source": "← Notifications",
+    "text": "→ اعلان‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notificationsPage.settingsHeading": {
+    "source": "What reaches you",
+    "text": "آنچه به دست شما می‌رسد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notificationsPage.onThisDevice": {
+    "source": "On this device",
+    "text": "روی این دستگاه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notificationsPage.pushUnreadable": {
+    "source": "Whether push is available could not be read right now.",
+    "text": "در حال حاضر نمی‌توان فهمید اعلان مرورگر در دسترس است یا نه.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "notificationsPage.settingsUnreachable": {
+    "source": "Your settings cannot be shown right now.",
+    "text": "تنظیمات شما در حال حاضر قابل نمایش نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.kind.predictionSettled": {
+    "source": "When a prediction of mine is settled",
+    "text": "وقتی یکی از پیش‌بینی‌هایم تسویه می‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.kind.ratingChanged": {
+    "source": "When my Performance Rating changes",
+    "text": "وقتی امتیاز عملکردم تغییر می‌کند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.kind.careerPointsAwarded": {
+    "source": "When I earn Career Points",
+    "text": "وقتی امتیاز کارنامه می‌گیرم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.kind.achievementUnlocked": {
+    "source": "When I earn an achievement (once each)",
+    "text": "وقتی دستاوردی به دست می‌آورم (هر کدام یک بار)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.kind.friendRequest": {
+    "source": "When somebody sends me a friend request",
+    "text": "وقتی کسی برایم درخواست دوستی می‌فرستد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.kind.friendAccepted": {
+    "source": "When somebody accepts my friend request",
+    "text": "وقتی کسی درخواست دوستی‌ام را می‌پذیرد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.kind.messageReceived": {
+    "source": "When somebody sends me a message",
+    "text": "وقتی کسی برایم پیام می‌فرستد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.kind.mentioned": {
+    "source": "When somebody mentions me",
+    "text": "وقتی کسی از من نام می‌برد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.kind.groupInvite": {
+    "source": "When somebody invites me to a group",
+    "text": "وقتی کسی مرا به گروهی دعوت می‌کند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.kind.groupJoinRequest": {
+    "source": "When somebody asks to join a group I run",
+    "text": "وقتی کسی درخواست عضویت در گروهی را می‌دهد که من اداره می‌کنم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.kind.moderationDecision": {
+    "source": "When a moderation decision is made about my account",
+    "text": "وقتی درباره‌ی حساب کاربری‌ام تصمیم نظارتی گرفته می‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.kind.contributorGranted": {
+    "source": "When I am approved as a contributor",
+    "text": "وقتی به‌عنوان تحلیلگر تأیید می‌شوم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.kind.contributorGrantChanged": {
+    "source": "When my contributor approval changes",
+    "text": "وقتی تأیید تحلیلگری‌ام تغییر می‌کند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.kind.panelReaction": {
+    "source": "When somebody reacts to something I posted",
+    "text": "وقتی کسی به چیزی که فرستاده‌ام واکنش نشان می‌دهد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.kind.briefing": {
+    "source": "When a briefing of mine is written",
+    "text": "وقتی خلاصه‌ی خبری‌ام نوشته می‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.kind.campaign": {
+    "source": "When the platform sends a message to members like me",
+    "text": "وقتی سایت پیامی برای اعضایی مانند من می‌فرستد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.kind.breakingNews": {
+    "source": "When an editor marks a story about something I follow as breaking",
+    "text": "وقتی ویراستاری خبری درباره‌ی چیزی را که دنبال می‌کنم فوری علامت می‌زند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.kind.transferNews": {
+    "source": "When a story about a team or player I follow is typed as a transfer",
+    "text": "وقتی نوع خبری درباره‌ی تیم یا بازیکنی که دنبال می‌کنم «نقل‌وانتقال» تعیین می‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.kind.availabilityNews": {
+    "source": "When a story about a team or player I follow is typed as an injury or suspension",
+    "text": "وقتی نوع خبری درباره‌ی تیم یا بازیکنی که دنبال می‌کنم «مصدومیت» یا «محرومیت» تعیین می‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.kind.systemAlert": {
+    "source": "When the watchdog raises or clears a system alert (at any hour)",
+    "text": "وقتی سامانه‌ی پایش هشدار سیستمی می‌دهد یا آن را برطرف‌شده اعلام می‌کند (در هر ساعتی)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.kind.contributorBelowThreshold": {
+    "source": "When a contributor has stayed below the contributor threshold and is flagged",
+    "text": "وقتی تحلیلگری زیر آستانه‌ی تحلیلگری مانده و علامت‌گذاری می‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.category.football": {
+    "source": "Football: my predictions, my rating and my points, and the founder's analyses",
+    "text": "فوتبال: پیش‌بینی‌ها، امتیاز عملکرد و امتیازهای من، و تحلیل‌های بنیان‌گذار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.category.social": {
+    "source": "Social: friends, friends' predictions, messages, mentions, groups and reactions",
+    "text": "اجتماعی: دوستان، پیش‌بینی‌های دوستان، پیام‌ها، نام‌بردن‌ها، گروه‌ها و واکنش‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.category.account": {
+    "source": "My account: moderation and contributor decisions, and reviews of my analyses",
+    "text": "حساب کاربری من: تصمیم‌های نظارتی و تحلیلگری، و بررسی تحلیل‌هایم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.category.match": {
+    "source": "Match alerts: team news, line-ups, kick-off, goals, red cards, half-time and full-time",
+    "text": "اعلان‌های بازی: اخبار تیم، ترکیب‌ها، شروع بازی، گل‌ها، کارت‌های قرمز، بین دو نیمه و پایان بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.mute.team": {
+    "source": "Team: nothing about its matches",
+    "text": "تیم: هیچ اعلانی درباره‌ی بازی‌هایش",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.mute.competition": {
+    "source": "Competition: nothing about its matches",
+    "text": "رقابت: هیچ اعلانی درباره‌ی بازی‌هایش",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.mute.category": {
+    "source": "Category: nothing of these kinds",
+    "text": "دسته: هیچ اعلانی از این نوع‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.unmute": {
+    "source": "Unmute",
+    "text": "لغو بی‌صدا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.choose": {
+    "source": "Choose…",
+    "text": "انتخاب کنید…",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.silence": {
+    "source": "Silence",
+    "text": "بی‌صدا کردن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.done": {
+    "source": "Done.",
+    "text": "انجام شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.yourChoice": {
+    "source": "Your choice",
+    "text": "انتخاب شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.default": {
+    "source": "Default",
+    "text": "پیش‌فرض",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.cap": {
+    "source": {
+      "one": "at most {count} an hour",
+      "other": "at most {count} an hour"
+    },
+    "forms": {
+      "one": "حداکثر {count} در ساعت",
+      "other": "حداکثر {count} در ساعت"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.on": {
+    "source": "On",
+    "text": "روشن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.off": {
+    "source": "Off",
+    "text": "خاموش",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.whatArrives": {
+    "source": "What arrives",
+    "text": "آنچه می‌رسد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.whatStaysQuiet": {
+    "source": "What stays quiet",
+    "text": "چه چیزی بی‌صدا بماند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.quietIntro": {
+    "source": "Silence one team without silencing football. A silenced team or competition stops what is about its matches and nothing else; a silenced category stops every kind in it. The switches above are untouched.",
+    "text": "یک تیم را بی‌صدا کنید بی‌آنکه کل فوتبال بی‌صدا شود. تیم یا رقابت بی‌صداشده فقط اعلان‌های مربوط به بازی‌هایش را متوقف می‌کند و نه چیز دیگری؛ دسته‌ی بی‌صداشده همه‌ی نوع‌های درون خود را متوقف می‌کند. کلیدهای بالا دست‌نخورده می‌مانند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.nothingSilenced": {
+    "source": "Nothing is silenced.",
+    "text": "چیزی بی‌صدا نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.teamsUnavailable": {
+    "source": "The team list could not be loaded right now.",
+    "text": "فهرست تیم‌ها در حال حاضر بارگیری نشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.competitionsUnavailable": {
+    "source": "The competition list could not be loaded right now.",
+    "text": "فهرست رقابت‌ها در حال حاضر بارگیری نشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.silenceTeam": {
+    "source": "Silence a team",
+    "text": "بی‌صدا کردن یک تیم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.silenceCompetition": {
+    "source": "Silence a competition",
+    "text": "بی‌صدا کردن یک رقابت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.silenceCategory": {
+    "source": "Silence a category",
+    "text": "بی‌صدا کردن یک دسته",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.quietHours": {
+    "source": "Quiet hours",
+    "text": "ساعت‌های سکوت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.quietExplainer": {
+    "source": "Nothing is thrown away. A notification that arrives during your quiet hours waits until they end, and says so. Times are on your own clock ({timezone}).",
+    "text": "هیچ چیز دور ریخته نمی‌شود. اعلانی که در ساعت‌های سکوت شما برسد تا پایان آن‌ها منتظر می‌ماند و این را هم می‌گوید. زمان‌ها به وقت خود شما هستند ({timezone}).",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.until": {
+    "source": "Until",
+    "text": "تا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.save": {
+    "source": "Save",
+    "text": "ذخیره",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.clearHint": {
+    "source": "Leave both empty to clear them.",
+    "text": "برای پاک کردن، هر دو را خالی بگذارید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.chooseFirst": {
+    "source": "Choose something to silence first.",
+    "text": "اول چیزی را برای بی‌صدا کردن انتخاب کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.silenced": {
+    "source": "Silenced.",
+    "text": "بی‌صدا شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.quietCleared": {
+    "source": "Quiet hours cleared.",
+    "text": "ساعت‌های سکوت پاک شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.quietSaved": {
+    "source": "Quiet hours saved.",
+    "text": "ساعت‌های سکوت ذخیره شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.push.absent": {
+    "source": "This deployment has no push channel, so nothing reaches a device; notifications stay in your inbox.",
+    "text": "این نسخه کانال اعلان مرورگر ندارد، بنابراین چیزی به هیچ دستگاهی نمی‌رسد؛ اعلان‌ها در صندوق اعلان‌های شما می‌مانند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.push.absentEmail": {
+    "source": "This deployment has no push channel, so nothing reaches a device; notifications stay in your inbox and your e-mail.",
+    "text": "این نسخه کانال اعلان مرورگر ندارد، بنابراین چیزی به هیچ دستگاهی نمی‌رسد؛ اعلان‌ها در صندوق اعلان‌ها و ایمیل شما می‌مانند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.push.intro": {
+    "source": "A push is the same notification your inbox has, shown by this browser even when the site is closed.",
+    "text": "اعلان مرورگر همان اعلانی است که در صندوق اعلان‌های شماست و این مرورگر آن را حتی وقتی سایت بسته است نشان می‌دهد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.push.noDevice": {
+    "source": "No device is registered yet.",
+    "text": "هنوز هیچ دستگاهی ثبت نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.push.devices": {
+    "source": {
+      "one": "{count} device registered.",
+      "other": "{count} devices registered."
+    },
+    "forms": {
+      "one": "{count} دستگاه ثبت شده است.",
+      "other": "{count} دستگاه ثبت شده است."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.push.unsupported": {
+    "source": "This browser does not support push notifications.",
+    "text": "این مرورگر از اعلان مرورگر پشتیبانی نمی‌کند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.push.denied": {
+    "source": "The browser did not allow notifications for this site.",
+    "text": "مرورگر اجازه‌ی اعلان برای این سایت را نداد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.push.notRegistered": {
+    "source": "The device could not be registered.",
+    "text": "دستگاه ثبت نشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.push.isOn": {
+    "source": "Push is on for this device.",
+    "text": "اعلان مرورگر برای این دستگاه روشن است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.push.couldNotOn": {
+    "source": "Push could not be turned on.",
+    "text": "اعلان مرورگر روشن نشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.push.isOff": {
+    "source": "Push is off for this device.",
+    "text": "اعلان مرورگر برای این دستگاه خاموش است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.push.couldNotOff": {
+    "source": "Push could not be turned off.",
+    "text": "اعلان مرورگر خاموش نشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.push.turnOff": {
+    "source": "Turn push off on this device",
+    "text": "خاموش کردن اعلان مرورگر روی این دستگاه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "alerts.push.turnOn": {
+    "source": "Turn push on for this device",
+    "text": "روشن کردن اعلان مرورگر برای این دستگاه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "story.bodyAtSource": {
     "source": "This publisher grants the headline and summary here; the article itself is on their site.",
     "text": "این منبع اجازه‌ی نمایش تیتر و خلاصه را در اینجا داده است؛ متن کامل خبر در سایت خود منبع است.",

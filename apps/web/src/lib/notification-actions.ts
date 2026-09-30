@@ -4,6 +4,22 @@ import { revalidatePath } from 'next/cache';
 import { apiRequest } from '@/lib/api';
 import type { ActionState } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
+import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
+import type { MessageKey } from '@/i18n/messages';
+
+/**
+ * A sentence this file says itself, in the reader's language (T-1305).
+ *
+ * Loaded on demand rather than imported: the settings form, a client
+ * component, imports this module for its actions, and a static import of the
+ * catalogues here would be a path from a client module to all of them
+ * (`client-catalogues.spec.ts`). These run only on the server, where the
+ * import is there at once.
+ */
+async function say(locale: string, key: MessageKey): Promise<string> {
+  const { t } = await import('@/i18n/messages');
+  return t(isLocale(locale) ? locale : DEFAULT_LOCALE, key);
+}
 
 /**
  * Reading notifications, and changing what arrives (T-272).
@@ -70,14 +86,14 @@ export async function muteAction(
   formData: FormData,
 ): Promise<ActionState> {
   const target = String(formData.get('target') ?? '').trim();
-  if (target === '') return { ok: false, message: 'Choose something to silence first.' };
+  if (target === '') return { ok: false, message: await say(locale, 'alerts.chooseFirst') };
   const outcome = await send(
     `/me/notification-mutes/${scope}/${encodeURIComponent(target)}`,
     'PUT',
   );
   if (!outcome.ok) return outcome;
   revalidatePath(`/${locale}/settings/notifications`);
-  return { ok: true, message: 'Silenced.' };
+  return { ok: true, message: await say(locale, 'alerts.silenced') };
 }
 
 export async function unmuteAction(
@@ -111,5 +127,8 @@ export async function setQuietHoursAction(
       : await send('/me/quiet-hours', 'PUT', { starts_at: starts, ends_at: ends });
   if (!outcome.ok) return outcome;
   revalidatePath(`/${locale}/settings/notifications`);
-  return { ok: true, message: starts === '' ? 'Quiet hours cleared.' : 'Quiet hours saved.' };
+  return {
+    ok: true,
+    message: await say(locale, starts === '' ? 'alerts.quietCleared' : 'alerts.quietSaved'),
+  };
 }
