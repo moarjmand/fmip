@@ -90,7 +90,7 @@ stated as tests, checked on the public deployment:
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-400 | **Decision gate:** a language-model provider and a key on the server | T-074 | The key exists on the server and `/health/intelligence` says `configured`; nothing in chat, nothing in a file the agent writes |
+| `[x]` T-400 | **Decision gate:** a language-model provider and a key on the server | T-074 | The key exists on the server and `/health/intelligence` says `configured`; nothing in chat, nothing in a file the agent writes |
 | `[x]` T-401 | The port: `LANGUAGE_MODEL`, an honest absence, `/health/intelligence`, the deployment variables | T-330 | A deployment with no model says so; a provider name this build cannot drive refuses to start |
 | `[x]` T-402 | The first adapter: Anthropic's Messages API through the official SDK, scripted in tests | T-401 | A refusal and a truncation are outcomes, never text; the model and prompt version travel with every answer |
 | `[x]` T-403 | The rules as a contract: `MachineText` -- labelled, grounded, versioned -- and the decision that binds every surface | T-401 | No surface renders machine text without the label, the model and the time |

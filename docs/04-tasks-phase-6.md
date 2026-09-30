@@ -143,7 +143,7 @@ from our own records (T-112) and says what it cannot measure.
 | `[x]` T-521 | A share control on the match centre and after a prediction is saved | T-520 | The platform's share sheet where there is one, a copied link where not; the link carries nothing about the sharer |
 | `[x]` T-522 | Invite links: a member's link, and a sign-up through it offered a friend request to the inviter | T-040, T-201 | The new member may decline; there is no reward and no ranking of inviters |
 | `[x]` T-523 | A page for a first visit: what the product is, the three prediction products, how a rating is earned | — | Linked from the homepage for signed-out visitors; every claim on it is true of the product as deployed |
-| `[ ]` T-524 | **Decision gate:** a Telegram channel the product posts to | — | The maintainer creates the bot and the channel and puts the token on the server themselves |
+| `[x]` T-524 | **Decision gate:** a Telegram channel the product posts to | — | The maintainer creates the bot and the channel and puts the token on the server themselves |
 | `[~]` T-525 | A daily post: the day's covered matches with the model's forecast, each linking to its match | T-524, T-520 | Labelled as the model's; a day with no matches posts nothing |
 | `[x]` T-526 | The homepage the blueprint describes (2.3), from answers the product already gives | T-031, T-136, T-132 | Every block shows only what is real, in the reader's order; a guest is asked to join, a member pointed at their feed |
 
