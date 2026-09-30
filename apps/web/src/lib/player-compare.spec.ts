@@ -147,8 +147,8 @@ describe('compareRows', () => {
     const goals = rows.find((r) => r.key === 'goals');
     expect(goals?.b).toEqual({ coverage: 'not_supplied', value: null, reason: REASON.noLineups });
     expect(goals?.lacking).toBe('b');
-    expect(cellText(goals!.b)).toBe('not supplied');
-    expect(rowNote(goals!, 'Ann', 'Bea')).toBe(
+    expect(cellText('en', goals!.b)).toBe('not supplied');
+    expect(rowNote('en', goals!, 'Ann', 'Bea')).toBe(
       'Bea: no line-ups on record, so this is not a comparison.',
     );
   });
@@ -167,7 +167,7 @@ describe('compareRows', () => {
     ]);
     const minutes = compareRows(a, b, null).find((r) => r.key === 'minutes');
     expect(minutes).toMatchObject({ a: { value: 300 }, b: { value: 0 }, lacking: null });
-    expect(rowNote(minutes!, 'Ann', 'Bea')).toBeNull();
+    expect(rowNote('en', minutes!, 'Ann', 'Bea')).toBeNull();
   });
 
   it('never invents minutes: not supplied only where the feed sent none', () => {
@@ -184,11 +184,11 @@ describe('compareRows', () => {
     ]);
     const one = compareRows(a, none, null).find((r) => r.key === 'minutes');
     expect(one).toMatchObject({ a: { value: 300 }, b: { value: null }, lacking: 'b' });
-    expect(rowNote(one!, 'Ann', 'Bea')).toBe(
+    expect(rowNote('en', one!, 'Ann', 'Bea')).toBe(
       'Bea: no minutes from the feed, so this is not a comparison.',
     );
     const both = compareRows(none, none, null).find((r) => r.key === 'minutes');
-    expect(rowNote(both!, 'Ann', 'Bea')).toBe('No minutes from the feed for either player.');
+    expect(rowNote('en', both!, 'Ann', 'Bea')).toBe('No minutes from the feed for either player.');
   });
 
   it('marks a partial season "at least", limited, never a smaller number as whole', () => {
@@ -212,10 +212,10 @@ describe('compareRows', () => {
       value: 450,
       partial: { counted: 6, of: 7 },
     });
-    expect(cellText(minutes!.a)).toBe('at least 450');
-    expect(cellText(minutes!.b)).toBe('300');
+    expect(cellText('en', minutes!.a)).toBe('at least 450');
+    expect(cellText('en', minutes!.b)).toBe('300');
     expect(minutes?.lacking).toBeNull();
-    expect(rowNote(minutes!, 'Ann', 'Bea')).toBe(
+    expect(rowNote('en', minutes!, 'Ann', 'Bea')).toBe(
       'Ann: minutes for 6 of 7 matches played; the rest were not supplied.',
     );
   });

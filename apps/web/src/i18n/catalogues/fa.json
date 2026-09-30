@@ -583,18 +583,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "viewing.noInfo": {
-    "source": "No viewing information yet for",
-    "text": "هنوز اطلاعات پخشی ثبت نشده است برای",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "viewing.nothingListed": {
-    "source": "No official service listed for this match in",
-    "text": "هیچ سرویس رسمی‌ای برای پخش این بازی ثبت نشده است در",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "viewing.on": {
     "source": "On",
     "text": "از",
@@ -658,18 +646,6 @@
   "viewing.highlights": {
     "source": "Highlights",
     "text": "خلاصه‌ی بازی",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "viewing.highlightsNoInfo": {
-    "source": "No highlight information yet for",
-    "text": "هنوز اطلاعاتی از خلاصه‌ی بازی ثبت نشده است برای",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "viewing.highlightsNone": {
-    "source": "No official highlight listed for",
-    "text": "هیچ خلاصه‌ی رسمی‌ای ثبت نشده است برای",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -3460,6 +3436,1482 @@
       "one": "{count} زرد",
       "other": "{count} زرد"
     },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.title": {
+    "source": "Competition",
+    "text": "رقابت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.metaDescription": {
+    "source": "{name} {season}: table, results, fixtures and top scorers.",
+    "text": "{name} {season}: جدول رده‌بندی، نتایج، دیدارهای پیش رو و گلزنان برتر.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.unreachable": {
+    "source": "The service is unreachable right now, so this competition cannot be shown.",
+    "text": "سرویس در حال حاضر در دسترس نیست، بنابراین این رقابت را نمی‌توان نشان داد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.kind.league": {
+    "source": "League",
+    "text": "لیگ",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.kind.cup": {
+    "source": "Cup",
+    "text": "جام",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.kind.superCup": {
+    "source": "Super cup",
+    "text": "سوپرجام",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.kind.qualifying": {
+    "source": "Qualifying",
+    "text": "مقدماتی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.kind.friendly": {
+    "source": "Friendlies",
+    "text": "دوستانه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.tier": {
+    "source": "Tier {tier}",
+    "text": "سطح {tier}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.women": {
+    "source": "Women",
+    "text": "زنان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.season": {
+    "source": "Season",
+    "text": "فصل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.seasonCurrent": {
+    "source": "{season} (current)",
+    "text": "{season} (فصل جاری)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.founderHeading": {
+    "source": "Founder's analysis in {name}",
+    "text": "تحلیل بنیان‌گذار درباره‌ی {name}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.table": {
+    "source": "Table",
+    "text": "جدول رده‌بندی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.col.team": {
+    "source": "Team",
+    "text": "تیم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.col.played": {
+    "source": "P",
+    "text": "بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.col.playedTitle": {
+    "source": "Played",
+    "text": "بازی‌های انجام‌شده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.col.won": {
+    "source": "W",
+    "text": "برد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.col.wonTitle": {
+    "source": "Won",
+    "text": "برد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.col.drawn": {
+    "source": "D",
+    "text": "تساوی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.col.drawnTitle": {
+    "source": "Drawn",
+    "text": "تساوی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.col.lost": {
+    "source": "L",
+    "text": "باخت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.col.lostTitle": {
+    "source": "Lost",
+    "text": "باخت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.col.goalsFor": {
+    "source": "GF",
+    "text": "زده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.col.goalsForTitle": {
+    "source": "Goals for",
+    "text": "گل زده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.col.goalsAgainst": {
+    "source": "GA",
+    "text": "خورده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.col.goalsAgainstTitle": {
+    "source": "Goals against",
+    "text": "گل خورده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.col.goalDifference": {
+    "source": "GD",
+    "text": "تفاضل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.col.goalDifferenceTitle": {
+    "source": "Goal difference",
+    "text": "تفاضل گل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.col.points": {
+    "source": "Pts",
+    "text": "امتیاز",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.col.pointsTitle": {
+    "source": "Points",
+    "text": "امتیاز",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.col.form": {
+    "source": "Form",
+    "text": "فرم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.form.won": {
+    "source": "W",
+    "text": "ب",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.form.drawn": {
+    "source": "D",
+    "text": "م",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.form.lost": {
+    "source": "L",
+    "text": "ش",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.zone.championsLeague": {
+    "source": "Champions League",
+    "text": "لیگ قهرمانان اروپا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.zone.afcChampionsLeagueElite": {
+    "source": "AFC Champions League Elite",
+    "text": "لیگ نخبگان آسیا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.zone.promotion": {
+    "source": "Promotion",
+    "text": "صعود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.zone.promotionPlayoff": {
+    "source": "Promotion play-off",
+    "text": "پلی‌آف صعود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.zone.relegationPlayoff": {
+    "source": "Relegation play-off",
+    "text": "پلی‌آف سقوط",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.zone.relegation": {
+    "source": "Relegation",
+    "text": "سقوط",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.zones.lead": {
+    "source": "Places a league position earns by itself, from the published regulations",
+    "text": "سهمیه‌هایی که یک رده در جدول لیگ به‌تنهایی به دست می‌دهد، بر پایه‌ی آیین‌نامه‌های منتشرشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.zones.source": {
+    "source": "source {number}",
+    "text": "منبع {number}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.zones.cupWinners": {
+    "source": "Cup winners change who takes the Europa and Conference League places, so they are not marked.",
+    "text": "قهرمانان جام‌ها تعیین می‌کنند چه تیم‌هایی سهمیه‌های لیگ اروپا و لیگ کنفرانس را می‌گیرند، پس این سهمیه‌ها علامت‌گذاری نشده‌اند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.zones.incomplete": {
+    "source": "The continental places for this season are not published yet.",
+    "text": "سهمیه‌های قاره‌ای این فصل هنوز منتشر نشده‌اند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.zones.absent": {
+    "source": "Qualification and relegation places are not listed for this season.",
+    "text": "جایگاه‌های راهیابی و سقوط برای این فصل فهرست نشده‌اند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.results": {
+    "source": "Results",
+    "text": "نتایج",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.noResults": {
+    "source": "No results stored for this season.",
+    "text": "هیچ نتیجه‌ای برای این فصل ذخیره نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.fixtures": {
+    "source": "Fixtures",
+    "text": "دیدارهای پیش رو",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.noFixtures": {
+    "source": "No fixtures scheduled for this season.",
+    "text": "هیچ دیداری برای این فصل برنامه‌ریزی نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.topScorers": {
+    "source": "Top scorers",
+    "text": "گلزنان برتر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.coverage": {
+    "source": "Coverage for this season",
+    "text": "پوشش داده‌ها در این فصل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.noCoverage": {
+    "source": "No coverage declared for this season.",
+    "text": "هیچ پوششی برای این فصل اعلام نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.noData": {
+    "source": "No fixture data stored yet.",
+    "text": "هنوز هیچ داده‌ای از بازی‌ها ذخیره نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.lastUpdate": {
+    "source": "Last data update",
+    "text": "آخرین به‌روزرسانی داده‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.updated": {
+    "source": "Updated",
+    "text": "به‌روزرسانی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.delayed": {
+    "source": "Data for this module is behind; nothing is shown rather than something stale.",
+    "text": "داده‌های این بخش با تأخیر است؛ به‌جای نمایش داده‌ی کهنه، چیزی نشان داده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.notSupplied": {
+    "source": "Not supplied for this season.",
+    "text": "برای این فصل ارائه نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.versus": {
+    "source": "{home} v {away}",
+    "text": "{home} - {away}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.scoreLine": {
+    "source": "{home} {score} {away}",
+    "text": "{home} {score} {away}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.v": {
+    "source": "v",
+    "text": "-",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.status.live": {
+    "source": "live",
+    "text": "زنده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.status.postponed": {
+    "source": "postponed",
+    "text": "به تعویق افتاده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.status.suspended": {
+    "source": "suspended",
+    "text": "متوقف‌شده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.status.cancelled": {
+    "source": "cancelled",
+    "text": "لغوشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.status.abandoned": {
+    "source": "abandoned",
+    "text": "نیمه‌تمام",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.status.awarded": {
+    "source": "awarded",
+    "text": "نتیجه‌ی اعلامی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.coverageState.available": {
+    "source": "available",
+    "text": "موجود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.coverageState.limited": {
+    "source": "limited",
+    "text": "ناقص",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.coverageState.notSupplied": {
+    "source": "not supplied",
+    "text": "ارائه نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.coverageState.delayed": {
+    "source": "data delayed",
+    "text": "داده با تأخیر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.bracket.title": {
+    "source": "Knockout rounds",
+    "text": "مرحله‌ی حذفی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.bracket.twoLegs": {
+    "source": "Two legs",
+    "text": "رفت و برگشت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.bracket.oneMatch": {
+    "source": "One match",
+    "text": "تک‌بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.list.separator": {
+    "source": ", ",
+    "text": "، ",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.list.and": {
+    "source": "{list} and {last}",
+    "text": "{list} و {last}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.title": {
+    "source": "Team",
+    "text": "تیم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.metaDescription": {
+    "source": "{name}: fixtures, results, squad and where they stand.",
+    "text": "{name}: دیدارهای پیش رو، نتایج، فهرست بازیکنان و جایگاه در جدول.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.unreachable": {
+    "source": "The service is unreachable right now, so this team cannot be shown.",
+    "text": "سرویس در حال حاضر در دسترس نیست، بنابراین این تیم را نمی‌توان نشان داد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.national": {
+    "source": "National team",
+    "text": "تیم ملی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.club": {
+    "source": "Club",
+    "text": "باشگاه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.founded": {
+    "source": "Founded {year}",
+    "text": "تأسیس {year}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.venueCity": {
+    "source": "{venue}, {city}",
+    "text": "{venue}، {city}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.noGround": {
+    "source": "Home ground not recorded",
+    "text": "ورزشگاه خانگی ثبت نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.founderHeading": {
+    "source": "Founder's analysis of {name}",
+    "text": "تحلیل بنیان‌گذار درباره‌ی {name}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.competitions": {
+    "source": "Competitions",
+    "text": "رقابت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.noCompetition": {
+    "source": "No current competition on record.",
+    "text": "هیچ رقابت جاری‌ای ثبت نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.noPosition": {
+    "source": "No table position to show.",
+    "text": "جایگاهی در جدول برای نمایش نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.contextLine": {
+    "source": "{position} of {total} · {points} pts",
+    "text": "{position} از {total} · {points} امتیاز",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.splits": {
+    "source": "Home and away",
+    "text": "خانه و بیرون",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.splitsFootnote": {
+    "source": "From the finished matches we hold. A match decided on penalties counts as a draw; goals include extra time, never the shoot-out.",
+    "text": "بر پایه‌ی بازی‌های پایان‌یافته‌ای که در اختیار داریم. بازی‌ای که در ضربات پنالتی تعیین تکلیف شده، تساوی حساب می‌شود؛ گل‌ها وقت اضافه را در بر می‌گیرند، اما هرگز ضربات پنالتی را نه.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.splitsEmpty": {
+    "source": "No finished match on record yet.",
+    "text": "هنوز هیچ بازی پایان‌یافته‌ای ثبت نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.figure": {
+    "source": "Figure",
+    "text": "شاخص",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.split.home": {
+    "source": "Home",
+    "text": "خانه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.split.away": {
+    "source": "Away",
+    "text": "بیرون",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.split.total": {
+    "source": "Total",
+    "text": "مجموع",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.row.played": {
+    "source": "Played",
+    "text": "بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.row.won": {
+    "source": "Won",
+    "text": "برد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.row.drawn": {
+    "source": "Drawn",
+    "text": "تساوی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.row.lost": {
+    "source": "Lost",
+    "text": "باخت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.row.goalsFor": {
+    "source": "Goals for",
+    "text": "گل زده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.row.goalsAgainst": {
+    "source": "Goals against",
+    "text": "گل خورده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.row.cleanSheets": {
+    "source": "Clean sheets",
+    "text": "کلین‌شیت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.metric.possession": {
+    "source": "Possession",
+    "text": "مالکیت توپ",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.metric.shots": {
+    "source": "Shots",
+    "text": "شوت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.metric.shotsOnTarget": {
+    "source": "Shots on target",
+    "text": "شوت‌های در چارچوب",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.metric.corners": {
+    "source": "Corners",
+    "text": "کرنرها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.metric.fouls": {
+    "source": "Fouls",
+    "text": "خطاها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.metric.passAccuracy": {
+    "source": "Pass accuracy",
+    "text": "دقت پاس",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.metric.expectedGoals": {
+    "source": "Expected goals",
+    "text": "گل مورد انتظار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.perMatch": {
+    "source": "Per match",
+    "text": "میانگین هر بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.averageNotSupplied": {
+    "source": "Not supplied for these matches",
+    "text": "برای این بازی‌ها ارائه نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.averageHeld": {
+    "source": {
+      "one": "Held for {held} of {count} matches; no average where a match lacks it",
+      "other": "Held for {held} of {count} matches; no average where a match lacks it"
+    },
+    "forms": {
+      "one": "برای {held} بازی از {count} بازی ثبت شده؛ جایی که بازی‌ای این رقم را ندارد، میانگینی حساب نمی‌شود",
+      "other": "برای {held} بازی از {count} بازی ثبت شده؛ جایی که بازی‌ای این رقم را ندارد، میانگینی حساب نمی‌شود"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.notSuppliedList": {
+    "source": "Not supplied for these matches: {list}.",
+    "text": "برای این بازی‌ها ارائه نشده: {list}.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.penaltiesNote": {
+    "source": {
+      "one": "{count} match went to penalties, counted as a draw.",
+      "other": "{count} matches went to penalties, counted as draws."
+    },
+    "forms": {
+      "one": "{count} بازی به ضربات پنالتی کشید و تساوی حساب شده است.",
+      "other": "{count} بازی به ضربات پنالتی کشید و تساوی حساب شده است."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.unscoredNote": {
+    "source": {
+      "one": "{count} finished match has no score on record and is not counted.",
+      "other": "{count} finished matches have no score on record and are not counted."
+    },
+    "forms": {
+      "one": "{count} بازی پایان‌یافته نتیجه‌ی ثبت‌شده‌ای ندارد و حساب نشده است.",
+      "other": "{count} بازی پایان‌یافته نتیجه‌ی ثبت‌شده‌ای ندارند و حساب نشده‌اند."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.noNext": {
+    "source": "No match scheduled.",
+    "text": "هیچ بازی‌ای برنامه‌ریزی نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.previousMatch": {
+    "source": "Previous match",
+    "text": "بازی قبلی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.noPrevious": {
+    "source": "No result on record.",
+    "text": "هیچ نتیجه‌ای ثبت نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.noFixtures": {
+    "source": "No fixtures scheduled.",
+    "text": "هیچ دیداری برنامه‌ریزی نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.noResults": {
+    "source": "No results on record.",
+    "text": "هیچ نتیجه‌ای ثبت نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.squad": {
+    "source": "Squad",
+    "text": "فهرست بازیکنان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.noSquad": {
+    "source": "No squad on record for this team.",
+    "text": "هیچ فهرست بازیکنی برای این تیم ثبت نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.group.goalkeepers": {
+    "source": "Goalkeepers",
+    "text": "دروازه‌بان‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.group.defenders": {
+    "source": "Defenders",
+    "text": "مدافعان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.group.midfielders": {
+    "source": "Midfielders",
+    "text": "هافبک‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.group.forwards": {
+    "source": "Forwards",
+    "text": "مهاجمان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.group.unknown": {
+    "source": "Position not recorded",
+    "text": "پست ثبت نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.onLoan": {
+    "source": "on loan",
+    "text": "قرضی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.home": {
+    "source": "v",
+    "text": "مقابل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.away": {
+    "source": "at",
+    "text": "در زمین",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.aet": {
+    "source": "aet",
+    "text": "پس از وقت اضافه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.penaltiesWon": {
+    "source": "won {score} on penalties",
+    "text": "برد {score} در ضربات پنالتی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.penaltiesLost": {
+    "source": "lost {score} on penalties",
+    "text": "باخت {score} در ضربات پنالتی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.title": {
+    "source": "Player",
+    "text": "بازیکن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.metaDescription": {
+    "source": "{name}: career, record by season and recent matches.",
+    "text": "{name}: کارنامه، آمار فصل به فصل و بازی‌های اخیر.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.unreachable": {
+    "source": "The service is unreachable right now, so this player cannot be shown.",
+    "text": "سرویس در حال حاضر در دسترس نیست، بنابراین این بازیکن را نمی‌توان نشان داد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.nationality": {
+    "source": "Nationality",
+    "text": "ملیت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.age": {
+    "source": "Age",
+    "text": "سن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.height": {
+    "source": "Height",
+    "text": "قد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.foot": {
+    "source": "Preferred foot",
+    "text": "پای تخصصی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.noBirthDate": {
+    "source": "Date of birth not recorded",
+    "text": "تاریخ تولد ثبت نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.ageBorn": {
+    "source": "{age} · born {date}",
+    "text": "{age} ساله · متولد {date}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.heightCm": {
+    "source": "{height} cm",
+    "text": "{height} سانتی‌متر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.foot.left": {
+    "source": "Left foot",
+    "text": "چپ‌پا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.foot.right": {
+    "source": "Right foot",
+    "text": "راست‌پا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.foot.both": {
+    "source": "Either foot",
+    "text": "هر دو پا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.position.goalkeeper": {
+    "source": "Goalkeeper",
+    "text": "دروازه‌بان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.position.defender": {
+    "source": "Defender",
+    "text": "مدافع",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.position.midfielder": {
+    "source": "Midfielder",
+    "text": "هافبک",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.position.forward": {
+    "source": "Forward",
+    "text": "مهاجم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.currentTeam": {
+    "source": "Current team",
+    "text": "تیم فعلی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.noCurrentTeam": {
+    "source": "No current team on record.",
+    "text": "هیچ تیم فعلی‌ای ثبت نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.shirt": {
+    "source": "No. {number}",
+    "text": "شماره‌ی {number}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.since": {
+    "source": "since {date}",
+    "text": "از {date}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.compareWith": {
+    "source": "Compare with…",
+    "text": "مقایسه با…",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.comparePlaceholder": {
+    "source": "Another player’s name",
+    "text": "نام بازیکنی دیگر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.find": {
+    "source": "Find",
+    "text": "جست‌وجو",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.career": {
+    "source": "Career",
+    "text": "کارنامه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.noSpells": {
+    "source": "No spells on record.",
+    "text": "هیچ دوره‌ای ثبت نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.present": {
+    "source": "present",
+    "text": "اکنون",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.loan": {
+    "source": "loan",
+    "text": "قرضی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.allSeasons": {
+    "source": "All seasons",
+    "text": "همه‌ی فصل‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.record": {
+    "source": "Record",
+    "text": "آمار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.noRecord": {
+    "source": "No line-ups on record for this player, so there are no statistics to show.",
+    "text": "هیچ ترکیبی با نام این بازیکن ثبت نشده است، پس آماری برای نمایش نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.noSeasonRecord": {
+    "source": "Nothing on record for this season.",
+    "text": "برای این فصل چیزی ثبت نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.col.apps": {
+    "source": "Apps",
+    "text": "حضور",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.col.starts": {
+    "source": "Starts",
+    "text": "فیکس",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.col.minutes": {
+    "source": "Minutes",
+    "text": "دقیقه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.col.goals": {
+    "source": "Goals",
+    "text": "گل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.col.assists": {
+    "source": "Assists",
+    "text": "پاس گل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.col.yellow": {
+    "source": "Yellow",
+    "text": "زرد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.col.red": {
+    "source": "Red",
+    "text": "قرمز",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.minutesNote": {
+    "source": "Minutes are the feed’s own, per match: “at least” marks a season where some matches came without them, “not supplied” one where none did. Advanced statistics and availability are not held for this player and are not shown.",
+    "text": "دقیقه‌ها همان ارقام منبع داده برای هر بازی است: «دست‌کم» یعنی فصلی که برخی بازی‌هایش بی‌دقیقه آمده‌اند، و «ارائه نشده» یعنی فصلی که هیچ بازی‌اش دقیقه نداشته است. آمار پیشرفته و وضعیت حضور این بازیکن در اختیار ما نیست و نشان داده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.minutesAtLeast": {
+    "source": "at least {minutes}",
+    "text": "دست‌کم {minutes}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.minutesCovers": {
+    "source": {
+      "one": "{with} of {count} matches",
+      "other": "{with} of {count} matches"
+    },
+    "forms": {
+      "one": "{with} از {count} بازی",
+      "other": "{with} از {count} بازی"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.minutesNotSupplied": {
+    "source": "not supplied",
+    "text": "ارائه نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.recentMatches": {
+    "source": "Recent matches",
+    "text": "بازی‌های اخیر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.noMatches": {
+    "source": "No matches on record.",
+    "text": "هیچ بازی‌ای ثبت نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.role.started": {
+    "source": "Started",
+    "text": "در ترکیب اصلی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.role.cameOn": {
+    "source": "Came on",
+    "text": "بازیکن تعویضی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.role.unused": {
+    "source": "Unused sub",
+    "text": "ذخیره‌ی بدون بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.goals": {
+    "source": {
+      "one": "{count} goal",
+      "other": "{count} goals"
+    },
+    "forms": {
+      "one": "{count} گل",
+      "other": "{count} گل"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.assists": {
+    "source": {
+      "one": "{count} assist",
+      "other": "{count} assists"
+    },
+    "forms": {
+      "one": "{count} پاس گل",
+      "other": "{count} پاس گل"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.yellowCard": {
+    "source": "Yellow card",
+    "text": "کارت زرد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.redCard": {
+    "source": "Red card",
+    "text": "کارت قرمز",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.noData": {
+    "source": "No match data stored for this player yet.",
+    "text": "هنوز هیچ داده‌ای از بازی‌های این بازیکن ذخیره نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.title": {
+    "source": "Compare players",
+    "text": "مقایسه‌ی بازیکنان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.metaDescription": {
+    "source": "{a} and {b} compared, season by season and competition by competition.",
+    "text": "مقایسه‌ی {a} و {b}، فصل به فصل و رقابت به رقابت.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.unreachable": {
+    "source": "The service is unreachable right now, so these players cannot be compared.",
+    "text": "سرویس در حال حاضر در دسترس نیست، بنابراین این بازیکنان را نمی‌توان مقایسه کرد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.compareName": {
+    "source": "Compare {name} with…",
+    "text": "مقایسه‌ی {name} با…",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.same": {
+    "source": "That is the same player. Choose somebody else.",
+    "text": "این همان بازیکن است. بازیکن دیگری را انتخاب کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.hint": {
+    "source": "Type the name of the player to compare with.",
+    "text": "نام بازیکنی را که می‌خواهید با او مقایسه کنید بنویسید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.searchUnreachable": {
+    "source": "The service is unreachable right now, so no player can be searched.",
+    "text": "سرویس در حال حاضر در دسترس نیست، بنابراین جست‌وجوی بازیکن ممکن نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.noMatch": {
+    "source": "No player matches “{term}”.",
+    "text": "هیچ بازیکنی با «{term}» پیدا نشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.noTeam": {
+    "source": "No current team on record",
+    "text": "تیم فعلی ثبت نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.swap": {
+    "source": "Swap sides",
+    "text": "جابه‌جایی دو طرف",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.another": {
+    "source": "Compare {name} with somebody else",
+    "text": "مقایسه‌ی {name} با بازیکنی دیگر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.scopes": {
+    "source": "Season and competition",
+    "text": "فصل و رقابت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.everything": {
+    "source": "Everything on record",
+    "text": "همه‌ی موارد ثبت‌شده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.onePlayer": {
+    "source": "(one player only)",
+    "text": "(فقط یک بازیکن)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.recordState": {
+    "source": "{name}: record {state}",
+    "text": "{name}: آمار {state}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.figure.appearances": {
+    "source": "Appearances",
+    "text": "حضور",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.figure.starts": {
+    "source": "Starts",
+    "text": "بازی در ترکیب اصلی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.figure.offTheBench": {
+    "source": "Off the bench",
+    "text": "ورود از روی نیمکت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.figure.minutes": {
+    "source": "Minutes",
+    "text": "دقیقه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.figure.goals": {
+    "source": "Goals",
+    "text": "گل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.figure.assists": {
+    "source": "Assists",
+    "text": "پاس گل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.figure.yellowCards": {
+    "source": "Yellow cards",
+    "text": "کارت زرد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.figure.redCards": {
+    "source": "Red cards",
+    "text": "کارت قرمز",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.reason.noLineups": {
+    "source": "No line-ups on record",
+    "text": "هیچ ترکیبی ثبت نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.reason.notInScope": {
+    "source": "Nothing on record in this competition and season",
+    "text": "در این رقابت و فصل چیزی ثبت نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.reason.minutes": {
+    "source": "No minutes from the feed",
+    "text": "منبع داده دقیقه‌ای نفرستاده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.note.both": {
+    "source": "{reason} for either player.",
+    "text": "{reason}، برای هیچ‌یک از دو بازیکن.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.note.side": {
+    "source": "{name}: {reason}.",
+    "text": "{name}: {reason}.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.note.lacking": {
+    "source": "{name}: {reason}, so this is not a comparison.",
+    "text": "{name}: {reason}، پس این مقایسه معتبر نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.note.partial": {
+    "source": {
+      "one": "{name}: minutes for {counted} of {count} matches played; the rest were not supplied.",
+      "other": "{name}: minutes for {counted} of {count} matches played; the rest were not supplied."
+    },
+    "forms": {
+      "one": "{name}: دقیقه‌ها برای {counted} بازی از {count} بازی انجام‌شده؛ بقیه ارائه نشده‌اند.",
+      "other": "{name}: دقیقه‌ها برای {counted} بازی از {count} بازی انجام‌شده؛ بقیه ارائه نشده‌اند."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.footnote": {
+    "source": "Figures come from our line-ups and incidents, minutes from the feed’s own match statistics. Player ratings and advanced statistics are not held for these players and are not shown.",
+    "text": "ارقام از ترکیب‌ها و رویدادهای ثبت‌شده‌ی ما می‌آیند و دقیقه‌ها از آمار خودِ منبع داده برای هر بازی. نمره‌ی بازیکنان و آمار پیشرفته برای این بازیکنان در اختیار ما نیست و نشان داده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.noData": {
+    "source": "no match data stored yet",
+    "text": "هنوز داده‌ای از بازی‌ها ذخیره نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.lastUpdate": {
+    "source": "last data update",
+    "text": "آخرین به‌روزرسانی داده‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "searchPage.metaDescription": {
+    "source": "Find teams, competitions, players, news, groups and members by name, alias or another spelling.",
+    "text": "تیم‌ها، رقابت‌ها، بازیکنان، اخبار، گروه‌ها و اعضا را با نام، نام دیگر یا نگارشی دیگر پیدا کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "searchPage.field": {
+    "source": "Team, competition, player, news, group or member",
+    "text": "تیم، رقابت، بازیکن، خبر، گروه یا عضو",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "searchPage.type.team": {
+    "source": "Team",
+    "text": "تیم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "searchPage.type.competition": {
+    "source": "Competition",
+    "text": "رقابت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "searchPage.type.person": {
+    "source": "Player",
+    "text": "بازیکن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "searchPage.limited": {
+    "source": "Too many questions have been asked in the last hour.",
+    "text": "در یک ساعت گذشته پرسش‌های بسیاری پرسیده شده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "searchPage.keywordsInstead": {
+    "source": "This is a keyword search instead.",
+    "text": "به‌جای آن، جست‌وجوی کلیدواژه‌ای انجام شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "searchPage.hint": {
+    "source": "Type a name, an abbreviation, a headline or a spelling in another language.",
+    "text": "یک نام، یک نام اختصاری، یک تیتر یا نگارشی به زبانی دیگر بنویسید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "searchPage.minLength": {
+    "source": {
+      "one": "Type at least {count} character.",
+      "other": "Type at least {count} characters."
+    },
+    "forms": {
+      "one": "دست‌کم {count} نویسه بنویسید.",
+      "other": "دست‌کم {count} نویسه بنویسید."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "searchPage.unreachable": {
+    "source": "The service is unreachable right now, so nothing can be searched.",
+    "text": "سرویس در حال حاضر در دسترس نیست، بنابراین جست‌وجو ممکن نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "searchPage.alias": {
+    "source": "also known as {alias}",
+    "text": "با نام {alias} هم شناخته می‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "watch.metaDescription": {
+    "source": "Where each match can be watched, in the territory you choose.",
+    "text": "هر بازی را کجا می‌توان دید، در کشوری که انتخاب می‌کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "watch.day": {
+    "source": "Day",
+    "text": "روز",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "watch.timesIn": {
+    "source": "Times in {zone}",
+    "text": "ساعت‌ها به وقت {zone}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "watch.noInfo": {
+    "source": "No viewing information yet for {territory}",
+    "text": "هنوز اطلاعات پخشی برای {territory} ثبت نشده است",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "watch.nothingListed": {
+    "source": "No official service listed for this match in {territory}",
+    "text": "هیچ سرویس رسمی‌ای برای پخش این بازی در {territory} ثبت نشده است",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "watch.highlightsNoInfo": {
+    "source": "No highlight information yet for {territory}",
+    "text": "هنوز اطلاعاتی از خلاصه‌ی بازی برای {territory} ثبت نشده است",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "watch.highlightsNone": {
+    "source": "No official highlight listed for {territory}",
+    "text": "هیچ خلاصه‌ی رسمی‌ای برای {territory} ثبت نشده است",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

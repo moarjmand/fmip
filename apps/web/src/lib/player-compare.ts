@@ -1,5 +1,7 @@
 import type { CoverageState, PlayerPage, PlayerSeasonRecord } from '@fmip/contracts';
-import { COVERAGE_LABEL } from './match';
+import { formatNumber } from '@/i18n/format';
+import { type MessageKey, plural } from '@/i18n/messages';
+import { coverageText, pageLocale, say } from './competition';
 import { apiQuery } from './search';
 
 /**
@@ -137,13 +139,14 @@ export type CompareCell =
       value: number;
       partial?: { counted: number; of: number };
     }
-  | { coverage: 'not_supplied'; value: null; reason: string };
+  | { coverage: 'not_supplied'; value: null; reason: MessageKey };
 
+/** Why a side has no figure, as catalogue keys (T-1304); the page words them. */
 export const REASON = {
-  noLineups: 'No line-ups on record',
-  notInScope: 'Nothing on record in this competition and season',
-  minutes: 'No minutes from the feed',
-} as const;
+  noLineups: 'compare.reason.noLineups',
+  notInScope: 'compare.reason.notInScope',
+  minutes: 'compare.reason.minutes',
+} as const satisfies Record<string, MessageKey>;
 
 type Totals = Pick<
   PlayerSeasonRecord,
@@ -164,7 +167,7 @@ type Side =
       totals: Totals;
       minutes: MinutesTotals;
     }
-  | { held: false; reason: string };
+  | { held: false; reason: MessageKey };
 
 /**
  * One player's totals in the scope, summed over teams (a player who moved
@@ -207,23 +210,31 @@ export function sideTotals(record: PlayerPage['record'], scope: CompareScope | n
 
 export interface CompareRow {
   key: string;
-  label: string;
+  label: MessageKey;
   a: CompareCell;
   b: CompareCell;
   /** Which side lacks the figure; `null` when both have it. */
   lacking: 'a' | 'b' | 'both' | null;
 }
 
-const FIGURES: readonly { key: string; label: string; read: ((t: Totals) => number) | null }[] = [
-  { key: 'appearances', label: 'Appearances', read: (t) => t.starts + t.sub_appearances },
-  { key: 'starts', label: 'Starts', read: (t) => t.starts },
-  { key: 'sub_appearances', label: 'Off the bench', read: (t) => t.sub_appearances },
+const FIGURES: readonly {
+  key: string;
+  label: MessageKey;
+  read: ((t: Totals) => number) | null;
+}[] = [
+  {
+    key: 'appearances',
+    label: 'compare.figure.appearances',
+    read: (t) => t.starts + t.sub_appearances,
+  },
+  { key: 'starts', label: 'compare.figure.starts', read: (t) => t.starts },
+  { key: 'sub_appearances', label: 'compare.figure.offTheBench', read: (t) => t.sub_appearances },
   // Minutes come from the feed, not from starts (T-823): `minutesCell`.
-  { key: 'minutes', label: 'Minutes', read: null },
-  { key: 'goals', label: 'Goals', read: (t) => t.goals },
-  { key: 'assists', label: 'Assists', read: (t) => t.assists },
-  { key: 'yellow_cards', label: 'Yellow cards', read: (t) => t.yellow_cards },
-  { key: 'red_cards', label: 'Red cards', read: (t) => t.red_cards },
+  { key: 'minutes', label: 'compare.figure.minutes', read: null },
+  { key: 'goals', label: 'compare.figure.goals', read: (t) => t.goals },
+  { key: 'assists', label: 'compare.figure.assists', read: (t) => t.assists },
+  { key: 'yellow_cards', label: 'compare.figure.yellowCards', read: (t) => t.yellow_cards },
+  { key: 'red_cards', label: 'compare.figure.redCards', read: (t) => t.red_cards },
 ];
 
 function cell(side: Side, read: ((t: Totals) => number) | null): CompareCell {
@@ -274,41 +285,59 @@ export function compareRows(
 }
 
 /** What a cell reads as: the number ("at least" when partial), or the coverage state's name. */
-export function cellText(c: CompareCell): string {
-  if (c.value === null) return COVERAGE_LABEL[c.coverage];
-  return c.partial === undefined ? String(c.value) : `at least ${c.value}`;
+export function cellText(locale: string, c: CompareCell): string {
+  if (c.value === null) return coverageText(locale, c.coverage);
+  const value = formatNumber(locale, c.value);
+  return c.partial === undefined
+    ? value
+    : say(locale, 'playerPage.minutesAtLeast', { minutes: value });
 }
 
 /**
  * The sentence under a row one side lacks: whose figure is missing and why.
  * Null when both sides have it.
  */
-export function rowNote(row: CompareRow, nameA: string, nameB: string): string | null {
+export function rowNote(
+  locale: string,
+  row: CompareRow,
+  nameA: string,
+  nameB: string,
+): string | null {
   if (row.lacking === null) {
-    const partial = [partialNote(row.a, nameA), partialNote(row.b, nameB)].filter(
+    const partial = [partialNote(locale, row.a, nameA), partialNote(locale, row.b, nameB)].filter(
       (n): n is string => n !== null,
     );
     return partial.length === 0 ? null : partial.join(' ');
   }
   if (row.lacking === 'both') {
     const reasons = new Set([row.a, row.b].map((c) => (c.value === null ? c.reason : '')));
-    return reasons.size === 1
-      ? `${[...reasons][0]} for either player.`
-      : `${nameA}: ${reasonOf(row.a)}. ${nameB}: ${reasonOf(row.b)}.`;
+    const [only] = [...reasons];
+    return reasons.size === 1 && only !== undefined && only !== ''
+      ? say(locale, 'compare.note.both', { reason: say(locale, only) })
+      : [
+          say(locale, 'compare.note.side', { name: nameA, reason: reasonOf(locale, row.a) }),
+          say(locale, 'compare.note.side', { name: nameB, reason: reasonOf(locale, row.b) }),
+        ].join(' ');
   }
   return row.lacking === 'a'
-    ? `${nameA}: ${reasonOf(row.a)}, so this is not a comparison.`
-    : `${nameB}: ${reasonOf(row.b)}, so this is not a comparison.`;
+    ? say(locale, 'compare.note.lacking', { name: nameA, reason: reasonOf(locale, row.a) })
+    : say(locale, 'compare.note.lacking', { name: nameB, reason: reasonOf(locale, row.b) });
 }
 
 /** "Ann: minutes for 7 of 9 matches played; the rest were not supplied." (T-823) */
-function partialNote(c: CompareCell, name: string): string | null {
+function partialNote(locale: string, c: CompareCell, name: string): string | null {
   if (c.value === null || c.partial === undefined) return null;
-  return `${name}: minutes for ${c.partial.counted} of ${c.partial.of} matches played; the rest were not supplied.`;
+  return plural(pageLocale(locale), 'compare.note.partial', c.partial.of, {
+    name,
+    counted: formatNumber(locale, c.partial.counted),
+  }).text;
 }
 
-function reasonOf(c: CompareCell): string {
-  return c.value === null ? c.reason.charAt(0).toLowerCase() + c.reason.slice(1) : '';
+/** The reason mid-sentence: its first letter lowered (a no-op in scripts without case). */
+function reasonOf(locale: string, c: CompareCell): string {
+  if (c.value !== null) return '';
+  const reason = say(locale, c.reason);
+  return reason.charAt(0).toLowerCase() + reason.slice(1);
 }
 
 /** The `GET /search` query for the second player: people only. */
