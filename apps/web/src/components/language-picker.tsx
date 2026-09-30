@@ -22,13 +22,25 @@ import { type OfferedLanguage, pickerEntriesFor } from '@/lib/language-switch';
  * completeness, and the catalogues stay on the server. Only the links, which
  * need the pathname, are made here.
  */
-export function LanguagePicker({ languages }: { languages: readonly OfferedLanguage[] }) {
+export function LanguagePicker({
+  languages,
+  label,
+}: {
+  languages: readonly OfferedLanguage[];
+  /** The navigation's name, resolved by the header (`attribute`), with its marking. */
+  label: { text: string; lang?: string };
+}) {
   const pathname = usePathname();
   const entries = pickerEntriesFor(pathname, languages);
   if (entries.length === 0) return null;
 
   return (
-    <nav aria-label="Language" data-testid="language-picker" className="ms-auto">
+    <nav
+      aria-label={label.text}
+      lang={label.lang}
+      data-testid="language-picker"
+      className="ms-auto"
+    >
       <ul className="flex flex-wrap gap-3">
         {entries.map((entry) => (
           <li key={entry.locale}>

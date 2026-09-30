@@ -1,5 +1,6 @@
 import { connection } from 'next/server';
-import { DEMONSTRATION_NOTICE, isDemonstrationData } from '@/lib/demonstration';
+import { Translated } from '@/components/translated';
+import { isDemonstrationData } from '@/lib/demonstration';
 
 /**
  * The band that says the football on this site did not happen (T-087).
@@ -27,7 +28,7 @@ import { DEMONSTRATION_NOTICE, isDemonstrationData } from '@/lib/demonstration';
  * marker a reader can turn off is a marker that is off for everybody who turned
  * it off, and on for nobody who shares a screenshot.
  */
-export async function DemonstrationBanner() {
+export async function DemonstrationBanner({ locale }: { locale: string }) {
   await connection();
   if (!isDemonstrationData()) return null;
 
@@ -37,7 +38,7 @@ export async function DemonstrationBanner() {
       data-testid="demonstration-banner"
       className="border-b-2 border-warning bg-surface-raised px-4 py-2 text-sm font-medium"
     >
-      {DEMONSTRATION_NOTICE}
+      <Translated locale={locale} message="shell.demonstration" />
     </aside>
   );
 }

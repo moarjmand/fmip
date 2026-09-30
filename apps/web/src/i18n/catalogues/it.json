@@ -99,6 +99,465 @@
     "text": "",
     "status": "untranslated"
   },
+  "shell.meta.description": {
+    "source": "Football match intelligence: live scores, match centre, forecasts and predictions.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.nav.primary": {
+    "source": "Primary",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.register": {
+    "source": "Register",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.language": {
+    "source": "Language",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.demonstration": {
+    "source": "Demonstration data. Every match, score, team and member on this site is development fixture data. None of it is real football, and nothing here has happened.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.accountDeleted.title": {
+    "source": "Account deleted",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.tagline": {
+    "source": "Football Match Intelligence Platform. Start with the {link}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.tagline.link": {
+    "source": "scores",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.firstVisit": {
+    "source": "New here? {link}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.firstVisit.link": {
+    "source": "What FMIP is, and how a rating is earned",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.guestInvite": {
+    "source": "{link} to follow your teams, predict matches and earn a rating.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.guestInvite.link": {
+    "source": "Create an account",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.feed": {
+    "source": "{link} — your teams, competitions, friends and groups.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.feed.link": {
+    "source": "Your feed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.matches.title": {
+    "source": "Live and upcoming",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.fixture": {
+    "source": "{home} v {away}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.versus": {
+    "source": "v",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.featured": {
+    "source": "Featured",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.watch.ask": {
+    "source": "{link} to see where these matches are shown.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.watch.unreachable": {
+    "source": "Where to watch these matches could not be loaded.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.allScores": {
+    "source": "All scores",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.timesIn": {
+    "source": "(times in {zone})",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.model.title": {
+    "source": "The model’s view",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.model.line": {
+    "source": "{home} {homePercent}% · draw {draw}% · {away} {awayPercent}%",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.model.note": {
+    "source": "The statistical model’s forecasts ({version}). Not the founder’s view, and not the community’s.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.founder.heading": {
+    "source": "Founder's analysis of what is coming",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.table.team": {
+    "source": "Team",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.table.played": {
+    "source": "Played",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.table.playedShort": {
+    "source": "P",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.table.points": {
+    "source": "Points",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.table.pointsShort": {
+    "source": "Pts",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.news.title": {
+    "source": "Latest stories",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.friends.title": {
+    "source": "Your friends’ predictions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.friends.unreachable": {
+    "source": "Your friends’ predictions could not be loaded.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.friends.empty": {
+    "source": "No predictions from your friends in the last seven days that you can see.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.friends.note": {
+    "source": "Your friends’ own calls, shown as each of them lets you see their history. Not the model’s forecast, and not the community’s.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.friends.called": {
+    "source": "called {outcome}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.friends.toWin": {
+    "source": "{team} to win",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.friends.draw": {
+    "source": "a draw",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.friends.right": {
+    "source": "right",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.friends.wrong": {
+    "source": "wrong",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.friends.void": {
+    "source": "void",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.groups.title": {
+    "source": "In your groups",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.groups.unreachable": {
+    "source": "Your groups’ discussions could not be loaded.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.groups.empty": {
+    "source": "Nothing has been said in your groups in the last two days.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.groups.nothingYet": {
+    "source": "Nothing said yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.groups.removed": {
+    "source": "A message was removed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.groups.card": {
+    "source": "shared a football card.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.groups.last": {
+    "source": "{name}: {text}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.groups.unread": {
+    "source": {
+      "one": "{count} unread",
+      "other": "{count} unread"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "home.panels.title": {
+    "source": "On today’s match discussions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.panels.unreachable": {
+    "source": "Today’s match discussions could not be loaded.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.panels.empty": {
+    "source": "Nothing has been posted on today’s match discussions yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.panels.theMatch": {
+    "source": "The match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.panels.notRated": {
+    "source": "not rated yet",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.panels.standing": {
+    "source": "({standing})",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.panels.standingFormer": {
+    "source": "({standing}, formerly approved)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.panels.tierRating": {
+    "source": "{tier} · {rating}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.panels.total": {
+    "source": {
+      "one": "{count} post in all, on the match page.",
+      "other": "{count} posts in all, on the match page."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "home.tier.bronze": {
+    "source": "Bronze",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.tier.silver": {
+    "source": "Silver",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.tier.gold": {
+    "source": "Gold",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.tier.platinum": {
+    "source": "Platinum",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.tier.elite": {
+    "source": "Elite",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.meta.title": {
+    "source": "What FMIP is",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.meta.description": {
+    "source": "Live scores and match centres, a statistical forecast, the founder’s analysis and members’ predictions, kept apart, and a rating earned by predicting.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.football.title": {
+    "source": "Football, match by match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.football.body": {
+    "source": "Live scores and a page for every match: the timeline, line-ups, statistics, who will miss it and each side’s form, with every competition’s table beside them. When something is missing for a match, its page says so rather than showing an empty box, and every live number says when it last changed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.competitions": {
+    "source": "Covered now: {names}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.competitions.unreachable": {
+    "source": "The list of competitions could not be read just now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.three.title": {
+    "source": "Three kinds of prediction, never mixed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.three.model.name": {
+    "source": "The statistical model.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.three.model.body": {
+    "source": "A forecast computed before kick-off from the teams’ results, with the probabilities of a home win, a draw and an away win. Each version is kept as it was made, and after the match it is scored against what happened.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.three.founder.name": {
+    "source": "The founder’s analysis.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.three.founder.body": {
+    "source": "Written and signed by a person, for selected matches.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.three.community.name": {
+    "source": "The community.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.three.community.body": {
+    "source": "Members’ own predictions. Their combined view appears once at least five members have predicted a match, beside a second one weighted only by members whose ratings are established.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.three.apart": {
+    "source": "The three are shown side by side and never blended into one number.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.rating.title": {
+    "source": "A rating you earn by predicting",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.rating.body": {
+    "source": "Predict the outcome before kick-off, with how confident you are and, if you like, the exact score; at kick-off the prediction is locked, and every version you submitted is kept. Your rating grows most from being right when it was hard to be right — how hard is the model’s own probability, fixed before kick-off — and also from exact scores, consistency, and confidence that matched the outcome.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.rating.provisional": {
+    "source": {
+      "one": "A rating is provisional until {count} prediction has been settled.",
+      "other": "A rating is provisional until {count} predictions have been settled."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "about.rating.recompute": {
+    "source": "A rating can always be recomputed from the stored predictions and results alone. The {link} names the formula version in force.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.rating.leaderboard": {
+    "source": "leaderboard",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.todayScores": {
+    "source": "Today’s scores",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.account": {
+    "source": "Predicting needs an account with a verified e-mail address.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "welcome.meta.title": {
+    "source": "Welcome",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rulesPage.meta.description": {
+    "source": "The rules every member accepts: what FMIP is for, what is not allowed, and how leaving works.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "offline.title": {
+    "source": "You are offline",
+    "text": "",
+    "status": "untranslated"
+  },
+  "offline.body": {
+    "source": "FMIP needs a connection for live scores, matches and predictions. Nothing cached is shown as current: when you are back online, the pages will load fresh.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "offline.retry": {
+    "source": "Try the scores again",
+    "text": "",
+    "status": "untranslated"
+  },
   "theme.label": {
     "source": "Theme",
     "text": "",
