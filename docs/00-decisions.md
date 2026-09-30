@@ -7235,6 +7235,22 @@ keeps Club Elo's past snapshots only as the record of what 0.1.0 read.
 Retiring a source needs no licence; this is the conservative side of the
 third-party-terms question.
 
+**How it is built (T-947, amended 2026-09-30).** "From the promotion on" is
+not a later edit: it follows from the published version itself, so the
+promotion PR that replaces `BASELINE` changes nothing else. `reads_club_elo`
+(`clubelo` or `clubelo_then_own`) decides; the model service asks Club Elo
+only while a version it serves (the published one or a candidate) reads it.
+`MODEL_CLUBELO_REFRESH` is empty by default, which follows that rule; `off`
+stops the asking sooner, and `on` does not bring back a source nothing would
+read. `/health`'s `elo_source` carries `retired: true` once none reads it,
+still with Club Elo's past loads. The watchdog then drops `elo_source`: an
+incident still open is closed by one `ok` ("retired"), and the stored
+condition, with no incident, is removed (its events stay), so the System
+page's line goes with it. The refusal is `tests/test_club_elo_retired.py` over
+the committed candidate files, including one that names no prior and so
+inherits 0.1.0's `clubelo`. `dixon-coles-elo@0.1.0`'s constants and every
+stored forecast are untouched.
+
 ## D-163 — High-rating privileges are contributor access, exclusive groups and the badge; leaderboards stay ordered by rating alone
 **Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers:** N-6 in `04-tasks-phase-9.md` · **Follows:** D-059, D-091
 

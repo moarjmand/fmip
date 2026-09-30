@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { WatchdogEvent, WatchdogFreshness, WatchdogReport } from '@fmip/contracts';
 import { INGEST_THRESHOLDS } from './internal/conditions';
 import { WATCHDOG_PROBES, type WatchdogProbes } from './internal/probes';
-import { readingsOf } from './internal/readings';
+import { readingsOf, retiredConditions } from './internal/readings';
 import { step } from './internal/transition';
 import { WatchdogStore } from './internal/watchdog-store';
 
@@ -61,6 +61,9 @@ export class WatchdogService {
           { level: next.level, since: next.since, incident },
           now,
         );
+      }
+      for (const key of retiredConditions(observations, previous)) {
+        await this.store.removeCondition(client, key);
       }
       return { conditions: readings.length, events };
     });

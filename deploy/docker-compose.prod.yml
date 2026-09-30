@@ -106,8 +106,9 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       MODEL_PORT: 8000
-      # T-920, D-111: the service asks Club Elo for yesterday's snapshot, at most every 6 h.
-      MODEL_CLUBELO_REFRESH: ${MODEL_CLUBELO_REFRESH:-on}
+      # T-920, D-111: the service asks Club Elo for yesterday's snapshot, at most every 6 h,
+      # while a version it serves reads Club Elo; never once none does (T-947, D-162).
+      MODEL_CLUBELO_REFRESH: ${MODEL_CLUBELO_REFRESH:-}
     depends_on:
       postgres:
         condition: service_healthy

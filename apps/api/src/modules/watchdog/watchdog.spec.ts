@@ -13,6 +13,7 @@ import {
   QUEUE_FAILURE_THRESHOLD,
   REQUEST_BUDGET_THRESHOLD,
   RESTORE_DRILL_THRESHOLD,
+  type EloSourceSeen,
   type Reading,
   type RunRecord,
   backup,
@@ -28,7 +29,7 @@ import {
   requestBudget,
   restoreDrill,
 } from './internal/conditions';
-import { type Observations, readingsOf } from './internal/readings';
+import { type Observations, readingsOf, retiredConditions } from './internal/readings';
 import { type StoredCondition, isAlert, step } from './internal/transition';
 import { freshnessOf } from './watchdog.service';
 
@@ -640,6 +641,57 @@ describe('readingsOf', () => {
       [],
     ).find((r) => r.key === 'elo_source');
     expect(blind?.level).toBe('unknown');
+  });
+
+  describe('once Club Elo is retired (T-947, D-162)', () => {
+    const retired = observations({
+      elo: {
+        source: {
+          refresh: false,
+          retired: true,
+          state: 'recorded',
+          last_succeeded_day: '2026-09-24',
+          last_error: null,
+          last_error_at: null,
+          unanswered_since: ago(20 * 24 * 3600).toISOString(),
+          detail: null,
+        },
+      },
+    });
+    const stored = (level: StoredCondition['level'], incidentId: number | null) =>
+      new Map<string, StoredCondition>([
+        ['elo_source', { key: 'elo_source', level, since: ago(3600), observed: null, incidentId }],
+      ]);
+    const eloOf = (previous: Map<string, StoredCondition>) =>
+      readingsOf(retired, previous, NOW, []).filter((r) => r.key === 'elo_source');
+
+    it('has no condition at all, and a stored one without an incident is removed', () => {
+      expect(eloOf(new Map())).toEqual([]);
+      expect(retiredConditions(retired, new Map())).toEqual([]);
+      for (const level of ['ok', 'unknown'] as const) {
+        expect(eloOf(stored(level, null))).toEqual([]);
+        expect(retiredConditions(retired, stored(level, null))).toEqual(['elo_source']);
+      }
+    });
+
+    it('closes an open incident with one ok first, then removes the condition', () => {
+      const open = stored('failing', 7);
+      const [closing] = eloOf(open);
+      expect(closing).toMatchObject({ key: 'elo_source', level: 'ok' });
+      expect(closing?.note).toContain('retired (D-162)');
+      expect(retiredConditions(retired, open)).toEqual([]);
+      const next = step(open.get('elo_source') ?? null, closing as Reading, NOW);
+      expect(next.event).toMatchObject({ kind: 'recovered', incident: 7 });
+      expect(retiredConditions(retired, stored('ok', null))).toEqual(['elo_source']);
+    });
+
+    it('keeps the condition while the published version reads Club Elo', () => {
+      const published = observations({
+        elo: { source: { ...(retired.elo as { source: EloSourceSeen }).source, retired: false } },
+      });
+      expect(readingsOf(published, new Map(), NOW, []).map((r) => r.key)).toContain('elo_source');
+      expect(retiredConditions(published, stored('ok', null))).toEqual([]);
+    });
   });
 });
 
