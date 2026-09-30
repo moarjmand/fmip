@@ -1667,16 +1667,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "viewing.noInfo": {
-    "source": "No viewing information yet for",
-    "text": "",
-    "status": "untranslated"
-  },
-  "viewing.nothingListed": {
-    "source": "No official service listed for this match in",
-    "text": "",
-    "status": "untranslated"
-  },
   "viewing.on": {
     "source": "On",
     "text": "",
@@ -1729,16 +1719,6 @@
   },
   "viewing.highlights": {
     "source": "Highlights",
-    "text": "",
-    "status": "untranslated"
-  },
-  "viewing.highlightsNoInfo": {
-    "source": "No highlight information yet for",
-    "text": "",
-    "status": "untranslated"
-  },
-  "viewing.highlightsNone": {
-    "source": "No official highlight listed for",
     "text": "",
     "status": "untranslated"
   },
@@ -4550,6 +4530,1220 @@
       "other": "{count} yellow"
     },
     "forms": {},
+    "status": "untranslated"
+  },
+  "competitionPage.title": {
+    "source": "Competition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.metaDescription": {
+    "source": "{name} {season}: table, results, fixtures and top scorers.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.unreachable": {
+    "source": "The service is unreachable right now, so this competition cannot be shown.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.kind.league": {
+    "source": "League",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.kind.cup": {
+    "source": "Cup",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.kind.superCup": {
+    "source": "Super cup",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.kind.qualifying": {
+    "source": "Qualifying",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.kind.friendly": {
+    "source": "Friendlies",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.tier": {
+    "source": "Tier {tier}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.women": {
+    "source": "Women",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.season": {
+    "source": "Season",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.seasonCurrent": {
+    "source": "{season} (current)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.founderHeading": {
+    "source": "Founder's analysis in {name}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.table": {
+    "source": "Table",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.col.team": {
+    "source": "Team",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.col.played": {
+    "source": "P",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.col.playedTitle": {
+    "source": "Played",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.col.won": {
+    "source": "W",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.col.wonTitle": {
+    "source": "Won",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.col.drawn": {
+    "source": "D",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.col.drawnTitle": {
+    "source": "Drawn",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.col.lost": {
+    "source": "L",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.col.lostTitle": {
+    "source": "Lost",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.col.goalsFor": {
+    "source": "GF",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.col.goalsForTitle": {
+    "source": "Goals for",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.col.goalsAgainst": {
+    "source": "GA",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.col.goalsAgainstTitle": {
+    "source": "Goals against",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.col.goalDifference": {
+    "source": "GD",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.col.goalDifferenceTitle": {
+    "source": "Goal difference",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.col.points": {
+    "source": "Pts",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.col.pointsTitle": {
+    "source": "Points",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.col.form": {
+    "source": "Form",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.form.won": {
+    "source": "W",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.form.drawn": {
+    "source": "D",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.form.lost": {
+    "source": "L",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.zone.championsLeague": {
+    "source": "Champions League",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.zone.afcChampionsLeagueElite": {
+    "source": "AFC Champions League Elite",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.zone.promotion": {
+    "source": "Promotion",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.zone.promotionPlayoff": {
+    "source": "Promotion play-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.zone.relegationPlayoff": {
+    "source": "Relegation play-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.zone.relegation": {
+    "source": "Relegation",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.zones.lead": {
+    "source": "Places a league position earns by itself, from the published regulations",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.zones.source": {
+    "source": "source {number}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.zones.cupWinners": {
+    "source": "Cup winners change who takes the Europa and Conference League places, so they are not marked.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.zones.incomplete": {
+    "source": "The continental places for this season are not published yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.zones.absent": {
+    "source": "Qualification and relegation places are not listed for this season.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.results": {
+    "source": "Results",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.noResults": {
+    "source": "No results stored for this season.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.fixtures": {
+    "source": "Fixtures",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.noFixtures": {
+    "source": "No fixtures scheduled for this season.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.topScorers": {
+    "source": "Top scorers",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.coverage": {
+    "source": "Coverage for this season",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.noCoverage": {
+    "source": "No coverage declared for this season.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.noData": {
+    "source": "No fixture data stored yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.lastUpdate": {
+    "source": "Last data update",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.updated": {
+    "source": "Updated",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.delayed": {
+    "source": "Data for this module is behind; nothing is shown rather than something stale.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.notSupplied": {
+    "source": "Not supplied for this season.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.versus": {
+    "source": "{home} v {away}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.scoreLine": {
+    "source": "{home} {score} {away}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.v": {
+    "source": "v",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.status.live": {
+    "source": "live",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.status.postponed": {
+    "source": "postponed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.status.suspended": {
+    "source": "suspended",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.status.cancelled": {
+    "source": "cancelled",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.status.abandoned": {
+    "source": "abandoned",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.status.awarded": {
+    "source": "awarded",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.coverageState.available": {
+    "source": "available",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.coverageState.limited": {
+    "source": "limited",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.coverageState.notSupplied": {
+    "source": "not supplied",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.coverageState.delayed": {
+    "source": "data delayed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.bracket.title": {
+    "source": "Knockout rounds",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.bracket.twoLegs": {
+    "source": "Two legs",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.bracket.oneMatch": {
+    "source": "One match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.list.separator": {
+    "source": ", ",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.list.and": {
+    "source": "{list} and {last}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.title": {
+    "source": "Team",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.metaDescription": {
+    "source": "{name}: fixtures, results, squad and where they stand.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.unreachable": {
+    "source": "The service is unreachable right now, so this team cannot be shown.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.national": {
+    "source": "National team",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.club": {
+    "source": "Club",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.founded": {
+    "source": "Founded {year}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.venueCity": {
+    "source": "{venue}, {city}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.noGround": {
+    "source": "Home ground not recorded",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.founderHeading": {
+    "source": "Founder's analysis of {name}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.competitions": {
+    "source": "Competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.noCompetition": {
+    "source": "No current competition on record.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.noPosition": {
+    "source": "No table position to show.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.contextLine": {
+    "source": "{position} of {total} · {points} pts",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.splits": {
+    "source": "Home and away",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.splitsFootnote": {
+    "source": "From the finished matches we hold. A match decided on penalties counts as a draw; goals include extra time, never the shoot-out.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.splitsEmpty": {
+    "source": "No finished match on record yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.figure": {
+    "source": "Figure",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.split.home": {
+    "source": "Home",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.split.away": {
+    "source": "Away",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.split.total": {
+    "source": "Total",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.row.played": {
+    "source": "Played",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.row.won": {
+    "source": "Won",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.row.drawn": {
+    "source": "Drawn",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.row.lost": {
+    "source": "Lost",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.row.goalsFor": {
+    "source": "Goals for",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.row.goalsAgainst": {
+    "source": "Goals against",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.row.cleanSheets": {
+    "source": "Clean sheets",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.metric.possession": {
+    "source": "Possession",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.metric.shots": {
+    "source": "Shots",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.metric.shotsOnTarget": {
+    "source": "Shots on target",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.metric.corners": {
+    "source": "Corners",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.metric.fouls": {
+    "source": "Fouls",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.metric.passAccuracy": {
+    "source": "Pass accuracy",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.metric.expectedGoals": {
+    "source": "Expected goals",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.perMatch": {
+    "source": "Per match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.averageNotSupplied": {
+    "source": "Not supplied for these matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.averageHeld": {
+    "source": {
+      "one": "Held for {held} of {count} matches; no average where a match lacks it",
+      "other": "Held for {held} of {count} matches; no average where a match lacks it"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "teamPage.notSuppliedList": {
+    "source": "Not supplied for these matches: {list}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.penaltiesNote": {
+    "source": {
+      "one": "{count} match went to penalties, counted as a draw.",
+      "other": "{count} matches went to penalties, counted as draws."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "teamPage.unscoredNote": {
+    "source": {
+      "one": "{count} finished match has no score on record and is not counted.",
+      "other": "{count} finished matches have no score on record and are not counted."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "teamPage.noNext": {
+    "source": "No match scheduled.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.previousMatch": {
+    "source": "Previous match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.noPrevious": {
+    "source": "No result on record.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.noFixtures": {
+    "source": "No fixtures scheduled.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.noResults": {
+    "source": "No results on record.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.squad": {
+    "source": "Squad",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.noSquad": {
+    "source": "No squad on record for this team.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.group.goalkeepers": {
+    "source": "Goalkeepers",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.group.defenders": {
+    "source": "Defenders",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.group.midfielders": {
+    "source": "Midfielders",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.group.forwards": {
+    "source": "Forwards",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.group.unknown": {
+    "source": "Position not recorded",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.onLoan": {
+    "source": "on loan",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.home": {
+    "source": "v",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.away": {
+    "source": "at",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.aet": {
+    "source": "aet",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.penaltiesWon": {
+    "source": "won {score} on penalties",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.penaltiesLost": {
+    "source": "lost {score} on penalties",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.title": {
+    "source": "Player",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.metaDescription": {
+    "source": "{name}: career, record by season and recent matches.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.unreachable": {
+    "source": "The service is unreachable right now, so this player cannot be shown.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.nationality": {
+    "source": "Nationality",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.age": {
+    "source": "Age",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.height": {
+    "source": "Height",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.foot": {
+    "source": "Preferred foot",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.noBirthDate": {
+    "source": "Date of birth not recorded",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.ageBorn": {
+    "source": "{age} · born {date}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.heightCm": {
+    "source": "{height} cm",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.foot.left": {
+    "source": "Left foot",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.foot.right": {
+    "source": "Right foot",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.foot.both": {
+    "source": "Either foot",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.position.goalkeeper": {
+    "source": "Goalkeeper",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.position.defender": {
+    "source": "Defender",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.position.midfielder": {
+    "source": "Midfielder",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.position.forward": {
+    "source": "Forward",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.currentTeam": {
+    "source": "Current team",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.noCurrentTeam": {
+    "source": "No current team on record.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.shirt": {
+    "source": "No. {number}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.since": {
+    "source": "since {date}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.compareWith": {
+    "source": "Compare with…",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.comparePlaceholder": {
+    "source": "Another player’s name",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.find": {
+    "source": "Find",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.career": {
+    "source": "Career",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.noSpells": {
+    "source": "No spells on record.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.present": {
+    "source": "present",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.loan": {
+    "source": "loan",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.allSeasons": {
+    "source": "All seasons",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.record": {
+    "source": "Record",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.noRecord": {
+    "source": "No line-ups on record for this player, so there are no statistics to show.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.noSeasonRecord": {
+    "source": "Nothing on record for this season.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.col.apps": {
+    "source": "Apps",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.col.starts": {
+    "source": "Starts",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.col.minutes": {
+    "source": "Minutes",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.col.goals": {
+    "source": "Goals",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.col.assists": {
+    "source": "Assists",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.col.yellow": {
+    "source": "Yellow",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.col.red": {
+    "source": "Red",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.minutesNote": {
+    "source": "Minutes are the feed’s own, per match: “at least” marks a season where some matches came without them, “not supplied” one where none did. Advanced statistics and availability are not held for this player and are not shown.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.minutesAtLeast": {
+    "source": "at least {minutes}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.minutesCovers": {
+    "source": {
+      "one": "{with} of {count} matches",
+      "other": "{with} of {count} matches"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "playerPage.minutesNotSupplied": {
+    "source": "not supplied",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.recentMatches": {
+    "source": "Recent matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.noMatches": {
+    "source": "No matches on record.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.role.started": {
+    "source": "Started",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.role.cameOn": {
+    "source": "Came on",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.role.unused": {
+    "source": "Unused sub",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.goals": {
+    "source": {
+      "one": "{count} goal",
+      "other": "{count} goals"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "playerPage.assists": {
+    "source": {
+      "one": "{count} assist",
+      "other": "{count} assists"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "playerPage.yellowCard": {
+    "source": "Yellow card",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.redCard": {
+    "source": "Red card",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.noData": {
+    "source": "No match data stored for this player yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.title": {
+    "source": "Compare players",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.metaDescription": {
+    "source": "{a} and {b} compared, season by season and competition by competition.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.unreachable": {
+    "source": "The service is unreachable right now, so these players cannot be compared.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.compareName": {
+    "source": "Compare {name} with…",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.same": {
+    "source": "That is the same player. Choose somebody else.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.hint": {
+    "source": "Type the name of the player to compare with.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.searchUnreachable": {
+    "source": "The service is unreachable right now, so no player can be searched.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.noMatch": {
+    "source": "No player matches “{term}”.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.noTeam": {
+    "source": "No current team on record",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.swap": {
+    "source": "Swap sides",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.another": {
+    "source": "Compare {name} with somebody else",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.scopes": {
+    "source": "Season and competition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.everything": {
+    "source": "Everything on record",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.onePlayer": {
+    "source": "(one player only)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.recordState": {
+    "source": "{name}: record {state}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.figure.appearances": {
+    "source": "Appearances",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.figure.starts": {
+    "source": "Starts",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.figure.offTheBench": {
+    "source": "Off the bench",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.figure.minutes": {
+    "source": "Minutes",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.figure.goals": {
+    "source": "Goals",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.figure.assists": {
+    "source": "Assists",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.figure.yellowCards": {
+    "source": "Yellow cards",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.figure.redCards": {
+    "source": "Red cards",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.reason.noLineups": {
+    "source": "No line-ups on record",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.reason.notInScope": {
+    "source": "Nothing on record in this competition and season",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.reason.minutes": {
+    "source": "No minutes from the feed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.note.both": {
+    "source": "{reason} for either player.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.note.side": {
+    "source": "{name}: {reason}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.note.lacking": {
+    "source": "{name}: {reason}, so this is not a comparison.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.note.partial": {
+    "source": {
+      "one": "{name}: minutes for {counted} of {count} matches played; the rest were not supplied.",
+      "other": "{name}: minutes for {counted} of {count} matches played; the rest were not supplied."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "compare.footnote": {
+    "source": "Figures come from our line-ups and incidents, minutes from the feed’s own match statistics. Player ratings and advanced statistics are not held for these players and are not shown.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.noData": {
+    "source": "no match data stored yet",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.lastUpdate": {
+    "source": "last data update",
+    "text": "",
+    "status": "untranslated"
+  },
+  "searchPage.metaDescription": {
+    "source": "Find teams, competitions, players, news, groups and members by name, alias or another spelling.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "searchPage.field": {
+    "source": "Team, competition, player, news, group or member",
+    "text": "",
+    "status": "untranslated"
+  },
+  "searchPage.type.team": {
+    "source": "Team",
+    "text": "",
+    "status": "untranslated"
+  },
+  "searchPage.type.competition": {
+    "source": "Competition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "searchPage.type.person": {
+    "source": "Player",
+    "text": "",
+    "status": "untranslated"
+  },
+  "searchPage.limited": {
+    "source": "Too many questions have been asked in the last hour.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "searchPage.keywordsInstead": {
+    "source": "This is a keyword search instead.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "searchPage.hint": {
+    "source": "Type a name, an abbreviation, a headline or a spelling in another language.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "searchPage.minLength": {
+    "source": {
+      "one": "Type at least {count} character.",
+      "other": "Type at least {count} characters."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "searchPage.unreachable": {
+    "source": "The service is unreachable right now, so nothing can be searched.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "searchPage.alias": {
+    "source": "also known as {alias}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "watch.metaDescription": {
+    "source": "Where each match can be watched, in the territory you choose.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "watch.day": {
+    "source": "Day",
+    "text": "",
+    "status": "untranslated"
+  },
+  "watch.timesIn": {
+    "source": "Times in {zone}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "watch.noInfo": {
+    "source": "No viewing information yet for {territory}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "watch.nothingListed": {
+    "source": "No official service listed for this match in {territory}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "watch.highlightsNoInfo": {
+    "source": "No highlight information yet for {territory}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "watch.highlightsNone": {
+    "source": "No official highlight listed for {territory}",
+    "text": "",
     "status": "untranslated"
   },
   "rules.title": {

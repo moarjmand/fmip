@@ -4,15 +4,16 @@ import type { AskReason, SearchType } from '@fmip/contracts';
 import type { ReactNode } from 'react';
 import { MemberHandle, MemberName } from '@/components/member-name';
 import { Translated } from '@/components/translated';
-import type { MessageKey } from '@/i18n/messages';
+import { type MessageKey, attribute } from '@/i18n/messages';
 import { fetchAsk, fetchSearch } from '@/lib/api';
+import { pageLocale, say } from '@/lib/competition';
 import { storyHref } from '@/lib/news';
 import {
   GROUP_VISIBILITY_KEY,
   MIN_QUERY_LENGTH,
   SECTION_EMPTY_KEY,
   SECTION_TITLE_KEY,
-  TYPE_LABEL,
+  TYPE_KEY,
   apiQuery,
   communityQuery,
   entityQuery,
@@ -50,9 +51,8 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path: '/search',
-    title: 'Search · FMIP',
-    description:
-      'Find teams, competitions, players, news, groups and members by name, alias or another spelling.',
+    title: `${say(locale, 'nav.search')} · FMIP`,
+    description: say(locale, 'searchPage.metaDescription'),
     index: readSearchTerm(query) === '',
   });
 }
@@ -90,7 +90,8 @@ function Section({
  * from `/ask`, and news stories, findable groups and public members from
  * `GET /search`, each kind in its own section with its own sentence when
  * nothing matched. The form is a plain GET so the URL is the state; an
- * unreachable API is said out loud, never shown as "no results".
+ * unreachable API is said out loud, never shown as "no results". Its words
+ * come from the catalogue (T-1304).
  */
 export default async function SearchPage({
   params,
@@ -123,27 +124,30 @@ export default async function SearchPage({
           plain.ok ? { ...plain, data: keywordsAsAsked(term, plain.data) } : plain,
         );
 
+  const field = attribute(pageLocale(locale), 'searchPage.field');
+
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
       <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
-        Search
+        <Translated locale={locale} message="nav.search" />
       </h1>
 
       <form action={`/${locale}/search`} method="get" className="flex gap-2" role="search">
         <TextField
-          label="Team, competition, player, news, group or member"
+          label={field.text}
           hideLabel
           id="search-term"
           name="q"
           type="search"
           defaultValue={term}
-          placeholder="Team, competition, player, news, group or member"
+          placeholder={field.text}
+          lang={field.lang}
           autoComplete="off"
           className="grow"
           data-testid="search-input"
         />
         <Button type="submit" size="md">
-          Search
+          <Translated locale={locale} message="nav.search" />
         </Button>
       </form>
 
@@ -156,12 +160,16 @@ export default async function SearchPage({
           {result.data.interpretation.data !== null ? (
             <>
               <Translated locale={locale} message="search.readAs" />{' '}
-              {result.data.interpretation.data.names.join(', ')}
+              {result.data.interpretation.data.names.join(
+                say(locale, 'competitionPage.list.separator'),
+              )}
               {result.data.interpretation.data.types.length > 0 && (
                 <>
                   {' · '}
                   <Translated locale={locale} message="search.kinds" />{' '}
-                  {result.data.interpretation.data.types.map((type) => TYPE_LABEL[type]).join(', ')}
+                  {result.data.interpretation.data.types
+                    .map((type) => say(locale, TYPE_KEY[type]))
+                    .join(say(locale, 'competitionPage.list.separator'))}
                 </>
               )}
             </>
@@ -173,22 +181,24 @@ export default async function SearchPage({
 
       {limited !== null && (
         <Notice tone="warning" data-testid="search-limited">
-          {limited.error?.message ?? 'Too many questions have been asked in the last hour.'} This is
-          a keyword search instead.
+          {limited.error?.message ?? say(locale, 'searchPage.limited')}{' '}
+          <Translated locale={locale} message="searchPage.keywordsInstead" />
         </Notice>
       )}
 
       {ask === null ? (
         <p className="text-sm text-muted" data-testid="search-hint">
-          {term === ''
-            ? 'Type a name, an abbreviation, a headline or a spelling in another language.'
-            : `Type at least ${MIN_QUERY_LENGTH} characters.`}
+          {term === '' ? (
+            <Translated locale={locale} message="searchPage.hint" />
+          ) : (
+            <Translated locale={locale} message="searchPage.minLength" count={MIN_QUERY_LENGTH} />
+          )}
         </p>
       ) : (
         <>
           {result === null || !result.ok ? (
             <Notice tone="danger" data-testid="search-unreachable">
-              The service is unreachable right now, so nothing can be searched.
+              <Translated locale={locale} message="searchPage.unreachable" />
             </Notice>
           ) : (
             <div className="flex flex-col gap-6" data-testid="search-results">
@@ -208,9 +218,9 @@ export default async function SearchPage({
                         {hit.secondary !== null && (
                           <span className="text-sm text-muted">{hit.secondary}</span>
                         )}
-                        {matchNote(hit) !== null && (
+                        {matchNote(locale, hit) !== null && (
                           <span className="text-xs text-muted" data-testid="search-alias">
-                            {matchNote(hit)}
+                            {matchNote(locale, hit)}
                           </span>
                         )}
                       </li>
