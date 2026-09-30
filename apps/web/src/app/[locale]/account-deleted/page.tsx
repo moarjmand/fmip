@@ -1,11 +1,20 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Translated } from '@/components/translated';
+import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
+import { t } from '@/i18n/messages';
 
-export const metadata: Metadata = {
-  title: 'Account deleted · FMIP',
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    title: `${t(isLocale(locale) ? locale : DEFAULT_LOCALE, 'shell.accountDeleted.title')} · FMIP`,
+    robots: { index: false, follow: false },
+  };
+}
 
 /**
  * Where "Delete my account" lands (T-812, D-094): the one sentence that says

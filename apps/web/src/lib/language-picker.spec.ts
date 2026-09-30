@@ -97,7 +97,7 @@ describe('the component', () => {
     const header = readFileSync(join(__dirname, '..', 'components', 'site-header.tsx'), 'utf8');
     // T-1163: the offer is the catalogue's and the holds' (`language-hold.ts`).
     expect(header).toMatch(
-      /<LanguagePicker languages=\{offeredLanguages\(offeredGiven\(holds\)\)\} \/>/,
+      /<LanguagePicker\s+languages=\{offeredLanguages\(offeredGiven\(holds\)\)\}/,
     );
     expect(SOURCE).not.toMatch(/i18n\/messages'/);
   });

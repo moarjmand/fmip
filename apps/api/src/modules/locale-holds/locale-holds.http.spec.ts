@@ -148,7 +148,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('locale holds
     const unexplained = await post(`${LOCALE}/hold`, admin, { reason: ' ' });
     expect(unexplained.statusCode).toBe(400);
     expect(unexplained.json<{ message: string }>().message).toMatch(/why/i);
-    for (const locale of ['en', 'x-rtl', 'fa', 'EN'])
+    for (const locale of ['en', 'x-rtl', 'nl', 'EN'])
       expect((await post(`${locale}/hold`, admin, { reason: 'x' })).statusCode).toBe(404);
     expect(await held()).not.toContain(LOCALE);
     expect(await audits()).toEqual([]);
