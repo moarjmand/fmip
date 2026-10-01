@@ -181,7 +181,9 @@ describe("the translator's files (T-302)", () => {
         );
       }
     }
-  });
+    // Every entry of every locale file: about sixteen thousand checks since
+    // Phase 13 filled the catalogue, slower than the default five seconds.
+  }, 30_000);
 
   it('answers how far a locale has got, in numbers that add up', () => {
     const fa = coverage('fa');

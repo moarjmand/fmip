@@ -285,6 +285,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /fixture
         shirt_number: 11,
         position: 'forward',
         is_captain: true,
+        // No photo stored for him: said so, never left out (T-1320).
+        photo: { coverage: 'not_supplied', url: null },
       },
     ]);
     expect(body.lineups.data?.away[0]?.name).toBe('Bruno Fernandes');

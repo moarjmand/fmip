@@ -10,6 +10,7 @@
  */
 
 import type { CoverageState, Covered } from './coverage';
+import type { EntityMedia } from './media';
 import type { FixtureStatus, Freshness, ScoreCardTeam, ScoreLine } from './scores';
 
 export interface MatchTeam extends ScoreCardTeam {
@@ -23,7 +24,14 @@ export interface MatchHeader {
   kickoff_at: string;
   status: FixtureStatus;
   minute: number | null;
-  competition: { id: string; name: string; short_name: string | null; country_id: string | null };
+  competition: {
+    id: string;
+    name: string;
+    short_name: string | null;
+    country_id: string | null;
+    /** The competition's logo from our own origin (T-1320). */
+    logo?: EntityMedia;
+  };
   season: { id: string; label: string };
   stage: { id: string; name: string; kind: string } | null;
   round: string | null;
@@ -165,6 +173,8 @@ export interface MatchLineupPlayer {
   shirt_number: number | null;
   position: 'goalkeeper' | 'defender' | 'midfielder' | 'forward' | null;
   is_captain: boolean;
+  /** The player's photo from our own origin (T-1320). */
+  photo?: EntityMedia;
 }
 
 export interface MatchLineups {
