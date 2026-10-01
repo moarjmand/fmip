@@ -38,23 +38,36 @@ STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 DEST="$DEST_ROOT/$STAMP"
 mkdir -p "$DEST/db" "$DEST/code"
 
-# The server's address drops connections now and then; each step retries.
+# A run that stops part way leaves no half copy that looks like a whole one.
+on_exit() {
+  local status=$?
+  if [ "$status" -ne 0 ]; then
+    rm -rf "$DEST"
+    echo "FAILED (status $status); the incomplete $DEST was removed. Run it again." >&2
+  fi
+}
+trap on_exit EXIT
+
+# The route to the server drops connections now and then; each step retries,
+# and keep-alives notice a dead connection rather than hanging on it.
+SSH_OPTS=(-o ServerAliveInterval=15 -o ServerAliveCountMax=4 -o ConnectTimeout=30)
 retry() {
   local n
-  for n in 1 2 3 4; do
+  for n in 1 2 3 4 5 6 7 8; do
     "$@" && return 0
     echo "    (attempt $n failed, retrying)" >&2
-    sleep 5
+    sleep 15
   done
   return 1
 }
 
 echo "==> newest dump on $HOST"
-DUMP="$(retry ssh "$HOST" "ls -1t $SERVER_DIR/backups/fmip-*.dump | head -n 1")"
+DUMP="$(retry ssh "${SSH_OPTS[@]}" "$HOST" "ls -1t $SERVER_DIR/backups/fmip-*.dump | head -n 1")"
 [ -n "$DUMP" ] || { echo "ERROR: no dump in $SERVER_DIR/backups" >&2; exit 1; }
 NAME="$(basename "$DUMP" .dump)"
 echo "    $NAME"
-retry scp -q "$HOST:$SERVER_DIR/backups/$NAME.dump" "$HOST:$SERVER_DIR/backups/$NAME.manifest" "$DEST/db/"
+retry scp -q "${SSH_OPTS[@]}" "$HOST:$SERVER_DIR/backups/$NAME.manifest" "$DEST/db/"
+retry scp -q "${SSH_OPTS[@]}" "$HOST:$SERVER_DIR/backups/$NAME.dump" "$DEST/db/"
 
 WANT="$(grep '^sha256 ' "$DEST/db/$NAME.manifest" | cut -d' ' -f2)"
 GOT="$(sha256sum "$DEST/db/$NAME.dump" | cut -d' ' -f1)"
@@ -66,7 +79,7 @@ echo "    sha256 matches the manifest"
 
 echo "==> media volume $VOLUME"
 # tar inside a throwaway container that reads the volume, streamed here.
-retry sh -c "ssh '$HOST' 'docker run --rm -v $VOLUME:/m:ro alpine tar -C /m -cf - .' > '$DEST/media.tar'"
+retry sh -c "ssh ${SSH_OPTS[*]} '$HOST' 'docker run --rm -v $VOLUME:/m:ro alpine tar -C /m -cf - .' > '$DEST/media.tar'"
 # Listing the archive end to end is the check that it arrived whole.
 MEDIA_FILES="$(tar -tvf "$DEST/media.tar" | grep -c '^-')"
 echo "    $MEDIA_FILES files"
@@ -75,7 +88,7 @@ echo "==> repository"
 git fetch -q origin || echo "    (fetch failed; bundling what this checkout has)" >&2
 git bundle create -q "$DEST/code/fmip.bundle" --all
 git bundle verify -q "$DEST/code/fmip.bundle"
-SERVER_COMMIT="$(retry ssh "$HOST" "git -C $SERVER_DIR rev-parse HEAD")"
+SERVER_COMMIT="$(retry ssh "${SSH_OPTS[@]}" "$HOST" "git -C $SERVER_DIR rev-parse HEAD")"
 
 {
   echo "FMIP copy taken $STAMP"
