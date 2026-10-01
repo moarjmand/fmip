@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { MediaModule } from '../media/media.module';
 import { StandingsModule } from '../standings/standings.module';
 import { CatalogController } from './catalog.controller';
 import { CatalogService } from './catalog.service';
@@ -12,7 +13,7 @@ import { PostgresTeamStore } from './internal/team-store';
  * come from the standings boundary.
  */
 @Module({
-  imports: [StandingsModule],
+  imports: [StandingsModule, MediaModule],
   controllers: [CatalogController],
   providers: [CatalogService, PostgresCompetitionStore, PostgresTeamStore, PostgresPlayerStore],
   exports: [CatalogService],

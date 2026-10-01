@@ -4,6 +4,7 @@ import type { AdapterResult, NormalisedStanding, Provider, ProviderAdapter } fro
 import { PG_POOL } from '../../database/database.module';
 import { DataQualityService, type TableComparison } from '../data-quality/data-quality.service';
 import { MatchAlertsService } from '../match-alerts/match-alerts.service';
+import { MediaService } from '../media/media.service';
 import { StandingsService } from '../standings/standings.service';
 import { CoverageService } from './coverage.service';
 import { IngestRunsService } from './ingest-runs.service';
@@ -240,8 +241,9 @@ export class IngestionJobsService {
     resolver: EntityResolverService,
     private readonly dataQuality: DataQualityService,
     private readonly alerts: MatchAlertsService,
+    media: MediaService,
   ) {
-    this.store = new IngestStore(pool, resolver);
+    this.store = new IngestStore(pool, resolver, media);
   }
 
   /** Runs one job by name. The scheduler and the tests both come through here. */

@@ -7,6 +7,7 @@ import type {
   Covered,
   FollowSuggestionsResponse,
   LeagueZoneEntry,
+  Leader,
   PlayerPage,
   SeasonSummary,
   SuggestedCompetition,
@@ -26,6 +27,7 @@ import leagueZoneList from '@fmip/contracts/zones/league-zones.json';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../database/database.module';
 import { derived } from '../fixtures/fixtures.service';
+import { MediaService } from '../media/media.service';
 import { LEADERS_LIMIT, StandingsService } from '../standings/standings.service';
 import { buildBracket, tieOf } from './internal/bracket';
 import { contextTable, phaseOf } from './internal/competition-context';
@@ -63,18 +65,21 @@ export class CatalogService {
     private readonly teams_: PostgresTeamStore,
     private readonly players_: PostgresPlayerStore,
     private readonly standings: StandingsService,
+    private readonly media: MediaService,
   ) {}
 
   /** The player page (blueprint 5.3): identity, spells, the record our line-ups support, recent matches. */
   async player(id: string, locale: string | null = null): Promise<PlayerOutcome> {
-    const person = await this.players_.person(id, locale);
-    if (person === null) return { kind: 'unknown_player' };
-    const [spells, record, recent, availability] = await Promise.all([
+    const found = await this.players_.person(id, locale);
+    if (found === null) return { kind: 'unknown_player' };
+    const [spells, record, recent, availability, media] = await Promise.all([
       this.players_.spells(id),
       this.players_.record(id),
       this.players_.recent(id, RECENT_MATCHES),
       this.players_.availability(id),
+      this.media.index({ person: [id] }),
     ]);
+    const person = { ...found, photo: media.photo(id) };
     return {
       kind: 'ok',
       page: {
@@ -241,13 +246,37 @@ export class CatalogService {
     const cards = board(boards.cards);
     const results = fixtures.filter((f) => f.status === 'finished').reverse();
     const upcoming = fixtures.filter((f) => f.status !== 'finished');
+    // The logo, the table's crests and the leaders' photos from our own origin (T-1320).
+    const leaders = leadersModule(scorers, filtered);
+    const media = await this.media.index({
+      competition: [competition.id],
+      team: [
+        ...(table.data ?? []).map((r) => r.team.id),
+        ...(leaders.data ?? []).flatMap((l) => (l.team === null ? [] : [l.team.id])),
+      ],
+      person: (leaders.data ?? []).map((l) => l.person.id),
+    });
+    const withLeaderMedia = (l: Leader): Leader => ({
+      ...l,
+      person: { ...l.person, photo: media.photo(l.person.id) },
+      team: l.team === null ? null : { ...l.team, crest: media.crest(l.team.id) },
+    });
     return {
       kind: 'ok',
       page: {
-        competition,
+        competition: { ...competition, logo: media.logo(competition.id) },
         seasons,
         season: { ...selected, stages },
-        table,
+        table: {
+          ...table,
+          data:
+            table.data === null
+              ? null
+              : table.data.map((r) => ({
+                  ...r,
+                  team: { ...r.team, crest: media.crest(r.team.id) },
+                })),
+        },
         // T-1167 (D-171): the committed list, never the feed's standings.
         zones: leagueZonesFor(
           leagueZoneList as LeagueZoneEntry[],
@@ -256,7 +285,10 @@ export class CatalogService {
         ),
         results,
         fixtures: upcoming,
-        leaders: leadersModule(scorers, filtered),
+        leaders: {
+          ...leaders,
+          data: leaders.data === null ? null : leaders.data.map(withLeaderMedia),
+        },
         leaders_filter: {
           min_minutes: minMinutes,
           unproven: filtered.unproven,
@@ -284,8 +316,10 @@ export class CatalogService {
 
   /** The team page (blueprint 5.2): the team, where it stands, its matches, its squad. */
   async team(id: string, locale: string | null = null): Promise<TeamOutcome> {
-    const team = await this.teams_.team(id, locale);
-    if (team === null) return { kind: 'unknown_team' };
+    const found = await this.teams_.team(id, locale);
+    if (found === null) return { kind: 'unknown_team' };
+    // The crest from our own origin (T-1320).
+    const team = { ...found, crest: (await this.media.index({ team: [id] })).crest(id) };
     const seasons = await this.teams_.seasons(id);
     const seasonIds = seasons.map((s) => s.season.id);
     const [{ fixtures, lastUpdatedAt }, squad, followers, tables, splitFixtures, lineup] =

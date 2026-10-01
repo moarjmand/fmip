@@ -150,6 +150,10 @@ services:
       # there is one place to change the host name.
       WEB_BASE_URL: https://${SITE_HOST}
       MODEL_SERVICE_URL: http://model:8000
+      # Crests, logos and player photos (T-1320, D-176), on the `media` volume:
+      # every api container of a rollout mounts the same one, so the new
+      # container serves what the old one fetched.
+      MEDIA_DIR: /data/media
       API_FOOTBALL_KEY: ${API_FOOTBALL_KEY:-}
       FOOTBALL_DATA_ORG_KEY: ${FOOTBALL_DATA_ORG_KEY:-}
       HIGHLIGHTLY_KEY: ${HIGHLIGHTLY_KEY:-}
@@ -190,6 +194,8 @@ services:
       # The watchdog's weekly comparison of deploy/cloudflare-ranges.caddy
       # with Cloudflare's published ranges (T-930). On here, off by default.
       CLOUDFLARE_RANGES_CHECK: ${CLOUDFLARE_RANGES_CHECK:-on}
+    volumes:
+      - media:/data/media
     depends_on:
       postgres:
         condition: service_healthy
@@ -247,3 +253,6 @@ volumes:
   redis-data:
   caddy-data:
   caddy-config:
+  # Copied crests, logos and player photos (T-1320, D-176). Not backed up on
+  # purpose: every file is re-derivable from the provider by the fetch job.
+  media:

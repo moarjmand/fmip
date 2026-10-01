@@ -4,6 +4,7 @@ import { FailureCountsModule } from '../failure-counts/failure-counts.module';
 import { ForecastModule } from '../forecast/forecast.module';
 import { IdentityModule } from '../identity/identity.module';
 import { MatchAlertsModule } from '../match-alerts/match-alerts.module';
+import { MediaModule } from '../media/media.module';
 import { StandingsModule } from '../standings/standings.module';
 import { CoverageService } from './coverage.service';
 import { IngestRunsService } from './ingest-runs.service';
@@ -43,6 +44,8 @@ import { INGESTION_SOURCES, resolveSources } from './internal/sources';
     FailureCountsModule,
     DataQualityModule,
     MatchAlertsModule,
+    // Media (T-1320): the writers hand it each resolved entity's image address.
+    MediaModule,
   ],
   controllers: [IngestionController, IngestionAdminController],
   providers: [
