@@ -289,7 +289,7 @@ export function ConversationHeader({
               params={{ home: match.home, away: match.away }}
             />
           </Link>
-          <span className="text-muted"> · {threadStanding(conversation)}</span>
+          <span className="text-muted"> · {threadStanding(conversation, locale)}</span>
           {conversation.group !== null && (
             <>
               {' · '}

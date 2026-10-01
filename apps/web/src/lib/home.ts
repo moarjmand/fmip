@@ -172,10 +172,14 @@ export type HomeViewing =
   | { state: 'unreachable' }
   | { state: 'lines'; byFixture: Map<string, CardViewing> };
 
-export function homeViewing(cards: ScoreCard[], viewing: MatchViewing[] | null): HomeViewing {
+export function homeViewing(
+  cards: ScoreCard[],
+  viewing: MatchViewing[] | null,
+  locale = 'en',
+): HomeViewing {
   if (viewing === null) return { state: 'unreachable' };
   const byId = new Map(viewing.map((entry) => [entry.fixture_id, entry]));
-  const lines = new Map(cards.map((card) => [card.id, cardViewing(byId.get(card.id))]));
+  const lines = new Map(cards.map((card) => [card.id, cardViewing(byId.get(card.id), locale)]));
   if ([...lines.values()].every((line) => line.state === 'ask')) return { state: 'ask' };
   return { state: 'lines', byFixture: lines };
 }

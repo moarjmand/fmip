@@ -74,7 +74,7 @@ export default async function MessagesPage({ params }: { params: Promise<{ local
         <ul className="flex flex-col gap-3" data-testid="conversation-list">
           {result.data.conversations.map((conversation) => {
             const last = conversation.last_message;
-            const standing = threadStanding(conversation);
+            const standing = threadStanding(conversation, locale);
             return (
               <li key={conversation.id} className="flex flex-col gap-1">
                 <Link

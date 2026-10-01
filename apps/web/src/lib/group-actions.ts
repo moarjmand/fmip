@@ -21,8 +21,11 @@ import { formatNumber } from '@/i18n/format';
  * refusals, whose wording is written not to say more than it should.
  */
 
-function failure(result: Extract<ApiResult<unknown>, { ok: false }>): ActionState {
-  return failureState(result);
+async function failure(
+  result: Extract<ApiResult<unknown>, { ok: false }>,
+  locale: string,
+): Promise<ActionState> {
+  return failureState(result, locale);
 }
 
 /**
@@ -43,7 +46,7 @@ async function act(
     cookie: await sessionCookieHeader(),
     ...(body === undefined ? {} : { body }),
   });
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
 
   revalidatePath(`/${locale}/groups`);
   revalidatePath(`/${locale}/groups/${encodeURIComponent(slug)}`);
@@ -100,7 +103,7 @@ export async function setGroupRulesAction(
     cookie: await sessionCookieHeader(),
     body: { body: String(formData.get('body') ?? '') },
   });
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
   revalidatePath(`/${locale}/groups/${target(slug)}`);
   return {
     ok: true,
@@ -122,7 +125,7 @@ export async function appealGroupClosureAction(
     cookie: await sessionCookieHeader(),
     body: { body: String(formData.get('body') ?? '').trim() },
   });
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
   revalidatePath(`/${locale}/groups/${target(slug)}`);
   return { ok: true, message: said(locale, 'groupsPage.done.appealed') };
 }
@@ -161,7 +164,7 @@ export async function askToJoinGroupAction(
     cookie: await sessionCookieHeader(),
     body: { note: note === '' ? null : note, ...acceptedRules(formData) },
   });
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
 
   revalidatePath(`/${locale}/groups`);
   revalidatePath(`/${locale}/groups/${target(slug)}`);
@@ -183,7 +186,7 @@ export async function followInviteLinkAction(
     `/group-invite-links/${target(token)}`,
     { method: 'POST', cookie: await sessionCookieHeader(), body: acceptedRules(formData) },
   );
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
 
   const slug = result.data.group.slug;
   revalidatePath(`/${locale}/groups`);

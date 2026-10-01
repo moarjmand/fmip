@@ -5,6 +5,7 @@ import type { DecideRequest, SuggestionOutcome } from '@fmip/contracts';
 import { apiRequest } from '@/lib/api';
 import type { ActionState } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
+import { failureSentence } from '@/lib/action-failure';
 
 /**
  * The moderator's writes from the web (T-610): a decision on a member, and a
@@ -19,6 +20,7 @@ import { sessionCookieHeader } from '@/lib/session';
  */
 
 async function post<T>(
+  locale: string,
   path: string,
   body: unknown,
 ): Promise<
@@ -33,13 +35,13 @@ async function post<T>(
   if (result.status === 0) {
     return {
       ok: false,
-      message: 'The service is unreachable right now. Please try again shortly.',
+      message: await failureSentence(result, locale),
     };
   }
   const fields = (result.error as { fields?: Record<string, string> } | undefined)?.fields;
   return {
     ok: false,
-    message: result.error?.message ?? `The request failed (HTTP ${result.status}).`,
+    message: await failureSentence(result, locale),
     ...(fields === undefined ? {} : { fields }),
   };
 }
@@ -79,6 +81,7 @@ export async function decideModerationAction(
     return { ok: false, message: 'Say why. A decision with no reason cannot be reviewed.' };
   }
   const outcome = await post<{ decision_id: string; answered: number }>(
+    locale,
     '/admin/moderation/decisions',
     request,
   );
@@ -97,6 +100,7 @@ export async function suggestModerationAction(
   _previous: ActionState,
 ): Promise<ActionState> {
   const outcome = await post<SuggestionOutcome>(
+    locale,
     `/admin/moderation/reports/${encodeURIComponent(reportId)}/suggest`,
     {},
   );
@@ -131,6 +135,7 @@ export async function liftSanctionAction(
     return { ok: false, message: 'Say why it is being lifted. This is recorded.' };
   }
   const outcome = await post<unknown>(
+    locale,
     `/admin/moderation/sanctions/${encodeURIComponent(sanctionId)}/lift`,
     { reason },
   );
@@ -161,6 +166,7 @@ export async function groupDecisionAction(
     ...(kind === 'removal' ? { description: true } : {}),
   };
   const result = await post<{ decision_id: string; answered: number }>(
+    locale,
     `/admin/moderation/groups/${encodeURIComponent(slug)}/${kind}`,
     body,
   );

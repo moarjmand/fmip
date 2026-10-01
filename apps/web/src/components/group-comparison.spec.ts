@@ -97,7 +97,7 @@ describe('a thread says which match, at the top of its own page', () => {
   it('names every kind through one helper and links the match', () => {
     expect(HEADER).toContain('conversationTitle(conversation, me, locale)');
     expect(HEADER).toContain('data-testid="conversation-fixture"');
-    expect(HEADER).toContain('threadStanding(conversation)');
+    expect(HEADER).toContain('threadStanding(conversation, locale)');
     // The old title named a group conversation "A conversation with nobody
     // else", because a group's membership is not copied into it (D-058).
     expect(HEADER).not.toMatch(/A conversation with nobody else/);

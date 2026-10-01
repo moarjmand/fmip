@@ -12306,5 +12306,227 @@
     "text": "خواندن قوانین پلتفرم",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "bracket.round.roundOf32": {
+    "source": "Round of 32",
+    "text": "مرحله‌ی یک‌شانزدهم نهایی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "bracket.round.knockoutPlayoff": {
+    "source": "Knockout play-offs",
+    "text": "پلی‌آف مرحله‌ی حذفی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "bracket.round.roundOf16": {
+    "source": "Round of 16",
+    "text": "مرحله‌ی یک‌هشتم نهایی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "bracket.round.quarterFinal": {
+    "source": "Quarter-finals",
+    "text": "مرحله‌ی یک‌چهارم نهایی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "bracket.round.semiFinal": {
+    "source": "Semi-finals",
+    "text": "نیمه‌نهایی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "bracket.round.final": {
+    "source": "Final",
+    "text": "فینال",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "bracket.leg.match": {
+    "source": "Match",
+    "text": "بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "bracket.line.versus": {
+    "source": "{home} v {away}",
+    "text": "{home} - {away}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "bracket.line.score": {
+    "source": "{home} {score} {away}",
+    "text": "{home} {score} {away}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "bracket.line.aet": {
+    "source": "{line} (aet)",
+    "text": "{line} (پس از وقت‌های اضافه)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "bracket.line.pens": {
+    "source": "{line} ({pens} pens)",
+    "text": "{line} (پنالتی {pens})",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "bracket.line.aetPens": {
+    "source": "{line} (aet, {pens} pens)",
+    "text": "{line} (پس از وقت‌های اضافه، پنالتی {pens})",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "bracket.outcome.aggregate": {
+    "source": "{home} {score} {away} on aggregate",
+    "text": "{home} {score} {away} در مجموع دو بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "bracket.outcome.wins": {
+    "source": "{team} win",
+    "text": "پیروزی {team}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "bracket.outcome.winsOnPenalties": {
+    "source": "{team} win on penalties",
+    "text": "پیروزی {team} در ضربات پنالتی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "bracket.outcome.winsOnAggregate": {
+    "source": "{team} win on aggregate",
+    "text": "پیروزی {team} در مجموع",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "bracket.outcome.through": {
+    "source": "{team} go through",
+    "text": "صعود {team}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "bracket.outcome.throughOnPenalties": {
+    "source": "{team} go through on penalties",
+    "text": "صعود {team} در ضربات پنالتی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "bracket.outcome.throughOnAggregate": {
+    "source": "{team} go through on aggregate",
+    "text": "صعود {team} با برتری در مجموع دو بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "bracket.outcome.notDecided": {
+    "source": "not decided in our records",
+    "text": "در سوابق ما مشخص نشده است",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "bracket.outcome.toBeDecided": {
+    "source": "Still to be decided",
+    "text": "هنوز مشخص نشده است",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "bracket.note.notDrawn": {
+    "source": "Not drawn yet.",
+    "text": "قرعه‌کشی این مرحله هنوز انجام نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "bracket.note.notSupplied": {
+    "source": "Not supplied: our records hold none of its matches.",
+    "text": "ارائه نشده: هیچ‌یک از بازی‌های این مرحله در سوابق ما نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "bracket.note.missing": {
+    "source": {
+      "one": "{count} more tie not in our records yet.",
+      "other": "{count} more ties not in our records yet."
+    },
+    "forms": {
+      "one": "{count} تقابل دیگر هنوز در سوابق ما نیست.",
+      "other": "{count} تقابل دیگر هنوز در سوابق ما نیست."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shared.listSeparator": {
+    "source": ", ",
+    "text": "، ",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shared.conversation.untitled": {
+    "source": "A conversation",
+    "text": "یک گفت‌وگو",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shared.conversation.group": {
+    "source": "A group",
+    "text": "یک گروه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shared.conversation.threadNoMatch": {
+    "source": "{group} · a match",
+    "text": "{group} · یک بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shared.conversation.thread": {
+    "source": "{home} v {away} · {group}",
+    "text": "{home} - {away} · {group}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shared.status.scheduled": {
+    "source": "scheduled",
+    "text": "برنامه‌ریزی‌شده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shared.status.finished": {
+    "source": "finished",
+    "text": "پایان‌یافته",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shared.demonstration.title": {
+    "source": "Demonstration data — {title}",
+    "text": "داده‌های نمایشی — {title}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shared.og.matchAlt": {
+    "source": "The match, its score or kick-off, and the model’s forecast",
+    "text": "بازی، نتیجه یا زمان شروع آن، و پیش‌بینی مدل آماری",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shared.og.competitionAlt": {
+    "source": "The top of the competition’s table this season",
+    "text": "بالای جدول رده‌بندی این رقابت در فصل جاری",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shared.og.memberAlt": {
+    "source": "A member of FMIP, their rating and latest settled predictions",
+    "text": "یکی از اعضای FMIP، امتیاز عملکرد او و تازه‌ترین پیش‌بینی‌های تسویه‌شده‌اش",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shared.action.refused": {
+    "source": "You may not do this. {reason}",
+    "text": "شما اجازه‌ی این کار را ندارید. {reason}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
   }
 }

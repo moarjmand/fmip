@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { apiRequest } from '@/lib/api';
 import type { ActionState } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
+import { failureSentence } from '@/lib/action-failure';
 
 /**
  * The editor's two decisions about the debate section (T-143, rule 10), from
@@ -26,12 +27,12 @@ async function decide(
     if (result.status === 0) {
       return {
         ok: false,
-        message: 'The service is unreachable right now. Please try again shortly.',
+        message: await failureSentence(result, locale),
       };
     }
     return {
       ok: false,
-      message: result.error?.message ?? `The request failed (HTTP ${result.status}).`,
+      message: await failureSentence(result, locale),
     };
   }
   // The page is a server component reading the section; tell it the section changed.

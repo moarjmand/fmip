@@ -30,7 +30,7 @@ export async function submitPredictionAction(
     { method: 'PUT', body: formToSubmission(formData), cookie },
   );
   if (!result.ok) {
-    return failureState(result);
+    return failureState(result, locale);
   }
   revalidatePath(`/${locale}/match/${fixtureId}`);
   const v = result.data.prediction.latest;

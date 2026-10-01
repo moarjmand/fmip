@@ -3,16 +3,14 @@ import type {
   Covered,
   FormEntry,
   MatchCentre,
-  MatchIncident,
   MatchLineupPlayer,
   MatchPlayerStats,
-  MatchStatMetric,
   PlayerMatchMetric,
 } from '@fmip/contracts';
-import { formatNumber, intlLocale } from '@/i18n/format';
+import { formatNumber } from '@/i18n/format';
 import type { Message } from '@/i18n/messages';
 import Link from 'next/link';
-import { NOT_YET } from '@/lib/match';
+import { INCIDENT_KEY, NOT_YET, STAT_KEY, statValue } from '@/lib/match';
 import { isBehind } from '@/lib/live';
 import { formatKickoff, statusLabel } from '@/lib/scores';
 import { fill, filled, formatFixed, formatMinute } from '@/lib/words';
@@ -63,36 +61,6 @@ export const SECTIONS: readonly [
   ['news', 'nav.news'],
 ];
 
-const INCIDENT_KEY = {
-  goal: 'matchCentre.incident.goal',
-  own_goal: 'matchCentre.incident.ownGoal',
-  penalty_goal: 'matchCentre.incident.penaltyGoal',
-  penalty_missed: 'matchCentre.incident.penaltyMissed',
-  yellow_card: 'matchCentre.incident.yellowCard',
-  second_yellow_card: 'matchCentre.incident.secondYellow',
-  red_card: 'matchCentre.incident.redCard',
-  substitution: 'matchCentre.incident.substitution',
-  var: 'matchCentre.incident.var',
-} as const satisfies Record<MatchIncident['kind'], Key>;
-
-const STAT_KEY = {
-  possession_pct: 'matchCentre.stat.possession',
-  shots: 'matchCentre.stat.shots',
-  shots_on_target: 'matchCentre.stat.shotsOnTarget',
-  shots_off_target: 'matchCentre.stat.shotsOffTarget',
-  blocked_shots: 'matchCentre.stat.blockedShots',
-  corners: 'matchCentre.stat.corners',
-  offsides: 'matchCentre.stat.offsides',
-  fouls: 'matchCentre.stat.fouls',
-  yellow_cards: 'matchCentre.stat.yellowCards',
-  red_cards: 'matchCentre.stat.redCards',
-  passes: 'matchCentre.stat.passes',
-  passes_accurate: 'matchCentre.stat.passesAccurate',
-  pass_accuracy_pct: 'matchCentre.stat.passAccuracy',
-  saves: 'matchCentre.stat.saves',
-  expected_goals: 'matchCentre.stat.expectedGoals',
-} as const satisfies Record<MatchStatMetric, Key>;
-
 /** The per-player columns the match centre shows (T-101), in reading order. */
 const PLAYER_COLUMNS: readonly [PlayerMatchMetric, Key][] = [
   ['minutes', 'matchCentre.player.minutes'],
@@ -119,19 +87,6 @@ const RESULT_KEY = {
   D: 'matchCentre.form.drawn',
   L: 'matchCentre.form.lost',
 } as const satisfies Record<FormEntry['result'], Key>;
-
-/** A statistic as shown, in the locale's digits: percentages with the sign, xG to two places. */
-function statValue(locale: string, metric: MatchStatMetric, value: number | null): string {
-  if (value === null) return '–';
-  if (metric.endsWith('_pct')) {
-    return new Intl.NumberFormat(intlLocale(locale), {
-      style: 'percent',
-      maximumFractionDigits: 2,
-    }).format(value / 100);
-  }
-  if (metric === 'expected_goals') return formatFixed(locale, value, 2);
-  return formatNumber(locale, value);
-}
 
 /** One player cell: the provider's rating to one decimal, a count as it is, `–` when not supplied. */
 function playerCell(locale: string, player: MatchPlayerStats, metric: PlayerMatchMetric): string {
@@ -438,13 +393,13 @@ export function MatchCentreView({
                   {rows.map((row) => (
                     <tr key={row.metric} className="border-t border-default">
                       <td className="py-1 text-end tabular-nums">
-                        <span dir="ltr">{statValue(locale, row.metric, row.home)}</span>
+                        <span dir="ltr">{statValue(row.metric, row.home, locale)}</span>
                       </td>
                       <th scope="row" className="px-3 py-1 text-center font-normal text-muted">
                         <MessageText message={m[STAT_KEY[row.metric]]} />
                       </th>
                       <td className="py-1 tabular-nums">
-                        <span dir="ltr">{statValue(locale, row.metric, row.away)}</span>
+                        <span dir="ltr">{statValue(row.metric, row.away, locale)}</span>
                       </td>
                     </tr>
                   ))}

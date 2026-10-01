@@ -21,6 +21,7 @@ import { applyGuestChoices } from './first-run-actions';
 import { afterRegistration, readInviter } from './invite';
 import { applyApiSetCookie, readerAddress, sessionCookieHeader } from './session';
 import { reconcileThemeAtSignIn } from './theme-cookie';
+import { territoryName } from './territory';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
 import { type MessageKey, interpolate, t } from '@/i18n/messages';
 
@@ -276,7 +277,9 @@ export async function setTerritoryAction(
     ok: true,
     message:
       chosen.state === 'chosen'
-        ? say(locale, 'settingsPage.territory.set', { territory: chosen.territory.name })
+        ? say(locale, 'settingsPage.territory.set', {
+            territory: territoryName(locale, chosen.territory),
+          })
         : say(locale, 'settingsPage.territory.cleared'),
   };
 }

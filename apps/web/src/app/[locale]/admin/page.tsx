@@ -14,7 +14,8 @@ import {
   fetchChatHealth,
   fetchLiveHealth,
 } from '@/lib/api';
-import { moduleState } from '@/lib/match';
+import { COVERAGE_KEY } from '@/components/score-card';
+import { t } from '@/i18n/messages';
 import { sessionCookieHeader } from '@/lib/session';
 import { Translated } from '@/components/translated';
 import { Button, Notice, TextField } from '@/components/ui';
@@ -292,7 +293,7 @@ export default async function AdminPage({
             {data.coverage.map((row) => (
               <li key={`${row.season.id}:${row.module}`} data-testid="coverage-row">
                 {row.competition.name} {row.season.label} · {row.module}:{' '}
-                {moduleState({ coverage: row.state, last_updated_at: null, data: null })}
+                {t('en', COVERAGE_KEY[row.state])}
                 {row.provider !== null ? ` (${row.provider})` : ''}
                 {row.note !== null ? ` — ${row.note}` : ''}
               </li>

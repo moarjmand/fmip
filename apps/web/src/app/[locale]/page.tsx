@@ -50,6 +50,7 @@ import { rootTitle } from '@/lib/demonstration';
 import { readGuestChoices } from '@/lib/first-run-cookie';
 import { pageMetadata, websiteJsonLd } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { scoresWords } from '@/lib/words-server';
 
 // The API is queried per request, so a build never depends on it being up.
 export const dynamic = 'force-dynamic';
@@ -65,7 +66,7 @@ export async function generateMetadata({
     path: '',
     // The only page in the layout's own segment, so the layout's title
     // template does not reach it and it carries the marker itself (T-087).
-    title: rootTitle('FMIP'),
+    title: rootTitle('FMIP', locale),
     description: t(isLocale(locale) ? locale : DEFAULT_LOCALE, 'shell.meta.description'),
   });
 }
@@ -79,6 +80,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const { locale } = await params;
   const lang = isLocale(locale) ? locale : DEFAULT_LOCALE;
   const num = (value: number) => formatNumber(lang, value);
+  // The scores list's words, for the status cell and the viewing line (T-1303).
+  const scoreWords = scoresWords(lang);
   /** A sentence with its `{placeholders}` filled, keeping where its words came from. */
   const filled = (key: MessageKey, values: Record<string, string>): Message => {
     const said = message(lang, key);
@@ -151,7 +154,9 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       : null,
   ]);
   const watch =
-    viewing === null ? null : homeViewing(matches, viewing.ok ? viewing.data.fixtures : null);
+    viewing === null
+      ? null
+      : homeViewing(matches, viewing.ok ? viewing.data.fixtures : null, locale);
   const panels =
     panelsLatest === null ? [] : panelsLatest.ok ? homePanels(panelsLatest.data.panels) : null;
   const cardsById = new Map(
@@ -236,7 +241,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                 <span className="text-sm text-muted tabular-nums">
                   {card.status === 'scheduled'
                     ? `${shortDay(locale, card.kickoff_at, timeZone)} ${formatKickoff(locale, card.kickoff_at, timeZone)}`
-                    : statusLabel(card, locale, timeZone)}
+                    : statusLabel(card, locale, timeZone, undefined, scoreWords.m)}
                 </span>
                 <span className="flex min-w-0 flex-col">
                   <Link href={`/${locale}/match/${card.id}`} className={ROW_LINK}>
@@ -265,7 +270,11 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                   )}
                   {watch?.state === 'lines' && (
                     <span className="text-xs">
-                      <CardViewingLine viewing={watch.byFixture.get(card.id)} locale={locale} />
+                      <CardViewingLine
+                        viewing={watch.byFixture.get(card.id)}
+                        locale={locale}
+                        words={scoreWords}
+                      />
                     </span>
                   )}
                 </span>

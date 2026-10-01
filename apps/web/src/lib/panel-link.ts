@@ -5,7 +5,7 @@ import type {
   PanelLinkRequest,
   PanelLinkedPrediction,
 } from '@fmip/contracts';
-import { INCIDENT_LABEL, STAT_LABEL, minuteLabel, statValue } from '@/lib/match';
+import { INCIDENT_KEY, STAT_KEY, minuteLabel, statValue } from '@/lib/match';
 import { formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE, directionOf, isLocale } from '@/i18n/locales';
 import { ltrIsolate } from '@/components/score';
@@ -35,7 +35,7 @@ export interface LinkChoiceGroup {
   choices: LinkChoice[];
 }
 
-const METRICS = Object.keys(STAT_LABEL) as MatchStatMetric[];
+const METRICS = Object.keys(STAT_KEY) as MatchStatMetric[];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
@@ -44,7 +44,11 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  * choice the database would refuse. The author's own prediction is offered
  * only when they have one.
  */
-export function linkChoices(centre: MatchCentre, hasPrediction: boolean): LinkChoiceGroup[] {
+export function linkChoices(
+  centre: MatchCentre,
+  hasPrediction: boolean,
+  locale = 'en',
+): LinkChoiceGroup[] {
   const sideName = { home: centre.fixture.home.name, away: centre.fixture.away.name };
   const groups: LinkChoiceGroup[] = [];
 
@@ -56,8 +60,8 @@ export function linkChoices(centre: MatchCentre, hasPrediction: boolean): LinkCh
       choices: incidents.map((incident) => ({
         value: `incident:${incident.id}`,
         label: [
-          minuteLabel(incident.minute, incident.added_time),
-          INCIDENT_LABEL[incident.kind],
+          minuteLabel(incident.minute, incident.added_time, locale),
+          say(locale, INCIDENT_KEY[incident.kind]),
           incident.player?.name,
         ]
           .filter((part) => part !== undefined && part !== '')
@@ -84,7 +88,7 @@ export function linkChoices(centre: MatchCentre, hasPrediction: boolean): LinkCh
         : [
             {
               value: `statistic:${side}:${row.metric}`,
-              label: `${STAT_LABEL[row.metric]}: ${sideName[side]} ${statValue(row.metric, row[side])}`,
+              label: `${say(locale, STAT_KEY[row.metric])}: ${sideName[side]} ${statValue(row.metric, row[side], locale)}`,
             },
           ],
     ),
@@ -176,7 +180,11 @@ export function linkCard(
         heading: say(locale, 'panel.link.incident'),
         lines: [
           withSide(
-            [minuteLabel(i.minute, i.added_time), INCIDENT_LABEL[i.kind], i.player?.name]
+            [
+              minuteLabel(i.minute, i.added_time, locale),
+              say(locale, INCIDENT_KEY[i.kind]),
+              i.player?.name,
+            ]
               .filter((part) => part !== undefined && part !== '')
               .join(' '),
             side,
@@ -193,12 +201,12 @@ export function linkCard(
         note: link.in_lineup ? null : say(locale, 'panel.link.playerGone'),
       };
     case 'statistic': {
-      const at = statValue(link.metric, link.value_at_post);
+      const at = statValue(link.metric, link.value_at_post, locale);
       return {
         heading: say(locale, 'panel.link.statistic'),
         lines: [
           say(locale, 'panel.link.statisticLine', {
-            metric: STAT_LABEL[link.metric],
+            metric: say(locale, STAT_KEY[link.metric]),
             side: names[link.side],
             value: at,
           }),
@@ -209,7 +217,7 @@ export function linkCard(
             : link.current === link.value_at_post
               ? null
               : say(locale, 'panel.link.statisticNow', {
-                  value: statValue(link.metric, link.current),
+                  value: statValue(link.metric, link.current, locale),
                 }),
       };
     }
