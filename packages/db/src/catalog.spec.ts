@@ -11,12 +11,14 @@ import * as catalog from '../scripts/catalog.mjs';
 const {
   COMPETITION_KINDS,
   COMPETITION_SCOPES,
+  IGNORABLE,
   PROVIDERS,
   STAGE_KINDS,
   adoptedTeamKind,
   emptyQueueNote,
   parseAliases,
   parseArgs,
+  parseExternalIds,
   parseNationalTeams,
 } = catalog;
 
@@ -74,6 +76,59 @@ describe('catalog arguments', () => {
       dryRun: true,
     });
     expect(parseArgs(['--adopt-national']).error).toContain('--file is required');
+  });
+
+  it('reads an ignore: a list or the waiting national sides, by whom and why (T-1338)', () => {
+    expect(IGNORABLE).toEqual(['team', 'person', 'venue']);
+    const who = ['--by', 'a@b.c', '--reason', 'youth side'];
+    expect(parseArgs(['--ignore', '--type', 'team', '--file', '-', ...who])).toMatchObject({
+      command: 'ignore',
+      type: 'team',
+      file: '-',
+      waitingInternational: false,
+      dryRun: false,
+      by: 'a@b.c',
+      reason: 'youth side',
+    });
+    expect(
+      parseArgs(['--ignore', '--type', 'team', '--waiting-international', '--dry-run']),
+    ).toMatchObject({ command: 'ignore', file: null, waitingInternational: true, dryRun: true });
+    expect(parseArgs(['--unignore', '--type', 'person', '--file', 'x.csv', ...who])).toMatchObject({
+      command: 'unignore',
+      type: 'person',
+      file: 'x.csv',
+    });
+  });
+
+  it('refuses an ignore that names no ids, two sources, no one or no reason', () => {
+    const who = ['--by', 'a@b.c', '--reason', 'youth side'];
+    expect(parseArgs(['--ignore', '--type', 'season', '--file', '-', ...who]).error).toContain(
+      '--type must be one of team, person, venue',
+    );
+    expect(parseArgs(['--ignore', '--type', 'team', ...who]).error).toContain('Name the ids');
+    expect(
+      parseArgs(['--ignore', '--type', 'team', '--file', '-', '--waiting-international', ...who])
+        .error,
+    ).toContain('Name the ids');
+    expect(
+      parseArgs(['--ignore', '--type', 'person', '--waiting-international', ...who]).error,
+    ).toContain('with --type team');
+    expect(
+      parseArgs(['--unignore', '--type', 'team', '--waiting-international', ...who]).error,
+    ).toContain('--unignore takes --file');
+    expect(parseArgs(['--unignore', '--type', 'team', ...who]).error).toContain(
+      '--file is required',
+    );
+    expect(
+      parseArgs(['--ignore', '--type', 'team', '--file', '-', '--reason', 'youth']).error,
+    ).toContain('--by is required');
+    expect(
+      parseArgs(['--ignore', '--type', 'team', '--file', '-', '--by', 'a@b.c']).error,
+    ).toContain('--reason is required');
+    expect(
+      parseArgs(['--ignore', '--type', 'team', '--file', '-', '--by', 'a@b.c', '--reason', '  '])
+        .error,
+    ).toContain('--reason is required');
   });
 
   it('insists on one verb, and says which two it was given', () => {
@@ -351,5 +406,20 @@ describe('national teams', () => {
     expect(parseNationalTeams(`${header}\n22,IR,Iran`).error).toContain('FIFA trigram');
     expect(parseNationalTeams(`${header}\nIran,IRN`).error).toContain('team id');
     expect(parseNationalTeams(`${header}\n22,IRN\n22,IRN`).error).toContain('twice');
+  });
+});
+
+describe('the ids to set aside (T-1338)', () => {
+  it('reads the first column, with or without a header, past comments and blank lines', () => {
+    expect(parseExternalIds('provider_id,name\n# youth sides\n101,Iran U23\n\n102\n')).toEqual({
+      ids: ['101', '102'],
+    });
+    expect(parseExternalIds('101\r\n102')).toEqual({ ids: ['101', '102'] });
+  });
+
+  it('refuses a blank id, an id listed twice, and an empty list', () => {
+    expect(parseExternalIds('provider_id\n,Iran U23').error).toContain('row 1');
+    expect(parseExternalIds('101\n101').error).toContain('twice');
+    expect(parseExternalIds('provider_id\n# nothing\n').error).toContain('no provider id');
   });
 });

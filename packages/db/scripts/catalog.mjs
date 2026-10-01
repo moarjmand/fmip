@@ -58,8 +58,12 @@ const VERBS = [
   'set-division',
   'set-order',
   'alias-training',
+  'ignore',
+  'unignore',
 ];
-const SWITCHES = [...VERBS, 'dry-run', 'current'];
+const SWITCHES = [...VERBS, 'dry-run', 'current', 'waiting-international'];
+/** The queued kinds an operator may set aside as not ours to model (T-1338). */
+export const IGNORABLE = ['team', 'person', 'venue'];
 const VALUED = [
   'type',
   'limit',
@@ -81,6 +85,7 @@ const VALUED = [
   'file',
   'order',
   'legs',
+  'reason',
 ];
 
 const USAGE = `Usage (one verb per call):
@@ -102,6 +107,12 @@ const USAGE = `Usage (one verb per call):
   --set-division --competition <external id> --division <E0|SP1|...> [--by <address>]
   --set-order --competition <external id> --order <N, 1 first; 0 to clear> [--by <address>]
   --alias-training [--file <csv>] [--by <address>]
+  --ignore --type <${IGNORABLE.join('|')}> --file <csv, or - for standard input>
+           --by <address> --reason "<why>" [--dry-run]
+  --ignore --type team --waiting-international --by <address> --reason "<why>" [--dry-run]
+           (every team still waiting whose last sighting was an international competition)
+  --unignore --type <${IGNORABLE.join('|')}> --file <csv, or -> --by <address> --reason "<why>"
+             [--dry-run]
 
   --provider defaults to api_football.`;
 
@@ -215,6 +226,48 @@ export function parseArgs(argv) {
     }
     return { command: verb, provider, by, dryRun, file: file === '' ? null : file };
   }
+  if (verb === 'ignore' || verb === 'unignore') {
+    const type = text('type');
+    const file = text('file');
+    const international = flags.get('waiting-international') === true;
+    const dryRun = flags.get('dry-run') === true;
+    const reason = text('reason');
+    if (!IGNORABLE.includes(type)) {
+      return { error: `--type must be one of ${IGNORABLE.join(', ')}.` };
+    }
+    if (international && verb === 'unignore') {
+      return { error: '--waiting-international is for --ignore; --unignore takes --file.' };
+    }
+    if (international && type !== 'team') {
+      return { error: '--waiting-international selects teams: use it with --type team.' };
+    }
+    if (international === (file !== '')) {
+      return {
+        error:
+          verb === 'ignore'
+            ? 'Name the ids: --file <csv, or -> or --waiting-international, one of the two.'
+            : '--file is required: the provider ids to put back in the queue.',
+      };
+    }
+    // Setting an id aside hides it from every run report, so it is a decision
+    // somebody owns, with a reason (rule 10). A dry run writes nothing.
+    if (!dryRun && (by === undefined || by.trim() === '')) {
+      return { error: '--by is required: the administrator who decides is audited.' };
+    }
+    if (!dryRun && reason === '') {
+      return { error: '--reason is required: it is kept on each row and in the audit log.' };
+    }
+    return {
+      command: verb,
+      provider,
+      type,
+      file: file === '' ? null : file,
+      waitingInternational: international,
+      dryRun,
+      by,
+      reason,
+    };
+  }
   if (verb === 'adopt-teams' || verb === 'adopt-people' || verb === 'adopt-venues') {
     return { command: verb, provider, by, dryRun: flags.get('dry-run') === true };
   }
@@ -297,8 +350,12 @@ function connectionString() {
   return url;
 }
 
-/** An audit row when an administrator is named; nothing, and a word, when not. */
-async function audit(client, by, action, targetType, targetId, next) {
+/**
+ * An audit row when an administrator is named; nothing, and a word, when not.
+ * `why` carries the operator's own reason and the previous value, when the
+ * write has them.
+ */
+async function audit(client, by, action, targetType, targetId, next, why = {}) {
   if (by === undefined) return false;
   const { rows } = await client.query(
     'SELECT id FROM user_account WHERE lower(email) = lower($1)',
@@ -307,8 +364,16 @@ async function audit(client, by, action, targetType, targetId, next) {
   if (rows[0] === undefined) throw new Error(`No account with the e-mail ${by}.`);
   await client.query(
     `INSERT INTO audit_log (actor_id, action, target_type, target_id, reason, previous, next)
-     VALUES ($1, $2, $3, $4, 'catalogue built from the provider', NULL, $5)`,
-    [rows[0].id, action, targetType, targetId, JSON.stringify(next)],
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [
+      rows[0].id,
+      action,
+      targetType,
+      targetId,
+      why.reason ?? 'catalogue built from the provider',
+      why.previous === undefined ? null : JSON.stringify(why.previous),
+      JSON.stringify(next),
+    ],
   );
   return true;
 }
@@ -1138,6 +1203,140 @@ async function aliasTraining(client, options) {
   return unknown.length > 0 ? 1 : 0;
 }
 
+/**
+ * Provider ids, one a line, in the first column; a `provider_id` header and
+ * `#` comments are allowed, and anything after the first comma is for the
+ * reader of the file (a name, say) and is never read (rule 1).
+ */
+export function parseExternalIds(text) {
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line !== '' && !line.startsWith('#'));
+  if (lines[0] !== undefined && /^provider_id(,|$)/i.test(lines[0])) lines.shift();
+  const ids = [];
+  const seen = new Set();
+  for (const [index, line] of lines.entries()) {
+    const id = (line.split(',')[0] ?? '').trim();
+    if (id === '' || /\s/.test(id)) {
+      return { error: `row ${index + 1}: "${id}" is not a provider id` };
+    }
+    if (seen.has(id)) return { error: `row ${index + 1}: ${id} is listed twice` };
+    seen.add(id);
+    ids.push(id);
+  }
+  if (ids.length === 0) return { error: 'no provider id in the file' };
+  return { ids };
+}
+
+/**
+ * Sets queued ids aside as not ours to model (T-1338), or puts them back.
+ *
+ * An ignored id is out of coverage: the ingestion skips a match with such a
+ * side, and a person so marked, without reporting a gap -- which is what
+ * keeps a competition followed for some of its teams (the senior men's
+ * national teams of the provider's friendlies, beside their youth, women's
+ * and club sides; D-179) from making every run partial. It is a judgement, so
+ * each row names who made it and why, in the queue and in the audit log, and
+ * it can be undone: `--unignore` returns the id to the queue, and its next
+ * sighting is reported again. Only a pending row is set aside; a resolved one
+ * is an entity we hold, and is reported and left alone.
+ */
+async function ignore(client, options) {
+  const setAside = options.command === 'ignore';
+  let ids;
+  if (options.waitingInternational) {
+    ids = (await waiting(client, options.provider, 'team'))
+      .filter((row) => adoptedTeamKind(row.seen_scope) === 'national')
+      .map((row) => String(row.external_id));
+    if (ids.length === 0) {
+      console.log('No team seen in an international competition is waiting.');
+      return 0;
+    }
+  } else {
+    const parsed = parseExternalIds(readFileSync(options.file === '-' ? 0 : options.file, 'utf8'));
+    if (parsed.error !== undefined) {
+      console.error(`${options.file}: ${parsed.error}`);
+      return 2;
+    }
+    ids = parsed.ids;
+  }
+
+  const { rows } = await client.query(
+    `SELECT id, external_id, status, payload->>'name' AS name, resolved_by, resolution_note
+       FROM unresolved_entity
+      WHERE provider = $1 AND entity_type = $2 AND external_id = ANY($3::text[])`,
+    [options.provider, options.type, ids],
+  );
+  const byId = new Map(rows.map((row) => [row.external_id, row]));
+  const from = setAside ? 'pending' : 'ignored';
+  const due = [];
+  const left = [];
+  for (const id of ids) {
+    const row = byId.get(id);
+    if (row === undefined) left.push(`${id}: not in the queue`);
+    else if (row.status !== from) {
+      left.push(`${id} (${row.name ?? 'no name'}): ${row.status}, left as it is`);
+    } else due.push(row);
+  }
+
+  const done = setAside ? 'set aside' : 'put back in the queue';
+  if (options.dryRun) {
+    console.log(`${due.length} ${options.type}(s) would be ${done}:`);
+    for (const row of due) {
+      console.log(`  ${String(row.external_id).padStart(9)}  ${row.name ?? '(no name)'}`);
+    }
+    for (const reason of left) console.log(`  not touched: ${reason}`);
+    console.log('\nRun again without --dry-run to write them.');
+    return 0;
+  }
+
+  await client.query('BEGIN');
+  try {
+    for (const row of due) {
+      await client.query(
+        setAside
+          ? `UPDATE unresolved_entity
+                SET status = 'ignored', resolved_internal_id = NULL, resolved_by = $2,
+                    resolved_at = now(), resolution_note = $3
+              WHERE id = $1 AND status = 'pending'`
+          : `UPDATE unresolved_entity
+                SET status = 'pending', resolved_internal_id = NULL, resolved_by = NULL,
+                    resolved_at = NULL, resolution_note = NULL
+              WHERE id = $1 AND status = 'ignored'`,
+        setAside ? [row.id, options.by, options.reason] : [row.id],
+      );
+      await audit(
+        client,
+        options.by,
+        setAside ? 'catalog.entity_ignored' : 'catalog.entity_unignored',
+        'unresolved_entity',
+        row.id,
+        {
+          status: setAside ? 'ignored' : 'pending',
+          provider: options.provider,
+          entity_type: options.type,
+          external_id: row.external_id,
+          name: row.name,
+        },
+        {
+          reason: options.reason,
+          previous: setAside
+            ? { status: 'pending' }
+            : { status: 'ignored', resolved_by: row.resolved_by, note: row.resolution_note },
+        },
+      );
+    }
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  }
+  console.log(`${due.length} ${options.type}(s) ${done}, each audited.`);
+  for (const reason of left) console.log(`  not touched: ${reason}`);
+  return 0;
+}
+
 async function main() {
   const parsed = parseArgs(process.argv.slice(2));
   if (parsed.error !== undefined) {
@@ -1173,6 +1372,9 @@ async function main() {
         return await setOrder(client, parsed);
       case 'alias-training':
         return await aliasTraining(client, parsed);
+      case 'ignore':
+      case 'unignore':
+        return await ignore(client, parsed);
       default:
         return await map(client, parsed);
     }

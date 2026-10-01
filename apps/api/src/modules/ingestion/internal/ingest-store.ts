@@ -16,7 +16,9 @@
  * **Nothing is invented.** Competitions, seasons, teams, people and venues are
  * never created here. They are resolved through the entity resolver, and an
  * unknown provider id is queued for review (T-013) and the row it would have
- * filled is skipped and counted. The one entity ingestion may create is the
+ * filled is skipped and counted. An id a reviewer has set aside as not ours
+ * to model (`ignored`, T-1338) is skipped too, but is no gap: it is not
+ * counted, and a fixture with such a side is not written. The one entity ingestion may create is the
  * fixture itself, and only once its season and both its teams have resolved;
  * the new fixture's mapping is then linked, audited as `ingest:<job>`.
  */
@@ -111,6 +113,9 @@ function withoutImage(payload: unknown): unknown {
 export function sighting<T extends object>(ref: T, competitionId: string | null): T {
   return competitionId === null ? ref : { ...ref, seenIn: competitionId };
 }
+
+/** What `resolveRef` answers for an id a reviewer has set aside (T-1338). */
+const IGNORED = Symbol('ignored');
 
 /** The entity types whose image the media store keeps. */
 const IMAGED = new Set<EntityType>(['team', 'competition', 'person']);
@@ -272,6 +277,22 @@ export class IngestStore implements SquadStore {
     externalId: string | null,
     payload: unknown = null,
   ): Promise<string | null> {
+    const ref = await this.resolveRef(provider, entityType, externalId, payload);
+    return ref === IGNORED ? null : ref;
+  }
+
+  /**
+   * As `resolveId`, but tells an id a reviewer has set aside as not ours to
+   * model (`unresolved_entity.status = 'ignored'`, T-1338) apart from one
+   * still waiting for review: the first is out of coverage and skipped
+   * quietly, the second is a gap the run reports.
+   */
+  private async resolveRef(
+    provider: Provider,
+    entityType: EntityType,
+    externalId: string | null,
+    payload: unknown = null,
+  ): Promise<string | null | typeof IGNORED> {
     if (externalId === null || externalId === '') return null;
     // The review queue keeps what a reviewer needs to identify the entity; an
     // image address is not that, and stays out of it.
@@ -279,6 +300,7 @@ export class IngestStore implements SquadStore {
       { provider, entityType, externalId },
       withoutImage(payload),
     );
+    if (outcome.kind === 'ignored') return IGNORED;
     if (outcome.kind !== 'resolved') return null;
     const internalId = (outcome as { internalId: string }).internalId;
     await this.noteImage(provider, entityType, internalId, payload);
@@ -320,18 +342,25 @@ export class IngestStore implements SquadStore {
     job: string,
   ): Promise<WriteResult> {
     const unresolved: string[] = [];
-    const homeId = await this.resolveId(
+    const home = await this.resolveRef(
       provider,
       'team',
       fixture.home.externalId,
       sighting(fixture.home, target.competitionId),
     );
-    const awayId = await this.resolveId(
+    const away = await this.resolveRef(
       provider,
       'team',
       fixture.away.externalId,
       sighting(fixture.away, target.competitionId),
     );
+    // A side a reviewer has set aside -- a youth, women's or club side in a
+    // competition followed for its senior men's national teams (T-1338) -- is
+    // out of coverage: the match is not ours to hold, so it is skipped and is
+    // no gap to report, whatever the other side is.
+    if (home === IGNORED || away === IGNORED) return NOTHING;
+    const homeId = home;
+    const awayId = away;
     if (homeId === null) unresolved.push(`team:${fixture.home.externalId}`);
     if (awayId === null) unresolved.push(`team:${fixture.away.externalId}`);
     if (homeId === null || awayId === null) return { changed: 0, unresolved };
@@ -585,24 +614,31 @@ export class IngestStore implements SquadStore {
     let changed = 0;
 
     for (const incident of incidents) {
-      const personId = await this.resolveId(
+      const person = await this.resolveRef(
         provider,
         'person',
         incident.player?.externalId ?? null,
         incident.player,
       );
-      const relatedId = await this.resolveId(
+      const related = await this.resolveRef(
         provider,
         'person',
         incident.relatedPlayer?.externalId ?? null,
         incident.relatedPlayer,
       );
+      const personId = person === IGNORED ? null : person;
+      const relatedId = related === IGNORED ? null : related;
+      // A person a reviewer has set aside (T-1338) is skipped like an unknown
+      // one, but is no gap to report.
       if (incident.kind !== 'var' && personId === null) {
-        unresolved.push(`person:${incident.player?.externalId ?? 'unnamed'}`);
+        if (person !== IGNORED)
+          unresolved.push(`person:${incident.player?.externalId ?? 'unnamed'}`);
         continue;
       }
       if (incident.kind === 'substitution' && relatedId === null) {
-        unresolved.push(`person:${incident.relatedPlayer?.externalId ?? 'unnamed'}`);
+        if (related !== IGNORED) {
+          unresolved.push(`person:${incident.relatedPlayer?.externalId ?? 'unnamed'}`);
+        }
         continue;
       }
       const participantId =
@@ -678,9 +714,10 @@ export class IngestStore implements SquadStore {
     let changed = rowCount ?? 0;
 
     for (const player of lineup.players) {
-      const personId = await this.resolveId(provider, 'person', player.externalId, player);
-      if (personId === null) {
-        unresolved.push(`person:${player.externalId}`);
+      const personId = await this.resolveRef(provider, 'person', player.externalId, player);
+      if (personId === null || personId === IGNORED) {
+        // Set aside by a reviewer (T-1338): skipped, and no gap to report.
+        if (personId === null) unresolved.push(`person:${player.externalId}`);
         continue;
       }
       const { rowCount: written } = await this.pool.query(
@@ -745,7 +782,7 @@ export class IngestStore implements SquadStore {
       ['home', await this.participantId(fixtureId, 'home')],
       ['away', await this.participantId(fixtureId, 'away')],
     ]);
-    const people = new Map<string, string | null>();
+    const people = new Map<string, string | null | typeof IGNORED>();
     const unresolved = new Set<string>();
     let changed = 0;
     for (const stat of statistics) {
@@ -754,12 +791,13 @@ export class IngestStore implements SquadStore {
       if (!people.has(stat.player.externalId)) {
         people.set(
           stat.player.externalId,
-          await this.resolveId(provider, 'person', stat.player.externalId, stat.player),
+          await this.resolveRef(provider, 'person', stat.player.externalId, stat.player),
         );
       }
       const personId = people.get(stat.player.externalId) ?? null;
-      if (personId === null) {
-        unresolved.add(`person:${stat.player.externalId}`);
+      if (personId === null || personId === IGNORED) {
+        // Set aside by a reviewer (T-1338): skipped, and no gap to report.
+        if (personId === null) unresolved.add(`person:${stat.player.externalId}`);
         continue;
       }
       const { rowCount } = await this.pool.query(
@@ -824,18 +862,20 @@ export class IngestStore implements SquadStore {
     const listed: string[] = [];
     let changed = 0;
     for (const absence of absences) {
-      const teamId = await this.resolveId(provider, 'team', absence.team.externalId, absence.team);
+      const teamId = await this.resolveRef(provider, 'team', absence.team.externalId, absence.team);
       const participantId = sides.find((side) => side.team_id === teamId)?.id ?? null;
+      // A side or a person a reviewer has set aside (T-1338) is skipped
+      // without being reported.
       if (teamId === null) unresolved.add(`team:${absence.team.externalId}`);
       if (participantId === null) continue;
-      const personId = await this.resolveId(
+      const personId = await this.resolveRef(
         provider,
         'person',
         absence.player.externalId,
         absence.player,
       );
-      if (personId === null) {
-        unresolved.add(`person:${absence.player.externalId}`);
+      if (personId === null || personId === IGNORED) {
+        if (personId === null) unresolved.add(`person:${absence.player.externalId}`);
         continue;
       }
       listed.push(personId);

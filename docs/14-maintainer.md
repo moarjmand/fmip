@@ -760,6 +760,42 @@ adopted is no longer waiting. The name column is for you and is never read.
 The next international window queues teams not seen before: run step 4 again
 then.
 
+**After step 4: the sides that are not ours (T-1338).** The friendlies also
+carry under-23, women's and a few club sides. They are not adopted, so they
+stay in the queue, and until T-1338 every run that met one of their matches
+said "N provider ids have no mapping and are queued for review" -- most runs
+on `/health/ingestion` were partial for it, which hid the real gaps. Once
+every senior men's national team is adopted (the step above), set the rest
+aside: an ignored team's matches are skipped quietly, are not written and do
+not make a run partial.
+
+```bash
+# Read the list first: it is every team still waiting whose last sighting was
+# one of these four. A senior national team in it is one step 4 has not
+# adopted yet -- adopt it, then list again.
+catalog --ignore --type team --waiting-international --dry-run < /dev/null
+catalog --ignore --type team --waiting-international --by you@your-domain \
+        --reason "youth, women's and club sides of the international friendlies (T-1338)" < /dev/null
+catalog --list --type team < /dev/null     # what still waits is what is still to decide
+```
+
+Each id is set aside with your address and the reason, in the queue
+(`resolved_by`, `resolution_note`) and in the audit log
+(`catalog.entity_ignored`); a team already adopted is reported and left
+alone. For particular ids, list them in a file instead (first column, an
+optional `provider_id` header, `#` comments; anything after the first comma is
+for you and is never read) and pass `--file - < it` in place of
+`--waiting-international`; `--type person` and `--type venue` work the same
+way. A decision you want back:
+
+```bash
+printf '%s\n' 12345 67890 > back.csv     # the provider ids, one a line
+catalog --unignore --type team --file - --by you@your-domain --reason "a senior side after all" < back.csv
+```
+
+puts them back in the queue (audited as `catalog.entity_unignored`); their
+next match queues them again, and step 4 adopts them as usual.
+
 **6. Stages.** A friendly has no competition context and needs none. The
 other three are cups, and without a stage a Nations League match reads as a
 knockout tie (its round, "League A - 1", has no "group" in it). List the
