@@ -268,7 +268,28 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('news photos'
       await client.query(`SET session_replication_role = 'origin'`);
       client.release();
     }
-    await pool.query(`DELETE FROM news_source WHERE id = ANY($1)`, [[licensed, plain]]);
+    // One transaction, so a spec running beside this one never sees the
+    // stories these articles leave empty (news-ingestion asserts there are none).
+    const tx = await pool.connect();
+    try {
+      await tx.query('BEGIN');
+      const stories = await tx.query<{ story_id: string }>(
+        `SELECT DISTINCT story_id FROM article WHERE source_id = ANY($1)`,
+        [[licensed, plain]],
+      );
+      await tx.query(`DELETE FROM news_source WHERE id = ANY($1)`, [[licensed, plain]]);
+      await tx.query(
+        `DELETE FROM story s WHERE s.id = ANY($1::uuid[])
+            AND NOT EXISTS (SELECT 1 FROM article a WHERE a.story_id = s.id)`,
+        [stories.rows.map((r) => r.story_id)],
+      );
+      await tx.query('COMMIT');
+    } catch (error) {
+      await tx.query('ROLLBACK');
+      throw error;
+    } finally {
+      tx.release();
+    }
     await pool.query(`DELETE FROM user_account WHERE username LIKE $1`, [`im_${RUN}%`]);
     await pool.end();
     await app.close();
