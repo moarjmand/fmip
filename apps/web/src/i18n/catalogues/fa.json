@@ -7207,6 +7207,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "scores.nextMatchDay": {
+    "source": "The next matches are on",
+    "text": "بازی‌های بعدی در روز",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "scores.filteredEmpty": {
     "source": "No match on this day fits these filters.",
     "text": "هیچ بازی‌ای در این روز با این فیلترها جور نیست.",

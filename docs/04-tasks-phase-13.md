@@ -61,3 +61,9 @@ no decision covers a flag package.
 |---|---|---|---|
 | `[x]` T-1330 | A source's stories only for readers of its language, set per source in the console (D-178, #494): on by default for every Persian source; a story shows the article the reader may see, or is absent | T-1301 | `/en/news` shows no Persian source; `/fa/news` shows them; an administrator switches it per source with a reason, audited |
 
+
+## Empty days
+
+| ID | Task | Deps | Acceptance |
+|---|---|---|---|
+| `[x]` T-1331 | An empty day on Scores points at the next day with a match (asked in two 14-day windows, the API's cap), so the FIFA window of 21 September to 6 October does not read as a broken page | T-031 | `/en/scores` on 2026-10-01 links to Thursday 8 October; a live or favourites view is unchanged |

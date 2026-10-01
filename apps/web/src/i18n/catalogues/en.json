@@ -1261,6 +1261,7 @@
   "scores.live.staleAt": "Stale · last update {time}",
   "scores.live.unavailable": "Live updates unavailable",
   "scores.empty": "No fixtures on this day.",
+  "scores.nextMatchDay": "The next matches are on",
   "scores.filteredEmpty": "No match on this day fits these filters.",
   "scores.favourites": "Your favourites",
   "scores.loadedAt": "List loaded at {time}.",
