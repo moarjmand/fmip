@@ -2943,7 +2943,13 @@
   },
   "news.readAt": {
     "source": "Read at",
-    "text": "زمان خواندن",
+    "text": "بخوانید در",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "news.photo.credit": {
+    "source": "Photo: {credit} · {licence}",
+    "text": "عکس: {credit} · {licence}",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

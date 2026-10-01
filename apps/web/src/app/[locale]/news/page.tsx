@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { NEWS_SECTIONS, STORY_TYPES, type NewsStoryCard } from '@fmip/contracts';
 import { ActionForm } from '@/components/action-form';
+import { NewsCardImage, NewsImageCredit, drawableNewsImage } from '@/components/news-image';
 import { SaveArticle } from '@/components/save-article';
 import { StoryTypeTag } from '@/components/story-type';
 import { Translated } from '@/components/translated';
@@ -498,6 +499,12 @@ function Story({
       data-testid="story"
       lang={card.language}
     >
+      {drawableNewsImage(card.image) && (
+        <div className="flex flex-col gap-1">
+          <NewsCardImage image={card.image} />
+          <NewsImageCredit image={card.image} locale={locale} />
+        </div>
+      )}
       <h2 className="text-lg font-semibold">
         <a href={card.url} rel="noopener" className="underline" data-testid="story-link">
           {card.headline}

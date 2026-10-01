@@ -8,6 +8,7 @@ import { formatDateTime } from '@/i18n/format';
 import { DEFAULT_LOCALE, type Locale, isLocale } from '@/i18n/locales';
 import { interpolate, message, t } from '@/i18n/messages';
 import { fetchFollowing, fetchMe, fetchSavedArticles, fetchStory } from '@/lib/api';
+import { NewsImageCredit, NewsPhoto, NewsThumb, drawableNewsImage } from '@/components/news-image';
 import { SaveArticle } from '@/components/save-article';
 import { ShareLink } from '@/components/share-link';
 import {
@@ -119,6 +120,7 @@ export default async function StoryPage({
       </p>
 
       <article className="flex flex-col gap-3" lang={story.language}>
+        <NewsPhoto image={story.image} headline={story.headline} locale={locale} />
         <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
           {story.headline}
         </h1>
@@ -337,28 +339,35 @@ function Report({
 }) {
   return (
     <article
-      className="flex flex-col gap-1 border-s-2 border-s-default ps-3"
+      className="flex gap-3 border-s-2 border-s-default ps-3"
       lang={report.language}
+      data-testid="story-report"
     >
-      <h3 className="font-semibold">
-        <a href={report.url} rel="noopener" className="underline">
-          {report.headline}
-        </a>
-      </h3>
-      <p className="text-muted">
-        <Translated locale={locale} message="news.readAt" />{' '}
-        <a href={report.source.homepage_url} rel="noopener" className="underline">
-          {report.source.name}
-        </a>
-        {report.byline !== null && <> · {report.byline}</>}
-        {' · '}
-        {report.published_at === null ? (
-          <Translated locale={locale} message="news.noTime" />
-        ) : (
-          <time dateTime={report.published_at}>{when(report.published_at)}</time>
+      <NewsThumb image={report.image} />
+      <div className="flex min-w-0 flex-col gap-1">
+        <h3 className="font-semibold">
+          <a href={report.url} rel="noopener" className="underline">
+            {report.headline}
+          </a>
+        </h3>
+        <p className="text-muted">
+          <Translated locale={locale} message="news.readAt" />{' '}
+          <a href={report.source.homepage_url} rel="noopener" className="underline">
+            {report.source.name}
+          </a>
+          {report.byline !== null && <> · {report.byline}</>}
+          {' · '}
+          {report.published_at === null ? (
+            <Translated locale={locale} message="news.noTime" />
+          ) : (
+            <time dateTime={report.published_at}>{when(report.published_at)}</time>
+          )}
+        </p>
+        {report.summary !== null && <p>{report.summary}</p>}
+        {drawableNewsImage(report.image) && (
+          <NewsImageCredit image={report.image} locale={locale} />
         )}
-      </p>
-      {report.summary !== null && <p>{report.summary}</p>}
+      </div>
     </article>
   );
 }
