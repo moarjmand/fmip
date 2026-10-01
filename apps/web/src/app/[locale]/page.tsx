@@ -11,6 +11,7 @@ import {
   PanelsSection,
 } from '@/components/home-member';
 import { LinkedSentence } from '@/components/linked-sentence';
+import { NewsImageCredit, NewsThumb, drawableNewsImage } from '@/components/news-image';
 import { LtrNumeric } from '@/components/score';
 import { CardViewingLine } from '@/components/score-card';
 import { Translated } from '@/components/translated';
@@ -455,10 +456,16 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           </h2>
           <ul className={LIST}>
             {stories.map((story) => (
-              <li key={story.story_id} className="px-3 py-2">
-                <Link href={`/${locale}/news/story/${story.story_id}`} className={ROW_LINK}>
-                  {story.headline}
-                </Link>
+              <li key={story.story_id} className="flex gap-3 px-3 py-2" data-testid="home-story">
+                <NewsThumb image={story.image} />
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <Link href={`/${locale}/news/story/${story.story_id}`} className={ROW_LINK}>
+                    {story.headline}
+                  </Link>
+                  {drawableNewsImage(story.image) && (
+                    <NewsImageCredit image={story.image} locale={lang} />
+                  )}
+                </div>
               </li>
             ))}
           </ul>

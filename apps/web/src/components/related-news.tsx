@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { EntityNewsResponse, FixtureNewsResponse, NewsStoryCard } from '@fmip/contracts';
+import { NewsImageCredit, NewsThumb, drawableNewsImage } from '@/components/news-image';
 import { Translated } from '@/components/translated';
 import { formatDateTime, formatNumber } from '@/i18n/format';
 import { feedsStale, storyHref } from '@/lib/news';
@@ -103,31 +104,37 @@ function StoryList({
       {cards.map((card) => (
         <li
           key={card.story_id}
-          className="flex flex-col gap-0.5 border-s-2 border-s-default ps-3"
+          className="flex gap-3 border-s-2 border-s-default ps-3"
           lang={card.language}
           data-testid="related-story"
         >
-          <a href={card.url} rel="noopener" className="font-medium underline">
-            {card.headline}
-          </a>
-          <p className="text-xs text-muted">
-            <Translated locale={locale} message="news.readAt" />{' '}
-            <a href={card.source.homepage_url} rel="noopener" className="underline">
-              {card.source.name}
+          <NewsThumb image={card.image} />
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <a href={card.url} rel="noopener" className="font-medium underline">
+              {card.headline}
             </a>
-            {' · '}
-            {card.published_at === null ? (
-              <Translated locale={locale} message="news.noTime" />
-            ) : (
-              <time dateTime={card.published_at}>
-                {formatDateTime(locale, card.published_at, timeZone)}
-              </time>
+            <p className="text-xs text-muted">
+              <Translated locale={locale} message="news.readAt" />{' '}
+              <a href={card.source.homepage_url} rel="noopener" className="underline">
+                {card.source.name}
+              </a>
+              {' · '}
+              {card.published_at === null ? (
+                <Translated locale={locale} message="news.noTime" />
+              ) : (
+                <time dateTime={card.published_at}>
+                  {formatDateTime(locale, card.published_at, timeZone)}
+                </time>
+              )}
+              {' · '}
+              <Link href={storyHref(locale, card.story_id)} className="underline">
+                <Translated locale={locale} message="news.storyPage" />
+              </Link>
+            </p>
+            {drawableNewsImage(card.image) && (
+              <NewsImageCredit image={card.image} locale={locale} />
             )}
-            {' · '}
-            <Link href={storyHref(locale, card.story_id)} className="underline">
-              <Translated locale={locale} message="news.storyPage" />
-            </Link>
-          </p>
+          </div>
         </li>
       ))}
     </ul>

@@ -525,6 +525,7 @@
   "news.reason.noMatch": "No story matches these filters.",
   "news.signIn": "Sign in",
   "news.readAt": "Read at",
+  "news.photo.credit": "Photo: {credit} · {licence}",
   "news.noTime": "time not given by the publisher",
   "news.match": "Match",
   "news.otherReports": {

@@ -2426,6 +2426,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "news.photo.credit": {
+    "source": "Photo: {credit} · {licence}",
+    "text": "",
+    "status": "untranslated"
+  },
   "news.noTime": {
     "source": "time not given by the publisher",
     "text": "",
