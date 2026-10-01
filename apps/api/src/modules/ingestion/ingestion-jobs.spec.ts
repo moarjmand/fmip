@@ -286,6 +286,37 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
     ).toBe(1);
   });
 
+  it('skips a match whose side a reviewer set aside, and does not call the run partial (T-1338)', async () => {
+    // The nine clubs the first run queued, set aside as not ours to model.
+    const { rows: queued } = await pool.query<{ id: string }>(
+      `UPDATE unresolved_entity
+          SET status = 'ignored', resolved_by = 'spec', resolved_at = now(),
+              resolution_note = 'T-1338 spec'
+        WHERE provider = 'api_football' AND entity_type = 'team' AND status = 'pending'
+          AND external_id <> '9999' AND last_seen_at >= $1
+        RETURNING id`,
+      [startedAt],
+    );
+    expect(queued.length).toBeGreaterThan(0);
+    try {
+      const report = await jobs.fixtures();
+      expect(report.itemsSeen).toBe(10);
+      expect(report.partial ?? '').not.toContain('queued for review');
+      // Still only the one match both of whose sides are ours.
+      expect(
+        await count(`SELECT count(*)::text AS n FROM fixture WHERE season_id = $1`, [SEASON]),
+      ).toBe(1);
+    } finally {
+      // Back in the queue: the runs below read a world with them waiting.
+      await pool.query(
+        `UPDATE unresolved_entity
+            SET status = 'pending', resolved_by = NULL, resolved_at = NULL, resolution_note = NULL
+          WHERE id = ANY($1::uuid[])`,
+        [queued.map((row) => row.id)],
+      );
+    }
+  });
+
   it('backfills a season through the same writer, and says so in the run', async () => {
     // On the replay source the window is the recording's own either way, so
     // what this proves is the rest of it: the backfill is the fixtures job
