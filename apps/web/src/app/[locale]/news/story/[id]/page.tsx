@@ -5,6 +5,8 @@ import type { NewsEntity, NewsReport, StoryPage as StoryPageData } from '@fmip/c
 import { StoryTypeTag } from '@/components/story-type';
 import { Translated } from '@/components/translated';
 import { formatDateTime } from '@/i18n/format';
+import { DEFAULT_LOCALE, type Locale, isLocale } from '@/i18n/locales';
+import { interpolate, message, t } from '@/i18n/messages';
 import { fetchFollowing, fetchMe, fetchSavedArticles, fetchStory } from '@/lib/api';
 import { SaveArticle } from '@/components/save-article';
 import { ShareLink } from '@/components/share-link';
@@ -37,16 +39,23 @@ export async function generateMetadata({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }): Promise<Metadata> {
   const [{ locale, id }, query] = await Promise.all([params, searchParams]);
-  if (!UUID.test(id)) return { title: 'Story · FMIP', robots: { index: false, follow: false } };
+  const resolved: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  const storyTitle = `${t(resolved, 'storyPage.title')} · FMIP`;
+  if (!UUID.test(id)) return { title: storyTitle, robots: { index: false, follow: false } };
   const result = await fetchStory(id, readStoryQuery(query).language, locale);
-  if (!result.ok) return pageMetadata({ locale, path: `/news/story/${id}`, title: 'Story · FMIP' });
+  if (!result.ok) return pageMetadata({ locale, path: `/news/story/${id}`, title: storyTitle });
   const { story } = result.data;
   return pageMetadata({
     locale,
     path: `/news/story/${id}`,
     title: `${story.headline} · FMIP`,
     // The publisher's own summary, or their headline again: nothing is written for them.
-    description: story.summary ?? `${story.headline} — reported by ${story.source.name}.`,
+    description:
+      story.summary ??
+      interpolate(t(resolved, 'storyPage.description'), {
+        headline: story.headline,
+        source: story.source.name,
+      }),
   });
 }
 
@@ -283,6 +292,10 @@ export default async function StoryPage({
           url={canonicalUrl(locale, `/news/story/${id}`)}
           title={story.headline}
           label={<Translated locale={locale} message="story.share" />}
+          messages={{
+            copied: message(isLocale(locale) ? locale : DEFAULT_LOCALE, 'share.copied'),
+            manual: message(isLocale(locale) ? locale : DEFAULT_LOCALE, 'share.manual'),
+          }}
         />
       </p>
 

@@ -1,5 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { LinkedSentence } from '@/components/linked-sentence';
+import { MessageText } from '@/components/message-text';
+import { Translated } from '@/components/translated';
+import { intlLocale } from '@/i18n/format';
+import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
+import { interpolate, message, plural, t } from '@/i18n/messages';
 import { fetchCompetitions, fetchLeaderboard } from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';
 
@@ -11,12 +17,12 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  const lang = isLocale(locale) ? locale : DEFAULT_LOCALE;
   return pageMetadata({
     locale,
     path: '/about',
-    title: 'What FMIP is · FMIP',
-    description:
-      'Live scores and match centres, a statistical forecast, the founder’s analysis and members’ predictions, kept apart, and a rating earned by predicting.',
+    title: `${t(lang, 'about.meta.title')} · FMIP`,
+    description: t(lang, 'about.meta.description'),
   });
 }
 
@@ -28,93 +34,117 @@ export async function generateMetadata({
  * from the leaderboard's own rules. The rating's weights live in a formula
  * configuration an administrator can version (D-035), so they are described,
  * not quoted, and the leaderboard names the version in force.
+ *
+ * Every language says the same here (T-1302): no sentence for one language's
+ * readers only.
  */
 export default async function AboutPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
+  const lang = isLocale(locale) ? locale : DEFAULT_LOCALE;
   const [competitions, leaderboard] = await Promise.all([
     fetchCompetitions(),
     fetchLeaderboard(''),
   ]);
   const names = (competitions ?? []).map((c) => c.name);
   const floor = leaderboard.ok ? leaderboard.data.floor : null;
+  const covered = message(lang, 'about.competitions');
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
       <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
-        What FMIP is
+        <Translated locale={lang} message="about.meta.title" />
       </h1>
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-lg font-semibold">Football, match by match</h2>
+        <h2 className="text-lg font-semibold">
+          <Translated locale={lang} message="about.football.title" />
+        </h2>
         <p>
-          Live scores and a page for every match: the timeline, line-ups, statistics, who will miss
-          it and each side&rsquo;s form, with every competition&rsquo;s table beside them. When
-          something is missing for a match, its page says so rather than showing an empty box, and
-          every live number says when it last changed.
+          <Translated locale={lang} message="about.football.body" />
         </p>
         {names.length > 0 ? (
-          <p data-testid="about-competitions">Covered now: {names.join(', ')}.</p>
+          <p data-testid="about-competitions">
+            <MessageText
+              message={{
+                ...covered,
+                // The list in the language's own punctuation: "A, B, C" in
+                // English, with the Persian comma on `/fa`.
+                text: interpolate(covered.text, {
+                  names: new Intl.ListFormat(intlLocale(lang), {
+                    type: 'unit',
+                    style: 'long',
+                  }).format(names),
+                }),
+              }}
+            />
+          </p>
         ) : (
-          <p className="text-sm text-muted">The list of competitions could not be read just now.</p>
+          <p className="text-sm text-muted">
+            <Translated locale={lang} message="about.competitions.unreachable" />
+          </p>
         )}
       </section>
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-lg font-semibold">Three kinds of prediction, never mixed</h2>
+        <h2 className="text-lg font-semibold">
+          <Translated locale={lang} message="about.three.title" />
+        </h2>
         <ul className="flex list-disc flex-col gap-2 ps-6">
           <li>
-            <strong>The statistical model.</strong> A forecast computed before kick-off from the
-            teams&rsquo; results, with the probabilities of a home win, a draw and an away win. Each
-            version is kept as it was made, and after the match it is scored against what happened.
+            <strong>
+              <Translated locale={lang} message="about.three.model.name" />
+            </strong>{' '}
+            <Translated locale={lang} message="about.three.model.body" />
           </li>
           <li>
-            <strong>The founder&rsquo;s analysis.</strong> Written and signed by a person, for
-            selected matches.
+            <strong>
+              <Translated locale={lang} message="about.three.founder.name" />
+            </strong>{' '}
+            <Translated locale={lang} message="about.three.founder.body" />
           </li>
           <li>
-            <strong>The community.</strong> Members&rsquo; own predictions. Their combined view
-            appears once at least five members have predicted a match, beside a second one weighted
-            only by members whose ratings are established.
+            <strong>
+              <Translated locale={lang} message="about.three.community.name" />
+            </strong>{' '}
+            <Translated locale={lang} message="about.three.community.body" />
           </li>
         </ul>
         <p className="text-sm text-muted">
-          The three are shown side by side and never blended into one number.
+          <Translated locale={lang} message="about.three.apart" />
         </p>
       </section>
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-lg font-semibold">A rating you earn by predicting</h2>
+        <h2 className="text-lg font-semibold">
+          <Translated locale={lang} message="about.rating.title" />
+        </h2>
         <p>
-          Predict the outcome before kick-off, with how confident you are and, if you like, the
-          exact score; at kick-off the prediction is locked, and every version you submitted is
-          kept. Your rating grows most from being right when it was hard to be right &mdash; how
-          hard is the model&rsquo;s own probability, fixed before kick-off &mdash; and also from
-          exact scores, consistency, and confidence that matched the outcome.
+          <Translated locale={lang} message="about.rating.body" />
         </p>
         {floor !== null && (
           <p data-testid="about-provisional">
-            A rating is provisional until {floor} predictions have been settled.
+            <MessageText message={plural(lang, 'about.rating.provisional', floor)} />
           </p>
         )}
         <p>
-          A rating can always be recomputed from the stored predictions and results alone. The{' '}
-          <Link href={`/${locale}/leaderboard`} className="underline">
-            leaderboard
-          </Link>{' '}
-          names the formula version in force.
+          <LinkedSentence
+            sentence={message(lang, 'about.rating.recompute')}
+            link={message(lang, 'about.rating.leaderboard')}
+            href={`/${locale}/leaderboard`}
+          />
         </p>
       </section>
 
       <p className="flex flex-wrap gap-4">
         <Link href={`/${locale}/scores`} className="underline">
-          Today&rsquo;s scores
+          <Translated locale={lang} message="about.todayScores" />
         </Link>
         <Link href={`/${locale}/register`} className="underline">
-          Create an account
+          <Translated locale={lang} message="home.guestInvite.link" />
         </Link>
       </p>
       <p className="text-sm text-muted">
-        Predicting needs an account with a verified e-mail address.
+        <Translated locale={lang} message="about.account" />
       </p>
     </main>
   );

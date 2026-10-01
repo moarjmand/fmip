@@ -4,9 +4,12 @@ import { redirect } from 'next/navigation';
 import type { FeedItem, FeedSignal, MatchViewing } from '@fmip/contracts';
 import { BriefingPanel } from '@/components/briefing';
 import { FollowNextSteps } from '@/components/follow-next-steps';
+import { LtrNumeric } from '@/components/score';
 import { Translated } from '@/components/translated';
 import { ViewingPanel } from '@/components/viewing-panel';
-import { formatDateTime } from '@/i18n/format';
+import { formatDateTime, formatNumber } from '@/i18n/format';
+import { DEFAULT_LOCALE, type Locale, isLocale } from '@/i18n/locales';
+import { t } from '@/i18n/messages';
 import {
   fetchBriefing,
   fetchFeed,
@@ -35,11 +38,12 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  const resolved: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
   return pageMetadata({
     locale,
     path: '/following',
-    title: 'Following · FMIP',
-    description: 'What is happening around the teams, competitions and contributors you follow.',
+    title: `${t(resolved, 'feed.title')} · FMIP`,
+    description: t(resolved, 'followingPage.description'),
     index: false,
   });
 }
@@ -197,7 +201,9 @@ function Item({
       </h2>
       {item.kind === 'fixture' && item.score !== null && (
         <p className="text-sm">
-          {item.score.home} – {item.score.away}
+          <LtrNumeric>
+            {formatNumber(locale, item.score.home)} – {formatNumber(locale, item.score.away)}
+          </LtrNumeric>
         </p>
       )}
       {item.kind === 'fixture' && viewing !== undefined && (
@@ -234,7 +240,7 @@ function Item({
           </li>
         ))}
         <li className="text-muted" data-testid="feed-rank">
-          <Translated locale={locale} message="feed.rank" /> {item.rank}
+          <Translated locale={locale} message="feed.rank" /> {formatNumber(locale, item.rank)}
         </li>
       </ul>
     </article>
@@ -248,7 +254,7 @@ function Signal({ signal, locale }: { signal: FeedSignal; locale: string }) {
         locale={locale}
         message="feed.signal.discussed"
         count={signal.participants}
-        params={{ hours: String(signal.window_hours) }}
+        params={{ hours: formatNumber(locale, signal.window_hours) }}
       />
     );
   }

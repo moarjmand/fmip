@@ -9,17 +9,17 @@ import type {
   NotificationPreference,
   NotificationSettings,
 } from '@fmip/contracts';
-import {
-  NOTIFICATION_CATEGORIES,
-  NOTIFICATION_HOURLY_CAP,
-  isMatchAlertKind,
-} from '@fmip/contracts';
+import { NOTIFICATION_CATEGORIES, isMatchAlertKind } from '@fmip/contracts';
+import { useClientMessages } from '@/components/client-messages';
+import { MessageText } from '@/components/message-text';
+import type { Message, MessageKey } from '@/i18n/messages';
 import {
   muteAction,
   setNotificationPreferenceAction,
   setQuietHoursAction,
   unmuteAction,
 } from '@/lib/notification-actions';
+import { KIND_ROW_KEYS, type NotificationSettingsMessages } from '@/lib/notification-messages';
 import { isSectionedKind, type SectionedKind } from '@/lib/notification-sections';
 import { Button, FormStatus, Select, TextField } from '@/components/ui';
 
@@ -44,34 +44,34 @@ import { Button, FormStatus, Select, TextField } from '@/components/ui';
  */
 type ListedKind = Exclude<NotificationKind, MatchAlertKind | SectionedKind>;
 
-const KIND_LABEL: Record<ListedKind, string> = {
-  prediction_settled: 'When a prediction of mine is settled',
-  rating_changed: 'When my Performance Rating changes',
-  career_points_awarded: 'When I earn Career Points',
-  achievement_unlocked: 'When I earn an achievement (once each)',
-  friend_request: 'When somebody sends me a friend request',
-  friend_accepted: 'When somebody accepts my friend request',
-  message_received: 'When somebody sends me a message',
-  mentioned: 'When somebody mentions me',
-  group_invite: 'When somebody invites me to a group',
-  group_join_request: 'When somebody asks to join a group I run',
-  moderation_decision: 'When a moderation decision is made about my account',
-  contributor_granted: 'When I am approved as a contributor',
-  contributor_grant_changed: 'When my contributor approval changes',
-  panel_reaction: 'When somebody reacts to something I posted',
-  briefing: 'When a briefing of mine is written',
-  campaign: 'When the platform sends a message to members like me',
+type SettingsKey = keyof NotificationSettingsMessages & MessageKey;
+
+const KIND_LABEL: Record<ListedKind, SettingsKey> = {
+  prediction_settled: 'alerts.kind.predictionSettled',
+  rating_changed: 'alerts.kind.ratingChanged',
+  career_points_awarded: 'alerts.kind.careerPointsAwarded',
+  achievement_unlocked: 'alerts.kind.achievementUnlocked',
+  friend_request: 'alerts.kind.friendRequest',
+  friend_accepted: 'alerts.kind.friendAccepted',
+  message_received: 'alerts.kind.messageReceived',
+  mentioned: 'alerts.kind.mentioned',
+  group_invite: 'alerts.kind.groupInvite',
+  group_join_request: 'alerts.kind.groupJoinRequest',
+  moderation_decision: 'alerts.kind.moderationDecision',
+  contributor_granted: 'alerts.kind.contributorGranted',
+  contributor_grant_changed: 'alerts.kind.contributorGrantChanged',
+  panel_reaction: 'alerts.kind.panelReaction',
+  briefing: 'alerts.kind.briefing',
+  campaign: 'alerts.kind.campaign',
   // Opt-in (T-1005, D-125): once per story, about a team, competition or player I follow.
-  breaking_news: 'When an editor marks a story about something I follow as breaking',
+  breaking_news: 'alerts.kind.breakingNews',
   // Opt-in (T-1032, D-166): once per story, about a team or player I follow.
-  transfer_news: 'When a story about a team or player I follow is typed as a transfer',
-  availability_news:
-    'When a story about a team or player I follow is typed as an injury or suspension',
+  transfer_news: 'alerts.kind.transferNews',
+  availability_news: 'alerts.kind.availabilityNews',
   // Offered to administrators only; the API leaves it out for everyone else (T-802).
-  system_alert: 'When the watchdog raises or clears a system alert (at any hour)',
+  system_alert: 'alerts.kind.systemAlert',
   // Administrators only, like the system alert (T-1031, D-137).
-  contributor_below_threshold:
-    'When a contributor has stayed below the contributor threshold and is flagged',
+  contributor_below_threshold: 'alerts.kind.contributorBelowThreshold',
 };
 
 /** The kinds this list offers: every one but those with a section of their own. */
@@ -82,22 +82,39 @@ function isListedHere(
 }
 
 /** The categories a member can silence as one (T-331), named in words. */
-const CATEGORY_LABEL: Record<NotificationCategory, string> = {
-  football: "Football: my predictions, my rating and my points, and the founder's analyses",
-  social: "Social: friends, friends' predictions, messages, mentions, groups and reactions",
-  account: 'My account: moderation and contributor decisions, and reviews of my analyses',
-  match: 'Match alerts: team news, line-ups, kick-off, goals, red cards, half-time and full-time',
+const CATEGORY_LABEL: Record<NotificationCategory, SettingsKey> = {
+  football: 'alerts.category.football',
+  social: 'alerts.category.social',
+  account: 'alerts.category.account',
+  match: 'alerts.category.match',
 };
 
-function MuteRow({ locale, mute }: { locale: string; mute: NotificationMute }) {
+/** What a silenced thing of each scope stops, in words. */
+const MUTE_SCOPE_LABEL: Record<NotificationMute['scope'], SettingsKey> = {
+  team: 'alerts.mute.team',
+  competition: 'alerts.mute.competition',
+  category: 'alerts.mute.category',
+};
+
+function MuteRow({
+  locale,
+  mute,
+  messages,
+}: {
+  locale: string;
+  mute: NotificationMute;
+  messages: NotificationSettingsMessages;
+}) {
   const [state, formAction, pending] = useActionState(
     unmuteAction.bind(null, locale, mute.scope, mute.target),
     null,
   );
   const name =
-    mute.scope === 'category'
-      ? CATEGORY_LABEL[mute.target as NotificationCategory]
-      : (mute.label ?? mute.target);
+    mute.scope === 'category' ? (
+      <MessageText message={messages[CATEGORY_LABEL[mute.target as NotificationCategory]]} />
+    ) : (
+      (mute.label ?? mute.target)
+    );
   return (
     <li
       className="flex flex-wrap items-center justify-between gap-2 border-b border-default py-2"
@@ -107,14 +124,12 @@ function MuteRow({ locale, mute }: { locale: string; mute: NotificationMute }) {
       <span className="flex flex-col">
         <span className="text-sm">{name}</span>
         <span className="text-xs text-muted">
-          {mute.scope === 'team' && 'Team: nothing about its matches'}
-          {mute.scope === 'competition' && 'Competition: nothing about its matches'}
-          {mute.scope === 'category' && 'Category: nothing of these kinds'}
+          <MessageText message={messages[MUTE_SCOPE_LABEL[mute.scope]]} />
         </span>
       </span>
       <form action={formAction}>
         <Button type="submit" pending={pending}>
-          Unmute
+          <MessageText message={messages['alerts.unmute']} />
         </Button>
         {state !== null && !state.ok && (
           <FormStatus ok={false} as="span" size="xs" className="ms-2">
@@ -131,11 +146,13 @@ function MuteForm({
   scope,
   label,
   options,
+  messages,
 }: {
   locale: string;
   scope: 'team' | 'competition' | 'category';
-  label: string;
+  label: Message;
   options: { value: string; label: string }[];
+  messages: NotificationSettingsMessages;
 }) {
   const [state, formAction, pending] = useActionState(muteAction.bind(null, locale, scope), null);
   const id = `mute-${scope}`;
@@ -145,8 +162,8 @@ function MuteForm({
       className="flex flex-wrap items-end gap-2"
       data-testid={`mute-${scope}`}
     >
-      <Select label={label} id={id} name="target" size="sm">
-        <option value="">Choose…</option>
+      <Select label={<MessageText message={label} />} id={id} name="target" size="sm">
+        <option value="">{messages['alerts.choose'].text}</option>
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
@@ -154,36 +171,59 @@ function MuteForm({
         ))}
       </Select>
       <Button type="submit" pending={pending}>
-        Silence
+        <MessageText message={messages['alerts.silence']} />
       </Button>
       {state !== null && (
         <FormStatus ok={state.ok} as="span" size="xs">
-          {state.ok ? (state.message ?? 'Done.') : state.message}
+          {state.ok
+            ? (state.message ?? <MessageText message={messages['alerts.done']} />)
+            : state.message}
         </FormStatus>
       )}
     </form>
   );
 }
 
-/** One kind's switch. Exported for the match-alert section, which words its own labels (T-831). */
+/**
+ * The switch's own words where no provider hands them down: the English,
+ * marked as standing in (T-151). The settings page always provides them
+ * (`KIND_ROW_KEYS`), so a reader never meets this; it keeps a render outside
+ * that page honest rather than blank.
+ */
+const KIND_ROW_STANDING_IN: Record<(typeof KIND_ROW_KEYS)[number], Message> = {
+  'alerts.yourChoice': { text: 'Your choice', status: 'untranslated' },
+  'alerts.default': { text: 'Default', status: 'untranslated' },
+  'alerts.on': { text: 'On', status: 'untranslated' },
+  'alerts.off': { text: 'Off', status: 'untranslated' },
+};
+
+/**
+ * One kind's switch. Exported for the match-alert section, which words its own
+ * labels (T-831). Its own words -- whose choice it is, on or off -- come from
+ * the page's `ClientMessagesProvider`, because the server sections draw it
+ * too (T-1305).
+ */
 export function KindRow({
   locale,
   kind,
   label,
   inProduct,
   chosen,
+  cap,
 }: {
   locale: string;
   kind: NotificationKind;
   label: ReactNode;
   inProduct: boolean;
   chosen: boolean;
+  /** "at most N an hour", resolved on the server from `NOTIFICATION_HOURLY_CAP[kind]`. */
+  cap?: Message;
 }) {
   const [state, formAction, pending] = useActionState(
     setNotificationPreferenceAction.bind(null, locale, kind, !inProduct),
     null,
   );
-  const cap = NOTIFICATION_HOURLY_CAP[kind];
+  const words = useClientMessages(KIND_ROW_KEYS) ?? KIND_ROW_STANDING_IN;
 
   return (
     <li className="flex flex-wrap items-center justify-between gap-2 border-b border-default py-2">
@@ -192,8 +232,13 @@ export function KindRow({
         <span className="text-xs text-muted">
           {/* Said out loud, because "Default" and "your choice that happens to
               match the default" behave differently the day a default changes. */}
-          {chosen ? 'Your choice' : 'Default'}
-          {cap !== undefined && ` · at most ${String(cap)} an hour`}
+          <MessageText message={words[chosen ? 'alerts.yourChoice' : 'alerts.default']} />
+          {cap !== undefined && (
+            <>
+              {' · '}
+              <MessageText message={cap} />
+            </>
+          )}
         </span>
       </span>
       <form action={formAction}>
@@ -206,7 +251,7 @@ export function KindRow({
           selected={inProduct}
           data-testid={`notification-kind-${kind}`}
         >
-          {inProduct ? 'On' : 'Off'}
+          <MessageText message={words[inProduct ? 'alerts.on' : 'alerts.off']} />
         </Button>
         {state !== null && !state.ok && (
           <FormStatus ok={false} as="span" size="xs" className="ms-2">
@@ -225,9 +270,15 @@ export function NotificationSettingsForm({
   competitions,
   matchAlerts,
   sections,
+  messages,
+  caps,
 }: {
   locale: string;
   settings: NotificationSettings;
+  /** Resolved on the server for the reader's locale (T-1040): `NOTIFICATION_SETTINGS_KEYS`. */
+  messages: NotificationSettingsMessages;
+  /** Each capped kind's "at most N an hour", resolved as a plural on the server. */
+  caps: Partial<Record<NotificationKind, Message>>;
   /** The match-alert section, rendered on the server with its catalogue words (T-831). */
   matchAlerts?: ReactNode;
   /** The other sections of their own, rendered on the server the same way (T-832). */
@@ -244,16 +295,19 @@ export function NotificationSettingsForm({
   return (
     <div className="flex flex-col gap-8">
       <section className="flex flex-col gap-2">
-        <h2 className="text-lg font-semibold">What arrives</h2>
+        <h2 className="text-lg font-semibold">
+          <MessageText message={messages['alerts.whatArrives']} />
+        </h2>
         <ul className="flex flex-col" data-testid="notification-kinds">
           {settings.preferences.filter(isListedHere).map((preference) => (
             <KindRow
               key={preference.kind}
               locale={locale}
               kind={preference.kind}
-              label={KIND_LABEL[preference.kind]}
+              label={<MessageText message={messages[KIND_LABEL[preference.kind]]} />}
               inProduct={preference.in_product}
               chosen={preference.chosen}
+              cap={caps[preference.kind]}
             />
           ))}
         </ul>
@@ -264,82 +318,102 @@ export function NotificationSettingsForm({
       {sections}
 
       <section className="flex flex-col gap-3" data-testid="notification-mutes">
-        <h2 className="text-lg font-semibold">What stays quiet</h2>
+        <h2 className="text-lg font-semibold">
+          <MessageText message={messages['alerts.whatStaysQuiet']} />
+        </h2>
         <p className="text-sm text-muted">
-          Silence one team without silencing football. A silenced team or competition stops what is
-          about its matches and nothing else; a silenced category stops every kind in it. The
-          switches above are untouched.
+          <MessageText message={messages['alerts.quietIntro']} />
         </p>
         {settings.mutes.length === 0 ? (
           <p className="text-sm text-muted" data-testid="no-mutes">
-            Nothing is silenced.
+            <MessageText message={messages['alerts.nothingSilenced']} />
           </p>
         ) : (
           <ul className="flex flex-col">
             {settings.mutes.map((mute) => (
-              <MuteRow key={`${mute.scope}:${mute.target}`} locale={locale} mute={mute} />
+              <MuteRow
+                key={`${mute.scope}:${mute.target}`}
+                locale={locale}
+                mute={mute}
+                messages={messages}
+              />
             ))}
           </ul>
         )}
         {teams === null ? (
           <p role="status" className="text-sm text-muted">
-            The team list could not be loaded right now.
+            <MessageText message={messages['alerts.teamsUnavailable']} />
           </p>
         ) : (
           <MuteForm
             locale={locale}
             scope="team"
-            label="Silence a team"
+            label={messages['alerts.silenceTeam']}
+            messages={messages}
             options={teams.map((t) => ({ value: t.id, label: t.name }))}
           />
         )}
         {competitions === null ? (
           <p role="status" className="text-sm text-muted">
-            The competition list could not be loaded right now.
+            <MessageText message={messages['alerts.competitionsUnavailable']} />
           </p>
         ) : (
           <MuteForm
             locale={locale}
             scope="competition"
-            label="Silence a competition"
+            label={messages['alerts.silenceCompetition']}
+            messages={messages}
             options={competitions.map((c) => ({ value: c.id, label: c.name }))}
           />
         )}
         <MuteForm
           locale={locale}
           scope="category"
-          label="Silence a category"
-          options={NOTIFICATION_CATEGORIES.map((c) => ({ value: c, label: CATEGORY_LABEL[c] }))}
+          label={messages['alerts.silenceCategory']}
+          messages={messages}
+          options={NOTIFICATION_CATEGORIES.map((c) => ({
+            value: c,
+            label: messages[CATEGORY_LABEL[c]].text,
+          }))}
         />
       </section>
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-lg font-semibold">Quiet hours</h2>
+        <h2 className="text-lg font-semibold">
+          <MessageText message={messages['alerts.quietHours']} />
+        </h2>
         <p className="text-sm text-muted" data-testid="quiet-hours-explainer">
-          Nothing is thrown away. A notification that arrives during your quiet hours waits until
-          they end, and says so. Times are on your own clock ({settings.timezone}).
+          {/* The zone is the member's own setting, filled into the sentence (`{timezone}`). */}
+          <MessageText
+            message={{
+              ...messages['alerts.quietExplainer'],
+              text: messages['alerts.quietExplainer'].text.replace('{timezone}', settings.timezone),
+            }}
+          />
         </p>
         <form action={quietAction} className="flex flex-wrap items-end gap-3">
           <TextField
-            label="From"
+            label={<MessageText message={messages['news.filter.from']} />}
             type="time"
             name="starts_at"
             size="sm"
             defaultValue={settings.quiet_hours?.starts_at ?? ''}
           />
           <TextField
-            label="Until"
+            label={<MessageText message={messages['alerts.until']} />}
             type="time"
             name="ends_at"
             size="sm"
             defaultValue={settings.quiet_hours?.ends_at ?? ''}
           />
           <Button type="submit" pending={quietPending} data-testid="quiet-hours-save">
-            Save
+            <MessageText message={messages['alerts.save']} />
           </Button>
           {/* Cleared by submitting both fields empty, rather than by a second
               button that would be a second thing to explain. */}
-          <span className="text-xs text-muted">Leave both empty to clear them.</span>
+          <span className="text-xs text-muted">
+            <MessageText message={messages['alerts.clearHint']} />
+          </span>
         </form>
         {quietState !== null && (
           <FormStatus ok={quietState.ok} data-testid="quiet-hours-result">

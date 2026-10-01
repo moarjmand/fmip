@@ -5,7 +5,7 @@ import { ActionForm } from '@/components/action-form';
 import { SaveArticle } from '@/components/save-article';
 import { StoryTypeTag } from '@/components/story-type';
 import { Translated } from '@/components/translated';
-import { formatDateTime } from '@/i18n/format';
+import { formatDateTime, formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE, type Locale, UNFINISHED_LOCALES, isLocale } from '@/i18n/locales';
 import { t } from '@/i18n/messages';
 import {
@@ -56,8 +56,7 @@ export async function generateMetadata({
     // The sections are one page with four views; the filters do not make new ones.
     path: q.section === 'latest' ? '/news' : `/news?section=${q.section}`,
     title: `${t(resolved, SECTION_KEY[q.section])} · ${t(resolved, 'news.title')} · FMIP`,
-    description:
-      'Football news as publishers report it: the latest, what is being discussed, the debates editors picked, and stories about what you follow.',
+    description: t(resolved, 'newsPage.description'),
   });
 }
 
@@ -148,7 +147,12 @@ export default async function NewsPage({
         story (T-1206): they wait behind a disclosure, open when one is set.
       */}
       <details open={filtered} className="group text-sm" data-testid="news-filters-toggle">
-        <summary className="cursor-pointer font-medium">Filters{filtered ? ' (on)' : ''}</summary>
+        <summary className="cursor-pointer font-medium">
+          <Translated
+            locale={locale}
+            message={filtered ? 'newsPage.filtersOn' : 'newsPage.filters'}
+          />
+        </summary>
         <form
           action={`/${locale}/news`}
           method="get"
@@ -561,14 +565,14 @@ function Story({
             locale={locale}
             message="news.discussion"
             count={card.discussion.participants}
-            params={{ hours: String(card.discussion.window_hours) }}
+            params={{ hours: formatNumber(locale, card.discussion.window_hours) }}
           />
           {' · '}
           <Translated
             locale={locale}
             message="news.savers"
             count={card.discussion.savers}
-            params={{ hours: String(card.discussion.window_hours) }}
+            params={{ hours: formatNumber(locale, card.discussion.window_hours) }}
           />
         </p>
       )}

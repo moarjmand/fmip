@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { withLocale } from './locale-query';
+import { withLocale, withReaderLocale } from './locale-query';
 
 describe('withLocale', () => {
   it('starts a query string when there is none', () => {
@@ -19,5 +19,25 @@ describe('withLocale', () => {
 
   it('never lets the tag break the query', () => {
     expect(withLocale('/teams/abc', 'x rtl&y=1')).toBe('/teams/abc?locale=x%20rtl%26y%3D1');
+  });
+});
+
+describe('withReaderLocale (T-1312)', () => {
+  it("adds the reader's locale to a read", () => {
+    expect(withReaderLocale('/scores?from=2026-10-01', 'GET', 'fa')).toBe(
+      '/scores?from=2026-10-01&locale=fa',
+    );
+  });
+
+  it('leaves writes, the console, a chosen locale and English alone', () => {
+    expect(withReaderLocale('/fixtures/x/predictions', 'POST', 'fa')).toBe(
+      '/fixtures/x/predictions',
+    );
+    expect(withReaderLocale('/admin/overview', 'GET', 'fa')).toBe('/admin/overview');
+    expect(withReaderLocale('/teams/x?locale=ar', 'GET', 'fa')).toBe('/teams/x?locale=ar');
+    expect(withReaderLocale('/teams/x', 'GET', 'en')).toBe('/teams/x');
+    expect(withReaderLocale('/teams/x', 'GET', 'x-rtl')).toBe('/teams/x');
+    expect(withReaderLocale('/teams/x', 'GET', 'zz')).toBe('/teams/x');
+    expect(withReaderLocale('/teams/x', 'GET', null)).toBe('/teams/x');
   });
 });

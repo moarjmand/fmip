@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { MatchCentreView, type MatchSlots } from '@/components/match-centre-view';
 import { matchAnnouncements } from '@/lib/announce';
+import { withLocale } from '@/lib/locale-query';
 import { INITIAL_CLOCK, type LiveClock, liveLabel, liveState } from '@/lib/live';
+import type { MatchWords } from '@/lib/words-server';
 
 /**
  * The match centre that stays current (T-032, T-034): renders the server's
@@ -27,6 +29,7 @@ export function LiveMatch({
   timeZone,
   locale,
   slots,
+  words,
 }: {
   initial: MatchCentre;
   timeZone: string;
@@ -36,6 +39,8 @@ export function LiveMatch({
    * rest -- each placed by the view in its own section of the page (T-605).
    */
   slots: MatchSlots;
+  /** The reader's words, resolved by the page on the server (T-1303). */
+  words: MatchWords;
 }) {
   const [centre, setCentre] = useState(initial);
   const [clock, setClock] = useState<LiveClock>(INITIAL_CLOCK);
@@ -46,7 +51,8 @@ export function LiveMatch({
   const router = useRouter();
 
   useEffect(() => {
-    const source = new EventSource(`/api/fixtures/${id}/stream`);
+    // The reader's names in every snapshot, as on the server-rendered page (T-1312).
+    const source = new EventSource(withLocale(`/api/fixtures/${id}/stream`, locale));
     let panelRefresh: ReturnType<typeof setTimeout> | null = null;
     const stamp = (snapshot: boolean): void =>
       setClock((c) => ({
@@ -57,7 +63,7 @@ export function LiveMatch({
     source.addEventListener('snapshot', (event) => {
       const next = JSON.parse((event as MessageEvent<string>).data) as MatchCentre;
       setCentre((previous) => {
-        const said = matchAnnouncements(previous, next);
+        const said = matchAnnouncements(previous, next, words);
         if (said.length > 0) setAnnouncement(said.join(' '));
         return next;
       });
@@ -81,7 +87,7 @@ export function LiveMatch({
       if (panelRefresh !== null) clearTimeout(panelRefresh);
       source.close();
     };
-  }, [id, router]);
+  }, [id, router, words, locale]);
 
   const state = liveState(clock, now);
   return (
@@ -98,7 +104,7 @@ export function LiveMatch({
         data-state={state}
         role={state === 'stale' || state === 'unavailable' ? 'status' : undefined}
       >
-        {liveLabel(state, clock, locale, timeZone)}
+        {liveLabel(state, clock, locale, timeZone, words.m)}
       </p>
       <div
         aria-live="polite"
@@ -114,6 +120,7 @@ export function LiveMatch({
         locale={locale}
         now={now}
         slots={slots}
+        words={words}
       />
     </>
   );

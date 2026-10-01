@@ -1,5 +1,11 @@
 import type { LocaleHoldRecord } from '@fmip/contracts';
-import { DEFAULT_LOCALE, LOCALES, type Locale, isPseudoLocale } from '@/i18n/locales';
+import {
+  DEFAULT_LOCALE,
+  LOCALES,
+  type Locale,
+  isPreparingLocale,
+  isPseudoLocale,
+} from '@/i18n/locales';
 import { EN, type Coverage, TRANSLATION_FILES, coverage, isShippable } from '@/i18n/messages';
 
 /**
@@ -45,6 +51,7 @@ const NAME_KEY = {
   ar: 'language.name.ar',
   de: 'language.name.de',
   es: 'language.name.es',
+  fa: 'language.name.fa',
   fr: 'language.name.fr',
   it: 'language.name.it',
   pt: 'language.name.pt',
@@ -79,8 +86,11 @@ export function languageRows(
       percent: Math.floor(((c.total - c.untranslated) / c.total) * 100),
       ready: shippable(locale),
       hold: inForce.get(locale) ?? null,
+      // A locale still being written into the pages (T-1310) is not offered,
+      // however complete its catalogue (D-175).
       offered:
         shippable(locale) &&
+        !isPreparingLocale(locale) &&
         (locale === DEFAULT_LOCALE || (holds !== null && !inForce.has(locale))),
     };
   });

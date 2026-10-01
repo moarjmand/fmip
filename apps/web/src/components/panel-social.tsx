@@ -1,10 +1,13 @@
 'use client';
 
-import { useActionState } from 'react';
+import { type ReactNode, useActionState } from 'react';
 import type { PanelReaction, PanelReactionTally } from '@fmip/contracts';
 import { PANEL_REACTIONS } from '@fmip/contracts';
 import { setFollowAction, setPanelReactionAction } from '@/lib/panel-social-actions';
 import { Button, FormStatus } from '@/components/ui';
+import { MessageText } from '@/components/message-text';
+import { formatNumber } from '@/i18n/format';
+import type { Message } from '@/i18n/messages';
 
 /**
  * Reacting to a panel post, and following a contributor (blueprint 10.2,
@@ -20,14 +23,11 @@ import { Button, FormStatus } from '@/components/ui';
  * the absence reads as a door rather than as a surface that does not exist.
  */
 
-const LABELS: Record<PanelReaction, string> = {
-  agree: 'Agree',
-  disagree: 'Disagree',
-  laugh: 'Laugh',
-  surprise: 'Surprise',
-  sad: 'Sad',
-  celebrate: 'Celebrate',
-};
+/**
+ * Each reaction's name, resolved on the server by the panel (T-1308): the
+ * catalogues never reach a client bundle (T-1040).
+ */
+export type PanelReactionLabels = Record<PanelReaction, Message>;
 
 /** The glyph beside each label. Decoration only: the label is what is read out. */
 const GLYPHS: Record<PanelReaction, string> = {
@@ -46,6 +46,8 @@ function ReactionButton({
   reaction,
   count,
   mine,
+  label,
+  yours,
 }: {
   locale: string;
   fixtureId: string;
@@ -53,6 +55,9 @@ function ReactionButton({
   reaction: PanelReaction;
   count: number;
   mine: boolean;
+  label: Message;
+  /** "yours", in the reader's language, for the spoken label. */
+  yours: string;
 }) {
   const [state, formAction, pending] = useActionState(
     setPanelReactionAction.bind(null, locale, fixtureId, postId, reaction, !mine),
@@ -69,11 +74,11 @@ function ReactionButton({
         // a screen reader and neither does a bold count.
         aria-pressed={mine}
         selected={mine}
-        aria-label={`${LABELS[reaction]}${count > 0 ? `, ${count}` : ''}${mine ? ', yours' : ''}`}
+        aria-label={`${label.text}${count > 0 ? `, ${formatNumber(locale, count)}` : ''}${mine ? `, ${yours}` : ''}`}
         data-testid={`panel-react-${postId}-${reaction}`}
       >
-        <span aria-hidden="true">{GLYPHS[reaction]}</span> {LABELS[reaction]}
-        {count > 0 && <span className="ms-1 tabular-nums">{count}</span>}
+        <span aria-hidden="true">{GLYPHS[reaction]}</span> <MessageText message={label} />
+        {count > 0 && <span className="ms-1 tabular-nums">{formatNumber(locale, count)}</span>}
       </Button>
       {state !== null && !state.ok && (
         <FormStatus ok={false} size="xs">
@@ -91,10 +96,14 @@ export function PanelReactions({
   tallies,
   mine,
   signedIn,
+  labels,
+  yours,
 }: {
   locale: string;
   fixtureId: string;
   postId: string;
+  labels: PanelReactionLabels;
+  yours: string;
   tallies: PanelReactionTally[];
   /** Which of the six this viewer has left on this post. Empty for a guest. */
   mine: PanelReaction[];
@@ -112,8 +121,9 @@ export function PanelReactions({
       <p className="flex flex-wrap gap-2 text-xs text-muted" data-testid={`panel-tally-${postId}`}>
         {present.map((reaction) => (
           <span key={reaction}>
-            <span aria-hidden="true">{GLYPHS[reaction]}</span> {LABELS[reaction]}{' '}
-            <span className="tabular-nums">{counts.get(reaction)}</span>
+            <span aria-hidden="true">{GLYPHS[reaction]}</span>{' '}
+            <MessageText message={labels[reaction]} />{' '}
+            <span className="tabular-nums">{formatNumber(locale, counts.get(reaction) ?? 0)}</span>
           </span>
         ))}
       </p>
@@ -131,6 +141,8 @@ export function PanelReactions({
           reaction={reaction}
           count={counts.get(reaction) ?? 0}
           mine={mine.includes(reaction)}
+          label={labels[reaction]}
+          yours={yours}
         />
       ))}
     </div>
@@ -149,11 +161,14 @@ export function FollowButton({
   fixtureId,
   username,
   following,
+  labels,
 }: {
   locale: string;
   fixtureId: string;
   username: string;
   following: boolean;
+  /** Resolved on the server by the panel (T-1308). */
+  labels: { follow: ReactNode; following: ReactNode; working: ReactNode };
 }) {
   const [state, formAction, pending] = useActionState(
     setFollowAction.bind(null, locale, fixtureId, username, !following),
@@ -166,11 +181,11 @@ export function FollowButton({
         type="submit"
         size="xs"
         pending={pending}
-        pendingLabel="Working…"
+        pendingLabel={labels.working}
         aria-pressed={following}
         data-testid={`panel-follow-${username}`}
       >
-        {following ? 'Following' : 'Follow'}
+        {following ? labels.following : labels.follow}
       </Button>
       {state !== null && !state.ok && (
         <FormStatus ok={false} as="span" size="xs" className="ms-2">

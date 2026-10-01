@@ -5,7 +5,13 @@ import type {
   ModelLeadingFactorKind,
   ModelProbabilities,
 } from '@fmip/contracts';
+import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
+import { interpolate, t, type MessageKey } from '@/i18n/messages';
+import { FORECAST_REASON_KEY, formatFixed } from './words';
 import { sharesToPercentages } from './triple';
+
+/** The page's locale as the catalogue takes it. */
+const asLocale = (locale: string): Locale => (isLocale(locale) ? locale : DEFAULT_LOCALE);
 
 /**
  * Pure helpers for the forecast panel (T-065, blueprint 6.1–6.4). The panel
@@ -30,18 +36,33 @@ export function percentages(p: ModelProbabilities): ModelProbabilities {
   return sharesToPercentages(p);
 }
 
-export const KIND_LABEL: Record<ForecastKind, string> = {
-  early: 'Early pre-match',
-  lineups_predicted: 'Predicted line-ups',
-  lineups_confirmed: 'Confirmed line-ups',
-  manual: 'Manual recomputation',
-};
+const KIND_KEY = {
+  early: 'forecast.kind.early',
+  lineups_predicted: 'forecast.kind.lineupsPredicted',
+  lineups_confirmed: 'forecast.kind.lineupsConfirmed',
+  manual: 'forecast.kind.manual',
+} as const satisfies Record<ForecastKind, MessageKey>;
 
-export const FACTOR_LABEL: Record<ModelLeadingFactorKind, string> = {
-  team_strength: 'Team strength',
-  home_advantage: 'Home advantage',
-  attack_vs_defence: 'Attack against defence',
-};
+const FACTOR_KEY = {
+  team_strength: 'forecast.factor.teamStrength',
+  home_advantage: 'forecast.factor.homeAdvantage',
+  attack_vs_defence: 'forecast.factor.attackVsDefence',
+} as const satisfies Record<ModelLeadingFactorKind, MessageKey>;
+
+/** Which kind of version it is, in the reader's words (T-1303). */
+export function kindLabel(kind: ForecastKind, locale = 'en'): string {
+  return t(asLocale(locale), KIND_KEY[kind]);
+}
+
+/** A leading factor's name, in the reader's words. */
+export function factorLabel(factor: ModelLeadingFactorKind, locale = 'en'): string {
+  return t(asLocale(locale), FACTOR_KEY[factor]);
+}
+
+/** Why a version has no probabilities, in the reader's words. */
+export function unavailableLabel(reason: ForecastUnavailableReason, locale = 'en'): string {
+  return t(asLocale(locale), FORECAST_REASON_KEY[reason]);
+}
 
 /**
  * The line the factor list adds when a version was computed without the Elo
@@ -49,21 +70,10 @@ export const FACTOR_LABEL: Record<ModelLeadingFactorKind, string> = {
  * source's state now. `null` when the prior was used, or when the version
  * reported no inputs (an unavailable one has no factors to qualify).
  */
-export function priorNote(version: Pick<ForecastVersion, 'inputs'>): string | null {
+export function priorNote(version: Pick<ForecastVersion, 'inputs'>, locale = 'en'): string | null {
   if (version.inputs === null || version.inputs.elo_used) return null;
-  return 'No Elo prior this time: the long-term ratings were not available when this version was computed, so team strength rests on results alone.';
+  return t(asLocale(locale), 'forecast.noEloPrior');
 }
-
-export const UNAVAILABLE_LABEL: Record<ForecastUnavailableReason, string> = {
-  team_not_mapped: 'The model does not know one of the teams yet.',
-  no_history: 'The model has too little match history for one of the teams.',
-  division_not_loaded: "This competition's history is not loaded into the model.",
-  competition_not_mapped: "This competition's history is not in the model's training data.",
-  cross_competition:
-    'The model rates clubs within one league; a match between clubs of different leagues waits for its next version.',
-  model_unreachable: 'The model service could not be reached when this version was computed.',
-  contract_violation: "The model's answer did not match the contract and was not used.",
-};
 
 /** The outcome the model gives the most probability, and whether it is a clear lead. */
 export function favourite(p: ModelProbabilities): {
@@ -87,13 +97,14 @@ export function favourite(p: ModelProbabilities): {
  * The wording under the probabilities. Never "X will win": the model gives
  * every outcome a chance, and the sentence says how far apart they are.
  */
-export function framing(p: ModelProbabilities, home: string, away: string): string {
+export function framing(p: ModelProbabilities, home: string, away: string, locale = 'en'): string {
+  const l = asLocale(locale);
   const { outcome, margin } = favourite(p);
-  const side = outcome === 'home' ? home : outcome === 'away' ? away : 'a draw';
-  if (margin < 5) {
-    return `The model sees this as close: ${side} is ahead by ${margin.toFixed(1)} points, which is within the noise of a football match.`;
-  }
-  return `The model gives ${side} the most probability, ${margin.toFixed(1)} points ahead of the next outcome. Every outcome remains possible; these are probabilities, not a prediction of the result.`;
+  const side = outcome === 'home' ? home : outcome === 'away' ? away : t(l, 'forecast.aDraw');
+  return interpolate(t(l, margin < 5 ? 'forecast.framing.close' : 'forecast.framing.clear'), {
+    side,
+    margin: formatFixed(locale, margin, 1),
+  });
 }
 
 export interface VersionChange {
@@ -122,12 +133,28 @@ export function versionChanges(versions: ForecastVersion[]): VersionChange[] {
 }
 
 /** "Liverpool +3.2, draw −1.0, Manchester United −2.2 after confirmed line-ups". */
-export function describeChange(change: VersionChange, home: string, away: string): string | null {
+export function describeChange(
+  change: VersionChange,
+  home: string,
+  away: string,
+  locale = 'en',
+): string | null {
   if (change.delta === null) return null;
-  const sign = (n: number): string => (n > 0 ? `+${n.toFixed(1)}` : n.toFixed(1));
+  const l = asLocale(locale);
+  // `+3.2` / `-1.0` / `0.0`, as the line has always written it, in the locale's digits.
+  const sign = (n: number): string =>
+    `${n > 0 ? '+' : n < 0 ? '-' : ''}${formatFixed(locale, Math.abs(n), 1)}`;
   const d = change.delta;
+  const kind = kindLabel(change.version.kind, locale).toLowerCase();
   if (d.home === 0 && d.draw === 0 && d.away === 0) {
-    return `No change in probabilities (${KIND_LABEL[change.version.kind].toLowerCase()}).`;
+    return interpolate(t(l, 'forecast.change.none'), { kind });
   }
-  return `${home} ${sign(d.home)}, draw ${sign(d.draw)}, ${away} ${sign(d.away)} points (${KIND_LABEL[change.version.kind].toLowerCase()}).`;
+  return interpolate(t(l, 'forecast.change.moved'), {
+    home,
+    homeDelta: sign(d.home),
+    drawDelta: sign(d.draw),
+    away,
+    awayDelta: sign(d.away),
+    kind,
+  });
 }

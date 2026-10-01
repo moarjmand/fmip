@@ -41,6 +41,12 @@ export interface ScoreLine {
 export const STALE_LIVE_AFTER_MS = 120_000;
 export type Freshness = 'current' | 'stale';
 
+/**
+ * With `?locale=` (T-1312), on this and on every answer that names a team, a
+ * competition or a country as `{ id, name }`: `name` is the reader's where
+ * one is written (the canonical name where none is), and an English
+ * `short_name` is `null` beside a localised name.
+ */
 export interface ScoreCardTeam {
   id: string;
   name: string;

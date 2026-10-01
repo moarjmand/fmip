@@ -11,7 +11,7 @@
  * the source language (D-003) a held one falls back to. The web's
  * `i18n/locales.ts` is the registry; its spec keeps this list equal to it.
  */
-export const HOLDABLE_LOCALES = ['ar', 'de', 'es', 'fr', 'it', 'pt', 'tr'] as const;
+export const HOLDABLE_LOCALES = ['ar', 'de', 'es', 'fa', 'fr', 'it', 'pt', 'tr'] as const;
 export type HoldableLocale = (typeof HOLDABLE_LOCALES)[number];
 
 /** `POST /admin/locales/:locale/hold` and `.../release`: the reason is audited. */

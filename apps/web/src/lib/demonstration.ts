@@ -1,3 +1,6 @@
+import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
+import { interpolate, t } from '@/i18n/messages';
+
 /**
  * Whether the football data in this deployment is demonstration data (T-087).
  *
@@ -33,24 +36,27 @@ export function isDemonstrationData(
 }
 
 /**
- * What the banner and the page title say. One sentence, four nouns, no hedging:
- * a reader who meets a score here should not have to work out whether it
- * happened.
+ * A page title marked as demonstration data, in the reader's language
+ * (T-1309): "Demonstration data — Scores". Prefixed to every page title, so a
+ * browser tab and a shared link carry it too. The banner's sentence is
+ * `shell.demonstration`, rendered by `DemonstrationBanner`.
  */
-export const DEMONSTRATION_NOTICE =
-  'Demonstration data. Every match, score, team and member on this site is development fixture data. None of it is real football, and nothing here has happened.';
-
-/** Prefixed to every page title, so a browser tab and a shared link carry it too. */
-export const DEMONSTRATION_TITLE_PREFIX = 'Demonstration data — ';
+export function demonstrationTitle(title: string, locale = 'en'): string {
+  return interpolate(t(isLocale(locale) ? locale : DEFAULT_LOCALE, 'shared.demonstration.title'), {
+    title,
+  });
+}
 
 /**
- * The same prefix as a Next.js title template, applied by the locale layout.
+ * The same marking as a Next.js title template, applied by the locale layout.
  *
  * A template reaches **every** page, including the nine that export a plain
  * `metadata` object and never call `pageMetadata` — which is why the `<title>`
  * is done this way round and not in that function.
  */
-export const DEMONSTRATION_TITLE_TEMPLATE = `${DEMONSTRATION_TITLE_PREFIX}%s`;
+export function demonstrationTitleTemplate(locale = 'en'): string {
+  return demonstrationTitle('%s', locale);
+}
 
 /**
  * The one page the template cannot reach.
@@ -65,6 +71,10 @@ export const DEMONSTRATION_TITLE_TEMPLATE = `${DEMONSTRATION_TITLE_PREFIX}%s`;
  * most one `page.tsx`, so there is exactly one page this can ever apply to, and
  * `demonstration.spec.ts` asserts it is the one calling this.
  */
-export function rootTitle(title: string, demonstration = isDemonstrationData()): string {
-  return demonstration ? `${DEMONSTRATION_TITLE_PREFIX}${title}` : title;
+export function rootTitle(
+  title: string,
+  locale = 'en',
+  demonstration = isDemonstrationData(),
+): string {
+  return demonstration ? demonstrationTitle(title, locale) : title;
 }

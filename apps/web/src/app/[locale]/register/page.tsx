@@ -9,8 +9,18 @@ import { registerAction } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
 import { Translated } from '@/components/translated';
 import { Notice } from '@/components/ui';
+import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
+import { interpolate, message, t } from '@/i18n/messages';
 
-export const metadata: Metadata = { title: 'Register · FMIP' };
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const lang: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  return { title: `${t(lang, 'auth.register.title')} · FMIP` };
+}
 export const dynamic = 'force-dynamic';
 
 export default async function RegisterPage({
@@ -21,6 +31,7 @@ export default async function RegisterPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const [{ locale }, query] = await Promise.all([params, searchParams]);
+  const lang: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
   // A member's invite link names them (T-522); anything else is ignored.
   const inviter = readInviter(query.invited_by);
   const me = await fetchMe(await sessionCookieHeader());
@@ -34,10 +45,12 @@ export default async function RegisterPage({
   if (countries === null) {
     return (
       <main className="mx-auto flex max-w-md flex-col gap-4 p-8">
-        <h1 className="text-2xl font-semibold">Register</h1>
+        <h1 className="text-2xl font-semibold">
+          <Translated locale={locale} message="auth.register.title" />
+        </h1>
         {/* Rule 3: an empty country list would look like a form with a bug, so say what happened. */}
         <Notice tone="danger">
-          The service is unreachable right now, so registration is unavailable.
+          <Translated locale={locale} message="auth.register.unreachable" />
         </Notice>
       </main>
     );
@@ -46,10 +59,12 @@ export default async function RegisterPage({
   if (countries.length === 0) {
     return (
       <main className="mx-auto flex max-w-md flex-col gap-4 p-8">
-        <h1 className="text-2xl font-semibold">Register</h1>
+        <h1 className="text-2xl font-semibold">
+          <Translated locale={locale} message="auth.register.title" />
+        </h1>
         {/* A required list with nothing in it is a form nobody can submit (D-078). */}
         <Notice tone="warning">
-          Registration is not open yet: no country has been set up to choose from.
+          <Translated locale={locale} message="auth.register.closed" />
         </Notice>
       </main>
     );
@@ -61,6 +76,7 @@ export default async function RegisterPage({
       : [
           {
             name: 'invited_by',
+            // A hidden field: its label is never shown.
             label: 'Invited by',
             type: 'hidden' as const,
             defaultValue: inviter,
@@ -68,45 +84,51 @@ export default async function RegisterPage({
         ]),
     {
       name: 'username',
-      label: 'Username',
+      label: t(lang, 'auth.username'),
       required: true,
       autoComplete: 'username',
-      hint: '3 to 20 characters: lower-case letters, digits, underscore. Shown on leaderboards.',
+      hint: t(lang, 'auth.register.usernameHint'),
       maxLength: 20,
     },
     {
       name: 'display_name',
-      label: 'Display name',
+      label: t(lang, 'auth.displayName'),
       required: true,
       autoComplete: 'name',
       maxLength: 50,
     },
-    { name: 'email', label: 'E-mail', type: 'email', required: true, autoComplete: 'email' },
+    {
+      name: 'email',
+      label: t(lang, 'auth.email'),
+      type: 'email',
+      required: true,
+      autoComplete: 'email',
+    },
     {
       name: 'password',
-      label: 'Password',
+      label: t(lang, 'auth.password'),
       type: 'password',
       required: true,
       autoComplete: 'new-password',
-      hint: 'At least 10 characters.',
+      hint: t(lang, 'auth.passwordHint'),
     },
     {
       name: 'country_id',
-      label: 'Country or territory',
+      label: t(lang, 'auth.register.country'),
       type: 'select',
       required: true,
       options: countries.map((c) => ({ value: c.id, label: c.name })),
     },
     {
       name: 'preferred_language',
-      label: 'Language',
+      label: t(lang, 'auth.register.language'),
       type: 'select',
-      options: [{ value: 'en', label: 'English' }],
+      options: [{ value: 'en', label: t(lang, 'language.name.en') }],
       defaultValue: 'en',
     },
     {
       name: 'timezone',
-      label: 'Time zone',
+      label: t(lang, 'auth.register.timezone'),
       type: 'select',
       required: true,
       defaultValue: guest.timezone ?? 'UTC',
@@ -114,7 +136,7 @@ export default async function RegisterPage({
     },
     {
       name: 'accept_rules',
-      label: 'I accept the platform rules.',
+      label: t(lang, 'auth.register.acceptRules'),
       type: 'checkbox',
       required: true,
     },
@@ -122,10 +144,12 @@ export default async function RegisterPage({
 
   return (
     <main className="mx-auto flex max-w-md flex-col gap-6 p-8">
-      <h1 className="text-2xl font-semibold">Register</h1>
+      <h1 className="text-2xl font-semibold">
+        <Translated locale={locale} message="auth.register.title" />
+      </h1>
       {inviter !== null && (
         <p data-testid="invited-by">
-          @{inviter} invited you. After you register you can send them a friend request, or not.
+          {interpolate(t(lang, 'auth.register.invited'), { username: inviter })}
         </p>
       )}
       {/* What the checkbox accepts, readable before it is ticked (T-931). */}
@@ -137,11 +161,19 @@ export default async function RegisterPage({
       <ActionForm
         action={registerAction.bind(null, locale)}
         fields={fields}
-        submitLabel="Create account"
+        submitLabel={t(lang, 'auth.register.submit')}
         testId="register-form"
+        labels={{
+          done: message(lang, 'auth.form.done'),
+          working: message(lang, 'auth.form.working'),
+        }}
       />
       <p className="text-sm">
-        Already a member? <Link href={`/${locale}/login`}>Sign in</Link>.
+        <Translated locale={locale} message="auth.register.already" />{' '}
+        <Link href={`/${locale}/login`}>
+          <Translated locale={locale} message="nav.signIn" />
+        </Link>
+        .
       </p>
     </main>
   );

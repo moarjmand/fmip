@@ -76,8 +76,10 @@ describe('search helpers', () => {
   });
 
   it('notes the alias that matched', () => {
-    expect(matchNote({ matched_on: 'alias', alias: 'Man Utd' })).toBe('also known as Man Utd');
-    expect(matchNote({ matched_on: 'name', alias: null })).toBeNull();
+    expect(matchNote('en', { matched_on: 'alias', alias: 'Man Utd' })).toBe(
+      'also known as Man Utd',
+    );
+    expect(matchNote('en', { matched_on: 'name', alias: null })).toBeNull();
   });
 });
 

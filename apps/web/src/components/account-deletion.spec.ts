@@ -43,7 +43,7 @@ describe('the form', () => {
     const action = ACTIONS.slice(ACTIONS.indexOf('export async function deleteAccountAction'));
     expect(action).toContain("'/auth/account/delete'");
     expect(action).toContain("method: 'POST'");
-    expect(action).toContain('if (!result.ok) return failure(result);');
+    expect(action).toContain('if (!result.ok) return failure(locale, result);');
     expect(action).toContain("applyApiSetCookie(result.setCookie ?? 'fmip_session=; Max-Age=0')");
     expect(action).toContain('redirect(`/${locale}/account-deleted`)');
     expect(DONE).toContain('role="status"');

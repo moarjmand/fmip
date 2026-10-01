@@ -2,6 +2,8 @@
 
 import { useActionState } from 'react';
 import type { ActionState } from '@/lib/auth-actions';
+import type { Message } from '@/i18n/messages';
+import { MessageText } from '@/components/message-text';
 import { Button, Checkbox, FormStatus, Select, TextArea, TextField } from '@/components/ui';
 
 export interface FieldOption {
@@ -29,6 +31,11 @@ interface Props {
   submitLabel: string;
   /** Marks the form for tests and for the E2E checks. */
   testId?: string;
+  /**
+   * "Done." and "Working…" in the reader's language, resolved on the server
+   * (T-1306). Without them the form says both in English, as it always has.
+   */
+  labels?: { done: Message; working: Message };
 }
 
 /**
@@ -37,7 +44,7 @@ interface Props {
  * place; the form only shows what it was told. Logical utilities throughout
  * (rule 7): `text-start`, `ps-*`, never `text-left` or `pl-*`.
  */
-export function ActionForm({ action, fields, submitLabel, testId }: Props) {
+export function ActionForm({ action, fields, submitLabel, testId, labels }: Props) {
   const [state, formAction, pending] = useActionState(action, null);
   const fieldErrors = state !== null && !state.ok ? (state.fields ?? {}) : {};
 
@@ -45,7 +52,10 @@ export function ActionForm({ action, fields, submitLabel, testId }: Props) {
     <form action={formAction} className="flex flex-col gap-4" data-testid={testId} noValidate>
       {state !== null && (
         <FormStatus ok={state.ok} boxed>
-          {state.ok ? (state.message ?? 'Done.') : state.message}
+          {state.ok
+            ? (state.message ??
+              (labels === undefined ? 'Done.' : <MessageText message={labels.done} />))
+            : state.message}
         </FormStatus>
       )}
 
@@ -105,7 +115,7 @@ export function ActionForm({ action, fields, submitLabel, testId }: Props) {
         variant="primary"
         size="md"
         pending={pending}
-        pendingLabel="Working…"
+        pendingLabel={labels === undefined ? 'Working…' : <MessageText message={labels.working} />}
         className="self-start"
       >
         {submitLabel}

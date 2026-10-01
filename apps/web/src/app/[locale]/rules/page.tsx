@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import { Translated } from '@/components/translated';
 import { Button, Notice, type NoticeTone } from '@/components/ui';
 import { formatDate } from '@/i18n/format';
-import { DEFAULT_LOCALE, directionOf } from '@/i18n/locales';
-import type { MessageKey } from '@/i18n/messages';
+import { DEFAULT_LOCALE, directionOf, isLocale } from '@/i18n/locales';
+import { type MessageKey, t } from '@/i18n/messages';
 import { fetchPlatformRules, fetchSession } from '@/lib/api';
 import { rulesBlocks, rulesVersionNumber } from '@/lib/platform-rules';
 import { acceptRulesAction } from '@/lib/rules-actions';
@@ -18,12 +18,12 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  const lang = isLocale(locale) ? locale : DEFAULT_LOCALE;
   return pageMetadata({
     locale,
     path: '/rules',
-    title: 'Platform rules · FMIP',
-    description:
-      'The rules every member accepts: what FMIP is for, what is not allowed, and how leaving works.',
+    title: `${t(lang, 'rules.title')} · FMIP`,
+    description: t(lang, 'rulesPage.meta.description'),
   });
 }
 

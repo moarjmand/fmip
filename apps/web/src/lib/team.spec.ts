@@ -16,6 +16,7 @@ import {
   groupSquad,
   splitNotes,
 } from './team';
+import { t } from '@/i18n/messages';
 
 const player = (
   name: string,
@@ -54,7 +55,7 @@ const fixture = (over: Partial<TeamPageFixture> = {}): TeamPageFixture => ({
 
 describe('groupSquad', () => {
   it('groups by position in pitch order, shirts ascending, unknown last, empty groups left out', () => {
-    const groups = groupSquad([
+    const groups = groupSquad('en', [
       player('Nine', 'forward', 9),
       player('One', 'goalkeeper', 1),
       player('Mystery', null, null),
@@ -93,8 +94,8 @@ describe('labels', () => {
     const aet = fixture({ score: { home: 2, away: 1 }, after_extra_time: true });
     expect(fromTeamSide(aet, 'a')).toMatchObject({ result: 'W', shootout: null });
     expect(fromTeamSide(aet, 'b').result).toBe('L');
-    expect(afterTimeNote(aet, 'a')).toBe('aet');
-    expect(afterTimeNote(fixture(), 'a')).toBeNull();
+    expect(afterTimeNote('en', aet, 'a')).toBe('aet');
+    expect(afterTimeNote('en', fixture(), 'a')).toBeNull();
   });
 
   it('shows a tie settled on penalties as a draw, with who won the shoot-out beside it', () => {
@@ -105,8 +106,12 @@ describe('labels', () => {
     });
     expect(fromTeamSide(pens, 'a')).toMatchObject({ result: 'D', shootout: 'lost' });
     expect(fromTeamSide(pens, 'b')).toMatchObject({ result: 'D', shootout: 'won' });
-    expect(afterTimeNote(pens, 'a')).toBe('aet, lost 3–4 on penalties');
-    expect(afterTimeNote(pens, 'b')).toBe('aet, won 4–3 on penalties');
+    expect(afterTimeNote('en', pens, 'a')).toBe('aet, lost 3–4 on penalties');
+    expect(afterTimeNote('en', pens, 'b')).toBe('aet, won 4–3 on penalties');
+    // Persian (T-1304): its own words and digits, the pair kept left to right.
+    expect(afterTimeNote('fa', pens, 'b')).toBe(
+      'پس از وقت اضافه، برد \u2066۴–۳\u2069 در ضربات پنالتی',
+    );
   });
 
   it('spells the table position by the locale’s ordinal rules', () => {
@@ -120,6 +125,9 @@ describe('labels', () => {
     expect(contextLine('en', { position: 22, total: 24, points: 1, rows: [] })).toMatch(/^22nd/);
     expect(contextLine('fr', { position: 3, total: 20, points: 45, rows: [] })).toBe(
       '3rd of 20 · 45 pts',
+    );
+    expect(contextLine('fa', { position: 3, total: 20, points: 45, rows: [] })).toBe(
+      'رده‌ی ۳ از ۲۰ · ۴۵ امتیاز',
     );
   });
 });
@@ -168,12 +176,13 @@ describe('home and away figures', () => {
   });
 
   it('says why an average row is short, and nothing when it is complete', () => {
-    expect(averageNote(average(), 4)).toBeNull();
-    expect(averageNote(average({ coverage: 'not_supplied' }), 4)).toBe(
+    expect(averageNote('en', average(), 4)).toBeNull();
+    expect(averageNote('en', average({ coverage: 'not_supplied' }), 4)).toBe(
       'Not supplied for these matches',
     );
     expect(
       averageNote(
+        'en',
         average({ coverage: 'limited', matches_with_figure: { home: 2, away: 1, total: 3 } }),
         4,
       ),
@@ -181,20 +190,28 @@ describe('home and away figures', () => {
   });
 
   it('names shoot-outs and unscored matches only when there are some', () => {
-    expect(splitNotes(splits())).toEqual([]);
-    expect(splitNotes(splits({ penalty_shootouts: 1, finished_without_score: 2 }))).toEqual([
+    expect(splitNotes('en', splits())).toEqual([]);
+    expect(splitNotes('en', splits({ penalty_shootouts: 1, finished_without_score: 2 }))).toEqual([
       '1 match went to penalties, counted as a draw.',
       '2 finished matches have no score on record and are not counted.',
     ]);
-    expect(SPLITS_FOOTNOTE).toMatch(/penalties counts as a draw/);
+    expect(t('en', SPLITS_FOOTNOTE)).toMatch(/penalties counts as a draw/);
   });
 });
 
 describe('notSuppliedNote (T-1205)', () => {
   it('names every missing figure once, in one sentence', () => {
-    expect(notSuppliedNote(['Possession'])).toBe('Not supplied for these matches: Possession.');
-    expect(notSuppliedNote(['Possession', 'Shots', 'Expected goals'])).toBe(
+    expect(notSuppliedNote('en', ['Possession'])).toBe(
+      'Not supplied for these matches: Possession.',
+    );
+    expect(notSuppliedNote('en', ['Possession', 'Shots', 'Expected goals'])).toBe(
       'Not supplied for these matches: Possession, shots and expected goals.',
+    );
+  });
+
+  it('joins the list with the Persian comma and «و» (T-1304)', () => {
+    expect(notSuppliedNote('fa', ['مالکیت توپ', 'شوت‌ها', 'کرنرها'])).toBe(
+      'برای این بازی‌ها ارائه نشده: مالکیت توپ، شوت‌ها و کرنرها.',
     );
   });
 });

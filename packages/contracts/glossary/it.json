@@ -23,6 +23,18 @@
     "text": "",
     "status": "untranslated"
   },
+  "term.corner": {
+    "source": "corner",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.extra-time": {
+    "source": "extra time",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
   "term.fixture": {
     "source": "fixture",
     "locked": false,
@@ -41,6 +53,12 @@
     "text": "",
     "status": "untranslated"
   },
+  "term.goal-difference": {
+    "source": "goal difference",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
   "term.goalkeeper": {
     "source": "goalkeeper",
     "locked": false,
@@ -53,8 +71,20 @@
     "text": "",
     "status": "untranslated"
   },
+  "term.head-to-head": {
+    "source": "head-to-head",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
   "term.kick-off": {
     "source": "kick-off",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.league": {
+    "source": "league",
     "locked": false,
     "text": "",
     "status": "untranslated"
@@ -83,8 +113,38 @@
     "text": "",
     "status": "untranslated"
   },
+  "term.offside": {
+    "source": "offside",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.own-goal": {
+    "source": "own goal",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.penalty": {
+    "source": "penalty",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
   "term.player": {
     "source": "player",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.possession": {
+    "source": "possession",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.promotion": {
+    "source": "promotion",
     "locked": false,
     "text": "",
     "status": "untranslated"
@@ -95,8 +155,26 @@
     "text": "",
     "status": "untranslated"
   },
+  "term.referee": {
+    "source": "referee",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.relegation": {
+    "source": "relegation",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
   "term.score": {
     "source": "score",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.scoreline": {
+    "source": "scoreline",
     "locked": false,
     "text": "",
     "status": "untranslated"
@@ -113,8 +191,20 @@
     "text": "",
     "status": "untranslated"
   },
+  "term.standings": {
+    "source": "standings",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
   "term.team": {
     "source": "team",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.yellow-card": {
+    "source": "yellow card",
     "locked": false,
     "text": "",
     "status": "untranslated"

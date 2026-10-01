@@ -11,7 +11,7 @@ import {
   type TeamsResponse,
   type CompetitionsResponse,
 } from '@fmip/contracts';
-import { formatDateTime } from '@/i18n/format';
+import { formatDateTime, formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE, UNFINISHED_LOCALES, isLocale } from '@/i18n/locales';
 import { plural, t } from '@/i18n/messages';
 import type { ApiResult } from '@/lib/api';
@@ -284,8 +284,8 @@ function LinkRow({
         </span>
         <span className="text-muted">
           <Translated locale={locale} message="groupSettings.links.used" />{' '}
-          <span className="tabular-nums">
-            {link.uses} / {link.max_uses}
+          <span className="tabular-nums" dir="ltr">
+            {formatNumber(locale, link.uses)} / {formatNumber(locale, link.max_uses)}
           </span>
         </span>
         <span className="text-muted">

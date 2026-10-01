@@ -1,11 +1,13 @@
 import type {
   CommunityConsensusResponse,
   ForecastSummary,
+  ForecastUnavailableReason,
   MatchViewing,
   ScoresResponse,
 } from '@fmip/contracts';
-import { UNAVAILABLE_LABEL, percentages } from './forecast';
+import { percentages } from './forecast';
 import { optionsState } from './viewing';
+import { territoryName } from './territory';
 
 /**
  * What the scores card says about the model, the community and viewing
@@ -56,8 +58,16 @@ export type CardForecast =
       model_version: string;
       computed_at: string;
     }
-  /** The model answered, and the answer was that it could not: its reason, in words. */
-  | { state: 'unavailable'; reason: string; version: number; computed_at: string }
+  /**
+   * The model answered, and the answer was that it could not: its reason, which
+   * the card puts in the reader's words (`null`: none was given).
+   */
+  | {
+      state: 'unavailable';
+      reason: ForecastUnavailableReason | null;
+      version: number;
+      computed_at: string;
+    }
   /** No version was computed before kick-off. */
   | { state: 'none' }
   /** The forecast service did not answer this page's question. */
@@ -68,10 +78,7 @@ export function cardForecast(summary: ForecastSummary | null): CardForecast {
   if (summary.status === 'unavailable' || summary.probabilities === null) {
     return {
       state: 'unavailable',
-      reason:
-        summary.unavailable_reason === null
-          ? 'The model could not answer for this match.'
-          : UNAVAILABLE_LABEL[summary.unavailable_reason],
+      reason: summary.unavailable_reason,
       version: summary.version_number,
       computed_at: summary.computed_at,
     };
@@ -127,10 +134,11 @@ export type CardViewing =
   | { state: 'not_supplied'; territory: string }
   | { state: 'unreachable' };
 
-export function cardViewing(viewing: MatchViewing | undefined): CardViewing {
+export function cardViewing(viewing: MatchViewing | undefined, locale = 'en'): CardViewing {
   if (viewing === undefined) return { state: 'unreachable' };
   if (viewing.territory.state === 'not_chosen') return { state: 'ask' };
-  const territory = viewing.territory.territory.name;
+  // The territory in the reader's language (T-1309), as the chooser names it.
+  const territory = territoryName(locale, viewing.territory.territory);
   switch (optionsState(viewing)) {
     case 'ask':
       return { state: 'ask' };
@@ -177,6 +185,7 @@ export interface ProductFetchers {
 export async function loadScoreCardProducts(
   ids: readonly string[],
   fetchers: ProductFetchers,
+  locale = 'en',
 ): Promise<ScoreCardProducts> {
   const out: ScoreCardProducts = { forecast: {}, community: {}, viewing: {} };
   if (ids.length === 0) return out;
@@ -211,7 +220,9 @@ export async function loadScoreCardProducts(
               answer.ok ? answer.data.fixtures.map((e) => [e.fixture_id, e]) : [],
             );
             for (const id of group) {
-              out.viewing[id] = !answer.ok ? { state: 'unreachable' } : cardViewing(found.get(id));
+              out.viewing[id] = !answer.ok
+                ? { state: 'unreachable' }
+                : cardViewing(found.get(id), locale);
             }
           }),
     ]),

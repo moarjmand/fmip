@@ -15,6 +15,12 @@ import { describe, expect, it } from 'vitest';
  */
 const HERE = __dirname;
 const EDITOR = readFileSync(join(HERE, 'analysis-editor.tsx'), 'utf8');
+// The editor's words are resolved on the server (T-1307): the keys live here,
+// the English in the catalogue.
+const TEXT = readFileSync(join(HERE, '..', 'lib', 'analysis-text.tsx'), 'utf8');
+const EN = JSON.parse(
+  readFileSync(join(HERE, '..', 'i18n', 'catalogues', 'en.json'), 'utf8'),
+) as Record<string, string>;
 const QUEUE = readFileSync(join(HERE, 'analysis-queue.tsx'), 'utf8');
 const ACTIONS = readFileSync(join(HERE, '..', 'lib', 'analysis-actions.ts'), 'utf8');
 const QUEUE_PAGE = readFileSync(
@@ -29,7 +35,9 @@ const EDITOR_PAGE = readFileSync(
 describe('the analyst sees what they sent and what was said', () => {
   it('puts the decision history on the same page as the draft', () => {
     // A request for changes shown on its own is an instruction with no context.
-    expect(EDITOR).toContain('What you sent, and what was said');
+    expect(EN['analysis.editor.history']).toBe('What you sent, and what was said');
+    expect(TEXT).toContain("says('analysis.editor.history')");
+    expect(EDITOR).toContain('{words.history}');
     expect(EDITOR).toContain('workspace.submissions.map');
     expect(EDITOR).toContain('submission.review.reason');
   });
@@ -37,7 +45,8 @@ describe('the analyst sees what they sent and what was said', () => {
   it('tells waiting apart from decided', () => {
     expect(EDITOR).toContain('data-testid="analysis-attempt-waiting"');
     expect(EDITOR).toContain('data-testid="analysis-attempt-decided"');
-    expect(EDITOR).toMatch(/Waiting to be read/);
+    expect(EDITOR).toContain('{words.waiting}');
+    expect(EN['analysis.state.submitted']).toMatch(/Waiting to be read/);
   });
 
   it('says where the analysis has got to, for every state', () => {
@@ -49,11 +58,12 @@ describe('the analyst sees what they sent and what was said', () => {
       'rejected',
       'published',
     ]) {
-      expect(EDITOR, `no words for ${state}`).toContain(`${state}:`);
+      expect(TEXT, `no words for ${state}`).toContain(`${state}:`);
     }
     // Keyed by the contract's union, so a state added without words does not
     // compile.
-    expect(EDITOR).toContain("Record<CommunityAnalysisWorkspace['state'], string>");
+    expect(TEXT).toContain("Record<CommunityAnalysisWorkspace['state'], MessageKey>");
+    expect(EDITOR).toContain("states: Record<CommunityAnalysisWorkspace['state'], ReactNode>");
   });
 
   it('names every bad field where it went wrong, not in one lump', () => {
@@ -65,7 +75,8 @@ describe('the analyst sees what they sent and what was said', () => {
   });
 
   it('says out loud why reasoning is required', () => {
-    expect(EDITOR).toMatch(/without reasoning is a prediction/i);
+    expect(EN['analysis.editor.reasoningHint']).toMatch(/without reasoning is a prediction/i);
+    expect(EDITOR).toContain('hint={words.reasoningHint}');
   });
 
   it('treats a missing workspace as a starting point, not an error', () => {
@@ -125,8 +136,9 @@ describe('the browser decides nothing', () => {
   });
 
   it('shows the sentence the API sent rather than composing a second one', () => {
-    expect(ACTIONS).toContain('result.error?.message');
-    expect(EDITOR).toContain('{saveState.message}');
+    expect(ACTIONS).toContain('failureSentence(result, locale)');
+    // A refusal is the API's sentence; only success is said in our own words.
+    expect(EDITOR).toContain('saveState.ok ? words.saved : saveState.message');
     expect(QUEUE).toContain('{state.message}');
   });
 

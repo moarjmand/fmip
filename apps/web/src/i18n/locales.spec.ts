@@ -88,6 +88,8 @@ describe("the blueprint's eight languages (T-300)", () => {
   // Blueprint 13: en, es, fr, de, pt, ar, tr, it. Eight, not "several" -- the
   // product promises a number and this is where the number lives.
   const EIGHT = ['en', 'es', 'fr', 'de', 'pt', 'ar', 'tr', 'it'] as const;
+  // Persian, outside the blueprint's eight, by the maintainer's decision (D-175).
+  const DECIDED = ['fa'] as const;
 
   it('routes all eight', () => {
     for (const locale of EIGHT) {
@@ -98,7 +100,7 @@ describe("the blueprint's eight languages (T-300)", () => {
   it('ships exactly those eight and one pseudo-locale, and nothing else', () => {
     // Asserted by equality: a locale added without a decision fails here, and
     // so does one quietly dropped.
-    expect([...LOCALES].sort()).toEqual([...EIGHT, ...PSEUDO_LOCALES].sort());
+    expect([...LOCALES].sort()).toEqual([...EIGHT, ...DECIDED, ...PSEUDO_LOCALES].sort());
   });
 
   it('calls the seven unfinished, so none is offered as a language yet', () => {

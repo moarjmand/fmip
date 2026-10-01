@@ -3,6 +3,11 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { MatchCentreView, SECTIONS } from './match-centre-view';
 import { ScoreCard } from './score-card';
+import { EN } from '@/i18n/messages';
+import { matchWords, scoresWords } from '@/lib/words-server';
+
+const SCORES_EN = scoresWords('en');
+const MATCH_EN = matchWords('en');
 
 /**
  * Scores and the match centre, phone first (T-605). Rendered, not read from
@@ -47,7 +52,7 @@ const card = (over: Partial<ScoreCardData> = {}): ScoreCardData => ({
 describe('a match on the scores list', () => {
   const html = renderToStaticMarkup(
     <ul>
-      <ScoreCard card={card()} timeZone="UTC" locale="en" />
+      <ScoreCard words={SCORES_EN} card={card()} timeZone="UTC" locale="en" />
     </ul>,
   );
 
@@ -93,6 +98,7 @@ describe('a match on the scores list', () => {
     const full = renderToStaticMarkup(
       <ul>
         <ScoreCard
+          words={SCORES_EN}
           card={card({ status: 'scheduled', minute: null })}
           timeZone="UTC"
           locale="en"
@@ -119,6 +125,7 @@ describe('a match on the scores list', () => {
     const none = renderToStaticMarkup(
       <ul>
         <ScoreCard
+          words={SCORES_EN}
           card={card()}
           timeZone="UTC"
           locale="en"
@@ -136,6 +143,7 @@ describe('a match on the scores list', () => {
   it('keeps a leg, an aggregate and the competition of a favourite on the row', () => {
     const row = renderToStaticMarkup(
       <ScoreCard
+        words={SCORES_EN}
         card={card({ leg: 2, scores: { ...card().scores, aggregate: { home: 3, away: 3 } } })}
         timeZone="UTC"
         locale="en"
@@ -151,6 +159,7 @@ describe('a match on the scores list', () => {
   it('says on the row itself when its data is behind (rule 4)', () => {
     const row = renderToStaticMarkup(
       <ScoreCard
+        words={SCORES_EN}
         card={card({ freshness: 'stale' })}
         timeZone="UTC"
         locale="en"
@@ -238,6 +247,7 @@ const centre: MatchCentre = {
 describe('the match centre', () => {
   const html = renderToStaticMarkup(
     <MatchCentreView
+      words={MATCH_EN}
       centre={centre}
       timeZone="Asia/Tehran"
       locale="en"
@@ -268,7 +278,7 @@ describe('the match centre', () => {
     const nav = html.slice(html.indexOf('data-testid="section-nav"'), html.indexOf('</nav>'));
     for (const [key, label] of SECTIONS) {
       expect(nav).toContain(`href="#${key}"`);
-      expect(nav).toContain(label.replace("'", '&#x27;'));
+      expect(nav).toContain(EN[label].replace("'", '&#x27;'));
       expect(html).toContain(`id="${key}"`);
     }
     expect(nav).not.toContain('<button');
@@ -309,10 +319,38 @@ describe('the match centre', () => {
 
   it('leaves a section out of the nav when the page has nothing for it', () => {
     const bare = renderToStaticMarkup(
-      <MatchCentreView centre={centre} timeZone="UTC" locale="en" />,
+      <MatchCentreView words={MATCH_EN} centre={centre} timeZone="UTC" locale="en" />,
     );
     expect(bare).toContain('href="#timeline"');
     expect(bare).not.toContain('href="#forecast"');
     expect(bare).not.toContain('id="forecast"');
+  });
+});
+
+describe('the scores card and the match centre in Persian (T-1303)', () => {
+  const card_ = renderToStaticMarkup(
+    <ul>
+      <ScoreCard words={scoresWords('fa')} card={card()} timeZone="UTC" locale="fa" />
+    </ul>,
+  );
+  const view = renderToStaticMarkup(
+    <MatchCentreView words={matchWords('fa')} centre={centre} timeZone="Asia/Tehran" locale="fa" />,
+  );
+
+  it('says the card in Persian, with the minute and the score in Persian digits, isolated', () => {
+    expect(card_).toMatch(/data-testid="score-status"[^>]*>۶۷′</);
+    expect(card_).toMatch(/<span dir="ltr"[^>]*data-testid="score">۲ – ۱</);
+    expect(card_).toContain('aria-label="یک کارت قرمز"');
+    expect(card_).toContain('شروع بازی');
+    expect(card_).toContain('نتایج: موجود');
+    expect(card_).not.toContain('Kick-off');
+  });
+
+  it('names the match centre’s sections and coverage in Persian', () => {
+    expect(view).toContain('رویدادهای زنده');
+    expect(view).toContain('پوشش داده‌ها در این فصل');
+    expect(view).toContain('موجود');
+    expect(view).not.toContain('Live timeline');
+    expect(view).not.toContain('data-translation="untranslated"');
   });
 });

@@ -1,4 +1,6 @@
 import type {
+  CoverageState,
+  FixtureStatus,
   FormResult,
   LeagueZone,
   LeagueZoneKind,
@@ -7,7 +9,10 @@ import type {
   SeasonSummary,
 } from '@fmip/contracts';
 import { LEADERS_MINUTES_MAX } from '@fmip/contracts';
-import { formatDate } from '@/i18n/format';
+import { formatDate, formatNumber } from '@/i18n/format';
+import { DEFAULT_LOCALE, type Locale, directionOf, isLocale } from '@/i18n/locales';
+import { type MessageKey, interpolate, t } from '@/i18n/messages';
+import { ltrIsolate } from '@/components/score';
 
 /**
  * The competition page's pure helpers (T-035): the season the URL selects,
@@ -73,18 +78,96 @@ export function leadersHref(
   return `${base}${query}#leaders`;
 }
 
+/** The page's locale as a catalogue locale; anything unknown reads as English. */
+export function pageLocale(locale: string): Locale {
+  return isLocale(locale) ? locale : DEFAULT_LOCALE;
+}
+
+/**
+ * A catalogue message as plain text in the page's locale (T-1304), with any
+ * `{name}` placeholders filled -- for strings built outside JSX, where
+ * `Translated` cannot go.
+ */
+export function say(locale: string, key: MessageKey, params?: Record<string, string>): string {
+  const text = t(pageLocale(locale), key);
+  return params === undefined ? text : interpolate(text, params);
+}
+
+/**
+ * A list in the reader's language (T-1304): "a, b and c" in English,
+ * "الف، ب و ج" in Persian. The joiner and the "and" are the catalogue's.
+ */
+export function listText(locale: string, items: readonly string[]): string {
+  if (items.length <= 1) return items[0] ?? '';
+  return say(locale, 'competitionPage.list.and', {
+    list: items.slice(0, -1).join(say(locale, 'competitionPage.list.separator')),
+    last: items[items.length - 1]!,
+  });
+}
+
+/**
+ * Two numbers joined by an en dash, "3–1", in the locale's digits. On a
+ * right-to-left page the pair is isolated left to right, or the bidi
+ * algorithm would lay it out as "1–3" (T-153); an English string is left
+ * exactly as it was.
+ */
+export function pairText(locale: string, a: number, b: number): string {
+  const text = `${formatNumber(locale, a)}–${formatNumber(locale, b)}`;
+  return directionOf(locale) === 'rtl' ? ltrIsolate(text) : text;
+}
+
 /** "ALP 3–1 BET" after the match, "ALP v BET" before; short names when there are any. */
-export function fixtureLine(fixture: SeasonFixture): string {
+export function fixtureLine(locale: string, fixture: SeasonFixture): string {
   const home = fixture.home.short_name ?? fixture.home.name;
   const away = fixture.away.short_name ?? fixture.away.name;
   return fixture.score === null
-    ? `${home} v ${away}`
-    : `${home} ${fixture.score.home}–${fixture.score.away} ${away}`;
+    ? say(locale, 'competitionPage.versus', { home, away })
+    : say(locale, 'competitionPage.scoreLine', {
+        home,
+        away,
+        score: pairText(locale, fixture.score.home, fixture.score.away),
+      });
 }
 
+/** The form letters: W, D and L in English; ب، م and ش in Persian. */
+export const FORM_KEY: Record<FormResult, MessageKey> = {
+  W: 'competitionPage.form.won',
+  D: 'competitionPage.form.drawn',
+  L: 'competitionPage.form.lost',
+};
+
 /** The form run as letters, most recent first, e.g. "W D L". */
-export function formLine(form: FormResult[]): string {
-  return form.join(' ');
+export function formLine(locale: string, form: FormResult[]): string {
+  return form.map((result) => say(locale, FORM_KEY[result])).join(' ');
+}
+
+/** A fixture's status where it says something beyond "scheduled" or "finished". */
+export const STATUS_KEY: Partial<Record<FixtureStatus, MessageKey>> = {
+  live: 'competitionPage.status.live',
+  postponed: 'competitionPage.status.postponed',
+  suspended: 'competitionPage.status.suspended',
+  cancelled: 'competitionPage.status.cancelled',
+  abandoned: 'competitionPage.status.abandoned',
+  awarded: 'competitionPage.status.awarded',
+};
+
+/** " · postponed" beside a fixture's date; nothing for a scheduled or finished one. */
+export function statusSuffix(locale: string, status: string): string {
+  if (status === 'finished' || status === 'scheduled') return '';
+  const key = STATUS_KEY[status as FixtureStatus];
+  return ` · ${key === undefined ? status : say(locale, key)}`;
+}
+
+/** A module's coverage state, the small label beside its heading (rule 3). */
+export const COVERAGE_KEY: Record<CoverageState, MessageKey> = {
+  available: 'competitionPage.coverageState.available',
+  limited: 'competitionPage.coverageState.limited',
+  not_supplied: 'competitionPage.coverageState.notSupplied',
+  delayed: 'competitionPage.coverageState.delayed',
+};
+
+export function coverageText(locale: string, coverage: CoverageState): string {
+  return say(locale, COVERAGE_KEY[coverage]);
 }
 
 /** "Mon, 1 Sept 2025, 18:30" in the viewer's zone. */
@@ -100,12 +183,12 @@ export function formatFixtureDate(locale: string, iso: string, timeZone: string)
   });
 }
 
-export const KIND_LABEL: Record<string, string> = {
-  league: 'League',
-  cup: 'Cup',
-  super_cup: 'Super cup',
-  qualifying: 'Qualifying',
-  friendly: 'Friendlies',
+export const KIND_KEY: Record<string, MessageKey> = {
+  league: 'competitionPage.kind.league',
+  cup: 'competitionPage.kind.cup',
+  super_cup: 'competitionPage.kind.superCup',
+  qualifying: 'competitionPage.kind.qualifying',
+  friendly: 'competitionPage.kind.friendly',
 };
 
 /**
@@ -114,13 +197,13 @@ export const KIND_LABEL: Record<string, string> = {
  * place cell names the zone for a screen reader and the legend below the
  * table says it in words.
  */
-export const ZONE_LABEL: Record<LeagueZoneKind, string> = {
-  champions_league: 'Champions League',
-  afc_champions_league_elite: 'AFC Champions League Elite',
-  promotion: 'Promotion',
-  promotion_playoff: 'Promotion play-off',
-  relegation_playoff: 'Relegation play-off',
-  relegation: 'Relegation',
+export const ZONE_KEY: Record<LeagueZoneKind, MessageKey> = {
+  champions_league: 'competitionPage.zone.championsLeague',
+  afc_champions_league_elite: 'competitionPage.zone.afcChampionsLeagueElite',
+  promotion: 'competitionPage.zone.promotion',
+  promotion_playoff: 'competitionPage.zone.promotionPlayoff',
+  relegation_playoff: 'competitionPage.zone.relegationPlayoff',
+  relegation: 'competitionPage.zone.relegation',
 };
 
 export const ZONE_MARK: Record<LeagueZoneKind, string> = {
@@ -133,13 +216,15 @@ export const ZONE_MARK: Record<LeagueZoneKind, string> = {
 };
 
 /** "1-4" or "18": a band of places as the legend reads it. */
-export function zoneBand(zone: LeagueZone): string {
-  return zone.from === zone.to ? `${zone.from}` : `${zone.from}–${zone.to}`;
+export function zoneBand(locale: string, zone: LeagueZone): string {
+  return zone.from === zone.to
+    ? formatNumber(locale, zone.from)
+    : pairText(locale, zone.from, zone.to);
 }
 
 /** Why a league table shows no zones (rule 3); null for a cup, which has none to show. */
-export function zonesAbsentLine(zones: LeagueZones): string | null {
+export function zonesAbsentLine(locale: string, zones: LeagueZones): string | null {
   if (zones.state === 'listed') return null;
   if (zones.reason === 'not_a_league') return null;
-  return 'Qualification and relegation places are not listed for this season.';
+  return say(locale, 'competitionPage.zones.absent');
 }

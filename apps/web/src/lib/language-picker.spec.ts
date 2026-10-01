@@ -21,9 +21,11 @@ const done =
     locales.includes(locale);
 
 describe('which locales are offered', () => {
-  it('is English alone today, because no other catalogue is finished', () => {
-    expect(offeredLocales()).toEqual(['en']);
-    for (const locale of UNFINISHED_LOCALES) expect(isShippable(locale), locale).toBe(false);
+  it('is English and Persian today: Persian is finished and written into the pages (T-1310)', () => {
+    expect(offeredLocales()).toEqual(['en', 'fa']);
+    expect(isShippable('fa')).toBe(true);
+    for (const locale of UNFINISHED_LOCALES.filter((l) => l !== 'fa'))
+      expect(isShippable(locale), locale).toBe(false);
   });
 
   it('never offers the pseudo-locale, however shippable it claims to be', () => {
@@ -37,7 +39,6 @@ describe('which locales are offered', () => {
 
 describe('what the picker shows', () => {
   it('shows nothing when there is only one language, because one is not a choice', () => {
-    expect(pickerEntries('/en/scores')).toEqual([]);
     expect(pickerEntries('/en/scores', done('en'))).toEqual([]);
   });
 
@@ -94,7 +95,7 @@ describe('the component', () => {
     const header = readFileSync(join(__dirname, '..', 'components', 'site-header.tsx'), 'utf8');
     // T-1163: the offer is the catalogue's and the holds' (`language-hold.ts`).
     expect(header).toMatch(
-      /<LanguagePicker languages=\{offeredLanguages\(offeredGiven\(holds\)\)\} \/>/,
+      /<LanguagePicker\s+languages=\{offeredLanguages\(offeredGiven\(holds\)\)\}/,
     );
     expect(SOURCE).not.toMatch(/i18n\/messages'/);
   });

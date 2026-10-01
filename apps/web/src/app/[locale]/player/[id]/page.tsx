@@ -3,14 +3,16 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { PlayerSeasonMinutes } from '@fmip/contracts';
 import { fetchEntityNews, fetchMe, fetchPlayer } from '@/lib/api';
-import { formatFixtureDate } from '@/lib/competition';
-import { moduleState } from '@/lib/match';
+import { Translated } from '@/components/translated';
+import { formatNumber } from '@/i18n/format';
+import { coverageText, formatFixtureDate, pageLocale, say } from '@/lib/competition';
 import { afterTimeNote } from '@/lib/team';
 import {
-  FOOT_LABEL,
-  POSITION_LABEL,
+  FOOT_KEY,
+  POSITION_KEY,
   ageOn,
   appearances,
+  dayText,
   minutesText,
   filterMatches,
   filterRecord,
@@ -19,6 +21,7 @@ import {
   seasonsOf,
   spellPeriod,
 } from '@/lib/player';
+import { type MessageKey, attribute } from '@/i18n/messages';
 import { pageMetadata, playerJsonLd } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { JsonLd } from '@/components/json-ld';
@@ -38,16 +41,17 @@ export async function generateMetadata({
   params: Promise<{ locale: string; id: string }>;
 }): Promise<Metadata> {
   const { locale, id } = await params;
-  if (!UUID.test(id)) return { title: 'Player · FMIP', robots: { index: false, follow: false } };
+  const fallback = `${say(locale, 'playerPage.title')} · FMIP`;
+  if (!UUID.test(id)) return { title: fallback, robots: { index: false, follow: false } };
   const result = await fetchPlayer(id, locale);
-  if (!result.ok) return pageMetadata({ locale, path: `/player/${id}`, title: 'Player · FMIP' });
+  if (!result.ok) return pageMetadata({ locale, path: `/player/${id}`, title: fallback });
   const canonical = result.data.person.known_as ?? result.data.person.full_name;
   const name = result.data.person.localised_name ?? canonical;
   return pageMetadata({
     locale,
     path: `/player/${result.data.person.id}`,
     title: `${name} · FMIP`,
-    description: `${canonical}: career, record by season and recent matches.`,
+    description: say(locale, 'playerPage.metaDescription', { name: canonical }),
   });
 }
 
@@ -57,6 +61,7 @@ export async function generateMetadata({
  * incidents support, and the recent-match log, with a season selector over
  * both. T-1007: current availability for the team's next match and related
  * news. Statistics we do not hold are named as such, never shown as zero.
+ * Its words come from the catalogue (T-1304).
  */
 export default async function PlayerPage({
   params,
@@ -76,9 +81,11 @@ export default async function PlayerPage({
     if (result.status === 404) notFound();
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-4 p-8">
-        <h1 className="text-2xl font-semibold">Player</h1>
+        <h1 className="text-2xl font-semibold">
+          <Translated locale={locale} message="playerPage.title" />
+        </h1>
         <Notice tone="danger" data-testid="player-unreachable">
-          The service is unreachable right now, so this player cannot be shown.
+          <Translated locale={locale} message="playerPage.unreachable" />
         </Notice>
       </main>
     );
@@ -95,6 +102,7 @@ export default async function PlayerPage({
   const base = `/${locale}/player/${p.id}`;
   const linkClass = (active: boolean): string =>
     `rounded px-2 py-1 ${active ? 'bg-surface-raised font-semibold' : 'underline'}`;
+  const placeholder = attribute(pageLocale(locale), 'playerPage.comparePlaceholder');
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-8 p-8">
@@ -112,50 +120,75 @@ export default async function PlayerPage({
         <dl className="flex flex-wrap gap-x-4 text-sm text-muted" data-testid="identity">
           {p.nationality !== null && (
             <div>
-              <dt className="sr-only">Nationality</dt>
+              <dt className="sr-only">
+                <Translated locale={locale} message="playerPage.nationality" />
+              </dt>
               <dd>{p.nationality.name}</dd>
             </div>
           )}
           <div>
-            <dt className="sr-only">Age</dt>
+            <dt className="sr-only">
+              <Translated locale={locale} message="playerPage.age" />
+            </dt>
             <dd>
-              {p.date_of_birth === null
-                ? 'Date of birth not recorded'
-                : `${age} · born ${p.date_of_birth}`}
+              {p.date_of_birth === null || age === null ? (
+                <Translated locale={locale} message="playerPage.noBirthDate" />
+              ) : (
+                say(locale, 'playerPage.ageBorn', {
+                  age: formatNumber(locale, age),
+                  date: dayText(locale, p.date_of_birth),
+                })
+              )}
             </dd>
           </div>
           {p.height_cm !== null && (
             <div>
-              <dt className="sr-only">Height</dt>
-              <dd>{p.height_cm} cm</dd>
+              <dt className="sr-only">
+                <Translated locale={locale} message="playerPage.height" />
+              </dt>
+              <dd>
+                {say(locale, 'playerPage.heightCm', { height: formatNumber(locale, p.height_cm) })}
+              </dd>
             </div>
           )}
           {p.preferred_foot !== null && (
             <div>
-              <dt className="sr-only">Preferred foot</dt>
-              <dd>{FOOT_LABEL[p.preferred_foot]}</dd>
+              <dt className="sr-only">
+                <Translated locale={locale} message="playerPage.foot" />
+              </dt>
+              <dd>
+                <Translated locale={locale} message={FOOT_KEY[p.preferred_foot]} />
+              </dd>
             </div>
           )}
         </dl>
       </header>
 
       <section className="flex flex-col gap-2" data-testid="current-team">
-        <h2 className="text-lg font-semibold">Current team</h2>
+        <h2 className="text-lg font-semibold">
+          <Translated locale={locale} message="playerPage.currentTeam" />
+        </h2>
         {page.current_spell === null ? (
-          <p className="text-sm text-muted">No current team on record.</p>
+          <p className="text-sm text-muted">
+            <Translated locale={locale} message="playerPage.noCurrentTeam" />
+          </p>
         ) : (
           <p className="text-sm">
             <Link href={`/${locale}/team/${page.current_spell.team.id}`} className="underline">
               {page.current_spell.team.name}
             </Link>
             {page.current_spell.shirt_number !== null
-              ? ` · No. ${page.current_spell.shirt_number}`
+              ? ` · ${say(locale, 'playerPage.shirt', {
+                  number: formatNumber(locale, page.current_spell.shirt_number),
+                })}`
               : ''}
             {page.current_spell.position !== null
-              ? ` · ${POSITION_LABEL[page.current_spell.position]}`
+              ? ` · ${say(locale, POSITION_KEY[page.current_spell.position])}`
               : ''}
-            {page.current_spell.on_loan ? ' · on loan' : ''}
-            {` · since ${page.current_spell.start_date}`}
+            {page.current_spell.on_loan ? ` · ${say(locale, 'teamPage.onLoan')}` : ''}
+            {` · ${say(locale, 'playerPage.since', {
+              date: dayText(locale, page.current_spell.start_date),
+            })}`}
           </p>
         )}
       </section>
@@ -175,25 +208,30 @@ export default async function PlayerPage({
         data-testid="compare-with"
       >
         <label htmlFor="compare-with-term" className="w-full font-semibold">
-          Compare with…
+          <Translated locale={locale} message="playerPage.compareWith" />
         </label>
         <input
           id="compare-with-term"
           name="q"
           type="search"
-          placeholder="Another player’s name"
+          placeholder={placeholder.text}
+          lang={placeholder.lang}
           autoComplete="off"
           className={controlClasses('md', 'min-w-0 grow')}
         />
         <Button type="submit" size="md">
-          Find
+          <Translated locale={locale} message="playerPage.find" />
         </Button>
       </form>
 
       <section className="flex flex-col gap-2" data-testid="career">
-        <h2 className="text-lg font-semibold">Career</h2>
+        <h2 className="text-lg font-semibold">
+          <Translated locale={locale} message="playerPage.career" />
+        </h2>
         {page.spells.length === 0 ? (
-          <p className="text-sm text-muted">No spells on record.</p>
+          <p className="text-sm text-muted">
+            <Translated locale={locale} message="playerPage.noSpells" />
+          </p>
         ) : (
           <ul className="flex flex-col divide-y divide-default text-sm">
             {page.spells.map((spell) => (
@@ -206,9 +244,13 @@ export default async function PlayerPage({
                 </Link>
                 <span className="text-muted">{spellPeriod(locale, spell)}</span>
                 <span className="text-xs text-muted">
-                  {spell.shirt_number !== null ? `No. ${spell.shirt_number}` : ''}
-                  {spell.position !== null ? ` · ${POSITION_LABEL[spell.position]}` : ''}
-                  {spell.on_loan ? ' · loan' : ''}
+                  {spell.shirt_number !== null
+                    ? say(locale, 'playerPage.shirt', {
+                        number: formatNumber(locale, spell.shirt_number),
+                      })
+                    : ''}
+                  {spell.position !== null ? ` · ${say(locale, POSITION_KEY[spell.position])}` : ''}
+                  {spell.on_loan ? ` · ${say(locale, 'playerPage.loan')}` : ''}
                 </span>
               </li>
             ))}
@@ -217,13 +259,17 @@ export default async function PlayerPage({
       </section>
 
       {seasons.length > 1 && (
-        <nav aria-label="Season" className="flex flex-wrap gap-1 text-sm" data-testid="seasons">
+        <nav
+          aria-label={say(locale, 'competitionPage.season')}
+          className="flex flex-wrap gap-1 text-sm"
+          data-testid="seasons"
+        >
           <Link
             href={base}
             aria-current={seasonFilter === null ? 'true' : undefined}
             className={linkClass(seasonFilter === null)}
           >
-            All seasons
+            <Translated locale={locale} message="playerPage.allSeasons" />
           </Link>
           {seasons.map((season) => (
             <Link
@@ -240,16 +286,19 @@ export default async function PlayerPage({
 
       <section className="flex flex-col gap-2" data-testid="record">
         <h2 className="text-lg font-semibold">
-          Record
+          <Translated locale={locale} message="playerPage.record" />
           <span className="ms-2 text-xs font-normal uppercase text-muted">
-            {moduleState(page.record)}
+            {coverageText(locale, page.record.coverage)}
           </span>
         </h2>
         {shownRecord.length === 0 ? (
           <p className="text-sm text-muted" data-testid="record-empty">
-            {page.record.data === null
-              ? 'No line-ups on record for this player, so there are no statistics to show.'
-              : 'Nothing on record for this season.'}
+            <Translated
+              locale={locale}
+              message={
+                page.record.data === null ? 'playerPage.noRecord' : 'playerPage.noSeasonRecord'
+              }
+            />
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -257,17 +306,17 @@ export default async function PlayerPage({
               <thead>
                 <tr className="border-b border-default">
                   <th scope="col" className="py-1 pe-2 text-start">
-                    Season
+                    <Translated locale={locale} message="competitionPage.season" />
                   </th>
                   <th scope="col" className="py-1 pe-2 text-start">
-                    Competition
+                    <Translated locale={locale} message="competitionPage.title" />
                   </th>
                   <th scope="col" className="py-1 pe-2 text-start">
-                    Team
+                    <Translated locale={locale} message="competitionPage.col.team" />
                   </th>
-                  {['Apps', 'Starts', 'Minutes', 'Goals', 'Assists', 'Yellow', 'Red'].map((h) => (
+                  {RECORD_COLUMNS.map((h) => (
                     <th key={h} scope="col" className="py-1 pe-2 text-end">
-                      {h}
+                      <Translated locale={locale} message={h} />
                     </th>
                   ))}
                 </tr>
@@ -295,13 +344,13 @@ export default async function PlayerPage({
                     </td>
                     {[appearances(row), row.starts].map((n, i) => (
                       <td key={i} className="py-1 pe-2 text-end tabular-nums">
-                        {n}
+                        {formatNumber(locale, n)}
                       </td>
                     ))}
-                    <MinutesCell minutes={row.minutes} />
+                    <MinutesCell locale={locale} minutes={row.minutes} />
                     {[row.goals, row.assists, row.yellow_cards, row.red_cards].map((n, i) => (
                       <td key={i} className="py-1 pe-2 text-end tabular-nums">
-                        {n}
+                        {formatNumber(locale, n)}
                       </td>
                     ))}
                   </tr>
@@ -309,9 +358,7 @@ export default async function PlayerPage({
               </tbody>
             </table>
             <p className="mt-1 text-xs text-muted">
-              Minutes are the feed&rsquo;s own, per match: &ldquo;at least&rdquo; marks a season
-              where some matches came without them, &ldquo;not supplied&rdquo; one where none did.
-              Advanced statistics and availability are not held for this player and are not shown.
+              <Translated locale={locale} message="playerPage.minutesNote" />
             </p>
           </div>
         )}
@@ -319,13 +366,15 @@ export default async function PlayerPage({
 
       <section className="flex flex-col gap-2" data-testid="recent-matches">
         <h2 className="text-lg font-semibold">
-          Recent matches
+          <Translated locale={locale} message="playerPage.recentMatches" />
           <span className="ms-2 text-xs font-normal uppercase text-muted">
-            {moduleState(page.recent_matches)}
+            {coverageText(locale, page.recent_matches.coverage)}
           </span>
         </h2>
         {shownMatches.length === 0 ? (
-          <p className="text-sm text-muted">No matches on record.</p>
+          <p className="text-sm text-muted">
+            <Translated locale={locale} message="playerPage.noMatches" />
+          </p>
         ) : (
           <ul className="flex flex-col divide-y divide-default text-sm">
             {shownMatches.map((m) => (
@@ -340,23 +389,37 @@ export default async function PlayerPage({
                 >
                   {m.fixture.home.short_name ?? m.fixture.home.name}
                   {m.fixture.score === null
-                    ? ' v '
-                    : ` ${ltrIsolate(`${m.fixture.score.home}–${m.fixture.score.away}`)} `}
+                    ? ` ${say(locale, 'competitionPage.v')} `
+                    : ` ${ltrIsolate(`${formatNumber(locale, m.fixture.score.home)}–${formatNumber(locale, m.fixture.score.away)}`)} `}
                   {m.fixture.away.short_name ?? m.fixture.away.name}
                 </Link>
                 {/* After extra time, and a shoot-out from the player's side (T-822). */}
-                {afterTimeNote(m.fixture, m.team.id) !== null && (
+                {afterTimeNote(locale, m.fixture, m.team.id) !== null && (
                   <span className="text-xs text-muted" data-testid="after-time-note">
-                    {afterTimeNote(m.fixture, m.team.id)}
+                    {afterTimeNote(locale, m.fixture, m.team.id)}
                   </span>
                 )}
-                <span className="text-muted">{roleLabel(m)}</span>
-                {m.goals > 0 && <span>{m.goals === 1 ? '1 goal' : `${m.goals} goals`}</span>}
-                {m.assists > 0 && (
-                  <span>{m.assists === 1 ? '1 assist' : `${m.assists} assists`}</span>
+                <span className="text-muted">{roleLabel(locale, m)}</span>
+                {m.goals > 0 && (
+                  <span>
+                    <Translated locale={locale} message="playerPage.goals" count={m.goals} />
+                  </span>
                 )}
-                {m.yellow_cards > 0 && <span>Yellow card</span>}
-                {m.red_cards > 0 && <span>Red card</span>}
+                {m.assists > 0 && (
+                  <span>
+                    <Translated locale={locale} message="playerPage.assists" count={m.assists} />
+                  </span>
+                )}
+                {m.yellow_cards > 0 && (
+                  <span>
+                    <Translated locale={locale} message="playerPage.yellowCard" />
+                  </span>
+                )}
+                {m.red_cards > 0 && (
+                  <span>
+                    <Translated locale={locale} message="playerPage.redCard" />
+                  </span>
+                )}
                 <span className="text-xs text-muted">
                   <time dateTime={m.fixture.kickoff_at}>
                     {formatFixtureDate(locale, m.fixture.kickoff_at, timeZone)}
@@ -379,10 +442,10 @@ export default async function PlayerPage({
 
       <p className="text-xs text-muted">
         {page.last_updated_at === null ? (
-          'No match data stored for this player yet.'
+          <Translated locale={locale} message="playerPage.noData" />
         ) : (
           <>
-            Last data update{' '}
+            <Translated locale={locale} message="competitionPage.lastUpdate" />{' '}
             <Stamp iso={page.last_updated_at} locale={locale} timeZone={timeZone} />
           </>
         )}
@@ -391,9 +454,20 @@ export default async function PlayerPage({
   );
 }
 
+/** The record table's figure columns, after season, competition and team. */
+const RECORD_COLUMNS: readonly MessageKey[] = [
+  'playerPage.col.apps',
+  'playerPage.col.starts',
+  'playerPage.col.minutes',
+  'playerPage.col.goals',
+  'playerPage.col.assists',
+  'playerPage.col.yellow',
+  'playerPage.col.red',
+];
+
 /** A season's minutes (T-823): whole, "at least" with the matches it covers, or not supplied. */
-function MinutesCell({ minutes }: { minutes: PlayerSeasonMinutes }) {
-  const { text, note } = minutesText(minutes);
+function MinutesCell({ locale, minutes }: { locale: string; minutes: PlayerSeasonMinutes }) {
+  const { text, note } = minutesText(locale, minutes);
   return (
     <td
       className={`py-1 pe-2 text-end ${minutes.coverage === 'not_supplied' ? 'text-xs italic text-muted' : 'tabular-nums'}`}

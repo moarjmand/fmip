@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { NOTIFICATION_HOURLY_CAP, NOTIFICATION_KINDS, isMatchAlertKind } from '@fmip/contracts';
+import { EN } from '@/i18n/messages';
 import { isSectionedKind } from '@/lib/notification-sections';
 
 /**
@@ -34,7 +35,7 @@ describe('every kind is offered, and named in words', () => {
     // Keyed by the contract's union, so a kind added without a label does not
     // compile.
     expect(FORM).toContain('Exclude<NotificationKind, MatchAlertKind | SectionedKind>');
-    expect(FORM).toContain('Record<ListedKind, string>');
+    expect(FORM).toContain('Record<ListedKind, SettingsKey>');
     expect(MATCH).toContain('Record<MatchAlertKind, MessageKey>');
     expect(SECTIONS).toContain('Record<SectionedKind, MessageKey>');
   });
@@ -49,12 +50,21 @@ describe('every kind is offered, and named in words', () => {
   it('says whether a value is the member own choice or the default', () => {
     // "Default" and "your choice that happens to match the default" behave
     // differently the day a default changes, and only one of them should.
-    expect(FORM).toMatch(/chosen \? 'Your choice' : 'Default'/);
+    // The words are the catalogue's since T-1305.
+    expect(FORM).toMatch(/chosen \? 'alerts\.yourChoice' : 'alerts\.default'/);
+    expect(EN['alerts.yourChoice']).toBe('Your choice');
+    expect(EN['alerts.default']).toBe('Default');
   });
 
   it('names the hourly ceiling where there is one, from the contract', () => {
-    expect(FORM).toContain('NOTIFICATION_HOURLY_CAP[kind]');
-    expect(FORM).toMatch(/at most \$\{String\(cap\)\} an hour/);
+    // Resolved on the server as a plural per capped kind (T-1305), handed to the switch.
+    expect(PAGE).toContain('NOTIFICATION_HOURLY_CAP');
+    expect(PAGE).toContain("plural(resolved, 'alerts.cap', cap)");
+    expect(FORM).toContain('cap={caps[preference.kind]}');
+    expect(EN['alerts.cap']).toEqual({
+      one: 'at most {count} an hour',
+      other: 'at most {count} an hour',
+    });
     // And the caps are few on purpose: a cap is for a thing that can happen
     // faster than somebody can care about it.
     expect(Object.keys(NOTIFICATION_HOURLY_CAP).length).toBeLessThan(NOTIFICATION_KINDS.length / 2);
@@ -62,19 +72,20 @@ describe('every kind is offered, and named in words', () => {
 
   it('puts the state somewhere a screen reader reaches', () => {
     expect(FORM).toContain('aria-pressed={inProduct}');
-    expect(FORM).toMatch(/inProduct \? 'On' : 'Off'/);
+    expect(FORM).toMatch(/inProduct \? 'alerts\.on' : 'alerts\.off'/);
   });
 });
 
 describe('what stays quiet (T-331)', () => {
   it('offers a team, a competition and a category, each named in words', () => {
     // Keyed by the contract's union: a category added without a sentence does not compile.
-    expect(FORM).toContain('Record<NotificationCategory, string>');
+    expect(FORM).toContain('Record<NotificationCategory, SettingsKey>');
     for (const scope of ['team', 'competition', 'category']) {
       expect(FORM, `no form to silence a ${scope}`).toContain(`scope="${scope}"`);
     }
     expect(FORM).toContain('settings.mutes.map');
-    expect(FORM).toContain('Nothing is silenced.');
+    expect(FORM).toContain("messages['alerts.nothingSilenced']");
+    expect(EN['alerts.nothingSilenced']).toBe('Nothing is silenced.');
   });
 
   it('silences and unmutes through the API, never a second copy of the rule', () => {
@@ -93,20 +104,23 @@ describe('quiet hours explain themselves', () => {
     // delay; the frequency cap drops. A member reading this page should not
     // have to guess which one applies to them.
     expect(FORM).toContain('data-testid="quiet-hours-explainer"');
-    expect(FORM).toMatch(/Nothing is thrown away/);
-    expect(FORM).toMatch(/waits until/);
+    expect(FORM).toContain("messages['alerts.quietExplainer']");
+    expect(EN['alerts.quietExplainer']).toMatch(/Nothing is thrown away/);
+    expect(EN['alerts.quietExplainer']).toMatch(/waits until/);
   });
 
   it('names the timezone the window is read in', () => {
     // A member who moved and never updated their account would otherwise see a
     // window that behaves inexplicably.
-    expect(FORM).toContain('{settings.timezone}');
+    expect(FORM).toContain("replace('{timezone}', settings.timezone)");
+    expect(EN['alerts.quietExplainer']).toContain('({timezone})');
   });
 
   it('clears by submitting empty rather than by a second button', () => {
-    expect(FORM).toMatch(/Leave both empty to clear them/);
+    expect(FORM).toContain("messages['alerts.clearHint']");
+    expect(EN['alerts.clearHint']).toBe('Leave both empty to clear them.');
     expect(ACTIONS).toContain("starts === '' && ends === ''");
-    expect(ACTIONS).toContain("send('/me/quiet-hours', 'DELETE')");
+    expect(ACTIONS).toContain("send(locale, '/me/quiet-hours', 'DELETE')");
   });
 });
 

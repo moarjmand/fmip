@@ -6,7 +6,10 @@ import type { FollowInviteLinkResponse } from '@fmip/contracts';
 import { type ApiResult, apiRequest } from '@/lib/api';
 import type { ActionState } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
+import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
+import { type MessageKey, interpolate, t } from '@/i18n/messages';
 import { failureState } from './action-failure';
+import { formatNumber } from '@/i18n/format';
 
 /**
  * Groups: joining, asking, invitations and who runs one (blueprint 8.2, T-242).
@@ -18,8 +21,11 @@ import { failureState } from './action-failure';
  * refusals, whose wording is written not to say more than it should.
  */
 
-function failure(result: Extract<ApiResult<unknown>, { ok: false }>): ActionState {
-  return failureState(result);
+async function failure(
+  result: Extract<ApiResult<unknown>, { ok: false }>,
+  locale: string,
+): Promise<ActionState> {
+  return failureState(result, locale);
 }
 
 /**
@@ -40,12 +46,17 @@ async function act(
     cookie: await sessionCookieHeader(),
     ...(body === undefined ? {} : { body }),
   });
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
 
   revalidatePath(`/${locale}/groups`);
   revalidatePath(`/${locale}/groups/${encodeURIComponent(slug)}`);
   revalidatePath(`/${locale}/messages`);
   return { ok: true, message: done };
+}
+
+/** The sentence a success says, in the reader's language (T-1308). */
+function said(locale: string, key: MessageKey, params: Record<string, string> = {}): string {
+  return interpolate(t(isLocale(locale) ? locale : DEFAULT_LOCALE, key), params);
 }
 
 function target(value: string): string {
@@ -75,7 +86,7 @@ export async function joinGroupAction(
     slug,
     `/groups/${target(slug)}/members`,
     'POST',
-    'You are in.',
+    said(locale, 'groupsPage.done.in'),
     acceptedRules(formData),
   );
 }
@@ -92,9 +103,14 @@ export async function setGroupRulesAction(
     cookie: await sessionCookieHeader(),
     body: { body: String(formData.get('body') ?? '') },
   });
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
   revalidatePath(`/${locale}/groups/${target(slug)}`);
-  return { ok: true, message: `Published as version ${result.data.version}.` };
+  return {
+    ok: true,
+    message: said(locale, 'groupsPage.done.published', {
+      version: formatNumber(locale, result.data.version),
+    }),
+  };
 }
 
 /** The owner's appeal of a closure (T-1025): one note on the decision that closed it. */
@@ -109,9 +125,9 @@ export async function appealGroupClosureAction(
     cookie: await sessionCookieHeader(),
     body: { body: String(formData.get('body') ?? '').trim() },
   });
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
   revalidatePath(`/${locale}/groups/${target(slug)}`);
-  return { ok: true, message: 'Sent. A moderator reads every appeal.' };
+  return { ok: true, message: said(locale, 'groupsPage.done.appealed') };
 }
 
 /** A member has read the new rules; they are not shown as new again (T-1023). */
@@ -121,7 +137,13 @@ export async function groupRulesSeenAction(
   _previous: ActionState,
   _formData: FormData,
 ): Promise<ActionState> {
-  return act(locale, slug, `/groups/${target(slug)}/rules/seen`, 'POST', 'Noted.');
+  return act(
+    locale,
+    slug,
+    `/groups/${target(slug)}/rules/seen`,
+    'POST',
+    said(locale, 'groupsPage.done.noted'),
+  );
 }
 
 /**
@@ -142,11 +164,11 @@ export async function askToJoinGroupAction(
     cookie: await sessionCookieHeader(),
     body: { note: note === '' ? null : note, ...acceptedRules(formData) },
   });
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
 
   revalidatePath(`/${locale}/groups`);
   revalidatePath(`/${locale}/groups/${target(slug)}`);
-  return { ok: true, message: 'Asked. Somebody who runs the group will answer.' };
+  return { ok: true, message: said(locale, 'groupsPage.done.asked') };
 }
 
 /**
@@ -164,14 +186,14 @@ export async function followInviteLinkAction(
     `/group-invite-links/${target(token)}`,
     { method: 'POST', cookie: await sessionCookieHeader(), body: acceptedRules(formData) },
   );
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
 
   const slug = result.data.group.slug;
   revalidatePath(`/${locale}/groups`);
   revalidatePath(`/${locale}/groups/${target(slug)}`);
   revalidatePath(`/${locale}/messages`);
   if (result.data.outcome === 'joined') redirect(`/${locale}/groups/${target(slug)}`);
-  return { ok: true, message: 'Asked. Somebody who runs the group will answer.' };
+  return { ok: true, message: said(locale, 'groupsPage.done.asked') };
 }
 
 export async function withdrawGroupRequestAction(
@@ -180,7 +202,13 @@ export async function withdrawGroupRequestAction(
   _previous: ActionState,
   _formData: FormData,
 ): Promise<ActionState> {
-  return act(locale, slug, `/me/group-requests/${target(slug)}`, 'DELETE', 'Taken back.');
+  return act(
+    locale,
+    slug,
+    `/me/group-requests/${target(slug)}`,
+    'DELETE',
+    said(locale, 'groupsPage.done.withdrawn'),
+  );
 }
 
 export async function leaveGroupAction(
@@ -189,7 +217,13 @@ export async function leaveGroupAction(
   _previous: ActionState,
   _formData: FormData,
 ): Promise<ActionState> {
-  return act(locale, slug, `/groups/${target(slug)}/members/me`, 'DELETE', 'You have left.');
+  return act(
+    locale,
+    slug,
+    `/groups/${target(slug)}/members/me`,
+    'DELETE',
+    said(locale, 'groupsPage.done.left'),
+  );
 }
 
 export async function acceptGroupInviteAction(
@@ -203,7 +237,7 @@ export async function acceptGroupInviteAction(
     slug,
     `/me/group-invites/${target(slug)}/accept`,
     'POST',
-    'You are in.',
+    said(locale, 'groupsPage.done.in'),
     acceptedRules(formData),
   );
 }
@@ -214,7 +248,13 @@ export async function declineGroupInviteAction(
   _previous: ActionState,
   _formData: FormData,
 ): Promise<ActionState> {
-  return act(locale, slug, `/me/group-invites/${target(slug)}`, 'DELETE', 'Declined.');
+  return act(
+    locale,
+    slug,
+    `/me/group-invites/${target(slug)}`,
+    'DELETE',
+    said(locale, 'groupsPage.done.declined'),
+  );
 }
 
 export async function answerJoinRequestAction(
@@ -231,13 +271,13 @@ export async function answerJoinRequestAction(
         slug,
         `/groups/${target(slug)}/requests/${target(username)}/accept`,
         'POST',
-        `@${username} is in.`,
+        said(locale, 'groupsPage.done.letIn', { username }),
       )
     : act(
         locale,
         slug,
         `/groups/${target(slug)}/requests/${target(username)}`,
         'DELETE',
-        `@${username} was not let in.`,
+        said(locale, 'groupsPage.done.refused', { username }),
       );
 }

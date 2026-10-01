@@ -9,6 +9,7 @@ import { PostgresMatchCentreStore } from './internal/match-centre-store';
 import { PostgresScoresStore } from './internal/scores-store';
 import { MatchCentreController } from './match-centre.controller';
 import { ScoresController } from './scores.controller';
+import { LocalisedNamesModule } from '../localised-names/localised-names.module';
 import { DEFAULT_STREAM_OPTIONS, STREAM_OPTIONS, StreamController } from './stream.controller';
 
 /**
@@ -17,7 +18,7 @@ import { DEFAULT_STREAM_OPTIONS, STREAM_OPTIONS, StreamController } from './stre
  * centre (T-033) and the SSE gateway that pushes both (T-032).
  */
 @Module({
-  imports: [IdentityModule, ProfileModule, MediaModule],
+  imports: [IdentityModule, ProfileModule, MediaModule, LocalisedNamesModule],
   controllers: [ScoresController, MatchCentreController, StreamController],
   providers: [
     FixturesService,

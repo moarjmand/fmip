@@ -1,4 +1,4 @@
-import { LOCALES, type Locale, isPseudoLocale } from '@/i18n/locales';
+import { LOCALES, type Locale, isPreparingLocale, isPseudoLocale } from '@/i18n/locales';
 import { isShippable, message } from '@/i18n/messages';
 import { type OfferedLanguage, type PickerEntry, pickerEntriesFor } from '@/lib/language-switch';
 
@@ -30,7 +30,9 @@ export { type OfferedLanguage, type PickerEntry, switchLocale } from '@/lib/lang
 
 /** Locales a reader may be offered, in the order they ship. */
 export function offeredLocales(shippable: (locale: Locale) => boolean = isShippable): Locale[] {
-  return LOCALES.filter((locale) => !isPseudoLocale(locale) && shippable(locale));
+  return LOCALES.filter(
+    (locale) => !isPseudoLocale(locale) && !isPreparingLocale(locale) && shippable(locale),
+  );
 }
 
 /**

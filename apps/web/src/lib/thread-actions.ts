@@ -30,7 +30,7 @@ export async function openThreadAction(
     body: { fixture_id: fixtureId },
   });
   if (!result.ok) {
-    return failureState(result);
+    return failureState(result, locale);
   }
 
   revalidatePath(`/${locale}/messages`);

@@ -6,6 +6,8 @@ import type { CardKind, Reaction, SendMessageResponse } from '@fmip/contracts';
 import { type ApiResult, apiRequest } from '@/lib/api';
 import type { ActionState } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
+import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
+import { type MessageKey, t } from '@/i18n/messages';
 import { failureState } from './action-failure';
 
 /**
@@ -24,8 +26,16 @@ import { failureState } from './action-failure';
  * here.
  */
 
-function failure(result: Extract<ApiResult<unknown>, { ok: false }>): ActionState {
-  return failureState(result);
+async function failure(
+  result: Extract<ApiResult<unknown>, { ok: false }>,
+  locale: string,
+): Promise<ActionState> {
+  return failureState(result, locale);
+}
+
+/** The sentence a success says, in the reader's language (T-1308). */
+function said(locale: string, key: MessageKey): string {
+  return t(isLocale(locale) ? locale : DEFAULT_LOCALE, key);
 }
 
 function text(formData: FormData, name: string): string {
@@ -63,7 +73,7 @@ export async function sendMessageAction(
       },
     },
   );
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
 
   revalidatePath(`/${locale}/messages/${conversationId}`);
   revalidatePath(`/${locale}/messages`);
@@ -82,10 +92,10 @@ export async function removeMessageAction(
     `/me/conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(messageId)}`,
     { method: 'DELETE', cookie: await sessionCookieHeader() },
   );
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
 
   revalidatePath(`/${locale}/messages/${conversationId}`);
-  return { ok: true, message: 'Removed. What you wrote is gone; the place it was is not.' };
+  return { ok: true, message: said(locale, 'messagesPage.done.removed') };
 }
 
 /**
@@ -108,10 +118,10 @@ export async function removeAsGroupModeratorAction(
       body: { reason: String(formData.get('reason') ?? '').trim() },
     },
   );
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
 
   revalidatePath(`/${locale}/messages/${conversationId}`);
-  return { ok: true, message: 'Removed. Its author is told why.' };
+  return { ok: true, message: said(locale, 'messagesPage.done.moderated') };
 }
 
 /**
@@ -141,11 +151,14 @@ export async function setMutedAction(
     `/me/conversations/${encodeURIComponent(conversationId)}/mute`,
     { method: muted ? 'POST' : 'DELETE', cookie: await sessionCookieHeader() },
   );
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
 
   revalidatePath(`/${locale}/messages/${conversationId}`);
   revalidatePath(`/${locale}/messages`);
-  return { ok: true, message: muted ? 'Muted.' : 'Unmuted.' };
+  return {
+    ok: true,
+    message: said(locale, muted ? 'messagesPage.done.muted' : 'messagesPage.done.unmuted'),
+  };
 }
 
 /** Leaving is never gated. It is the exit. */
@@ -159,13 +172,13 @@ export async function leaveConversationAction(
     `/me/conversations/${encodeURIComponent(conversationId)}/leave`,
     { method: 'POST', cookie: await sessionCookieHeader() },
   );
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
 
   revalidatePath(`/${locale}/messages/${conversationId}`);
   revalidatePath(`/${locale}/messages`);
   return {
     ok: true,
-    message: 'You have left. You can still read what was said; you cannot add to it.',
+    message: said(locale, 'messagesPage.done.left'),
   };
 }
 
@@ -185,7 +198,7 @@ export async function openConversationAction(
     `/me/conversations/direct/${encodeURIComponent(username)}`,
     { method: 'POST', cookie: await sessionCookieHeader() },
   );
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
 
   revalidatePath(`/${locale}/messages`);
   redirect(`/${locale}/messages/${result.data.id}`);
@@ -212,7 +225,7 @@ export async function reactAction(
     `/me/conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(messageId)}/reactions/${encodeURIComponent(reaction)}`,
     { method: mine ? 'DELETE' : 'PUT', cookie: await sessionCookieHeader() },
   );
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
 
   revalidatePath(`/${locale}/messages/${conversationId}`);
   return { ok: true };
@@ -231,8 +244,11 @@ export async function setPinnedAction(
     `/me/conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(messageId)}/pin`,
     { method: pinned ? 'POST' : 'DELETE', cookie: await sessionCookieHeader() },
   );
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
 
   revalidatePath(`/${locale}/messages/${conversationId}`);
-  return { ok: true, message: pinned ? 'Pinned.' : 'Unpinned.' };
+  return {
+    ok: true,
+    message: said(locale, pinned ? 'messagesPage.done.pinned' : 'messagesPage.done.unpinned'),
+  };
 }

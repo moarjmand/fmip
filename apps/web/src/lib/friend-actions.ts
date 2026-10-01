@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { type ApiResult, apiRequest } from '@/lib/api';
 import type { ActionState } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
+import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
+import { type MessageKey, interpolate, t } from '@/i18n/messages';
 import { failureState } from './action-failure';
 
 /**
@@ -23,8 +25,11 @@ import { failureState } from './action-failure';
  * member has blocked the viewer.
  */
 
-function failure(result: Extract<ApiResult<unknown>, { ok: false }>): ActionState {
-  return failureState(result);
+async function failure(
+  result: Extract<ApiResult<unknown>, { ok: false }>,
+  locale: string,
+): Promise<ActionState> {
+  return failureState(result, locale);
 }
 
 /**
@@ -40,11 +45,16 @@ async function act(
   done: string,
 ): Promise<ActionState> {
   const result = await apiRequest<null>(path, { method, cookie: await sessionCookieHeader() });
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
 
   revalidatePath(`/${locale}/friends`);
   revalidatePath(`/${locale}/u/${encodeURIComponent(username)}`);
   return { ok: true, message: done };
+}
+
+/** The sentence a success says, in the reader's language (T-1308). */
+function said(locale: string, key: MessageKey, username: string): string {
+  return interpolate(t(isLocale(locale) ? locale : DEFAULT_LOCALE, key), { username });
 }
 
 function target(username: string): string {
@@ -62,7 +72,7 @@ export async function sendFriendRequestAction(
     username,
     `/me/friend-requests/${target(username)}`,
     'POST',
-    `Request sent to @${username}.`,
+    said(locale, 'friendsPage.done.sent', username),
   );
 }
 
@@ -77,7 +87,7 @@ export async function acceptFriendRequestAction(
     username,
     `/me/friend-requests/${target(username)}/accept`,
     'POST',
-    `You and @${username} are now friends.`,
+    said(locale, 'friendsPage.done.accepted', username),
   );
 }
 
@@ -96,7 +106,7 @@ export async function withdrawFriendRequestAction(
     username,
     `/me/friend-requests/${target(username)}`,
     'DELETE',
-    `The request between you and @${username} is withdrawn.`,
+    said(locale, 'friendsPage.done.withdrawn', username),
   );
 }
 
@@ -111,7 +121,7 @@ export async function unfriendAction(
     username,
     `/me/friends/${target(username)}`,
     'DELETE',
-    `@${username} is no longer in your friends.`,
+    said(locale, 'friendsPage.done.unfriended', username),
   );
 }
 
@@ -126,7 +136,7 @@ export async function blockAction(
     username,
     `/me/blocks/${target(username)}`,
     'POST',
-    `@${username} is blocked. They are not told.`,
+    said(locale, 'friendsPage.done.blocked', username),
   );
 }
 
@@ -143,6 +153,6 @@ export async function unblockAction(
     'DELETE',
     // Said here because it is the surprising half: lifting a block restores the
     // possibility of contact, not the friendship the block ended.
-    `@${username} is unblocked. Any friendship the block ended is not restored.`,
+    said(locale, 'friendsPage.done.unblocked', username),
   );
 }

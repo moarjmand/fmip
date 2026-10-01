@@ -11,7 +11,9 @@ import { ShareLink } from '@/components/share-link';
 import { PredictionHistory } from '@/components/prediction-history';
 import { RatingHistorySection } from '@/components/rating-history';
 import { Translated } from '@/components/translated';
-import { directionOf } from '@/i18n/locales';
+import { formatDate, formatDateTime, formatNumber } from '@/i18n/format';
+import { DEFAULT_LOCALE, directionOf, isLocale, type Locale } from '@/i18n/locales';
+import { interpolate, message, t } from '@/i18n/messages';
 import {
   fetchAchievements,
   fetchFriendStatus,
@@ -58,6 +60,7 @@ export default async function ProfilePage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const [{ locale, username }, query] = await Promise.all([params, searchParams]);
+  const lang: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
   const cookie = await sessionCookieHeader();
   const name = decodeURIComponent(username);
   const [result, friendStatus] = await Promise.all([
@@ -73,7 +76,7 @@ export default async function ProfilePage({
       <main className="mx-auto flex max-w-3xl flex-col gap-4 p-8">
         <h1 className="text-2xl font-semibold">{memberName(locale, { username: name })}</h1>
         <Notice tone="danger">
-          The service is unreachable right now, so this profile cannot be shown.
+          <Translated locale={locale} message="profile.unreachable" />
         </Notice>
       </main>
     );
@@ -99,8 +102,7 @@ export default async function ProfilePage({
     friendStatus !== 'self' &&
     friendStatus !== 'friends' ? (
       <p role="status" data-testid="invited-note">
-        You joined through {memberName(locale, { username: name })}&rsquo;s invitation. Send them a
-        friend request below if you like; nothing has been sent.
+        {interpolate(t(lang, 'profile.invited'), { name: memberName(locale, { username: name }) })}
       </p>
     ) : null;
 
@@ -113,9 +115,14 @@ export default async function ProfilePage({
         <MemberHandle username={view.username} className="text-muted" />
         {invited}
         <p data-testid="profile-restricted">
-          {view.visibility === 'friends'
-            ? 'This profile is visible to friends only.'
-            : 'This profile is private.'}
+          <Translated
+            locale={locale}
+            message={
+              view.visibility === 'friends'
+                ? 'profile.restrictedFriends'
+                : 'profile.restrictedPrivate'
+            }
+          />
         </p>
         <FriendControls locale={locale} username={view.username} status={friendStatus} />
       </main>
@@ -132,6 +139,14 @@ export default async function ProfilePage({
     fetchAchievements(profile.username, cookie),
   ]);
   const timeZone = me?.timezone ?? 'UTC';
+  // English has always shown these instants as the API gives them; every
+  // other language reads them in its own calendar and digits (T-1306).
+  const shownDay = (iso: string): string =>
+    lang === DEFAULT_LOCALE
+      ? iso
+      : formatDate(lang, iso, 'UTC', { day: 'numeric', month: 'short', year: 'numeric' });
+  const shownInstant = (iso: string): string =>
+    lang === DEFAULT_LOCALE ? iso : formatDateTime(lang, iso, timeZone);
   const pageHref = (p: number): string =>
     `/${locale}/u/${encodeURIComponent(profile.username)}${p > 1 ? `?page=${p}` : ''}`;
 
@@ -156,12 +171,13 @@ export default async function ProfilePage({
           </h1>
           <MemberHandle username={profile.username} className="text-muted" />
           <p className="text-sm text-muted">
-            Member since <time dateTime={profile.member_since}>{profile.member_since}</time>
+            <Translated locale={locale} message="profile.memberSince" />{' '}
+            <time dateTime={profile.member_since}>{shownDay(profile.member_since)}</time>
           </p>
         </div>
         {view.is_self && (
           <Link href={`/${locale}/settings`} className="ms-auto text-sm underline">
-            Edit profile
+            <Translated locale={locale} message="profile.edit" />
           </Link>
         )}
       </header>
@@ -171,8 +187,12 @@ export default async function ProfilePage({
         <p className="text-sm" data-testid="invite-link">
           <ShareLink
             url={inviteUrl(locale, profile.username)}
-            title="Join me on FMIP"
-            label="Invite a friend"
+            title={t(lang, 'profile.inviteTitle')}
+            label={t(lang, 'profile.inviteLabel')}
+            messages={{
+              copied: message(lang, 'share.copied'),
+              manual: message(lang, 'share.manual'),
+            }}
           />
         </p>
       )}
@@ -187,7 +207,7 @@ export default async function ProfilePage({
             className="text-sm underline"
             data-testid="compare-link"
           >
-            Compare records
+            <Translated locale={locale} message="profile.compareLink" />
           </Link>
         )}
       </div>
@@ -197,13 +217,19 @@ export default async function ProfilePage({
           {profile.bio}
         </p>
       ) : (
-        <p className="text-sm text-muted">No biography yet.</p>
+        <p className="text-sm text-muted">
+          <Translated locale={locale} message="profile.noBio" />
+        </p>
       )}
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-lg font-semibold">Favourite teams</h2>
+        <h2 className="text-lg font-semibold">
+          <Translated locale={locale} message="profile.favourites" />
+        </h2>
         {profile.favourite_teams.length === 0 ? (
-          <p className="text-sm text-muted">No favourite teams yet.</p>
+          <p className="text-sm text-muted">
+            <Translated locale={locale} message="profile.noFavourites" />
+          </p>
         ) : (
           <ul className="flex flex-wrap gap-2" data-testid="favourite-teams">
             {profile.favourite_teams.map((team) => (
@@ -216,37 +242,52 @@ export default async function ProfilePage({
       </section>
 
       <section className="flex flex-col gap-2" data-testid="rating">
-        <h2 className="text-lg font-semibold">Performance Rating</h2>
+        <h2 className="text-lg font-semibold">
+          <Translated locale={locale} message="profile.rating.heading" />
+        </h2>
         {!rating.ok ? (
-          <Notice tone="danger">The rating cannot be shown right now.</Notice>
+          <Notice tone="danger">
+            <Translated locale={locale} message="profile.rating.unreachable" />
+          </Notice>
         ) : rating.data.rating === null ? (
           <p className="text-sm text-muted" data-testid="rating-none">
-            No rating yet: a rating starts with the first settled prediction.
+            <Translated locale={locale} message="profile.rating.none" />
           </p>
         ) : (
           <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
             <div>
-              <dt className="text-xs uppercase text-muted">Rating</dt>
+              <dt className="text-xs uppercase text-muted">
+                <Translated locale={locale} message="profile.rating.rating" />
+              </dt>
               <dd className="text-2xl font-semibold tabular-nums" data-testid="rating-value">
-                {ratingLabel(rating.data.rating)}
+                {ratingLabel(rating.data.rating, locale)}
               </dd>
             </div>
             <div>
-              <dt className="text-xs uppercase text-muted">Tier</dt>
-              <dd>{tierLabel(rating.data.rating.tier)}</dd>
+              <dt className="text-xs uppercase text-muted">
+                <Translated locale={locale} message="profile.rating.tier" />
+              </dt>
+              <dd>{tierLabel(rating.data.rating.tier, locale)}</dd>
             </div>
             <div>
-              <dt className="text-xs uppercase text-muted">Status</dt>
-              <dd>{statusLabel(rating.data.rating)}</dd>
+              <dt className="text-xs uppercase text-muted">
+                <Translated locale={locale} message="profile.rating.status" />
+              </dt>
+              <dd>{statusLabel(rating.data.rating, locale)}</dd>
             </div>
             <div>
-              <dt className="text-xs uppercase text-muted">Settled</dt>
-              <dd className="tabular-nums">{rating.data.rating.settled_count}</dd>
+              <dt className="text-xs uppercase text-muted">
+                <Translated locale={locale} message="profile.rating.settled" />
+              </dt>
+              <dd className="tabular-nums">
+                {formatNumber(lang, rating.data.rating.settled_count)}
+              </dd>
             </div>
             <dd className="col-span-full text-xs text-muted">
-              {rating.data.rating.formula_version} · computed{' '}
+              {rating.data.rating.formula_version} ·{' '}
+              <Translated locale={locale} message="profile.rating.computed" />{' '}
               <time dateTime={rating.data.rating.computed_at}>
-                {rating.data.rating.computed_at}
+                {shownInstant(rating.data.rating.computed_at)}
               </time>
             </dd>
           </dl>
@@ -254,7 +295,9 @@ export default async function ProfilePage({
       </section>
 
       <section className="flex flex-col gap-2" data-testid="rating-over-time">
-        <h2 className="text-lg font-semibold">Rating over time</h2>
+        <h2 className="text-lg font-semibold">
+          <Translated locale={locale} message="profile.ratingOverTime" />
+        </h2>
         <RatingHistorySection
           locale={locale}
           direction={directionOf(locale)}
@@ -271,16 +314,23 @@ export default async function ProfilePage({
       </section>
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-lg font-semibold">Predictions</h2>
+        <h2 className="text-lg font-semibold">
+          <Translated locale={locale} message="nav.predictions" />
+        </h2>
         {!history.ok ? (
           <Notice tone="danger" data-testid="history-unreachable">
-            The prediction history cannot be shown right now.
+            <Translated locale={locale} message="profile.history.unreachable" />
           </Notice>
         ) : history.data.kind === 'restricted' ? (
           <p className="text-sm text-muted" data-testid="history-restricted">
-            {history.data.visibility === 'friends'
-              ? 'Prediction history is visible to friends only.'
-              : 'Prediction history is private.'}
+            <Translated
+              locale={locale}
+              message={
+                history.data.visibility === 'friends'
+                  ? 'profile.history.restrictedFriends'
+                  : 'profile.history.restrictedPrivate'
+              }
+            />
           </p>
         ) : (
           <PredictionHistory

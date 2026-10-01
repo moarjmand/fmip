@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { HOLDABLE_LOCALES, type LocaleHoldRecord } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
-import { LOCALES, type Locale, isPseudoLocale } from '../i18n/locales';
+import { LOCALES, type Locale, WRITTEN_LOCALES, isPseudoLocale } from '../i18n/locales';
 import { languageRows } from './language-coverage';
 import { heldNotice, offeredGiven } from './language-hold';
 import { offeredLocales } from './language-picker';
@@ -40,13 +40,14 @@ describe('what is offered', () => {
     expect([...HOLDABLE_LOCALES].sort()).toEqual([...real].sort());
   });
 
-  it('cannot disagree with indexing: no holdable language is indexable yet', () => {
+  it('cannot disagree with indexing: an indexable holdable language is one the proxy can take back', () => {
     // A held language must answer as an unoffered one does, which includes
-    // not being offered to search engines. Today that is true because every
-    // language but English is unfinished (`seo.ts`). The day one leaves
-    // `UNFINISHED_LOCALES`, `INDEXABLE_LOCALES` has to consult the holds too,
-    // and this fails to say so.
-    expect(INDEXABLE_LOCALES).toEqual(['en']);
+    // not being offered to search engines. Persian is written and indexable
+    // (T-1310); `proxy.ts` marks a held written language's pages noindex.
+    // Any other holdable language becoming indexable must join that list.
+    expect(INDEXABLE_LOCALES).toEqual(['en', 'fa']);
+    for (const locale of INDEXABLE_LOCALES.filter((l) => l !== 'en'))
+      expect(WRITTEN_LOCALES, locale).toContain(locale);
   });
 });
 

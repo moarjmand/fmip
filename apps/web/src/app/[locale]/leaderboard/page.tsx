@@ -21,6 +21,8 @@ import { Translated } from '@/components/translated';
 import { MemberName } from '@/components/member-name';
 import { UNFINISHED_LOCALES } from '@/i18n/locales';
 import { Stamp } from '@/components/stamp';
+import { attribute, interpolate, message, t } from '@/i18n/messages';
+import { asLocale, plainNumber, richMessage } from '@/lib/prediction-text';
 
 /** The languages a board can be drawn by (T-844): the ones the site is offered in. */
 const BOARD_LANGUAGES: readonly string[] = ['en', ...UNFINISHED_LOCALES];
@@ -33,11 +35,12 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  const l = asLocale(locale);
   return pageMetadata({
     locale,
     path: '/leaderboard',
-    title: 'Leaderboard · FMIP',
-    description: 'Members ranked by Performance Rating, behind a minimum-sample filter.',
+    title: t(l, 'leaderboardPage.title'),
+    description: t(l, 'leaderboardPage.description'),
   });
 }
 
@@ -62,6 +65,7 @@ export default async function LeaderboardPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const [{ locale }, query] = await Promise.all([params, searchParams]);
+  const l = asLocale(locale);
   const q = readLeaderboardQuery(query);
   const cookie = await sessionCookieHeader();
   const result = await fetchLeaderboard(apiQuery(q), cookie);
@@ -69,24 +73,28 @@ export default async function LeaderboardPage({
     `rounded px-2 py-1 ${active ? 'bg-surface-raised font-semibold' : 'underline'}`;
 
   const scopes = [
-    { scope: 'everyone', label: 'Everyone' },
-    { scope: 'friends', label: 'You and your friends' },
+    { scope: 'everyone', label: 'leaderboardPage.everyone' },
+    { scope: 'friends', label: 'leaderboardPage.friends' },
   ] as const;
   const periods = [
-    { period: 'all', label: 'All time' },
-    { period: 'month', label: 'By month' },
-    { period: 'season', label: 'By season' },
+    { period: 'all', label: 'leaderboardPage.allTime' },
+    { period: 'month', label: 'leaderboardPage.byMonth' },
+    { period: 'season', label: 'leaderboardPage.bySeason' },
   ] as const;
+  const boardNav = attribute(l, 'leaderboardPage.board');
+  const pagesNav = attribute(l, 'leaderboardPage.pages');
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
       <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
-        Leaderboard
+        <Translated locale={l} message="nav.leaderboard" />
       </h1>
 
-      <nav aria-label="Board" className="flex flex-col gap-2 text-sm">
+      <nav aria-label={boardNav.text} lang={boardNav.lang} className="flex flex-col gap-2 text-sm">
         <div className="flex flex-wrap items-center gap-2" data-testid="scope-switcher">
-          <span className="text-muted">Who:</span>
+          <span className="text-muted">
+            <Translated locale={l} message="leaderboardPage.who" />
+          </span>
           {scopes.map(({ scope, label }) => (
             <Link
               key={scope}
@@ -94,12 +102,14 @@ export default async function LeaderboardPage({
               aria-current={q.scope === scope ? 'true' : undefined}
               className={linkClass(q.scope === scope)}
             >
-              {label}
+              <Translated locale={l} message={label} />
             </Link>
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-2" data-testid="period-switcher">
-          <span className="text-muted">When:</span>
+          <span className="text-muted">
+            <Translated locale={l} message="leaderboardPage.when" />
+          </span>
           {periods.map(({ period, label }) => (
             <Link
               key={period}
@@ -107,7 +117,7 @@ export default async function LeaderboardPage({
               aria-current={q.period === period ? 'true' : undefined}
               className={linkClass(q.period === period)}
             >
-              {label}
+              <Translated locale={l} message={label} />
             </Link>
           ))}
         </div>
@@ -116,40 +126,47 @@ export default async function LeaderboardPage({
       {!result.ok ? (
         result.status === 401 && q.scope === 'friends' ? (
           <p data-testid="leaderboard-sign-in">
-            <Link href={`/${locale}/login`} className="underline">
-              Sign in
-            </Link>{' '}
-            to see your friends&apos; board: it ranks you and the members you are friends with.
+            {richMessage(message(l, 'leaderboardPage.friendsSignIn'), {
+              signIn: (
+                <Link href={`/${locale}/login`} className="underline">
+                  <Translated locale={l} message="predictions.section.signIn" />
+                </Link>
+              ),
+            })}
           </p>
         ) : result.status === 400 ? (
           <Notice tone="warning" data-testid="leaderboard-invalid">
-            That filter is not one the board accepts.{' '}
-            <Link
-              href={pageHref(locale, q, {
-                min: null,
-                page: 1,
-                period: 'all',
-                month: null,
-                season: null,
-                competition: null,
-                language: null,
-              })}
-              className="underline"
-            >
-              Show the default board
-            </Link>
-            .
+            {richMessage(message(l, 'leaderboardPage.invalid'), {
+              link: (
+                <Link
+                  href={pageHref(locale, q, {
+                    min: null,
+                    page: 1,
+                    period: 'all',
+                    month: null,
+                    season: null,
+                    competition: null,
+                    language: null,
+                  })}
+                  className="underline"
+                >
+                  <Translated locale={l} message="leaderboardPage.defaultBoard" />
+                </Link>
+              ),
+            })}
           </Notice>
         ) : (
           <Notice tone="danger" data-testid="leaderboard-unreachable">
-            The service is unreachable right now, so the leaderboard cannot be shown.
+            <Translated locale={l} message="leaderboardPage.unreachable" />
           </Notice>
         )
       ) : (
         <>
           {result.data.period.kind === 'month' && (
             <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="month-picker">
-              <span className="text-muted">Month:</span>
+              <span className="text-muted">
+                <Translated locale={l} message="leaderboardPage.month" />
+              </span>
               {pickerChoices(result.data.available_periods.months, result.data.period.month).map(
                 (month) => (
                   <Link
@@ -172,7 +189,9 @@ export default async function LeaderboardPage({
           )}
           {result.data.period.kind === 'season' && result.data.period.label !== null && (
             <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="season-picker">
-              <span className="text-muted">Season:</span>
+              <span className="text-muted">
+                <Translated locale={l} message="leaderboardPage.season" />
+              </span>
               {pickerChoices(result.data.available_periods.seasons, result.data.period.label).map(
                 (season) => (
                   <Link
@@ -257,7 +276,9 @@ export default async function LeaderboardPage({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="min-sample">
-            <span className="text-muted">Minimum settled predictions:</span>
+            <span className="text-muted">
+              <Translated locale={l} message="leaderboardPage.minSample" />
+            </span>
             {result.data.presets.map((preset) => (
               <Link
                 key={preset}
@@ -268,12 +289,12 @@ export default async function LeaderboardPage({
                 aria-current={preset === result.data.min_settled ? 'true' : undefined}
                 className={linkClass(preset === result.data.min_settled)}
               >
-                {preset}
+                {plainNumber(l, preset)}
               </Link>
             ))}
             {!result.data.presets.includes(result.data.min_settled) && (
               <span className={linkClass(true)} aria-current="true">
-                {result.data.min_settled}
+                {plainNumber(l, result.data.min_settled)}
               </span>
             )}
           </div>
@@ -303,35 +324,37 @@ export default async function LeaderboardPage({
                       #
                     </th>
                     <th scope="col" className="py-2 pe-3 text-start">
-                      Member
+                      <Translated locale={l} message="leaderboardPage.column.member" />
                     </th>
                     <th scope="col" className="py-2 pe-3 text-end">
-                      Rating
+                      <Translated locale={l} message="leaderboardPage.column.rating" />
                     </th>
                     <th scope="col" className="py-2 pe-3 text-start">
-                      Tier
+                      <Translated locale={l} message="leaderboardPage.column.tier" />
                     </th>
                     <th scope="col" className="py-2 pe-3 text-end">
-                      Settled
+                      <Translated locale={l} message="leaderboardPage.column.settled" />
                     </th>
                     <th scope="col" className="py-2 text-start">
-                      Status
+                      <Translated locale={l} message="leaderboardPage.column.status" />
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {result.data.entries.map((entry) => (
                     <tr key={entry.username} className="border-b border-default">
-                      <td className="py-2 pe-3 tabular-nums">{entry.rank}</td>
+                      <td className="py-2 pe-3 tabular-nums">{plainNumber(l, entry.rank)}</td>
                       <td className="py-2 pe-3">
                         <MemberName locale={locale} member={entry} link className="underline" />
                       </td>
                       <td className="py-2 pe-3 text-end tabular-nums" data-testid="rating">
-                        {ratingLabel(entry)}
+                        {ratingLabel(entry, l)}
                       </td>
-                      <td className="py-2 pe-3">{tierLabel(entry.tier)}</td>
-                      <td className="py-2 pe-3 text-end tabular-nums">{entry.settled_count}</td>
-                      <td className="py-2">{statusLabel(entry)}</td>
+                      <td className="py-2 pe-3">{tierLabel(entry.tier, l)}</td>
+                      <td className="py-2 pe-3 text-end tabular-nums">
+                        {plainNumber(l, entry.settled_count)}
+                      </td>
+                      <td className="py-2">{statusLabel(entry, l)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -339,26 +362,45 @@ export default async function LeaderboardPage({
             </div>
           )}
 
-          <nav aria-label="Pages" className="flex flex-wrap items-center gap-3 text-sm">
+          <nav
+            aria-label={pagesNav.text}
+            lang={pagesNav.lang}
+            className="flex flex-wrap items-center gap-3 text-sm"
+          >
             {q.page > 1 && (
               <Link href={pageHref(locale, q, { page: q.page - 1 })} className="underline">
-                Previous
+                <Translated locale={l} message="leaderboardPage.previous" />
               </Link>
             )}
             <span className="text-muted">
-              Page {q.page} of {pageCount(result.data.total)} · {result.data.total} ranked
+              <Translated
+                locale={l}
+                message="leaderboardPage.pageOf"
+                count={result.data.total}
+                params={{
+                  page: plainNumber(l, q.page),
+                  pages: plainNumber(l, pageCount(result.data.total)),
+                }}
+              />
             </span>
             {q.page < pageCount(result.data.total) && (
               <Link href={pageHref(locale, q, { page: q.page + 1 })} className="underline">
-                Next
+                <Translated locale={l} message="leaderboardPage.next" />
               </Link>
             )}
           </nav>
 
           <p className="text-xs text-muted">
-            Formula {result.data.entries[0]?.formula_version ?? 'performance-rating'} · board rules{' '}
-            {result.data.rules_version} · as of{' '}
-            <Stamp iso={result.data.generated_at} locale={locale} />
+            {richMessage(
+              {
+                ...message(l, 'leaderboardPage.footer'),
+                text: interpolate(t(l, 'leaderboardPage.footer'), {
+                  formula: result.data.entries[0]?.formula_version ?? 'performance-rating',
+                  rules: result.data.rules_version,
+                }),
+              },
+              { time: <Stamp iso={result.data.generated_at} locale={locale} /> },
+            )}
           </p>
         </>
       )}

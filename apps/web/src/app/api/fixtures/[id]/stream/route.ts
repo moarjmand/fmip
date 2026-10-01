@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { withLocale } from '@/lib/locale-query';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,13 +21,19 @@ export async function GET(
     return NextResponse.json({ error: 'not_found', message: 'No such fixture.' }, { status: 404 });
   }
 
+  // The reader's language, so the snapshots name the clubs as the page did (T-1312).
+  const locale = new URL(request.url).searchParams.get('locale') ?? undefined;
+
   let upstream: Response;
   try {
-    upstream = await fetch(`${API_BASE_URL}/fixtures/${id.toLowerCase()}/stream`, {
-      headers: { accept: 'text/event-stream' },
-      cache: 'no-store',
-      signal: request.signal,
-    });
+    upstream = await fetch(
+      withLocale(`${API_BASE_URL}/fixtures/${id.toLowerCase()}/stream`, locale),
+      {
+        headers: { accept: 'text/event-stream' },
+        cache: 'no-store',
+        signal: request.signal,
+      },
+    );
   } catch {
     return NextResponse.json(
       { error: 'unavailable', message: 'The match service is unreachable.' },

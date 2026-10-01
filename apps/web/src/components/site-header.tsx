@@ -56,14 +56,17 @@ export async function SiteHeader({ locale, theme }: { locale: string; theme: The
     })(),
   );
   const href = (path: string) => `/${locale}${path}`;
-  const search = attribute(isLocale(locale) ? locale : DEFAULT_LOCALE, 'nav.search');
+  const lang = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  const search = attribute(lang, 'nav.search');
+  const primary = attribute(lang, 'shell.nav.primary');
   // A thumb-sized row in the phone menu; inline text again from `sm`.
   const item = 'flex min-h-11 items-center sm:min-h-0';
 
   return (
     <header className="border-b border-default">
       <nav
-        aria-label="Primary"
+        aria-label={primary.text}
+        lang={primary.lang}
         className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-4 gap-y-1 px-4 py-1 text-sm sm:px-8 sm:py-3 lg:max-w-7xl"
       >
         <Link
@@ -81,7 +84,7 @@ export async function SiteHeader({ locale, theme }: { locale: string; theme: The
               <Translated locale={locale} message="nav.signIn" />
             </Link>
             <Link href={href('/register')} className={`${item} font-medium sm:order-1`}>
-              Register
+              <Translated locale={locale} message="shell.register" />
             </Link>
           </>
         )}
@@ -170,7 +173,10 @@ export async function SiteHeader({ locale, theme }: { locale: string; theme: The
               </>
             )}
             {/* Nothing until a second language is finished (T-306) and not held back (T-1163). */}
-            <LanguagePicker languages={offeredLanguages(offeredGiven(holds))} />
+            <LanguagePicker
+              languages={offeredLanguages(offeredGiven(holds))}
+              label={attribute(lang, 'shell.language')}
+            />
             {/* Light, dark or the device's own, on every page (T-602). */}
             <div className="py-2 sm:order-2 sm:py-0">
               <ThemeSwitch locale={locale} current={theme} variant="compact" />
