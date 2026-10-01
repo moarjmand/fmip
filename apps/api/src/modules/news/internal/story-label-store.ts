@@ -60,6 +60,11 @@ export class PostgresStoryLabelStore {
          JOIN article_entity e
            ON e.article_id = m.id AND e.entity_type IN ('team', 'person')
          JOIN followed_entity f ON f.entity_type = e.entity_type AND f.entity_id = e.entity_id
+         -- D-178: only members shown the story in the language they chose.
+         JOIN user_account u ON u.id = f.user_id
+         JOIN story s ON s.id = m.story_id
+         JOIN article shown
+           ON shown.id = story_shown_article(s.id, s.promoted_article_id, u.preferred_language)
          LEFT JOIN notification_preference p ON p.user_id = f.user_id AND p.kind = $2
         WHERE m.story_id = $1
           AND COALESCE(p.in_product, $3::boolean)`,

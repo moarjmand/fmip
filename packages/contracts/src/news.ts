@@ -484,8 +484,11 @@ export const SAVED_ARTICLES_LIMIT = 500;
  *   them (D-061); the list names them and says so, rather than keeping a
  *   dead link or a copy of their words.
  * - `unavailable`: the report is no longer held for another reason.
+ * - `other_language`: the report is held, but its source is shown only to
+ *   readers of its own language (D-178) and the list is read in another; it
+ *   stays on the member's list and says so, without the headline or link.
  */
-export type SavedArticleState = 'available' | 'source_dropped' | 'unavailable';
+export type SavedArticleState = 'available' | 'source_dropped' | 'unavailable' | 'other_language';
 
 export interface SavedArticle {
   story_id: string;
@@ -597,6 +600,11 @@ export interface NewsSourceRecord {
   rights: NewsRights;
   /** BCP 47 of the language the publisher writes in. */
   language: string;
+  /**
+   * Whether this source's stories are shown only to readers of its language
+   * (D-178): set per source in the console, on for Persian sources.
+   */
+  same_language_only: boolean;
   created_at: string;
   updated_at: string;
   /** A dropped source stays, dated with the reason (D-061); it is read and shown no more. */
@@ -604,6 +612,16 @@ export interface NewsSourceRecord {
   dropped_reason: string | null;
   /** The newest attempt to read the feed, or `null` when it was never read. */
   last_fetch: NewsSourceFetch | null;
+}
+
+/**
+ * `POST /admin/news-sources/:id/visibility` (T-1330, D-178): who is shown the
+ * source's stories -- only readers of its language, or every reader. A reason
+ * is required; the change is audited with the previous value (rule 10).
+ */
+export interface NewsSourceVisibilityRequest {
+  same_language_only: boolean;
+  reason: string;
 }
 
 /** `GET /admin/news-sources`: every source, carried first, then dropped. */
@@ -664,12 +682,16 @@ export interface NewsSourceRequest {
   kind: NewsSourceKind;
   rights: NewsSourceRights;
   language: string;
+  /** Optional, false when absent: only readers of its language see its stories (D-178). */
+  same_language_only?: boolean;
   /** Recorded in the audit log; required (rule 10). */
   reason: string;
 }
 
 /** `PATCH /admin/news-sources/:id`: the fields to change and why. A new feed URL is checked as on adding. */
-export type NewsSourceEditRequest = Partial<Omit<NewsSourceRequest, 'reason'>> & {
+export type NewsSourceEditRequest = Partial<
+  Omit<NewsSourceRequest, 'reason' | 'same_language_only'>
+> & {
   reason: string;
 };
 

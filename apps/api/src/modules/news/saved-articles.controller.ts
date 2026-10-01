@@ -7,6 +7,7 @@ import {
   NotFoundException,
   Param,
   Put,
+  Query,
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -14,6 +15,7 @@ import { type ApiError, SAVED_ARTICLES_LIMIT, type SavedArticlesResponse } from 
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { PostgresSavedArticlesStore } from './internal/saved-articles-store';
+import { localeOf } from '../localised-names/localised-names.service';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
@@ -45,29 +47,40 @@ export class SavedArticlesController {
     return user.id;
   }
 
-  private async answer(userId: string): Promise<SavedArticlesResponse> {
+  /** `locale` is the reader's (D-178): a row from a source not shown in it says so. */
+  private async answer(userId: string, locale: string | null): Promise<SavedArticlesResponse> {
     return {
-      saved: await this.saved.list(userId, SAVED_ARTICLES_LIMIT),
+      saved: await this.saved.list(userId, SAVED_ARTICLES_LIMIT, locale),
       limit: SAVED_ARTICLES_LIMIT,
     };
   }
 
   @Get()
-  async list(@Req() request: FastifyRequest): Promise<SavedArticlesResponse> {
-    return this.answer(await this.member(request));
+  async list(
+    @Req() request: FastifyRequest,
+    @Query('locale') locale: unknown,
+  ): Promise<SavedArticlesResponse> {
+    return this.answer(await this.member(request), localeOf(locale));
   }
 
   @Put(':storyId')
   async save(
     @Param('storyId') storyId: string,
     @Req() request: FastifyRequest,
+    @Query('locale') rawLocale: unknown,
   ): Promise<SavedArticlesResponse> {
     const userId = await this.member(request);
+    const locale = localeOf(rawLocale);
     if (!UUID.test(storyId)) throw new NotFoundException(NO_STORY);
-    const outcome = await this.saved.save(userId, storyId.toLowerCase(), SAVED_ARTICLES_LIMIT);
+    const outcome = await this.saved.save(
+      userId,
+      storyId.toLowerCase(),
+      SAVED_ARTICLES_LIMIT,
+      locale,
+    );
     if (outcome === 'unknown_story') throw new NotFoundException(NO_STORY);
     if (outcome === 'full') throw new ConflictException(FULL);
-    return this.answer(userId);
+    return this.answer(userId, locale);
   }
 
   @Delete(':storyId')
@@ -75,9 +88,10 @@ export class SavedArticlesController {
   async remove(
     @Param('storyId') storyId: string,
     @Req() request: FastifyRequest,
+    @Query('locale') locale: unknown,
   ): Promise<SavedArticlesResponse> {
     const userId = await this.member(request);
     if (UUID.test(storyId)) await this.saved.remove(userId, storyId.toLowerCase());
-    return this.answer(userId);
+    return this.answer(userId, localeOf(locale));
   }
 }

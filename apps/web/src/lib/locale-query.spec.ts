@@ -29,14 +29,17 @@ describe('withReaderLocale (T-1312)', () => {
     );
   });
 
-  it('leaves writes, the console, a chosen locale and English alone', () => {
+  it('sends English too, and English for a pseudo-locale (D-178)', () => {
+    expect(withReaderLocale('/teams/x', 'GET', 'en')).toBe('/teams/x?locale=en');
+    expect(withReaderLocale('/me/feed', 'GET', 'x-rtl')).toBe('/me/feed?locale=en');
+  });
+
+  it('leaves writes, the console, a chosen locale and an unknown one alone', () => {
     expect(withReaderLocale('/fixtures/x/predictions', 'POST', 'fa')).toBe(
       '/fixtures/x/predictions',
     );
     expect(withReaderLocale('/admin/overview', 'GET', 'fa')).toBe('/admin/overview');
     expect(withReaderLocale('/teams/x?locale=ar', 'GET', 'fa')).toBe('/teams/x?locale=ar');
-    expect(withReaderLocale('/teams/x', 'GET', 'en')).toBe('/teams/x');
-    expect(withReaderLocale('/teams/x', 'GET', 'x-rtl')).toBe('/teams/x');
     expect(withReaderLocale('/teams/x', 'GET', 'zz')).toBe('/teams/x');
     expect(withReaderLocale('/teams/x', 'GET', null)).toBe('/teams/x');
   });

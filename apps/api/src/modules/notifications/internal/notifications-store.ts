@@ -135,13 +135,17 @@ END`;
  * "Availability: " and the headline of the story's promoted original, in the
  * language its publisher writes in, newest version -- read at render rather
  * than copied, so a corrected headline shows corrected. Null when the story
- * is gone, and the kind's fallback text is shown instead.
+ * is gone, and the kind's fallback text is shown instead. The report is the
+ * one the member is shown in the language they chose (D-178), so a source
+ * shown only to readers of its language never lends another reader its words.
  */
 const STORY_TYPE_HEADLINE = `CASE WHEN n.kind IN ('transfer_news', 'availability_news')
                                   AND n.subject_id ~ '^[0-9a-f-]{36}$' THEN
   (SELECT CASE n.kind WHEN 'transfer_news' THEN 'Transfer: ' ELSE 'Availability: ' END || v.headline
      FROM story st
-     JOIN article a ON a.id = st.promoted_article_id
+     JOIN article a ON a.id = story_shown_article(
+            st.id, st.promoted_article_id,
+            (SELECT preferred_language FROM user_account WHERE id = n.user_id))
      JOIN news_source src ON src.id = a.source_id
      JOIN article_version v ON v.article_id = a.id AND v.language = src.language
                            AND v.origin = 'publisher'

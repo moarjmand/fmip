@@ -9277,6 +9277,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "saved.otherLanguage": {
+    "source": "this story's publisher is shown only to readers of its own language, so it is not shown in this one.",
+    "text": "ناشر این خبر فقط به خوانندگانِ زبان خودش نشان داده می‌شود، بنابراین این خبر در این زبان نمایش داده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "saved.save": {
     "source": "Save",
     "text": "ذخیره",

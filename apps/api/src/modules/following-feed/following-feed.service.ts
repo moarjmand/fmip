@@ -52,7 +52,12 @@ export class FollowingFeedService {
     private readonly profiles: ProfileService,
   ) {}
 
-  async feed(userId: string, now = new Date()): Promise<FollowingFeed> {
+  /** `locale` is the reader's (D-178); without one, the member's own language from Settings. */
+  async feed(
+    userId: string,
+    now = new Date(),
+    locale: string | null = null,
+  ): Promise<FollowingFeed> {
     const [entities, members] = await Promise.all([
       this.profiles.listFollowing(userId),
       this.store.followedMembers(userId),
@@ -98,7 +103,7 @@ export class FollowingFeedService {
     const competitions = [...followed.competitions.keys()];
     const [fixtures, stories, analyses, posts] = await Promise.all([
       this.store.fixtures(teams, competitions, window),
-      this.store.stories(teams, competitions, window),
+      this.store.stories(teams, competitions, window, userId, locale),
       this.store.analyses(teams, competitions, window),
       this.store.posts([...followed.members.keys()], window),
     ]);

@@ -7892,3 +7892,55 @@ us. *Accepting every photo on the agency's host*: the republished wire
 photos are exactly what the licence does not cover. *A per-photo licence
 check against a third-party service*: none exists for these agencies, and
 guessing is what rule 3 forbids.
+
+## D-178 — A source's stories can be shown only to readers of its language, set per source in the console
+**Status:** Accepted · 2026-10-01 (the maintainer, in chat: "When the site is in a non-Persian language, news taken from Persian sites should not be shown, and this should be configurable in the site's admin panel") · **Task:** T-1330 · **Follows:** D-061, D-175, rule 3, rule 10
+
+**Decision.** Each `news_source` has `same_language_only` (default false). The
+migration sets it on for every source whose language is `fa`, which is what
+the maintainer asked for; an administrator turns it on or off per source in
+the console (`POST /admin/news-sources/:id/visibility`), with a reason,
+audited as `news_source.visibility` with the previous and next value
+(rule 10). Adding a source takes the same choice; the console offers "only
+readers in its language" first for a Persian feed.
+
+A reader is shown an article unless its source is set this way and the
+source's language subtag differs from the reader's (`fa-IR` is `fa`). The
+reader's language is the `?locale=` the web sends on every read (English
+too, from T-1330; a pseudo-locale reads as English). A story is shown when
+at least one of its reports is shown to that reader, and it reads by that
+report: the promoted original when the reader is shown it, else the newest
+report from a carried source they are shown (`story_shown_article()`), so a
+story Persian and English publishers both covered reads in English by the
+English report rather than disappearing. Its count of other reports and the
+story page's list of them leave out what the reader is not shown. A story
+with no report the reader is shown answers as a missing story -- 404 on its
+page -- because for that reader it is not on the site; a "hidden in your
+language" page would show the very story the setting withholds. A read with
+no locale (an internal caller, the console) filters nothing.
+
+Every reader-facing story read applies it: the news sections (latest,
+trending, debate, following), the breaking strip, team, competition, player
+and match news, the story page, story search, the Following feed (with no
+locale it uses the member's language from Settings, which is also what
+briefings use, as they are written without a page), and story alerts (a
+breaking, transfer or availability alert goes only to members shown the
+story in the language they chose, and its headline is the report they are
+shown). A story already saved stays on the member's list and, read in a
+language its source is not shown in, says so (`other_language`) without the
+headline or link: removing it silently would lose what the member chose,
+and showing it would break the setting. Saving takes the report the reader
+is shown.
+
+The links between a hidden report and a team, competition or player still
+count when a story is found for a team's page or a member's follows, as do
+the entities named on the card: they are our canonical ids, not the hidden
+publisher's words.
+
+**Rejected.** *Filtering by the version's language* (a Persian article's
+reviewed English translation would then be shown): the maintainer's rule is
+about where the news was taken from, not the language it is rendered in.
+*Hiding the whole story when its promoted original is hidden*: a story with
+an English report would vanish from English readers for no reason of
+theirs. *A global switch for Persian*: the maintainer asked for it per
+source in the console, and the next language's sources may want the same.

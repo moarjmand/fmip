@@ -107,7 +107,13 @@ function SavedItem({
           {' · '}
           <Translated
             locale={locale}
-            message={item.state === 'source_dropped' ? 'saved.dropped' : 'saved.unavailable'}
+            message={
+              item.state === 'source_dropped'
+                ? 'saved.dropped'
+                : item.state === 'other_language'
+                  ? 'saved.otherLanguage'
+                  : 'saved.unavailable'
+            }
           />
         </p>
         <p className="text-sm text-muted">{savedAt}</p>

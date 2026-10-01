@@ -224,6 +224,7 @@ limitation of it:
 | Not taken | the article body, paywalled content, any photo from every other source (IRNA, Khabar Varzeshi, Yahoo Sports, The Independent, kicker, Sportschau, Agência Brasil, and any source added later unless its licence is recorded), and other agencies' photos the three republish |
 | Shown | the publisher's name, on every item, as a link to their page |
 | Withdrawn | on a publisher's request, without argument |
+| Shown to whom | every reader, unless an administrator set the source to be shown only to readers of its own language (D-178, T-1330; on for every Persian source): then a reader of the site in another language is not shown its stories, and a story it shares with a source they are shown reads by that source's report |
 
 **The capability for a licensed source is built in from the start**, at the
 maintainer's instruction. Every source carries its own rights, and a surface

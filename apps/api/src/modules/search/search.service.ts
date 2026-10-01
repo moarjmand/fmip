@@ -41,14 +41,19 @@ export class SearchService {
     private readonly community: PostgresCommunitySearchStore,
   ) {}
 
-  async search(query: SearchQuery, viewerId: string | null = null): Promise<SearchResponse> {
+  /** `locale` is the reader's: stories they are not shown are not found (D-178). */
+  async search(
+    query: SearchQuery,
+    viewerId: string | null = null,
+    locale: string | null = null,
+  ): Promise<SearchResponse> {
     const entityTypes = query.types.filter(isEntityType);
     const wants = (type: SearchType) => query.types.includes(type);
     const [results, stories, groups, members] = await Promise.all([
       entityTypes.length === 0
         ? Promise.resolve([])
         : this.store.search(query.q, entityTypes, query.limit),
-      wants('story') ? this.community.stories(query.q, query.limit) : null,
+      wants('story') ? this.community.stories(query.q, query.limit, locale) : null,
       wants('group') ? this.community.groups(query.q, query.limit) : null,
       wants('member') ? this.community.members(query.q, viewerId, query.limit) : null,
     ]);

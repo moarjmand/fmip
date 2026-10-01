@@ -109,6 +109,11 @@ interface EntityRow {
  * how it orders; the filters apply to the whole cluster (a story about a team
  * is a story any of whose reports links the team), so a filter never hides a
  * story because the original happened to name the club differently.
+ *
+ * Each read takes the reader's locale (D-178): a story shows the article
+ * `story_shown_article()` picks for that reader, so a story whose only reports
+ * come from sources shown to readers of their own language is left out for
+ * every other reader. No locale (an internal caller) filters nothing.
  */
 @Injectable()
 export class PostgresNewsReadStore {
@@ -295,7 +300,12 @@ export class PostgresNewsReadStore {
    * The story page (T-144): the promoted original in the language asked for
    * when it has one, else the source's own; its languages, corrections and
    * the other publishers' reports. Null when the story does not exist or its
-   * original's publisher has been dropped (D-061).
+   * original's publisher has been dropped (D-061). For a reader (`locale`
+   * given) the original is the story's article that reader is shown (D-178):
+   * the promoted one unless its source is shown only to readers of its own
+   * language, then the newest visible report; null when no report is
+   * visible, so the page answers as for a missing story. The other reports
+   * leave out the ones the reader is not shown.
    */
   async story(
     storyId: string,
@@ -321,7 +331,9 @@ export class PostgresNewsReadStore {
               v.origin, v.review_state,
               COALESCE((SELECT min(published_at) FROM article_version WHERE article_id = a.id),
                        a.fetched_at) AS at,
-              (SELECT count(*)::int - 1 FROM article m WHERE m.story_id = s.id) AS other_reports,
+              (SELECT count(*)::int - 1 FROM article m JOIN news_source ms ON ms.id = m.source_id
+                WHERE m.story_id = s.id
+                  AND news_visible_to(ms.same_language_only, ms.language, $3::text)) AS other_reports,
               lb.story_type, lb.origin AS type_origin, lb.created_at AS labelled_at,
               br.note AS breaking_note, br.marked_at AS breaking_marked_at,
               br.ends_at AS breaking_ends_at,
@@ -331,7 +343,7 @@ export class PostgresNewsReadStore {
               NULL::int AS participants,
               d.selected_at AS debate_selected_at, d.note AS debate_note
          FROM story s
-         JOIN article a ON a.id = s.promoted_article_id
+         JOIN article a ON a.id = story_shown_article(s.id, s.promoted_article_id, $3::text)
          JOIN news_source src ON src.id = a.source_id AND src.dropped_at IS NULL
          JOIN LATERAL (${version('a', 'src.language')}) v ON TRUE
          ${shownImageJoin('a')}
@@ -341,7 +353,7 @@ export class PostgresNewsReadStore {
                      WHERE b.story_id = s.id AND b.cleared_at IS NULL AND b.ends_at > now()
                      ORDER BY b.marked_at DESC LIMIT 1) br ON TRUE
         WHERE s.id = $1`,
-      [storyId, language],
+      [storyId, language, locale],
     );
     const r = rows[0];
     if (r === undefined) return null;
@@ -392,8 +404,9 @@ export class PostgresNewsReadStore {
            JOIN LATERAL (${version('a', 'src.language')}) v ON TRUE
            ${shownImageJoin('a')}
           WHERE a.story_id = $1 AND a.id <> $3
+            AND news_visible_to(src.same_language_only, src.language, $4::text)
           ORDER BY COALESCE(v.published_at, a.fetched_at) DESC, a.id`,
-        [storyId, language, r.article_id],
+        [storyId, language, r.article_id, locale],
       ),
       this.lastFetchedAt(),
     ]);
@@ -659,11 +672,14 @@ class Query {
   windowHours: number | null = null;
   private readonly where: string[] = [];
   private readonly language: string;
+  /** The reader's locale as a parameter: which sources' articles they are shown (D-178). */
+  private readonly reader: string;
 
   constructor(
     filters: NewsFilters,
     readonly locale: string | null,
   ) {
+    this.reader = this.param(locale);
     this.language = this.param(filters.language);
     if (filters.team !== null) {
       this.where.push(`EXISTS (SELECT 1 FROM article m JOIN article_entity e ON e.article_id = m.id
@@ -717,7 +733,10 @@ class Query {
              v.headline, v.summary, v.byline, v.language, v.published_at, v.origin, v.review_state,
              COALESCE((SELECT min(published_at) FROM article_version WHERE article_id = a.id),
                       a.fetched_at) AS at,
-             (SELECT count(*)::int - 1 FROM article m WHERE m.story_id = s.id) AS other_reports,
+             (SELECT count(*)::int - 1 FROM article m JOIN news_source ms ON ms.id = m.source_id
+               WHERE m.story_id = s.id
+                 AND news_visible_to(ms.same_language_only, ms.language, ${this.reader}::text))
+               AS other_reports,
              lb.story_type, lb.origin AS type_origin, lb.created_at AS labelled_at,
              br.note AS breaking_note, br.marked_at AS breaking_marked_at,
              br.ends_at AS breaking_ends_at,
@@ -725,7 +744,7 @@ class Query {
              img.licence AS image_licence, img.licence_url AS image_licence_url,
              img.width AS image_width, img.height AS image_height
         FROM story s
-        JOIN article a ON a.id = s.promoted_article_id
+        JOIN article a ON a.id = story_shown_article(s.id, s.promoted_article_id, ${this.reader}::text)
         JOIN news_source src ON src.id = a.source_id AND src.dropped_at IS NULL
         ${shownImageJoin('a')}
         LEFT JOIN story_label lb ON lb.story_id = s.id AND lb.superseded_at IS NULL

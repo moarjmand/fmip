@@ -24,10 +24,12 @@ export const READER_LOCALE_HEADER = 'x-fmip-locale';
 /**
  * The path a read is sent to, with the reader's locale on it (T-1312): every
  * `GET` that may name a team, a competition or a country, so the API answers
- * those names in the reader's language. Left alone when the caller already
- * chose a locale, for the operators' console (`/admin`, which stays in
- * English, D-175), for writes, and when the reader is on the default
- * language or a pseudo-locale -- the canonical names are already English.
+ * those names in the reader's language. The default language is sent too
+ * (D-178): it is also which news sources the reader is shown, and a read
+ * without a locale filters none. A pseudo-locale reads as the default
+ * language, whose words it carries. Left alone when the caller already chose
+ * a locale, for the operators' console (`/admin`, which stays in English,
+ * D-175), and for writes.
  */
 export function withReaderLocale(
   path: string,
@@ -35,7 +37,8 @@ export function withReaderLocale(
   reader: string | null | undefined,
 ): string {
   if (method !== 'GET' || reader === null || reader === undefined) return path;
-  if (!isLocale(reader) || reader === DEFAULT_LOCALE || isPseudoLocale(reader)) return path;
   if (path.startsWith('/admin') || /[?&]locale=/.test(path)) return path;
+  if (isPseudoLocale(reader)) return withLocale(path, DEFAULT_LOCALE);
+  if (!isLocale(reader)) return path;
   return withLocale(path, reader);
 }

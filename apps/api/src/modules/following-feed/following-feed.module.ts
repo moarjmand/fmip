@@ -1,8 +1,9 @@
-import { Controller, Get, Module, Req, UnauthorizedException } from '@nestjs/common';
+import { Controller, Get, Module, Query, Req, UnauthorizedException } from '@nestjs/common';
 import type { ApiError, FollowingFeed } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityModule } from '../identity/identity.module';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
+import { localeOf } from '../localised-names/localised-names.service';
 import { ProfileModule } from '../profile/profile.module';
 import { FollowingFeedService } from './following-feed.service';
 import { PostgresFollowingFeedStore } from './internal/following-feed-store';
@@ -18,12 +19,15 @@ export class FollowingFeedController {
   ) {}
 
   @Get('me/feed')
-  async mine(@Req() request: FastifyRequest): Promise<FollowingFeed> {
+  async mine(
+    @Req() request: FastifyRequest,
+    @Query('locale') locale: unknown,
+  ): Promise<FollowingFeed> {
     const user = await this.identity.authenticate(
       parseCookies(request.headers.cookie)[SESSION_COOKIE],
     );
     if (user === null) throw new UnauthorizedException(UNAUTHENTICATED);
-    return this.feed.feed(user.id);
+    return this.feed.feed(user.id, new Date(), localeOf(locale));
   }
 }
 
