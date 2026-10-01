@@ -13,5 +13,8 @@ export default defineConfig({
   oxc: { jsx: { runtime: 'automatic' } },
   test: {
     include: ['src/**/*.spec.{ts,tsx}'],
+    // The catalogues (about 2,000 keys in nine files since Phase 13) load on
+    // first use; a cold load on a busy machine passes the default 5 s.
+    testTimeout: 20_000,
   },
 });

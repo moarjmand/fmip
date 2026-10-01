@@ -7781,3 +7781,36 @@ for operators (`/admin`) stays in English.
 **Rejected.** *A machine-translation service*: D-066's objection holds, and
 nobody would review its output. *Waiting for a hired translator*: the
 maintainer is a native speaker and asked for it now.
+
+## D-176 — Entity images: crests, logos and player photos from API-Football, cached on our own server
+**Status:** Accepted · 2026-10-01 (the maintainer, in chat: images path "A + B + C") · **Follows:** D-014, D-089 · **Built by:** T-1320
+
+**Decision.** Team crests and competition logos (A, B) and player photos (C)
+come from API-Football, whose answers already carry each image's address. The
+API copies each image once onto its own volume (`MEDIA_DIR`, the `media`
+compose volume) and serves it from our own origin at
+`/api/media/<kind>/<uuid>/<version>`; the provider's address stays inside
+ingestion (`entity_media.source_url`) and never reaches a contract or a page
+(rule 2), and a reader's browser asks nothing of the provider, as D-089 set
+for fonts. News photos are a separate question and not part of this.
+
+**Why.** API-Sports' terms say the logos are not theirs and are supplied to
+identify the entity; their documentation asks clients to store images on
+their own side rather than hotlink them, and image requests do not count
+against the daily quota but are rate limited per second and per minute.
+
+**How it behaves.**
+- One fetch tick every five minutes on the process with
+  `INGESTION_SCHEDULE=on`, at most 120 images a tick, one a second; each image
+  is re-checked monthly, a failure retried after 2^attempts hours.
+- A file is kept only when the declared type and its first bytes agree on PNG,
+  JPEG, WebP or SVG and it is at most 512 KB; an SVG that could run anything
+  is refused. Files are named by sha256; the address's version is its first
+  twelve characters, so it is cached for a year (`immutable`) and a new crest
+  is a new address.
+- A missing image is `not_supplied`, never a stand-in (rule 3). The provider
+  serves a generic silhouette for a player without a photo; it is recognised
+  by a measured hash when one is listed (`KNOWN_PLACEHOLDER_SHA256`) and, in
+  any case, as the one photo three or more different people share byte for
+  byte, and every person holding it is told `not_supplied`.
+- The volume is not backed up: every file is re-derivable from the provider.
