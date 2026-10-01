@@ -230,6 +230,11 @@ export interface NormalisedStanding {
   competition: EntityRef;
   seasonLabel: string;
   stage: string | null;
+  /**
+   * The group's own name inside a group stage, as `fixture.group_name` holds
+   * it: "A", "1" (T-1333, `adapters/_group.ts`). Null for a table that is not
+   * a group: a league's one table, a conference, a split.
+   */
   group: string | null;
   rows: NormalisedStandingRow[];
   lastUpdatedAt: string;

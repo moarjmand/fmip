@@ -802,12 +802,32 @@ What a reader then sees, and what is not there yet:
 - **No forecast**: the model has no history for national teams, and the
   match page says "This competition's history is not in the model's training
   data." Predictions and consensus work as for any match.
-- **No group tables yet (T-1333).** The provider's fixtures do not name a
-  match's group, and nothing writes it, so a group's table says it is not
-  supplied rather than ranking a group it cannot name. Until then the
-  standings run for these three is `partial` and the data-quality page lists
-  their teams under "table disagrees" -- a table we do not keep, not matches
-  we lack.
+- **Group tables (T-1333, D-180).** The provider's fixtures do not name a
+  match's group; its tables do. The hourly standings run (minute 23) gives
+  each match of a `group` stage the group both its teams are in and then
+  compares the provider's group tables with ours, group by group. Nothing
+  to run by hand: once step 6's stages are in, the next standings run fills
+  the groups of the matches already stored, and every later run the new
+  ones. Until a match's stage exists it has no group, the match page says
+  its group table is not supplied, and the data-quality page lists its
+  teams under "table disagrees" ("ours has no row") -- the stage is what is
+  missing, not matches. A Nations League group reads "Group 1"; its league
+  is the stage. To see what was written:
+
+  ```bash
+  docker compose exec -T postgres psql -U fmip -d fmip -Atc "
+    SELECT pm.external_id, st.name, f.group_name, count(*) FROM fixture f
+      JOIN stage st ON st.id = f.stage_id AND st.kind = 'group'
+      JOIN season s ON s.id = f.season_id AND s.is_current
+      JOIN provider_mapping pm ON pm.internal_id = s.competition_id
+       AND pm.provider = 'api_football' AND pm.entity_type = 'competition'
+     WHERE pm.external_id IN ('5', '7', '36')
+     GROUP BY 1, 2, 3 ORDER BY 1, 2, 3"
+  ```
+
+  A row with an empty group is a match whose teams the provider's tables do
+  not put in one group (or do not name): it stays without one rather than
+  take a guessed group.
 - **The Asian Cup's knockout rounds** are played after 2027-01-20. When the
   provider publishes them, run step 2's line for 7 again with the new end
   date (it updates the season), then add the knockout stages under the names

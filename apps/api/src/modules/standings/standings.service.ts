@@ -39,6 +39,26 @@ export class StandingsService {
   }
 
   /**
+   * Every group table of a season's group stages as it stands (T-1333), each
+   * group ranked on its own; the standings job compares the provider's group
+   * tables with these, row by row. Empty when no fixture carries a group.
+   */
+  async groupTables(
+    seasonId: string,
+  ): Promise<{ stageId: string; name: string; rows: TableRow[] }[]> {
+    const groups = await this.store.seasonGroups(seasonId);
+    return Promise.all(
+      groups.map(async (group) => {
+        const [{ results }, participants] = await Promise.all([
+          this.store.groupResults(group.stageId, group.name, null),
+          this.store.groupParticipants(group.stageId, group.name),
+        ]);
+        return { ...group, rows: rankTable(results, participants) };
+      }),
+    );
+  }
+
+  /**
    * A table as it stood before `before` (T-840): the season's league stage,
    * or one group of a group stage. `counted` is how many finished matches it
    * is built from; with none, there are no positions yet and `data` is null

@@ -25,6 +25,7 @@ import type {
   Side,
   StageKind,
 } from '../../normalised';
+import { groupOfLabel } from '../_group';
 
 export type Json = Record<string, unknown>;
 
@@ -396,7 +397,7 @@ export function mapStandings(body: unknown, receivedAt: string): NormalisedStand
       competition,
       seasonLabel: seasonLabel(startYear),
       stage: stage === null ? null : humanise(stage),
-      group: group === null ? null : humanise(group),
+      group: group === null ? null : groupOfLabel(humanise(group)),
       rows,
       // The standings body carries no update time; the fetch time is the truth.
       lastUpdatedAt: receivedAt,

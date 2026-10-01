@@ -30,6 +30,7 @@ import type {
   StageKind,
   StatMetric,
 } from '../../normalised';
+import { groupOfLabel } from '../_group';
 
 // ---------------------------------------------------------------------------
 // Narrowing helpers
@@ -756,8 +757,10 @@ function standingRow(raw: unknown): NormalisedStandingRow | null {
 
 /**
  * `response[0].league.standings`: an array of groups, each an array of rows.
- * One `NormalisedStanding` per group; `group` is null when the provider's
- * group name is just the league name (a plain league table).
+ * One `NormalisedStanding` per group. Each row carries its table's label
+ * (`group`: "Group A", "League A - Group 1", or the league's own name for a
+ * plain league table); `group` here is the group's own name read from it
+ * (`groupOfLabel`), null for a table that is not a group.
  */
 export function mapStandings(response: unknown, receivedAt: string): NormalisedStanding[] {
   if (!Array.isArray(response)) return [];
@@ -771,7 +774,7 @@ export function mapStandings(response: unknown, receivedAt: string): NormalisedS
       if (!Array.isArray(groupRows)) continue;
       const rows = groupRows.map(standingRow).filter((row) => row !== null);
       if (rows.length === 0) continue;
-      const groupName = str(rec(groupRows[0]).group);
+      const label = str(rec(groupRows[0]).group);
       const updates = groupRows
         .map((row) => str(rec(row).update))
         .filter((u) => u !== null)
@@ -780,7 +783,7 @@ export function mapStandings(response: unknown, receivedAt: string): NormalisedS
         competition,
         seasonLabel: seasonLabel(startYear),
         stage: null,
-        group: groupName !== null && groupName !== competition.name ? groupName : null,
+        group: groupOfLabel(label),
         rows,
         lastUpdatedAt: updates.at(-1) ?? receivedAt,
       });

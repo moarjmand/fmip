@@ -33,6 +33,7 @@ import type {
   StageKind,
   StatMetric,
 } from '../../normalised';
+import { groupOfLabel } from '../_group';
 
 export type Json = Record<string, unknown>;
 
@@ -433,7 +434,7 @@ export function mapStandings(
       competition,
       seasonLabel: seasonLabel(startYear),
       stage: null,
-      group: name !== null && name !== competition.name ? name : null,
+      group: groupOfLabel(name),
       rows,
       lastUpdatedAt: receivedAt,
     });
