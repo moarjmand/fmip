@@ -7949,3 +7949,44 @@ about where the news was taken from, not the language it is rendered in.
 an English report would vanish from English readers for no reason of
 theirs. *A global switch for Persian*: the maintainer asked for it per
 source in the console, and the next language's sources may want the same.
+
+## D-179 — A national team is told from a club by the scope of the competition it was seen in; its country is the operator's to state
+**Status:** Accepted · 2026-10-01 (the maintainer chose to add national-team competitions so Scores is not empty during FIFA windows) · **Task:** T-1332 · **Follows:** D-077, D-078, rule 1, rule 3
+
+**Context.** `catalog.mjs --adopt-teams` created every queued team as a
+club. A national team must be `kind = 'national'`, and the schema requires
+it to have a country (`team_national_has_country`). The provider's team ref
+in a fixture says neither, and a name is never a key (rule 1), so neither
+can be read from "Iran" or "Japan".
+
+**Decision.** Competition scope carries the meaning: `international` is a
+competition played by national teams (the Nations League, friendlies, the
+Asian Cup, the AFCON qualification -- continental national-team
+tournaments included); `continental` is clubs of several countries (the
+UEFA club cups). The ingestion writes, with each team it queues from a
+fixture or a provider table, the competition it was seen in
+(`unresolved_entity.payload.seenIn`, our competition id). `--adopt-teams`
+adopts as clubs only the teams not seen in an `international` competition;
+the others wait for `--adopt-national`, which takes a list of
+`provider_team_id,country_code` lines (FIFA trigram), filled in by the
+operator from the list `--adopt-national --dry-run` prints. It adopts only
+ids queued from an international competition, refuses an unknown country,
+and refuses a country that already has a senior men's national team (the
+provider then means that one: `--map`). A team queued before T-1332 carries
+no competition and stays a club, as before.
+
+National-team matches are not forecast: the model has no history for them,
+and the published reason is `competition_not_mapped` ("not in the model's
+training data"), not `cross_competition` (a sentence about clubs of
+different leagues), and no cross-league candidate is asked. The squads
+job (T-1324) asks clubs only: a national squad lists players whose photos
+their clubs' squads and the national matches' own line-ups already bring.
+
+**Rejected.** *Matching the name to a country* (rule 1, and "Korea
+Republic", "IR Iran" and "Côte d'Ivoire" would each need a guess).
+*Reading the provider's team code*: it is not in the fixture's team ref, a
+lookup per team spends requests, and the code is not FIFA's trigram for
+every association. *A flag that adopts every queued team as national*: one
+run during a club week would turn clubs into national teams. *Leaving
+national teams as clubs*: the team page, search and following would call a
+country a club.

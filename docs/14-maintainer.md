@@ -701,3 +701,116 @@ and `sent`. A day the channel refused (most often a bot that is not an
 administrator yet) shows `refused` with a note; the API tries that day again
 on the next hourly tick once you have fixed it. The post runs on the API
 with `INGESTION_SCHEDULE=on`, the same one that fetches the fixtures.
+
+## 11. National-team competitions (T-1332, D-179)
+
+Four competitions, so Scores is not empty during a FIFA window: the UEFA
+Nations League (5), international friendlies (10), the Asian Cup (7) and the
+Africa Cup of Nations qualification (36), by the provider's ids. **Deploy
+T-1332 first**: before it, a queued team carries no competition and
+`--adopt-teams` would make every national team a club.
+
+`--scope international` is what marks their teams as national teams (D-179);
+the UEFA club cups stay `continental`. A season's label is the adapter's,
+`YYYY/YY` from the provider's season year -- the provider's season 2026 is
+`2026/27` here even for a calendar-year competition -- and a fixture whose
+label has no season is refused, so these labels are not a choice. The
+friendlies' start was not given with the others; `2026-01-01` is the start
+of the provider's season year (the backfill then reads the year's earlier
+windows too).
+
+```bash
+cd /opt/fmip
+catalog() { docker compose run --rm -T migrate node scripts/catalog.mjs "$@"; }
+
+# 1. The competitions.
+catalog --add-competition --external-id 5  --name "UEFA Nations League"                   --kind cup        --scope international --by you@your-domain
+catalog --add-competition --external-id 10 --name "Friendlies"                            --kind friendly   --scope international --by you@your-domain
+catalog --add-competition --external-id 7  --name "AFC Asian Cup"                         --kind cup        --scope international --by you@your-domain
+catalog --add-competition --external-id 36 --name "Africa Cup of Nations - Qualification" --kind qualifying --scope international --by you@your-domain
+
+# 2. Their current seasons (the provider's seasons 2026, 2026, 2027 and 2027).
+catalog --add-season --competition 5  --label 2026/27 --start 2026-09-24 --end 2026-11-17 --current --by you@your-domain
+catalog --add-season --competition 10 --label 2026/27 --start 2026-01-01 --end 2026-11-17 --current --by you@your-domain
+catalog --add-season --competition 7  --label 2027/28 --start 2027-01-07 --end 2027-01-20 --current --by you@your-domain
+catalog --add-season --competition 36 --label 2027/28 --start 2026-03-25 --end 2027-03-28 --current --by you@your-domain
+catalog --list    # with nothing queued: "19 of 19 competition(s) mapped to api_football are in season ..."
+
+# 3. Learn the teams: the first pass writes almost nothing and queues them.
+docker compose run --rm -T api node dist/cli/backfill.js --by you@your-domain --reason "national-team competitions (T-1332)"
+
+# 4. Adopt them. --adopt-teams leaves every team seen in these four alone and
+#    says how many; --adopt-national needs each one's country (FIFA trigram:
+#    IRN, JPN, KOR, CIV ...), which you write into the list it prints.
+catalog --adopt-teams --dry-run         # clubs only; "N national team(s) ... are left for --adopt-national"
+catalog --adopt-national --dry-run > national-teams.csv
+nano national-teams.csv                 # fill the second column of every line
+catalog --adopt-national --file - --by you@your-domain < national-teams.csv
+
+# 5. The matches, now that both sides of each are known.
+docker compose run --rm -T api node dist/cli/backfill.js --by you@your-domain --reason "national-team competitions, after adoption (T-1332)"
+```
+
+`--adopt-national` adopts only an id the ingestion queued from one of these
+competitions, refuses a code with no country (every FIFA member is there,
+D-078) and a country that already has a national team (then the provider
+means that one: `--map --type team --external-id <id> --to <its id>`), and
+prints each refusal; run it again with the corrected lines, since what it
+adopted is no longer waiting. The name column is for you and is never read.
+The next international window queues teams not seen before: run step 4 again
+then.
+
+**6. Stages.** A friendly has no competition context and needs none. The
+other three are cups, and without a stage a Nations League match reads as a
+knockout tie (its round, "League A - 1", has no "group" in it). List the
+rounds the matches arrived with:
+
+```bash
+docker compose exec -T postgres psql -U fmip -d fmip -Atc "
+  SELECT pm.external_id, f.round, count(*) FROM fixture f
+    JOIN season s ON s.id = f.season_id AND s.is_current
+    JOIN provider_mapping pm ON pm.internal_id = s.competition_id
+     AND pm.provider = 'api_football' AND pm.entity_type = 'competition'
+   WHERE pm.external_id IN ('5', '7', '36') AND f.stage_id IS NULL
+   GROUP BY 1, 2 ORDER BY 1, 2"
+```
+
+and add one stage per round name without its matchday, as for the Champions
+League in section 2. If the listing shows the names expected below, these are
+the lines; a name that differs is written as the listing has it, and each
+line says how many matches it attached (0 means the name is wrong):
+
+```bash
+catalog --add-stage --competition 5  --name "League A"    --kind group --order 1 --by you@your-domain
+catalog --add-stage --competition 5  --name "League B"    --kind group --order 2 --by you@your-domain
+catalog --add-stage --competition 5  --name "League C"    --kind group --order 3 --by you@your-domain
+catalog --add-stage --competition 5  --name "League D"    --kind group --order 4 --by you@your-domain
+catalog --add-stage --competition 7  --name "Group Stage" --kind group --order 1 --by you@your-domain
+catalog --add-stage --competition 36 --name "Group Stage" --kind group --order 2 --by you@your-domain
+# Only if the listing shows a preliminary round for 36:
+catalog --add-stage --competition 36 --name "Preliminary Round" --kind qualifying --order 1 --legs 2 --by you@your-domain
+```
+
+What a reader then sees, and what is not there yet:
+
+- **Scores** groups the four under "International" (no country), in the
+  order the console gives them (`/en/admin/competitions`); without a stated
+  place they sort after every stated one.
+- **A national team's page** says it is a national team and shows its
+  country; its squad photos come from its matches' line-ups (the squads job
+  asks clubs only).
+- **No forecast**: the model has no history for national teams, and the
+  match page says "This competition's history is not in the model's training
+  data." Predictions and consensus work as for any match.
+- **No group tables yet (T-1333).** The provider's fixtures do not name a
+  match's group, and nothing writes it, so a group's table says it is not
+  supplied rather than ranking a group it cannot name. Until then the
+  standings run for these three is `partial` and the data-quality page lists
+  their teams under "table disagrees" -- a table we do not keep, not matches
+  we lack.
+- **The Asian Cup's knockout rounds** are played after 2027-01-20. When the
+  provider publishes them, run step 2's line for 7 again with the new end
+  date (it updates the season), then add the knockout stages under the names
+  the matches arrive with.
+- **People and grounds**: national-team line-ups bring players the clubs did
+  not; `--adopt-people` and `--adopt-venues` as in section 2.

@@ -739,7 +739,11 @@ export class IngestionJobsService {
           let unmappedHere = 0;
 
           for (const row of table.rows) {
-            const teamId = await this.store.resolveTeam(source.provider, row.team);
+            const teamId = await this.store.resolveTeam(
+              source.provider,
+              row.team,
+              target.competitionId,
+            );
             if (teamId === null) {
               unmapped += 1;
               unmappedHere += 1;

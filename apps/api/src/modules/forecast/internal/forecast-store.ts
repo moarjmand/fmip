@@ -150,7 +150,10 @@ export class PostgresForecastStore {
       mixes_leagues: boolean;
     }>(
       `SELECT f.id, f.kickoff_at, c.id AS competition_id, c.football_data_division AS division,
-              (c.kind <> 'league' OR c.scope <> 'domestic') AS mixes_leagues,
+              -- National teams (T-1332) are not clubs of different leagues: the model
+              -- has no history for them at all, so no cross-league candidate either.
+              (c.kind <> 'league' OR c.scope <> 'domestic') AND c.scope <> 'international'
+                AS mixes_leagues,
               h.team_id AS home_team_id, a.team_id AS away_team_id
          FROM fixture f
          JOIN season se ON se.id = f.season_id

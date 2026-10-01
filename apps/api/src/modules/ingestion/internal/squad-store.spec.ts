@@ -22,6 +22,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the squads s
   let pool: Pool;
   let store: IngestStore;
   const teams: string[] = [randomUUID(), randomUUID(), randomUUID()];
+  // A national team (T-1332), mapped and playing in the season: never asked about.
+  const national = randomUUID();
+  const friendly = randomUUID();
   const person = randomUUID();
   const fixture = randomUUID();
   const ext = (n: string) => `t1324-${RUN}-${n}`;
@@ -35,6 +38,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the squads s
               ($3, 'Squad C', 'club', 'men')`,
       teams,
     );
+    await pool.query(
+      `INSERT INTO team (id, name, kind, gender, country_id)
+       SELECT $1, 'Squad National', 'national', 'men', id FROM country WHERE code = 'IRN'`,
+      [national],
+    );
     await pool.query(`INSERT INTO person (id, full_name) VALUES ($1, 'Squad Player')`, [person]);
     await pool.query(
       `INSERT INTO fixture (id, season_id, stage_id, round, kickoff_at, status)
@@ -46,29 +54,53 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the squads s
        VALUES ($1, $2, 'home'), ($1, $3, 'away')`,
       [fixture, teams[0], teams[1]],
     );
+    await pool.query(
+      `INSERT INTO fixture (id, season_id, stage_id, round, kickoff_at, status)
+       VALUES ($1, $2, $3, 'Matchday', now() + interval '3 days', 'scheduled')`,
+      [friendly, PL_2025, REGULAR_SEASON],
+    );
+    await pool.query(
+      `INSERT INTO fixture_participant (fixture_id, team_id, side)
+       VALUES ($1, $2, 'home'), ($1, $3, 'away')`,
+      [friendly, national, teams[0]],
+    );
     // Team C is mapped but plays in no season asked about.
     await pool.query(
       `INSERT INTO provider_mapping (provider, entity_type, external_id, internal_id)
        VALUES ('api_football', 'team', $1, $4), ('api_football', 'team', $2, $5),
-              ('api_football', 'team', $3, $6), ('api_football', 'person', $7, $8)`,
-      [ext('a'), ext('b'), ext('c'), teams[0], teams[1], teams[2], ext('p'), person],
+              ('api_football', 'team', $3, $6), ('api_football', 'person', $7, $8),
+              ('api_football', 'team', $9, $10)`,
+      [
+        ext('a'),
+        ext('b'),
+        ext('c'),
+        teams[0],
+        teams[1],
+        teams[2],
+        ext('p'),
+        person,
+        ext('n'),
+        national,
+      ],
     );
   });
 
   afterAll(async () => {
     if (pool === undefined) return;
     await pool.query(`DELETE FROM provider_mapping WHERE external_id LIKE $1`, [`t1324-${RUN}-%`]);
-    await pool.query(`DELETE FROM fixture_participant WHERE fixture_id = $1`, [fixture]);
-    await pool.query(`DELETE FROM fixture WHERE id = $1`, [fixture]);
+    await pool.query(`DELETE FROM fixture_participant WHERE fixture_id = ANY($1::uuid[])`, [
+      [fixture, friendly],
+    ]);
+    await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [[fixture, friendly]]);
     await pool.query(`DELETE FROM team_squad_fetch WHERE team_id = ANY($1::uuid[])`, [teams]);
-    await pool.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [teams]);
+    await pool.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [[...teams, national]]);
     await pool.query(`DELETE FROM person WHERE id = $1`, [person]);
     await pool.query(`DELETE FROM ingest_run WHERE scope = $1`, [`t1324-${RUN}`]);
     await pool.end();
   });
 
   const ours = (rows: { teamId: string }[]) =>
-    rows.map((r) => r.teamId).filter((id) => teams.includes(id));
+    rows.map((r) => r.teamId).filter((id) => teams.includes(id) || id === national);
   const due = async (askedBefore = new Date().toISOString()) =>
     ours(
       await store.squadsDue(
@@ -80,7 +112,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the squads s
       ),
     );
 
-  it('finds the mapped clubs of the seasons asked about, and no other', async () => {
+  it('finds the mapped clubs of the seasons asked about, and no other (no national team)', async () => {
     expect((await due()).sort()).toEqual([teams[0], teams[1]].sort());
   });
 

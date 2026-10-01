@@ -102,6 +102,16 @@ function withoutImage(payload: unknown): unknown {
   return rest;
 }
 
+/**
+ * A team's ref as the review queue keeps it, with the competition whose
+ * fixtures or table it was seen in (T-1332, D-179): `catalog.mjs
+ * --adopt-teams` reads that competition's scope to tell a national team from
+ * a club, since the provider's team ref does not say which it is.
+ */
+export function sighting<T extends object>(ref: T, competitionId: string | null): T {
+  return competitionId === null ? ref : { ...ref, seenIn: competitionId };
+}
+
 /** The entity types whose image the media store keeps. */
 const IMAGED = new Set<EntityType>(['team', 'competition', 'person']);
 
@@ -283,8 +293,9 @@ export class IngestStore implements SquadStore {
   resolveTeam(
     provider: Provider,
     ref: { externalId: string; name: string },
+    competitionId: string | null = null,
   ): Promise<string | null> {
-    return this.resolveId(provider, 'team', ref.externalId, ref);
+    return this.resolveId(provider, 'team', ref.externalId, sighting(ref, competitionId));
   }
 
   /** The fixture's internal id if it is known, or `null`. */
@@ -309,8 +320,18 @@ export class IngestStore implements SquadStore {
     job: string,
   ): Promise<WriteResult> {
     const unresolved: string[] = [];
-    const homeId = await this.resolveId(provider, 'team', fixture.home.externalId, fixture.home);
-    const awayId = await this.resolveId(provider, 'team', fixture.away.externalId, fixture.away);
+    const homeId = await this.resolveId(
+      provider,
+      'team',
+      fixture.home.externalId,
+      sighting(fixture.home, target.competitionId),
+    );
+    const awayId = await this.resolveId(
+      provider,
+      'team',
+      fixture.away.externalId,
+      sighting(fixture.away, target.competitionId),
+    );
     if (homeId === null) unresolved.push(`team:${fixture.home.externalId}`);
     if (awayId === null) unresolved.push(`team:${fixture.away.externalId}`);
     if (homeId === null || awayId === null) return { changed: 0, unresolved };
@@ -821,6 +842,10 @@ export class IngestStore implements SquadStore {
    * Mapped clubs with a match in any of the given seasons, never answered
    * first, then the longest unanswered; none answered since
    * `answeredBeforeIso` or asked since `askedBeforeIso`.
+   *
+   * Clubs only (T-1332): a national team's squad is players called up from
+   * clubs, whose photos the clubs' squads and the national matches' own
+   * line-ups already bring, so asking for it would spend requests on nothing.
    */
   async squadsDue(
     provider: Provider,
@@ -833,6 +858,7 @@ export class IngestStore implements SquadStore {
     const { rows } = await this.pool.query<{ team_id: string; external_id: string }>(
       `SELECT pm.internal_id AS team_id, min(pm.external_id) AS external_id
          FROM provider_mapping pm
+         JOIN team t ON t.id = pm.internal_id AND t.kind = 'club'
          LEFT JOIN team_squad_fetch q ON q.provider = pm.provider AND q.team_id = pm.internal_id
         WHERE pm.provider = $1 AND pm.entity_type = 'team'
           AND EXISTS (SELECT 1 FROM fixture_participant fp

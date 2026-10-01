@@ -67,3 +67,15 @@ no decision covers a flag package.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-1331 | An empty day on Scores points at the next day with a match (asked in two 14-day windows, the API's cap), so the FIFA window of 21 September to 6 October does not read as a broken page | T-031 | `/en/scores` on 2026-10-01 links to Thursday 8 October; a live or favourites view is unchanged |
+
+
+## National teams
+
+The maintainer chose to add national-team competitions so Scores is not empty
+during FIFA windows: the UEFA Nations League, international friendlies, the
+Asian Cup and the Africa Cup of Nations qualification (D-179).
+
+| ID | Task | Deps | Acceptance |
+|---|---|---|---|
+| `[x]` T-1332 | National-team competitions: a queued team carries the competition it was seen in (`payload.seenIn`); `catalog.mjs --adopt-teams` leaves a team seen in an `international` competition for `--adopt-national`, which takes each one's country by FIFA trigram from a list the operator fills in (`--dry-run` prints it); the forecast says "not in the model's training data" for them and asks no cross-league candidate; the squads job asks clubs only. Production steps in `docs/14-maintainer.md` section 2 | T-029, T-503, T-1324 | `--adopt-teams` never creates a national team as a club; `--adopt-national` refuses an id not queued from an international competition, an unknown country and a country that already has one; a national-team match's forecast is `competition_not_mapped` |
+| `[ ]` T-1333 | Group tables for group stages: write `fixture.group_name` from the provider's group tables (each group's teams) so the Nations League, Asian Cup and AFCON qualification groups have a table, and compare the provider's group tables with ours group by group in the standings check (today it compares them with the league table, which a group stage does not have, so every row is a `table_disagrees` finding) | T-840, T-1332 | A Nations League match's context shows its group's table; the standings run for these competitions is not `partial` when the matches are all held |
