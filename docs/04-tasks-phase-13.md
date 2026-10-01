@@ -44,15 +44,15 @@ served from the site's own origin.
 | `[x]` T-1320 | The entity media store: crests, competition logos and player photos fetched once from the provider, stored on the server, served from our origin, as an additive contract field with a coverage state (D-176) | T-1300 | No provider URL in any response; a missing image is `not_supplied`, never a placeholder silhouette |
 | `[x]` T-1321 | Crests, logos, flags and photos on the pages: scores rows, match centre, competition, team and player pages, leaders and line-ups; a lettered mark where there is none | T-1320 | No layout shift; axe at zero; no request leaves the site |
 | `[x]` T-1322 | Licensed news images: an image right per source, CC BY 4.0 for Mehr, Tasnim and Tehran Times only, the agency's own photos only, stored and served by us, with credit (D-177, amending D-061) | T-1300 | An image from a source without the right is refused by the database |
-| `[ ]` T-1323 | News images on the pages: story cards and the story page, with the credit and licence visible | T-1322 | Every shown image names its source and licence |
-| `[ ]` T-1324 | Player photos for players already held: a monthly squads sweep within a daily request cap, each photo handed to the media store | T-1320 | A player who has not played since T-1320 gets their photo within a month |
+| `[x]` T-1323 | News images on the pages: story cards and the story page, with the credit and licence visible (#498; the saved list and the following feed carry no image in their contracts yet) | T-1322 | Every shown image names its source and licence |
+| `[x]` T-1324 | Player photos for players already held: a monthly squads sweep within a daily request cap, each photo handed to the media store (#499, `INGESTION_SQUADS_PER_DAY`, default 60) | T-1320 | A player who has not played since T-1320 gets their photo within a month |
 
 **Done on 2026-10-01.** T-1320 (#490) and T-1321 (#492): 270 club crests and
 the competitions' logos were fetched within the first hour and are served
 from `/api/media/...`; a team without one shows a lettered mark. T-1322
 (#491, #495): photos from Mehr, Tasnim and Tehran Times are decided, stored
 and carried on the story contracts with their credit; the maintainer chose to
-accept a photo whose page names no other agency (D-177). T-1323 draws them. Flags are not shown:
+accept a photo whose page names no other agency (D-177). T-1323 draws them (#498); the `/media/news/*` route reached readers only once caddy was recreated, which `rollout.sh` now does when its config changes (#501). Flags are not shown:
 no decision covers a flag package.
 
 ## News by language
