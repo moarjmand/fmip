@@ -522,3 +522,60 @@ describe('a club squad (T-1324)', () => {
     expect(result).toMatchObject({ ok: false, requests: 1, error: { kind: 'quota' } });
   });
 });
+
+describe('a standings table names its group (T-1333)', () => {
+  const bodyOf = (name: string): { response: unknown[] } => {
+    const raw = loadScenarios(FIXTURES_DIR).find((s) => s.name === name)?.requests[0]?.body;
+    return (typeof raw === 'string' ? JSON.parse(raw) : raw) as { response: unknown[] };
+  };
+
+  /**
+   * Constructed, not recorded: the shape of `/standings` for a group stage,
+   * `league.standings` an array of groups whose rows each carry the group's
+   * label. The labels are the ones the provider is documented to use.
+   */
+  function groupBody(labels: string[]): unknown[] {
+    let team = 100;
+    const row = (label: string, position: number): unknown => ({
+      rank: position,
+      team: { id: team++, name: `Team ${team}`, logo: null },
+      points: 3,
+      group: label,
+      form: 'W',
+      all: { played: 1, win: 1, draw: 0, lose: 0, goals: { for: 2, against: 0 } },
+      update: '2026-10-01T00:00:00+00:00',
+    });
+    return [
+      {
+        league: {
+          id: 5,
+          name: 'UEFA Nations League',
+          logo: 'https://media.api-sports.io/football/leagues/5.png',
+          season: 2026,
+          standings: labels.map((label) => [row(label, 1), row(label, 2)]),
+        },
+      },
+    ];
+  }
+
+  it("reads the group's own name from each table's label", () => {
+    const tables = mapStandings(
+      groupBody(['League A - Group 1', 'League A, Group 2', 'Group B', 'GROUP_C']),
+      '2026-10-01T00:00:00Z',
+    );
+    expect(tables.map((t) => t.group)).toEqual(['1', '2', 'B', 'C']);
+  });
+
+  it('gives no group to a table that is not one', () => {
+    const tables = mapStandings(
+      groupBody(['UEFA Nations League', 'Eastern Conference', 'Group Stage', 'League A']),
+      '2026-10-01T00:00:00Z',
+    );
+    expect(tables.map((t) => t.group)).toEqual([null, null, null, null]);
+  });
+
+  it('keeps a recorded league table groupless', () => {
+    const [table] = mapStandings(bodyOf('standings-final-table').response, '2026-10-01T00:00:00Z');
+    expect(table?.group).toBeNull();
+  });
+});

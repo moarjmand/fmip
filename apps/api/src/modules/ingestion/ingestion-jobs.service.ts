@@ -9,6 +9,7 @@ import { StandingsService } from '../standings/standings.service';
 import { CoverageService } from './coverage.service';
 import { IngestRunsService } from './ingest-runs.service';
 import { EntityResolverService } from './ingestion.service';
+import { groupMembers } from './internal/groups';
 import { IngestStore, type PollTarget, type WriteResult } from './internal/ingest-store';
 import {
   INGESTION_SOURCES,
@@ -697,15 +698,23 @@ export class IngestionJobsService {
   /**
    * The provider's table, read as a check on ours.
    *
-   * Nothing is written: the table is derived from results (D-038), so there is
-   * no standings table to fill. What the provider's table is good for is
-   * catching a hole — a team whose played count here is behind the provider's
-   * has a fixture we have not ingested. Disagreements make the run `partial`
-   * and name the teams, which is how a silent gap becomes a visible one.
+   * The table is derived from results (D-038), so there is no standings table
+   * to fill. What the provider's table is good for is catching a hole — a
+   * team whose played count here is behind the provider's has a fixture we
+   * have not ingested. Disagreements make the run `partial` and name the
+   * teams, which is how a silent gap becomes a visible one.
+   *
+   * A group stage's tables are one table per group (T-1333). They are the
+   * only place the provider names a match's group, so they are written first
+   * — each group-stage fixture takes the group both its teams are in
+   * (`groupMembers`, `IngestStore.assignGroups`; the run's one write) — and
+   * then compared group by group with the group tables ours builds from
+   * those fixtures, not with a league table a group stage does not have.
    */
   private standingsCheck(now: Date = new Date()): Promise<JobReport> {
     return this.track('standings', async (source, targets) => {
       let seen = 0;
+      let written = 0;
       const refused: string[] = [];
       const behind: string[] = [];
 
@@ -721,38 +730,84 @@ export class IngestionJobsService {
         }
         let unmapped = 0;
 
+        // One season's tables together: its findings are recorded in one
+        // write, which resolves what it no longer sees — a write per group
+        // would resolve the group before it.
+        const bySeason = new Map<string, NormalisedStanding[]>();
         for (const table of result.data) {
           seen += table.rows.length;
+          bySeason.set(table.seasonLabel, [...(bySeason.get(table.seasonLabel) ?? []), table]);
+        }
+
+        for (const [label, tables] of bySeason) {
           // Compare the edition the provider's table is for, not the one the
           // poll started from — the same rule `saveFixture` follows.
-          const seasonId = await this.store.seasonId(target, table.seasonLabel);
+          const seasonId = await this.store.seasonId(target, label);
           if (seasonId === null) {
-            behind.push(`${table.seasonLabel}: the provider has a table for a season we do not`);
+            behind.push(`${label}: the provider has a table for a season we do not`);
             continue;
           }
-          const ours = await this.standings.table(seasonId);
-          // Matched through `provider_mapping`, never by the provider's spelling
-          // of a club (rule 1). A team nobody has identified is counted, not
-          // silently dropped — it is the same gap seen from the other end.
-          const mine = new Map((ours.data ?? []).map((row) => [row.team.id, row]));
-          const compared: TableComparison[] = [];
+          // Matched through `provider_mapping`, never by the provider's
+          // spelling of a club (rule 1). A team nobody has identified is
+          // counted, not silently dropped — it is the same gap seen from the
+          // other end.
+          const resolved: {
+            group: string | null;
+            rows: { name: string; played: number; teamId: string }[];
+          }[] = [];
           let unmappedHere = 0;
-
-          for (const row of table.rows) {
-            const teamId = await this.store.resolveTeam(
-              source.provider,
-              row.team,
-              target.competitionId,
-            );
-            if (teamId === null) {
-              unmapped += 1;
-              unmappedHere += 1;
-              continue;
+          for (const table of tables) {
+            const rows: { name: string; played: number; teamId: string }[] = [];
+            for (const row of table.rows) {
+              const teamId = await this.store.resolveTeam(
+                source.provider,
+                row.team,
+                target.competitionId,
+              );
+              if (teamId === null) {
+                unmappedHere += 1;
+                continue;
+              }
+              rows.push({ name: row.team.name, played: row.played, teamId });
             }
-            const held = mine.get(teamId)?.played;
-            compared.push({ teamId, providerPlayed: row.played, ourPlayed: held });
-            const gap = tableGap(row.team.name, row.played, held);
-            if (gap !== null) behind.push(gap);
+            resolved.push({ group: table.group, rows });
+          }
+          unmapped += unmappedHere;
+
+          const grouped = resolved.filter((t) => t.group !== null);
+          if (grouped.length > 0) {
+            written += await this.store.assignGroups(
+              seasonId,
+              groupMembers(
+                grouped.map((t) => ({ group: t.group, teamIds: t.rows.map((r) => r.teamId) })),
+              ),
+            );
+          }
+          const mine = new Map<string, number>();
+          if (resolved.some((t) => t.group === null)) {
+            const ours = await this.standings.table(seasonId);
+            for (const row of ours.data ?? []) mine.set(row.team.id, row.played);
+          }
+          const ourGroups = grouped.length > 0 ? await this.standings.groupTables(seasonId) : [];
+
+          const compared: TableComparison[] = [];
+          for (const table of resolved) {
+            // A team's row in our table of the same group: a team in no
+            // group of ours (its matches carry none yet) has no row.
+            const held =
+              table.group === null
+                ? mine
+                : new Map(
+                    ourGroups
+                      .filter((g) => g.name === table.group)
+                      .flatMap((g) => g.rows.map((r) => [r.team.id, r.played] as const)),
+                  );
+            for (const row of table.rows) {
+              const ourPlayed = held.get(row.teamId);
+              compared.push({ teamId: row.teamId, providerPlayed: row.played, ourPlayed });
+              const gap = tableGap(row.name, row.played, ourPlayed);
+              if (gap !== null) behind.push(gap);
+            }
           }
           // The same comparison, kept as findings (T-820): a gap stays visible
           // on the data-quality page until a later comparison no longer sees it.
@@ -767,7 +822,7 @@ export class IngestionJobsService {
         job: 'standings' as const,
         provider: source.provider,
         itemsSeen: seen,
-        itemsWritten: 0,
+        itemsWritten: written,
         ...(partial === '' ? {} : { partial }),
       };
     });

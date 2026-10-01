@@ -7990,3 +7990,38 @@ every association. *A flag that adopts every queued team as national*: one
 run during a club week would turn clubs into national teams. *Leaving
 national teams as clubs*: the team page, search and following would call a
 country a club.
+
+## D-180 — A group-stage match's group is the provider group both its teams are in, read from the provider's tables
+**Status:** Accepted · 2026-10-01 · **Task:** T-1333 · **Follows:** D-038, D-179, rule 2, rule 3
+
+**Context.** A group table is built from fixtures carrying a `group_name`
+(T-840), and nothing wrote it, so the Nations League, the Asian Cup and the
+AFCON qualification had no group tables and their standings run compared
+group tables with a league table they do not have. API-Football's fixture
+names a round, not a group: "Group A - 1" for some competitions, but
+"League A - 1" for the Nations League, whose groups exist only in its
+`/standings` answer (one table per group, each row labelled "League A -
+Group 1" or "Group A").
+
+**Decision.** The group comes from the provider's tables, which the hourly
+standings run already fetches (no new request). Each adapter reads a
+table's group from its label (`adapters/_group.ts`: the name after a
+trailing "Group": `A`, `1`; none for a league's own table, a conference, a
+split or "Group Stage"), so no provider field leaves the adapter. The run
+then gives each fixture of a `group`-kind stage the group both its teams
+are in; teams in different groups give none, a team the tables do not
+name leaves the fixture as it is, a team named in two groups is in
+neither, and a fixture of another stage (a final between two teams of one
+group) never takes a group. The stage ("League A") stays the fixture's
+stage; the group name is unique within it, which is how our group tables
+are keyed. Each provider group table is then compared with ours of the same
+name, and a season's comparisons are recorded in one write.
+
+**Rejected.** *Parsing the fixture's round* ("Group A - 1"): right for some
+competitions, wrong for the Nations League, whose round names the league,
+not the group -- one source that works for both beats two that disagree.
+*Writing the group in the fixtures job*: it would need the tables on every
+fixtures run (a request per competition) or a group cache; the standings
+run already has them hourly. *Taking the home team's group alone*: a
+knockout match between two teams of one group, or a team the tables lost,
+would get a group the match is not in (rule 3).

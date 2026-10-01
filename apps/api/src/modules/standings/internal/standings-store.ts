@@ -72,6 +72,22 @@ export class PostgresStandingsStore {
     return this.results(`f.stage_id = $1 AND f.group_name = $2`, [stageId, groupName], before);
   }
 
+  /**
+   * The groups of a season's group stages (T-1333): each stage and group name
+   * its fixtures carry. A fixture with no group is in none of them.
+   */
+  async seasonGroups(seasonId: string): Promise<{ stageId: string; name: string }[]> {
+    const { rows } = await this.pool.query<{ stage_id: string; group_name: string }>(
+      `SELECT DISTINCT f.stage_id, f.group_name
+         FROM fixture f
+         JOIN stage st ON st.id = f.stage_id AND st.kind = 'group'
+        WHERE f.season_id = $1 AND f.group_name IS NOT NULL
+        ORDER BY f.stage_id, f.group_name`,
+      [seasonId],
+    );
+    return rows.map((r) => ({ stageId: r.stage_id, name: r.group_name }));
+  }
+
   /** Every team of one group, finished or not. */
   async groupParticipants(stageId: string, groupName: string): Promise<TableRow['team'][]> {
     const { rows } = await this.pool.query<{ id: string; name: string; short_name: string | null }>(

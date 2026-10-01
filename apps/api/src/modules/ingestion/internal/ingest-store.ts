@@ -491,6 +491,44 @@ export class IngestStore implements SquadStore {
     return rows[0]?.id ?? null;
   }
 
+  /**
+   * Writes `fixture.group_name` from the provider's group tables (T-1333):
+   * `members` is each team of a group, one group per team (`groupMembers`).
+   * A fixture of the season's group stages takes the group both its teams are
+   * in. Only fixtures whose two teams are both in the tables are touched: one
+   * whose teams are in different groups is set to no group, and one with a
+   * team the tables do not name is left as it is -- a group is never guessed.
+   * A fixture of a stage that is not a group stage (a final between two teams
+   * of one group, a play-off) is never given one. Returns the rows changed.
+   */
+  async assignGroups(
+    seasonId: string,
+    members: readonly { teamId: string; group: string }[],
+  ): Promise<number> {
+    if (members.length === 0) return 0;
+    const { rowCount } = await this.pool.query(
+      `WITH member (team_id, name) AS (
+         SELECT * FROM unnest($2::uuid[], $3::text[])
+       ),
+       wanted AS (
+         SELECT f.id, CASE WHEN mh.name = ma.name THEN mh.name END AS name
+           FROM fixture f
+           JOIN stage st ON st.id = f.stage_id AND st.kind = 'group'
+           JOIN fixture_participant h ON h.fixture_id = f.id AND h.side = 'home'
+           JOIN fixture_participant a ON a.fixture_id = f.id AND a.side = 'away'
+           JOIN member mh ON mh.team_id = h.team_id
+           JOIN member ma ON ma.team_id = a.team_id
+          WHERE f.season_id = $1
+       )
+       UPDATE fixture f
+          SET group_name = wanted.name
+         FROM wanted
+        WHERE f.id = wanted.id AND f.group_name IS DISTINCT FROM wanted.name`,
+      [seasonId, members.map((m) => m.teamId), members.map((m) => m.group)],
+    );
+    return rowCount ?? 0;
+  }
+
   /** The season's stage with that name, or `null`. Stages are never created here. */
   private async stageId(seasonId: string, name: string | null): Promise<string | null> {
     if (name === null) return null;
