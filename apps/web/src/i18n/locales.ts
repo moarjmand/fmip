@@ -51,10 +51,18 @@ export const LOCALES = ['en', ...UNFINISHED_LOCALES, ...PSEUDO_LOCALES] as const
 /**
  * Locales whose words are being written into the pages themselves (T-1310):
  * they route and render, but are not offered in the picker even when their
- * catalogue is complete, because most of a page's text is still English
- * written in the page. Persian leaves this list when its pages are done.
+ * catalogue is complete. Persian left this list on 2026-10-01, when every
+ * reader-facing page carried its text through the catalogue (T-1302..T-1309).
  */
-export const PREPARING_LOCALES: readonly string[] = ['fa'];
+export const PREPARING_LOCALES: readonly string[] = [];
+
+/**
+ * Locales in `UNFINISHED_LOCALES` for the machinery (a translation file, the
+ * fallback) whose pages are nevertheless written: indexed and offered like
+ * English (T-1310, D-175). A hold (T-1163) still takes one back at once: the
+ * proxy marks its pages `noindex` while it is held.
+ */
+export const WRITTEN_LOCALES: readonly string[] = ['fa'];
 
 /** Whether a locale is still being written into the pages (T-1310). */
 export function isPreparingLocale(value: string): boolean {
@@ -88,7 +96,9 @@ export function isPseudoLocale(value: string): value is PseudoLocale {
 
 /** Whether this locale's catalogue is still being written (T-150, T-151). */
 export function isUnfinishedLocale(value: string): boolean {
-  return (UNFINISHED_LOCALES as readonly string[]).includes(value);
+  return (
+    (UNFINISHED_LOCALES as readonly string[]).includes(value) && !WRITTEN_LOCALES.includes(value)
+  );
 }
 
 /**

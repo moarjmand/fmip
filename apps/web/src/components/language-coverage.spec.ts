@@ -34,12 +34,12 @@ describe('the language rows', () => {
     }
   });
 
-  it('offers English and none of the others, today', () => {
+  it('offers English and Persian and none of the others, today', () => {
     const rows = languageRows();
     expect(rows.find((row) => row.locale === 'en')?.offered).toBe(true);
-    // Persian is ready (D-175) but still being written into the pages (T-1310).
-    expect(rows.find((row) => row.locale === 'fa')?.ready).toBe(true);
-    for (const locale of UNFINISHED_LOCALES) {
+    // Persian is written into the pages and offered (T-1310, D-175).
+    expect(rows.find((row) => row.locale === 'fa')?.offered).toBe(true);
+    for (const locale of UNFINISHED_LOCALES.filter((l) => l !== 'fa')) {
       expect(rows.find((row) => row.locale === locale)?.offered, locale).toBe(false);
     }
   });
