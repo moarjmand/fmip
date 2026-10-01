@@ -13,6 +13,7 @@ import { formatDate, formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE, type Locale, directionOf, isLocale } from '@/i18n/locales';
 import { type MessageKey, interpolate, t } from '@/i18n/messages';
 import { ltrIsolate } from '@/components/score';
+import { stageLabel } from '@/lib/stage-label';
 
 /**
  * The competition page's pure helpers (T-035): the season the URL selects,
@@ -91,6 +92,11 @@ export function pageLocale(locale: string): Locale {
 export function say(locale: string, key: MessageKey, params?: Record<string, string>): string {
   const text = t(pageLocale(locale), key);
   return params === undefined ? text : interpolate(text, params);
+}
+
+/** A provider's stage name or round ("League A - 1") in the reader's words (T-1339). */
+export function stageName(locale: string, text: string): string {
+  return stageLabel(text, (key) => say(locale, key), locale);
 }
 
 /**
