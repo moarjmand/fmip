@@ -155,6 +155,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('player page'
       nationality: { id: ENGLAND, name: 'England', code: 'ENG' },
       height_cm: 181,
       preferred_foot: 'left',
+      // No photo stored: said so, never left out (T-1320).
+      photo: { coverage: 'not_supplied', url: null },
     });
     expect(page.current_spell).toMatchObject({
       team: { id: TEAMS.alpha, short_name: 'ALP' },

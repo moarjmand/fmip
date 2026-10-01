@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { IdentityModule } from '../identity/identity.module';
+import { MediaModule } from '../media/media.module';
 import { ProfileModule } from '../profile/profile.module';
 import { FixturesService } from './fixtures.service';
 import { FixtureChangeFeed } from './internal/change-feed';
@@ -16,7 +17,7 @@ import { DEFAULT_STREAM_OPTIONS, STREAM_OPTIONS, StreamController } from './stre
  * centre (T-033) and the SSE gateway that pushes both (T-032).
  */
 @Module({
-  imports: [IdentityModule, ProfileModule],
+  imports: [IdentityModule, ProfileModule, MediaModule],
   controllers: [ScoresController, MatchCentreController, StreamController],
   providers: [
     FixturesService,

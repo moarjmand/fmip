@@ -15,6 +15,7 @@
  */
 
 import type { CoverageState } from './coverage';
+import type { EntityMedia } from './media';
 
 export type FixtureStatus =
   | 'scheduled'
@@ -45,6 +46,8 @@ export interface ScoreCardTeam {
   name: string;
   short_name: string | null;
   code: string | null;
+  /** The team's crest from our own origin (T-1320); absent where a builder does not attach media. */
+  crest?: EntityMedia;
 }
 
 /** The incidents a list card shows: goals, red cards and VAR decisions. */
@@ -74,7 +77,14 @@ export interface ScoreCard {
   status: FixtureStatus;
   /** Live display minute; `null` unless live. */
   minute: number | null;
-  competition: { id: string; name: string; short_name: string | null; country_id: string | null };
+  competition: {
+    id: string;
+    name: string;
+    short_name: string | null;
+    country_id: string | null;
+    /** The competition's logo from our own origin (T-1320). */
+    logo?: EntityMedia;
+  };
   season: { id: string; label: string };
   stage: { id: string; name: string; kind: string } | null;
   round: string | null;

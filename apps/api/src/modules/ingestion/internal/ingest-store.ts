@@ -81,11 +81,55 @@ export interface RefResolver {
   ): Promise<{ kind: string }>;
 }
 
+/**
+ * Where the store hands the provider's image address for an entity it has
+ * resolved (T-1320, D-176). Implemented by `MediaService`; never throws.
+ */
+export interface MediaSink {
+  note(
+    provider: Provider,
+    entityType: 'team' | 'competition' | 'person',
+    entityId: string,
+    sourceUrl: string,
+  ): Promise<void>;
+}
+
+/** A ref without its image address (T-1320); anything else as it came. */
+function withoutImage(payload: unknown): unknown {
+  if (typeof payload !== 'object' || payload === null || !('imageUrl' in payload)) return payload;
+  const { imageUrl: _image, ...rest } = payload as Record<string, unknown>;
+  return rest;
+}
+
+/** The entity types whose image the media store keeps. */
+const IMAGED = new Set<EntityType>(['team', 'competition', 'person']);
+
 export class IngestStore {
   constructor(
     private readonly pool: Pool,
     private readonly resolver: RefResolver,
+    private readonly media: MediaSink | null = null,
   ) {}
+
+  /**
+   * Hands a resolved entity's image address to the media store, when the
+   * provider's ref carried one. Not a change to football data, so never
+   * counted as one.
+   */
+  private async noteImage(
+    provider: Provider,
+    entityType: EntityType,
+    entityId: string,
+    payload: unknown,
+  ): Promise<void> {
+    if (this.media === null || !IMAGED.has(entityType)) return;
+    const url =
+      typeof payload === 'object' && payload !== null
+        ? (payload as { imageUrl?: unknown }).imageUrl
+        : undefined;
+    if (typeof url !== 'string') return;
+    await this.media.note(provider, entityType as 'team' | 'competition' | 'person', entityId, url);
+  }
 
   /**
    * Which competition/season pairs this provider can be polled for: the
@@ -218,8 +262,16 @@ export class IngestStore {
     payload: unknown = null,
   ): Promise<string | null> {
     if (externalId === null || externalId === '') return null;
-    const outcome = await this.resolver.resolve({ provider, entityType, externalId }, payload);
-    return outcome.kind === 'resolved' ? (outcome as { internalId: string }).internalId : null;
+    // The review queue keeps what a reviewer needs to identify the entity; an
+    // image address is not that, and stays out of it.
+    const outcome = await this.resolver.resolve(
+      { provider, entityType, externalId },
+      withoutImage(payload),
+    );
+    if (outcome.kind !== 'resolved') return null;
+    const internalId = (outcome as { internalId: string }).internalId;
+    await this.noteImage(provider, entityType, internalId, payload);
+    return internalId;
   }
 
   /**
@@ -261,6 +313,10 @@ export class IngestStore {
     if (homeId === null) unresolved.push(`team:${fixture.home.externalId}`);
     if (awayId === null) unresolved.push(`team:${fixture.away.externalId}`);
     if (homeId === null || awayId === null) return { changed: 0, unresolved };
+    // The fixture list names the competition it was asked for; its logo is that competition's.
+    if (fixture.competition.externalId === target.competitionExternalId) {
+      await this.noteImage(provider, 'competition', target.competitionId, fixture.competition);
+    }
 
     const venueId = await this.resolveId(
       provider,
