@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { PlayerSeasonMinutes } from '@fmip/contracts';
 import { fetchEntityNews, fetchMe, fetchPlayer } from '@/lib/api';
+import { EntityImage } from '@/components/entity-image';
 import { Translated } from '@/components/translated';
 import { formatNumber } from '@/i18n/format';
 import { coverageText, formatFixtureDate, pageLocale, say } from '@/lib/competition';
@@ -108,8 +109,18 @@ export default async function PlayerPage({
     <main className="mx-auto flex max-w-3xl flex-col gap-8 p-8">
       <JsonLd data={playerJsonLd(locale, page)} />
       <header className="flex flex-col gap-1" data-testid="player-header">
-        <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
-          {p.localised_name ?? p.known_as ?? p.full_name}
+        <h1
+          className="flex items-center gap-4 border-s-4 border-s-accent ps-4 text-2xl font-semibold"
+          data-testid="title"
+        >
+          <EntityImage
+            media={p.photo}
+            kind="photo"
+            name={p.localised_name ?? p.known_as ?? p.full_name}
+            size={96}
+            aboveFold
+          />
+          <span className="min-w-0">{p.localised_name ?? p.known_as ?? p.full_name}</span>
         </h1>
         {p.localised_name !== null && (
           <p className="text-sm text-muted" data-testid="canonical-name">

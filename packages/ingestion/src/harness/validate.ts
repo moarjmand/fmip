@@ -111,6 +111,13 @@ function expectRef(sink: Sink, value: unknown, path: string): void {
   if (!expectRecord(sink, value, path)) return;
   expectString(sink, value.externalId, `${path}.externalId`);
   expectString(sink, value.name, `${path}.name`);
+  // T-1320: an image address, when carried, is an https URL and nothing else.
+  if (
+    value.imageUrl !== undefined &&
+    (typeof value.imageUrl !== 'string' || !/^https:\/\/\S+$/.test(value.imageUrl))
+  ) {
+    fail(sink, `${path}.imageUrl`, 'must be an https URL when present');
+  }
 }
 
 function expectNullableRef(sink: Sink, value: unknown, path: string): void {

@@ -3,6 +3,7 @@
 import type { ScoresResponse } from '@fmip/contracts';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { EntityImage } from '@/components/entity-image';
 import { ScoreCard } from '@/components/score-card';
 import { scoresAnnouncements } from '@/lib/announce';
 import { INITIAL_CLOCK, type LiveClock, liveLabel, liveState } from '@/lib/live';
@@ -201,9 +202,15 @@ export function LiveScores({
                 )}
                 <Link
                   href={`/${locale}/competition/${group.competition.id}`}
-                  className="flex min-h-11 min-w-0 items-center underline"
+                  className="flex min-h-11 min-w-0 items-center gap-2 underline"
                   data-testid="competition-link"
                 >
+                  <EntityImage
+                    media={group.competition.logo}
+                    kind="logo"
+                    name={group.competition.name}
+                    size={20}
+                  />
                   <bdi className="truncate">{group.competition.name}</bdi>
                 </Link>
               </h2>

@@ -7782,6 +7782,117 @@ for operators (`/admin`) stays in English.
 nobody would review its output. *Waiting for a hired translator*: the
 maintainer is a native speaker and asked for it now.
 
+## D-176 — Entity images: crests, logos and player photos from API-Football, cached on our own server
+**Status:** Accepted · 2026-10-01 (the maintainer, in chat: images path "A + B + C") · **Follows:** D-014, D-089 · **Built by:** T-1320
+
+**Decision.** Team crests and competition logos (A, B) and player photos (C)
+come from API-Football, whose answers already carry each image's address. The
+API copies each image once onto its own volume (`MEDIA_DIR`, the `media`
+compose volume) and serves it from our own origin at
+`/api/media/<kind>/<uuid>/<version>`; the provider's address stays inside
+ingestion (`entity_media.source_url`) and never reaches a contract or a page
+(rule 2), and a reader's browser asks nothing of the provider, as D-089 set
+for fonts. News photos are a separate question and not part of this.
+
+**Why.** API-Sports' terms say the logos are not theirs and are supplied to
+identify the entity; their documentation asks clients to store images on
+their own side rather than hotlink them, and image requests do not count
+against the daily quota but are rate limited per second and per minute.
+
+**How it behaves.**
+- One fetch tick every five minutes on the process with
+  `INGESTION_SCHEDULE=on`, at most 120 images a tick, one a second; each image
+  is re-checked monthly, a failure retried after 2^attempts hours.
+- A file is kept only when the declared type and its first bytes agree on PNG,
+  JPEG, WebP or SVG and it is at most 512 KB; an SVG that could run anything
+  is refused. Files are named by sha256; the address's version is its first
+  twelve characters, so it is cached for a year (`immutable`) and a new crest
+  is a new address.
+- A missing image is `not_supplied`, never a stand-in (rule 3). The provider
+  serves a generic silhouette for a player without a photo; it is recognised
+  by a measured hash when one is listed (`KNOWN_PLACEHOLDER_SHA256`) and, in
+  any case, as the one photo three or more different people share byte for
+  byte, and every person holding it is told `not_supplied`.
+- The volume is not backed up: every file is re-derivable from the provider.
+
+## D-177 — News photos: only from sources whose licence covers them, only the agency's own, credited, from our own server (amends D-061)
+**Status:** Accepted · 2026-10-01 (the maintainer's decision, in chat) · **Task:** T-1322 · **Amends:** D-061 · **Follows:** D-089, D-014
+
+**Decision, from the maintainer.** News stories show a photo, but only from
+the sources whose sites license their content under CC BY 4.0 -- Mehr News
+(both feeds), Tasnim and Tehran Times -- and only photos that are the
+agency's own, never the AFP, Getty, Reuters, AP, EPA, ISNA, IRNA or other
+agencies' photos those sites often republish. Every photo is shown with a
+visible credit and the licence. Every other source (IRNA, Khabar Varzeshi,
+Yahoo Sports, The Independent, kicker, Sportschau, Agência Brasil, and any
+source added later until somebody records otherwise) shows no photo.
+
+**What this amends in D-061.** D-061 took no images. The words' rule stands
+unchanged; what is added is a second right on the source:
+`news_source.image_licence` (`cc-by-4.0` or NULL, the default) with its
+licence URL, the credit line and the hosts the agency's own photos are
+served from, set together or not at all. Migration `1765810000000` sets it
+on the named sources by the host of their feed URL (`mehrnews.com`,
+`tasnimnews.com`, `tehrantimes.com`), so no id is assumed; a database
+without those rows changes nothing. Tehran Times carries Mehr's licence
+statement and serves photos from both groups' hosts, so both are its own and
+its credit is "Tehran Times / Mehr News Agency".
+
+**Provenance is evidence, and its absence is a refusal.** A photo is a
+candidate only when the source grants photos and the feed's URL is on one of
+the agency's own hosts. The job then reads the article page (obeying
+robots.txt, on the feed's own origin) and accepts the photo only when it is
+on that page and nothing the page says about it -- title, alt, figure,
+caption, or any credit line ("Photo:", "عکس:", "عکاس:", "©") -- names
+another agency, in Latin or Persian script (`OTHER_AGENCIES` in
+`packages/ingestion/src/news/image-provenance.ts`). A page that cannot be
+read, or a photo not on it, is refused. Each decision is an `article_image`
+row with its reason in words. Measured on 2026-10-01: Mehr's 30 newest
+football items carried no credit at all on their pages (all would be
+accepted); of Tehran Times' 30 newest, one named "AFP via Getty Images" and
+was refused. **The limit, stated rather than hidden:** an agency that
+republishes another's photo without saying so on its page passes this check;
+an editor's hide (below) is the remedy, and a stricter rule (accept only a
+named staff photographer) would show almost nothing from these feeds today. The maintainer was
+shown this limit on 2026-10-01 and chose it over showing photos only on
+domestic-league stories, only with a named photographer, or none: "all the
+stories of these three sources", with the editor's hide as the remedy.
+
+**Stored and served by us.** An accepted photo is downloaded once (no
+redirect followed, at most 5 MB), checked from its own bytes to be a JPEG,
+PNG or WebP between 120 and 6000 pixels a side, and written under
+`MEDIA_DIR` as `news/<uuid>.<ext>`, a name never reused. `GET
+/media/news/<file>` serves it with a one-year immutable cache while it may
+be shown, and 404s (uncached) otherwise; the edge routes that path to the
+API. A reader's browser never asks the agency's host, and the agency's URL
+never leaves the server (rule 2): no contract carries it. Not resized: that
+would add an image library to the API for a gain the feeds already give
+(they point at a web-sized rendition).
+
+**The database guards it.** PL022 refuses an `article_image` on an article
+whose source grants no image, or under another licence than its source's
+-- the photo's counterpart of PL016 and PL017.
+
+**What a reader sees.** `image: { url, credit, licence, licence_url, width,
+height } | null` on a story card and on another publisher's report;
+`NEWS_IMAGE_LICENCES` names the licence ("CC BY 4.0"). Wherever a photo is
+shown, its credit and the licence's name linked to `licence_url` are shown
+with it.
+
+**An editor can show or hide one article's photo.** `POST
+/admin/articles/:id/image` with `show` or `hide` and a reason (editor or
+administrator), an audit row with the previous value (rule 10). `show`
+fetches a refused photo; neither works on a source without the right -- an
+editor cannot widen a licence. A new photo URL for the same article drops
+the previous decision.
+
+**Rejected.** *Hot-linking the agency's file*: the reader's browser would
+tell the agency who reads what, and the photo would change or vanish under
+us. *Accepting every photo on the agency's host*: the republished wire
+photos are exactly what the licence does not cover. *A per-photo licence
+check against a third-party service*: none exists for these agencies, and
+guessing is what rule 3 forbids.
+
 ## D-178 — A source's stories can be shown only to readers of its language, set per source in the console
 **Status:** Accepted · 2026-10-01 (the maintainer, in chat: "When the site is in a non-Persian language, news taken from Persian sites should not be shown, and this should be configurable in the site's admin panel") · **Task:** T-1330 · **Follows:** D-061, D-175, rule 3, rule 10
 

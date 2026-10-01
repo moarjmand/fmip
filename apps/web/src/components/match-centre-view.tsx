@@ -16,6 +16,7 @@ import { formatKickoff, statusLabel } from '@/lib/scores';
 import { fill, filled, formatFixed, formatMinute } from '@/lib/words';
 import type { MatchWords } from '@/lib/words-server';
 import { formatDate, formatDateTime } from '@/i18n/format';
+import { EntityImage } from '@/components/entity-image';
 import { FilledMessage } from '@/components/filled-message';
 import { MessageText } from '@/components/message-text';
 import { COVERAGE_KEY } from '@/components/score-card';
@@ -160,9 +161,16 @@ export function MatchCentreView({
         <p className="text-xs text-muted sm:text-sm">
           <Link
             href={`/${locale}/competition/${f.competition.id}?season=${f.season.id}`}
-            className="underline"
+            className="inline-flex items-center gap-1.5 align-middle underline"
             data-testid="competition-link"
           >
+            <EntityImage
+              media={f.competition.logo}
+              kind="logo"
+              name={f.competition.name}
+              size={20}
+              aboveFold
+            />
             {f.competition.name}
           </Link>{' '}
           · {f.season.label}
@@ -179,7 +187,17 @@ export function MatchCentreView({
             className="text-end text-base font-semibold hyphens-auto [overflow-wrap:anywhere] sm:text-2xl"
             data-testid="home-team"
           >
-            <Link href={`/${locale}/team/${f.home.id}`}>
+            <Link
+              href={`/${locale}/team/${f.home.id}`}
+              className="inline-flex flex-col items-end gap-1"
+            >
+              <EntityImage
+                media={f.home.crest}
+                kind="crest"
+                name={f.home.name}
+                size={48}
+                aboveFold
+              />
               <bdi>{f.home.name}</bdi>
             </Link>
           </h1>
@@ -209,7 +227,17 @@ export function MatchCentreView({
             className="text-base font-semibold hyphens-auto [overflow-wrap:anywhere] sm:text-2xl"
             data-testid="away-team"
           >
-            <Link href={`/${locale}/team/${f.away.id}`}>
+            <Link
+              href={`/${locale}/team/${f.away.id}`}
+              className="inline-flex flex-col items-start gap-1"
+            >
+              <EntityImage
+                media={f.away.crest}
+                kind="crest"
+                name={f.away.name}
+                size={48}
+                aboveFold
+              />
               <bdi>{f.away.name}</bdi>
             </Link>
           </h1>
@@ -751,11 +779,14 @@ function Side({
   // Every line-up name links to the player page (blueprint 5.3, T-037).
   const line = (p: MatchLineupPlayer): React.ReactNode => (
     <>
-      {p.shirt_number !== null ? `${formatNumber(locale, p.shirt_number)} ` : ''}
-      <Link href={`/${locale}/player/${p.id}`} className="underline">
-        {p.name}
-      </Link>
-      {p.is_captain ? ` ${m['matchCentre.captain'].text}` : ''}
+      <EntityImage media={p.photo} kind="photo" name={p.name} size={40} />
+      <span className="min-w-0">
+        {p.shirt_number !== null ? `${formatNumber(locale, p.shirt_number)} ` : ''}
+        <Link href={`/${locale}/player/${p.id}`} className="underline">
+          {p.name}
+        </Link>
+        {p.is_captain ? ` ${m['matchCentre.captain'].text}` : ''}
+      </span>
     </>
   );
   return (
@@ -777,7 +808,9 @@ function Side({
       </p>
       <ul>
         {starters.map((p) => (
-          <li key={p.id}>{line(p)}</li>
+          <li key={p.id} className={LINEUP_ROW}>
+            {line(p)}
+          </li>
         ))}
       </ul>
       {bench.length > 0 && (
@@ -787,7 +820,9 @@ function Side({
           </p>
           <ul className="text-muted">
             {bench.map((p) => (
-              <li key={p.id}>{line(p)}</li>
+              <li key={p.id} className={LINEUP_ROW}>
+                {line(p)}
+              </li>
             ))}
           </ul>
         </>
@@ -795,6 +830,9 @@ function Side({
     </div>
   );
 }
+
+/** A line-up row: the photo, then the shirt number and the name on one line (T-1321). */
+const LINEUP_ROW = 'flex items-center gap-2 py-0.5';
 
 /** A form letter's badge: won, drawn, lost in the theme's own tones (T-1204). */
 const RESULT_TONE: Record<FormEntry['result'], string> = {

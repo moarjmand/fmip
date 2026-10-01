@@ -80,6 +80,10 @@ services:
       WEB_BASE_URL: ${WEB_BASE_URL:-http://localhost:${WEB_PORT:-3000}}
       # The model service by its compose name (D-009, D-011): internal only.
       MODEL_SERVICE_URL: http://model:8000
+      # Crests, logos and player photos (T-1320, D-176), on the `media` volume.
+      MEDIA_DIR: /data/media
+    volumes:
+      - media:/data/media
     ports:
       - '127.0.0.1:${API_PORT:-3001}:3001'
     depends_on:
@@ -190,3 +194,6 @@ services:
 volumes:
   postgres-data:
   redis-data:
+  # Copied crests, logos and player photos (T-1320). Re-derivable: losing it
+  # means the fetch job asks the provider again.
+  media:

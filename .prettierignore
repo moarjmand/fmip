@@ -37,3 +37,7 @@ __pycache__/
 # formatting them by hand after every run only fails CI when someone forgets.
 apps/model/reports/
 apps/api/backtest/
+
+# Recorded publisher pages and feeds (T-1322): a recording is kept byte for
+# byte as the publisher served it, trimmed but never reformatted.
+packages/ingestion/src/news/_recorded/

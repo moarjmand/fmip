@@ -213,14 +213,15 @@ after a real deployment.
 
 ## 6. Where news comes from
 
-**Free sources only, for now** (D-061, 2026-09-15). What that permits is
+**Free sources only, for now** (D-061, 2026-09-15; photos amended by D-177, 2026-10-01). What that permits is
 narrower than "news", and the narrowness is the decision rather than a
 limitation of it:
 
 | | |
 |---|---|
 | Taken | headline, the publisher's own summary as the feed carries it, byline, publication time, and a link to the original |
-| Not taken | the article body, paywalled content, and images re-hosted here |
+| Taken, from three sources only (D-177, 2026-10-01) | the agency's own news photo, from Mehr News (both feeds), Tasnim and Tehran Times, under **CC BY 4.0** as their sites state; stored and served from our own server, never hot-linked; shown only with its credit ("Mehr News Agency", "Tasnim News Agency", "Tehran Times / Mehr News Agency", or a named photographer and the agency) and "CC BY 4.0" linked to the licence. A photo the page credits to another agency (AFP, Getty, Reuters, AP, EPA, ISNA, IRNA, Fars, Anadolu and the rest, in Latin or Persian script), or whose provenance cannot be read from the page, is not taken. An editor may hide or show one article's photo, audited |
+| Not taken | the article body, paywalled content, any photo from every other source (IRNA, Khabar Varzeshi, Yahoo Sports, The Independent, kicker, Sportschau, Agência Brasil, and any source added later unless its licence is recorded), and other agencies' photos the three republish |
 | Shown | the publisher's name, on every item, as a link to their page |
 | Withdrawn | on a publisher's request, without argument |
 | Shown to whom | every reader, unless an administrator set the source to be shown only to readers of its own language (D-178, T-1330; on for every Persian source): then a reader of the site in another language is not shown its stories, and a story it shares with a source they are shown reads by that source's report |

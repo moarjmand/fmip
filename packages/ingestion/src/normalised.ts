@@ -115,6 +115,14 @@ export type Side = 'home' | 'away';
 export interface EntityRef {
   externalId: string;
   name: string;
+  /**
+   * The provider's address for the entity's image (a team's crest, a
+   * competition's logo, a person's photo), when the answer carried one (T-1320,
+   * D-176). An `https://` URL on the provider's side: the ingestion writers
+   * hand it to the media store, which copies the file to our own volume. It
+   * never reaches a contract or a page (rule 2). Absent when not carried.
+   */
+  imageUrl?: string;
 }
 
 /** Like `EntityRef`, for entities a provider often names without identifying. */
@@ -318,4 +326,12 @@ export interface NormalisedNewsItem {
    * duplicates removed, nothing else changed. Empty when the item carries none.
    */
   categories: string[];
+  /**
+   * The item's photo as the feed carried it (T-1322, D-177): RSS
+   * `<enclosure type="image/*">`, `media:content`, `media:thumbnail`, or an
+   * Atom enclosure link. `null` unless the reader was asked for images, which
+   * the job does only for a source whose licence covers them. Where the
+   * publisher keeps the file -- never shown to a reader, never in a contract.
+   */
+  imageUrl: string | null;
 }

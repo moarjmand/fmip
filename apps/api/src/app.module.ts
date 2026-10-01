@@ -9,6 +9,7 @@ import { FounderModule } from './modules/founder/founder.module';
 import { HealthModule } from './modules/health/health.module';
 import { IdentityModule } from './modules/identity/identity.module';
 import { IngestionModule } from './modules/ingestion/ingestion.module';
+import { MediaModule } from './modules/media/media.module';
 import { PredictionsModule } from './modules/predictions/predictions.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { ConversationsModule } from './modules/conversations/conversations.module';
@@ -53,6 +54,7 @@ import { RatingThresholdsModule } from './modules/rating-thresholds/rating-thres
     HealthModule,
     CatalogModule,
     IngestionModule,
+    MediaModule,
     IdentityModule,
     ProfileModule,
     SocialModule,

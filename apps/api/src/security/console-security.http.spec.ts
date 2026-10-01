@@ -286,6 +286,13 @@ const CONSOLE: Record<string, ConsoleRoute> = {
       none: "A reviewer's approval of a translation is the decision itself, audited with who and when.",
     },
   },
+  // A news photo shown or hidden by an editor (T-1322, D-177).
+  'POST /admin/articles/:id/image': {
+    roles: EDITORIAL,
+    reason: {
+      none: "An editor's show or hide of one article's photo, audited with who, when, why and the previous value.",
+    },
+  },
   'GET /admin/viewing/broadcasters': { roles: EDITORIAL },
   'POST /admin/viewing/broadcasters': {
     roles: EDITORIAL,

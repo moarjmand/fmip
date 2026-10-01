@@ -11,6 +11,7 @@ import type {
   TableRow,
 } from '@fmip/contracts';
 import { zoneOfPlace } from '@fmip/contracts';
+import { EntityImage } from '@/components/entity-image';
 import { FounderAnalysisFeed } from '@/components/founder-analysis';
 import { KnockoutBracket } from '@/components/knockout-bracket';
 import { EntityNews } from '@/components/related-news';
@@ -130,8 +131,18 @@ export default async function CompetitionPage({
             : ''}
           {c.gender === 'women' ? ` · ${say(locale, 'competitionPage.women')}` : ''}
         </p>
-        <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
-          {c.localised_name ?? c.name}
+        <h1
+          className="flex items-center gap-3 border-s-4 border-s-accent ps-4 text-2xl font-semibold"
+          data-testid="title"
+        >
+          <EntityImage
+            media={c.logo}
+            kind="logo"
+            name={c.localised_name ?? c.name}
+            size={48}
+            aboveFold
+          />
+          <span className="min-w-0">{c.localised_name ?? c.name}</span>
         </h1>
         {c.localised_name !== null && (
           <p className="text-sm text-muted" data-testid="canonical-name">
@@ -212,8 +223,14 @@ export default async function CompetitionPage({
                     <td className="py-1 pe-2">
                       <Link
                         href={`/${locale}/team/${row.team.id}`}
-                        className="font-medium hover:underline focus-visible:underline"
+                        className="inline-flex items-center gap-2 font-medium hover:underline focus-visible:underline"
                       >
+                        <EntityImage
+                          media={row.team.crest}
+                          kind="crest"
+                          name={row.team.name}
+                          size={20}
+                        />
                         {row.team.name}
                       </Link>
                     </td>
@@ -336,17 +353,31 @@ export default async function CompetitionPage({
             {leaders.map((leader, index) => (
               <li
                 key={`${leader.person.id}:${leader.team?.id ?? ''}`}
-                className="flex flex-wrap items-baseline gap-x-3"
+                className="flex items-center gap-x-3"
               >
-                <span className="w-6 tabular-nums text-muted">
+                <span className="w-6 shrink-0 tabular-nums text-muted">
                   {formatNumber(locale, index + 1)}
                 </span>
-                <span className="grow">
+                <EntityImage
+                  media={leader.person.photo}
+                  kind="photo"
+                  name={leader.person.name}
+                  size={40}
+                />
+                <span className="min-w-0 grow">
                   <Link href={`/${locale}/player/${leader.person.id}`} className="underline">
                     {leader.person.name}
                   </Link>
                   {leader.team !== null && (
-                    <span className="ms-2 text-xs text-muted">{leader.team.name}</span>
+                    <span className="ms-2 inline-flex items-center gap-1 align-middle text-xs text-muted">
+                      <EntityImage
+                        media={leader.team.crest}
+                        kind="crest"
+                        name={leader.team.name}
+                        size={20}
+                      />
+                      {leader.team.name}
+                    </span>
                   )}
                   <MinutesFigure
                     locale={locale}
@@ -399,17 +430,31 @@ export default async function CompetitionPage({
                 {rows.map((row, index) => (
                   <li
                     key={`${row.person.id}:${row.team?.id ?? ''}`}
-                    className="flex flex-wrap items-baseline gap-x-3"
+                    className="flex items-center gap-x-3"
                   >
-                    <span className="w-6 tabular-nums text-muted">
+                    <span className="w-6 shrink-0 tabular-nums text-muted">
                       {formatNumber(locale, index + 1)}
                     </span>
-                    <span className="grow">
+                    <EntityImage
+                      media={row.person.photo}
+                      kind="photo"
+                      name={row.person.name}
+                      size={40}
+                    />
+                    <span className="min-w-0 grow">
                       <Link href={`/${locale}/player/${row.person.id}`} className="underline">
                         {row.person.name}
                       </Link>
                       {row.team !== null && (
-                        <span className="ms-2 text-xs text-muted">{row.team.name}</span>
+                        <span className="ms-2 inline-flex items-center gap-1 align-middle text-xs text-muted">
+                          <EntityImage
+                            media={row.team.crest}
+                            kind="crest"
+                            name={row.team.name}
+                            size={20}
+                          />
+                          {row.team.name}
+                        </span>
                       )}
                       <MinutesFigure
                         locale={locale}

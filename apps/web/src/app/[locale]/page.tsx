@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { BreakingStrip } from '@/components/breaking-strip';
 import { FirstRunOffer } from '@/components/first-run-offer';
 import { JsonLd } from '@/components/json-ld';
+import { EntityImage } from '@/components/entity-image';
 import { FounderAnalysisFeed } from '@/components/founder-analysis';
 import {
   FriendPredictionsSection,
@@ -246,6 +247,13 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                 <span className="flex min-w-0 flex-col">
                   <Link href={`/${locale}/match/${card.id}`} className={ROW_LINK}>
                     {card.home.name}{' '}
+                    <EntityImage
+                      media={card.home.crest}
+                      kind="crest"
+                      name={card.home.name}
+                      size={20}
+                      className="inline-flex align-middle"
+                    />{' '}
                     {card.scores.current !== null ? (
                       <LtrNumeric>
                         {num(card.scores.current.home)}–{num(card.scores.current.away)}
@@ -253,6 +261,13 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                     ) : (
                       <Translated locale={lang} message="home.versus" />
                     )}{' '}
+                    <EntityImage
+                      media={card.away.crest}
+                      kind="crest"
+                      name={card.away.name}
+                      size={20}
+                      className="inline-flex align-middle"
+                    />{' '}
                     {card.away.name}
                   </Link>
                   <span className="text-xs text-muted">
@@ -377,8 +392,14 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           <h2 className="text-lg font-semibold">
             <Link
               href={`/${locale}/competition/${table.data.competition.id}`}
-              className="underline"
+              className="inline-flex items-center gap-2 underline"
             >
+              <EntityImage
+                media={table.data.competition.logo}
+                kind="logo"
+                name={table.data.competition.name}
+                size={20}
+              />
               {table.data.competition.name}
             </Link>
           </h2>
@@ -407,7 +428,17 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               {tableRows.map((row) => (
                 <tr key={row.team.id} className="border-b border-default last:border-b-0">
                   <td className="py-1.5 text-muted">{num(row.position)}</td>
-                  <td className="py-1.5">{row.team.name}</td>
+                  <td className="py-1.5">
+                    <span className="flex items-center gap-2">
+                      <EntityImage
+                        media={row.team.crest}
+                        kind="crest"
+                        name={row.team.name}
+                        size={20}
+                      />
+                      {row.team.name}
+                    </span>
+                  </td>
                   <td className="py-1.5 text-end text-muted">{num(row.played)}</td>
                   <td className="py-1.5 text-end font-semibold">{num(row.points)}</td>
                 </tr>

@@ -7,6 +7,7 @@
 
 import type { CoverageState, Covered } from './coverage';
 import type { LeagueZones } from './league-zones';
+import type { EntityMedia } from './media';
 
 export interface CountrySummary {
   id: string;
@@ -115,7 +116,8 @@ export type FormResult = 'W' | 'D' | 'L';
 
 export interface TableRow {
   position: number;
-  team: { id: string; name: string; short_name: string | null };
+  /** `crest`: from our own origin (T-1320). */
+  team: { id: string; name: string; short_name: string | null; crest?: EntityMedia };
   played: number;
   won: number;
   drawn: number;
@@ -129,9 +131,10 @@ export interface TableRow {
 }
 
 export interface Leader {
-  person: { id: string; name: string };
+  /** `photo`: from our own origin (T-1320). */
+  person: { id: string; name: string; photo?: EntityMedia };
   /** The team the goals were scored for; null when the participant is unknown. */
-  team: { id: string; name: string } | null;
+  team: { id: string; name: string; crest?: EntityMedia } | null;
   goals: number;
   /**
    * The scorer's minutes in this season of the competition, for every team
@@ -170,9 +173,10 @@ export const LEADERS_MINUTES_MAX = 10000;
  * their season minutes under the same rule as the scorers (T-824).
  */
 export interface BoardPlayer {
-  person: { id: string; name: string };
-  /** The team the row counts for; null when the participant is unknown. */
-  team: { id: string; name: string } | null;
+  /** `photo`: from our own origin (T-1321). */
+  person: { id: string; name: string; photo?: EntityMedia };
+  /** The team the row counts for; null when the participant is unknown. `crest`: our own origin (T-1321). */
+  team: { id: string; name: string; crest?: EntityMedia } | null;
   minutes: PlayerSeasonMinutes;
 }
 
@@ -321,6 +325,8 @@ export interface CompetitionPage {
     age_group: string;
     tier: number | null;
     country: { id: string; name: string; code: string } | null;
+    /** The competition's logo from our own origin (T-1320). */
+    logo?: EntityMedia;
   };
   /** Newest first. */
   seasons: SeasonSummary[];
@@ -395,7 +401,8 @@ export interface TeamCompetition {
 export type SquadPosition = 'goalkeeper' | 'defender' | 'midfielder' | 'forward';
 
 export interface SquadPlayer {
-  person: { id: string; name: string };
+  /** `photo`: from our own origin (T-1321). */
+  person: { id: string; name: string; photo?: EntityMedia };
   shirt_number: number | null;
   position: SquadPosition | null;
   on_loan: boolean;
@@ -497,6 +504,8 @@ export interface TeamPage {
     founded_year: number | null;
     country: { id: string; name: string; code: string } | null;
     venue: { id: string; name: string; city: string | null; capacity: number | null } | null;
+    /** The team's crest from our own origin (T-1320). */
+    crest?: EntityMedia;
   };
   /** Competitions with a current season, or one the team still has matches in. */
   competitions: TeamCompetition[];
@@ -623,6 +632,8 @@ export interface PlayerPage {
     nationality: { id: string; name: string; code: string } | null;
     height_cm: number | null;
     preferred_foot: 'left' | 'right' | 'both' | null;
+    /** The player's photo from our own origin (T-1320). */
+    photo?: EntityMedia;
   };
   current_spell: PlayerSpell | null;
   /** Newest first. */

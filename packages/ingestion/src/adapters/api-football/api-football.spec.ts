@@ -8,8 +8,11 @@ import {
   liveExtras,
   mapAvailability,
   mapFixture,
+  imageUrl,
   mapIncidents,
+  mapLineup,
   mapPlayerStatistics,
+  mapStandings,
   mapStatistics,
   mapStatus,
   seasonLabel,
@@ -142,8 +145,16 @@ describe('mapping rules', () => {
     expect(mapAvailability(body.response, '1035037')).toEqual([
       {
         fixtureExternalId: '1035037',
-        team: { externalId: '44', name: 'Burnley' },
-        player: { externalId: '18957', name: 'M. Obafemi' },
+        team: {
+          externalId: '44',
+          name: 'Burnley',
+          imageUrl: 'https://media.api-sports.io/football/teams/44.png',
+        },
+        player: {
+          externalId: '18957',
+          name: 'M. Obafemi',
+          imageUrl: 'https://media.api-sports.io/football/players/18957.png',
+        },
         status: 'out',
         kind: 'injury',
         reason: 'Thigh Injury',
@@ -349,5 +360,85 @@ describe('the live list carries events and the half-time interval (T-830)', () =
     expect(fixture).not.toBeNull();
     if (fixture === null) return;
     expect(liveExtras(item, fixture)).toEqual({ halfTimeBreak: false });
+  });
+});
+
+describe('image addresses are carried inside ingestion (T-1320)', () => {
+  const bodyOf = (name: string): { response: unknown[] } => {
+    const raw = loadScenarios(FIXTURES_DIR).find((s) => s.name === name)?.requests[0]?.body;
+    return (typeof raw === 'string' ? JSON.parse(raw) : raw) as { response: unknown[] };
+  };
+  const MEDIA =
+    /^https:\/\/media\.api-sports\.io\/football\/(teams|leagues|players|coachs)\/\d+\.png$/;
+
+  it('gives a fixture its competition logo and both crests', () => {
+    const fixture = mapFixture(
+      bodyOf('list-fixtures-opening-weekend').response[0],
+      '2026-09-10T00:00:00Z',
+    );
+    expect(fixture?.competition.imageUrl).toBe(
+      'https://media.api-sports.io/football/leagues/39.png',
+    );
+    expect(fixture?.home.imageUrl).toMatch(/\/teams\/\d+\.png$/);
+    expect(fixture?.away.imageUrl).toMatch(/\/teams\/\d+\.png$/);
+  });
+
+  it('gives every standings row its crest, and the table its logo', () => {
+    const [table] = mapStandings(bodyOf('standings-final-table').response, '2026-09-10T00:00:00Z');
+    expect(table?.competition.imageUrl).toBe('https://media.api-sports.io/football/leagues/39.png');
+    expect(table?.rows.length).toBeGreaterThan(0);
+    for (const row of table?.rows ?? []) expect(row.team.imageUrl).toMatch(MEDIA);
+  });
+
+  it('gives line-up players their photos from the per-player block, and the coach his', () => {
+    const item = bodyOf('lineup-burnley-man-city').response[0] as {
+      lineups: unknown;
+      players: unknown;
+      teams: { home: { id: number }; away: { id: number } };
+    };
+    const lineup = mapLineup(
+      item.lineups,
+      item.players,
+      '1035037',
+      String(item.teams.home.id),
+      String(item.teams.away.id),
+    );
+    expect(lineup).not.toBeNull();
+    expect(lineup?.home.coach?.imageUrl).toMatch(MEDIA);
+    const players = [...(lineup?.home.players ?? []), ...(lineup?.away.players ?? [])];
+    expect(players.filter((p) => p.imageUrl !== undefined).length).toBeGreaterThan(20);
+    for (const p of players) if (p.imageUrl !== undefined) expect(p.imageUrl).toMatch(MEDIA);
+  });
+
+  it('gives a player statistic its player photo', () => {
+    const item = bodyOf('detail-burnley-man-city').response[0] as {
+      players: unknown;
+      teams: { home: { id: number }; away: { id: number } };
+    };
+    const stats = mapPlayerStatistics(
+      item.players,
+      String(item.teams.home.id),
+      String(item.teams.away.id),
+    );
+    expect(stats.length).toBeGreaterThan(0);
+    for (const s of stats) expect(s.player.imageUrl).toMatch(MEDIA);
+  });
+
+  it('carries nothing when the answer has no image, and only an https address', () => {
+    const fixture = mapFixture(
+      {
+        fixture: { id: 1, date: '2026-09-10T19:00:00+00:00', status: { short: 'NS' } },
+        league: { id: 39, name: 'Premier League', season: 2026, logo: 'http://x/39.png' },
+        teams: { home: { id: 44, name: 'Burnley', logo: '' }, away: { id: 50, name: 'City' } },
+        goals: {},
+        score: {},
+      },
+      '2026-09-10T19:05:00Z',
+    );
+    expect(fixture?.competition).toEqual({ externalId: '39', name: 'Premier League' });
+    expect(fixture?.home).toEqual({ externalId: '44', name: 'Burnley' });
+    expect(imageUrl('https://media.api-sports.io/football/teams/44.png')).not.toBeNull();
+    expect(imageUrl('javascript:alert(1)')).toBeNull();
+    expect(imageUrl(42)).toBeNull();
   });
 });
