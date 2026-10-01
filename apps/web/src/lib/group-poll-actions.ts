@@ -17,12 +17,15 @@ import { failureMessage, isRefused } from './action-failure';
  * included.
  */
 
-function failure(result: Extract<ApiResult<unknown>, { ok: false }>): ActionState {
+async function failure(
+  result: Extract<ApiResult<unknown>, { ok: false }>,
+  locale: string,
+): Promise<ActionState> {
   const fields = isRefused(result) ? undefined : result.error?.fields;
   const detail = fields === undefined ? '' : ` ${Object.values(fields).join(' ')}`;
   return {
     ok: false,
-    message: `${failureMessage(result)}${detail}`,
+    message: `${await failureMessage(result, locale)}${detail}`,
     ...(isRefused(result) ? { refused: true as const } : {}),
   };
 }
@@ -44,7 +47,7 @@ async function call(
     cookie: await sessionCookieHeader(),
     ...(body === undefined ? {} : { body }),
   });
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
   revalidatePath(`/${locale}/groups/${encodeURIComponent(slug)}`);
   return { ok: true, message: done(locale, message) };
 }

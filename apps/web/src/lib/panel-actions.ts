@@ -47,7 +47,7 @@ export async function postToPanelAction(
   });
 
   if (!result.ok) {
-    return failureState(result);
+    return failureState(result, locale);
   }
 
   // The panel is a server component reading a public document, so the page has

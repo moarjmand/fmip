@@ -9,8 +9,8 @@ import { SiteHeader } from '@/components/site-header';
 import { DEFAULT_LOCALE, LOCALES, directionOf, isLocale } from '@/i18n/locales';
 import { resolveMessages, t } from '@/i18n/messages';
 import {
-  DEMONSTRATION_TITLE_PREFIX,
-  DEMONSTRATION_TITLE_TEMPLATE,
+  demonstrationTitle,
+  demonstrationTitleTemplate,
   isDemonstrationData,
 } from '@/lib/demonstration';
 import { BRAND_COLOURS } from '@/lib/brand-colours';
@@ -58,8 +58,8 @@ export async function generateMetadata({
     ...(isDemonstrationData()
       ? {
           title: {
-            template: DEMONSTRATION_TITLE_TEMPLATE,
-            default: `${DEMONSTRATION_TITLE_PREFIX}FMIP`,
+            template: demonstrationTitleTemplate(locale),
+            default: demonstrationTitle('FMIP', locale),
           },
         }
       : {}),

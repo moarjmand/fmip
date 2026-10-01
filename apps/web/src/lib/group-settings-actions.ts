@@ -22,12 +22,15 @@ import { failureMessage, isRefused } from './action-failure';
 /** The state of the "make a link" form: the one time a link's token exists outside its holder's hands. */
 export type InviteLinkActionState = ActionState | { ok: true; message: string; url: string };
 
-function failure(result: Extract<ApiResult<unknown>, { ok: false }>): ActionState {
+async function failure(
+  result: Extract<ApiResult<unknown>, { ok: false }>,
+  locale: string,
+): Promise<ActionState> {
   const fields = isRefused(result) ? undefined : result.error?.fields;
   const detail = fields === undefined ? '' : ` ${Object.values(fields).join(' ')}`;
   return {
     ok: false,
-    message: `${failureMessage(result)}${detail}`,
+    message: `${await failureMessage(result, locale)}${detail}`,
     ...(isRefused(result) ? { refused: true as const } : {}),
   };
 }
@@ -53,7 +56,7 @@ async function call(
     cookie: await sessionCookieHeader(),
     ...(body === undefined ? {} : { body }),
   });
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
   revalidatePath(`/${locale}/groups`);
   revalidatePath(`/${locale}${groupPath(slug)}`);
   return { ok: true, message: said(locale, done) };
@@ -102,7 +105,7 @@ export async function createInviteLinkAction(
     cookie: await sessionCookieHeader(),
     body: linkRequest(formData),
   });
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
   revalidatePath(`/${locale}${groupPath(slug)}`);
   return {
     ok: true,

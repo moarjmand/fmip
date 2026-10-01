@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { KnockoutBracket as Bracket } from '@fmip/contracts';
 import { Translated } from '@/components/translated';
 import { formatFixtureDate, say, statusSuffix } from '@/lib/competition';
-import { ROUND_LABEL, legLabel, legLine, roundNote, tieOutcome } from '@/lib/bracket';
+import { legLabel, legLine, roundLabel, roundNote, tieOutcome } from '@/lib/bracket';
 
 /**
  * The knockout bracket on the competition page (blueprint 5.1, T-630): the
@@ -28,7 +28,7 @@ export function KnockoutBracket({
       </h2>
       <ol className="flex flex-col gap-6">
         {bracket.rounds.map((round) => {
-          const note = roundNote(round);
+          const note = roundNote(round, locale);
           return (
             <li
               key={round.key}
@@ -37,7 +37,7 @@ export function KnockoutBracket({
               data-state={round.state}
             >
               <h3 className="font-semibold">
-                {ROUND_LABEL[round.key]}
+                {roundLabel(round.key, locale)}
                 <span className="ms-2 text-xs font-normal text-muted">
                   <Translated
                     locale={locale}
@@ -69,9 +69,9 @@ export function KnockoutBracket({
                       <ul className="flex flex-col gap-0.5">
                         {tie.legs.map((leg) => (
                           <li key={leg.fixture_id} className="flex flex-wrap gap-x-2">
-                            <span className="text-muted">{legLabel(leg, round.legs)}</span>
+                            <span className="text-muted">{legLabel(leg, round.legs, locale)}</span>
                             <Link href={`/${locale}/match/${leg.fixture_id}`} className="underline">
-                              {legLine(leg)}
+                              {legLine(leg, locale)}
                             </Link>
                             <span className="text-xs text-muted">
                               <time dateTime={leg.kickoff_at}>
@@ -88,7 +88,7 @@ export function KnockoutBracket({
                         }
                         data-testid="bracket-outcome"
                       >
-                        {tieOutcome(tie, round.legs)}
+                        {tieOutcome(tie, round.legs, locale)}
                       </p>
                     </li>
                   ))}

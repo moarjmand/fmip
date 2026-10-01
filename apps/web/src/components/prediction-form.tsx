@@ -3,6 +3,7 @@
 import { PREDICTION_REASON_TAGS, type Prediction, type PredictionReasonTag } from '@fmip/contracts';
 import { type ReactNode, useActionState } from 'react';
 import type { ActionState } from '@/lib/auth-actions';
+import type { Message } from '@/i18n/messages';
 import { ShareLink } from './share-link';
 import { Button, FormStatus, TextArea, controlClasses } from '@/components/ui';
 
@@ -29,6 +30,8 @@ export interface PredictionFormWords {
   version: ReactNode;
   share: ReactNode;
   shareTitle: string;
+  /** "Link copied." and "Copy this link: {url}", for the share control. */
+  shareMessages: { copied: Message; manual: Message };
 }
 
 /**
@@ -170,7 +173,12 @@ export function PredictionForm({
       )}
       {state !== null && state.ok && shareUrl !== undefined && (
         <p className="text-sm">
-          <ShareLink url={shareUrl} title={words.shareTitle} label={words.share} />
+          <ShareLink
+            url={shareUrl}
+            title={words.shareTitle}
+            label={words.share}
+            messages={words.shareMessages}
+          />
         </p>
       )}
     </form>

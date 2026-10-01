@@ -13,7 +13,7 @@ import { RatingHistorySection } from '@/components/rating-history';
 import { Translated } from '@/components/translated';
 import { formatDate, formatDateTime, formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE, directionOf, isLocale, type Locale } from '@/i18n/locales';
-import { interpolate, t } from '@/i18n/messages';
+import { interpolate, message, t } from '@/i18n/messages';
 import {
   fetchAchievements,
   fetchFriendStatus,
@@ -189,6 +189,10 @@ export default async function ProfilePage({
             url={inviteUrl(locale, profile.username)}
             title={t(lang, 'profile.inviteTitle')}
             label={t(lang, 'profile.inviteLabel')}
+            messages={{
+              copied: message(lang, 'share.copied'),
+              manual: message(lang, 'share.manual'),
+            }}
           />
         </p>
       )}
@@ -256,20 +260,20 @@ export default async function ProfilePage({
                 <Translated locale={locale} message="profile.rating.rating" />
               </dt>
               <dd className="text-2xl font-semibold tabular-nums" data-testid="rating-value">
-                {ratingLabel(rating.data.rating)}
+                {ratingLabel(rating.data.rating, locale)}
               </dd>
             </div>
             <div>
               <dt className="text-xs uppercase text-muted">
                 <Translated locale={locale} message="profile.rating.tier" />
               </dt>
-              <dd>{tierLabel(rating.data.rating.tier)}</dd>
+              <dd>{tierLabel(rating.data.rating.tier, locale)}</dd>
             </div>
             <div>
               <dt className="text-xs uppercase text-muted">
                 <Translated locale={locale} message="profile.rating.status" />
               </dt>
-              <dd>{statusLabel(rating.data.rating)}</dd>
+              <dd>{statusLabel(rating.data.rating, locale)}</dd>
             </div>
             <div>
               <dt className="text-xs uppercase text-muted">

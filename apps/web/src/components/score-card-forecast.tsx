@@ -1,5 +1,5 @@
 import type { CardForecast } from '@/lib/score-card-products';
-import { formatDate } from '@/i18n/format';
+import { formatDate, formatNumber } from '@/i18n/format';
 import { FORECAST_REASON_KEY, filled, formatPercent } from '@/lib/words';
 import type { ScoresWords } from '@/lib/words-server';
 import { FilledMessage } from '@/components/filled-message';
@@ -76,7 +76,7 @@ export function CardForecastSummary({
         <MessageText
           className="text-muted"
           message={filled(m['scores.card.model.noProbabilities'], {
-            version: String(f.version),
+            version: formatNumber(locale, f.version),
             reason:
               m[
                 f.reason === null

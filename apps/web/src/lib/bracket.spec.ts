@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import type { KnockoutLeg, KnockoutRound, KnockoutTie } from '@fmip/contracts';
 import { KNOCKOUT_ROUNDS } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
-import { ROUND_LABEL, legLabel, legLine, roundNote, tieOutcome } from './bracket';
+import { legLabel, legLine, roundLabel, roundNote, tieOutcome } from './bracket';
 
 /**
  * The knockout bracket's words (T-630). Acceptance: a tie not yet drawn is
@@ -52,7 +52,7 @@ const round = (over: Partial<KnockoutRound> = {}): KnockoutRound => ({
 
 describe('round labels', () => {
   it('names every round the contract can send', () => {
-    for (const key of KNOCKOUT_ROUNDS) expect(ROUND_LABEL[key]).toMatch(/\S/);
+    for (const key of KNOCKOUT_ROUNDS) expect(roundLabel(key)).toMatch(/\S/);
   });
 });
 
@@ -114,8 +114,8 @@ describe('roundNote', () => {
 describe('the bracket on the page', () => {
   it('renders only what the API sends: no placeholder team is written into the view', () => {
     expect(VIEW).not.toMatch(/TBD|TBC|Winner of|placeholder=/i);
-    expect(VIEW).toContain('roundNote(round)');
-    expect(VIEW).toContain('tieOutcome(tie, round.legs)');
+    expect(VIEW).toContain('roundNote(round, locale)');
+    expect(VIEW).toContain('tieOutcome(tie, round.legs, locale)');
   });
 
   it('uses logical properties only, so it reads right to left', () => {

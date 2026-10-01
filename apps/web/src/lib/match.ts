@@ -1,110 +1,67 @@
-import type {
-  CoverageState,
-  Covered,
-  MatchAbsence,
-  MatchIncident,
-  MatchPlayerStats,
-  MatchStatMetric,
-  PlayerMatchMetric,
-} from '@fmip/contracts';
+import type { MatchIncident, MatchStatMetric } from '@fmip/contracts';
+import { formatNumber, intlLocale } from '@/i18n/format';
+import type { MessageKey } from '@/i18n/messages';
+import { formatFixed, formatMinute } from '@/lib/words';
 
 /**
- * Pure helpers for the match centre page (T-034): labels for incidents,
- * statistics and coverage states, and the list of blueprint 4.2 modules the
- * platform does not have yet, which the page names rather than hides.
+ * Pure helpers for the match centre page (T-034): the catalogue keys for
+ * incidents and statistics, minutes and statistic values in the reader's
+ * digits (T-1309), and the list of blueprint 4.2 modules the platform does
+ * not have yet, which the page names rather than hides.
+ *
+ * No catalogue import (the `MessageKey` import is a type), so the live match
+ * centre's client component can use it; a server caller turns a key into
+ * words with `t`, a client one with the words its page resolved.
  */
 
-export const INCIDENT_LABEL: Record<MatchIncident['kind'], string> = {
-  goal: 'Goal',
-  own_goal: 'Own goal',
-  penalty_goal: 'Penalty',
-  penalty_missed: 'Penalty missed',
-  yellow_card: 'Yellow card',
-  second_yellow_card: 'Second yellow',
-  red_card: 'Red card',
-  substitution: 'Substitution',
-  var: 'VAR',
-};
+/** An incident's name, as a catalogue key. */
+export const INCIDENT_KEY = {
+  goal: 'matchCentre.incident.goal',
+  own_goal: 'matchCentre.incident.ownGoal',
+  penalty_goal: 'matchCentre.incident.penaltyGoal',
+  penalty_missed: 'matchCentre.incident.penaltyMissed',
+  yellow_card: 'matchCentre.incident.yellowCard',
+  second_yellow_card: 'matchCentre.incident.secondYellow',
+  red_card: 'matchCentre.incident.redCard',
+  substitution: 'matchCentre.incident.substitution',
+  var: 'matchCentre.incident.var',
+} as const satisfies Record<MatchIncident['kind'], MessageKey>;
 
-export const STAT_LABEL: Record<MatchStatMetric, string> = {
-  possession_pct: 'Possession',
-  shots: 'Shots',
-  shots_on_target: 'Shots on target',
-  shots_off_target: 'Shots off target',
-  blocked_shots: 'Blocked shots',
-  corners: 'Corners',
-  offsides: 'Offsides',
-  fouls: 'Fouls',
-  yellow_cards: 'Yellow cards',
-  red_cards: 'Red cards',
-  passes: 'Passes',
-  passes_accurate: 'Accurate passes',
-  pass_accuracy_pct: 'Pass accuracy',
-  saves: 'Saves',
-  expected_goals: 'Expected goals (xG)',
-};
+/** A team statistic's name, as a catalogue key. */
+export const STAT_KEY = {
+  possession_pct: 'matchCentre.stat.possession',
+  shots: 'matchCentre.stat.shots',
+  shots_on_target: 'matchCentre.stat.shotsOnTarget',
+  shots_off_target: 'matchCentre.stat.shotsOffTarget',
+  blocked_shots: 'matchCentre.stat.blockedShots',
+  corners: 'matchCentre.stat.corners',
+  offsides: 'matchCentre.stat.offsides',
+  fouls: 'matchCentre.stat.fouls',
+  yellow_cards: 'matchCentre.stat.yellowCards',
+  red_cards: 'matchCentre.stat.redCards',
+  passes: 'matchCentre.stat.passes',
+  passes_accurate: 'matchCentre.stat.passesAccurate',
+  pass_accuracy_pct: 'matchCentre.stat.passAccuracy',
+  saves: 'matchCentre.stat.saves',
+  expected_goals: 'matchCentre.stat.expectedGoals',
+} as const satisfies Record<MatchStatMetric, MessageKey>;
 
-export const COVERAGE_LABEL: Record<CoverageState, string> = {
-  available: 'available',
-  limited: 'limited',
-  not_supplied: 'not supplied',
-  delayed: 'data delayed',
-};
-
-/** "45+2′" or "67′". */
-export function minuteLabel(minute: number, addedTime: number | null): string {
-  return addedTime !== null && addedTime > 0 ? `${minute}+${addedTime}′` : `${minute}′`;
+/** "45+2′" or "67′", in the locale's digits. */
+export function minuteLabel(minute: number, addedTime: number | null, locale = 'en'): string {
+  return formatMinute(locale, minute, addedTime);
 }
 
-/**
- * The line a statistics table ends with when the provider sent statistics for
- * a match but no expected goals (T-102): the one metric a reader looks for by
- * name, said to be missing rather than left out of the table unremarked.
- * `null` when xG is there.
- */
-export function xgNotice(metrics: readonly MatchStatMetric[]): string | null {
-  return metrics.includes('expected_goals')
-    ? null
-    : 'Expected goals (xG): the provider did not supply them for this match.';
-}
-
-/** The per-player columns the match centre shows (T-101), in reading order. */
-export const PLAYER_COLUMNS: readonly [PlayerMatchMetric, string][] = [
-  ['minutes', 'Min'],
-  ['rating', 'Rating'],
-  ['goals', 'Goals'],
-  ['assists', 'Assists'],
-  ['shots', 'Shots'],
-  ['key_passes', 'Key passes'],
-  ['tackles', 'Tackles'],
-];
-
-/** One cell: the provider's rating to one decimal, a count as it is, `–` when not supplied. */
-export function playerCell(player: MatchPlayerStats, metric: PlayerMatchMetric): string {
-  const value = player.stats[metric];
-  if (value === undefined) return '–';
-  return metric === 'rating' ? value.toFixed(1) : String(value);
-}
-
-/** Said under every player table: the one number a reader may look for and will not find. */
-export const PLAYER_XG_NOTICE =
-  'Expected goals per player: not supplied by the provider for any match.';
-
-/** A statistic value as shown: percentages with the sign, xG with two decimals. */
-export function statValue(metric: MatchStatMetric, value: number | null): string {
+/** A statistic as shown, in the locale's digits: percentages with the sign, xG to two places. */
+export function statValue(metric: MatchStatMetric, value: number | null, locale = 'en'): string {
   if (value === null) return '–';
-  if (metric.endsWith('_pct')) return `${value}%`;
-  if (metric === 'expected_goals') return value.toFixed(2);
-  return String(value);
-}
-
-/**
- * What the module header says beside its name. A module with data still
- * carries its state (limited, delayed) so the reader knows what they are
- * looking at; one without data says why there is nothing.
- */
-export function moduleState<T>(module: Covered<T>): string {
-  return COVERAGE_LABEL[module.coverage];
+  if (metric.endsWith('_pct')) {
+    return new Intl.NumberFormat(intlLocale(locale), {
+      style: 'percent',
+      maximumFractionDigits: 2,
+    }).format(value / 100);
+  }
+  if (metric === 'expected_goals') return formatFixed(locale, value, 2);
+  return formatNumber(locale, value);
 }
 
 /**
@@ -115,9 +72,3 @@ export function moduleState<T>(module: Covered<T>): string {
  * they reached the page. Empty now, and the page then leaves the list out.
  */
 export const NOT_YET: readonly (readonly [name: string, why: string])[] = [];
-
-/** How an absence reads (T-103): "Out" or "Doubtful", then the provider's reason. */
-export function absenceLine(absence: MatchAbsence): string {
-  const status = absence.status === 'out' ? 'Out' : 'Doubtful';
-  return absence.reason === null ? status : `${status} · ${absence.reason}`;
-}

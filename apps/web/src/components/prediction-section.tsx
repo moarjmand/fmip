@@ -158,6 +158,10 @@ function formWords(
           ),
     share: <Translated locale={locale} message="predictions.form.share" />,
     shareTitle: matchTitle(locale, home, away),
+    shareMessages: {
+      copied: message(locale, 'share.copied'),
+      manual: message(locale, 'share.manual'),
+    },
   };
 }
 

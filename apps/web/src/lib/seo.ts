@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import type { CompetitionPage, MatchHeader, PlayerPage, TeamPage } from '@fmip/contracts';
 import { DEFAULT_LOCALE, LOCALES, isPseudoLocale, isUnfinishedLocale } from '../i18n/locales';
-import { DEMONSTRATION_TITLE_PREFIX, isDemonstrationData } from './demonstration';
+import { demonstrationTitle, isDemonstrationData } from './demonstration';
 
 /**
  * The SEO surface (T-039, D-040): one canonical URL per page under its
@@ -72,7 +72,7 @@ export function pageMetadata(
     meta.index !== false &&
     !isPseudoLocale(meta.locale) &&
     !isUnfinishedLocale(meta.locale);
-  const shared = demonstration ? `${DEMONSTRATION_TITLE_PREFIX}${meta.title}` : meta.title;
+  const shared = demonstration ? demonstrationTitle(meta.title, meta.locale) : meta.title;
   return {
     title: meta.title,
     ...(meta.description !== undefined ? { description: meta.description } : {}),

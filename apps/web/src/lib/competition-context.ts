@@ -7,7 +7,7 @@ import type {
 import { formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
 import { interpolate, plural, t } from '@/i18n/messages';
-import { ROUND_LABEL, tieOutcome } from '@/lib/bracket';
+import { roundLabel, tieOutcome } from '@/lib/bracket';
 
 /**
  * The words of the match centre's competition context (T-840). Pure, so what
@@ -105,12 +105,11 @@ export function placesNote(locale = 'en'): string {
 
 /**
  * The round in words: the UEFA round when known, else the competition's own.
- * `ROUND_LABEL` is `lib/bracket.ts`'s, shared with the competition page, and
- * still English (T-1304's to move).
+ * The round names are `lib/bracket.ts`'s, shared with the competition page.
  */
 export function roundName(tie: CompetitionContextTie, locale = 'en'): string {
   return tie.round_key !== null
-    ? ROUND_LABEL[tie.round_key]
+    ? roundLabel(tie.round_key, locale)
     : (tie.round ?? t(asLocale(locale), 'matchCentre.context.knockoutRound'));
 }
 
@@ -125,7 +124,7 @@ export function legsNote(tie: CompetitionContextTie, locale = 'en'): string {
 /** The tie's outcome line, or nothing judged when the legs are unknown. */
 export function tieLine(tie: CompetitionContextTie, locale = 'en'): string {
   if (tie.legs_expected === null) return t(asLocale(locale), 'matchCentre.context.notJudged');
-  return tieOutcome(tie.tie, tie.legs_expected);
+  return tieOutcome(tie.tie, tie.legs_expected, locale);
 }
 
 /** The sentence for a match with neither a table nor a tie to show. */

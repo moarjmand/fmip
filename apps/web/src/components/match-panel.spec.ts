@@ -140,7 +140,7 @@ describe('an unapproved member is told why', () => {
     expect(ACTION).toContain('{state.message}');
     // Through the shared failure (T-907): the API's sentence, led by "you may
     // not do this" when its code is `forbidden`.
-    expect(ACTIONS).toContain('failureState(result)');
+    expect(ACTIONS).toContain('failureState(result, locale)');
     // No permission check in the action: the browser's copy of a rule is the
     // one that goes stale first.
     expect(ACTIONS).not.toMatch(/may_post|qualifies|fetchPanelPermission/);

@@ -26,8 +26,11 @@ import { failureState } from './action-failure';
  * here.
  */
 
-function failure(result: Extract<ApiResult<unknown>, { ok: false }>): ActionState {
-  return failureState(result);
+async function failure(
+  result: Extract<ApiResult<unknown>, { ok: false }>,
+  locale: string,
+): Promise<ActionState> {
+  return failureState(result, locale);
 }
 
 /** The sentence a success says, in the reader's language (T-1308). */
@@ -70,7 +73,7 @@ export async function sendMessageAction(
       },
     },
   );
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
 
   revalidatePath(`/${locale}/messages/${conversationId}`);
   revalidatePath(`/${locale}/messages`);
@@ -89,7 +92,7 @@ export async function removeMessageAction(
     `/me/conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(messageId)}`,
     { method: 'DELETE', cookie: await sessionCookieHeader() },
   );
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
 
   revalidatePath(`/${locale}/messages/${conversationId}`);
   return { ok: true, message: said(locale, 'messagesPage.done.removed') };
@@ -115,7 +118,7 @@ export async function removeAsGroupModeratorAction(
       body: { reason: String(formData.get('reason') ?? '').trim() },
     },
   );
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
 
   revalidatePath(`/${locale}/messages/${conversationId}`);
   return { ok: true, message: said(locale, 'messagesPage.done.moderated') };
@@ -148,7 +151,7 @@ export async function setMutedAction(
     `/me/conversations/${encodeURIComponent(conversationId)}/mute`,
     { method: muted ? 'POST' : 'DELETE', cookie: await sessionCookieHeader() },
   );
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
 
   revalidatePath(`/${locale}/messages/${conversationId}`);
   revalidatePath(`/${locale}/messages`);
@@ -169,7 +172,7 @@ export async function leaveConversationAction(
     `/me/conversations/${encodeURIComponent(conversationId)}/leave`,
     { method: 'POST', cookie: await sessionCookieHeader() },
   );
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
 
   revalidatePath(`/${locale}/messages/${conversationId}`);
   revalidatePath(`/${locale}/messages`);
@@ -195,7 +198,7 @@ export async function openConversationAction(
     `/me/conversations/direct/${encodeURIComponent(username)}`,
     { method: 'POST', cookie: await sessionCookieHeader() },
   );
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
 
   revalidatePath(`/${locale}/messages`);
   redirect(`/${locale}/messages/${result.data.id}`);
@@ -222,7 +225,7 @@ export async function reactAction(
     `/me/conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(messageId)}/reactions/${encodeURIComponent(reaction)}`,
     { method: mine ? 'DELETE' : 'PUT', cookie: await sessionCookieHeader() },
   );
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
 
   revalidatePath(`/${locale}/messages/${conversationId}`);
   return { ok: true };
@@ -241,7 +244,7 @@ export async function setPinnedAction(
     `/me/conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(messageId)}/pin`,
     { method: pinned ? 'POST' : 'DELETE', cookie: await sessionCookieHeader() },
   );
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
 
   revalidatePath(`/${locale}/messages/${conversationId}`);
   return {

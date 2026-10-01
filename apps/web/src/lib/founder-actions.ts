@@ -63,7 +63,7 @@ export async function publishAnalysisAction(
   );
 
   if (!result.ok) {
-    return failureState(result);
+    return failureState(result, locale);
   }
 
   revalidatePath(`/${locale}/founder/${fixtureId}`);
