@@ -431,6 +431,7 @@ a match's line-ups, events, statistics and players together):
 | lineups | every 5 min, one per match near kick-off until its line-up is held | up to 720 |
 | availability | each match in the next 72 hours, re-asked after 3 hours, ten a run | about 800 |
 | post-match | every 30 min, one per finished match, plus the backlog's 20 a run while one exists | 70, up to 960 more |
+| squads (T-1324) | daily, one per club, each club at most once a month | at most 60 (`INGESTION_SQUADS_PER_DAY`); about 20 once every club has been asked |
 | **total** | | **about 4,000**, or 3,000 with no backlog |
 
 **What T-501 changed to make that true.** The live job asked the provider's

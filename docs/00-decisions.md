@@ -7814,6 +7814,11 @@ against the daily quota but are rate limited per second and per minute.
   any case, as the one photo three or more different people share byte for
   byte, and every person holding it is told `not_supplied`.
 - The volume is not backed up: every file is re-derivable from the provider.
+- Players of matches ingested before T-1320 get their photos from the daily
+  `squads` job (T-1324): one `/players/squads` request per mapped club of the
+  current seasons, each club at most once a month, at most
+  `INGESTION_SQUADS_PER_DAY` (60) a day and none past 70 % of the day's
+  budget; only players already mapped are noted, none is created.
 
 ## D-177 — News photos: only from sources whose licence covers them, only the agency's own, credited, from our own server (amends D-061)
 **Status:** Accepted · 2026-10-01 (the maintainer's decision, in chat) · **Task:** T-1322 · **Amends:** D-061 · **Follows:** D-089, D-014

@@ -6,6 +6,7 @@
  */
 
 import type {
+  EntityRef,
   NormalisedAbsence,
   NormalisedFixture,
   NormalisedFixtureDetail,
@@ -118,9 +119,16 @@ export interface ProviderAdapter {
    * does not report availability answers `unsupported`.
    */
   getAvailability(fixtureExternalId: string): Promise<AdapterResult<NormalisedAbsence[]>>;
+  /**
+   * The players a club's squad lists now, each with the photo address the
+   * provider carried (T-1324). One request per club. Optional: only a provider
+   * that lists squads implements it, and the squads job says so for the rest.
+   * Not one of the recorded calls the contract check replays.
+   */
+  getSquad?(teamExternalId: string): Promise<AdapterResult<EntityRef[]>>;
 }
 
-export type AdapterCall = keyof Omit<ProviderAdapter, 'manifest'>;
+export type AdapterCall = Exclude<keyof Omit<ProviderAdapter, 'manifest'>, 'getSquad'>;
 
 export const ADAPTER_CALLS: readonly AdapterCall[] = [
   'listFixtures',

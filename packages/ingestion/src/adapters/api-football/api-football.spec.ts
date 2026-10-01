@@ -12,6 +12,7 @@ import {
   mapIncidents,
   mapLineup,
   mapPlayerStatistics,
+  mapSquad,
   mapStandings,
   mapStatistics,
   mapStatus,
@@ -440,5 +441,84 @@ describe('image addresses are carried inside ingestion (T-1320)', () => {
     expect(imageUrl('https://media.api-sports.io/football/teams/44.png')).not.toBeNull();
     expect(imageUrl('javascript:alert(1)')).toBeNull();
     expect(imageUrl(42)).toBeNull();
+  });
+});
+
+describe('a club squad (T-1324)', () => {
+  // CONSTRUCTED, not recorded: the shape of `/players/squads?team=` as
+  // API-Football documents it (`response[0].players[]` with id, name, age,
+  // number, position, photo). No squad answer has been recorded from the
+  // provider; the ids and addresses below are invented for this test.
+  const constructed = {
+    get: 'players/squads',
+    parameters: { team: '9001' },
+    errors: [],
+    results: 1,
+    response: [
+      {
+        team: { id: 9001, name: 'Constructed FC', logo: 'https://example.test/teams/9001.png' },
+        players: [
+          {
+            id: 70001,
+            name: 'A. Keeper',
+            age: 30,
+            number: 1,
+            position: 'Goalkeeper',
+            photo: 'https://example.test/players/70001.png',
+          },
+          {
+            id: 70002,
+            name: 'B. Back',
+            age: 24,
+            number: null,
+            position: 'Defender',
+            photo: 'javascript:alert(1)',
+          },
+          { id: 70001, name: 'A. Keeper', photo: 'https://example.test/players/70001.png' },
+          { name: 'No Id', photo: 'https://example.test/players/none.png' },
+        ],
+      },
+    ],
+  };
+
+  it('asks once, by team, and keeps each player once with only an https photo', async () => {
+    const asked: string[] = [];
+    const adapter = createApiFootballAdapter(
+      {
+        request: async (url) => {
+          asked.push(url);
+          return { status: 200, body: constructed, receivedAt: '2026-10-01T00:00:00Z' };
+        },
+      },
+      { apiKey: 'test-key' },
+    );
+    const result = await adapter.getSquad!('9001');
+    expect(asked).toEqual(['https://v3.football.api-sports.io/players/squads?team=9001']);
+    expect(result).toMatchObject({ ok: true, requests: 1 });
+    expect(result.ok && result.data).toEqual([
+      {
+        externalId: '70001',
+        name: 'A. Keeper',
+        imageUrl: 'https://example.test/players/70001.png',
+      },
+      { externalId: '70002', name: 'B. Back' },
+    ]);
+  });
+
+  it('ignores an entry for another club, and counts a refusal as one request', async () => {
+    expect(mapSquad(constructed.response, '1')).toEqual([]);
+    expect(mapSquad(null, '9001')).toEqual([]);
+    const adapter = createApiFootballAdapter(
+      {
+        request: async () => ({
+          status: 200,
+          body: { errors: { requests: 'limit reached' }, response: [] },
+          receivedAt: '2026-10-01T00:00:00Z',
+        }),
+      },
+      { apiKey: 'test-key' },
+    );
+    const result = await adapter.getSquad!('9001');
+    expect(result).toMatchObject({ ok: false, requests: 1, error: { kind: 'quota' } });
   });
 });

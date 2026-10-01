@@ -10,6 +10,7 @@
 import type {
   AbsenceKind,
   AbsenceStatus,
+  EntityRef,
   FixtureStatus,
   IncidentKind,
   NormalisedAbsence,
@@ -646,6 +647,33 @@ export function mapAvailability(response: unknown, fixtureExternalId: string): N
     seen.add(player.externalId);
     const reason = str(rec(it.player).reason);
     out.push({ fixtureExternalId, team, player, status, kind: absenceKind(reason), reason });
+  }
+  return out;
+}
+
+/**
+ * `/players/squads?team=` (T-1324): one entry for the club, whose `players`
+ * list each player's id, name and photo. Only the ref and the photo are kept:
+ * the squads job uses the answer for photos of players we already hold, and
+ * the shirt number, age and position stay with the provider. An entry for
+ * another club than the one asked about is ignored; a player listed twice
+ * counts once.
+ */
+export function mapSquad(response: unknown, teamExternalId: string): EntityRef[] {
+  if (!Array.isArray(response)) return [];
+  const out: EntityRef[] = [];
+  const seen = new Set<string>();
+  for (const item of response) {
+    const it = rec(item);
+    const teamId = id(rec(it.team).id);
+    if (teamId !== null && teamId !== teamExternalId) continue;
+    if (!Array.isArray(it.players)) continue;
+    for (const entry of it.players) {
+      const player = imagedRef(entry, 'photo');
+      if (player === null || seen.has(player.externalId)) continue;
+      seen.add(player.externalId);
+      out.push(player);
+    }
   }
   return out;
 }

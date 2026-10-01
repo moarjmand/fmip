@@ -43,8 +43,15 @@ export { REPLAY_QUERY };
 /** The injection token for the resolved sources. Provided by `IngestionModule`. */
 export const INGESTION_SOURCES = Symbol('INGESTION_SOURCES');
 
-/** The five scheduled jobs (T-026). */
-export const INGEST_JOBS = ['fixtures', 'live', 'lineups', 'standings', 'post_match'] as const;
+/** The five scheduled jobs (T-026), and the monthly squads sweep for player photos (T-1324). */
+export const INGEST_JOBS = [
+  'fixtures',
+  'live',
+  'lineups',
+  'standings',
+  'post_match',
+  'squads',
+] as const;
 export type IngestJob = (typeof INGEST_JOBS)[number];
 
 export type SourceKind = 'replay' | 'live' | 'api_football' | 'off';
