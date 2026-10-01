@@ -17,6 +17,7 @@ import {
   type IngestionSources,
   type JobSource,
 } from './internal/sources';
+import { squadsPerDay, sweepSquads } from './internal/squad-sweep';
 
 /** How far back and forward the fixtures job looks, in days. */
 export const FIXTURE_WINDOW_BACK_DAYS = 2;
@@ -229,6 +230,7 @@ export class IngestionJobsService {
   private readonly store: IngestStore;
   private readonly backlogBatch = backlogBatch(process.env.INGESTION_BACKLOG_BATCH);
   private readonly refetchShare = refetchShare(process.env.INGESTION_REFETCH_SHARE);
+  private readonly squadsPerDay = squadsPerDay(process.env.INGESTION_SQUADS_PER_DAY);
   /** When the live job last asked for a match that left the live list, by fixture id. */
   private readonly leftLiveListAskedAt = new Map<string, number>();
 
@@ -241,7 +243,7 @@ export class IngestionJobsService {
     resolver: EntityResolverService,
     private readonly dataQuality: DataQualityService,
     private readonly alerts: MatchAlertsService,
-    media: MediaService,
+    private readonly media: MediaService,
   ) {
     this.store = new IngestStore(pool, resolver, media);
   }
@@ -259,7 +261,49 @@ export class IngestionJobsService {
         return this.standingsCheck(now);
       case 'post_match':
         return this.postMatch(now);
+      case 'squads':
+        return this.squads(now);
     }
+  }
+
+  /**
+   * Player photos for players already in our records (T-1324): each mapped
+   * club of the current seasons asked for its squad at most once a month,
+   * within `INGESTION_SQUADS_PER_DAY`, and every listed player we hold has his
+   * photo address handed to the media store. Writes no football data.
+   */
+  squads(now: Date = new Date()): Promise<JobReport> {
+    return this.track('squads', async (source, targets) => {
+      const sweep = await sweepSquads({
+        provider: source.provider,
+        adapter: source.adapter,
+        store: this.store,
+        media: this.media,
+        seasonIds: [...new Set(targets.map((t) => t.seasonId))],
+        now,
+        perDay: this.squadsPerDay,
+        budget: this.sources.dailyBudget ?? null,
+        requestsToday: await this.runs.requestsToday(source.provider, now),
+      });
+      this.log.log('squads swept', {
+        event: 'ingest.squads',
+        provider: source.provider,
+        asked: sweep.asked,
+        answered: sweep.answered,
+        listed: sweep.listed,
+        noted: sweep.noted,
+        ...(sweep.idle === undefined ? {} : { idle: sweep.idle }),
+      });
+      const partial = sweep.refused.join('; ');
+      return {
+        job: 'squads',
+        provider: source.provider,
+        itemsSeen: sweep.listed,
+        // A photo address is not football data, so nothing counts as written.
+        itemsWritten: 0,
+        ...(partial === '' ? {} : { partial }),
+      };
+    });
   }
 
   /**

@@ -9,6 +9,7 @@
  */
 
 import type {
+  EntityRef,
   NormalisedAbsence,
   NormalisedFixture,
   NormalisedFixtureDetail,
@@ -39,6 +40,7 @@ import {
   mapStandings,
   mapAvailability,
   mapPlayerStatistics,
+  mapSquad,
   mapStatistics,
   seasonYear,
 } from './map';
@@ -300,6 +302,18 @@ class ApiFootballAdapter implements ProviderAdapter {
     return {
       ok: true,
       data: mapAvailability(result.data.response, fixtureExternalId),
+      requests: 1,
+      fetchedAt: result.receivedAt,
+    };
+  }
+
+  /** `/players/squads?team=`: the club's current squad, one request (T-1324). */
+  async getSquad(teamExternalId: string): Promise<AdapterResult<EntityRef[]>> {
+    const result = await this.call('/players/squads', { team: teamExternalId });
+    if (!result.ok) return { ok: false, error: result.error, requests: 1 };
+    return {
+      ok: true,
+      data: mapSquad(result.data.response, teamExternalId),
       requests: 1,
       fetchedAt: result.receivedAt,
     };

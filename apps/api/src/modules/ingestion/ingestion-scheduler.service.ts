@@ -37,6 +37,9 @@ export const SCHEDULE: Record<IngestJob, string> = {
   lineups: '*/5 * * * *',
   standings: '23 * * * *',
   post_match: '*/30 * * * *',
+  // Daily, in the quiet early hours: each run asks at most the day's cap of
+  // squads, each club at most once a month (T-1324).
+  squads: '41 3 * * *',
 };
 
 /** Job schedulers are keyed by id, so re-registering one replaces it. */

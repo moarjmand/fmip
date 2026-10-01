@@ -40,6 +40,7 @@ const HOUR = 60 * MINUTE;
  *   an hour before kick-off).
  * - post_match, every thirty minutes: 90 minutes and 4 hours.
  * - fixtures and standings, hourly: 3 and 12 hours.
+ * - squads, daily (T-1324): 2 and 4 days. Photos only; a missed day is not news.
  */
 export const INGEST_THRESHOLDS: Record<string, WatchdogThreshold> = {
   live: { unit: 'seconds', degraded: 5 * MINUTE, failing: 15 * MINUTE },
@@ -47,6 +48,7 @@ export const INGEST_THRESHOLDS: Record<string, WatchdogThreshold> = {
   post_match: { unit: 'seconds', degraded: 90 * MINUTE, failing: 4 * HOUR },
   fixtures: { unit: 'seconds', degraded: 3 * HOUR, failing: 12 * HOUR },
   standings: { unit: 'seconds', degraded: 3 * HOUR, failing: 12 * HOUR },
+  squads: { unit: 'seconds', degraded: 48 * HOUR, failing: 96 * HOUR },
 };
 
 const DEFAULT_INGEST_THRESHOLD: WatchdogThreshold = {

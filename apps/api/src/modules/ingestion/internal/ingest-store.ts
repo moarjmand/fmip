@@ -36,6 +36,7 @@ import type {
 } from '@fmip/ingestion';
 import { PERIOD_KINDS } from '@fmip/ingestion';
 import type { EntityType } from './resolver';
+import type { SquadStore, SquadTeam } from './squad-sweep';
 
 /** One competition/season pair a job polls, already resolved to our ids. */
 export interface PollTarget {
@@ -104,7 +105,7 @@ function withoutImage(payload: unknown): unknown {
 /** The entity types whose image the media store keeps. */
 const IMAGED = new Set<EntityType>(['team', 'competition', 'person']);
 
-export class IngestStore {
+export class IngestStore implements SquadStore {
   constructor(
     private readonly pool: Pool,
     private readonly resolver: RefResolver,
@@ -804,5 +805,68 @@ export class IngestStore {
       [fixtureId, provider],
     );
     return { changed, unresolved: [...unresolved] };
+  }
+
+  // -- The squads job (T-1324): `SquadStore` in `squad-sweep.ts`. -------------
+
+  async squadsAskedSince(provider: Provider, sinceIso: string): Promise<number> {
+    const { rows } = await this.pool.query<{ n: number }>(
+      `SELECT count(*)::int AS n FROM team_squad_fetch WHERE provider = $1 AND asked_at >= $2`,
+      [provider, sinceIso],
+    );
+    return rows[0]?.n ?? 0;
+  }
+
+  /**
+   * Mapped clubs with a match in any of the given seasons, never answered
+   * first, then the longest unanswered; none answered since
+   * `answeredBeforeIso` or asked since `askedBeforeIso`.
+   */
+  async squadsDue(
+    provider: Provider,
+    seasonIds: string[],
+    answeredBeforeIso: string,
+    askedBeforeIso: string,
+    limit: number,
+  ): Promise<SquadTeam[]> {
+    if (seasonIds.length === 0 || limit <= 0) return [];
+    const { rows } = await this.pool.query<{ team_id: string; external_id: string }>(
+      `SELECT pm.internal_id AS team_id, min(pm.external_id) AS external_id
+         FROM provider_mapping pm
+         LEFT JOIN team_squad_fetch q ON q.provider = pm.provider AND q.team_id = pm.internal_id
+        WHERE pm.provider = $1 AND pm.entity_type = 'team'
+          AND EXISTS (SELECT 1 FROM fixture_participant fp
+                        JOIN fixture f ON f.id = fp.fixture_id
+                       WHERE fp.team_id = pm.internal_id AND f.season_id = ANY($2::uuid[]))
+          AND (q.answered_at IS NULL OR q.answered_at < $3)
+          AND (q.asked_at IS NULL OR q.asked_at < $4)
+        GROUP BY pm.internal_id, q.answered_at
+        ORDER BY q.answered_at NULLS FIRST, pm.internal_id
+        LIMIT $5`,
+      [provider, seasonIds, answeredBeforeIso, askedBeforeIso, limit],
+    );
+    return rows.map((r) => ({ teamId: r.team_id, externalId: r.external_id }));
+  }
+
+  async markSquadAsked(provider: Provider, teamId: string, answered: boolean): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO team_squad_fetch (provider, team_id, asked_at, answered_at)
+       VALUES ($1, $2, now(), CASE WHEN $3::boolean THEN now() END)
+       ON CONFLICT (provider, team_id) DO UPDATE
+         SET asked_at = now(),
+             answered_at = CASE WHEN $3::boolean THEN now() ELSE team_squad_fetch.answered_at END`,
+      [provider, teamId, answered],
+    );
+  }
+
+  /** Read only: a provider id nobody has mapped is not ours, and is not queued. */
+  async mappedPersons(provider: Provider, externalIds: string[]): Promise<Map<string, string>> {
+    if (externalIds.length === 0) return new Map();
+    const { rows } = await this.pool.query<{ external_id: string; internal_id: string }>(
+      `SELECT external_id, internal_id FROM provider_mapping
+        WHERE provider = $1 AND entity_type = 'person' AND external_id = ANY($2::text[])`,
+      [provider, externalIds],
+    );
+    return new Map(rows.map((r) => [r.external_id, r.internal_id]));
   }
 }
