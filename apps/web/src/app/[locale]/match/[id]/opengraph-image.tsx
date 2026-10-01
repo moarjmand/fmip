@@ -2,7 +2,7 @@ import { ImageResponse } from 'next/og';
 import { MatchCardImage, PlainCard } from '@/components/share-card-image';
 import { fetchForecasts, fetchMatchCentre } from '@/lib/api';
 import { siteUrl } from '@/lib/seo';
-import { CARD_SIZE, matchCardText } from '@/lib/share-card';
+import { cardImageMetadata, CARD_SIZE, matchCardText } from '@/lib/share-card';
 
 /**
  * The card a chat app shows for a match link (T-520): the teams, the score or
@@ -11,9 +11,12 @@ import { CARD_SIZE, matchCardText } from '@/lib/share-card';
  * says only the product's name rather than anything about the match.
  */
 
-export const alt = 'The match, its score or kick-off, and the model’s forecast';
-export const size = CARD_SIZE;
-export const contentType = 'image/png';
+/** The alt text in the reader's language (T-1309); the picture itself stays English. */
+export function generateImageMetadata({ params }: { params: { locale: string } }) {
+  return cardImageMetadata('match', params);
+}
+
+const size = CARD_SIZE;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

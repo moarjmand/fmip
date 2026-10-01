@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { apiRequest } from '@/lib/api';
 import type { ActionState } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
+import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
+import { t } from '@/i18n/messages';
 import { failureState } from './action-failure';
 import { parseLinkChoice } from './panel-link';
 
@@ -28,7 +30,10 @@ export async function postToPanelAction(
 ): Promise<ActionState> {
   const body = String(formData.get('body') ?? '').trim();
   if (body === '') {
-    return { ok: false, message: 'Write something first.' };
+    return {
+      ok: false,
+      message: t(isLocale(locale) ? locale : DEFAULT_LOCALE, 'panel.compose.empty'),
+    };
   }
 
   // At most one link, to something of this match (T-1030). Whether it is of
@@ -42,12 +47,15 @@ export async function postToPanelAction(
   });
 
   if (!result.ok) {
-    return failureState(result);
+    return failureState(result, locale);
   }
 
   // The panel is a server component reading a public document, so the page has
   // to be told the document changed. Without this the contributor posts and
   // sees nothing happen.
   revalidatePath(`/${locale}/match/${fixtureId}`);
-  return { ok: true, message: 'Posted.' };
+  return {
+    ok: true,
+    message: t(isLocale(locale) ? locale : DEFAULT_LOCALE, 'panel.compose.posted'),
+  };
 }

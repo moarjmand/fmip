@@ -37,10 +37,37 @@ export const PSEUDO_LOCALES = ['x-rtl'] as const;
  * on purpose.** Their failures are quiet -- a wrong plural form, a date in the
  * wrong order -- and quiet failures are what the machinery has to survive
  * before it carries the language whose failures are visible from across a room.
+ *
+ * **Persian (`fa`) joined on 2026-10-01 (T-1301, D-175),** outside the
+ * blueprint's eight, at the maintainer's request: the product's home market.
+ * It sits in this list for the machinery (a translation file, the fallback,
+ * the picker's completeness test) and leaves the "unfinished" meaning behind
+ * once its pages are written (T-1310).
  */
-export const UNFINISHED_LOCALES = ['ar', 'de', 'es', 'fr', 'it', 'pt', 'tr'] as const;
+export const UNFINISHED_LOCALES = ['ar', 'de', 'es', 'fa', 'fr', 'it', 'pt', 'tr'] as const;
 
 export const LOCALES = ['en', ...UNFINISHED_LOCALES, ...PSEUDO_LOCALES] as const;
+
+/**
+ * Locales whose words are being written into the pages themselves (T-1310):
+ * they route and render, but are not offered in the picker even when their
+ * catalogue is complete. Persian left this list on 2026-10-01, when every
+ * reader-facing page carried its text through the catalogue (T-1302..T-1309).
+ */
+export const PREPARING_LOCALES: readonly string[] = [];
+
+/**
+ * Locales in `UNFINISHED_LOCALES` for the machinery (a translation file, the
+ * fallback) whose pages are nevertheless written: indexed and offered like
+ * English (T-1310, D-175). A hold (T-1163) still takes one back at once: the
+ * proxy marks its pages `noindex` while it is held.
+ */
+export const WRITTEN_LOCALES: readonly string[] = ['fa'];
+
+/** Whether a locale is still being written into the pages (T-1310). */
+export function isPreparingLocale(value: string): boolean {
+  return PREPARING_LOCALES.includes(value);
+}
 
 export type Locale = (typeof LOCALES)[number];
 
@@ -69,7 +96,9 @@ export function isPseudoLocale(value: string): value is PseudoLocale {
 
 /** Whether this locale's catalogue is still being written (T-150, T-151). */
 export function isUnfinishedLocale(value: string): boolean {
-  return (UNFINISHED_LOCALES as readonly string[]).includes(value);
+  return (
+    (UNFINISHED_LOCALES as readonly string[]).includes(value) && !WRITTEN_LOCALES.includes(value)
+  );
 }
 
 /**

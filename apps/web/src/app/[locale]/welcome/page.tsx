@@ -4,7 +4,7 @@ import type { TeamSummary } from '@fmip/contracts';
 import { TimeZoneField } from '@/components/time-zone-field';
 import { Translated } from '@/components/translated';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
-import { attribute, message, type MessageKey } from '@/i18n/messages';
+import { attribute, message, t, type MessageKey } from '@/i18n/messages';
 import { fetchFollowing, fetchMe, fetchOwnProfile, fetchTeams, fetchTerritories } from '@/lib/api';
 import { STEPS, type Step, readStep, stepHref, teamMatches } from '@/lib/first-run';
 import { finishFirstRunAction, saveFirstRunStepAction } from '@/lib/first-run-actions';
@@ -16,10 +16,17 @@ import { territoryOptions } from '@/lib/territory';
 import { Button, Notice, Select, controlClasses } from '@/components/ui';
 
 // A reader's own choices: never indexed.
-export const metadata: Metadata = {
-  title: 'Welcome · FMIP',
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    title: `${t(isLocale(locale) ? locale : DEFAULT_LOCALE, 'welcome.meta.title')} · FMIP`,
+    robots: { index: false, follow: false },
+  };
+}
 export const dynamic = 'force-dynamic';
 
 const STEP_KEY: Record<Step, MessageKey> = {

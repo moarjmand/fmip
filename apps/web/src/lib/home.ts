@@ -7,6 +7,7 @@ import {
   type ScoreCard,
   type ScoresResponse,
 } from '@fmip/contracts';
+import { formatDate } from '@/i18n/format';
 import { percentages } from './forecast';
 import { dateIn } from './scores';
 import { type CardViewing, cardViewing } from './score-card-products';
@@ -121,11 +122,12 @@ export function homeForecasts(
     .slice(0, limit);
 }
 
-/** "4 Oct" in the reader's zone, beside a kick-off time in the same zone. */
-export function shortDay(iso: string, timeZone: string): string {
-  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone }).format(
-    new Date(iso),
-  );
+/**
+ * "4 Oct" in the reader's zone, beside a kick-off time in the same zone, in
+ * the page's language (T-1302): "۱۳ مهر" on `/fa`.
+ */
+export function shortDay(locale: string, iso: string, timeZone: string): string {
+  return formatDate(locale, iso, timeZone, { day: 'numeric', month: 'short' });
 }
 
 // ---------------------------------------------------------------------------
@@ -170,10 +172,14 @@ export type HomeViewing =
   | { state: 'unreachable' }
   | { state: 'lines'; byFixture: Map<string, CardViewing> };
 
-export function homeViewing(cards: ScoreCard[], viewing: MatchViewing[] | null): HomeViewing {
+export function homeViewing(
+  cards: ScoreCard[],
+  viewing: MatchViewing[] | null,
+  locale = 'en',
+): HomeViewing {
   if (viewing === null) return { state: 'unreachable' };
   const byId = new Map(viewing.map((entry) => [entry.fixture_id, entry]));
-  const lines = new Map(cards.map((card) => [card.id, cardViewing(byId.get(card.id))]));
+  const lines = new Map(cards.map((card) => [card.id, cardViewing(byId.get(card.id), locale)]));
   if ([...lines.values()].every((line) => line.state === 'ask')) return { state: 'ask' };
   return { state: 'lines', byFixture: lines };
 }

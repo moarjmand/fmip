@@ -1,11 +1,38 @@
 'use client';
 
-import { MAX_REASON_TAGS, PREDICTION_REASON_TAGS, type Prediction } from '@fmip/contracts';
-import { useActionState } from 'react';
+import { PREDICTION_REASON_TAGS, type Prediction, type PredictionReasonTag } from '@fmip/contracts';
+import { type ReactNode, useActionState } from 'react';
 import type { ActionState } from '@/lib/auth-actions';
-import { OUTCOME_LABEL, REASON_TAG_LABEL } from '@/lib/prediction-form';
+import type { Message } from '@/i18n/messages';
 import { ShareLink } from './share-link';
 import { Button, FormStatus, TextArea, controlClasses } from '@/components/ui';
+
+/**
+ * The form's words, resolved on the server in the reader's language (T-1307):
+ * a client component never reads the catalogues (T-1040). Attribute and
+ * `<option>` text is a plain string, with `lang` when it is English standing in.
+ */
+export interface PredictionFormWords {
+  call: ReactNode;
+  draw: ReactNode;
+  score: ReactNode;
+  homeGoals: { text: string; lang?: string };
+  awayGoals: { text: string; lang?: string };
+  confidence: ReactNode;
+  /** The labels of confidence 1 to 5, in the reader's digits. */
+  confidenceOptions: readonly string[];
+  reasons: ReactNode;
+  reasonTags: Record<PredictionReasonTag, ReactNode>;
+  why: ReactNode;
+  submit: ReactNode;
+  update: ReactNode;
+  /** "Version 2, submitted … UTC. Every version is kept.", or null before the first. */
+  version: ReactNode;
+  share: ReactNode;
+  shareTitle: string;
+  /** "Link copied." and "Copy this link: {url}", for the share control. */
+  shareMessages: { copied: Message; manual: Message };
+}
 
 /**
  * The member's prediction on the match centre (blueprint 6.6, T-050):
@@ -19,6 +46,7 @@ export function PredictionForm({
   home,
   away,
   shareUrl,
+  words,
 }: {
   action: (state: ActionState, formData: FormData) => Promise<ActionState>;
   current: Prediction | null;
@@ -26,6 +54,7 @@ export function PredictionForm({
   away: string;
   /** The match's own address, offered for sharing once a prediction is saved (T-521). */
   shareUrl?: string;
+  words: PredictionFormWords;
 }) {
   const [state, formAction, pending] = useActionState(action, null);
   const latest = current?.latest ?? null;
@@ -35,7 +64,7 @@ export function PredictionForm({
   return (
     <form action={formAction} className="flex flex-col gap-3 text-sm" data-testid="prediction-form">
       <fieldset className="flex flex-wrap gap-3">
-        <legend className="mb-1 font-medium">Your call</legend>
+        <legend className="mb-1 font-medium">{words.call}</legend>
         {(['home', 'draw', 'away'] as const).map((outcome) => (
           <label key={outcome} className="flex items-center gap-1">
             <input
@@ -45,7 +74,7 @@ export function PredictionForm({
               defaultChecked={latest?.outcome === outcome}
               required
             />
-            {outcome === 'home' ? home : outcome === 'away' ? away : OUTCOME_LABEL.draw}
+            {outcome === 'home' ? home : outcome === 'away' ? away : words.draw}
           </label>
         ))}
         {fieldError('outcome') && <FormStatus ok={false}>{fieldError('outcome')}</FormStatus>}
@@ -53,7 +82,7 @@ export function PredictionForm({
 
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex flex-col">
-          <span className="text-xs text-muted">Exact score (optional)</span>
+          <span className="text-xs text-muted">{words.score}</span>
           <span className="flex items-center gap-1">
             <input
               type="number"
@@ -62,7 +91,8 @@ export function PredictionForm({
               max={20}
               className={controlClasses('sm', 'w-14')}
               defaultValue={latest?.score?.home ?? ''}
-              aria-label={`${home} goals`}
+              aria-label={words.homeGoals.text}
+              lang={words.homeGoals.lang}
             />
             –
             <input
@@ -72,12 +102,13 @@ export function PredictionForm({
               max={20}
               className={controlClasses('sm', 'w-14')}
               defaultValue={latest?.score?.away ?? ''}
-              aria-label={`${away} goals`}
+              aria-label={words.awayGoals.text}
+              lang={words.awayGoals.lang}
             />
           </span>
         </label>
         <label className="flex flex-col">
-          <span className="text-xs text-muted">Confidence</span>
+          <span className="text-xs text-muted">{words.confidence}</span>
           <select
             name="confidence"
             defaultValue={latest?.confidence ?? 3}
@@ -85,7 +116,7 @@ export function PredictionForm({
           >
             {[1, 2, 3, 4, 5].map((n) => (
               <option key={n} value={n}>
-                {n}
+                {words.confidenceOptions[n - 1] ?? n}
               </option>
             ))}
           </select>
@@ -95,7 +126,7 @@ export function PredictionForm({
       {fieldError('confidence') && <FormStatus ok={false}>{fieldError('confidence')}</FormStatus>}
 
       <fieldset className="flex flex-wrap gap-2">
-        <legend className="mb-1 text-xs text-muted">Reasons (up to {MAX_REASON_TAGS})</legend>
+        <legend className="mb-1 text-xs text-muted">{words.reasons}</legend>
         {PREDICTION_REASON_TAGS.map((tag) => (
           <label
             key={tag}
@@ -107,7 +138,7 @@ export function PredictionForm({
               value={tag}
               defaultChecked={latest?.reason_tags.includes(tag) ?? false}
             />
-            {REASON_TAG_LABEL[tag]}
+            {words.reasonTags[tag]}
           </label>
         ))}
         {fieldError('reason_tags') && (
@@ -116,7 +147,7 @@ export function PredictionForm({
       </fieldset>
 
       <TextArea
-        label="Why (optional, 280 characters)"
+        label={words.why}
         name="explanation"
         maxLength={280}
         rows={2}
@@ -127,15 +158,11 @@ export function PredictionForm({
 
       <div className="flex items-center gap-3">
         <Button type="submit" variant="primary" pending={pending}>
-          {latest === null ? 'Submit prediction' : 'Update prediction'}
+          {latest === null ? words.submit : words.update}
         </Button>
         {latest !== null && (
           <span className="text-xs text-muted" data-testid="prediction-versions">
-            Version {latest.version_number}, submitted{' '}
-            <time dateTime={latest.submitted_at}>
-              {latest.submitted_at.slice(0, 16).replace('T', ' ')}
-            </time>{' '}
-            UTC. Every version is kept.
+            {words.version}
           </span>
         )}
       </div>
@@ -146,7 +173,12 @@ export function PredictionForm({
       )}
       {state !== null && state.ok && shareUrl !== undefined && (
         <p className="text-sm">
-          <ShareLink url={shareUrl} title={`${home} v ${away}`} label="Share this match" />
+          <ShareLink
+            url={shareUrl}
+            title={words.shareTitle}
+            label={words.share}
+            messages={words.shareMessages}
+          />
         </p>
       )}
     </form>

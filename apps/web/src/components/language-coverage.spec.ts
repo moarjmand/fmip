@@ -34,10 +34,12 @@ describe('the language rows', () => {
     }
   });
 
-  it('offers English and none of the seven, today', () => {
+  it('offers English and Persian and none of the others, today', () => {
     const rows = languageRows();
     expect(rows.find((row) => row.locale === 'en')?.offered).toBe(true);
-    for (const locale of UNFINISHED_LOCALES) {
+    // Persian is written into the pages and offered (T-1310, D-175).
+    expect(rows.find((row) => row.locale === 'fa')?.offered).toBe(true);
+    for (const locale of UNFINISHED_LOCALES.filter((l) => l !== 'fa')) {
       expect(rows.find((row) => row.locale === locale)?.offered, locale).toBe(false);
     }
   });
@@ -48,7 +50,7 @@ describe('the language rows', () => {
     for (const row of languageRows()) {
       const exact = ((row.coverage.total - row.coverage.untranslated) / row.coverage.total) * 100;
       expect(row.percent).toBeLessThanOrEqual(exact);
-      if (row.percent >= SHIPPABLE_COMPLETENESS * 100) expect(row.offered).toBe(true);
+      if (row.percent >= SHIPPABLE_COMPLETENESS * 100) expect(row.ready).toBe(true);
     }
   });
 

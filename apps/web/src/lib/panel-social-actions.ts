@@ -20,13 +20,14 @@ import { failureState } from './action-failure';
  */
 
 async function send(
+  locale: string,
   path: string,
   method: 'PUT' | 'DELETE',
   revalidate: string,
 ): Promise<ActionState> {
   const result = await apiRequest(path, { method, cookie: await sessionCookieHeader() });
   if (!result.ok) {
-    return failureState(result);
+    return failureState(result, locale);
   }
   revalidatePath(revalidate);
   return { ok: true };
@@ -42,6 +43,7 @@ export async function setPanelReactionAction(
   _formData: FormData,
 ): Promise<ActionState> {
   return send(
+    locale,
     `/panel-posts/${encodeURIComponent(postId)}/reactions/${encodeURIComponent(reaction)}`,
     on ? 'PUT' : 'DELETE',
     `/${locale}/match/${fixtureId}`,
@@ -57,6 +59,7 @@ export async function setFollowAction(
   _formData: FormData,
 ): Promise<ActionState> {
   return send(
+    locale,
     `/members/${encodeURIComponent(username)}/follow`,
     on ? 'PUT' : 'DELETE',
     `/${locale}/match/${fixtureId}`,

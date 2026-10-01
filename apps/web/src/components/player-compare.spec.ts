@@ -16,7 +16,7 @@ const PLAYER_PAGE = readFileSync(join(PLAYER, 'page.tsx'), 'utf8');
 describe('the way in', () => {
   it('puts a "Compare with…" search on the player page that lands on the compare page', () => {
     expect(PLAYER_PAGE).toContain('data-testid="compare-with"');
-    expect(PLAYER_PAGE).toContain('Compare with…');
+    expect(PLAYER_PAGE).toContain('playerPage.compareWith');
     expect(PLAYER_PAGE).toMatch(/action=\{`\$\{base\}\/compare`\}/);
     expect(PLAYER_PAGE).toContain('name="q"');
   });
@@ -60,7 +60,7 @@ describe('both players are real', () => {
 
 describe('a figure one side lacks', () => {
   it('renders every cell through cellText and marks its coverage', () => {
-    expect(COMPARE).toContain('{cellText(c)}');
+    expect(COMPARE).toContain('{cellText(locale, c)}');
     expect(COMPARE).toContain('data-coverage={c.coverage}');
     expect(COMPARE).toContain('data-testid="compare-note"');
   });
@@ -82,6 +82,8 @@ describe('RTL safety', () => {
   });
 
   it('isolates the two names in the heading', () => {
-    expect(COMPARE).toContain('<bdi>{nameA}</bdi> v <bdi>{nameB}</bdi>');
+    expect(COMPARE).toContain(
+      "<bdi>{nameA}</bdi> {say(locale, 'competitionPage.v')} <bdi>{nameB}</bdi>",
+    );
   });
 });

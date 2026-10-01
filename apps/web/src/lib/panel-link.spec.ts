@@ -111,6 +111,7 @@ describe('linkCard (T-1030)', () => {
       'Cara',
       names,
       null,
+      'en',
     );
     expect(card.lines).toEqual([]);
     expect(card.note).toBe('The data feed has since removed this incident.');
@@ -134,6 +135,7 @@ describe('linkCard (T-1030)', () => {
       'Cara',
       names,
       null,
+      'en',
     );
     expect(card.lines[0]).toContain('Hothead (Away FC)');
     expect(card.note).toMatch(/changed this incident after it was linked/);
@@ -145,6 +147,7 @@ describe('linkCard (T-1030)', () => {
       'Cara',
       names,
       null,
+      'en',
     );
     expect(card.heading).toBe("Cara's prediction");
     expect(card.lines).toContain(
@@ -160,12 +163,12 @@ describe('linkCard (T-1030)', () => {
       visibility: 'friends',
       prediction: null,
     } as const;
-    expect(linkCard(withheld, 'Cara', names, null)).toEqual({
+    expect(linkCard(withheld, 'Cara', names, null, 'en')).toEqual({
       heading: "Cara's prediction",
       lines: [],
       note: 'This member shows their predictions to friends only.',
     });
-    expect(linkCard(withheld, 'Cara', names, call).lines[0]).toMatch(/home win/);
+    expect(linkCard(withheld, 'Cara', names, call, 'en').lines[0]).toMatch(/home win/);
   });
 
   it('keeps a statistic as posted and says what it is now', () => {
@@ -180,6 +183,7 @@ describe('linkCard (T-1030)', () => {
       'Cara',
       names,
       null,
+      'en',
     );
     expect(card.lines[0]).toMatch(/55% when posted/);
     expect(card.note).toBe('Now 61%.');
@@ -192,6 +196,7 @@ describe('linkCard (T-1030)', () => {
         'Cara',
         names,
         null,
+        'en',
       ).note,
     ).toMatch(/no longer lists this player/);
   });

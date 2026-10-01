@@ -5,7 +5,8 @@ import type {
   FeedSignalKind,
   FollowingFeedReason,
 } from '@fmip/contracts';
-import type { MessageKey } from '@/i18n/messages';
+import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
+import { type MessageKey, interpolate, t } from '@/i18n/messages';
 import { memberName } from '@/lib/member-name';
 
 /** Each kind of item, named in words. Total, so a fifth kind fails the build until it has one. */
@@ -75,7 +76,14 @@ export function feedItemTitle(item: FeedItem, locale: string): string {
     case 'founder_analysis':
       return `${item.home.name} – ${item.away.name}`;
     case 'panel_post':
-      return `${memberName(locale, item.author)} on ${item.home.name} – ${item.away.name}`;
+      return interpolate(
+        t(isLocale(locale) ? locale : DEFAULT_LOCALE, 'followingPage.panelPostTitle'),
+        {
+          member: memberName(locale, item.author),
+          home: item.home.name,
+          away: item.away.name,
+        },
+      );
   }
 }
 

@@ -1,5 +1,8 @@
 import type { ForecastVersion, ModelInputs } from '@fmip/contracts';
-import { KIND_LABEL } from './forecast';
+import { formatFixed } from './words';
+import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
+import { interpolate, plural, t, type MessageKey } from '@/i18n/messages';
+import { kindLabel } from './forecast';
 
 /**
  * What changed between two forecast versions, and what can honestly be blamed
@@ -26,31 +29,52 @@ export interface InputChange {
   after: string;
 }
 
-export const INPUT_LABEL: Record<keyof ModelInputs, string> = {
-  model_version: 'model version',
-  fit_date: 'history up to',
-  matches_used: 'matches in the fit',
-  elo_used: 'long-term ratings',
-  history_from: 'history from',
-  data_completeness: 'input completeness',
-};
+/** Each input's name, as a catalogue key (T-1303). */
+export const INPUT_LABEL = {
+  model_version: 'forecast.input.modelVersion',
+  fit_date: 'forecast.input.fitDate',
+  matches_used: 'forecast.input.matchesUsed',
+  elo_used: 'forecast.input.eloUsed',
+  history_from: 'forecast.input.historyFrom',
+  data_completeness: 'forecast.input.dataCompleteness',
+} as const satisfies Record<keyof ModelInputs, MessageKey>;
 
-function shown(key: keyof ModelInputs, value: ModelInputs[keyof ModelInputs]): string {
-  if (key === 'elo_used') return value === true ? 'used' : 'not used';
-  return value === null ? 'none' : String(value);
+const COMPLETENESS_KEY = {
+  available: 'status.coverage.available',
+  limited: 'status.coverage.limited',
+} as const satisfies Record<ModelInputs['data_completeness'], MessageKey>;
+
+function shown(
+  key: keyof ModelInputs,
+  value: ModelInputs[keyof ModelInputs],
+  locale: Locale,
+): string {
+  if (key === 'elo_used')
+    return t(locale, value === true ? 'forecast.input.used' : 'forecast.input.notUsed');
+  if (value === null) return t(locale, 'forecast.input.none');
+  if (typeof value === 'number') return formatFixed(locale, value, 0);
+  if (key === 'data_completeness' && (value === 'available' || value === 'limited')) {
+    return t(locale, COMPLETENESS_KEY[value]);
+  }
+  return String(value);
 }
 
-/** Every input that differs, in the order the labels are declared. */
-export function inputChanges(before: ModelInputs | null, after: ModelInputs | null): InputChange[] {
+/** Every input that differs, in the order the labels are declared, in the reader's words. */
+export function inputChanges(
+  before: ModelInputs | null,
+  after: ModelInputs | null,
+  locale = 'en',
+): InputChange[] {
   if (before === null || after === null) return [];
+  const l: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
   const keys = Object.keys(INPUT_LABEL) as (keyof ModelInputs)[];
   return keys
     .filter((key) => before[key] !== after[key])
     .map((key) => ({
       key,
-      label: INPUT_LABEL[key],
-      before: shown(key, before[key]),
-      after: shown(key, after[key]),
+      label: t(l, INPUT_LABEL[key]),
+      before: shown(key, before[key], l),
+      after: shown(key, after[key], l),
     }));
 }
 
@@ -64,26 +88,43 @@ export function inputChanges(before: ModelInputs | null, after: ModelInputs | nu
  * model being asked again, and pretending a reason exists would be the invention
  * rule 3 forbids.
  */
-export function attribute(previous: ForecastVersion, current: ForecastVersion): string {
-  const kind = KIND_LABEL[current.kind].toLowerCase();
-  const changes = inputChanges(previous.inputs, current.inputs);
+export function attribute(
+  previous: ForecastVersion,
+  current: ForecastVersion,
+  locale = 'en',
+): string {
+  const l: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  const kind = kindLabel(current.kind, locale).toLowerCase();
+  const changes = inputChanges(previous.inputs, current.inputs, locale);
 
   if (previous.inputs === null || current.inputs === null) {
-    return `The ${kind} version reported no inputs, so nothing can be attributed.`;
+    return interpolate(t(l, 'forecast.attribution.noInputs'), { kind });
   }
 
   const lineupCaveat =
-    current.kind === 'lineups_confirmed'
-      ? ' The model does not read line-ups yet, so this version is one computed when the line-up was confirmed, not one computed from it.'
-      : '';
+    current.kind === 'lineups_confirmed' ? ` ${t(l, 'forecast.attribution.lineupCaveat')}` : '';
 
   if (changes.length === 0) {
-    return `Nothing the model reads changed between these two versions.${lineupCaveat}`;
+    return `${t(l, 'forecast.attribution.nothing')}${lineupCaveat}`;
   }
   if (changes.length === 1) {
     const only = changes[0] as InputChange;
-    return `Only one input changed: ${only.label}, from ${only.before} to ${only.after}.${lineupCaveat}`;
+    return `${interpolate(t(l, 'forecast.attribution.one'), {
+      label: only.label,
+      before: only.before,
+      after: only.after,
+    })}${lineupCaveat}`;
   }
-  const named = changes.map((change) => `${change.label} (${change.before} → ${change.after})`);
-  return `${changes.length} inputs changed together — ${named.join(', ')} — so the move cannot be put down to any one of them.${lineupCaveat}`;
+  const named = changes.map((change) =>
+    interpolate(t(l, 'forecast.attribution.change'), {
+      label: change.label,
+      before: change.before,
+      after: change.after,
+    }),
+  );
+  return `${
+    plural(l, 'forecast.attribution.several', changes.length, {
+      list: named.join(t(l, 'forecast.listSeparator')),
+    }).text
+  }${lineupCaveat}`;
 }

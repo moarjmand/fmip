@@ -109,7 +109,7 @@ describe('links', () => {
 describe('serviceNames', () => {
   it('names the services in the order given', () => {
     expect(
-      serviceNames([
+      serviceNames('en', [
         option,
         { ...option, id: 'o2', broadcaster: { ...option.broadcaster, name: 'Sky' } },
       ]),

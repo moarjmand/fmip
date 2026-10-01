@@ -12,6 +12,7 @@ import {
   fetchViewingTerritory,
 } from '@/lib/api';
 import { apiQuery, dayStrip, readScoresQuery } from '@/lib/scores';
+import { say } from '@/lib/competition';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { readTerritoryQuery, watchHref, withTerritory } from '@/lib/viewing';
@@ -28,8 +29,8 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path: '/watch',
-    title: 'Watch · FMIP',
-    description: 'Where each match can be watched, in the territory you choose.',
+    title: `${say(locale, 'viewing.pageTitle')} · FMIP`,
+    description: say(locale, 'watch.metaDescription'),
   });
 }
 
@@ -40,7 +41,8 @@ export async function generateMetadata({
  * on the page. The matches are the scores page's day (T-031), in the same
  * zone, so the two pages never disagree about which day it is; the answers
  * come from one batch request, and a match the viewing service could not
- * answer for says so rather than showing an empty line (rule 3).
+ * answer for says so rather than showing an empty line (rule 3). Its words
+ * come from the catalogue (T-1304).
  */
 export default async function WatchPage({
   params,
@@ -87,7 +89,11 @@ export default async function WatchPage({
     options: NONE,
     highlights: NONE,
   };
-  const strip = dayStrip(q, locale);
+  const strip = dayStrip(q, locale, {
+    yesterday: say(locale, 'scores.yesterday'),
+    today: say(locale, 'scores.today'),
+    tomorrow: say(locale, 'scores.tomorrow'),
+  });
   const guestTerritory = me === null ? territory : undefined;
   const linkClass = (active: boolean): string =>
     `rounded px-2 py-1 ${active ? 'bg-surface-raised font-semibold' : 'underline'}`;
@@ -101,7 +107,11 @@ export default async function WatchPage({
         <Translated locale={locale} message="viewing.pageLead" />
       </p>
 
-      <nav aria-label="Day" className="flex flex-wrap gap-2 text-sm" data-testid="day-strip">
+      <nav
+        aria-label={say(locale, 'watch.day')}
+        className="flex flex-wrap gap-2 text-sm"
+        data-testid="day-strip"
+      >
         {strip.map((day) => (
           <Link
             key={day.date}
@@ -113,7 +123,7 @@ export default async function WatchPage({
           </Link>
         ))}
         <span className="ms-auto text-muted" data-testid="timezone">
-          Times in {q.timezone}
+          {say(locale, 'watch.timesIn', { zone: q.timezone })}
         </span>
       </nav>
 
@@ -150,7 +160,10 @@ export default async function WatchPage({
                     <li key={card.id} className="flex flex-col gap-1" data-testid="watch-card">
                       <p className="flex flex-wrap items-baseline gap-x-3">
                         <Link href={href} className={inlineTargetClasses('font-medium underline')}>
-                          {card.home.name} v {card.away.name}
+                          {say(locale, 'competitionPage.versus', {
+                            home: card.home.name,
+                            away: card.away.name,
+                          })}
                         </Link>
                         <time dateTime={card.kickoff_at} className="text-sm text-muted">
                           {formatDateTime(locale, card.kickoff_at, q.timezone)}

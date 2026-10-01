@@ -6,11 +6,11 @@ import { ERROR_PAGE_KEYS } from '@/components/error-page';
 import { ServiceWorker } from '@/components/service-worker';
 import { Translated } from '@/components/translated';
 import { SiteHeader } from '@/components/site-header';
-import { LOCALES, directionOf, isLocale } from '@/i18n/locales';
-import { resolveMessages } from '@/i18n/messages';
+import { DEFAULT_LOCALE, LOCALES, directionOf, isLocale } from '@/i18n/locales';
+import { resolveMessages, t } from '@/i18n/messages';
 import {
-  DEMONSTRATION_TITLE_PREFIX,
-  DEMONSTRATION_TITLE_TEMPLATE,
+  demonstrationTitle,
+  demonstrationTitleTemplate,
   isDemonstrationData,
 } from '@/lib/demonstration';
 import { BRAND_COLOURS } from '@/lib/brand-colours';
@@ -48,8 +48,7 @@ export async function generateMetadata({
       locale,
       path: '',
       title: 'FMIP',
-      description:
-        'Football match intelligence: live scores, match centre, forecasts and predictions.',
+      description: t(isLocale(locale) ? locale : DEFAULT_LOCALE, 'shell.meta.description'),
     }),
     // On a deployment whose football is fixture data, every page title says so
     // (T-087). A template rather than a prefix in `pageMetadata`, because nine
@@ -59,8 +58,8 @@ export async function generateMetadata({
     ...(isDemonstrationData()
       ? {
           title: {
-            template: DEMONSTRATION_TITLE_TEMPLATE,
-            default: `${DEMONSTRATION_TITLE_PREFIX}FMIP`,
+            template: demonstrationTitleTemplate(locale),
+            default: demonstrationTitle('FMIP', locale),
           },
         }
       : {}),
@@ -133,7 +132,7 @@ export default async function LocaleLayout({
         {/* Above the header, on every page, and never dismissible: when this
             deployment's football is fixture data, a reader meets that fact
             before they meet a score (T-087). */}
-        <DemonstrationBanner />
+        <DemonstrationBanner locale={locale} />
         <SiteHeader locale={locale} theme={theme} />
         <div id="content" tabIndex={-1} className="outline-none">
           {/* The error pages below this layout are client components, and the

@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { type ReactNode, useActionState } from 'react';
 import type { CommunityAnalysisWorkspace, CommunitySubmission } from '@fmip/contracts';
 import { saveAnalysisDraftAction, submitAnalysisAction } from '@/lib/analysis-actions';
 import { Button, FormStatus, Select, TextArea, TextField } from '@/components/ui';
@@ -17,45 +17,69 @@ import { Button, FormStatus, Select, TextArea, TextField } from '@/components/ui
  * and the "already decided" refusal all live in the database and are worded by
  * the API. A check in the browser would be a third copy, and the one that goes
  * stale first.
+ *
+ * **Its words come from the server (T-1307).** A client component never reads
+ * the catalogues (T-1040), so the page resolves every sentence here in the
+ * reader's language -- including each attempt's and version's heading and
+ * time -- and hands them in as `words`.
  */
 
-const STATE_TEXT: Record<CommunityAnalysisWorkspace['state'], string> = {
-  draft: 'Not sent yet. Nobody has seen this.',
-  submitted: 'Waiting to be read.',
-  approved: 'Approved.',
-  changes_requested: 'An editor asked for changes. What they said is below.',
-  rejected: 'An editor declined this. What they said is below.',
-  published: 'Published. Anybody can read it.',
-};
+export interface AnalysisEditorWords {
+  /** Where the analysis has got to, one sentence per workspace state. */
+  states: Record<CommunityAnalysisWorkspace['state'], ReactNode>;
+  /** Per submission id: "Attempt 2", its time, and "Declined by …" once decided. */
+  attempts: Record<string, { title: ReactNode; at: string; decided: ReactNode }>;
+  /** Per version id: "Version 2" and its time. */
+  versions: Record<string, { title: ReactNode; at: string }>;
+  waiting: ReactNode;
+  call: ReactNode;
+  /** `<option>` text is a plain string. */
+  outcomes: { home: string; draw: string; away: string };
+  homeGoals: ReactNode;
+  awayGoals: ReactNode;
+  confidence: ReactNode;
+  reasoning: ReactNode;
+  reasoningHint: ReactNode;
+  lineup: ReactNode;
+  keyPlayers: ReactNode;
+  form: ReactNode;
+  saving: ReactNode;
+  save: ReactNode;
+  sending: ReactNode;
+  submit: ReactNode;
+  history: ReactNode;
+  published: ReactNode;
+  /** Said on success in the reader's language; a refusal is the API's own sentence. */
+  saved: ReactNode;
+  sent: ReactNode;
+}
 
-const DECISION_TEXT: Record<string, string> = {
-  approved: 'Approved',
-  changes_requested: 'Changes requested',
-  rejected: 'Declined',
-};
-
-function Attempt({ submission }: { submission: CommunitySubmission }) {
+function Attempt({
+  submission,
+  words,
+}: {
+  submission: CommunitySubmission;
+  words: AnalysisEditorWords;
+}) {
+  const said = words.attempts[submission.id];
   return (
     <li
       className="flex flex-col gap-1 rounded border border-default p-3"
       data-testid="analysis-attempt"
     >
-      <span className="text-sm font-medium">Attempt {submission.attempt}</span>
+      <span className="text-sm font-medium">{said?.title ?? submission.attempt}</span>
       <time className="text-xs text-muted" dateTime={submission.submitted_at}>
-        {submission.submitted_at}
+        {said?.at ?? submission.submitted_at}
       </time>
       {submission.review === null ? (
         // Said, not left blank. "Waiting" and "declined without a note" are
         // different things and an analyst should not have to guess which.
         <span className="text-sm text-muted" data-testid="analysis-attempt-waiting">
-          Waiting to be read.
+          {words.waiting}
         </span>
       ) : (
         <span className="flex flex-col gap-1 text-sm" data-testid="analysis-attempt-decided">
-          <span className="font-medium">
-            {DECISION_TEXT[submission.review.decision] ?? submission.review.decision} by{' '}
-            {submission.review.reviewer}
-          </span>
+          <span className="font-medium">{said?.decided ?? submission.review.decision}</span>
           {/* The reason, always: a decision with none cannot be reviewed, and
               the API refuses to record one without it. */}
           <span className="whitespace-pre-wrap text-muted">{submission.review.reason}</span>
@@ -69,11 +93,13 @@ export function AnalysisEditor({
   locale,
   fixtureId,
   workspace,
+  words,
 }: {
   locale: string;
   fixtureId: string;
   /** Null when the analyst has not written anything about this match yet. */
   workspace: CommunityAnalysisWorkspace | null;
+  words: AnalysisEditorWords;
 }) {
   const [saveState, saveAction, saving] = useActionState(
     saveAnalysisDraftAction.bind(null, locale, fixtureId),
@@ -90,27 +116,27 @@ export function AnalysisEditor({
     <div className="flex flex-col gap-6">
       {workspace !== null && (
         <p className="text-sm text-muted" data-testid="analysis-state">
-          {STATE_TEXT[workspace.state]}
+          {words.states[workspace.state]}
         </p>
       )}
 
       <form action={saveAction} className="flex flex-col gap-3" data-testid="analysis-form">
         <Select
-          label="Your call"
+          label={words.call}
           name="predicted_outcome"
           size="sm"
           defaultValue={draft?.predicted_outcome ?? 'home'}
           error={fields.predicted_outcome}
           className="self-start"
         >
-          <option value="home">Home win</option>
-          <option value="draw">Draw</option>
-          <option value="away">Away win</option>
+          <option value="home">{words.outcomes.home}</option>
+          <option value="draw">{words.outcomes.draw}</option>
+          <option value="away">{words.outcomes.away}</option>
         </Select>
 
         <div className="flex flex-wrap gap-3">
           <TextField
-            label="Home goals (optional)"
+            label={words.homeGoals}
             type="number"
             min={0}
             name="predicted_home"
@@ -120,7 +146,7 @@ export function AnalysisEditor({
             error={fields.predicted_home}
           />
           <TextField
-            label="Away goals (optional)"
+            label={words.awayGoals}
             type="number"
             min={0}
             name="predicted_away"
@@ -131,7 +157,7 @@ export function AnalysisEditor({
         </div>
 
         <TextField
-          label="Confidence, 1 to 5"
+          label={words.confidence}
           type="number"
           min={1}
           max={5}
@@ -143,22 +169,22 @@ export function AnalysisEditor({
         />
 
         <TextArea
-          label="Reasoning"
+          label={words.reasoning}
           name="reasoning"
           rows={6}
           required
           defaultValue={draft?.reasoning ?? ''}
           // The line between an analysis and a prediction, and the product
           // already has predictions.
-          hint="An analysis without reasoning is a prediction, and we already have those."
+          hint={words.reasoningHint}
           error={fields.reasoning}
         />
 
         {(
           [
-            ['lineup_impact', 'Lineup impact (optional)'],
-            ['key_players', 'Key players (optional)'],
-            ['form_and_context', 'Form and context (optional)'],
+            ['lineup_impact', words.lineup],
+            ['key_players', words.keyPlayers],
+            ['form_and_context', words.form],
           ] as const
         ).map(([name, label]) => (
           <TextArea
@@ -173,15 +199,15 @@ export function AnalysisEditor({
         <Button
           type="submit"
           pending={saving}
-          pendingLabel="Saving…"
+          pendingLabel={words.saving}
           data-testid="analysis-save"
           className="self-start"
         >
-          Save draft
+          {words.save}
         </Button>
         {saveState !== null && (
           <FormStatus ok={saveState.ok} data-testid="analysis-save-result">
-            {saveState.message}
+            {saveState.ok ? words.saved : saveState.message}
           </FormStatus>
         )}
       </form>
@@ -190,26 +216,26 @@ export function AnalysisEditor({
         <Button
           type="submit"
           pending={submitting}
-          pendingLabel="Sending…"
+          pendingLabel={words.sending}
           disabled={draft === null}
           data-testid="analysis-submit"
           className="self-start"
         >
-          Send for review
+          {words.submit}
         </Button>
         {submitState !== null && (
           <FormStatus ok={submitState.ok} data-testid="analysis-submit-result">
-            {submitState.message}
+            {submitState.ok ? words.sent : submitState.message}
           </FormStatus>
         )}
       </form>
 
       {workspace !== null && workspace.submissions.length > 0 && (
         <section className="flex flex-col gap-2">
-          <h2 className="text-lg font-semibold">What you sent, and what was said</h2>
+          <h2 className="text-lg font-semibold">{words.history}</h2>
           <ul className="flex flex-col gap-2">
             {workspace.submissions.map((submission) => (
-              <Attempt key={submission.id} submission={submission} />
+              <Attempt key={submission.id} submission={submission} words={words} />
             ))}
           </ul>
         </section>
@@ -217,13 +243,15 @@ export function AnalysisEditor({
 
       {workspace !== null && workspace.versions.length > 0 && (
         <section className="flex flex-col gap-2">
-          <h2 className="text-lg font-semibold">Published</h2>
+          <h2 className="text-lg font-semibold">{words.published}</h2>
           <ul className="flex flex-col gap-2" data-testid="analysis-versions">
             {workspace.versions.map((version) => (
               <li key={version.id} className="rounded border border-default p-3 text-sm">
-                <span className="font-medium">Version {version.version_number}</span>
+                <span className="font-medium">
+                  {words.versions[version.id]?.title ?? version.version_number}
+                </span>
                 <time className="ms-2 text-xs text-muted" dateTime={version.published_at}>
-                  {version.published_at}
+                  {words.versions[version.id]?.at ?? version.published_at}
                 </time>
               </li>
             ))}

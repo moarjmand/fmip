@@ -12,6 +12,7 @@ import {
 import type { ApiError, LiveHealth } from '@fmip/contracts';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
+import { LocalisedNamesService, localeOf } from '../localised-names/localised-names.service';
 import { FixturesService, parseScoresQuery } from './fixtures.service';
 import { FixtureChangeFeed, type FixtureChange } from './internal/change-feed';
 import { SharedSnapshots } from './internal/shared-snapshots';
@@ -50,6 +51,7 @@ export class StreamController {
     private readonly fixtures: FixturesService,
     private readonly identity: IdentityService,
     private readonly feed: FixtureChangeFeed,
+    private readonly names: LocalisedNamesService,
     @Inject(STREAM_OPTIONS) private readonly options: StreamOptions,
   ) {}
 
@@ -86,13 +88,19 @@ export class StreamController {
       throw new UnauthorizedException(error);
     }
 
+    // The reader's names (T-1312): a snapshot replaces the server-rendered
+    // page, so it must carry the same names the page did. Localised here, per
+    // locale, rather than the client keeping old names: a match the stream
+    // adds later has no server-rendered name to keep.
+    const locale = isRecord(query) ? localeOf(query.locale) : null;
     await this.serve(request, reply, {
-      // The same filters for the same viewer are the same snapshot: the viewer
-      // is in the key because favourites are pinned per member.
-      key: `scores:${viewerId ?? ''}:${JSON.stringify(parsed.filters)}`,
+      // The same filters for the same viewer in the same language are the same
+      // snapshot: the viewer is in the key because favourites are pinned per
+      // member, the locale because the names are the reader's.
+      key: `scores:${viewerId ?? ''}:${locale ?? ''}:${JSON.stringify(parsed.filters)}`,
       snapshot: async () => {
         const outcome = await this.fixtures.scores(parsed.filters, viewerId);
-        return outcome.kind === 'ok' ? outcome.response : null;
+        return outcome.kind === 'ok' ? this.names.localise(outcome.response, locale) : null;
       },
       // Every change may move a fixture into or out of the day, so all count.
       concerns: () => true,
@@ -103,20 +111,26 @@ export class StreamController {
   async fixture(
     @Req() request: FastifyRequest<{ Params: { fixtureId: string } }>,
     @Res() reply: FastifyReply,
+    @Query('locale') rawLocale: unknown,
   ): Promise<void> {
+    const locale = localeOf(rawLocale);
     const fixtureId = request.params.fixtureId.toLowerCase();
     if (!UUID.test(fixtureId)) {
       const error: ApiError = { error: 'not_found', message: 'No such fixture.' };
       throw new NotFoundException(error);
     }
-    const first = await this.fixtures.matchCentre(fixtureId);
-    if (first === null) {
+    const found = await this.fixtures.matchCentre(fixtureId);
+    if (found === null) {
       const error: ApiError = { error: 'not_found', message: 'No such fixture.' };
       throw new NotFoundException(error);
     }
+    const first = await this.names.localise(found, locale);
     await this.serve(request, reply, {
-      key: `fixture:${fixtureId}`,
-      snapshot: () => this.fixtures.matchCentre(fixtureId),
+      key: `fixture:${fixtureId}:${locale ?? ''}`,
+      snapshot: async () => {
+        const centre = await this.fixtures.matchCentre(fixtureId);
+        return centre === null ? null : this.names.localise(centre, locale);
+      },
       // A panel post is a change to this fixture that the match centre does not
       // show, so it must not cost every open page a snapshot; it goes out as
       // its own event below (T-254).

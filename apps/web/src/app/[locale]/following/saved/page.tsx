@@ -5,6 +5,8 @@ import type { SavedArticle } from '@fmip/contracts';
 import { SaveArticle } from '@/components/save-article';
 import { Translated } from '@/components/translated';
 import { formatDateTime } from '@/i18n/format';
+import { DEFAULT_LOCALE, type Locale, isLocale } from '@/i18n/locales';
+import { t } from '@/i18n/messages';
 import { fetchMe, fetchSavedArticles } from '@/lib/api';
 import { storyHref } from '@/lib/news';
 import { pageMetadata } from '@/lib/seo';
@@ -19,11 +21,12 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  const resolved: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
   return pageMetadata({
     locale,
     path: '/following/saved',
-    title: 'Saved · FMIP',
-    description: 'The stories you saved.',
+    title: `${t(resolved, 'saved.title')} · FMIP`,
+    description: t(resolved, 'followingPage.savedDescription'),
     index: false,
   });
 }

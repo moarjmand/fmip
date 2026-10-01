@@ -40,6 +40,7 @@ import en from './catalogues/en.json';
 import ar from './catalogues/ar.json';
 import de from './catalogues/de.json';
 import es from './catalogues/es.json';
+import fa from './catalogues/fa.json';
 import fr from './catalogues/fr.json';
 import it from './catalogues/it.json';
 import pt from './catalogues/pt.json';
@@ -134,7 +135,7 @@ export type TranslationFile = Record<MessageKey, TranslationEntry>;
 export type Catalogue = Partial<Record<MessageKey, string | PluralForms>>;
 
 /**
- * The seven translators' files, by locale. Typed as `TranslationFile` here
+ * The translation files, by locale (Persian joined in T-1301, D-175). Typed as `TranslationFile` here
  * rather than trusting the JSON's inferred shape, so a file that drifts from
  * the source keys is a type error and not a silent miss.
  */
@@ -142,6 +143,7 @@ export const TRANSLATION_FILES: Record<(typeof UNFINISHED_LOCALES)[number], Tran
   ar: ar as TranslationFile,
   de: de as TranslationFile,
   es: es as TranslationFile,
+  fa: fa as TranslationFile,
   fr: fr as TranslationFile,
   it: it as TranslationFile,
   pt: pt as TranslationFile,

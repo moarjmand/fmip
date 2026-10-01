@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { EntityNewsResponse, FixtureNewsResponse, NewsStoryCard } from '@fmip/contracts';
 import { Translated } from '@/components/translated';
-import { formatDateTime } from '@/i18n/format';
+import { formatDateTime, formatNumber } from '@/i18n/format';
 import { feedsStale, storyHref } from '@/lib/news';
 import { Notice } from '@/components/ui';
 
@@ -212,7 +212,7 @@ export function EntityNews({
             locale={locale}
             message="news.entity.belowFloor"
             count={news.coverage.stories}
-            params={{ days: String(news.coverage.window_days) }}
+            params={{ days: formatNumber(locale, news.coverage.window_days) }}
           />
         </Notice>
       )}

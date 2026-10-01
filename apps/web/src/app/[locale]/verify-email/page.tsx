@@ -2,9 +2,20 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { apiRequest } from '@/lib/api';
 import { readerAddress } from '@/lib/session';
+import { Translated } from '@/components/translated';
 import { Notice } from '@/components/ui';
+import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
+import { t } from '@/i18n/messages';
 
-export const metadata: Metadata = { title: 'Verify e-mail · FMIP' };
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const lang: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  return { title: `${t(lang, 'auth.verify.metaTitle')} · FMIP` };
+}
 export const dynamic = 'force-dynamic';
 
 /**
@@ -34,24 +45,31 @@ export default async function VerifyEmailPage({
 
   return (
     <main className="mx-auto flex max-w-md flex-col gap-4 p-8">
-      <h1 className="text-2xl font-semibold">E-mail verification</h1>
+      <h1 className="text-2xl font-semibold">
+        <Translated locale={locale} message="auth.verify.title" />
+      </h1>
       {result === null ? (
-        <Notice tone="warning">This page needs the link from your e-mail.</Notice>
+        <Notice tone="warning">
+          <Translated locale={locale} message="auth.needsLink" />
+        </Notice>
       ) : result.ok ? (
         <p role="status" data-testid="verify-result">
-          Your e-mail address is verified. You can now submit predictions.
+          <Translated locale={locale} message="auth.verify.done" />
         </p>
       ) : result.status === 0 ? (
         <Notice tone="danger">
-          The service is unreachable right now. Open the link again in a moment.
+          <Translated locale={locale} message="auth.verify.unreachable" />
         </Notice>
       ) : (
         <Notice tone="danger" data-testid="verify-result">
-          {result.error?.message ?? 'This link is invalid, has expired, or was already used.'}
+          {/* The API's own reason when it gives one, as it wrote it. */}
+          {result.error?.message ?? <Translated locale={locale} message="auth.verify.invalid" />}
         </Notice>
       )}
       <p className="text-sm">
-        <Link href={`/${locale}`}>Back to FMIP</Link>
+        <Link href={`/${locale}`}>
+          <Translated locale={locale} message="auth.verify.back" />
+        </Link>
       </p>
     </main>
   );

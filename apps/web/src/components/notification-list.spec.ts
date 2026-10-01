@@ -121,7 +121,10 @@ describe('the page', () => {
 
   it('says a held notification was held', () => {
     expect(LIST).toContain('data-testid="notification-held"');
-    expect(LIST).toMatch(/Held: \{notification\.held_reason\}/);
+    // The label is the catalogue's since T-1305; the reason is the API's own words.
+    expect(LIST).toMatch(
+      /messages\['notificationsPage\.held'\]\} \/> \{notification\.held_reason\}/,
+    );
   });
 
   it('tells unreachable apart from empty', () => {

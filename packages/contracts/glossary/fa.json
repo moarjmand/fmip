@@ -1,0 +1,247 @@
+{
+  "term.assist": {
+    "source": "assist",
+    "locked": false,
+    "text": "پاس گل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.clean-sheet": {
+    "source": "clean sheet",
+    "locked": false,
+    "text": "کلین‌شیت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.coach": {
+    "source": "coach",
+    "locked": false,
+    "text": "سرمربی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.competition": {
+    "source": "competition",
+    "locked": false,
+    "text": "رقابت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.corner": {
+    "source": "corner",
+    "locked": false,
+    "text": "کرنر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.extra-time": {
+    "source": "extra time",
+    "locked": false,
+    "text": "وقت اضافه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.fixture": {
+    "source": "fixture",
+    "locked": false,
+    "text": "دیدار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.full-time": {
+    "source": "full-time",
+    "locked": false,
+    "text": "پایان بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.goal": {
+    "source": "goal",
+    "locked": false,
+    "text": "گل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.goal-difference": {
+    "source": "goal difference",
+    "locked": false,
+    "text": "تفاضل گل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.goalkeeper": {
+    "source": "goalkeeper",
+    "locked": false,
+    "text": "دروازه‌بان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.half-time": {
+    "source": "half-time",
+    "locked": false,
+    "text": "بین دو نیمه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.head-to-head": {
+    "source": "head-to-head",
+    "locked": false,
+    "text": "رودررو",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.kick-off": {
+    "source": "kick-off",
+    "locked": false,
+    "text": "شروع بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.league": {
+    "source": "league",
+    "locked": false,
+    "text": "لیگ",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.line-up": {
+    "source": "line-up",
+    "locked": false,
+    "text": "ترکیب",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.manager": {
+    "source": "manager",
+    "locked": false,
+    "text": "سرمربی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.match": {
+    "source": "match",
+    "locked": false,
+    "text": "بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.matchday": {
+    "source": "matchday",
+    "locked": false,
+    "text": "هفته",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.offside": {
+    "source": "offside",
+    "locked": false,
+    "text": "آفساید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.own-goal": {
+    "source": "own goal",
+    "locked": false,
+    "text": "گل به خودی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.penalty": {
+    "source": "penalty",
+    "locked": false,
+    "text": "پنالتی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.player": {
+    "source": "player",
+    "locked": false,
+    "text": "بازیکن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.possession": {
+    "source": "possession",
+    "locked": false,
+    "text": "مالکیت توپ",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.promotion": {
+    "source": "promotion",
+    "locked": false,
+    "text": "صعود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.red-card": {
+    "source": "red card",
+    "locked": false,
+    "text": "کارت قرمز",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.referee": {
+    "source": "referee",
+    "locked": false,
+    "text": "داور",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.relegation": {
+    "source": "relegation",
+    "locked": false,
+    "text": "سقوط",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.score": {
+    "source": "score",
+    "locked": false,
+    "text": "نتیجه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.scoreline": {
+    "source": "scoreline",
+    "locked": false,
+    "text": "نتیجه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.scorer": {
+    "source": "scorer",
+    "locked": false,
+    "text": "گلزن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.season": {
+    "source": "season",
+    "locked": false,
+    "text": "فصل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.standings": {
+    "source": "standings",
+    "locked": false,
+    "text": "جدول رده‌بندی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.team": {
+    "source": "team",
+    "locked": false,
+    "text": "تیم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.yellow-card": {
+    "source": "yellow card",
+    "locked": false,
+    "text": "کارت زرد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  }
+}

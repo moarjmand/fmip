@@ -2,7 +2,7 @@ import { ImageResponse } from 'next/og';
 import { MemberCardImage, PlainCard } from '@/components/share-card-image';
 import { fetchPredictionHistory, fetchProfile, fetchRating } from '@/lib/api';
 import { siteUrl } from '@/lib/seo';
-import { CARD_SIZE, memberCardText } from '@/lib/share-card';
+import { cardImageMetadata, CARD_SIZE, memberCardText } from '@/lib/share-card';
 
 /**
  * The card a chat app shows for a member's profile link (T-520): their name,
@@ -12,9 +12,12 @@ import { CARD_SIZE, memberCardText } from '@/lib/share-card';
  * about the member.
  */
 
-export const alt = 'A member of FMIP, their rating and latest settled predictions';
-export const size = CARD_SIZE;
-export const contentType = 'image/png';
+/** The alt text in the reader's language (T-1309); the picture itself stays English. */
+export function generateImageMetadata({ params }: { params: { locale: string } }) {
+  return cardImageMetadata('member', params);
+}
+
+const size = CARD_SIZE;
 
 export default async function Image({
   params,

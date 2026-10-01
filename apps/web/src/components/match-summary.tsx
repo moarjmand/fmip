@@ -1,7 +1,7 @@
 import type { MatchSummaryReason, MatchSummaryResponse, SummaryGrounding } from '@fmip/contracts';
 import { ActionForm } from '@/components/action-form';
 import { Translated } from '@/components/translated';
-import { formatDateTime } from '@/i18n/format';
+import { formatDateTime, formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { type MessageKey, message } from '@/i18n/messages';
 import { regenerateSummaryAction } from '@/lib/summary-actions';
@@ -89,7 +89,8 @@ export function MatchSummaryPanel({
           </div>
           <p className="text-xs text-muted" data-testid="match-summary-meta">
             <Translated locale={locale} message="summary.model" /> {data.model} {'· '}
-            <Translated locale={locale} message="summary.version" /> {data.version_number} {'· '}
+            <Translated locale={locale} message="summary.version" />{' '}
+            {formatNumber(locale, data.version_number)} {'· '}
             <Translated locale={locale} message="summary.written" />{' '}
             <time dateTime={data.generated_at}>
               {formatDateTime(locale, data.generated_at, timeZone)}
@@ -106,8 +107,15 @@ export function MatchSummaryPanel({
       {editor && summary !== null && (
         <ActionForm
           action={regenerateSummaryAction.bind(null, locale, fixtureId)}
-          fields={[{ name: 'reason', label: 'Why a new version', type: 'text', required: true }]}
-          submitLabel="Write a new version"
+          fields={[
+            {
+              name: 'reason',
+              label: t('matchCentre.summary.reason'),
+              type: 'text',
+              required: true,
+            },
+          ]}
+          submitLabel={t('matchCentre.summary.regenerate')}
           testId="match-summary-regenerate"
         />
       )}

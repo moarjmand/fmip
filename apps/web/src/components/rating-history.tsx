@@ -1,6 +1,7 @@
 import type { RatingHistoryResponse } from '@fmip/contracts';
-import { formatDate } from '@/i18n/format';
-import type { Direction } from '@/i18n/locales';
+import { formatDate, formatNumber } from '@/i18n/format';
+import { DEFAULT_LOCALE, type Direction, directionOf, isLocale, type Locale } from '@/i18n/locales';
+import { type MessageKey, interpolate, message, t } from '@/i18n/messages';
 import type { ApiResult } from '@/lib/api';
 import {
   CHART,
@@ -8,8 +9,39 @@ import {
   chartGeometry,
   chartSummary,
   dayInstant,
+  ratingFigure,
 } from '@/lib/rating-history';
+import { Translated } from '@/components/translated';
 import { Notice } from '@/components/ui';
+
+/**
+ * A sentence with elements in it: `{name}` placeholders in the locale's own
+ * word order, each filled with a node, so a figure or a `<time>` keeps its
+ * markup wherever the language puts it. English standing in for a missing
+ * translation is marked as `Translated` marks it.
+ */
+function Sentence({
+  locale,
+  message: key,
+  nodes,
+}: {
+  locale: Locale;
+  message: MessageKey;
+  nodes: Record<string, React.ReactNode>;
+}) {
+  const { text, status } = message(locale, key);
+  const parts = text.split(/(\{[a-zA-Z]+\})/).map((part, index) => {
+    const name = /^\{([a-zA-Z]+)\}$/.exec(part)?.[1];
+    return name !== undefined && name in nodes ? <span key={index}>{nodes[name]}</span> : part;
+  });
+  return status === 'untranslated' ? (
+    <span lang={DEFAULT_LOCALE} dir={directionOf(DEFAULT_LOCALE)} data-translation="untranslated">
+      {parts}
+    </span>
+  ) : (
+    <>{parts}</>
+  );
+}
 
 /**
  * A member's rating over time, by competition, and their highest (blueprint
@@ -29,6 +61,7 @@ export function RatingHistorySection({
   direction: Direction;
   result: ApiResult<RatingHistoryResponse>;
 }) {
+  const lang: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
   const day = (date: string): string =>
     formatDate(locale, dayInstant(date), 'UTC', {
       day: 'numeric',
@@ -39,7 +72,7 @@ export function RatingHistorySection({
   if (!result.ok) {
     return (
       <Notice tone="danger" data-testid="rating-history-unreachable">
-        The rating history cannot be shown right now.
+        <Translated locale={locale} message="profile.ratingHistory.unreachable" />
       </Notice>
     );
   }
@@ -47,9 +80,14 @@ export function RatingHistorySection({
   if (view.kind === 'restricted') {
     return (
       <p className="text-sm text-muted" data-testid="rating-history-restricted">
-        {view.visibility === 'friends'
-          ? 'The rating history is visible to friends only.'
-          : 'The rating history is private.'}
+        <Translated
+          locale={locale}
+          message={
+            view.visibility === 'friends'
+              ? 'profile.ratingHistory.restrictedFriends'
+              : 'profile.ratingHistory.restrictedPrivate'
+          }
+        />
       </p>
     );
   }
@@ -57,13 +95,13 @@ export function RatingHistorySection({
   if (history === null) {
     return (
       <p className="text-sm text-muted" data-testid="rating-history-none">
-        Nothing has settled yet, so there is no rating to follow over time.
+        <Translated locale={locale} message="profile.ratingHistory.none" />
       </p>
     );
   }
 
   const geometry = chartGeometry(history.points, direction);
-  const summary = chartSummary(history.points, day);
+  const summary = chartSummary(history.points, day, lang);
   const lastPoint = geometry.points.at(-1);
 
   return (
@@ -104,18 +142,28 @@ export function RatingHistorySection({
         </svg>
         <figcaption className="flex justify-between text-xs text-muted" aria-hidden="true">
           <span>{day(history.points[0]?.date ?? '')}</span>
-          <span>0–100</span>
+          <span>
+            {formatNumber(lang, 0)}–{formatNumber(lang, 100)}
+          </span>
           <span>{day(history.points.at(-1)?.date ?? '')}</span>
         </figcaption>
       </figure>
 
       <table className="sr-only" data-testid="rating-history-table">
-        <caption>Rating at the end of each day with a settled prediction</caption>
+        <caption>
+          <Translated locale={locale} message="profile.ratingHistory.caption" />
+        </caption>
         <thead>
           <tr>
-            <th scope="col">Date</th>
-            <th scope="col">Rating</th>
-            <th scope="col">Settled so far</th>
+            <th scope="col">
+              <Translated locale={locale} message="profile.ratingHistory.date" />
+            </th>
+            <th scope="col">
+              <Translated locale={locale} message="profile.rating.rating" />
+            </th>
+            <th scope="col">
+              <Translated locale={locale} message="profile.ratingHistory.settledSoFar" />
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -123,38 +171,55 @@ export function RatingHistorySection({
             <tr key={point.date}>
               <th scope="row">{day(point.date)}</th>
               <td>
-                {point.rating.toFixed(1)}
-                {point.provisional ? ' (provisional)' : ''}
+                {point.provisional
+                  ? interpolate(t(lang, 'profile.ratingHistory.provisionalValue'), {
+                      rating: ratingFigure(lang, point.rating),
+                    })
+                  : ratingFigure(lang, point.rating)}
               </td>
-              <td>{point.settled_total}</td>
+              <td>{formatNumber(lang, point.settled_total)}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
       <p className="text-sm" data-testid="rating-highest">
-        Highest:{' '}
-        <span className="font-semibold tabular-nums">{history.highest.rating.toFixed(1)}</span>, on{' '}
-        <time dateTime={history.highest.settled_at}>{day(history.highest.date)}</time>
-        {history.highest.provisional ? ' (while still provisional)' : ''}.
+        <Sentence
+          locale={lang}
+          message={
+            history.highest.provisional
+              ? 'profile.ratingHistory.highestProvisional'
+              : 'profile.ratingHistory.highest'
+          }
+          nodes={{
+            rating: (
+              <span className="font-semibold tabular-nums">
+                {ratingFigure(lang, history.highest.rating)}
+              </span>
+            ),
+            date: <time dateTime={history.highest.settled_at}>{day(history.highest.date)}</time>,
+          }}
+        />
       </p>
 
       <div className="flex flex-col gap-2">
-        <h3 className="font-semibold">By competition</h3>
+        <h3 className="font-semibold">
+          <Translated locale={locale} message="profile.ratingHistory.byCompetition" />
+        </h3>
         <table className="w-full text-sm" data-testid="rating-by-competition">
           <thead>
             <tr className="text-xs uppercase text-muted">
               <th scope="col" className="text-start font-normal">
-                Competition
+                <Translated locale={locale} message="profile.ratingHistory.competition" />
               </th>
               <th scope="col" className="text-start font-normal">
-                Outcomes
+                <Translated locale={locale} message="profile.ratingHistory.outcomes" />
               </th>
               <th scope="col" className="text-end font-normal">
-                Exact scores
+                <Translated locale={locale} message="profile.ratingHistory.exactScores" />
               </th>
               <th scope="col" className="text-end font-normal">
-                Rating
+                <Translated locale={locale} message="profile.rating.rating" />
               </th>
             </tr>
           </thead>
@@ -164,12 +229,14 @@ export function RatingHistorySection({
                 <th scope="row" className="text-start font-normal">
                   {entry.competition.name}
                 </th>
-                <td>{accuracyLabel(entry)}</td>
-                <td className="text-end tabular-nums">{entry.score_correct}</td>
+                <td>{accuracyLabel(entry, lang)}</td>
+                <td className="text-end tabular-nums">{formatNumber(lang, entry.score_correct)}</td>
                 <td className="text-end tabular-nums">
-                  {entry.rating.toFixed(1)}
+                  {ratingFigure(lang, entry.rating)}
                   {entry.provisional ? (
-                    <span className="ms-1 text-xs text-muted">provisional</span>
+                    <span className="ms-1 text-xs text-muted">
+                      <Translated locale={locale} message="profile.ratingHistory.provisional" />
+                    </span>
                   ) : null}
                 </td>
               </tr>
@@ -177,7 +244,9 @@ export function RatingHistorySection({
           </tbody>
         </table>
         <p className="text-xs text-muted">
-          Each competition is rated on its own predictions under {history.formula_version}.
+          {interpolate(t(lang, 'profile.ratingHistory.formula'), {
+            version: history.formula_version,
+          })}
         </p>
       </div>
     </div>

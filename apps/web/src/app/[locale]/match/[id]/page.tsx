@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
-import { t } from '@/i18n/messages';
+import { interpolate, message, t } from '@/i18n/messages';
 import { ForecastPanel } from '@/components/forecast-panel';
 import { CommunityAnalysisPanel } from '@/components/community-analysis-panel';
 import { CompetitionContextPanel } from '@/components/competition-context';
@@ -49,6 +49,9 @@ import { isTimeZone } from '@/lib/scores';
 import { canonicalUrl, matchJsonLd, pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { readTerritoryQuery } from '@/lib/viewing';
+import { matchWords } from '@/lib/words-server';
+import { FilledMessage } from '@/components/filled-message';
+import { Translated } from '@/components/translated';
 import { Notice } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
@@ -61,15 +64,23 @@ export async function generateMetadata({
   params: Promise<{ locale: string; id: string }>;
 }): Promise<Metadata> {
   const { locale, id } = await params;
-  if (!UUID.test(id)) return { title: 'Match · FMIP', robots: { index: false, follow: false } };
+  const resolved = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  const title = `${t(resolved, 'matchCentre.title')} · FMIP`;
+  if (!UUID.test(id)) return { title, robots: { index: false, follow: false } };
   const result = await fetchMatchCentre(id);
-  if (!result.ok) return pageMetadata({ locale, path: `/match/${id}`, title: 'Match · FMIP' });
+  if (!result.ok) return pageMetadata({ locale, path: `/match/${id}`, title });
   const f = result.data.fixture;
+  const teams = { home: f.home.name, away: f.away.name };
   return pageMetadata({
     locale,
     path: `/match/${f.id}`,
-    title: `${f.home.name} v ${f.away.name} · FMIP`,
-    description: `${f.home.name} v ${f.away.name}: ${f.competition.name} ${f.season.label}, kick-off ${f.kickoff_at}. Line-ups, timeline, statistics, form, forecast and predictions.`,
+    title: `${interpolate(t(resolved, 'matchCentre.fixtureTitle'), teams)} · FMIP`,
+    description: interpolate(t(resolved, 'matchCentre.metaDescription'), {
+      ...teams,
+      competition: f.competition.name,
+      season: f.season.label,
+      kickoff: f.kickoff_at,
+    }),
   });
 }
 
@@ -90,6 +101,7 @@ export default async function MatchPage({
 }) {
   const [{ locale, id }, query] = await Promise.all([params, searchParams]);
   if (!UUID.test(id)) notFound();
+  const resolved = isLocale(locale) ? locale : DEFAULT_LOCALE;
   // The key players (T-841): asked at once, beside everything below, and
   // awaited where their section is placed. An unknown match 404s below.
   const keyPlayers = fetchKeyPlayers(id);
@@ -174,16 +186,27 @@ export default async function MatchPage({
     <main className="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-4 sm:gap-6 sm:p-8">
       <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
         <Link href={`/${locale}/scores`} className="inline-flex min-h-11 items-center underline">
-          ← Scores
+          <Translated locale={locale} message="matchCentre.back" />
         </Link>
         <span className="text-muted" data-testid="timezone">
-          Times in {timeZone}
+          <FilledMessage
+            message={message(resolved, 'scores.timesIn')}
+            params={{ zone: timeZone }}
+          />
         </span>
         {result.ok && (
           <span>
             <ShareLink
               url={canonicalUrl(locale, `/match/${result.data.fixture.id}`)}
-              title={`${result.data.fixture.home.name} v ${result.data.fixture.away.name}`}
+              title={interpolate(t(resolved, 'matchCentre.fixtureTitle'), {
+                home: result.data.fixture.home.name,
+                away: result.data.fixture.away.name,
+              })}
+              label={<Translated locale={locale} message="share.label" />}
+              messages={{
+                copied: message(resolved, 'share.copied'),
+                manual: message(resolved, 'share.manual'),
+              }}
             />
           </span>
         )}
@@ -191,10 +214,10 @@ export default async function MatchPage({
       {!result.ok ? (
         <>
           <h1 className="text-2xl font-semibold" data-testid="title">
-            Match
+            <Translated locale={locale} message="matchCentre.title" />
           </h1>
           <Notice tone="danger" data-testid="match-unreachable">
-            The match service is unreachable right now, so this match cannot be shown.
+            <Translated locale={locale} message="matchCentre.unreachable" />
           </Notice>
         </>
       ) : (
@@ -211,6 +234,7 @@ export default async function MatchPage({
             initial={result.data}
             timeZone={timeZone}
             locale={locale}
+            words={matchWords(locale)}
             slots={{
               // Each product in its own section with its own name: the model, the
               // founder and the community are never one panel (rule 6, T-605).
@@ -304,10 +328,7 @@ export default async function MatchPage({
                   <MatchPanel
                     locale={locale}
                     fixtureId={result.data.fixture.id}
-                    deletedMemberLabel={t(
-                      isLocale(locale) ? locale : DEFAULT_LOCALE,
-                      'account.deletedMember',
-                    )}
+                    deletedMemberLabel={t(resolved, 'account.deletedMember')}
                     page={panel !== null && panel.ok ? panel.data : null}
                     permission={
                       panelPermission !== null && panelPermission.ok ? panelPermission.data : null
@@ -315,7 +336,7 @@ export default async function MatchPage({
                     reachable={panel !== null && panel.ok}
                     // What a post may link to (T-1030): this match's own
                     // incidents, line-ups and statistics, and the member's call.
-                    linkChoices={linkChoices(result.data, prediction !== null)}
+                    linkChoices={linkChoices(result.data, prediction !== null, locale)}
                     names={{
                       home: result.data.fixture.home.name,
                       away: result.data.fixture.away.name,

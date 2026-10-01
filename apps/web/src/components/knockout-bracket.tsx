@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import type { KnockoutBracket as Bracket } from '@fmip/contracts';
-import { formatFixtureDate } from '@/lib/competition';
-import { ROUND_LABEL, legLabel, legLine, roundNote, tieOutcome } from '@/lib/bracket';
+import { Translated } from '@/components/translated';
+import { formatFixtureDate, say, statusSuffix } from '@/lib/competition';
+import { legLabel, legLine, roundLabel, roundNote, tieOutcome } from '@/lib/bracket';
 
 /**
  * The knockout bracket on the competition page (blueprint 5.1, T-630): the
@@ -22,10 +23,12 @@ export function KnockoutBracket({
 }) {
   return (
     <section className="flex flex-col gap-4" data-testid="bracket">
-      <h2 className="text-lg font-semibold">Knockout rounds</h2>
+      <h2 className="text-lg font-semibold">
+        <Translated locale={locale} message="competitionPage.bracket.title" />
+      </h2>
       <ol className="flex flex-col gap-6">
         {bracket.rounds.map((round) => {
-          const note = roundNote(round);
+          const note = roundNote(round, locale);
           return (
             <li
               key={round.key}
@@ -34,9 +37,16 @@ export function KnockoutBracket({
               data-state={round.state}
             >
               <h3 className="font-semibold">
-                {ROUND_LABEL[round.key]}
+                {roundLabel(round.key, locale)}
                 <span className="ms-2 text-xs font-normal text-muted">
-                  {round.legs === 2 ? 'Two legs' : 'One match'}
+                  <Translated
+                    locale={locale}
+                    message={
+                      round.legs === 2
+                        ? 'competitionPage.bracket.twoLegs'
+                        : 'competitionPage.bracket.oneMatch'
+                    }
+                  />
                 </span>
               </h3>
               {round.ties.length > 0 && (
@@ -51,7 +61,7 @@ export function KnockoutBracket({
                         <Link href={`/${locale}/team/${tie.teams[0].id}`} className="underline">
                           {tie.teams[0].name}
                         </Link>
-                        <span className="mx-1 text-muted">v</span>
+                        <span className="mx-1 text-muted">{say(locale, 'competitionPage.v')}</span>
                         <Link href={`/${locale}/team/${tie.teams[1].id}`} className="underline">
                           {tie.teams[1].name}
                         </Link>
@@ -59,17 +69,15 @@ export function KnockoutBracket({
                       <ul className="flex flex-col gap-0.5">
                         {tie.legs.map((leg) => (
                           <li key={leg.fixture_id} className="flex flex-wrap gap-x-2">
-                            <span className="text-muted">{legLabel(leg, round.legs)}</span>
+                            <span className="text-muted">{legLabel(leg, round.legs, locale)}</span>
                             <Link href={`/${locale}/match/${leg.fixture_id}`} className="underline">
-                              {legLine(leg)}
+                              {legLine(leg, locale)}
                             </Link>
                             <span className="text-xs text-muted">
                               <time dateTime={leg.kickoff_at}>
                                 {formatFixtureDate(locale, leg.kickoff_at, timeZone)}
                               </time>
-                              {leg.status !== 'finished' && leg.status !== 'scheduled'
-                                ? ` · ${leg.status}`
-                                : ''}
+                              {statusSuffix(locale, leg.status)}
                             </span>
                           </li>
                         ))}
@@ -80,7 +88,7 @@ export function KnockoutBracket({
                         }
                         data-testid="bracket-outcome"
                       >
-                        {tieOutcome(tie, round.legs)}
+                        {tieOutcome(tie, round.legs, locale)}
                       </p>
                     </li>
                   ))}

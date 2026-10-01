@@ -23,6 +23,8 @@ import { markReadAction } from '@/lib/conversation-actions';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { Translated } from '@/components/translated';
+import { DEFAULT_LOCALE, type Locale, isLocale } from '@/i18n/locales';
+import { attribute, t } from '@/i18n/messages';
 import { Button, Notice, TextField } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
@@ -33,7 +35,12 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  return pageMetadata({ locale, path: '/messages', title: 'A conversation · FMIP' });
+  const resolved: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  return pageMetadata({
+    locale,
+    path: '/messages',
+    title: `${t(resolved, 'messagesPage.conversation')} · FMIP`,
+  });
 }
 
 function first(value: string | string[] | undefined): string {
@@ -82,9 +89,11 @@ export default async function ConversationPage({
     if (result.status === 404) notFound();
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-4 p-8">
-        <h1 className="text-2xl font-semibold">A conversation</h1>
+        <h1 className="text-2xl font-semibold">
+          <Translated locale={locale} message="messagesPage.conversation" />
+        </h1>
         <Notice tone="danger" data-testid="conversation-unreachable">
-          This conversation cannot be shown right now.
+          <Translated locale={locale} message="messagesPage.conversationUnreachable" />
         </Notice>
       </main>
     );
@@ -131,13 +140,15 @@ export default async function ConversationPage({
   // What members write is marked with the group's language (T-1022, D-133);
   // a group with none, and a direct conversation, leave the page's own.
   const lang = page.conversation.group?.language ?? undefined;
+  const here: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  const search = attribute(here, 'messagesPage.search.label');
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
       <ConversationHeader conversation={page.conversation} me={me.username} locale={locale} />
 
       <Link href={`/${locale}/messages`} className="text-sm underline">
-        All conversations
+        <Translated locale={locale} message="messagesPage.all" />
       </Link>
 
       {comparison !== null &&
@@ -145,32 +156,33 @@ export default async function ConversationPage({
           <GroupComparison
             comparison={comparison.data.comparison}
             locale={locale}
-            groupName={thread.group?.name ?? 'this group'}
+            groupName={thread.group?.name ?? t(here, 'messagesPage.thisGroup')}
           />
         ) : (
           <Notice tone="danger" data-testid="group-comparison-unreachable">
-            What the group called cannot be shown right now.
+            <Translated locale={locale} message="messagesPage.comparisonUnreachable" />
           </Notice>
         ))}
 
       <form action={`/${locale}/messages/${id}`} className="flex items-center gap-2">
         <TextField
-          label="Search this conversation"
+          label={<Translated locale={locale} message="messagesPage.search.label" />}
           hideLabel
           id="conversation-search"
           name="q"
           type="search"
           size="sm"
           defaultValue={term}
-          placeholder="Search this conversation"
+          placeholder={search.text}
+          lang={search.lang}
           data-testid="conversation-search"
         />
         <Button type="submit" variant="ghost" size="sm">
-          Search
+          <Translated locale={locale} message="messagesPage.search.submit" />
         </Button>
         {term !== '' && (
           <Link href={`/${locale}/messages/${id}`} className="text-sm underline">
-            Clear
+            <Translated locale={locale} message="messagesPage.search.clear" />
           </Link>
         )}
       </form>
@@ -185,10 +197,11 @@ export default async function ConversationPage({
                 count={found.data.messages.length}
                 params={{ term }}
               />
-              {found.data.more ? ', and more' : ''}.
+              {found.data.more && <Translated locale={locale} message="messagesPage.search.more" />}
+              .
             </>
           ) : (
-            'The search is unreachable right now.'
+            <Translated locale={locale} message="messagesPage.search.unreachable" />
           )}
         </p>
       )}
@@ -197,7 +210,9 @@ export default async function ConversationPage({
         // Always here, whatever page is being read: a pin nobody can find once
         // the conversation has scrolled past it is not a pin (T-225).
         <section className="flex flex-col gap-2" data-testid="conversation-pinned">
-          <h2 className="text-lg font-semibold">Pinned</h2>
+          <h2 className="text-lg font-semibold">
+            <Translated locale={locale} message="messagesPage.pinned" />
+          </h2>
           <ul className="flex flex-col gap-3">
             {page.pinned.map((message) => (
               <MessageRow
@@ -219,13 +234,16 @@ export default async function ConversationPage({
           className="text-sm underline"
           data-testid="conversation-earlier"
         >
-          Earlier messages
+          <Translated locale={locale} message="messagesPage.earlier" />
         </Link>
       )}
 
       {shown.length === 0 ? (
         <p className="text-sm text-muted" data-testid="conversation-empty">
-          {term === '' ? 'Nothing has been said yet.' : 'Nothing matches that here.'}
+          <Translated
+            locale={locale}
+            message={term === '' ? 'messagesPage.empty' : 'messagesPage.search.none'}
+          />
         </p>
       ) : (
         <ul className="flex flex-col gap-4" data-testid="conversation-messages">
@@ -266,18 +284,26 @@ export default async function ConversationPage({
       )}
 
       {term === '' && !page.conversation.left && (
-        <LiveConversation conversationId={id} latestSeq={page.latest_seq} />
+        <LiveConversation
+          conversationId={id}
+          latestSeq={page.latest_seq}
+          labels={{
+            live: <Translated locale={locale} message="messagesPage.live.live" />,
+            connecting: <Translated locale={locale} message="messagesPage.live.connecting" />,
+            offline: <Translated locale={locale} message="messagesPage.live.offline" />,
+          }}
+        />
       )}
 
       <Composer
         locale={locale}
         conversationId={id}
         disabled={
-          page.conversation.left
-            ? 'You have left this conversation. You can still read it.'
-            : page.conversation.group?.closed === true
-              ? 'The platform’s moderators closed this group. You can read it and leave it; nothing new can be written.'
-              : undefined
+          page.conversation.left ? (
+            <Translated locale={locale} message="messagesPage.composer.left" />
+          ) : page.conversation.group?.closed === true ? (
+            <Translated locale={locale} message="messagesPage.composer.closed" />
+          ) : undefined
         }
       />
 

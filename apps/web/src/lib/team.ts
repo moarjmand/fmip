@@ -8,9 +8,9 @@ import type {
   TeamSplitRecord,
   TeamStatAverage,
 } from '@fmip/contracts';
-import { intlLocale } from '@/i18n/format';
-import { DEFAULT_LOCALE, type Locale, isLocale } from '@/i18n/locales';
-import { plural } from '@/i18n/messages';
+import { formatNumber, intlLocale } from '@/i18n/format';
+import { type MessageKey, plural } from '@/i18n/messages';
+import { listText, pageLocale, pairText, say } from '@/lib/competition';
 
 /**
  * The team page's pure helpers (T-036): the squad grouped by position, how
@@ -25,12 +25,12 @@ export const POSITION_ORDER: readonly (SquadPosition | 'unknown')[] = [
   'unknown',
 ];
 
-export const POSITION_LABEL: Record<SquadPosition | 'unknown', string> = {
-  goalkeeper: 'Goalkeepers',
-  defender: 'Defenders',
-  midfielder: 'Midfielders',
-  forward: 'Forwards',
-  unknown: 'Position not recorded',
+export const POSITION_KEY: Record<SquadPosition | 'unknown', MessageKey> = {
+  goalkeeper: 'teamPage.group.goalkeepers',
+  defender: 'teamPage.group.defenders',
+  midfielder: 'teamPage.group.midfielders',
+  forward: 'teamPage.group.forwards',
+  unknown: 'teamPage.group.unknown',
 };
 
 export interface SquadGroup {
@@ -40,10 +40,10 @@ export interface SquadGroup {
 }
 
 /** Groups in position order, shirt numbers ascending inside, empty groups left out. */
-export function groupSquad(players: readonly SquadPlayer[]): SquadGroup[] {
+export function groupSquad(locale: string, players: readonly SquadPlayer[]): SquadGroup[] {
   return POSITION_ORDER.map((position) => ({
     position,
-    label: POSITION_LABEL[position],
+    label: say(locale, POSITION_KEY[position]),
     players: players
       .filter((p) => (p.position ?? 'unknown') === position)
       .sort(
@@ -62,9 +62,12 @@ export function groupSquad(players: readonly SquadPlayer[]): SquadGroup[] {
  * English forms by English rules, which is the honest state and says so.
  */
 export function contextLine(locale: string, context: TableContext): string {
-  const resolved: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
-  const position = plural(resolved, 'team.position', context.position).text;
-  return `${position} of ${context.total} · ${context.points} pts`;
+  const position = plural(pageLocale(locale), 'team.position', context.position).text;
+  return say(locale, 'teamPage.contextLine', {
+    position,
+    total: formatNumber(locale, context.total),
+    points: formatNumber(locale, context.points),
+  });
 }
 
 /**
@@ -100,17 +103,27 @@ export function fromTeamSide(
 }
 
 /** "aet", and "won 4–3 on penalties" from the team's side, for the match line; null when neither. */
-export function afterTimeNote(fixture: TeamPageFixture, teamId: string): string | null {
+export function afterTimeNote(
+  locale: string,
+  fixture: TeamPageFixture,
+  teamId: string,
+): string | null {
   const { shootout } = fromTeamSide(fixture, teamId);
   const parts: string[] = [];
-  if (fixture.status === 'finished' && fixture.after_extra_time) parts.push('aet');
+  if (fixture.status === 'finished' && fixture.after_extra_time) {
+    parts.push(say(locale, 'teamPage.aet'));
+  }
   if (shootout !== null && fixture.penalties !== null) {
     const home = fixture.home.id === teamId;
     const mine = home ? fixture.penalties.home : fixture.penalties.away;
     const theirs = home ? fixture.penalties.away : fixture.penalties.home;
-    parts.push(`${shootout} ${mine}–${theirs} on penalties`);
+    parts.push(
+      say(locale, shootout === 'won' ? 'teamPage.penaltiesWon' : 'teamPage.penaltiesLost', {
+        score: pairText(locale, mine, theirs),
+      }),
+    );
   }
-  return parts.length === 0 ? null : parts.join(', ');
+  return parts.length === 0 ? null : parts.join(say(locale, 'competitionPage.list.separator'));
 }
 
 // ---------------------------------------------------------------------------
@@ -122,30 +135,30 @@ export function afterTimeNote(fixture: TeamPageFixture, teamId: string): string 
 export const SPLIT_COLUMNS = ['home', 'away', 'total'] as const;
 export type SplitColumn = (typeof SPLIT_COLUMNS)[number];
 
-export const SPLIT_COLUMN_LABEL: Record<SplitColumn, string> = {
-  home: 'Home',
-  away: 'Away',
-  total: 'Total',
+export const SPLIT_COLUMN_KEY: Record<SplitColumn, MessageKey> = {
+  home: 'teamPage.split.home',
+  away: 'teamPage.split.away',
+  total: 'teamPage.split.total',
 };
 
-export const SPLIT_RECORD_ROWS: readonly { key: keyof TeamSplitRecord; label: string }[] = [
-  { key: 'played', label: 'Played' },
-  { key: 'won', label: 'Won' },
-  { key: 'drawn', label: 'Drawn' },
-  { key: 'lost', label: 'Lost' },
-  { key: 'goals_for', label: 'Goals for' },
-  { key: 'goals_against', label: 'Goals against' },
-  { key: 'clean_sheets', label: 'Clean sheets' },
+export const SPLIT_RECORD_ROWS: readonly { key: keyof TeamSplitRecord; label: MessageKey }[] = [
+  { key: 'played', label: 'teamPage.row.played' },
+  { key: 'won', label: 'teamPage.row.won' },
+  { key: 'drawn', label: 'teamPage.row.drawn' },
+  { key: 'lost', label: 'teamPage.row.lost' },
+  { key: 'goals_for', label: 'teamPage.row.goalsFor' },
+  { key: 'goals_against', label: 'teamPage.row.goalsAgainst' },
+  { key: 'clean_sheets', label: 'teamPage.row.cleanSheets' },
 ];
 
-export const METRIC_LABEL: Record<TeamAverageMetric, string> = {
-  possession_pct: 'Possession',
-  shots: 'Shots',
-  shots_on_target: 'Shots on target',
-  corners: 'Corners',
-  fouls: 'Fouls',
-  pass_accuracy_pct: 'Pass accuracy',
-  expected_goals: 'Expected goals',
+export const METRIC_KEY: Record<TeamAverageMetric, MessageKey> = {
+  possession_pct: 'teamPage.metric.possession',
+  shots: 'teamPage.metric.shots',
+  shots_on_target: 'teamPage.metric.shotsOnTarget',
+  corners: 'teamPage.metric.corners',
+  fouls: 'teamPage.metric.fouls',
+  pass_accuracy_pct: 'teamPage.metric.passAccuracy',
+  expected_goals: 'teamPage.metric.expectedGoals',
 };
 
 /**
@@ -165,10 +178,16 @@ export function averageCell(locale: string, average: TeamStatAverage, split: Spl
 }
 
 /** Why an average row is short, said beside it; null when it is complete. */
-export function averageNote(average: TeamStatAverage, played: number): string | null {
+export function averageNote(
+  locale: string,
+  average: TeamStatAverage,
+  played: number,
+): string | null {
   if (average.coverage === 'available') return null;
-  if (average.coverage === 'not_supplied') return 'Not supplied for these matches';
-  return `Held for ${average.matches_with_figure.total} of ${played} matches; no average where a match lacks it`;
+  if (average.coverage === 'not_supplied') return say(locale, 'teamPage.averageNotSupplied');
+  return plural(pageLocale(locale), 'teamPage.averageHeld', played, {
+    held: formatNumber(locale, average.matches_with_figure.total),
+  }).text;
 }
 
 /**
@@ -176,37 +195,21 @@ export function averageNote(average: TeamStatAverage, played: number): string | 
  * once under its table (T-1205): "Not supplied for these matches: possession,
  * shots and corners."
  */
-export function notSuppliedNote(labels: string[]): string {
+export function notSuppliedNote(locale: string, labels: string[]): string {
   const names = labels.map((label, i) => (i === 0 ? label : label.toLowerCase()));
-  const list =
-    names.length <= 1
-      ? (names[0] ?? '')
-      : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
-  return `Not supplied for these matches: ${list}.`;
+  return say(locale, 'teamPage.notSuppliedList', { list: listText(locale, names) });
 }
 
 /** The section's standing footnote: how the figures are counted. */
-export const SPLITS_FOOTNOTE =
-  'From the finished matches we hold. A match decided on penalties counts as a draw; goals include extra time, never the shoot-out.';
+export const SPLITS_FOOTNOTE: MessageKey = 'teamPage.splitsFootnote';
 
 /** The notes one competition's table needs; each only when it applies. */
-export function splitNotes(splits: TeamCompetitionSplits): string[] {
+export function splitNotes(locale: string, splits: TeamCompetitionSplits): string[] {
   const notes: string[] = [];
+  const resolved = pageLocale(locale);
   const shootouts = splits.penalty_shootouts;
-  if (shootouts > 0) {
-    notes.push(
-      `${shootouts} ${shootouts === 1 ? 'match' : 'matches'} went to penalties, counted as ${
-        shootouts === 1 ? 'a draw' : 'draws'
-      }.`,
-    );
-  }
+  if (shootouts > 0) notes.push(plural(resolved, 'teamPage.penaltiesNote', shootouts).text);
   const unscored = splits.finished_without_score;
-  if (unscored > 0) {
-    notes.push(
-      `${unscored} finished ${unscored === 1 ? 'match has' : 'matches have'} no score on record and ${
-        unscored === 1 ? 'is' : 'are'
-      } not counted.`,
-    );
-  }
+  if (unscored > 0) notes.push(plural(resolved, 'teamPage.unscoredNote', unscored).text);
   return notes;
 }

@@ -5,7 +5,7 @@ import type { GroupSummary } from '@fmip/contracts';
 import { fetchGroupInvites, fetchGroups, fetchMe, fetchMyGroups } from '@/lib/api';
 import { languageName } from '@/lib/group-about';
 import { DEFAULT_LOCALE, type Locale, UNFINISHED_LOCALES, isLocale } from '@/i18n/locales';
-import { t } from '@/i18n/messages';
+import { type MessageKey, attribute, t } from '@/i18n/messages';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { MemberName } from '@/components/member-name';
@@ -20,17 +20,22 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  return pageMetadata({ locale, path: '/groups', title: 'Groups · FMIP' });
+  const resolved: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  return pageMetadata({
+    locale,
+    path: '/groups',
+    title: `${t(resolved, 'groupsPage.title')} · FMIP`,
+  });
 }
 
 function first(value: string | string[] | undefined): string {
   return Array.isArray(value) ? (value[0] ?? '') : (value ?? '');
 }
 
-const VISIBILITY: Record<string, string> = {
-  public: 'Anyone can join',
-  discoverable: 'Ask to join',
-  invite_only: 'By invitation',
+const VISIBILITY: Record<string, MessageKey> = {
+  public: 'groupsPage.row.public',
+  discoverable: 'groupsPage.row.discoverable',
+  invite_only: 'groupsPage.row.invite_only',
 };
 
 /** The languages the filter offers: the site's own, as the news filter does. */
@@ -49,7 +54,11 @@ function GroupRow({ group, locale }: { group: GroupSummary; locale: string }) {
       </Link>
       <p className="text-sm text-muted">
         <Translated locale={locale} message="groups.memberCount" count={group.member_count} /> ·{' '}
-        {VISIBILITY[group.visibility] ?? group.visibility}
+        {VISIBILITY[group.visibility] === undefined ? (
+          group.visibility
+        ) : (
+          <Translated locale={locale} message={VISIBILITY[group.visibility]!} />
+        )}
         {group.language !== null && <> · {languageName(locale, group.language)}</>}
         {group.favourite !== null && <> · {group.favourite.name}</>}
       </p>
@@ -85,6 +94,7 @@ export default async function GroupsPage({
   if (me === null) redirect(`/${locale}/login`);
 
   const resolved: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  const search = attribute(resolved, 'groupsPage.search');
   const term = first(query.q).trim();
   // The directory's filters (T-1022) go to the API as they came; what it
   // could read comes back in `filters`, and that is what the page shows.
@@ -101,11 +111,15 @@ export default async function GroupsPage({
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-8 p-8">
-      <h1 className="text-2xl font-semibold">Groups</h1>
+      <h1 className="text-2xl font-semibold">
+        <Translated locale={locale} message="groupsPage.title" />
+      </h1>
 
       {invites.ok && invites.data.invites.length > 0 && (
         <section className="flex flex-col gap-2" data-testid="group-invites">
-          <h2 className="text-lg font-semibold">You have been invited</h2>
+          <h2 className="text-lg font-semibold">
+            <Translated locale={locale} message="groupsPage.invited" />
+          </h2>
           <ul className="flex flex-col gap-3">
             {invites.data.invites.map((invite) => (
               <li key={invite.group.slug} className="flex flex-col gap-1">
@@ -116,7 +130,8 @@ export default async function GroupsPage({
                   {invite.group.name}
                 </Link>
                 <p className="text-sm text-muted">
-                  Invited by <MemberName locale={locale} member={{ username: invite.invited_by }} />
+                  <Translated locale={locale} message="groupsPage.invitedBy" />{' '}
+                  <MemberName locale={locale} member={{ username: invite.invited_by }} />
                 </p>
               </li>
             ))}
@@ -125,14 +140,16 @@ export default async function GroupsPage({
       )}
 
       <section className="flex flex-col gap-2" data-testid="my-groups">
-        <h2 className="text-lg font-semibold">Yours</h2>
+        <h2 className="text-lg font-semibold">
+          <Translated locale={locale} message="groupsPage.yours" />
+        </h2>
         {!mine.ok ? (
           <Notice tone="danger" data-testid="my-groups-unreachable">
-            Your groups cannot be shown right now.
+            <Translated locale={locale} message="groupsPage.yoursUnreachable" />
           </Notice>
         ) : mine.data.groups.length === 0 ? (
           <p className="text-sm text-muted" data-testid="my-groups-none">
-            You are not in a group yet.
+            <Translated locale={locale} message="groupsPage.yoursNone" />
           </p>
         ) : (
           <ul className="flex flex-col gap-3">
@@ -144,7 +161,9 @@ export default async function GroupsPage({
       </section>
 
       <section className="flex flex-col gap-3" data-testid="group-directory">
-        <h2 className="text-lg font-semibold">Find a group</h2>
+        <h2 className="text-lg font-semibold">
+          <Translated locale={locale} message="groupsPage.find" />
+        </h2>
         <form action={`/${locale}/groups`} className="flex flex-wrap items-center gap-2">
           {filterQuery.team !== '' && <input type="hidden" name="team" value={filterQuery.team} />}
           {filterQuery.competition !== '' && (
@@ -168,18 +187,19 @@ export default async function GroupsPage({
             </select>
           </label>
           <TextField
-            label="Search groups"
+            label={<Translated locale={locale} message="groupsPage.search" />}
             hideLabel
             id="group-search"
             name="q"
             type="search"
             size="sm"
             defaultValue={term}
-            placeholder="Search groups"
+            placeholder={search.text}
+            lang={search.lang}
             data-testid="group-search"
           />
           <Button type="submit" variant="ghost" size="sm">
-            Search
+            <Translated locale={locale} message="messagesPage.search.submit" />
           </Button>
         </form>
 
@@ -195,11 +215,14 @@ export default async function GroupsPage({
 
         {!found.ok ? (
           <Notice tone="danger" data-testid="group-directory-unreachable">
-            The directory is unreachable right now.
+            <Translated locale={locale} message="groupsPage.directoryUnreachable" />
           </Notice>
         ) : found.data.groups.length === 0 ? (
           <p className="text-sm text-muted" data-testid="group-directory-none">
-            {term === '' ? 'No groups yet.' : 'Nothing matches that.'}
+            <Translated
+              locale={locale}
+              message={term === '' ? 'groupsPage.directoryNone' : 'groupsPage.directoryNoMatch'}
+            />
           </p>
         ) : (
           <ul className="flex flex-col gap-3">
@@ -209,7 +232,7 @@ export default async function GroupsPage({
           </ul>
         )}
         <p className="text-sm text-muted" data-testid="group-directory-note">
-          Groups that are joined by invitation are not listed here.
+          <Translated locale={locale} message="groupsPage.directoryNote" />
         </p>
       </section>
     </main>

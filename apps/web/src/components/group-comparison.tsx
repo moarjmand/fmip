@@ -1,6 +1,11 @@
 import type { GroupPredictionCall, GroupPredictionComparison } from '@fmip/contracts';
 import { MemberName } from '@/components/member-name';
+import { MessageText } from '@/components/message-text';
 import { Translated } from '@/components/translated';
+import { Said, said } from '@/components/community-text';
+import { LtrNumeric } from '@/components/score';
+import { formatNumber } from '@/i18n/format';
+import type { Message, MessageKey } from '@/i18n/messages';
 
 /**
  * What the group called (blueprint 8.2, T-246, T-248).
@@ -16,18 +21,27 @@ import { Translated } from '@/components/translated';
  * stated, because a list of three calls in a group of eight would otherwise read
  * as the whole group having spoken (rule 3).
  */
-const OUTCOME: Record<string, string> = {
-  home: 'Home win',
-  draw: 'Draw',
-  away: 'Away win',
+const OUTCOME: Record<string, MessageKey> = {
+  home: 'groupsPage.comparison.home',
+  draw: 'groupsPage.comparison.draw',
+  away: 'groupsPage.comparison.away',
 };
 
-function verdict(call: GroupPredictionCall): string {
+function verdict(locale: string, call: GroupPredictionCall): Message {
   const settled = call.settlement;
-  if (settled === null) return 'Not settled yet';
-  if (settled.status === 'void') return `Void — ${settled.void_reason ?? 'no reason given'}`;
-  if (settled.outcome_correct !== true) return 'Wrong';
-  return settled.score_correct === true ? 'Right, with the score' : 'Right';
+  if (settled === null) return said(locale, 'groupsPage.comparison.unsettled');
+  if (settled.status === 'void') {
+    return said(locale, 'groupsPage.comparison.void', {
+      reason: settled.void_reason ?? said(locale, 'groupsPage.comparison.noReason').text,
+    });
+  }
+  if (settled.outcome_correct !== true) return said(locale, 'groupsPage.comparison.wrong');
+  return said(
+    locale,
+    settled.score_correct === true
+      ? 'groupsPage.comparison.rightScore'
+      : 'groupsPage.comparison.right',
+  );
 }
 
 export function GroupComparison({
@@ -43,11 +57,13 @@ export function GroupComparison({
 
   return (
     <section className="flex flex-col gap-3" data-testid="group-comparison">
-      <h2 className="text-lg font-semibold">What {groupName} called</h2>
+      <h2 className="text-lg font-semibold">
+        <Said locale={locale} message="groupsPage.comparison.title" params={{ group: groupName }} />
+      </h2>
 
       {calls.length === 0 ? (
         <p className="text-sm text-muted" data-testid="group-comparison-none">
-          Nobody here has called this match.
+          <Translated locale={locale} message="groupsPage.comparison.none" />
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
@@ -57,20 +73,40 @@ export function GroupComparison({
               className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm"
             >
               <MemberName locale={locale} member={call} link className="underline" />
-              <span>{OUTCOME[call.version.outcome] ?? call.version.outcome}</span>
+              <span>
+                {OUTCOME[call.version.outcome] === undefined ? (
+                  call.version.outcome
+                ) : (
+                  <Translated locale={locale} message={OUTCOME[call.version.outcome]!} />
+                )}
+              </span>
               {call.version.score !== null && (
-                <span className="text-muted">
-                  {call.version.score.home}–{call.version.score.away}
-                </span>
+                <LtrNumeric className="text-muted">
+                  {formatNumber(locale, call.version.score.home)}–
+                  {formatNumber(locale, call.version.score.away)}
+                </LtrNumeric>
               )}
-              <span className="text-muted">confidence {call.version.confidence}/5</span>
+              <span className="text-muted">
+                <Said
+                  locale={locale}
+                  message="groupsPage.comparison.confidence"
+                  params={{
+                    confidence: formatNumber(locale, call.version.confidence),
+                    max: formatNumber(locale, 5),
+                  }}
+                />
+              </span>
               {call.revisions > 1 && (
                 <span className="text-muted" data-testid={`revisions-${call.username}`}>
-                  changed {call.revisions - 1}×
+                  <Said
+                    locale={locale}
+                    message="groupsPage.comparison.changed"
+                    params={{ count: formatNumber(locale, call.revisions - 1) }}
+                  />
                 </span>
               )}
               <span className="ms-auto text-muted" data-testid={`verdict-${call.username}`}>
-                {verdict(call)}
+                <MessageText message={verdict(locale, call)} />
               </span>
             </li>
           ))}
@@ -91,7 +127,7 @@ export function GroupComparison({
 
       {!comparison.locked && (
         <p className="text-xs text-muted" data-testid="group-comparison-open">
-          This match has not kicked off. Calls can still change until it does.
+          <Translated locale={locale} message="groupsPage.comparison.open" />
         </p>
       )}
     </section>

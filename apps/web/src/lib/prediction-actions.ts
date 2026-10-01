@@ -7,6 +7,8 @@ import type { ActionState } from './auth-actions';
 import { formToSubmission } from './prediction-form';
 import { sessionCookieHeader } from './session';
 import { failureState } from './action-failure';
+import { interpolate, t } from '@/i18n/messages';
+import { asLocale, plainNumber } from './prediction-text';
 
 /**
  * Submits (or resubmits) the member's prediction for a fixture (T-050). The
@@ -21,19 +23,21 @@ export async function submitPredictionAction(
 ): Promise<ActionState> {
   const cookie = await sessionCookieHeader();
   if (cookie === undefined) {
-    return { ok: false, message: 'Sign in to predict.' };
+    return { ok: false, message: t(asLocale(locale), 'predictions.action.signIn') };
   }
   const result = await apiRequest<PredictionResponse>(
     `/fixtures/${encodeURIComponent(fixtureId)}/prediction`,
     { method: 'PUT', body: formToSubmission(formData), cookie },
   );
   if (!result.ok) {
-    return failureState(result);
+    return failureState(result, locale);
   }
   revalidatePath(`/${locale}/match/${fixtureId}`);
   const v = result.data.prediction.latest;
   return {
     ok: true,
-    message: `Saved as version ${v.version_number}. You can change it until kick-off.`,
+    message: interpolate(t(asLocale(locale), 'predictions.action.saved'), {
+      version: plainNumber(locale, v.version_number),
+    }),
   };
 }

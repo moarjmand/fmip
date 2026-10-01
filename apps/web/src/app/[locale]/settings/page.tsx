@@ -13,15 +13,15 @@ import {
   fetchTeams,
   fetchTerritories,
 } from '@/lib/api';
-import { territoryOptions, territoryValue } from '@/lib/territory';
+import { territoryName, territoryOptions, territoryValue } from '@/lib/territory';
 import {
   deleteAccountAction,
   setTerritoryAction,
   updatePrivacyAction,
   updateProfileAction,
 } from '@/lib/auth-actions';
-import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
-import { interpolate, t } from '@/i18n/messages';
+import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
+import { type Message, type MessageKey, interpolate, message, t } from '@/i18n/messages';
 import { sessionCookieHeader } from '@/lib/session';
 import type { Appearance } from '@/lib/appearance';
 import type { ThemePreference } from '@/lib/theme';
@@ -30,22 +30,37 @@ import { Button, Notice, TextField } from '@/components/ui';
 import { type DataExportRefusal, REFUSAL_MESSAGES, refusalFromQuery } from '@/lib/data-export';
 
 // A member's own page: never indexed.
-export const metadata: Metadata = {
-  title: 'Settings · FMIP',
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const lang: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  return {
+    title: `${t(lang, 'nav.settings')} · FMIP`,
+    robots: { index: false, follow: false },
+  };
+}
 export const dynamic = 'force-dynamic';
 
-const VISIBILITY_LABELS: Record<(typeof PRIVACY_VISIBILITIES)[number], string> = {
-  public: 'Public: anyone',
-  friends: 'Friends only (friendships arrive in a later release; until then, only you)',
-  private: 'Private: only you',
+const VISIBILITY_LABELS: Record<(typeof PRIVACY_VISIBILITIES)[number], MessageKey> = {
+  public: 'settingsPage.visibility.public',
+  friends: 'settingsPage.visibility.friends',
+  private: 'settingsPage.visibility.private',
 };
 
-const visibilityOptions: FieldOption[] = PRIVACY_VISIBILITIES.map((value) => ({
-  value,
-  label: VISIBILITY_LABELS[value],
-}));
+function visibilityOptions(lang: Locale): FieldOption[] {
+  return PRIVACY_VISIBILITIES.map((value) => ({
+    value,
+    label: t(lang, VISIBILITY_LABELS[value]),
+  }));
+}
+
+/** "Done." and "Working…" for every form on the page, in the reader's language. */
+function formLabels(lang: Locale): { done: Message; working: Message } {
+  return { done: message(lang, 'auth.form.done'), working: message(lang, 'auth.form.working') };
+}
 
 export default async function SettingsPage({
   params,
@@ -55,6 +70,7 @@ export default async function SettingsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { locale } = await params;
+  const lang: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
   const exportRefusal = refusalFromQuery((await searchParams).export);
   const cookie = await sessionCookieHeader();
   // A guest (no session, or one the API no longer knows) has no account to
@@ -82,8 +98,12 @@ export default async function SettingsPage({
     }
     return (
       <main className="mx-auto flex max-w-md flex-col gap-4 p-8">
-        <h1 className="text-2xl font-semibold">Settings</h1>
-        <Notice tone="danger">The service is unreachable right now.</Notice>
+        <h1 className="text-2xl font-semibold">
+          <Translated locale={locale} message="nav.settings" />
+        </h1>
+        <Notice tone="danger">
+          <Translated locale={locale} message="common.unreachable" />
+        </Notice>
       </main>
     );
   }
@@ -101,103 +121,127 @@ export default async function SettingsPage({
   return (
     <main className="mx-auto flex max-w-md flex-col gap-10 p-8">
       <section className="flex flex-col gap-4">
-        <h1 className="text-2xl font-semibold">Profile</h1>
+        <h1 className="text-2xl font-semibold">
+          <Translated locale={locale} message="settingsPage.profile" />
+        </h1>
         <p className="text-sm text-muted">
-          Signed in as @{account.username} ({account.email}
-          {account.email_verified ? ', verified' : ', not yet verified'}).
+          {interpolate(
+            t(
+              lang,
+              account.email_verified
+                ? 'settingsPage.signedInVerified'
+                : 'settingsPage.signedInUnverified',
+            ),
+            { username: account.username, email: account.email },
+          )}
         </p>
         <ActionForm
           action={updateProfileAction.bind(null, locale)}
           fields={[
             {
               name: 'display_name',
-              label: 'Display name',
+              label: t(lang, 'auth.displayName'),
               required: true,
               defaultValue: profile.display_name,
               maxLength: 50,
             },
             {
               name: 'bio',
-              label: 'Short biography',
+              label: t(lang, 'settingsPage.bio'),
               type: 'textarea',
               defaultValue: profile.bio ?? '',
               maxLength: 500,
-              hint: 'Up to 500 characters.',
+              hint: t(lang, 'settingsPage.bioHint'),
             },
             {
               name: 'avatar_url',
-              label: 'Avatar URL',
+              label: t(lang, 'settingsPage.avatar'),
               type: 'url',
               defaultValue: profile.avatar_url ?? '',
-              hint: 'An http(s) link to an image. Leave empty for none.',
+              hint: t(lang, 'settingsPage.avatarHint'),
             },
           ]}
-          submitLabel="Save profile"
+          submitLabel={t(lang, 'settingsPage.saveProfile')}
           testId="profile-form"
+          labels={formLabels(lang)}
         />
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="text-xl font-semibold">Privacy</h2>
+        <h2 className="text-xl font-semibold">
+          <Translated locale={locale} message="settingsPage.privacy" />
+        </h2>
         <p className="text-sm text-muted">
-          Your username and display name are always public, because leaderboards show them.
+          <Translated locale={locale} message="settingsPage.privacyLead" />
         </p>
         <ActionForm
           action={updatePrivacyAction.bind(null, locale)}
           fields={[
             {
               name: 'profile_visibility',
-              label: 'Who can see your profile',
+              label: t(lang, 'settingsPage.profileVisibility'),
               type: 'select',
-              options: visibilityOptions,
+              options: visibilityOptions(lang),
               defaultValue: privacy.profile_visibility,
             },
             {
               name: 'prediction_history_visibility',
-              label: 'Who can see your prediction history',
+              label: t(lang, 'settingsPage.historyVisibility'),
               type: 'select',
-              options: visibilityOptions,
+              options: visibilityOptions(lang),
               defaultValue: privacy.prediction_history_visibility,
             },
           ]}
-          submitLabel="Save privacy settings"
+          submitLabel={t(lang, 'settingsPage.savePrivacy')}
           testId="privacy-form"
+          labels={formLabels(lang)}
         />
       </section>
 
       <AppearanceSection locale={locale} theme={theme} appearance={appearance} />
 
       <section id="territory" className="flex flex-col gap-4" data-testid="territory-section">
-        <h2 className="text-xl font-semibold">Viewing territory</h2>
+        <h2 className="text-xl font-semibold">
+          <Translated locale={locale} message="settingsPage.territory.heading" />
+        </h2>
         {/* T-312: chosen here and only here; nothing guesses it from an address (blueprint 11). */}
         <p className="text-sm text-muted" data-testid="territory-state">
-          {viewing_territory.state === 'chosen'
-            ? `Viewing options are shown for ${viewing_territory.territory.name}.`
-            : 'You have not chosen a territory yet. Where a match can be watched depends on it, so you will be asked rather than guessed at.'}
+          {viewing_territory.state === 'chosen' ? (
+            interpolate(t(lang, 'settingsPage.territory.chosen'), {
+              territory: territoryName(locale, viewing_territory.territory),
+            })
+          ) : (
+            <Translated locale={locale} message="settingsPage.territory.none" />
+          )}
         </p>
         {territories === null ? (
-          <Notice tone="danger">The territory list could not be loaded right now.</Notice>
+          <Notice tone="danger">
+            <Translated locale={locale} message="settingsPage.territory.unreachable" />
+          </Notice>
         ) : (
           <ActionForm
             action={setTerritoryAction.bind(null, locale)}
             fields={[
               {
                 name: 'code',
-                label: 'Where you watch from',
+                label: t(lang, 'settingsPage.territory.label'),
                 type: 'select',
-                options: territoryOptions(locale, territories, 'Not chosen'),
+                options: territoryOptions(locale, territories, t(lang, 'viewing.notChosen')),
                 defaultValue: territoryValue(viewing_territory),
-                hint: 'Rights are sold by country, so this is the country you are in, not the team you support.',
+                hint: t(lang, 'settingsPage.territory.hint'),
               },
             ]}
-            submitLabel="Save viewing territory"
+            submitLabel={t(lang, 'settingsPage.territory.submit')}
             testId="territory-form"
+            labels={formLabels(lang)}
           />
         )}
       </section>
 
       {following === null || teams === null || competitions === null ? (
-        <Notice tone="danger">Following could not be loaded right now.</Notice>
+        <Notice tone="danger">
+          <Translated locale={locale} message="settingsPage.followingUnreachable" />
+        </Notice>
       ) : (
         <FollowingSection
           locale={locale}
@@ -314,6 +358,7 @@ function DeleteAccountSection({ locale, username }: { locale: string; username: 
         ]}
         submitLabel={t(lang, 'account.delete.submit')}
         testId="delete-account-form"
+        labels={formLabels(lang)}
       />
     </section>
   );

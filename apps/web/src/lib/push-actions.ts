@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { apiRequest } from '@/lib/api';
 import type { ActionState } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
+import { failureSentence } from '@/lib/action-failure';
 
 /**
  * A device's push registration, handed from the browser to the API (T-330,
@@ -21,10 +22,7 @@ export async function subscribePushAction(
   if (!result.ok) {
     return {
       ok: false,
-      message:
-        result.status === 0
-          ? 'The service is unreachable right now. Please try again shortly.'
-          : (result.error?.message ?? `The request failed (HTTP ${result.status}).`),
+      message: await failureSentence(result, locale),
     };
   }
   revalidatePath(`/${locale}/settings/notifications`);
@@ -43,7 +41,7 @@ export async function unsubscribePushAction(
   if (!result.ok && result.status !== 404) {
     return {
       ok: false,
-      message: result.error?.message ?? `The request failed (HTTP ${result.status}).`,
+      message: await failureSentence(result, locale),
     };
   }
   revalidatePath(`/${locale}/settings/notifications`);

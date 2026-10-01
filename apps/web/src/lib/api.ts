@@ -115,7 +115,9 @@ import type {
   TranslationDesk,
   TranslationQueue,
 } from '@fmip/contracts';
-import { withLocale } from '@/lib/locale-query';
+import { headers as requestHeaders } from 'next/headers';
+import { unstable_rethrow } from 'next/navigation';
+import { READER_LOCALE_HEADER, withLocale, withReaderLocale } from '@/lib/locale-query';
 
 const API_BASE_URL = process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
 
@@ -538,10 +540,15 @@ export async function apiRequest<T>(
   if (init.cookie !== undefined) headers.cookie = init.cookie;
   if (init.clientIp !== undefined) headers['x-fmip-client-ip'] = init.clientIp;
 
+  // The reader's names (T-1312): every read that may name a team, a
+  // competition or a country asks for the reader's language.
+  const method = init.method ?? 'GET';
+  const url = withReaderLocale(path, method, method === 'GET' ? await readerLocale() : null);
+
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
-      method: init.method ?? 'GET',
+    response = await fetch(`${API_BASE_URL}${url}`, {
+      method,
       headers,
       body: init.body === undefined ? undefined : JSON.stringify(init.body),
       cache: 'no-store',
@@ -568,6 +575,21 @@ export async function apiRequest<T>(
   const error =
     typeof json === 'object' && json !== null && 'error' in json ? (json as ApiError) : null;
   return { ok: false, status: response.status, error, setCookie };
+}
+
+/**
+ * The language of the page being rendered, from the header the locale proxy
+ * sets (T-1312); `null` outside a page request (the proxy itself, a test).
+ * Next's own signals (a dynamic render bailing out) are passed on, never
+ * swallowed.
+ */
+async function readerLocale(): Promise<string | null> {
+  try {
+    return (await requestHeaders()).get(READER_LOCALE_HEADER);
+  } catch (error) {
+    unstable_rethrow(error);
+    return null;
+  }
 }
 
 // Typed readers for the pages. Each returns `null` where "not there" is a

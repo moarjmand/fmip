@@ -84,6 +84,7 @@ describe('pageMetadata', () => {
       canonical: 'https://fmip.example/en/scores',
       languages: {
         en: 'https://fmip.example/en/scores',
+        fa: 'https://fmip.example/fa/scores',
         'x-default': 'https://fmip.example/en/scores',
       },
     });
@@ -106,7 +107,7 @@ describe('pageMetadata', () => {
     // The alternates never point at the pseudo-locale.
     const languages = pageMetadata({ locale: 'x-rtl', path: '', title: 'x' }, ORIGIN).alternates
       ?.languages as Record<string, string>;
-    expect(Object.keys(languages)).toEqual(['en', 'x-default']);
+    expect(Object.keys(languages)).toEqual(['en', 'fa', 'x-default']);
   });
 });
 

@@ -38,6 +38,7 @@ import { ActivityModule } from './modules/activity/activity.module';
 import { RateLimitsModule } from './modules/rate-limits/rate-limits.module';
 import { HomepageModule } from './modules/homepage/homepage.module';
 import { LocaleHoldsModule } from './modules/locale-holds/locale-holds.module';
+import { LocalisedNamesModule } from './modules/localised-names/localised-names.module';
 import { RatingThresholdsModule } from './modules/rating-thresholds/rating-thresholds.module';
 
 /**
@@ -86,6 +87,7 @@ import { RatingThresholdsModule } from './modules/rating-thresholds/rating-thres
     RateLimitsModule,
     HomepageModule,
     LocaleHoldsModule,
+    LocalisedNamesModule,
     RatingThresholdsModule,
     AdminModule,
   ],

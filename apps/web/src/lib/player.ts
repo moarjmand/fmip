@@ -5,7 +5,10 @@ import type {
   PlayerSeasonRecord,
   PlayerSpell,
 } from '@fmip/contracts';
-import { formatDate } from '@/i18n/format';
+import { formatDate, formatNumber } from '@/i18n/format';
+import { DEFAULT_LOCALE } from '@/i18n/locales';
+import { type MessageKey, plural } from '@/i18n/messages';
+import { pageLocale, say } from '@/lib/competition';
 
 /**
  * The player page's pure helpers (T-037): age, labels, the season selector
@@ -27,18 +30,33 @@ export function ageOn(dateOfBirth: string | null, now: Date): number | null {
   return age;
 }
 
-export const FOOT_LABEL: Record<NonNullable<PlayerPage['person']['preferred_foot']>, string> = {
-  left: 'Left foot',
-  right: 'Right foot',
-  both: 'Either foot',
+export const FOOT_KEY: Record<NonNullable<PlayerPage['person']['preferred_foot']>, MessageKey> = {
+  left: 'playerPage.foot.left',
+  right: 'playerPage.foot.right',
+  both: 'playerPage.foot.both',
 };
 
-export const POSITION_LABEL: Record<NonNullable<PlayerSpell['position']>, string> = {
-  goalkeeper: 'Goalkeeper',
-  defender: 'Defender',
-  midfielder: 'Midfielder',
-  forward: 'Forward',
+export const POSITION_KEY: Record<NonNullable<PlayerSpell['position']>, MessageKey> = {
+  goalkeeper: 'playerPage.position.goalkeeper',
+  defender: 'playerPage.position.defender',
+  midfielder: 'playerPage.position.midfielder',
+  forward: 'playerPage.position.forward',
 };
+
+/**
+ * A calendar date the API holds as `YYYY-MM-DD` (a birth date, the start of a
+ * spell). English shows it as stored, as it always has; any other locale gets
+ * it in its own calendar and digits (T-1304) -- Persian in the Solar Hijri
+ * calendar, as `Intl` writes it (D-175).
+ */
+export function dayText(locale: string, iso: string): string {
+  if (pageLocale(locale) === DEFAULT_LOCALE) return iso;
+  return formatDate(locale, `${iso}T00:00:00Z`, 'UTC', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
 
 /** "Jul 2025 – present" or "Jul 2022 – Jun 2025". */
 export function spellPeriod(
@@ -47,7 +65,9 @@ export function spellPeriod(
 ): string {
   const month = (iso: string): string =>
     formatDate(locale, `${iso}T00:00:00Z`, 'UTC', { month: 'short', year: 'numeric' });
-  return `${month(spell.start_date)} – ${spell.end_date === null ? 'present' : month(spell.end_date)}`;
+  return `${month(spell.start_date)} – ${
+    spell.end_date === null ? say(locale, 'playerPage.present') : month(spell.end_date)
+  }`;
 }
 
 /** `?season=<id>`; anything else means every season. */
@@ -93,23 +113,30 @@ export function appearances(row: Pick<PlayerSeasonRecord, 'starts' | 'sub_appear
  * matches it covers, when only some do -- never the partial sum on its own;
  * "not supplied" when none do.
  */
-export function minutesText(minutes: PlayerSeasonMinutes): { text: string; note: string | null } {
+export function minutesText(
+  locale: string,
+  minutes: PlayerSeasonMinutes,
+): { text: string; note: string | null } {
   if (minutes.coverage === 'available' && minutes.total !== null) {
-    return { text: String(minutes.total), note: null };
+    return { text: formatNumber(locale, minutes.total), note: null };
   }
   if (minutes.coverage === 'limited') {
     return {
-      text: `at least ${minutes.supplied_minutes}`,
-      note: `${minutes.matches_with_minutes} of ${minutes.matches} matches`,
+      text: say(locale, 'playerPage.minutesAtLeast', {
+        minutes: formatNumber(locale, minutes.supplied_minutes),
+      }),
+      note: plural(pageLocale(locale), 'playerPage.minutesCovers', minutes.matches, {
+        with: formatNumber(locale, minutes.matches_with_minutes),
+      }).text,
     };
   }
-  return { text: 'not supplied', note: null };
+  return { text: say(locale, 'playerPage.minutesNotSupplied'), note: null };
 }
 
 /** "Started" / "Came on" / "Unused sub". */
-export function roleLabel(match: Pick<PlayerMatch, 'role' | 'came_on'>): string {
-  if (match.role === 'starter') return 'Started';
-  return match.came_on ? 'Came on' : 'Unused sub';
+export function roleLabel(locale: string, match: Pick<PlayerMatch, 'role' | 'came_on'>): string {
+  if (match.role === 'starter') return say(locale, 'playerPage.role.started');
+  return say(locale, match.came_on ? 'playerPage.role.cameOn' : 'playerPage.role.unused');
 }
 
 /**

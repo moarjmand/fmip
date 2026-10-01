@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { apiRequest } from '@/lib/api';
 import type { ActionState } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
+import { failureSentence } from '@/lib/action-failure';
 
 /**
  * Writing, submitting and reviewing analysis (T-262).
@@ -21,19 +22,24 @@ import { sessionCookieHeader } from '@/lib/session';
 /** Never null, unlike `ActionState`: a request always has an outcome. */
 type Sent = { ok: true } | { ok: false; message: string; fields?: Record<string, string> };
 
-async function send(path: string, method: 'POST' | 'PUT', body?: unknown): Promise<Sent> {
+async function send(
+  locale: string,
+  path: string,
+  method: 'POST' | 'PUT',
+  body?: unknown,
+): Promise<Sent> {
   const result = await apiRequest(path, { method, cookie: await sessionCookieHeader(), body });
   if (!result.ok) {
     if (result.status === 0) {
       return {
         ok: false,
-        message: 'The service is unreachable right now. Please try again shortly.',
+        message: await failureSentence(result, locale),
       };
     }
     const fields = (result.error as { fields?: Record<string, string> } | undefined)?.fields;
     return {
       ok: false,
-      message: result.error?.message ?? `The request failed (HTTP ${result.status}).`,
+      message: await failureSentence(result, locale),
       // Every bad field at once, the way the API named them, so an analyst
       // fixes one thing and not four.
       ...(fields === undefined ? {} : { fields }),
@@ -61,7 +67,7 @@ export async function saveAnalysisDraftAction(
   _previous: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const outcome = await send(`/me/analyses/${encodeURIComponent(fixtureId)}`, 'PUT', {
+  const outcome = await send(locale, `/me/analyses/${encodeURIComponent(fixtureId)}`, 'PUT', {
     predicted_outcome: String(formData.get('predicted_outcome') ?? ''),
     predicted_home: number(formData, 'predicted_home'),
     predicted_away: number(formData, 'predicted_away'),
@@ -82,7 +88,11 @@ export async function submitAnalysisAction(
   _previous: ActionState,
   _formData: FormData,
 ): Promise<ActionState> {
-  const outcome = await send(`/me/analyses/${encodeURIComponent(fixtureId)}/submit`, 'POST');
+  const outcome = await send(
+    locale,
+    `/me/analyses/${encodeURIComponent(fixtureId)}/submit`,
+    'POST',
+  );
   if (!outcome.ok) return outcome;
   revalidatePath(`/${locale}/analyses/${fixtureId}`);
   return { ok: true, message: 'Sent for review.' };
@@ -103,6 +113,7 @@ export async function reviewAnalysisAction(
     return { ok: false, message: 'Say why. A decision with no reason cannot be reviewed.' };
   }
   const outcome = await send(
+    locale,
     `/admin/analysis-reviews/${encodeURIComponent(submissionId)}`,
     'POST',
     {

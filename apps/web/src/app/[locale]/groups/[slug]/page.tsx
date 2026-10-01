@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import {
+  GroupAppealForm,
   GroupControls,
   GroupRulesForm,
   JoinRequestControls,
@@ -10,6 +11,7 @@ import {
 import { GroupPollsSection } from '@/components/group-polls';
 import { GroupInviteLinks, GroupOwnerSettings } from '@/components/group-settings';
 import { MemberHandle, MemberName } from '@/components/member-name';
+import { formatDateTime } from '@/i18n/format';
 import {
   fetchCompetitions,
   fetchGroupClosureAppeal,
@@ -26,8 +28,13 @@ import { ratingLabel, statusLabel, tierLabel } from '@/lib/leaderboard';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { Translated } from '@/components/translated';
-import { AppealNotes, GroupAppealForm } from '@/components/group-moderation';
+import { AppealNotes } from '@/components/group-moderation';
 import { Notice } from '@/components/ui';
+import { Said, said } from '@/components/community-text';
+import { MessageText } from '@/components/message-text';
+import { formatNumber } from '@/i18n/format';
+import { DEFAULT_LOCALE, type Locale, isLocale } from '@/i18n/locales';
+import { type MessageKey, t } from '@/i18n/messages';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,14 +44,50 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  return pageMetadata({ locale, path: '/groups', title: 'A group · FMIP' });
+  const resolved: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  return pageMetadata({
+    locale,
+    path: '/groups',
+    title: `${t(resolved, 'groupsPage.group')} · FMIP`,
+  });
 }
 
-const VISIBILITY: Record<string, string> = {
-  public: 'Anyone can find this group and join it.',
-  discoverable: 'Anyone can find this group. Joining it is by request.',
-  invite_only: 'This group is joined by invitation.',
+const VISIBILITY: Record<string, MessageKey> = {
+  public: 'groupsPage.visibility.public',
+  discoverable: 'groupsPage.visibility.discoverable',
+  invite_only: 'groupsPage.control.inviteOnly',
 };
+
+/** A member's role beside their name; `member` says nothing. */
+const ROLE: Record<string, MessageKey> = {
+  owner: 'groupsPage.role.owner',
+  moderator: 'groupsPage.role.moderator',
+};
+
+/**
+ * A sentence with a link inside it: the catalogue holds the whole sentence
+ * with `{link}` where the link goes, so each language puts it where its own
+ * word order does (T-1308).
+ */
+function WithLink({
+  locale,
+  message,
+  link,
+}: {
+  locale: string;
+  message: MessageKey;
+  link: React.ReactNode;
+}) {
+  const whole = said(locale, message);
+  const [before = '', after = ''] = whole.text.split('{link}');
+  return (
+    <>
+      <MessageText message={{ ...whole, text: before }} />
+      {link}
+      <MessageText message={{ ...whole, text: after }} />
+    </>
+  );
+}
 
 /**
  * One group (blueprint 8.2, T-242).
@@ -76,9 +119,11 @@ export default async function GroupPage({
     if (result.status === 404) notFound();
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-4 p-8">
-        <h1 className="text-2xl font-semibold">A group</h1>
+        <h1 className="text-2xl font-semibold">
+          <Translated locale={locale} message="groupsPage.group" />
+        </h1>
         <Notice tone="danger" data-testid="group-unreachable">
-          This group cannot be shown right now.
+          <Translated locale={locale} message="groupsPage.unreachable" />
         </Notice>
       </main>
     );
@@ -118,7 +163,7 @@ export default async function GroupPage({
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
       <Link href={`/${locale}/groups`} className="text-sm underline">
-        All groups
+        <Translated locale={locale} message="groupsPage.all" />
       </Link>
 
       <header className="flex flex-col gap-2">
@@ -127,7 +172,11 @@ export default async function GroupPage({
         </h1>
         <p className="text-sm text-muted" data-testid="group-visibility">
           <Translated locale={locale} message="groups.memberCount" count={group.member_count} /> ·{' '}
-          {VISIBILITY[group.visibility] ?? group.visibility}
+          {VISIBILITY[group.visibility] === undefined ? (
+            group.visibility
+          ) : (
+            <Translated locale={locale} message={VISIBILITY[group.visibility]!} />
+          )}
         </p>
         {group.description !== null && (
           <p data-testid="group-description" lang={lang}>
@@ -161,20 +210,35 @@ export default async function GroupPage({
       {group.closed !== null && (
         <Notice tone="warning" as="div" className="flex flex-col gap-2" data-testid="group-closed">
           <p>
-            The platform&rsquo;s moderators closed this group:{' '}
+            <Translated locale={locale} message="groupsPage.closed" />{' '}
             <span data-testid="group-closed-reason">{group.closed.reason}</span>
           </p>
-          <p>Its members can read it and leave it. Nothing new can be written in it.</p>
+          <p>
+            <Translated locale={locale} message="groupsPage.closedNote" />
+          </p>
         </Notice>
       )}
 
       {appeal !== null && (
         <section className="flex flex-col gap-2" data-testid="group-appeal">
-          <h2 className="text-lg font-semibold">Appeal</h2>
+          <h2 className="text-lg font-semibold">
+            <Translated locale={locale} message="groupsPage.appeal.title" />
+          </h2>
           {appeal.ok ? (
-            <AppealNotes notes={appeal.data.notes} />
+            <AppealNotes
+              notes={appeal.data.notes}
+              empty={<Translated locale={locale} message="groupsPage.appeal.none" />}
+              times={Object.fromEntries(
+                appeal.data.notes.map((note) => [
+                  note.id,
+                  formatDateTime(locale, note.created_at, me.timezone),
+                ]),
+              )}
+            />
           ) : (
-            <Notice tone="danger">The appeal cannot be shown right now.</Notice>
+            <Notice tone="danger">
+              <Translated locale={locale} message="groupsPage.appeal.unreachable" />
+            </Notice>
           )}
           <GroupAppealForm locale={locale} slug={group.slug} />
         </section>
@@ -188,8 +252,11 @@ export default async function GroupPage({
           data-testid="group-rules-changed"
         >
           <p>
-            This group&rsquo;s rules have changed (version {group.rules.version}). Read them below.
-            You stay a member either way.
+            <Said
+              locale={locale}
+              message="groupsPage.rulesChanged"
+              params={{ version: formatNumber(locale, group.rules.version) }}
+            />
           </p>
           <RulesSeen locale={locale} slug={group.slug} />
         </Notice>
@@ -197,7 +264,9 @@ export default async function GroupPage({
 
       {group.rules !== null && (
         <section className="flex flex-col gap-2" data-testid="group-rules">
-          <h2 className="text-lg font-semibold">This group&rsquo;s rules</h2>
+          <h2 className="text-lg font-semibold">
+            <Translated locale={locale} message="groupsPage.rulesTitle" />
+          </h2>
           <p
             className="whitespace-pre-line text-sm"
             lang={lang}
@@ -206,9 +275,11 @@ export default async function GroupPage({
             {group.rules.body}
           </p>
           <p className="text-sm text-muted" data-testid="group-rules-whose">
-            Version {group.rules.version}. Written by the group&rsquo;s owner: these are the
-            group&rsquo;s own rules, not the platform&rsquo;s, and they sit beside the platform
-            rules every member already accepted.
+            <Said
+              locale={locale}
+              message="groupsPage.rulesWhose"
+              params={{ version: formatNumber(locale, group.rules.version) }}
+            />
           </p>
         </section>
       )}
@@ -225,7 +296,9 @@ export default async function GroupPage({
 
       {group.standing === 'owner' && group.closed === null && (
         <section className="flex flex-col gap-2" data-testid="group-rules-owner">
-          <h2 className="text-lg font-semibold">Rules</h2>
+          <h2 className="text-lg font-semibold">
+            <Translated locale={locale} message="groupsPage.rulesOwner" />
+          </h2>
           <GroupRulesForm locale={locale} slug={group.slug} current={group.rules?.body ?? null} />
         </section>
       )}
@@ -259,18 +332,20 @@ export default async function GroupPage({
           className="underline"
           data-testid="group-conversation"
         >
-          Open the group conversation
+          <Translated locale={locale} message="groupsPage.openConversation" />
         </Link>
       )}
 
       <section className="flex flex-col gap-2" data-testid="group-members">
-        <h2 className="text-lg font-semibold">Members</h2>
+        <h2 className="text-lg font-semibold">
+          <Translated locale={locale} message="groupsPage.members" />
+        </h2>
         {group.members === null ? (
           // Found, not read. Saying so is the point of the middle visibility;
           // an empty list would have said "nobody", which of a group is never
           // true.
           <p className="text-sm text-muted" data-testid="group-members-hidden">
-            Who is in this group is shown to its members.
+            <Translated locale={locale} message="groupsPage.membersHidden" />
           </p>
         ) : (
           <ul className="flex flex-col gap-2">
@@ -279,7 +354,18 @@ export default async function GroupPage({
                 <MemberName locale={locale} member={member} link className="underline" />{' '}
                 <span className="text-muted">
                   <MemberHandle username={member.username} />
-                  {member.role === 'member' ? '' : ` · ${member.role}`}
+                  {member.role === 'member' ? (
+                    ''
+                  ) : (
+                    <>
+                      {' · '}
+                      {ROLE[member.role] === undefined ? (
+                        member.role
+                      ) : (
+                        <Translated locale={locale} message={ROLE[member.role]!} />
+                      )}
+                    </>
+                  )}
                 </span>
               </li>
             ))}
@@ -303,10 +389,12 @@ export default async function GroupPage({
 
       {board !== null && (
         <section className="flex flex-col gap-3" data-testid="group-board">
-          <h2 className="text-lg font-semibold">The board</h2>
+          <h2 className="text-lg font-semibold">
+            <Translated locale={locale} message="groupsPage.board.title" />
+          </h2>
           {!board.ok ? (
             <Notice tone="danger" data-testid="group-board-unreachable">
-              The board cannot be shown right now.
+              <Translated locale={locale} message="groupsPage.board.unreachable" />
             </Notice>
           ) : board.data.entries.length === 0 ? (
             // The floor does not bend for a small group (D-037), so a group can
@@ -314,49 +402,67 @@ export default async function GroupPage({
             // the difference between an honest absence and a page that looks
             // like nobody is here.
             <p className="text-sm text-muted" data-testid="group-board-none">
-              Nobody in this group has settled {board.data.min_settled} predictions yet, so there is
-              nobody to rank. That is the same filter the whole product uses.
+              <Said
+                locale={locale}
+                message="groupsPage.board.none"
+                params={{ count: formatNumber(locale, board.data.min_settled) }}
+              />
             </p>
           ) : (
             <>
               <ol className="flex flex-col gap-2">
                 {board.data.entries.map((entry) => (
                   <li key={entry.username} className="flex items-baseline gap-3 text-sm">
-                    <span className="w-6 text-end text-muted">{entry.rank}</span>
+                    <span className="w-6 text-end text-muted">
+                      {formatNumber(locale, entry.rank)}
+                    </span>
                     <MemberName locale={locale} member={entry} link className="underline" />
-                    <span className="ms-auto tabular-nums">{ratingLabel(entry)}</span>
-                    <span className="text-muted">{tierLabel(entry.tier)}</span>
-                    <span className="text-muted">{statusLabel(entry)}</span>
+                    <span className="ms-auto tabular-nums">{ratingLabel(entry, locale)}</span>
+                    <span className="text-muted">{tierLabel(entry.tier, locale)}</span>
+                    <span className="text-muted">{statusLabel(entry, locale)}</span>
                   </li>
                 ))}
               </ol>
               {board.data.total > board.data.entries.length && (
                 <p className="text-sm text-muted" data-testid="group-board-more">
-                  Showing {board.data.entries.length} of {board.data.total} ranked members.
+                  <Said
+                    locale={locale}
+                    message="groupsPage.board.more"
+                    params={{
+                      shown: formatNumber(locale, board.data.entries.length),
+                      total: formatNumber(locale, board.data.total),
+                    }}
+                  />
                 </p>
               )}
             </>
           )}
           <p className="text-sm text-muted" data-testid="group-board-note">
-            Ranked among this group&rsquo;s members by the same rating as the{' '}
-            <Link href={`/${locale}/leaderboard`} className="underline">
-              global board
-            </Link>
-            . The rating is the one number; only who it is measured against changes.
+            <WithLink
+              locale={locale}
+              message="groupsPage.board.note"
+              link={
+                <Link href={`/${locale}/leaderboard`} className="underline">
+                  <Translated locale={locale} message="groupsPage.board.global" />
+                </Link>
+              }
+            />
           </p>
         </section>
       )}
 
       {decides && (
         <section className="flex flex-col gap-3" data-testid="group-queue">
-          <h2 className="text-lg font-semibold">Asking to join</h2>
+          <h2 className="text-lg font-semibold">
+            <Translated locale={locale} message="groupsPage.queue.title" />
+          </h2>
           {queue === null || !queue.ok ? (
             <Notice tone="danger" data-testid="group-queue-unreachable">
-              The queue cannot be shown right now.
+              <Translated locale={locale} message="groupsPage.queue.unreachable" />
             </Notice>
           ) : queue.data.requests.length === 0 ? (
             <p className="text-sm text-muted" data-testid="group-queue-none">
-              Nobody is waiting.
+              <Translated locale={locale} message="groupsPage.queue.none" />
             </p>
           ) : (
             <ul className="flex flex-col gap-4">
@@ -380,8 +486,7 @@ export default async function GroupPage({
       )}
 
       <p className="text-sm text-muted">
-        Blocking and reporting live on a member’s profile, where they work the same way everywhere
-        else in the product.
+        <Translated locale={locale} message="messagesPage.blockingNote" />
       </p>
     </main>
   );
