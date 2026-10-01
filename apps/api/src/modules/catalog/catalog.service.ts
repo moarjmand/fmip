@@ -7,7 +7,7 @@ import type {
   Covered,
   FollowSuggestionsResponse,
   LeagueZoneEntry,
-  Leader,
+  BoardPlayer,
   PlayerPage,
   SeasonSummary,
   SuggestedCompetition,
@@ -246,20 +246,38 @@ export class CatalogService {
     const cards = board(boards.cards);
     const results = fixtures.filter((f) => f.status === 'finished').reverse();
     const upcoming = fixtures.filter((f) => f.status !== 'finished');
-    // The logo, the table's crests and the leaders' photos from our own origin (T-1320).
+    // The logo, the table's crests and the leaders' photos from our own origin
+    // (T-1320), and the other boards' rows too (T-1321), in one query.
     const leaders = leadersModule(scorers, filtered);
+    const boardRows = [
+      ...(leaders.data ?? []),
+      ...(assists.module.data ?? []),
+      ...(cleanSheets.module.data ?? []),
+      ...(cards.module.data ?? []),
+    ];
     const media = await this.media.index({
       competition: [competition.id],
       team: [
         ...(table.data ?? []).map((r) => r.team.id),
-        ...(leaders.data ?? []).flatMap((l) => (l.team === null ? [] : [l.team.id])),
+        ...boardRows.flatMap((l) => (l.team === null ? [] : [l.team.id])),
       ],
-      person: (leaders.data ?? []).map((l) => l.person.id),
+      person: boardRows.map((l) => l.person.id),
     });
-    const withLeaderMedia = (l: Leader): Leader => ({
+    const withLeaderMedia = <
+      L extends {
+        person: { id: string; name: string };
+        team: { id: string; name: string } | null;
+      },
+    >(
+      l: L,
+    ): L => ({
       ...l,
       person: { ...l.person, photo: media.photo(l.person.id) },
       team: l.team === null ? null : { ...l.team, crest: media.crest(l.team.id) },
+    });
+    const boardWithMedia = <L extends BoardPlayer>(module: Covered<L[]>): Covered<L[]> => ({
+      ...module,
+      data: module.data === null ? null : module.data.map(withLeaderMedia),
     });
     return {
       kind: 'ok',
@@ -295,9 +313,9 @@ export class CatalogService {
           presets: [...LEADERS_MINUTES_PRESETS],
         },
         boards: {
-          assists: assists.module,
-          clean_sheets: cleanSheets.module,
-          cards: cards.module,
+          assists: boardWithMedia(assists.module),
+          clean_sheets: boardWithMedia(cleanSheets.module),
+          cards: boardWithMedia(cards.module),
           unproven: {
             assists: assists.unproven,
             clean_sheets: cleanSheets.unproven,
@@ -318,8 +336,6 @@ export class CatalogService {
   async team(id: string, locale: string | null = null): Promise<TeamOutcome> {
     const found = await this.teams_.team(id, locale);
     if (found === null) return { kind: 'unknown_team' };
-    // The crest from our own origin (T-1320).
-    const team = { ...found, crest: (await this.media.index({ team: [id] })).crest(id) };
     const seasons = await this.teams_.seasons(id);
     const seasonIds = seasons.map((s) => s.season.id);
     const [{ fixtures, lastUpdatedAt }, squad, followers, tables, splitFixtures, lineup] =
@@ -337,6 +353,12 @@ export class CatalogService {
       squad.players.map((p) => p.person.id),
       id,
     );
+    // The crest (T-1320) and the squad's photos (T-1321) from our own origin, in one query.
+    const media = await this.media.index({
+      team: [id],
+      person: squad.players.map((p) => p.person.id),
+    });
+    const team = { ...found, crest: media.crest(id) };
     const results = fixtures.filter((f) => f.status === 'finished').reverse();
     const upcoming = fixtures.filter((f) => f.status !== 'finished');
     return {
@@ -355,6 +377,7 @@ export class CatalogService {
         squad: derived(
           squad.players.map((p) => ({
             ...p,
+            person: { ...p.person, photo: media.photo(p.person.id) },
             minutes: squadMinutes.get(p.person.id) ?? NO_LINEUPS,
           })),
           1,

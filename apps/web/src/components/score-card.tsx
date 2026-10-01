@@ -6,6 +6,7 @@ import { formatKickoff, scoreLabel, statusLabel } from '@/lib/scores';
 import type { CardCommunity, CardForecast, CardViewing } from '@/lib/score-card-products';
 import { fill, filled, formatMinute, pickPlural } from '@/lib/words';
 import type { ScoresWords } from '@/lib/words-server';
+import { EntityImage } from '@/components/entity-image';
 import { FilledMessage } from '@/components/filled-message';
 import { MessageText } from '@/components/message-text';
 import { LtrNumeric, ltrIsolate } from '@/components/score';
@@ -145,6 +146,8 @@ export function ScoreCard({
               {card.home.name}
             </bdi>
             {sentOff(card.red_cards.home)}
+            {/* The crest on the inner side, beside the score, in either direction (T-1321). */}
+            <EntityImage media={card.home.crest} kind="crest" name={card.home.name} size={22} />
           </span>
           <LtrNumeric
             className={`shrink-0 px-1 text-center font-semibold whitespace-nowrap tabular-nums ${live ? 'text-live' : ''}`}
@@ -153,6 +156,7 @@ export function ScoreCard({
             {scoreLabel(card, locale)}
           </LtrNumeric>
           <span className="flex min-w-0 flex-1 items-center gap-1" data-testid="away-team">
+            <EntityImage media={card.away.crest} kind="crest" name={card.away.name} size={22} />
             {sentOff(card.red_cards.away)}
             <bdi className={NAME} title={card.away.name}>
               {card.away.name}

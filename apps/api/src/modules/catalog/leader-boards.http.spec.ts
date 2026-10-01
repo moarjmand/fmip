@@ -213,6 +213,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('leader board
     expect(
       boards.assists.data!.map((r) => [r.person.id, r.team?.id, r.assists, r.minutes.coverage]),
     ).toEqual([[P.maker, TEAMS.alpha, 1, 'not_supplied']]);
+    // No stored photo or crest: the state, never an empty address (T-1321).
+    expect(boards.assists.data![0]!.person.photo).toEqual({ coverage: 'not_supplied', url: null });
+    expect(boards.assists.data![0]!.team?.crest).toEqual({ coverage: 'not_supplied', url: null });
   });
 
   it('credits a clean sheet only to a keeper who started and finished without conceding', async () => {

@@ -123,7 +123,13 @@ export interface ScoreCard {
 export interface ScoresGroup {
   /** `null` for continental and international competitions. */
   country: { id: string; name: string; code: string } | null;
-  competition: { id: string; name: string; short_name: string | null };
+  competition: {
+    id: string;
+    name: string;
+    short_name: string | null;
+    /** The competition's logo from our own origin, as its cards carry it (T-1321). */
+    logo?: EntityMedia;
+  };
   /** Kick-off order. */
   fixtures: ScoreCard[];
 }

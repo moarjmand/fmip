@@ -173,9 +173,10 @@ export const LEADERS_MINUTES_MAX = 10000;
  * their season minutes under the same rule as the scorers (T-824).
  */
 export interface BoardPlayer {
-  person: { id: string; name: string };
-  /** The team the row counts for; null when the participant is unknown. */
-  team: { id: string; name: string } | null;
+  /** `photo`: from our own origin (T-1321). */
+  person: { id: string; name: string; photo?: EntityMedia };
+  /** The team the row counts for; null when the participant is unknown. `crest`: our own origin (T-1321). */
+  team: { id: string; name: string; crest?: EntityMedia } | null;
   minutes: PlayerSeasonMinutes;
 }
 
@@ -400,7 +401,8 @@ export interface TeamCompetition {
 export type SquadPosition = 'goalkeeper' | 'defender' | 'midfielder' | 'forward';
 
 export interface SquadPlayer {
-  person: { id: string; name: string };
+  /** `photo`: from our own origin (T-1321). */
+  person: { id: string; name: string; photo?: EntityMedia };
   shirt_number: number | null;
   position: SquadPosition | null;
   on_loan: boolean;

@@ -60,6 +60,8 @@ export function arrange(rows: ScoredRow[], prefs: FavouriteIds | null): Arranged
         id: row.card.competition.id,
         name: row.card.competition.name,
         short_name: row.card.competition.short_name,
+        // The heading's logo is the cards' own (T-1321), when media was attached.
+        ...(row.card.competition.logo === undefined ? {} : { logo: row.card.competition.logo }),
       },
       fixtures: [],
       rank,
