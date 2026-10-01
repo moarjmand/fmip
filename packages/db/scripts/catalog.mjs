@@ -47,6 +47,7 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const VERBS = [
   'list',
   'adopt-teams',
+  'adopt-national',
   'adopt-people',
   'adopt-venues',
   'add-country',
@@ -85,6 +86,8 @@ const VALUED = [
 const USAGE = `Usage (one verb per call):
   --list [--type team|person|competition] [--limit N]
   --adopt-teams [--dry-run] [--by <address>]
+  --adopt-national --file <csv, or - for standard input> [--by <address>]
+  --adopt-national --dry-run    (prints the CSV to fill in: one line per national team waiting)
   --adopt-people [--dry-run] [--by <address>]
   --adopt-venues [--dry-run] [--by <address>]
   --add-country --code <FIFA trigram> --name "<name>" [--iso2 <XX>] [--by <address>]
@@ -200,6 +203,17 @@ export function parseArgs(argv) {
       by,
       file: text('file') === '' ? DEFAULT_ALIASES : text('file'),
     };
+  }
+  if (verb === 'adopt-national') {
+    const dryRun = flags.get('dry-run') === true;
+    const file = text('file');
+    if (!dryRun && file === '') {
+      return {
+        error:
+          '--file is required: provider_team_id,country_code lines (--dry-run prints them to fill in).',
+      };
+    }
+    return { command: verb, provider, by, dryRun, file: file === '' ? null : file };
   }
   if (verb === 'adopt-teams' || verb === 'adopt-people' || verb === 'adopt-venues') {
     return { command: verb, provider, by, dryRun: flags.get('dry-run') === true };
@@ -388,9 +402,21 @@ async function list(client, options) {
 }
 
 /**
+ * Whether a queued team is a club or a national team (T-1332, D-179), from the
+ * scope of the competition it was seen in (`payload.seenIn`, written by the
+ * ingestion since T-1332): a competition of scope `international` is played
+ * by national teams, every other by clubs. The provider's team ref does not
+ * say, and the name is never a key (rule 1). A row queued before T-1332
+ * carries no competition and stays a club, as every adoption was until then.
+ */
+export function adoptedTeamKind(seenScope) {
+  return seenScope === 'international' ? 'national' : 'club';
+}
+
+/**
  * What each adoption creates from a queued id: the one row, holding only what
  * the queue knows. A club gets its name and the kind every covered competition
- * has; a person the name the provider printed (often "J. Bellingham" -- it is
+ * has (a national team is `--adopt-national`'s, since it needs a country); a person the name the provider printed (often "J. Bellingham" -- it is
  * what we have, and a provider that serves full names can fill it in later); a
  * venue its name and, when the provider gave one, its city.
  */
@@ -421,21 +447,46 @@ export const ADOPTIONS = {
  * match by name (rule 1): an id the provider means as someone we already hold
  * is placed by hand with `--map`, and the queue records which was which.
  */
-async function adopt(client, options, entityType) {
-  const kind = ADOPTIONS[entityType];
+/**
+ * The queued ids of one kind that are waiting for a row: pending, named, and
+ * mapped to nothing. `seen_scope` is the scope of the competition a team was
+ * last seen in, or null.
+ */
+async function waiting(client, provider, entityType) {
   const { rows } = await client.query(
-    `SELECT id, external_id, payload->>'name' AS name, payload->>'city' AS city
-       FROM unresolved_entity
-      WHERE provider = $1 AND status = 'pending' AND entity_type = $2
-        AND payload->>'name' IS NOT NULL
+    `SELECT u.id, u.external_id, u.payload->>'name' AS name, u.payload->>'city' AS city,
+            c.scope AS seen_scope
+       FROM unresolved_entity u
+       LEFT JOIN competition c ON c.id::text = u.payload->>'seenIn'
+      WHERE u.provider = $1 AND u.status = 'pending' AND u.entity_type = $2
+        AND u.payload->>'name' IS NOT NULL
         AND NOT EXISTS (
           SELECT 1 FROM provider_mapping m
-           WHERE m.provider = unresolved_entity.provider
+           WHERE m.provider = u.provider
              AND m.entity_type = $2
-             AND m.external_id = unresolved_entity.external_id)
-      ORDER BY external_id`,
-    [options.provider, entityType],
+             AND m.external_id = u.external_id)
+      ORDER BY u.external_id`,
+    [provider, entityType],
   );
+  return rows;
+}
+
+async function adopt(client, options, entityType) {
+  const kind = ADOPTIONS[entityType];
+  const queued = await waiting(client, options.provider, entityType);
+  // National teams wait for --adopt-national: a national team needs its
+  // country, which the queue does not know (`team_national_has_country`).
+  const rows =
+    entityType === 'team'
+      ? queued.filter((row) => adoptedTeamKind(row.seen_scope) === 'club')
+      : queued;
+  const national = queued.length - rows.length;
+  if (national > 0) {
+    console.log(
+      `${national} national team(s) seen in international competitions are left for ` +
+        '--adopt-national, which needs each one’s country (--adopt-national --dry-run lists them).',
+    );
+  }
   if (rows.length === 0) {
     console.log(`No ${entityType} is waiting to be adopted.`);
     return 0;
@@ -485,6 +536,141 @@ async function adopt(client, options, entityType) {
   sayIfUnaudited(audited, options.by);
   if (entityType !== 'team') await askAgainForDetail(client, options.provider);
   return 0;
+}
+
+/**
+ * `provider_team_id,country_code[,name]`, one national team a line; a line
+ * starting with `#` is a comment. The name is there for the reader of the
+ * file and is never read (rule 1): the team is named from the queue, as every
+ * adoption is.
+ */
+export function parseNationalTeams(text) {
+  const lines = text.split(/\r?\n/).filter((line) => line.trim() !== '' && !line.startsWith('#'));
+  const header = lines.shift();
+  if (header === undefined || !/^provider_team_id,country_code(,name)?$/.test(header.trim())) {
+    return { error: 'the header must be provider_team_id,country_code,name' };
+  }
+  const rows = [];
+  const seen = new Set();
+  for (const [index, line] of lines.entries()) {
+    const [teamId = '', code = ''] = line.split(',').map((cell) => cell.trim());
+    if (!/^\d+$/.test(teamId)) {
+      return { error: `row ${index + 1}: "${teamId}" is not the provider’s team id` };
+    }
+    if (!/^[A-Za-z]{3}$/.test(code)) {
+      return { error: `row ${index + 1}: the country is a FIFA trigram (IRN, JPN, FRA)` };
+    }
+    if (seen.has(teamId)) return { error: `row ${index + 1}: team ${teamId} is listed twice` };
+    seen.add(teamId);
+    rows.push({ teamId, country: code.toUpperCase() });
+  }
+  return { rows };
+}
+
+/**
+ * National teams out of the queue (T-1332, D-179). Only an id the ingestion
+ * queued from an international competition's fixtures or table is taken; its
+ * country is the operator's to state, by FIFA trigram, since nothing the
+ * provider sends with a team says it and a name is never matched to a
+ * country. A country that already has a senior men's national team is
+ * refused: the provider then means a team we hold, and `--map` says so.
+ */
+async function adoptNational(client, options) {
+  const queued = (await waiting(client, options.provider, 'team')).filter(
+    (row) => adoptedTeamKind(row.seen_scope) === 'national',
+  );
+  if (options.dryRun) {
+    if (queued.length === 0) {
+      console.log('No national team is waiting to be adopted.');
+      return 0;
+    }
+    console.log('# Fill in each country (FIFA trigram), then run --adopt-national --file <this>.');
+    console.log('provider_team_id,country_code,name');
+    for (const row of queued) console.log(`${row.external_id},,${row.name.replace(/,/g, ' ')}`);
+    return 0;
+  }
+
+  const source = readFileSync(options.file === '-' ? 0 : options.file, 'utf8');
+  const parsed = parseNationalTeams(source);
+  if (parsed.error !== undefined) {
+    console.error(`${options.file}: ${parsed.error}`);
+    return 2;
+  }
+  const byId = new Map(queued.map((row) => [String(row.external_id), row]));
+  const refused = [];
+  let adopted = 0;
+  let audited = false;
+  for (const line of parsed.rows) {
+    const row = byId.get(line.teamId);
+    if (row === undefined) {
+      refused.push(`${line.teamId}: not a national team waiting in the queue`);
+      continue;
+    }
+    const country = await client.query('SELECT id FROM country WHERE upper(code) = $1', [
+      line.country,
+    ]);
+    if (country.rows[0] === undefined) {
+      refused.push(`${line.teamId} (${row.name}): no country with the code ${line.country}`);
+      continue;
+    }
+    const countryId = country.rows[0].id;
+    const held = await client.query(
+      `SELECT id FROM team
+        WHERE kind = 'national' AND country_id = $1 AND gender = 'men' AND age_group = 'senior'`,
+      [countryId],
+    );
+    if (held.rows[0] !== undefined) {
+      refused.push(
+        `${line.teamId} (${row.name}): ${line.country} already has a national team, ` +
+          `${held.rows[0].id}; place it with --map if the provider means that one`,
+      );
+      continue;
+    }
+    await client.query('BEGIN');
+    try {
+      const created = await client.query(
+        `INSERT INTO team (name, kind, gender, age_group, country_id, is_active)
+         VALUES ($1, 'national', 'men', 'senior', $2, true) RETURNING id`,
+        [row.name, countryId],
+      );
+      const id = created.rows[0].id;
+      await client.query(
+        `INSERT INTO provider_mapping (provider, entity_type, external_id, internal_id)
+         VALUES ($1, 'team', $2, $3)`,
+        [options.provider, row.external_id, id],
+      );
+      await client.query(
+        `UPDATE unresolved_entity
+            SET status = 'resolved', resolved_internal_id = $2, resolved_by = $3,
+                resolved_at = now(),
+                resolution_note = 'adopted into the catalogue as a national team'
+          WHERE id = $1`,
+        [row.id, id, options.by ?? 'catalog.mjs'],
+      );
+      audited =
+        (await audit(client, options.by, 'catalog.team_added', 'team', id, {
+          name: row.name,
+          kind: 'national',
+          country: line.country,
+          provider: options.provider,
+          external_id: row.external_id,
+        })) || audited;
+      await client.query('COMMIT');
+      adopted += 1;
+      console.log(
+        `  + ${row.name} [${line.country}] (${options.provider} ${row.external_id}) -> ${id}`,
+      );
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    }
+  }
+  console.log(`${adopted} national team(s) adopted.`);
+  for (const reason of refused) console.log(`  not adopted: ${reason}`);
+  const left = queued.length - adopted;
+  if (left > 0) console.log(`${left} national team(s) still waiting.`);
+  sayIfUnaudited(audited, options.by);
+  return refused.length > 0 ? 1 : 0;
 }
 
 /**
@@ -967,6 +1153,8 @@ async function main() {
         return await list(client, parsed);
       case 'adopt-teams':
         return await adopt(client, parsed, 'team');
+      case 'adopt-national':
+        return await adoptNational(client, parsed);
       case 'adopt-people':
         return await adopt(client, parsed, 'person');
       case 'adopt-venues':

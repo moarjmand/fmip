@@ -229,6 +229,15 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
     // Only Burnley v Manchester City has both teams mapped. The other nine are
     // not invented: their provider ids go to the review queue and are named.
     expect(first.partial).toContain('have no mapping and are queued for review');
+    // Each queued club says which competition it was seen in, which is how
+    // the catalogue tells a national team from a club (T-1332, D-179).
+    const queued = await pool.query<{ seen_in: string | null }>(
+      `SELECT DISTINCT payload->>'seenIn' AS seen_in FROM unresolved_entity
+        WHERE provider = 'api_football' AND entity_type = 'team' AND external_id <> '9999'
+          AND last_seen_at >= $1`,
+      [startedAt],
+    );
+    expect(queued.rows).toEqual([{ seen_in: competitionId }]);
 
     const fixtures = await count(`SELECT count(*)::text AS n FROM fixture WHERE season_id = $1`, [
       SEASON,

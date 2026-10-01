@@ -13,9 +13,11 @@ const {
   COMPETITION_SCOPES,
   PROVIDERS,
   STAGE_KINDS,
+  adoptedTeamKind,
   emptyQueueNote,
   parseAliases,
   parseArgs,
+  parseNationalTeams,
 } = catalog;
 
 /**
@@ -57,6 +59,21 @@ describe('catalog arguments', () => {
       dryRun: true,
     });
     expect(parseArgs(['--adopt-people', '--adopt-teams']).error).toContain('One verb at a time');
+  });
+
+  it('reads a national adoption: a file to adopt from, or a dry run to fill one in', () => {
+    expect(parseArgs(['--adopt-national', '--file', '-', '--by', 'a@b.c'])).toMatchObject({
+      command: 'adopt-national',
+      file: '-',
+      dryRun: false,
+      by: 'a@b.c',
+    });
+    expect(parseArgs(['--adopt-national', '--dry-run'])).toMatchObject({
+      command: 'adopt-national',
+      file: null,
+      dryRun: true,
+    });
+    expect(parseArgs(['--adopt-national']).error).toContain('--file is required');
   });
 
   it('insists on one verb, and says which two it was given', () => {
@@ -292,5 +309,47 @@ describe('the training alias list', () => {
     expect(parseAliases([header, 'api_football,42,EPL,Arsenal'].join('\n')).error).toContain(
       'division',
     );
+  });
+});
+
+/**
+ * National teams (T-1332, D-179): the kind follows the scope of the
+ * competition a queued team was seen in, and the country is the operator's,
+ * by FIFA trigram -- never read from a name.
+ */
+describe('national teams', () => {
+  it('takes a team seen in an international competition for a national team, and only that', () => {
+    expect(adoptedTeamKind('international')).toBe('national');
+    expect(adoptedTeamKind('continental')).toBe('club');
+    expect(adoptedTeamKind('domestic')).toBe('club');
+    // Queued before T-1332, with no competition: a club, as every adoption was.
+    expect(adoptedTeamKind(null)).toBe('club');
+  });
+
+  it('reads the list of countries, ignoring the name column and comments', () => {
+    const parsed = parseNationalTeams(
+      [
+        '# Fill in each country',
+        'provider_team_id,country_code,name',
+        '22,irn,Iran',
+        '12,JPN,',
+        '',
+      ].join('\r\n'),
+    );
+    expect(parsed).toEqual({
+      rows: [
+        { teamId: '22', country: 'IRN' },
+        { teamId: '12', country: 'JPN' },
+      ],
+    });
+  });
+
+  it('refuses a list it cannot read rather than guessing at a country', () => {
+    const header = 'provider_team_id,country_code,name';
+    expect(parseNationalTeams('team,country\n22,IRN').error).toContain('header');
+    expect(parseNationalTeams(`${header}\n22,,Iran`).error).toContain('FIFA trigram');
+    expect(parseNationalTeams(`${header}\n22,IR,Iran`).error).toContain('FIFA trigram');
+    expect(parseNationalTeams(`${header}\nIran,IRN`).error).toContain('team id');
+    expect(parseNationalTeams(`${header}\n22,IRN\n22,IRN`).error).toContain('twice');
   });
 });
