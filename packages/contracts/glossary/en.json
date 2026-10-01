@@ -19,6 +19,16 @@
     "source": "competition",
     "locked": false
   },
+  "term.corner": {
+    "kind": "term",
+    "source": "corner",
+    "locked": false
+  },
+  "term.extra-time": {
+    "kind": "term",
+    "source": "extra time",
+    "locked": false
+  },
   "term.fixture": {
     "kind": "term",
     "source": "fixture",
@@ -34,6 +44,11 @@
     "source": "goal",
     "locked": false
   },
+  "term.goal-difference": {
+    "kind": "term",
+    "source": "goal difference",
+    "locked": false
+  },
   "term.goalkeeper": {
     "kind": "term",
     "source": "goalkeeper",
@@ -44,9 +59,19 @@
     "source": "half-time",
     "locked": false
   },
+  "term.head-to-head": {
+    "kind": "term",
+    "source": "head-to-head",
+    "locked": false
+  },
   "term.kick-off": {
     "kind": "term",
     "source": "kick-off",
+    "locked": false
+  },
+  "term.league": {
+    "kind": "term",
+    "source": "league",
     "locked": false
   },
   "term.line-up": {
@@ -74,9 +99,24 @@
     "source": "player",
     "locked": false
   },
+  "term.possession": {
+    "kind": "term",
+    "source": "possession",
+    "locked": false
+  },
+  "term.promotion": {
+    "kind": "term",
+    "source": "promotion",
+    "locked": false
+  },
   "term.red-card": {
     "kind": "term",
     "source": "red card",
+    "locked": false
+  },
+  "term.relegation": {
+    "kind": "term",
+    "source": "relegation",
     "locked": false
   },
   "term.score": {
@@ -97,6 +137,11 @@
   "term.team": {
     "kind": "term",
     "source": "team",
+    "locked": false
+  },
+  "term.yellow-card": {
+    "kind": "term",
+    "source": "yellow card",
     "locked": false
   }
 }

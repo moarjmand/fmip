@@ -27,6 +27,20 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "term.corner": {
+    "source": "corner",
+    "locked": false,
+    "text": "کرنر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.extra-time": {
+    "source": "extra time",
+    "locked": false,
+    "text": "وقت اضافه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "term.fixture": {
     "source": "fixture",
     "locked": false,
@@ -48,6 +62,13 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "term.goal-difference": {
+    "source": "goal difference",
+    "locked": false,
+    "text": "تفاضل گل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "term.goalkeeper": {
     "source": "goalkeeper",
     "locked": false,
@@ -62,10 +83,24 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "term.head-to-head": {
+    "source": "head-to-head",
+    "locked": false,
+    "text": "رودررو",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "term.kick-off": {
     "source": "kick-off",
     "locked": false,
     "text": "شروع بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.league": {
+    "source": "league",
+    "locked": false,
+    "text": "لیگ",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -104,10 +139,31 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "term.possession": {
+    "source": "possession",
+    "locked": false,
+    "text": "مالکیت توپ",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.promotion": {
+    "source": "promotion",
+    "locked": false,
+    "text": "صعود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "term.red-card": {
     "source": "red card",
     "locked": false,
     "text": "کارت قرمز",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.relegation": {
+    "source": "relegation",
+    "locked": false,
+    "text": "سقوط",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -136,6 +192,13 @@
     "source": "team",
     "locked": false,
     "text": "تیم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.yellow-card": {
+    "source": "yellow card",
+    "locked": false,
+    "text": "کارت زرد",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   }
