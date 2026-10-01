@@ -28,6 +28,10 @@ export function localeOf(value: unknown): string | null {
  * country's ISO code, from `Intl`, which is where every other word the page
  * formats comes from.
  *
+ * A national team without a name row of its own is called what its country is
+ * called in that language (T-1334, D-179): "Iran" reads «ایران» on a Persian
+ * page. A country without an ISO code (England, Scotland) keeps its name.
+ *
  * A missing name falls back to the canonical one. That is what a reader
  * expects for a proper noun nobody has spelled in their language yet, and it
  * is not faking coverage (rule 3): the name shown is the entity's real name,
@@ -58,7 +62,18 @@ export class LocalisedNamesService {
        UNION ALL
        SELECT id::text, NULL, iso2
          FROM country
-        WHERE id = ANY($2::uuid[]) AND iso2 IS NOT NULL`,
+        WHERE id = ANY($2::uuid[]) AND iso2 IS NOT NULL
+       UNION ALL
+       SELECT t.id::text, NULL, c.iso2
+         FROM team t
+         JOIN country c ON c.id = t.country_id
+        WHERE t.kind = 'national'
+          AND t.id = ANY($2::uuid[])
+          AND c.iso2 IS NOT NULL
+          AND NOT EXISTS (
+                SELECT 1 FROM entity_alias a
+                 WHERE a.kind = 'name' AND a.language = $1
+                   AND a.entity_type = 'team' AND a.entity_id = t.id)`,
       [locale, ids],
     );
 
