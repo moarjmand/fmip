@@ -19,6 +19,14 @@ postgres container, `rclone` in its official image.
   migrations, the exact row count of every table, size and SHA-256 of the
   dump. The drill checks the restored copy against this file, so a silently
   truncated or partial dump cannot pass.
+- The **media volume** (T-1341): crests, competition logos, player photos and
+  licensed news photos (T-1320, T-1322), files the database only points at.
+  `backup.sh` copies it to `<remote>/media/` after the dump with
+  `rclone copy`, so each night sends only the new files and a file deleted
+  on the server stays on the remote. `BACKUP_MEDIA_VOLUME` names the volume
+  (default `fmip_media`; `off` skips it). The remote's 90-day pruning reads
+  only the top level, so `media/` (and point-in-time recovery's `wal/` and
+  `base/`, which prune themselves) are never aged out by it.
 
 Not backed up: Redis (cache and live state, rebuilt from the database and the
 providers), container images (rebuilt from the repository), `.env` (kept by
@@ -424,6 +432,38 @@ them first (it is the same restore, minus the risk), then restore into the
 real database with the `pg_restore` line above targeting `fmip`, and bring
 the stack up. Expect this to take under an hour; the drill is the rehearsal
 of exactly these steps.
+
+## A copy on the maintainer's machine (T-1341)
+
+The off-provider copy is encrypted and needs `rclone.conf` to read. For a
+copy the maintainer can hold in their hand, `pull-copy.sh` runs on their own
+computer (any checkout, `ssh fmip-prod` working) and fetches over SSH:
+
+```bash
+bash scripts/backup/pull-copy.sh /e/Backup
+```
+
+It writes `<destination>/<UTC stamp>/` with `db/` (the newest nightly dump
+and manifest, the sha256 checked after the download), `media.tar` (every
+file in the media volume, one archive because an exFAT drive gives each small
+file a whole cluster), `code/fmip.bundle` (the repository with every branch
+and its history) and `INFO.txt` (what was copied and the commit the server
+runs), and keeps the newest three copies (`FMIP_COPY_KEEP`). The destination
+is the argument, else `FMIP_COPY_DIR`, else `../fmip-copy`. `.env` and
+`rclone.conf` are never copied: they stay in the password manager.
+
+Restoring from that copy on any machine with Docker:
+
+```bash
+git clone <copy>/code/fmip.bundle fmip && cd fmip
+cp .env.example .env            # or the real one from the password manager
+docker compose up -d postgres
+docker compose exec -T postgres pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+  --no-owner --no-privileges --exit-on-error < <copy>/db/fmip-<stamp>.dump
+docker compose up -d
+mkdir media && tar -xf <copy>/media.tar -C media
+docker compose cp media/. api:/data/media/
+```
 
 ## Verifying on a developer machine
 

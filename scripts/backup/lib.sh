@@ -17,6 +17,11 @@ rclone() {
     rclone/rclone:1 "$@"
 }
 
+# The same, with the media volume read-only at /media instead (T-1341).
+rclone_media() {
+  MSYS_NO_PATHCONV=1 docker run --rm     -v "$BACKUP_MEDIA_VOLUME:/media:ro"     -v "$(host_path "$BACKUP_RCLONE_CONFIG"):/config/rclone/rclone.conf:ro"     rclone/rclone:1 "$@"
+}
+
 utc_now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 
 # record_run KIND OK SUBJECT DETAIL STARTED_AT
