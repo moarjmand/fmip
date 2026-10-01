@@ -326,4 +326,12 @@ export interface NormalisedNewsItem {
    * duplicates removed, nothing else changed. Empty when the item carries none.
    */
   categories: string[];
+  /**
+   * The item's photo as the feed carried it (T-1322, D-177): RSS
+   * `<enclosure type="image/*">`, `media:content`, `media:thumbnail`, or an
+   * Atom enclosure link. `null` unless the reader was asked for images, which
+   * the job does only for a source whose licence covers them. Where the
+   * publisher keeps the file -- never shown to a reader, never in a contract.
+   */
+  imageUrl: string | null;
 }

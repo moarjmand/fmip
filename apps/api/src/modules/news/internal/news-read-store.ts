@@ -3,6 +3,8 @@ import { TRENDING_WEIGHTS } from '@fmip/contracts';
 import type {
   NewsEntity,
   NewsFilters,
+  NewsImage,
+  NewsImageLicence,
   NewsReport,
   NewsRights,
   NewsStoryCard,
@@ -14,6 +16,37 @@ import type {
 } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
+import { shownImageJoin } from './news-image-store';
+
+/** The shown photo's columns, as every card query selects them (T-1322). */
+interface ImageColumns {
+  image_file_key: string | null;
+  image_credit: string | null;
+  image_licence: NewsImageLicence | null;
+  image_licence_url: string | null;
+  image_width: number | null;
+  image_height: number | null;
+}
+
+/** Our own URL for a stored photo, and what a reader must see beside it (D-177). */
+function imageOf(r: ImageColumns): NewsImage | null {
+  if (
+    r.image_file_key === null ||
+    r.image_credit === null ||
+    r.image_licence === null ||
+    r.image_licence_url === null
+  ) {
+    return null;
+  }
+  return {
+    url: `/media/${r.image_file_key}`,
+    credit: r.image_credit,
+    licence: r.image_licence,
+    licence_url: r.image_licence_url,
+    width: r.image_width,
+    height: r.image_height,
+  };
+}
 
 /** The ids a member follows, by type; what the following section is computed from. */
 export interface Followed {
@@ -29,7 +62,7 @@ export interface StoryPage_ {
   nextBefore: string | null;
 }
 
-interface CardRow {
+interface CardRow extends ImageColumns {
   story_id: string;
   article_id: string;
   headline: string;
@@ -292,12 +325,16 @@ export class PostgresNewsReadStore {
               lb.story_type, lb.origin AS type_origin, lb.created_at AS labelled_at,
               br.note AS breaking_note, br.marked_at AS breaking_marked_at,
               br.ends_at AS breaking_ends_at,
+              img.file_key AS image_file_key, img.credit AS image_credit,
+             img.licence AS image_licence, img.licence_url AS image_licence_url,
+             img.width AS image_width, img.height AS image_height,
               NULL::int AS participants,
               d.selected_at AS debate_selected_at, d.note AS debate_note
          FROM story s
          JOIN article a ON a.id = s.promoted_article_id
          JOIN news_source src ON src.id = a.source_id AND src.dropped_at IS NULL
          JOIN LATERAL (${version('a', 'src.language')}) v ON TRUE
+         ${shownImageJoin('a')}
          LEFT JOIN story_debate d ON d.story_id = s.id AND d.cleared_at IS NULL
          LEFT JOIN story_label lb ON lb.story_id = s.id AND lb.superseded_at IS NULL
          LEFT JOIN LATERAL (SELECT note, marked_at, ends_at FROM story_breaking b
@@ -329,25 +366,31 @@ export class PostgresNewsReadStore {
         `SELECT note, noted_at FROM article_correction WHERE article_id = $1 ORDER BY noted_at DESC`,
         [r.article_id],
       ),
-      this.pool.query<{
-        article_id: string;
-        url: string;
-        source_id: string;
-        source_name: string;
-        homepage_url: string;
-        rights: NewsRights;
-        headline: string;
-        summary: string | null;
-        byline: string | null;
-        language: string;
-        published_at: Date | null;
-      }>(
+      this.pool.query<
+        {
+          article_id: string;
+          url: string;
+          source_id: string;
+          source_name: string;
+          homepage_url: string;
+          rights: NewsRights;
+          headline: string;
+          summary: string | null;
+          byline: string | null;
+          language: string;
+          published_at: Date | null;
+        } & ImageColumns
+      >(
         `SELECT a.id AS article_id, a.url,
                 src.id AS source_id, src.name AS source_name, src.homepage_url, src.rights,
-                v.headline, v.summary, v.byline, v.language, v.published_at
+                v.headline, v.summary, v.byline, v.language, v.published_at,
+                img.file_key AS image_file_key, img.credit AS image_credit,
+             img.licence AS image_licence, img.licence_url AS image_licence_url,
+             img.width AS image_width, img.height AS image_height
            FROM article a
            JOIN news_source src ON src.id = a.source_id AND src.dropped_at IS NULL
            JOIN LATERAL (${version('a', 'src.language')}) v ON TRUE
+           ${shownImageJoin('a')}
           WHERE a.story_id = $1 AND a.id <> $3
           ORDER BY COALESCE(v.published_at, a.fetched_at) DESC, a.id`,
         [storyId, language, r.article_id],
@@ -387,6 +430,7 @@ export class PostgresNewsReadStore {
           homepage_url: p.homepage_url,
           rights: p.rights,
         },
+        image: imageOf(p),
       })),
       last_updated_at: lastUpdatedAt,
     };
@@ -548,6 +592,7 @@ export class PostgresNewsReadStore {
               marked_at: r.breaking_marked_at.toISOString(),
               ends_at: r.breaking_ends_at.toISOString(),
             },
+      image: imageOf(r),
     };
   }
 
@@ -675,10 +720,14 @@ class Query {
              (SELECT count(*)::int - 1 FROM article m WHERE m.story_id = s.id) AS other_reports,
              lb.story_type, lb.origin AS type_origin, lb.created_at AS labelled_at,
              br.note AS breaking_note, br.marked_at AS breaking_marked_at,
-             br.ends_at AS breaking_ends_at
+             br.ends_at AS breaking_ends_at,
+             img.file_key AS image_file_key, img.credit AS image_credit,
+             img.licence AS image_licence, img.licence_url AS image_licence_url,
+             img.width AS image_width, img.height AS image_height
         FROM story s
         JOIN article a ON a.id = s.promoted_article_id
         JOIN news_source src ON src.id = a.source_id AND src.dropped_at IS NULL
+        ${shownImageJoin('a')}
         LEFT JOIN story_label lb ON lb.story_id = s.id AND lb.superseded_at IS NULL
         LEFT JOIN LATERAL (SELECT note, marked_at, ends_at FROM story_breaking b
                      WHERE b.story_id = s.id AND b.cleared_at IS NULL AND b.ends_at > now()

@@ -131,6 +131,41 @@ export interface NewsStoryCard {
    * expired mark is `null` at the next read, not at the next job.
    */
   breaking: BreakingMark | null;
+  /**
+   * The story's photo (T-1322, D-177), from our own server, with the credit
+   * and licence a reader must be shown beside it. `null` (or absent, from a
+   * server before T-1322) for every source whose licence does not cover its
+   * photos, and for a photo not shown to be the agency's own.
+   */
+  image?: NewsImage | null;
+}
+
+/** The image licences a source may grant (D-177). */
+export const NEWS_IMAGE_LICENCES = {
+  'cc-by-4.0': { name: 'CC BY 4.0', url: 'https://creativecommons.org/licenses/by/4.0/' },
+} as const;
+export type NewsImageLicence = keyof typeof NEWS_IMAGE_LICENCES;
+
+/**
+ * A news photo as a reader may see it (T-1322, D-177). `url` is ours
+ * (`/media/news/<file>`), never the agency's; the page shows `credit` and the
+ * licence's name linked to `licence_url` wherever it shows the photo.
+ */
+export interface NewsImage {
+  url: string;
+  /** Who to credit, e.g. "Mehr News Agency", or "<photographer> / Mehr News Agency". */
+  credit: string;
+  licence: NewsImageLicence;
+  licence_url: string;
+  /** From the file's header; `null` when unknown. For reserving the space before it loads. */
+  width: number | null;
+  height: number | null;
+}
+
+/** An editor's decision on one article's photo (T-1322): `POST /admin/articles/:id/image`. */
+export interface ArticleImageOverrideRequest {
+  action: 'show' | 'hide';
+  reason: string;
 }
 
 export interface BreakingMark {
@@ -226,6 +261,8 @@ export interface NewsReport {
   published_at: string | null;
   url: string;
   source: { id: string; name: string; homepage_url: string; rights: NewsRights };
+  /** This report's photo under D-177, as on a card. */
+  image?: NewsImage | null;
 }
 
 /** Whose words a version carries (T-304, blueprint 13). Never a machine's presented as a person's (T-151). */

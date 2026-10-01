@@ -71,6 +71,24 @@ import cloudflare-ranges.caddy
 		}
 	}
 
+	# News photos (T-1322, D-177), from the API's own volume. A reader's
+	# browser asks this origin for them and never the agency's host. A path
+	# prefix under one fixed directory; the API refuses any name that is not
+	# `<uuid>.<ext>`.
+	@media path /media/news/*
+	handle @media {
+		reverse_proxy {
+			dynamic a {
+				name api
+				port 3001
+				refresh 1s
+			}
+			lb_try_duration 10s
+			lb_try_interval 250ms
+			fail_duration 10s
+		}
+	}
+
 	# Everything else is the web app. A `handle` block rather than a bare
 	# directive, so the two are mutually exclusive and the socket above can
 	# never also be handed to `web`.

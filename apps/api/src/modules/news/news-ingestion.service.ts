@@ -4,7 +4,9 @@ import { NEWS_TRANSPORT } from './internal/news-transport';
 import { type NewsSourceRow, PostgresNewsStore, type VersionFields } from './internal/news-store';
 import { NEWS_USER_AGENT, robotsAllows } from './internal/robots';
 import { PostgresStoryLabelStore } from './internal/story-label-store';
+import { PostgresNewsImageStore } from './internal/news-image-store';
 import { NewsClusteringService } from './news-clustering.service';
+import { NewsImagesService } from './news-images.service';
 import { StoryTypeAlertsService } from './story-type-alerts.service';
 
 /** Postgres' unique_violation: a run of this source is already open. */
@@ -44,6 +46,8 @@ export class NewsIngestionService {
     private readonly clustering: NewsClusteringService,
     private readonly labels: PostgresStoryLabelStore,
     private readonly alerts: StoryTypeAlertsService,
+    private readonly images: NewsImagesService,
+    private readonly imageRights: PostgresNewsImageStore,
     @Inject(NEWS_TRANSPORT) private readonly transport: Transport,
   ) {}
 
@@ -114,13 +118,16 @@ export class NewsIngestionService {
     const robots = await this.transport.request(`${feed.origin}/robots.txt`, {
       headers: { accept: 'text/plain' },
     });
-    if (robots.status === 200 && typeof robots.body === 'string') {
-      if (!robotsAllows(robots.body, `${feed.pathname}${feed.search}`, NEWS_USER_AGENT)) {
+    const robotsTxt = robots.status === 200 && typeof robots.body === 'string' ? robots.body : null;
+    if (robotsTxt !== null) {
+      if (!robotsAllows(robotsTxt, `${feed.pathname}${feed.search}`, NEWS_USER_AGENT)) {
         return this.report(source, 0, 0, `robots.txt at ${feed.origin} disallows ${feed.pathname}`);
       }
     }
 
-    const result = await readFeed(this.transport, source.feed_url);
+    // D-177: a photo's URL is read only from a source whose licence covers it.
+    const right = await this.imageRights.rightOf(source.id);
+    const result = await readFeed(this.transport, source.feed_url, { images: right !== null });
     if (!result.ok) {
       return this.report(source, 0, 0, `${result.error.kind}: ${result.error.message}`);
     }
@@ -138,6 +145,18 @@ export class NewsIngestionService {
       const article = await this.store.upsertArticle(source.id, item.externalId, item.url);
       // T-1002: the publisher's categories as carried this time.
       const recategorised = await this.store.replaceCategories(article.id, item.categories);
+      // T-1322: the photo, decided once per photo URL, under the source's right.
+      if (right !== null && item.imageUrl !== null) {
+        await this.images.consider({
+          sourceId: source.id,
+          right,
+          articleId: article.id,
+          articleUrl: item.url,
+          imageUrl: item.imageUrl,
+          feedOrigin: feed.origin,
+          robots: robotsTxt,
+        });
+      }
       const newest = await this.store.newestVersion(article.id, language);
       if (newest === null || !same(newest, fields)) {
         await this.store.addVersion(
