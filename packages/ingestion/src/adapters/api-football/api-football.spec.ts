@@ -255,6 +255,29 @@ describe('mapping rules', () => {
     ).toBeNull();
   });
 
+  it('drops a match a day or more ahead that the provider calls live or finished (T-1350)', () => {
+    const item = (date: string, short: string) => ({
+      fixture: { id: 1545957, date, status: { short, elapsed: 90 } },
+      league: {
+        id: 36,
+        name: 'Africa Cup of Nations - Qualification',
+        season: 2027,
+        round: 'Group Stage - 6',
+      },
+      teams: { home: { id: 28, name: 'Tunisia' }, away: { id: 1503, name: 'Botswana' } },
+      goals: { home: 2, away: 2 },
+      score: { fulltime: { home: 2, away: 2 } },
+    });
+    const at = '2026-10-01T16:00:00Z';
+    expect(mapFixture(item('2027-03-28T16:00:00+00:00', 'FT'), at)).toBeNull();
+    expect(mapFixture(item('2027-03-28T16:00:00+00:00', '1H'), at)).toBeNull();
+    // Still listed when it is merely scheduled or postponed that far ahead.
+    expect(mapFixture(item('2027-03-28T16:00:00+00:00', 'NS'), at)?.status).toBe('scheduled');
+    expect(mapFixture(item('2027-03-28T16:00:00+00:00', 'PST'), at)?.status).toBe('postponed');
+    // A kick-off within the day (time-zone slack, an early whistle) is taken as given.
+    expect(mapFixture(item('2026-10-02T10:00:00+00:00', 'FT'), at)?.status).toBe('finished');
+  });
+
   it('turns events into incidents with the side by team id and the substitute as the related player', () => {
     const incidents = mapIncidents(
       [

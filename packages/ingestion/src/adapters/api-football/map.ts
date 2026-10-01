@@ -141,6 +141,15 @@ function score(value: unknown): { home: number; away: number } | null {
   return home === null || away === null || home < 0 || away < 0 ? null : { home, away };
 }
 
+const DAY_MS = 86_400_000;
+
+/** True when a kick-off is at least a day after the moment the answer arrived. */
+function playedTooEarly(kickoffAt: string, receivedAt: string): boolean {
+  const kickoff = Date.parse(kickoffAt);
+  const received = Date.parse(receivedAt);
+  return Number.isFinite(kickoff) && Number.isFinite(received) && kickoff - received >= DAY_MS;
+}
+
 /**
  * One element of `response` from `/fixtures`. Returns null when the element
  * lacks what a fixture needs (id, teams, kick-off, a known status).
@@ -178,6 +187,12 @@ export function mapFixture(item: unknown, receivedAt: string): NormalisedFixture
     awayId === null ||
     awayName === null
   ) {
+    return null;
+  }
+  // A match a day or more ahead cannot be under way or over: the provider
+  // has listed AFCON qualifiers for March 2027 as "FT" with a score (T-1350).
+  // Dropped like an unknown status, never shown as played.
+  if ((status === 'live' || status === 'finished') && playedTooEarly(kickoffAt, receivedAt)) {
     return null;
   }
 
