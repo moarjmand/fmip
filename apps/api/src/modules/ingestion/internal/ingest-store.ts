@@ -389,7 +389,7 @@ export class IngestStore implements SquadStore {
       unresolved.push(`season:${target.competitionExternalId}/${fixture.season.label}`);
       return { changed: 0, unresolved };
     }
-    const stageId = await this.stageId(seasonId, fixture.stage?.name ?? null);
+    const stageId = await this.stageId(seasonId, fixture.stage?.name ?? null, fixture.round);
     const minute = fixture.status === 'live' ? fixture.minute : null;
 
     const client = await this.pool.connect();
@@ -559,11 +559,33 @@ export class IngestStore implements SquadStore {
   }
 
   /** The season's stage with that name, or `null`. Stages are never created here. */
-  private async stageId(seasonId: string, name: string | null): Promise<string | null> {
-    if (name === null) return null;
+  /**
+   * The season's stage a fixture belongs to: by the stage name the adapter
+   * read, or, when it read none, by the round the way `catalog --add-stage`
+   * stamps it ("League A" owns "League A" and "League A - 3"). Without the
+   * second rule every poll took back the stage an operator gave a round whose
+   * words the adapter cannot classify, the Nations League's "League A - 1"
+   * among them (T-1340).
+   */
+  async stageId(
+    seasonId: string,
+    name: string | null,
+    round: string | null = null,
+  ): Promise<string | null> {
+    if (name !== null) {
+      const { rows } = await this.pool.query<{ id: string }>(
+        `SELECT id FROM stage WHERE season_id = $1 AND name = $2`,
+        [seasonId, name],
+      );
+      return rows[0]?.id ?? null;
+    }
+    if (round === null) return null;
     const { rows } = await this.pool.query<{ id: string }>(
-      `SELECT id FROM stage WHERE season_id = $1 AND name = $2`,
-      [seasonId, name],
+      `SELECT id FROM stage
+        WHERE season_id = $1 AND ($2 = name OR left($2, length(name) + 3) = name || ' - ')
+        ORDER BY length(name) DESC
+        LIMIT 1`,
+      [seasonId, round],
     );
     return rows[0]?.id ?? null;
   }
