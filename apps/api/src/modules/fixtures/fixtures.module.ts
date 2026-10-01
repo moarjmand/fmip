@@ -18,7 +18,7 @@ import { DEFAULT_STREAM_OPTIONS, STREAM_OPTIONS, StreamController } from './stre
  * centre (T-033) and the SSE gateway that pushes both (T-032).
  */
 @Module({
-  imports: [IdentityModule, ProfileModule, MediaModule, LocalisedNamesModule],
+  imports: [IdentityModule, ProfileModule, LocalisedNamesModule, MediaModule],
   controllers: [ScoresController, MatchCentreController, StreamController],
   providers: [
     FixturesService,

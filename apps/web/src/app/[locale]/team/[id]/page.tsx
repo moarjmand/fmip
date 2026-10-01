@@ -3,6 +3,7 @@ import { formatNumber, intlLocale } from '@/i18n/format';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { MatchViewing, TeamCompetitionSplits, TeamPageFixture } from '@fmip/contracts';
+import { EntityImage } from '@/components/entity-image';
 import { FounderAnalysisFeed } from '@/components/founder-analysis';
 import {
   fetchEntityNews,
@@ -136,8 +137,18 @@ export default async function TeamPage({
             ? ` · ${say(locale, 'teamPage.founded', { year: yearText(locale, t.founded_year) })}`
             : ''}
         </p>
-        <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
-          {t.localised_name ?? t.name}
+        <h1
+          className="flex items-center gap-3 border-s-4 border-s-accent ps-4 text-2xl font-semibold"
+          data-testid="title"
+        >
+          <EntityImage
+            media={t.crest}
+            kind="crest"
+            name={t.localised_name ?? t.name}
+            size={48}
+            aboveFold
+          />
+          <span className="min-w-0">{t.localised_name ?? t.name}</span>
         </h1>
         {t.localised_name !== null && (
           // The name it is a name for. Shown, not hidden: a page that showed
@@ -403,15 +414,21 @@ export default async function TeamPage({
                 {group.players.map((player) => (
                   <li
                     key={player.person.id}
-                    className="flex flex-wrap items-baseline gap-x-3"
+                    className="flex flex-wrap items-center gap-x-3 py-0.5"
                     data-testid="player"
                   >
-                    <span className="w-8 text-end tabular-nums text-muted">
+                    <span className="w-8 shrink-0 text-end tabular-nums text-muted">
                       {player.shirt_number === null
                         ? '–'
                         : formatNumber(locale, player.shirt_number)}
                     </span>
-                    <span className="grow">
+                    <EntityImage
+                      media={player.person.photo}
+                      kind="photo"
+                      name={player.person.name}
+                      size={40}
+                    />
+                    <span className="min-w-0 grow">
                       <Link href={`/${locale}/player/${player.person.id}`} className="underline">
                         {player.person.name}
                       </Link>

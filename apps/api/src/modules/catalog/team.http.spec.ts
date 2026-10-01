@@ -19,6 +19,8 @@ const SEASON = randomUUID();
 const STAGE = randomUUID();
 const VENUE = randomUUID();
 const TEAMS = { alpha: randomUUID(), beta: randomUUID(), gamma: randomUUID() };
+/** No stored photo for a squad member (T-1321): the state, not an empty string. */
+const NO_PHOTO = { coverage: 'not_supplied', url: null } as const;
 const KEEPER = randomUUID();
 const STRIKER = randomUUID();
 const FAN = randomUUID();
@@ -244,7 +246,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('team page', 
     expect(page.squad.coverage).toBe('available');
     expect(page.squad.data).toEqual([
       {
-        person: { id: KEEPER, name: 'Keeper' },
+        person: { id: KEEPER, name: 'Keeper', photo: NO_PHOTO },
         shirt_number: 1,
         position: 'goalkeeper',
         on_loan: false,
@@ -258,7 +260,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('team page', 
         },
       },
       {
-        person: { id: STRIKER, name: `Test Striker ${RUN}` },
+        person: { id: STRIKER, name: `Test Striker ${RUN}`, photo: NO_PHOTO },
         shirt_number: 9,
         position: 'forward',
         on_loan: true,

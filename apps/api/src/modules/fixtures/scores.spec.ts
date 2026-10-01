@@ -193,6 +193,18 @@ describe('arrange', () => {
     expect(groups[0]?.country).toBeNull();
   });
 
+  it("gives a group heading its cards' logo, and none when no media was attached (T-1321)", () => {
+    const logo = { coverage: 'available' as const, url: '/api/media/logo/c-ll/abc123def456' };
+    const withLogo = rows.map((row) =>
+      row.card.competition.id === 'c-ll'
+        ? { ...row, card: { ...row.card, competition: { ...row.card.competition, logo } } }
+        : row,
+    );
+    const groups = arrange(withLogo, null).groups;
+    expect(groups.find((g) => g.competition.id === 'c-ll')?.competition.logo).toEqual(logo);
+    expect(groups.find((g) => g.competition.id === 'c-pl')?.competition).not.toHaveProperty('logo');
+  });
+
   it('pins favourite teams and competitions, lifts followed ones, marks the cards', () => {
     const prefs: FavouriteIds = {
       team_ids: ['t-liv'],

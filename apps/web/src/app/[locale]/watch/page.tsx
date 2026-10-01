@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { MatchViewing, ScoreCard, ViewingTerritory } from '@fmip/contracts';
+import { EntityImage } from '@/components/entity-image';
 import { Translated } from '@/components/translated';
 import { TerritoryChooser, ViewingPanel } from '@/components/viewing-panel';
 import { formatDateTime } from '@/i18n/format';
@@ -149,7 +150,16 @@ export default async function WatchPage({
           {groups.map((group) => (
             <li key={`${group.competition.id}`} className="flex flex-col gap-3">
               <h2 className="text-lg font-semibold">
-                <Link href={`/${locale}/competition/${group.competition.id}`} className="underline">
+                <Link
+                  href={`/${locale}/competition/${group.competition.id}`}
+                  className="inline-flex items-center gap-2 underline"
+                >
+                  <EntityImage
+                    media={group.competition.logo}
+                    kind="logo"
+                    name={group.competition.name}
+                    size={20}
+                  />
                   {group.competition.name}
                 </Link>
               </h2>
