@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { EN } from '@/i18n/messages';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -117,11 +118,16 @@ describe('the three products stay three on the page', () => {
       expect(text).not.toMatch(/source\s*[:?]/);
       expect(text).not.toMatch(/'model'\s*\|\s*'community'/);
     }
-    // Each line names whose it is.
-    expect(forecast).toContain('Model forecast:');
-    expect(forecast).toContain('the statistical model');
-    expect(community).toContain('Community predictions:');
-    expect(community).toContain('not the model');
+    // Each line names whose it is: the words are the catalogue's (T-1303),
+    // so the file names the keys and the English says it.
+    expect(forecast).toContain("m['scores.card.model.label']");
+    expect(EN['scores.card.model.label']).toBe('Model forecast:');
+    expect(forecast).toContain("m['scores.card.model.version']");
+    expect(EN['scores.card.model.version']).toContain('the statistical model');
+    expect(community).toContain("m['scores.card.community.label']");
+    expect(EN['scores.card.community.label']).toBe('Community predictions:');
+    expect(community).toContain("p['scores.card.community.sample']");
+    expect(EN['scores.card.community.sample'].other).toContain('not the model');
 
     const card = source('score-card.tsx');
     expect(card).toContain('<CardForecastSummary');
@@ -154,6 +160,7 @@ describe('the three products stay three on the page', () => {
     }
     // And the wording a reader sees says so, because a rule kept only in tests
     // is a rule the reader has to take on trust.
-    expect(source('community-consensus.tsx')).toContain('does not average them');
+    expect(source('community-consensus.tsx')).toContain('matchCentre.community.gapNote');
+    expect(EN['matchCentre.community.gapNote']).toContain('does not average them');
   });
 });

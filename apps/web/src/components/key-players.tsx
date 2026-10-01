@@ -8,8 +8,12 @@ import {
   positionLabel,
   ruleNote,
 } from '@/lib/key-players';
-import { moduleState } from '@/lib/match';
+import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
+import { message } from '@/i18n/messages';
 import { formatKickoff } from '@/lib/scores';
+import { FilledMessage } from '@/components/filled-message';
+import { COVERAGE_KEY } from '@/components/score-card';
+import { Translated } from '@/components/translated';
 import { Notice } from '@/components/ui';
 
 /**
@@ -37,9 +41,11 @@ export function KeyPlayersPanel({
   if (players === null) {
     return (
       <section className="flex flex-col gap-2" data-testid="key-players" data-state="unreachable">
-        <h2 className="text-lg font-semibold">Key players</h2>
+        <h2 className="text-lg font-semibold">
+          <Translated locale={locale} message="matchCentre.keyPlayers.title" />
+        </h2>
         <Notice tone="danger">
-          The key players could not be reached, so they cannot be shown.
+          <Translated locale={locale} message="matchCentre.keyPlayers.unreachable" />
         </Notice>
       </section>
     );
@@ -48,26 +54,34 @@ export function KeyPlayersPanel({
   const asked = players.availability_asked_at;
   return (
     <section className="flex flex-col gap-3" data-testid="key-players" data-state="loaded">
-      <h2 className="text-lg font-semibold">Key players</h2>
+      <h2 className="text-lg font-semibold">
+        <Translated locale={locale} message="matchCentre.keyPlayers.title" />
+      </h2>
       <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
         <Side name={home} module={players.home} locale={locale} />
         <Side name={away} module={players.away} locale={locale} />
       </div>
       <p dir="auto" className="text-xs text-muted" data-testid="key-players-availability">
         {asked === null ? (
-          'Availability: the provider has not been asked about this match, so none is claimed.'
+          <Translated locale={locale} message="matchCentre.keyPlayers.notAsked" />
         ) : (
-          <>
-            Availability as the provider gave it,{' '}
-            <time dateTime={asked}>
-              {asked.slice(0, 10)} {formatKickoff(locale, asked, timeZone)}
-            </time>
-            .
-          </>
+          <FilledMessage
+            message={message(
+              isLocale(locale) ? locale : DEFAULT_LOCALE,
+              'matchCentre.keyPlayers.asked',
+            )}
+            params={{
+              time: (
+                <time dateTime={asked}>
+                  {asked.slice(0, 10)} {formatKickoff(locale, asked, timeZone)}
+                </time>
+              ),
+            }}
+          />
         )}
       </p>
       <p dir="auto" className="text-xs text-muted" data-testid="key-players-rule">
-        {ruleNote(players.competition.name, players.season.label)}
+        {ruleNote(players.competition.name, players.season.label, locale)}
       </p>
     </section>
   );
@@ -92,22 +106,27 @@ function Side({
       <h3 className="flex flex-wrap items-baseline gap-x-2 font-medium">
         <bdi>{name}</bdi>
         <span dir="auto" className="text-xs font-normal uppercase text-muted">
-          {moduleState(module)}
+          <Translated locale={locale} message={COVERAGE_KEY[module.coverage]} />
         </span>
       </h3>
       {side === null ? (
         <p dir="auto" className="text-muted">
-          {module.coverage === 'delayed'
-            ? 'Player figures for this side are delayed.'
-            : 'No per-match player figures for this side this season.'}
+          <Translated
+            locale={locale}
+            message={
+              module.coverage === 'delayed'
+                ? 'matchCentre.keyPlayers.delayed'
+                : 'matchCentre.keyPlayers.noFigures'
+            }
+          />
         </p>
       ) : (
         <>
           {side.players.length > 0 && (
             <ol className="flex flex-col gap-2">
               {side.players.map((p) => {
-                const position = positionLabel(p.position);
-                const availability = availabilityLine(p);
+                const position = positionLabel(p.position, locale);
+                const availability = availabilityLine(p, locale);
                 return (
                   <li key={p.id} className="flex flex-col" data-testid="key-player">
                     <span className="break-words">
@@ -117,7 +136,7 @@ function Side({
                       {position !== null && <span className="text-muted"> · {position}</span>}
                     </span>
                     <span className="text-muted">
-                      {figuresLine(p, (n) => formatNumber(locale, n))}
+                      {figuresLine(p, (n) => formatNumber(locale, n), locale)}
                     </span>
                     {availability !== null && (
                       <span
@@ -137,7 +156,7 @@ function Side({
             </ol>
           )}
           <p dir="auto" className="text-xs text-muted">
-            {coverageLine(side)}
+            {coverageLine(side, locale)}
           </p>
         </>
       )}

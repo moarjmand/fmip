@@ -94,6 +94,21 @@
     "source": "matchday",
     "locked": false
   },
+  "term.offside": {
+    "kind": "term",
+    "source": "offside",
+    "locked": false
+  },
+  "term.own-goal": {
+    "kind": "term",
+    "source": "own goal",
+    "locked": false
+  },
+  "term.penalty": {
+    "kind": "term",
+    "source": "penalty",
+    "locked": false
+  },
   "term.player": {
     "kind": "term",
     "source": "player",
@@ -114,6 +129,11 @@
     "source": "red card",
     "locked": false
   },
+  "term.referee": {
+    "kind": "term",
+    "source": "referee",
+    "locked": false
+  },
   "term.relegation": {
     "kind": "term",
     "source": "relegation",
@@ -124,6 +144,11 @@
     "source": "score",
     "locked": false
   },
+  "term.scoreline": {
+    "kind": "term",
+    "source": "scoreline",
+    "locked": false
+  },
   "term.scorer": {
     "kind": "term",
     "source": "scorer",
@@ -132,6 +157,11 @@
   "term.season": {
     "kind": "term",
     "source": "season",
+    "locked": false
+  },
+  "term.standings": {
+    "kind": "term",
+    "source": "standings",
     "locked": false
   },
   "term.team": {

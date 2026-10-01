@@ -9,7 +9,9 @@ import {
   fetchScores,
   fetchViewingBatch,
 } from '@/lib/api';
-import { feedNotice } from '@/lib/live';
+import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
+import { attribute, message, t, type MessageKey } from '@/i18n/messages';
+import { feedTrouble } from '@/lib/live';
 import { apiQuery, dayStrip, pageHref, readScoresQuery, shiftDate } from '@/lib/scores';
 import {
   applyFilters,
@@ -23,6 +25,9 @@ import {
 import { cardIds, loadScoreCardProducts, NO_PRODUCTS } from '@/lib/score-card-products';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { scoresWords } from '@/lib/words-server';
+import { FilledMessage } from '@/components/filled-message';
+import { Translated } from '@/components/translated';
 import { Button, ButtonLink, Notice, controlClasses } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
@@ -33,11 +38,12 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  const resolved = isLocale(locale) ? locale : DEFAULT_LOCALE;
   return pageMetadata({
     locale,
     path: '/scores',
-    title: 'Scores · FMIP',
-    description: 'Live scores and fixtures, one day at a time in your time zone.',
+    title: `${t(resolved, 'nav.scores')} · FMIP`,
+    description: t(resolved, 'scores.metaDescription'),
   });
 }
 
@@ -62,6 +68,8 @@ export default async function ScoresPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const [{ locale }, query] = await Promise.all([params, searchParams]);
+  const resolved = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  const say = (key: MessageKey): string => t(resolved, key);
   const cookie = await sessionCookieHeader();
   const me = await fetchMe(cookie);
   const q = readScoresQuery(query, me?.timezone ?? null);
@@ -81,8 +89,13 @@ export default async function ScoresPage({
       })
     : NO_PRODUCTS;
   // A provider outage is named on the page (T-083), never hidden behind old numbers.
-  const notice = feedNotice(ingestion, locale, q.timezone);
-  const strip = dayStrip(q, locale);
+  const trouble = feedTrouble(ingestion, locale, q.timezone);
+  const strip = dayStrip(q, locale, {
+    yesterday: say('scores.yesterday'),
+    today: say('scores.today'),
+    tomorrow: say('scores.tomorrow'),
+  });
+  const dayNav = attribute(resolved, 'scores.dayNav');
   // Every control is a thumb's target, 44px or more (T-605).
   const linkClass = (active: boolean): string =>
     `inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded px-3 ${
@@ -135,12 +148,13 @@ export default async function ScoresPage({
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-4 sm:gap-6 sm:p-8">
       <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
-        Scores
+        <Translated locale={locale} message="nav.scores" />
       </h1>
 
       {/* One row that scrolls inside itself on a phone, never the page (T-605). */}
       <nav
-        aria-label="Day"
+        aria-label={dayNav.text}
+        lang={dayNav.lang}
         className="-mx-4 flex gap-1 overflow-x-auto px-4 text-sm sm:mx-0 sm:flex-wrap sm:px-0"
         data-testid="day-strip"
       >
@@ -166,7 +180,9 @@ export default async function ScoresPage({
         >
           {hidden([zoneField, ...flagFields, ...filterParams(filters)])}
           <label className="flex min-w-0 flex-1 flex-col gap-1">
-            <span>Date</span>
+            <span>
+              <Translated locale={locale} message="scores.date" />
+            </span>
             <input
               type="date"
               name="date"
@@ -177,7 +193,7 @@ export default async function ScoresPage({
             />
           </label>
           <Button type="submit" className="min-h-11 shrink-0 font-medium">
-            Show day
+            <Translated locale={locale} message="scores.showDay" />
           </Button>
         </form>
         {/* The arrows are bidi-mirrored characters, so they point the right way in RTL. */}
@@ -187,24 +203,28 @@ export default async function ScoresPage({
           data-testid="previous-day"
         >
           <span aria-hidden="true">‹</span>
-          <span>Previous day</span>
+          <span>
+            <Translated locale={locale} message="scores.previousDay" />
+          </span>
         </ButtonLink>
         <ButtonLink
           href={pageHref(locale, q, { date: shiftDate(q.date, 1) })}
           className={stepClass}
           data-testid="next-day"
         >
-          <span>Next day</span>
+          <span>
+            <Translated locale={locale} message="scores.nextDay" />
+          </span>
           <span aria-hidden="true">›</span>
         </ButtonLink>
       </div>
 
       <div className="flex flex-wrap items-center gap-x-1 gap-y-0 text-sm" data-testid="filters">
         <Link href={pageHref(locale, q, { live: false })} className={linkClass(!q.live)}>
-          All
+          <Translated locale={locale} message="scores.filter.all" />
         </Link>
         <Link href={pageHref(locale, q, { live: true })} className={linkClass(q.live)}>
-          Live
+          <Translated locale={locale} message="scores.filter.live" />
         </Link>
         {me !== null && (
           <Link
@@ -212,12 +232,17 @@ export default async function ScoresPage({
             className={linkClass(q.favourites)}
             aria-pressed={q.favourites}
           >
-            Favourites only
+            <Translated locale={locale} message="scores.filter.favourites" />
           </Link>
         )}
         <span className="w-full text-xs text-muted sm:ms-auto sm:w-auto" data-testid="timezone">
-          Times in {q.timezone}
-          {me === null && !q.explicitTimezone ? ' (sign in for your own zone)' : ''}
+          <FilledMessage
+            message={message(
+              resolved,
+              me === null && !q.explicitTimezone ? 'scores.timesInGuest' : 'scores.timesIn',
+            )}
+            params={{ zone: q.timezone }}
+          />
         </span>
       </div>
 
@@ -226,7 +251,10 @@ export default async function ScoresPage({
           options.countries.length + options.competitions.length + options.stages.length > 0) && (
           <details open={filtered} className="text-sm" data-testid="more-filters">
             <summary className="flex min-h-11 cursor-pointer items-center font-medium">
-              Country, competition and stage{filtered ? ' (filtered)' : ''}
+              <Translated
+                locale={locale}
+                message={filtered ? 'scores.filter.moreActive' : 'scores.filter.more'}
+              />
             </summary>
             <form
               method="get"
@@ -234,24 +262,36 @@ export default async function ScoresPage({
               className="mt-2 flex flex-wrap items-end gap-3"
             >
               {hidden([['date', q.date === q.today ? null : q.date], zoneField, ...flagFields])}
-              {select('country', 'Country', 'All countries', options.countries, filters.country)}
+              {select(
+                'country',
+                say('scores.filter.country'),
+                say('scores.filter.allCountries'),
+                options.countries,
+                filters.country,
+              )}
               {select(
                 'competition',
-                'Competition',
-                'All competitions',
+                say('scores.filter.competition'),
+                say('scores.filter.allCompetitions'),
                 options.competitions,
                 filters.competition,
               )}
-              {select('stage', 'Stage', 'All stages', options.stages, filters.stage)}
+              {select(
+                'stage',
+                say('scores.filter.stage'),
+                say('scores.filter.allStages'),
+                options.stages,
+                filters.stage,
+              )}
               <Button type="submit" className="min-h-11 font-medium">
-                Apply
+                <Translated locale={locale} message="scores.filter.apply" />
               </Button>
               {filtered && (
                 <Link
                   href={clearFiltersHref}
                   className="inline-flex min-h-11 items-center px-2 underline"
                 >
-                  Clear filters
+                  <Translated locale={locale} message="scores.filter.clear" />
                 </Link>
               )}
             </form>
@@ -260,15 +300,22 @@ export default async function ScoresPage({
 
       {!result.ok ? (
         <Notice tone="danger" data-testid="scores-unreachable">
-          {result.status === 401
-            ? 'Sign in to filter by your favourites.'
-            : 'The scores service is unreachable right now, so nothing can be shown for this day.'}
+          <Translated
+            locale={locale}
+            message={result.status === 401 ? 'scores.signInFavourites' : 'scores.unreachable'}
+          />
         </Notice>
       ) : (
         <>
-          {notice !== null && (
+          {trouble !== null && (
             <p role="status" className="text-sm font-medium" data-testid="feed-notice">
-              {notice}
+              <FilledMessage
+                message={message(
+                  resolved,
+                  trouble.kind === 'failure' ? 'scores.feed.failure' : 'scores.feed.partial',
+                )}
+                params={{ time: trouble.at }}
+              />
             </p>
           )}
           {/* The snapshot renders now; the client keeps it current over SSE (T-032). */}
@@ -280,6 +327,7 @@ export default async function ScoresPage({
             filters={filters}
             clearFiltersHref={clearFiltersHref}
             products={products}
+            words={scoresWords(locale)}
           />
         </>
       )}

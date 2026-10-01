@@ -11,6 +11,9 @@ import {
   shiftDate,
   statusLabel,
 } from './scores';
+import { scoresWords } from './words-server';
+
+const EN_WORDS = scoresWords('en').m;
 
 const NOW = new Date('2025-01-05T22:30:00Z');
 
@@ -170,7 +173,7 @@ describe('card labels', () => {
 
 describe('blockUpdatedLabel', () => {
   it('says one time when every card in the block agrees', () => {
-    expect(blockUpdatedLabel([card({}), card({})], 'en', 'UTC')).toBe('Updated 10:00');
+    expect(blockUpdatedLabel([card({}), card({})], 'en', 'UTC', EN_WORDS)).toBe('Updated 10:00');
   });
 
   it('says the oldest and the newest when they differ, never the newest alone', () => {
@@ -179,10 +182,28 @@ describe('blockUpdatedLabel', () => {
       card({ last_updated_at: '2025-01-05T10:00:00.000Z' }),
       card({ last_updated_at: '2025-01-05T14:05:00.000Z' }),
     ];
-    expect(blockUpdatedLabel(cards, 'en', 'Asia/Tehran')).toBe('Updated between 13:30 and 20:01');
+    expect(blockUpdatedLabel(cards, 'en', 'Asia/Tehran', EN_WORDS)).toBe(
+      'Updated between 13:30 and 20:01',
+    );
   });
 
   it('says nothing for an empty block', () => {
-    expect(blockUpdatedLabel([], 'en', 'UTC')).toBeNull();
+    expect(blockUpdatedLabel([], 'en', 'UTC', EN_WORDS)).toBeNull();
+  });
+});
+
+describe('the status cell in Persian (T-1303)', () => {
+  const FA = scoresWords('fa').m;
+  it('names the status and prints the minute and the score in Persian digits', () => {
+    expect(statusLabel(card({ status: 'finished' }), 'fa', 'UTC', undefined, FA)).toBe('پایان');
+    expect(statusLabel(card({ status: 'live', minute: 67 }), 'fa', 'UTC', undefined, FA)).toBe(
+      '۶۷′',
+    );
+    expect(
+      scoreLabel(
+        card({ status: 'live', scores: { ...card({}).scores, current: { home: 2, away: 1 } } }),
+        'fa',
+      ),
+    ).toBe('۲ – ۱');
   });
 });

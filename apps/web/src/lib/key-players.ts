@@ -1,35 +1,50 @@
 import type { KeyPlayer, KeyPlayersSide } from '@fmip/contracts';
 import { KEY_PLAYERS_PER_SIDE } from '@fmip/contracts';
+import { formatNumber } from '@/i18n/format';
+import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
+import { interpolate, plural, t } from '@/i18n/messages';
 
 /**
  * The words of the match centre's key players (T-841). Pure, so the stated
  * rule and what is said -- and not said -- about availability are one tested
- * place.
+ * place. They are the reader's (T-1303); `locale` defaults to English.
  */
 
+const asLocale = (locale: string): Locale => (isLocale(locale) ? locale : DEFAULT_LOCALE);
+
 /** The footnote: how "key" is chosen, so the selection is a count anyone can check. */
-export function ruleNote(competition: string, season: string): string {
-  return `Key players are each side's ${KEY_PLAYERS_PER_SIDE} with the most minutes in ${competition} ${season} before this match, counted from the feed's per-match player figures; a tie on minutes goes to more goals plus assists, then the name. Goals and assists are summed from the same figures. This is a count, not a judgement of quality, and no rating is used.`;
+export function ruleNote(competition: string, season: string, locale = 'en'): string {
+  return plural(asLocale(locale), 'matchCentre.keyPlayers.rule', KEY_PLAYERS_PER_SIDE, {
+    competition,
+    season,
+  }).text;
 }
 
-const POSITION: Record<NonNullable<KeyPlayer['position']>, string> = {
-  goalkeeper: 'Goalkeeper',
-  defender: 'Defender',
-  midfielder: 'Midfielder',
-  forward: 'Forward',
-};
+const POSITION = {
+  goalkeeper: 'matchCentre.keyPlayers.position.goalkeeper',
+  defender: 'matchCentre.keyPlayers.position.defender',
+  midfielder: 'matchCentre.keyPlayers.position.midfielder',
+  forward: 'matchCentre.keyPlayers.position.forward',
+} as const satisfies Record<NonNullable<KeyPlayer['position']>, Parameters<typeof t>[1]>;
 
-export function positionLabel(position: KeyPlayer['position']): string | null {
-  return position === null ? null : POSITION[position];
+export function positionLabel(position: KeyPlayer['position'], locale = 'en'): string | null {
+  return position === null ? null : t(asLocale(locale), POSITION[position]);
 }
 
 /** "1,234 min in 15 · 6 goals · 2 assists". */
-export function figuresLine(player: KeyPlayer, format: (n: number) => string): string {
-  const count = (n: number, one: string, many: string) => `${format(n)} ${n === 1 ? one : many}`;
+export function figuresLine(
+  player: KeyPlayer,
+  format: (n: number) => string,
+  locale = 'en',
+): string {
+  const l = asLocale(locale);
   return [
-    `${format(player.minutes)} min in ${count(player.appearances, 'match', 'matches')}`,
-    count(player.goals, 'goal', 'goals'),
-    count(player.assists, 'assist', 'assists'),
+    interpolate(t(l, 'matchCentre.keyPlayers.minutes'), {
+      minutes: format(player.minutes),
+      matches: plural(l, 'matchCentre.keyPlayers.matches', player.appearances).text,
+    }),
+    plural(l, 'matchCentre.keyPlayers.goals', player.goals).text,
+    plural(l, 'matchCentre.keyPlayers.assists', player.assists).text,
   ].join(' · ');
 }
 
@@ -38,21 +53,23 @@ export function figuresLine(player: KeyPlayer, format: (n: number) => string): s
  * never asked: nothing is claimed. A doubt is a doubt, never "out" and never
  * "available".
  */
-export function availabilityLine(player: KeyPlayer): string | null {
+export function availabilityLine(player: KeyPlayer, locale = 'en'): string | null {
+  const l = asLocale(locale);
   const a = player.availability;
   if (a === null) return null;
-  if (a.status === 'not_listed') return 'Not on the provider’s absence list';
-  const status = a.status === 'out' ? 'Out' : 'Doubtful';
+  if (a.status === 'not_listed') return t(l, 'matchCentre.keyPlayers.notListed');
+  const status = t(l, a.status === 'out' ? 'matchCentre.out' : 'matchCentre.doubtful');
   return a.reason === null ? status : `${status} · ${a.reason}`;
 }
 
 /** How much of the team's season the figures cover. */
-export function coverageLine(side: KeyPlayersSide): string {
-  if (side.matches_played === 0) {
-    return 'No match of this competition played before this one, so no minutes to count yet.';
-  }
+export function coverageLine(side: KeyPlayersSide, locale = 'en'): string {
+  const l = asLocale(locale);
+  if (side.matches_played === 0) return t(l, 'matchCentre.keyPlayers.noneYet');
   if (side.matches_with_figures < side.matches_played) {
-    return `From player figures for ${side.matches_with_figures} of ${side.matches_played} matches played: the other matches have none, so these totals are a floor.`;
+    return plural(l, 'matchCentre.keyPlayers.partial', side.matches_played, {
+      with: formatNumber(l, side.matches_with_figures),
+    }).text;
   }
-  return `From player figures for all ${side.matches_played} ${side.matches_played === 1 ? 'match' : 'matches'} played.`;
+  return plural(l, 'matchCentre.keyPlayers.all', side.matches_played).text;
 }

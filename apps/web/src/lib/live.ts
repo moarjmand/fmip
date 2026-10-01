@@ -1,5 +1,7 @@
 import { type Freshness, type IngestionHealth, STALE_LIVE_AFTER_MS } from '@fmip/contracts';
 import { formatTime } from '@/i18n/format';
+import type { Message } from '@/i18n/messages';
+import { fill } from '@/lib/words';
 
 /**
  * Freshness for live surfaces (rule 4, T-032). Pure, so the thresholds are
@@ -30,19 +32,22 @@ export function isBehind(
 
 /**
  * What the scores page says when the ingestion feed's latest run failed
- * (from `GET /health/ingestion`): the outage is named with its time, and the
- * page keeps showing what it has, labelled, rather than nothing.
+ * (from `GET /health/ingestion`): the outage and its time, which the page
+ * names in the reader's words, keeping what it has, labelled, rather than
+ * showing nothing. `null` when the last run went through.
  */
-export function feedNotice(
+export function feedTrouble(
   health: IngestionHealth | null,
   locale: string,
   timeZone: string,
-): string | null {
+): { kind: 'failure' | 'partial'; at: string } | null {
   if (health === null) return null;
   const last = health.last_run;
   if (last === null || (last.status !== 'failed' && last.status !== 'partial')) return null;
-  const at = formatTime(locale, last.finished_at ?? last.started_at, timeZone);
-  return `The live data feed reported a ${last.status === 'failed' ? 'failure' : 'partial update'} at ${at}. Scores may be behind; every card shows when its data last changed.`;
+  return {
+    kind: last.status === 'failed' ? 'failure' : 'partial',
+    at: formatTime(locale, last.finished_at ?? last.started_at, timeZone),
+  };
 }
 
 /** Milliseconds without a heartbeat after which the picture is called stale. */
@@ -65,24 +70,36 @@ export function liveState(clock: LiveClock, now: number): LiveState {
   return now - clock.lastEventAt > STALE_AFTER_MS ? 'stale' : 'live';
 }
 
+/** The freshness line's words, resolved for the reader's locale (T-1303). */
+export type LiveLabelKey =
+  | 'status.live'
+  | 'scores.live.connecting'
+  | 'scores.live.updated'
+  | 'scores.live.stale'
+  | 'scores.live.staleAt'
+  | 'scores.live.unavailable';
+
 /** "Live · updated 20:31:07", "Stale · last update 20:29:40", … */
 export function liveLabel(
   state: LiveState,
   clock: LiveClock,
   locale: string,
   timeZone: string,
+  words: Record<LiveLabelKey, Message>,
 ): string {
   const at = (ms: number): string => formatTime(locale, ms, timeZone, { seconds: true });
   switch (state) {
     case 'connecting':
-      return 'Connecting to live updates…';
+      return words['scores.live.connecting'].text;
     case 'live':
-      return clock.lastSnapshotAt === null ? 'Live' : `Live · updated ${at(clock.lastSnapshotAt)}`;
+      return clock.lastSnapshotAt === null
+        ? words['status.live'].text
+        : fill(words['scores.live.updated'].text, { time: at(clock.lastSnapshotAt) });
     case 'stale':
       return clock.lastSnapshotAt === null
-        ? 'Stale · no update received'
-        : `Stale · last update ${at(clock.lastSnapshotAt)}`;
+        ? words['scores.live.stale'].text
+        : fill(words['scores.live.staleAt'].text, { time: at(clock.lastSnapshotAt) });
     case 'unavailable':
-      return 'Live updates unavailable';
+      return words['scores.live.unavailable'].text;
   }
 }

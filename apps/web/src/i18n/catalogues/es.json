@@ -5695,6 +5695,1770 @@
     "text": "",
     "status": "untranslated"
   },
+  "status.live": {
+    "source": "Live",
+    "text": "",
+    "status": "untranslated"
+  },
+  "status.behind": {
+    "source": "Behind",
+    "text": "",
+    "status": "untranslated"
+  },
+  "status.fullTime": {
+    "source": "FT",
+    "text": "",
+    "status": "untranslated"
+  },
+  "status.afterExtraTime": {
+    "source": "AET",
+    "text": "",
+    "status": "untranslated"
+  },
+  "status.penalties": {
+    "source": "Pens",
+    "text": "",
+    "status": "untranslated"
+  },
+  "status.halfTime": {
+    "source": "HT",
+    "text": "",
+    "status": "untranslated"
+  },
+  "status.aggregate": {
+    "source": "Agg",
+    "text": "",
+    "status": "untranslated"
+  },
+  "status.postponed": {
+    "source": "Postponed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "status.suspended": {
+    "source": "Suspended",
+    "text": "",
+    "status": "untranslated"
+  },
+  "status.cancelled": {
+    "source": "Cancelled",
+    "text": "",
+    "status": "untranslated"
+  },
+  "status.abandoned": {
+    "source": "Abandoned",
+    "text": "",
+    "status": "untranslated"
+  },
+  "status.awarded": {
+    "source": "Awarded",
+    "text": "",
+    "status": "untranslated"
+  },
+  "status.coverage.available": {
+    "source": "available",
+    "text": "",
+    "status": "untranslated"
+  },
+  "status.coverage.limited": {
+    "source": "limited",
+    "text": "",
+    "status": "untranslated"
+  },
+  "status.coverage.notSupplied": {
+    "source": "not supplied",
+    "text": "",
+    "status": "untranslated"
+  },
+  "status.coverage.delayed": {
+    "source": "data delayed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.metaDescription": {
+    "source": "Live scores and fixtures, one day at a time in your time zone.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.dayNav": {
+    "source": "Day",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.yesterday": {
+    "source": "Yesterday",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.today": {
+    "source": "Today",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.tomorrow": {
+    "source": "Tomorrow",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.date": {
+    "source": "Date",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.showDay": {
+    "source": "Show day",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.previousDay": {
+    "source": "Previous day",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.nextDay": {
+    "source": "Next day",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.filter.all": {
+    "source": "All",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.filter.live": {
+    "source": "Live",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.filter.favourites": {
+    "source": "Favourites only",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.timesIn": {
+    "source": "Times in {zone}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.timesInGuest": {
+    "source": "Times in {zone} (sign in for your own zone)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.filter.more": {
+    "source": "Country, competition and stage",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.filter.moreActive": {
+    "source": "Country, competition and stage (filtered)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.filter.country": {
+    "source": "Country",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.filter.allCountries": {
+    "source": "All countries",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.filter.competition": {
+    "source": "Competition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.filter.allCompetitions": {
+    "source": "All competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.filter.stage": {
+    "source": "Stage",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.filter.allStages": {
+    "source": "All stages",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.filter.apply": {
+    "source": "Apply",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.filter.clear": {
+    "source": "Clear filters",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.signInFavourites": {
+    "source": "Sign in to filter by your favourites.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.unreachable": {
+    "source": "The scores service is unreachable right now, so nothing can be shown for this day.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.feed.failure": {
+    "source": "The live data feed reported a failure at {time}. Scores may be behind; every card shows when its data last changed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.feed.partial": {
+    "source": "The live data feed reported a partial update at {time}. Scores may be behind; every card shows when its data last changed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.live.connecting": {
+    "source": "Connecting to live updates…",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.live.updated": {
+    "source": "Live · updated {time}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.live.stale": {
+    "source": "Stale · no update received",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.live.staleAt": {
+    "source": "Stale · last update {time}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.live.unavailable": {
+    "source": "Live updates unavailable",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.empty": {
+    "source": "No fixtures on this day.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.filteredEmpty": {
+    "source": "No match on this day fits these filters.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.favourites": {
+    "source": "Your favourites",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.loadedAt": {
+    "source": "List loaded at {time}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.updated": {
+    "source": "Updated {time}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.updatedBetween": {
+    "source": "Updated between {oldest} and {newest}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.announce.kickOff": {
+    "source": "Kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.announce.fullTime": {
+    "source": "Full time",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.announce.awarded": {
+    "source": "Result awarded",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.announce.status": {
+    "source": "{status}: {score}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.announce.scoreLine": {
+    "source": "{home} {homeGoals}, {away} {awayGoals}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.announce.against": {
+    "source": "{home} against {away}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.announce.corrected": {
+    "source": "Score corrected: {score}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.announce.goal": {
+    "source": "Goal for {team}: {score}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.announce.redCard": {
+    "source": "Red card for {team}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.card.leg": {
+    "source": "Leg {leg}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.card.aggregate": {
+    "source": "Agg {score}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.card.redCard": {
+    "source": "one red card",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.card.redCards": {
+    "source": {
+      "one": "{count} red card",
+      "other": "{count} red cards"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "scores.card.behind": {
+    "source": "Data behind: nothing has changed since {time}. The score shown is the last known, not the current one.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.card.details": {
+    "source": "Details: {home} v {away}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.card.kickoff": {
+    "source": "Kick-off {time}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.card.coverage": {
+    "source": "Scores: {state}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.card.watch": {
+    "source": "Watch:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.card.oneListing": {
+    "source": "one listing in {territory}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.card.listings": {
+    "source": {
+      "one": "{count} listing in {territory}",
+      "other": "{count} listings in {territory}"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "scores.card.nothingListed": {
+    "source": "nothing listed in {territory}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.card.noSchedule": {
+    "source": "no schedule covers this match in {territory}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.card.chooseTerritory": {
+    "source": "choose your territory",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.card.unreachable": {
+    "source": "could not be loaded for this page.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.card.notLoaded": {
+    "source": "not loaded for this list.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.card.lineUnreachable": {
+    "source": "could not be loaded for this page. The match centre has it.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.card.lineNotLoaded": {
+    "source": "not loaded for this list. The match centre has it.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.card.draw": {
+    "source": "Draw",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.card.model.label": {
+    "source": "Model forecast:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.card.model.version": {
+    "source": "the statistical model, version {version}, computed {time}, before kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.card.model.noProbabilities": {
+    "source": "no probabilities in version {version}. {reason}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.card.model.couldNotAnswer": {
+    "source": "The model could not answer for this match.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.card.model.noneBefore": {
+    "source": "the model had no forecast for this match before kick-off.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.card.model.notYet": {
+    "source": "the model has not forecast this match yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.card.community.label": {
+    "source": "Community predictions:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.card.community.sample": {
+    "source": {
+      "one": "of {count} member, not the model",
+      "other": "of {count} members, not the model"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "scores.card.community.belowFloor": {
+    "source": {
+      "one": "not published until {count} member has predicted this match.",
+      "other": "not published until {count} members have predicted this match."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "matchCentre.title": {
+    "source": "Match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.fixtureTitle": {
+    "source": "{home} v {away}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.metaDescription": {
+    "source": "{home} v {away}: {competition} {season}, kick-off {kickoff}. Line-ups, timeline, statistics, form, forecast and predictions.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.back": {
+    "source": "← Scores",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.unreachable": {
+    "source": "The match service is unreachable right now, so this match cannot be shown.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.group": {
+    "source": "Group {group}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.behind": {
+    "source": "The data for this match is behind: nothing has changed since {time}. The score and minute shown are the last known, not the current ones.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.neutralVenue": {
+    "source": "{venue} (neutral)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.referee": {
+    "source": "Referee: {name}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.attendance": {
+    "source": "Attendance {count}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.lastUpdate": {
+    "source": "Last data update {time}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.onThisPage": {
+    "source": "On this page",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.nav.timeline": {
+    "source": "Timeline",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.nav.stats": {
+    "source": "Stats",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.nav.context": {
+    "source": "Competition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.nav.analysis": {
+    "source": "Founder's analysis",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.nav.community": {
+    "source": "Community",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.nav.discussion": {
+    "source": "Discussion",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.lineups": {
+    "source": "Line-ups",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.timeline": {
+    "source": "Live timeline",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.statistics": {
+    "source": "Statistics",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.playerStatistics": {
+    "source": "Player statistics",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.recentForm": {
+    "source": "Recent form",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.headToHead": {
+    "source": "Head-to-head",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.coverage": {
+    "source": "Coverage for this season",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.moduleCoverage": {
+    "source": "{module}: {state}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.notYet": {
+    "source": "Not on this page yet",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.moduleDelayed": {
+    "source": "Data for this module is delayed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.moduleNotSupplied": {
+    "source": "Not supplied for this match.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.assist": {
+    "source": "(assist {player})",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.incident.goal": {
+    "source": "Goal",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.incident.ownGoal": {
+    "source": "Own goal",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.incident.penaltyGoal": {
+    "source": "Penalty",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.incident.penaltyMissed": {
+    "source": "Penalty missed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.incident.yellowCard": {
+    "source": "Yellow card",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.incident.secondYellow": {
+    "source": "Second yellow",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.incident.redCard": {
+    "source": "Red card",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.incident.substitution": {
+    "source": "Substitution",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.incident.var": {
+    "source": "VAR",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.stat.possession": {
+    "source": "Possession",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.stat.shots": {
+    "source": "Shots",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.stat.shotsOnTarget": {
+    "source": "Shots on target",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.stat.shotsOffTarget": {
+    "source": "Shots off target",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.stat.blockedShots": {
+    "source": "Blocked shots",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.stat.corners": {
+    "source": "Corners",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.stat.offsides": {
+    "source": "Offsides",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.stat.fouls": {
+    "source": "Fouls",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.stat.yellowCards": {
+    "source": "Yellow cards",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.stat.redCards": {
+    "source": "Red cards",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.stat.passes": {
+    "source": "Passes",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.stat.passesAccurate": {
+    "source": "Accurate passes",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.stat.passAccuracy": {
+    "source": "Pass accuracy",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.stat.saves": {
+    "source": "Saves",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.stat.expectedGoals": {
+    "source": "Expected goals (xG)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.xgNotSupplied": {
+    "source": "Expected goals (xG): the provider did not supply them for this match.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.playerColumn": {
+    "source": "Player",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.player.minutes": {
+    "source": "Min",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.player.rating": {
+    "source": "Rating",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.player.goals": {
+    "source": "Goals",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.player.assists": {
+    "source": "Assists",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.player.shots": {
+    "source": "Shots",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.player.keyPasses": {
+    "source": "Key passes",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.player.tackles": {
+    "source": "Tackles",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.playerXgNotSupplied": {
+    "source": "Expected goals per player: not supplied by the provider for any match.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.noAbsences": {
+    "source": "Nobody is reported missing or doubtful.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.noAbsencesAsked": {
+    "source": "Nobody is reported missing or doubtful (asked {time}).",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.out": {
+    "source": "Out",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.doubtful": {
+    "source": "Doubtful",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.coach": {
+    "source": "Coach: {name}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.captain": {
+    "source": "(c)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.bench": {
+    "source": "Bench",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.noForm": {
+    "source": "No competitive results held.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.form.won": {
+    "source": "W",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.form.drawn": {
+    "source": "D",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.form.lost": {
+    "source": "L",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.form.versus": {
+    "source": "v {opponent}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.form.at": {
+    "source": "at {opponent}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.module.scores": {
+    "source": "scores",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.module.incidents": {
+    "source": "incidents",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.module.lineups": {
+    "source": "lineups",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.module.statistics": {
+    "source": "statistics",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.module.standings": {
+    "source": "standings",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.module.availability": {
+    "source": "availability",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.module.advancedStatistics": {
+    "source": "advanced statistics",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.title": {
+    "source": "Competition context",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.unreachable": {
+    "source": "The competition service could not be reached, so the table and the round cannot be shown.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.first": {
+    "source": "First: {team}, {points}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.points": {
+    "source": {
+      "one": "{count} pt",
+      "other": "{count} pts"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "matchCentre.context.lastChange": {
+    "source": "Last result change {time}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.record": {
+    "source": "W {won} · D {drawn} · L {lost} · GD {difference}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.form": {
+    "source": "Form in this competition, latest first:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.noForm": {
+    "source": "none yet",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.thisMatch": {
+    "source": "(this match)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.position": {
+    "source": "{position} of {teams} · {points} from {played} played",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.leader": {
+    "source": "First",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.leaderClear": {
+    "source": "First, {points} clear of second",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.behindFirst": {
+    "source": "{points} behind first",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.levelAbove": {
+    "source": "Level on points with the place above",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.behindAbove": {
+    "source": "{points} behind the place above",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.levelBelow": {
+    "source": "Level on points with the place below",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.clearBelow": {
+    "source": "{points} clear of the place below",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.groupTable": {
+    "source": "Group {group}, before kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.leagueTable": {
+    "source": "League table, before kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.noneCounted": {
+    "source": "No match of this table was played before this one, so there are no positions yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.counted": {
+    "source": {
+      "one": "From the {count} finished match of this table played before kick-off.",
+      "other": "From the {count} finished matches of this table played before kick-off."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "matchCentre.context.places": {
+    "source": "Where the qualification, promotion and relegation places fall is not in our records, so no gap to them is shown.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.knockoutRound": {
+    "source": "Knockout round",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.twoLegs": {
+    "source": "Two legs",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.oneMatch": {
+    "source": "One match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.legsUnknown": {
+    "source": "Whether this round has a second leg is not in our records",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.notJudged": {
+    "source": "Not judged: the number of legs is not in our records.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.tableDelayed": {
+    "source": "The table for this competition is delayed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.noTable": {
+    "source": "No table from before this match is in our records.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.friendly": {
+    "source": "A friendly: no table or round to place it in.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.neither": {
+    "source": "Neither a table nor a knockout round for this match is in our records.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.keyPlayers.title": {
+    "source": "Key players",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.keyPlayers.unreachable": {
+    "source": "The key players could not be reached, so they cannot be shown.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.keyPlayers.notAsked": {
+    "source": "Availability: the provider has not been asked about this match, so none is claimed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.keyPlayers.asked": {
+    "source": "Availability as the provider gave it, {time}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.keyPlayers.delayed": {
+    "source": "Player figures for this side are delayed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.keyPlayers.noFigures": {
+    "source": "No per-match player figures for this side this season.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.keyPlayers.rule": {
+    "source": {
+      "one": "Key players are each side's {count} with the most minutes in {competition} {season} before this match, counted from the feed's per-match player figures; a tie on minutes goes to more goals plus assists, then the name. Goals and assists are summed from the same figures. This is a count, not a judgement of quality, and no rating is used.",
+      "other": "Key players are each side's {count} with the most minutes in {competition} {season} before this match, counted from the feed's per-match player figures; a tie on minutes goes to more goals plus assists, then the name. Goals and assists are summed from the same figures. This is a count, not a judgement of quality, and no rating is used."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "matchCentre.keyPlayers.position.goalkeeper": {
+    "source": "Goalkeeper",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.keyPlayers.position.defender": {
+    "source": "Defender",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.keyPlayers.position.midfielder": {
+    "source": "Midfielder",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.keyPlayers.position.forward": {
+    "source": "Forward",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.keyPlayers.minutes": {
+    "source": "{minutes} min in {matches}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.keyPlayers.matches": {
+    "source": {
+      "one": "{count} match",
+      "other": "{count} matches"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "matchCentre.keyPlayers.goals": {
+    "source": {
+      "one": "{count} goal",
+      "other": "{count} goals"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "matchCentre.keyPlayers.assists": {
+    "source": {
+      "one": "{count} assist",
+      "other": "{count} assists"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "matchCentre.keyPlayers.notListed": {
+    "source": "Not on the provider’s absence list",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.keyPlayers.noneYet": {
+    "source": "No match of this competition played before this one, so no minutes to count yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.keyPlayers.partial": {
+    "source": {
+      "one": "From player figures for {with} of {count} match played: the other matches have none, so these totals are a floor.",
+      "other": "From player figures for {with} of {count} matches played: the other matches have none, so these totals are a floor."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "matchCentre.keyPlayers.all": {
+    "source": {
+      "one": "From player figures for all {count} match played.",
+      "other": "From player figures for all {count} matches played."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "matchCentre.community.title": {
+    "source": "Community forecast",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.community.unreachable": {
+    "source": "The prediction service is unreachable right now, so what the community thinks cannot be shown.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.community.belowFloor": {
+    "source": {
+      "one": "Fewer than {count} member has predicted this match, so there is no consensus to show yet.",
+      "other": "Fewer than {count} members have predicted this match, so there is no consensus to show yet."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "matchCentre.community.intro": {
+    "source": "What registered members predicted. Not the statistical model, and not the founder.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.community.everyMember": {
+    "source": "Every member, one vote",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.community.predictions": {
+    "source": {
+      "one": "{count} prediction",
+      "other": "{count} predictions"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "matchCentre.community.weighted": {
+    "source": "Weighted by Performance Rating",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.community.raters": {
+    "source": {
+      "one": "{count} rated member",
+      "other": "{count} rated members"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "matchCentre.community.weightedAbsent": {
+    "source": "None of the members who predicted this match has an established rating yet, so there is nothing to weight by. This is not the same as the distribution above.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.community.againstModel": {
+    "source": "Against the model",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.community.draw": {
+    "source": "Draw",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.community.drawLower": {
+    "source": "draw",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.community.gapNote": {
+    "source": "percentage points, community against model. These are two separate answers to the same question; the site does not average them.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.community.lastPrediction": {
+    "source": "Last prediction {time}. Members may keep predicting until kick-off.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.community.listTitle": {
+    "source": "Community consensus",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.community.listNone": {
+    "source": {
+      "one": "No match here has {count} prediction yet, so there is no consensus to show.",
+      "other": "No match here has {count} predictions yet, so there is no consensus to show."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "matchCentre.community.listLine": {
+    "source": "{home} {homePct}, draw {drawPct}, {away} {awayPct}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.home": {
+    "source": "Home",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.away": {
+    "source": "Away",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.summary.reason": {
+    "source": "Why a new version",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.summary.regenerate": {
+    "source": "Write a new version",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.title": {
+    "source": "Model forecast",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.unreachable": {
+    "source": "The forecast service could not be reached, so no forecast can be shown.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.none": {
+    "source": "No forecast has been computed for this match yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.couldNotProduce": {
+    "source": "The model could not produce a forecast.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.versionLine": {
+    "source": "Version {version} · {kind} · computed {time}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.meta": {
+    "source": "Version {version} · {kind} · computed {time} · model {model} · data {completeness}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.unknown": {
+    "source": "unknown",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.versions": {
+    "source": "What changed between versions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.versionShort": {
+    "source": "v{version} · {time}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.kindReason": {
+    "source": "{kind}: {reason}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.unavailable": {
+    "source": "unavailable",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.firstAvailable": {
+    "source": "{kind}: first available version.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.draw": {
+    "source": "Draw",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.expectedGoals": {
+    "source": "Expected goals {home} – {away}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.scorelines": {
+    "source": "Most likely scorelines: {list}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.scoreline": {
+    "source": "{score} ({probability})",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.leadingFactors": {
+    "source": "Leading factors",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.favours": {
+    "source": "favours {side}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.neitherSide": {
+    "source": "neither side",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.evaluation.title": {
+    "source": "Post-match evaluation",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.evaluation.result": {
+    "source": "Result {score}: {outcome}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.evaluation.correct": {
+    "source": "Version {version} ({kind}) gave that outcome {probability}, its most probable outcome.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.evaluation.incorrect": {
+    "source": "Version {version} ({kind}) gave that outcome {probability}, not its most probable outcome.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.evaluation.scores": {
+    "source": "Log loss {logLoss}, Brier {brier} (lower is better; knowing nothing scores 1.099 and 0.667).",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.evaluation.afterKickoff": {
+    "source": "Computed after kick-off, so excluded from performance figures.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.evaluation.evaluated": {
+    "source": "Evaluated {time}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.aDraw": {
+    "source": "a draw",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.kind.early": {
+    "source": "Early pre-match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.kind.lineupsPredicted": {
+    "source": "Predicted line-ups",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.kind.lineupsConfirmed": {
+    "source": "Confirmed line-ups",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.kind.manual": {
+    "source": "Manual recomputation",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.factor.teamStrength": {
+    "source": "Team strength",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.factor.homeAdvantage": {
+    "source": "Home advantage",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.factor.attackVsDefence": {
+    "source": "Attack against defence",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.noEloPrior": {
+    "source": "No Elo prior this time: the long-term ratings were not available when this version was computed, so team strength rests on results alone.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.reason.teamNotMapped": {
+    "source": "The model does not know one of the teams yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.reason.noHistory": {
+    "source": "The model has too little match history for one of the teams.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.reason.divisionNotLoaded": {
+    "source": "This competition's history is not loaded into the model.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.reason.competitionNotMapped": {
+    "source": "This competition's history is not in the model's training data.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.reason.crossCompetition": {
+    "source": "The model rates clubs within one league; a match between clubs of different leagues waits for its next version.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.reason.modelUnreachable": {
+    "source": "The model service could not be reached when this version was computed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.reason.contractViolation": {
+    "source": "The model's answer did not match the contract and was not used.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.framing.close": {
+    "source": "The model sees this as close: {side} is ahead by {margin} points, which is within the noise of a football match.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.framing.clear": {
+    "source": "The model gives {side} the most probability, {margin} points ahead of the next outcome. Every outcome remains possible; these are probabilities, not a prediction of the result.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.change.none": {
+    "source": "No change in probabilities ({kind}).",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.change.moved": {
+    "source": "{home} {homeDelta}, draw {drawDelta}, {away} {awayDelta} points ({kind}).",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.input.modelVersion": {
+    "source": "model version",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.input.fitDate": {
+    "source": "history up to",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.input.matchesUsed": {
+    "source": "matches in the fit",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.input.eloUsed": {
+    "source": "long-term ratings",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.input.historyFrom": {
+    "source": "history from",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.input.dataCompleteness": {
+    "source": "input completeness",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.input.used": {
+    "source": "used",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.input.notUsed": {
+    "source": "not used",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.input.none": {
+    "source": "none",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.attribution.noInputs": {
+    "source": "The {kind} version reported no inputs, so nothing can be attributed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.attribution.lineupCaveat": {
+    "source": "The model does not read line-ups yet, so this version is one computed when the line-up was confirmed, not one computed from it.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.attribution.nothing": {
+    "source": "Nothing the model reads changed between these two versions.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.attribution.one": {
+    "source": "Only one input changed: {label}, from {before} to {after}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.attribution.several": {
+    "source": {
+      "one": "{count} input changed together — {list} — so the move cannot be put down to any one of them.",
+      "other": "{count} inputs changed together — {list} — so the move cannot be put down to any one of them."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "forecast.attribution.change": {
+    "source": "{label} ({before} → {after})",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.listSeparator": {
+    "source": ", ",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.list.title": {
+    "source": "Model forecasts",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.list.intro": {
+    "source": "The statistical model. Not the founder’s view, and not the community’s.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.list.none": {
+    "source": "The model has no forecast for these matches.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.list.line": {
+    "source": "{home} {homePct}, draw {drawPct}, {away} {awayPct}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.list.missing": {
+    "source": {
+      "one": "{count} of these {total} matches has no model forecast.",
+      "other": "{count} of these {total} matches have no model forecast."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "powerIndex.title": {
+    "source": "Power Index",
+    "text": "",
+    "status": "untranslated"
+  },
+  "powerIndex.unreachable": {
+    "source": "The Power Index service could not be reached, so no index can be shown.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "powerIndex.none": {
+    "source": "No Power Index is available for this match.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "powerIndex.stamp": {
+    "source": "Formula {formula}, computed {time}. 0–100 is this team’s standing in its competition, not a probability.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "powerIndex.sideSummary": {
+    "source": "{team} — {value}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "powerIndex.measured": {
+    "source": "{percent} measured",
+    "text": "",
+    "status": "untranslated"
+  },
+  "powerIndex.weight": {
+    "source": "{percent} of the index",
+    "text": "",
+    "status": "untranslated"
+  },
+  "powerIndex.absent": {
+    "source": "Not available — {note}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "powerIndex.noSource": {
+    "source": "no source supplied it",
+    "text": "",
+    "status": "untranslated"
+  },
+  "powerIndex.notAvailable": {
+    "source": "Not available",
+    "text": "",
+    "status": "untranslated"
+  },
+  "powerIndex.top": {
+    "source": "Top {percent} of this competition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "powerIndex.bottom": {
+    "source": "Bottom {percent} of this competition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "powerIndex.ahead": {
+    "source": "Ahead of {percent} of this competition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "powerIndex.allMeasured": {
+    "source": "Every component was measured.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "powerIndex.partlyMeasured": {
+    "source": "{percent} of the index was measurable. Not included: {list}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "powerIndex.drivenBy": {
+    "source": "Driven mostly by {list}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "powerIndex.listAnd": {
+    "source": "{items} and {last}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "powerIndex.listSeparator": {
+    "source": ", ",
+    "text": "",
+    "status": "untranslated"
+  },
+  "powerIndex.component.underlyingStrength": {
+    "source": "Underlying team strength",
+    "text": "",
+    "status": "untranslated"
+  },
+  "powerIndex.component.recentForm": {
+    "source": "Recent opponent-adjusted performance",
+    "text": "",
+    "status": "untranslated"
+  },
+  "powerIndex.component.lineupQuality": {
+    "source": "Expected or confirmed line-up quality",
+    "text": "",
+    "status": "untranslated"
+  },
+  "powerIndex.component.venue": {
+    "source": "Venue effect",
+    "text": "",
+    "status": "untranslated"
+  },
+  "powerIndex.component.restAndCongestion": {
+    "source": "Rest, travel and schedule",
+    "text": "",
+    "status": "untranslated"
+  },
+  "powerIndex.component.competitionContext": {
+    "source": "Competition context",
+    "text": "",
+    "status": "untranslated"
+  },
+  "powerIndex.component.stability": {
+    "source": "Managerial and team stability",
+    "text": "",
+    "status": "untranslated"
+  },
+  "share.label": {
+    "source": "Share",
+    "text": "",
+    "status": "untranslated"
+  },
+  "share.copied": {
+    "source": "Link copied.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "share.manual": {
+    "source": "Copy this link: {url}",
+    "text": "",
+    "status": "untranslated"
+  },
   "notifications.friends.heading": {
     "source": "Friends' predictions",
     "text": "",

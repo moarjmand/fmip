@@ -1,6 +1,9 @@
 import type { ScoreCard, ScoresResponse } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
 import { type Snapshot, describeChange, scoresAnnouncements } from './announce';
+import { scoresWords } from './words-server';
+
+const W = scoresWords('en');
 
 const snap = (over: Partial<Snapshot> = {}): Snapshot => ({
   id: 'f1',
@@ -44,35 +47,50 @@ const response = (cards: ScoreCard[]): ScoresResponse =>
 
 describe('describeChange', () => {
   it('says nothing for a first snapshot or an unchanged one', () => {
-    expect(describeChange(undefined, snap())).toEqual([]);
-    expect(describeChange(snap(), snap())).toEqual([]);
+    expect(describeChange(undefined, snap(), W)).toEqual([]);
+    expect(describeChange(snap(), snap(), W)).toEqual([]);
   });
 
   it('announces a goal for the side whose total rose', () => {
-    expect(describeChange(snap(), snap({ score: { home: 1, away: 0 } }))).toEqual([
+    expect(describeChange(snap(), snap({ score: { home: 1, away: 0 } }), W)).toEqual([
       'Goal for Alpha: Alpha 1, Beta 0.',
     ]);
     expect(
-      describeChange(snap({ score: { home: 1, away: 0 } }), snap({ score: { home: 1, away: 1 } })),
+      describeChange(
+        snap({ score: { home: 1, away: 0 } }),
+        snap({ score: { home: 1, away: 1 } }),
+        W,
+      ),
     ).toEqual(['Goal for Beta: Alpha 1, Beta 1.']);
   });
 
   it('announces kick-off, full time and a correction, and red cards', () => {
-    expect(describeChange(snap({ status: 'scheduled', score: null }), snap())).toEqual([
+    expect(describeChange(snap({ status: 'scheduled', score: null }), snap(), W)).toEqual([
       'Kick-off: Alpha 0, Beta 0.',
     ]);
     expect(
       describeChange(
         snap({ score: { home: 2, away: 1 } }),
         snap({ status: 'finished', score: { home: 2, away: 1 } }),
+        W,
       ),
     ).toEqual(['Full time: Alpha 2, Beta 1.']);
     expect(
-      describeChange(snap({ score: { home: 2, away: 0 } }), snap({ score: { home: 1, away: 0 } })),
+      describeChange(
+        snap({ score: { home: 2, away: 0 } }),
+        snap({ score: { home: 1, away: 0 } }),
+        W,
+      ),
     ).toEqual(['Score corrected: Alpha 1, Beta 0.']);
-    expect(describeChange(snap(), snap({ redCards: { home: 0, away: 1 } }))).toEqual([
+    expect(describeChange(snap(), snap({ redCards: { home: 0, away: 1 } }), W)).toEqual([
       'Red card for Beta.',
     ]);
+  });
+
+  it('speaks Persian with Persian digits on /fa (T-1303)', () => {
+    expect(
+      describeChange(snap(), snap({ score: { home: 1, away: 0 } }), scoresWords('fa')),
+    ).toEqual(['گل برای Alpha: Alpha ۱، Beta ۰.']);
   });
 });
 
@@ -84,7 +102,7 @@ describe('scoresAnnouncements', () => {
       card({ scores: { ...NO_SCORES, current: { home: 1, away: 0 } } }),
       card({ id: 'f2', status: 'finished', home: gamma }),
     ]);
-    expect(scoresAnnouncements(before, after)).toEqual([
+    expect(scoresAnnouncements(before, after, W)).toEqual([
       'Goal for Alpha: Alpha 1, Beta 0.',
       'Full time: Gamma 0, Beta 0.',
     ]);

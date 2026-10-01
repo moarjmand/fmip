@@ -132,6 +132,27 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "term.offside": {
+    "source": "offside",
+    "locked": false,
+    "text": "آفساید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.own-goal": {
+    "source": "own goal",
+    "locked": false,
+    "text": "گل به خودی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.penalty": {
+    "source": "penalty",
+    "locked": false,
+    "text": "پنالتی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "term.player": {
     "source": "player",
     "locked": false,
@@ -160,6 +181,13 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "term.referee": {
+    "source": "referee",
+    "locked": false,
+    "text": "داور",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "term.relegation": {
     "source": "relegation",
     "locked": false,
@@ -169,6 +197,13 @@
   },
   "term.score": {
     "source": "score",
+    "locked": false,
+    "text": "نتیجه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.scoreline": {
+    "source": "scoreline",
     "locked": false,
     "text": "نتیجه",
     "status": "translated",
@@ -185,6 +220,13 @@
     "source": "season",
     "locked": false,
     "text": "فصل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "term.standings": {
+    "source": "standings",
+    "locked": false,
+    "text": "جدول رده‌بندی",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

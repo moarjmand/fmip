@@ -113,6 +113,24 @@
     "text": "",
     "status": "untranslated"
   },
+  "term.offside": {
+    "source": "offside",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.own-goal": {
+    "source": "own goal",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.penalty": {
+    "source": "penalty",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
   "term.player": {
     "source": "player",
     "locked": false,
@@ -137,6 +155,12 @@
     "text": "",
     "status": "untranslated"
   },
+  "term.referee": {
+    "source": "referee",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
   "term.relegation": {
     "source": "relegation",
     "locked": false,
@@ -149,6 +173,12 @@
     "text": "",
     "status": "untranslated"
   },
+  "term.scoreline": {
+    "source": "scoreline",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
   "term.scorer": {
     "source": "scorer",
     "locked": false,
@@ -157,6 +187,12 @@
   },
   "term.season": {
     "source": "season",
+    "locked": false,
+    "text": "",
+    "status": "untranslated"
+  },
+  "term.standings": {
+    "source": "standings",
     "locked": false,
     "text": "",
     "status": "untranslated"
