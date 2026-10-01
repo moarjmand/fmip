@@ -24,16 +24,18 @@ served from the site's own origin.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-1300 | This plan | — | The two requests and their decisions |
-| `[ ]` T-1301 | `fa` as a locale: routing, direction, the catalogue (every key), the glossary's terms, the language name, held out of the picker and the index while pages are written (`PREPARING_LOCALES`) | T-1300 | `/fa` renders right-to-left with Solar Hijri dates and Persian digits; every catalogue key has Persian text |
-| `[ ]` T-1302 | The text of the homepage, header, footer, first run, about, rules and error pages through the catalogue | T-1301 | No English written in these pages; Persian for each key |
-| `[ ]` T-1303 | Scores, the score card and the match centre | T-1301 | As T-1302 |
-| `[ ]` T-1304 | Competition, team, player, comparison, search and watch pages | T-1301 | As T-1302 |
-| `[ ]` T-1305 | News, story, following, saved and notifications | T-1301 | As T-1302 |
-| `[ ]` T-1306 | Sign-in, registration, verification, password pages, settings, a member's profile | T-1301 | As T-1302 |
-| `[ ]` T-1307 | Predictions, leaderboard, prediction history, founder's and community analysis | T-1301 | As T-1302 |
-| `[ ]` T-1308 | Friends, messages, groups, invitations, match panels | T-1301 | As T-1302 |
-| `[ ]` T-1310 | Persian offered: out of `PREPARING_LOCALES`, indexed, picked for a reader whose browser asks for Persian | T-1302..T-1308 | The picker offers فارسی; `hreflang="fa"` on every page |
-| `[ ]` T-1311 | Persian names for the clubs and competitions a Persian reader meets first (the Iranian league, the national team), through the localised names (T-303) | T-1301 | Iranian clubs read in Persian on `/fa` |
+| `[x]` T-1301 | `fa` as a locale: routing, direction, the catalogue (every key), the glossary's terms, the language name, held out of the picker and the index while pages are written (`PREPARING_LOCALES`) | T-1300 | `/fa` renders right-to-left with Solar Hijri dates and Persian digits; every catalogue key has Persian text |
+| `[x]` T-1302 | The text of the homepage, header, footer, first run, about, rules and error pages through the catalogue | T-1301 | No English written in these pages; Persian for each key |
+| `[x]` T-1303 | Scores, the score card and the match centre | T-1301 | As T-1302 |
+| `[x]` T-1304 | Competition, team, player, comparison, search and watch pages | T-1301 | As T-1302 |
+| `[x]` T-1305 | News, story, following, saved and notifications | T-1301 | As T-1302 |
+| `[x]` T-1306 | Sign-in, registration, verification, password pages, settings, a member's profile | T-1301 | As T-1302 |
+| `[x]` T-1307 | Predictions, leaderboard, prediction history, founder's and community analysis | T-1301 | As T-1302 |
+| `[x]` T-1308 | Friends, messages, groups, invitations, match panels | T-1301 | As T-1302 |
+| `[x]` T-1310 | Persian offered: out of `PREPARING_LOCALES`, indexed, picked for a reader whose browser asks for Persian | T-1302..T-1308 | The picker offers فارسی; `hreflang="fa"` on every page |
+| `[x]` T-1311 | Persian names for the clubs and competitions a Persian reader meets first (the Iranian league, the national team), through the localised names (T-303) | T-1301 | Iranian clubs read in Persian on `/fa` |
+| `[x]` T-1309 | The shared helpers the areas left in English: bracket rounds, incident and statistic labels, tiers, conversation titles, territory names, the demonstration title, share messages, action failures (#487). The words drawn on share-card images stay English: the image renderer (Satori) lays Persian words out left to right and draws the zero-width non-joiner as a box | T-1302..T-1308 | A Persian page shows no English beyond proper names without a Persian spelling and text the API supplies |
+| `[x]` T-1312 | Localised names on every surface: every API read takes `?locale=` and returns the localised team, competition and person names, countries by `Intl.DisplayNames`; the live streams per locale (#488) | T-1311 | `/fa` shows «پرسپولیس» in the scores list, the table and the match centre |
 
 ## Images
 

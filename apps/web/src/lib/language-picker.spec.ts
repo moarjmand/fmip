@@ -21,10 +21,9 @@ const done =
     locales.includes(locale);
 
 describe('which locales are offered', () => {
-  it('is English alone today: Persian is finished but still being written into the pages', () => {
-    expect(offeredLocales()).toEqual(['en']);
+  it('is English and Persian today: Persian is finished and written into the pages (T-1310)', () => {
+    expect(offeredLocales()).toEqual(['en', 'fa']);
     expect(isShippable('fa')).toBe(true);
-    expect(offeredLocales(() => true)).not.toContain('fa');
     for (const locale of UNFINISHED_LOCALES.filter((l) => l !== 'fa'))
       expect(isShippable(locale), locale).toBe(false);
   });
@@ -40,7 +39,6 @@ describe('which locales are offered', () => {
 
 describe('what the picker shows', () => {
   it('shows nothing when there is only one language, because one is not a choice', () => {
-    expect(pickerEntries('/en/scores')).toEqual([]);
     expect(pickerEntries('/en/scores', done('en'))).toEqual([]);
   });
 
