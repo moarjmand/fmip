@@ -29,6 +29,7 @@ import {
   readSeasonParam,
   say,
   seasonHref,
+  stageName,
   statusSuffix,
   ZONE_KEY,
   ZONE_MARK,
@@ -606,8 +607,8 @@ function FixtureList({
             <time dateTime={fixture.kickoff_at}>
               {formatFixtureDate(locale, fixture.kickoff_at, timeZone)}
             </time>
-            {fixture.stage !== null ? ` · ${fixture.stage.name}` : ''}
-            {fixture.round !== null ? ` · ${fixture.round}` : ''}
+            {fixture.stage !== null ? ` · ${stageName(locale, fixture.stage.name)}` : ''}
+            {fixture.round !== null ? ` · ${stageName(locale, fixture.round)}` : ''}
             {statusSuffix(locale, fixture.status)}
           </span>
         </li>

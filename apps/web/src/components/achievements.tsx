@@ -2,6 +2,7 @@ import type { AchievementKind, AchievementsResponse } from '@fmip/contracts';
 import { formatDate } from '@/i18n/format';
 import type { MessageKey } from '@/i18n/messages';
 import type { ApiResult } from '@/lib/api';
+import { stageName } from '@/lib/competition';
 import { Translated } from '@/components/translated';
 import { Notice } from '@/components/ui';
 
@@ -78,7 +79,7 @@ export function AchievementsSection({
             {achievement.round !== null && (
               <span className="text-muted">
                 {achievement.round.competition.name} · {achievement.round.season_label} ·{' '}
-                {achievement.round.round}
+                {stageName(locale, achievement.round.round)}
               </span>
             )}
             <time dateTime={achievement.earned_at} className="text-xs text-muted">
