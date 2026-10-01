@@ -32,6 +32,15 @@ export interface ParsedFeed {
   skipped: number;
 }
 
+/** What the reader takes beyond D-061's words; everything off unless asked. */
+export interface FeedOptions {
+  /**
+   * Read each item's photo URL (T-1322, D-177). Only for a source whose
+   * licence covers its photos; otherwise the URL is not even kept.
+   */
+  images?: boolean;
+}
+
 export interface FeedProblem {
   kind: 'malformed';
   message: string;
@@ -183,7 +192,65 @@ function atomCategories(entry: string): string[] {
   );
 }
 
-function rssItem(item: string, feedLanguage: string | null): NormalisedNewsItem | null {
+/** Every `<name ...>` tag (self-closing or not), as written. */
+function tags(xml: string, name: string): string[] {
+  return xml.match(new RegExp(`<(?:[a-zA-Z0-9_-]+:)?${name}\\s[^>]*>`, 'gi')) ?? [];
+}
+
+/** An absolute http(s) URL, or `null`: a relative or odd value is not guessed at. */
+function httpUrl(raw: string | null): string | null {
+  if (raw === null) return null;
+  const text = raw.trim();
+  try {
+    const url = new URL(text);
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+const IMAGE_TYPE = /^image\//i;
+
+/**
+ * The item's photo (T-1322): the first image `<enclosure>`, then
+ * `media:content` that says it is an image, then `media:thumbnail`, then an
+ * Atom `<link rel="enclosure">` of an image type. A tag whose type is not an
+ * image is not a photo, however its URL ends.
+ */
+function itemImage(item: string): string | null {
+  for (const tag of tags(item, 'enclosure')) {
+    const type = firstAttribute(tag, 'enclosure', 'type');
+    const url = httpUrl(firstAttribute(tag, 'enclosure', 'url'));
+    if (type !== null && IMAGE_TYPE.test(type) && url !== null) return url;
+  }
+  for (const tag of tags(item, 'content')) {
+    if (!/^<media:/i.test(tag)) continue;
+    const type = firstAttribute(tag, 'content', 'type');
+    const medium = firstAttribute(tag, 'content', 'medium');
+    const url = httpUrl(firstAttribute(tag, 'content', 'url'));
+    if (url !== null && ((type !== null && IMAGE_TYPE.test(type)) || medium === 'image')) {
+      return url;
+    }
+  }
+  for (const tag of tags(item, 'thumbnail')) {
+    if (!/^<media:/i.test(tag)) continue;
+    const url = httpUrl(firstAttribute(tag, 'thumbnail', 'url'));
+    if (url !== null) return url;
+  }
+  for (const tag of tags(item, 'link')) {
+    if (firstAttribute(tag, 'link', 'rel') !== 'enclosure') continue;
+    const type = firstAttribute(tag, 'link', 'type');
+    const url = httpUrl(firstAttribute(tag, 'link', 'href'));
+    if (type !== null && IMAGE_TYPE.test(type) && url !== null) return url;
+  }
+  return null;
+}
+
+function rssItem(
+  item: string,
+  feedLanguage: string | null,
+  options: FeedOptions,
+): NormalisedNewsItem | null {
   const headline = textOf(firstElement(item, 'title'));
   const url = textOf(firstElement(item, 'link'));
   if (headline === null || url === null) return null;
@@ -197,6 +264,7 @@ function rssItem(item: string, feedLanguage: string | null): NormalisedNewsItem 
     publishedAt: isoDate(firstElement(item, 'pubDate')),
     language: feedLanguage,
     categories: rssCategories(item),
+    imageUrl: options.images === true ? itemImage(item) : null,
   };
 }
 
@@ -204,6 +272,7 @@ function atomEntry(
   entry: string,
   feedLanguage: string | null,
   entryLanguage: string | null,
+  options: FeedOptions,
 ): NormalisedNewsItem | null {
   const headline = textOf(firstElement(entry, 'title'));
   const url = atomLink(entry);
@@ -220,6 +289,7 @@ function atomEntry(
       isoDate(firstElement(entry, 'published')) ?? isoDate(firstElement(entry, 'updated')),
     language: entryLanguage ?? feedLanguage,
     categories: atomCategories(entry),
+    imageUrl: options.images === true ? itemImage(entry) : null,
   };
 }
 
@@ -244,7 +314,7 @@ function taggedBlocks(xml: string, name: string): { tag: string; inner: string }
  * The feed as items. `malformed` when the text is not a feed at all; a feed
  * with no items is a feed with no items, which is a fact and not an error.
  */
-export function parseFeed(xml: string): ParsedFeed | FeedProblem {
+export function parseFeed(xml: string, options: FeedOptions = {}): ParsedFeed | FeedProblem {
   const text = xml.trimStart();
   if (text === '' || !text.startsWith('<')) {
     return { kind: 'malformed', message: 'not XML' };
@@ -262,7 +332,7 @@ export function parseFeed(xml: string): ParsedFeed | FeedProblem {
     const items: NormalisedNewsItem[] = [];
     let skipped = 0;
     for (const { tag, inner } of taggedBlocks(text, 'entry')) {
-      const item = atomEntry(inner, language, firstAttribute(tag, 'entry', 'xml:lang'));
+      const item = atomEntry(inner, language, firstAttribute(tag, 'entry', 'xml:lang'), options);
       if (item === null) skipped += 1;
       else items.push(item);
     }
@@ -275,7 +345,7 @@ export function parseFeed(xml: string): ParsedFeed | FeedProblem {
   const items: NormalisedNewsItem[] = [];
   let skipped = 0;
   for (const item of blocks(channel, 'item')) {
-    const parsed = rssItem(item, language);
+    const parsed = rssItem(item, language, options);
     if (parsed === null) skipped += 1;
     else items.push(parsed);
   }
@@ -300,6 +370,7 @@ function failure(status: number, message: string): AdapterError {
 export async function readFeed(
   transport: Transport,
   url: string,
+  options: FeedOptions = {},
 ): Promise<AdapterResult<ParsedFeed>> {
   const response = await transport.request(url, {
     method: 'GET',
@@ -319,7 +390,7 @@ export async function readFeed(
       requests: 1,
     };
   }
-  const parsed = parseFeed(response.body);
+  const parsed = parseFeed(response.body, options);
   if ('kind' in parsed && parsed.kind === 'malformed') {
     return { ok: false, error: { kind: 'malformed', message: parsed.message }, requests: 1 };
   }

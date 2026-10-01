@@ -8,6 +8,10 @@ import { PostgresDebateAdminStore } from './internal/debate-admin-store';
 import { PostgresNewsCoverageStore } from './internal/news-coverage-store';
 import { PostgresNewsReadStore } from './internal/news-read-store';
 import { FetchTransport, NEWS_TRANSPORT } from './internal/news-transport';
+import { PostgresNewsImageStore } from './internal/news-image-store';
+import { NEWS_IMAGE_FETCH, fetchImage, mediaDir } from './internal/news-media';
+import { MEDIA_ROOT, NewsImagesService } from './news-images.service';
+import { NewsImageAdminController, NewsMediaController } from './news-media.controller';
 import { PostgresNewsStore } from './internal/news-store';
 import { PostgresSavedArticlesStore } from './internal/saved-articles-store';
 import { PostgresStoryLabelStore } from './internal/story-label-store';
@@ -50,6 +54,8 @@ import { NewsSourcesAdminController } from './news-sources-admin.controller';
     NewsCoverageAdminController,
     SavedArticlesController,
     NewsSourcesAdminController,
+    NewsMediaController,
+    NewsImageAdminController,
   ],
   providers: [
     PostgresNewsStore,
@@ -68,6 +74,11 @@ import { NewsSourcesAdminController } from './news-sources-admin.controller';
     PostgresNewsSourcesAdminStore,
     { provide: CATEGORY_MAPPING, useValue: STORY_TYPE_MAPPING },
     { provide: NEWS_TRANSPORT, useFactory: (): FetchTransport => new FetchTransport() },
+    // T-1322 (D-177): photos, downloaded to MEDIA_DIR and served from our own route.
+    PostgresNewsImageStore,
+    NewsImagesService,
+    { provide: NEWS_IMAGE_FETCH, useFactory: () => fetchImage() },
+    { provide: MEDIA_ROOT, useFactory: (): string | null => mediaDir() },
   ],
   exports: [NewsIngestionService, NewsClusteringService],
 })

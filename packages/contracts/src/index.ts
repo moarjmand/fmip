@@ -726,7 +726,13 @@ export type {
   VersionOrigin,
 } from './news';
 // News sources in the console (T-1015).
-export { NEWS_FEED_PREVIEW_ITEMS, NEWS_SOURCE_KINDS, NEWS_SOURCE_RIGHTS } from './news';
+export {
+  NEWS_FEED_PREVIEW_ITEMS,
+  NEWS_IMAGE_LICENCES,
+  NEWS_SOURCE_KINDS,
+  NEWS_SOURCE_RIGHTS,
+} from './news';
+export type { ArticleImageOverrideRequest, NewsImage, NewsImageLicence } from './news';
 export type {
   NewsFeedPreview,
   NewsFeedPreviewItem,

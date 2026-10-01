@@ -21,7 +21,26 @@ export {
 } from './adapters/_contract';
 
 // A publisher's feed, read by hand and only as far as D-061 permits (T-142).
-export { type FeedProblem, type ParsedFeed, parseFeed, readFeed } from './news/feed';
+export {
+  type FeedOptions,
+  type FeedProblem,
+  type ParsedFeed,
+  parseFeed,
+  readFeed,
+} from './news/feed';
+export {
+  type ProvenanceInput,
+  type ProvenanceVerdict,
+  hostIsUnder,
+  judgeProvenance,
+} from './news/image-provenance';
+export {
+  IMAGE_MAX_BYTES,
+  type ImageContentType,
+  type SniffResult,
+  type SniffedImage,
+  sniffImage,
+} from './news/image-file';
 
 // The recorded-fixture contract harness.
 export {

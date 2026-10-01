@@ -87,6 +87,7 @@ describe('parseFeed: RSS 2.0', () => {
       language: 'en-GB',
       // T-1002: as carried, in order, once each; an empty one is not a category.
       categories: ['Premier League', 'Match reports'],
+      imageUrl: null,
     });
     // The item carries a full body in content:encoded; nothing in the result
     // can hold it, and nothing does.
@@ -105,6 +106,7 @@ describe('parseFeed: RSS 2.0', () => {
       publishedAt: null,
       language: 'en-GB',
       categories: [],
+      imageUrl: null,
     });
   });
 
@@ -131,6 +133,7 @@ describe('parseFeed: Atom', () => {
       language: 'es',
       // T-1002: Atom's category is its `term`; the label is display text.
       categories: ['crónica', 'laliga'],
+      imageUrl: null,
     });
     expect(feed.items[1]).toMatchObject({
       url: 'https://news.example.test/ca/sense-resum',

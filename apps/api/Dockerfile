@@ -34,6 +34,10 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 
 FROM base AS runtime
 ENV NODE_ENV=production
+# News photos (T-1322, D-177) live on a volume mounted here. Created in the
+# image and owned by `node`, so a fresh named volume takes that ownership and
+# the non-root process can write to it.
+RUN mkdir -p /var/lib/fmip/media && chown node:node /var/lib/fmip/media
 # Run as a non-root user; the node image ships one.
 USER node
 COPY --from=build --chown=node:node /tmp/api/node_modules ./node_modules
