@@ -127,5 +127,18 @@ for service in "${SERVICES[@]}"; do
   roll "$service"
 done
 
+# The Caddyfile is bind-mounted as a single file, and `git pull` replaces the
+# file rather than writing into it, so a running Caddy keeps reading the old
+# copy (the /media/news route of T-1322 sat unserved for that reason). When
+# the copy Caddy sees differs from the checkout, recreate it: a few seconds
+# without the proxy, after the new app containers are already serving.
+for file in Caddyfile cloudflare-ranges.caddy; do
+  if ! docker compose exec -T caddy cat "/etc/caddy/$file" 2>/dev/null | cmp -s - "deploy/$file"; then
+    log "caddy: deploy/$file changed — recreating caddy"
+    docker compose up -d --no-deps --force-recreate --wait caddy
+    break
+  fi
+done
+
 log "rollout complete"
 docker compose ps
