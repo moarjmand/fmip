@@ -6,7 +6,7 @@ import { StoryTypeTag } from '@/components/story-type';
 import { Translated } from '@/components/translated';
 import { formatDateTime } from '@/i18n/format';
 import { DEFAULT_LOCALE, type Locale, isLocale } from '@/i18n/locales';
-import { interpolate, t } from '@/i18n/messages';
+import { interpolate, message, t } from '@/i18n/messages';
 import { fetchFollowing, fetchMe, fetchSavedArticles, fetchStory } from '@/lib/api';
 import { SaveArticle } from '@/components/save-article';
 import { ShareLink } from '@/components/share-link';
@@ -292,6 +292,10 @@ export default async function StoryPage({
           url={canonicalUrl(locale, `/news/story/${id}`)}
           title={story.headline}
           label={<Translated locale={locale} message="story.share" />}
+          messages={{
+            copied: message(isLocale(locale) ? locale : DEFAULT_LOCALE, 'share.copied'),
+            manual: message(isLocale(locale) ? locale : DEFAULT_LOCALE, 'share.manual'),
+          }}
         />
       </p>
 

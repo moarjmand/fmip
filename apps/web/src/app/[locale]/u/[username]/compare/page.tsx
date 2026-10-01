@@ -39,7 +39,7 @@ const OUTCOME_KEY: Record<PredictionOutcome, MessageKey> = {
 function ratingLine(lang: Locale, rating: Rating | null): string {
   if (rating === null) return t(lang, 'profile.rating.none');
   const settled = plural(lang, 'profile.compare.settledCount', rating.settled_count).text;
-  return `${ratingLabel(rating)} · ${tierLabel(rating.tier)} · ${statusLabel(rating)} · ${settled}`;
+  return `${ratingLabel(rating, lang)} · ${tierLabel(rating.tier, lang)} · ${statusLabel(rating, lang)} · ${settled}`;
 }
 
 /**

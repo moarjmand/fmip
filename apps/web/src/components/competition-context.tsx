@@ -261,17 +261,17 @@ function Tie({
       <ul className="flex flex-col gap-0.5">
         {tie.tie.legs.map((leg) => (
           <li key={leg.fixture_id} className="flex flex-wrap gap-x-2">
-            <span className="text-muted">{legLabel(leg, legs)}</span>
+            <span className="text-muted">{legLabel(leg, legs, locale)}</span>
             {leg.fixture_id === fixtureId ? (
               <span className="font-medium">
-                {legLine(leg)}{' '}
+                {legLine(leg, locale)}{' '}
                 <span className="text-muted">
                   <Translated locale={locale} message="matchCentre.context.thisMatch" />
                 </span>
               </span>
             ) : (
               <Link href={`/${locale}/match/${leg.fixture_id}`} className="underline">
-                {legLine(leg)}
+                {legLine(leg, locale)}
               </Link>
             )}
             <span className="text-xs text-muted">

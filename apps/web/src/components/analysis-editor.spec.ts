@@ -136,7 +136,7 @@ describe('the browser decides nothing', () => {
   });
 
   it('shows the sentence the API sent rather than composing a second one', () => {
-    expect(ACTIONS).toContain('result.error?.message');
+    expect(ACTIONS).toContain('failureSentence(result, locale)');
     // A refusal is the API's sentence; only success is said in our own words.
     expect(EDITOR).toContain('saveState.ok ? words.saved : saveState.message');
     expect(QUEUE).toContain('{state.message}');

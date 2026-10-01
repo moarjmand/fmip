@@ -5,6 +5,7 @@ import type { BriefingNotice, BriefingOutcome } from '@fmip/contracts';
 import { apiRequest } from '@/lib/api';
 import type { ActionState } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
+import { failureSentence } from '@/lib/action-failure';
 
 /** What became of the inbox notification (T-432), as the second sentence of a published outcome. */
 const NOTICE_TEXT: Record<BriefingNotice, string> = {
@@ -28,10 +29,7 @@ export async function writeBriefingAction(
   if (!result.ok) {
     return {
       ok: false,
-      message:
-        result.status === 0
-          ? 'The service is unreachable right now. Please try again shortly.'
-          : (result.error?.message ?? `The request failed (HTTP ${result.status}).`),
+      message: await failureSentence(result, locale),
     };
   }
   revalidatePath(`/${locale}/following`);

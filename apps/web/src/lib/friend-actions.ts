@@ -25,8 +25,11 @@ import { failureState } from './action-failure';
  * member has blocked the viewer.
  */
 
-function failure(result: Extract<ApiResult<unknown>, { ok: false }>): ActionState {
-  return failureState(result);
+async function failure(
+  result: Extract<ApiResult<unknown>, { ok: false }>,
+  locale: string,
+): Promise<ActionState> {
+  return failureState(result, locale);
 }
 
 /**
@@ -42,7 +45,7 @@ async function act(
   done: string,
 ): Promise<ActionState> {
   const result = await apiRequest<null>(path, { method, cookie: await sessionCookieHeader() });
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(result, locale);
 
   revalidatePath(`/${locale}/friends`);
   revalidatePath(`/${locale}/u/${encodeURIComponent(username)}`);

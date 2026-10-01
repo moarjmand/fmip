@@ -9,6 +9,8 @@ import type {
 } from '@fmip/contracts';
 import { percentages } from './forecast';
 import { OUTCOME_LABEL } from './prediction-form';
+import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
+import { type MessageKey, t } from '@/i18n/messages';
 
 /**
  * The words on a share card (T-520): the picture a chat app shows when a link
@@ -24,6 +26,41 @@ import { OUTCOME_LABEL } from './prediction-form';
  */
 
 export const CARD_SIZE = { width: 1200, height: 630 } as const;
+
+/**
+ * The words **on** a card stay English, for every reader (T-1309). `next/og`'s
+ * renderer (Satori) joins Persian and Arabic letters but lays the words of a
+ * right-to-left line out left to right, ignores `direction: rtl`, and draws a
+ * zero-width non-joiner as a visible box -- checked by rendering a Persian
+ * line with it. A card that reads backwards would be worse than one in
+ * English. What the card is *described* as -- its `og:image:alt`, which a
+ * chat app and a screen reader read as text -- is in the reader's language.
+ */
+const ALT_KEY = {
+  match: 'shared.og.matchAlt',
+  competition: 'shared.og.competitionAlt',
+  member: 'shared.og.memberAlt',
+} as const satisfies Record<string, MessageKey>;
+
+/**
+ * A card route's `generateImageMetadata`: one image, its alt text in the
+ * reader's language. `params` is read whether Next.js hands it over as an
+ * object or as a promise.
+ */
+export async function cardImageMetadata(
+  kind: keyof typeof ALT_KEY,
+  params: { locale: string } | Promise<{ locale: string }>,
+): Promise<{ id: string; alt: string; size: typeof CARD_SIZE; contentType: string }[]> {
+  const { locale } = await params;
+  return [
+    {
+      id: 'card',
+      alt: t(isLocale(locale) ? locale : DEFAULT_LOCALE, ALT_KEY[kind]),
+      size: CARD_SIZE,
+      contentType: 'image/png',
+    },
+  ];
+}
 
 export interface MatchCardText {
   /** Competition, season, and the round when there is one. */

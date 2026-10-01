@@ -109,8 +109,8 @@ describe('the group board is the global board, scoped (T-243)', () => {
     // how "the same rating rules" stops being true on the surface, months after
     // it is still true in the API.
     expect(PAGE).toContain("from '@/lib/leaderboard'");
-    expect(PAGE).toContain('ratingLabel(entry)');
-    expect(PAGE).toContain('tierLabel(entry.tier)');
+    expect(PAGE).toContain('ratingLabel(entry, locale)');
+    expect(PAGE).toContain('tierLabel(entry.tier, locale)');
     expect(PAGE).not.toMatch(/toFixed\(/);
   });
 

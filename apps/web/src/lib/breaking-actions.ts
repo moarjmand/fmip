@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { apiRequest } from '@/lib/api';
 import type { ActionState } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
+import { failureSentence } from '@/lib/action-failure';
 
 /**
  * The editor's breaking mark from the news page (T-1004, D-125, rule 10):
@@ -26,12 +27,12 @@ async function decide(
     if (result.status === 0) {
       return {
         ok: false,
-        message: 'The service is unreachable right now. Please try again shortly.',
+        message: await failureSentence(result, locale),
       };
     }
     return {
       ok: false,
-      message: result.error?.message ?? `The request failed (HTTP ${result.status}).`,
+      message: await failureSentence(result, locale),
     };
   }
   // The news page, the homepage strip and the news desk (T-1009) all read the mark.

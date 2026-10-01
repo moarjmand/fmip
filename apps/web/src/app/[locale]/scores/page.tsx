@@ -82,11 +82,15 @@ export default async function ScoresPage({
   // card shown, one request per product per 50 matches, in parallel -- never a
   // request per card. A guest has no stored territory, so viewing is not asked.
   const products = result.ok
-    ? await loadScoreCardProducts(cardIds(applyFilters(result.data, filters)), {
-        forecasts: fetchForecastSummaries,
-        consensus: fetchConsensusList,
-        viewing: me === null ? null : (ids) => fetchViewingBatch(ids, undefined, cookie),
-      })
+    ? await loadScoreCardProducts(
+        cardIds(applyFilters(result.data, filters)),
+        {
+          forecasts: fetchForecastSummaries,
+          consensus: fetchConsensusList,
+          viewing: me === null ? null : (ids) => fetchViewingBatch(ids, undefined, cookie),
+        },
+        locale,
+      )
     : NO_PRODUCTS;
   // A provider outage is named on the page (T-083), never hidden behind old numbers.
   const trouble = feedTrouble(ingestion, locale, q.timezone);

@@ -120,7 +120,7 @@ describe('quiet hours explain themselves', () => {
     expect(FORM).toContain("messages['alerts.clearHint']");
     expect(EN['alerts.clearHint']).toBe('Leave both empty to clear them.');
     expect(ACTIONS).toContain("starts === '' && ends === ''");
-    expect(ACTIONS).toContain("send('/me/quiet-hours', 'DELETE')");
+    expect(ACTIONS).toContain("send(locale, '/me/quiet-hours', 'DELETE')");
   });
 });
 

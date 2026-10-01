@@ -5,6 +5,7 @@ import type { MatchSummaryOutcome } from '@fmip/contracts';
 import { apiRequest } from '@/lib/api';
 import type { ActionState } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
+import { failureSentence } from '@/lib/action-failure';
 
 /**
  * An editor asks for a new summary version (T-412), with the reason the audit
@@ -33,10 +34,7 @@ export async function regenerateSummaryAction(
   if (!result.ok) {
     return {
       ok: false,
-      message:
-        result.status === 0
-          ? 'The service is unreachable right now. Please try again shortly.'
-          : (result.error?.message ?? `The request failed (HTTP ${result.status}).`),
+      message: await failureSentence(result, locale),
     };
   }
   revalidatePath(`/${locale}/match/${fixtureId}`);

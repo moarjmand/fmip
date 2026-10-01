@@ -417,9 +417,9 @@ export default async function GroupPage({
                       {formatNumber(locale, entry.rank)}
                     </span>
                     <MemberName locale={locale} member={entry} link className="underline" />
-                    <span className="ms-auto tabular-nums">{ratingLabel(entry)}</span>
-                    <span className="text-muted">{tierLabel(entry.tier)}</span>
-                    <span className="text-muted">{statusLabel(entry)}</span>
+                    <span className="ms-auto tabular-nums">{ratingLabel(entry, locale)}</span>
+                    <span className="text-muted">{tierLabel(entry.tier, locale)}</span>
+                    <span className="text-muted">{statusLabel(entry, locale)}</span>
                   </li>
                 ))}
               </ol>

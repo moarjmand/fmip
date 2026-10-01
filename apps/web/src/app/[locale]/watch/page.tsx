@@ -89,7 +89,11 @@ export default async function WatchPage({
     options: NONE,
     highlights: NONE,
   };
-  const strip = dayStrip(q, locale);
+  const strip = dayStrip(q, locale, {
+    yesterday: say(locale, 'scores.yesterday'),
+    today: say(locale, 'scores.today'),
+    tomorrow: say(locale, 'scores.tomorrow'),
+  });
   const guestTerritory = me === null ? territory : undefined;
   const linkClass = (active: boolean): string =>
     `rounded px-2 py-1 ${active ? 'bg-surface-raised font-semibold' : 'underline'}`;

@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import robots from '../app/robots';
 import sitemap from '../app/sitemap';
-import { DEMONSTRATION_TITLE_PREFIX, isDemonstrationData, rootTitle } from './demonstration';
+import { isDemonstrationData, rootTitle } from './demonstration';
 import { pageMetadata } from './seo';
 
 /**
@@ -59,7 +59,7 @@ describe('a page that holds demonstration data is never indexable', () => {
 
   it('says it in the Open Graph title, which is what a chat app renders', () => {
     const meta = pageMetadata({ locale: 'en', path: '/scores', title: 'Scores' }, ORIGIN, true);
-    expect(meta.openGraph?.title).toBe(`${DEMONSTRATION_TITLE_PREFIX}Scores`);
+    expect(meta.openGraph?.title).toBe('Demonstration data — Scores');
   });
 
   it('leaves the document title to the layout template', () => {
@@ -78,10 +78,9 @@ describe('a page that holds demonstration data is never indexable', () => {
 describe('the title template reaches the pages pageMetadata never sees', () => {
   it('is set on the layout, with the default Next.js requires', () => {
     const LAYOUT = readFileSync(join(__dirname, '..', 'app', '[locale]', 'layout.tsx'), 'utf8');
-    expect(LAYOUT).toContain('DEMONSTRATION_TITLE_TEMPLATE');
-    expect(LAYOUT).toContain('template: DEMONSTRATION_TITLE_TEMPLATE');
+    expect(LAYOUT).toContain('template: demonstrationTitleTemplate(locale)');
     // A template without a default is ignored, silently.
-    expect(LAYOUT).toMatch(/default: `\$\{DEMONSTRATION_TITLE_PREFIX\}/);
+    expect(LAYOUT).toContain("default: demonstrationTitle('FMIP', locale)");
   });
 
   it('covers a page that sets its own metadata object', () => {
@@ -132,16 +131,17 @@ describe('the locale root, which the template cannot reach', () => {
   // open first. It was found on the public deployment, because that is the
   // only place a runtime-only variable is real.
   it('prefixes the title itself when the data is demonstration data', () => {
-    expect(rootTitle('FMIP', true)).toBe(`${DEMONSTRATION_TITLE_PREFIX}FMIP`);
+    expect(rootTitle('FMIP', 'en', true)).toBe('Demonstration data — FMIP');
+    expect(rootTitle('FMIP', 'fa', true)).toBe('داده‌های نمایشی — FMIP');
   });
 
   it('leaves a normal deployment alone', () => {
-    expect(rootTitle('FMIP', false)).toBe('FMIP');
+    expect(rootTitle('FMIP', 'en', false)).toBe('FMIP');
   });
 
   it('is used by the one page it applies to', () => {
     const ROOT = readFileSync(join(__dirname, '..', 'app', '[locale]', 'page.tsx'), 'utf8');
-    expect(ROOT).toContain("rootTitle('FMIP')");
+    expect(ROOT).toContain("rootTitle('FMIP', locale)");
   });
 
   it('applies to exactly one page, because a segment holds one page', () => {

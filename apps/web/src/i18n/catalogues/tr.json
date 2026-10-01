@@ -10105,5 +10105,188 @@
     "source": "Read the platform rules",
     "text": "",
     "status": "untranslated"
+  },
+  "bracket.round.roundOf32": {
+    "source": "Round of 32",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.round.knockoutPlayoff": {
+    "source": "Knockout play-offs",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.round.roundOf16": {
+    "source": "Round of 16",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.round.quarterFinal": {
+    "source": "Quarter-finals",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.round.semiFinal": {
+    "source": "Semi-finals",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.round.final": {
+    "source": "Final",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.leg.match": {
+    "source": "Match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.line.versus": {
+    "source": "{home} v {away}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.line.score": {
+    "source": "{home} {score} {away}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.line.aet": {
+    "source": "{line} (aet)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.line.pens": {
+    "source": "{line} ({pens} pens)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.line.aetPens": {
+    "source": "{line} (aet, {pens} pens)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.outcome.aggregate": {
+    "source": "{home} {score} {away} on aggregate",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.outcome.wins": {
+    "source": "{team} win",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.outcome.winsOnPenalties": {
+    "source": "{team} win on penalties",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.outcome.winsOnAggregate": {
+    "source": "{team} win on aggregate",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.outcome.through": {
+    "source": "{team} go through",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.outcome.throughOnPenalties": {
+    "source": "{team} go through on penalties",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.outcome.throughOnAggregate": {
+    "source": "{team} go through on aggregate",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.outcome.notDecided": {
+    "source": "not decided in our records",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.outcome.toBeDecided": {
+    "source": "Still to be decided",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.note.notDrawn": {
+    "source": "Not drawn yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.note.notSupplied": {
+    "source": "Not supplied: our records hold none of its matches.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.note.missing": {
+    "source": {
+      "one": "{count} more tie not in our records yet.",
+      "other": "{count} more ties not in our records yet."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "shared.listSeparator": {
+    "source": ", ",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shared.conversation.untitled": {
+    "source": "A conversation",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shared.conversation.group": {
+    "source": "A group",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shared.conversation.threadNoMatch": {
+    "source": "{group} · a match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shared.conversation.thread": {
+    "source": "{home} v {away} · {group}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shared.status.scheduled": {
+    "source": "scheduled",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shared.status.finished": {
+    "source": "finished",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shared.demonstration.title": {
+    "source": "Demonstration data — {title}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shared.og.matchAlt": {
+    "source": "The match, its score or kick-off, and the model’s forecast",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shared.og.competitionAlt": {
+    "source": "The top of the competition’s table this season",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shared.og.memberAlt": {
+    "source": "A member of FMIP, their rating and latest settled predictions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shared.action.refused": {
+    "source": "You may not do this. {reason}",
+    "text": "",
+    "status": "untranslated"
   }
 }

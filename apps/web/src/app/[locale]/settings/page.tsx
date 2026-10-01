@@ -13,7 +13,7 @@ import {
   fetchTeams,
   fetchTerritories,
 } from '@/lib/api';
-import { territoryOptions, territoryValue } from '@/lib/territory';
+import { territoryName, territoryOptions, territoryValue } from '@/lib/territory';
 import {
   deleteAccountAction,
   setTerritoryAction,
@@ -208,7 +208,7 @@ export default async function SettingsPage({
         <p className="text-sm text-muted" data-testid="territory-state">
           {viewing_territory.state === 'chosen' ? (
             interpolate(t(lang, 'settingsPage.territory.chosen'), {
-              territory: viewing_territory.territory.name,
+              territory: territoryName(locale, viewing_territory.territory),
             })
           ) : (
             <Translated locale={locale} message="settingsPage.territory.none" />
