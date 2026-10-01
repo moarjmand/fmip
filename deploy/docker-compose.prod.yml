@@ -251,10 +251,9 @@ volumes:
   # while archiving is off, and normally within minutes of empty when on.
   wal-spool:
   redis-data:
-  # News photos the API downloaded under D-177 (T-1322).
-  media:
   caddy-data:
   caddy-config:
-  # Copied crests, logos and player photos (T-1320, D-176). Not backed up on
-  # purpose: every file is re-derivable from the provider by the fetch job.
+  # Crests, logos and player photos (T-1320, D-176) and news photos (T-1322,
+  # D-177), copied to our own server. Not backed up: crests and photos are
+  # re-fetched by their job; a lost news photo leaves its story without one.
   media:
