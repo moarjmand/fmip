@@ -4,7 +4,9 @@ import {
   apiQuery,
   blockUpdatedLabel,
   dayStrip,
+  firstMatchDay,
   formatKickoff,
+  NEXT_DAY_WINDOWS,
   pageHref,
   readScoresQuery,
   scoreLabel,
@@ -205,5 +207,39 @@ describe('the status cell in Persian (T-1303)', () => {
         'fa',
       ),
     ).toBe('۲ – ۱');
+  });
+});
+
+describe('the next match day after an empty one (T-1331)', () => {
+  const at = (kickoff_at: string) => ({ kickoff_at }) as ScoreCard;
+
+  it('is the earliest kick-off, dated in the viewer zone', () => {
+    const data = {
+      pinned: [],
+      groups: [
+        { fixtures: [at('2026-10-09T18:00:00Z')] },
+        { fixtures: [at('2026-10-08T21:30:00Z'), at('2026-10-10T12:00:00Z')] },
+      ],
+    };
+    expect(firstMatchDay(data, 'UTC')).toBe('2026-10-08');
+    // 21:30 UTC is already the next day in Tehran.
+    expect(firstMatchDay(data, 'Asia/Tehran')).toBe('2026-10-09');
+  });
+
+  it('counts a pinned card and is null when nothing is ahead', () => {
+    expect(firstMatchDay({ pinned: [at('2026-10-02T10:00:00Z')], groups: [] }, 'UTC')).toBe(
+      '2026-10-02',
+    );
+    expect(firstMatchDay({ pinned: [], groups: [] }, 'UTC')).toBeNull();
+  });
+
+  it('asks in windows the API accepts, covering four weeks without overlap', () => {
+    for (const [start, end] of NEXT_DAY_WINDOWS) expect(end - start + 1).toBeLessThanOrEqual(14);
+    expect(NEXT_DAY_WINDOWS.at(-1)?.[1]).toBe(28);
+  });
+
+  it('can ask for a range', () => {
+    const q = readScoresQuery({ date: '2026-10-02' }, 'UTC');
+    expect(apiQuery(q, '2026-10-15')).toContain('from=2026-10-02&to=2026-10-15');
   });
 });

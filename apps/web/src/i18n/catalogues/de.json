@@ -5950,6 +5950,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "scores.nextMatchDay": {
+    "source": "The next matches are on",
+    "text": "",
+    "status": "untranslated"
+  },
   "scores.filteredEmpty": {
     "source": "No match on this day fits these filters.",
     "text": "",

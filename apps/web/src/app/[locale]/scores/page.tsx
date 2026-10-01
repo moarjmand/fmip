@@ -12,7 +12,16 @@ import {
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { attribute, message, t, type MessageKey } from '@/i18n/messages';
 import { feedTrouble } from '@/lib/live';
-import { apiQuery, dayStrip, pageHref, readScoresQuery, shiftDate } from '@/lib/scores';
+import {
+  apiQuery,
+  dayStrip,
+  firstMatchDay,
+  NEXT_DAY_WINDOWS,
+  pageHref,
+  readScoresQuery,
+  shiftDate,
+} from '@/lib/scores';
+import { formatDate } from '@/i18n/format';
 import {
   applyFilters,
   filterOptions,
@@ -78,6 +87,19 @@ export default async function ScoresPage({
     fetchIngestionHealth(),
   ]);
   const filters = q.filters ?? NO_FILTERS;
+  // An empty day (an international break, a winter pause) points at the next
+  // day with a match rather than leaving the reader to step through blanks (T-1331).
+  let nextDay: string | null = null;
+  if (result.ok && result.data.total === 0 && !q.live && !q.favourites) {
+    for (const [start, end] of NEXT_DAY_WINDOWS) {
+      const ahead = await fetchScores(
+        apiQuery({ ...q, date: shiftDate(q.date, start) }, shiftDate(q.date, end)),
+        cookie,
+      );
+      nextDay = ahead.ok ? firstMatchDay(ahead.data, q.timezone) : null;
+      if (nextDay !== null || !ahead.ok) break;
+    }
+  }
   // T-940 (D-114): the model's, the community's and the viewing line for every
   // card shown, one request per product per 50 matches, in parallel -- never a
   // request per card. A guest has no stored territory, so viewing is not asked.
@@ -333,6 +355,18 @@ export default async function ScoresPage({
             products={products}
             words={scoresWords(locale)}
           />
+          {nextDay !== null && (
+            <p data-testid="scores-next-day">
+              <Translated locale={locale} message="scores.nextMatchDay" />{' '}
+              <Link href={pageHref(locale, q, { date: nextDay })} className="underline">
+                {formatDate(locale, `${nextDay}T00:00:00Z`, 'UTC', {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long',
+                })}
+              </Link>
+            </p>
+          )}
         </>
       )}
     </main>

@@ -109,8 +109,8 @@ export function readScoresQuery(
 }
 
 /** The API query string for this page state. */
-export function apiQuery(q: ScoresPageQuery): string {
-  const p = new URLSearchParams({ from: q.date, to: q.date, tz: q.timezone });
+export function apiQuery(q: ScoresPageQuery, to: string = q.date): string {
+  const p = new URLSearchParams({ from: q.date, to, tz: q.timezone });
   if (q.live) p.set('live', '1');
   if (q.favourites) p.set('favourites', '1');
   return p.toString();
@@ -275,4 +275,27 @@ export function blockUpdatedLabel(
   return oldest === newest
     ? fill(words['scores.updated'].text, { time: oldest })
     : fill(words['scores.updatedBetween'].text, { oldest, newest });
+}
+
+/**
+ * The first day after an empty one that has a match, as the viewer's zone
+ * names it (T-1331): the windows the page asks for next, each within the
+ * API's 14-day cap, so an international break of up to four weeks still
+ * points somewhere.
+ */
+export const NEXT_DAY_WINDOWS: readonly (readonly [number, number])[] = [
+  [1, 14],
+  [15, 28],
+];
+
+export function firstMatchDay(
+  data: { pinned: ScoreCard[]; groups: { fixtures: ScoreCard[] }[] },
+  timeZone: string,
+): string | null {
+  const kickoffs = [...data.pinned, ...data.groups.flatMap((g) => g.fixtures)].map(
+    (card) => card.kickoff_at,
+  );
+  if (kickoffs.length === 0) return null;
+  const first = kickoffs.reduce((a, b) => (Date.parse(a) <= Date.parse(b) ? a : b));
+  return dateIn(timeZone, new Date(first));
 }
