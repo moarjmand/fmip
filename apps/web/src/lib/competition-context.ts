@@ -4,12 +4,15 @@ import type {
   CompetitionContextTie,
   ContextStanding,
 } from '@fmip/contracts';
+import { formatNumber } from '@/i18n/format';
+import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
+import { interpolate, plural, t } from '@/i18n/messages';
 import { ROUND_LABEL, tieOutcome } from '@/lib/bracket';
 
 /**
  * The words of the match centre's competition context (T-840). Pure, so what
  * a reader is told -- and what they are told is not known -- is one tested
- * place.
+ * place. They are the reader's (T-1303); `locale` defaults to English.
  */
 
 /** "1st", "2nd", "3rd", "11th", "22nd". */
@@ -28,90 +31,114 @@ export function ordinal(n: number): string {
   }
 }
 
-const pts = (n: number) => `${n} ${n === 1 ? 'pt' : 'pts'}`;
+const asLocale = (locale: string): Locale => (isLocale(locale) ? locale : DEFAULT_LOCALE);
+
+/** "1 pt", "31 pts", in the reader's words and digits. */
+export function pointsLabel(n: number, locale = 'en'): string {
+  return plural(asLocale(locale), 'matchCentre.context.points', n).text;
+}
 
 /** "2nd of 20 · 31 pts from 14 played". */
-export function positionLine(side: ContextStanding, teams: number): string {
-  return `${ordinal(side.position)} of ${teams} · ${pts(side.points)} from ${side.played} played`;
+export function positionLine(side: ContextStanding, teams: number, locale = 'en'): string {
+  const l = asLocale(locale);
+  return interpolate(t(l, 'matchCentre.context.position'), {
+    position: plural(l, 'team.position', side.position).text,
+    teams: formatNumber(l, teams),
+    points: pointsLabel(side.points, l),
+    played: formatNumber(l, side.played),
+  });
 }
 
 /** The gaps the table supports: to first, to the place above, over the place below. */
-export function gapLines(side: ContextStanding): string[] {
+export function gapLines(side: ContextStanding, locale = 'en'): string[] {
+  const l = asLocale(locale);
+  const say = (key: Parameters<typeof t>[1], points?: number): string =>
+    points === undefined ? t(l, key) : interpolate(t(l, key), { points: pointsLabel(points, l) });
   const lines: string[] = [];
   if (side.position === 1) {
     lines.push(
       side.points_clear_of_place_below === null
-        ? 'First'
-        : `First, ${pts(side.points_clear_of_place_below)} clear of second`,
+        ? say('matchCentre.context.leader')
+        : say('matchCentre.context.leaderClear', side.points_clear_of_place_below),
     );
     return lines;
   }
-  lines.push(`${pts(side.points_from_top)} behind first`);
+  lines.push(say('matchCentre.context.behindFirst', side.points_from_top));
   if (side.points_to_place_above !== null) {
     lines.push(
       side.points_to_place_above === 0
-        ? 'Level on points with the place above'
-        : `${pts(side.points_to_place_above)} behind the place above`,
+        ? say('matchCentre.context.levelAbove')
+        : say('matchCentre.context.behindAbove', side.points_to_place_above),
     );
   }
   if (side.points_clear_of_place_below !== null) {
     lines.push(
       side.points_clear_of_place_below === 0
-        ? 'Level on points with the place below'
-        : `${pts(side.points_clear_of_place_below)} clear of the place below`,
+        ? say('matchCentre.context.levelBelow')
+        : say('matchCentre.context.clearBelow', side.points_clear_of_place_below),
     );
   }
   return lines;
 }
 
 /** What the table is and how much of it there is. */
-export function tableHeading(table: CompetitionContextTable): string {
+export function tableHeading(table: CompetitionContextTable, locale = 'en'): string {
+  const l = asLocale(locale);
   return table.scope === 'group' && table.group_name !== null
-    ? `Group ${table.group_name}, before kick-off`
-    : 'League table, before kick-off';
+    ? interpolate(t(l, 'matchCentre.context.groupTable'), { group: table.group_name })
+    : t(l, 'matchCentre.context.leagueTable');
 }
 
-export function countedLine(table: CompetitionContextTable): string {
-  if (table.matches_counted === 0) {
-    return 'No match of this table was played before this one, so there are no positions yet.';
-  }
-  return `From the ${table.matches_counted} finished ${table.matches_counted === 1 ? 'match' : 'matches'} of this table played before kick-off.`;
+export function countedLine(table: CompetitionContextTable, locale = 'en'): string {
+  const l = asLocale(locale);
+  if (table.matches_counted === 0) return t(l, 'matchCentre.context.noneCounted');
+  return plural(l, 'matchCentre.context.counted', table.matches_counted).text;
 }
 
 /**
  * Said under every table: the places are not in our records, so no gap to
  * them is given (rule 3).
  */
-export const PLACES_NOTE =
-  'Where the qualification, promotion and relegation places fall is not in our records, so no gap to them is shown.';
+export function placesNote(locale = 'en'): string {
+  return t(asLocale(locale), 'matchCentre.context.places');
+}
 
-/** The round in words: the UEFA round when known, else the competition's own. */
-export function roundName(tie: CompetitionContextTie): string {
-  return tie.round_key !== null ? ROUND_LABEL[tie.round_key] : (tie.round ?? 'Knockout round');
+/**
+ * The round in words: the UEFA round when known, else the competition's own.
+ * `ROUND_LABEL` is `lib/bracket.ts`'s, shared with the competition page, and
+ * still English (T-1304's to move).
+ */
+export function roundName(tie: CompetitionContextTie, locale = 'en'): string {
+  return tie.round_key !== null
+    ? ROUND_LABEL[tie.round_key]
+    : (tie.round ?? t(asLocale(locale), 'matchCentre.context.knockoutRound'));
 }
 
 /** "Two legs", "One match", or what our records cannot say. */
-export function legsNote(tie: CompetitionContextTie): string {
-  if (tie.legs_expected === 2) return 'Two legs';
-  if (tie.legs_expected === 1) return 'One match';
-  return 'Whether this round has a second leg is not in our records';
+export function legsNote(tie: CompetitionContextTie, locale = 'en'): string {
+  const l = asLocale(locale);
+  if (tie.legs_expected === 2) return t(l, 'matchCentre.context.twoLegs');
+  if (tie.legs_expected === 1) return t(l, 'matchCentre.context.oneMatch');
+  return t(l, 'matchCentre.context.legsUnknown');
 }
 
 /** The tie's outcome line, or nothing judged when the legs are unknown. */
-export function tieLine(tie: CompetitionContextTie): string {
-  if (tie.legs_expected === null) return 'Not judged: the number of legs is not in our records.';
+export function tieLine(tie: CompetitionContextTie, locale = 'en'): string {
+  if (tie.legs_expected === null) return t(asLocale(locale), 'matchCentre.context.notJudged');
   return tieOutcome(tie.tie, tie.legs_expected);
 }
 
 /** The sentence for a match with neither a table nor a tie to show. */
-export function absenceLine(context: CompetitionContext): string {
+export function absenceLine(context: CompetitionContext, locale = 'en'): string {
+  const l = asLocale(locale);
   if (context.table !== null && context.table.coverage === 'delayed') {
-    return 'The table for this competition is delayed.';
+    return t(l, 'matchCentre.context.tableDelayed');
   }
-  if (context.table !== null) {
-    return 'No table from before this match is in our records.';
-  }
-  return context.competition.kind === 'friendly'
-    ? 'A friendly: no table or round to place it in.'
-    : 'Neither a table nor a knockout round for this match is in our records.';
+  if (context.table !== null) return t(l, 'matchCentre.context.noTable');
+  return t(
+    l,
+    context.competition.kind === 'friendly'
+      ? 'matchCentre.context.friendly'
+      : 'matchCentre.context.neither',
+  );
 }

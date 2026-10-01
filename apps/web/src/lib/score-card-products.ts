@@ -1,10 +1,11 @@
 import type {
   CommunityConsensusResponse,
   ForecastSummary,
+  ForecastUnavailableReason,
   MatchViewing,
   ScoresResponse,
 } from '@fmip/contracts';
-import { UNAVAILABLE_LABEL, percentages } from './forecast';
+import { percentages } from './forecast';
 import { optionsState } from './viewing';
 
 /**
@@ -56,8 +57,16 @@ export type CardForecast =
       model_version: string;
       computed_at: string;
     }
-  /** The model answered, and the answer was that it could not: its reason, in words. */
-  | { state: 'unavailable'; reason: string; version: number; computed_at: string }
+  /**
+   * The model answered, and the answer was that it could not: its reason, which
+   * the card puts in the reader's words (`null`: none was given).
+   */
+  | {
+      state: 'unavailable';
+      reason: ForecastUnavailableReason | null;
+      version: number;
+      computed_at: string;
+    }
   /** No version was computed before kick-off. */
   | { state: 'none' }
   /** The forecast service did not answer this page's question. */
@@ -68,10 +77,7 @@ export function cardForecast(summary: ForecastSummary | null): CardForecast {
   if (summary.status === 'unavailable' || summary.probabilities === null) {
     return {
       state: 'unavailable',
-      reason:
-        summary.unavailable_reason === null
-          ? 'The model could not answer for this match.'
-          : UNAVAILABLE_LABEL[summary.unavailable_reason],
+      reason: summary.unavailable_reason,
       version: summary.version_number,
       computed_at: summary.computed_at,
     };

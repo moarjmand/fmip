@@ -7,20 +7,33 @@ import type {
 } from '@fmip/contracts';
 import { formatFixtureDate } from '@/lib/competition';
 import {
-  PLACES_NOTE,
   absenceLine,
   countedLine,
   gapLines,
   legsNote,
+  placesNote,
+  pointsLabel,
   positionLine,
   roundName,
   tableHeading,
   tieLine,
 } from '@/lib/competition-context';
 import { legLabel, legLine } from '@/lib/bracket';
-import { moduleState } from '@/lib/match';
+import { formatNumber } from '@/i18n/format';
+import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
+import { message } from '@/i18n/messages';
 import { formatKickoff } from '@/lib/scores';
+import { FilledMessage } from '@/components/filled-message';
+import { COVERAGE_KEY } from '@/components/score-card';
+import { Translated } from '@/components/translated';
 import { Notice } from '@/components/ui';
+
+/** A form letter in the reader's words (T-1303). */
+const RESULT_KEY = {
+  W: 'matchCentre.form.won',
+  D: 'matchCentre.form.drawn',
+  L: 'matchCentre.form.lost',
+} as const;
 
 /**
  * The match centre's competition context (T-840, blueprint 4.2): where both
@@ -47,9 +60,11 @@ export function CompetitionContextPanel({
         data-testid="competition-context"
         data-state="unreachable"
       >
-        <h2 className="text-lg font-semibold">Competition context</h2>
+        <h2 className="text-lg font-semibold">
+          <Translated locale={locale} message="matchCentre.context.title" />
+        </h2>
         <Notice tone="danger">
-          The competition service could not be reached, so the table and the round cannot be shown.
+          <Translated locale={locale} message="matchCentre.context.unreachable" />
         </Notice>
       </section>
     );
@@ -65,10 +80,12 @@ export function CompetitionContextPanel({
       data-coverage={table?.coverage ?? undefined}
     >
       <h2 className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-lg font-semibold">
-        <span>Competition context</span>
+        <span>
+          <Translated locale={locale} message="matchCentre.context.title" />
+        </span>
         {table !== null && (
           <span dir="auto" className="text-xs font-normal uppercase text-muted">
-            {moduleState(table)}
+            <Translated locale={locale} message={COVERAGE_KEY[table.coverage]} />
           </span>
         )}
       </h2>
@@ -97,7 +114,7 @@ export function CompetitionContextPanel({
         />
       ) : (
         <p dir="auto" className="text-sm text-muted" data-testid="competition-context-none">
-          {absenceLine(context)}
+          {absenceLine(context, locale)}
         </p>
       )}
     </section>
@@ -116,9 +133,10 @@ function Table({
   updatedAt: string | null;
 }) {
   const sides = [table.home, table.away].filter((s): s is ContextStanding => s !== null);
+  const l = isLocale(locale) ? locale : DEFAULT_LOCALE;
   return (
     <div className="flex flex-col gap-2 text-sm" data-testid="competition-context-table">
-      <h3 className="font-medium">{tableHeading(table)}</h3>
+      <h3 className="font-medium">{tableHeading(table, locale)}</h3>
       {sides.length > 0 && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {sides.map((side) => (
@@ -128,24 +146,35 @@ function Table({
       )}
       {table.leader !== null && (
         <p>
-          First: <bdi>{table.leader.team.name}</bdi>, {table.leader.points} pts
+          <FilledMessage
+            message={message(l, 'matchCentre.context.first')}
+            params={{
+              team: <bdi>{table.leader.team.name}</bdi>,
+              points: pointsLabel(table.leader.points, l),
+            }}
+          />
         </p>
       )}
       <p dir="auto" className="text-muted">
-        {countedLine(table)}
+        {countedLine(table, locale)}
         {updatedAt !== null && (
           <>
             {' '}
-            Last result change{' '}
-            <time dateTime={updatedAt}>
-              {updatedAt.slice(0, 10)} {formatKickoff(locale, updatedAt, timeZone)}
-            </time>
-            .
+            <FilledMessage
+              message={message(l, 'matchCentre.context.lastChange')}
+              params={{
+                time: (
+                  <time dateTime={updatedAt}>
+                    {updatedAt.slice(0, 10)} {formatKickoff(locale, updatedAt, timeZone)}
+                  </time>
+                ),
+              }}
+            />
           </>
         )}
       </p>
       <p dir="auto" className="text-xs text-muted" data-testid="competition-context-places">
-        {PLACES_NOTE}
+        {placesNote(locale)}
       </p>
     </div>
   );
@@ -160,6 +189,8 @@ function Standing({
   teams: number;
   locale: string;
 }) {
+  const l = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  const n = (value: number): string => formatNumber(l, value);
   return (
     <div
       className="flex min-w-0 flex-col gap-1 rounded border border-default p-3"
@@ -170,19 +201,38 @@ function Standing({
           {side.team.name}
         </Link>
       </p>
-      <p>{positionLine(side, teams)}</p>
+      <p>{positionLine(side, teams, locale)}</p>
       <p className="text-muted">
-        W {side.won} · D {side.drawn} · L {side.lost} · GD{' '}
-        <span dir="ltr">
-          {side.goal_difference > 0 ? `+${side.goal_difference}` : side.goal_difference}
-        </span>
+        <FilledMessage
+          message={message(l, 'matchCentre.context.record')}
+          params={{
+            won: n(side.won),
+            drawn: n(side.drawn),
+            lost: n(side.lost),
+            difference: (
+              <span dir="ltr">
+                {side.goal_difference > 0
+                  ? `+${n(side.goal_difference)}`
+                  : side.goal_difference < 0
+                    ? `-${n(-side.goal_difference)}`
+                    : n(0)}
+              </span>
+            ),
+          }}
+        />
       </p>
       <p>
-        <span className="text-muted">Form in this competition, latest first: </span>
-        {side.form.length === 0 ? 'none yet' : <span dir="ltr">{side.form.join(' ')}</span>}
+        <span className="text-muted">
+          <Translated locale={locale} message="matchCentre.context.form" />{' '}
+        </span>
+        {side.form.length === 0 ? (
+          <Translated locale={locale} message="matchCentre.context.noForm" />
+        ) : (
+          <span dir="auto">{side.form.map((r) => message(l, RESULT_KEY[r]).text).join(' ')}</span>
+        )}
       </p>
       <ul className="flex flex-col text-muted">
-        {gapLines(side).map((line) => (
+        {gapLines(side, locale).map((line) => (
           <li key={line}>{line}</li>
         ))}
       </ul>
@@ -205,8 +255,8 @@ function Tie({
   return (
     <div className="flex flex-col gap-2 text-sm" data-testid="competition-context-tie">
       <h3 className="font-medium">
-        {roundName(tie)}
-        <span className="ms-2 text-xs font-normal text-muted">{legsNote(tie)}</span>
+        {roundName(tie, locale)}
+        <span className="ms-2 text-xs font-normal text-muted">{legsNote(tie, locale)}</span>
       </h3>
       <ul className="flex flex-col gap-0.5">
         {tie.tie.legs.map((leg) => (
@@ -214,7 +264,10 @@ function Tie({
             <span className="text-muted">{legLabel(leg, legs)}</span>
             {leg.fixture_id === fixtureId ? (
               <span className="font-medium">
-                {legLine(leg)} <span className="text-muted">(this match)</span>
+                {legLine(leg)}{' '}
+                <span className="text-muted">
+                  <Translated locale={locale} message="matchCentre.context.thisMatch" />
+                </span>
               </span>
             ) : (
               <Link href={`/${locale}/match/${leg.fixture_id}`} className="underline">
@@ -230,7 +283,7 @@ function Tie({
         ))}
       </ul>
       <p dir="auto" className="text-xs text-muted" data-testid="competition-context-outcome">
-        {tieLine(tie)}
+        {tieLine(tie, locale)}
       </p>
     </div>
   );

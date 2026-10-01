@@ -1,21 +1,34 @@
-import type { ScoreCard as ScoreCardData, ScoreCardIncident } from '@fmip/contracts';
+import type { CoverageState, ScoreCard as ScoreCardData, ScoreCardIncident } from '@fmip/contracts';
 import Link from 'next/link';
+import { formatNumber } from '@/i18n/format';
 import { isBehind } from '@/lib/live';
-import { COVERAGE_LABEL, formatKickoff, scoreLabel, statusLabel } from '@/lib/scores';
+import { formatKickoff, scoreLabel, statusLabel } from '@/lib/scores';
 import type { CardCommunity, CardForecast, CardViewing } from '@/lib/score-card-products';
+import { fill, filled, formatMinute, pickPlural } from '@/lib/words';
+import type { ScoresWords } from '@/lib/words-server';
+import { FilledMessage } from '@/components/filled-message';
+import { MessageText } from '@/components/message-text';
 import { LtrNumeric, ltrIsolate } from '@/components/score';
 import { CardCommunityTotals } from '@/components/score-card-community';
 import { CardForecastSummary } from '@/components/score-card-forecast';
 
-const INCIDENT_LABEL: Record<ScoreCardIncident['kind'], string> = {
-  goal: 'Goal',
-  own_goal: 'Own goal',
-  penalty_goal: 'Penalty',
-  penalty_missed: 'Penalty missed',
-  red_card: 'Red card',
-  second_yellow_card: 'Second yellow',
-  var: 'VAR',
-};
+const INCIDENT_KEY = {
+  goal: 'matchCentre.incident.goal',
+  own_goal: 'matchCentre.incident.ownGoal',
+  penalty_goal: 'matchCentre.incident.penaltyGoal',
+  penalty_missed: 'matchCentre.incident.penaltyMissed',
+  red_card: 'matchCentre.incident.redCard',
+  second_yellow_card: 'matchCentre.incident.secondYellow',
+  var: 'matchCentre.incident.var',
+} as const satisfies Record<ScoreCardIncident['kind'], string>;
+
+/** A coverage state in the glossary's words (T-1303). */
+export const COVERAGE_KEY = {
+  available: 'status.coverage.available',
+  limited: 'status.coverage.limited',
+  not_supplied: 'status.coverage.notSupplied',
+  delayed: 'status.coverage.delayed',
+} as const satisfies Record<CoverageState, string>;
 
 /**
  * One match on the scores list (blueprint 4.1), phone first (T-605).
@@ -31,6 +44,9 @@ const INCIDENT_LABEL: Record<ScoreCardIncident['kind'], string> = {
  * scroll. Two things never hide: a leg or an aggregate (it changes what the
  * score means) and a feed that is behind (rule 4), which is said on the row.
  * The block's "Updated" line is the list's (`LiveScores`), per competition.
+ *
+ * Every word is the reader's (T-1303): this renders inside a client
+ * component, so the page resolves the words on the server and hands them down.
  */
 /**
  * A team's name wraps onto a second line before it is cut: at 360 px one line
@@ -47,6 +63,7 @@ export function ScoreCard({
   forecast,
   community,
   viewing,
+  words,
 }: {
   card: ScoreCardData;
   timeZone: string;
@@ -63,36 +80,43 @@ export function ScoreCard({
   forecast?: CardForecast;
   community?: CardCommunity;
   viewing?: CardViewing;
+  /** The reader's words, resolved on the server (T-1303). */
+  words: ScoresWords;
 }) {
+  const { m, p } = words;
+  const n = (value: number): string => formatNumber(locale, value);
   const behind = now !== undefined && isBehind(card, now);
   // The red-card mark is an image to a screen reader, named in words (T-081).
-  const sentOff = (n: number): React.ReactNode =>
-    n === 0 ? null : (
+  const sentOff = (count: number): React.ReactNode =>
+    count === 0 ? null : (
       <span
         role="img"
-        aria-label={n === 1 ? 'one red card' : `${n} red cards`}
+        aria-label={
+          count === 1
+            ? m['scores.card.redCard'].text
+            : pickPlural(p['scores.card.redCards'], locale, count).text
+        }
         className="shrink-0"
       >
-        {n === 1 ? '🟥' : `🟥×${n}`}
+        {count === 1 ? '🟥' : `🟥×${n(count)}`}
       </span>
     );
-  const stageBits = [
-    card.stage?.name,
-    card.round,
-    card.leg === null ? null : `Leg ${card.leg}`,
+  const leg = card.leg === null ? null : fill(m['scores.card.leg'].text, { leg: n(card.leg) });
+  const aggregate =
     card.scores.aggregate === null
       ? null
-      : `Agg ${ltrIsolate(`${card.scores.aggregate.home}–${card.scores.aggregate.away}`)}`,
-  ].filter((bit): bit is string => typeof bit === 'string' && bit !== '');
+      : fill(m['scores.card.aggregate'].text, {
+          score: ltrIsolate(`${n(card.scores.aggregate.home)}–${n(card.scores.aggregate.away)}`),
+        });
+  const stageBits = [card.stage?.name, card.round, leg, aggregate].filter(
+    (bit): bit is string => typeof bit === 'string' && bit !== '',
+  );
   // What stays on the row under the teams: what changes the score's meaning.
-  const rowBits = [
-    showCompetition ? card.competition.name : null,
-    card.leg === null ? null : `Leg ${card.leg}`,
-    card.scores.aggregate === null
-      ? null
-      : `Agg ${ltrIsolate(`${card.scores.aggregate.home}–${card.scores.aggregate.away}`)}`,
-  ].filter((bit): bit is string => bit !== null);
+  const rowBits = [showCompetition ? card.competition.name : null, leg, aggregate].filter(
+    (bit): bit is string => bit !== null,
+  );
   const live = card.status === 'live';
+  const at = (iso: string) => <time dateTime={iso}>{formatKickoff(locale, iso, timeZone)}</time>;
 
   return (
     <li
@@ -111,7 +135,7 @@ export function ScoreCard({
             className={`w-12 shrink-0 text-xs leading-tight hyphens-auto [overflow-wrap:anywhere] ${live ? 'font-semibold text-live' : 'text-muted'}`}
             data-testid="score-status"
           >
-            {statusLabel(card, locale, timeZone, now)}
+            {statusLabel(card, locale, timeZone, now, m)}
           </span>
           <span
             className="flex min-w-0 flex-1 items-center justify-end gap-1 text-end"
@@ -126,7 +150,7 @@ export function ScoreCard({
             className={`shrink-0 px-1 text-center font-semibold whitespace-nowrap tabular-nums ${live ? 'text-live' : ''}`}
             testId="score"
           >
-            {scoreLabel(card)}
+            {scoreLabel(card, locale)}
           </LtrNumeric>
           <span className="flex min-w-0 flex-1 items-center gap-1" data-testid="away-team">
             {sentOff(card.red_cards.away)}
@@ -148,11 +172,10 @@ export function ScoreCard({
           className="px-3 pb-2 text-xs font-medium text-warning"
           data-testid="behind"
         >
-          Data behind: nothing has changed since{' '}
-          <time dateTime={card.last_updated_at}>
-            {formatKickoff(locale, card.last_updated_at, timeZone)}
-          </time>
-          . The score shown is the last known, not the current one.
+          <FilledMessage
+            message={m['scores.card.behind']}
+            params={{ time: at(card.last_updated_at) }}
+          />
         </p>
       )}
 
@@ -161,9 +184,13 @@ export function ScoreCard({
           <span aria-hidden="true" className="transition-transform group-open:rotate-180">
             ▾
           </span>
-          <span className="sr-only">
-            Details: {card.home.name} v {card.away.name}
-          </span>
+          <MessageText
+            className="sr-only"
+            message={filled(m['scores.card.details'], {
+              home: card.home.name,
+              away: card.away.name,
+            })}
+          />
         </summary>
         <div className="flex flex-col gap-1 px-3 pb-3 text-xs">
           <p className="flex flex-wrap gap-x-3 text-muted">
@@ -172,10 +199,10 @@ export function ScoreCard({
               <span key={bit}>{bit}</span>
             ))}
             <span>
-              Kick-off{' '}
-              <time dateTime={card.kickoff_at}>
-                {formatKickoff(locale, card.kickoff_at, timeZone)}
-              </time>
+              <FilledMessage
+                message={m['scores.card.kickoff']}
+                params={{ time: at(card.kickoff_at) }}
+              />
             </span>
             {card.venue !== null && (
               <span>
@@ -190,9 +217,10 @@ export function ScoreCard({
             <ul className="flex flex-wrap gap-x-3" data-testid="incidents">
               {card.incidents.map((incident, index) => (
                 <li key={index}>
-                  {incident.minute}
-                  {incident.added_time !== null ? `+${incident.added_time}` : ''}′{' '}
-                  {INCIDENT_LABEL[incident.kind]}
+                  <span dir="ltr">
+                    {formatMinute(locale, incident.minute, incident.added_time)}
+                  </span>{' '}
+                  <MessageText message={m[INCIDENT_KEY[incident.kind]]} />
                   {incident.player !== null ? ` · ${incident.player}` : ''}
                   {incident.side !== null
                     ? ` (${incident.side === 'home' ? card.home.name : card.away.name})`
@@ -210,17 +238,29 @@ export function ScoreCard({
             started={card.status !== 'scheduled'}
             locale={locale}
             timeZone={timeZone}
+            words={words}
           />
-          <CardCommunityTotals community={community} home={card.home.name} away={card.away.name} />
-          <CardViewingLine viewing={viewing} locale={locale} />
+          <CardCommunityTotals
+            community={community}
+            home={card.home.name}
+            away={card.away.name}
+            words={words}
+          />
+          <CardViewingLine viewing={viewing} locale={locale} words={words} />
 
           <p className="flex flex-wrap gap-x-3 text-muted" data-testid="card-labels">
-            <span>Scores: {COVERAGE_LABEL[card.coverage]}</span>
             <span>
-              Updated{' '}
-              <time dateTime={card.last_updated_at}>
-                {formatKickoff(locale, card.last_updated_at, timeZone)}
-              </time>
+              <MessageText
+                message={filled(m['scores.card.coverage'], {
+                  state: m[COVERAGE_KEY[card.coverage]].text,
+                })}
+              />
+            </span>
+            <span>
+              <FilledMessage
+                message={m['scores.updated']}
+                params={{ time: at(card.last_updated_at) }}
+              />
             </span>
           </p>
         </div>
@@ -234,33 +274,73 @@ export function ScoreCard({
  * 11): a count of listings, or the sentence for why there is none. Nobody's
  * territory is guessed; without one, the line asks (T-312).
  */
+/** The viewing line's words for a caller that does not pass the reader's yet. */
+const ENGLISH_VIEWING: Pick<ScoresWords, 'm' | 'p'> = {
+  m: Object.fromEntries(
+    Object.entries({
+      'scores.card.watch': 'Watch:',
+      'scores.card.oneListing': 'one listing in {territory}',
+      'scores.card.nothingListed': 'nothing listed in {territory}.',
+      'scores.card.noSchedule': 'no schedule covers this match in {territory}.',
+      'scores.card.chooseTerritory': 'choose your territory',
+      'scores.card.unreachable': 'could not be loaded for this page.',
+      'scores.card.notLoaded': 'not loaded for this list.',
+    }).map(([key, text]) => [key, { text, status: 'source' }]),
+  ) as ScoresWords['m'],
+  p: {
+    'scores.card.listings': {
+      forms: { one: '{count} listing in {territory}', other: '{count} listings in {territory}' },
+      rules: 'en-GB',
+      status: 'source',
+    },
+  } as ScoresWords['p'],
+};
+
 export function CardViewingLine({
   viewing,
   locale,
+  words = ENGLISH_VIEWING,
 }: {
   viewing: CardViewing | undefined;
   locale: string;
+  /** The reader's words (T-1303); the English when a caller has none yet. */
+  words?: Pick<ScoresWords, 'm' | 'p'>;
 }) {
   const v = viewing ?? { state: 'not_loaded' as const };
+  const { m, p } = words;
   return (
     <p className="flex flex-wrap gap-x-2" data-testid="card-viewing" data-state={v.state}>
-      <span className="font-medium">Watch:</span>
+      <MessageText message={m['scores.card.watch']} className="font-medium" />
       {v.state === 'listed' ? (
         <span>
-          {v.count === 1 ? 'one listing' : `${v.count} listings`} in {v.territory}
+          <MessageText
+            message={
+              v.count === 1
+                ? filled(m['scores.card.oneListing'], { territory: v.territory })
+                : pickPlural(p['scores.card.listings'], locale, v.count, {
+                    territory: v.territory,
+                  })
+            }
+          />
         </span>
       ) : v.state === 'nothing_listed' ? (
-        <span className="text-muted">nothing listed in {v.territory}.</span>
+        <MessageText
+          className="text-muted"
+          message={filled(m['scores.card.nothingListed'], { territory: v.territory })}
+        />
       ) : v.state === 'not_supplied' ? (
-        <span className="text-muted">no schedule covers this match in {v.territory}.</span>
+        <MessageText
+          className="text-muted"
+          message={filled(m['scores.card.noSchedule'], { territory: v.territory })}
+        />
       ) : v.state === 'ask' ? (
         <Link href={`/${locale}/watch`} className="underline" data-testid="card-viewing-ask">
-          choose your territory
+          <MessageText message={m['scores.card.chooseTerritory']} />
         </Link>
       ) : v.state === 'unreachable' ? (
-        <span className="text-muted">could not be loaded for this page.</span>
+        <MessageText className="text-muted" message={m['scores.card.unreachable']} />
       ) : (
-        <span className="text-muted">not loaded for this list.</span>
+        <MessageText className="text-muted" message={m['scores.card.notLoaded']} />
       )}
     </p>
   );

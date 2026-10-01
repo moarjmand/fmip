@@ -106,8 +106,15 @@ export function MatchSummaryPanel({
       {editor && summary !== null && (
         <ActionForm
           action={regenerateSummaryAction.bind(null, locale, fixtureId)}
-          fields={[{ name: 'reason', label: 'Why a new version', type: 'text', required: true }]}
-          submitLabel="Write a new version"
+          fields={[
+            {
+              name: 'reason',
+              label: t('matchCentre.summary.reason'),
+              type: 'text',
+              required: true,
+            },
+          ]}
+          submitLabel={t('matchCentre.summary.regenerate')}
           testId="match-summary-regenerate"
         />
       )}

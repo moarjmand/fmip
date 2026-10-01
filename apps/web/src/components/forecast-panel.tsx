@@ -4,20 +4,25 @@ import type {
   ForecastVersionsResponse,
 } from '@fmip/contracts';
 import Link from 'next/link';
+import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
+import { interpolate, message, plural, t } from '@/i18n/messages';
 import {
-  FACTOR_LABEL,
-  KIND_LABEL,
-  UNAVAILABLE_LABEL,
   describeChange,
+  factorLabel,
   framing,
+  kindLabel,
   percentages,
   priorNote,
+  unavailableLabel,
   versionChanges,
 } from '@/lib/forecast';
 import { attribute } from '@/lib/forecast-diff';
-import { COVERAGE_LABEL } from '@/lib/match';
 import { formatKickoff } from '@/lib/scores';
+import { formatFixed, formatPercent } from '@/lib/words';
+import { FilledMessage } from '@/components/filled-message';
+import { COVERAGE_KEY } from '@/components/score-card';
 import { Score, ltrIsolate } from '@/components/score';
+import { Translated } from '@/components/translated';
 import { Notice } from '@/components/ui';
 
 /**
@@ -28,7 +33,8 @@ import { Notice } from '@/components/ui';
  * match, how the forecast did. It explains
  * and never asserts certainty: the wording is probabilities, and the version
  * and time are always on screen. An `unavailable` version is shown with its
- * reason, never as an empty panel (rule 3).
+ * reason, never as an empty panel (rule 3). Every word is the reader's
+ * (T-1303), every figure in their digits.
  */
 export function ForecastPanel({
   forecasts,
@@ -45,15 +51,21 @@ export function ForecastPanel({
   timeZone: string;
   locale: string;
 }) {
-  const stamp = (iso: string): string =>
-    `${iso.slice(0, 10)} ${formatKickoff(locale, iso, timeZone)}`;
+  const l: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  const stamp = (iso: string) => (
+    <time dateTime={iso}>
+      {iso.slice(0, 10)} {formatKickoff(locale, iso, timeZone)}
+    </time>
+  );
 
   if (forecasts === null) {
     return (
       <section className="flex flex-col gap-2" data-testid="forecast" data-coverage="unreachable">
-        <h2 className="text-lg font-semibold">Model forecast</h2>
+        <h2 className="text-lg font-semibold">
+          <Translated locale={locale} message="forecast.title" />
+        </h2>
         <Notice tone="danger">
-          The forecast service could not be reached, so no forecast can be shown.
+          <Translated locale={locale} message="forecast.unreachable" />
         </Notice>
       </section>
     );
@@ -67,64 +79,80 @@ export function ForecastPanel({
       data-coverage={forecasts.coverage}
     >
       <h2 className="text-lg font-semibold">
-        Model forecast
+        <Translated locale={locale} message="forecast.title" />
         <span className="ms-2 text-xs font-normal uppercase text-muted">
-          {COVERAGE_LABEL[forecasts.coverage]}
+          <Translated locale={locale} message={COVERAGE_KEY[forecasts.coverage]} />
         </span>
       </h2>
 
       {latest === null ? (
         <p className="text-sm text-muted" data-testid="forecast-none">
-          No forecast has been computed for this match yet.
+          <Translated locale={locale} message="forecast.none" />
         </p>
       ) : latest.probabilities === null ? (
         <div className="flex flex-col gap-1 text-sm" data-testid="forecast-unavailable">
           <p>
-            {latest.unavailable_reason !== null
-              ? UNAVAILABLE_LABEL[latest.unavailable_reason]
-              : 'The model could not produce a forecast.'}
+            {latest.unavailable_reason !== null ? (
+              unavailableLabel(latest.unavailable_reason, locale)
+            ) : (
+              <Translated locale={locale} message="forecast.couldNotProduce" />
+            )}
           </p>
           <p className="text-xs text-muted">
-            Version {latest.version_number} · {KIND_LABEL[latest.kind]} · computed{' '}
-            <time dateTime={latest.computed_at}>{stamp(latest.computed_at)}</time>
+            <FilledMessage
+              message={message(l, 'forecast.versionLine')}
+              params={{
+                version: formatFixed(locale, latest.version_number, 0),
+                kind: kindLabel(latest.kind, locale),
+                time: stamp(latest.computed_at),
+              }}
+            />
           </p>
         </div>
       ) : (
-        <Latest version={latest} home={home} away={away} stamp={stamp} />
+        <Latest version={latest} home={home} away={away} stamp={stamp} locale={l} />
       )}
 
       {forecasts.versions.length > 1 && (
         <div className="flex flex-col gap-1" data-testid="forecast-versions">
-          <h3 className="text-sm font-medium">What changed between versions</h3>
+          <h3 className="text-sm font-medium">
+            <Translated locale={locale} message="forecast.versions" />
+          </h3>
           <ol className="flex flex-col gap-1 text-xs">
             {versionChanges(forecasts.versions).map((change, index) => {
               // The version before this one, for the attribution (T-121). The
               // probabilities say *what* moved; only the inputs say why, and
               // only as far as they honestly can.
               const previous = index === 0 ? null : (forecasts.versions[index - 1] ?? null);
+              const kind = kindLabel(change.version.kind, locale);
               return (
                 <li key={change.version.id} className="flex flex-col gap-0.5">
                   <div className="flex flex-wrap gap-x-2">
                     <span className="text-muted">
-                      v{change.version.version_number} ·{' '}
-                      <time dateTime={change.version.computed_at}>
-                        {stamp(change.version.computed_at)}
-                      </time>
+                      <FilledMessage
+                        message={message(l, 'forecast.versionShort')}
+                        params={{
+                          version: formatFixed(locale, change.version.version_number, 0),
+                          time: stamp(change.version.computed_at),
+                        }}
+                      />
                     </span>
                     <span>
                       {change.version.probabilities === null
-                        ? `${KIND_LABEL[change.version.kind]}: ${
-                            change.version.unavailable_reason !== null
-                              ? UNAVAILABLE_LABEL[change.version.unavailable_reason]
-                              : 'unavailable'
-                          }`
-                        : (describeChange(change, home, away) ??
-                          `${KIND_LABEL[change.version.kind]}: first available version.`)}
+                        ? interpolate(t(l, 'forecast.kindReason'), {
+                            kind,
+                            reason:
+                              change.version.unavailable_reason !== null
+                                ? unavailableLabel(change.version.unavailable_reason, locale)
+                                : t(l, 'forecast.unavailable'),
+                          })
+                        : (describeChange(change, home, away, locale) ??
+                          interpolate(t(l, 'forecast.firstAvailable'), { kind }))}
                     </span>
                   </div>
                   {previous !== null && (
                     <span className="text-muted" data-testid="forecast-attribution">
-                      {attribute(previous, change.version)}
+                      {attribute(previous, change.version, locale)}
                     </span>
                   )}
                 </li>
@@ -134,7 +162,7 @@ export function ForecastPanel({
         </div>
       )}
 
-      <Evaluation evaluations={evaluations} home={home} away={away} stamp={stamp} />
+      <Evaluation evaluations={evaluations} home={home} away={away} stamp={stamp} locale={l} />
     </section>
   );
 }
@@ -144,67 +172,85 @@ function Latest({
   home,
   away,
   stamp,
+  locale,
 }: {
   version: NonNullable<ForecastVersionsResponse['latest']>;
   home: string;
   away: string;
-  stamp: (iso: string) => string;
+  stamp: (iso: string) => React.ReactNode;
+  locale: Locale;
 }) {
   const p = version.probabilities;
   if (p === null) return null;
   const pct = percentages(p);
+  const prior = priorNote(version, locale);
   return (
     <div className="flex flex-col gap-2" data-testid="forecast-latest">
       <div className="grid grid-cols-3 gap-2 text-center" data-testid="probabilities">
-        <Outcome label={home} value={pct.home} />
-        <Outcome label="Draw" value={pct.draw} />
-        <Outcome label={away} value={pct.away} />
+        <Outcome label={home} value={pct.home} locale={locale} />
+        <Outcome label={t(locale, 'forecast.draw')} value={pct.draw} locale={locale} />
+        <Outcome label={away} value={pct.away} locale={locale} />
       </div>
       <p className="text-sm" data-testid="forecast-framing">
-        {framing(p, home, away)}
+        {framing(p, home, away, locale)}
       </p>
 
       <ul className="flex flex-wrap gap-x-4 text-xs text-muted">
         {version.expected_goals !== null && (
           <li>
-            Expected goals {version.expected_goals.home.toFixed(2)} –{' '}
-            {version.expected_goals.away.toFixed(2)}
+            <FilledMessage
+              message={message(locale, 'forecast.expectedGoals')}
+              params={{
+                home: <span dir="ltr">{formatFixed(locale, version.expected_goals.home, 2)}</span>,
+                away: <span dir="ltr">{formatFixed(locale, version.expected_goals.away, 2)}</span>,
+              }}
+            />
           </li>
         )}
         {version.most_likely_scorelines !== null && version.most_likely_scorelines.length > 0 && (
           <li>
-            Most likely scorelines:{' '}
-            {version.most_likely_scorelines
-              .slice(0, 3)
-              .map(
-                (s) =>
-                  `${ltrIsolate(`${s.home}–${s.away}`)} (${(s.probability * 100).toFixed(1)}%)`,
-              )
-              .join(', ')}
+            {interpolate(t(locale, 'forecast.scorelines'), {
+              list: version.most_likely_scorelines
+                .slice(0, 3)
+                .map((s) =>
+                  interpolate(t(locale, 'forecast.scoreline'), {
+                    score: ltrIsolate(
+                      `${formatFixed(locale, s.home, 0)}–${formatFixed(locale, s.away, 0)}`,
+                    ),
+                    probability: formatPercent(locale, s.probability * 100),
+                  }),
+                )
+                .join(t(locale, 'forecast.listSeparator')),
+            })}
           </li>
         )}
       </ul>
 
       {version.leading_factors !== null && version.leading_factors.length > 0 && (
         <div className="flex flex-col gap-1" data-testid="leading-factors">
-          <h3 className="text-sm font-medium">Leading factors</h3>
+          <h3 className="text-sm font-medium">
+            <Translated locale={locale} message="forecast.leadingFactors" />
+          </h3>
           <ul className="flex flex-col gap-1 text-xs">
             {version.leading_factors.map((factor, index) => (
               <li key={index}>
-                <span className="font-medium">{FACTOR_LABEL[factor.factor]}</span>
-                {' · favours '}
-                {factor.favours === 'home'
-                  ? home
-                  : factor.favours === 'away'
-                    ? away
-                    : 'neither side'}
+                <span className="font-medium">{factorLabel(factor.factor, locale)}</span>
+                {' · '}
+                {interpolate(t(locale, 'forecast.favours'), {
+                  side:
+                    factor.favours === 'home'
+                      ? home
+                      : factor.favours === 'away'
+                        ? away
+                        : t(locale, 'forecast.neitherSide'),
+                })}
                 {' · '}
                 {factor.note}
               </li>
             ))}
-            {priorNote(version) !== null && (
+            {prior !== null && (
               <li className="text-muted" data-testid="no-elo-prior">
-                {priorNote(version)}
+                {prior}
               </li>
             )}
           </ul>
@@ -212,19 +258,30 @@ function Latest({
       )}
 
       <p className="text-xs text-muted" data-testid="forecast-meta">
-        Version {version.version_number} · {KIND_LABEL[version.kind]} · computed{' '}
-        <time dateTime={version.computed_at}>{stamp(version.computed_at)}</time> · model{' '}
-        {version.model_version} · data{' '}
-        {version.data_completeness === null ? 'unknown' : version.data_completeness}
+        <FilledMessage
+          message={message(locale, 'forecast.meta')}
+          params={{
+            version: formatFixed(locale, version.version_number, 0),
+            kind: kindLabel(version.kind, locale),
+            time: stamp(version.computed_at),
+            model: version.model_version,
+            completeness:
+              version.data_completeness === null
+                ? t(locale, 'forecast.unknown')
+                : t(locale, COVERAGE_KEY[version.data_completeness]),
+          }}
+        />
       </p>
     </div>
   );
 }
 
-function Outcome({ label, value }: { label: string; value: number }) {
+function Outcome({ label, value, locale }: { label: string; value: number; locale: Locale }) {
   return (
     <div className="flex flex-col rounded border border-default p-2">
-      <span className="text-xl font-semibold tabular-nums">{value.toFixed(1)}%</span>
+      <span className="text-xl font-semibold tabular-nums" dir="ltr">
+        {formatPercent(locale, value)}
+      </span>
       <span className="truncate text-xs text-muted">{label}</span>
     </div>
   );
@@ -235,30 +292,51 @@ function Evaluation({
   home,
   away,
   stamp,
+  locale,
 }: {
   evaluations: FixtureEvaluationsResponse | null;
   home: string;
   away: string;
-  stamp: (iso: string) => string;
+  stamp: (iso: string) => React.ReactNode;
+  locale: Locale;
 }) {
   if (evaluations === null || evaluations.evaluations.length === 0) return null;
   const last = evaluations.evaluations.at(-1);
   if (last === undefined) return null;
-  const outcome = last.outcome === 'home' ? home : last.outcome === 'away' ? away : 'a draw';
+  const outcome =
+    last.outcome === 'home' ? home : last.outcome === 'away' ? away : t(locale, 'forecast.aDraw');
   return (
     <div className="flex flex-col gap-1 text-xs" data-testid="forecast-evaluation">
-      <h3 className="text-sm font-medium">Post-match evaluation</h3>
+      <h3 className="text-sm font-medium">
+        <Translated locale={locale} message="forecast.evaluation.title" />
+      </h3>
       <p>
-        Result <Score home={last.actual.home} away={last.actual.away} />: {outcome}. Version{' '}
-        {last.version_number} ({KIND_LABEL[last.kind]}) gave that outcome{' '}
-        {(last.p_outcome * 100).toFixed(1)}%
-        {last.correct ? ', its most probable outcome' : ', not its most probable outcome'}. Log loss{' '}
-        {last.log_loss.toFixed(3)}, Brier {last.brier.toFixed(3)} (lower is better; knowing nothing
-        scores 1.099 and 0.667).
-        {last.pre_kickoff ? '' : ' Computed after kick-off, so excluded from performance figures.'}
+        <FilledMessage
+          message={message(locale, 'forecast.evaluation.result')}
+          params={{
+            score: <Score home={last.actual.home} away={last.actual.away} locale={locale} />,
+            outcome,
+          }}
+        />{' '}
+        {interpolate(
+          t(locale, last.correct ? 'forecast.evaluation.correct' : 'forecast.evaluation.incorrect'),
+          {
+            version: formatFixed(locale, last.version_number, 0),
+            kind: kindLabel(last.kind, locale),
+            probability: formatPercent(locale, last.p_outcome * 100),
+          },
+        )}{' '}
+        {interpolate(t(locale, 'forecast.evaluation.scores'), {
+          logLoss: formatFixed(locale, last.log_loss, 3),
+          brier: formatFixed(locale, last.brier, 3),
+        })}
+        {last.pre_kickoff ? '' : ` ${t(locale, 'forecast.evaluation.afterKickoff')}`}
       </p>
       <p className="text-muted">
-        Evaluated <time dateTime={last.evaluated_at}>{stamp(last.evaluated_at)}</time>
+        <FilledMessage
+          message={message(locale, 'forecast.evaluation.evaluated')}
+          params={{ time: stamp(last.evaluated_at) }}
+        />
       </p>
     </div>
   );
@@ -288,6 +366,7 @@ export function ForecastList({
   fixtures: Map<string, { home: string; away: string }>;
   locale: string;
 }) {
+  const l: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
   const withForecast = entries.filter(
     (entry) => entry.latest !== null && entry.latest.probabilities !== null,
   );
@@ -295,12 +374,16 @@ export function ForecastList({
 
   return (
     <section className="flex flex-col gap-2" data-testid="predictions-model">
-      <h2 className="text-lg font-semibold">Model forecasts</h2>
+      <h2 className="text-lg font-semibold">
+        <Translated locale={locale} message="forecast.list.title" />
+      </h2>
       <p className="text-xs text-muted">
-        The statistical model. Not the founder&rsquo;s view, and not the community&rsquo;s.
+        <Translated locale={locale} message="forecast.list.intro" />
       </p>
       {withForecast.length === 0 ? (
-        <p className="text-sm text-muted">The model has no forecast for these matches.</p>
+        <p className="text-sm text-muted">
+          <Translated locale={locale} message="forecast.list.none" />
+        </p>
       ) : (
         <ul className="flex flex-col gap-2">
           {withForecast.map((entry) => {
@@ -311,11 +394,18 @@ export function ForecastList({
             return (
               <li key={entry.fixture_id} className="flex flex-col gap-1">
                 <Link href={`/${locale}/match/${entry.fixture_id}`} className="text-sm underline">
-                  {teams === undefined ? 'Match' : `${teams.home} v ${teams.away}`}
+                  {teams === undefined
+                    ? t(l, 'matchCentre.title')
+                    : interpolate(t(l, 'matchCentre.fixtureTitle'), teams)}
                 </Link>
                 <p className="text-sm">
-                  {teams?.home ?? 'Home'} {pct.home.toFixed(1)}%, draw {pct.draw.toFixed(1)}%,{' '}
-                  {teams?.away ?? 'Away'} {pct.away.toFixed(1)}%
+                  {interpolate(t(l, 'forecast.list.line'), {
+                    home: teams?.home ?? t(l, 'matchCentre.home'),
+                    homePct: formatPercent(l, pct.home),
+                    drawPct: formatPercent(l, pct.draw),
+                    away: teams?.away ?? t(l, 'matchCentre.away'),
+                    awayPct: formatPercent(l, pct.away),
+                  })}
                 </p>
               </li>
             );
@@ -324,8 +414,11 @@ export function ForecastList({
       )}
       {without > 0 && (
         <p className="text-xs text-muted" data-testid="model-missing">
-          {without} of these {entries.length} matches {without === 1 ? 'has' : 'have'} no model
-          forecast.
+          {
+            plural(l, 'forecast.list.missing', without, {
+              total: formatFixed(l, entries.length, 0),
+            }).text
+          }
         </p>
       )}
     </section>

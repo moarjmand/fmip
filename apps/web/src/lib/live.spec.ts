@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { STALE_LIVE_AFTER_MS } from '@fmip/contracts';
-import { INITIAL_CLOCK, STALE_AFTER_MS, feedNotice, isBehind, liveLabel, liveState } from './live';
+import { INITIAL_CLOCK, STALE_AFTER_MS, feedTrouble, isBehind, liveLabel, liveState } from './live';
+import { scoresWords } from './words-server';
+
+const EN_WORDS = scoresWords('en').m;
+const FA_WORDS = scoresWords('fa').m;
 
 describe('isBehind', () => {
   const now = Date.parse('2026-09-12T20:00:00.000Z');
@@ -23,7 +27,7 @@ describe('isBehind', () => {
   });
 });
 
-describe('feedNotice', () => {
+describe('feedTrouble', () => {
   const run = (status: 'succeeded' | 'failed' | 'partial') => ({
     checked_at: '2026-09-12T20:00:00.000Z',
     last_run: {
@@ -49,13 +53,14 @@ describe('feedNotice', () => {
   });
 
   it('names a failed or partial latest run with its time, and says nothing otherwise', () => {
-    expect(feedNotice(run('failed'), 'en', 'Asia/Tehran')).toBe(
-      'The live data feed reported a failure at 23:29. Scores may be behind; every card shows when its data last changed.',
-    );
-    expect(feedNotice(run('partial'), 'en', 'UTC')).toContain('partial update at 19:59');
-    expect(feedNotice(run('succeeded'), 'en', 'UTC')).toBeNull();
-    expect(feedNotice(null, 'en', 'UTC')).toBeNull();
-    expect(feedNotice({ ...run('failed'), last_run: null }, 'en', 'UTC')).toBeNull();
+    expect(feedTrouble(run('failed'), 'en', 'Asia/Tehran')).toEqual({
+      kind: 'failure',
+      at: '23:29',
+    });
+    expect(feedTrouble(run('partial'), 'en', 'UTC')).toEqual({ kind: 'partial', at: '19:59' });
+    expect(feedTrouble(run('succeeded'), 'en', 'UTC')).toBeNull();
+    expect(feedTrouble(null, 'en', 'UTC')).toBeNull();
+    expect(feedTrouble({ ...run('failed'), last_run: null }, 'en', 'UTC')).toBeNull();
   });
 });
 
@@ -81,14 +86,22 @@ describe('liveState', () => {
 describe('liveLabel', () => {
   it('says what it knows in the viewer zone', () => {
     const clock = { lastEventAt: T0, lastSnapshotAt: T0, broken: false };
-    expect(liveLabel('live', clock, 'en', 'UTC')).toBe('Live · updated 20:31:07');
-    expect(liveLabel('live', clock, 'en', 'Asia/Tehran')).toBe('Live · updated 00:01:07');
-    expect(liveLabel('stale', clock, 'en', 'UTC')).toBe('Stale · last update 20:31:07');
-    // The stamp is a clock reading: the same digits in Spanish. What changes
-    // with the language is the sentence around it, and that is T-151's
-    // catalogue, not this function.
-    expect(liveLabel('live', clock, 'es', 'UTC')).toBe('Live · updated 20:31:07');
-    expect(liveLabel('connecting', INITIAL_CLOCK, 'en', 'UTC')).toBe('Connecting to live updates…');
-    expect(liveLabel('unavailable', INITIAL_CLOCK, 'en', 'UTC')).toBe('Live updates unavailable');
+    const W = EN_WORDS;
+    expect(liveLabel('live', clock, 'en', 'UTC', W)).toBe('Live · updated 20:31:07');
+    expect(liveLabel('live', clock, 'en', 'Asia/Tehran', W)).toBe('Live · updated 00:01:07');
+    expect(liveLabel('stale', clock, 'en', 'UTC', W)).toBe('Stale · last update 20:31:07');
+    // The stamp is a clock reading: the same digits in Spanish.
+    expect(liveLabel('live', clock, 'es', 'UTC', W)).toBe('Live · updated 20:31:07');
+    expect(liveLabel('connecting', INITIAL_CLOCK, 'en', 'UTC', W)).toBe(
+      'Connecting to live updates…',
+    );
+    expect(liveLabel('unavailable', INITIAL_CLOCK, 'en', 'UTC', W)).toBe(
+      'Live updates unavailable',
+    );
+  });
+
+  it('says it in Persian with Persian digits on /fa (T-1303)', () => {
+    const clock = { lastEventAt: T0, lastSnapshotAt: T0, broken: false };
+    expect(liveLabel('live', clock, 'fa', 'UTC', FA_WORDS)).toBe('زنده · به‌روزشده ۲۰:۳۱:۰۷');
   });
 });
