@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { MatchCentreView, type MatchSlots } from '@/components/match-centre-view';
 import { matchAnnouncements } from '@/lib/announce';
+import { withLocale } from '@/lib/locale-query';
 import { INITIAL_CLOCK, type LiveClock, liveLabel, liveState } from '@/lib/live';
 import type { MatchWords } from '@/lib/words-server';
 
@@ -50,7 +51,8 @@ export function LiveMatch({
   const router = useRouter();
 
   useEffect(() => {
-    const source = new EventSource(`/api/fixtures/${id}/stream`);
+    // The reader's names in every snapshot, as on the server-rendered page (T-1312).
+    const source = new EventSource(withLocale(`/api/fixtures/${id}/stream`, locale));
     let panelRefresh: ReturnType<typeof setTimeout> | null = null;
     const stamp = (snapshot: boolean): void =>
       setClock((c) => ({
@@ -85,7 +87,7 @@ export function LiveMatch({
       if (panelRefresh !== null) clearTimeout(panelRefresh);
       source.close();
     };
-  }, [id, router, words]);
+  }, [id, router, words, locale]);
 
   const state = liveState(clock, now);
   return (

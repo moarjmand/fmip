@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { DEFAULT_LOCALE, localeFromPathname } from '@/i18n/locales';
 import { fetchHeldLocales } from '@/lib/api';
 import { FIRST_RUN_COOKIE, parseGuestChoices } from '@/lib/first-run';
+import { READER_LOCALE_HEADER } from '@/lib/locale-query';
 
 /**
  * Next 16 renamed this convention from `middleware` to `proxy`.
@@ -21,8 +22,13 @@ import { FIRST_RUN_COOKIE, parseGuestChoices } from '@/lib/first-run';
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
 
-  if (localeFromPathname(pathname) !== undefined) {
-    return NextResponse.next();
+  const locale = localeFromPathname(pathname);
+  if (locale !== undefined) {
+    // The page's language, for the API client to ask for names in (T-1312).
+    // Set here, over anything the browser sent under the same name.
+    const forwarded = new Headers(request.headers);
+    forwarded.set(READER_LOCALE_HEADER, locale);
+    return NextResponse.next({ request: { headers: forwarded } });
   }
 
   const url = request.nextUrl.clone();
