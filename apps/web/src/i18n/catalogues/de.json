@@ -7629,6 +7629,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "saved.otherLanguage": {
+    "source": "this story's publisher is shown only to readers of its own language, so it is not shown in this one.",
+    "text": "",
+    "status": "untranslated"
+  },
   "saved.save": {
     "source": "Save",
     "text": "",

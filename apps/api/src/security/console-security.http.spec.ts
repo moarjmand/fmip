@@ -139,6 +139,11 @@ const CONSOLE: Record<string, ConsoleRoute> = {
   },
   'PATCH /admin/news-sources/:id': { roles: ADMIN, reason: { without: { name: 'Renamed' } } },
   'POST /admin/news-sources/:id/drop': { roles: ADMIN, reason: { without: {} } },
+  // Who is shown a source's stories (T-1330, D-178).
+  'POST /admin/news-sources/:id/visibility': {
+    roles: ADMIN,
+    reason: { without: { same_language_only: false } },
+  },
 
   // The System page (T-801 to T-804).
   'GET /admin/health/failures': { roles: ADMIN },

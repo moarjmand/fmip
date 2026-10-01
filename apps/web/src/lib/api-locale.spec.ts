@@ -40,12 +40,12 @@ describe('the API client asks for names in the reader language (T-1312)', () => 
     expect(urls[1]).toMatch(/\/admin\/overview$/);
   });
 
-  it('asks for nothing on the default language or outside a page request', async () => {
+  it('asks for English too (D-178), and for nothing outside a page request', async () => {
     reader = 'en';
     await fetchMatchCentre('abc');
     reader = null;
     await fetchMatchCentre('abc');
-    expect(urls[0]).toMatch(/\/fixtures\/abc$/);
+    expect(urls[0]).toMatch(/\/fixtures\/abc\?locale=en$/);
     expect(urls[1]).toMatch(/\/fixtures\/abc$/);
   });
 });

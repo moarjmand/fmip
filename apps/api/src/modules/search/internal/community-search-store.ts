@@ -31,7 +31,12 @@ import { MIN_SIMILARITY } from './search-store';
 export class PostgresCommunitySearchStore {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
 
-  async stories(q: string, limit: number): Promise<StorySearchResult[]> {
+  /** Over the report each story shows this reader (D-178); no locale, the promoted original. */
+  async stories(
+    q: string,
+    limit: number,
+    locale: string | null = null,
+  ): Promise<StorySearchResult[]> {
     const { rows } = await this.pool.query<{
       story_id: string;
       headline: string;
@@ -51,7 +56,7 @@ export class PostgresCommunitySearchStore {
                   CASE WHEN search_key(v.headline) LIKE q.key || '%' THEN 1 ELSE 0 END
                 ) AS score
            FROM story s
-           JOIN article a ON a.id = s.promoted_article_id
+           JOIN article a ON a.id = story_shown_article(s.id, s.promoted_article_id, $4::text)
            JOIN news_source src ON src.id = a.source_id AND src.dropped_at IS NULL
            -- The newest version in each language: an older headline is what
            -- the story used to say, not what it says.
@@ -70,7 +75,7 @@ export class PostgresCommunitySearchStore {
         WHERE score >= $3
         ORDER BY score DESC, published_at DESC, story_id
         LIMIT $2`,
-      [q, limit, MIN_SIMILARITY],
+      [q, limit, MIN_SIMILARITY, locale],
     );
     return rows.map((r) => ({
       story_id: r.story_id,

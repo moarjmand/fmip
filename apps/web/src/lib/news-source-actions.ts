@@ -59,8 +59,11 @@ export async function addNewsSourceAction(
 ): Promise<ActionState> {
   const missing = needReason(formData);
   if (missing !== null) return missing;
-  const body: Record<string, string> = { reason: text(formData, 'reason') };
+  const body: Record<string, string | boolean> = { reason: text(formData, 'reason') };
   for (const field of FIELDS) body[field] = text(formData, field);
+  if (formData.has('same_language_only')) {
+    body.same_language_only = text(formData, 'same_language_only') === 'true';
+  }
   const result = await apiRequest<NewsSourceWriteResponse>('/admin/news-sources', {
     method: 'POST',
     cookie: await sessionCookieHeader(),
@@ -95,6 +98,37 @@ export async function editNewsSourceAction(
       result.data.preview === null
         ? 'Saved.'
         : 'Saved; the new feed address was read and robots.txt allows it.',
+  };
+}
+
+/**
+ * Who is shown the source's stories (T-1330, D-178): only readers of its
+ * language, or every reader. `sameLanguageOnly` is the value asked for.
+ */
+export async function setNewsSourceVisibilityAction(
+  locale: string,
+  sourceId: string,
+  sameLanguageOnly: boolean,
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const missing = needReason(formData);
+  if (missing !== null) return missing;
+  const result = await apiRequest<NewsSourceWriteResponse>(
+    `/admin/news-sources/${encodeURIComponent(sourceId)}/visibility`,
+    {
+      method: 'POST',
+      cookie: await sessionCookieHeader(),
+      body: { same_language_only: sameLanguageOnly, reason: text(formData, 'reason') },
+    },
+  );
+  if (!result.ok) return failureState(result);
+  revalidatePath(`/${locale}/admin/news-sources`);
+  return {
+    ok: true,
+    message: sameLanguageOnly
+      ? `Saved. Its stories are now shown only to readers in ${result.data.source.language}.`
+      : 'Saved. Its stories are now shown to every reader.',
   };
 }
 

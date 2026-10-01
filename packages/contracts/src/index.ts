@@ -740,6 +740,7 @@ export type {
   NewsSourceRequest,
   NewsSourceRights,
   NewsSourcesResponse,
+  NewsSourceVisibilityRequest,
   NewsSourceWriteResponse,
   RobotsVerdict,
 } from './news';

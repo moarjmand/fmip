@@ -2,6 +2,7 @@ import { BadRequestException, Controller, Get, Query, Req } from '@nestjs/common
 import type { ApiError, SearchResponse } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
+import { localeOf } from '../localised-names/localised-names.service';
 import { parseSearchQuery } from './internal/search-query';
 import { SearchService } from './search.service';
 
@@ -33,6 +34,7 @@ export class SearchController {
     const viewer = parsed.query.types.includes('member')
       ? await this.identity.authenticate(parseCookies(request.headers.cookie)[SESSION_COOKIE])
       : null;
-    return this.search.search(parsed.query, viewer?.id ?? null);
+    const locale = localeOf(isRecord(query) ? query.locale : undefined);
+    return this.search.search(parsed.query, viewer?.id ?? null, locale);
   }
 }

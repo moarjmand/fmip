@@ -130,7 +130,18 @@ export class PostgresFollowingFeedStore {
     return rows;
   }
 
-  async stories(teams: string[], competitions: string[], window: Window): Promise<StoryRow[]> {
+  /**
+   * Stories about what the member follows. Each shows the report the reader
+   * is shown (D-178): `locale` when the page sent one, else the language the
+   * member chose in Settings -- a briefing is read without a page.
+   */
+  async stories(
+    teams: string[],
+    competitions: string[],
+    window: Window,
+    userId: string,
+    locale: string | null,
+  ): Promise<StoryRow[]> {
     const { rows } = await this.pool.query<StoryRow>(
       `SELECT s.id AS story_id, v.headline, v.language, v.published_at, a.fetched_at,
               src.name AS source_name, a.url,
@@ -139,7 +150,9 @@ export class PostgresFollowingFeedStore {
               array_remove(array_agg(DISTINCT CASE WHEN e.entity_type = 'competition' THEN e.entity_id END), NULL)
                 AS competition_ids
          FROM story s
-         JOIN article a ON a.id = s.promoted_article_id
+         JOIN article a ON a.id = story_shown_article(
+                s.id, s.promoted_article_id,
+                COALESCE($5::text, (SELECT preferred_language FROM user_account WHERE id = $6::uuid)))
          JOIN news_source src ON src.id = a.source_id AND src.dropped_at IS NULL
          JOIN LATERAL (
            SELECT headline, language, published_at
@@ -156,7 +169,7 @@ export class PostgresFollowingFeedStore {
                    OR (e.entity_type = 'competition' AND e.entity_id = ANY($2::uuid[])))
         ORDER BY COALESCE(v.published_at, a.fetched_at) DESC
         LIMIT 100`,
-      [teams, competitions, window.since, window.until],
+      [teams, competitions, window.since, window.until, locale, userId],
     );
     return rows;
   }

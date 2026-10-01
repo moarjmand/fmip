@@ -1652,6 +1652,7 @@
   "saved.savedAt": "Saved",
   "saved.dropped": "this publisher is no longer carried here and their stories went with them, so this one cannot be shown.",
   "saved.unavailable": "this story is no longer held here.",
+  "saved.otherLanguage": "this story's publisher is shown only to readers of its own language, so it is not shown in this one.",
   "saved.save": "Save",
   "saved.remove": "Remove from saved",
   "saved.isSaved": "Saved",

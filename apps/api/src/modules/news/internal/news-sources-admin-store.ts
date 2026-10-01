@@ -21,6 +21,7 @@ interface Row {
   kind: NewsSourceRecord['kind'];
   rights: NewsSourceRecord['rights'];
   language: string;
+  same_language_only: boolean;
   created_at: Date;
   updated_at: Date;
   dropped_at: Date | null;
@@ -35,7 +36,7 @@ interface Row {
 
 const SELECT = `
   SELECT s.id, s.name, s.homepage_url, s.feed_url, s.kind, s.rights, s.language,
-         s.created_at, s.updated_at, s.dropped_at, s.dropped_reason,
+         s.same_language_only, s.created_at, s.updated_at, s.dropped_at, s.dropped_reason,
          f.status AS fetch_status, f.started_at AS fetch_started_at,
          f.finished_at AS fetch_finished_at, f.items_seen, f.items_written, f.error AS fetch_error
     FROM news_source s
@@ -53,6 +54,7 @@ function record(row: Row): NewsSourceRecord {
     kind: row.kind,
     rights: row.rights,
     language: row.language,
+    same_language_only: row.same_language_only,
     created_at: row.created_at.toISOString(),
     updated_at: row.updated_at.toISOString(),
     dropped_at: row.dropped_at?.toISOString() ?? null,
@@ -82,6 +84,7 @@ function audited(row: Row | NewsSourceRecord): Record<string, unknown> {
     kind: row.kind,
     rights: row.rights,
     language: row.language,
+    same_language_only: row.same_language_only,
     dropped_at: at(row.dropped_at),
     dropped_reason: row.dropped_reason,
   };
@@ -93,6 +96,12 @@ export type EditOutcome =
   | { kind: 'unchanged' }
   | { kind: 'edited'; source: NewsSourceRecord; auditId: string };
 
+export type VisibilityOutcome =
+  | { kind: 'no_source' }
+  | { kind: 'dropped' }
+  | { kind: 'unchanged' }
+  | { kind: 'set'; source: NewsSourceRecord; auditId: string };
+
 export type DropOutcome =
   | { kind: 'no_source' }
   | { kind: 'already'; source: NewsSourceRecord }
@@ -100,7 +109,8 @@ export type DropOutcome =
 
 /**
  * News sources in the console (T-1015): the `news_source` rows with each
- * one's newest fetch, and the three writes -- add, edit, drop -- each with its
+ * one's newest fetch, and the writes -- add, edit, drop, and who is shown the
+ * source's stories (T-1330, D-178) -- each with its
  * `audit_log` row (target type `news_source`, the reason, the previous and
  * the next value) in the same transaction (rule 10). A drop keeps the row,
  * dated with the reason, as the schema intends (D-061); nothing is deleted.
@@ -137,11 +147,12 @@ export class PostgresNewsSourcesAdminStore {
     actorId: string,
     fields: NewsSourceFields,
     reason: string,
+    sameLanguageOnly = false,
   ): Promise<{ source: NewsSourceRecord; auditId: string }> {
     return this.transaction(async (client) => {
       const { rows } = await client.query<{ id: string }>(
-        `INSERT INTO news_source (name, homepage_url, feed_url, kind, rights, language)
-         VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+        `INSERT INTO news_source (name, homepage_url, feed_url, kind, rights, language, same_language_only)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
         [
           fields.name,
           fields.homepage_url,
@@ -149,6 +160,7 @@ export class PostgresNewsSourcesAdminStore {
           fields.kind,
           fields.rights,
           fields.language,
+          sameLanguageOnly,
         ],
       );
       const source = await this.read(client, rows[0]!.id);
@@ -201,6 +213,41 @@ export class PostgresNewsSourcesAdminStore {
         next: audited(source),
       });
       return { kind: 'edited', source, auditId };
+    });
+  }
+
+  /**
+   * Whether the source's stories are shown only to readers of its language
+   * (T-1330, D-178), with its audit row (`news_source.visibility`, previous
+   * and next) in the same transaction. A licensed source may be set too: the
+   * setting is about who reads it, not about its feed.
+   */
+  async setVisibility(
+    actorId: string,
+    id: string,
+    sameLanguageOnly: boolean,
+    reason: string,
+  ): Promise<VisibilityOutcome> {
+    return this.transaction(async (client) => {
+      const { rows } = await client.query<Row>(`${SELECT} WHERE s.id = $1 FOR UPDATE OF s`, [id]);
+      const before = rows[0];
+      if (before === undefined) return { kind: 'no_source' };
+      if (before.dropped_at !== null) return { kind: 'dropped' };
+      if (before.same_language_only === sameLanguageOnly) return { kind: 'unchanged' };
+      await client.query(`UPDATE news_source SET same_language_only = $2 WHERE id = $1`, [
+        id,
+        sameLanguageOnly,
+      ]);
+      const source = await this.read(client, id);
+      const auditId = await this.audit(client, {
+        actorId,
+        action: 'news_source.visibility',
+        targetId: id,
+        reason,
+        previous: audited(before),
+        next: audited(source),
+      });
+      return { kind: 'set', source, auditId };
     });
   }
 

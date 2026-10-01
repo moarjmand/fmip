@@ -8,6 +8,7 @@ vi.mock('@/lib/news-source-actions', () => ({
   addNewsSourceAction: async () => null,
   editNewsSourceAction: async () => null,
   dropNewsSourceAction: async () => null,
+  setNewsSourceVisibilityAction: async () => null,
 }));
 
 const { FeedPreview, NewsSourcesAdmin } = await import('./news-sources-admin');
@@ -30,6 +31,7 @@ function source(overrides: Partial<NewsSourceRecord> = {}): NewsSourceRecord {
     kind: 'rss',
     rights: 'headline',
     language: 'en',
+    same_language_only: false,
     created_at: '2026-09-29T08:00:00.000Z',
     updated_at: '2026-09-29T08:00:00.000Z',
     dropped_at: null,
@@ -65,8 +67,38 @@ describe('NewsSourcesAdmin (T-1015)', () => {
     expect(html).not.toContain(`news-source-drop-${gone.id}`);
     expect(html).toContain('The publisher asked to be dropped.');
     expect(html).toContain('Never read.');
-    expect(html.match(/name="reason"/g)).toHaveLength(2);
+    // Edit, who is shown its stories (D-178), and drop.
+    expect(html.match(/name="reason"/g)).toHaveLength(3);
     expect(html).not.toMatch(PHYSICAL);
+  });
+});
+
+describe('who is shown a source’s stories (T-1330, D-178)', () => {
+  it('says each carried source’s setting and offers to change it with a reason', () => {
+    const persian = source({
+      id: '00000000-0000-4000-8000-00000000c003',
+      name: 'Persian Paper',
+      language: 'fa',
+      same_language_only: true,
+    });
+    const everyone = source();
+    const html = renderToStaticMarkup(
+      <NewsSourcesAdmin locale="en" sources={[persian, everyone]} />,
+    );
+    expect(html).toContain('data-same-language-only="true"');
+    expect(html).toContain('Shown only to readers in fa');
+    expect(html).toContain('Shown to every reader, whatever their language');
+    expect(html).toContain(`data-testid="news-source-visibility-${persian.id}"`);
+    expect(html).toContain(`data-testid="news-source-visibility-${everyone.id}"`);
+    expect(html).toContain('Show its stories to every reader');
+    expect(html).toContain('Show its stories only to readers in en');
+    expect(html).not.toMatch(PHYSICAL);
+  });
+
+  it('a dropped source has no such control', () => {
+    const gone = source({ dropped_at: '2026-09-29T09:00:00.000Z', dropped_reason: 'Asked.' });
+    const html = renderToStaticMarkup(<NewsSourcesAdmin locale="en" sources={[gone]} />);
+    expect(html).not.toContain('news-source-visibility-');
   });
 });
 

@@ -3,6 +3,7 @@
 import type { SavedArticlesResponse } from '@fmip/contracts';
 import { revalidatePath } from 'next/cache';
 import { apiRequest } from './api';
+import { withLocale } from './locale-query';
 import { sessionCookieHeader } from './session';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -18,10 +19,14 @@ function revalidate(locale: string, storyId: string): void {
 export async function saveArticleAction(locale: string, formData: FormData): Promise<void> {
   const storyId = String(formData.get('story_id') ?? '');
   if (!UUID.test(storyId)) return;
-  await apiRequest<SavedArticlesResponse>(`/me/saved-articles/${encodeURIComponent(storyId)}`, {
-    method: 'PUT',
-    cookie: await sessionCookieHeader(),
-  });
+  await apiRequest<SavedArticlesResponse>(
+    // The reader's locale: the report saved is the one they are shown (D-178).
+    withLocale(`/me/saved-articles/${encodeURIComponent(storyId)}`, locale),
+    {
+      method: 'PUT',
+      cookie: await sessionCookieHeader(),
+    },
+  );
   revalidate(locale, storyId);
 }
 
@@ -29,9 +34,13 @@ export async function saveArticleAction(locale: string, formData: FormData): Pro
 export async function unsaveArticleAction(locale: string, formData: FormData): Promise<void> {
   const storyId = String(formData.get('story_id') ?? '');
   if (!UUID.test(storyId)) return;
-  await apiRequest<SavedArticlesResponse>(`/me/saved-articles/${encodeURIComponent(storyId)}`, {
-    method: 'DELETE',
-    cookie: await sessionCookieHeader(),
-  });
+  await apiRequest<SavedArticlesResponse>(
+    // The reader's locale: the report saved is the one they are shown (D-178).
+    withLocale(`/me/saved-articles/${encodeURIComponent(storyId)}`, locale),
+    {
+      method: 'DELETE',
+      cookie: await sessionCookieHeader(),
+    },
+  );
   revalidate(locale, storyId);
 }

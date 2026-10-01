@@ -65,7 +65,9 @@ function text(value: unknown): string {
  * nothing written), `POST /admin/news-sources` (added only when that check
  * passes), `PATCH /admin/news-sources/:id` (a new feed address is checked
  * again) and `POST /admin/news-sources/:id/drop` (a publisher who asks to be
- * dropped is dropped: a reason and nothing else). Administrators only; every
+ * dropped is dropped: a reason and nothing else) and `POST
+ * /admin/news-sources/:id/visibility` (only readers of its language, or
+ * every reader, D-178). Administrators only; every
  * write is an `audit_log` row with the reason and the previous value (rule
  * 10). Which publishers to carry is the maintainer's (N-8): nothing here
  * adds one by itself.
@@ -115,6 +117,10 @@ export class NewsSourcesAdminController {
     const fields: Record<string, string> = {};
     const values = NewsSourcesAdminController.fields(raw, fields, true) as NewsSourceFields;
     const reason = NewsSourcesAdminController.reason(raw, fields);
+    // D-178: optional on adding, off unless asked; changed later through its own route.
+    if (raw.same_language_only !== undefined && typeof raw.same_language_only !== 'boolean') {
+      fields.same_language_only = 'Must be true or false.';
+    }
     if (Object.keys(fields).length > 0) invalid(fields);
     if (await this.store.feedTaken(values.feed_url, null)) {
       throw new ConflictException({
@@ -123,7 +129,12 @@ export class NewsSourcesAdminController {
       } satisfies ApiError);
     }
     const preview = await this.checked(values.feed_url, values.kind);
-    const { source, auditId } = await this.store.add(actor.id, values, reason);
+    const { source, auditId } = await this.store.add(
+      actor.id,
+      values,
+      reason,
+      raw.same_language_only === true,
+    );
     return { source, preview, audit_id: auditId };
   }
 
@@ -169,6 +180,44 @@ export class NewsSourcesAdminController {
     }
     if (outcome.kind === 'unchanged') invalid({ reason: 'Nothing would change.' });
     return { source: outcome.source, preview, audit_id: outcome.auditId };
+  }
+
+  /**
+   * `POST /admin/news-sources/:id/visibility` (T-1330, D-178): whether the
+   * source's stories are shown only to readers of its language. A reason is
+   * required; the change and its previous value are audited (rule 10).
+   */
+  @Post(':id/visibility')
+  @HttpCode(200)
+  async visibility(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Req() request: FastifyRequest,
+  ): Promise<NewsSourceWriteResponse> {
+    const actor = await this.administrator(request);
+    const raw = isRecord(body) ? body : {};
+    const fields: Record<string, string> = {};
+    const reason = NewsSourcesAdminController.reason(raw, fields);
+    if (typeof raw.same_language_only !== 'boolean') {
+      fields.same_language_only = 'Must be true or false.';
+    }
+    if (Object.keys(fields).length > 0) invalid(fields);
+    if (!UUID.test(id)) throw new NotFoundException(NO_SOURCE);
+    const outcome = await this.store.setVisibility(
+      actor.id,
+      id.toLowerCase(),
+      raw.same_language_only === true,
+      reason,
+    );
+    if (outcome.kind === 'no_source') throw new NotFoundException(NO_SOURCE);
+    if (outcome.kind === 'dropped') {
+      throw new ConflictException({
+        error: 'conflict',
+        message: 'This source was dropped; a dropped source is not shown to anyone.',
+      } satisfies ApiError);
+    }
+    if (outcome.kind === 'unchanged') invalid({ same_language_only: 'Nothing would change.' });
+    return { source: outcome.source, preview: null, audit_id: outcome.auditId };
   }
 
   @Post(':id/drop')

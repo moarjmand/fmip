@@ -14,6 +14,7 @@ import {
   dropNewsSourceAction,
   editNewsSourceAction,
   previewNewsFeedAction,
+  setNewsSourceVisibilityAction,
 } from '@/lib/news-source-actions';
 import { Button, Card, FormStatus, Notice, TextField } from '@/components/ui';
 
@@ -37,6 +38,13 @@ const ROBOTS_LABEL: Record<RobotsVerdict, string> = {
   disallowed: 'robots.txt disallows the feed for our reader, so it was not fetched.',
   unreachable: 'robots.txt could not be asked, so the feed was not fetched.',
 };
+
+/** Who is shown a source's stories (D-178), as the console says it. */
+function audience(sameLanguageOnly: boolean, language: string): string {
+  return sameLanguageOnly
+    ? `Shown only to readers in ${language}`
+    : 'Shown to every reader, whatever their language';
+}
 
 function origin(url: string): string {
   try {
@@ -98,6 +106,25 @@ function sourceFields(defaults: {
     },
     { name: 'reason', label: 'Why', type: 'textarea', required: true, maxLength: 500 },
   ];
+}
+
+/**
+ * The adding form's choice of who is shown the source's stories (D-178), just
+ * before the reason. A Persian feed starts as Persian readers only: the rule
+ * the maintainer asked for.
+ */
+function withAudience(fields: Field[], language: string | null): Field[] {
+  const choice: Field = {
+    name: 'same_language_only',
+    label: 'Who is shown its stories (D-178)',
+    type: 'select',
+    defaultValue: (language ?? '').toLowerCase().startsWith('fa') ? 'true' : 'false',
+    options: [
+      { value: 'false', label: 'Every reader, whatever their language' },
+      { value: 'true', label: 'Only readers in the language they write in' },
+    ],
+  };
+  return [...fields.slice(0, -1), choice, ...fields.slice(-1)];
 }
 
 export function FeedPreview({ preview }: { preview: NewsFeedPreview }) {
@@ -192,15 +219,18 @@ function AddSource({ locale }: { locale: string }) {
         <ActionForm
           key={preview.checked_at}
           action={addNewsSourceAction.bind(null, locale)}
-          fields={sourceFields({
-            name: preview.feed.title ?? '',
-            homepage_url: origin(preview.feed_url),
-            feed_url: preview.feed_url,
-            kind: preview.feed.kind,
-            rights: 'headline',
-            language: preview.feed.language ?? '',
-            feedHidden: true,
-          })}
+          fields={withAudience(
+            sourceFields({
+              name: preview.feed.title ?? '',
+              homepage_url: origin(preview.feed_url),
+              feed_url: preview.feed_url,
+              kind: preview.feed.kind,
+              rights: 'headline',
+              language: preview.feed.language ?? '',
+              feedHidden: true,
+            }),
+            preview.feed.language,
+          )}
           submitLabel="Add this source"
           testId="news-source-add-form"
         />
@@ -232,6 +262,13 @@ function Source({ locale, source }: { locale: string; source: NewsSourceRecord }
           </>
         )}
       </p>
+      <p
+        className="text-sm"
+        data-testid="news-source-audience"
+        data-same-language-only={source.same_language_only ? 'true' : 'false'}
+      >
+        {audience(source.same_language_only, source.language)}.
+      </p>
       <p className="text-sm text-muted" data-testid="news-source-fetch">
         {source.last_fetch === null
           ? 'Never read.'
@@ -262,6 +299,26 @@ function Source({ locale, source }: { locale: string; source: NewsSourceRecord }
               />
             </details>
           )}
+          <details>
+            <summary className="cursor-pointer text-sm underline">
+              {source.same_language_only
+                ? 'Show its stories to every reader'
+                : `Show its stories only to readers in ${source.language}`}
+            </summary>
+            <ActionForm
+              action={setNewsSourceVisibilityAction.bind(
+                null,
+                locale,
+                source.id,
+                !source.same_language_only,
+              )}
+              fields={[
+                { name: 'reason', label: 'Why', type: 'textarea', required: true, maxLength: 500 },
+              ]}
+              submitLabel={source.same_language_only ? 'Show to every reader' : 'Show only to them'}
+              testId={`news-source-visibility-${source.id}`}
+            />
+          </details>
           <details>
             <summary className="cursor-pointer text-sm underline">Drop</summary>
             <ActionForm
