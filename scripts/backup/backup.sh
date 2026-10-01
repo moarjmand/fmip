@@ -135,9 +135,9 @@ if [ -n "${BACKUP_RCLONE_REMOTE:-}" ]; then
   if [ "$BACKUP_MEDIA_VOLUME" != 'off' ] && docker volume inspect "$BACKUP_MEDIA_VOLUME" > /dev/null 2>&1; then
     echo "==> media $BACKUP_MEDIA_VOLUME -> $BACKUP_RCLONE_REMOTE/media/"
     # Size and modification time, not --checksum: a crypt remote keeps no hash
-  # it shares with the source, and rclone falls back with a notice.
-  rclone_media copy /media "$BACKUP_RCLONE_REMOTE/media/"
-    MEDIA_COUNT="$(rclone_media size --json "$BACKUP_RCLONE_REMOTE/media/" | sed -E 's/.*"count":([0-9]+).*//')"
+    # it shares with the source, and rclone falls back with a notice.
+    rclone_media copy /media "$BACKUP_RCLONE_REMOTE/media/"
+    MEDIA_COUNT="$(rclone_media size --json "$BACKUP_RCLONE_REMOTE/media/" | sed -E 's/.*"count":([0-9]+).*/\1/')"
     echo "    $MEDIA_COUNT media files on the remote"
     COPIES="$COPIES; $MEDIA_COUNT media files"
   else
