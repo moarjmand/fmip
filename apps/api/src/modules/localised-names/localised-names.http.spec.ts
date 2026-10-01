@@ -9,6 +9,7 @@ import { CatalogModule } from '../catalog/catalog.module';
 import { FixturesModule } from '../fixtures/fixtures.module';
 import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
 import { LocalisedNamesModule } from './localised-names.module';
+import { LocalisedNamesService } from './localised-names.service';
 
 // Localised names on every surface (T-1312) against the real schema: a
 // temporary competition in Spain with two clubs, one of them and the
@@ -134,6 +135,31 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect(card.away).toMatchObject({ id: BETA, name: `Test Beta ${RUN}`, short_name: 'BET' });
       // Countries have no alias rows: the CLDR region name for the ISO code.
       expect(group.country?.name).toBe('اسپانیا');
+    });
+
+    it('calls a national team what its country is called, unless it has a name row (T-1334)', async () => {
+      // Women's, so the test never meets a real senior men's side for Spain.
+      const team = randomUUID();
+      await pool.query(
+        `INSERT INTO team (id, name, kind, gender, country_id) VALUES ($1, $2, 'national', 'women', $3)`,
+        [team, `Test Spain ${RUN}`, SPAIN],
+      );
+      try {
+        const names = app.get(LocalisedNamesService);
+        const payload = { home: { id: team, name: `Test Spain ${RUN}` } };
+        expect((await names.localise(payload, 'fa')).home.name).toBe('اسپانیا');
+        // English keeps the team's own name.
+        expect((await names.localise(payload, 'en')).home.name).toBe(`Test Spain ${RUN}`);
+        await pool.query(
+          `INSERT INTO entity_alias (entity_type, entity_id, alias, language, kind, source)
+           VALUES ('team', $1, 'تیم زنان اسپانیا', 'fa', 'name', 'test')`,
+          [team],
+        );
+        expect((await names.localise(payload, 'fa')).home.name).toBe('تیم زنان اسپانیا');
+      } finally {
+        await pool.query(`DELETE FROM entity_alias WHERE entity_id = $1`, [team]);
+        await pool.query(`DELETE FROM team WHERE id = $1`, [team]);
+      }
     });
 
     it('keeps the canonical names without a locale, and with one nobody has written', async () => {
