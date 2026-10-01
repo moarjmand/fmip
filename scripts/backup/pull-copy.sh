@@ -11,8 +11,10 @@
 #
 #   db/     the server's newest nightly dump and its manifest, the dump's
 #           sha256 checked against the manifest after the download
-#   media/  every file in the media volume: crests, logos, player and news
-#           photos (T-1320, T-1322)
+#   media.tar  every file in the media volume: crests, logos, player and
+#           news photos (T-1320, T-1322). One archive, not 3,000 files: on an
+#           external drive formatted exFAT each small file takes a whole
+#           1 MB cluster
 #   code/   fmip.bundle, the whole repository with every branch and its
 #           history (`git clone fmip.bundle` gives a working checkout)
 #   INFO.txt  what was copied, from which commit the server runs
@@ -34,7 +36,7 @@ KEEP="${FMIP_COPY_KEEP:-3}"
 DEST_ROOT="${1:-${FMIP_COPY_DIR:-../fmip-copy}}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 DEST="$DEST_ROOT/$STAMP"
-mkdir -p "$DEST/db" "$DEST/media" "$DEST/code"
+mkdir -p "$DEST/db" "$DEST/code"
 
 # The server's address drops connections now and then; each step retries.
 retry() {
@@ -64,8 +66,9 @@ echo "    sha256 matches the manifest"
 
 echo "==> media volume $VOLUME"
 # tar inside a throwaway container that reads the volume, streamed here.
-retry sh -c "ssh '$HOST' 'docker run --rm -v $VOLUME:/m:ro alpine tar -C /m -cf - .' | tar -C '$DEST/media' -xf -"
-MEDIA_FILES="$(find "$DEST/media" -type f | wc -l | tr -d ' ')"
+retry sh -c "ssh '$HOST' 'docker run --rm -v $VOLUME:/m:ro alpine tar -C /m -cf - .' > '$DEST/media.tar'"
+# Listing the archive end to end is the check that it arrived whole.
+MEDIA_FILES="$(tar -tvf "$DEST/media.tar" | grep -c '^-')"
 echo "    $MEDIA_FILES files"
 
 echo "==> repository"
@@ -78,7 +81,7 @@ SERVER_COMMIT="$(retry ssh "$HOST" "git -C $SERVER_DIR rev-parse HEAD")"
   echo "FMIP copy taken $STAMP"
   echo "database   db/$NAME.dump ($(wc -c < "$DEST/db/$NAME.dump") bytes, sha256 $GOT)"
   grep -E '^(dumped_at|pg_dump) ' "$DEST/db/$NAME.manifest" | sed 's/^/           /'
-  echo "media      $MEDIA_FILES files"
+  echo "media      media.tar, $MEDIA_FILES files ($(wc -c < "$DEST/media.tar") bytes)"
   echo "code       code/fmip.bundle; the server runs commit $SERVER_COMMIT"
   echo "not here   .env and rclone.conf (password manager)"
   echo "restore    docs/07-backups.md, 'A copy on the maintainer's machine'"

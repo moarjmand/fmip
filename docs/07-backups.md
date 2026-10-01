@@ -444,8 +444,9 @@ bash scripts/backup/pull-copy.sh /e/Backup
 ```
 
 It writes `<destination>/<UTC stamp>/` with `db/` (the newest nightly dump
-and manifest, the sha256 checked after the download), `media/` (every file
-in the media volume), `code/fmip.bundle` (the repository with every branch
+and manifest, the sha256 checked after the download), `media.tar` (every
+file in the media volume, one archive because an exFAT drive gives each small
+file a whole cluster), `code/fmip.bundle` (the repository with every branch
 and its history) and `INFO.txt` (what was copied and the commit the server
 runs), and keeps the newest three copies (`FMIP_COPY_KEEP`). The destination
 is the argument, else `FMIP_COPY_DIR`, else `../fmip-copy`. `.env` and
@@ -460,7 +461,8 @@ docker compose up -d postgres
 docker compose exec -T postgres pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
   --no-owner --no-privileges --exit-on-error < <copy>/db/fmip-<stamp>.dump
 docker compose up -d
-docker compose cp <copy>/media/. api:/data/media/
+mkdir media && tar -xf <copy>/media.tar -C media
+docker compose cp media/. api:/data/media/
 ```
 
 ## Verifying on a developer machine
