@@ -55,9 +55,15 @@ const EVIDENCE: Record<CoverageModule, { expected: string; present: string }> = 
   // a stage-less match of a competition that is a league. No deployment
   // creates a domestic league's stage, so without the second half every
   // league's complete table was declared not supplied (found 2026-09-26).
+  // A group stage's matches owe their group's table too (T-1336), but only
+  // those carrying a group name: the group tables count exactly those
+  // (`groupResults`), and a match whose group nobody has said is in no table,
+  // so owing one for it would declare a gap no table could ever close.
   standings: {
     expected: `f.status = 'finished' AND (
                  EXISTS (SELECT 1 FROM stage g WHERE g.id = f.stage_id AND g.kind = 'league')
+                 OR (f.group_name IS NOT NULL AND EXISTS (
+                       SELECT 1 FROM stage g WHERE g.id = f.stage_id AND g.kind = 'group'))
                  OR (f.stage_id IS NULL AND EXISTS (
                        SELECT 1 FROM season se JOIN competition c ON c.id = se.competition_id
                         WHERE se.id = f.season_id AND c.kind = 'league')))`,

@@ -74,18 +74,31 @@ export class PostgresStandingsStore {
 
   /**
    * The groups of a season's group stages (T-1333): each stage and group name
-   * its fixtures carry. A fixture with no group is in none of them.
+   * its fixtures carry. A fixture with no group is in none of them. In the
+   * stages' own order, then the groups' (T-1336): "2" before "10", "A"
+   * before "B", as the competition page lists them.
    */
-  async seasonGroups(seasonId: string): Promise<{ stageId: string; name: string }[]> {
-    const { rows } = await this.pool.query<{ stage_id: string; group_name: string }>(
-      `SELECT DISTINCT f.stage_id, f.group_name
+  async seasonGroups(
+    seasonId: string,
+  ): Promise<{ stageId: string; stageName: string; name: string }[]> {
+    const { rows } = await this.pool.query<{
+      stage_id: string;
+      stage_name: string;
+      group_name: string;
+    }>(
+      `SELECT f.stage_id, st.name AS stage_name, f.group_name
          FROM fixture f
          JOIN stage st ON st.id = f.stage_id AND st.kind = 'group'
         WHERE f.season_id = $1 AND f.group_name IS NOT NULL
-        ORDER BY f.stage_id, f.group_name`,
+        GROUP BY f.stage_id, st.name, st.sort_order, f.group_name
+        ORDER BY st.sort_order, length(f.group_name), f.group_name`,
       [seasonId],
     );
-    return rows.map((r) => ({ stageId: r.stage_id, name: r.group_name }));
+    return rows.map((r) => ({
+      stageId: r.stage_id,
+      stageName: r.stage_name,
+      name: r.group_name,
+    }));
   }
 
   /** Every team of one group, finished or not. */

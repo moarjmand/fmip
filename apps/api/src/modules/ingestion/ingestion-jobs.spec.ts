@@ -585,6 +585,30 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
     }
   });
 
+  it('counts a group stage’s matches toward the table once they carry a group (T-1336)', async () => {
+    // A group stage's finished match owes its group's table only when it names
+    // its group: the group tables count exactly those, and a match in no
+    // group is in no table.
+    const standings = async (): Promise<string | undefined> => {
+      await coverage.recompute(SEASON);
+      const { rows } = await pool.query<{ state: string }>(
+        `SELECT state FROM coverage_profile WHERE season_id = $1 AND module = 'standings'`,
+        [SEASON],
+      );
+      return rows[0]?.state;
+    };
+    await pool.query(`UPDATE stage SET kind = 'group' WHERE id = $1`, [STAGE]);
+    try {
+      expect(await standings()).toBe('not_supplied');
+      await pool.query(`UPDATE fixture SET group_name = 'A' WHERE season_id = $1`, [SEASON]);
+      expect(await standings()).toBe('available');
+    } finally {
+      await pool.query(`UPDATE fixture SET group_name = NULL WHERE season_id = $1`, [SEASON]);
+      await pool.query(`UPDATE stage SET kind = 'league' WHERE id = $1`, [STAGE]);
+      await coverage.recompute(SEASON);
+    }
+  });
+
   it('asks about live matches by id, so a match nobody follows costs nothing', async () => {
     // The recording is "everything live right now" on the day it was made, and
     // none of those matches is ours; the adapter filters to the ids we asked for.

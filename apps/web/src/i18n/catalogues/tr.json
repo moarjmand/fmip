@@ -8902,6 +8902,16 @@
     "text": "",
     "status": "untranslated"
   },
+  "competitionPage.groupTables": {
+    "source": "Group tables",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.groupNotStarted": {
+    "source": "No match of this group has been played, so there are no positions yet. Its teams:",
+    "text": "",
+    "status": "untranslated"
+  },
   "competitionPage.col.team": {
     "source": "Team",
     "text": "",

@@ -25,6 +25,11 @@ const SCORER = randomUUID();
 const OTHER_SCORER = randomUUID();
 const CUP = randomUUID();
 const CUP_SEASON = randomUUID();
+// T-1336: a national-team competition with two group stages.
+const GROUPED = randomUUID();
+const GROUPED_SEASON = randomUUID();
+const LEAGUE_A = randomUUID();
+const LEAGUE_B = randomUUID();
 
 describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition page', () => {
   let app: NestFastifyApplication;
@@ -220,16 +225,59 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
       ['current', 2, 0],
       ['penalties', 4, 3],
     ]);
+
+    // T-1336: League A and League B, each a group stage; League A's groups
+    // "2" (alpha beat beta) and "10" (not started), League B's "A" (a draw),
+    // and one finished League A match whose group nobody has said.
+    await pool.query(
+      `INSERT INTO competition (id, name, kind, scope, gender)
+       VALUES ($1, $2, 'cup', 'international', 'men')`,
+      [GROUPED, `Test Nations ${RUN}`],
+    );
+    await pool.query(
+      `INSERT INTO season (id, competition_id, label, start_date, end_date, is_current)
+       VALUES ($1, $2, '2026/27', DATE '2026-09-01', DATE '2027-06-30', true)`,
+      [GROUPED_SEASON, GROUPED],
+    );
+    await pool.query(
+      `INSERT INTO stage (id, season_id, name, kind, sort_order) VALUES
+         ($1, $3, 'League A', 'group', 1), ($2, $3, 'League B', 'group', 2)`,
+      [LEAGUE_A, LEAGUE_B, GROUPED_SEASON],
+    );
+    await pool.query(
+      `INSERT INTO coverage_profile (season_id, module, state, provider)
+       VALUES ($1, 'standings', 'available', 'api_football')`,
+      [GROUPED_SEASON],
+    );
+    const groupFixture = async (
+      stage: string,
+      group: string | null,
+      home: string,
+      away: string,
+      score: [number, number] | null,
+    ) => {
+      const id = await fixture(GROUPED_SEASON, stage, home, away, '2026-09-05T18:00:00Z', score);
+      await pool.query(`UPDATE fixture SET group_name = $2 WHERE id = $1`, [id, group]);
+    };
+    await groupFixture(LEAGUE_A, '2', TEAMS.alpha, TEAMS.beta, [1, 0]);
+    await groupFixture(LEAGUE_A, '10', TEAMS.gamma, TEAMS.alpha, null);
+    await groupFixture(LEAGUE_B, 'A', TEAMS.beta, TEAMS.gamma, [2, 2]);
+    await groupFixture(LEAGUE_A, null, TEAMS.gamma, TEAMS.beta, [5, 0]);
   });
 
   afterAll(async () => {
     await pool.query(`DELETE FROM incident WHERE fixture_id = ANY($1::uuid[])`, [fixtures]);
     await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [fixtures]);
-    await pool.query(`DELETE FROM stage WHERE id = ANY($1::uuid[])`, [[OLD_STAGE, NEW_STAGE]]);
-    await pool.query(`DELETE FROM season WHERE id = ANY($1::uuid[])`, [
-      [OLD_SEASON, NEW_SEASON, CUP_SEASON],
+    await pool.query(`DELETE FROM stage WHERE id = ANY($1::uuid[])`, [
+      [OLD_STAGE, NEW_STAGE, LEAGUE_A, LEAGUE_B],
     ]);
-    await pool.query(`DELETE FROM competition WHERE id = ANY($1::uuid[])`, [[COMPETITION, CUP]]);
+    await pool.query(`DELETE FROM coverage_profile WHERE season_id = $1`, [GROUPED_SEASON]);
+    await pool.query(`DELETE FROM season WHERE id = ANY($1::uuid[])`, [
+      [OLD_SEASON, NEW_SEASON, CUP_SEASON, GROUPED_SEASON],
+    ]);
+    await pool.query(`DELETE FROM competition WHERE id = ANY($1::uuid[])`, [
+      [COMPETITION, CUP, GROUPED],
+    ]);
     await pool.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [Object.values(TEAMS)]);
     await pool.query(`DELETE FROM person WHERE id = ANY($1::uuid[])`, [[SCORER, OTHER_SCORER]]);
     await pool.end();
@@ -259,6 +307,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
     expect(page.last_updated_at).not.toBeNull();
     // A domestic league plays no knockout rounds.
     expect(page.bracket).toBeNull();
+    // Nor group stages: its page is the league table alone, as before (T-1336).
+    expect(page.group_tables).toBeNull();
   });
 
   it('computes the table from stored results, with the unplayed club on it too', async () => {
@@ -446,5 +496,36 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
     expect(tie.aggregate).toEqual([2, 2]);
     expect(tie.winner?.id).toBe(TEAMS.beta);
     expect(tie.decided_by).toBe('penalties');
+  });
+
+  it('ranks every group of every group stage, in order, with no grid before a match (T-1336)', async () => {
+    const response = await app.inject({ method: 'GET', url: `/competitions/${GROUPED}` });
+    expect(response.statusCode).toBe(200);
+    const page = response.json() as CompetitionPage;
+    // No league stage: the single table is still the honest absence.
+    expect(page.table.coverage).toBe('not_supplied');
+    const groups = page.group_tables!;
+    expect(groups.coverage).toBe('available');
+    expect(groups.last_updated_at).not.toBeNull();
+    expect(groups.data!.map((g) => [g.stage.name, g.group, g.counted])).toEqual([
+      ['League A', '2', 1],
+      ['League A', '10', 0],
+      ['League B', 'A', 1],
+    ]);
+    const [two, ten, a] = groups.data!;
+    expect(two!.stage.id).toBe(LEAGUE_A);
+    // The match with no group counts in no table.
+    expect(two!.rows.map((r) => [r.position, r.team.id, r.played, r.points])).toEqual([
+      [1, TEAMS.alpha, 1, 3],
+      [2, TEAMS.beta, 1, 0],
+    ]);
+    expect(two!.rows[0]!.team.crest).toEqual({ coverage: 'not_supplied', url: null });
+    // Not started: no positions, its teams by name.
+    expect(ten!.rows).toEqual([]);
+    expect(ten!.teams.map((t) => t.id)).toEqual([TEAMS.alpha, TEAMS.gamma]);
+    expect(a!.rows.map((r) => [r.team.id, r.points])).toEqual([
+      [TEAMS.beta, 1],
+      [TEAMS.gamma, 1],
+    ]);
   });
 });
