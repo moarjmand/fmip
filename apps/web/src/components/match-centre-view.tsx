@@ -14,6 +14,7 @@ import { INCIDENT_KEY, NOT_YET, STAT_KEY, statValue } from '@/lib/match';
 import { isBehind } from '@/lib/live';
 import { formatKickoff, statusLabel } from '@/lib/scores';
 import { fill, filled, formatFixed, formatMinute } from '@/lib/words';
+import { stageLabel } from '@/lib/stage-label';
 import type { MatchWords } from '@/lib/words-server';
 import { formatDate, formatDateTime } from '@/i18n/format';
 import { EntityImage } from '@/components/entity-image';
@@ -137,6 +138,7 @@ export function MatchCentreView({
 }) {
   const m = words.m;
   const n = (value: number): string => formatNumber(locale, value);
+  const stage = (text: string): string => stageLabel(text, (key) => m[key].text, locale);
   const f = centre.fixture;
   const headline =
     f.status === 'finished' ? (f.scores.full_time ?? f.scores.current) : f.scores.current;
@@ -174,8 +176,8 @@ export function MatchCentreView({
             {f.competition.name}
           </Link>{' '}
           · {f.season.label}
-          {f.stage !== null ? ` · ${f.stage.name}` : ''}
-          {f.round !== null ? ` · ${f.round}` : ''}
+          {f.stage !== null ? ` · ${stage(f.stage.name)}` : ''}
+          {f.round !== null ? ` · ${stage(f.round)}` : ''}
           {f.group_name !== null
             ? ` · ${fill(m['matchCentre.group'].text, { group: f.group_name })}`
             : ''}

@@ -8,6 +8,7 @@ import {
   type PluralForms,
   type PluralKey,
 } from '@/i18n/messages';
+import { STAGE_KEYS } from '@/lib/stage-label';
 import type { ClientPlural, ClientWords } from '@/lib/words';
 
 /**
@@ -106,6 +107,7 @@ export const SCORES_KEYS = [
   ...STATUS_KEYS,
   ...LIVE_KEYS,
   ...INCIDENT_KEYS,
+  ...STAGE_KEYS,
   'scores.empty',
   'scores.filteredEmpty',
   'scores.filter.clear',
@@ -166,6 +168,7 @@ export const MATCH_KEYS = [
   ...STATUS_KEYS,
   ...LIVE_KEYS,
   ...INCIDENT_KEYS,
+  ...STAGE_KEYS,
   'scores.card.leg',
   'scores.card.kickoff',
   'matchCentre.group',

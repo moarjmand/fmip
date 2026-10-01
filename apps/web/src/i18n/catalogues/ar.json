@@ -10161,6 +10161,106 @@
     "text": "",
     "status": "untranslated"
   },
+  "stage.name.regularSeason": {
+    "source": "Regular Season",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.name.leagueStage": {
+    "source": "League Stage",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.name.groupStage": {
+    "source": "Group Stage",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.name.groups": {
+    "source": "Groups",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.name.preliminaryRound": {
+    "source": "Preliminary Round",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.name.qualifying1": {
+    "source": "1st Qualifying Round",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.name.qualifying2": {
+    "source": "2nd Qualifying Round",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.name.qualifying3": {
+    "source": "3rd Qualifying Round",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.name.playOffs": {
+    "source": "Play-offs",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.name.knockoutPlayOffs": {
+    "source": "Knockout Round Play-offs",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.name.roundOf32": {
+    "source": "Round of 32",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.name.roundOf16": {
+    "source": "Round of 16",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.name.quarterFinals": {
+    "source": "Quarter-finals",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.name.semiFinals": {
+    "source": "Semi-finals",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.name.final": {
+    "source": "Final",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.name.thirdPlace": {
+    "source": "3rd Place Final",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.league": {
+    "source": "League {letter}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.group": {
+    "source": "Group {group}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.round": {
+    "source": "{stage} - {round}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.matchday": {
+    "source": "Regular Season - {round}",
+    "text": "",
+    "status": "untranslated"
+  },
   "bracket.leg.match": {
     "source": "Match",
     "text": "",

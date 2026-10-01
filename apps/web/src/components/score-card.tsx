@@ -4,6 +4,7 @@ import { formatNumber } from '@/i18n/format';
 import { isBehind } from '@/lib/live';
 import { formatKickoff, scoreLabel, statusLabel } from '@/lib/scores';
 import type { CardCommunity, CardForecast, CardViewing } from '@/lib/score-card-products';
+import { stageLabel } from '@/lib/stage-label';
 import { fill, filled, formatMinute, pickPlural } from '@/lib/words';
 import type { ScoresWords } from '@/lib/words-server';
 import { EntityImage } from '@/components/entity-image';
@@ -109,7 +110,9 @@ export function ScoreCard({
       : fill(m['scores.card.aggregate'].text, {
           score: ltrIsolate(`${n(card.scores.aggregate.home)}–${n(card.scores.aggregate.away)}`),
         });
-  const stageBits = [card.stage?.name, card.round, leg, aggregate].filter(
+  const stage = (text: string | undefined | null): string | null =>
+    typeof text === 'string' ? stageLabel(text, (key) => m[key].text, locale) : null;
+  const stageBits = [stage(card.stage?.name), stage(card.round), leg, aggregate].filter(
     (bit): bit is string => typeof bit === 'string' && bit !== '',
   );
   // What stays on the row under the teams: what changes the score's meaning.

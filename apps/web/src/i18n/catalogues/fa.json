@@ -12373,6 +12373,126 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "stage.name.regularSeason": {
+    "source": "Regular Season",
+    "text": "فصل عادی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.name.leagueStage": {
+    "source": "League Stage",
+    "text": "مرحله‌ی لیگ",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.name.groupStage": {
+    "source": "Group Stage",
+    "text": "مرحله‌ی گروهی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.name.groups": {
+    "source": "Groups",
+    "text": "مرحله‌ی گروهی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.name.preliminaryRound": {
+    "source": "Preliminary Round",
+    "text": "دور مقدماتی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.name.qualifying1": {
+    "source": "1st Qualifying Round",
+    "text": "دور اول مقدماتی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.name.qualifying2": {
+    "source": "2nd Qualifying Round",
+    "text": "دور دوم مقدماتی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.name.qualifying3": {
+    "source": "3rd Qualifying Round",
+    "text": "دور سوم مقدماتی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.name.playOffs": {
+    "source": "Play-offs",
+    "text": "پلی‌آف",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.name.knockoutPlayOffs": {
+    "source": "Knockout Round Play-offs",
+    "text": "پلی‌آف مرحله‌ی حذفی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.name.roundOf32": {
+    "source": "Round of 32",
+    "text": "یک‌شانزدهم نهایی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.name.roundOf16": {
+    "source": "Round of 16",
+    "text": "یک‌هشتم نهایی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.name.quarterFinals": {
+    "source": "Quarter-finals",
+    "text": "یک‌چهارم نهایی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.name.semiFinals": {
+    "source": "Semi-finals",
+    "text": "نیمه‌نهایی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.name.final": {
+    "source": "Final",
+    "text": "فینال",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.name.thirdPlace": {
+    "source": "3rd Place Final",
+    "text": "دیدار رده‌بندی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.league": {
+    "source": "League {letter}",
+    "text": "لیگ {letter}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.group": {
+    "source": "Group {group}",
+    "text": "گروه {group}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.round": {
+    "source": "{stage} - {round}",
+    "text": "{stage}، هفته‌ی {round}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.matchday": {
+    "source": "Regular Season - {round}",
+    "text": "هفته‌ی {round}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "bracket.leg.match": {
     "source": "Match",
     "text": "بازی",

@@ -8,6 +8,7 @@ import { formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
 import { interpolate, plural, t } from '@/i18n/messages';
 import { roundLabel, tieOutcome } from '@/lib/bracket';
+import { stageLabel } from '@/lib/stage-label';
 
 /**
  * The words of the match centre's competition context (T-840). Pure, so what
@@ -110,7 +111,9 @@ export function placesNote(locale = 'en'): string {
 export function roundName(tie: CompetitionContextTie, locale = 'en'): string {
   return tie.round_key !== null
     ? roundLabel(tie.round_key, locale)
-    : (tie.round ?? t(asLocale(locale), 'matchCentre.context.knockoutRound'));
+    : tie.round !== null
+      ? stageLabel(tie.round, (key) => t(asLocale(locale), key), locale)
+      : t(asLocale(locale), 'matchCentre.context.knockoutRound');
 }
 
 /** "Two legs", "One match", or what our records cannot say. */

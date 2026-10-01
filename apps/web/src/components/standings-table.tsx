@@ -5,7 +5,7 @@ import { EntityImage } from '@/components/entity-image';
 import { Translated } from '@/components/translated';
 import { formatNumber } from '@/i18n/format';
 import type { MessageKey } from '@/i18n/messages';
-import { formLine, listText, say, ZONE_KEY, ZONE_MARK } from '@/lib/competition';
+import { formLine, listText, say, stageName, ZONE_KEY, ZONE_MARK } from '@/lib/competition';
 
 /**
  * The table's figure columns (T-1203). On a phone the table keeps position,
@@ -186,7 +186,7 @@ export function GroupTables({ groups, locale }: { groups: GroupTable[]; locale: 
   for (const g of groups) {
     const last = stages[stages.length - 1];
     if (last !== undefined && last.id === g.stage.id) last.groups.push(g);
-    else stages.push({ id: g.stage.id, name: g.stage.name, groups: [g] });
+    else stages.push({ id: g.stage.id, name: stageName(locale, g.stage.name), groups: [g] });
   }
   const several = stages.length > 1;
   return (
