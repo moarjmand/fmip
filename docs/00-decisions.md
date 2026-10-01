@@ -7820,7 +7820,10 @@ accepted); of Tehran Times' 30 newest, one named "AFP via Getty Images" and
 was refused. **The limit, stated rather than hidden:** an agency that
 republishes another's photo without saying so on its page passes this check;
 an editor's hide (below) is the remedy, and a stricter rule (accept only a
-named staff photographer) would show almost nothing from these feeds today.
+named staff photographer) would show almost nothing from these feeds today. The maintainer was
+shown this limit on 2026-10-01 and chose it over showing photos only on
+domestic-league stories, only with a named photographer, or none: "all the
+stories of these three sources", with the editor's hide as the remedy.
 
 **Stored and served by us.** An accepted photo is downloaded once (no
 redirect followed, at most 5 MB), checked from its own bytes to be a JPEG,
