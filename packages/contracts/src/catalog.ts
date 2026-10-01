@@ -130,6 +130,24 @@ export interface TableRow {
   form: FormResult[];
 }
 
+/**
+ * One group of a group stage on the competition page (T-1336), ranked as
+ * the match centre's group line ranks it: the stage's finished matches that
+ * carry the group's name.
+ */
+export interface GroupTable {
+  /** The group stage it belongs to (e.g. "League A", "Group Stage"). */
+  stage: { id: string; name: string };
+  /** The group's own name ("A", "1"). */
+  group: string;
+  /** Finished matches the table is counted from; 0 means no positions yet. */
+  counted: number;
+  /** Ranked rows; empty while `counted` is 0, never a grid of noughts. */
+  rows: TableRow[];
+  /** Every team of the group, by name: what a group not yet started can still say. */
+  teams: TableRow['team'][];
+}
+
 export interface Leader {
   /** `photo`: from our own origin (T-1320). */
   person: { id: string; name: string; photo?: EntityMedia };
@@ -334,6 +352,13 @@ export interface CompetitionPage {
   season: SeasonSummary & { stages: StageSummary[] };
   /** League table over the season's league-stage results. */
   table: Covered<TableRow[]>;
+  /**
+   * Every group's table of the season's group stages (T-1336), in stage
+   * order then group order; null for a season with no group stage, whose
+   * page is `table` alone as before. `not_supplied` when a group stage
+   * exists but no match of it carries a group yet.
+   */
+  group_tables: Covered<GroupTable[]> | null;
   /**
    * The season's qualification and relegation places from the committed
    * list (T-1167, D-171), or why there are none.

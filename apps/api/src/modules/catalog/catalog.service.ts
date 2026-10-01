@@ -218,6 +218,11 @@ export class CatalogService {
       knockout ? this.competitions_.bracketFixtures(selected.id) : Promise.resolve(null),
       this.competitions_.division(id),
     ]);
+    // Group tables (T-1336) only for a season with a group stage: a league
+    // reads nothing more and answers exactly as before (`group_tables: null`).
+    const groupTables = stages.some((s) => s.kind === 'group')
+      ? await this.standings.groupStandings(selected.id)
+      : null;
     // The boards beyond goals (T-943) are read whole, so their minutes are
     // read only for the rows each board can show without a floor.
     const shown = <T extends { person: { id: string } }>(rows: T[] | null) =>
@@ -259,6 +264,7 @@ export class CatalogService {
       competition: [competition.id],
       team: [
         ...(table.data ?? []).map((r) => r.team.id),
+        ...(groupTables?.data ?? []).flatMap((g) => g.teams.map((t) => t.id)),
         ...boardRows.flatMap((l) => (l.team === null ? [] : [l.team.id])),
       ],
       person: boardRows.map((l) => l.person.id),
@@ -295,6 +301,23 @@ export class CatalogService {
                   team: { ...r.team, crest: media.crest(r.team.id) },
                 })),
         },
+        group_tables:
+          groupTables === null
+            ? null
+            : {
+                ...groupTables,
+                data:
+                  groupTables.data === null
+                    ? null
+                    : groupTables.data.map((g) => ({
+                        ...g,
+                        rows: g.rows.map((r) => ({
+                          ...r,
+                          team: { ...r.team, crest: media.crest(r.team.id) },
+                        })),
+                        teams: g.teams.map((t) => ({ ...t, crest: media.crest(t.id) })),
+                      })),
+              },
         // T-1167 (D-171): the committed list, never the feed's standings.
         zones: leagueZonesFor(
           leagueZoneList as LeagueZoneEntry[],

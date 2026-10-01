@@ -169,6 +169,7 @@ export type {
   CountrySummary,
   FollowSuggestionsResponse,
   FormResult,
+  GroupTable,
   KnockoutBracket,
   KnockoutLeg,
   KnockoutRound,

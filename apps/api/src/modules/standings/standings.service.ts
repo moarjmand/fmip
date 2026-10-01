@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { CoverageState, Covered, TableRow } from '@fmip/contracts';
+import type { CoverageState, Covered, GroupTable, TableRow } from '@fmip/contracts';
 import { covered } from '../fixtures/fixtures.service';
 import { PostgresStandingsStore, type BoardRow, type Scorer } from './internal/standings-store';
 import { rankTable } from './internal/table';
@@ -16,6 +16,20 @@ export interface Boards {
 }
 
 export const LEADERS_LIMIT = 10;
+
+/** One group of a group stage as it stands (T-1333; T-1336 adds what the page needs). */
+export interface SeasonGroupTable {
+  stageId: string;
+  stageName: string;
+  name: string;
+  /** Ranked over the group's finished matches; every team at nought when none is. */
+  rows: TableRow[];
+  /** Every team of the group, by name. */
+  teams: TableRow['team'][];
+  /** Finished matches the rows are counted from. */
+  counted: number;
+  lastUpdatedAt: string | null;
+}
 
 /**
  * The standings boundary (02-architecture.md, T-035): league tables and
@@ -43,19 +57,40 @@ export class StandingsService {
    * group ranked on its own; the standings job compares the provider's group
    * tables with these, row by row. Empty when no fixture carries a group.
    */
-  async groupTables(
-    seasonId: string,
-  ): Promise<{ stageId: string; name: string; rows: TableRow[] }[]> {
+  async groupTables(seasonId: string): Promise<SeasonGroupTable[]> {
     const groups = await this.store.seasonGroups(seasonId);
     return Promise.all(
       groups.map(async (group) => {
-        const [{ results }, participants] = await Promise.all([
+        const [{ results, lastUpdatedAt }, participants] = await Promise.all([
           this.store.groupResults(group.stageId, group.name, null),
           this.store.groupParticipants(group.stageId, group.name),
         ]);
-        return { ...group, rows: rankTable(results, participants) };
+        return {
+          ...group,
+          rows: rankTable(results, participants),
+          teams: participants,
+          counted: results.length,
+          lastUpdatedAt,
+        };
       }),
     );
+  }
+
+  /**
+   * The competition page's group tables (T-1336): every group of the
+   * season's group stages, ranked exactly as `groupTables` ranks them (the
+   * match centre's group line counts the same matches), under the season's
+   * declared standings coverage. A group none of whose matches is finished
+   * has no positions yet: its rows are empty and its teams are listed, never
+   * a grid of noughts ordered by name. No group known at all is the honest
+   * absence of the module, not an empty list.
+   */
+  async groupStandings(seasonId: string): Promise<Covered<GroupTable[]>> {
+    const [groups, declared] = await Promise.all([
+      this.groupTables(seasonId),
+      this.store.declared(seasonId, 'standings'),
+    ]);
+    return groupStandingsModule(groups, declared);
   }
 
   /**
@@ -153,4 +188,29 @@ export function cleanSheetsModule<T>(
   const coverage =
     keepers.judged < keepers.sides && whole.coverage === 'available' ? 'limited' : whole.coverage;
   return { ...whole, coverage };
+}
+
+/**
+ * The group tables as the competition page carries them (T-1336), pure so
+ * a unit spec holds it: each group under its stage, rows only once a match
+ * of the group is finished, the newest change across the groups, and the
+ * declared state as `covered` gives it -- no group at all is `not_supplied`
+ * (or `delayed` when declared so).
+ */
+export function groupStandingsModule(
+  groups: SeasonGroupTable[],
+  declared: CoverageState | null,
+): Covered<GroupTable[]> {
+  let last: string | null = null;
+  for (const g of groups)
+    if (g.lastUpdatedAt !== null && (last === null || g.lastUpdatedAt > last))
+      last = g.lastUpdatedAt;
+  const data = groups.map((g): GroupTable => ({
+    stage: { id: g.stageId, name: g.stageName },
+    group: g.name,
+    counted: g.counted,
+    rows: g.counted === 0 ? [] : g.rows,
+    teams: g.teams,
+  }));
+  return covered(data, data.length === 0, declared, last);
 }

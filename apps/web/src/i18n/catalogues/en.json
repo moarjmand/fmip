@@ -1945,6 +1945,8 @@
   "competitionPage.seasonCurrent": "{season} (current)",
   "competitionPage.founderHeading": "Founder's analysis in {name}",
   "competitionPage.table": "Table",
+  "competitionPage.groupTables": "Group tables",
+  "competitionPage.groupNotStarted": "No match of this group has been played, so there are no positions yet. Its teams:",
   "competitionPage.col.team": "Team",
   "competitionPage.col.played": "P",
   "competitionPage.col.playedTitle": "Played",

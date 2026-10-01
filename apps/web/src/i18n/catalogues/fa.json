@@ -10843,6 +10843,18 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "competitionPage.groupTables": {
+    "source": "Group tables",
+    "text": "جدول گروه‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.groupNotStarted": {
+    "source": "No match of this group has been played, so there are no positions yet. Its teams:",
+    "text": "هنوز هیچ بازی‌ای از این گروه انجام نشده است، پس هنوز رده‌ای ندارد. تیم‌های آن:",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "competitionPage.col.team": {
     "source": "Team",
     "text": "تیم",
