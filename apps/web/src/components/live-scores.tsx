@@ -9,6 +9,7 @@ import { INITIAL_CLOCK, type LiveClock, liveLabel, liveState } from '@/lib/live'
 import type { ScoreCardProducts } from '@/lib/score-card-products';
 import { blockUpdatedLabel, formatKickoff } from '@/lib/scores';
 import { applyFilters, isFiltered, type ScoresFilterSelection } from '@/lib/scores-filters';
+import { withLocale } from '@/lib/locale-query';
 import type { ScoresWords } from '@/lib/words-server';
 import { FilledMessage } from '@/components/filled-message';
 import { MessageText } from '@/components/message-text';
@@ -89,7 +90,8 @@ export function LiveScores({
     // Keyed on the selection's value, not the object, so a re-render with the
     // same filters never reopens the stream.
     const selection = JSON.parse(filterKey) as ScoresFilterSelection;
-    const source = new EventSource(`/api/scores/stream?${streamQuery}`);
+    // The reader's names in every snapshot, as on the server-rendered page (T-1312).
+    const source = new EventSource(withLocale(`/api/scores/stream?${streamQuery}`, locale));
     const stamp = (snapshot: boolean): void =>
       setClock((c) => ({
         lastEventAt: Date.now(),
@@ -118,7 +120,7 @@ export function LiveScores({
       clearInterval(tick);
       source.close();
     };
-  }, [streamQuery, filterKey, words]);
+  }, [streamQuery, filterKey, words, locale]);
 
   const state = liveState(clock, now);
   const shown = applyFilters(scores, filters);

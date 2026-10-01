@@ -27,7 +27,10 @@ export type SearchType = (typeof SEARCH_TYPES)[number];
 export interface SearchResult {
   type: SearchEntityType;
   id: string;
-  /** The canonical name, never the alias. */
+  /**
+   * The canonical name, never the alias that matched -- or, with `?locale=`,
+   * the name in that language where one is written (T-1312).
+   */
   name: string;
   /** Country for a team or competition, current team for a person; null when unknown. */
   secondary: string | null;
