@@ -522,9 +522,14 @@ function Story({
       <p className="text-sm text-muted" data-testid="story-source">
         <Translated locale={locale} message="news.readAt" />{' '}
         <a href={card.source.homepage_url} rel="noopener" className="underline">
-          {card.source.name}
+          <bdi>{card.source.name}</bdi>
         </a>
-        {card.byline !== null && <> · {card.byline}</>}
+        {card.byline !== null && (
+          <>
+            {' · '}
+            <bdi>{card.byline}</bdi>
+          </>
+        )}
         {' · '}
         {card.published_at === null ? (
           <Translated locale={locale} message="news.noTime" />

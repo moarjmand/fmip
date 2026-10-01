@@ -128,9 +128,14 @@ export default async function StoryPage({
         <p className="text-sm text-muted" data-testid="story-source">
           <Translated locale={locale} message="news.readAt" />{' '}
           <a href={story.source.homepage_url} rel="noopener" className="underline">
-            {story.source.name}
+            <bdi>{story.source.name}</bdi>
           </a>
-          {story.byline !== null && <> · {story.byline}</>}
+          {story.byline !== null && (
+            <>
+              {' · '}
+              <bdi>{story.byline}</bdi>
+            </>
+          )}
           {' · '}
           {story.published_at === null ? (
             <Translated locale={locale} message="news.noTime" />
@@ -353,9 +358,14 @@ function Report({
         <p className="text-muted">
           <Translated locale={locale} message="news.readAt" />{' '}
           <a href={report.source.homepage_url} rel="noopener" className="underline">
-            {report.source.name}
+            <bdi>{report.source.name}</bdi>
           </a>
-          {report.byline !== null && <> · {report.byline}</>}
+          {report.byline !== null && (
+            <>
+              {' · '}
+              <bdi>{report.byline}</bdi>
+            </>
+          )}
           {' · '}
           {report.published_at === null ? (
             <Translated locale={locale} message="news.noTime" />
