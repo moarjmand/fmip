@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { formatNumber } from '@/i18n/format';
+import { formatNumber, intlLocale } from '@/i18n/format';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { MatchViewing, TeamCompetitionSplits, TeamPageFixture } from '@fmip/contracts';
@@ -11,14 +11,13 @@ import {
   fetchTeam,
   fetchViewingBatch,
 } from '@/lib/api';
-import { formatFixtureDate } from '@/lib/competition';
-import { moduleState } from '@/lib/match';
+import { FORM_KEY, coverageText, formatFixtureDate, say } from '@/lib/competition';
 import { pageMetadata, teamJsonLd } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import {
-  METRIC_LABEL,
+  METRIC_KEY,
   SPLIT_COLUMNS,
-  SPLIT_COLUMN_LABEL,
+  SPLIT_COLUMN_KEY,
   SPLIT_RECORD_ROWS,
   SPLITS_FOOTNOTE,
   averageCell,
@@ -50,9 +49,10 @@ export async function generateMetadata({
   params: Promise<{ locale: string; id: string }>;
 }): Promise<Metadata> {
   const { locale, id } = await params;
-  if (!UUID.test(id)) return { title: 'Team · FMIP', robots: { index: false, follow: false } };
+  const fallback = `${say(locale, 'teamPage.title')} · FMIP`;
+  if (!UUID.test(id)) return { title: fallback, robots: { index: false, follow: false } };
   const result = await fetchTeam(id, locale);
-  if (!result.ok) return pageMetadata({ locale, path: `/team/${id}`, title: 'Team · FMIP' });
+  if (!result.ok) return pageMetadata({ locale, path: `/team/${id}`, title: fallback });
   const t = result.data.team;
   // The reader's name in the title; the canonical one in the description, so
   // both are on the page and neither pretends to be the other (T-303).
@@ -60,7 +60,7 @@ export async function generateMetadata({
     locale,
     path: `/team/${t.id}`,
     title: `${t.localised_name ?? t.name} · FMIP`,
-    description: `${t.name}: fixtures, results, squad and where they stand.`,
+    description: say(locale, 'teamPage.metaDescription', { name: t.name }),
   });
 }
 
@@ -68,7 +68,7 @@ export async function generateMetadata({
  * The team page (blueprint 5.2, T-036): overview with ground and followers,
  * the current competitions with the table context, next and previous match,
  * fixtures and results, the squad by position. Player names become links
- * with the player page (T-037).
+ * with the player page (T-037). Its words come from the catalogue (T-1304).
  */
 export default async function TeamPage({
   params,
@@ -90,9 +90,11 @@ export default async function TeamPage({
     if (result.status === 404) notFound();
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-4 p-8">
-        <h1 className="text-2xl font-semibold">Team</h1>
+        <h1 className="text-2xl font-semibold">
+          <Translated locale={locale} message="teamPage.title" />
+        </h1>
         <Notice tone="danger" data-testid="team-unreachable">
-          The service is unreachable right now, so this team cannot be shown.
+          <Translated locale={locale} message="teamPage.unreachable" />
         </Notice>
       </main>
     );
@@ -125,9 +127,14 @@ export default async function TeamPage({
       <header className="flex flex-col gap-1" data-testid="team-header">
         <p className="text-sm text-muted">
           {t.country !== null ? `${t.country.name} · ` : ''}
-          {t.kind === 'national' ? 'National team' : 'Club'}
-          {t.gender === 'women' ? ' · Women' : ''}
-          {t.founded_year !== null ? ` · Founded ${t.founded_year}` : ''}
+          <Translated
+            locale={locale}
+            message={t.kind === 'national' ? 'teamPage.national' : 'teamPage.club'}
+          />
+          {t.gender === 'women' ? ` · ${say(locale, 'competitionPage.women')}` : ''}
+          {t.founded_year !== null
+            ? ` · ${say(locale, 'teamPage.founded', { year: yearText(locale, t.founded_year) })}`
+            : ''}
         </p>
         <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
           {t.localised_name ?? t.name}
@@ -140,11 +147,15 @@ export default async function TeamPage({
           </p>
         )}
         <p className="text-sm text-muted">
-          {t.venue !== null
-            ? `${t.venue.name}${t.venue.city !== null ? `, ${t.venue.city}` : ''}${
-                t.venue.capacity !== null ? ` · ${formatNumber(locale, t.venue.capacity)}` : ''
-              }`
-            : 'Home ground not recorded'}
+          {t.venue !== null ? (
+            `${
+              t.venue.city !== null
+                ? say(locale, 'teamPage.venueCity', { venue: t.venue.name, city: t.venue.city })
+                : t.venue.name
+            }${t.venue.capacity !== null ? ` · ${formatNumber(locale, t.venue.capacity)}` : ''}`
+          ) : (
+            <Translated locale={locale} message="teamPage.noGround" />
+          )}
           {' · '}
           <span data-testid="followers">
             <Translated locale={locale} message="team.followerCount" count={page.followers} />
@@ -188,14 +199,18 @@ export default async function TeamPage({
           analyses={founder.data.analyses}
           locale={locale}
           timeZone={timeZone}
-          heading={`Founder's analysis of ${t.name}`}
+          heading={say(locale, 'teamPage.founderHeading', { name: t.name })}
         />
       )}
 
       <section className="flex flex-col gap-3" data-testid="competitions">
-        <h2 className="text-lg font-semibold">Competitions</h2>
+        <h2 className="text-lg font-semibold">
+          <Translated locale={locale} message="teamPage.competitions" />
+        </h2>
         {page.competitions.length === 0 ? (
-          <p className="text-sm text-muted">No current competition on record.</p>
+          <p className="text-sm text-muted">
+            <Translated locale={locale} message="teamPage.noCompetition" />
+          </p>
         ) : (
           page.competitions.map((entry) => (
             <div key={entry.season.id} className="flex flex-col gap-1" data-testid="competition">
@@ -208,11 +223,13 @@ export default async function TeamPage({
                 </Link>{' '}
                 <span className="text-sm text-muted">{entry.season.label}</span>
                 <span className="ms-2 text-xs font-normal uppercase text-muted">
-                  {moduleState(entry.context)}
+                  {coverageText(locale, entry.context.coverage)}
                 </span>
               </h3>
               {entry.context.data === null ? (
-                <p className="text-sm text-muted">No table position to show.</p>
+                <p className="text-sm text-muted">
+                  <Translated locale={locale} message="teamPage.noPosition" />
+                </p>
               ) : (
                 <>
                   <p className="text-sm" data-testid="context-line">
@@ -228,7 +245,9 @@ export default async function TeamPage({
                               row.team.id === t.id ? 'font-semibold' : ''
                             }`}
                           >
-                            <td className="py-1 pe-2 tabular-nums">{row.position}</td>
+                            <td className="py-1 pe-2 tabular-nums">
+                              {formatNumber(locale, row.position)}
+                            </td>
                             <td className="py-1 pe-2">
                               {row.team.id === t.id ? (
                                 row.team.name
@@ -238,12 +257,16 @@ export default async function TeamPage({
                                 </Link>
                               )}
                             </td>
-                            <td className="py-1 pe-2 text-end tabular-nums">{row.played}</td>
+                            <td className="py-1 pe-2 text-end tabular-nums">
+                              {formatNumber(locale, row.played)}
+                            </td>
                             <td className="py-1 pe-2 text-end tabular-nums">
                               {row.goal_difference > 0 ? '+' : ''}
-                              {row.goal_difference}
+                              {formatNumber(locale, row.goal_difference)}
                             </td>
-                            <td className="py-1 text-end tabular-nums">{row.points}</td>
+                            <td className="py-1 text-end tabular-nums">
+                              {formatNumber(locale, row.points)}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -257,16 +280,20 @@ export default async function TeamPage({
       </section>
 
       <section className="flex flex-col gap-3" data-testid="splits">
-        <h2 className="text-lg font-semibold">Home and away</h2>
+        <h2 className="text-lg font-semibold">
+          <Translated locale={locale} message="teamPage.splits" />
+        </h2>
         {page.splits.length === 0 ? (
-          <p className="text-sm text-muted">No current competition on record.</p>
+          <p className="text-sm text-muted">
+            <Translated locale={locale} message="teamPage.noCompetition" />
+          </p>
         ) : (
           <>
             {page.splits.map((entry) => (
               <SplitsTable key={entry.season.id} splits={entry} locale={locale} />
             ))}
             <p className="text-xs text-muted" data-testid="splits-footnote">
-              {SPLITS_FOOTNOTE}
+              <Translated locale={locale} message={SPLITS_FOOTNOTE} />
             </p>
           </>
         )}
@@ -274,9 +301,13 @@ export default async function TeamPage({
 
       <section className="grid gap-4 sm:grid-cols-2" data-testid="next-previous">
         <div className="flex flex-col gap-1">
-          <h2 className="text-lg font-semibold">Next match</h2>
+          <h2 className="text-lg font-semibold">
+            <Translated locale={locale} message="player.availability.nextMatch" />
+          </h2>
           {page.next_match === null ? (
-            <p className="text-sm text-muted">No match scheduled.</p>
+            <p className="text-sm text-muted">
+              <Translated locale={locale} message="teamPage.noNext" />
+            </p>
           ) : (
             <MatchLine
               fixture={page.next_match}
@@ -287,9 +318,13 @@ export default async function TeamPage({
           )}
         </div>
         <div className="flex flex-col gap-1">
-          <h2 className="text-lg font-semibold">Previous match</h2>
+          <h2 className="text-lg font-semibold">
+            <Translated locale={locale} message="teamPage.previousMatch" />
+          </h2>
           {page.previous_match === null ? (
-            <p className="text-sm text-muted">No result on record.</p>
+            <p className="text-sm text-muted">
+              <Translated locale={locale} message="teamPage.noPrevious" />
+            </p>
           ) : (
             <MatchLine
               fixture={page.previous_match}
@@ -302,9 +337,13 @@ export default async function TeamPage({
       </section>
 
       <section className="flex flex-col gap-2" data-testid="fixtures">
-        <h2 className="text-lg font-semibold">Fixtures</h2>
+        <h2 className="text-lg font-semibold">
+          <Translated locale={locale} message="competitionPage.fixtures" />
+        </h2>
         {page.fixtures.length === 0 ? (
-          <p className="text-sm text-muted">No fixtures scheduled.</p>
+          <p className="text-sm text-muted">
+            <Translated locale={locale} message="teamPage.noFixtures" />
+          </p>
         ) : (
           <ul className="flex flex-col divide-y divide-default">
             {page.fixtures.map((fixture) => (
@@ -327,9 +366,13 @@ export default async function TeamPage({
       </section>
 
       <section className="flex flex-col gap-2" data-testid="results">
-        <h2 className="text-lg font-semibold">Results</h2>
+        <h2 className="text-lg font-semibold">
+          <Translated locale={locale} message="competitionPage.results" />
+        </h2>
         {page.results.length === 0 ? (
-          <p className="text-sm text-muted">No results on record.</p>
+          <p className="text-sm text-muted">
+            <Translated locale={locale} message="teamPage.noResults" />
+          </p>
         ) : (
           <ul className="flex flex-col divide-y divide-default">
             {page.results.map((fixture) => (
@@ -343,17 +386,17 @@ export default async function TeamPage({
 
       <section className="flex flex-col gap-2" data-testid="squad">
         <h2 className="text-lg font-semibold">
-          Squad
+          <Translated locale={locale} message="teamPage.squad" />
           <span className="ms-2 text-xs font-normal uppercase text-muted">
-            {moduleState(page.squad)}
+            {coverageText(locale, page.squad.coverage)}
           </span>
         </h2>
         {page.squad.data === null ? (
           <p className="text-sm text-muted" data-testid="squad-empty">
-            No squad on record for this team.
+            <Translated locale={locale} message="teamPage.noSquad" />
           </p>
         ) : (
-          groupSquad(page.squad.data).map((group) => (
+          groupSquad(locale, page.squad.data).map((group) => (
             <div key={group.position} className="flex flex-col gap-1">
               <h3 className="text-sm font-medium text-muted">{group.label}</h3>
               <ul className="flex flex-col text-sm">
@@ -364,13 +407,19 @@ export default async function TeamPage({
                     data-testid="player"
                   >
                     <span className="w-8 text-end tabular-nums text-muted">
-                      {player.shirt_number ?? '–'}
+                      {player.shirt_number === null
+                        ? '–'
+                        : formatNumber(locale, player.shirt_number)}
                     </span>
                     <span className="grow">
                       <Link href={`/${locale}/player/${player.person.id}`} className="underline">
                         {player.person.name}
                       </Link>
-                      {player.on_loan && <span className="ms-2 text-xs text-muted">on loan</span>}
+                      {player.on_loan && (
+                        <span className="ms-2 text-xs text-muted">
+                          <Translated locale={locale} message="teamPage.onLoan" />
+                        </span>
+                      )}
                     </span>
                     <MinutesFigure locale={locale} minutes={player.minutes} className="text-sm" />
                   </li>
@@ -390,10 +439,10 @@ export default async function TeamPage({
 
       <p className="text-xs text-muted">
         {page.last_updated_at === null ? (
-          'No fixture data stored yet.'
+          <Translated locale={locale} message="competitionPage.noData" />
         ) : (
           <>
-            Last data update{' '}
+            <Translated locale={locale} message="competitionPage.lastUpdate" />{' '}
             <Stamp iso={page.last_updated_at} locale={locale} timeZone={timeZone} />
           </>
         )}
@@ -409,7 +458,7 @@ export default async function TeamPage({
  */
 function SplitsTable({ splits, locale }: { splits: TeamCompetitionSplits; locale: string }) {
   const played = splits.total.played;
-  const notes = splitNotes(splits);
+  const notes = splitNotes(locale, splits);
   // A figure the feed never supplied for these matches is named once under
   // the table, not given a row of dashes each (T-1205); rule 3 still holds.
   const shown = splits.averages.filter((a) => a.coverage !== 'not_supplied');
@@ -421,18 +470,20 @@ function SplitsTable({ splits, locale }: { splits: TeamCompetitionSplits; locale
       </h3>
       {played === 0 ? (
         <p className="text-sm text-muted" data-testid="splits-empty">
-          No finished match on record yet.
+          <Translated locale={locale} message="teamPage.splitsEmpty" />
         </p>
       ) : (
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-default text-xs text-muted">
               <th scope="col" className="py-1 pe-2 text-start font-normal">
-                <span className="sr-only">Figure</span>
+                <span className="sr-only">
+                  <Translated locale={locale} message="teamPage.figure" />
+                </span>
               </th>
               {SPLIT_COLUMNS.map((column) => (
                 <th key={column} scope="col" className="py-1 ps-2 text-end font-normal">
-                  {SPLIT_COLUMN_LABEL[column]}
+                  <Translated locale={locale} message={SPLIT_COLUMN_KEY[column]} />
                 </th>
               ))}
             </tr>
@@ -441,7 +492,7 @@ function SplitsTable({ splits, locale }: { splits: TeamCompetitionSplits; locale
             {SPLIT_RECORD_ROWS.map((row) => (
               <tr key={row.key} className="border-b border-default">
                 <th scope="row" className="py-1 pe-2 text-start font-normal">
-                  {row.label}
+                  <Translated locale={locale} message={row.label} />
                 </th>
                 {SPLIT_COLUMNS.map((column) => (
                   <td key={column} className="py-1 ps-2 text-end tabular-nums">
@@ -451,7 +502,7 @@ function SplitsTable({ splits, locale }: { splits: TeamCompetitionSplits; locale
               </tr>
             ))}
             {shown.map((average) => {
-              const note = averageNote(average, played);
+              const note = averageNote(locale, average, played);
               return (
                 <tr
                   key={average.metric}
@@ -460,9 +511,9 @@ function SplitsTable({ splits, locale }: { splits: TeamCompetitionSplits; locale
                   data-coverage={average.coverage}
                 >
                   <th scope="row" className="py-1 pe-2 text-start font-normal">
-                    {METRIC_LABEL[average.metric]}
+                    <Translated locale={locale} message={METRIC_KEY[average.metric]} />
                     <span className="block text-xs text-muted">
-                      {note === null ? 'Per match' : note}
+                      {note === null ? say(locale, 'teamPage.perMatch') : note}
                     </span>
                   </th>
                   {SPLIT_COLUMNS.map((column) => (
@@ -478,7 +529,10 @@ function SplitsTable({ splits, locale }: { splits: TeamCompetitionSplits; locale
       )}
       {played > 0 && missing.length > 0 && (
         <p className="text-xs text-muted" data-testid="splits-not-supplied">
-          {notSuppliedNote(missing.map((a) => METRIC_LABEL[a.metric]))}
+          {notSuppliedNote(
+            locale,
+            missing.map((a) => say(locale, METRIC_KEY[a.metric])),
+          )}
         </p>
       )}
       {notes.map((note) => (
@@ -488,6 +542,11 @@ function SplitsTable({ splits, locale }: { splits: TeamCompetitionSplits; locale
       ))}
     </div>
   );
+}
+
+/** A year as a reader reads it: the locale's digits, never grouped ("1899", not "1,899"). */
+function yearText(locale: string, year: number): string {
+  return new Intl.NumberFormat(intlLocale(locale), { useGrouping: false }).format(year);
 }
 
 function MatchLine({
@@ -502,16 +561,18 @@ function MatchLine({
   timeZone: string;
 }) {
   const side = fromTeamSide(fixture, teamId);
-  const note = afterTimeNote(fixture, teamId);
+  const note = afterTimeNote(locale, fixture, teamId);
   const opponentId = fixture.home.id === teamId ? fixture.away.id : fixture.home.id;
   return (
     <div className="flex flex-wrap items-baseline gap-x-3 text-sm" data-testid="match-line">
       {side.result !== null && (
         <span className="w-4 font-mono text-xs font-semibold" data-testid="result-letter">
-          {side.result}
+          {say(locale, FORM_KEY[side.result])}
         </span>
       )}
-      <span className="text-muted">{side.home ? 'v' : 'at'}</span>
+      <span className="text-muted">
+        <Translated locale={locale} message={side.home ? 'teamPage.home' : 'teamPage.away'} />
+      </span>
       <Link href={`/${locale}/team/${opponentId}`} className={inlineTargetClasses('underline')}>
         {side.opponent}
       </Link>
@@ -520,7 +581,7 @@ function MatchLine({
         className={inlineTargetClasses('font-medium underline')}
       >
         {fixture.score === null ? (
-          'Match centre'
+          <Translated locale={locale} message="viewing.matchCentre" />
         ) : (
           <Score home={fixture.score.home} away={fixture.score.away} />
         )}

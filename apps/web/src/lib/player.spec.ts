@@ -86,9 +86,9 @@ describe('labels', () => {
 
   it('sums appearances and names the role', () => {
     expect(appearances({ starts: 3, sub_appearances: 2 })).toBe(5);
-    expect(roleLabel({ role: 'starter', came_on: false })).toBe('Started');
-    expect(roleLabel({ role: 'bench', came_on: true })).toBe('Came on');
-    expect(roleLabel({ role: 'bench', came_on: false })).toBe('Unused sub');
+    expect(roleLabel('en', { role: 'starter', came_on: false })).toBe('Started');
+    expect(roleLabel('en', { role: 'bench', came_on: true })).toBe('Came on');
+    expect(roleLabel('en', { role: 'bench', came_on: false })).toBe('Unused sub');
   });
 });
 
@@ -128,8 +128,8 @@ describe('the match log after extra time (T-822)', () => {
       },
     };
     // The player played for the away side, which won the shoot-out.
-    expect(afterTimeNote(m.fixture, m.team.id)).toBe('aet, won 4–3 on penalties');
-    expect(afterTimeNote(base.fixture, base.team.id)).toBeNull();
+    expect(afterTimeNote('en', m.fixture, m.team.id)).toBe('aet, won 4–3 on penalties');
+    expect(afterTimeNote('en', base.fixture, base.team.id)).toBeNull();
   });
 });
 
@@ -143,15 +143,18 @@ describe('minutesText (T-823)', () => {
   });
 
   it('shows the total only when it is whole', () => {
-    expect(minutesText(m('available', 5))).toEqual({ text: '270', note: null });
+    expect(minutesText('en', m('available', 5))).toEqual({ text: '270', note: null });
   });
 
   it('shows a partial season as "at least", with the matches it covers', () => {
-    expect(minutesText(m('limited', 4))).toEqual({ text: 'at least 200', note: '4 of 5 matches' });
+    expect(minutesText('en', m('limited', 4))).toEqual({
+      text: 'at least 200',
+      note: '4 of 5 matches',
+    });
   });
 
   it('says not supplied when the feed sent none', () => {
-    expect(minutesText(m('not_supplied', 0))).toEqual({ text: 'not supplied', note: null });
+    expect(minutesText('en', m('not_supplied', 0))).toEqual({ text: 'not supplied', note: null });
   });
 });
 

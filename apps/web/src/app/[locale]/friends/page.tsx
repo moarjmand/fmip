@@ -4,7 +4,10 @@ import { redirect } from 'next/navigation';
 import { FriendControls } from '@/components/friend-controls';
 import { MemberHandle, MemberName } from '@/components/member-name';
 import { formatDateTime } from '@/i18n/format';
+import { Said } from '@/components/community-text';
 import { Translated } from '@/components/translated';
+import { DEFAULT_LOCALE, type Locale, isLocale } from '@/i18n/locales';
+import { t } from '@/i18n/messages';
 import { fetchBlocks, fetchFriendRequests, fetchFriends, fetchMe } from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
@@ -18,11 +21,12 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  const resolved: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
   return pageMetadata({
     locale,
     path: '/friends',
-    title: 'Friends · FMIP',
-    description: 'Your friends, your pending requests and the members you have blocked.',
+    title: `${t(resolved, 'friendsPage.title')} · FMIP`,
+    description: t(resolved, 'friendsPage.description'),
   });
 }
 
@@ -57,21 +61,24 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
     <main className="mx-auto flex max-w-3xl flex-col gap-8 p-8">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold" data-testid="title">
-          Friends
+          <Translated locale={locale} message="friendsPage.title" />
         </h1>
         <p className="text-sm text-muted">
-          Friends can see one another&rsquo;s friends-only profile and prediction history, and
-          nothing more than that until you share it.
+          <Translated locale={locale} message="friendsPage.lead" />
         </p>
       </div>
 
       <section className="flex flex-col gap-3" data-testid="friend-requests">
-        <h2 className="text-lg font-semibold">Requests</h2>
+        <h2 className="text-lg font-semibold">
+          <Translated locale={locale} message="friendsPage.requests" />
+        </h2>
         {!requests.ok ? (
-          <Notice tone="danger">Your requests cannot be listed right now.</Notice>
+          <Notice tone="danger">
+            <Translated locale={locale} message="friendsPage.requestsUnreachable" />
+          </Notice>
         ) : requests.data.incoming.length === 0 && requests.data.outgoing.length === 0 ? (
           <p className="text-sm text-muted" data-testid="requests-none">
-            Nobody has asked to be your friend, and you have no request waiting for an answer.
+            <Translated locale={locale} message="friendsPage.requestsNone" />
           </p>
         ) : (
           <>
@@ -80,8 +87,12 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
                 <p className="text-sm">
                   <MemberName locale={locale} member={request.member} link className="underline" />{' '}
                   <span className="text-muted">
-                    <MemberHandle username={request.member.username} /> · asked{' '}
-                    {formatDateTime(locale, request.sent_at, zone)}
+                    <MemberHandle username={request.member.username} /> ·{' '}
+                    <Said
+                      locale={locale}
+                      message="friendsPage.askedAt"
+                      params={{ when: formatDateTime(locale, request.sent_at, zone) }}
+                    />
                   </span>
                 </p>
                 <FriendControls
@@ -96,8 +107,12 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
                 <p className="text-sm">
                   <MemberName locale={locale} member={request.member} link className="underline" />{' '}
                   <span className="text-muted">
-                    <MemberHandle username={request.member.username} /> · you asked{' '}
-                    {formatDateTime(locale, request.sent_at, zone)}
+                    <MemberHandle username={request.member.username} /> ·{' '}
+                    <Said
+                      locale={locale}
+                      message="friendsPage.youAskedAt"
+                      params={{ when: formatDateTime(locale, request.sent_at, zone) }}
+                    />
                   </span>
                 </p>
                 <FriendControls
@@ -112,12 +127,16 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
       </section>
 
       <section className="flex flex-col gap-3" data-testid="friend-list">
-        <h2 className="text-lg font-semibold">Your friends</h2>
+        <h2 className="text-lg font-semibold">
+          <Translated locale={locale} message="friendsPage.yours" />
+        </h2>
         {!friends.ok ? (
-          <Notice tone="danger">Your friends cannot be listed right now.</Notice>
+          <Notice tone="danger">
+            <Translated locale={locale} message="friendsPage.friendsUnreachable" />
+          </Notice>
         ) : friends.data.friends.length === 0 ? (
           <p className="text-sm text-muted" data-testid="friends-none">
-            You have no friends here yet. Open a member&rsquo;s profile to send a request.
+            <Translated locale={locale} message="friendsPage.friendsNone" />
           </p>
         ) : (
           friends.data.friends.map((friend) => (
@@ -125,8 +144,12 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
               <p className="text-sm">
                 <MemberName locale={locale} member={friend.member} link className="underline" />{' '}
                 <span className="text-muted">
-                  <MemberHandle username={friend.member.username} /> · friends since{' '}
-                  {formatDateTime(locale, friend.friends_since, zone)}
+                  <MemberHandle username={friend.member.username} /> ·{' '}
+                  <Said
+                    locale={locale}
+                    message="friendsPage.friendsSince"
+                    params={{ when: formatDateTime(locale, friend.friends_since, zone) }}
+                  />
                   {friend.mutual_friends > 0 && (
                     <>
                       {' · '}
@@ -149,7 +172,7 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
                   href={`/${locale}/u/${encodeURIComponent(friend.member.username)}/compare`}
                   className="text-sm underline"
                 >
-                  Compare records
+                  <Translated locale={locale} message="friendsPage.compare" />
                 </Link>
               </div>
             </div>
@@ -158,16 +181,19 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
       </section>
 
       <section className="flex flex-col gap-3" data-testid="block-list">
-        <h2 className="text-lg font-semibold">Blocked</h2>
+        <h2 className="text-lg font-semibold">
+          <Translated locale={locale} message="friendsPage.blocked" />
+        </h2>
         <p className="text-xs text-muted">
-          A blocked member cannot send you a friend request, and is not told. Lifting a block makes
-          contact possible again; it does not restore a friendship the block ended.
+          <Translated locale={locale} message="friendsPage.blockedHint" />
         </p>
         {!blocks.ok ? (
-          <Notice tone="danger">Your block list cannot be shown right now.</Notice>
+          <Notice tone="danger">
+            <Translated locale={locale} message="friendsPage.blocksUnreachable" />
+          </Notice>
         ) : blocks.data.blocked.length === 0 ? (
           <p className="text-sm text-muted" data-testid="blocks-none">
-            You have blocked nobody.
+            <Translated locale={locale} message="friendsPage.blocksNone" />
           </p>
         ) : (
           blocks.data.blocked.map((entry) => (
@@ -175,8 +201,12 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
               <p className="text-sm">
                 <MemberName locale={locale} member={entry.member} />{' '}
                 <span className="text-muted">
-                  <MemberHandle username={entry.member.username} /> · blocked{' '}
-                  {formatDateTime(locale, entry.blocked_at, zone)}
+                  <MemberHandle username={entry.member.username} /> ·{' '}
+                  <Said
+                    locale={locale}
+                    message="friendsPage.blockedAt"
+                    params={{ when: formatDateTime(locale, entry.blocked_at, zone) }}
+                  />
                 </span>
               </p>
               <FriendControls locale={locale} username={entry.member.username} status="blocked" />

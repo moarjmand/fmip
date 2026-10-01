@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import type { MatchViewing, Territory, ViewingOption } from '@fmip/contracts';
+import { MessageText } from '@/components/message-text';
 import { Translated } from '@/components/translated';
 import { Button, Notice, Select, inlineTargetClasses } from '@/components/ui';
 import { formatDateTime } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
-import { type MessageKey, message } from '@/i18n/messages';
+import { type MessageKey, interpolate, message } from '@/i18n/messages';
 import { territoryName, territoryOptions } from '@/lib/territory';
 import {
   ACCESS_KEY,
@@ -95,12 +96,12 @@ export function ViewingPanel(props: Props) {
       )}
       {state === 'not_supplied' && (
         <p data-testid="viewing-not-supplied">
-          <Translated locale={locale} message="viewing.noInfo" /> {name}.
+          <Sentence locale={locale} message="watch.noInfo" territory={name} />.
         </p>
       )}
       {state === 'nothing_listed' && (
         <p data-testid="viewing-nothing-listed">
-          <Translated locale={locale} message="viewing.nothingListed" /> {name}.
+          <Sentence locale={locale} message="watch.nothingListed" territory={name} />.
         </p>
       )}
       {state === 'listed' && viewing.options.data !== null && (
@@ -137,6 +138,29 @@ export function ViewingPanel(props: Props) {
 /** A message as a plain string, for an attribute or an option label, in the locale or English. */
 function text(locale: string, key: MessageKey): string {
   return message(isLocale(locale) ? locale : DEFAULT_LOCALE, key).text;
+}
+
+/**
+ * A sentence about a territory, the name placed where the locale's word
+ * order puts it (T-1304): "No viewing information yet for Iran", but in
+ * Persian the name sits before the verb. Marked as English, like
+ * `Translated`, where the locale has no translation.
+ */
+function Sentence({
+  locale,
+  message: key,
+  territory,
+}: {
+  locale: string;
+  message: MessageKey;
+  territory: string | null;
+}) {
+  const resolved = message(isLocale(locale) ? locale : DEFAULT_LOCALE, key);
+  return (
+    <MessageText
+      message={{ ...resolved, text: interpolate(resolved.text, { territory: territory ?? '' }) }}
+    />
+  );
 }
 
 function nameOf(locale: string, viewing: MatchViewing): string | null {
@@ -296,12 +320,12 @@ function Highlights({
       </h3>
       {state === 'not_supplied' && (
         <p>
-          <Translated locale={locale} message="viewing.highlightsNoInfo" /> {name}.
+          <Sentence locale={locale} message="watch.highlightsNoInfo" territory={name} />.
         </p>
       )}
       {state === 'none' && (
         <p>
-          <Translated locale={locale} message="viewing.highlightsNone" /> {name}.
+          <Sentence locale={locale} message="watch.highlightsNone" territory={name} />.
         </p>
       )}
       {highlight !== undefined && (state === 'page' || state === 'embed') && (
@@ -354,18 +378,15 @@ function ViewingLine({ locale, viewing, status, signedIn, href }: Common) {
         </Link>
       )}
       {state === 'not_supplied' && (
-        <>
-          <Translated locale={locale} message="viewing.noInfo" /> {name}
-        </>
+        <Sentence locale={locale} message="watch.noInfo" territory={name} />
       )}
       {state === 'nothing_listed' && (
-        <>
-          <Translated locale={locale} message="viewing.nothingListed" /> {name}
-        </>
+        <Sentence locale={locale} message="watch.nothingListed" territory={name} />
       )}
       {state === 'listed' && viewing.options.data !== null && (
         <>
-          <Translated locale={locale} message="viewing.on" /> {serviceNames(viewing.options.data)}
+          <Translated locale={locale} message="viewing.on" />{' '}
+          {serviceNames(locale, viewing.options.data)}
           {' · '}
           <Link
             href={withTerritory(href, carriedTerritory(viewing, signedIn))}

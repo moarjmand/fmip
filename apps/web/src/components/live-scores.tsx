@@ -9,6 +9,9 @@ import { INITIAL_CLOCK, type LiveClock, liveLabel, liveState } from '@/lib/live'
 import type { ScoreCardProducts } from '@/lib/score-card-products';
 import { blockUpdatedLabel, formatKickoff } from '@/lib/scores';
 import { applyFilters, isFiltered, type ScoresFilterSelection } from '@/lib/scores-filters';
+import type { ScoresWords } from '@/lib/words-server';
+import { FilledMessage } from '@/components/filled-message';
+import { MessageText } from '@/components/message-text';
 
 /**
  * A block's heading stays at the top of the screen while its matches scroll
@@ -24,12 +27,14 @@ function Updated({
   cards,
   locale,
   timeZone,
+  words,
 }: {
   cards: Parameters<typeof blockUpdatedLabel>[0];
   locale: string;
   timeZone: string;
+  words: ScoresWords;
 }) {
-  const label = blockUpdatedLabel(cards, locale, timeZone);
+  const label = blockUpdatedLabel(cards, locale, timeZone, words.m);
   return label === null ? null : (
     <p className="pb-1 text-xs text-muted" data-testid="block-updated">
       {label}
@@ -55,6 +60,7 @@ export function LiveScores({
   filters,
   clearFiltersHref,
   products,
+  words,
 }: {
   initial: ScoresResponse;
   streamQuery: string;
@@ -69,6 +75,8 @@ export function LiveScores({
    * scores only; a match it adds later says its lines were not loaded.
    */
   products: ScoreCardProducts;
+  /** The reader's words, resolved by the page on the server (T-1303). */
+  words: ScoresWords;
 }) {
   const [scores, setScores] = useState(initial);
   const [clock, setClock] = useState<LiveClock>(INITIAL_CLOCK);
@@ -94,6 +102,7 @@ export function LiveScores({
         const said = scoresAnnouncements(
           applyFilters(previous, selection),
           applyFilters(next, selection),
+          words,
         );
         if (said.length > 0) setAnnouncement(said.join(' '));
         return next;
@@ -109,7 +118,7 @@ export function LiveScores({
       clearInterval(tick);
       source.close();
     };
-  }, [streamQuery, filterKey]);
+  }, [streamQuery, filterKey, words]);
 
   const state = liveState(clock, now);
   const shown = applyFilters(scores, filters);
@@ -128,7 +137,7 @@ export function LiveScores({
         data-state={state}
         role={state === 'stale' || state === 'unavailable' ? 'status' : undefined}
       >
-        {liveLabel(state, clock, locale, timeZone)}
+        {liveLabel(state, clock, locale, timeZone, words.m)}
       </p>
       <div
         aria-live="polite"
@@ -141,21 +150,23 @@ export function LiveScores({
 
       {scores.total === 0 ? (
         <p className="text-muted" data-testid="scores-empty">
-          No fixtures on this day.
+          <MessageText message={words.m['scores.empty']} />
         </p>
       ) : shown.total === 0 && isFiltered(filters) ? (
         <p data-testid="scores-filtered-empty">
-          No match on this day fits these filters.{' '}
+          <MessageText message={words.m['scores.filteredEmpty']} />{' '}
           <Link href={clearFiltersHref} className="underline" data-testid="clear-filters">
-            Clear filters
+            <MessageText message={words.m['scores.filter.clear']} />
           </Link>
         </p>
       ) : (
         <div className="flex flex-col gap-4">
           {shown.pinned.length > 0 && (
             <section className="flex flex-col" data-testid="pinned">
-              <h2 className={HEADING}>Your favourites</h2>
-              <Updated cards={shown.pinned} locale={locale} timeZone={timeZone} />
+              <h2 className={HEADING}>
+                <MessageText message={words.m['scores.favourites']} />
+              </h2>
+              <Updated cards={shown.pinned} locale={locale} timeZone={timeZone} words={words} />
               <ul className={LIST}>
                 {shown.pinned.map((card) => (
                   <ScoreCard
@@ -168,6 +179,7 @@ export function LiveScores({
                     forecast={products.forecast[card.id]}
                     community={products.community[card.id]}
                     viewing={products.viewing[card.id]}
+                    words={words}
                   />
                 ))}
               </ul>
@@ -193,7 +205,7 @@ export function LiveScores({
                   <bdi className="truncate">{group.competition.name}</bdi>
                 </Link>
               </h2>
-              <Updated cards={group.fixtures} locale={locale} timeZone={timeZone} />
+              <Updated cards={group.fixtures} locale={locale} timeZone={timeZone} words={words} />
               <ul className={LIST}>
                 {group.fixtures.map((card) => (
                   <ScoreCard
@@ -205,17 +217,23 @@ export function LiveScores({
                     forecast={products.forecast[card.id]}
                     community={products.community[card.id]}
                     viewing={products.viewing[card.id]}
+                    words={words}
                   />
                 ))}
               </ul>
             </section>
           ))}
           <p dir="auto" className="text-xs text-muted">
-            List loaded at{' '}
-            <time dateTime={scores.generated_at}>
-              {formatKickoff(locale, scores.generated_at, timeZone)}
-            </time>
-            .
+            <FilledMessage
+              message={words.m['scores.loadedAt']}
+              params={{
+                time: (
+                  <time dateTime={scores.generated_at}>
+                    {formatKickoff(locale, scores.generated_at, timeZone)}
+                  </time>
+                ),
+              }}
+            />
           </p>
         </div>
       )}

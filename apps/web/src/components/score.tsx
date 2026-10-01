@@ -1,3 +1,5 @@
+import { formatNumber } from '@/i18n/format';
+
 /**
  * A score, rendered so it cannot be read backwards (T-153, rule 7).
  *
@@ -23,6 +25,7 @@ export function Score({
   separator = '–',
   className,
   testId,
+  locale,
 }: {
   home: number;
   away: number;
@@ -30,12 +33,16 @@ export function Score({
   separator?: string;
   className?: string;
   testId?: string;
+  /** The page's locale, for its own digits (T-1303): `۲–۱` on `/fa`. */
+  locale?: string;
 }) {
+  const n = (value: number): string | number =>
+    locale === undefined ? value : formatNumber(locale, value);
   return (
     <span dir="ltr" className={className} data-testid={testId}>
-      {home}
+      {n(home)}
       {separator}
-      {away}
+      {n(away)}
     </span>
   );
 }

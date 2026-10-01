@@ -1,7 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import type { Rating } from '@fmip/contracts';
+import type { PredictionOutcome, Rating } from '@fmip/contracts';
+import { Translated } from '@/components/translated';
+import { formatNumber } from '@/i18n/format';
+import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
+import { type MessageKey, interpolate, plural, t } from '@/i18n/messages';
 import { fetchMe, fetchPredictionHistory, fetchRating } from '@/lib/api';
 import { COMPARE_WINDOW, compared, settledCount, tally, truncated } from '@/lib/compare';
 import { ratingLabel, statusLabel, tierLabel } from '@/lib/leaderboard';
@@ -17,17 +21,25 @@ export async function generateMetadata({
   params: Promise<{ locale: string; username: string }>;
 }): Promise<Metadata> {
   const { locale, username } = await params;
+  const lang: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
   const name = decodeURIComponent(username);
   return pageMetadata({
     locale,
     path: `/u/${encodeURIComponent(name)}/compare`,
-    title: `Compare with @${name} · FMIP`,
+    title: `${interpolate(t(lang, 'profile.compare.metaTitle'), { username: name })} · FMIP`,
   });
 }
 
-function ratingLine(rating: Rating | null): string {
-  if (rating === null) return 'No rating yet: a rating starts with the first settled prediction.';
-  return `${ratingLabel(rating)} · ${tierLabel(rating.tier)} · ${statusLabel(rating)} · ${rating.settled_count} settled`;
+const OUTCOME_KEY: Record<PredictionOutcome, MessageKey> = {
+  home: 'profile.compare.outcome.home',
+  draw: 'profile.compare.outcome.draw',
+  away: 'profile.compare.outcome.away',
+};
+
+function ratingLine(lang: Locale, rating: Rating | null): string {
+  if (rating === null) return t(lang, 'profile.rating.none');
+  const settled = plural(lang, 'profile.compare.settledCount', rating.settled_count).text;
+  return `${ratingLabel(rating)} · ${tierLabel(rating.tier)} · ${statusLabel(rating)} · ${settled}`;
 }
 
 /**
@@ -55,6 +67,7 @@ export default async function ComparePage({
   params: Promise<{ locale: string; username: string }>;
 }) {
   const { locale, username } = await params;
+  const lang: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
   const name = decodeURIComponent(username);
   const cookie = await sessionCookieHeader();
   const me = await fetchMe(cookie);
@@ -87,93 +100,130 @@ export default async function ComparePage({
     mine?.kind === 'visible' && theirs?.kind === 'visible'
       ? truncated(mine.total, theirs.total)
       : false;
+  const say = (key: MessageKey, params: Record<string, string> = {}): string =>
+    interpolate(t(lang, key), params);
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold" data-testid="title">
-          You and @{name}
+          {say('profile.compare.title', { username: name })}
         </h1>
         <Link href={`/${locale}/u/${encodeURIComponent(name)}`} className="text-sm underline">
-          Back to their profile
+          <Translated locale={locale} message="profile.compare.back" />
         </Link>
       </div>
 
       <section className="flex flex-col gap-2" data-testid="compare-ratings">
-        <h2 className="text-lg font-semibold">Ratings</h2>
+        <h2 className="text-lg font-semibold">
+          <Translated locale={locale} message="profile.compare.ratings" />
+        </h2>
         <p className="text-sm">
-          <span className="text-muted">You · </span>
-          {myRating.ok ? ratingLine(myRating.data.rating) : 'Your rating is unreachable right now.'}
+          <span className="text-muted">
+            <Translated locale={locale} message="profile.compare.you" /> ·{' '}
+          </span>
+          {myRating.ok
+            ? ratingLine(lang, myRating.data.rating)
+            : say('profile.compare.myRatingUnreachable')}
         </p>
         <p className="text-sm">
           <span className="text-muted">@{name} · </span>
           {theirRating.ok
-            ? ratingLine(theirRating.data.rating)
-            : 'Their rating is unreachable right now.'}
+            ? ratingLine(lang, theirRating.data.rating)
+            : say('profile.compare.theirRatingUnreachable')}
         </p>
         <p className="text-xs text-muted">
-          A Performance Rating is earned from settled predictions and adjusted for how hard each
-          call was — it is not a count of how often somebody posts.
+          <Translated locale={locale} message="profile.compare.ratingNote" />
         </p>
       </section>
 
       <section className="flex flex-col gap-2" data-testid="compare-record">
-        <h2 className="text-lg font-semibold">Matches you both predicted</h2>
+        <h2 className="text-lg font-semibold">
+          <Translated locale={locale} message="profile.compare.record" />
+        </h2>
 
         {!both ? (
           <Notice tone="danger">
-            One of the two histories is unreachable right now, so there is nothing to compare.
+            <Translated locale={locale} message="profile.compare.unreachable" />
           </Notice>
         ) : theirs?.kind === 'restricted' ? (
           <p className="text-sm" data-testid="compare-restricted">
-            {theirs.visibility === 'friends'
-              ? `@${name} shows their prediction history to friends only.`
-              : `@${name} keeps their prediction history private.`}
+            {say(
+              theirs.visibility === 'friends'
+                ? 'profile.compare.restrictedFriends'
+                : 'profile.compare.restrictedPrivate',
+              { username: name },
+            )}
           </p>
         ) : mine?.kind === 'restricted' ? (
           // Reachable: a member may hide their own history, and this page reads
           // it through the same endpoint everybody else does rather than around
           // it. Settings is where they change it.
           <p className="text-sm" data-testid="compare-mine-restricted">
-            Your own prediction history is hidden, and this comparison reads it the same way
-            everyone else does.{' '}
+            <Translated locale={locale} message="profile.compare.mineRestricted" />{' '}
             <Link href={`/${locale}/settings`} className="underline">
-              Privacy settings
+              <Translated locale={locale} message="profile.compare.privacyLink" />
             </Link>
           </p>
         ) : matches.length === 0 ? (
           <p className="text-sm text-muted" data-testid="compare-none">
-            You have not predicted any of the same matches yet.
+            <Translated locale={locale} message="profile.compare.none" />
           </p>
         ) : (
           <>
             <p className="text-sm" data-testid="compare-tally">
               {settled === 0
-                ? `${matches.length} match${matches.length === 1 ? '' : 'es'} in common, none of them settled yet.`
-                : `Over ${settled} settled match${settled === 1 ? '' : 'es'} in common: both right ${counts.both}, only you ${counts.only_mine}, only @${name} ${counts.only_theirs}, neither ${counts.neither}.`}
+                ? plural(lang, 'profile.compare.inCommon', matches.length).text
+                : plural(lang, 'profile.compare.tally', settled, {
+                    both: formatNumber(lang, counts.both),
+                    mine: formatNumber(lang, counts.only_mine),
+                    theirs: formatNumber(lang, counts.only_theirs),
+                    neither: formatNumber(lang, counts.neither),
+                    username: name,
+                  }).text}
             </p>
             {partial && (
               <p className="text-xs text-muted" data-testid="compare-window">
-                This is the most recent {COMPARE_WINDOW} predictions from each of you, not the whole
-                record.
+                {say('profile.compare.window', { count: formatNumber(lang, COMPARE_WINDOW) })}
               </p>
             )}
             <ul className="flex flex-col gap-1">
               {matches.slice(0, 20).map((match) => (
                 <li key={match.fixture.id} className="text-sm">
                   <Link href={`/${locale}/match/${match.fixture.id}`} className="underline">
-                    {match.fixture.home.name} v {match.fixture.away.name}
+                    {say('profile.compare.fixture', {
+                      home: match.fixture.home.name,
+                      away: match.fixture.away.name,
+                    })}
                   </Link>{' '}
                   <span className="text-muted">
-                    · you: {match.mine.latest.outcome} · @{name}: {match.theirs.latest.outcome}
+                    ·{' '}
+                    {say('profile.compare.yourCall', {
+                      outcome: t(lang, OUTCOME_KEY[match.mine.latest.outcome]),
+                    })}{' '}
+                    ·{' '}
+                    {say('profile.compare.theirCall', {
+                      username: name,
+                      outcome: t(lang, OUTCOME_KEY[match.theirs.latest.outcome]),
+                    })}{' '}
+                    ·{' '}
                     {match.mine.settlement?.status === 'settled' &&
                     match.theirs.settlement?.status === 'settled'
-                      ? ` · ${match.mine.settlement.outcome_correct === true ? 'you were right' : 'you were wrong'}, ${
-                          match.theirs.settlement.outcome_correct === true
-                            ? 'they were right'
-                            : 'they were wrong'
-                        }`
-                      : ' · not settled'}
+                      ? say('profile.compare.verdict', {
+                          you: t(
+                            lang,
+                            match.mine.settlement.outcome_correct === true
+                              ? 'profile.compare.youRight'
+                              : 'profile.compare.youWrong',
+                          ),
+                          they: t(
+                            lang,
+                            match.theirs.settlement.outcome_correct === true
+                              ? 'profile.compare.theyRight'
+                              : 'profile.compare.theyWrong',
+                          ),
+                        })
+                      : t(lang, 'profile.compare.notSettled')}
                   </span>
                 </li>
               ))}

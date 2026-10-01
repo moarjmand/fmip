@@ -1,4 +1,7 @@
 import type { MatchCentre, ScoreCard, ScoresResponse } from '@fmip/contracts';
+import { formatNumber } from '@/i18n/format';
+import type { Message } from '@/i18n/messages';
+import { fill } from '@/lib/words';
 
 /**
  * Live-score announcements for assistive technology (T-081, D-041). A
@@ -16,43 +19,80 @@ export interface Snapshot {
   redCards: { home: number; away: number };
 }
 
-const STATUS_WORD: Record<string, string> = {
-  live: 'Kick-off',
-  finished: 'Full time',
-  postponed: 'Postponed',
-  suspended: 'Suspended',
-  cancelled: 'Cancelled',
-  abandoned: 'Abandoned',
-  awarded: 'Result awarded',
+/** The words an announcement is made of, resolved for the reader's locale (T-1303). */
+export type AnnounceKey =
+  | 'scores.announce.kickOff'
+  | 'scores.announce.fullTime'
+  | 'scores.announce.awarded'
+  | 'scores.announce.status'
+  | 'scores.announce.scoreLine'
+  | 'scores.announce.against'
+  | 'scores.announce.corrected'
+  | 'scores.announce.goal'
+  | 'scores.announce.redCard'
+  | 'status.postponed'
+  | 'status.suspended'
+  | 'status.cancelled'
+  | 'status.abandoned';
+
+export interface AnnounceWords {
+  locale: string;
+  m: Record<AnnounceKey, Message>;
+}
+
+const STATUS_WORD: Record<string, AnnounceKey> = {
+  live: 'scores.announce.kickOff',
+  finished: 'scores.announce.fullTime',
+  postponed: 'status.postponed',
+  suspended: 'status.suspended',
+  cancelled: 'status.cancelled',
+  abandoned: 'status.abandoned',
+  awarded: 'scores.announce.awarded',
 };
 
-function scoreWords(s: Snapshot): string {
+function scoreWords(s: Snapshot, words: AnnounceWords): string {
   return s.score === null
-    ? `${s.home} against ${s.away}`
-    : `${s.home} ${s.score.home}, ${s.away} ${s.score.away}`;
+    ? fill(words.m['scores.announce.against'].text, { home: s.home, away: s.away })
+    : fill(words.m['scores.announce.scoreLine'].text, {
+        home: s.home,
+        homeGoals: formatNumber(words.locale, s.score.home),
+        away: s.away,
+        awayGoals: formatNumber(words.locale, s.score.away),
+      });
 }
 
 /** What to say when `before` became `after`; nothing when nothing worth saying changed. */
-export function describeChange(before: Snapshot | undefined, after: Snapshot): string[] {
+export function describeChange(
+  before: Snapshot | undefined,
+  after: Snapshot,
+  words: AnnounceWords,
+): string[] {
   const said: string[] = [];
   if (before === undefined) return said;
+  const say = (key: AnnounceKey, params: Record<string, string>): void => {
+    said.push(fill(words.m[key].text, params));
+  };
+  const score = (): string => scoreWords(after, words);
   if (before.status !== after.status) {
     const word = STATUS_WORD[after.status];
-    if (word !== undefined) said.push(`${word}: ${scoreWords(after)}.`);
+    if (word !== undefined)
+      say('scores.announce.status', { status: words.m[word].text, score: score() });
   }
   if (after.score !== null && before.score !== null) {
     const homeUp = after.score.home > before.score.home;
     const awayUp = after.score.away > before.score.away;
     const down = after.score.home < before.score.home || after.score.away < before.score.away;
     // A score that went down is a correction, not a goal.
-    if (down) said.push(`Score corrected: ${scoreWords(after)}.`);
+    if (down) say('scores.announce.corrected', { score: score() });
     else {
-      if (homeUp) said.push(`Goal for ${after.home}: ${scoreWords(after)}.`);
-      if (awayUp) said.push(`Goal for ${after.away}: ${scoreWords(after)}.`);
+      if (homeUp) say('scores.announce.goal', { team: after.home, score: score() });
+      if (awayUp) say('scores.announce.goal', { team: after.away, score: score() });
     }
   }
-  if (after.redCards.home > before.redCards.home) said.push(`Red card for ${after.home}.`);
-  if (after.redCards.away > before.redCards.away) said.push(`Red card for ${after.away}.`);
+  if (after.redCards.home > before.redCards.home)
+    say('scores.announce.redCard', { team: after.home });
+  if (after.redCards.away > before.redCards.away)
+    say('scores.announce.redCard', { team: after.away });
   return said;
 }
 
@@ -72,9 +112,15 @@ function cardsOf(scores: ScoresResponse): ScoreCard[] {
 }
 
 /** Everything worth saying between two scores snapshots, in list order. */
-export function scoresAnnouncements(before: ScoresResponse, after: ScoresResponse): string[] {
+export function scoresAnnouncements(
+  before: ScoresResponse,
+  after: ScoresResponse,
+  words: AnnounceWords,
+): string[] {
   const previous = new Map(cardsOf(before).map((c) => [c.id, fromCard(c)]));
-  return cardsOf(after).flatMap((card) => describeChange(previous.get(card.id), fromCard(card)));
+  return cardsOf(after).flatMap((card) =>
+    describeChange(previous.get(card.id), fromCard(card), words),
+  );
 }
 
 /** Red cards per side from the timeline, when the timeline is there. */
@@ -104,6 +150,10 @@ function fromCentre(centre: MatchCentre): Snapshot {
 }
 
 /** Everything worth saying between two match-centre snapshots. */
-export function matchAnnouncements(before: MatchCentre, after: MatchCentre): string[] {
-  return describeChange(fromCentre(before), fromCentre(after));
+export function matchAnnouncements(
+  before: MatchCentre,
+  after: MatchCentre,
+  words: AnnounceWords,
+): string[] {
+  return describeChange(fromCentre(before), fromCentre(after), words);
 }

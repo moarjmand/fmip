@@ -1,6 +1,3 @@
-'use client';
-
-import { useActionState } from 'react';
 import type { FriendStatus } from '@fmip/contracts';
 import type { ActionState } from '@/lib/auth-actions';
 import {
@@ -11,7 +8,10 @@ import {
   unfriendAction,
   withdrawFriendRequestAction,
 } from '@/lib/friend-actions';
-import { Button, FormStatus } from '@/components/ui';
+import type { MessageKey } from '@/i18n/messages';
+import { CommunityAction } from '@/components/community-action';
+import { Said } from '@/components/community-text';
+import { Translated } from '@/components/translated';
 
 type BoundAction = (state: ActionState, formData: FormData) => Promise<ActionState>;
 
@@ -20,39 +20,31 @@ type BoundAction = (state: ActionState, formData: FormData) => Promise<ActionSta
  *
  * A form each rather than one form with several submit buttons, so that each
  * control works on its own without JavaScript and so a failure is shown beside
- * the thing that failed.
+ * the thing that failed. A server component (T-1308): the words are chosen from
+ * the catalogue here and handed to the client form already resolved.
  */
 function ActionButton({
+  locale,
   action,
   label,
   testId,
   quiet,
 }: {
+  locale: string;
   action: BoundAction;
-  label: string;
+  label: MessageKey;
   testId: string;
   quiet?: boolean;
 }) {
-  const [state, formAction, pending] = useActionState(action, null);
-
   return (
-    <form action={formAction} className="flex flex-col gap-1">
-      <Button
-        type="submit"
-        variant={quiet ? 'secondary' : 'primary'}
-        pending={pending}
-        pendingLabel="Working…"
-        data-testid={testId}
-        className="self-start"
-      >
-        {label}
-      </Button>
-      {state !== null && (
-        <FormStatus ok={state.ok} data-testid={`${testId}-result`}>
-          {state.ok ? (state.message ?? 'Done.') : state.message}
-        </FormStatus>
-      )}
-    </form>
+    <CommunityAction
+      action={action}
+      submit={<Translated locale={locale} message={label} />}
+      working={<Translated locale={locale} message="friendsPage.control.working" />}
+      done={<Translated locale={locale} message="friendsPage.control.done" />}
+      variant={quiet ? 'secondary' : 'primary'}
+      testId={testId}
+    />
   );
 }
 
@@ -100,7 +92,13 @@ export function FriendControls({
   ): BoundAction => action.bind(null, locale, username);
 
   const block = (
-    <ActionButton action={bind(blockAction)} label="Block" testId="friend-block" quiet />
+    <ActionButton
+      locale={locale}
+      action={bind(blockAction)}
+      label="friendsPage.control.block"
+      testId="friend-block"
+      quiet
+    />
   );
 
   return (
@@ -108,8 +106,9 @@ export function FriendControls({
       {status === 'none' && (
         <>
           <ActionButton
+            locale={locale}
             action={bind(sendFriendRequestAction)}
-            label="Add friend"
+            label="friendsPage.control.add"
             testId="friend-add"
           />
           {block}
@@ -119,11 +118,12 @@ export function FriendControls({
       {status === 'request_sent' && (
         <>
           <p className="text-sm text-muted" data-testid="friend-state">
-            Friend request sent.
+            <Translated locale={locale} message="friendsPage.control.sent" />
           </p>
           <ActionButton
+            locale={locale}
             action={bind(withdrawFriendRequestAction)}
-            label="Cancel request"
+            label="friendsPage.control.cancel"
             testId="friend-cancel"
             quiet
           />
@@ -134,16 +134,18 @@ export function FriendControls({
       {status === 'request_received' && (
         <>
           <p className="text-sm text-muted" data-testid="friend-state">
-            @{username} asked to be your friend.
+            <Said locale={locale} message="friendsPage.control.received" params={{ username }} />
           </p>
           <ActionButton
+            locale={locale}
             action={bind(acceptFriendRequestAction)}
-            label="Accept"
+            label="friendsPage.control.accept"
             testId="friend-accept"
           />
           <ActionButton
+            locale={locale}
             action={bind(withdrawFriendRequestAction)}
-            label="Decline"
+            label="friendsPage.control.decline"
             testId="friend-decline"
             quiet
           />
@@ -154,11 +156,12 @@ export function FriendControls({
       {status === 'friends' && (
         <>
           <p className="text-sm text-muted" data-testid="friend-state">
-            You are friends.
+            <Translated locale={locale} message="friendsPage.control.friends" />
           </p>
           <ActionButton
+            locale={locale}
             action={bind(unfriendAction)}
-            label="Remove friend"
+            label="friendsPage.control.remove"
             testId="friend-remove"
             quiet
           />
@@ -169,11 +172,12 @@ export function FriendControls({
       {status === 'blocked' && (
         <>
           <p className="text-sm text-muted" data-testid="friend-state">
-            You blocked @{username}. They are not told.
+            <Said locale={locale} message="friendsPage.control.youBlocked" params={{ username }} />
           </p>
           <ActionButton
+            locale={locale}
             action={bind(unblockAction)}
-            label="Unblock"
+            label="friendsPage.control.unblock"
             testId="friend-unblock"
             quiet
           />
@@ -183,7 +187,7 @@ export function FriendControls({
       {status === 'unavailable' && (
         <>
           <p className="text-sm text-muted" data-testid="friend-state">
-            You cannot send @{username} a friend request.
+            <Said locale={locale} message="friendsPage.control.unavailable" params={{ username }} />
           </p>
           {block}
         </>

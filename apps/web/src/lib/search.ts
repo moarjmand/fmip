@@ -8,6 +8,7 @@ import type {
 } from '@fmip/contracts';
 import { SEARCH_COMMUNITY_TYPES, SEARCH_ENTITY_TYPES } from '@fmip/contracts';
 import type { MessageKey } from '@/i18n/messages';
+import { say } from '@/lib/competition';
 
 /**
  * The search page's pure helpers (T-038, T-642): the query the URL carries,
@@ -40,16 +41,19 @@ export function resultHref(locale: string, result: Pick<SearchResult, 'type' | '
   return `/${locale}/${path[result.type]}/${encodeURIComponent(result.id)}`;
 }
 
-export const TYPE_LABEL: Record<SearchEntityType, string> = {
-  team: 'Team',
-  competition: 'Competition',
-  person: 'Player',
+export const TYPE_KEY: Record<SearchEntityType, MessageKey> = {
+  team: 'searchPage.type.team',
+  competition: 'searchPage.type.competition',
+  person: 'searchPage.type.person',
 };
 
 /** "also known as The Zebras" when an alias matched, else null. */
-export function matchNote(result: Pick<SearchResult, 'matched_on' | 'alias'>): string | null {
+export function matchNote(
+  locale: string,
+  result: Pick<SearchResult, 'matched_on' | 'alias'>,
+): string | null {
   return result.matched_on === 'alias' && result.alias !== null
-    ? `also known as ${result.alias}`
+    ? say(locale, 'searchPage.alias', { alias: result.alias })
     : null;
 }
 

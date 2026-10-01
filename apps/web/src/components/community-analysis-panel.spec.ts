@@ -54,10 +54,16 @@ describe('four opinions on one page, each legible as itself', () => {
   it('names whose opinion it is in the heading, and says what it is not', () => {
     // Whitespace-normalised, because the formatter reflows prose across lines
     // and an assertion that broke on a line wrap would be testing Prettier.
-    const words = PANEL.replace(/\s+/g, ' ');
+    // The words are in the catalogue now (T-1307); the panel names the keys.
+    expect(PANEL).toContain('message="analysis.community.title"');
+    expect(PANEL).toContain('message="analysis.community.notOthers"');
+    const en = JSON.parse(
+      readFileSync(join(HERE, '..', 'i18n', 'catalogues', 'en.json'), 'utf8'),
+    ) as Record<string, string>;
+    const words = `${en['analysis.community.title']} ${en['analysis.community.notOthers']}`;
     // "Analysis" on its own is the relabelling rule broken in two words.
     expect(words).toMatch(/Analysis from approved contributors/);
-    expect(words).toMatch(/Not the founder&rsquo;s analysis/);
+    expect(words).toMatch(/Not the founder’s analysis/);
     expect(words).toMatch(/not the statistical model/);
     expect(words).toMatch(/not the community consensus/i);
   });

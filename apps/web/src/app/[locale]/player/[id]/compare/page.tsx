@@ -3,8 +3,10 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { PlayerPage } from '@fmip/contracts';
 import { fetchPlayer, fetchSearch } from '@/lib/api';
-import { moduleState } from '@/lib/match';
-import { POSITION_LABEL } from '@/lib/player';
+import { Translated } from '@/components/translated';
+import { attribute } from '@/i18n/messages';
+import { coverageText, pageLocale, say } from '@/lib/competition';
+import { POSITION_KEY } from '@/lib/player';
 import {
   cellText,
   compareHref,
@@ -38,7 +40,10 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const [{ locale, id }, query] = await Promise.all([params, searchParams]);
   const other = readCompareWith(query);
-  const noindex = { title: 'Compare players · FMIP', robots: { index: false, follow: false } };
+  const noindex = {
+    title: `${say(locale, 'compare.title')} · FMIP`,
+    robots: { index: false, follow: false },
+  };
   if (!UUID.test(id) || other.state !== 'id' || other.id === id.toLowerCase()) return noindex;
   const [a, b] = await Promise.all([fetchPlayer(id, locale), fetchPlayer(other.id, locale)]);
   // Indexed only when both players exist: a picker, an error or a 404 is not a page.
@@ -46,21 +51,28 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path: `/player/${a.data.person.id}/compare?with=${b.data.person.id}`,
-    title: `${displayName(a.data.person)} v ${displayName(b.data.person)} · FMIP`,
-    description: `${a.data.person.full_name} and ${b.data.person.full_name} compared, season by season and competition by competition.`,
+    title: `${say(locale, 'competitionPage.versus', {
+      home: displayName(a.data.person),
+      away: displayName(b.data.person),
+    })} · FMIP`,
+    description: say(locale, 'compare.metaDescription', {
+      a: a.data.person.full_name,
+      b: b.data.person.full_name,
+    }),
   });
 }
 
-function positionOf(page: PlayerPage): string {
+function positionOf(locale: string, page: PlayerPage): string {
   const position = page.current_spell?.position ?? null;
-  return position === null ? 'Position not recorded' : POSITION_LABEL[position];
+  return say(locale, position === null ? 'teamPage.group.unknown' : POSITION_KEY[position]);
 }
 
 /**
  * Two players compared (blueprint 5.3, T-631): both player pages fetched side
  * by side and their records lined up for one season and competition. A figure
  * one side lacks is a coverage state with its reason, never a zero or a blank.
- * Without `?with=` it is the picker: a search over players.
+ * Without `?with=` it is the picker: a search over players. Its words come
+ * from the catalogue (T-1304).
  */
 export default async function ComparePlayersPage({
   params,
@@ -86,9 +98,11 @@ export default async function ComparePlayersPage({
   if (!a.ok || (b !== null && !b.ok)) {
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4 sm:p-8">
-        <h1 className="text-2xl font-semibold">Compare players</h1>
+        <h1 className="text-2xl font-semibold">
+          <Translated locale={locale} message="compare.title" />
+        </h1>
         <Notice tone="danger" data-testid="compare-unreachable">
-          The service is unreachable right now, so these players cannot be compared.
+          <Translated locale={locale} message="compare.unreachable" />
         </Notice>
       </main>
     );
@@ -96,6 +110,7 @@ export default async function ComparePlayersPage({
   const pageA = a.data;
   const nameA = displayName(pageA.person);
   const pickerAction = `/${locale}/player/${pageA.person.id}/compare`;
+  const placeholder = attribute(pageLocale(locale), 'playerPage.comparePlaceholder');
 
   const picker = (
     <form
@@ -106,19 +121,20 @@ export default async function ComparePlayersPage({
       data-testid="compare-picker"
     >
       <label htmlFor="compare-term" className="w-full text-sm">
-        Compare {nameA} with…
+        {say(locale, 'compare.compareName', { name: nameA })}
       </label>
       <input
         id="compare-term"
         name="q"
         type="search"
         defaultValue={term}
-        placeholder="Another player’s name"
+        placeholder={placeholder.text}
+        lang={placeholder.lang}
         autoComplete="off"
         className={controlClasses('md', 'min-w-0 grow')}
       />
       <Button type="submit" size="md">
-        Find
+        <Translated locale={locale} message="playerPage.find" />
       </Button>
     </form>
   );
@@ -129,33 +145,35 @@ export default async function ComparePlayersPage({
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-6 p-4 sm:p-8">
         <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
-          Compare players
+          <Translated locale={locale} message="compare.title" />
         </h1>
         <p className="text-sm">
           <Link href={`/${locale}/player/${pageA.person.id}`} className="underline">
             {nameA}
           </Link>
           {' · '}
-          {positionOf(pageA)}
+          {positionOf(locale, pageA)}
         </p>
         {other.state === 'id' && (
           <p className="text-sm" data-testid="compare-same">
-            That is the same player. Choose somebody else.
+            <Translated locale={locale} message="compare.same" />
           </p>
         )}
         {picker}
         {ask === null ? (
           <p className="text-sm text-muted" data-testid="compare-hint">
-            {term === ''
-              ? 'Type the name of the player to compare with.'
-              : `Type at least ${MIN_QUERY_LENGTH} characters.`}
+            {term === '' ? (
+              <Translated locale={locale} message="compare.hint" />
+            ) : (
+              <Translated locale={locale} message="searchPage.minLength" count={MIN_QUERY_LENGTH} />
+            )}
           </p>
         ) : search === null || !search.ok ? (
           <Notice tone="danger" data-testid="compare-search-unreachable">
-            The service is unreachable right now, so no player can be searched.
+            <Translated locale={locale} message="compare.searchUnreachable" />
           </Notice>
         ) : hits.length === 0 ? (
-          <p data-testid="compare-search-empty">No player matches “{term}”.</p>
+          <p data-testid="compare-search-empty">{say(locale, 'compare.noMatch', { term })}</p>
         ) : (
           <ol className="flex flex-col divide-y divide-default" data-testid="compare-candidates">
             {hits.map((hit) => (
@@ -188,7 +206,7 @@ export default async function ComparePlayersPage({
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-4 sm:p-8">
       <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
-        <bdi>{nameA}</bdi> v <bdi>{nameB}</bdi>
+        <bdi>{nameA}</bdi> {say(locale, 'competitionPage.v')} <bdi>{nameB}</bdi>
       </h1>
 
       <dl className="grid grid-cols-2 gap-3 text-sm" data-testid="compare-players">
@@ -199,11 +217,13 @@ export default async function ComparePlayersPage({
                 {displayName(page.person)}
               </Link>
             </dt>
-            <dd className="text-muted">{positionOf(page)}</dd>
+            <dd className="text-muted">{positionOf(locale, page)}</dd>
             <dd className="text-muted">
-              {page.current_spell === null
-                ? 'No current team on record'
-                : page.current_spell.team.name}
+              {page.current_spell === null ? (
+                <Translated locale={locale} message="compare.noTeam" />
+              ) : (
+                page.current_spell.team.name
+              )}
             </dd>
           </div>
         ))}
@@ -214,15 +234,15 @@ export default async function ComparePlayersPage({
           href={compareHref(locale, pageB.person.id, pageA.person.id, scope)}
           className="underline"
         >
-          Swap sides
+          <Translated locale={locale} message="compare.swap" />
         </Link>
         <Link href={pickerAction} className="underline" data-testid="compare-change">
-          Compare {nameA} with somebody else
+          {say(locale, 'compare.another', { name: nameA })}
         </Link>
       </p>
 
       <nav
-        aria-label="Season and competition"
+        aria-label={say(locale, 'compare.scopes')}
         className="flex flex-wrap gap-1 text-sm"
         data-testid="compare-scopes"
       >
@@ -231,7 +251,7 @@ export default async function ComparePlayersPage({
           aria-current={scope === null ? 'true' : undefined}
           className={linkClass(scope === null)}
         >
-          Everything on record
+          <Translated locale={locale} message="compare.everything" />
         </Link>
         {scopes.map((s) => (
           <Link
@@ -241,23 +261,41 @@ export default async function ComparePlayersPage({
             className={linkClass(scope?.key === s.key)}
           >
             {scopeLabel(s)}
-            {!s.shared && <span className="ms-1 text-xs text-muted">(one player only)</span>}
+            {!s.shared && (
+              <span className="ms-1 text-xs text-muted">
+                <Translated locale={locale} message="compare.onePlayer" />
+              </span>
+            )}
           </Link>
         ))}
       </nav>
 
       <section className="flex flex-col gap-2" data-testid="compare-figures">
         <h2 className="text-lg font-semibold">
-          {scope === null ? 'Everything on record' : scopeLabel(scope)}
+          {scope === null ? (
+            <Translated locale={locale} message="compare.everything" />
+          ) : (
+            scopeLabel(scope)
+          )}
         </h2>
         <p className="text-xs text-muted">
-          {nameA}: record {moduleState(pageA.record)} · {nameB}: record {moduleState(pageB.record)}
+          {say(locale, 'compare.recordState', {
+            name: nameA,
+            state: coverageText(locale, pageA.record.coverage),
+          })}
+          {' · '}
+          {say(locale, 'compare.recordState', {
+            name: nameB,
+            state: coverageText(locale, pageB.record.coverage),
+          })}
         </p>
         <table className="w-full table-fixed text-sm">
           <thead>
             <tr className="border-b border-default">
               <th scope="col" className="w-2/5 py-1 pe-2 text-start">
-                <span className="sr-only">Figure</span>
+                <span className="sr-only">
+                  <Translated locale={locale} message="teamPage.figure" />
+                </span>
               </th>
               <th scope="col" className="py-1 pe-2 text-end break-words">
                 {nameA}
@@ -269,7 +307,7 @@ export default async function ComparePlayersPage({
           </thead>
           <tbody>
             {rows.map((row) => {
-              const note = rowNote(row, nameA, nameB);
+              const note = rowNote(locale, row, nameA, nameB);
               return (
                 <tr
                   key={row.key}
@@ -278,7 +316,7 @@ export default async function ComparePlayersPage({
                   data-lacking={row.lacking ?? 'none'}
                 >
                   <th scope="row" className="py-1 pe-2 text-start font-normal">
-                    {row.label}
+                    <Translated locale={locale} message={row.label} />
                     {note !== null && (
                       <span className="block text-xs text-muted" data-testid="compare-note">
                         {note}
@@ -293,7 +331,7 @@ export default async function ComparePlayersPage({
                       }`}
                       data-coverage={c.coverage}
                     >
-                      {cellText(c)}
+                      {cellText(locale, c)}
                     </td>
                   ))}
                 </tr>
@@ -302,9 +340,7 @@ export default async function ComparePlayersPage({
           </tbody>
         </table>
         <p className="text-xs text-muted">
-          Figures come from our line-ups and incidents, minutes from the feed&rsquo;s own match
-          statistics. Player ratings and advanced statistics are not held for these players and are
-          not shown.
+          <Translated locale={locale} message="compare.footnote" />
         </p>
       </section>
 
@@ -313,10 +349,11 @@ export default async function ComparePlayersPage({
           <span key={page.person.id} className="block">
             {i === 0 ? nameA : nameB}:{' '}
             {page.last_updated_at === null ? (
-              'no match data stored yet'
+              <Translated locale={locale} message="compare.noData" />
             ) : (
               <>
-                last data update <Stamp iso={page.last_updated_at} locale={locale} />
+                <Translated locale={locale} message="compare.lastUpdate" />{' '}
+                <Stamp iso={page.last_updated_at} locale={locale} />
               </>
             )}
           </span>

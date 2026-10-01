@@ -4,9 +4,14 @@ import {
   MIN_CONSENSUS_SAMPLE,
 } from '@fmip/contracts';
 import Link from 'next/link';
+import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
+import { interpolate, message, plural, t } from '@/i18n/messages';
 import { formatKickoff } from '@/lib/scores';
+import { formatPercent, formatSigned } from '@/lib/words';
+import { FilledMessage } from '@/components/filled-message';
 import { LtrNumeric } from '@/components/score';
-import { type Triple, difference, sharesToPercentages, signed } from '@/lib/triple';
+import { Translated } from '@/components/translated';
+import { type Triple, difference, sharesToPercentages } from '@/lib/triple';
 import { Notice } from '@/components/ui';
 
 /**
@@ -31,15 +36,17 @@ function Distribution({
   home,
   away,
   testId,
+  locale,
 }: {
   percentages: Triple;
   home: string;
   away: string;
   testId: string;
+  locale: Locale;
 }) {
   const labels: Record<(typeof OUTCOME_KEYS)[number], string> = {
     home,
-    draw: 'Draw',
+    draw: t(locale, 'matchCentre.community.draw'),
     away,
   };
   return (
@@ -47,7 +54,9 @@ function Distribution({
       {OUTCOME_KEYS.map((key) => (
         <div key={key} className="flex flex-col rounded border border-default p-2">
           <span className="text-xs text-muted">{labels[key]}</span>
-          <span className="text-lg font-semibold">{percentages[key].toFixed(1)}%</span>
+          <span className="text-lg font-semibold" dir="ltr">
+            {formatPercent(locale, percentages[key])}
+          </span>
         </div>
       ))}
     </div>
@@ -75,15 +84,19 @@ export function CommunityForecastPanel({
    */
   model: Triple | null;
 }) {
-  const heading = <h2 className="text-lg font-semibold">Community forecast</h2>;
+  const l: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  const heading = (
+    <h2 className="text-lg font-semibold">
+      <Translated locale={locale} message="matchCentre.community.title" />
+    </h2>
+  );
 
   if (consensus === null) {
     return (
       <section className="flex flex-col gap-2" data-testid="consensus" data-state="unreachable">
         {heading}
         <Notice tone="danger">
-          The prediction service is unreachable right now, so what the community thinks cannot be
-          shown.
+          <Translated locale={locale} message="matchCentre.community.unreachable" />
         </Notice>
       </section>
     );
@@ -97,8 +110,11 @@ export function CommunityForecastPanel({
       <section className="flex flex-col gap-2" data-testid="consensus" data-state="not_supplied">
         {heading}
         <p className="text-sm text-muted">
-          Fewer than {MIN_CONSENSUS_SAMPLE} members have predicted this match, so there is no
-          consensus to show yet.
+          <Translated
+            locale={locale}
+            message="matchCentre.community.belowFloor"
+            count={MIN_CONSENSUS_SAMPLE}
+          />
         </p>
       </section>
     );
@@ -117,27 +133,42 @@ export function CommunityForecastPanel({
     >
       {heading}
       <p className="text-xs text-muted">
-        What registered members predicted. Not the statistical model, and not the founder.
+        <Translated locale={locale} message="matchCentre.community.intro" />
       </p>
 
       <div className="flex flex-col gap-1">
         <h3 className="text-sm font-medium">
-          Every member, one vote{' '}
-          <span className="font-normal text-muted">· {sample} predictions</span>
+          <Translated locale={locale} message="matchCentre.community.everyMember" />{' '}
+          <span className="font-normal text-muted">
+            ·{' '}
+            <Translated
+              locale={locale}
+              message="matchCentre.community.predictions"
+              count={sample}
+            />
+          </span>
         </h3>
         <Distribution
           percentages={crowdPercentages}
           home={home}
           away={away}
           testId="consensus-crowd"
+          locale={l}
         />
       </div>
 
       <div className="flex flex-col gap-1">
         <h3 className="text-sm font-medium">
-          Weighted by Performance Rating
+          <Translated locale={locale} message="matchCentre.community.weighted" />
           {weighted !== null && (
-            <span className="font-normal text-muted"> · {weighted.raters} rated members</span>
+            <span className="font-normal text-muted">
+              {' · '}
+              <Translated
+                locale={locale}
+                message="matchCentre.community.raters"
+                count={weighted.raters}
+              />
+            </span>
           )}
         </h3>
         {weightedPercentages === null ? (
@@ -145,8 +176,7 @@ export function CommunityForecastPanel({
           // Blueprint 6.6 asks for two distributions because they answer
           // different questions; one answer twice is the disguise it forbids.
           <p className="text-sm text-muted" data-testid="consensus-weighted-absent">
-            None of the members who predicted this match has an established rating yet, so there is
-            nothing to weight by. This is not the same as the distribution above.
+            <Translated locale={locale} message="matchCentre.community.weightedAbsent" />
           </p>
         ) : (
           <Distribution
@@ -154,24 +184,30 @@ export function CommunityForecastPanel({
             home={home}
             away={away}
             testId="consensus-weighted"
+            locale={l}
           />
         )}
       </div>
 
       {gap !== null && (
         <div className="flex flex-col gap-1" data-testid="consensus-vs-model">
-          <h3 className="text-sm font-medium">Against the model</h3>
+          <h3 className="text-sm font-medium">
+            <Translated locale={locale} message="matchCentre.community.againstModel" />
+          </h3>
           <p className="text-sm">
             {OUTCOME_KEYS.map((key, index) => (
               <span key={key}>
-                {index > 0 ? ', ' : ''}
-                {key === 'draw' ? 'draw' : key === 'home' ? home : away}{' '}
-                <LtrNumeric>{signed(gap[key])}</LtrNumeric>
+                {index > 0 ? t(l, 'forecast.listSeparator') : ''}
+                {key === 'draw'
+                  ? t(l, 'matchCentre.community.drawLower')
+                  : key === 'home'
+                    ? home
+                    : away}{' '}
+                <LtrNumeric>{formatSigned(l, gap[key])}</LtrNumeric>
               </span>
             ))}{' '}
             <span className="text-muted">
-              percentage points, community against model. These are two separate answers to the same
-              question; the site does not average them.
+              <Translated locale={locale} message="matchCentre.community.gapNote" />
             </span>
           </p>
         </div>
@@ -179,12 +215,17 @@ export function CommunityForecastPanel({
 
       {consensus.last_updated_at !== null && (
         <p className="text-xs text-muted" data-testid="consensus-updated">
-          Last prediction{' '}
-          <time dateTime={consensus.last_updated_at}>
-            {consensus.last_updated_at.slice(0, 10)}{' '}
-            {formatKickoff(locale, consensus.last_updated_at, timeZone)}
-          </time>
-          . Members may keep predicting until kick-off.
+          <FilledMessage
+            message={message(l, 'matchCentre.community.lastPrediction')}
+            params={{
+              time: (
+                <time dateTime={consensus.last_updated_at}>
+                  {consensus.last_updated_at.slice(0, 10)}{' '}
+                  {formatKickoff(locale, consensus.last_updated_at, timeZone)}
+                </time>
+              ),
+            }}
+          />
         </p>
       )}
     </section>
@@ -216,18 +257,24 @@ export function CommunityConsensusList({
   fixtures: Map<string, { home: string; away: string }>;
   locale: string;
 }) {
+  const l: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
   const withConsensus = entries.filter((entry) => entry.consensus.data !== null);
 
   return (
     <section className="flex flex-col gap-2" data-testid="predictions-consensus">
-      <h2 className="text-lg font-semibold">Community consensus</h2>
+      <h2 className="text-lg font-semibold">
+        <Translated locale={locale} message="matchCentre.community.listTitle" />
+      </h2>
       <p className="text-xs text-muted">
-        What registered members predicted. Not the statistical model, and not the founder.
+        <Translated locale={locale} message="matchCentre.community.intro" />
       </p>
       {withConsensus.length === 0 ? (
         <p className="text-sm text-muted">
-          No match here has {MIN_CONSENSUS_SAMPLE} predictions yet, so there is no consensus to
-          show.
+          <Translated
+            locale={locale}
+            message="matchCentre.community.listNone"
+            count={MIN_CONSENSUS_SAMPLE}
+          />
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
@@ -239,13 +286,21 @@ export function CommunityConsensusList({
             return (
               <li key={entry.fixture_id} className="flex flex-col gap-1">
                 <Link href={`/${locale}/match/${entry.fixture_id}`} className="text-sm underline">
-                  {teams === undefined ? 'Match' : `${teams.home} v ${teams.away}`}
+                  {teams === undefined
+                    ? t(l, 'matchCentre.title')
+                    : interpolate(t(l, 'matchCentre.fixtureTitle'), teams)}
                 </Link>
                 <p className="text-sm">
-                  {teams?.home ?? 'Home'} {percentages.home.toFixed(1)}%, draw{' '}
-                  {percentages.draw.toFixed(1)}%, {teams?.away ?? 'Away'}{' '}
-                  {percentages.away.toFixed(1)}%{' '}
-                  <span className="text-muted">· {data.sample} predictions</span>
+                  {interpolate(t(l, 'matchCentre.community.listLine'), {
+                    home: teams?.home ?? t(l, 'matchCentre.home'),
+                    homePct: formatPercent(l, percentages.home),
+                    drawPct: formatPercent(l, percentages.draw),
+                    away: teams?.away ?? t(l, 'matchCentre.away'),
+                    awayPct: formatPercent(l, percentages.away),
+                  })}{' '}
+                  <span className="text-muted">
+                    · {plural(l, 'matchCentre.community.predictions', data.sample).text}
+                  </span>
                 </p>
               </li>
             );

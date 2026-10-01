@@ -2,7 +2,7 @@
 
 import { CHAT_SOCKET_PATH, type ChatServerFrame } from '@fmip/contracts';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 /**
  * The chat page's socket (T-237).
@@ -43,8 +43,14 @@ function socketUrl(): string {
 export function LiveConversation({
   conversationId,
   latestSeq,
+  labels,
 }: {
   conversationId: string;
+  /**
+   * The three things the line can say, resolved on the server (T-1308): the
+   * catalogues never reach a client bundle (T-1040).
+   */
+  labels: { live: ReactNode; connecting: ReactNode; offline: ReactNode };
   /** What the server rendered. The socket asks for everything after it. */
   latestSeq: number;
 }) {
@@ -152,11 +158,7 @@ export function LiveConversation({
       // what is being said.
       aria-live="polite"
     >
-      {state === 'live'
-        ? 'New messages appear here as they are sent.'
-        : state === 'connecting'
-          ? 'Connecting…'
-          : 'Not live right now. Reload to see anything new.'}
+      {state === 'live' ? labels.live : state === 'connecting' ? labels.connecting : labels.offline}
     </p>
   );
 }

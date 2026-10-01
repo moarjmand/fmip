@@ -1,6 +1,8 @@
 import type { ScoreCard } from '@fmip/contracts';
 import { isBehind } from './live';
-import { formatDate, formatTime } from '@/i18n/format';
+import { formatDate, formatNumber, formatTime } from '@/i18n/format';
+import type { Message } from '@/i18n/messages';
+import { fill, formatMinute } from '@/lib/words';
 import { filterParams, readFilterSelection, type ScoresFilterSelection } from './scores-filters';
 
 /**
@@ -139,16 +141,29 @@ export interface DayLink {
   isSelected: boolean;
 }
 
-export function dayStrip(q: ScoresPageQuery, locale: string): DayLink[] {
+/** The three named days, in the reader's words (T-1303); English when not given. */
+export interface DayWords {
+  yesterday: string;
+  today: string;
+  tomorrow: string;
+}
+
+const ENGLISH_DAYS: DayWords = { yesterday: 'Yesterday', today: 'Today', tomorrow: 'Tomorrow' };
+
+export function dayStrip(
+  q: ScoresPageQuery,
+  locale: string,
+  words: DayWords = ENGLISH_DAYS,
+): DayLink[] {
   return DAY_OFFSETS.map((offset) => {
     const date = shiftDate(q.today, offset);
     const label =
       offset === -1
-        ? 'Yesterday'
+        ? words.yesterday
         : offset === 0
-          ? 'Today'
+          ? words.today
           : offset === 1
-            ? 'Tomorrow'
+            ? words.tomorrow
             : formatDate(locale, `${date}T00:00:00Z`, 'UTC', { weekday: 'short', day: 'numeric' });
     return { date, label, isToday: offset === 0, isSelected: date === q.date };
   });
@@ -159,57 +174,85 @@ export function formatKickoff(locale: string, iso: string, timeZone: string): st
   return formatTime(locale, iso, timeZone);
 }
 
+/** A status cell's words, resolved for the reader's locale (T-1303). */
+export type StatusKey =
+  | 'status.live'
+  | 'status.behind'
+  | 'status.fullTime'
+  | 'status.afterExtraTime'
+  | 'status.penalties'
+  | 'status.postponed'
+  | 'status.suspended'
+  | 'status.cancelled'
+  | 'status.abandoned'
+  | 'status.awarded';
+
+const ENGLISH_STATUS: Record<StatusKey, string> = {
+  'status.live': 'Live',
+  'status.behind': 'Behind',
+  'status.fullTime': 'FT',
+  'status.afterExtraTime': 'AET',
+  'status.penalties': 'Pens',
+  'status.postponed': 'Postponed',
+  'status.suspended': 'Suspended',
+  'status.cancelled': 'Cancelled',
+  'status.abandoned': 'Abandoned',
+  'status.awarded': 'Awarded',
+};
+
 /**
  * The status cell: the clock while live, an abbreviation after, the time
  * before. A live match whose data is behind (T-083) shows "Behind" instead of
- * a minute that is no longer the current one.
+ * a minute that is no longer the current one. `words` are the reader's
+ * (T-1303); a caller that has none yet gets the English.
  */
 export function statusLabel(
-  card: ScoreCard,
+  card: Pick<ScoreCard, 'status' | 'minute' | 'scores' | 'kickoff_at' | 'last_updated_at'> &
+    Partial<Pick<ScoreCard, 'freshness'>>,
   locale: string,
   timeZone: string,
   now?: number,
+  words?: Record<StatusKey, Message>,
 ): string {
+  const w = (key: StatusKey): string => words?.[key].text ?? ENGLISH_STATUS[key];
   switch (card.status) {
     case 'live':
-      if (now !== undefined && isBehind(card, now)) return 'Behind';
-      return card.minute === null ? 'Live' : `${card.minute}′`;
+      if (now !== undefined && isBehind(card, now)) return w('status.behind');
+      return card.minute === null ? w('status.live') : formatMinute(locale, card.minute, null);
     case 'finished':
       return card.scores.penalties !== null
-        ? 'Pens'
+        ? w('status.penalties')
         : card.scores.extra_time !== null
-          ? 'AET'
-          : 'FT';
+          ? w('status.afterExtraTime')
+          : w('status.fullTime');
     case 'scheduled':
       return formatKickoff(locale, card.kickoff_at, timeZone);
     case 'postponed':
-      return 'Postponed';
+      return w('status.postponed');
     case 'suspended':
-      return 'Suspended';
+      return w('status.suspended');
     case 'cancelled':
-      return 'Cancelled';
+      return w('status.cancelled');
     case 'abandoned':
-      return 'Abandoned';
+      return w('status.abandoned');
     case 'awarded':
-      return 'Awarded';
+      return w('status.awarded');
   }
 }
 
-/** The headline score: the current one, or the full-time one once finished. */
-export function scoreLabel(card: ScoreCard): string {
+/**
+ * The headline score: the current one, or the full-time one once finished,
+ * in the locale's digits (the caller isolates it left to right).
+ */
+export function scoreLabel(card: ScoreCard, locale = 'en'): string {
   const line =
     card.status === 'finished'
       ? (card.scores.full_time ?? card.scores.current)
       : card.scores.current;
-  return line === null ? '–' : `${line.home} – ${line.away}`;
+  return line === null
+    ? '–'
+    : `${formatNumber(locale, line.home)} – ${formatNumber(locale, line.away)}`;
 }
-
-export const COVERAGE_LABEL = {
-  available: 'available',
-  limited: 'limited',
-  not_supplied: 'not supplied',
-  delayed: 'data delayed',
-} as const;
 
 /**
  * The freshness line of one block of cards (T-605). A phone has no room for
@@ -223,10 +266,13 @@ export function blockUpdatedLabel(
   cards: readonly Pick<ScoreCard, 'last_updated_at'>[],
   locale: string,
   timeZone: string,
+  words: Record<'scores.updated' | 'scores.updatedBetween', Message>,
 ): string | null {
   const times = cards.map((c) => Date.parse(c.last_updated_at)).filter((t) => !Number.isNaN(t));
   if (times.length === 0) return null;
   const oldest = formatTime(locale, Math.min(...times), timeZone);
   const newest = formatTime(locale, Math.max(...times), timeZone);
-  return oldest === newest ? `Updated ${oldest}` : `Updated between ${oldest} and ${newest}`;
+  return oldest === newest
+    ? fill(words['scores.updated'].text, { time: oldest })
+    : fill(words['scores.updatedBetween'].text, { oldest, newest });
 }

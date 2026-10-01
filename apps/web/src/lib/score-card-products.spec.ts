@@ -75,7 +75,7 @@ describe('the model line (D-114)', () => {
     ).toMatchObject({
       state: 'unavailable',
       version: 3,
-      reason: expect.stringContaining('too little'),
+      reason: 'no_history',
     });
     expect(cardForecast(null)).toEqual({ state: 'none' });
   });

@@ -10,11 +10,12 @@ import {
   readMinMinutesParam,
   readSeasonParam,
   seasonHref,
-  ZONE_LABEL,
+  ZONE_KEY,
   ZONE_MARK,
   zoneBand,
   zonesAbsentLine,
 } from './competition';
+import { t } from '@/i18n/messages';
 
 const ID = '00000000-0000-4000-8000-000000000302';
 
@@ -73,13 +74,23 @@ describe('the minutes floor on the leaders (T-824)', () => {
 
 describe('labels', () => {
   it('names a fixture with the score once there is one, short names first', () => {
-    expect(fixtureLine(fixture())).toBe('ALP 3–1 Test Beta');
-    expect(fixtureLine(fixture({ score: null, status: 'scheduled' }))).toBe('ALP v Test Beta');
+    expect(fixtureLine('en', fixture())).toBe('ALP 3–1 Test Beta');
+    expect(fixtureLine('en', fixture({ score: null, status: 'scheduled' }))).toBe(
+      'ALP v Test Beta',
+    );
+  });
+
+  it('writes a fixture in Persian with Persian digits, the score kept left to right (T-1304)', () => {
+    expect(fixtureLine('fa', fixture())).toBe('ALP \u2066۳–۱\u2069 Test Beta');
+    expect(fixtureLine('fa', fixture({ score: null, status: 'scheduled' }))).toBe(
+      'ALP - Test Beta',
+    );
+    expect(formLine('fa', ['W', 'D', 'L'])).toBe('ب م ش');
   });
 
   it('spells out the form run and the kick-off in the viewer zone', () => {
-    expect(formLine(['W', 'D', 'L'])).toBe('W D L');
-    expect(formLine([])).toBe('');
+    expect(formLine('en', ['W', 'D', 'L'])).toBe('W D L');
+    expect(formLine('en', [])).toBe('');
     expect(formatFixtureDate('en', '2025-09-01T15:00:00.000Z', 'Asia/Tehran')).toBe(
       'Mon, 1 Sept 2025, 18:30',
     );
@@ -94,18 +105,19 @@ describe('labels', () => {
 describe('league zones (T-1167)', () => {
   it('names and marks every kind, with a token colour class', () => {
     for (const kind of LEAGUE_ZONE_KINDS) {
-      expect(ZONE_LABEL[kind]).toBeTruthy();
+      expect(t('en', ZONE_KEY[kind])).toBeTruthy();
       expect(ZONE_MARK[kind]).toMatch(/^border-s-(accent|strong|warning|danger)$/);
     }
   });
   it('reads a band', () => {
-    expect(zoneBand({ kind: 'relegation', from: 18, to: 20 })).toBe('18–20');
-    expect(zoneBand({ kind: 'relegation_playoff', from: 16, to: 16 })).toBe('16');
+    expect(zoneBand('en', { kind: 'relegation', from: 18, to: 20 })).toBe('18–20');
+    expect(zoneBand('en', { kind: 'relegation_playoff', from: 16, to: 16 })).toBe('16');
+    expect(zoneBand('fa', { kind: 'relegation_playoff', from: 16, to: 16 })).toBe('۱۶');
   });
   it('says why a league shows none, and says nothing for a cup', () => {
-    expect(zonesAbsentLine({ state: 'not_listed', reason: 'season_not_listed' })).toMatch(
+    expect(zonesAbsentLine('en', { state: 'not_listed', reason: 'season_not_listed' })).toMatch(
       /not listed/,
     );
-    expect(zonesAbsentLine({ state: 'not_listed', reason: 'not_a_league' })).toBeNull();
+    expect(zonesAbsentLine('en', { state: 'not_listed', reason: 'not_a_league' })).toBeNull();
   });
 });

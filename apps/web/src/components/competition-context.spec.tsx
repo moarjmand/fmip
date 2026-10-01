@@ -136,7 +136,7 @@ describe('the competition context panel', () => {
     expect(html).toContain('League table, before kick-off');
     expect(html.match(/data-testid="competition-context-side"/g)).toHaveLength(2);
     expect(html).toContain('2nd of 4 · 3 pts from 2 played');
-    expect(html).toContain('<span dir="ltr">W L</span>');
+    expect(html).toContain('<span dir="auto">W L</span>');
     expect(html).toContain('<bdi>Alpha</bdi>, 6 pts');
     expect(html).toContain('From the 4 finished matches of this table played before kick-off.');
     expect(html).toContain('no gap to them is shown');

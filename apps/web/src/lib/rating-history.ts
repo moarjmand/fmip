@@ -1,4 +1,19 @@
 import type { CompetitionRating, RatingHistoryPoint } from '@fmip/contracts';
+import { formatNumber, intlLocale } from '@/i18n/format';
+import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
+import { interpolate, t } from '@/i18n/messages';
+
+function lang(locale: string): Locale {
+  return isLocale(locale) ? locale : DEFAULT_LOCALE;
+}
+
+/** A rating as the page prints it: one decimal, in the locale's digits ("58.0", "۵۸٫۰"). */
+export function ratingFigure(locale: string, rating: number): string {
+  return new Intl.NumberFormat(intlLocale(locale), {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(rating);
+}
 
 /**
  * The rating-over-time chart's pure half (blueprint 9.3, T-640): where each
@@ -75,10 +90,16 @@ export function chartGeometry(
 /** "7 of 12 correct (58%)": the accuracy the blueprint asks for, with its sample. */
 export function accuracyLabel(
   entry: Pick<CompetitionRating, 'settled_count' | 'outcome_correct'>,
+  locale: string = DEFAULT_LOCALE,
 ): string {
-  if (entry.settled_count === 0) return 'Nothing settled';
+  const l = lang(locale);
+  if (entry.settled_count === 0) return t(l, 'profile.ratingHistory.nothingSettled');
   const share = Math.round((entry.outcome_correct / entry.settled_count) * 100);
-  return `${entry.outcome_correct} of ${entry.settled_count} correct (${share}%)`;
+  return interpolate(t(l, 'profile.ratingHistory.accuracy'), {
+    correct: formatNumber(l, entry.outcome_correct),
+    settled: formatNumber(l, entry.settled_count),
+    share: formatNumber(l, share),
+  });
 }
 
 /** The ISO instant a UTC day label is formatted from. */
@@ -90,11 +111,22 @@ export function dayInstant(date: string): string {
 export function chartSummary(
   points: readonly RatingHistoryPoint[],
   formatDay: (date: string) => string,
+  locale: string = DEFAULT_LOCALE,
 ): string {
+  const l = lang(locale);
   const first = points[0];
   const last = points.at(-1);
-  if (first === undefined || last === undefined) return 'No rating yet.';
+  if (first === undefined || last === undefined) return t(l, 'profile.ratingHistory.summaryNone');
   if (points.length === 1)
-    return `Rating ${last.rating.toFixed(1)} on ${formatDay(last.date)}, the only day with a settled prediction.`;
-  return `Rating from ${first.rating.toFixed(1)} on ${formatDay(first.date)} to ${last.rating.toFixed(1)} on ${formatDay(last.date)}, over ${points.length} days with settled predictions.`;
+    return interpolate(t(l, 'profile.ratingHistory.summaryOne'), {
+      rating: ratingFigure(l, last.rating),
+      date: formatDay(last.date),
+    });
+  return interpolate(t(l, 'profile.ratingHistory.summary'), {
+    first: ratingFigure(l, first.rating),
+    firstDate: formatDay(first.date),
+    last: ratingFigure(l, last.rating),
+    lastDate: formatDay(last.date),
+    days: formatNumber(l, points.length),
+  });
 }

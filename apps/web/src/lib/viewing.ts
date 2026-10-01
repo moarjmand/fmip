@@ -7,6 +7,7 @@ import type {
 } from '@fmip/contracts';
 import { TERRITORY_CODE } from '@fmip/contracts';
 import type { MessageKey } from '@/i18n/messages';
+import { say } from '@/lib/competition';
 import type { ScoresPageQuery } from '@/lib/scores';
 
 /**
@@ -114,6 +115,8 @@ export function watchHref(
 }
 
 /** The services, named, for a one-line surface. */
-export function serviceNames(options: ViewingOption[]): string {
-  return options.map((option) => option.broadcaster.name).join(', ');
+export function serviceNames(locale: string, options: ViewingOption[]): string {
+  return options
+    .map((option) => option.broadcaster.name)
+    .join(say(locale, 'competitionPage.list.separator'));
 }

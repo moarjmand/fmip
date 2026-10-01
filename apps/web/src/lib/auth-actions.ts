@@ -21,6 +21,8 @@ import { applyGuestChoices } from './first-run-actions';
 import { afterRegistration, readInviter } from './invite';
 import { applyApiSetCookie, readerAddress, sessionCookieHeader } from './session';
 import { reconcileThemeAtSignIn } from './theme-cookie';
+import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
+import { type MessageKey, interpolate, t } from '@/i18n/messages';
 
 /**
  * What a form gets back. `null` before the first submit; `ok: true` for an
@@ -43,16 +45,23 @@ function text(formData: FormData, name: string): string {
   return typeof value === 'string' ? value : '';
 }
 
-function failure<T>(result: Extract<ApiResult<T>, { ok: false }>): ActionState {
+/** A sentence in the reader's language (T-1306); an unknown locale reads English. */
+function say(locale: string, key: MessageKey, params: Record<string, string> = {}): string {
+  const resolved: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  return interpolate(t(resolved, key), params);
+}
+
+/**
+ * A refusal, in the reader's language where the words are ours. The API's own
+ * `error.message` and field errors are passed through as it wrote them.
+ */
+function failure<T>(locale: string, result: Extract<ApiResult<T>, { ok: false }>): ActionState {
   if (result.status === 0) {
-    return {
-      ok: false,
-      message: 'The service is unreachable right now. Please try again shortly.',
-    };
+    return { ok: false, message: say(locale, 'auth.unreachable') };
   }
   return {
     ok: false,
-    message: result.error?.message ?? `The request failed (HTTP ${result.status}).`,
+    message: result.error?.message ?? say(locale, 'auth.failed', { status: String(result.status) }),
     ...(result.error?.fields ? { fields: result.error.fields } : {}),
   };
 }
@@ -78,7 +87,7 @@ export async function registerAction(
     body,
     clientIp: await readerAddress(),
   });
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(locale, result);
 
   await applyApiSetCookie(result.setCookie);
   // A guest's first-run choices become the account's (T-620).
@@ -108,7 +117,7 @@ export async function loginAction(
     body,
     clientIp: await readerAddress(),
   });
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(locale, result);
 
   await applyApiSetCookie(result.setCookie);
   // Choices made as a guest reach an account that never did the first run (T-620).
@@ -151,13 +160,14 @@ export async function deleteAccountAction(
     // The password check is held to the sign-in ceilings, per address too (T-811).
     clientIp: await readerAddress(),
   });
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(locale, result);
 
   await applyApiSetCookie(result.setCookie ?? 'fmip_session=; Max-Age=0');
   redirect(`/${locale}/account-deleted`);
 }
 
 export async function forgotPasswordAction(
+  locale: string,
   _previous: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
@@ -166,11 +176,11 @@ export async function forgotPasswordAction(
     body: { email: text(formData, 'email') },
     clientIp: await readerAddress(),
   });
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(locale, result);
 
   return {
     ok: true,
-    message: 'If that address belongs to an account, a reset link is on its way.',
+    message: say(locale, 'auth.forgot.sent'),
   };
 }
 
@@ -184,7 +194,7 @@ export async function resetPasswordAction(
     body: { token: text(formData, 'token'), password: text(formData, 'password') },
     clientIp: await readerAddress(),
   });
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(locale, result);
 
   redirect(`/${locale}/login?reset=1`);
 }
@@ -207,11 +217,11 @@ export async function updateProfileAction(
     body,
     cookie: await sessionCookieHeader(),
   });
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(locale, result);
 
   revalidatePath(`/${locale}/settings`);
   revalidatePath(`/${locale}/u/${result.data.profile.username}`);
-  return { ok: true, message: 'Profile saved.' };
+  return { ok: true, message: say(locale, 'settingsPage.profileSaved') };
 }
 
 export async function updatePrivacyAction(
@@ -235,10 +245,10 @@ export async function updatePrivacyAction(
     body,
     cookie: await sessionCookieHeader(),
   });
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(locale, result);
 
   revalidatePath(`/${locale}/settings`);
-  return { ok: true, message: 'Privacy settings saved.' };
+  return { ok: true, message: say(locale, 'settingsPage.privacySaved') };
 }
 
 // --- the viewing territory (T-312) --------------------------------------------
@@ -258,7 +268,7 @@ export async function setTerritoryAction(
     body: { code: code === '' ? null : code } satisfies SetViewingTerritoryRequest,
     cookie: await sessionCookieHeader(),
   });
-  if (!result.ok) return failure(result);
+  if (!result.ok) return failure(locale, result);
 
   revalidatePath(`/${locale}/settings`);
   const chosen = result.data.viewing_territory;
@@ -266,8 +276,8 @@ export async function setTerritoryAction(
     ok: true,
     message:
       chosen.state === 'chosen'
-        ? `Viewing territory set to ${chosen.territory.name}.`
-        : 'Viewing territory cleared; you will be asked when it matters.',
+        ? say(locale, 'settingsPage.territory.set', { territory: chosen.territory.name })
+        : say(locale, 'settingsPage.territory.cleared'),
   };
 }
 

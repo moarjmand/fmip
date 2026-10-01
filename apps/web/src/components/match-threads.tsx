@@ -1,9 +1,9 @@
-'use client';
-
-import { useActionState } from 'react';
 import type { GroupSummary } from '@fmip/contracts';
 import { openThreadAction } from '@/lib/thread-actions';
-import { Button, FormStatus, Notice } from '@/components/ui';
+import { CommunityAction } from '@/components/community-action';
+import { Said } from '@/components/community-text';
+import { Translated } from '@/components/translated';
+import { Notice } from '@/components/ui';
 
 /**
  * Opening a match thread from the match (blueprint 8.2, T-248).
@@ -26,28 +26,14 @@ function OpenThread({
   group: GroupSummary;
   fixtureId: string;
 }) {
-  const [state, formAction, pending] = useActionState(
-    openThreadAction.bind(null, locale, group.slug, fixtureId),
-    null,
-  );
-
+  // A success is a redirect into the thread, so only a refusal is ever said here.
   return (
-    <form action={formAction} className="flex flex-col gap-1">
-      <Button
-        type="submit"
-        pending={pending}
-        pendingLabel="Working…"
-        data-testid={`open-thread-${group.slug}`}
-        className="self-start"
-      >
-        {`Discuss in ${group.name}`}
-      </Button>
-      {state !== null && !state.ok && (
-        <FormStatus ok={false} data-testid={`open-thread-${group.slug}-result`}>
-          {state.message}
-        </FormStatus>
-      )}
-    </form>
+    <CommunityAction
+      action={openThreadAction.bind(null, locale, group.slug, fixtureId)}
+      submit={<Said locale={locale} message="threads.discussIn" params={{ group: group.name }} />}
+      working={<Translated locale={locale} message="threads.working" />}
+      testId={`open-thread-${group.slug}`}
+    />
   );
 }
 
@@ -65,17 +51,19 @@ export function MatchThreads({
 }) {
   return (
     <section className="flex flex-col gap-3" data-testid="match-threads">
-      <h2 className="text-lg font-semibold">Talk about this match</h2>
+      <h2 className="text-lg font-semibold">
+        <Translated locale={locale} message="threads.title" />
+      </h2>
       {!reachable ? (
         // Stated, not vanished: "your groups could not be fetched" and "you are
         // in none" are different facts and a reader must be able to tell them
         // apart (rule 3).
         <Notice tone="danger" data-testid="match-threads-unreachable">
-          Your groups cannot be shown right now.
+          <Translated locale={locale} message="groupsPage.yoursUnreachable" />
         </Notice>
       ) : groups.length === 0 ? (
         <p className="text-sm text-muted" data-testid="match-threads-none">
-          A match thread happens inside a group. You are not in one yet.
+          <Translated locale={locale} message="threads.none" />
         </p>
       ) : (
         <div className="flex flex-col gap-2">

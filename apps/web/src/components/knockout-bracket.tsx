@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { KnockoutBracket as Bracket } from '@fmip/contracts';
-import { formatFixtureDate } from '@/lib/competition';
+import { Translated } from '@/components/translated';
+import { formatFixtureDate, say, statusSuffix } from '@/lib/competition';
 import { ROUND_LABEL, legLabel, legLine, roundNote, tieOutcome } from '@/lib/bracket';
 
 /**
@@ -22,7 +23,9 @@ export function KnockoutBracket({
 }) {
   return (
     <section className="flex flex-col gap-4" data-testid="bracket">
-      <h2 className="text-lg font-semibold">Knockout rounds</h2>
+      <h2 className="text-lg font-semibold">
+        <Translated locale={locale} message="competitionPage.bracket.title" />
+      </h2>
       <ol className="flex flex-col gap-6">
         {bracket.rounds.map((round) => {
           const note = roundNote(round);
@@ -36,7 +39,14 @@ export function KnockoutBracket({
               <h3 className="font-semibold">
                 {ROUND_LABEL[round.key]}
                 <span className="ms-2 text-xs font-normal text-muted">
-                  {round.legs === 2 ? 'Two legs' : 'One match'}
+                  <Translated
+                    locale={locale}
+                    message={
+                      round.legs === 2
+                        ? 'competitionPage.bracket.twoLegs'
+                        : 'competitionPage.bracket.oneMatch'
+                    }
+                  />
                 </span>
               </h3>
               {round.ties.length > 0 && (
@@ -51,7 +61,7 @@ export function KnockoutBracket({
                         <Link href={`/${locale}/team/${tie.teams[0].id}`} className="underline">
                           {tie.teams[0].name}
                         </Link>
-                        <span className="mx-1 text-muted">v</span>
+                        <span className="mx-1 text-muted">{say(locale, 'competitionPage.v')}</span>
                         <Link href={`/${locale}/team/${tie.teams[1].id}`} className="underline">
                           {tie.teams[1].name}
                         </Link>
@@ -67,9 +77,7 @@ export function KnockoutBracket({
                               <time dateTime={leg.kickoff_at}>
                                 {formatFixtureDate(locale, leg.kickoff_at, timeZone)}
                               </time>
-                              {leg.status !== 'finished' && leg.status !== 'scheduled'
-                                ? ` · ${leg.status}`
-                                : ''}
+                              {statusSuffix(locale, leg.status)}
                             </span>
                           </li>
                         ))}
