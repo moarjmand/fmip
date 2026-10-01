@@ -220,7 +220,7 @@ function Item({
       )}
       {item.kind === 'story' && (
         <p className="text-sm text-muted">
-          <Translated locale={locale} message="news.readAt" /> {item.source_name}
+          <Translated locale={locale} message="news.readAt" /> <bdi>{item.source_name}</bdi>
         </p>
       )}
       {item.kind === 'founder_analysis' && (

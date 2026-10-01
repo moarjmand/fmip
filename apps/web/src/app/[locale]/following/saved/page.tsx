@@ -137,10 +137,10 @@ function SavedItem({
       <p className="text-sm text-muted">
         <Translated locale={locale} message="news.readAt" />{' '}
         {item.source.homepage_url === null ? (
-          item.source.name
+          <bdi>{item.source.name}</bdi>
         ) : (
           <a href={item.source.homepage_url} rel="noopener" className="underline">
-            {item.source.name}
+            <bdi>{item.source.name}</bdi>
           </a>
         )}
         {' · '}
