@@ -6,13 +6,14 @@ import type {
   ScoresFilters,
   ScoresResponse,
 } from '@fmip/contracts';
+import { MediaService } from '../media/media.service';
 import { ProfileService } from '../profile/profile.service';
 import { arrange, onlyFollowed } from './internal/arrange';
 import { covered, derived } from './internal/covered';
 import { availabilityOf, keyPlayersSide, pickKeyPlayers } from './internal/key-players';
 import { PostgresKeyPlayersStore, type TeamSeason } from './internal/key-players-store';
 import { FORM_WINDOW, PostgresMatchCentreStore } from './internal/match-centre-store';
-import { PostgresScoresStore } from './internal/scores-store';
+import { PostgresScoresStore, type ScoredRow } from './internal/scores-store';
 
 // The module's public surface. Other modules import from this file only.
 export {
@@ -41,7 +42,26 @@ export class FixturesService {
     private readonly centre: PostgresMatchCentreStore,
     private readonly profiles: ProfileService,
     private readonly keyPlayers_: PostgresKeyPlayersStore,
+    private readonly media: MediaService,
   ) {}
+
+  /** Each card's crests and competition logo from our own origin (T-1320), in one query. */
+  private async withMedia(rows: ScoredRow[]): Promise<ScoredRow[]> {
+    if (rows.length === 0) return rows;
+    const index = await this.media.index({
+      team: rows.flatMap(({ card }) => [card.home.id, card.away.id]),
+      competition: rows.map(({ card }) => card.competition.id),
+    });
+    return rows.map((row) => ({
+      ...row,
+      card: {
+        ...row.card,
+        competition: { ...row.card.competition, logo: index.logo(row.card.competition.id) },
+        home: { ...row.card.home, crest: index.crest(row.card.home.id) },
+        away: { ...row.card.away, crest: index.crest(row.card.away.id) },
+      },
+    }));
+  }
 
   async scores(filters: ScoresFilters, viewerId: string | null): Promise<ScoresOutcome> {
     if (filters.favourites && viewerId === null) return { kind: 'needs_session' };
@@ -49,6 +69,7 @@ export class FixturesService {
     const prefs = viewerId === null ? null : await this.profiles.favouriteIds(viewerId);
     let rows = await this.store.list(filters);
     if (filters.favourites && prefs !== null) rows = onlyFollowed(rows, prefs);
+    rows = await this.withMedia(rows);
 
     const { pinned, groups } = arrange(rows, prefs);
     return {
@@ -94,6 +115,19 @@ export class FixturesService {
       this.centre.headToHead(header.home.id, header.away.id, header.kickoff_at, fixtureId),
     ]);
 
+    // Crests, the logo and the line-up photos from our own origin (T-1320).
+    const media = await this.media.index({
+      team: [header.home.id, header.away.id],
+      competition: [header.competition.id],
+      person: [...lineups.home, ...lineups.away].map((p) => p.id),
+    });
+    const withPhoto = <P extends { id: string }>(p: P) => ({ ...p, photo: media.photo(p.id) });
+    const fixture = {
+      ...header,
+      competition: { ...header.competition, logo: media.logo(header.competition.id) },
+      home: { ...header.home, crest: media.crest(header.home.id) },
+      away: { ...header.away, crest: media.crest(header.away.id) },
+    };
     const bothSides = lineups.home.length > 0 && lineups.away.length > 0;
     // A finished match whose detail has not been asked for yet is owed it: a
     // module with nothing in it there is `delayed`, not the provider declining
@@ -101,7 +135,7 @@ export class FixturesService {
     const owed = (empty: boolean, declared: CoverageState): CoverageState =>
       detailOwed && empty ? 'delayed' : declared;
     return {
-      fixture: header,
+      fixture,
       timeline: covered(
         incidents.rows,
         incidents.rows.length === 0,
@@ -115,7 +149,7 @@ export class FixturesService {
         statistics.lastUpdatedAt,
       ),
       lineups: covered(
-        { home: lineups.home, away: lineups.away },
+        { home: lineups.home.map(withPhoto), away: lineups.away.map(withPhoto) },
         !bothSides,
         owed(!bothSides, coverage.lineups),
         lineups.lastUpdatedAt,

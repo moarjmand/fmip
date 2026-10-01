@@ -288,8 +288,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
     expect(page.leaders.coverage).toBe('available');
     expect(page.leaders.data).toEqual([
       {
-        person: { id: SCORER, name: 'Scorer' },
-        team: { id: TEAMS.alpha, name: `Test Alpha ${RUN}` },
+        // Nothing stored for either: said so (T-1320).
+        person: { id: SCORER, name: 'Scorer', photo: { coverage: 'not_supplied', url: null } },
+        team: {
+          id: TEAMS.alpha,
+          name: `Test Alpha ${RUN}`,
+          crest: { coverage: 'not_supplied', url: null },
+        },
         goals: 2,
         minutes: {
           coverage: 'available',
@@ -300,8 +305,16 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
         },
       },
       {
-        person: { id: OTHER_SCORER, name: `Test Other ${RUN}` },
-        team: { id: TEAMS.alpha, name: `Test Alpha ${RUN}` },
+        person: {
+          id: OTHER_SCORER,
+          name: `Test Other ${RUN}`,
+          photo: { coverage: 'not_supplied', url: null },
+        },
+        team: {
+          id: TEAMS.alpha,
+          name: `Test Alpha ${RUN}`,
+          crest: { coverage: 'not_supplied', url: null },
+        },
         goals: 1,
         minutes: {
           coverage: 'not_supplied',

@@ -115,6 +115,14 @@ export type Side = 'home' | 'away';
 export interface EntityRef {
   externalId: string;
   name: string;
+  /**
+   * The provider's address for the entity's image (a team's crest, a
+   * competition's logo, a person's photo), when the answer carried one (T-1320,
+   * D-176). An `https://` URL on the provider's side: the ingestion writers
+   * hand it to the media store, which copies the file to our own volume. It
+   * never reaches a contract or a page (rule 2). Absent when not carried.
+   */
+  imageUrl?: string;
 }
 
 /** Like `EntityRef`, for entities a provider often names without identifying. */

@@ -50,6 +50,22 @@ const id = (value: unknown): string | null => {
   const n = int(value);
   return n === null ? null : String(n);
 };
+/**
+ * An image address (`logo`, `photo`) as the provider gave it, when it is an
+ * https URL (T-1320). It stays inside ingestion: the media store copies the
+ * file, and only our own address ever reaches a reader (rule 2).
+ */
+export const imageUrl = (value: unknown): string | null => {
+  const s = str(value);
+  return s !== null && /^https:\/\/\S+$/.test(s) ? s : null;
+};
+/** `ref` with its image, when the provider carried one; absent otherwise. */
+function withImage<T extends { externalId: string; name: string }>(
+  ref: T,
+  image: string | null,
+): T & { imageUrl?: string } {
+  return image === null ? ref : { ...ref, imageUrl: image };
+}
 
 // ---------------------------------------------------------------------------
 // Seasons, statuses, rounds
@@ -173,7 +189,7 @@ export function mapFixture(item: unknown, receivedAt: string): NormalisedFixture
 
   return {
     externalId,
-    competition: { externalId: leagueId, name: leagueName },
+    competition: withImage({ externalId: leagueId, name: leagueName }, imageUrl(league.logo)),
     season: { label: seasonLabel(startYear), startYear },
     stage:
       round !== null && stageKind !== null
@@ -183,8 +199,8 @@ export function mapFixture(item: unknown, receivedAt: string): NormalisedFixture
     kickoffAt,
     status,
     minute: status === 'live' && elapsed !== null && elapsed >= 0 ? elapsed : null,
-    home: { externalId: homeId, name: homeName },
-    away: { externalId: awayId, name: awayName },
+    home: withImage({ externalId: homeId, name: homeName }, imageUrl(home.logo)),
+    away: withImage({ externalId: awayId, name: awayName }, imageUrl(away.logo)),
     venue:
       venueName === null
         ? null
@@ -235,6 +251,15 @@ function ref(value: unknown): { externalId: string; name: string } | null {
   const externalId = id(r.id);
   const name = str(r.name);
   return externalId === null || name === null ? null : { externalId, name };
+}
+
+/** `ref` plus the image the same object carries under `field` (T-1320). */
+function imagedRef(
+  value: unknown,
+  field: 'logo' | 'photo',
+): { externalId: string; name: string; imageUrl?: string } | null {
+  const r = ref(value);
+  return r === null ? null : withImage(r, imageUrl(rec(value)[field]));
 }
 
 /** The contract's ceiling on stoppage time (`validate.ts`, the incident table). */
@@ -322,6 +347,7 @@ function lineupPlayers(
   role: 'starter' | 'bench',
   captains: ReadonlySet<string>,
   seen: Set<string>,
+  photos: ReadonlyMap<string, string>,
 ): NormalisedLineupPlayer[] {
   if (!Array.isArray(list)) return [];
   const out: NormalisedLineupPlayer[] = [];
@@ -334,8 +360,7 @@ function lineupPlayers(
     const number = int(p.number);
     const pos = typeof p.pos === 'string' ? (POSITION[p.pos] ?? null) : null;
     out.push({
-      externalId,
-      name,
+      ...withImage({ externalId, name }, imageUrl(p.photo) ?? photos.get(externalId) ?? null),
       role,
       shirtNumber: number !== null && number >= 1 && number <= 99 ? number : null,
       position: pos,
@@ -368,17 +393,41 @@ export function captainsByTeam(players: unknown): Map<string, string> {
   return out;
 }
 
-function sideLineup(block: unknown, captain: string | null): NormalisedSideLineup {
+/**
+ * Player photos from the per-player block of `/fixtures?id=` (T-1320), by
+ * player id: the lineups block names the players without their photos.
+ */
+export function photosByPlayer(players: unknown): Map<string, string> {
+  const out = new Map<string, string>();
+  if (!Array.isArray(players)) return out;
+  for (const teamBlock of players) {
+    const tb = rec(teamBlock);
+    if (!Array.isArray(tb.players)) continue;
+    for (const entry of tb.players) {
+      const p = rec(rec(entry).player);
+      const playerId = id(p.id);
+      const photo = imageUrl(p.photo);
+      if (playerId !== null && photo !== null && !out.has(playerId)) out.set(playerId, photo);
+    }
+  }
+  return out;
+}
+
+function sideLineup(
+  block: unknown,
+  captain: string | null,
+  photos: ReadonlyMap<string, string>,
+): NormalisedSideLineup {
   const b = rec(block);
   const formation = str(b.formation);
   const captains = new Set(captain === null ? [] : [captain]);
   const seen = new Set<string>();
   return {
     formation: formation !== null && /^[0-9](-[0-9]){2,4}$/.test(formation) ? formation : null,
-    coach: ref(b.coach),
+    coach: imagedRef(b.coach, 'photo'),
     players: [
-      ...lineupPlayers(b.startXI, 'starter', captains, seen),
-      ...lineupPlayers(b.substitutes, 'bench', captains, seen),
+      ...lineupPlayers(b.startXI, 'starter', captains, seen, photos),
+      ...lineupPlayers(b.substitutes, 'bench', captains, seen, photos),
     ],
   };
 }
@@ -405,10 +454,11 @@ export function mapLineup(
   const away = byTeam.get(awayTeamId);
   if (home === undefined || away === undefined) return null;
   const captains = captainsByTeam(players);
+  const photos = photosByPlayer(players);
   const result: NormalisedLineup = {
     fixtureExternalId,
-    home: sideLineup(home, captains.get(homeTeamId) ?? null),
-    away: sideLineup(away, captains.get(awayTeamId) ?? null),
+    home: sideLineup(home, captains.get(homeTeamId) ?? null, photos),
+    away: sideLineup(away, captains.get(awayTeamId) ?? null, photos),
   };
   if (result.home.players.length === 0 || result.away.players.length === 0) return null;
   return result;
@@ -530,7 +580,7 @@ export function mapPlayerStatistics(
     if (side === null) continue;
     for (const entry of tb.players) {
       const en = rec(entry);
-      const player = ref(en.player);
+      const player = imagedRef(en.player, 'photo');
       const stats = Array.isArray(en.statistics) ? rec(en.statistics[0]) : {};
       if (player === null) continue;
       if (statValue(rec(stats.games).minutes) === null) continue;
@@ -584,8 +634,8 @@ export function mapAvailability(response: unknown, fixtureExternalId: string): N
   const seen = new Set<string>();
   for (const item of response) {
     const it = rec(item);
-    const player = ref(it.player);
-    const team = ref(it.team);
+    const player = imagedRef(it.player, 'photo');
+    const team = imagedRef(it.team, 'logo');
     const fixtureId = id(rec(it.fixture).id);
     if (player === null || team === null) continue;
     if (fixtureId !== null && fixtureId !== fixtureExternalId) continue;
@@ -635,7 +685,7 @@ export function mapPeriods(periods: unknown): NormalisedPeriod[] {
 
 function standingRow(raw: unknown): NormalisedStandingRow | null {
   const r = rec(raw);
-  const team = ref(r.team);
+  const team = imagedRef(r.team, 'logo');
   const position = int(r.rank);
   const all = rec(r.all);
   const goals = rec(all.goals);
@@ -686,7 +736,7 @@ export function mapStandings(response: unknown, receivedAt: string): NormalisedS
   const out: NormalisedStanding[] = [];
   for (const entry of response) {
     const league = rec(rec(entry).league);
-    const competition = ref(league);
+    const competition = imagedRef(league, 'logo');
     const startYear = int(league.season);
     if (competition === null || startYear === null || !Array.isArray(league.standings)) continue;
     for (const groupRows of league.standings) {
