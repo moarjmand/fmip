@@ -305,6 +305,26 @@ const CONSOLE: Record<string, ConsoleRoute> = {
       none: 'Records where a broadcaster shows a season; removals carry a reason (T-312).',
     },
   },
+  // T-1360 (D-181): defaults per competition and territory, and bulk listing.
+  'GET /admin/viewing/competitions': { roles: EDITORIAL },
+  'GET /admin/viewing/defaults': { roles: EDITORIAL },
+  'POST /admin/viewing/defaults': {
+    roles: EDITORIAL,
+    reason: {
+      none: 'Sets a default service, audited with the schedule it is based on (its required note); its removal carries a reason (T-1360).',
+    },
+  },
+  'POST /admin/viewing/defaults/:id/remove': {
+    roles: EDITORIAL,
+    reason: { without: {} },
+  },
+  'GET /admin/viewing/upcoming': { roles: EDITORIAL },
+  'POST /admin/viewing/bulk-options': {
+    roles: EDITORIAL,
+    reason: {
+      none: 'Adds ways to watch several matches, one audited listing each, as a single listing does; removals carry a reason (T-1360).',
+    },
+  },
   'POST /admin/fixtures/:id/viewing-options': {
     roles: EDITORIAL,
     reason: { none: 'Adds a way to watch a match; its removal carries a reason (T-312).' },
