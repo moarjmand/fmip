@@ -140,5 +140,13 @@ for file in Caddyfile cloudflare-ranges.caddy; do
   fi
 done
 
+# Every build leaves its layers in BuildKit's cache, and nothing removes them:
+# by 2026-10-01 the cache held 57 GB of a 75 GB disk (T-1344). Layers younger
+# than ROLLOUT_BUILD_CACHE_HOURS stay, so the next build is still fast. A
+# failed prune is a warning; the rollout itself has already succeeded.
+log "pruning build cache older than ${ROLLOUT_BUILD_CACHE_HOURS:-72} h"
+docker builder prune -f --filter "until=${ROLLOUT_BUILD_CACHE_HOURS:-72}h" | tail -n 1 ||
+  log "WARNING: build cache prune failed; see docker system df"
+
 log "rollout complete"
 docker compose ps

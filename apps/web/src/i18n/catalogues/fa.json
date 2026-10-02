@@ -12337,42 +12337,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "bracket.round.roundOf32": {
-    "source": "Round of 32",
-    "text": "مرحله‌ی یک‌شانزدهم نهایی",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "bracket.round.knockoutPlayoff": {
-    "source": "Knockout play-offs",
-    "text": "پلی‌آف مرحله‌ی حذفی",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "bracket.round.roundOf16": {
-    "source": "Round of 16",
-    "text": "مرحله‌ی یک‌هشتم نهایی",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "bracket.round.quarterFinal": {
-    "source": "Quarter-finals",
-    "text": "مرحله‌ی یک‌چهارم نهایی",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "bracket.round.semiFinal": {
-    "source": "Semi-finals",
-    "text": "نیمه‌نهایی",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "bracket.round.final": {
-    "source": "Final",
-    "text": "فینال",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "stage.name.regularSeason": {
     "source": "Regular Season",
     "text": "فصل عادی",

@@ -4,6 +4,8 @@ import type { KnockoutLeg, KnockoutRound, KnockoutTie } from '@fmip/contracts';
 import { KNOCKOUT_ROUNDS } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
 import { legLabel, legLine, roundLabel, roundNote, tieOutcome } from './bracket';
+import { t } from '@/i18n/messages';
+import { stageLabel, type StageKey } from '@/lib/stage-label';
 
 /**
  * The knockout bracket's words (T-630). Acceptance: a tie not yet drawn is
@@ -53,6 +55,24 @@ const round = (over: Partial<KnockoutRound> = {}): KnockoutRound => ({
 describe('round labels', () => {
   it('names every round the contract can send', () => {
     for (const key of KNOCKOUT_ROUNDS) expect(roundLabel(key)).toMatch(/\S/);
+  });
+
+  it('names a round exactly as a score card names its stage (T-1343)', () => {
+    const provider = {
+      round_of_32: 'Round of 32',
+      knockout_playoff: 'Knockout Round Play-offs',
+      round_of_16: 'Round of 16',
+      quarter_final: 'Quarter-finals',
+      semi_final: 'Semi-finals',
+      final: 'Final',
+    } as const;
+    for (const locale of ['en', 'fa'] as const) {
+      for (const key of KNOCKOUT_ROUNDS) {
+        const said = stageLabel(provider[key], (k: StageKey) => t(locale, k), locale);
+        expect(roundLabel(key, locale)).toBe(said);
+      }
+    }
+    expect(roundLabel('round_of_16', 'fa')).toBe('یک‌هشتم نهایی');
   });
 });
 

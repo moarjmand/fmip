@@ -10,13 +10,14 @@ import { interpolate, plural, t, type MessageKey } from '@/i18n/messages';
  * English. Server only: it reads the catalogues.
  */
 
+/** The stage names `stageLabel` uses, so a round reads the same here as on a score card (T-1343). */
 const ROUND_KEY: Record<KnockoutRoundKey, MessageKey> = {
-  round_of_32: 'bracket.round.roundOf32',
-  knockout_playoff: 'bracket.round.knockoutPlayoff',
-  round_of_16: 'bracket.round.roundOf16',
-  quarter_final: 'bracket.round.quarterFinal',
-  semi_final: 'bracket.round.semiFinal',
-  final: 'bracket.round.final',
+  round_of_32: 'stage.name.roundOf32',
+  knockout_playoff: 'stage.name.knockoutPlayOffs',
+  round_of_16: 'stage.name.roundOf16',
+  quarter_final: 'stage.name.quarterFinals',
+  semi_final: 'stage.name.semiFinals',
+  final: 'stage.name.final',
 };
 
 const asLocale = (locale: string): Locale => (isLocale(locale) ? locale : DEFAULT_LOCALE);

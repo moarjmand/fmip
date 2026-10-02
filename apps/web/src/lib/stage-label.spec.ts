@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '@/i18n/messages';
 import { stageName } from '@/lib/competition';
-import { STAGE_KEYS, stageLabel, type StageKey } from '@/lib/stage-label';
+import { STAGE_KEYS, stageAndRound, stageLabel, type StageKey } from '@/lib/stage-label';
 
 const sayIn =
   (locale: 'en' | 'fa') =>
@@ -86,5 +86,22 @@ describe('stage and round labels (T-1339)', () => {
   it('serves server pages through stageName', () => {
     expect(stageName('fa', 'League A - 1')).toBe('لیگ A، هفته‌ی ۱');
     expect(stageName('en', 'League A - 1')).toBe('League A - 1');
+  });
+});
+
+describe('stageAndRound (T-1343)', () => {
+  it('drops the stage when the round already names it', () => {
+    expect(stageAndRound('League A', 'League A - 2')).toEqual(['League A - 2']);
+    expect(stageAndRound('Regular Season', 'Regular Season - 12')).toEqual(['Regular Season - 12']);
+    expect(stageAndRound('Final', 'Final')).toEqual(['Final']);
+    expect(fa(stageAndRound('League A', 'League A - 2').join())).toBe('لیگ A، هفته‌ی ۲');
+  });
+
+  it('keeps both when they differ, and leaves out what is missing', () => {
+    expect(stageAndRound('Group Stage', 'Group A - 2')).toEqual(['Group Stage', 'Group A - 2']);
+    expect(stageAndRound('League A', 'League AB - 2')).toEqual(['League A', 'League AB - 2']);
+    expect(stageAndRound(null, 'Round of 16')).toEqual(['Round of 16']);
+    expect(stageAndRound('League Stage', null)).toEqual(['League Stage']);
+    expect(stageAndRound(undefined, '')).toEqual([]);
   });
 });
