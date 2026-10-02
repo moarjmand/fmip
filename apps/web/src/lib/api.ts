@@ -111,6 +111,8 @@ import type {
   TerritoriesResponse,
   ViewingTerritoryResponse,
   ViewingBatchResponse,
+  ViewingCompetitionsResponse,
+  ViewingUpcomingResponse,
   TeamsResponse,
   TranslationDesk,
   TranslationQueue,
@@ -1212,6 +1214,35 @@ export function fetchBroadcasters(
   cookie: string | undefined,
 ): Promise<ApiResult<BroadcastersResponse>> {
   return apiRequest<BroadcastersResponse>('/admin/viewing/broadcasters', { cookie });
+}
+
+/**
+ * The Watch listings console's competitions (T-1361): each active one with its
+ * current season, that season's viewing coverage in the territory and its
+ * standing defaults. Editors and administrators only; a 403 is how the
+ * console learns the viewer is neither.
+ */
+export function fetchViewingCompetitions(
+  territory: string,
+  cookie: string | undefined,
+): Promise<ApiResult<ViewingCompetitionsResponse>> {
+  return apiRequest<ViewingCompetitionsResponse>(
+    `/admin/viewing/competitions?territory=${encodeURIComponent(territory)}`,
+    { cookie },
+  );
+}
+
+/** One competition's next `days` days in a territory, with its defaults and every listing (T-1361). */
+export function fetchViewingUpcoming(
+  competitionId: string,
+  territory: string,
+  days: number,
+  cookie: string | undefined,
+): Promise<ApiResult<ViewingUpcomingResponse>> {
+  const p = new URLSearchParams({ competition: competitionId, territory, days: String(days) });
+  return apiRequest<ViewingUpcomingResponse>(`/admin/viewing/upcoming?${p.toString()}`, {
+    cookie,
+  });
 }
 
 /** The member's stored viewing territory (T-312), for a surface with no match to ask about. */

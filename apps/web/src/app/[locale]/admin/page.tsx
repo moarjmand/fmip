@@ -159,6 +159,9 @@ export default async function AdminPage({
         <Link href={`/${locale}/admin/news`} className="underline">
           News desk
         </Link>
+        <Link href={`/${locale}/admin/viewing`} className="underline">
+          Watch listings
+        </Link>
         <Link href={`/${locale}/admin/moderation`} className="underline">
           Moderation queue
         </Link>
