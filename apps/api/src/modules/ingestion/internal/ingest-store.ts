@@ -735,12 +735,37 @@ export class IngestStore implements SquadStore {
     );
     let changed = rowCount ?? 0;
 
+    const listed: { player: NormalisedSideLineup['players'][number]; personId: string }[] = [];
     for (const player of lineup.players) {
       const personId = await this.resolveRef(provider, 'person', player.externalId, player);
       if (personId === null || personId === IGNORED) {
         // Set aside by a reviewer (T-1338): skipped, and no gap to report.
         if (personId === null) unresolved.push(`person:${player.externalId}`);
         continue;
+      }
+      listed.push({ player, personId });
+    }
+
+    // The feed is the whole side (T-539): a player it no longer lists was a
+    // provider correction, so their row goes. An empty feed removes nothing.
+    if (lineup.players.length > 0) {
+      const { rowCount: removed } = await this.pool.query(
+        `DELETE FROM lineup WHERE participant_id = $1 AND NOT (person_id = ANY($2::uuid[]))`,
+        [participantId, listed.map((entry) => entry.personId)],
+      );
+      changed += removed ?? 0;
+    }
+
+    for (const { player, personId } of listed) {
+      if (player.shirtNumber !== null) {
+        // A shirt the provider moved to this player is released by its former
+        // holder first, or the unique (participant, shirt) index refuses it.
+        const { rowCount: released } = await this.pool.query(
+          `UPDATE lineup SET shirt_number = NULL
+            WHERE participant_id = $1 AND shirt_number = $2 AND person_id <> $3`,
+          [participantId, player.shirtNumber, personId],
+        );
+        changed += released ?? 0;
       }
       const { rowCount: written } = await this.pool.query(
         `INSERT INTO lineup (participant_id, person_id, role, shirt_number, position, is_captain)
