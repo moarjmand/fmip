@@ -98,6 +98,7 @@ media volume (T-1320, T-1322) was in no backup.
 |---|---|---|---|
 | `[x]` T-1341 | The media volume in the nightly backup (`<remote>/media/`, copied not synced; the remote's pruning reads the top level only), and `pull-copy.sh` for a dated copy on the maintainer's machine: dump and manifest (sha256 checked), media as one `media.tar`, a bundle of the repository, `INFO.txt`; secrets never copied | T-072, T-1320 | The next nightly run records the media count in `backup_run`; `pull-copy.sh /e/Backup` writes a copy whose dump matches its manifest and whose bundle verifies |
 | `[x]` T-1344 | `rollout.sh` prunes BuildKit cache older than `ROLLOUT_BUILD_CACHE_HOURS` (default 72) after each rollout: the cache had reached 57 GB of the 75 GB disk (85 % used; 46 % after a manual prune on 2026-10-01) | T-074 | A rollout ends with the prune line in its log; `docker system df` shows no build cache older than three days |
+| `[x]` T-1350 | A match a day or more ahead is never shown as played: the API-Football adapter drops a fixture it is told is live or finished when its kick-off is at least 24 hours after the answer arrived, as it drops an unknown status. On production the provider listed AFCON qualifier 1545957 (Tunisia v Botswana, 28 March 2027) as "FT" 2-2, and group H counted it | T-1333 | `api-football.spec.ts`: "FT" and "1H" a day ahead give no fixture; "NS" and "PST" a day ahead and "FT" within the day are kept |
 
 ## Upkeep
 
