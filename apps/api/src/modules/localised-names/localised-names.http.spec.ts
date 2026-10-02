@@ -162,6 +162,39 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       }
     });
 
+    it("names a country without an ISO code by its national team's name row (T-1346)", async () => {
+      // QQ? is no FIFA code, so the test never meets a real country.
+      const code = `QQ${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`;
+      const country = randomUUID();
+      const team = randomUUID();
+      await pool.query(`INSERT INTO country (id, code, name) VALUES ($1, $2, $3)`, [
+        country,
+        code,
+        `Test Nation ${RUN}`,
+      ]);
+      try {
+        const names = app.get(LocalisedNamesService);
+        const payload = { group: { country: { id: country, name: `Test Nation ${RUN}` } } };
+        // No ISO code and no team: its own name.
+        expect((await names.localise(payload, 'fa')).group.country.name).toBe(`Test Nation ${RUN}`);
+        await pool.query(
+          `INSERT INTO team (id, name, kind, gender, country_id) VALUES ($1, $2, 'national', 'men', $3)`,
+          [team, `Test Nation ${RUN}`, country],
+        );
+        await pool.query(
+          `INSERT INTO entity_alias (entity_type, entity_id, alias, language, kind, source)
+           VALUES ('team', $1, 'ملت آزمایشی', 'fa', 'name', 'test')`,
+          [team],
+        );
+        expect((await names.localise(payload, 'fa')).group.country.name).toBe('ملت آزمایشی');
+        expect((await names.localise(payload, 'en')).group.country.name).toBe(`Test Nation ${RUN}`);
+      } finally {
+        await pool.query(`DELETE FROM entity_alias WHERE entity_id = $1`, [team]);
+        await pool.query(`DELETE FROM team WHERE id = $1`, [team]);
+        await pool.query(`DELETE FROM country WHERE id = $1`, [country]);
+      }
+    });
+
     it('keeps the canonical names without a locale, and with one nobody has written', async () => {
       for (const locale of ['', 'de-x', '!!']) {
         const { group, card } = ours(await scores(locale));
