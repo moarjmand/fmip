@@ -114,4 +114,43 @@ describe('viewing.mjs parseArgs', () => {
       dryRun: false,
     });
   });
+
+  it('reads the next days of a competition, and lists one match by its provider id (T-1362)', () => {
+    expect(parseArgs(['--upcoming', '--competition', '290', '--territory', 'ir'])).toEqual({
+      command: 'upcoming',
+      competition: '290',
+      territory: 'IR',
+      days: 2,
+    });
+    expect(
+      parseArgs(['--upcoming', '--competition', '290', '--territory', 'IR', '--days', '30']).error,
+    ).toMatch(/1 to 21/);
+    const list = [
+      '--list',
+      '--fixture',
+      '1500001',
+      '--territory',
+      'IR',
+      '--broadcaster',
+      BROADCASTER,
+      '--access',
+      'free',
+      '--url',
+      'https://tv.test/live/tv3',
+      '--note',
+      'the daily published schedule',
+    ];
+    expect(parseArgs(list).error).toMatch(/--by is required/);
+    expect(parseArgs([...list, '--by', 'ed@test'])).toMatchObject({
+      command: 'list',
+      fixture: '1500001',
+      territory: 'IR',
+      broadcaster: BROADCASTER,
+      dryRun: false,
+    });
+    expect(parseArgs([...list.slice(0, -2), '--by', 'ed@test']).error).toMatch(/--note/);
+    expect(parseArgs(['--list', '--territory', 'IR', '--by', 'ed@test']).error).toMatch(
+      /--fixture/,
+    );
+  });
 });

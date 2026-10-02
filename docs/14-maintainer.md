@@ -895,6 +895,10 @@ viewing --set-default --competition 39 --territory IR --broadcaster <broadcaster
         --url https://example.test/live --note "the broadcaster's published schedule" --by you@your-domain
 viewing --list-defaults --territory IR
 viewing --remove-default --id <default id> --reason "the rights moved" --by you@your-domain
+
+# One match on one more service, from the day's published schedule (T-1362):
+viewing --upcoming --competition 290 --territory IR --days 2     # provider ids, Tehran times, what is listed
+viewing --list --fixture <provider fixture id> --territory IR --broadcaster <broadcaster id> --access free         --url https://example.test/live/tv3 --note "the day's published schedule" --by you@your-domain
 ```
 
 Add `--dry-run` to any write to see what it would do and keep nothing.
