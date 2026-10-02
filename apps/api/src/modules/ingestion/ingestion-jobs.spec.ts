@@ -177,17 +177,21 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
   afterAll(async () => {
     if (pool === undefined) return;
     await pool.query(`DELETE FROM coverage_profile WHERE season_id = $1`, [SEASON]);
-    await pool.query(`DELETE FROM fixture WHERE season_id = $1`, [SEASON]);
-    // Only what this run made. The second clause used to take every
-    // api_football fixture mapping in the database, which is fine against an
-    // empty CI database and destroys a development one that holds a real
-    // catalogue: the mappings vanish, the next ingestion cannot find the
-    // fixtures it already wrote, and writes them a second time.
+    // Only what this run made: the mappings it wrote itself, and the fixture
+    // mappings the jobs wrote for this spec's season -- read before the
+    // fixtures go. The second clause used to take every api_football fixture
+    // mapping in the database, which destroys a development catalogue; then
+    // every one first seen since this run started, which still took the
+    // mappings suites running beside it in CI had just written (T-1342: the
+    // two ids data-quality.http.spec.ts gives one fixture vanished between
+    // two of its sweeps, and five of its tests failed).
     await pool.query(
       `DELETE FROM provider_mapping WHERE id = ANY($1::uuid[])
-          OR (provider = 'api_football' AND entity_type = 'fixture' AND first_seen_at >= $2)`,
-      [mappings, startedAt],
+          OR (provider = 'api_football' AND entity_type = 'fixture'
+              AND internal_id IN (SELECT id FROM fixture WHERE season_id = $2))`,
+      [mappings, SEASON],
     );
+    await pool.query(`DELETE FROM fixture WHERE season_id = $1`, [SEASON]);
     // Give back whatever this run took over.
     for (const row of borrowed) {
       await pool.query(
