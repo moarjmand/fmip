@@ -37,21 +37,40 @@ describe('what a downloaded image may be (T-1320)', () => {
     }
   });
 
-  it('refuses a type outside the four, a mismatch, an empty body and anything past the cap', () => {
+  it('refuses a type outside the four, an empty body and anything past the cap', () => {
     expect(assessImage(200, 'image/gif', PNG, new Set())).toMatchObject({ kind: 'failed' });
     expect(assessImage(200, 'text/html', Buffer.from('<html>'), new Set())).toMatchObject({
       kind: 'failed',
     });
     expect(assessImage(200, null, PNG, new Set())).toMatchObject({ kind: 'failed' });
-    expect(assessImage(200, 'image/jpeg', PNG, new Set())).toMatchObject({
-      kind: 'failed',
-      reason: 'declared image/jpeg, reads as image/png',
-    });
     expect(assessImage(200, 'image/png', Buffer.alloc(0), new Set())).toMatchObject({
       kind: 'failed',
     });
     const big = Buffer.concat([PNG, Buffer.alloc(MAX_BYTES)]);
     expect(assessImage(200, 'image/png', big, new Set())).toMatchObject({ kind: 'failed' });
+  });
+
+  it('stores a raster labelled as another raster under the type its bytes are (T-1345)', () => {
+    // API-Football's player photos: `image/png`, JPEG bytes.
+    expect(assessImage(200, 'image/png', JPEG, new Set())).toMatchObject({
+      kind: 'image',
+      contentType: 'image/jpeg',
+    });
+    expect(assessImage(200, 'image/png', WEBP, new Set())).toMatchObject({
+      kind: 'image',
+      contentType: 'image/webp',
+    });
+    const sha = sha256Of(JPEG);
+    expect(storageKey(sha, 'image/jpeg')).toMatch(/\.jpg$/);
+    // SVG on either side of a mismatch is still refused.
+    expect(assessImage(200, 'image/svg+xml', PNG, new Set())).toMatchObject({ kind: 'failed' });
+    expect(assessImage(200, 'image/png', SVG, new Set())).toMatchObject({
+      kind: 'failed',
+      reason: 'declared image/png, reads as image/svg+xml',
+    });
+    expect(assessImage(200, 'image/png', Buffer.from('not an image'), new Set())).toMatchObject({
+      kind: 'failed',
+    });
   });
 
   it('reads a 404 as the provider having no image, and any other status as a failure', () => {
