@@ -92,9 +92,7 @@ describe('stage and round labels (T-1339)', () => {
 describe('stageAndRound (T-1343)', () => {
   it('drops the stage when the round already names it', () => {
     expect(stageAndRound('League A', 'League A - 2')).toEqual(['League A - 2']);
-    expect(stageAndRound('Regular Season', 'Regular Season - 12')).toEqual([
-      'Regular Season - 12',
-    ]);
+    expect(stageAndRound('Regular Season', 'Regular Season - 12')).toEqual(['Regular Season - 12']);
     expect(stageAndRound('Final', 'Final')).toEqual(['Final']);
     expect(fa(stageAndRound('League A', 'League A - 2').join())).toBe('لیگ A، هفته‌ی ۲');
   });

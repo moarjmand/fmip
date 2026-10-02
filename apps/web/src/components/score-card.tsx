@@ -116,9 +116,7 @@ export function ScoreCard({
     ),
     leg,
     aggregate,
-  ].filter(
-    (bit): bit is string => typeof bit === 'string' && bit !== '',
-  );
+  ].filter((bit): bit is string => typeof bit === 'string' && bit !== '');
   // What stays on the row under the teams: what changes the score's meaning.
   const rowBits = [showCompetition ? card.competition.name : null, leg, aggregate].filter(
     (bit): bit is string => bit !== null,
