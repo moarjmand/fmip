@@ -1,4 +1,5 @@
 import type { CoverageState, Covered } from './coverage';
+import type { FixtureStatus } from './scores';
 import type { ViewingTerritory } from './territory';
 
 /**
@@ -45,6 +46,8 @@ export interface ViewingOption {
   /** ISO 3166-1 alpha-2 of the territory the listing is for. */
   territory: string;
   source: ViewingSource;
+  /** True when a standing default created it (T-1360, D-181); false when an editor entered it by hand. */
+  from_default: boolean;
   /** When the source last confirmed it (rule 4). */
   last_updated_at: string;
 }
@@ -169,4 +172,130 @@ export interface HighlightRequest {
 /** `POST .../remove`: taking a listing or a highlight down needs a reason, which the audit row keeps. */
 export interface ViewingRemovalRequest {
   reason: string;
+}
+
+// ---------------------------------------------------------------------------
+// Defaults and bulk listing (T-1360, D-181): two labour savers for the desk.
+// A default says once that every match of a competition in a territory is on
+// one service, at one page; it is the audited act, and the listings it
+// creates carry `from_default`. Coverage still rules: a default lists only
+// the fixtures of a season the desk declared covered for the territory, and
+// removing one of its listings is an exception it never re-creates.
+// ---------------------------------------------------------------------------
+
+/** A standing default: this competition, in this territory, on this service, at this page. */
+export interface ViewingDefault {
+  id: string;
+  competition: { id: string; name: string };
+  territory: string;
+  broadcaster: Broadcaster;
+  access: ViewingAccess;
+  url: string;
+  /** Which public schedule it is based on. */
+  note: string;
+  /** How many listings it created that still stand. */
+  listings: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/** `POST /admin/viewing/defaults`: refused unless the competition's current season is covered in the territory. */
+export interface ViewingDefaultRequest {
+  competition_id: string;
+  territory: string;
+  broadcaster_id: string;
+  access: ViewingAccess;
+  /** The official destination; `http(s)` only. */
+  url: string;
+  /** Which public schedule this is based on. Required; recorded. */
+  note: string;
+}
+
+/** The default as created, and how many listings applying it created at once. */
+export interface ViewingDefaultResponse {
+  default: ViewingDefault;
+  applied: number;
+}
+
+/** `GET /admin/viewing/defaults?competition=<id>&territory=<code>`: the standing ones, both filters optional. */
+export interface ViewingDefaultsResponse {
+  defaults: ViewingDefault[];
+}
+
+// `POST /admin/viewing/defaults/:id/remove` takes a `ViewingRemovalRequest`.
+// It deletes the default's listings for matches not yet kicked off; those of
+// matches already played stay, because they were true.
+
+/** One competition as the desk picks it: its current season and that season's viewing coverage in the territory. */
+export interface ViewingCompetition {
+  id: string;
+  name: string;
+  short_name: string | null;
+  /** The current season; `null` when the competition has none. */
+  season: { id: string; label: string } | null;
+  /** The declared viewing coverage of that season in the territory; `null` when nothing was declared. */
+  coverage: CoverageState | null;
+  /** Standing defaults for the competition in the territory. */
+  defaults: number;
+}
+
+/** `GET /admin/viewing/competitions?territory=<code>`: the active competitions, by name. */
+export interface ViewingCompetitionsResponse {
+  territory: string;
+  competitions: ViewingCompetition[];
+}
+
+/** One upcoming match in the desk's bulk view, with what is listed for it in the territory. */
+export interface ViewingUpcomingFixture {
+  id: string;
+  kickoff_at: string;
+  status: FixtureStatus;
+  season_id: string;
+  stage: { id: string; name: string; kind: string } | null;
+  round: string | null;
+  leg: 1 | 2 | null;
+  /** `null` while a side is not yet known. */
+  home: { id: string; name: string } | null;
+  away: { id: string; name: string } | null;
+  /** Whether this match's own season is covered (viewing, available or limited) in the territory: what bulk listing requires. */
+  covered: boolean;
+  /** Every listing for it in the territory, whatever the coverage says. */
+  options: ViewingOption[];
+}
+
+/** `GET /admin/viewing/upcoming?competition=<id>&territory=<code>&days=<1..21, default 7>`. */
+export interface ViewingUpcomingResponse {
+  competition: { id: string; name: string };
+  territory: string;
+  /** The window: from three hours ago to `days` from now. */
+  from: string;
+  to: string;
+  days: number;
+  /** The current season and its declared viewing coverage in the territory (`null`: nothing declared). */
+  season: { id: string; label: string } | null;
+  coverage: CoverageState | null;
+  /** The standing defaults for the competition in the territory. */
+  defaults: ViewingDefault[];
+  /** By kickoff. */
+  fixtures: ViewingUpcomingFixture[];
+}
+
+/** The most fixtures one bulk request may list. */
+export const VIEWING_BULK_MAX = 100;
+
+/** `POST /admin/viewing/bulk-options`: one service on many matches; refused whole if any match's season is not covered. */
+export interface ViewingBulkRequest {
+  territory: string;
+  broadcaster_id: string;
+  access: ViewingAccess;
+  url: string;
+  /** 1 to `VIEWING_BULK_MAX` fixture ids. */
+  fixture_ids: string[];
+}
+
+export interface ViewingBulkResponse {
+  /** Listings created; each is its own audit row, as a single listing is. */
+  created: number;
+  /** The fixtures already listed on that service in that territory, left as they were. */
+  skipped: string[];
 }

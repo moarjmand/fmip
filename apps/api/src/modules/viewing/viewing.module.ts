@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
+import { FailureCountsModule } from '../failure-counts/failure-counts.module';
 import { IdentityModule } from '../identity/identity.module';
 import { ProfileModule } from '../profile/profile.module';
 import { PostgresViewingAdminStore } from './internal/viewing-admin-store';
 import { PostgresViewingReadStore } from './internal/viewing-read-store';
 import { ViewingAdminController } from './viewing-admin.controller';
 import { ViewingController } from './viewing.controller';
+import { ViewingDefaultsSchedulerService } from './viewing-defaults-scheduler.service';
 import { ViewingService } from './viewing.service';
 
 /**
@@ -13,12 +15,18 @@ import { ViewingService } from './viewing.service';
  * source grants (T-311), from the editorial desk until a licence says
  * otherwise (T-313, D-069). Its own boundary: not on the critical path
  * (rule 9), so a match, its score and its forecast never depend on it, and it
- * imports only identity (who is asking) and profile (their territory).
+ * imports only identity (who is asking), profile (their territory) and
+ * failure counts (the defaults job's failures, T-1360).
  */
 @Module({
-  imports: [IdentityModule, ProfileModule],
+  imports: [IdentityModule, ProfileModule, FailureCountsModule],
   controllers: [ViewingController, ViewingAdminController],
-  providers: [PostgresViewingReadStore, PostgresViewingAdminStore, ViewingService],
+  providers: [
+    PostgresViewingReadStore,
+    PostgresViewingAdminStore,
+    ViewingService,
+    ViewingDefaultsSchedulerService,
+  ],
   exports: [ViewingService],
 })
 export class ViewingModule {}

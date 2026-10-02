@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type {
   BroadcasterKind,
   CoverageState,
+  FixtureStatus,
   ViewingAccess,
   ViewingCoverageState,
   ViewingModule,
@@ -40,6 +41,88 @@ export type ListingOutcome =
 
 export type HighlightOutcome = 'set' | 'no_fixture' | 'no_territory' | 'not_covered';
 
+/** A standing default as the desk lists it (T-1360). */
+export interface DefaultRow {
+  id: string;
+  competition_id: string;
+  competition_name: string;
+  territory: string;
+  broadcaster_id: string;
+  broadcaster_name: string;
+  broadcaster_homepage_url: string | null;
+  broadcaster_kind: BroadcasterKind;
+  access: ViewingAccess;
+  url: string;
+  note: string;
+  listings: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface DefaultInput {
+  competition_id: string;
+  territory: string;
+  broadcaster_id: string;
+  access: ViewingAccess;
+  url: string;
+  note: string;
+}
+
+export type DefaultOutcome =
+  | { outcome: 'created'; id: string; applied: number }
+  | {
+      outcome:
+        | 'no_competition'
+        | 'no_territory'
+        | 'no_broadcaster'
+        | 'no_season'
+        | 'not_covered'
+        | 'already';
+    };
+
+export type BulkOutcome =
+  | { outcome: 'listed'; created: string[]; skipped: string[] }
+  | { outcome: 'no_territory' | 'no_broadcaster' }
+  | { outcome: 'no_fixture' | 'not_covered'; fixtures: string[] };
+
+export interface SeasonCoverageRow {
+  competition_id: string;
+  competition_name: string;
+  short_name: string | null;
+  season_id: string | null;
+  season_label: string | null;
+  coverage: CoverageState | null;
+  defaults: number;
+}
+
+export interface UpcomingRow {
+  id: string;
+  kickoff_at: Date;
+  status: FixtureStatus;
+  season_id: string;
+  round: string | null;
+  leg: 1 | 2 | null;
+  stage_id: string | null;
+  stage_name: string | null;
+  stage_kind: string | null;
+  home_id: string | null;
+  home_name: string | null;
+  away_id: string | null;
+  away_name: string | null;
+  covered: boolean;
+}
+
+/**
+ * Whether the desk declared a season covered for viewing in a territory: the
+ * precondition a default and a bulk listing share with the hourly job
+ * (`viewing_apply_defaults` says the same in the database).
+ */
+const COVERED = (season: string, territory: string): string =>
+  `EXISTS (SELECT 1 FROM viewing_coverage vc
+            WHERE vc.season_id = ${season} AND vc.territory = ${territory}
+              AND vc.module = 'viewing' AND vc.state IN ('available', 'limited')
+              AND vc.source_id = '${EDITORIAL_SOURCE}')`;
+
 interface Codeful {
   code?: string;
   constraint?: string;
@@ -48,7 +131,7 @@ interface Codeful {
 interface AuditEntry {
   actorId: string;
   action: string;
-  targetType: 'season' | 'broadcaster' | 'fixture';
+  targetType: 'season' | 'broadcaster' | 'fixture' | 'competition';
   targetId: string;
   reason: string;
   previous: Record<string, unknown> | null;
@@ -230,13 +313,22 @@ export class PostgresViewingAdminStore {
         broadcaster_id: string;
         access: ViewingAccess;
         url: string;
+        default_id: string | null;
       }>(
         `DELETE FROM viewing_option WHERE id = $1 AND fixture_id = $2
-         RETURNING territory, broadcaster_id, access, url`,
+         RETURNING territory, broadcaster_id, access, url, default_id`,
         [optionId, fixtureId],
       );
       const gone = rows[0];
       if (gone === undefined) return false;
+      // A listing a default made is an exception once removed: applying never puts it back (T-1360).
+      if (gone.default_id !== null) {
+        await client.query(
+          `INSERT INTO viewing_default_skip (default_id, fixture_id, created_by, reason)
+           VALUES ($1, $2, $3, $4) ON CONFLICT (default_id, fixture_id) DO NOTHING`,
+          [gone.default_id, fixtureId, actorId, reason],
+        );
+      }
       await record(client, {
         actorId,
         action: 'viewing.unlist',
@@ -313,6 +405,295 @@ export class PostgresViewingAdminStore {
       });
       return true;
     });
+  }
+
+  /**
+   * Applies the standing defaults (or the one named) through the database's
+   * one copy of the rule, `viewing_apply_defaults` (T-1360): how many
+   * listings each default created. A default that created none is absent.
+   */
+  async applyDefaults(
+    only: string | null = null,
+    client: Pick<PoolClient, 'query'> = this.pool,
+  ): Promise<Map<string, number>> {
+    const { rows } = await client.query<{ applied_default: string; created: number }>(
+      `SELECT applied_default, created FROM viewing_apply_defaults($1::uuid)`,
+      [only],
+    );
+    return new Map(rows.map((r) => [r.applied_default, r.created]));
+  }
+
+  async defaults(filter: {
+    competition: string | null;
+    territory: string | null;
+    id?: string;
+  }): Promise<DefaultRow[]> {
+    const { rows } = await this.pool.query<DefaultRow>(
+      `SELECT d.id, d.competition_id, c.name AS competition_name, d.territory,
+              b.id AS broadcaster_id, b.name AS broadcaster_name,
+              b.homepage_url AS broadcaster_homepage_url, b.kind AS broadcaster_kind,
+              d.access, d.url, d.note, d.created_at, d.updated_at,
+              (SELECT count(*)::int FROM viewing_option o WHERE o.default_id = d.id) AS listings
+         FROM viewing_default d
+         JOIN competition c ON c.id = d.competition_id
+         JOIN broadcaster b ON b.id = d.broadcaster_id
+        WHERE d.removed_at IS NULL
+          AND ($1::uuid IS NULL OR d.competition_id = $1)
+          AND ($2::text IS NULL OR d.territory = $2)
+          AND ($3::uuid IS NULL OR d.id = $3)
+        ORDER BY c.name, d.territory, b.name, d.id`,
+      [filter.competition, filter.territory, filter.id ?? null],
+    );
+    return rows;
+  }
+
+  /**
+   * A default, created and applied in one transaction with its audit row:
+   * the default is the signed editorial act (D-181), its listings carry its
+   * id. Refused unless the competition's current season is covered in the
+   * territory, as a single listing is.
+   */
+  async createDefault(actorId: string, input: DefaultInput): Promise<DefaultOutcome> {
+    return this.transaction(async (client) => {
+      const competition = await client.query(`SELECT 1 FROM competition WHERE id = $1`, [
+        input.competition_id,
+      ]);
+      if ((competition.rowCount ?? 0) === 0) return { outcome: 'no_competition' };
+      const known = await client.query(`SELECT 1 FROM territory WHERE code = $1`, [
+        input.territory,
+      ]);
+      if ((known.rowCount ?? 0) === 0) return { outcome: 'no_territory' };
+      const broadcaster = await client.query(`SELECT 1 FROM broadcaster WHERE id = $1`, [
+        input.broadcaster_id,
+      ]);
+      if ((broadcaster.rowCount ?? 0) === 0) return { outcome: 'no_broadcaster' };
+      const season = await client.query<{ id: string; covered: boolean }>(
+        `SELECT s.id, ${COVERED('s.id', '$2')} AS covered
+           FROM season s WHERE s.competition_id = $1 AND s.is_current`,
+        [input.competition_id, input.territory],
+      );
+      const current = season.rows[0];
+      if (current === undefined) return { outcome: 'no_season' };
+      if (!current.covered) return { outcome: 'not_covered' };
+      let id: string;
+      try {
+        await client.query('SAVEPOINT viewing_default');
+        const { rows } = await client.query<{ id: string }>(
+          `INSERT INTO viewing_default
+             (competition_id, territory, broadcaster_id, access, url, note, created_by)
+           VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+          [
+            input.competition_id,
+            input.territory,
+            input.broadcaster_id,
+            input.access,
+            input.url,
+            input.note,
+            actorId,
+          ],
+        );
+        id = rows[0]!.id;
+      } catch (error) {
+        const failed = error as Codeful;
+        if (failed.code === '23505' && failed.constraint === 'viewing_default_one_active') {
+          await client.query('ROLLBACK TO SAVEPOINT viewing_default');
+          return { outcome: 'already' };
+        }
+        throw error;
+      }
+      const applied = (await this.applyDefaults(id, client)).get(id) ?? 0;
+      await record(client, {
+        actorId,
+        action: 'viewing.default_set',
+        targetType: 'competition',
+        targetId: input.competition_id,
+        reason: input.note,
+        previous: null,
+        next: {
+          default_id: id,
+          territory: input.territory,
+          broadcaster_id: input.broadcaster_id,
+          access: input.access,
+          url: input.url,
+          applied,
+        },
+      });
+      return { outcome: 'created', id, applied };
+    });
+  }
+
+  /**
+   * Removes a standing default with a reason: the row stays as history, and
+   * its listings for matches not yet kicked off go with it. Those of matches
+   * already under way or played stay -- they were true. Null when there is
+   * no standing default with that id.
+   */
+  async removeDefault(
+    actorId: string,
+    id: string,
+    reason: string,
+  ): Promise<{ deleted: number } | null> {
+    return this.transaction(async (client) => {
+      const { rows } = await client.query<{
+        competition_id: string;
+        territory: string;
+        broadcaster_id: string;
+        access: ViewingAccess;
+        url: string;
+        note: string;
+      }>(
+        `UPDATE viewing_default
+            SET removed_at = now(), removed_reason = $2, removed_by = $3
+          WHERE id = $1 AND removed_at IS NULL
+          RETURNING competition_id, territory, broadcaster_id, access, url, note`,
+        [id, reason, actorId],
+      );
+      const gone = rows[0];
+      if (gone === undefined) return null;
+      const deleted = await client.query(
+        `DELETE FROM viewing_option o USING fixture f
+          WHERE o.default_id = $1 AND f.id = o.fixture_id AND f.kickoff_at > now()`,
+        [id],
+      );
+      const count = deleted.rowCount ?? 0;
+      await record(client, {
+        actorId,
+        action: 'viewing.default_removed',
+        targetType: 'competition',
+        targetId: gone.competition_id,
+        reason,
+        previous: {
+          default_id: id,
+          territory: gone.territory,
+          broadcaster_id: gone.broadcaster_id,
+          access: gone.access,
+          url: gone.url,
+          note: gone.note,
+        },
+        next: { default_id: id, removed: true, deleted_listings: count },
+      });
+      return { deleted: count };
+    });
+  }
+
+  /**
+   * One service on many matches (T-1360): refused whole when a match is
+   * unknown or its season is not covered in the territory; a match already
+   * listed on that service is skipped and reported. One audit row per
+   * listing created, the same row a single listing writes.
+   */
+  async bulkList(
+    actorId: string,
+    input: {
+      territory: string;
+      broadcaster_id: string;
+      access: ViewingAccess;
+      url: string;
+      fixture_ids: string[];
+    },
+  ): Promise<BulkOutcome> {
+    return this.transaction(async (client) => {
+      const known = await client.query(`SELECT 1 FROM territory WHERE code = $1`, [
+        input.territory,
+      ]);
+      if ((known.rowCount ?? 0) === 0) return { outcome: 'no_territory' };
+      const broadcaster = await client.query(`SELECT 1 FROM broadcaster WHERE id = $1`, [
+        input.broadcaster_id,
+      ]);
+      if ((broadcaster.rowCount ?? 0) === 0) return { outcome: 'no_broadcaster' };
+      const { rows: fixtures } = await client.query<{ id: string; covered: boolean }>(
+        `SELECT f.id, ${COVERED('f.season_id', '$2')} AS covered
+           FROM fixture f WHERE f.id = ANY($1::uuid[])`,
+        [input.fixture_ids, input.territory],
+      );
+      const found = new Set(fixtures.map((f) => f.id));
+      const missing = input.fixture_ids.filter((id) => !found.has(id));
+      if (missing.length > 0) return { outcome: 'no_fixture', fixtures: missing };
+      const uncovered = fixtures.filter((f) => !f.covered).map((f) => f.id);
+      if (uncovered.length > 0) return { outcome: 'not_covered', fixtures: uncovered };
+      const { rows } = await client.query<{ id: string; fixture_id: string }>(
+        `INSERT INTO viewing_option (fixture_id, territory, broadcaster_id, source_id, access, url)
+         SELECT f, $2, $3, $4, $5, $6 FROM unnest($1::uuid[]) AS f
+         ON CONFLICT ON CONSTRAINT viewing_option_one_per_service DO NOTHING
+         RETURNING id, fixture_id`,
+        [
+          input.fixture_ids,
+          input.territory,
+          input.broadcaster_id,
+          EDITORIAL_SOURCE,
+          input.access,
+          input.url,
+        ],
+      );
+      for (const row of rows) {
+        await record(client, {
+          actorId,
+          action: 'viewing.list',
+          targetType: 'fixture',
+          targetId: row.fixture_id,
+          reason: 'entered by the editorial desk',
+          previous: null,
+          next: {
+            option_id: row.id,
+            territory: input.territory,
+            broadcaster_id: input.broadcaster_id,
+            access: input.access,
+            url: input.url,
+          },
+        });
+      }
+      const created = new Set(rows.map((r) => r.fixture_id));
+      return {
+        outcome: 'listed',
+        created: rows.map((r) => r.id),
+        skipped: input.fixture_ids.filter((id) => !created.has(id)),
+      };
+    });
+  }
+
+  /** Active competitions (or the one named) with the current season's viewing coverage in a territory. */
+  async seasonCoverage(
+    territory: string,
+    competition: string | null,
+  ): Promise<SeasonCoverageRow[]> {
+    const { rows } = await this.pool.query<SeasonCoverageRow>(
+      `SELECT c.id AS competition_id, c.name AS competition_name, c.short_name,
+              s.id AS season_id, s.label AS season_label, vc.state AS coverage,
+              (SELECT count(*)::int FROM viewing_default d
+                WHERE d.competition_id = c.id AND d.territory = $1
+                  AND d.removed_at IS NULL) AS defaults
+         FROM competition c
+         LEFT JOIN season s ON s.competition_id = c.id AND s.is_current
+         LEFT JOIN viewing_coverage vc
+           ON vc.season_id = s.id AND vc.territory = $1 AND vc.module = 'viewing'
+        WHERE ($2::uuid IS NULL AND c.is_active) OR c.id = $2
+        ORDER BY c.name, c.id`,
+      [territory, competition],
+    );
+    return rows;
+  }
+
+  /** The competition's matches from three hours ago to `days` ahead, by kickoff, each with whether its season is covered. */
+  async upcoming(competition: string, territory: string, days: number): Promise<UpcomingRow[]> {
+    const { rows } = await this.pool.query<UpcomingRow>(
+      `SELECT f.id, f.kickoff_at, f.status, f.season_id, f.round, f.leg,
+              st.id AS stage_id, st.name AS stage_name, st.kind AS stage_kind,
+              h.id AS home_id, h.name AS home_name, a.id AS away_id, a.name AS away_name,
+              ${COVERED('f.season_id', '$2')} AS covered
+         FROM fixture f
+         JOIN season s ON s.id = f.season_id
+         LEFT JOIN stage st ON st.id = f.stage_id
+         LEFT JOIN fixture_participant hp ON hp.fixture_id = f.id AND hp.side = 'home'
+         LEFT JOIN team h ON h.id = hp.team_id
+         LEFT JOIN fixture_participant ap ON ap.fixture_id = f.id AND ap.side = 'away'
+         LEFT JOIN team a ON a.id = ap.team_id
+        WHERE s.competition_id = $1
+          AND f.kickoff_at >= now() - interval '3 hours'
+          AND f.kickoff_at <= now() + make_interval(days => $3::int)
+        ORDER BY f.kickoff_at, f.id`,
+      [competition, territory, days],
+    );
+    return rows;
   }
 
   /** Whether the desk declared this match's season covered in this territory for the module -- the precondition for entering a row. */

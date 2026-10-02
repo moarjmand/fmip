@@ -23,6 +23,7 @@ const option: ViewingOption = {
   url: 'https://varzesh.test/live',
   territory: 'IR',
   source: desk,
+  from_default: false,
   last_updated_at: '2026-09-18T10:00:00Z',
 };
 

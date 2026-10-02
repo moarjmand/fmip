@@ -87,6 +87,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('viewing sche
       await pool.query(`DELETE FROM viewing_source WHERE id = ANY($1::uuid[])`, [sources]);
     }
     if (broadcasters.length > 0) {
+      await pool.query(`DELETE FROM viewing_default WHERE broadcaster_id = ANY($1::uuid[])`, [
+        broadcasters,
+      ]);
       await pool.query(`DELETE FROM broadcaster WHERE id = ANY($1::uuid[])`, [broadcasters]);
     }
     await pool.end();
@@ -204,5 +207,37 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('viewing sche
         [listing],
       ),
     ).rejects.toSatisfy((e) => constraintOf(e) === 'viewing_source_dropped_is_whole');
+  });
+
+  it('keeps one standing default per competition, territory and service, and a removal whole (T-1360)', async () => {
+    const tv = await broadcaster('Default');
+    const { rows } = await pool.query<{ competition_id: string }>(
+      `SELECT competition_id FROM season WHERE id = $1`,
+      [PL_2025],
+    );
+    const competition = rows[0]!.competition_id;
+    const add = (url = 'https://tv.test/live', note = `schedule ${RUN}`) =>
+      pool.query<{ id: string }>(
+        `INSERT INTO viewing_default (competition_id, territory, broadcaster_id, access, url, note)
+         VALUES ($1, 'GB', $2, 'free', $3, $4) RETURNING id`,
+        [competition, tv, url, note],
+      );
+    await expect(add('tv.test/live')).rejects.toSatisfy(
+      (e) => constraintOf(e) === 'viewing_default_url_format',
+    );
+    await expect(add(undefined, ' ')).rejects.toSatisfy(
+      (e) => constraintOf(e) === 'viewing_default_note_not_blank',
+    );
+    const first = (await add()).rows[0]!.id;
+    await expect(add()).rejects.toSatisfy((e) => constraintOf(e) === 'viewing_default_one_active');
+    await expect(
+      pool.query(`UPDATE viewing_default SET removed_at = now() WHERE id = $1`, [first]),
+    ).rejects.toSatisfy((e) => constraintOf(e) === 'viewing_default_removed_is_whole');
+    await pool.query(
+      `UPDATE viewing_default SET removed_at = now(), removed_reason = 'rights moved' WHERE id = $1`,
+      [first],
+    );
+    // A removed default is history; a new one may stand in its place.
+    await add();
   });
 });
