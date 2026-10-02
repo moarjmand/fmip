@@ -81,7 +81,8 @@ describe('the knockout bracket in Persian', () => {
         }}
       />,
     );
-    expect(html).toContain('مرحله‌ی یک‌هشتم نهایی');
+    expect(html).toContain('>یک‌هشتم نهایی<');
+    expect(html).not.toContain('مرحله‌ی یک‌هشتم');
     expect(html).toContain('فینال');
     expect(html).toContain('۷ تقابل دیگر');
     expect(html).not.toContain('data-translation="untranslated"');
