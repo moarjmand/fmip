@@ -43,6 +43,7 @@ const REFUSING: Record<string, string> = {
   '/en/admin/analysis-reviews': 'analysis-queue-forbidden',
   '/en/admin/translations': 'translations-forbidden',
   '/en/admin/news': 'news-desk-forbidden',
+  '/en/admin/viewing': 'viewing-console-forbidden',
 };
 /** Pages that do not admit the area exists to a member without the role. */
 const HIDDEN = ['/en/admin', '/en/admin/campaigns'];

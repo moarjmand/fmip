@@ -903,3 +903,15 @@ audited as the console audits it. A competition is never named by its name.
 One match on another service: remove that listing on the match page (it will
 not come back), then list the right one. Removing a default deletes its
 listings for matches not yet kicked off and keeps the rest.
+
+The same work has a page (T-1361): **Admin → Watch listings**
+(`/en/admin/viewing`), open to editors and administrators. Choose a territory
+(IR unless you change it) and a competition; the page shows the current
+season's coverage there with a form to declare it, the broadcasters with a
+form to add one, the standing defaults (each removable with a reason) with a
+form to add one, and the next days' matches (7 unless `days` says otherwise,
+up to 21). Tick matches -- covered ones with nothing listed start ticked, an
+uncovered one cannot be ticked -- choose a service, an access and the official
+page, and press "List selected"; the page says how many listings it created
+and how many it left because they were already there. Each listing can be
+taken down with a reason below the table. Times are in UTC.
