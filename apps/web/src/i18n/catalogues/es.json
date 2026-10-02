@@ -10131,36 +10131,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "bracket.round.roundOf32": {
-    "source": "Round of 32",
-    "text": "",
-    "status": "untranslated"
-  },
-  "bracket.round.knockoutPlayoff": {
-    "source": "Knockout play-offs",
-    "text": "",
-    "status": "untranslated"
-  },
-  "bracket.round.roundOf16": {
-    "source": "Round of 16",
-    "text": "",
-    "status": "untranslated"
-  },
-  "bracket.round.quarterFinal": {
-    "source": "Quarter-finals",
-    "text": "",
-    "status": "untranslated"
-  },
-  "bracket.round.semiFinal": {
-    "source": "Semi-finals",
-    "text": "",
-    "status": "untranslated"
-  },
-  "bracket.round.final": {
-    "source": "Final",
-    "text": "",
-    "status": "untranslated"
-  },
   "stage.name.regularSeason": {
     "source": "Regular Season",
     "text": "",

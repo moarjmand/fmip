@@ -69,15 +69,42 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('platform rul
   /**
    * Take the test version away again. Any account another spec registered
    * while it was in force is put back on 1.0.0, which is what it would have
-   * accepted without this spec.
+   * accepted without this spec: its acceptance is moved to 1.0.0 rather than
+   * deleted, so it still has one.
+   *
+   * Suites run in parallel against the same database (T-1347), so this is one
+   * transaction that first locks the version row: a registration or an
+   * acceptance holds a key-share lock on it until it commits, so the lock
+   * waits for those already writing and holds off new ones, and the rows
+   * moved below are all there are when the version is deleted.
    */
   async function unpublish(): Promise<void> {
-    await pool.query(`DELETE FROM platform_rules_acceptance WHERE version = $1`, [NEXT]);
-    await pool.query(
-      `UPDATE user_account SET accepted_rules_version = $2 WHERE accepted_rules_version = $1`,
-      [NEXT, FIRST],
-    );
-    await pool.query(`DELETE FROM platform_rules_version WHERE version = $1`, [NEXT]);
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(`SELECT 1 FROM platform_rules_version WHERE version = $1 FOR UPDATE`, [
+        NEXT,
+      ]);
+      await client.query(
+        `UPDATE platform_rules_acceptance a SET version = $2
+          WHERE a.version = $1
+            AND NOT EXISTS (SELECT 1 FROM platform_rules_acceptance f
+                             WHERE f.user_id = a.user_id AND f.version = $2)`,
+        [NEXT, FIRST],
+      );
+      await client.query(`DELETE FROM platform_rules_acceptance WHERE version = $1`, [NEXT]);
+      await client.query(
+        `UPDATE user_account SET accepted_rules_version = $2 WHERE accepted_rules_version = $1`,
+        [NEXT, FIRST],
+      );
+      await client.query(`DELETE FROM platform_rules_version WHERE version = $1`, [NEXT]);
+      await client.query('COMMIT');
+    } catch (error: unknown) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   beforeAll(async () => {

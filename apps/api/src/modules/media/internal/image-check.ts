@@ -6,6 +6,12 @@
  * first bytes agree on one of four formats, and it is at most `MAX_BYTES`. An
  * SVG is also refused when it could run anything: it is served from our own
  * origin, and a script there would run as the site.
+ *
+ * One exception (T-1345): when both the header and the bytes name a raster
+ * format (PNG, JPEG, WebP) but different ones, the bytes win. API-Football
+ * serves player photos as `.png` addresses with `image/png` whose bytes are a
+ * JPEG; we store and serve the file under the type it really is, so nothing a
+ * browser is told is untrue. A mismatch involving SVG is still refused.
  */
 
 import { createHash } from 'node:crypto';
@@ -20,6 +26,8 @@ export type MediaContentType = (typeof MEDIA_CONTENT_TYPES)[number];
 
 /** A crest or a photo is a few kilobytes; anything past this is not one. */
 export const MAX_BYTES = 512 * 1024;
+
+const RASTER: ReadonlySet<string> = new Set(['image/png', 'image/jpeg', 'image/webp']);
 
 export const EXTENSION: Record<MediaContentType, string> = {
   'image/png': 'png',
@@ -126,7 +134,7 @@ export function assessImage(
     return { kind: 'failed', reason: `content type ${type || 'missing'}` };
   }
   const actual = sniff(bytes);
-  if (actual !== type) {
+  if (actual !== type && !(actual !== null && RASTER.has(actual) && RASTER.has(type))) {
     return { kind: 'failed', reason: `declared ${type}, reads as ${actual ?? 'unknown'}` };
   }
   if (actual === 'image/svg+xml') {
