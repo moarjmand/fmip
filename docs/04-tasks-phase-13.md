@@ -97,3 +97,9 @@ media volume (T-1320, T-1322) was in no backup.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-1341 | The media volume in the nightly backup (`<remote>/media/`, copied not synced; the remote's pruning reads the top level only), and `pull-copy.sh` for a dated copy on the maintainer's machine: dump and manifest (sha256 checked), media as one `media.tar`, a bundle of the repository, `INFO.txt`; secrets never copied | T-072, T-1320 | The next nightly run records the media count in `backup_run`; `pull-copy.sh /e/Backup` writes a copy whose dump matches its manifest and whose bundle verifies |
+
+## Upkeep
+
+| ID | Task | Deps | Acceptance |
+|---|---|---|---|
+| `[x]` T-1342 | `data-quality.http.spec.ts` deterministic: CI run 36930228120 (PR #516) failed five of its tests because `ingestion-jobs.spec.ts`, running beside it against the same database, cleaned up every api_football fixture mapping first seen since it started, which took the two ids the data-quality spec gives one fixture between two of its sweeps (the `fixture_mapped_twice` finding resolved, the re-ask of that fixture found nothing to ask). The ingestion spec now deletes only the mappings it wrote and the fixture mappings of its own season's fixtures, before those fixtures go | T-820, T-913 | Both specs pass together against one database; no other suite's provider mapping is deleted by `ingestion-jobs.spec.ts`; the data-quality spec's assertions are unchanged |
