@@ -2,6 +2,7 @@ import type { ScoreCard as ScoreCardData } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { ScoreCard } from './score-card';
+import { t } from '@/i18n/messages';
 import { scoresWords } from '@/lib/words-server';
 
 /**
@@ -52,8 +53,10 @@ const render = (locale: 'en' | 'fa', over: Partial<ScoreCardData> = {}): string 
 describe('a score card names the stage and round in the reader’s words', () => {
   it('says them in Persian on /fa', () => {
     const html = render('fa');
-    expect(html).toContain('<span>لیگ A</span>');
     expect(html).toContain('<span>لیگ A، هفته‌ی ۱</span>');
+    // Once (T-1343): the round already names the stage.
+    expect(html).not.toContain('<span>لیگ A</span>');
+    expect(html.split('لیگ A').length - 1).toBe(1);
     expect(html).not.toContain('League A');
     const league = render('fa', {
       stage: { id: 'st', name: 'Regular Season', kind: 'league' },
@@ -61,11 +64,20 @@ describe('a score card names the stage and round in the reader’s words', () =>
     });
     expect(league).toContain('<span>هفته‌ی ۱۲</span>');
     expect(league).not.toContain('Regular Season');
+    expect(league).not.toContain(t('fa', 'stage.name.regularSeason'));
+  });
+
+  it('keeps a stage the round does not name', () => {
+    const html = render('fa', {
+      stage: { id: 'st', name: 'Group Stage', kind: 'group' },
+      round: 'Group A - 2',
+    });
+    expect(html).toContain(`<span>${t('fa', 'stage.name.groupStage')}</span>`);
   });
 
   it('keeps the provider’s English on /en', () => {
     const html = render('en');
-    expect(html).toContain('<span>League A</span>');
     expect(html).toContain('<span>League A - 1</span>');
+    expect(html).not.toContain('<span>League A</span>');
   });
 });

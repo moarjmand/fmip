@@ -96,3 +96,19 @@ export function stageLabel(text: string, say: Say, locale: string): string {
   }
   return text;
 }
+
+/**
+ * The provider's stage and round to show, each once (T-1343): the stage is
+ * left out when the round already names it ("League A" with "League A - 2"
+ * is only «لیگ A، هفته‌ی ۲»; "Regular Season" with "Regular Season - 12" is
+ * only «هفته‌ی ۱۲»). Raw provider texts in, raw texts out, in reading order.
+ */
+export function stageAndRound(
+  stage: string | null | undefined,
+  round: string | null | undefined,
+): string[] {
+  const s = typeof stage === 'string' && stage !== '' ? stage : null;
+  const r = typeof round === 'string' && round !== '' ? round : null;
+  if (s !== null && r !== null && (r === s || r.startsWith(`${s} - `))) return [r];
+  return [s, r].filter((text): text is string => text !== null);
+}

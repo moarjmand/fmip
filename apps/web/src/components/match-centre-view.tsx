@@ -14,7 +14,7 @@ import { INCIDENT_KEY, NOT_YET, STAT_KEY, statValue } from '@/lib/match';
 import { isBehind } from '@/lib/live';
 import { formatKickoff, statusLabel } from '@/lib/scores';
 import { fill, filled, formatFixed, formatMinute } from '@/lib/words';
-import { stageLabel } from '@/lib/stage-label';
+import { stageAndRound, stageLabel } from '@/lib/stage-label';
 import type { MatchWords } from '@/lib/words-server';
 import { formatDate, formatDateTime } from '@/i18n/format';
 import { EntityImage } from '@/components/entity-image';
@@ -176,8 +176,7 @@ export function MatchCentreView({
             {f.competition.name}
           </Link>{' '}
           · {f.season.label}
-          {f.stage !== null ? ` · ${stage(f.stage.name)}` : ''}
-          {f.round !== null ? ` · ${stage(f.round)}` : ''}
+          {stageAndRound(f.stage?.name, f.round).map((text) => ` · ${stage(text)}`)}
           {f.group_name !== null
             ? ` · ${fill(m['matchCentre.group'].text, { group: f.group_name })}`
             : ''}

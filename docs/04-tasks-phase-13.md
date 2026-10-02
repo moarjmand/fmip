@@ -97,3 +97,9 @@ media volume (T-1320, T-1322) was in no backup.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-1341 | The media volume in the nightly backup (`<remote>/media/`, copied not synced; the remote's pruning reads the top level only), and `pull-copy.sh` for a dated copy on the maintainer's machine: dump and manifest (sha256 checked), media as one `media.tar`, a bundle of the repository, `INFO.txt`; secrets never copied | T-072, T-1320 | The next nightly run records the media count in `backup_run`; `pull-copy.sh /e/Backup` writes a copy whose dump matches its manifest and whose bundle verifies |
+
+## Upkeep
+
+| ID | Task | Deps | Acceptance |
+|---|---|---|---|
+| `[x]` T-1343 | Stage and round said once, in one wording: the knockout bracket's round names come from the `stage.name.*` keys `stageLabel` uses (the `bracket.round.*` keys are gone from every catalogue), and `stageAndRound` (`lib/stage-label.ts`) leaves the stage out when the round already names it ("League A" with "League A - 2"), on the score card and the match centre header | T-1339 | `bracket.spec.ts`: every round's label equals `stageLabel` of the provider's name in English and Persian («یک‌هشتم نهایی»); `score-card-stage.spec.tsx`: a Persian card shows «لیگ A، هفته‌ی ۱» once and no separate «لیگ A», a stage the round does not name stays; `stage-label.spec.ts` covers `stageAndRound` |
