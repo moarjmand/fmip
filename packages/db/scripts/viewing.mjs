@@ -43,6 +43,8 @@ const VERBS = [
   'set-default',
   'remove-default',
   'list-defaults',
+  'upcoming',
+  'list',
 ];
 const SWITCHES = [...VERBS, 'dry-run'];
 const VALUED = [
@@ -60,8 +62,10 @@ const VALUED = [
   'id',
   'reason',
   'by',
+  'fixture',
+  'days',
 ];
-const WRITES = ['add-broadcaster', 'declare', 'set-default', 'remove-default'];
+const WRITES = ['add-broadcaster', 'declare', 'set-default', 'remove-default', 'list'];
 
 const USAGE = `Usage (one verb per call; every write takes --by <e-mail of an admin or editor>):
   --list-broadcasters
@@ -72,6 +76,9 @@ const USAGE = `Usage (one verb per call; every write takes --by <e-mail of an ad
                 --access <${ACCESS.join('|')}> --url <official page> --note "<schedule>"
   --remove-default --id <default uuid> --reason "<why>"
   --list-defaults [--competition <..>] [--territory <XX>]
+  --upcoming --competition <api_football id or uuid> --territory <XX> [--days <1..21, default 2>]
+  --list --fixture <api_football id or uuid> --territory <XX> --broadcaster <uuid>
+         --access <${ACCESS.join('|')}> --url <official page> --note "<schedule>"
   Add --dry-run to any write to see what it would do and keep nothing.`;
 
 /**
@@ -120,6 +127,33 @@ export function parseArgs(argv) {
       competition: text('competition') === '' ? null : text('competition'),
       territory: territory === '' ? null : territory,
     };
+  }
+  if (verb === 'upcoming') {
+    const competition = text('competition');
+    const days = text('days') === '' ? 2 : Number(text('days'));
+    if (competition === '') {
+      return { error: '--competition is required: the api_football id or our uuid, never a name.' };
+    }
+    if (!TERRITORY.test(territory)) return { error: '--territory is ISO 3166-1 alpha-2: IR, GB.' };
+    if (!Number.isInteger(days) || days < 1 || days > 21) return { error: '--days is 1 to 21.' };
+    return { command: verb, competition, territory, days };
+  }
+  if (verb === 'list') {
+    const fixture = text('fixture');
+    const broadcaster = text('broadcaster');
+    const access = text('access');
+    const url = text('url');
+    const note = text('note');
+    if (fixture === '') return { error: '--fixture is required: the api_football id or our uuid.' };
+    if (!TERRITORY.test(territory)) return { error: '--territory is ISO 3166-1 alpha-2: IR, GB.' };
+    if (!UUID.test(broadcaster)) {
+      return { error: '--broadcaster is the broadcaster’s uuid (see --list-broadcasters).' };
+    }
+    if (!ACCESS.includes(access)) return { error: `--access must be one of ${ACCESS.join(', ')}.` };
+    if (!HTTP_URL.test(url)) return { error: '--url must be the official http(s) address.' };
+    if (note === '')
+      return { error: '--note is required: which public schedule this is based on.' };
+    return { command: verb, fixture, territory, broadcaster, access, url, note, by, dryRun };
   }
   if (verb === 'add-broadcaster') {
     const name = text('name');
@@ -436,6 +470,112 @@ async function listDefaults(client, options) {
   return 0;
 }
 
+/** A fixture by our uuid or by its api_football id; never by its teams' names. */
+async function fixtureOf(client, given) {
+  const { rows } = UUID.test(given)
+    ? await client.query(`SELECT id, season_id FROM fixture WHERE id = $1`, [given])
+    : await client.query(
+        `SELECT f.id, f.season_id FROM provider_mapping pm JOIN fixture f ON f.id = pm.internal_id
+          WHERE pm.provider = 'api_football' AND pm.entity_type = 'fixture' AND pm.external_id = $1`,
+        [given],
+      );
+  if (rows[0] === undefined) throw new Error(`No fixture ${given} (an api_football id or a uuid).`);
+  return rows[0];
+}
+
+/**
+ * The competition's matches in the next days, as an editor matching a
+ * published schedule needs them: the provider id to pass to --list, the
+ * kick-off in Tehran and UTC, both sides in Persian where a name row exists,
+ * and what is already listed in the territory (T-1362).
+ */
+async function upcoming(client, options) {
+  const competition = await competitionOf(client, options.competition);
+  const { rows } = await client.query(
+    `SELECT f.id, pm.external_id,
+            to_char(f.kickoff_at AT TIME ZONE 'Asia/Tehran', 'YYYY-MM-DD HH24:MI') AS tehran,
+            to_char(f.kickoff_at AT TIME ZONE 'UTC', 'HH24:MI') AS utc, f.status,
+            coalesce(ah.alias, th.name) AS home, coalesce(aa.alias, ta.name) AS away,
+            (SELECT string_agg(b.name || CASE WHEN o.default_id IS NULL THEN '' ELSE ' (default)' END,
+                               ', ' ORDER BY b.name)
+               FROM viewing_option o JOIN broadcaster b ON b.id = o.broadcaster_id
+              WHERE o.fixture_id = f.id AND o.territory = $2) AS listed
+       FROM fixture f
+       JOIN season s ON s.id = f.season_id AND s.competition_id = $1
+       LEFT JOIN provider_mapping pm
+         ON pm.internal_id = f.id AND pm.entity_type = 'fixture' AND pm.provider = 'api_football'
+       LEFT JOIN fixture_participant ph ON ph.fixture_id = f.id AND ph.side = 'home'
+       LEFT JOIN team th ON th.id = ph.team_id
+       LEFT JOIN entity_alias ah ON ah.entity_type = 'team' AND ah.entity_id = th.id
+                                AND ah.kind = 'name' AND ah.language = 'fa'
+       LEFT JOIN fixture_participant pa ON pa.fixture_id = f.id AND pa.side = 'away'
+       LEFT JOIN team ta ON ta.id = pa.team_id
+       LEFT JOIN entity_alias aa ON aa.entity_type = 'team' AND aa.entity_id = ta.id
+                                AND aa.kind = 'name' AND aa.language = 'fa'
+      WHERE f.kickoff_at >= now() - interval '3 hours'
+        AND f.kickoff_at < now() + make_interval(days => $3)
+      ORDER BY f.kickoff_at, f.id`,
+    [competition.id, options.territory, options.days],
+  );
+  if (rows.length === 0)
+    console.log(`No ${competition.name} match in the next ${options.days} day(s).`);
+  for (const r of rows) {
+    console.log(
+      `${r.external_id ?? r.id}  ${r.tehran} Tehran (${r.utc} UTC)  ${r.home} – ${r.away}  ${r.status}  listed: ${r.listed ?? 'nothing'}`,
+    );
+  }
+  return 0;
+}
+
+/**
+ * One match on one service, as the desk's own listing writes it: the season
+ * must be covered in the territory, a service already listed for the match is
+ * reported and left alone, and the same `viewing.list` audit row (T-1362).
+ */
+async function list(client, options, actorId) {
+  const fixture = await fixtureOf(client, options.fixture);
+  const covered = await client.query(
+    `SELECT 1 FROM viewing_coverage
+      WHERE season_id = $1 AND territory = $2 AND module = 'viewing'
+        AND state IN ('available', 'limited') AND source_id = $3`,
+    [fixture.season_id, options.territory, EDITORIAL_SOURCE],
+  );
+  if ((covered.rowCount ?? 0) === 0) {
+    throw new Error(
+      `This match's season is not declared covered for viewing in ${options.territory}: --declare first.`,
+    );
+  }
+  const { rows } = await client.query(
+    `INSERT INTO viewing_option (fixture_id, territory, broadcaster_id, source_id, access, url)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     ON CONFLICT (fixture_id, territory, broadcaster_id) DO NOTHING
+     RETURNING id`,
+    [
+      fixture.id,
+      options.territory,
+      options.broadcaster,
+      EDITORIAL_SOURCE,
+      options.access,
+      options.url,
+    ],
+  );
+  if (rows[0] === undefined) {
+    console.log(
+      `${options.fixture}: already listed on that service in ${options.territory}; nothing changed.`,
+    );
+    return 0;
+  }
+  await audit(client, actorId, 'viewing.list', 'fixture', fixture.id, options.note, null, {
+    option_id: rows[0].id,
+    territory: options.territory,
+    broadcaster_id: options.broadcaster,
+    access: options.access,
+    url: options.url,
+  });
+  console.log(`${rows[0].id}  ${options.fixture} listed in ${options.territory}.`);
+  return 0;
+}
+
 async function main() {
   const parsed = parseArgs(process.argv.slice(2));
   if (parsed.error !== undefined) {
@@ -448,6 +588,7 @@ async function main() {
   try {
     if (parsed.command === 'list-broadcasters') return await listBroadcasters(client);
     if (parsed.command === 'list-defaults') return await listDefaults(client, parsed);
+    if (parsed.command === 'upcoming') return await upcoming(client, parsed);
     await client.query('BEGIN');
     try {
       const actorId = await signer(client, parsed.by);
@@ -456,6 +597,7 @@ async function main() {
         declare,
         'set-default': setDefault,
         'remove-default': removeDefault,
+        list,
       }[parsed.command];
       const code = await work(client, parsed, actorId);
       if (parsed.dryRun || code !== 0) {
