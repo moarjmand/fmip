@@ -3,13 +3,15 @@
 -- Before T-1350 the adapter took API-Football's "FT" 2-2 for AFCON qualifier
 -- 1545957 (Tunisia v Botswana, kick-off 28 March 2027) as played, and group
 -- H's table counted it. T-1350 stops new ones; this puts back the one that
--- was stored: no score, no summary, scheduled again. Nothing was predicted
--- or settled on it (checked on production 2026-10-02). Any other fixture in
--- the same state is repaired the same way; there was none.
-DELETE FROM match_summary s
- USING fixture f
- WHERE s.fixture_id = f.id
-   AND f.status IN ('live', 'finished') AND f.kickoff_at > now() + interval '1 day';
+-- was stored: no score, scheduled again. Nothing was predicted or settled on
+-- it (checked on production 2026-10-02). Its summary row stays: it is the
+-- `skipped` decision (score only), never served, and summaries are immutable
+-- versions (rule 5). Any other fixture in the same state is repaired the same
+-- way; there was none.
+--
+-- The first version of this file also deleted that summary; the immutability
+-- trigger refused it and the migration rolled back on production, so it was
+-- never applied anywhere.
 DELETE FROM fixture_score s
  USING fixture f
  WHERE s.fixture_id = f.id
