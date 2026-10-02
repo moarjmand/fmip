@@ -34,6 +34,8 @@ export interface OptionRow {
   source_id: string;
   source_name: string;
   source_rights: ViewingRights;
+  /** The default that created it; null when entered by hand (T-1360). */
+  default_id: string | null;
 }
 
 export interface HighlightRow {
@@ -92,7 +94,8 @@ export class PostgresViewingReadStore {
       `SELECT o.id, o.fixture_id, o.territory, o.access, o.url, o.fetched_at,
               b.id AS broadcaster_id, b.name AS broadcaster_name,
               b.homepage_url AS broadcaster_homepage_url, b.kind AS broadcaster_kind,
-              s.id AS source_id, s.name AS source_name, s.rights AS source_rights
+              s.id AS source_id, s.name AS source_name, s.rights AS source_rights,
+              o.default_id
          FROM viewing_option o
          JOIN broadcaster b ON b.id = o.broadcaster_id
          JOIN viewing_source s ON s.id = o.source_id

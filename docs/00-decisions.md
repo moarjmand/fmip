@@ -8025,3 +8025,35 @@ fixtures run (a request per competition) or a group cache; the standings
 run already has them hourly. *Taking the home team's group alone*: a
 knockout match between two teams of one group, or a team the tables lost,
 would get a group the match is not in (rule 3).
+
+## D-181 — A default broadcaster per competition and territory is a signed editorial fact; its listings carry its id
+**Status:** Accepted · 2026-10-02 · **Task:** T-1360 · **Follows:** D-069, rule 3, rule 10
+
+**Context.** The editorial desk (D-069) entered every listing by hand: one
+match, one territory, one service. Most competitions are carried by one
+service in a territory for a whole season, from a public schedule the editor
+already reads, so the desk repeated the same fact for every match.
+
+**Decision.** An editor states it once: a `viewing_default` (competition,
+territory, broadcaster, access, official page, and a note naming the public
+schedule). The default is the audited act (`viewing.default_set`,
+`viewing.default_removed`); the listings it creates carry `default_id`
+(`from_default` in the contract) and write no audit row of their own.
+Applying is one database function, `viewing_apply_defaults`, called when a
+default is created, by an hourly job (queue `viewing-defaults`, only under
+`INGESTION_SCHEDULE=on`) and by `scripts/viewing.mjs`, so the rule cannot
+drift: covered seasons only (module `viewing`, `available` or `limited`,
+under the desk), kick-off no earlier than three hours ago, `scheduled` or
+`live` (a postponed match has no date), never over an existing listing for
+the same service. Exceptions are made by removal: removing a listing a
+default made writes a `viewing_default_skip`, and applying never re-creates
+it. Removing a default keeps it as history and deletes its listings for
+matches not yet kicked off; listings of matches under way or played stay,
+because they were true. Coverage still rules what readers see, the read
+path is unchanged, and every listing stays the desk's, link-only.
+
+**Rejected.** *Listing by default at read time* (no rows): a reader would
+see a listing nobody can remove for one match, and the Activity page would
+have nothing to show. *An audit row per auto-created listing*: thousands of
+rows saying the same thing the default's one row says. *Applying in the API
+and again in the script with their own SQL*: two copies drift.

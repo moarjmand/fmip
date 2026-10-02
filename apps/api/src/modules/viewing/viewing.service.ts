@@ -100,6 +100,19 @@ export class ViewingService {
       };
     });
   }
+
+  /**
+   * Every listing for these matches in one territory, whatever the coverage
+   * says: the desk's own view (T-1360), never a reader's. By fixture id.
+   */
+  async listings(fixtureIds: string[], territory: string): Promise<Map<string, ViewingOption[]>> {
+    const byFixture = new Map<string, ViewingOption[]>(fixtureIds.map((id) => [id, []]));
+    if (fixtureIds.length === 0) return byFixture;
+    for (const row of await this.store.options(fixtureIds, territory)) {
+      byFixture.get(row.fixture_id)?.push(option(row));
+    }
+    return byFixture;
+  }
 }
 
 /**
@@ -146,6 +159,7 @@ function option(row: OptionRow): ViewingOption {
     url: row.url,
     territory: row.territory,
     source: { id: row.source_id, name: row.source_name, rights: row.source_rights },
+    from_default: row.default_id !== null,
     last_updated_at: row.fetched_at.toISOString(),
   };
 }

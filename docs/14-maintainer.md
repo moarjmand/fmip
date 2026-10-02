@@ -870,3 +870,36 @@ What a reader then sees, and what is not there yet:
   the matches arrive with.
 - **People and grounds**: national-team line-ups bring players the clubs did
   not; `--adopt-people` and `--adopt-venues` as in section 2.
+
+## 12. Watch listings by default (T-1360)
+
+Instead of listing every match by hand, say once which service carries a
+competition in a territory; the listings follow (D-181). Coverage first, as
+always: a default is refused until the competition's current season is
+declared covered for viewing in that territory.
+
+```bash
+cd /opt/fmip
+viewing() { docker compose run --rm -T migrate node scripts/viewing.mjs "$@"; }
+
+viewing --list-broadcasters
+viewing --add-broadcaster --name "Varzesh TV" --kind tv --homepage https://example.test --by you@your-domain
+# prints the broadcaster's id (an existing one with exactly that name is printed, not duplicated)
+
+# Coverage of the competition's current season (39 = the provider's Premier League id; a uuid works too).
+viewing --declare --competition 39 --territory IR --module viewing --state available \
+        --note "the broadcaster's published schedule" --by you@your-domain
+
+# The default: creates it and lists the covered upcoming matches at once; the hourly job keeps it up.
+viewing --set-default --competition 39 --territory IR --broadcaster <broadcaster id> --access free \
+        --url https://example.test/live --note "the broadcaster's published schedule" --by you@your-domain
+viewing --list-defaults --territory IR
+viewing --remove-default --id <default id> --reason "the rights moved" --by you@your-domain
+```
+
+Add `--dry-run` to any write to see what it would do and keep nothing.
+`--by` must be an account holding `admin` or `editor`; every write is
+audited as the console audits it. A competition is never named by its name.
+One match on another service: remove that listing on the match page (it will
+not come back), then list the right one. Removing a default deletes its
+listings for matches not yet kicked off and keeps the rest.
