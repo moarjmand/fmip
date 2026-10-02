@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useId } from 'react';
 import type { ActionState } from '@/lib/auth-actions';
 import type { Message } from '@/i18n/messages';
 import { MessageText } from '@/components/message-text';
@@ -46,6 +46,10 @@ interface Props {
  */
 export function ActionForm({ action, fields, submitLabel, testId, labels }: Props) {
   const [state, formAction, pending] = useActionState(action, null);
+  // Two forms on one page may name the same field (the match page's desk, the
+  // Watch console): each form's ids are its own, so every label and every
+  // aria-describedby points at exactly one element (T-1363).
+  const formId = useId();
   const fieldErrors = state !== null && !state.ok ? (state.fields ?? {}) : {};
 
   return (
@@ -61,7 +65,7 @@ export function ActionForm({ action, fields, submitLabel, testId, labels }: Prop
 
       {fields.map((field) => {
         const common = {
-          id: `field-${field.name}`,
+          id: `${formId}field-${field.name}`,
           name: field.name,
           label: field.label,
           required: field.required,
