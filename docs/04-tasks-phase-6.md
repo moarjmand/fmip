@@ -193,6 +193,7 @@ about football -- a chat, a channel -- and let one member bring another.
 | `[x]` T-536 | The detail backlog reaches past seasons: a `--season` backfill's matches get their line-ups and incidents | T-102, T-512 | The post-match backlog asks every season of a polled competition, newest first; a spec proves a match before the polled season is owed |
 | `[x]` T-537 | A run left open by a stopped process no longer holds its job's lock | T-071 | A run open for more than two hours is closed as failed (`abandoned: ...`) when the next tick of that job starts; a spec proves the reclaim and that a fresh open run still blocks |
 | `[x]` T-538 | A shoot-out longer than thirty kicks no longer aborts a post-match run | T-102 | The API-Football adapter supplies no added time past the contract's 30 (the provider numbers shoot-out kicks 120+n); a spec proves a 34-kick shoot-out maps and validates |
+| `[x]` T-539 | A shirt number the provider moves to another player no longer aborts a line-up write | T-102 | The store drops the rows of players the feed no longer lists for a side, and releases a shirt from its former holder before writing it; an empty side removes nothing |
 
 **What v2 has to beat.** The first backtest (T-062, 2024/25 Premier League, 320
 forecasts) gave log loss 1.0170 against the market's 0.9811 and uniform's
@@ -491,3 +492,12 @@ time, past the contract's thirty minutes, and the insert refused them. It now
 supplies no added time past thirty; the sequence still orders the kicks. That
 match's detail is asked again with the rest when the next adoption clears the
 backlog (D-079).
+
+**T-539 done on 2026-10-02.** From 2026-10-01 18:50 UTC every `lineups` and
+`post_match` run that reached a Nations League match of that evening failed whole
+on `lineup_shirt_once`: for provider fixture 1528919 API-Football had first given
+Denmark's number 13 to one player and then corrected it to another. The upsert
+keys on the player, so the new holder's row collided with the old one's shirt,
+and the failed run also stalled the detail backlog. The store now treats the feed
+as the whole side: rows of players it no longer lists are deleted, and a shirt is
+released by its former holder before it is written.

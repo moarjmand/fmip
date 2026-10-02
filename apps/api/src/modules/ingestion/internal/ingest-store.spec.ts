@@ -133,4 +133,43 @@ describe('the ingest store and ids set aside (T-1338)', () => {
     expect(write.unresolved).toEqual(['person:8']);
     expect(statements.some((sql) => sql.includes('INSERT INTO lineup'))).toBe(false);
   });
+
+  it('moves a shirt the provider gave to another player, and drops a player it no longer lists', async () => {
+    // Provider fixture 1528919: Denmark's 13 was corrected from one player to
+    // another after the first line-up was stored (T-539).
+    const { pool, statements } = recordingPool();
+    const store = new IngestStore(
+      pool,
+      resolverOf({ 'person:533': '00000000-0000-4000-8000-000000000533' }),
+    );
+    const side = {
+      formation: null,
+      coach: null,
+      players: [{ externalId: '533', name: 'Corrected', shirtNumber: 13 }],
+    };
+    const lineup = { home: side, away: { ...side, players: [] } } as unknown as NormalisedLineup;
+
+    await store.saveLineup('api_football', 'fixture', lineup);
+
+    const lineupSql = statements.filter(
+      (sql) => sql.includes(' lineup ') && !sql.includes('formation'),
+    );
+    expect(lineupSql.map((sql) => sql.trim().split(/\s+/)[0])).toEqual([
+      'DELETE',
+      'UPDATE',
+      'INSERT',
+    ]);
+    expect(lineupSql[1]).toContain('SET shirt_number = NULL');
+  });
+
+  it('removes nothing when the feed lists no player for a side', async () => {
+    const { pool, statements } = recordingPool();
+    const store = new IngestStore(pool, resolverOf({}));
+    const empty = { formation: null, coach: null, players: [] };
+    const lineup = { home: empty, away: empty } as unknown as NormalisedLineup;
+
+    await store.saveLineup('api_football', 'fixture', lineup);
+
+    expect(statements.some((sql) => sql.includes('DELETE FROM lineup'))).toBe(false);
+  });
 });
