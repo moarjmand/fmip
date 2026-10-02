@@ -16,6 +16,8 @@
 #                            (unset = local only, and the script says so)
 #   BACKUP_KEEP_REMOTE_DAYS  remote copies older than this go     (default 90)
 #   BACKUP_RCLONE_CONFIG     rclone.conf with the remote          (default ~/.config/rclone/rclone.conf)
+#   BACKUP_MEDIA_VOLUME      the media volume copied to <remote>/media/ (default fmip_media,
+#                            `off` skips it; T-1341)
 #   PG_ARCHIVE_MODE          `on`: also the weekly base backup of point-in-time
 #                            recovery (pitr.sh base --if-due; T-845, D-157)
 #
@@ -44,6 +46,7 @@ BACKUP_DIR="${BACKUP_DIR:-./backups}"
 BACKUP_KEEP_LOCAL_DAYS="${BACKUP_KEEP_LOCAL_DAYS:-7}"
 BACKUP_KEEP_REMOTE_DAYS="${BACKUP_KEEP_REMOTE_DAYS:-90}"
 BACKUP_RCLONE_CONFIG="${BACKUP_RCLONE_CONFIG:-$HOME/.config/rclone/rclone.conf}"
+BACKUP_MEDIA_VOLUME="${BACKUP_MEDIA_VOLUME:-fmip_media}"
 
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 NAME="fmip-$STAMP"
@@ -120,8 +123,26 @@ if [ -n "${BACKUP_RCLONE_REMOTE:-}" ]; then
   fi
   echo "    verified $REMOTE_SIZE bytes on the remote"
   echo "==> prune remote copies older than $BACKUP_KEEP_REMOTE_DAYS days"
-  rclone delete --min-age "${BACKUP_KEEP_REMOTE_DAYS}d" "$BACKUP_RCLONE_REMOTE/"
+  # Only the top level: media/ and the point-in-time copies keep their own rules.
+  rclone delete --max-depth 1 --min-age "${BACKUP_KEEP_REMOTE_DAYS}d" "$BACKUP_RCLONE_REMOTE/"
   COPIES="off-provider copy verified, $REMOTE_SIZE bytes"
+
+  # --- crests, logos, player and news photos (T-1341) -------------------------
+  # Not in the database: files in the media volume (T-1320, T-1322). Copied,
+  # never synced, so a file deleted on the server is still on the remote;
+  # rclone sends only what is new or changed, so a day costs that day's files.
+  STEP='media copy'
+  if [ "$BACKUP_MEDIA_VOLUME" != 'off' ] && docker volume inspect "$BACKUP_MEDIA_VOLUME" > /dev/null 2>&1; then
+    echo "==> media $BACKUP_MEDIA_VOLUME -> $BACKUP_RCLONE_REMOTE/media/"
+    # Size and modification time, not --checksum: a crypt remote keeps no hash
+    # it shares with the source, and rclone falls back with a notice.
+    rclone_media copy /media "$BACKUP_RCLONE_REMOTE/media/"
+    MEDIA_COUNT="$(rclone_media size --json "$BACKUP_RCLONE_REMOTE/media/" | sed -E 's/.*"count":([0-9]+).*/\1/')"
+    echo "    $MEDIA_COUNT media files on the remote"
+    COPIES="$COPIES; $MEDIA_COUNT media files"
+  else
+    echo "    media: volume $BACKUP_MEDIA_VOLUME not found or off; not copied"
+  fi
 else
   echo "WARNING: BACKUP_RCLONE_REMOTE is not set; this copy exists only on this machine." >&2
   echo "         A backup on the same provider as the database is not a backup (D-032)." >&2
