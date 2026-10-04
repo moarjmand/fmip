@@ -2,6 +2,7 @@ import type {
   CoverageModule,
   Covered,
   FormEntry,
+  MatchAbsenceGap,
   MatchCentre,
   MatchLineupPlayer,
   MatchPlayerStats,
@@ -83,6 +84,13 @@ const MODULE_KEY = {
   availability: 'matchCentre.module.availability',
   advanced_statistics: 'matchCentre.module.advancedStatistics',
 } as const satisfies Record<CoverageModule, Key>;
+
+/** Why the absence list is empty (T-1364): each reason its own sentence. */
+const ABSENCE_GAP_KEY = {
+  not_covered: 'matchCentre.absencesNotCovered',
+  not_yet: 'matchCentre.absencesNotYet',
+  not_asked: 'matchCentre.moduleNotSupplied',
+} as const satisfies Record<MatchAbsenceGap, Key>;
 
 const RESULT_KEY = {
   W: 'matchCentre.form.won',
@@ -574,6 +582,7 @@ export function MatchCentreView({
           module={centre.lineups}
           testId="lineups"
           words={words}
+          empty={f.status === 'scheduled' ? 'matchCentre.lineupsNotYet' : null}
         >
           {(lineups) => (
             <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
@@ -602,6 +611,7 @@ export function MatchCentreView({
           module={centre.availability}
           testId="availability"
           words={words}
+          empty={ABSENCE_GAP_KEY[centre.availability.gap ?? 'not_asked']}
         >
           {(absences) =>
             absences.length === 0 ? (
@@ -721,15 +731,22 @@ function Module<T>({
   module,
   testId,
   words,
+  empty,
   children,
 }: {
   title: Message;
   module: Covered<T>;
   testId: string;
   words: MatchWords;
+  /** Says why a `not_supplied` module is empty, where more is known (T-1364). */
+  empty?: Key | null;
   children: (data: T) => React.ReactNode;
 }) {
   const m = words.m;
+  const why: Key =
+    module.coverage === 'delayed'
+      ? 'matchCentre.moduleDelayed'
+      : (empty ?? 'matchCentre.moduleNotSupplied');
   return (
     <section className="flex flex-col gap-2" data-testid={testId} data-coverage={module.coverage}>
       <h2 className={MODULE_HEADING}>
@@ -742,15 +759,7 @@ function Module<T>({
       </h2>
       {module.data === null ? (
         <p dir="auto" className="text-sm text-muted">
-          <MessageText
-            message={
-              m[
-                module.coverage === 'delayed'
-                  ? 'matchCentre.moduleDelayed'
-                  : 'matchCentre.moduleNotSupplied'
-              ]
-            }
-          />
+          <MessageText message={m[why]} />
         </p>
       ) : (
         children(module.data)

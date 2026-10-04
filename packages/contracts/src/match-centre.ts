@@ -166,6 +166,17 @@ export interface MatchAbsence {
   reported_at: string;
 }
 
+/**
+ * Why a match's absence list says nothing (T-1364).
+ *
+ * - `not_covered`: the provider does not report absences for this
+ *   competition's season, so an empty answer from it would not mean nobody.
+ * - `not_yet`: a match more than about three days away; absences are asked
+ *   for, and published, from about three days before kick-off.
+ * - `not_asked`: the provider was not asked about this match.
+ */
+export type MatchAbsenceGap = 'not_covered' | 'not_yet' | 'not_asked';
+
 export interface MatchLineupPlayer {
   id: string;
   name: string;
@@ -223,8 +234,9 @@ export interface MatchCentre {
    * Who will or may miss the match (T-103), home side first. Once the provider
    * has been asked, an empty list is its answer -- nobody -- and
    * `last_updated_at` is when it was asked; never asked is `not_supplied`.
+   * A `not_supplied` list says why in `gap` (T-1364).
    */
-  availability: Covered<MatchAbsence[]>;
+  availability: Covered<MatchAbsence[]> & { gap?: MatchAbsenceGap | null };
   /** Each player who took part, home side first, most minutes first (T-101). */
   player_statistics: Covered<MatchPlayerStats[]>;
   /** Last five competitive matches before this one, newest first, per side. */

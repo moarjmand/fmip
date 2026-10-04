@@ -6322,6 +6322,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "matchCentre.lineupsNotYet": {
+    "source": "Not announced yet: the official line-up is usually announced about 20–40 minutes before kick-off.",
+    "text": "",
+    "status": "untranslated"
+  },
   "matchCentre.assist": {
     "source": "(assist {player})",
     "text": "",
@@ -6507,6 +6512,16 @@
     "text": "",
     "status": "untranslated"
   },
+  "matchCentre.absencesNotCovered": {
+    "source": "The data provider does not report absences for this competition, so none are shown.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absencesNotYet": {
+    "source": "Not asked yet: absences are published from about three days before kick-off.",
+    "text": "",
+    "status": "untranslated"
+  },
   "matchCentre.out": {
     "source": "Out",
     "text": "",
@@ -6631,12 +6646,17 @@
     "status": "untranslated"
   },
   "matchCentre.context.form": {
-    "source": "Form in this competition, latest first:",
+    "source": "Form in this competition only, latest first:",
     "text": "",
     "status": "untranslated"
   },
   "matchCentre.context.noForm": {
     "source": "none yet",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.formScope": {
+    "source": "Form here counts only matches in this competition; Recent form counts the last five in every competition.",
     "text": "",
     "status": "untranslated"
   },

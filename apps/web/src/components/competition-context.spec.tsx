@@ -137,6 +137,10 @@ describe('the competition context panel', () => {
     expect(html.match(/data-testid="competition-context-side"/g)).toHaveLength(2);
     expect(html).toContain('2nd of 4 · 3 pts from 2 played');
     expect(html).toContain('<span dir="auto">W L</span>');
+    // The form here is this competition's only, told apart from Recent form (T-1364).
+    expect(html).toContain('Form in this competition only, latest first:');
+    expect(html.match(/data-testid="competition-context-form-scope"/g)).toHaveLength(1);
+    expect(html).toContain('Recent form counts the last five in every competition.');
     expect(html).toContain('<bdi>Alpha</bdi>, 6 pts');
     expect(html).toContain('From the 4 finished matches of this table played before kick-off.');
     expect(html).toContain('no gap to them is shown');
@@ -172,6 +176,7 @@ describe('the competition context panel', () => {
     expect(html).toContain('Group A, before kick-off');
     expect(html).toContain('so there are no positions yet');
     expect(html).not.toContain('competition-context-side');
+    expect(html).not.toContain('competition-context-form-scope');
   });
 
   it('gives a cup tie its round and legs, marks this match, and draws no table', () => {

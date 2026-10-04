@@ -12,6 +12,7 @@ import {
   mapIncidents,
   mapLineup,
   mapPlayerStatistics,
+  mapSeasonCoverage,
   mapSquad,
   mapStandings,
   mapStatistics,
@@ -600,5 +601,81 @@ describe('a standings table names its group (T-1333)', () => {
   it('keeps a recorded league table groupless', () => {
     const [table] = mapStandings(bodyOf('standings-final-table').response, '2026-10-01T00:00:00Z');
     expect(table?.group).toBeNull();
+  });
+});
+
+describe('what the provider covers for a season (T-1364)', () => {
+  // CONSTRUCTED, not recorded: the shape of `/leagues?id=&season=` as
+  // API-Football documents it (`response[].seasons[].coverage.injuries`).
+  // League 5 says no to injuries as `/leagues?current=true` did for the UEFA
+  // Nations League on 2026-10-04; the other values are invented.
+  const leagues = (injuries: unknown) => ({
+    get: 'leagues',
+    parameters: { id: '5', season: '2026' },
+    errors: [],
+    results: 1,
+    response: [
+      {
+        league: { id: 5, name: 'UEFA Nations League', type: 'Cup' },
+        country: { name: 'World', code: null, flag: null },
+        seasons: [
+          { year: 2024, current: false, coverage: { standings: true, injuries: true } },
+          {
+            year: 2026,
+            current: true,
+            coverage: { fixtures: { events: true, lineups: true }, standings: true, injuries },
+          },
+        ],
+      },
+    ],
+  });
+
+  it('asks once, by league and season year, and reads injuries as absences', async () => {
+    const asked: string[] = [];
+    const adapter = createApiFootballAdapter(
+      {
+        request: async (url) => {
+          asked.push(url);
+          return { status: 200, body: leagues(false), receivedAt: '2026-10-04T00:00:00Z' };
+        },
+      },
+      { apiKey: 'test-key' },
+    );
+    const result = await adapter.getSeasonCoverage!({
+      competitionExternalId: '5',
+      seasonLabel: '2026/27',
+    });
+    expect(asked).toEqual(['https://v3.football.api-sports.io/leagues?id=5&season=2026']);
+    expect(result).toEqual({
+      ok: true,
+      data: { absences: false },
+      requests: 1,
+      fetchedAt: '2026-10-04T00:00:00Z',
+    });
+  });
+
+  it('reads only the season asked about, and says null when the answer does not say', () => {
+    expect(mapSeasonCoverage(leagues(true).response, '5', 2026)).toEqual({ absences: true });
+    expect(mapSeasonCoverage(leagues(false).response, '5', 2024)).toEqual({ absences: true });
+    expect(mapSeasonCoverage(leagues('yes').response, '5', 2026)).toEqual({ absences: null });
+    expect(mapSeasonCoverage(leagues(false).response, '5', 2025)).toEqual({ absences: null });
+    expect(mapSeasonCoverage(leagues(false).response, '36', 2026)).toEqual({ absences: null });
+    expect(mapSeasonCoverage(null, '5', 2026)).toEqual({ absences: null });
+  });
+
+  it('spends no request on a season label it cannot read', async () => {
+    const adapter = createApiFootballAdapter(
+      {
+        request: async () => {
+          throw new Error('must not be asked');
+        },
+      },
+      { apiKey: 'test-key' },
+    );
+    const result = await adapter.getSeasonCoverage!({
+      competitionExternalId: '5',
+      seasonLabel: 'Spring',
+    });
+    expect(result).toMatchObject({ ok: false, requests: 0, error: { kind: 'unsupported' } });
   });
 });
