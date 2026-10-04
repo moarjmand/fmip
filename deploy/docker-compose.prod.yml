@@ -166,6 +166,10 @@ services:
       API_FOOTBALL_DAILY_BUDGET: ${API_FOOTBALL_DAILY_BUDGET:-}
       INGESTION_BACKLOG_BATCH: ${INGESTION_BACKLOG_BATCH:-}
       INGESTION_REFETCH_SHARE: ${INGESTION_REFETCH_SHARE:-}
+      # English stories from GNews' free plan (T-1367, D-185): off while the key is empty.
+      GNEWS_API_KEY: ${GNEWS_API_KEY:-}
+      GNEWS_DAILY_BUDGET: ${GNEWS_DAILY_BUDGET:-}
+      GNEWS_INTERVAL_MINUTES: ${GNEWS_INTERVAL_MINUTES:-}
       # Delivery (T-330): absent until a provider is chosen, and /health/delivery says so.
       DELIVERY_EMAIL_PROVIDER: ${DELIVERY_EMAIL_PROVIDER:-off}
       DELIVERY_PUSH_PROVIDER: ${DELIVERY_PUSH_PROVIDER:-off}

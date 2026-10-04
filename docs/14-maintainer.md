@@ -68,6 +68,8 @@ bot an administrator allowed to post). `check-setup.sh` shows all four ON.
 3. **Optional: an editor for broadcast listings (T-310)**:
    `cd /opt/fmip && docker compose run --rm -T migrate node scripts/grant-role.mjs --email <address> --role editor --reason "enters broadcast listings"`;
    the desk appears at the bottom of every match page for them.
+4. **Optional: English stories from GNews (T-1367, D-185)**: a free account
+   and its key in `.env`, §13.
 
 **Meanwhile, by itself.** The scheduled task `fmip-server-followup` runs every
 six hours from the Claude desktop app on your laptop, so it needs the laptop
@@ -919,3 +921,36 @@ uncovered one cannot be ticked -- choose a service, an access and the official
 page, and press "List selected"; the page says how many listings it created
 and how many it left because they were already there. Each listing can be
 taken down with a reason below the table. Times are in UTC.
+
+---
+
+## 13. English news from GNews (T-1367, D-185)
+
+Off until you place a key; nothing is asked or written without one.
+
+**Before you start.** The free plan is for non-commercial projects,
+development and testing only (100 requests a day, 10 articles a request,
+truncated content, the last 30 days). It is right while the site is not
+commercial; the day it becomes commercial, buy the paid plan (from EUR 49.99
+a month) or empty the key. GNews' terms have a sanctions clause -- read it
+before you sign up.
+
+1. Create a free account at `https://gnews.io` with your own e-mail and
+   choose the free plan. The dashboard shows your API key.
+2. On the server: `ssh fmip-prod`, `nano /opt/fmip/.env`, and set
+   `GNEWS_API_KEY=<the key>`. Leave `GNEWS_DAILY_BUDGET` (90) and
+   `GNEWS_INTERVAL_MINUTES` (30) out or as they are: 48 requests a day, under
+   the plan's 100.
+3. `cd /opt/fmip && bash deploy/rollout.sh api`.
+
+**How to know it works.** `bash deploy/check-setup.sh` shows
+`English news (GNews) ON`. Within half an hour, **Admin -> News sources**
+(`/en/admin/news-sources`) shows the **GNews** row with a recent fetch
+(succeeded, or partial with the reason in GNews' own words -- an invalid key
+says so), and new rows below it, one per publisher GNews brought (BBC, ESPN
+...), each `licensed`. `/en/news` shows their stories under the publisher's
+own name, linking to the original; Persian readers do not see them.
+
+**To stop it.** Empty `GNEWS_API_KEY` and roll the API out again, or drop the
+GNews row on the news sources page (with a reason). One publisher you do not
+want: drop its row there; GNews will not bring it back.

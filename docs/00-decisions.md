@@ -8057,3 +8057,77 @@ see a listing nobody can remove for one match, and the Activity page would
 have nothing to show. *An audit row per auto-created listing*: thousands of
 rows saying the same thing the default's one row says. *Applying in the API
 and again in the script with their own SQL*: two copies drift.
+
+---
+
+## D-185 — English news from GNews' free plan while the site is non-commercial, filed under each original publisher
+**Status:** Accepted · 2026-10-04 (the maintainer, in chat) · **Task:** T-1367 · **Follows:** D-061, D-177, D-178, D-049, rule 3, rule 9
+
+**Decision, from the maintainer.** For now news focuses on English, and
+English stories also come from GNews (gnews.io) on its **free plan**,
+because the product is not commercial yet and is in testing. GNews' terms
+describe the free plan as "for non-commercial projects, development and
+testing only": 100 requests a day, at most 10 articles a request, the
+article content truncated, the last 30 days searchable. **This decision
+holds only while the site is non-commercial.** Once it becomes commercial
+(advertising, subscriptions, any paid offer) the paid plan (from EUR 49.99 a
+month) is required, or GNews is switched off by emptying the key. GNews'
+terms carry a sanctions clause; the maintainer has been told about it. The
+maintainer creates the account and places the key; an agent never does.
+
+**Off and harmless without a key.** `GNEWS_API_KEY` empty (every deployment
+until the maintainer fills it) means no request, no `news_fetch` row, no
+article -- the same shape as the other optional integrations, and
+`check-setup.sh` reports it as `off` with the step that turns it on.
+
+**What is taken: D-061 unchanged.** Title, the publisher's description, the
+link to the original and its time. GNews' `content` field is never read, so
+no code path could store or show it; rights `summary`.
+
+**Filed under the original publisher, not under "GNews".** GNews is a
+search over many publishers, and D-061 attaches two promises to a publisher:
+its name, linking to its page, on every card, and that a publisher who asks
+to be dropped is dropped. Both live on a `news_source` row, so each publisher
+GNews names gets a row of its own (kind `licensed`, no feed, `via_source_id`
+the GNews row), created the first time it is seen with the GNews row's
+rights, language and language setting. Every read path then names the
+original publisher with no change, and the console drops one publisher, or
+GNews as a whole, as it drops any source. A publisher already dropped as a
+directly read source on the same host is not brought back through GNews.
+
+**One GNews row, seeded by migration** (`1765844000000`, fixed id). The
+console adds feeds only, and the console's T-1015 rule is that a licensed
+source is not added or edited there; so the row is seeded the way the image
+rights were (D-177), and the job creates the publishers' rows. The GNews row
+carries no article: its `news_fetch` rows are the record of every request.
+
+**Within the free plan.** One request every `GNEWS_INTERVAL_MINUTES`
+(default 30: 48 a day), never more than `GNEWS_DAILY_BUDGET` a UTC day
+(default 90, a margin under 100 for a request by hand while testing). The
+ceiling is counted from the GNews row's stored runs rather than held in
+memory, so a restart does not reset it; a run over it is `partial`, names
+the budget and asks nothing (D-049's budgeted-transport rule). A limit that
+is not a positive whole number turns GNews off rather than guessing.
+
+**Not twice.** An article whose page another source already carries -- the
+same page by `articleUrlKey` (no scheme, `www.`, trailing slash, fragment or
+tracking parameters) -- is not written again; the stories GNews does bring
+are clustered with the feeds' reports exactly as any report is (T-142).
+
+**English readers only.** The GNews row, and so each publisher's row, is
+`same_language_only` with language `en` (D-178): an English focus, shown to
+readers of the site in English; the console can change it per publisher.
+
+**No photos (D-177).** GNews' images sit on each publisher's own host, and
+D-177 shows a photo only from a source whose licence covers its photos and
+only the agency's own. No GNews publisher has such a right, so its stories
+show no photo; the policy is not widened for them. The reader does not even
+keep the image URL.
+
+**Rejected.** *One source row "GNews" with the publisher in a new article
+column*: every reader-facing query (cards, story page, saved, search,
+alerts, the Following feed) would need a second publisher name, and a
+publisher could not be dropped on its own. *The `top-headlines` sports
+category*: most of it is not association football; a search for football in
+title and description is closer. *Keeping the ceiling in a process-local
+counter*: a redeploy would hand the day a second 90.
