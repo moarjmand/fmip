@@ -49,14 +49,16 @@ function present(name) {
   say(`env_${name}`, value === undefined || value.trim() === '' ? 'empty' : 'set');
 }
 
-const [health, delivery, intelligence, chat, ingestion, channelPost] = await Promise.all([
-  read('/health'),
-  read('/health/delivery'),
-  read('/health/intelligence'),
-  read('/health/chat'),
-  read('/health/ingestion'),
-  read('/health/channel'),
-]);
+const [health, delivery, intelligence, chat, ingestion, channelPost, highlights] =
+  await Promise.all([
+    read('/health'),
+    read('/health/delivery'),
+    read('/health/intelligence'),
+    read('/health/chat'),
+    read('/health/ingestion'),
+    read('/health/channel'),
+    read('/health/highlights'),
+  ]);
 
 say('api', health === null ? 'unreachable' : (health.status ?? 'unknown'));
 say('api_uptime_seconds', health === null ? '' : Math.round(health.uptime_seconds ?? 0));
@@ -92,6 +94,18 @@ say('pollable_competitions', ingestion?.pollable?.competitions ?? 'unknown');
 say('pollable_current_seasons', ingestion?.pollable?.with_current_season ?? 'unknown');
 say('requests_today', ingestion?.requests_today ?? 'unknown');
 say('request_budget', ingestion?.request_budget ?? '');
+
+// The highlights feed (T-1366): on exactly when HIGHLIGHTLY_KEY is set, run
+// where the jobs run, with its own ceiling; and what its newest run stored
+// and kept out -- a key with nothing mapped stores nothing, and says why.
+say('highlights_feed', highlights?.feed ?? 'unknown');
+say('highlights_scheduled', highlights === null ? 'unknown' : String(highlights.scheduled));
+say('highlights_requests_today', highlights?.requests_today ?? '');
+say('highlights_budget', highlights?.daily_budget ?? '');
+say('highlights_last_run', highlights?.last_run?.finished_at ?? '');
+say('highlights_last_stored', highlights?.last_run?.stored ?? '');
+say('highlights_last_unmapped_competitions', highlights?.last_run?.unmapped_competitions ?? '');
+say('highlights_last_team_unmapped', highlights?.last_run?.unmatched?.team_unmapped ?? '');
 
 // The switches, and the values each switch needs beside it. A switch left at
 // its default is the ordinary state of a new deployment, not a fault; the

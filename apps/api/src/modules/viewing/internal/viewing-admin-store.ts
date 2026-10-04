@@ -393,7 +393,7 @@ export class PostgresViewingAdminStore {
         [fixtureId, territory],
       );
       const gone = rows[0];
-      if (gone === undefined) return false;
+      if (gone === undefined) return this.withdrawFeedHighlight(client, actorId, fixtureId, reason);
       await record(client, {
         actorId,
         action: 'highlight.remove',
@@ -405,6 +405,38 @@ export class PostgresViewingAdminStore {
       });
       return true;
     });
+  }
+
+  /**
+   * A licensed feed's clip taken down by an editor (T-1366, D-184): with no
+   * desk page to remove, the match's feed clip is withdrawn -- in every
+   * territory, because a wrong clip is wrong everywhere -- and the row stays
+   * so the feed never brings it back. False when there is none to withdraw.
+   */
+  private async withdrawFeedHighlight(
+    client: PoolClient,
+    actorId: string,
+    fixtureId: string,
+    reason: string,
+  ): Promise<boolean> {
+    const { rows } = await client.query<{ id: string; url: string; publisher: string | null }>(
+      `UPDATE highlight_feed SET withdrawn_at = now(), withdrawn_reason = $2
+        WHERE fixture_id = $1 AND withdrawn_at IS NULL
+        RETURNING id, url, publisher`,
+      [fixtureId, reason],
+    );
+    const gone = rows[0];
+    if (gone === undefined) return false;
+    await record(client, {
+      actorId,
+      action: 'highlight.withdraw_feed',
+      targetType: 'fixture',
+      targetId: fixtureId,
+      reason,
+      previous: { feed_highlight_id: gone.id, url: gone.url, publisher: gone.publisher },
+      next: { feed_highlight_id: gone.id, withdrawn: true },
+    });
+    return true;
   }
 
   /**

@@ -117,6 +117,8 @@ export type {
   BroadcastersResponse,
   Highlight,
   HighlightRequest,
+  HighlightsFeedHealth,
+  HighlightsFeedRun,
   MatchViewing,
   ViewingAccess,
   ViewingBatchResponse,

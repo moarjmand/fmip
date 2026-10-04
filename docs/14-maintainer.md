@@ -68,6 +68,9 @@ bot an administrator allowed to post). `check-setup.sh` shows all four ON.
 3. **Optional: an editor for broadcast listings (T-310)**:
    `cd /opt/fmip && docker compose run --rm -T migrate node scripts/grant-role.mjs --email <address> --role editor --reason "enters broadcast listings"`;
    the desk appears at the bottom of every match page for them.
+4. **Match highlights (T-1366), once you have subscribed to Highlightly**:
+   the key into `.env`, then map the competitions and, as they queue, the
+   teams -- §13.
 
 **Meanwhile, by itself.** The scheduled task `fmip-server-followup` runs every
 six hours from the Claude desktop app on your laptop, so it needs the laptop
@@ -919,3 +922,64 @@ uncovered one cannot be ticked -- choose a service, an access and the official
 page, and press "List selected"; the page says how many listings it created
 and how many it left because they were already there. Each listing can be
 taken down with a reason below the table. Times are in UTC.
+
+## 13. Match highlights from Highlightly (T-1366, D-184)
+
+What it does once the key is in: every two hours the server asks Highlightly
+for the **verified** highlights (the clubs' and leagues' own uploads) of
+matches that finished in the last two days, and the match page and match
+lists show **Official highlights (LaLiga)** -- a link to the original video,
+never a player on our page. Each clip is shown only in the territories
+Highlightly says it may be watched in. A highlight page the desk entered by
+hand for the same match and territory wins over the feed's.
+
+Until the key is in, all of it is off and harmless: no request, nothing
+stored, and `check-setup.sh` shows `Highlights off`.
+
+**1. The key.** After subscribing (Pro, a separate budget from API-Football),
+copy the API key from Highlightly's dashboard into the server's `.env` by
+your own hand -- never into a chat:
+
+```bash
+ssh fmip-prod
+nano /opt/fmip/.env          # the line HIGHLIGHTLY_KEY=... (it is already there, empty)
+                             # optional: HIGHLIGHTS_DAILY_BUDGET=5000 (empty means 5000; the plan allows 7,500)
+cd /opt/fmip && bash deploy/rollout.sh api
+bash deploy/check-setup.sh   # Highlights  ON  every 2 hours ...
+```
+
+**2. Tell it which of our competitions are which at Highlightly** (once per
+competition; never by name, rule 1). Highlightly's league id is in its
+dashboard and in `/leagues` on its documentation page. `<our competition
+uuid>` is the id at the end of the competition's page address on the site.
+
+```bash
+cd /opt/fmip
+catalog() { docker compose run --rm -T migrate node scripts/catalog.mjs "$@"; }
+catalog --map --provider highlightly --type competition --external-id <Highlightly league id> \
+        --to <our competition uuid> --by you@your-domain
+```
+
+**3. The teams, as they arrive.** Each run puts the Highlightly teams it saw
+in a mapped competition into the queue with their names. Place each one on
+the team we already hold (the id at the end of its team page's address).
+Do **not** use `--adopt-teams` for Highlightly: that would create a second
+copy of a club we already have.
+
+```bash
+catalog --list --type team --provider highlightly          # who is waiting, with Highlightly's ids and names
+catalog --map --provider highlightly --type team --external-id <Highlightly team id> \
+        --to <our team uuid> --by you@your-domain
+```
+
+**How to know it works.** `bash deploy/check-setup.sh` shows the newest run
+(how many clips it stored, today's requests against the ceiling) and, while
+competitions or teams are still unmapped, a note saying how many. The same
+facts, with the time of the run, are at `GET /health/highlights` on the API.
+On the site: a match that finished in the last two days in a mapped
+competition with both teams mapped shows the link within a few hours of the
+clubs uploading it. The API log names every clip it kept out and why:
+`docker compose logs api | grep highlights.unmatched`.
+
+**A wrong clip.** On the match page, the desk's "remove highlight" with a
+reason takes the feed's clip down in every territory, for good (audited).

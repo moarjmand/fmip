@@ -157,6 +157,8 @@ services:
       API_FOOTBALL_KEY: ${API_FOOTBALL_KEY:-}
       FOOTBALL_DATA_ORG_KEY: ${FOOTBALL_DATA_ORG_KEY:-}
       HIGHLIGHTLY_KEY: ${HIGHLIGHTLY_KEY:-}
+      # The highlights feed's own daily ceiling (T-1366, D-184); empty = 5000.
+      HIGHLIGHTS_DAILY_BUDGET: ${HIGHLIGHTS_DAILY_BUDGET:-}
       # The schedule is what makes the provider key do anything (T-050): off
       # until a source is chosen (T-025), and forwarded here because a value in
       # .env reaches a container only when this file names it.

@@ -121,6 +121,51 @@ describe('report-capabilities', () => {
     expect(lines.get('in_product_only')).toBe('true');
   });
 
+  it('reports the highlights feed: absent without its key, its run when it has one (T-1366)', async () => {
+    const off = await report(
+      await serve({
+        '/health': { status: 'ok', uptime_seconds: 1 },
+        '/health/highlights': {
+          feed: 'absent',
+          scheduled: false,
+          daily_budget: null,
+          requests_today: null,
+          last_run: null,
+        },
+      }),
+    );
+    expect(off.get('highlights_feed')).toBe('absent');
+    expect(off.get('highlights_scheduled')).toBe('false');
+    expect(off.get('highlights_last_run')).toBe('');
+    await new Promise<void>((resolve) => server?.close(() => resolve()));
+    server = null;
+
+    const on = await report(
+      await serve({
+        '/health': { status: 'ok', uptime_seconds: 1 },
+        '/health/highlights': {
+          feed: 'configured',
+          scheduled: true,
+          daily_budget: 5000,
+          requests_today: 37,
+          last_run: {
+            finished_at: '2026-10-04T10:29:40.000Z',
+            stored: 4,
+            unmapped_competitions: 2,
+            unmatched: { team_unmapped: 3, no_fixture: 0, ambiguous: 0 },
+          },
+        },
+      }),
+    );
+    expect(on.get('highlights_feed')).toBe('configured');
+    expect(on.get('highlights_scheduled')).toBe('true');
+    expect(on.get('highlights_requests_today')).toBe('37');
+    expect(on.get('highlights_budget')).toBe('5000');
+    expect(on.get('highlights_last_stored')).toBe('4');
+    expect(on.get('highlights_last_unmapped_competitions')).toBe('2');
+    expect(on.get('highlights_last_team_unmapped')).toBe('3');
+  });
+
   it('says so rather than inventing a state when the API does not answer', async () => {
     // A port nothing is listening on: the shape a stopped or crash-looping
     // container presents to this script.
@@ -131,6 +176,7 @@ describe('report-capabilities', () => {
     expect(lines.get('push')).toBe('unknown');
     expect(lines.get('language_model')).toBe('unknown');
     expect(lines.get('chat_bus')).toBe('unknown');
+    expect(lines.get('highlights_feed')).toBe('unknown');
   });
 
   it('reports a switch left at its default beside the credential it needs', async () => {
