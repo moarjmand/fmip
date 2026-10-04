@@ -9,6 +9,7 @@ import { StandingsService } from '../standings/standings.service';
 import { CoverageService } from './coverage.service';
 import { IngestRunsService } from './ingest-runs.service';
 import { EntityResolverService } from './ingestion.service';
+import { withBudgetTier } from './internal/budget-tier';
 import { groupMembers } from './internal/groups';
 import { IngestStore, type PollTarget, type WriteResult } from './internal/ingest-store';
 import {
@@ -626,7 +627,12 @@ export class IngestionJobsService {
         const before = watched.has(candidate.fixtureId)
           ? await this.alerts.before(candidate.fixtureId)
           : null;
-        const detail = await this.ingestDetail(source, candidate);
+        // Only a just-finished match draws on the reserve (T-1365, D-183); the
+        // backlog and the re-asks are bulk and stop first.
+        const detail = await withBudgetTier(
+          watched.has(candidate.fixtureId) ? 'critical' : 'bulk',
+          () => this.ingestDetail(source, candidate),
+        );
         if (detail.refused !== undefined) {
           refused.push(detail.refused);
           continue;

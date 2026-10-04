@@ -134,6 +134,19 @@ mid-match. Then `docker compose restart api`. Nothing else, and no code
 change: the profile was written before the purchase so that the purchase is
 one line.
 
+**After upgrading to a larger plan (T-1365, D-183).** Raise
+`API_FOOTBALL_DAILY_BUDGET` in the server's `.env` to a margin under the new
+plan's daily limit (the Pro plan's 7,500 has 7000; for a plan of N a day,
+about 93 % of N), then `docker compose up -d api` -- `restart` keeps the old
+environment. No code change. The budget is tiered: bulk work (the detail
+backlog, re-asks, backfills, squads) stops at 70 % of it and the fixture
+list and standings at 90 %, so the rest is always there for live scores,
+line-ups and just-finished matches. The tiers scale with the number; to
+move them, set `API_FOOTBALL_BUDGET_BULK_PERCENT` and
+`API_FOOTBALL_BUDGET_STANDARD_PERCENT` (whole percents, bulk no higher than
+standard). A run a tier held back shows `budget: ... not sent` on
+`/health/ingestion`; that is the reserve working, not a fault.
+
 `bash deploy/check-setup.sh` will then say `Match data ... IDLE`, not `ON`,
 and it is right to: a freshly migrated database holds no competition, so the
 jobs have nothing to ask for and no fixture will ever appear however correct
