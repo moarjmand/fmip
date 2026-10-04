@@ -8057,3 +8057,64 @@ see a listing nobody can remove for one match, and the Activity page would
 have nothing to show. *An audit row per auto-created listing*: thousands of
 rows saying the same thing the default's one row says. *Applying in the API
 and again in the script with their own SQL*: two copies drift.
+
+---
+
+## D-186 — A collaborator proposes a model change as a candidate file with its comparison report; the shadow and promotion rules are unchanged
+**Status:** Accepted · 2026-10-04 · **Task:** T-1368 · **Follows:** D-016, D-031, D-082, D-139, D-140, D-150, D-162
+
+**Context.** The maintainer's teammate, who knows football and will work on
+the algorithm with us, asked that the model be tested on completed matches,
+that every forecast be stored and compared with its result, that accuracy be
+measured over time, and that the formula and the factors' weights stay
+tunable from real performance. All of that existed (immutable forecasts with
+their inputs, an evaluation per forecast, walk-forward backtests, candidate
+files in shadow), but the path through it was spread over a dozen decisions,
+the backtests took a candidate from the committed directory rather than a
+file being proposed, and two of the weights a football reader thinks of
+first -- the Elo prior's weight and the default time decay -- could not be
+set from a candidate file at all.
+
+**Decision.** The official way to propose a model change is
+`docs/15-model.md`'s workflow: copy the current candidate file to the next
+version, change its constants, run `bash scripts/model-backtest.sh <file>`,
+and open a pull request with the file and the report it writes
+(`apps/model/reports/<name>-<version>/compare_<from>..<to>.{md,json}`).
+
+- **The command** runs `python -m fmip_model.backtest.compare` in the model
+  image with `apps/model` mounted: it loads any football-data.co.uk season
+  the training store lacks (D-016), then walks 2025/26 forward in the eleven
+  football-data.co.uk divisions and scores the published version, the
+  reference (the newest other candidate, else the published version) and the
+  proposal on the same matches, beside the de-margined closing odds and
+  uniform: log loss, Brier, accuracy and calibration error, pooled and per
+  division. Each fit reads only its version's `history_days`, as the service
+  does.
+- **The bar into shadow** is D-139's, unchanged and taken from the same code
+  (`BAR`): against the reference, a lower log loss with a 95% paired
+  bootstrap interval below zero, calibration not demonstrably worse, worse
+  in at most a third of the divisions judged, at least 300 matches. A
+  proposal that passes is merged and enters shadow by its file (D-140); one
+  that does not stays a record in its pull request. Changes to
+  `cross_league` or `lineup_beta`, which a per-division walk-forward cannot
+  test, are judged by their own harnesses, and the report says so.
+- **Promotion is unchanged** (D-082): only on the candidate's own record of
+  at least 300 pre-kick-off forecasts (D-031), by a decision entry with the
+  numbers. A backtest never promotes.
+- **A candidate file may now name `xi`, `ridge` and `elo_weight` at the top
+  level**, replacing the published version's defaults (`xi` and `ridge` for
+  every division not under `per_division`, `elo_weight` everywhere). The
+  service already read these from the version; only the file could not say
+  them. Club Elo stays refused for any new version (D-162).
+
+**Rejected.** *Running the comparison in CI on every pull request that
+touches the candidates folder*: a full run fits each of eleven divisions
+about 35 times per version -- 15 minutes for two versions on an eight-core
+laptop with six divisions at a time (2026-10-04), several times that on a
+hosted runner, past the CI job's fifteen minutes -- and it would download
+third-party files on every push; the report is committed with the file
+instead, and anyone can rerun it with the
+same command. *A separate bar for constants changes*: D-139 already says what
+"better than the candidate" means, and a second bar would let a proposal pick
+the easier one. *Letting the comparison write the candidate file*: the file
+is the proposal and a person's choice, the report is its evidence.

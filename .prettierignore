@@ -41,3 +41,8 @@ apps/api/backtest/
 # Recorded publisher pages and feeds (T-1322): a recording is kept byte for
 # byte as the publisher served it, trimmed but never reformatted.
 packages/ingestion/src/news/_recorded/
+
+# Backtest reports are written by the model's own commands and never edited by
+# hand (apps/model/reports/README.md); a collaborator's report must pass the
+# format check as the command wrote it (T-1368, D-186).
+apps/model/reports/
