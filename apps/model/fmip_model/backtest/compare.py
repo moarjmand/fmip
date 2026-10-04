@@ -494,9 +494,12 @@ def write(body: Mapping[str, object], proposed: ModelVersion, out: Path) -> Path
     window = body["window"]
     assert isinstance(window, list)
     stem = f"compare_{window[0]}..{window[1]}"
-    (folder / f"{stem}.json").write_text(json.dumps(body, indent=2) + "\n", encoding="utf-8")
+    # LF on every host, so a report written on Windows commits as it reads.
+    (folder / f"{stem}.json").write_text(
+        json.dumps(body, indent=2) + "\n", encoding="utf-8", newline="\n"
+    )
     md = folder / f"{stem}.md"
-    md.write_text(render(body), encoding="utf-8")
+    md.write_text(render(body), encoding="utf-8", newline="\n")
     return md
 
 
