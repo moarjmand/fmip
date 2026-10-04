@@ -16,6 +16,7 @@ import type {
   ApiError,
   FixtureEvaluationsResponse,
   ModelPerformanceResponse,
+  PublicModelAccuracyResponse,
 } from '@fmip/contracts';
 import { ROLE_REFUSALS } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
@@ -89,6 +90,16 @@ export class EvaluationController {
         };
       }
     }
+  }
+
+  /**
+   * How accurate the statistical model has been (T-1369, D-187): its
+   * published pre-kick-off forecasts only, by month, overall and per
+   * competition, each row with its coverage state. Public.
+   */
+  @Get('model/accuracy')
+  async accuracy(): Promise<PublicModelAccuracyResponse> {
+    return this.evaluations.publicAccuracy();
   }
 
   @Get('competitions/:competitionId/model-performance')

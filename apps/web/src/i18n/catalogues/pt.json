@@ -7118,6 +7118,157 @@
     "text": "",
     "status": "untranslated"
   },
+  "forecast.accuracyLink": {
+    "source": "How accurate has the model been?",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.meta.title": {
+    "source": "How accurate is our model?",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.meta.description": {
+    "source": "How the statistical model’s published forecasts have scored against the results, month by month, with the number of matches beside every figure.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.intro": {
+    "source": "This page is about the statistical model only: its forecasts as they were published before kick-off, scored once the match was over. Forecasts made after kick-off are never counted. The founder’s analysis and the community’s predictions are separate and are not part of these figures.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.overall.title": {
+    "source": "All competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.competitions.title": {
+    "source": "By competition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.notSupplied": {
+    "source": "No forecast made before kick-off has been scored here yet, so there is no accuracy to show.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.limited": {
+    "source": {
+      "one": "Only {count} match has been scored so far, fewer than {minimum}: an early record, not a verdict.",
+      "other": "Only {count} matches have been scored so far, fewer than {minimum}: an early record, not a verdict."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "modelAccuracy.available": {
+    "source": {
+      "one": "{count} match scored.",
+      "other": "{count} matches scored."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "modelAccuracy.versions": {
+    "source": "Model versions: {versions}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.updated": {
+    "source": "Last scored on {date}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.unreachable": {
+    "source": "The model’s accuracy cannot be shown right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.table.caption": {
+    "source": "By month of kick-off (UTC). For RPS, Brier and log loss, lower is better.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.table.month": {
+    "source": "Month",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.table.matches": {
+    "source": "Matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.table.correct": {
+    "source": "Correct",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.table.rps": {
+    "source": "RPS",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.table.rpsGuess": {
+    "source": "RPS if guessing",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.table.brier": {
+    "source": "Brier",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.table.logLoss": {
+    "source": "Log loss",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.table.coverage": {
+    "source": "Coverage",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.table.all": {
+    "source": "All months",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.explain.title": {
+    "source": "What the figures mean",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.explain.matches": {
+    "source": "Matches: how many matches were scored. A match can have more than one forecast before kick-off (an early one, another once the line-ups are known); each is scored, and the averages are over all of them.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.explain.correct": {
+    "source": "Correct: how often the outcome the model thought most likely (a home win, a draw or an away win) happened. Picking at random gets about {guess} right.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.explain.rps": {
+    "source": "RPS (ranked probability score): how far the forecast’s probabilities were from the result, with part credit when the result was next to the outcome the model favoured, since a draw is closer to a home win than an away win is. 0 is perfect. “RPS if guessing” is what a forecast of one third each would have scored on the same matches.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.explain.brier": {
+    "source": "Brier score: the squared distance between the probabilities and what happened. Lower is better; a forecast of one third each scores {guess}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.explain.logLoss": {
+    "source": "Log loss: how surprised the model was by the result. Lower is better; a forecast of one third each scores {guess}, and being confidently wrong costs the most.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.explain.threshold": {
+    "source": "Below {minimum} matches a figure is marked limited: a few results can make a model look better or worse than it is.",
+    "text": "",
+    "status": "untranslated"
+  },
   "forecast.aDraw": {
     "source": "a draw",
     "text": "",

@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import type {
+  AccuracyPeriod,
+  AdminModelAccuracyResponse,
   FixtureEvaluationsResponse,
   ForecastEvaluation,
   ModelPerformanceResponse,
+  PublicModelAccuracyResponse,
 } from '@fmip/contracts';
 import { PostgresEvaluationStore } from './internal/evaluation-store';
+import { adminAccuracy, publicAccuracy } from './internal/model-accuracy';
 import { UNIFORM_BRIER, UNIFORM_LOG_LOSS, score } from './internal/scoring';
 
 export type EvaluateOutcome =
@@ -51,6 +55,20 @@ export class EvaluationService {
       last_updated_at: last?.evaluated_at ?? null,
       evaluations,
     };
+  }
+
+  /** The console's accuracy over time (T-1369): every version, published and shadow. */
+  async adminAccuracy(period: AccuracyPeriod, now: Date): Promise<AdminModelAccuracyResponse> {
+    return adminAccuracy(await this.store.accuracySums(period, 'by_model'), period, now);
+  }
+
+  /** The public page's figures (T-1369): published forecasts only, by month. */
+  async publicAccuracy(): Promise<PublicModelAccuracyResponse> {
+    const [rows, competitions] = await Promise.all([
+      this.store.accuracySums('month', 'published'),
+      this.store.publishedCompetitions(),
+    ]);
+    return publicAccuracy(rows, competitions);
   }
 
   async performance(

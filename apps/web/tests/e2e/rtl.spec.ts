@@ -125,4 +125,19 @@ test.describe('layout mirrors under rtl', () => {
     });
     expect(style).toEqual({ borderLeftWidth: '0px', borderRightWidth: ACCENT_WIDTH });
   });
+
+  // T-1369: the model accuracy page mirrors, its figures' table included.
+  test('/x-rtl/model-accuracy is right-to-left, its accent on the right', async ({ page }) => {
+    await page.goto('/x-rtl/model-accuracy');
+
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    const style = await page.getByTestId('title').evaluate((el) => {
+      const computed = getComputedStyle(el);
+      return {
+        borderLeftWidth: computed.borderLeftWidth,
+        borderRightWidth: computed.borderRightWidth,
+      };
+    });
+    expect(style).toEqual({ borderLeftWidth: '0px', borderRightWidth: ACCENT_WIDTH });
+  });
 });

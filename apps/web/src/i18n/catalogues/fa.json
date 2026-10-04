@@ -8647,6 +8647,192 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "forecast.accuracyLink": {
+    "source": "How accurate has the model been?",
+    "text": "مدل آماری تا امروز چقدر دقیق بوده است؟",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.meta.title": {
+    "source": "How accurate is our model?",
+    "text": "مدل ما چقدر دقیق است؟",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.meta.description": {
+    "source": "How the statistical model’s published forecasts have scored against the results, month by month, with the number of matches beside every figure.",
+    "text": "پیش‌بینی‌های منتشرشده‌ی مدل آماری در برابر نتیجه‌ها، ماه به ماه، با تعداد بازی‌ها کنار هر عدد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.intro": {
+    "source": "This page is about the statistical model only: its forecasts as they were published before kick-off, scored once the match was over. Forecasts made after kick-off are never counted. The founder’s analysis and the community’s predictions are separate and are not part of these figures.",
+    "text": "این صفحه فقط درباره‌ی مدل آماری است: پیش‌بینی‌هایش همان‌طور که پیش از شروع بازی منتشر شدند و پس از پایان بازی ارزیابی شدند. پیش‌بینی‌ای که پس از شروع بازی ساخته شده هرگز شمرده نمی‌شود. تحلیل بنیان‌گذار و پیش‌بینی‌های کاربران جدا هستند و در این ارقام نیستند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.overall.title": {
+    "source": "All competitions",
+    "text": "همه‌ی رقابت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.competitions.title": {
+    "source": "By competition",
+    "text": "به تفکیک رقابت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.notSupplied": {
+    "source": "No forecast made before kick-off has been scored here yet, so there is no accuracy to show.",
+    "text": "هنوز هیچ پیش‌بینی پیش از شروع بازی در اینجا ارزیابی نشده است، پس دقتی برای نمایش وجود ندارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.limited": {
+    "source": {
+      "one": "Only {count} match has been scored so far, fewer than {minimum}: an early record, not a verdict.",
+      "other": "Only {count} matches have been scored so far, fewer than {minimum}: an early record, not a verdict."
+    },
+    "forms": {
+      "one": "تا اینجا فقط {count} بازی ارزیابی شده، کمتر از {minimum}: یک سابقه‌ی اولیه است، نه یک داوری.",
+      "other": "تا اینجا فقط {count} بازی ارزیابی شده، کمتر از {minimum}: یک سابقه‌ی اولیه است، نه یک داوری."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.available": {
+    "source": {
+      "one": "{count} match scored.",
+      "other": "{count} matches scored."
+    },
+    "forms": {
+      "one": "{count} بازی ارزیابی شده.",
+      "other": "{count} بازی ارزیابی شده."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.versions": {
+    "source": "Model versions: {versions}.",
+    "text": "نسخه‌های مدل: {versions}.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.updated": {
+    "source": "Last scored on {date}.",
+    "text": "آخرین ارزیابی: {date}.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.unreachable": {
+    "source": "The model’s accuracy cannot be shown right now.",
+    "text": "دقت مدل را اکنون نمی‌توان نمایش داد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.table.caption": {
+    "source": "By month of kick-off (UTC). For RPS, Brier and log loss, lower is better.",
+    "text": "بر اساس ماه شروع بازی (UTC). برای RPS، بریر و لاگ‌لاس، کمتر بهتر است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.table.month": {
+    "source": "Month",
+    "text": "ماه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.table.matches": {
+    "source": "Matches",
+    "text": "بازی‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.table.correct": {
+    "source": "Correct",
+    "text": "درست",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.table.rps": {
+    "source": "RPS",
+    "text": "RPS",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.table.rpsGuess": {
+    "source": "RPS if guessing",
+    "text": "RPS با حدس تصادفی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.table.brier": {
+    "source": "Brier",
+    "text": "بریر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.table.logLoss": {
+    "source": "Log loss",
+    "text": "لاگ‌لاس",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.table.coverage": {
+    "source": "Coverage",
+    "text": "پوشش",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.table.all": {
+    "source": "All months",
+    "text": "همه‌ی ماه‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.explain.title": {
+    "source": "What the figures mean",
+    "text": "معنای این ارقام",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.explain.matches": {
+    "source": "Matches: how many matches were scored. A match can have more than one forecast before kick-off (an early one, another once the line-ups are known); each is scored, and the averages are over all of them.",
+    "text": "بازی‌ها: تعداد بازی‌هایی که ارزیابی شده‌اند. یک بازی ممکن است پیش از شروع بیش از یک پیش‌بینی داشته باشد (یکی زودهنگام، یکی پس از اعلام ترکیب‌ها)؛ هر کدام ارزیابی می‌شود و میانگین‌ها روی همه‌ی آن‌هاست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.explain.correct": {
+    "source": "Correct: how often the outcome the model thought most likely (a home win, a draw or an away win) happened. Picking at random gets about {guess} right.",
+    "text": "درست: چند بار نتیجه‌ای که مدل محتمل‌ترین می‌دانست (برد میزبان، تساوی یا برد میهمان) رخ داد. انتخاب تصادفی حدود {guess} درست درمی‌آید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.explain.rps": {
+    "source": "RPS (ranked probability score): how far the forecast’s probabilities were from the result, with part credit when the result was next to the outcome the model favoured, since a draw is closer to a home win than an away win is. 0 is perfect. “RPS if guessing” is what a forecast of one third each would have scored on the same matches.",
+    "text": "RPS (امتیاز احتمال رتبه‌ای): فاصله‌ی احتمال‌های پیش‌بینی از نتیجه، با امتیاز نسبی وقتی نتیجه کنار نتیجه‌ی مورد انتظار مدل بود؛ چون تساوی به برد میزبان نزدیک‌تر است تا برد میهمان. صفر یعنی بی‌نقص. «RPS با حدس تصادفی» امتیازی است که پیش‌بینی یک‌سوم برای هر نتیجه روی همین بازی‌ها می‌گرفت.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.explain.brier": {
+    "source": "Brier score: the squared distance between the probabilities and what happened. Lower is better; a forecast of one third each scores {guess}.",
+    "text": "امتیاز بریر: مجذور فاصله‌ی احتمال‌ها از آنچه رخ داد. کمتر بهتر است؛ پیش‌بینی یک‌سوم برای هر نتیجه {guess} می‌گیرد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.explain.logLoss": {
+    "source": "Log loss: how surprised the model was by the result. Lower is better; a forecast of one third each scores {guess}, and being confidently wrong costs the most.",
+    "text": "لاگ‌لاس: میزان غافلگیری مدل از نتیجه. کمتر بهتر است؛ پیش‌بینی یک‌سوم برای هر نتیجه {guess} می‌گیرد و اشتباهِ با اطمینان بیشترین هزینه را دارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.explain.threshold": {
+    "source": "Below {minimum} matches a figure is marked limited: a few results can make a model look better or worse than it is.",
+    "text": "زیر {minimum} بازی، عدد «ناقص» علامت می‌خورد: چند نتیجه می‌تواند مدل را بهتر یا بدتر از آنچه هست نشان دهد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "forecast.aDraw": {
     "source": "a draw",
     "text": "تساوی",

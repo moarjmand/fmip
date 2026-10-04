@@ -33,6 +33,7 @@ const REFUSING: Record<string, string> = {
   '/en/admin/rating-thresholds': 'rating-thresholds-forbidden',
   '/en/admin/news-coverage': 'news-coverage-forbidden',
   '/en/admin/model-candidates': 'model-candidates-forbidden',
+  '/en/admin/model-accuracy': 'model-accuracy-forbidden',
   '/en/admin/moderation': 'moderation-queue-forbidden',
   [`/en/admin/moderation/${MEMBER}`]: 'moderation-history-forbidden',
   [`/en/admin/members/${MEMBER}`]: 'member-page-forbidden',
