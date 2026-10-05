@@ -154,6 +154,8 @@ const CONSOLE: Record<string, ConsoleRoute> = {
 
   // Candidates' shadow records (T-1103): read-only.
   'GET /admin/model/candidates': { roles: ADMIN },
+  // Accuracy over time (T-1369): read-only.
+  'GET /admin/model/accuracy': { roles: ADMIN },
 
   // Data quality (T-640).
   'GET /admin/data-quality': { roles: ADMIN },
