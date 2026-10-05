@@ -340,6 +340,21 @@ else
   fi
 fi
 
+# English stories from GNews' free plan (T-1367, D-185): off until a key is in
+# .env, and then it runs with the other jobs. What it fetched is on the
+# console's news sources page, on the GNews row.
+if [ "$(value_of env_GNEWS_API_KEY)" = 'set' ]; then
+  if [ "$schedule" = 'on' ]; then
+    row 'English news (GNews)' 'ON' 'free plan; see Admin -> News sources, the GNews row'
+  else
+    row 'English news (GNews)' 'IDLE' "the key is set but INGESTION_SCHEDULE is '$schedule'"
+    notes+=("English news (GNews): it runs with the other jobs. Set INGESTION_SCHEDULE=on and run: bash deploy/rollout.sh api.")
+  fi
+else
+  row 'English news (GNews)' 'off' 'English stories come from the publishers'"'"' feeds only'
+  notes+=('English news (GNews): create a free account at gnews.io, put its key in .env as GNEWS_API_KEY, then run: bash deploy/rollout.sh api (docs/14-maintainer.md §14, D-185).')
+fi
+
 # Backups. `07-backups.md` opens with "a database without a backup is not in
 # production", and nothing above this line would notice their absence: every
 # container is healthy on a deployment that has never written a dump. Read from

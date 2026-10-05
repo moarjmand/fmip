@@ -74,11 +74,14 @@ const EVIDENCE: Record<CoverageModule, { expected: string; present: string }> = 
   // so that it starts reporting the day something does.
   // Who will miss a match (T-103) is owed for every match about to be played
   // and every match it was ever asked about; it is present once asked, since
-  // "nobody is missing" is an answer.
+  // "nobody is missing" is an answer -- except in a season the provider says
+  // it has no absences for (T-1364), where an empty answer is not one.
   availability: {
     expected: `(f.status = 'scheduled' AND f.kickoff_at < now() + interval '72 hours')
                OR EXISTS (SELECT 1 FROM fixture_availability_fetch a WHERE a.fixture_id = f.id)`,
-    present: `EXISTS (SELECT 1 FROM fixture_availability_fetch a WHERE a.fixture_id = f.id)`,
+    present: `EXISTS (SELECT 1 FROM fixture_availability_fetch a WHERE a.fixture_id = f.id)
+              AND NOT EXISTS (SELECT 1 FROM season_feed_coverage c
+                               WHERE c.season_id = f.season_id AND c.absences = false)`,
   },
   // Expected goals is the one advanced metric the schema models.
   advanced_statistics: {

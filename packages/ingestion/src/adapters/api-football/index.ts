@@ -15,6 +15,7 @@ import type {
   NormalisedFixtureDetail,
   NormalisedLineup,
   NormalisedLiveFixture,
+  NormalisedSeasonCoverage,
   NormalisedStanding,
 } from '../../normalised';
 import type {
@@ -40,6 +41,7 @@ import {
   mapStandings,
   mapAvailability,
   mapPlayerStatistics,
+  mapSeasonCoverage,
   mapSquad,
   mapStatistics,
   seasonYear,
@@ -302,6 +304,32 @@ class ApiFootballAdapter implements ProviderAdapter {
     return {
       ok: true,
       data: mapAvailability(result.data.response, fixtureExternalId),
+      requests: 1,
+      fetchedAt: result.receivedAt,
+    };
+  }
+
+  /**
+   * `/leagues?id=&season=`: what the provider covers for this league's season,
+   * one request (T-1364). Only whether it reports absences is read.
+   */
+  async getSeasonCoverage(query: StandingsQuery): Promise<AdapterResult<NormalisedSeasonCoverage>> {
+    const season = seasonYear(query.seasonLabel);
+    if (season === null) {
+      return {
+        ok: false,
+        error: { kind: 'unsupported', message: `cannot read a season from "${query.seasonLabel}"` },
+        requests: 0,
+      };
+    }
+    const result = await this.call('/leagues', {
+      id: query.competitionExternalId,
+      season: String(season),
+    });
+    if (!result.ok) return { ok: false, error: result.error, requests: 1 };
+    return {
+      ok: true,
+      data: mapSeasonCoverage(result.data.response, query.competitionExternalId, season),
       requests: 1,
       fetchedAt: result.receivedAt,
     };

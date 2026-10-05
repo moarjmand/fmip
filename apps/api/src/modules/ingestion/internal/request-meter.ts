@@ -14,6 +14,11 @@ import type { Transport, TransportInit, TransportResponse } from '@fmip/ingestio
  */
 export interface RequestTally {
   requests: number;
+  /**
+   * Requests the daily budget refused during the run, and the latest reason
+   * (T-1365): what the run record says instead of only the adapter's `quota`.
+   */
+  budgetRefused?: { count: number; reason: string };
 }
 
 const current = new AsyncLocalStorage<RequestTally>();
@@ -21,6 +26,13 @@ const current = new AsyncLocalStorage<RequestTally>();
 /** Runs `work` with every request sent inside it added to `tally`. */
 export function withRequestTally<T>(tally: RequestTally, work: () => Promise<T>): Promise<T> {
   return current.run(tally, work);
+}
+
+/** Notes a request the budget refused against the run it was for, if any. */
+export function noteBudgetRefusal(reason: string): void {
+  const tally = current.getStore();
+  if (tally === undefined) return;
+  tally.budgetRefused = { count: (tally.budgetRefused?.count ?? 0) + 1, reason };
 }
 
 /**

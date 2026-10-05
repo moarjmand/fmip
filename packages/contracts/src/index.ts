@@ -315,6 +315,7 @@ export type {
   FormEntry,
   HeadToHeadEntry,
   MatchAbsence,
+  MatchAbsenceGap,
   MatchCentre,
   MatchHeader,
   MatchIncident,
