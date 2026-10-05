@@ -11,7 +11,12 @@ import { IngestRunsService } from './ingest-runs.service';
 import { EntityResolverService } from './ingestion.service';
 import { withBudgetTier } from './internal/budget-tier';
 import { groupMembers } from './internal/groups';
-import { IngestStore, type PollTarget, type WriteResult } from './internal/ingest-store';
+import {
+  IngestStore,
+  type PollTarget,
+  type SeasonFeedCoverage,
+  type WriteResult,
+} from './internal/ingest-store';
 import {
   INGESTION_SOURCES,
   REPLAY_QUERY,
@@ -104,6 +109,28 @@ export function refetchAllowance(seen: {
 export const AVAILABILITY_WINDOW_HOURS = 72;
 export const AVAILABILITY_STALE_HOURS = 3;
 export const AVAILABILITY_BATCH = 10;
+
+/**
+ * Whether the provider reports absences for a season at all (T-1364) is
+ * asked once a week per season the job is about to ask absences for; an ask
+ * that got no answer is tried again the next day, not on every run.
+ */
+export const SEASON_COVERAGE_RECHECK_DAYS = 7;
+export const SEASON_COVERAGE_RETRY_HOURS = 24;
+
+/**
+ * Whether to ask the provider what it covers for a season now (T-1364). Pure.
+ * Never asked: yes. Answered within the week: no. Otherwise yes, unless it
+ * was already asked within the retry interval.
+ */
+export function seasonCoverageDue(known: SeasonFeedCoverage | null, now: Date): boolean {
+  if (known === null) return true;
+  const age = (iso: string) => now.getTime() - new Date(iso).getTime();
+  const hour = 60 * 60 * 1000;
+  if (known.answeredAt !== null && age(known.answeredAt) < SEASON_COVERAGE_RECHECK_DAYS * 24 * hour)
+    return false;
+  return age(known.askedAt) >= SEASON_COVERAGE_RETRY_HOURS * hour;
+}
 /**
  * A match we hold as live that is missing from the provider's live list has
  * usually just finished (API-Football's list drops a match at the whistle).
@@ -973,18 +1000,62 @@ export class IngestionJobsService {
     const out: { externalId: string; fixtureId: string }[] = [];
     for (const target of targets) {
       if (out.length >= AVAILABILITY_BATCH) break;
-      out.push(
-        ...(await this.store.availabilityDue(
-          source.provider,
-          target.competitionId,
-          now.toISOString(),
-          hours(AVAILABILITY_WINDOW_HOURS),
-          hours(-AVAILABILITY_STALE_HOURS),
-          AVAILABILITY_BATCH - out.length,
-        )),
+      const due = await this.store.availabilityDue(
+        source.provider,
+        target.competitionId,
+        now.toISOString(),
+        hours(AVAILABILITY_WINDOW_HOURS),
+        hours(-AVAILABILITY_STALE_HOURS),
+        AVAILABILITY_BATCH - out.length,
       );
+      // A season the provider says it has no absences for is not asked: its
+      // empty answer would read as "nobody is missing" (T-1364). By the
+      // match's own season, which a window near an edition's edge can differ in.
+      const reports = new Map<string, boolean>();
+      for (const fixture of due) {
+        let yes = reports.get(fixture.seasonId);
+        if (yes === undefined) {
+          yes = await this.reportsAbsences(source, target.competitionExternalId, fixture, now);
+          reports.set(fixture.seasonId, yes);
+        }
+        if (yes) out.push({ externalId: fixture.externalId, fixtureId: fixture.fixtureId });
+      }
     }
     return out;
+  }
+
+  /**
+   * Whether the provider reports absences for a season (T-1364), from its
+   * last answer, asking again when that is due. Only an explicit no stops the
+   * absence asks: a provider that cannot say, an ask that failed, or no
+   * answer yet leaves them as they were.
+   */
+  private async reportsAbsences(
+    source: JobSource,
+    competitionExternalId: string,
+    season: { seasonId: string; seasonLabel: string },
+    now: Date,
+  ): Promise<boolean> {
+    let known = await this.store.seasonFeedCoverage(source.provider, season.seasonId);
+    if (source.adapter.getSeasonCoverage !== undefined && seasonCoverageDue(known, now)) {
+      const result = await source.adapter.getSeasonCoverage({
+        competitionExternalId,
+        seasonLabel: season.seasonLabel,
+      });
+      if (!result.ok) {
+        this.log.warn(
+          `season coverage for ${competitionExternalId} ${season.seasonLabel}: ${describe(result.error)}`,
+        );
+      }
+      await this.store.saveSeasonFeedCoverage(
+        source.provider,
+        season.seasonId,
+        result.ok ? result.data.absences : null,
+        now.toISOString(),
+      );
+      known = await this.store.seasonFeedCoverage(source.provider, season.seasonId);
+    }
+    return known?.absences !== false;
   }
 
   private report(

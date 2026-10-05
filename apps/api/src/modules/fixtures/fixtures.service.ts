@@ -9,7 +9,7 @@ import type {
 import { MediaService } from '../media/media.service';
 import { ProfileService } from '../profile/profile.service';
 import { arrange, onlyFollowed } from './internal/arrange';
-import { covered, derived } from './internal/covered';
+import { absencesCovered, covered, derived } from './internal/covered';
 import { availabilityOf, keyPlayersSide, pickKeyPlayers } from './internal/key-players';
 import { PostgresKeyPlayersStore, type TeamSeason } from './internal/key-players-store';
 import { FORM_WINDOW, PostgresMatchCentreStore } from './internal/match-centre-store';
@@ -154,13 +154,14 @@ export class FixturesService {
         owed(!bothSides, coverage.lineups),
         lineups.lastUpdatedAt,
       ),
-      // Asked is answered, even when the answer is nobody (T-103): the list
-      // is then `available` and empty, dated by the ask. Never asked is
-      // `not_supplied`; the ingestion job asks about the next three days.
-      availability:
-        absences.askedAt === null
-          ? { coverage: 'not_supplied', last_updated_at: null, data: null }
-          : { coverage: 'available', last_updated_at: absences.askedAt, data: absences.rows },
+      // Asked is answered, even when the answer is nobody (T-103), unless the
+      // provider does not report absences for this season at all; an empty
+      // list says why (T-1364). The ingestion job asks about the next three days.
+      availability: absencesCovered(
+        absences,
+        { status: header.status, kickoffAt: header.kickoff_at },
+        new Date(),
+      ),
       // Player numbers arrive with the team's statistics and have no season
       // profile of their own, so the team statistics' declared state stands in.
       player_statistics: covered(
@@ -187,11 +188,15 @@ export class FixturesService {
   async keyPlayers(fixtureId: string): Promise<KeyPlayers | null> {
     const fixture = await this.keyPlayers_.fixture(fixtureId);
     if (fixture === null) return null;
-    const [home, away, absences] = await Promise.all([
+    const [home, away, stored] = await Promise.all([
       this.keyPlayers_.teamSeason(fixture.season.id, fixture.home.id, fixture.kickoffAt),
       this.keyPlayers_.teamSeason(fixture.season.id, fixture.away.id, fixture.kickoffAt),
       this.centre.availability(fixtureId),
     ]);
+    // An ask in a season the provider has no absences for is no answer: no
+    // player is "not on the absence list" there (T-1364).
+    const absences =
+      stored.notCovered && stored.rows.length === 0 ? { ...stored, askedAt: null } : stored;
     const side = (team: { id: string; name: string }, season: TeamSeason) =>
       keyPlayersSide(
         team,

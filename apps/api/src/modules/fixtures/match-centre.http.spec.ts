@@ -246,6 +246,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /fixture
       coverage: 'not_supplied',
       last_updated_at: null,
       data: null,
+      gap: 'not_asked',
     });
 
     const { rows } = await pool.query<{ id: string }>(
@@ -272,6 +273,30 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /fixture
     const nobody = (await get(EARLIER[1])).json() as MatchCentre;
     expect(nobody.availability.coverage).toBe('available');
     expect(nobody.availability.data).toEqual([]);
+
+    // T-1364: where the provider says it has no absences for the season, its
+    // empty answer is not "nobody", while someone it did list still shows.
+    await pool.query(
+      `INSERT INTO season_feed_coverage (season_id, provider, absences, answered_at)
+       VALUES ($1, 'api_football', false, now())`,
+      [PL_2024],
+    );
+    try {
+      const uncovered = (await get(EARLIER[1])).json() as MatchCentre;
+      expect(uncovered.availability).toEqual({
+        coverage: 'not_supplied',
+        last_updated_at: null,
+        data: null,
+        gap: 'not_covered',
+      });
+      const listed = (await get(MATCH)).json() as MatchCentre;
+      expect(listed.availability.coverage).toBe('available');
+    } finally {
+      await pool.query(
+        `DELETE FROM season_feed_coverage WHERE season_id = $1 AND provider = 'api_football'`,
+        [PL_2024],
+      );
+    }
   });
 
   it('serves both line-ups with captains, and the season coverage per module', async () => {

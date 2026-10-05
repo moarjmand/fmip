@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import type { StoredAbsences } from './covered';
 import { freshnessOf } from './freshness';
 import type {
   CoverageModule,
@@ -317,8 +318,8 @@ export class PostgresMatchCentreStore {
    * Who the provider says will miss this match, and when it was last asked
    * (T-103). `askedAt` null means it never was.
    */
-  async availability(fixtureId: string): Promise<{ rows: MatchAbsence[]; askedAt: string | null }> {
-    const [absences, ask] = await Promise.all([
+  async availability(fixtureId: string): Promise<StoredAbsences> {
+    const [absences, ask, covered] = await Promise.all([
       this.pool.query<{
         person_id: string;
         name: string;
@@ -341,6 +342,13 @@ export class PostgresMatchCentreStore {
         `SELECT fetched_at FROM fixture_availability_fetch WHERE fixture_id = $1`,
         [fixtureId],
       ),
+      // The provider says it has no absences for this match's season (T-1364).
+      this.pool.query<{ not_covered: boolean }>(
+        `SELECT EXISTS (SELECT 1 FROM fixture f
+                          JOIN season_feed_coverage c ON c.season_id = f.season_id
+                         WHERE f.id = $1 AND c.absences = false) AS not_covered`,
+        [fixtureId],
+      ),
     ]);
     return {
       rows: absences.rows.map((r) => ({
@@ -353,6 +361,7 @@ export class PostgresMatchCentreStore {
         reported_at: r.reported_at.toISOString(),
       })),
       askedAt: ask.rows[0]?.fetched_at.toISOString() ?? null,
+      notCovered: covered.rows[0]?.not_covered === true,
     };
   }
 

@@ -7663,6 +7663,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "matchCentre.lineupsNotYet": {
+    "source": "Not announced yet: the official line-up is usually announced about 20–40 minutes before kick-off.",
+    "text": "هنوز اعلام نشده است: ترکیب رسمی معمولاً حدود بیست تا چهل دقیقه پیش از شروع بازی اعلام می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "matchCentre.assist": {
     "source": "(assist {player})",
     "text": "(پاس گل: {player})",
@@ -7885,6 +7891,18 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "matchCentre.absencesNotCovered": {
+    "source": "The data provider does not report absences for this competition, so none are shown.",
+    "text": "ارائه‌دهنده‌ی داده برای این رقابت غایبان را گزارش نمی‌کند، پس چیزی نشان داده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.absencesNotYet": {
+    "source": "Not asked yet: absences are published from about three days before kick-off.",
+    "text": "هنوز پرسیده نشده است: غایبان از حدود سه روز پیش از شروع بازی اعلام می‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "matchCentre.out": {
     "source": "Out",
     "text": "غایب",
@@ -8036,14 +8054,20 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "matchCentre.context.form": {
-    "source": "Form in this competition, latest first:",
-    "text": "فرم در این رقابت، تازه‌ترین اول:",
+    "source": "Form in this competition only, latest first:",
+    "text": "فرم فقط در این رقابت، تازه‌ترین اول:",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "matchCentre.context.noForm": {
     "source": "none yet",
     "text": "هنوز نتیجه‌ای نیست",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.context.formScope": {
+    "source": "Form here counts only matches in this competition; Recent form counts the last five in every competition.",
+    "text": "فرم در این‌جا فقط بازی‌های همین رقابت را می‌شمارد؛ «فرم اخیر» پنج بازی آخر را در همه‌ی رقابت‌ها می‌شمارد.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
