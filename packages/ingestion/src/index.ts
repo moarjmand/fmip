@@ -28,6 +28,21 @@ export {
   parseFeed,
   readFeed,
 } from './news/feed';
+// GNews, an English news search that names each article's own publisher (T-1367, D-185).
+export {
+  GNEWS_FOOTBALL_QUERY,
+  GNEWS_MAX_ARTICLES,
+  type GNewsItem,
+  type GNewsOptions,
+  type GNewsPublisher,
+  type GNewsQuery,
+  type ParsedGNews,
+  articleUrlKey,
+  gnewsUrl,
+  parseGNews,
+  readGNews,
+  siteHost,
+} from './news/gnews';
 export {
   type ProvenanceInput,
   type ProvenanceVerdict,

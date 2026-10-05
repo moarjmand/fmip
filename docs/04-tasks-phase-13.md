@@ -60,7 +60,7 @@ no decision covers a flag package.
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-1330 | A source's stories only for readers of its language, set per source in the console (D-178, #494): on by default for every Persian source; a story shows the article the reader may see, or is absent | T-1301 | `/en/news` shows no Persian source; `/fa/news` shows them; an administrator switches it per source with a reason, audited |
-
+| `[x]` T-1367 | English stories from GNews' free plan while the site is non-commercial (D-185): one request per run to GNews' search (football, English, 10 articles), each article filed under its original publisher's own `news_source` row (`licensed`, `via_source_id` the GNews row seeded by migration `1765844000000`), title, description and link only, no photo; a page another source carries and a dropped publisher left out; off without `GNEWS_API_KEY`; within `GNEWS_DAILY_BUDGET` (90) every `GNEWS_INTERVAL_MINUTES` (30) | T-142, T-1015, T-1322, T-1330 | `gnews.spec.ts`: title, description, link, time and the original publisher read, `content` never, the photo only when asked, a refusal in GNews' words without the key, the URL key for deduplication. `gnews-config.spec.ts`: off without a key, defaults 90 and 30, a bad limit off. `gnews-ingestion.http.spec.ts`: no key asks nothing and writes nothing; articles under their publisher's row with the GNews row's rights and setting, once; a carried page not written; a publisher dropped directly or through GNews not brought back; the ceiling counted from stored runs, asking nothing once spent; a dropped GNews row asks nothing. `check-setup.sh` reports GNews off, idle or on. |
 
 ## Empty days
 
