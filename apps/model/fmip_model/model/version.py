@@ -133,7 +133,10 @@ def load_candidate(path: Path | None = None) -> ModelVersion | None:
     means by "the current candidate" unless told another.
 
     The file names a version and, per division, the constants tuning adopted;
-    everything it does not name is the published version's.
+    everything it does not name is the published version's. ``xi``, ``ridge``
+    and ``elo_weight`` at the top level (T-1368, D-186) replace the published
+    version's defaults: ``xi`` and ``ridge`` for every division the file does
+    not list under ``per_division``, ``elo_weight`` everywhere.
     """
     if path is None:
         candidates = load_candidates()
@@ -146,6 +149,11 @@ def load_candidate(path: Path | None = None) -> ModelVersion | None:
         for division, c in body.get("per_division", {}).items()
     }
     history_days = int(body.get("history_days", BASELINE.history_days))
+    xi = float(body.get("xi", BASELINE.xi))
+    ridge = float(body.get("ridge", BASELINE.ridge))
+    elo_weight = float(body.get("elo_weight", BASELINE.elo_weight))
+    if xi < 0 or ridge < 0 or elo_weight < 0:
+        raise ValueError("xi, ridge and elo_weight must not be negative")
     raw_beta = body.get("lineup_beta")
     lineup_beta = None if raw_beta is None else float(raw_beta)
     cross = body.get("cross_league")
@@ -164,6 +172,7 @@ def load_candidate(path: Path | None = None) -> ModelVersion | None:
     elo_prior: EloPrior = raw_prior
     if (
         not per_division
+        and (xi, ridge, elo_weight) == (BASELINE.xi, BASELINE.ridge, BASELINE.elo_weight)
         and history_days == BASELINE.history_days
         and cross_league is None
         and lineup_beta is None
@@ -173,9 +182,9 @@ def load_candidate(path: Path | None = None) -> ModelVersion | None:
     return ModelVersion(
         name=str(body.get("name", BASELINE.name)),
         version=str(body["version"]),
-        xi=BASELINE.xi,
-        ridge=BASELINE.ridge,
-        elo_weight=BASELINE.elo_weight,
+        xi=xi,
+        ridge=ridge,
+        elo_weight=elo_weight,
         elo_scale=BASELINE.elo_scale,
         max_goals=BASELINE.max_goals,
         history_days=history_days,
