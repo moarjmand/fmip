@@ -1,7 +1,8 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import type { IngestRun, IngestRunStatus, IngestionHealth } from '@fmip/contracts';
 import { PostgresRunStore } from './internal/run-store';
-import { withRequestTally } from './internal/request-meter';
+import { withRequestTally, type RequestTally } from './internal/request-meter';
+import { tierOfRun, withBudgetTier } from './internal/budget-tier';
 import {
   INGEST_JOBS,
   INGESTION_SOURCES,
@@ -56,7 +57,7 @@ export interface RunOutcome {
  * call `start` and `finish`; nothing else writes `ingest_run`.
  */
 @Injectable()
-export class IngestRunsService {
+export class IngestRunsService implements OnModuleInit {
   private readonly log = new Logger('Ingestion');
 
   constructor(
@@ -70,6 +71,32 @@ export class IngestRunsService {
    * `STALE_RUN_MS` is one whose process stopped, so it is closed as failed and
    * the start tried once more (T-537).
    */
+  /**
+   * The budget counter lives in this process and starts at zero (T-1365): a
+   * restart at 18:00 would otherwise hand the day's spent requests back. It
+   * starts instead from what today's runs recorded. A database that cannot be
+   * read leaves it at zero and says so; the provider's own limit still holds.
+   */
+  async onModuleInit(): Promise<void> {
+    const seed = this.sources.seedBudget;
+    const provider = this.sources.forJob('live')?.provider;
+    if (seed === undefined || provider === undefined) return;
+    try {
+      const spent = await this.requestsToday(provider);
+      seed(spent);
+      this.log.log(`request budget seeded from today's runs: ${spent}`, {
+        event: 'ingest.budget_seeded',
+        provider,
+        requests: spent,
+      });
+    } catch (error: unknown) {
+      this.log.warn(`request budget not seeded: ${String(error)}`, {
+        event: 'ingest.budget_unseeded',
+        provider,
+      });
+    }
+  }
+
   async start(
     provider: string,
     job: string,
@@ -158,14 +185,17 @@ export class IngestRunsService {
     work: () => Promise<{ result: T; itemsSeen: number; itemsWritten: number; partial?: string }>,
   ): Promise<T> {
     const id = await this.start(provider, job, scope);
-    const tally = { requests: 0 };
+    const tally: RequestTally = { requests: 0 };
     try {
-      const done = await withRequestTally(tally, work);
+      // Every request the run sends draws on its tier of the day's budget
+      // (T-1365); a job may narrow part of its work to a lower one.
+      const done = await withRequestTally(tally, () => withBudgetTier(tierOfRun(job, scope), work));
+      const partial = withBudgetNote(done.partial, tally);
       await this.finish(id, {
-        status: done.partial === undefined ? 'succeeded' : 'partial',
+        status: partial === undefined ? 'succeeded' : 'partial',
         itemsSeen: done.itemsSeen,
         itemsWritten: done.itemsWritten,
-        error: done.partial ?? null,
+        error: partial ?? null,
         requests: tally.requests,
       });
       return done.result;
@@ -174,7 +204,8 @@ export class IngestRunsService {
         status: 'failed',
         itemsSeen: 0,
         itemsWritten: 0,
-        error: error instanceof Error ? error.message : String(error),
+        error:
+          withBudgetNote(error instanceof Error ? error.message : String(error), tally) ?? null,
         requests: tally.requests,
       });
       throw error;
@@ -254,4 +285,15 @@ export class IngestRunsService {
 /** 00:00 UTC of `now`'s day: when every provider's plan resets. */
 export function utcMidnight(now: Date): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+}
+
+/**
+ * A run the budget held back says so in words (T-1365): the adapter only
+ * reports `quota: HTTP 429`, which reads the same as the provider's refusal.
+ */
+export function withBudgetNote(text: string | undefined, tally: RequestTally): string | undefined {
+  const refused = tally.budgetRefused;
+  if (refused === undefined) return text;
+  const note = `budget: ${refused.count} request${refused.count === 1 ? '' : 's'} not sent -- ${refused.reason}`;
+  return text === undefined || text === '' ? note : `${note}; ${text}`;
 }

@@ -9,8 +9,10 @@ import type {
 } from '@fmip/contracts';
 import { TERRITORY_CODE } from '@fmip/contracts';
 import { ProfileService } from '../profile/profile.service';
+import { offeredIn } from './internal/highlight-feed';
 import {
   type CoverageRow,
+  type FeedHighlightRow,
   type HighlightRow,
   type OptionRow,
   PostgresViewingReadStore,
@@ -76,10 +78,11 @@ export class ViewingService {
     }
     const code = territory.territory.code;
     const seasons = [...new Set(bySeason.values())];
-    const [coverage, options, highlights] = await Promise.all([
+    const [coverage, options, highlights, feed] = await Promise.all([
       this.store.coverage(seasons, code),
       this.store.options(ordered, code),
       this.store.highlights(ordered, code),
+      this.store.feedHighlights(ordered),
     ]);
     const declared = new Map(coverage.map((c) => [`${c.season_id}/${c.module}`, c]));
     return ordered.map((fixture_id) => {
@@ -92,10 +95,15 @@ export class ViewingService {
           options.filter((o) => o.fixture_id === fixture_id),
           option,
         ),
-        highlights: covered(
+        highlights: highlightsModule(
           declared.get(`${season}/highlights`),
           highlights.filter((h) => h.fixture_id === fixture_id),
-          highlight,
+          feed.filter(
+            (h) =>
+              h.fixture_id === fixture_id &&
+              offeredIn({ allowed: h.allowed_territories, blocked: h.blocked_territories }, code),
+          ),
+          code,
         ),
       };
     });
@@ -146,6 +154,38 @@ function covered<Row extends { fetched_at: Date }, Shape>(
   };
 }
 
+/**
+ * The highlights module (T-1366, D-184): the desk's page and a licensed
+ * feed's clip, never both for one match in one territory. Where the desk
+ * covers the season in the territory, its declaration rules as before and
+ * the desk's row wins; the feed's clip shows only where the desk entered
+ * none. Where nobody declared anything -- or the desk declared it does not
+ * cover it -- a clip the feed offers in this territory is `limited`: a source
+ * did say something about this match here, and nothing more is claimed;
+ * without one the answer is what it was, `not_supplied` (rule 3).
+ */
+function highlightsModule(
+  declaration: CoverageRow | undefined,
+  desk: HighlightRow[],
+  feed: FeedHighlightRow[],
+  territory: string,
+): Covered<Highlight[]> {
+  if (declaration !== undefined && declaration.state !== 'not_supplied') {
+    if (desk.length > 0) return covered(declaration, desk, highlight);
+    return covered(declaration, feed, (row) => feedHighlight(row, territory));
+  }
+  if (feed.length === 0) return covered(declaration, desk, highlight);
+  const newest = feed.reduce(
+    (at, row) => (row.fetched_at > at ? row.fetched_at : at),
+    feed[0]!.fetched_at,
+  );
+  return {
+    coverage: 'limited',
+    last_updated_at: newest.toISOString(),
+    data: feed.map((row) => feedHighlight(row, territory)),
+  };
+}
+
 function option(row: OptionRow): ViewingOption {
   return {
     id: row.id,
@@ -173,6 +213,22 @@ function highlight(row: HighlightRow): Highlight {
     thumbnail_url: row.thumbnail_url,
     territory: row.territory,
     source: { id: row.source_id, name: row.source_name, rights: row.source_rights },
+    publisher: null,
+    last_updated_at: row.fetched_at.toISOString(),
+  };
+}
+
+/** A feed clip in the viewer's territory: the original's page, link only (D-069, D-184). */
+function feedHighlight(row: FeedHighlightRow, territory: string): Highlight {
+  return {
+    id: row.id,
+    kind: 'official_page',
+    url: row.url,
+    embed_url: null,
+    thumbnail_url: null,
+    territory,
+    source: { id: row.source_id, name: row.source_name, rights: row.source_rights },
+    publisher: row.publisher,
     last_updated_at: row.fetched_at.toISOString(),
   };
 }

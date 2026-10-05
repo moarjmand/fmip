@@ -20,6 +20,8 @@ import { PostgresNewsSourcesAdminStore } from './internal/news-sources-admin-sto
 import { NewsClusteringService } from './news-clustering.service';
 import { NewsIngestionService } from './news-ingestion.service';
 import { NewsSchedulerService } from './news-scheduler.service';
+import { GNewsIngestionService } from './gnews-ingestion.service';
+import { PostgresGNewsStore } from './internal/gnews-store';
 import { BreakingAdminController } from './breaking-admin.controller';
 import { BreakingAlertsService } from './breaking-alerts.service';
 import { StoryTypeAlertsService } from './story-type-alerts.service';
@@ -71,6 +73,9 @@ import { NewsSourcesAdminController } from './news-sources-admin.controller';
     NewsClusteringService,
     NewsIngestionService,
     NewsSchedulerService,
+    // T-1367 (D-185): English stories from GNews, off without GNEWS_API_KEY.
+    PostgresGNewsStore,
+    GNewsIngestionService,
     PostgresNewsSourcesAdminStore,
     { provide: CATEGORY_MAPPING, useValue: STORY_TYPE_MAPPING },
     { provide: NEWS_TRANSPORT, useFactory: (): FetchTransport => new FetchTransport() },

@@ -8058,6 +8058,283 @@ have nothing to show. *An audit row per auto-created listing*: thousands of
 rows saying the same thing the default's one row says. *Applying in the API
 and again in the script with their own SQL*: two copies drift.
 
+## D-183 — The daily request budget is tiered: bulk and standard work stop early so live scores and line-ups keep the rest
+**Status:** Accepted · 2026-10-04 · **Task:** T-1365 · **Follows:** D-049, D-076, D-110, rule 4
+
+**Context.** `API_FOOTBALL_DAILY_BUDGET` (7,000 in production, under the
+Pro plan's 7,500) was one counter every job drew on alike. On 2026-10-03
+the jobs spent: fixtures 456, standings 456, live 912, line-ups and
+availability 716, post-match 1,040 (about 960 of it the detail backlog),
+squads 60. Once the ceiling is spent everything stops until 00:00 UTC, the
+live job included, so a day whose backlog ran long would leave a match
+showing a stale score. The counter also lived only in memory and started
+at zero after every restart, handing the day back.
+
+**Decision.** Every request carries a tier, set per run from its job and
+scope (`internal/budget-tier.ts`, carried by `AsyncLocalStorage`):
+
+- `critical` -- the live job (including its ask about a match that left
+  the live list), the line-ups job (line-ups and availability before
+  kick-off), and the post-match run's just-finished matches: up to 100 %
+  of the ceiling.
+- `standard` -- the fixture list (its daily schedule sweep included) and
+  the standings check: up to `API_FOOTBALL_BUDGET_STANDARD_PERCENT`,
+  90 unless set.
+- `bulk` -- the post-match run's detail backlog and administrators'
+  re-asks, backfills of a current or past season, the squads sweep, and
+  any request sent outside a tier: up to
+  `API_FOOTBALL_BUDGET_BULK_PERCENT`, 70 unless set.
+
+At 7,000 that is 4,900 for bulk, 6,300 for standard, and the last 700 for
+critical work alone. The whole of 2026-10-03 spent about 3,640, below
+even the bulk share; the tiers decide only a day that runs long (a big
+backlog, a hand-run backfill), and then the backlog stops first. The
+shares are whole percents from 1 to 100 with bulk no higher than standard;
+anything else turns the profile off with the reason on `/health/ingestion`,
+as an invalid ceiling already does. A refused request is answered 429 as
+before, never sent, and noted on its run, whose `partial` text starts
+`budget: N requests not sent -- daily request budget: bulk requests stop
+at 4900 of 7000 (70 %) ...`.
+At start-up the counter is seeded from today's `ingest_run.requests` for
+the provider, so a restart no longer hands the day back (a run still open
+at the restart is not yet recorded and is missed; one run's worth). The
+counter stays in-process: one process polls (`INGESTION_SCHEDULE=on`).
+
+Raising the ceiling after a plan upgrade is an `.env` change only: set
+`API_FOOTBALL_DAILY_BUDGET` a margin under the new plan's daily limit and
+recreate the API container; the tiers scale with it.
+
+**Rejected.** *A fixed request reserve for live* (e.g. 1,500): it would
+have to be re-sized by hand at each plan change; a share scales.
+*Per-job quotas*: six numbers to tune where the question is only "what
+stops first". *A shared counter in Redis*: one process polls, and the
+stored run counts already recover a restart.
+
+---
+
+## D-185 — English news from GNews' free plan while the site is non-commercial, filed under each original publisher
+**Status:** Accepted · 2026-10-04 (the maintainer, in chat) · **Task:** T-1367 · **Follows:** D-061, D-177, D-178, D-049, rule 3, rule 9
+
+**Decision, from the maintainer.** For now news focuses on English, and
+English stories also come from GNews (gnews.io) on its **free plan**,
+because the product is not commercial yet and is in testing. GNews' terms
+describe the free plan as "for non-commercial projects, development and
+testing only": 100 requests a day, at most 10 articles a request, the
+article content truncated, the last 30 days searchable. **This decision
+holds only while the site is non-commercial.** Once it becomes commercial
+(advertising, subscriptions, any paid offer) the paid plan (from EUR 49.99 a
+month) is required, or GNews is switched off by emptying the key. GNews'
+terms carry a sanctions clause; the maintainer has been told about it. The
+maintainer creates the account and places the key; an agent never does.
+
+**Off and harmless without a key.** `GNEWS_API_KEY` empty (every deployment
+until the maintainer fills it) means no request, no `news_fetch` row, no
+article -- the same shape as the other optional integrations, and
+`check-setup.sh` reports it as `off` with the step that turns it on.
+
+**What is taken: D-061 unchanged.** Title, the publisher's description, the
+link to the original and its time. GNews' `content` field is never read, so
+no code path could store or show it; rights `summary`.
+
+**Filed under the original publisher, not under "GNews".** GNews is a
+search over many publishers, and D-061 attaches two promises to a publisher:
+its name, linking to its page, on every card, and that a publisher who asks
+to be dropped is dropped. Both live on a `news_source` row, so each publisher
+GNews names gets a row of its own (kind `licensed`, no feed, `via_source_id`
+the GNews row), created the first time it is seen with the GNews row's
+rights, language and language setting. Every read path then names the
+original publisher with no change, and the console drops one publisher, or
+GNews as a whole, as it drops any source. A publisher already dropped as a
+directly read source on the same host is not brought back through GNews.
+
+**One GNews row, seeded by migration** (`1765844000000`, fixed id). The
+console adds feeds only, and the console's T-1015 rule is that a licensed
+source is not added or edited there; so the row is seeded the way the image
+rights were (D-177), and the job creates the publishers' rows. The GNews row
+carries no article: its `news_fetch` rows are the record of every request.
+
+**Within the free plan.** One request every `GNEWS_INTERVAL_MINUTES`
+(default 30: 48 a day), never more than `GNEWS_DAILY_BUDGET` a UTC day
+(default 90, a margin under 100 for a request by hand while testing). The
+ceiling is counted from the GNews row's stored runs rather than held in
+memory, so a restart does not reset it; a run over it is `partial`, names
+the budget and asks nothing (D-049's budgeted-transport rule). A limit that
+is not a positive whole number turns GNews off rather than guessing.
+
+**Not twice.** An article whose page another source already carries -- the
+same page by `articleUrlKey` (no scheme, `www.`, trailing slash, fragment or
+tracking parameters) -- is not written again; the stories GNews does bring
+are clustered with the feeds' reports exactly as any report is (T-142).
+
+**English readers only.** The GNews row, and so each publisher's row, is
+`same_language_only` with language `en` (D-178): an English focus, shown to
+readers of the site in English; the console can change it per publisher.
+
+**No photos (D-177).** GNews' images sit on each publisher's own host, and
+D-177 shows a photo only from a source whose licence covers its photos and
+only the agency's own. No GNews publisher has such a right, so its stories
+show no photo; the policy is not widened for them. The reader does not even
+keep the image URL.
+
+**Rejected.** *One source row "GNews" with the publisher in a new article
+column*: every reader-facing query (cards, story page, saved, search,
+alerts, the Following feed) would need a second publisher name, and a
+publisher could not be dropped on its own. *The `top-headlines` sports
+category*: most of it is not association football; a search for football in
+title and description is closer. *Keeping the ceiling in a process-local
+counter*: a redeploy would hand the day a second 90.
+
+---
+
+## D-184 — Match highlights from Highlightly: verified clips only, a link to the original, one row per match with its territory rule, the desk's page first
+**Status:** Accepted · 2026-10-04 · **Task:** T-1366 · **Follows:** D-014, D-049, D-061, D-069, D-114, D-181, rules 1-3, rule 10
+
+**Context.** The maintainer subscribes to Highlightly Pro (USD 9.49 a
+month, 7,500 requests a day, a budget apart from API-Football's). D-069 made
+the editorial desk the first viewing source and built the schema so that "a
+second source slots in beside it"; production's `highlight` table has no
+rows, because entering a page per match and territory by hand does not keep
+up. The key is not available yet.
+
+**Decision.** A licensed feed for highlights only (not the Watch listings):
+
+- *Off without the key.* `HIGHLIGHTLY_KEY` empty: no queue, no request, no
+  row, and `/health/highlights` and `check-setup.sh` say `absent`. With it,
+  the process with `INGESTION_SCHEDULE=on` runs the feed every two hours
+  under its own ceiling, `HIGHLIGHTS_DAILY_BUDGET` (5000 when empty), counted
+  apart from `HIGHLIGHTLY_DAILY_BUDGET` and the match jobs, the same 429
+  pattern as D-049's budget. The key is the one variable the bake-off and the
+  `live` profile already read: one secret per provider.
+- *What is asked.* Finished matches of the last 51 hours (verified clips
+  arrive 1-48 h after the whistle) whose competition is mapped to Highlightly
+  in `provider_mapping`, one question per league and UTC day; a competition
+  nobody mapped is never asked about and the run counts it.
+- *What is kept.* `type = VERIFIED` only (the rights holder's own upload),
+  and only full-match highlights (`category` `match-highlights`, or none):
+  a goal clip or a press conference is not the match's highlights.
+- *Placing a clip (rule 1).* Both of the clip's teams must be mapped to ours
+  through `provider_mapping`, and exactly one of our finished matches must
+  have that pair (either order) with a kick-off within three hours. A team
+  nobody mapped is queued through the resolver (`unresolved_entity`, the
+  competition as `seenIn`) for the operator's `catalog.mjs --map --provider
+  highlightly`; its clips are kept out and logged with the reason
+  (`team_unmapped`, `no_fixture`, `ambiguous`). Never a name as a key.
+- *Rights (D-061, D-069).* The source is `viewing_source` `Highlightly`
+  (fixed id `...0902`), `licensed_feed`, `rights = 'link'`: the viewer is
+  sent to the original (YouTube, X ...) and nothing is played or shown from
+  it on our page, whatever the provider offers (`embedUrl` is read and
+  dropped; no thumbnail). A trigger refuses a feed row under any source that
+  is not a link-only licensed feed (`PL017`).
+- *Territories.* The geo call's rule is stored on the clip, one row per
+  match in `highlight_feed` (`allowed_territories`, `blocked_territories`),
+  and evaluated at serve time for the viewer's territory by one function
+  (`offeredIn`): offered where the allow list is empty or names the
+  territory, and the block list does not. A rule the feed cannot state
+  ("Unknown restrictions", an allow rule allowing nobody, codes that are not
+  ISO) is not stored; the next-best verified clip is asked about (three at
+  most), else nothing.
+- *Precedence.* For one match in one territory the desk's page wins and the
+  feed's clip is not shown beside it -- the same order as D-181, where a
+  default never writes over a listing. Where the desk declared the season
+  covered, its declaration still rules and the feed's clip fills a match it
+  entered nothing for. Where nobody declared anything (or the desk declared
+  `not_supplied`), a clip offered in the territory is `limited`: a source
+  said something about this match here and nothing more is claimed; without
+  one the answer stays `not_supplied` (rule 3).
+- *Visitors see* "Official highlights (LaLiga)": `Highlight.publisher` is
+  the channel's name, our own field; `source` stays Highlightly. Provider
+  fields never leave `packages/ingestion` (rule 2).
+- *Removal (rule 10).* The desk's existing remove, on a match with no desk
+  page, withdraws the feed's clip in every territory (a wrong clip is wrong
+  everywhere), audited as `highlight.withdraw_feed`; the row stays, so the
+  feed never brings it back. A clip is stored once per match and never
+  replaced by a later one.
+
+**Why one row with a rule, not rows in `highlight`.** `highlight` is one row
+per match and territory, right for a desk entering a page for Iran. A clip
+allowed everywhere would be some 250 rows per match, rewritten whenever the
+territory list changes, for a rule the provider states in one line. D-181
+rejected read-time listing because nobody could remove one; here the clip is
+a row an editor can withdraw, and only its territory test runs at read time.
+
+**Cost.** Per run: one request per mapped league and day with a match
+waiting (more only past 40 clips) plus one to three geo calls per newly
+placed match; 12 runs a day stays far under 5000 for 19 competitions. The
+operator maps each competition once and the teams as the queue fills.
+
+**Rejected.** *An in-site player for embeddable clips*: D-069's line, and a
+licence for embedding is the publisher's, not the aggregator's.
+*Unverified clips*: anyone's upload. *Matching by team names or by kick-off
+alone*: rule 1, and a Saturday 15:00 has five matches. *Linking teams
+automatically by elimination over kick-off slots*: an identification rule
+that would write mappings nobody reviewed. *Asking by date across every
+league*: hundreds of foreign clips a day and teams queued that we do not
+follow. *Showing a clip whose territories are unknown*: a link that may not
+play is a module that looks populated (rule 3).
+
+---
+
+## D-186 — A collaborator proposes a model change as a candidate file with its comparison report; the shadow and promotion rules are unchanged
+**Status:** Accepted · 2026-10-04 · **Task:** T-1368 · **Follows:** D-016, D-031, D-082, D-139, D-140, D-150, D-162
+
+**Context.** The maintainer's teammate, who knows football and will work on
+the algorithm with us, asked that the model be tested on completed matches,
+that every forecast be stored and compared with its result, that accuracy be
+measured over time, and that the formula and the factors' weights stay
+tunable from real performance. All of that existed (immutable forecasts with
+their inputs, an evaluation per forecast, walk-forward backtests, candidate
+files in shadow), but the path through it was spread over a dozen decisions,
+the backtests took a candidate from the committed directory rather than a
+file being proposed, and two of the weights a football reader thinks of
+first -- the Elo prior's weight and the default time decay -- could not be
+set from a candidate file at all.
+
+**Decision.** The official way to propose a model change is
+`docs/15-model.md`'s workflow: copy the current candidate file to the next
+version, change its constants, run `bash scripts/model-backtest.sh <file>`,
+and open a pull request with the file and the report it writes
+(`apps/model/reports/<name>-<version>/compare_<from>..<to>.{md,json}`).
+
+- **The command** runs `python -m fmip_model.backtest.compare` in the model
+  image with `apps/model` mounted: it loads any football-data.co.uk season
+  the training store lacks (D-016), then walks 2025/26 forward in the eleven
+  football-data.co.uk divisions and scores the published version, the
+  reference (the newest other candidate, else the published version) and the
+  proposal on the same matches, beside the de-margined closing odds and
+  uniform: log loss, Brier, accuracy and calibration error, pooled and per
+  division. Each fit reads only its version's `history_days`, as the service
+  does.
+- **The bar into shadow** is D-139's, unchanged and taken from the same code
+  (`BAR`): against the reference, a lower log loss with a 95% paired
+  bootstrap interval below zero, calibration not demonstrably worse, worse
+  in at most a third of the divisions judged, at least 300 matches. A
+  proposal that passes is merged and enters shadow by its file (D-140); one
+  that does not stays a record in its pull request. Changes to
+  `cross_league` or `lineup_beta`, which a per-division walk-forward cannot
+  test, are judged by their own harnesses, and the report says so.
+- **Promotion is unchanged** (D-082): only on the candidate's own record of
+  at least 300 pre-kick-off forecasts (D-031), by a decision entry with the
+  numbers. A backtest never promotes.
+- **A candidate file may now name `xi`, `ridge` and `elo_weight` at the top
+  level**, replacing the published version's defaults (`xi` and `ridge` for
+  every division not under `per_division`, `elo_weight` everywhere). The
+  service already read these from the version; only the file could not say
+  them. Club Elo stays refused for any new version (D-162).
+
+**Rejected.** *Running the comparison in CI on every pull request that
+touches the candidates folder*: a full run fits each of eleven divisions
+about 35 times per version -- 15 minutes for two versions on an eight-core
+laptop with six divisions at a time (2026-10-04), several times that on a
+hosted runner, past the CI job's fifteen minutes -- and it would download
+third-party files on every push; the report is committed with the file
+instead, and anyone can rerun it with the
+same command. *A separate bar for constants changes*: D-139 already says what
+"better than the candidate" means, and a second bar would let a proposal pick
+the easier one. *Letting the comparison write the candidate file*: the file
+is the proposal and a person's choice, the report is its evidence.
+
+---
+
 ## D-187 — RPS is computed when read, and accuracy over time is published with its sample beside every figure
 **Status:** Accepted · 2026-10-04 · **Task:** T-1369 · **Follows:** D-031, D-082, D-140, rule 3, rule 5, rule 6
 

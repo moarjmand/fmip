@@ -68,6 +68,11 @@ bot an administrator allowed to post). `check-setup.sh` shows all four ON.
 3. **Optional: an editor for broadcast listings (T-310)**:
    `cd /opt/fmip && docker compose run --rm -T migrate node scripts/grant-role.mjs --email <address> --role editor --reason "enters broadcast listings"`;
    the desk appears at the bottom of every match page for them.
+4. **Match highlights (T-1366), once you have subscribed to Highlightly**:
+   the key into `.env`, then map the competitions and, as they queue, the
+   teams -- §13.
+5. **Optional: English stories from GNews (T-1367, D-185)**: a free account
+   and its key in `.env`, §14.
 
 **Meanwhile, by itself.** The scheduled task `fmip-server-followup` runs every
 six hours from the Claude desktop app on your laptop, so it needs the laptop
@@ -130,9 +135,24 @@ What is below is what you do with it.
 `API_FOOTBALL_KEY` = the key, `INGESTION_SOURCE=api_football`,
 `INGESTION_SCHEDULE=on`, and optionally `API_FOOTBALL_DAILY_BUDGET` = the
 plan's daily limit so a ceiling is enforced here rather than discovered
-mid-match. Then `docker compose restart api`. Nothing else, and no code
+mid-match. Then `bash deploy/rollout.sh api` (or `docker compose up -d api`):
+both create a new container, which is what reads `.env`; `docker compose
+restart api` keeps the old environment. Nothing else, and no code
 change: the profile was written before the purchase so that the purchase is
 one line.
+
+**After upgrading to a larger plan (T-1365, D-183).** Raise
+`API_FOOTBALL_DAILY_BUDGET` in the server's `.env` to a margin under the new
+plan's daily limit (the Pro plan's 7,500 has 7000; for a plan of N a day,
+about 93 % of N), then `bash deploy/rollout.sh api` (or `docker compose up -d
+api`) -- `restart` keeps the old environment. No code change. The budget is tiered: bulk work (the detail
+backlog, re-asks, backfills, squads) stops at 70 % of it and the fixture
+list and standings at 90 %, so the rest is always there for live scores,
+line-ups and just-finished matches. The tiers scale with the number; to
+move them, set `API_FOOTBALL_BUDGET_BULK_PERCENT` and
+`API_FOOTBALL_BUDGET_STANDARD_PERCENT` (whole percents, bulk no higher than
+standard). A run a tier held back shows `budget: ... not sent` on
+`/health/ingestion`; that is the reserve working, not a fault.
 
 `bash deploy/check-setup.sh` will then say `Match data ... IDLE`, not `ON`,
 and it is right to: a freshly migrated database holds no competition, so the
@@ -559,7 +579,8 @@ Amazon SES, or any relay), verify your domain there as it asks (a few DNS
 records in Cloudflare), copy its SMTP host, port, user and password into the
 server's `.env` as `SMTP_URL=smtps://USER:PASSWORD@HOST:465` (or
 `smtp://HOST:587`), set `DELIVERY_EMAIL_FROM="FMIP <no-reply@your-domain>"`
-and `DELIVERY_EMAIL_PROVIDER=smtp`, restart the API: `/health/delivery`
+and `DELIVERY_EMAIL_PROVIDER=smtp`, roll the API (`bash deploy/rollout.sh api`;
+a plain `restart` keeps the old `.env`): `/health/delivery`
 says `smtp`, and from that moment every notification and the verification
 and reset mails go out. Nothing else to tell the agent. **Push is built too (D-074,
 2026-09-20)**, as Web Push with your own keys, no account anywhere. On the
@@ -571,7 +592,7 @@ cd /opt/fmip && docker compose run --rm --no-deps api npx web-push generate-vapi
 
 put the two keys it prints into `.env` as `VAPID_PUBLIC_KEY` and
 `VAPID_PRIVATE_KEY`, set `VAPID_SUBJECT=mailto:you@your-domain` and
-`DELIVERY_PUSH_PROVIDER=webpush`, restart the API. Members then turn push
+`DELIVERY_PUSH_PROVIDER=webpush`, roll the API (`bash deploy/rollout.sh api`). Members then turn push
 on per device from Settings → Notifications → "On this device";
 `/health/delivery` says `webpush`.
 
@@ -580,8 +601,8 @@ the send through the inbox, administrators only, at `/admin/campaigns`.
 Nothing from you.
 
 **T-025 / T-100, the data plan.** §2 above has the recommendation and the
-evidence behind it. The steps after paying are four lines in `.env` and a
-restart, and `deploy/check-setup.sh` tells you whether they took. Until then
+evidence behind it. The steps after paying are four lines in `.env` and
+`bash deploy/rollout.sh api`, and `deploy/check-setup.sh` tells you whether they took. Until then
 the product runs on the free split (`INGESTION_SOURCE=live`) or the
 recordings, and every module neither reaches says `not_supplied` rather than
 looking empty.
@@ -919,3 +940,97 @@ uncovered one cannot be ticked -- choose a service, an access and the official
 page, and press "List selected"; the page says how many listings it created
 and how many it left because they were already there. Each listing can be
 taken down with a reason below the table. Times are in UTC.
+
+## 13. Match highlights from Highlightly (T-1366, D-184)
+
+What it does once the key is in: every two hours the server asks Highlightly
+for the **verified** highlights (the clubs' and leagues' own uploads) of
+matches that finished in the last two days, and the match page and match
+lists show **Official highlights (LaLiga)** -- a link to the original video,
+never a player on our page. Each clip is shown only in the territories
+Highlightly says it may be watched in. A highlight page the desk entered by
+hand for the same match and territory wins over the feed's.
+
+Until the key is in, all of it is off and harmless: no request, nothing
+stored, and `check-setup.sh` shows `Highlights off`.
+
+**1. The key.** After subscribing (Pro, a separate budget from API-Football),
+copy the API key from Highlightly's dashboard into the server's `.env` by
+your own hand -- never into a chat:
+
+```bash
+ssh fmip-prod
+nano /opt/fmip/.env          # the line HIGHLIGHTLY_KEY=... (it is already there, empty)
+                             # optional: HIGHLIGHTS_DAILY_BUDGET=5000 (empty means 5000; the plan allows 7,500)
+cd /opt/fmip && bash deploy/rollout.sh api
+bash deploy/check-setup.sh   # Highlights  ON  every 2 hours ...
+```
+
+**2. Tell it which of our competitions are which at Highlightly** (once per
+competition; never by name, rule 1). Highlightly's league id is in its
+dashboard and in `/leagues` on its documentation page. `<our competition
+uuid>` is the id at the end of the competition's page address on the site.
+
+```bash
+cd /opt/fmip
+catalog() { docker compose run --rm -T migrate node scripts/catalog.mjs "$@"; }
+catalog --map --provider highlightly --type competition --external-id <Highlightly league id> \
+        --to <our competition uuid> --by you@your-domain
+```
+
+**3. The teams, as they arrive.** Each run puts the Highlightly teams it saw
+in a mapped competition into the queue with their names. Place each one on
+the team we already hold (the id at the end of its team page's address).
+Do **not** use `--adopt-teams` for Highlightly: that would create a second
+copy of a club we already have.
+
+```bash
+catalog --list --type team --provider highlightly          # who is waiting, with Highlightly's ids and names
+catalog --map --provider highlightly --type team --external-id <Highlightly team id> \
+        --to <our team uuid> --by you@your-domain
+```
+
+**How to know it works.** `bash deploy/check-setup.sh` shows the newest run
+(how many clips it stored, today's requests against the ceiling) and, while
+competitions or teams are still unmapped, a note saying how many. The same
+facts, with the time of the run, are at `GET /health/highlights` on the API.
+On the site: a match that finished in the last two days in a mapped
+competition with both teams mapped shows the link within a few hours of the
+clubs uploading it. The API log names every clip it kept out and why:
+`docker compose logs api | grep highlights.unmatched`.
+
+**A wrong clip.** On the match page, the desk's "remove highlight" with a
+reason takes the feed's clip down in every territory, for good (audited).
+
+---
+
+## 14. English news from GNews (T-1367, D-185)
+
+Off until you place a key; nothing is asked or written without one.
+
+**Before you start.** The free plan is for non-commercial projects,
+development and testing only (100 requests a day, 10 articles a request,
+truncated content, the last 30 days). It is right while the site is not
+commercial; the day it becomes commercial, buy the paid plan (from EUR 49.99
+a month) or empty the key. GNews' terms have a sanctions clause -- read it
+before you sign up.
+
+1. Create a free account at `https://gnews.io` with your own e-mail and
+   choose the free plan. The dashboard shows your API key.
+2. On the server: `ssh fmip-prod`, `nano /opt/fmip/.env`, and set
+   `GNEWS_API_KEY=<the key>`. Leave `GNEWS_DAILY_BUDGET` (90) and
+   `GNEWS_INTERVAL_MINUTES` (30) out or as they are: 48 requests a day, under
+   the plan's 100.
+3. `cd /opt/fmip && bash deploy/rollout.sh api`.
+
+**How to know it works.** `bash deploy/check-setup.sh` shows
+`English news (GNews) ON`. Within half an hour, **Admin -> News sources**
+(`/en/admin/news-sources`) shows the **GNews** row with a recent fetch
+(succeeded, or partial with the reason in GNews' own words -- an invalid key
+says so), and new rows below it, one per publisher GNews brought (BBC, ESPN
+...), each `licensed`. `/en/news` shows their stories under the publisher's
+own name, linking to the original; Persian readers do not see them.
+
+**To stop it.** Empty `GNEWS_API_KEY` and roll the API out again, or drop the
+GNews row on the news sources page (with a reason). One publisher you do not
+want: drop its row there; GNews will not bring it back.

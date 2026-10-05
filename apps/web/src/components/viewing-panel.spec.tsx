@@ -44,6 +44,54 @@ describe('ViewingPanel line (T-1304)', () => {
   });
 });
 
+describe('a highlight from the licensed feed (T-1366)', () => {
+  const finished = (publisher: string | null) =>
+    renderToStaticMarkup(
+      <ViewingPanel
+        variant="line"
+        locale="en"
+        timeZone="UTC"
+        viewing={{
+          ...viewing(),
+          highlights: {
+            coverage: 'limited',
+            last_updated_at: '2026-10-04T10:00:00Z',
+            data: [
+              {
+                id: 'h1',
+                kind: 'official_page',
+                url: 'https://www.youtube.com/watch?v=official',
+                embed_url: null,
+                thumbnail_url: null,
+                territory: 'IR',
+                source: { id: 's', name: 'Highlightly', rights: 'link' },
+                publisher,
+                last_updated_at: '2026-10-04T10:00:00Z',
+              },
+            ],
+          },
+        }}
+        kickoffAt="2026-10-03T16:00:00Z"
+        status="finished"
+        signedIn={false}
+        href="/en/match/f1"
+      />,
+    );
+
+  it('links to the original and names its publisher, with no player on the page', () => {
+    const html = finished('LaLiga');
+    expect(html).toContain('href="https://www.youtube.com/watch?v=official"');
+    expect(html).toContain(
+      'Official highlights (<bdi data-testid="viewing-highlight-publisher">LaLiga</bdi>)',
+    );
+    expect(html).not.toContain('<iframe');
+  });
+
+  it('names nobody when the feed named nobody', () => {
+    expect(finished(null)).not.toContain('viewing-highlight-publisher');
+  });
+});
+
 describe('KnockoutBracket (T-1304)', () => {
   it('names the section and a round’s format in Persian', () => {
     const html = renderToStaticMarkup(

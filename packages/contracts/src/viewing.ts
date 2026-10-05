@@ -67,6 +67,12 @@ export interface Highlight {
   thumbnail_url: string | null;
   territory: string;
   source: ViewingSource;
+  /**
+   * Who published the clip ("LaLiga", "Sky Sports") when a licensed feed
+   * supplied it (T-1366, D-184); null for the desk's official page, whose
+   * publisher is the page itself. Never a provider's own field.
+   */
+  publisher: string | null;
   last_updated_at: string;
 }
 
@@ -85,6 +91,40 @@ export interface MatchViewing {
   territory: ViewingTerritory;
   options: Covered<ViewingOption[]>;
   highlights: Covered<Highlight[]>;
+}
+
+/** What one run of the highlights feed did (T-1366, D-184). */
+export interface HighlightsFeedRun {
+  started_at: string;
+  finished_at: string;
+  /** Finished matches inside the window with no clip yet. */
+  waiting: number;
+  /** Competitions of waiting matches that nobody mapped to the feed: never asked about. */
+  unmapped_competitions: number;
+  /** League-and-day questions asked. */
+  questions: number;
+  stored: number;
+  /** Verified clips kept out, by reason: a team not mapped, no match of ours, more than one. */
+  unmatched: { team_unmapped: number; no_fixture: number; ambiguous: number };
+  /** Matched clips passed over because the feed could not say where they may be watched. */
+  no_territory_rule: number;
+  requests: number;
+  /** Why the run stopped early (`quota`), or null. */
+  stopped: 'quota' | null;
+}
+
+/**
+ * `GET /health/highlights` (T-1366): whether the feed is on (`HIGHLIGHTLY_KEY`
+ * set), whether this process runs it (`INGESTION_SCHEDULE=on`), today's
+ * requests against its own ceiling, and the newest run since this process
+ * started. `absent` is the normal state of a deployment without the key.
+ */
+export interface HighlightsFeedHealth {
+  feed: 'absent' | 'configured';
+  scheduled: boolean;
+  daily_budget: number | null;
+  requests_today: number | null;
+  last_run: HighlightsFeedRun | null;
 }
 
 /** `GET /viewing?fixture=<id>&fixture=<id>`: the same module for several matches, in the order asked, minus any id that is not a match. */

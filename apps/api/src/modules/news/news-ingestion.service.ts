@@ -1,16 +1,26 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { type Transport, readFeed } from '@fmip/ingestion';
+import { type NormalisedNewsItem, type Transport, readFeed } from '@fmip/ingestion';
 import { NEWS_TRANSPORT } from './internal/news-transport';
 import { type NewsSourceRow, PostgresNewsStore, type VersionFields } from './internal/news-store';
 import { NEWS_USER_AGENT, robotsAllows } from './internal/robots';
 import { PostgresStoryLabelStore } from './internal/story-label-store';
-import { PostgresNewsImageStore } from './internal/news-image-store';
+import { type ImageRight, PostgresNewsImageStore } from './internal/news-image-store';
 import { NewsClusteringService } from './news-clustering.service';
 import { NewsImagesService } from './news-images.service';
 import { StoryTypeAlertsService } from './story-type-alerts.service';
 
 /** Postgres' unique_violation: a run of this source is already open. */
 const UNIQUE_VIOLATION = '23505';
+
+/** What writing an item needs of its source: where it is filed, what it grants, its language. */
+export type WritableSource = Pick<NewsSourceRow, 'id' | 'rights' | 'language'>;
+
+/** A photo's context: the source's licence, and the feed's origin and robots.txt for provenance. */
+export interface PhotoContext {
+  right: ImageRight;
+  feedOrigin: string;
+  robots: string | null;
+}
 
 /** What one source's fetch did. Returned so a caller (a test, the scheduler) can assert on it. */
 export interface FetchReport {
@@ -134,51 +144,11 @@ export class NewsIngestionService {
 
     let written = 0;
     for (const item of result.data.items) {
-      const language = item.language ?? source.language;
-      const fields: VersionFields = {
-        headline: item.headline,
-        // The source's rights, applied before the write (D-061).
-        summary: source.rights === 'headline' ? null : item.summary,
-        byline: item.byline,
-        published_at: item.publishedAt,
-      };
-      const article = await this.store.upsertArticle(source.id, item.externalId, item.url);
-      // T-1002: the publisher's categories as carried this time.
-      const recategorised = await this.store.replaceCategories(article.id, item.categories);
-      // T-1322: the photo, decided once per photo URL, under the source's right.
-      if (right !== null && item.imageUrl !== null) {
-        await this.images.consider({
-          sourceId: source.id,
-          right,
-          articleId: article.id,
-          articleUrl: item.url,
-          imageUrl: item.imageUrl,
-          feedOrigin: feed.origin,
-          robots: robotsTxt,
-        });
-      }
-      const newest = await this.store.newestVersion(article.id, language);
-      if (newest === null || !same(newest, fields)) {
-        await this.store.addVersion(
-          article.id,
-          language,
-          (newest?.version_number ?? 0) + 1,
-          fields,
-        );
-        written += 1;
-        // Which entities the report is about, and whether it is a story already here.
-        await this.clustering.place(article.id, article.inserted);
-      } else if (!recategorised) {
-        continue;
-      }
-      // The story's publisher type follows its promoted original's categories;
-      // an editor's label is never touched (D-123).
-      const storyId = await this.store.storyOf(article.id);
-      // A story that gains a transfer, injury or suspension type is told to
-      // the followers who asked, once (T-1032, D-166).
-      if ((await this.labels.refreshPublisher(storyId)) === 'labelled') {
-        await this.alerts.tell(storyId);
-      }
+      const photo =
+        right !== null && item.imageUrl !== null
+          ? { right, feedOrigin: feed.origin, robots: robotsTxt }
+          : null;
+      if (await this.writeItem(source, item, photo)) written += 1;
     }
 
     const skipped =
@@ -186,6 +156,62 @@ export class NewsIngestionService {
         ? `${result.data.skipped} item(s) had no headline or no link and were not written`
         : null;
     return this.report(source, result.data.items.length, written, skipped);
+  }
+
+  /**
+   * One item under its source's rights (D-061): the article, its categories,
+   * its photo when the source's licence covers one, a new version only when
+   * the words changed, then where it belongs and its publisher type. True
+   * when a version was written. Shared with the GNews job (T-1367), whose
+   * items are filed under their own publisher's row.
+   */
+  async writeItem(
+    source: WritableSource,
+    item: NormalisedNewsItem,
+    photo: PhotoContext | null,
+  ): Promise<boolean> {
+    const language = item.language ?? source.language;
+    const fields: VersionFields = {
+      headline: item.headline,
+      // The source's rights, applied before the write (D-061).
+      summary: source.rights === 'headline' ? null : item.summary,
+      byline: item.byline,
+      published_at: item.publishedAt,
+    };
+    const article = await this.store.upsertArticle(source.id, item.externalId, item.url);
+    // T-1002: the publisher's categories as carried this time.
+    const recategorised = await this.store.replaceCategories(article.id, item.categories);
+    // T-1322: the photo, decided once per photo URL, under the source's right.
+    if (photo !== null && item.imageUrl !== null) {
+      await this.images.consider({
+        sourceId: source.id,
+        right: photo.right,
+        articleId: article.id,
+        articleUrl: item.url,
+        imageUrl: item.imageUrl,
+        feedOrigin: photo.feedOrigin,
+        robots: photo.robots,
+      });
+    }
+    const newest = await this.store.newestVersion(article.id, language);
+    let wrote = false;
+    if (newest === null || !same(newest, fields)) {
+      await this.store.addVersion(article.id, language, (newest?.version_number ?? 0) + 1, fields);
+      wrote = true;
+      // Which entities the report is about, and whether it is a story already here.
+      await this.clustering.place(article.id, article.inserted);
+    } else if (!recategorised) {
+      return false;
+    }
+    // The story's publisher type follows its promoted original's categories;
+    // an editor's label is never touched (D-123).
+    const storyId = await this.store.storyOf(article.id);
+    // A story that gains a transfer, injury or suspension type is told to
+    // the followers who asked, once (T-1032, D-166).
+    if ((await this.labels.refreshPublisher(storyId)) === 'labelled') {
+      await this.alerts.tell(storyId);
+    }
+    return wrote;
   }
 
   private report(

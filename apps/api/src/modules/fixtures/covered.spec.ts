@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { covered, derived } from './internal/covered';
+import { absencesCovered, covered, derived } from './internal/covered';
 
 describe('covered', () => {
   it('labels present rows with the declared state, and limited when the profile denied them', () => {
@@ -34,5 +34,61 @@ describe('derived', () => {
       last_updated_at: null,
       data: null,
     });
+  });
+});
+
+describe('absencesCovered (T-103, T-1364)', () => {
+  const NOW = new Date('2026-10-04T12:00:00Z');
+  const soon = { status: 'scheduled' as const, kickoffAt: '2026-10-05T19:00:00Z' };
+  const later = { status: 'scheduled' as const, kickoffAt: '2026-10-10T19:00:00Z' };
+  const listed = {
+    id: 'p1',
+    name: 'A. Player',
+    side: 'home' as const,
+    status: 'out' as const,
+    kind: 'injury' as const,
+    reason: 'Knee Injury',
+    reported_at: '2026-10-04T09:00:00Z',
+  };
+  const asked = '2026-10-04T10:00:00Z';
+
+  it('reads an asked, empty answer as nobody, dated by the ask', () => {
+    expect(absencesCovered({ rows: [], askedAt: asked, notCovered: false }, soon, NOW)).toEqual({
+      coverage: 'available',
+      last_updated_at: asked,
+      data: [],
+      gap: null,
+    });
+  });
+
+  it('never reads an empty answer as nobody where the provider has no absences', () => {
+    expect(absencesCovered({ rows: [], askedAt: asked, notCovered: true }, soon, NOW)).toEqual({
+      coverage: 'not_supplied',
+      last_updated_at: null,
+      data: null,
+      gap: 'not_covered',
+    });
+    expect(absencesCovered({ rows: [], askedAt: null, notCovered: true }, later, NOW).gap).toBe(
+      'not_covered',
+    );
+    // Someone the provider did list is still shown.
+    expect(
+      absencesCovered({ rows: [listed], askedAt: asked, notCovered: true }, soon, NOW),
+    ).toMatchObject({ coverage: 'available', data: [listed] });
+  });
+
+  it('says "not yet" for a match more than three days away, and "not asked" otherwise', () => {
+    const never = { rows: [], askedAt: null, notCovered: false };
+    expect(absencesCovered(never, later, NOW)).toEqual({
+      coverage: 'not_supplied',
+      last_updated_at: null,
+      data: null,
+      gap: 'not_yet',
+    });
+    expect(absencesCovered(never, soon, NOW).gap).toBe('not_asked');
+    expect(absencesCovered(never, { ...later, status: 'postponed' }, NOW).gap).toBe('not_asked');
+    expect(
+      absencesCovered(never, { status: 'finished', kickoffAt: '2026-10-01T19:00:00Z' }, NOW).gap,
+    ).toBe('not_asked');
   });
 });

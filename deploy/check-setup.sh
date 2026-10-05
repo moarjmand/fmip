@@ -261,6 +261,39 @@ case "$channel_post" in
     ;;
 esac
 
+# Match highlights from Highlightly (T-1366, D-184). On by itself once
+# HIGHLIGHTLY_KEY is in .env; it runs where the jobs run, and stores nothing
+# until the competitions and teams it names are mapped -- which the newest
+# run reports, because a feed that is on and placing nothing looks like a
+# feed that is working.
+case "$(value_of highlights_feed)" in
+  configured)
+    hl_spent="$(value_of highlights_requests_today)"
+    hl_budget="$(value_of highlights_budget)"
+    if [ "$(value_of highlights_scheduled)" != 'true' ]; then
+      row 'Highlights' 'IDLE' "key set, but this API does not run the jobs"
+      notes+=("Highlights: HIGHLIGHTLY_KEY is set but INGESTION_SCHEDULE is '$(value_of ingestion_schedule)'. The feed runs with the other jobs (docs/14-maintainer.md §13).")
+    elif [ -z "$(value_of highlights_last_run)" ]; then
+      row 'Highlights' 'ON' "every 2 hours, not run yet since the API started; ${hl_spent:-0} of ${hl_budget} requests today"
+    else
+      row 'Highlights' 'ON' "last run $(value_of highlights_last_run): $(value_of highlights_last_stored) stored; ${hl_spent:-0} of ${hl_budget} requests today"
+      if [ "$(value_of highlights_last_unmapped_competitions)" != '0' ] || [ "$(value_of highlights_last_team_unmapped)" != '0' ]; then
+        notes+=("Highlights: the last run could not place every clip -- $(value_of highlights_last_unmapped_competitions) competition(s) and $(value_of highlights_last_team_unmapped) clip(s) with a team not yet mapped to Highlightly. Map them with catalog.mjs --map --provider highlightly (docs/14-maintainer.md §13).")
+      fi
+    fi
+    ;;
+  unknown)
+    if [ "$(value_of api)" = 'unreachable' ]; then
+      row 'Highlights' 'unknown' 'the API did not answer'
+    else
+      row 'Highlights' 'unknown' 'the running API predates the feed (T-1366); run: bash deploy/rollout.sh api'
+    fi
+    ;;
+  *)
+    row 'Highlights' 'off' 'no HIGHLIGHTLY_KEY; the desk enters highlight pages by hand'
+    ;;
+esac
+
 schedule="$(value_of ingestion_schedule)"
 source_name="$(value_of ingestion_source)"
 if [ -n "$source_name" ] && [ -n "$schedule" ] && [ "$schedule" != 'off' ]; then
@@ -305,6 +338,21 @@ else
   else
     notes+=('Match data: this waits on the purchase in docs/14-maintainer.md §2 (T-100). Until then the product shows the coverage state rather than an empty page.')
   fi
+fi
+
+# English stories from GNews' free plan (T-1367, D-185): off until a key is in
+# .env, and then it runs with the other jobs. What it fetched is on the
+# console's news sources page, on the GNews row.
+if [ "$(value_of env_GNEWS_API_KEY)" = 'set' ]; then
+  if [ "$schedule" = 'on' ]; then
+    row 'English news (GNews)' 'ON' 'free plan; see Admin -> News sources, the GNews row'
+  else
+    row 'English news (GNews)' 'IDLE' "the key is set but INGESTION_SCHEDULE is '$schedule'"
+    notes+=("English news (GNews): it runs with the other jobs. Set INGESTION_SCHEDULE=on and run: bash deploy/rollout.sh api.")
+  fi
+else
+  row 'English news (GNews)' 'off' 'English stories come from the publishers'"'"' feeds only'
+  notes+=('English news (GNews): create a free account at gnews.io, put its key in .env as GNEWS_API_KEY, then run: bash deploy/rollout.sh api (docs/14-maintainer.md §14, D-185).')
 fi
 
 # Backups. `07-backups.md` opens with "a database without a backup is not in

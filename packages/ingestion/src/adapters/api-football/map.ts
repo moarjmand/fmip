@@ -20,6 +20,7 @@ import type {
   NormalisedLineupPlayer,
   NormalisedPeriod,
   NormalisedPlayerStat,
+  NormalisedSeasonCoverage,
   NormalisedSideLineup,
   NormalisedStanding,
   NormalisedStandingRow,
@@ -692,6 +693,35 @@ export function mapSquad(response: unknown, teamExternalId: string): EntityRef[]
     }
   }
   return out;
+}
+
+/**
+ * `/leagues?id=&season=` (T-1364): each league carries `seasons[]`, each with
+ * its `year` and a `coverage` object of booleans; `coverage.injuries` is
+ * whether `/injuries` is supplied for that league's season. Only the entry for
+ * the league and year asked about counts. Anything else -- no such league or
+ * season, or no boolean -- is `null`: the provider did not say, which is not
+ * the same as no.
+ */
+export function mapSeasonCoverage(
+  response: unknown,
+  leagueExternalId: string,
+  year: number,
+): NormalisedSeasonCoverage {
+  if (!Array.isArray(response)) return { absences: null };
+  for (const item of response) {
+    const it = rec(item);
+    const leagueId = id(rec(it.league).id);
+    if (leagueId !== null && leagueId !== leagueExternalId) continue;
+    if (!Array.isArray(it.seasons)) continue;
+    for (const entry of it.seasons) {
+      const season = rec(entry);
+      if (int(season.year) !== year) continue;
+      const injuries = rec(season.coverage).injuries;
+      return { absences: typeof injuries === 'boolean' ? injuries : null };
+    }
+  }
+  return { absences: null };
 }
 
 // ---------------------------------------------------------------------------

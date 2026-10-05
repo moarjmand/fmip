@@ -714,4 +714,47 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
       await pool.query(`UPDATE fixture SET status = 'finished' WHERE id = $1`, [fixtureId]);
     }
   });
+
+  /**
+   * T-1364. A season the provider says it has no absences for is not asked
+   * about them: its empty answer would read as "nobody is missing". The
+   * replay source cannot say what it covers, so the answer is stored the way
+   * the job stores it, and a failed ask afterwards keeps it.
+   */
+  it('does not ask who will miss a match of a season the provider has no absences for', async () => {
+    const { rows } = await pool.query<{ id: string }>(
+      `SELECT id FROM fixture WHERE season_id = $1`,
+      [SEASON],
+    );
+    const fixtureId = rows[0]?.id;
+    const beforeKickoff = new Date('2023-08-11T18:45:00Z');
+    const unused: RefResolver = {
+      resolve: () => Promise.reject(new Error('not used')),
+      link: () => Promise.reject(new Error('not used')),
+    };
+    const store = new IngestStore(pool, unused);
+    await pool.query(`UPDATE fixture SET status = 'scheduled' WHERE id = $1`, [fixtureId]);
+    await pool.query(`DELETE FROM fixture_availability_fetch WHERE fixture_id = $1`, [fixtureId]);
+    try {
+      await store.saveSeasonFeedCoverage('api_football', SEASON, false, '2023-08-11T18:00:00Z');
+      // A later ask that got no answer moves only the time asked.
+      await store.saveSeasonFeedCoverage('api_football', SEASON, null, '2023-08-11T18:30:00Z');
+      expect(await store.seasonFeedCoverage('api_football', SEASON)).toEqual({
+        absences: false,
+        askedAt: '2023-08-11T18:30:00.000Z',
+        answeredAt: '2023-08-11T18:00:00.000Z',
+      });
+
+      await jobs.lineups(beforeKickoff);
+      expect(
+        await count(
+          `SELECT count(*)::text AS n FROM fixture_availability_fetch WHERE fixture_id = $1`,
+          [fixtureId],
+        ),
+      ).toBe(0);
+    } finally {
+      await pool.query(`DELETE FROM season_feed_coverage WHERE season_id = $1`, [SEASON]);
+      await pool.query(`UPDATE fixture SET status = 'finished' WHERE id = $1`, [fixtureId]);
+    }
+  });
 });
