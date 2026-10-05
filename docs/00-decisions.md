@@ -8183,3 +8183,91 @@ publisher could not be dropped on its own. *The `top-headlines` sports
 category*: most of it is not association football; a search for football in
 title and description is closer. *Keeping the ceiling in a process-local
 counter*: a redeploy would hand the day a second 90.
+
+---
+
+## D-184 — Match highlights from Highlightly: verified clips only, a link to the original, one row per match with its territory rule, the desk's page first
+**Status:** Accepted · 2026-10-04 · **Task:** T-1366 · **Follows:** D-014, D-049, D-061, D-069, D-114, D-181, rules 1-3, rule 10
+
+**Context.** The maintainer subscribes to Highlightly Pro (USD 9.49 a
+month, 7,500 requests a day, a budget apart from API-Football's). D-069 made
+the editorial desk the first viewing source and built the schema so that "a
+second source slots in beside it"; production's `highlight` table has no
+rows, because entering a page per match and territory by hand does not keep
+up. The key is not available yet.
+
+**Decision.** A licensed feed for highlights only (not the Watch listings):
+
+- *Off without the key.* `HIGHLIGHTLY_KEY` empty: no queue, no request, no
+  row, and `/health/highlights` and `check-setup.sh` say `absent`. With it,
+  the process with `INGESTION_SCHEDULE=on` runs the feed every two hours
+  under its own ceiling, `HIGHLIGHTS_DAILY_BUDGET` (5000 when empty), counted
+  apart from `HIGHLIGHTLY_DAILY_BUDGET` and the match jobs, the same 429
+  pattern as D-049's budget. The key is the one variable the bake-off and the
+  `live` profile already read: one secret per provider.
+- *What is asked.* Finished matches of the last 51 hours (verified clips
+  arrive 1-48 h after the whistle) whose competition is mapped to Highlightly
+  in `provider_mapping`, one question per league and UTC day; a competition
+  nobody mapped is never asked about and the run counts it.
+- *What is kept.* `type = VERIFIED` only (the rights holder's own upload),
+  and only full-match highlights (`category` `match-highlights`, or none):
+  a goal clip or a press conference is not the match's highlights.
+- *Placing a clip (rule 1).* Both of the clip's teams must be mapped to ours
+  through `provider_mapping`, and exactly one of our finished matches must
+  have that pair (either order) with a kick-off within three hours. A team
+  nobody mapped is queued through the resolver (`unresolved_entity`, the
+  competition as `seenIn`) for the operator's `catalog.mjs --map --provider
+  highlightly`; its clips are kept out and logged with the reason
+  (`team_unmapped`, `no_fixture`, `ambiguous`). Never a name as a key.
+- *Rights (D-061, D-069).* The source is `viewing_source` `Highlightly`
+  (fixed id `...0902`), `licensed_feed`, `rights = 'link'`: the viewer is
+  sent to the original (YouTube, X ...) and nothing is played or shown from
+  it on our page, whatever the provider offers (`embedUrl` is read and
+  dropped; no thumbnail). A trigger refuses a feed row under any source that
+  is not a link-only licensed feed (`PL017`).
+- *Territories.* The geo call's rule is stored on the clip, one row per
+  match in `highlight_feed` (`allowed_territories`, `blocked_territories`),
+  and evaluated at serve time for the viewer's territory by one function
+  (`offeredIn`): offered where the allow list is empty or names the
+  territory, and the block list does not. A rule the feed cannot state
+  ("Unknown restrictions", an allow rule allowing nobody, codes that are not
+  ISO) is not stored; the next-best verified clip is asked about (three at
+  most), else nothing.
+- *Precedence.* For one match in one territory the desk's page wins and the
+  feed's clip is not shown beside it -- the same order as D-181, where a
+  default never writes over a listing. Where the desk declared the season
+  covered, its declaration still rules and the feed's clip fills a match it
+  entered nothing for. Where nobody declared anything (or the desk declared
+  `not_supplied`), a clip offered in the territory is `limited`: a source
+  said something about this match here and nothing more is claimed; without
+  one the answer stays `not_supplied` (rule 3).
+- *Visitors see* "Official highlights (LaLiga)": `Highlight.publisher` is
+  the channel's name, our own field; `source` stays Highlightly. Provider
+  fields never leave `packages/ingestion` (rule 2).
+- *Removal (rule 10).* The desk's existing remove, on a match with no desk
+  page, withdraws the feed's clip in every territory (a wrong clip is wrong
+  everywhere), audited as `highlight.withdraw_feed`; the row stays, so the
+  feed never brings it back. A clip is stored once per match and never
+  replaced by a later one.
+
+**Why one row with a rule, not rows in `highlight`.** `highlight` is one row
+per match and territory, right for a desk entering a page for Iran. A clip
+allowed everywhere would be some 250 rows per match, rewritten whenever the
+territory list changes, for a rule the provider states in one line. D-181
+rejected read-time listing because nobody could remove one; here the clip is
+a row an editor can withdraw, and only its territory test runs at read time.
+
+**Cost.** Per run: one request per mapped league and day with a match
+waiting (more only past 40 clips) plus one to three geo calls per newly
+placed match; 12 runs a day stays far under 5000 for 19 competitions. The
+operator maps each competition once and the teams as the queue fills.
+
+**Rejected.** *An in-site player for embeddable clips*: D-069's line, and a
+licence for embedding is the publisher's, not the aggregator's.
+*Unverified clips*: anyone's upload. *Matching by team names or by kick-off
+alone*: rule 1, and a Saturday 15:00 has five matches. *Linking teams
+automatically by elimination over kick-off slots*: an identification rule
+that would write mappings nobody reviewed. *Asking by date across every
+league*: hundreds of foreign clips a day and teams queued that we do not
+follow. *Showing a clip whose territories are unknown*: a link that may not
+play is a module that looks populated (rule 3).

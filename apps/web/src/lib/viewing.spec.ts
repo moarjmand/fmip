@@ -35,6 +35,7 @@ const page: Highlight = {
   thumbnail_url: null,
   territory: 'IR',
   source: desk,
+  publisher: null,
   last_updated_at: '2026-09-18T10:00:00Z',
 };
 
