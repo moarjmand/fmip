@@ -52,6 +52,20 @@ export interface HighlightRow {
   source_rights: ViewingRights;
 }
 
+/** A licensed feed's clip for a match (T-1366), with its territory rule: evaluated by the service, never here. */
+export interface FeedHighlightRow {
+  id: string;
+  fixture_id: string;
+  url: string;
+  publisher: string | null;
+  allowed_territories: string[];
+  blocked_territories: string[];
+  fetched_at: Date;
+  source_id: string;
+  source_name: string;
+  source_rights: ViewingRights;
+}
+
 /**
  * The viewing rows for a set of matches in one territory (T-313). Reads only;
  * every row carries its source and what the source grants, so the service
@@ -114,6 +128,21 @@ export class PostgresViewingReadStore {
          JOIN viewing_source s ON s.id = h.source_id
         WHERE h.fixture_id = ANY($1::uuid[]) AND h.territory = $2`,
       [fixtureIds, territory],
+    );
+    return rows;
+  }
+
+  /** The feed's clips for these matches, not withdrawn, from a source not dropped; any territory. */
+  async feedHighlights(fixtureIds: string[]): Promise<FeedHighlightRow[]> {
+    const { rows } = await this.pool.query<FeedHighlightRow>(
+      `SELECT h.id, h.fixture_id, h.url, h.publisher, h.allowed_territories,
+              h.blocked_territories, h.fetched_at,
+              s.id AS source_id, s.name AS source_name, s.rights AS source_rights
+         FROM highlight_feed h
+         JOIN viewing_source s ON s.id = h.source_id
+        WHERE h.fixture_id = ANY($1::uuid[])
+          AND h.withdrawn_at IS NULL AND s.dropped_at IS NULL`,
+      [fixtureIds],
     );
     return rows;
   }

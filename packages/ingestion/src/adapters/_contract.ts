@@ -12,6 +12,7 @@ import type {
   NormalisedFixtureDetail,
   NormalisedLineup,
   NormalisedLiveFixture,
+  NormalisedSeasonCoverage,
   NormalisedStanding,
   Provider,
 } from '../normalised';
@@ -126,9 +127,19 @@ export interface ProviderAdapter {
    * Not one of the recorded calls the contract check replays.
    */
   getSquad?(teamExternalId: string): Promise<AdapterResult<EntityRef[]>>;
+  /**
+   * What the provider covers for one competition's season (T-1364): whether
+   * it reports absences there at all, so an empty `getAvailability` answer
+   * from a season it does not cover is never read as "nobody is missing".
+   * One request. Optional, like `getSquad`, and not a replayed call.
+   */
+  getSeasonCoverage?(query: StandingsQuery): Promise<AdapterResult<NormalisedSeasonCoverage>>;
 }
 
-export type AdapterCall = Exclude<keyof Omit<ProviderAdapter, 'manifest'>, 'getSquad'>;
+export type AdapterCall = Exclude<
+  keyof Omit<ProviderAdapter, 'manifest'>,
+  'getSquad' | 'getSeasonCoverage'
+>;
 
 export const ADAPTER_CALLS: readonly AdapterCall[] = [
   'listFixtures',

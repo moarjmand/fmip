@@ -281,6 +281,15 @@ export interface NormalisedAbsence {
   reason: string | null;
 }
 
+/**
+ * What the provider says it covers for one competition's season (T-1364).
+ * `absences` is whether it reports who will miss a match; `null` when its
+ * answer does not say, which is not the same as no.
+ */
+export interface NormalisedSeasonCoverage {
+  absences: boolean | null;
+}
+
 export interface NormalisedPlayerStat {
   side: Side;
   player: EntityRef;

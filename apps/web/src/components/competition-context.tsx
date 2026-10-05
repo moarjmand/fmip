@@ -144,6 +144,13 @@ function Table({
           ))}
         </div>
       )}
+      {sides.length > 0 && (
+        // The form here is this competition's only, so a side early in a cup
+        // shows one result; Recent form is the last five anywhere (T-1364).
+        <p dir="auto" className="text-xs text-muted" data-testid="competition-context-form-scope">
+          <Translated locale={locale} message="matchCentre.context.formScope" />
+        </p>
+      )}
       {table.leader !== null && (
         <p>
           <FilledMessage

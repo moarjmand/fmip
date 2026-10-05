@@ -348,10 +348,27 @@ function Highlights({
             data-testid="viewing-highlight-page"
           >
             <Translated locale={locale} message="viewing.highlightsPage" />
+            <Publisher name={highlight.publisher} />
           </a>
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * Who published a feed's clip ("LaLiga"), after the link's words (T-1366):
+ * the publisher's own name, isolated so it reads correctly in either
+ * direction. Nothing for the desk's page, which names no publisher.
+ */
+function Publisher({ name }: { name: string | null }) {
+  if (name === null) return null;
+  return (
+    <>
+      {' ('}
+      <bdi data-testid="viewing-highlight-publisher">{name}</bdi>
+      {')'}
+    </>
   );
 }
 
@@ -405,6 +422,7 @@ function ViewingLine({ locale, viewing, status, signedIn, href }: Common) {
             className={inlineTargetClasses('underline')}
           >
             <Translated locale={locale} message="viewing.highlightsPage" />
+            <Publisher name={highlight.publisher} />
           </a>
         </>
       )}

@@ -51,6 +51,14 @@ export interface PollTarget {
   seasonEnd: string;
 }
 
+/** What the provider last said it covers for one season (T-1364). */
+export interface SeasonFeedCoverage {
+  /** Whether it reports absences; `null` until it gave an answer. */
+  absences: boolean | null;
+  askedAt: string;
+  answeredAt: string | null;
+}
+
 /** What a write did: rows changed, and the provider ids that had no mapping. */
 export interface WriteResult {
   changed: number;
@@ -872,9 +880,14 @@ export class IngestStore implements SquadStore {
     toIso: string,
     staleBeforeIso: string,
     limit: number,
-  ): Promise<{ externalId: string; fixtureId: string }[]> {
-    const { rows } = await this.pool.query<{ external_id: string; fixture_id: string }>(
-      `SELECT pm.external_id, f.id AS fixture_id
+  ): Promise<{ externalId: string; fixtureId: string; seasonId: string; seasonLabel: string }[]> {
+    const { rows } = await this.pool.query<{
+      external_id: string;
+      fixture_id: string;
+      season_id: string;
+      label: string;
+    }>(
+      `SELECT pm.external_id, f.id AS fixture_id, s.id AS season_id, s.label
          FROM fixture f
          JOIN season s ON s.id = f.season_id
          JOIN provider_mapping pm
@@ -887,7 +900,62 @@ export class IngestStore implements SquadStore {
         LIMIT $6`,
       [provider, competitionId, fromIso, toIso, staleBeforeIso, limit],
     );
-    return rows.map((r) => ({ externalId: r.external_id, fixtureId: r.fixture_id }));
+    return rows.map((r) => ({
+      externalId: r.external_id,
+      fixtureId: r.fixture_id,
+      seasonId: r.season_id,
+      seasonLabel: r.label,
+    }));
+  }
+
+  /**
+   * What the provider last said it covers for one season (T-1364): whether it
+   * reports absences (`null` until it answered), and when it was last asked
+   * and answered. `null` when it was never asked.
+   */
+  async seasonFeedCoverage(
+    provider: Provider,
+    seasonId: string,
+  ): Promise<SeasonFeedCoverage | null> {
+    const { rows } = await this.pool.query<{
+      absences: boolean | null;
+      asked_at: Date;
+      answered_at: Date | null;
+    }>(
+      `SELECT absences, asked_at, answered_at
+         FROM season_feed_coverage WHERE season_id = $1 AND provider = $2`,
+      [seasonId, provider],
+    );
+    const row = rows[0];
+    if (row === undefined) return null;
+    return {
+      absences: row.absences,
+      askedAt: row.asked_at.toISOString(),
+      answeredAt: row.answered_at?.toISOString() ?? null,
+    };
+  }
+
+  /**
+   * Records an ask for a season's coverage (T-1364): with the provider's
+   * answer when it gave one, else only that it was asked, keeping the last
+   * answer it did give.
+   */
+  async saveSeasonFeedCoverage(
+    provider: Provider,
+    seasonId: string,
+    absences: boolean | null,
+    atIso: string,
+  ): Promise<number> {
+    const { rowCount } = await this.pool.query(
+      `INSERT INTO season_feed_coverage (season_id, provider, absences, asked_at, answered_at)
+       VALUES ($1, $2, $3, $4, CASE WHEN $3::boolean IS NULL THEN NULL ELSE $4::timestamptz END)
+       ON CONFLICT (season_id, provider) DO UPDATE
+         SET asked_at = EXCLUDED.asked_at,
+             absences = COALESCE(EXCLUDED.absences, season_feed_coverage.absences),
+             answered_at = COALESCE(EXCLUDED.answered_at, season_feed_coverage.answered_at)`,
+      [seasonId, provider, absences, atIso],
+    );
+    return rowCount ?? 0;
   }
 
   /**
