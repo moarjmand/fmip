@@ -8058,6 +8058,58 @@ have nothing to show. *An audit row per auto-created listing*: thousands of
 rows saying the same thing the default's one row says. *Applying in the API
 and again in the script with their own SQL*: two copies drift.
 
+## D-183 — The daily request budget is tiered: bulk and standard work stop early so live scores and line-ups keep the rest
+**Status:** Accepted · 2026-10-04 · **Task:** T-1365 · **Follows:** D-049, D-076, D-110, rule 4
+
+**Context.** `API_FOOTBALL_DAILY_BUDGET` (7,000 in production, under the
+Pro plan's 7,500) was one counter every job drew on alike. On 2026-10-03
+the jobs spent: fixtures 456, standings 456, live 912, line-ups and
+availability 716, post-match 1,040 (about 960 of it the detail backlog),
+squads 60. Once the ceiling is spent everything stops until 00:00 UTC, the
+live job included, so a day whose backlog ran long would leave a match
+showing a stale score. The counter also lived only in memory and started
+at zero after every restart, handing the day back.
+
+**Decision.** Every request carries a tier, set per run from its job and
+scope (`internal/budget-tier.ts`, carried by `AsyncLocalStorage`):
+
+- `critical` -- the live job (including its ask about a match that left
+  the live list), the line-ups job (line-ups and availability before
+  kick-off), and the post-match run's just-finished matches: up to 100 %
+  of the ceiling.
+- `standard` -- the fixture list (its daily schedule sweep included) and
+  the standings check: up to `API_FOOTBALL_BUDGET_STANDARD_PERCENT`,
+  90 unless set.
+- `bulk` -- the post-match run's detail backlog and administrators'
+  re-asks, backfills of a current or past season, the squads sweep, and
+  any request sent outside a tier: up to
+  `API_FOOTBALL_BUDGET_BULK_PERCENT`, 70 unless set.
+
+At 7,000 that is 4,900 for bulk, 6,300 for standard, and the last 700 for
+critical work alone. The whole of 2026-10-03 spent about 3,640, below
+even the bulk share; the tiers decide only a day that runs long (a big
+backlog, a hand-run backfill), and then the backlog stops first. The
+shares are whole percents from 1 to 100 with bulk no higher than standard;
+anything else turns the profile off with the reason on `/health/ingestion`,
+as an invalid ceiling already does. A refused request is answered 429 as
+before, never sent, and noted on its run, whose `partial` text starts
+`budget: N requests not sent -- daily request budget: bulk requests stop
+at 4900 of 7000 (70 %) ...`.
+At start-up the counter is seeded from today's `ingest_run.requests` for
+the provider, so a restart no longer hands the day back (a run still open
+at the restart is not yet recorded and is missed; one run's worth). The
+counter stays in-process: one process polls (`INGESTION_SCHEDULE=on`).
+
+Raising the ceiling after a plan upgrade is an `.env` change only: set
+`API_FOOTBALL_DAILY_BUDGET` a margin under the new plan's daily limit and
+recreate the API container; the tiers scale with it.
+
+**Rejected.** *A fixed request reserve for live* (e.g. 1,500): it would
+have to be re-sized by hand at each plan change; a share scales.
+*Per-job quotas*: six numbers to tune where the question is only "what
+stops first". *A shared counter in Redis*: one process polls, and the
+stored run counts already recover a restart.
+
 ---
 
 ## D-185 — English news from GNews' free plan while the site is non-commercial, filed under each original publisher

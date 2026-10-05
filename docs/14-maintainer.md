@@ -132,9 +132,24 @@ What is below is what you do with it.
 `API_FOOTBALL_KEY` = the key, `INGESTION_SOURCE=api_football`,
 `INGESTION_SCHEDULE=on`, and optionally `API_FOOTBALL_DAILY_BUDGET` = the
 plan's daily limit so a ceiling is enforced here rather than discovered
-mid-match. Then `docker compose restart api`. Nothing else, and no code
+mid-match. Then `bash deploy/rollout.sh api` (or `docker compose up -d api`):
+both create a new container, which is what reads `.env`; `docker compose
+restart api` keeps the old environment. Nothing else, and no code
 change: the profile was written before the purchase so that the purchase is
 one line.
+
+**After upgrading to a larger plan (T-1365, D-183).** Raise
+`API_FOOTBALL_DAILY_BUDGET` in the server's `.env` to a margin under the new
+plan's daily limit (the Pro plan's 7,500 has 7000; for a plan of N a day,
+about 93 % of N), then `bash deploy/rollout.sh api` (or `docker compose up -d
+api`) -- `restart` keeps the old environment. No code change. The budget is tiered: bulk work (the detail
+backlog, re-asks, backfills, squads) stops at 70 % of it and the fixture
+list and standings at 90 %, so the rest is always there for live scores,
+line-ups and just-finished matches. The tiers scale with the number; to
+move them, set `API_FOOTBALL_BUDGET_BULK_PERCENT` and
+`API_FOOTBALL_BUDGET_STANDARD_PERCENT` (whole percents, bulk no higher than
+standard). A run a tier held back shows `budget: ... not sent` on
+`/health/ingestion`; that is the reserve working, not a fault.
 
 `bash deploy/check-setup.sh` will then say `Match data ... IDLE`, not `ON`,
 and it is right to: a freshly migrated database holds no competition, so the
@@ -561,7 +576,8 @@ Amazon SES, or any relay), verify your domain there as it asks (a few DNS
 records in Cloudflare), copy its SMTP host, port, user and password into the
 server's `.env` as `SMTP_URL=smtps://USER:PASSWORD@HOST:465` (or
 `smtp://HOST:587`), set `DELIVERY_EMAIL_FROM="FMIP <no-reply@your-domain>"`
-and `DELIVERY_EMAIL_PROVIDER=smtp`, restart the API: `/health/delivery`
+and `DELIVERY_EMAIL_PROVIDER=smtp`, roll the API (`bash deploy/rollout.sh api`;
+a plain `restart` keeps the old `.env`): `/health/delivery`
 says `smtp`, and from that moment every notification and the verification
 and reset mails go out. Nothing else to tell the agent. **Push is built too (D-074,
 2026-09-20)**, as Web Push with your own keys, no account anywhere. On the
@@ -573,7 +589,7 @@ cd /opt/fmip && docker compose run --rm --no-deps api npx web-push generate-vapi
 
 put the two keys it prints into `.env` as `VAPID_PUBLIC_KEY` and
 `VAPID_PRIVATE_KEY`, set `VAPID_SUBJECT=mailto:you@your-domain` and
-`DELIVERY_PUSH_PROVIDER=webpush`, restart the API. Members then turn push
+`DELIVERY_PUSH_PROVIDER=webpush`, roll the API (`bash deploy/rollout.sh api`). Members then turn push
 on per device from Settings → Notifications → "On this device";
 `/health/delivery` says `webpush`.
 
@@ -582,8 +598,8 @@ the send through the inbox, administrators only, at `/admin/campaigns`.
 Nothing from you.
 
 **T-025 / T-100, the data plan.** §2 above has the recommendation and the
-evidence behind it. The steps after paying are four lines in `.env` and a
-restart, and `deploy/check-setup.sh` tells you whether they took. Until then
+evidence behind it. The steps after paying are four lines in `.env` and
+`bash deploy/rollout.sh api`, and `deploy/check-setup.sh` tells you whether they took. Until then
 the product runs on the free split (`INGESTION_SOURCE=live`) or the
 recordings, and every module neither reaches says `not_supplied` rather than
 looking empty.

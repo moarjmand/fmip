@@ -35,7 +35,14 @@ import {
   type TransportInit,
   type TransportResponse,
 } from '@fmip/ingestion';
-import { CountingTransport } from './request-meter';
+import {
+  NO_RESERVE,
+  currentBudgetTier,
+  parseTierShares,
+  tierCeiling,
+  type TierShares,
+} from './budget-tier';
+import { CountingTransport, noteBudgetRefusal } from './request-meter';
 
 /** Re-exported so the jobs ask the replay source for exactly what was recorded. */
 export { REPLAY_QUERY };
@@ -72,6 +79,12 @@ export interface IngestionSources {
    * (`API_FOOTBALL_DAILY_BUDGET`), or absent for none of its own (T-501).
    */
   dailyBudget?: number;
+  /**
+   * Tells the budget what this provider's runs already recorded today
+   * (`ingest_run.requests`), so a restart does not hand the day back (T-1365).
+   * Absent when no budget of our own is held.
+   */
+  seedBudget?: (spentToday: number) => void;
 }
 
 /** The provider whose recordings the replay profile uses: the only rich set. */
@@ -90,6 +103,10 @@ export interface SourceEnv {
    * number refuses the profile rather than guessing at a number.
    */
   API_FOOTBALL_DAILY_BUDGET?: string;
+  /** The percent of that ceiling bulk work may reach: 70 unless set (T-1365, D-183). */
+  API_FOOTBALL_BUDGET_BULK_PERCENT?: string;
+  /** The percent the fixture list and standings may reach: 90 unless set. */
+  API_FOOTBALL_BUDGET_STANDARD_PERCENT?: string;
 }
 
 /** Highlightly's free plan, and the default ceiling the budget transport holds. */
@@ -102,6 +119,11 @@ export const HIGHLIGHTLY_DEFAULT_BUDGET = 100;
  * `quota` error the way it would for a real refusal and the job records a
  * partial run naming the budget — the ceiling is enforced in code, not in
  * hope (D-049). The day is UTC, which is when every free plan resets.
+ *
+ * With tier shares (T-1365, D-183) a lower tier stops earlier: a `bulk`
+ * request is refused once the day's count reaches its share of the ceiling,
+ * a `standard` one at its own, and only a `critical` one may spend the rest.
+ * The tier is the one the run sending the request set (`withBudgetTier`).
  */
 export class BudgetedTransport implements Transport {
   private day: string;
@@ -111,8 +133,19 @@ export class BudgetedTransport implements Transport {
     private readonly inner: Transport,
     private readonly perDay: number,
     private readonly now: () => Date = () => new Date(),
+    private readonly shares: TierShares = NO_RESERVE,
   ) {
     this.day = this.today();
+  }
+
+  /**
+   * Today's requests already spent elsewhere -- by this process before a
+   * restart, or by another one -- as recorded on `ingest_run`. Never lowers
+   * the count.
+   */
+  seed(spentToday: number): void {
+    this.roll();
+    if (Number.isInteger(spentToday) && spentToday > this.spent) this.spent = spentToday;
   }
 
   /** Requests still available today. */
@@ -123,12 +156,16 @@ export class BudgetedTransport implements Transport {
 
   async request(url: string, init?: TransportInit): Promise<TransportResponse> {
     this.roll();
-    if (this.spent >= this.perDay) {
-      return {
-        status: 429,
-        body: { message: `daily request budget of ${this.perDay} spent` },
-        receivedAt: this.now().toISOString(),
-      };
+    const tier = currentBudgetTier();
+    const ceiling = tierCeiling(this.perDay, tier, this.shares);
+    if (this.spent >= ceiling) {
+      const message =
+        ceiling >= this.perDay
+          ? `daily request budget of ${this.perDay} spent`
+          : `daily request budget: ${tier} requests stop at ${ceiling} of ${this.perDay} ` +
+            `(${this.shares[tier as 'bulk' | 'standard']} %), the rest is kept for live scores and line-ups`;
+      noteBudgetRefusal(message);
+      return { status: 429, body: { message }, receivedAt: this.now().toISOString() };
     }
     this.spent += 1;
     return this.inner.request(url, init);
@@ -196,12 +233,16 @@ export function resolveSources(
     const ceiling = (env.API_FOOTBALL_DAILY_BUDGET ?? '').trim();
     let transport = make();
     let perDay: number | undefined;
+    let budget: BudgetedTransport | undefined;
     if (ceiling !== '') {
       perDay = Number(ceiling);
       if (!Number.isInteger(perDay) || perDay <= 0) {
         return off(`API_FOOTBALL_DAILY_BUDGET=${ceiling} is not a positive number of requests`);
       }
-      transport = new BudgetedTransport(transport, perDay);
+      const shares = parseTierShares(env);
+      if ('error' in shares) return off(shares.error);
+      budget = new BudgetedTransport(transport, perDay, undefined, shares);
+      transport = budget;
     }
     const source: JobSource = {
       provider: 'api_football',
@@ -211,7 +252,9 @@ export function resolveSources(
       kind: 'api_football',
       reason: null,
       forJob: () => source,
-      ...(perDay === undefined ? {} : { dailyBudget: perDay }),
+      ...(perDay === undefined || budget === undefined
+        ? {}
+        : { dailyBudget: perDay, seedBudget: (spent: number) => budget.seed(spent) }),
     };
   }
 

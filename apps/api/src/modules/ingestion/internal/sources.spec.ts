@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { Transport, TransportResponse } from '@fmip/ingestion';
+import { withBudgetTier } from './budget-tier';
 import { withRequestTally } from './request-meter';
 import { BudgetedTransport, HIGHLIGHTLY_DEFAULT_BUDGET, resolveSources } from './sources';
 
@@ -130,8 +131,11 @@ describe('the paid single-provider profile (T-028)', () => {
       { transport: () => inner.transport },
     );
 
-    await sources.forJob('lineups')?.adapter.getLineup('1');
-    await sources.forJob('lineups')?.adapter.getLineup('2');
+    // Line-ups are critical (T-1365), so the whole ceiling is theirs.
+    await withBudgetTier('critical', async () => {
+      await sources.forJob('lineups')?.adapter.getLineup('1');
+      await sources.forJob('lineups')?.adapter.getLineup('2');
+    });
 
     // The second call was answered 429 here; a paid plan's quota is not spent
     // finding out that it is spent.
@@ -157,9 +161,11 @@ describe('the paid single-provider profile (T-028)', () => {
     const adapter = sources.forJob('lineups')!.adapter;
     const tally = { requests: 0 };
 
-    await withRequestTally(tally, async () => {
-      for (const id of ['1', '2', '3']) await adapter.getLineup(id);
-    });
+    await withRequestTally(tally, () =>
+      withBudgetTier('critical', async () => {
+        for (const id of ['1', '2', '3']) await adapter.getLineup(id);
+      }),
+    );
 
     expect(inner.calls()).toBe(2);
     expect(tally.requests).toBe(2);
