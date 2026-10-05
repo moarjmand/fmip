@@ -93,6 +93,21 @@ export function formatDate(
   return new Intl.DateTimeFormat(intlLocale(locale), { timeZone, ...parts }).format(at(iso));
 }
 
+/**
+ * A calendar month named in the reader's language: "October 2026", «اکتبر
+ * ۲۰۲۶». Always the Gregorian month, whatever the locale's own calendar:
+ * the figures it labels are bucketed by Gregorian month (T-1369), and a
+ * Persian month name would cover a different stretch of days.
+ */
+export function formatGregorianMonth(locale: Locale | string, yearMonth: string): string {
+  return new Intl.DateTimeFormat(intlLocale(locale), {
+    calendar: 'gregory',
+    year: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+  }).format(at(`${yearMonth}-01T00:00:00Z`));
+}
+
 /** A count somebody reads -- an attendance, a capacity -- with the locale's grouping. */
 export function formatNumber(locale: Locale | string, value: number): string {
   return new Intl.NumberFormat(intlLocale(locale)).format(value);

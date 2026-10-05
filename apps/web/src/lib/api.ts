@@ -88,6 +88,9 @@ import type {
   MatchPanelPage,
   NewsCoverageReport,
   CandidateRecordsResponse,
+  AccuracyPeriod,
+  AdminModelAccuracyResponse,
+  PublicModelAccuracyResponse,
   NewsSectionResponse,
   NotificationSettings,
   PushState,
@@ -1288,6 +1291,24 @@ export function fetchCandidateRecords(
   cookie: string | undefined,
 ): Promise<ApiResult<CandidateRecordsResponse>> {
   return apiRequest<CandidateRecordsResponse>('/admin/model/candidates', { cookie });
+}
+
+/**
+ * `GET /admin/model/accuracy?period=` (T-1369): every model version's
+ * pre-kick-off accuracy by ISO week or month. Administrators only.
+ */
+export function fetchAdminModelAccuracy(
+  cookie: string | undefined,
+  period: AccuracyPeriod,
+): Promise<ApiResult<AdminModelAccuracyResponse>> {
+  return apiRequest<AdminModelAccuracyResponse>(`/admin/model/accuracy?period=${period}`, {
+    cookie,
+  });
+}
+
+/** `GET /model/accuracy` (T-1369): the published model's accuracy by month. Public. */
+export function fetchModelAccuracy(): Promise<ApiResult<PublicModelAccuracyResponse>> {
+  return apiRequest<PublicModelAccuracyResponse>('/model/accuracy');
 }
 
 /** `GET /fixtures/:id/key-players` (T-841): each side's most-used players by the stated rule. Public. */

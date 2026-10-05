@@ -295,7 +295,22 @@ export type {
   CandidateRecordsResponse,
   CandidateShadowHealth,
 } from './forecast';
-export { CANDIDATE_FAILURE_LOOKBACK_DAYS, PROMOTION_MINIMUM } from './forecast';
+export type {
+  AccuracyMetrics,
+  AccuracyPeriod,
+  AccuracyPoint,
+  AccuracyReference,
+  AdminAccuracySeries,
+  AdminModelAccuracyResponse,
+  PublicAccuracySeries,
+  PublicModelAccuracyResponse,
+} from './forecast';
+export {
+  ACCURACY_MINIMUM_MATCHES,
+  ACCURACY_PERIODS,
+  CANDIDATE_FAILURE_LOOKBACK_DAYS,
+  PROMOTION_MINIMUM,
+} from './forecast';
 export { STALE_LIVE_AFTER_MS } from './scores';
 export type {
   FixtureStatus,

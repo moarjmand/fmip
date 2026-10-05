@@ -189,6 +189,9 @@ export default async function AdminPage({
         <Link href={`/${locale}/admin/model-candidates`} className="underline">
           Model candidates
         </Link>
+        <Link href={`/${locale}/admin/model-accuracy`} className="underline">
+          Model accuracy
+        </Link>
       </nav>
 
       <HealthPanel live={live} chat={chat} />

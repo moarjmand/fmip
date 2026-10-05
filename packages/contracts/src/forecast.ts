@@ -229,6 +229,12 @@ export interface ForecastEvaluation {
   log_loss: number;
   /** Squared error over the three outcome indicators. Uniform is 2/3; lower is better. */
   brier: number;
+  /**
+   * Ranked probability score over the ordered outcomes home, draw, away (T-1369,
+   * D-187): computed when read from the version's stored probabilities, never
+   * stored. Lower is better; uniform scores 5/18 on a decided match, 1/9 on a draw.
+   */
+  rps: number;
   correct: boolean;
   scoreline_hit: boolean;
 }
@@ -406,4 +412,111 @@ export interface CandidateRecordsResponse {
   service: 'answered' | 'unreachable';
   candidates: CandidateRecord[];
   generated_at: string;
+}
+
+// ---------------------------------------------------------------------------
+// Model accuracy over time (T-1369, D-187): the pre-kick-off evaluations
+// (D-031) aggregated by the week or month of the match's kick-off (UTC).
+// ---------------------------------------------------------------------------
+
+/** How the evaluations are bucketed: ISO weeks (Monday first) or calendar months, UTC. */
+export type AccuracyPeriod = 'week' | 'month';
+
+export const ACCURACY_PERIODS: readonly AccuracyPeriod[] = ['week', 'month'];
+
+/**
+ * Matches a row needs before its figures are called `available`. Below it
+ * the row is `limited` and its count is shown; with none it is `not_supplied`
+ * and no figure is shown (rule 3). Matches, not forecasts: several versions
+ * of one match are not independent evidence.
+ */
+export const ACCURACY_MINIMUM_MATCHES = 30;
+
+/** Means over a set of evaluated pre-kick-off forecasts. */
+export interface AccuracyMetrics {
+  /** Pre-kick-off forecast versions evaluated: what the means are over. */
+  forecasts: number;
+  /** Distinct matches among them: the sample size the coverage state reads. */
+  matches: number;
+  /** `not_supplied` with no match, `limited` below `ACCURACY_MINIMUM_MATCHES`. */
+  coverage: CoverageState;
+  /** Null when `forecasts` is 0: nothing is averaged out of nothing. */
+  log_loss: number | null;
+  brier: number | null;
+  rps: number | null;
+  /** Share of forecasts whose most probable outcome happened. */
+  accuracy: number | null;
+  /**
+   * The RPS a uniform forecast (1/3 each) scores on the same forecasts. It
+   * depends on how many were draws, so it is per row; null with no forecast.
+   */
+  uniform_rps: number | null;
+}
+
+/** One week or month of a series. */
+export interface AccuracyPoint extends AccuracyMetrics {
+  /** `2026-W41` for a week, `2026-10` for a month. */
+  period: string;
+  /** The first day of the period, `YYYY-MM-DD` (UTC). */
+  period_start: string;
+}
+
+/** What a forecast that knows nothing scores, for reference beside every row. */
+export interface AccuracyReference {
+  uniform_log_loss: number;
+  uniform_brier: number;
+  /** One outcome in three, in expectation. */
+  uniform_accuracy: number;
+}
+
+/** One model version in one role, over one competition or all of them. */
+export interface AdminAccuracySeries {
+  role: 'published' | 'shadow';
+  model_version: string;
+  /** Null: every competition together. */
+  competition: { id: string; name: string } | null;
+  total: AccuracyMetrics;
+  /** Oldest period first; a period with no evaluated match is absent. */
+  points: AccuracyPoint[];
+}
+
+/** `GET /admin/model/accuracy?period=week|month` (T-1369). Administrators only. */
+export interface AdminModelAccuracyResponse {
+  period: AccuracyPeriod;
+  minimum_matches: number;
+  reference: AccuracyReference;
+  /** Published first, then shadow; per version the overall series, then per competition. */
+  series: AdminAccuracySeries[];
+  last_updated_at: string | null;
+  generated_at: string;
+}
+
+/** The published forecasts over one competition, or all of them. */
+export interface PublicAccuracySeries {
+  /** Null: every competition together. */
+  competition: { id: string; name: string } | null;
+  /** The published model versions the figures are from, by name. */
+  model_versions: string[];
+  total: AccuracyMetrics;
+  /** By calendar month, oldest first. */
+  points: AccuracyPoint[];
+}
+
+/**
+ * `GET /model/accuracy` (T-1369): the statistical model's published
+ * forecasts only -- never a shadow candidate, never the founder's analysis
+ * or the community's consensus (rule 6). Public.
+ */
+export interface PublicModelAccuracyResponse {
+  period: 'month';
+  minimum_matches: number;
+  reference: AccuracyReference;
+  /** Every competition together. */
+  overall: PublicAccuracySeries;
+  /**
+   * Each competition the model has published a pre-kick-off forecast for, by
+   * name; one with nothing evaluated yet is `not_supplied`, never left out.
+   */
+  competitions: PublicAccuracySeries[];
+  last_updated_at: string | null;
 }

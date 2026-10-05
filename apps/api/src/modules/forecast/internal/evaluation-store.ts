@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type {
+  AccuracyPeriod,
   ForecastEvaluation,
   ForecastKind,
   ModelPerformanceRow,
@@ -7,7 +8,8 @@ import type {
 } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
-import type { Scored } from './scoring';
+import type { AccuracySumRow } from './model-accuracy';
+import { rps, type Scored } from './scoring';
 
 export interface FixtureResult {
   id: string;
@@ -53,6 +55,9 @@ interface EvaluationRow {
   brier: string;
   correct: boolean;
   scoreline_hit: boolean;
+  p_home: string;
+  p_draw: string;
+  p_away: string;
 }
 
 const toEvaluation = (row: EvaluationRow): ForecastEvaluation => ({
@@ -70,14 +75,32 @@ const toEvaluation = (row: EvaluationRow): ForecastEvaluation => ({
   p_outcome: Number(row.p_outcome),
   log_loss: Number(row.log_loss),
   brier: Number(row.brier),
+  // Computed when read, from the version's own stored probabilities (D-187).
+  rps: rps(
+    { home: Number(row.p_home), draw: Number(row.p_draw), away: Number(row.p_away) },
+    row.outcome,
+  ),
   correct: row.correct,
   scoreline_hit: row.scoreline_hit,
 });
 
+/**
+ * `rps()` of `scoring.ts` in SQL, over an `evaluation e` joined to its
+ * `forecast f` (T-1369, D-187): the cumulative home and home-or-draw
+ * probabilities against the result's. `accuracy.http.spec.ts` holds the two
+ * definitions to each other.
+ */
+const RPS_SQL = `(power(f.p_home - (e.outcome = 'home')::int, 2)
+       + power(f.p_home + f.p_draw - (e.outcome <> 'away')::int, 2)) / 2`;
+
+/** What a uniform forecast's RPS is on the same result: 1/9 for a draw, 5/18 otherwise. */
+const UNIFORM_RPS_SQL = `CASE e.outcome WHEN 'draw' THEN 1.0 / 9 ELSE 5.0 / 18 END`;
+
 const SELECT = `
   SELECT e.id, e.forecast_id, e.fixture_id, f.version_number, s.kind, m.model_id, f.computed_at,
          e.evaluated_at, e.pre_kickoff, e.actual_home, e.actual_away, e.outcome,
-         e.p_outcome, e.log_loss, e.brier, e.correct, e.scoreline_hit
+         e.p_outcome, e.log_loss, e.brier, e.correct, e.scoreline_hit,
+         f.p_home, f.p_draw, f.p_away
     FROM evaluation e
     -- Published versions only: a shadow candidate is evaluated, for T-535, and
     -- shown nowhere (T-531).
@@ -278,6 +301,99 @@ export class PostgresEvaluationStore {
       postKickoffVersions: Number(row?.post_kickoff_versions ?? 0),
       lastUpdatedAt: row?.last_updated_at ?? null,
     };
+  }
+
+  /**
+   * Sums of the pre-kick-off evaluations (D-031) per competition and per week
+   * or month of the match's kick-off, UTC (T-1369). `by_model` keeps each
+   * model version in each role apart, shadow included (the console);
+   * `published` is the published forecasts only, every version together, with
+   * the versions named (the public page). Sums, not means, so the caller can
+   * add competitions and periods up without averaging averages; a fixture is
+   * in one competition and one period, so match counts add up too.
+   */
+  async accuracySums(
+    period: AccuracyPeriod,
+    scope: 'by_model' | 'published',
+  ): Promise<AccuracySumRow[]> {
+    // Interpolated, never a parameter: GROUP BY must see the same expression.
+    const unit = period === 'week' ? 'week' : 'month';
+    const byModel = scope === 'by_model';
+    const { rows } = await this.pool.query<{
+      role: 'published' | 'shadow' | null;
+      model_id: string | null;
+      model_ids: string[];
+      competition_id: string;
+      competition_name: string;
+      period_start: string;
+      forecasts: number;
+      matches: number;
+      log_loss: string;
+      brier: string;
+      rps: string;
+      uniform_rps: string;
+      correct: number;
+      last_evaluated_at: Date;
+    }>(
+      `SELECT ${byModel ? 'f.role, m.model_id' : 'NULL::text AS role, NULL::text AS model_id'},
+              array_agg(DISTINCT m.model_id ORDER BY m.model_id) AS model_ids,
+              co.id::text AS competition_id, co.name AS competition_name,
+              to_char(date_trunc('${unit}', fx.kickoff_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD')
+                AS period_start,
+              COUNT(*)::int AS forecasts,
+              COUNT(DISTINCT e.fixture_id)::int AS matches,
+              SUM(e.log_loss)::text AS log_loss,
+              SUM(e.brier)::text AS brier,
+              SUM(${RPS_SQL})::text AS rps,
+              SUM(${UNIFORM_RPS_SQL})::text AS uniform_rps,
+              (COUNT(*) FILTER (WHERE e.correct))::int AS correct,
+              MAX(e.evaluated_at) AS last_evaluated_at
+         FROM evaluation e
+         JOIN forecast f ON f.id = e.forecast_id
+         JOIN model_version m ON m.id = f.model_version_id
+         JOIN fixture fx ON fx.id = e.fixture_id
+         JOIN season se ON se.id = fx.season_id
+         JOIN competition co ON co.id = se.competition_id
+        WHERE e.pre_kickoff ${byModel ? '' : `AND f.role = 'published'`}
+        GROUP BY ${byModel ? 'f.role, m.model_id, ' : ''}co.id, co.name,
+                 date_trunc('${unit}', fx.kickoff_at AT TIME ZONE 'UTC')
+        ORDER BY period_start`,
+    );
+    return rows.map((row) => ({
+      role: row.role,
+      modelVersion: row.model_id,
+      modelVersions: row.model_ids,
+      competition: { id: row.competition_id, name: row.competition_name },
+      periodStart: row.period_start,
+      forecasts: row.forecasts,
+      matches: row.matches,
+      logLoss: Number(row.log_loss),
+      brier: Number(row.brier),
+      rps: Number(row.rps),
+      uniformRps: Number(row.uniform_rps),
+      correct: row.correct,
+      lastEvaluatedAt: row.last_evaluated_at,
+    }));
+  }
+
+  /**
+   * The competitions the model has published a pre-kick-off forecast for
+   * (T-1369): the public page lists each, so one with nothing evaluated yet
+   * says `not_supplied` instead of being missing.
+   */
+  async publishedCompetitions(): Promise<{ id: string; name: string }[]> {
+    const { rows } = await this.pool.query<{ id: string; name: string }>(
+      `SELECT co.id::text AS id, co.name
+         FROM competition co
+        WHERE EXISTS (
+          SELECT 1 FROM forecast f
+            JOIN fixture fx ON fx.id = f.fixture_id
+            JOIN season se ON se.id = fx.season_id
+           WHERE se.competition_id = co.id AND f.role = 'published'
+             AND f.status = 'available' AND f.computed_at < fx.kickoff_at)
+        ORDER BY co.name, co.id`,
+    );
+    return rows;
   }
 
   /**

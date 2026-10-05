@@ -8332,3 +8332,68 @@ same command. *A separate bar for constants changes*: D-139 already says what
 "better than the candidate" means, and a second bar would let a proposal pick
 the easier one. *Letting the comparison write the candidate file*: the file
 is the proposal and a person's choice, the report is its evidence.
+
+---
+
+## D-187 — RPS is computed when read, and accuracy over time is published with its sample beside every figure
+**Status:** Accepted · 2026-10-04 · **Task:** T-1369 · **Follows:** D-031, D-082, D-140, rule 3, rule 5, rule 6
+
+**Context.** Every forecast version is scored once against the full-time
+score into `evaluation` (T-066), an immutable table (`refuse_change()`)
+holding log loss, Brier, whether the favourite won and whether the top
+scoreline was hit. It had no ranked probability score, the measure
+football forecasting is usually compared on, because it rewards
+probability placed *near* the result (a draw is closer to a home win than
+an away win is), which log loss and Brier cannot see. The figures were
+served per competition and model version (`GET
+/competitions/:id/model-performance`), never over time, and no page read
+them.
+
+**Decision.**
+- **RPS is never stored.** It is half the sum of the squared differences
+  between the forecast's and the result's cumulative distributions over
+  home < draw < away. The evaluation's `forecast` row holds the
+  probabilities that were scored and the evaluation holds the outcome, so
+  RPS is a pure function of rows that cannot change: `rps()` in
+  `internal/scoring.ts` for each evaluation served (`ForecastEvaluation.rps`)
+  and the same formula in SQL (`RPS_SQL`) for the aggregates;
+  `accuracy.http.spec.ts` holds the two to each other. No migration, and
+  the immutability trigger is untouched.
+- **Over time means by the week or month of kick-off**, UTC (ISO weeks,
+  Monday first), not of evaluation: a match belongs to the week it was
+  played. Only pre-kick-off versions count (D-031), every version of a
+  match counts as D-031 says, and each row states both its forecasts and
+  its distinct matches.
+- **Coverage per row reads matches, not forecasts**: `not_supplied` with
+  none (no figure is shown at all), `limited` below
+  `ACCURACY_MINIMUM_MATCHES` (30, figures shown with the count and "an
+  early record, not a verdict"), `available` from 30. Two versions of one
+  match are not two pieces of evidence.
+- **The reference is the uniform forecast.** Its log loss (ln 3), Brier
+  (2/3) and accuracy (1/3) are constants; its RPS depends on how many
+  results were draws (1/9 against 5/18), so it is computed per row over
+  the same matches (`uniform_rps`).
+- **The console** (`GET /admin/model/accuracy?period=week|month`,
+  administrators) shows every model version in each role it was stored
+  under, published and shadow, overall and per competition, with a
+  sparkline of RPS against the uniform line. It names no winner; promotion
+  stays a decision entry (D-082).
+- **The public page** (`GET /model/accuracy`, `/[locale]/model-accuracy`)
+  is the statistical model's *published* forecasts only, by month, overall
+  and for every competition it has published a pre-kick-off forecast for
+  (one with nothing scored is listed as `not_supplied`, not left out), with
+  the published versions named. A shadow candidate never appears there. It
+  says in words that the founder's analysis and the community's
+  predictions are separate products and not counted (rule 6), and is
+  linked from the forecast panel.
+
+**Rejected.** *A nullable `rps` column filled for new rows*: a second
+source of truth beside a formula over immutable inputs, with old rows
+computed one way and new rows another, and a migration on a table that
+exists to never change. *Bucketing by evaluation time*: a backlog evaluated
+in one night would land in one week. *Averaging the competitions'
+averages*: the store returns sums, and each series is divided once.
+*Hiding a `limited` row on the public page*: the count is the honest
+answer, and leaving a competition out would read as "not covered" (rule 3).
+*A charting library*: one SVG path per series is enough for the console,
+and no dependency is added.

@@ -163,6 +163,16 @@ export function ForecastPanel({
       )}
 
       <Evaluation evaluations={evaluations} home={home} away={away} stamp={stamp} locale={l} />
+      <p className="text-sm">
+        {/* The model's record over every match it forecast (T-1369). */}
+        <Link
+          href={`/${locale}/model-accuracy`}
+          className="underline"
+          data-testid="forecast-accuracy-link"
+        >
+          <Translated locale={locale} message="forecast.accuracyLink" />
+        </Link>
+      </p>
     </section>
   );
 }
