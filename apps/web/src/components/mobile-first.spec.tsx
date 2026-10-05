@@ -354,3 +354,71 @@ describe('the scores card and the match centre in Persian (T-1303)', () => {
     expect(view).not.toContain('data-translation="untranslated"');
   });
 });
+
+describe('why the line-ups and the absences are empty (T-1364)', () => {
+  const empty = { coverage: 'not_supplied' as const, last_updated_at: null, data: null };
+  const page = (over: Partial<MatchCentre>, status: MatchCentre['fixture']['status'] = 'live') =>
+    renderToStaticMarkup(
+      <MatchCentreView
+        words={MATCH_EN}
+        centre={{ ...centre, fixture: { ...centre.fixture, status }, ...over }}
+        timeZone="UTC"
+        locale="en"
+      />,
+    );
+  const section = (html: string, testId: string) => {
+    const from = html.indexOf(`data-testid="${testId}"`);
+    return html.slice(from, html.indexOf('</section>', from));
+  };
+
+  it('says when the official line-up is usually announced, before kick-off only', () => {
+    const before = section(page({ lineups: empty }, 'scheduled'), 'lineups');
+    expect(before).toContain(EN['matchCentre.lineupsNotYet']);
+    expect(before).toContain('about 20–40 minutes before kick-off');
+    const after = section(page({ lineups: empty }, 'finished'), 'lineups');
+    expect(after).toContain('Not supplied for this match.');
+    expect(after).not.toContain('kick-off');
+  });
+
+  it('says the provider has no absences for the competition, never "nobody"', () => {
+    const html = section(page({ availability: { ...empty, gap: 'not_covered' } }), 'availability');
+    expect(html).toContain('data-coverage="not_supplied"');
+    expect(html).toContain(EN['matchCentre.absencesNotCovered']);
+    expect(html).not.toContain(EN['matchCentre.noAbsences']);
+  });
+
+  it('says absences are asked for from about three days out, for a match further away', () => {
+    const html = section(
+      page({ availability: { ...empty, gap: 'not_yet' } }, 'scheduled'),
+      'availability',
+    );
+    expect(html).toContain(EN['matchCentre.absencesNotYet']);
+    expect(html).not.toContain('Not supplied for this match.');
+  });
+
+  it('keeps the plain sentence for a match never asked about, or an API without a reason', () => {
+    for (const availability of [{ ...empty, gap: 'not_asked' as const }, empty]) {
+      expect(section(page({ availability }), 'availability')).toContain(
+        'Not supplied for this match.',
+      );
+    }
+  });
+
+  it('has each sentence in Persian', () => {
+    const fa = renderToStaticMarkup(
+      <MatchCentreView
+        words={matchWords('fa')}
+        centre={{
+          ...centre,
+          fixture: { ...centre.fixture, status: 'scheduled' },
+          lineups: empty,
+          availability: { ...empty, gap: 'not_covered' },
+        }}
+        timeZone="UTC"
+        locale="fa"
+      />,
+    );
+    expect(fa).toContain('ترکیب رسمی معمولاً');
+    expect(fa).toContain('غایبان را گزارش نمی‌کند');
+  });
+});
