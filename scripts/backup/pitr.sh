@@ -4,7 +4,7 @@
 #
 #     bash scripts/backup/pitr.sh measure           # will it fit? (before switching on)
 #     bash scripts/backup/pitr.sh ship              # spool -> remote (fmip-wal-ship.timer, every 5 min)
-#     bash scripts/backup/pitr.sh base [--if-due]   # pg_basebackup -> remote, prune (backup.sh, weekly)
+#     bash scripts/backup/pitr.sh base [--if-due]   # pg_basebackup -> remote, prune (backup.sh, every PITR_KEEP_DAYS days, at most weekly)
 #     bash scripts/backup/pitr.sh restore --to '2026-10-01 14:05' [--keep] [--name NAME]
 #                                                   # base + WAL replayed to that minute (UTC),
 #                                                   # in a throwaway container, never the live one
@@ -13,11 +13,13 @@
 #   1. Postgres (PG_ARCHIVE_MODE=on in .env) hands each finished 16 MB WAL
 #      segment to wal-archive.sh, which gzips it into the `wal-spool` volume.
 #   2. `ship` moves the spool to $BACKUP_RCLONE_REMOTE/wal/ (encrypted there).
-#   3. `base` takes a pg_basebackup once a week (backup.sh calls it daily with
-#      --if-due) to $BACKUP_RCLONE_REMOTE/base/, and prunes: every base of the
-#      last PITR_KEEP_DAYS (7) plus the newest one before that, and the WAL
-#      older than the oldest base kept. So any moment of the last 7 days can
-#      be replayed to.
+#   3. `base` takes a pg_basebackup every PITR_KEEP_DAYS days, at most weekly
+#      (backup.sh calls it daily with --if-due), to $BACKUP_RCLONE_REMOTE/base/,
+#      and prunes: every base of the last PITR_KEEP_DAYS (7) plus the newest
+#      one before that, and the WAL older than the oldest base kept. So any
+#      moment of the last PITR_KEEP_DAYS days can be replayed to. The base
+#      interval follows the window: with bases a week apart, a 3-day window
+#      would still hold up to two weeks of WAL (T-845, D-157 amended 2026-10-08).
 #   4. `restore` downloads the newest base finished before the target and the
 #      WAL after it, and replays into a throwaway postgres to the target.
 #      restore-drill.sh --pitr runs it and checks the result (D-101).
@@ -43,6 +45,15 @@ BACKUP_DIR="${BACKUP_DIR:-./backups}"
 BACKUP_RCLONE_CONFIG="${BACKUP_RCLONE_CONFIG:-${HOME:-}/.config/rclone/rclone.conf}"
 PITR_KEEP_DAYS="${PITR_KEEP_DAYS:-7}"
 PITR_REMOTE_BUDGET_GB="${PITR_REMOTE_BUDGET_GB:-10}"
+# Days between base backups: the window itself, never more than a week. A base
+# is due once the newest is a day short of that (backup.sh runs daily), or
+# after 12 h for a one-day window.
+PITR_BASE_EVERY_DAYS=$((PITR_KEEP_DAYS < 7 ? PITR_KEEP_DAYS : 7))
+if [ "$PITR_BASE_EVERY_DAYS" -le 1 ]; then
+  PITR_BASE_DUE_S=43200
+else
+  PITR_BASE_DUE_S=$(((PITR_BASE_EVERY_DAYS - 1) * 86400))
+fi
 IMAGE="${BACKUP_DRILL_IMAGE:-postgres:18-alpine}"
 REMOTE="${BACKUP_RCLONE_REMOTE:-}"
 REMOTE="${REMOTE%/}"
@@ -141,12 +152,14 @@ cmd_measure() {
     remote_now="$(rclone_x size --json "$REMOTE/" | sed -E 's/.*"bytes":([0-9]+).*/\1/')"
   fi
 
-  # Worst case held at once: two bases (the newest and the one before the
-  # window, gzipped -- counted at full size to stay on the safe side) and
-  # WAL back to the older of them, up to 2 x PITR_KEEP_DAYS days.
+  # Worst case held at once, just after a base is taken: the new base, the
+  # one before it (inside the window), and the newest one before the window
+  # -- three, gzipped but counted at full size to stay on the safe side --
+  # and WAL back to the oldest of them: the window plus one base interval,
+  # at most 2 x PITR_KEEP_DAYS days since the interval never exceeds the window.
   local wal_kept bases projected budget
-  wal_kept=$((per_day * 2 * PITR_KEEP_DAYS * ratio_pm / 1000))
-  bases=$((2 * size))
+  wal_kept=$((per_day * (PITR_KEEP_DAYS + PITR_BASE_EVERY_DAYS) * ratio_pm / 1000))
+  bases=$((3 * size))
   projected=$((remote_now + wal_kept + bases))
   budget=$((PITR_REMOTE_BUDGET_GB * 1024 * 1024 * 1024))
 
@@ -156,7 +169,7 @@ cmd_measure() {
   echo "    WAL per week:           $(mb $((per_day * 7)))"
   echo "    gzip keeps:             $((ratio_pm / 10))% of a segment"
   echo "    remote in use now:      $(mb "$remote_now")${REMOTE:+ ($REMOTE)}"
-  echo "    PITR would add at most: $(mb $((wal_kept + bases))) (WAL $(mb "$wal_kept") + two bases $(mb "$bases"))"
+  echo "    PITR would add at most: $(mb $((wal_kept + bases))) (WAL $(mb "$wal_kept") + three bases $(mb "$bases"); a base every $PITR_BASE_EVERY_DAYS day(s), $PITR_KEEP_DAYS-day window)"
   echo "    projected remote total: $(mb "$projected") of the ${PITR_REMOTE_BUDGET_GB} GB budget (PITR_REMOTE_BUDGET_GB)"
   if [ "$projected" -le "$budget" ]; then
     echo "FITS: point-in-time recovery fits the storage already held."
@@ -203,8 +216,8 @@ cmd_base() {
   if [ "$if_due" -eq 1 ] && [ -n "$newest" ]; then
     local age
     age=$(($(date -u +%s) - $(stamp_epoch "$(echo "$newest" | sed -E "s/$BASE_RE/\\1/")")))
-    if [ "$age" -lt $((6 * 86400)) ]; then
-      echo "base backup not due: $newest is $((age / 3600))h old (weekly)"
+    if [ "$age" -lt "$PITR_BASE_DUE_S" ]; then
+      echo "base backup not due: $newest is $((age / 3600))h old (every $PITR_BASE_EVERY_DAYS day(s))"
       return 0
     fi
   fi

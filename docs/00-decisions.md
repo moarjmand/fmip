@@ -7337,6 +7337,31 @@ objection.
   later. The switch and its rollback are one `.env` line and a Postgres
   restart.
 
+**Amended 2026-10-08 (T-845, the measured week; under the maintainer's
+standing delegation).** The measured week says 7 days does not fit: the
+database is 909 MB but writes about 5.2 GB of WAL a day (measured over 8 days).
+Gzip keeps between about 2% and 10% of a segment from one sample to the next,
+so at the worst ratio seen two weeks of WAL is about 7 GB, which with the
+bases and the dumps already on the remote is over the 10 GB free allowance.
+The window is therefore **3 days** (`PITR_KEEP_DAYS=3`). Two corrections came
+with it:
+
+- *The base interval follows the window.* Bases were a week apart whatever
+  `PITR_KEEP_DAYS` said, so a 3-day window would still have held up to two
+  weeks of WAL: prune keeps the newest base before the window, and that one
+  was up to a week old. A base is now due when the newest is a day short of
+  `min(PITR_KEEP_DAYS, 7)` days old (six days at 7, as before; two days at 3;
+  after 12 hours for a one-day window). The WAL held is then the window plus
+  one interval, at most twice the window.
+- *Three bases, not two.* Just after a base is taken the remote holds the new
+  one, the one before it (still inside the window) and the newest one before
+  the window. `measure` now counts three, still at full size.
+
+With both, `measure` at 3 days and the worst ratio seen projects about 7.8 GB
+of the 10 GB. Why the WAL is so large for so small a database (repeated
+rewrites of unchanged rows by the polling jobs is the likely cause) is worth
+its own look; less WAL would let the window grow back towards 7 days.
+
 ## D-158 — A member can download a copy of their own data
 **Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers:** N-4 in `04-tasks-phase-8.md` · **Task:** T-846 · **Follows:** D-094
 

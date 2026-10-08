@@ -180,7 +180,7 @@ component -- Postgres, rclone and systemd, as for the dumps.
 postgres --archive_command--> wal-archive.sh --gzip--> `wal-spool` volume
                                (inside the container, once per 16 MB segment)
 fmip-wal-ship.timer (5 min) --pitr.sh ship--> $BACKUP_RCLONE_REMOTE/wal/
-backup.sh (daily) --pitr.sh base --if-due--> $BACKUP_RCLONE_REMOTE/base/  (weekly)
+backup.sh (daily) --pitr.sh base --if-due--> $BACKUP_RCLONE_REMOTE/base/  (every PITR_KEEP_DAYS days, max weekly)
 restore-drill.sh --pitr --pitr.sh restore--> throwaway postgres, replayed to a minute
 ```
 
@@ -201,14 +201,16 @@ restore-drill.sh --pitr --pitr.sh restore--> throwaway postgres, replayed to a m
 - **Base backups.** `pitr.sh base`: `pg_basebackup` as one gzipped tar with
   the WAL it needs inside, named `base-<finished UTC>-<first segment>.tar.gz`,
   copied to `base/` and checked by size. `backup.sh` calls it every day with
-  `--if-due`, which does nothing unless the newest base on the remote is six
-  days old -- so it is weekly, and a failed one is retried the next morning.
+  `--if-due`, which does nothing until the newest base on the remote is a day
+  short of `PITR_KEEP_DAYS` old (never more than a week: six days at the
+  default 7, two days at 3) -- and a failed one is retried the next morning.
   A failure fails that morning's backup run, which the watchdog reports. The
   newest base stays in `BACKUP_DIR` as well.
 - **Retention.** Every base of the last `PITR_KEEP_DAYS` (7) and the newest
   one before that window, and the WAL from the oldest kept base on. So any
-  minute of the last seven days can be replayed to, and at most about two
-  weeks of WAL are held. The dumps keep their 90 days (`backup.sh`'s remote
+  minute of the last `PITR_KEEP_DAYS` days can be replayed to, and at most
+  three bases and about twice that many days of WAL are held (the window plus
+  one base interval, which never exceeds the window). The dumps keep their 90 days (`backup.sh`'s remote
   prune reaches `wal/` and `base/` only past 90 days, long after this one).
 - **Restore.** `pitr.sh restore --to 'YYYY-MM-DD HH:MM'` (UTC): the newest
   base finished before that minute and the WAL after it, unpacked into a new
