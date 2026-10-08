@@ -8397,3 +8397,47 @@ averages*: the store returns sums, and each series is divided once.
 answer, and leaving a competition out would read as "not covered" (rule 3).
 *A charting library*: one SVG path per series is enough for the console,
 and no dependency is added.
+
+## D-188 — Highlightly's teams are suggested by matching kick-offs and written only when confirmed; the catalogue tools may now ask a provider
+**Status:** Accepted · 2026-10-08 · **Task:** T-1370 · **Follows:** D-077, D-184, rule 1, rule 2, rule 10
+
+**Context.** D-184 places a Highlightly clip only when both of its teams are
+mapped to ours, and every mapped league brings some twenty teams nobody
+mapped: about 400 clubs to look up one at a time with `catalog.mjs --map`.
+`--adopt-teams` is wrong for them (it would create a second copy of a club
+we hold), and matching by name is what D-077 rejected. D-077 also said the
+catalogue tools call no provider.
+
+**Decision.** `packages/db/scripts/highlightly-pairs.mjs`, in the `migrate`
+image beside `catalog.mjs`:
+
+- *Evidence is a match, not a name.* For each competition mapped to a
+  Highlightly league it asks for that league's matches over the last and next
+  days (default 7 and 7, at most 14 each), through the adapter in
+  `@fmip/ingestion` -- which the `migrate` image now builds and carries, so no
+  provider field is read outside the adapter (rule 2). A match of theirs with
+  exactly one of ours in the same competition kicking off within ±15 minutes
+  (a side already mapped must agree) is a vote: their home side for our home
+  side, their away side for our away side.
+- *Strength.* Per Highlightly team: two or more agreeing votes and none for
+  another club is `strong`; one vote, any disagreeing vote, or two of their
+  teams pointing at one club of ours is `weak`; a club of ours already mapped
+  to another Highlightly id is `refused`. Teams already mapped are skipped. A
+  normalised name similarity is printed for the reader and decides nothing
+  (rule 1).
+- *Written only when a person confirms.* The default writes nothing: a table
+  and a JSON file. `--apply strong --by <e-mail>` writes the strong rows (of
+  a reviewed file with `--from`, re-checked, or of a fresh run) in one
+  transaction through `catalog.mjs`'s `placeMapping`, the same write as
+  `--map`: the mapping, the queued sighting resolved, `catalog.mapped` audited
+  with the votes (rule 10). Never over an existing mapping.
+- *Cost stated up front.* One request per league and day, counted before the
+  first one and refused above `--max-requests` (500 by default), within the
+  Pro plan beside the feed's own ceiling; a refused quota stops the run and
+  keeps what came back. Without `HIGHLIGHTLY_KEY` it stops and says so.
+
+**Rejected.** *Writing the strong pairs automatically from the feed's job*:
+a wrong pair puts one club's highlights on another club's page, so a person
+signs each batch. *Name similarity as a tie-breaker*: the first time it is
+wrong it is invisible (D-077). *A provider-shaped fetch inside the script*:
+it would be a fourth reader of Highlightly's fields outside the adapter.
