@@ -1,0 +1,58 @@
+{
+  "name": "dixon-coles-elo",
+  "version": "0.6.0",
+  "history_days": 1100,
+  "elo_prior": "own",
+  "source": "T-1372, D-190: 0.5.0 (every other division, the window, our own Elo as the prior and the cross-league fit unchanged) plus tuned constants for the Persian Gulf Pro League (IR1, our own records), which 0.5.0 fitted with the published xi 0.0065 and ridge 0.01. Tuned 2026-10-08 with python -m fmip_model.backtest.tune --candidate (0.5.0's window and prior) on production's training store, read-only: chosen on 2024/25 from xi 0.0005-0.0065 and ridge 0.01-10 (xi 0.002, ridge 3: 1.0476 against 0.5.0's 1.0588), then walked once over 2025-07-01..2026-10-08, 234 forecasts: 1.0502 against 0.5.0's 1.0688 (reports/dixon-coles-elo-0.6.0).",
+  "per_division": {
+    "E0": {
+      "xi": 0.002,
+      "ridge": 0.003
+    },
+    "SP1": {
+      "xi": 0.003,
+      "ridge": 0.3
+    },
+    "D1": {
+      "xi": 0.001,
+      "ridge": 0.3
+    },
+    "I1": {
+      "xi": 0.001,
+      "ridge": 0.3
+    },
+    "F1": {
+      "xi": 0.003,
+      "ridge": 0.3
+    },
+    "N1": {
+      "xi": 0.003,
+      "ridge": 0.3
+    },
+    "P1": {
+      "xi": 0.0005,
+      "ridge": 0.3
+    },
+    "T1": {
+      "xi": 0.004,
+      "ridge": 0.01
+    },
+    "B1": {
+      "xi": 0.003,
+      "ridge": 0.3
+    },
+    "SC0": {
+      "xi": 0.001,
+      "ridge": 0.3
+    },
+    "IR1": {
+      "xi": 0.002,
+      "ridge": 3
+    }
+  },
+  "cross_league": {
+    "xi": 0.0005,
+    "team_ridge": 4,
+    "group_ridge": 0.001
+  }
+}
