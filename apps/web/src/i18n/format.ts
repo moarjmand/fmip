@@ -119,8 +119,5 @@ export function formatNumber(locale: Locale | string, value: number): string {
  * day into "yesterday"; the date and time beside it are the caller's.
  */
 export function formatDaysAgo(locale: Locale | string, days: number): string {
-  return new Intl.RelativeTimeFormat(intlLocale(locale), { numeric: 'auto' }).format(
-    -days,
-    'day',
-  );
+  return new Intl.RelativeTimeFormat(intlLocale(locale), { numeric: 'auto' }).format(-days, 'day');
 }

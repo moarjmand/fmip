@@ -1,12 +1,6 @@
 import type { ScoreCard } from '@fmip/contracts';
 import { isBehind } from './live';
-import {
-  formatDate,
-  formatDateTime,
-  formatDaysAgo,
-  formatNumber,
-  formatTime,
-} from '@/i18n/format';
+import { formatDate, formatDateTime, formatDaysAgo, formatNumber, formatTime } from '@/i18n/format';
 import type { Message } from '@/i18n/messages';
 import { fill, formatMinute } from '@/lib/words';
 import { filterParams, readFilterSelection, type ScoresFilterSelection } from './scores-filters';
