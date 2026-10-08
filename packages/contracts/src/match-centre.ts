@@ -185,6 +185,14 @@ export interface MatchAbsence {
  */
 export type MatchAbsenceGap = 'not_covered' | 'not_yet' | 'not_asked';
 
+/**
+ * How old an absence answer may be before a match page says it may have
+ * changed (rule 4, D-127): the feed is re-asked every three hours before
+ * kick-off, so six hours means at least one re-ask was missed. Shared by the
+ * player page and the match centre (T-1371).
+ */
+export const AVAILABILITY_STALE_AFTER_MS = 6 * 60 * 60 * 1000;
+
 export interface MatchLineupPlayer {
   id: string;
   name: string;

@@ -1,6 +1,12 @@
 import type { ScoreCard } from '@fmip/contracts';
 import { isBehind } from './live';
-import { formatDate, formatNumber, formatTime } from '@/i18n/format';
+import {
+  formatDate,
+  formatDateTime,
+  formatDaysAgo,
+  formatNumber,
+  formatTime,
+} from '@/i18n/format';
 import type { Message } from '@/i18n/messages';
 import { fill, formatMinute } from '@/lib/words';
 import { filterParams, readFilterSelection, type ScoresFilterSelection } from './scores-filters';
@@ -174,6 +180,58 @@ export function formatKickoff(locale: string, iso: string, timeZone: string): st
   return formatTime(locale, iso, timeZone);
 }
 
+/** A stored time as a freshness label says it (T-1371). */
+export interface FreshnessStamp {
+  /** "16:15" today; "yesterday (7 Oct 2026, 16:15)"; "12 days ago (26 Sept 2026, 16:15)". */
+  text: string;
+  /** Calendar days before today in the viewer's zone; 0 today, negative ahead. */
+  days: number;
+  /** Older than the threshold the caller gave: its surface says the stale words. */
+  stale: boolean;
+}
+
+/**
+ * Every "last updated", "asked" and "checked" time on a live surface (rule 4,
+ * T-1371): the clock reading alone only when it is today in the viewer's
+ * zone, so "16:15" can never be a time twelve days ago read as this
+ * afternoon. Any other day says how many days ago, with the date and time.
+ * `staleAfterMs`, when given, is the surface's own threshold (D-045 for a
+ * live match, D-127 for an absence answer); past it, `stale` is set and the
+ * caller says its stale words beside the time.
+ */
+export function freshnessStamp(
+  locale: string,
+  iso: string,
+  timeZone: string,
+  now: Date | number,
+  staleAfterMs?: number,
+): FreshnessStamp {
+  const nowMs = typeof now === 'number' ? now : now.getTime();
+  const atMs = Date.parse(iso);
+  const days = Math.round(
+    (Date.parse(dateIn(timeZone, new Date(nowMs))) - Date.parse(dateIn(timeZone, new Date(atMs)))) /
+      86_400_000,
+  );
+  const text =
+    days === 0
+      ? formatTime(locale, iso, timeZone)
+      : days > 0
+        ? `${formatDaysAgo(locale, days)} (${formatDateTime(locale, iso, timeZone)})`
+        : formatDateTime(locale, iso, timeZone);
+  const stale = staleAfterMs !== undefined && nowMs - atMs > staleAfterMs;
+  return { text, days, stale };
+}
+
+/** `freshnessStamp`'s words alone, for a label with no threshold of its own. */
+export function formatStamp(
+  locale: string,
+  iso: string,
+  timeZone: string,
+  now: Date | number,
+): string {
+  return freshnessStamp(locale, iso, timeZone, now).text;
+}
+
 /** A status cell's words, resolved for the reader's locale (T-1303). */
 export type StatusKey =
   | 'status.live'
@@ -260,18 +318,21 @@ export function scoreLabel(card: ScoreCard, locale = 'en'): string {
  * and it must stay true for every row it covers (rule 4): one time when the
  * cards agree, else the oldest and the newest, never the newest alone, which
  * would make an older row look current. A row that is behind still says so
- * on the row itself.
+ * on the row itself. A time on another day says so (`freshnessStamp`, T-1371).
  */
 export function blockUpdatedLabel(
   cards: readonly Pick<ScoreCard, 'last_updated_at'>[],
   locale: string,
   timeZone: string,
   words: Record<'scores.updated' | 'scores.updatedBetween', Message>,
+  now: Date | number = Date.now(),
 ): string | null {
   const times = cards.map((c) => Date.parse(c.last_updated_at)).filter((t) => !Number.isNaN(t));
   if (times.length === 0) return null;
-  const oldest = formatTime(locale, Math.min(...times), timeZone);
-  const newest = formatTime(locale, Math.max(...times), timeZone);
+  const stamp = (ms: number): string =>
+    formatStamp(locale, new Date(ms).toISOString(), timeZone, now);
+  const oldest = stamp(Math.min(...times));
+  const newest = stamp(Math.max(...times));
   return oldest === newest
     ? fill(words['scores.updated'].text, { time: oldest })
     : fill(words['scores.updatedBetween'].text, { oldest, newest });

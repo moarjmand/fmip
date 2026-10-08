@@ -29,14 +29,16 @@ function Updated({
   cards,
   locale,
   timeZone,
+  now,
   words,
 }: {
   cards: Parameters<typeof blockUpdatedLabel>[0];
   locale: string;
   timeZone: string;
+  now: number;
   words: ScoresWords;
 }) {
-  const label = blockUpdatedLabel(cards, locale, timeZone, words.m);
+  const label = blockUpdatedLabel(cards, locale, timeZone, words.m, now);
   return label === null ? null : (
     <p className="pb-1 text-xs text-muted" data-testid="block-updated">
       {label}
@@ -169,7 +171,13 @@ export function LiveScores({
               <h2 className={HEADING}>
                 <MessageText message={words.m['scores.favourites']} />
               </h2>
-              <Updated cards={shown.pinned} locale={locale} timeZone={timeZone} words={words} />
+              <Updated
+                cards={shown.pinned}
+                locale={locale}
+                timeZone={timeZone}
+                now={now}
+                words={words}
+              />
               <ul className={LIST}>
                 {shown.pinned.map((card) => (
                   <ScoreCard
@@ -214,7 +222,13 @@ export function LiveScores({
                   <bdi className="truncate">{group.competition.name}</bdi>
                 </Link>
               </h2>
-              <Updated cards={group.fixtures} locale={locale} timeZone={timeZone} words={words} />
+              <Updated
+                cards={group.fixtures}
+                locale={locale}
+                timeZone={timeZone}
+                now={now}
+                words={words}
+              />
               <ul className={LIST}>
                 {group.fixtures.map((card) => (
                   <ScoreCard

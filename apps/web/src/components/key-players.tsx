@@ -2,6 +2,8 @@ import Link from 'next/link';
 import type { Covered, KeyPlayers, KeyPlayersSide } from '@fmip/contracts';
 import { formatNumber } from '@/i18n/format';
 import {
+  ABSENCE_STATE_KEY,
+  absenceState,
   availabilityLine,
   coverageLine,
   figuresLine,
@@ -10,7 +12,7 @@ import {
 } from '@/lib/key-players';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { message } from '@/i18n/messages';
-import { formatKickoff } from '@/lib/scores';
+import { formatStamp } from '@/lib/scores';
 import { FilledMessage } from '@/components/filled-message';
 import { COVERAGE_KEY } from '@/components/score-card';
 import { Translated } from '@/components/translated';
@@ -30,6 +32,7 @@ export function KeyPlayersPanel({
   away,
   locale,
   timeZone,
+  now = Date.now(),
 }: {
   /** Null when the API could not be reached. */
   players: KeyPlayers | null;
@@ -37,6 +40,8 @@ export function KeyPlayersPanel({
   away: string;
   locale: string;
   timeZone: string;
+  /** The clock the "asked" time is dated against (T-1371); now unless a test fixes it. */
+  now?: number;
 }) {
   if (players === null) {
     return (
@@ -51,7 +56,7 @@ export function KeyPlayersPanel({
     );
   }
 
-  const asked = players.availability_asked_at;
+  const absences = absenceState(players);
   return (
     <section className="flex flex-col gap-3" data-testid="key-players" data-state="loaded">
       <h2 className="text-lg font-semibold">
@@ -61,10 +66,13 @@ export function KeyPlayersPanel({
         <Side name={home} module={players.home} locale={locale} />
         <Side name={away} module={players.away} locale={locale} />
       </div>
-      <p dir="auto" className="text-xs text-muted" data-testid="key-players-availability">
-        {asked === null ? (
-          <Translated locale={locale} message="matchCentre.keyPlayers.notAsked" />
-        ) : (
+      <p
+        dir="auto"
+        className="text-xs text-muted"
+        data-testid="key-players-availability"
+        data-state={absences.kind}
+      >
+        {absences.kind === 'asked' ? (
           <FilledMessage
             message={message(
               isLocale(locale) ? locale : DEFAULT_LOCALE,
@@ -72,12 +80,14 @@ export function KeyPlayersPanel({
             )}
             params={{
               time: (
-                <time dateTime={asked}>
-                  {asked.slice(0, 10)} {formatKickoff(locale, asked, timeZone)}
+                <time dateTime={absences.at}>
+                  {formatStamp(locale, absences.at, timeZone, now)}
                 </time>
               ),
             }}
           />
+        ) : (
+          <Translated locale={locale} message={ABSENCE_STATE_KEY[absences.kind]} />
         )}
       </p>
       <p dir="auto" className="text-xs text-muted" data-testid="key-players-rule">
