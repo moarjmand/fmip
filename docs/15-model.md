@@ -122,6 +122,24 @@ edited by hand.
   −0.0124) and in every one of the eleven leagues, and is 0.0204 behind the
   market: just outside D-016's 0.02. Its own pre-kick-off record in shadow
   decides its promotion, not this backtest.
+- **Candidate `dixon-coles-elo@0.6.0`** is 0.5.0 plus tuned constants for
+  the Persian Gulf Pro League (IR1: `xi` 0.002, ridge 3), chosen on 2024/25
+  and tested once on 2025-07-01..2026-10-08, on our own records in
+  production's store (D-190,
+  `reports/dixon-coles-elo-0.6.0/compare_2025-07-01..2026-10-08.md`). IR1 has
+  no closing odds, so there is no market line; on the 229 matches all three
+  versions forecast:
+
+  | Forecaster | Log loss | Brier | RPS | Accuracy | Draws above 45% |
+  |---|---|---|---|---|---|
+  | published 0.1.0 | 1.0852 | 0.6527 | 0.2086 | 42.8% | 19 |
+  | candidate 0.5.0 | 1.0653 | 0.6417 | 0.2040 | 42.4% | 14 |
+  | candidate 0.6.0 | 1.0490 | 0.6336 | 0.2000 | 45.0% | 0 |
+  | uniform | 1.0986 | 0.6667 | 0.2166 | 33.3% | 0 |
+
+  D-139's bar against 0.5.0 says *insufficient* (229 of the 300 matches it
+  asks for); 0.6.0 is in shadow beside 0.5.0 all the same, for the reasons
+  D-190 gives. In every other league its forecasts are 0.5.0's.
 
 ## 3. Versions: published, candidates, shadow, promotion
 
@@ -133,7 +151,8 @@ edited by hand.
   change: a changed constant is a new version.
 - **A candidate** is a JSON file in `apps/model/fmip_model/model/candidates/`,
   named `<name>-<version>.json` (D-140). It names only what differs from the
-  published version. Today there is one: `dixon-coles-elo-0.5.0.json`.
+  published version. Today there are two, both in shadow:
+  `dixon-coles-elo-0.5.0.json` and `dixon-coles-elo-0.6.0.json`.
 - **Shadow.** Once a candidate file is merged and deployed, the model service
   offers it automatically, and the API stores a shadow forecast from every
   candidate beside every published forecast (D-082, D-140). Readers never see
@@ -176,8 +195,8 @@ edited by hand.
    `version` inside to match the file name:
 
    ```bash
-   cp apps/model/fmip_model/model/candidates/dixon-coles-elo-0.5.0.json \
-      apps/model/fmip_model/model/candidates/dixon-coles-elo-0.6.0.json
+   cp apps/model/fmip_model/model/candidates/dixon-coles-elo-0.6.0.json \
+      apps/model/fmip_model/model/candidates/dixon-coles-elo-0.7.0.json
    ```
 
 3. **Change the parameters** you want to test (table below), and rewrite
@@ -187,7 +206,7 @@ edited by hand.
 4. **Run the backtest** — the one command:
 
    ```bash
-   bash scripts/model-backtest.sh apps/model/fmip_model/model/candidates/dixon-coles-elo-0.6.0.json
+   bash scripts/model-backtest.sh apps/model/fmip_model/model/candidates/dixon-coles-elo-0.7.0.json
    ```
 
    It starts the database if needed, builds the model's Docker image, loads
@@ -202,7 +221,7 @@ edited by hand.
    the published version instead of the current candidate), and `--from`,
    `--to`, `--history-from` for another window.
 5. **Read the report** it names at the end:
-   `apps/model/reports/dixon-coles-elo-0.6.0/compare_2025-08-01..2026-06-30.md`
+   `apps/model/reports/dixon-coles-elo-0.7.0/compare_2025-08-01..2026-06-30.md`
    (and a `.json` twin with the same numbers).
    - The first table scores, on exactly the same matches, the **published**
      version, the **reference** (the current candidate), your **proposed**
@@ -216,7 +235,7 @@ edited by hand.
    - **Per division** shows where it helped and where it hurt. A change that
      wins in two leagues and loses in nine is not an improvement.
 6. **Open a pull request** with the candidate file and its report folder.
-   The title: `feat(model): dixon-coles-elo 0.6.0 -- <the idea>`. In the
+   The title: `feat(model): dixon-coles-elo 0.7.0 -- <the idea>`. In the
    description, paste the first table and the verdict line. A passed verdict
    is merged and the version goes into shadow on the next deploy; a failed
    one is still worth keeping as a record, in the PR, of what was tried.
@@ -226,7 +245,9 @@ edited by hand.
 luck you selected. Search on an earlier season (`--from 2024-08-01 --to
 2025-06-30 --history-from 2022-07-01`), then run the default 2025/26 window
 once with the value you chose. `python -m fmip_model.backtest.tune` does
-exactly this for `xi` and `ridge` per league (T-532). The final test is
+exactly this for `xi` and `ridge` per league (T-532); with `--candidate
+<file>` it tunes on top of that candidate's window and Elo prior, and
+`--test-grid` shows every pair on the test window too (T-1372). The final test is
 always the shadow record, on matches nobody had seen.
 
 ### The parameters
@@ -237,7 +258,7 @@ Everything the file does not name stays the published version's.
 |---|---|---|---|---|
 | `xi` | Time decay for every league not listed in `per_division` (half-life `0.693 / xi` days) | 0.0065 (107 days) | 0.0065 | 0.0005 (4 years) to 0.01 (70 days) |
 | `ridge` | Pull toward the league average, for leagues not in `per_division` | 0.01 | 0.01 | 0.001 to 1 |
-| `per_division.<code>.xi`, `.ridge` | The same two, for one league. Codes: E0 Premier League, E1 Championship, SP1 La Liga, D1 Bundesliga, I1 Serie A, F1 Ligue 1, N1 Eredivisie, P1 Primeira Liga, T1 Süper Lig, B1 Belgian Pro League, SC0 Scottish Premiership, IR1 Iran (our own records) | none | e.g. E0 0.002 / 0.003, T1 0.004 / 0.01, most others 0.001–0.003 / 0.3 | as above |
+| `per_division.<code>.xi`, `.ridge` | The same two, for one league. Codes: E0 Premier League, E1 Championship, SP1 La Liga, D1 Bundesliga, I1 Serie A, F1 Ligue 1, N1 Eredivisie, P1 Primeira Liga, T1 Süper Lig, B1 Belgian Pro League, SC0 Scottish Premiership, IR1 Iran (our own records) | none | e.g. E0 0.002 / 0.003, T1 0.004 / 0.01, most others 0.001–0.003 / 0.3; 0.6.0 adds IR1 0.002 / 3 | as above |
 | `elo_weight` | How hard net strength is pulled toward Elo | 0.5 | 0.5 | 0 (off) to 5 |
 | `elo_prior` | Which Elo: `own` (ours). `clubelo` and `clubelo_then_own` are refused for any new version (D-162) | `clubelo` | `own` | `own` |
 | `history_days` | Days of results a fit reads | 400 | 1100 | 365 to 1500 |
@@ -250,7 +271,10 @@ the scoreline table's 10-goal limit, the Elo scale (400 points = 1 unit of
 strength), and the Dixon–Coles form itself.
 
 **What the command does not test.** It forecasts league matches league by
-league. A change to `cross_league` is judged on cup matches by `python -m
+league, from the football-data.co.uk divisions a local store holds. IR1 is
+our own records, held only in production's store: its comparison is the
+same module run there, read-only (`--divisions IR1`), with no market line
+since there are no closing odds (D-190). A change to `cross_league` is judged on cup matches by `python -m
 fmip_model.backtest.cross_league`, and `lineup_beta` by `python -m
 fmip_model.backtest.lineups`; the report says so when your file changes
 either. A wholly new kind of input (rest days, derbies, injuries...) is a
@@ -262,7 +286,8 @@ blindly): rest and congestion (D-141, failed), league stakes (D-143,
 insufficient; with zones D-171, failed), the second leg of a tie (D-144,
 failed), neutral grounds (D-145, insufficient), head-to-head (D-148,
 failed), home advantage per team (D-149, failed). D-150 records that none
-passed, which is why 0.5.0 is still the only candidate.
+passed. Tuning a league the earlier tuning had not covered did help: IR1's
+constants (D-190, candidate 0.6.0).
 
 ## 5. Where things are
 
@@ -273,4 +298,4 @@ passed, which is why 0.5.0 is still the only candidate.
 | The comparison behind the one command | `apps/model/fmip_model/backtest/compare.py`, `scripts/model-backtest.sh` |
 | Other backtests | `apps/model/fmip_model/backtest/` (`__main__`, `tune`, `elo_prior`, `inputs`, `cross_league`, `lineups`) |
 | Reports | `apps/model/reports/<version>/` |
-| The rules | `docs/00-decisions.md`: D-016, D-031, D-082, D-085, D-139, D-140, D-150, D-162, D-186 |
+| The rules | `docs/00-decisions.md`: D-016, D-031, D-082, D-085, D-139, D-140, D-150, D-162, D-186, D-190 |

@@ -316,12 +316,20 @@ def test_the_candidate_file_names_its_prior_and_refuses_an_unknown_one(tmp_path:
         load_candidate(wrong)
 
 
-def test_the_committed_candidate_is_0_5_0_with_our_own_elo() -> None:
+def test_the_newest_committed_candidate_is_0_6_0_which_is_0_5_0_plus_ir1() -> None:
     candidate = load_candidate()
     assert candidate is not None
-    assert candidate.id == "dixon-coles-elo@0.5.0"
+    assert candidate.id == "dixon-coles-elo@0.6.0"
     assert candidate.elo_prior == "own"
     assert candidate.cross_league is not None  # 0.4.0's cup fit, carried unchanged
+    # T-1372, D-190: the Persian Gulf Pro League's tuned constants are the only change.
+    previous = load_candidates()["dixon-coles-elo-0.5.0"]
+    assert candidate.constants_for("IR1") == (0.002, 3.0)
+    assert previous.constants_for("IR1") == (previous.xi, previous.ridge)
+    assert dict(candidate.per_division) == {**previous.per_division, "IR1": (0.002, 3.0)}
+    assert replace(candidate, version=previous.version, per_division={}) == replace(
+        previous, per_division={}
+    )
 
 
 def test_several_candidates_answer_each_under_its_own_name_and_version() -> None:
