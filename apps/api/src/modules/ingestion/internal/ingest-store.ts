@@ -339,6 +339,36 @@ export class IngestStore implements SquadStore {
   }
 
   /**
+   * Records that a season's fixture list was answered (T-1371, D-189): the
+   * window asked for, or the whole season. One row write per season and
+   * provider per run, never one per match: the match page's "last checked".
+   */
+  async notePolled(
+    provider: Provider,
+    seasonId: string,
+    asked: { from: string; to: string; wholeSeason?: boolean | undefined },
+  ): Promise<void> {
+    if (asked.wholeSeason === true) {
+      await this.pool.query(
+        `INSERT INTO season_fixture_poll (season_id, provider, season_polled_at)
+         VALUES ($1, $2, now())
+         ON CONFLICT (season_id, provider) DO UPDATE SET season_polled_at = now()`,
+        [seasonId, provider],
+      );
+      return;
+    }
+    await this.pool.query(
+      `INSERT INTO season_fixture_poll
+         (season_id, provider, window_from, window_to, window_polled_at)
+       VALUES ($1, $2, $3::date, $4::date, now())
+       ON CONFLICT (season_id, provider) DO UPDATE
+         SET window_from = EXCLUDED.window_from, window_to = EXCLUDED.window_to,
+             window_polled_at = now()`,
+      [seasonId, provider, asked.from, asked.to],
+    );
+  }
+
+  /**
    * Writes one fixture and everything the fixture list carries: the two
    * participants and every score the provider supplied. Creates the fixture the
    * first time, updates only what changed afterwards.
@@ -448,14 +478,6 @@ export class IngestStore implements SquadStore {
           ],
         );
         changed += rowCount ?? 0;
-        // The provider returned this match, changed or not: the match page's
-        // "last checked" (T-1371). In the transaction, so a write that rolls
-        // back does not claim a check. A new mapping starts at now() anyway.
-        await client.query(
-          `UPDATE provider_mapping SET last_seen_at = now()
-            WHERE provider = $1 AND entity_type = 'fixture' AND external_id = $2`,
-          [provider, fixture.externalId],
-        );
       }
 
       changed += await this.upsertParticipant(client, fixtureId, homeId, 'home');

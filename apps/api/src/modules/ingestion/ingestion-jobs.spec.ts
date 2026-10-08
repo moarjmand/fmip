@@ -45,6 +45,13 @@ const PERSON_IDS: [string, string][] = [
   ['629', DE_BRUYNE],
 ];
 
+interface PollRow {
+  window_from: string | null;
+  window_to: string | null;
+  window_polled_at: Date | null;
+  season_polled_at: Date | null;
+}
+
 describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jobs', () => {
   let pool: Pool;
   let jobs: IngestionJobsService;
@@ -282,21 +289,23 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
     ).toBe(1);
 
     // The acceptance criterion: the same recording, replayed, changes nothing.
-    const seen = `SELECT last_seen_at FROM provider_mapping
-                   WHERE provider = 'api_football' AND entity_type = 'fixture'
-                     AND external_id = '1035037'`;
-    await pool.query(
-      `UPDATE provider_mapping SET first_seen_at = first_seen_at - interval '1 day',
-                                   last_seen_at = last_seen_at - interval '1 day'
-        WHERE provider = 'api_football' AND entity_type = 'fixture' AND external_id = '1035037'`,
-    );
-    const before = (await pool.query<{ last_seen_at: Date }>(seen)).rows[0]?.last_seen_at;
+    const poll = `SELECT window_from::text, window_to::text, window_polled_at, season_polled_at
+                    FROM season_fixture_poll WHERE season_id = $1 AND provider = 'api_football'`;
+    const before = (await pool.query<PollRow>(poll, [SEASON])).rows;
     const second = await jobs.fixtures();
     expect(second.itemsSeen).toBe(10);
     expect(second.itemsWritten).toBe(0);
-    // ...except when the match was last returned, the match page's "checked" (T-1371).
-    const after = (await pool.query<{ last_seen_at: Date }>(seen)).rows[0]?.last_seen_at;
-    expect(after!.getTime()).toBeGreaterThan(before!.getTime());
+    // ...except when the season's list was last answered: one row per season
+    // and provider, moved once per run, the match page's "checked" (T-1371).
+    const after = (await pool.query<PollRow>(poll, [SEASON])).rows;
+    expect(before).toHaveLength(1);
+    expect(after).toHaveLength(1);
+    expect(after[0]?.window_from).not.toBeNull();
+    expect(after[0]!.window_to! >= after[0]!.window_from!).toBe(true);
+    expect(after[0]?.season_polled_at).toBeNull();
+    expect(after[0]!.window_polled_at!.getTime()).toBeGreaterThanOrEqual(
+      before[0]!.window_polled_at!.getTime(),
+    );
     expect(
       await count(`SELECT count(*)::text AS n FROM fixture WHERE season_id = $1`, [SEASON]),
     ).toBe(1);

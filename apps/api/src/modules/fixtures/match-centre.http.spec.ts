@@ -160,28 +160,38 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /fixture
     ]);
     expect(fixture.periods[0]?.started_at).toBe('2086-03-15T16:30:00.000Z');
     expect(Date.parse(fixture.last_updated_at)).toBeGreaterThan(0);
-    // No provider has returned this match: no check is claimed (T-1371).
+    // No fixture list holding this match has been answered: no check is claimed (T-1371).
     expect(fixture.last_checked_at).toBeNull();
   });
 
-  it('says when a provider last returned the match, changed or not (T-1371)', async () => {
-    const external = `t1371-${MATCH}`;
-    await pool.query(
-      `INSERT INTO provider_mapping
-         (provider, entity_type, external_id, internal_id, first_seen_at, last_seen_at)
-       VALUES ('api_football', 'fixture', $1, $2, TIMESTAMPTZ '2086-03-01 10:00:00+00',
-               TIMESTAMPTZ '2086-03-15 19:00:00+00'),
-              ('football_data_org', 'fixture', $1, $2, TIMESTAMPTZ '2086-03-01 10:00:00+00',
-               TIMESTAMPTZ '2086-03-10 08:00:00+00')`,
-      [external, MATCH],
-    );
+  it('says when the match was last checked, from the season poll, changed or not (T-1371)', async () => {
+    const poll = (values: string) =>
+      pool.query(
+        `INSERT INTO season_fixture_poll
+           (season_id, provider, window_from, window_to, window_polled_at, season_polled_at)
+         VALUES ${values}`,
+        [PL_2024],
+      );
+    const checked = async () => ((await get(MATCH)).json() as MatchCentre).fixture.last_checked_at;
     try {
-      const { fixture } = (await get(MATCH)).json() as MatchCentre;
-      // The newest sighting by any provider; the last change is unaffected.
-      expect(fixture.last_checked_at).toBe('2086-03-15T19:00:00.000Z');
-      expect(Date.parse(fixture.last_updated_at)).not.toBe(Date.parse('2086-03-15T19:00:00Z'));
+      // A window holding the kick-off date, asked after the last whole-season ask.
+      await poll(`($1, 'api_football', DATE '2086-03-12', DATE '2086-03-18',
+                   TIMESTAMPTZ '2086-03-15 19:00:00+00', TIMESTAMPTZ '2086-03-15 03:00:00+00')`);
+      expect(await checked()).toBe('2086-03-15T19:00:00.000Z');
+      // A window that does not hold it says nothing about it: the season ask stands.
+      await pool.query(
+        `UPDATE season_fixture_poll SET window_from = DATE '2086-04-01', window_to = DATE '2086-04-07'
+          WHERE season_id = $1`,
+        [PL_2024],
+      );
+      expect(await checked()).toBe('2086-03-15T03:00:00.000Z');
+      // The newest of two providers.
+      await poll(
+        `($1, 'football_data_org', NULL, NULL, NULL, TIMESTAMPTZ '2086-03-15 05:00:00+00')`,
+      );
+      expect(await checked()).toBe('2086-03-15T05:00:00.000Z');
     } finally {
-      await pool.query(`DELETE FROM provider_mapping WHERE external_id = $1`, [external]);
+      await pool.query(`DELETE FROM season_fixture_poll WHERE season_id = $1`, [PL_2024]);
     }
   });
 

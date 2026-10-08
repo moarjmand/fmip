@@ -58,11 +58,13 @@ export interface MatchHeader {
   /** `stale` when live and unchanged for `STALE_LIVE_AFTER_MS` (T-083); `null` when not live. */
   freshness: Freshness | null;
   /**
-   * When a provider last returned this match to us, changed or not (T-1371,
-   * D-189): the fixture lists are asked hourly, so a scheduled match whose
-   * row has not changed for days was still checked an hour ago. Null when no
-   * check is recorded. `last_updated_at` stays the time of the last change,
-   * which is what the freshness rule measures.
+   * When this match's fixture list was last answered, changed or not
+   * (T-1371, D-189): the season's last whole-season ask, or its last window
+   * ask when the window held the kick-off date. The fixture lists are asked
+   * hourly, so a scheduled match whose row has not changed for days was still
+   * checked an hour ago. Null when no such ask is recorded. `last_updated_at`
+   * stays the time of the last change, which is what the freshness rule
+   * measures.
    */
   last_checked_at?: string | null;
 }
