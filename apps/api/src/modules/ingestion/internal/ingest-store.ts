@@ -448,6 +448,14 @@ export class IngestStore implements SquadStore {
           ],
         );
         changed += rowCount ?? 0;
+        // The provider returned this match, changed or not: the match page's
+        // "last checked" (T-1371). In the transaction, so a write that rolls
+        // back does not claim a check. A new mapping starts at now() anyway.
+        await client.query(
+          `UPDATE provider_mapping SET last_seen_at = now()
+            WHERE provider = $1 AND entity_type = 'fixture' AND external_id = $2`,
+          [provider, fixture.externalId],
+        );
       }
 
       changed += await this.upsertParticipant(client, fixtureId, homeId, 'home');

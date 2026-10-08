@@ -282,9 +282,21 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
     ).toBe(1);
 
     // The acceptance criterion: the same recording, replayed, changes nothing.
+    const seen = `SELECT last_seen_at FROM provider_mapping
+                   WHERE provider = 'api_football' AND entity_type = 'fixture'
+                     AND external_id = '1035037'`;
+    await pool.query(
+      `UPDATE provider_mapping SET first_seen_at = first_seen_at - interval '1 day',
+                                   last_seen_at = last_seen_at - interval '1 day'
+        WHERE provider = 'api_football' AND entity_type = 'fixture' AND external_id = '1035037'`,
+    );
+    const before = (await pool.query<{ last_seen_at: Date }>(seen)).rows[0]?.last_seen_at;
     const second = await jobs.fixtures();
     expect(second.itemsSeen).toBe(10);
     expect(second.itemsWritten).toBe(0);
+    // ...except when the match was last returned, the match page's "checked" (T-1371).
+    const after = (await pool.query<{ last_seen_at: Date }>(seen)).rows[0]?.last_seen_at;
+    expect(after!.getTime()).toBeGreaterThan(before!.getTime());
     expect(
       await count(`SELECT count(*)::text AS n FROM fixture WHERE season_id = $1`, [SEASON]),
     ).toBe(1);

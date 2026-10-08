@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { KeyPlayer } from '@fmip/contracts';
+import type { FixtureStatus, KeyPlayer } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 import type { SeasonFigures } from './key-players';
@@ -7,6 +7,7 @@ import type { SeasonFigures } from './key-players';
 export interface KeyPlayersFixture {
   id: string;
   kickoffAt: string;
+  status: FixtureStatus;
   competition: { id: string; name: string };
   season: { id: string; label: string };
   home: { id: string; name: string };
@@ -33,6 +34,7 @@ export class PostgresKeyPlayersStore {
     const { rows } = await this.pool.query<{
       id: string;
       kickoff_at: Date;
+      status: FixtureStatus;
       competition_id: string;
       competition_name: string;
       season_id: string;
@@ -42,7 +44,7 @@ export class PostgresKeyPlayersStore {
       away_id: string;
       away_name: string;
     }>(
-      `SELECT f.id, f.kickoff_at, c.id AS competition_id, c.name AS competition_name,
+      `SELECT f.id, f.kickoff_at, f.status, c.id AS competition_id, c.name AS competition_name,
               se.id AS season_id, se.label AS season_label,
               th.id AS home_id, th.name AS home_name, ta.id AS away_id, ta.name AS away_name
          FROM fixture f
@@ -60,6 +62,7 @@ export class PostgresKeyPlayersStore {
     return {
       id: r.id,
       kickoffAt: r.kickoff_at.toISOString(),
+      status: r.status,
       competition: { id: r.competition_id, name: r.competition_name },
       season: { id: r.season_id, label: r.season_label },
       home: { id: r.home_id, name: r.home_name },

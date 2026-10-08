@@ -194,7 +194,14 @@ export class FixturesService {
       this.centre.availability(fixtureId),
     ]);
     // An ask in a season the provider has no absences for is no answer: no
-    // player is "not on the absence list" there (T-1364).
+    // player is "not on the absence list" there (T-1364). Why nothing is
+    // claimed is the match centre's own state for the match, from the same
+    // rule, so the two modules never disagree (T-1371).
+    const centre = absencesCovered(
+      stored,
+      { status: fixture.status, kickoffAt: fixture.kickoffAt },
+      new Date(),
+    );
     const absences =
       stored.notCovered && stored.rows.length === 0 ? { ...stored, askedAt: null } : stored;
     const side = (team: { id: string; name: string }, season: TeamSeason) =>
@@ -214,6 +221,7 @@ export class FixturesService {
       home: side(fixture.home, home),
       away: side(fixture.away, away),
       availability_asked_at: absences.askedAt,
+      availability_gap: centre.gap ?? null,
     };
   }
 }

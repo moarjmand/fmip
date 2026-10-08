@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Test } from '@nestjs/testing';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
-import type { KeyPlayers } from '@fmip/contracts';
+import type { KeyPlayers, MatchCentre } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
@@ -156,6 +156,15 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         [ids.match, match[TEAMS.home], PEOPLE.h2],
       );
 
+      // T-1371: asked, with nobody listed; and one too far away to be asked.
+      await fixture('quiet', 'other', 'away', '2086-01-16', false);
+      await pool.query(
+        `INSERT INTO fixture_availability_fetch (fixture_id, provider, fetched_at)
+         VALUES ($1, 'api_football', TIMESTAMPTZ '2086-01-14 10:00:00+00')`,
+        [ids.quiet],
+      );
+      await fixture('far', 'other', 'away', '2086-01-20', false);
+
       // After the match: never counted in its key players.
       const later = await fixture('later', 'other', 'home', '2086-01-22', true);
       await figures(later[TEAMS.home]!, [['h4', 'minutes', 900]]);
@@ -184,6 +193,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         competition: { id: LEAGUE },
         season: { id: SEASON, label: '2085/86' },
         availability_asked_at: '2086-01-14T09:00:00.000Z',
+        availability_gap: null,
       });
       // Three matches played before this one, two with figures: a floor.
       expect(body.home.coverage).toBe('limited');
@@ -236,8 +246,46 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
     it('claims no availability for a match the provider was never asked about', async () => {
       const body = (await get(ids.m4!)).json() as KeyPlayers;
       expect(body.availability_asked_at).toBeNull();
+      expect(body.availability_gap).toBe('not_asked');
       expect(body.home.data?.players.map((p) => p.availability)).toEqual([null, null, null]);
       expect(body.home.data?.matches_played).toBe(2);
+    });
+
+    // T-1371: the footer reads the match centre's own absence state.
+    async function both(id: string): Promise<[KeyPlayers, MatchCentre]> {
+      const centre = await app.inject({ method: 'GET', url: `/fixtures/${id}` });
+      return [(await get(id)).json() as KeyPlayers, centre.json() as MatchCentre];
+    }
+
+    it('says an ask was answered, as the match centre does', async () => {
+      const [keys, centre] = await both(ids.quiet!);
+      expect(keys.availability_asked_at).toBe('2086-01-14T10:00:00.000Z');
+      expect(keys.availability_gap).toBeNull();
+      expect(centre.availability).toMatchObject({ coverage: 'available', gap: null });
+    });
+
+    it('says a match more than three days away is not asked yet, as the match centre does', async () => {
+      const [keys, centre] = await both(ids.far!);
+      expect(keys.availability_asked_at).toBeNull();
+      expect(keys.availability_gap).toBe('not_yet');
+      expect(centre.availability.gap).toBe('not_yet');
+    });
+
+    it('says the provider does not report absences here, even after an ask', async () => {
+      await pool.query(
+        `INSERT INTO season_feed_coverage (season_id, provider, absences, answered_at)
+         VALUES ($1, 'api_football', false, now())`,
+        [SEASON],
+      );
+      try {
+        const [keys, centre] = await both(ids.quiet!);
+        // Asked on the 14th, but the answer is no answer: never "not asked".
+        expect(keys.availability_asked_at).toBeNull();
+        expect(keys.availability_gap).toBe('not_covered');
+        expect(centre.availability.gap).toBe('not_covered');
+      } finally {
+        await pool.query(`DELETE FROM season_feed_coverage WHERE season_id = $1`, [SEASON]);
+      }
     });
   },
 );

@@ -90,6 +90,7 @@ interface RawHeader {
       })[]
     | null;
   last_updated_at: Date;
+  last_checked_at: Date | null;
   detail_owed: boolean;
 }
 
@@ -142,6 +143,9 @@ export class PostgresMatchCentreStore {
                 (SELECT max(l.updated_at) FROM lineup l WHERE l.participant_id IN (h.id, a.id)),
                 (SELECT max(s.updated_at) FROM fixture_stat s WHERE s.participant_id IN (h.id, a.id))
               ) AS last_updated_at,
+              -- When a provider last returned this match, changed or not (T-1371).
+              (SELECT max(pm.last_seen_at) FROM provider_mapping pm
+                WHERE pm.entity_type = 'fixture' AND pm.internal_id = f.id) AS last_checked_at,
               (f.status = 'finished' AND NOT EXISTS (
                  SELECT 1 FROM fixture_detail_fetch d WHERE d.fixture_id = f.id)) AS detail_owed
          FROM fixture f
@@ -220,6 +224,7 @@ export class PostgresMatchCentreStore {
         })),
         last_updated_at: r.last_updated_at.toISOString(),
         freshness: freshnessOf(r.status, r.last_updated_at, new Date()),
+        last_checked_at: r.last_checked_at?.toISOString() ?? null,
       },
     };
   }

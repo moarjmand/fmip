@@ -160,6 +160,29 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /fixture
     ]);
     expect(fixture.periods[0]?.started_at).toBe('2086-03-15T16:30:00.000Z');
     expect(Date.parse(fixture.last_updated_at)).toBeGreaterThan(0);
+    // No provider has returned this match: no check is claimed (T-1371).
+    expect(fixture.last_checked_at).toBeNull();
+  });
+
+  it('says when a provider last returned the match, changed or not (T-1371)', async () => {
+    const external = `t1371-${MATCH}`;
+    await pool.query(
+      `INSERT INTO provider_mapping
+         (provider, entity_type, external_id, internal_id, first_seen_at, last_seen_at)
+       VALUES ('api_football', 'fixture', $1, $2, TIMESTAMPTZ '2086-03-01 10:00:00+00',
+               TIMESTAMPTZ '2086-03-15 19:00:00+00'),
+              ('football_data_org', 'fixture', $1, $2, TIMESTAMPTZ '2086-03-01 10:00:00+00',
+               TIMESTAMPTZ '2086-03-10 08:00:00+00')`,
+      [external, MATCH],
+    );
+    try {
+      const { fixture } = (await get(MATCH)).json() as MatchCentre;
+      // The newest sighting by any provider; the last change is unaffected.
+      expect(fixture.last_checked_at).toBe('2086-03-15T19:00:00.000Z');
+      expect(Date.parse(fixture.last_updated_at)).not.toBe(Date.parse('2086-03-15T19:00:00Z'));
+    } finally {
+      await pool.query(`DELETE FROM provider_mapping WHERE external_id = $1`, [external]);
+    }
   });
 
   it('serves the timeline in order with sides by participant and both players of a substitution', async () => {
