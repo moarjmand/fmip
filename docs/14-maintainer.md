@@ -1025,7 +1025,8 @@ we already have.
 
 ```bash
 catalog --list --type team --provider highlightly          # who is still waiting, with Highlightly's ids and names
-catalog --map --provider highlightly --type team --external-id <Highlightly team id>         --to <our team uuid> --by you@your-domain
+catalog --map --provider highlightly --type team --external-id <Highlightly team id> \
+        --to <our team uuid> --by you@your-domain
 ```
 
 **How to know it works.** `bash deploy/check-setup.sh` shows the newest run

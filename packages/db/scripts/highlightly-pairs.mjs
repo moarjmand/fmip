@@ -538,6 +538,11 @@ export async function applyStrong(client, rows, by) {
         outcome.refused.push({ row, reason: 'not a Highlightly id and a team uuid' });
         continue;
       }
+      // A reviewed file is read back, so its "strong" is checked, not trusted.
+      if (!(row.votes >= STRONG_VOTES) || row.conflicts !== 0) {
+        outcome.refused.push({ row, reason: 'its votes do not make it strong' });
+        continue;
+      }
       const existing = await client.query(
         `SELECT internal_id FROM provider_mapping
           WHERE provider = 'highlightly' AND entity_type = 'team' AND external_id = $1`,
