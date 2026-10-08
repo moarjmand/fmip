@@ -154,7 +154,8 @@ export function MatchCentreView({
   const behind = now !== undefined && isBehind(f, now);
   const status = statusLabel(f, locale, timeZone, now, m);
   // Every freshness time on the page says its day when it is not today (T-1371).
-  const clock = now ?? Date.now();
+  // No clock (a pure render without one) says the full date and time.
+  const clock = now;
   const at = (iso: string) => (
     <time dateTime={iso}>{formatStamp(locale, iso, timeZone, clock)}</time>
   );

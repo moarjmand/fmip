@@ -32,7 +32,7 @@ export function KeyPlayersPanel({
   away,
   locale,
   timeZone,
-  now = Date.now(),
+  now,
 }: {
   /** Null when the API could not be reached. */
   players: KeyPlayers | null;
@@ -40,7 +40,7 @@ export function KeyPlayersPanel({
   away: string;
   locale: string;
   timeZone: string;
-  /** The clock the "asked" time is dated against (T-1371); now unless a test fixes it. */
+  /** The clock the "asked" time is dated against (T-1371); without one, the full date and time. */
   now?: number;
 }) {
   if (players === null) {

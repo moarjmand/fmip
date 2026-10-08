@@ -178,8 +178,8 @@ export function formatKickoff(locale: string, iso: string, timeZone: string): st
 export interface FreshnessStamp {
   /** "16:15" today; "yesterday (7 Oct 2026, 16:15)"; "12 days ago (26 Sept 2026, 16:15)". */
   text: string;
-  /** Calendar days before today in the viewer's zone; 0 today, negative ahead. */
-  days: number;
+  /** Calendar days before today in the viewer's zone; 0 today, negative ahead; null with no clock. */
+  days: number | null;
   /** Older than the threshold the caller gave: its surface says the stale words. */
   stale: boolean;
 }
@@ -191,15 +191,20 @@ export interface FreshnessStamp {
  * afternoon. Any other day says how many days ago, with the date and time.
  * `staleAfterMs`, when given, is the surface's own threshold (D-045 for a
  * live match, D-127 for an absence answer); past it, `stale` is set and the
- * caller says its stale words beside the time.
+ * caller says its stale words beside the time. With no clock (`now`
+ * undefined: a render that must stay pure) the full date and time is said,
+ * which is never mistaken for today.
  */
 export function freshnessStamp(
   locale: string,
   iso: string,
   timeZone: string,
-  now: Date | number,
+  now: Date | number | undefined,
   staleAfterMs?: number,
 ): FreshnessStamp {
+  if (now === undefined) {
+    return { text: formatDateTime(locale, iso, timeZone), days: null, stale: false };
+  }
   const nowMs = typeof now === 'number' ? now : now.getTime();
   const atMs = Date.parse(iso);
   const days = Math.round(
@@ -221,7 +226,7 @@ export function formatStamp(
   locale: string,
   iso: string,
   timeZone: string,
-  now: Date | number,
+  now: Date | number | undefined,
 ): string {
   return freshnessStamp(locale, iso, timeZone, now).text;
 }
@@ -319,7 +324,7 @@ export function blockUpdatedLabel(
   locale: string,
   timeZone: string,
   words: Record<'scores.updated' | 'scores.updatedBetween', Message>,
-  now: Date | number = Date.now(),
+  now?: Date | number,
 ): string | null {
   const times = cards.map((c) => Date.parse(c.last_updated_at)).filter((t) => !Number.isNaN(t));
   if (times.length === 0) return null;

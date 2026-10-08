@@ -123,9 +123,7 @@ export function ScoreCard({
   );
   const live = card.status === 'live';
   // A freshness time on another day says which (T-1371).
-  const at = (iso: string) => (
-    <time dateTime={iso}>{formatStamp(locale, iso, timeZone, now ?? Date.now())}</time>
-  );
+  const at = (iso: string) => <time dateTime={iso}>{formatStamp(locale, iso, timeZone, now)}</time>;
 
   return (
     <li
