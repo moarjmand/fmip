@@ -18,7 +18,9 @@ the fit dates of ``backtest.inputs`` (fit the day before, refit at most weekly,
 Each fit reads only the matches of its version's ``history_days`` before the
 fit date, as the service does. The closing odds (de-margined) and uniform
 (one third each) are scored on the same matches, which are the ones every
-version forecast and the market priced.
+version forecast and the market priced. Our records' divisions (IR1) have no
+closing odds: there every match the versions forecast is kept, and the
+market is left out of the scores (T-1372).
 
 The proposal is judged against the reference by D-139's bar (``BAR`` in
 ``backtest.inputs``: lower log loss with a 95% paired bootstrap interval
@@ -69,7 +71,7 @@ from .inputs import (
     judge,
     prior_for,
 )
-from .metrics import Forecast, Result
+from .metrics import Forecast, Result, rps
 from .report import PUBLISHABLE_LOG_LOSS_MARGIN
 from .walk_forward import (
     BacktestMatch,
@@ -108,12 +110,15 @@ class Row:
     published: Forecast
     reference: Forecast
     proposed: Forecast
-    market: Forecast
+    #: ``None`` only in a division run without odds (our records, T-1372).
+    market: Forecast | None
 
     def of(self, forecaster: str) -> Forecast:
         if forecaster == "uniform":
             return UNIFORM
-        forecast: Forecast = getattr(self, forecaster)
+        forecast: Forecast | None = getattr(self, forecaster)
+        if forecast is None:
+            raise ValueError(f"no {forecaster} forecast for {self.match}")
         return forecast
 
 
@@ -121,7 +126,8 @@ class Row:
 class DivisionResult:
     division: str
     rows: list[Row]
-    #: Matches every version forecast that had no closing odds, so were left out.
+    #: Matches every version forecast that had no closing odds: left out, unless
+    #: the division was run without requiring odds.
     without_odds: int
     refits: int
     #: Per role, the fits that had an Elo prior to read.
@@ -162,11 +168,14 @@ def run_division(
     elo_for: Callable[[ModelVersion], EloOn | None] = lambda _version: None,
     min_history: int = 60,
     refit_every_days: int = 7,
+    require_odds: bool = True,
 ) -> DivisionResult:
     """Forecast ``window`` with the three versions on the same fit dates.
 
     A version whose division constants, Elo weight, history and prior are the
     same as one already run reuses its forecasts rather than fitting again.
+    With ``require_odds`` off (a division of our records, which has no
+    closing odds), a match without odds is kept, with no market forecast.
     """
     ordered = sorted(matches, key=lambda m: m.date)
     runs: dict[tuple[object, ...], tuple[BacktestResult, int]] = {}
@@ -212,7 +221,8 @@ def run_division(
             continue
         if f.market is None:
             without_odds += 1
-            continue
+            if require_odds:
+                continue
         rows.append(
             Row(
                 f.match,
@@ -251,6 +261,10 @@ def accuracy(forecasts: Sequence[Forecast], results: Sequence[Result]) -> float:
     return total / len(forecasts)
 
 
+#: A draw probability above this is the overconfidence T-1372 looked for.
+HIGH_DRAW = 0.45
+
+
 @dataclass(frozen=True)
 class Scores:
     n: int
@@ -258,19 +272,35 @@ class Scores:
     brier: float
     accuracy: float
     calibration_error: float
+    rps: float = 0.0
+    #: The spread of the draw probability: mean, highest, and how many above ``HIGH_DRAW``.
+    draw_mean: float = 0.0
+    draw_max: float = 0.0
+    draw_high: int = 0
 
 
 def scores_of(rows: Sequence[Row], forecaster: str) -> Scores:
     forecasts = [r.of(forecaster) for r in rows]
     results = [r.match.result for r in rows]
     card = scorecard(forecasts, results)
+    draws = [f.draw for f in forecasts]
     return Scores(
         len(rows),
         round(card.log_loss, 5),
         round(card.brier, 5),
         round(accuracy(forecasts, results), 5),
         round(card.calibration_error, 5),
+        round(rps(forecasts, results), 5),
+        round(sum(draws) / len(draws), 5),
+        round(max(draws), 5),
+        sum(1 for d in draws if d > HIGH_DRAW),
     )
+
+
+def forecasters_of(rows: Sequence[Row]) -> tuple[str, ...]:
+    """Every forecaster that forecast all the rows: the market only where every row had odds."""
+    priced = all(r.market is not None for r in rows)
+    return tuple(f for f in FORECASTERS if f != "market" or priced)
 
 
 def as_runs(results: Sequence[DivisionResult], groups: Mapping[str, Group]) -> list[DivisionRun]:
@@ -300,9 +330,11 @@ def summarise(
     """The verdict per group and overall, the pooled scores, the scores per division."""
     overall, verdicts = judge(as_runs([r for r in results if r.rows], groups), bar)
     everything = [row for r in results for row in r.rows]
-    pooled = {f: scores_of(everything, f) for f in FORECASTERS} if everything else {}
+    pooled = {f: scores_of(everything, f) for f in forecasters_of(everything)} if everything else {}
     per_division = {
-        r.division: {f: scores_of(r.rows, f) for f in FORECASTERS} for r in results if r.rows
+        r.division: {f: scores_of(r.rows, f) for f in forecasters_of(r.rows)}
+        for r in results
+        if r.rows
     }
     return overall, verdicts, pooled, per_division
 
@@ -338,7 +370,9 @@ def report_body(
 ) -> dict[str, object]:
     overall, verdicts, pooled, per_division = summarise(results, groups, bar)
     market_gap = (
-        None if not pooled else round(pooled["proposed"].log_loss - pooled["market"].log_loss, 5)
+        None
+        if "market" not in pooled
+        else round(pooled["proposed"].log_loss - pooled["market"].log_loss, 5)
     )
     return {
         "proposed": proposed.id,
@@ -402,15 +436,16 @@ def render(body: Mapping[str, object]) -> str:
         "",
         f"Published version for reference: {body['published']}. History read from "
         f"{body['history_from']}. Every number is on the same matches: those every version "
-        "forecast and the market priced. Lower is better for log loss, Brier and calibration "
-        "error; higher is better for accuracy. Uniform is one third each (log loss 1.0986).",
+        "forecast and, where the division has closing odds, the market priced. Lower is better "
+        "for log loss, Brier, RPS and calibration error; higher is better for accuracy. Uniform "
+        "is one third each (log loss 1.0986).",
     ]
     if body["note"]:
         lines += ["", str(body["note"])]
     lines += [
         "",
-        "| Forecaster | Matches | Log loss | Brier | Accuracy | Calibration error |",
-        "|---|---|---|---|---|---|",
+        "| Forecaster | Matches | Log loss | Brier | RPS | Accuracy | Calibration error |",
+        "|---|---|---|---|---|---|---|",
     ]
     labels = {
         "published": f"published {body['published']}",
@@ -425,7 +460,23 @@ def render(body: Mapping[str, object]) -> str:
             continue
         lines.append(
             f"| {labels[name]} | {s['n']} | {s['log_loss']:.4f} | {s['brier']:.4f} "
-            f"| {s['accuracy']:.1%} | {s['calibration_error']:.4f} |"
+            f"| {s['rps']:.4f} | {s['accuracy']:.1%} | {s['calibration_error']:.4f} |"
+        )
+    lines += [
+        "",
+        f"Draw probability: mean, highest, and forecasts above {HIGH_DRAW:.0%} "
+        "(uniform is one third on every match).",
+        "",
+        f"| Forecaster | Mean | Highest | Above {HIGH_DRAW:.0%} |",
+        "|---|---|---|---|",
+    ]
+    for name in FORECASTERS:
+        s = pooled.get(name)
+        if s is None or name == "uniform":
+            continue
+        lines.append(
+            f"| {labels[name]} | {s['draw_mean']:.1%} | {s['draw_max']:.1%} "
+            f"| {s['draw_high']} of {s['n']} |"
         )
     gap = body["market_gap"]
     if isinstance(gap, float):
@@ -550,6 +601,7 @@ class Job:
     history_from: date
     proposed: ModelVersion
     reference: ModelVersion
+    require_odds: bool = True
 
 
 def _division_job(job: Job) -> DivisionResult | str:
@@ -585,6 +637,7 @@ def _division_job(job: Job) -> DivisionResult | str:
             proposed=job.proposed,
             reference=job.reference,
             elo_for=lambda version: prior_for(version, clubelo_on, own_on),
+            require_odds=job.require_odds,
         )
     except ValueError as error:  # no match in the window could be forecast
         return f"{job.division}: {error}"
@@ -655,7 +708,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         groups = division_groups(conn, args.divisions)
     print(f"{proposed.id} against {reference.id}, {window[0]} to {window[1]}, "
           f"{len(args.divisions)} divisions", flush=True)  # fmt: skip
-    jobs = [Job(database_url, d, window, args.history_from, proposed, reference)
+    jobs = [Job(database_url, d, window, args.history_from, proposed, reference,
+                groups.get(d) != "our_records")
             for d in args.divisions]  # fmt: skip
     workers = args.jobs or min(len(jobs), os.cpu_count() or 1)
     results: list[DivisionResult] = []

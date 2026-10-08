@@ -11,6 +11,7 @@ from fmip_model.backtest.metrics import (
     expected_calibration_error,
     log_loss,
     reliability,
+    rps,
 )
 
 
@@ -64,3 +65,12 @@ def test_market_odds_are_de_margined() -> None:
     assert 0.04 < overround(Decimal("1.6"), Decimal("4.2"), Decimal("5.25")) < 0.06
     with pytest.raises(ValueError):
         implied_forecast(Decimal("1.6"), Decimal("4.2"), Decimal("-1"))
+
+
+def test_rps_knows_a_draw_is_between_the_two_wins() -> None:
+    # The API's values (T-1369): uniform scores 1/9 on a draw, 5/18 on a win.
+    assert rps([UNIFORM], ["D"]) == pytest.approx(1 / 9)
+    assert rps([UNIFORM], ["H"]) == pytest.approx(5 / 18)
+    assert rps([Forecast(1, 0, 0)], ["H"]) == 0
+    # Missing a home win by a draw costs less than missing it by an away win.
+    assert rps([Forecast(0, 1, 0)], ["H"]) < rps([Forecast(0, 0, 1)], ["H"])
