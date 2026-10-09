@@ -12,7 +12,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from fmip_model.model.dixon_coles import MatchObservation
-from fmip_model.model.version import BASELINE, load_candidate, load_candidates
+from fmip_model.model.version import BASELINE, CANDIDATES_DIR, load_candidate, load_candidates
 from fmip_model.service.app import create_app
 from fmip_model.service.contract import ForecastRequest
 from fmip_model.service.forecaster import Forecaster, TrainingSource
@@ -371,4 +371,8 @@ def test_0_5_0_keeps_its_version_in_the_directory_so_its_record_continues() -> N
     file into candidates/ must not rename it."""
     committed = load_candidates()
     assert committed["dixon-coles-elo-0.5.0"].id == "dixon-coles-elo@0.5.0"
-    assert committed["dixon-coles-elo-0.5.0"] == load_candidate()
+    # 0.6.0 (T-1372) is newer and runs beside it; 0.5.0's record goes on.
+    assert committed["dixon-coles-elo-0.5.0"] == load_candidate(
+        CANDIDATES_DIR / "dixon-coles-elo-0.5.0.json"
+    )
+    assert load_candidate() == committed["dixon-coles-elo-0.6.0"]

@@ -1,0 +1,1123 @@
+{
+  "proposed": "dixon-coles-elo@0.6.0",
+  "reference": "dixon-coles-elo@0.5.0",
+  "published": "dixon-coles-elo@0.1.0",
+  "window": [
+    "2025-08-01",
+    "2026-06-30"
+  ],
+  "history_from": "2023-07-01",
+  "note": "Run 2026-10-08 locally on the football-data.co.uk training store. 0.6.0 changes only IR1, which this store does not hold: in these eleven divisions it is 0.5.0 by construction, so the difference is zero and the verdict can only be failed. It shows that nothing else moved; the IR1 evidence is compare_2025-07-01..2026-10-08 (D-190).",
+  "bar": {
+    "min_applied": 300,
+    "resamples": 2000,
+    "level": 0.95,
+    "seed": 1101,
+    "min_division_applied": 50,
+    "max_worse_share": 0.3333333333333333
+  },
+  "verdict": "failed",
+  "groups": [
+    {
+      "group": "football_data",
+      "verdict": "failed",
+      "reasons": [
+        "log loss difference +0.00000, 95% interval [+0.00000, +0.00000] does not exclude zero on the better side"
+      ],
+      "scored": 3724,
+      "applied": 3724,
+      "published": {
+        "log_loss": 1.02553,
+        "brier": 0.61059,
+        "calibration_error": 0.03166
+      },
+      "candidate": {
+        "log_loss": 1.00547,
+        "brier": 0.60097,
+        "calibration_error": 0.02147
+      },
+      "with_input": {
+        "log_loss": 1.00547,
+        "brier": 0.60097,
+        "calibration_error": 0.02147
+      },
+      "difference": 0.0,
+      "interval": [
+        0.0,
+        0.0
+      ],
+      "calibration_interval": [
+        0.0,
+        0.0
+      ],
+      "divisions": [
+        {
+          "division": "E0",
+          "scored": 377,
+          "applied": 377,
+          "log_loss_candidate": 1.0315,
+          "log_loss_with_input": 1.0315,
+          "judged": true,
+          "worse": false
+        },
+        {
+          "division": "E1",
+          "scored": 548,
+          "applied": 548,
+          "log_loss_candidate": 1.07418,
+          "log_loss_with_input": 1.07418,
+          "judged": true,
+          "worse": false
+        },
+        {
+          "division": "SP1",
+          "scored": 377,
+          "applied": 377,
+          "log_loss_candidate": 0.98238,
+          "log_loss_with_input": 0.98238,
+          "judged": true,
+          "worse": false
+        },
+        {
+          "division": "D1",
+          "scored": 304,
+          "applied": 304,
+          "log_loss_candidate": 0.97285,
+          "log_loss_with_input": 0.97285,
+          "judged": true,
+          "worse": false
+        },
+        {
+          "division": "I1",
+          "scored": 376,
+          "applied": 376,
+          "log_loss_candidate": 0.99866,
+          "log_loss_with_input": 0.99866,
+          "judged": true,
+          "worse": false
+        },
+        {
+          "division": "F1",
+          "scored": 303,
+          "applied": 303,
+          "log_loss_candidate": 1.00688,
+          "log_loss_with_input": 1.00688,
+          "judged": true,
+          "worse": false
+        },
+        {
+          "division": "N1",
+          "scored": 303,
+          "applied": 303,
+          "log_loss_candidate": 0.9866,
+          "log_loss_with_input": 0.9866,
+          "judged": true,
+          "worse": false
+        },
+        {
+          "division": "P1",
+          "scored": 304,
+          "applied": 304,
+          "log_loss_candidate": 0.92748,
+          "log_loss_with_input": 0.92748,
+          "judged": true,
+          "worse": false
+        },
+        {
+          "division": "T1",
+          "scored": 303,
+          "applied": 303,
+          "log_loss_candidate": 1.00055,
+          "log_loss_with_input": 1.00055,
+          "judged": true,
+          "worse": false
+        },
+        {
+          "division": "B1",
+          "scored": 303,
+          "applied": 303,
+          "log_loss_candidate": 1.03529,
+          "log_loss_with_input": 1.03529,
+          "judged": true,
+          "worse": false
+        },
+        {
+          "division": "SC0",
+          "scored": 226,
+          "applied": 226,
+          "log_loss_candidate": 0.98415,
+          "log_loss_with_input": 0.98415,
+          "judged": true,
+          "worse": false
+        }
+      ]
+    },
+    {
+      "group": "our_records",
+      "verdict": "not run",
+      "reasons": [
+        "no division of this group was run"
+      ],
+      "scored": 0,
+      "applied": 0,
+      "published": null,
+      "candidate": null,
+      "with_input": null,
+      "difference": null,
+      "interval": null,
+      "calibration_interval": null,
+      "divisions": []
+    }
+  ],
+  "pooled": {
+    "published": {
+      "n": 3724,
+      "log_loss": 1.02553,
+      "brier": 0.61059,
+      "accuracy": 0.49463,
+      "calibration_error": 0.03166,
+      "rps": 0.20849,
+      "draw_mean": 0.24753,
+      "draw_max": 0.91361,
+      "draw_high": 6
+    },
+    "reference": {
+      "n": 3724,
+      "log_loss": 1.00547,
+      "brier": 0.60097,
+      "accuracy": 0.50295,
+      "calibration_error": 0.02147,
+      "rps": 0.20438,
+      "draw_mean": 0.2504,
+      "draw_max": 0.59647,
+      "draw_high": 5
+    },
+    "proposed": {
+      "n": 3724,
+      "log_loss": 1.00547,
+      "brier": 0.60097,
+      "accuracy": 0.50295,
+      "calibration_error": 0.02147,
+      "rps": 0.20438,
+      "draw_mean": 0.2504,
+      "draw_max": 0.59647,
+      "draw_high": 5
+    },
+    "market": {
+      "n": 3724,
+      "log_loss": 0.98502,
+      "brier": 0.58766,
+      "accuracy": 0.51839,
+      "calibration_error": 0.01492,
+      "rps": 0.19831,
+      "draw_mean": 0.24982,
+      "draw_max": 0.36639,
+      "draw_high": 0
+    },
+    "uniform": {
+      "n": 3724,
+      "log_loss": 1.09861,
+      "brier": 0.66667,
+      "accuracy": 0.33333,
+      "calibration_error": 0.06403,
+      "rps": 0.23423,
+      "draw_mean": 0.33333,
+      "draw_max": 0.33333,
+      "draw_high": 0
+    }
+  },
+  "market_gap": 0.02045,
+  "publishable_margin": 0.02,
+  "divisions": [
+    {
+      "division": "E0",
+      "matches": 377,
+      "without_odds": 0,
+      "refits": 33,
+      "fits_with_prior": {
+        "published": 0,
+        "reference": 33,
+        "proposed": 33
+      },
+      "scores": {
+        "published": {
+          "n": 377,
+          "log_loss": 1.0718,
+          "brier": 0.62963,
+          "accuracy": 0.46684,
+          "calibration_error": 0.04654,
+          "rps": 0.21373,
+          "draw_mean": 0.25687,
+          "draw_max": 0.44526,
+          "draw_high": 0
+        },
+        "reference": {
+          "n": 377,
+          "log_loss": 1.0315,
+          "brier": 0.61878,
+          "accuracy": 0.46419,
+          "calibration_error": 0.03958,
+          "rps": 0.20935,
+          "draw_mean": 0.2507,
+          "draw_max": 0.45043,
+          "draw_high": 1
+        },
+        "proposed": {
+          "n": 377,
+          "log_loss": 1.0315,
+          "brier": 0.61878,
+          "accuracy": 0.46419,
+          "calibration_error": 0.03958,
+          "rps": 0.20935,
+          "draw_mean": 0.2507,
+          "draw_max": 0.45043,
+          "draw_high": 1
+        },
+        "market": {
+          "n": 377,
+          "log_loss": 1.01997,
+          "brier": 0.61253,
+          "accuracy": 0.48806,
+          "calibration_error": 0.0413,
+          "rps": 0.20572,
+          "draw_mean": 0.24429,
+          "draw_max": 0.31568,
+          "draw_high": 0
+        },
+        "uniform": {
+          "n": 377,
+          "log_loss": 1.09861,
+          "brier": 0.66667,
+          "accuracy": 0.33333,
+          "calibration_error": 0.05894,
+          "rps": 0.2318,
+          "draw_mean": 0.33333,
+          "draw_max": 0.33333,
+          "draw_high": 0
+        }
+      }
+    },
+    {
+      "division": "E1",
+      "matches": 548,
+      "without_odds": 0,
+      "refits": 34,
+      "fits_with_prior": {
+        "published": 0,
+        "reference": 34,
+        "proposed": 34
+      },
+      "scores": {
+        "published": {
+          "n": 548,
+          "log_loss": 1.0833,
+          "brier": 0.655,
+          "accuracy": 0.42518,
+          "calibration_error": 0.05531,
+          "rps": 0.22895,
+          "draw_mean": 0.26681,
+          "draw_max": 0.53618,
+          "draw_high": 3
+        },
+        "reference": {
+          "n": 548,
+          "log_loss": 1.07418,
+          "brier": 0.65027,
+          "accuracy": 0.43613,
+          "calibration_error": 0.04666,
+          "rps": 0.2263,
+          "draw_mean": 0.26682,
+          "draw_max": 0.59647,
+          "draw_high": 2
+        },
+        "proposed": {
+          "n": 548,
+          "log_loss": 1.07418,
+          "brier": 0.65027,
+          "accuracy": 0.43613,
+          "calibration_error": 0.04666,
+          "rps": 0.2263,
+          "draw_mean": 0.26682,
+          "draw_max": 0.59647,
+          "draw_high": 2
+        },
+        "market": {
+          "n": 548,
+          "log_loss": 1.04369,
+          "brier": 0.63005,
+          "accuracy": 0.46168,
+          "calibration_error": 0.02959,
+          "rps": 0.2172,
+          "draw_mean": 0.26475,
+          "draw_max": 0.31447,
+          "draw_high": 0
+        },
+        "uniform": {
+          "n": 548,
+          "log_loss": 1.09861,
+          "brier": 0.66667,
+          "accuracy": 0.33333,
+          "calibration_error": 0.05393,
+          "rps": 0.23368,
+          "draw_mean": 0.33333,
+          "draw_max": 0.33333,
+          "draw_high": 0
+        }
+      }
+    },
+    {
+      "division": "SP1",
+      "matches": 377,
+      "without_odds": 0,
+      "refits": 35,
+      "fits_with_prior": {
+        "published": 0,
+        "reference": 35,
+        "proposed": 35
+      },
+      "scores": {
+        "published": {
+          "n": 377,
+          "log_loss": 1.00364,
+          "brier": 0.59477,
+          "accuracy": 0.51194,
+          "calibration_error": 0.04936,
+          "rps": 0.20658,
+          "draw_mean": 0.24629,
+          "draw_max": 0.3757,
+          "draw_high": 0
+        },
+        "reference": {
+          "n": 377,
+          "log_loss": 0.98238,
+          "brier": 0.58297,
+          "accuracy": 0.5305,
+          "calibration_error": 0.04984,
+          "rps": 0.20167,
+          "draw_mean": 0.24924,
+          "draw_max": 0.35649,
+          "draw_high": 0
+        },
+        "proposed": {
+          "n": 377,
+          "log_loss": 0.98238,
+          "brier": 0.58297,
+          "accuracy": 0.5305,
+          "calibration_error": 0.04984,
+          "rps": 0.20167,
+          "draw_mean": 0.24924,
+          "draw_max": 0.35649,
+          "draw_high": 0
+        },
+        "market": {
+          "n": 377,
+          "log_loss": 0.96482,
+          "brier": 0.57186,
+          "accuracy": 0.54642,
+          "calibration_error": 0.04389,
+          "rps": 0.19625,
+          "draw_mean": 0.25981,
+          "draw_max": 0.34635,
+          "draw_high": 0
+        },
+        "uniform": {
+          "n": 377,
+          "log_loss": 1.09861,
+          "brier": 0.66667,
+          "accuracy": 0.33333,
+          "calibration_error": 0.10315,
+          "rps": 0.23711,
+          "draw_mean": 0.33333,
+          "draw_max": 0.33333,
+          "draw_high": 0
+        }
+      }
+    },
+    {
+      "division": "D1",
+      "matches": 304,
+      "without_odds": 0,
+      "refits": 33,
+      "fits_with_prior": {
+        "published": 0,
+        "reference": 33,
+        "proposed": 33
+      },
+      "scores": {
+        "published": {
+          "n": 304,
+          "log_loss": 1.00667,
+          "brier": 0.59244,
+          "accuracy": 0.56908,
+          "calibration_error": 0.05678,
+          "rps": 0.20186,
+          "draw_mean": 0.22752,
+          "draw_max": 0.91361,
+          "draw_high": 1
+        },
+        "reference": {
+          "n": 304,
+          "log_loss": 0.97285,
+          "brier": 0.57523,
+          "accuracy": 0.53618,
+          "calibration_error": 0.04059,
+          "rps": 0.19578,
+          "draw_mean": 0.24667,
+          "draw_max": 0.57464,
+          "draw_high": 1
+        },
+        "proposed": {
+          "n": 304,
+          "log_loss": 0.97285,
+          "brier": 0.57523,
+          "accuracy": 0.53618,
+          "calibration_error": 0.04059,
+          "rps": 0.19578,
+          "draw_mean": 0.24667,
+          "draw_max": 0.57464,
+          "draw_high": 1
+        },
+        "market": {
+          "n": 304,
+          "log_loss": 0.94827,
+          "brier": 0.55994,
+          "accuracy": 0.55099,
+          "calibration_error": 0.05241,
+          "rps": 0.18971,
+          "draw_mean": 0.23565,
+          "draw_max": 0.32664,
+          "draw_high": 0
+        },
+        "uniform": {
+          "n": 304,
+          "log_loss": 1.09861,
+          "brier": 0.66667,
+          "accuracy": 0.33333,
+          "calibration_error": 0.07164,
+          "rps": 0.23721,
+          "draw_mean": 0.33333,
+          "draw_max": 0.33333,
+          "draw_high": 0
+        }
+      }
+    },
+    {
+      "division": "I1",
+      "matches": 376,
+      "without_odds": 0,
+      "refits": 36,
+      "fits_with_prior": {
+        "published": 0,
+        "reference": 36,
+        "proposed": 36
+      },
+      "scores": {
+        "published": {
+          "n": 376,
+          "log_loss": 1.01621,
+          "brier": 0.60744,
+          "accuracy": 0.50532,
+          "calibration_error": 0.04482,
+          "rps": 0.20685,
+          "draw_mean": 0.26254,
+          "draw_max": 0.42605,
+          "draw_high": 0
+        },
+        "reference": {
+          "n": 376,
+          "log_loss": 0.99866,
+          "brier": 0.59649,
+          "accuracy": 0.52926,
+          "calibration_error": 0.02845,
+          "rps": 0.20242,
+          "draw_mean": 0.26813,
+          "draw_max": 0.38697,
+          "draw_high": 0
+        },
+        "proposed": {
+          "n": 376,
+          "log_loss": 0.99866,
+          "brier": 0.59649,
+          "accuracy": 0.52926,
+          "calibration_error": 0.02845,
+          "rps": 0.20242,
+          "draw_mean": 0.26813,
+          "draw_max": 0.38697,
+          "draw_high": 0
+        },
+        "market": {
+          "n": 376,
+          "log_loss": 0.9781,
+          "brier": 0.58182,
+          "accuracy": 0.54122,
+          "calibration_error": 0.04345,
+          "rps": 0.1954,
+          "draw_mean": 0.26466,
+          "draw_max": 0.36639,
+          "draw_high": 0
+        },
+        "uniform": {
+          "n": 376,
+          "log_loss": 1.09861,
+          "brier": 0.66667,
+          "accuracy": 0.33333,
+          "calibration_error": 0.04846,
+          "rps": 0.23434,
+          "draw_mean": 0.33333,
+          "draw_max": 0.33333,
+          "draw_high": 0
+        }
+      }
+    },
+    {
+      "division": "F1",
+      "matches": 303,
+      "without_odds": 0,
+      "refits": 33,
+      "fits_with_prior": {
+        "published": 0,
+        "reference": 33,
+        "proposed": 33
+      },
+      "scores": {
+        "published": {
+          "n": 303,
+          "log_loss": 1.02956,
+          "brier": 0.61515,
+          "accuracy": 0.48515,
+          "calibration_error": 0.05956,
+          "rps": 0.2145,
+          "draw_mean": 0.20879,
+          "draw_max": 0.37847,
+          "draw_high": 0
+        },
+        "reference": {
+          "n": 303,
+          "log_loss": 1.00688,
+          "brier": 0.60336,
+          "accuracy": 0.51815,
+          "calibration_error": 0.04885,
+          "rps": 0.20891,
+          "draw_mean": 0.2231,
+          "draw_max": 0.3283,
+          "draw_high": 0
+        },
+        "proposed": {
+          "n": 303,
+          "log_loss": 1.00688,
+          "brier": 0.60336,
+          "accuracy": 0.51815,
+          "calibration_error": 0.04885,
+          "rps": 0.20891,
+          "draw_mean": 0.2231,
+          "draw_max": 0.3283,
+          "draw_high": 0
+        },
+        "market": {
+          "n": 303,
+          "log_loss": 0.97331,
+          "brier": 0.5803,
+          "accuracy": 0.5363,
+          "calibration_error": 0.04106,
+          "rps": 0.1991,
+          "draw_mean": 0.24425,
+          "draw_max": 0.31423,
+          "draw_high": 0
+        },
+        "uniform": {
+          "n": 303,
+          "log_loss": 1.09861,
+          "brier": 0.66667,
+          "accuracy": 0.33333,
+          "calibration_error": 0.08361,
+          "rps": 0.23652,
+          "draw_mean": 0.33333,
+          "draw_max": 0.33333,
+          "draw_high": 0
+        }
+      }
+    },
+    {
+      "division": "N1",
+      "matches": 303,
+      "without_odds": 0,
+      "refits": 34,
+      "fits_with_prior": {
+        "published": 0,
+        "reference": 34,
+        "proposed": 34
+      },
+      "scores": {
+        "published": {
+          "n": 303,
+          "log_loss": 1.00598,
+          "brier": 0.59761,
+          "accuracy": 0.50825,
+          "calibration_error": 0.05858,
+          "rps": 0.20294,
+          "draw_mean": 0.21958,
+          "draw_max": 0.35957,
+          "draw_high": 0
+        },
+        "reference": {
+          "n": 303,
+          "log_loss": 0.9866,
+          "brier": 0.58525,
+          "accuracy": 0.50825,
+          "calibration_error": 0.0489,
+          "rps": 0.1969,
+          "draw_mean": 0.2216,
+          "draw_max": 0.35118,
+          "draw_high": 0
+        },
+        "proposed": {
+          "n": 303,
+          "log_loss": 0.9866,
+          "brier": 0.58525,
+          "accuracy": 0.50825,
+          "calibration_error": 0.0489,
+          "rps": 0.1969,
+          "draw_mean": 0.2216,
+          "draw_max": 0.35118,
+          "draw_high": 0
+        },
+        "market": {
+          "n": 303,
+          "log_loss": 0.97948,
+          "brier": 0.58142,
+          "accuracy": 0.52805,
+          "calibration_error": 0.04171,
+          "rps": 0.1954,
+          "draw_mean": 0.22734,
+          "draw_max": 0.29386,
+          "draw_high": 0
+        },
+        "uniform": {
+          "n": 303,
+          "log_loss": 1.09861,
+          "brier": 0.66667,
+          "accuracy": 0.33333,
+          "calibration_error": 0.07261,
+          "rps": 0.23432,
+          "draw_mean": 0.33333,
+          "draw_max": 0.33333,
+          "draw_high": 0
+        }
+      }
+    },
+    {
+      "division": "P1",
+      "matches": 304,
+      "without_odds": 0,
+      "refits": 35,
+      "fits_with_prior": {
+        "published": 0,
+        "reference": 35,
+        "proposed": 35
+      },
+      "scores": {
+        "published": {
+          "n": 304,
+          "log_loss": 0.93414,
+          "brier": 0.55456,
+          "accuracy": 0.57566,
+          "calibration_error": 0.07121,
+          "rps": 0.1792,
+          "draw_mean": 0.22827,
+          "draw_max": 0.43365,
+          "draw_high": 0
+        },
+        "reference": {
+          "n": 304,
+          "log_loss": 0.92748,
+          "brier": 0.54873,
+          "accuracy": 0.55263,
+          "calibration_error": 0.05412,
+          "rps": 0.17689,
+          "draw_mean": 0.23388,
+          "draw_max": 0.35425,
+          "draw_high": 0
+        },
+        "proposed": {
+          "n": 304,
+          "log_loss": 0.92748,
+          "brier": 0.54873,
+          "accuracy": 0.55263,
+          "calibration_error": 0.05412,
+          "rps": 0.17689,
+          "draw_mean": 0.23388,
+          "draw_max": 0.35425,
+          "draw_high": 0
+        },
+        "market": {
+          "n": 304,
+          "log_loss": 0.91573,
+          "brier": 0.54134,
+          "accuracy": 0.5625,
+          "calibration_error": 0.06377,
+          "rps": 0.17429,
+          "draw_mean": 0.24464,
+          "draw_max": 0.33404,
+          "draw_high": 0
+        },
+        "uniform": {
+          "n": 304,
+          "log_loss": 1.09861,
+          "brier": 0.66667,
+          "accuracy": 0.33333,
+          "calibration_error": 0.04971,
+          "rps": 0.23227,
+          "draw_mean": 0.33333,
+          "draw_max": 0.33333,
+          "draw_high": 0
+        }
+      }
+    },
+    {
+      "division": "T1",
+      "matches": 303,
+      "without_odds": 0,
+      "refits": 33,
+      "fits_with_prior": {
+        "published": 0,
+        "reference": 33,
+        "proposed": 33
+      },
+      "scores": {
+        "published": {
+          "n": 303,
+          "log_loss": 1.016,
+          "brier": 0.60359,
+          "accuracy": 0.49175,
+          "calibration_error": 0.05708,
+          "rps": 0.19778,
+          "draw_mean": 0.28269,
+          "draw_max": 0.48442,
+          "draw_high": 1
+        },
+        "reference": {
+          "n": 303,
+          "log_loss": 1.00055,
+          "brier": 0.59923,
+          "accuracy": 0.50495,
+          "calibration_error": 0.06564,
+          "rps": 0.19534,
+          "draw_mean": 0.27781,
+          "draw_max": 0.53071,
+          "draw_high": 1
+        },
+        "proposed": {
+          "n": 303,
+          "log_loss": 1.00055,
+          "brier": 0.59923,
+          "accuracy": 0.50495,
+          "calibration_error": 0.06564,
+          "rps": 0.19534,
+          "draw_mean": 0.27781,
+          "draw_max": 0.53071,
+          "draw_high": 1
+        },
+        "market": {
+          "n": 303,
+          "log_loss": 0.97109,
+          "brier": 0.58034,
+          "accuracy": 0.53465,
+          "calibration_error": 0.05432,
+          "rps": 0.18599,
+          "draw_mean": 0.247,
+          "draw_max": 0.31075,
+          "draw_high": 0
+        },
+        "uniform": {
+          "n": 303,
+          "log_loss": 1.09861,
+          "brier": 0.66667,
+          "accuracy": 0.33333,
+          "calibration_error": 0.05501,
+          "rps": 0.22882,
+          "draw_mean": 0.33333,
+          "draw_max": 0.33333,
+          "draw_high": 0
+        }
+      }
+    },
+    {
+      "division": "B1",
+      "matches": 303,
+      "without_odds": 0,
+      "refits": 37,
+      "fits_with_prior": {
+        "published": 0,
+        "reference": 37,
+        "proposed": 37
+      },
+      "scores": {
+        "published": {
+          "n": 303,
+          "log_loss": 1.05734,
+          "brier": 0.63244,
+          "accuracy": 0.44554,
+          "calibration_error": 0.06316,
+          "rps": 0.22268,
+          "draw_mean": 0.2604,
+          "draw_max": 0.45137,
+          "draw_high": 1
+        },
+        "reference": {
+          "n": 303,
+          "log_loss": 1.03529,
+          "brier": 0.62253,
+          "accuracy": 0.47195,
+          "calibration_error": 0.0501,
+          "rps": 0.21831,
+          "draw_mean": 0.26485,
+          "draw_max": 0.39986,
+          "draw_high": 0
+        },
+        "proposed": {
+          "n": 303,
+          "log_loss": 1.03529,
+          "brier": 0.62253,
+          "accuracy": 0.47195,
+          "calibration_error": 0.0501,
+          "rps": 0.21831,
+          "draw_mean": 0.26485,
+          "draw_max": 0.39986,
+          "draw_high": 0
+        },
+        "market": {
+          "n": 303,
+          "log_loss": 1.01872,
+          "brier": 0.61066,
+          "accuracy": 0.47525,
+          "calibration_error": 0.04545,
+          "rps": 0.21255,
+          "draw_mean": 0.25571,
+          "draw_max": 0.31113,
+          "draw_high": 0
+        },
+        "uniform": {
+          "n": 303,
+          "log_loss": 1.09861,
+          "brier": 0.66667,
+          "accuracy": 0.33333,
+          "calibration_error": 0.05721,
+          "rps": 0.23652,
+          "draw_mean": 0.33333,
+          "draw_max": 0.33333,
+          "draw_high": 0
+        }
+      }
+    },
+    {
+      "division": "SC0",
+      "matches": 226,
+      "without_odds": 0,
+      "refits": 34,
+      "fits_with_prior": {
+        "published": 0,
+        "reference": 34,
+        "proposed": 34
+      },
+      "scores": {
+        "published": {
+          "n": 226,
+          "log_loss": 0.9995,
+          "brier": 0.5939,
+          "accuracy": 0.5177,
+          "calibration_error": 0.04353,
+          "rps": 0.19912,
+          "draw_mean": 0.24019,
+          "draw_max": 0.34878,
+          "draw_high": 0
+        },
+        "reference": {
+          "n": 226,
+          "log_loss": 0.98415,
+          "brier": 0.5853,
+          "accuracy": 0.53982,
+          "calibration_error": 0.0457,
+          "rps": 0.1966,
+          "draw_mean": 0.2289,
+          "draw_max": 0.29639,
+          "draw_high": 0
+        },
+        "proposed": {
+          "n": 226,
+          "log_loss": 0.98415,
+          "brier": 0.5853,
+          "accuracy": 0.53982,
+          "calibration_error": 0.0457,
+          "rps": 0.1966,
+          "draw_mean": 0.2289,
+          "draw_max": 0.29639,
+          "draw_high": 0
+        },
+        "market": {
+          "n": 226,
+          "log_loss": 0.96887,
+          "brier": 0.57629,
+          "accuracy": 0.5177,
+          "calibration_error": 0.04343,
+          "rps": 0.19263,
+          "draw_mean": 0.24099,
+          "draw_max": 0.30153,
+          "draw_high": 0
+        },
+        "uniform": {
+          "n": 226,
+          "log_loss": 1.09861,
+          "brier": 0.66667,
+          "accuracy": 0.33333,
+          "calibration_error": 0.07866,
+          "rps": 0.23427,
+          "draw_mean": 0.33333,
+          "draw_max": 0.33333,
+          "draw_high": 0
+        }
+      }
+    }
+  ],
+  "not_exercised": [],
+  "versions": {
+    "published": {
+      "id": "dixon-coles-elo@0.1.0",
+      "name": "dixon-coles-elo",
+      "version": "0.1.0",
+      "xi": 0.0065,
+      "ridge": 0.01,
+      "elo_weight": 0.5,
+      "elo_scale": 1.0,
+      "max_goals": 10,
+      "history_days": 400,
+      "per_division": {},
+      "lineup_beta": null,
+      "cross_league": null,
+      "elo_prior": "clubelo"
+    },
+    "reference": {
+      "id": "dixon-coles-elo@0.5.0",
+      "name": "dixon-coles-elo",
+      "version": "0.5.0",
+      "xi": 0.0065,
+      "ridge": 0.01,
+      "elo_weight": 0.5,
+      "elo_scale": 1.0,
+      "max_goals": 10,
+      "history_days": 1100,
+      "per_division": {
+        "E0": [
+          0.002,
+          0.003
+        ],
+        "SP1": [
+          0.003,
+          0.3
+        ],
+        "D1": [
+          0.001,
+          0.3
+        ],
+        "I1": [
+          0.001,
+          0.3
+        ],
+        "F1": [
+          0.003,
+          0.3
+        ],
+        "N1": [
+          0.003,
+          0.3
+        ],
+        "P1": [
+          0.0005,
+          0.3
+        ],
+        "T1": [
+          0.004,
+          0.01
+        ],
+        "B1": [
+          0.003,
+          0.3
+        ],
+        "SC0": [
+          0.001,
+          0.3
+        ]
+      },
+      "lineup_beta": null,
+      "cross_league": {
+        "xi": 0.0005,
+        "team_ridge": 4.0,
+        "group_ridge": 0.001
+      },
+      "elo_prior": "own"
+    },
+    "proposed": {
+      "id": "dixon-coles-elo@0.6.0",
+      "name": "dixon-coles-elo",
+      "version": "0.6.0",
+      "xi": 0.0065,
+      "ridge": 0.01,
+      "elo_weight": 0.5,
+      "elo_scale": 1.0,
+      "max_goals": 10,
+      "history_days": 1100,
+      "per_division": {
+        "E0": [
+          0.002,
+          0.003
+        ],
+        "SP1": [
+          0.003,
+          0.3
+        ],
+        "D1": [
+          0.001,
+          0.3
+        ],
+        "I1": [
+          0.001,
+          0.3
+        ],
+        "F1": [
+          0.003,
+          0.3
+        ],
+        "N1": [
+          0.003,
+          0.3
+        ],
+        "P1": [
+          0.0005,
+          0.3
+        ],
+        "T1": [
+          0.004,
+          0.01
+        ],
+        "B1": [
+          0.003,
+          0.3
+        ],
+        "SC0": [
+          0.001,
+          0.3
+        ],
+        "IR1": [
+          0.002,
+          3.0
+        ]
+      },
+      "lineup_beta": null,
+      "cross_league": {
+        "xi": 0.0005,
+        "team_ridge": 4.0,
+        "group_ridge": 0.001
+      },
+      "elo_prior": "own"
+    }
+  }
+}
