@@ -2,7 +2,7 @@ import type { CoverageState, ScoreCard as ScoreCardData, ScoreCardIncident } fro
 import Link from 'next/link';
 import { formatNumber } from '@/i18n/format';
 import { isBehind } from '@/lib/live';
-import { formatKickoff, scoreLabel, statusLabel } from '@/lib/scores';
+import { formatKickoff, formatStamp, scoreLabel, statusLabel } from '@/lib/scores';
 import type { CardCommunity, CardForecast, CardViewing } from '@/lib/score-card-products';
 import { stageAndRound, stageLabel } from '@/lib/stage-label';
 import { fill, filled, formatMinute, pickPlural } from '@/lib/words';
@@ -122,7 +122,8 @@ export function ScoreCard({
     (bit): bit is string => bit !== null,
   );
   const live = card.status === 'live';
-  const at = (iso: string) => <time dateTime={iso}>{formatKickoff(locale, iso, timeZone)}</time>;
+  // A freshness time on another day says which (T-1371).
+  const at = (iso: string) => <time dateTime={iso}>{formatStamp(locale, iso, timeZone, now)}</time>;
 
   return (
     <li
@@ -210,7 +211,13 @@ export function ScoreCard({
             <span>
               <FilledMessage
                 message={m['scores.card.kickoff']}
-                params={{ time: at(card.kickoff_at) }}
+                params={{
+                  time: (
+                    <time dateTime={card.kickoff_at}>
+                      {formatKickoff(locale, card.kickoff_at, timeZone)}
+                    </time>
+                  ),
+                }}
               />
             </span>
             {card.venue !== null && (

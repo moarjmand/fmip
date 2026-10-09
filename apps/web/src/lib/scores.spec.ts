@@ -6,6 +6,8 @@ import {
   dayStrip,
   firstMatchDay,
   formatKickoff,
+  formatStamp,
+  freshnessStamp,
   NEXT_DAY_WINDOWS,
   pageHref,
   readScoresQuery,
@@ -173,9 +175,14 @@ describe('card labels', () => {
   });
 });
 
+/** Late on 5 January 2025, still the 5th in UTC and in Tehran. */
+const SAME_DAY = Date.parse('2025-01-05T18:00:00.000Z');
+
 describe('blockUpdatedLabel', () => {
   it('says one time when every card in the block agrees', () => {
-    expect(blockUpdatedLabel([card({}), card({})], 'en', 'UTC', EN_WORDS)).toBe('Updated 10:00');
+    expect(blockUpdatedLabel([card({}), card({})], 'en', 'UTC', EN_WORDS, SAME_DAY)).toBe(
+      'Updated 10:00',
+    );
   });
 
   it('says the oldest and the newest when they differ, never the newest alone', () => {
@@ -184,13 +191,91 @@ describe('blockUpdatedLabel', () => {
       card({ last_updated_at: '2025-01-05T10:00:00.000Z' }),
       card({ last_updated_at: '2025-01-05T14:05:00.000Z' }),
     ];
-    expect(blockUpdatedLabel(cards, 'en', 'Asia/Tehran', EN_WORDS)).toBe(
+    expect(blockUpdatedLabel(cards, 'en', 'Asia/Tehran', EN_WORDS, SAME_DAY)).toBe(
       'Updated between 13:30 and 20:01',
+    );
+  });
+
+  it('dates a block whose oldest card is from another day (T-1371)', () => {
+    const cards = [
+      card({ last_updated_at: '2025-01-05T16:31:00.000Z' }),
+      card({ last_updated_at: '2025-01-03T10:00:00.000Z' }),
+    ];
+    expect(blockUpdatedLabel(cards, 'en', 'UTC', EN_WORDS, SAME_DAY)).toBe(
+      'Updated between 2 days ago (3 Jan 2025, 10:00) and 16:31',
     );
   });
 
   it('says nothing for an empty block', () => {
     expect(blockUpdatedLabel([], 'en', 'UTC', EN_WORDS)).toBeNull();
+  });
+});
+
+// T-1371: "16:15" read on 8 October for a time on 26 September looked like
+// this afternoon. A time says its day whenever that day is not today.
+describe('freshnessStamp', () => {
+  const NOW = Date.parse('2026-10-08T12:00:00.000Z');
+
+  it('is the clock reading alone today', () => {
+    expect(freshnessStamp('en', '2026-10-08T09:15:00.000Z', 'UTC', NOW)).toEqual({
+      text: '09:15',
+      days: 0,
+      stale: false,
+    });
+  });
+
+  it('says yesterday, with the date and time', () => {
+    expect(formatStamp('en', '2026-10-07T16:15:00.000Z', 'UTC', NOW)).toBe(
+      'yesterday (7 Oct 2026, 16:15)',
+    );
+  });
+
+  it('says how many days ago an older time was, with the date and time', () => {
+    expect(formatStamp('en', '2026-09-26T16:15:00.000Z', 'UTC', NOW)).toBe(
+      '12 days ago (26 Sept 2026, 16:15)',
+    );
+    expect(freshnessStamp('en', '2026-09-26T16:15:00.000Z', 'UTC', NOW).days).toBe(12);
+  });
+
+  it('counts calendar days in the viewer zone, not 24-hour spans', () => {
+    // 21:00 UTC on the 7th is already 00:30 on the 8th in Tehran: today there.
+    const late = '2026-10-07T21:00:00.000Z';
+    expect(formatStamp('en', late, 'Asia/Tehran', NOW)).toBe('00:30');
+    expect(formatStamp('en', late, 'UTC', NOW)).toBe('yesterday (7 Oct 2026, 21:00)');
+    // Ten minutes before midnight in Tehran is yesterday by morning, though
+    // only hours old.
+    const morning = Date.parse('2026-10-08T05:00:00.000Z');
+    expect(formatStamp('en', '2026-10-07T20:20:00.000Z', 'Asia/Tehran', morning)).toBe(
+      'yesterday (7 Oct 2026, 23:50)',
+    );
+  });
+
+  it('says the reader its days in the reader language', () => {
+    expect(formatStamp('fa', '2026-09-26T16:15:00.000Z', 'Asia/Tehran', NOW)).toMatch(
+      /^۱۲ روز پیش \(.+۱۹:۴۵\)$/,
+    );
+    // The pseudo-locale formats as English rather than throwing.
+    expect(formatStamp('x-rtl', '2026-10-07T16:15:00.000Z', 'UTC', NOW)).toBe(
+      'yesterday (7 Oct 2026, 16:15)',
+    );
+  });
+
+  it('is stale only beyond the threshold the surface gives', () => {
+    const sixHours = 6 * 60 * 60 * 1000;
+    expect(freshnessStamp('en', '2026-10-08T06:30:00.000Z', 'UTC', NOW, sixHours).stale).toBe(
+      false,
+    );
+    expect(freshnessStamp('en', '2026-10-08T05:30:00.000Z', 'UTC', NOW, sixHours)).toEqual({
+      text: '05:30',
+      days: 0,
+      stale: true,
+    });
+    // No threshold, no stale words, however old.
+    expect(freshnessStamp('en', '2026-09-26T16:15:00.000Z', 'UTC', NOW).stale).toBe(false);
+  });
+
+  it('dates a time ahead of the clock rather than calling it today', () => {
+    expect(formatStamp('en', '2026-10-09T08:00:00.000Z', 'UTC', NOW)).toBe('9 Oct 2026, 08:00');
   });
 });
 

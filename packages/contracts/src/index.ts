@@ -312,6 +312,7 @@ export {
   PROMOTION_MINIMUM,
 } from './forecast';
 export { STALE_LIVE_AFTER_MS } from './scores';
+export { AVAILABILITY_STALE_AFTER_MS } from './match-centre';
 export type {
   FixtureStatus,
   Freshness,

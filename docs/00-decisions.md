@@ -7337,6 +7337,31 @@ objection.
   later. The switch and its rollback are one `.env` line and a Postgres
   restart.
 
+**Amended 2026-10-08 (T-845, the measured week; under the maintainer's
+standing delegation).** The measured week says 7 days does not fit: the
+database is 909 MB but writes about 5.2 GB of WAL a day (measured over 8 days).
+Gzip keeps between about 2% and 10% of a segment from one sample to the next,
+so at the worst ratio seen two weeks of WAL is about 7 GB, which with the
+bases and the dumps already on the remote is over the 10 GB free allowance.
+The window is therefore **3 days** (`PITR_KEEP_DAYS=3`). Two corrections came
+with it:
+
+- *The base interval follows the window.* Bases were a week apart whatever
+  `PITR_KEEP_DAYS` said, so a 3-day window would still have held up to two
+  weeks of WAL: prune keeps the newest base before the window, and that one
+  was up to a week old. A base is now due when the newest is a day short of
+  `min(PITR_KEEP_DAYS, 7)` days old (six days at 7, as before; two days at 3;
+  after 12 hours for a one-day window). The WAL held is then the window plus
+  one interval, at most twice the window.
+- *Three bases, not two.* Just after a base is taken the remote holds the new
+  one, the one before it (still inside the window) and the newest one before
+  the window. `measure` now counts three, still at full size.
+
+With both, `measure` at 3 days and the worst ratio seen projects about 7.8 GB
+of the 10 GB. Why the WAL is so large for so small a database (repeated
+rewrites of unchanged rows by the polling jobs is the likely cause) is worth
+its own look; less WAL would let the window grow back towards 7 days.
+
 ## D-158 — A member can download a copy of their own data
 **Status:** Accepted · 2026-09-30 (under the maintainer's standing delegation) · **Answers:** N-4 in `04-tasks-phase-8.md` · **Task:** T-846 · **Follows:** D-094
 
@@ -8397,6 +8422,116 @@ averages*: the store returns sums, and each series is divided once.
 answer, and leaving a competition out would read as "not covered" (rule 3).
 *A charting library*: one SVG path per series is enough for the console,
 and no dependency is added.
+
+## D-188 — Highlightly's teams are suggested by matching kick-offs and written only when confirmed; the catalogue tools may now ask a provider
+**Status:** Accepted · 2026-10-08 · **Task:** T-1370 · **Follows:** D-077, D-184, rule 1, rule 2, rule 10
+
+**Context.** D-184 places a Highlightly clip only when both of its teams are
+mapped to ours, and every mapped league brings some twenty teams nobody
+mapped: about 400 clubs to look up one at a time with `catalog.mjs --map`.
+`--adopt-teams` is wrong for them (it would create a second copy of a club
+we hold), and matching by name is what D-077 rejected. D-077 also said the
+catalogue tools call no provider.
+
+**Decision.** `packages/db/scripts/highlightly-pairs.mjs`, in the `migrate`
+image beside `catalog.mjs`:
+
+- *Evidence is a match, not a name.* For each competition mapped to a
+  Highlightly league it asks for that league's matches over the last and next
+  days (default 7 and 7, at most 14 each), through the adapter in
+  `@fmip/ingestion` -- which the `migrate` image now builds and carries, so no
+  provider field is read outside the adapter (rule 2). A match of theirs with
+  exactly one of ours in the same competition kicking off within ±15 minutes
+  (a side already mapped must agree) is a vote: their home side for our home
+  side, their away side for our away side.
+- *Strength.* Per Highlightly team: two or more agreeing votes and none for
+  another club is `strong`; one vote, any disagreeing vote, or two of their
+  teams pointing at one club of ours is `weak`; a club of ours already mapped
+  to another Highlightly id is `refused`. Teams already mapped are skipped. A
+  normalised name similarity is printed for the reader and decides nothing
+  (rule 1).
+- *Written only when a person confirms.* The default writes nothing: a table
+  and a JSON file. `--apply strong --by <e-mail>` writes the strong rows (of
+  a reviewed file with `--from`, re-checked, or of a fresh run) in one
+  transaction through `catalog.mjs`'s `placeMapping`, the same write as
+  `--map`: the mapping, the queued sighting resolved, `catalog.mapped` audited
+  with the votes (rule 10). Never over an existing mapping.
+- *Cost stated up front.* One request per league and day, counted before the
+  first one and refused above `--max-requests` (500 by default), within the
+  Pro plan beside the feed's own ceiling; a refused quota stops the run and
+  keeps what came back. Without `HIGHLIGHTLY_KEY` it stops and says so.
+
+**Rejected.** *Writing the strong pairs automatically from the feed's job*:
+a wrong pair puts one club's highlights on another club's page, so a person
+signs each batch. *Name similarity as a tie-breaker*: the first time it is
+wrong it is invisible (D-077). *A provider-shaped fetch inside the script*:
+it would be a fourth reader of Highlightly's fields outside the adapter.
+
+## D-189 — A freshness time says its day; the match header says when the match was last checked
+**Status:** Accepted · 2026-10-09 · **Task:** T-1371 · **Follows:** D-045, D-127, rule 4
+
+**Context.** A read-only production audit on 2026-10-08 found the match
+page saying «آخرین به‌روزرسانی داده‌ها ۱۶:۱۵» for Tractor v Esteghlal: the
+fixture row's last change, 2026-09-26 16:15 UTC, printed as a clock reading
+with no date, so twelve days ago read as this afternoon. The value was also
+the wrong one to show: the fixture lists are asked every hour, and a
+scheduled match whose row has not changed since the 26th was confirmed by
+the provider an hour ago. Nothing recorded that confirmation.
+
+**Decision.**
+- **Every freshness time says its day unless it is today** in the viewer's
+  zone (`freshnessStamp` in `apps/web/src/lib/scores.ts`): today is the
+  clock reading ("16:15"); another day is "yesterday" or "12 days ago",
+  from `Intl.RelativeTimeFormat` in the reader's language, with the date
+  and time beside it. Days are calendar days in the viewer's zone, not
+  24-hour spans. A render with no clock says the full date and time. The
+  match header, the Availability module's "asked", the key players' footer,
+  the score card's "Updated" and "behind" lines and the scores block's
+  "Updated" all use it.
+- **`MatchHeader.last_checked_at`** comes from `season_fixture_poll`
+  (migration `1765847000000`), written once per season and provider per
+  fixtures run, never per match: when a season's list was answered, the
+  window of days it covered and when, and when the whole season was last
+  answered (the daily sweep, a backfill). A match was checked at the window
+  ask when its kick-off date (UTC) is inside the window, and at the
+  whole-season ask in any case; the newest across providers counts. A
+  refused ask writes nothing, so the last answer stands. The header shows
+  "Data last checked {time}; unchanged since {changed}" when the check is
+  newer than the last change, otherwise "Last data update {time}" as
+  before.
+  `last_updated_at` stays the last change: D-045's "behind" rule measures
+  change, not polling, and is unchanged.
+- **Stale wording where a rule sets a threshold.** D-045 (a live match
+  unchanged for two minutes) already shows "behind" on the header and the
+  card. D-127's six hours now also applies to the match centre's absence
+  answer before kick-off ("may have changed"), with the threshold shared as
+  `AVAILABILITY_STALE_AFTER_MS` in `@fmip/contracts`. After kick-off the
+  answer is history and carries no stale words. A scheduled match's fixture
+  data has no threshold of its own: no rule sets one, and the dated label
+  is the honest answer.
+
+**Rejected.** *A timestamp per fixture* (moving
+`provider_mapping.last_seen_at` on every fixture write): one more row write
+per match per poll, thousands an hour with whole-season lists, on a
+database that already writes about 5.2 GB of WAL a day for 909 MB of data,
+which is what set the three-day PITR window (D-157). A throttle to once an
+hour saves nothing against an hourly poll. *Deriving "checked" from
+`ingest_run`*: runs are global, a `partial` run does not say which
+competition failed, and the window a run asked for is not stored, so the
+claim could not be made per match. *The live and line-up jobs as checks*:
+they ask about matches by id, and a live match's freshness is D-045's,
+measured by change; the fixtures job's hourly answer is enough for the
+header.
+*Showing the newer of the two times under "Last data update"*: a check is
+not an update, and the reader would lose when the data last changed.
+*Absolute dates only*: "26 Sept 2026, 16:15" is honest but makes the reader
+do the arithmetic the page can do.
+
+**Consequences.** One upsert per season (and per other season a list
+straddles) per fixtures run: a few dozen small writes an hour, whatever
+the number of matches. Before the first run after deployment no check is
+recorded and the header says the last change, as before. A new freshness
+surface uses `freshnessStamp`, not `formatTime`.
 
 ---
 

@@ -11,6 +11,7 @@
  */
 
 import type { Covered } from './coverage';
+import type { MatchAbsenceGap } from './match-centre';
 
 /** How many players a side shows. */
 export const KEY_PLAYERS_PER_SIDE = 3;
@@ -60,6 +61,15 @@ export interface KeyPlayers {
   season: { id: string; label: string };
   home: Covered<KeyPlayersSide>;
   away: Covered<KeyPlayersSide>;
-  /** When the provider was last asked who will miss this match; null when it never was (T-103). */
+  /**
+   * When the provider was last asked who will miss this match; null when it
+   * never was (T-103), or when its answer is no answer (`availability_gap`).
+   */
   availability_asked_at: string | null;
+  /**
+   * Why nothing is claimed about absences, the match centre's own
+   * `availability.gap` for the same match (T-1371): one state, so the two
+   * modules on a page never contradict each other. Null once there is an answer.
+   */
+  availability_gap?: MatchAbsenceGap | null;
 }

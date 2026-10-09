@@ -90,6 +90,7 @@ interface RawHeader {
       })[]
     | null;
   last_updated_at: Date;
+  last_checked_at: Date | null;
   detail_owed: boolean;
 }
 
@@ -142,6 +143,15 @@ export class PostgresMatchCentreStore {
                 (SELECT max(l.updated_at) FROM lineup l WHERE l.participant_id IN (h.id, a.id)),
                 (SELECT max(s.updated_at) FROM fixture_stat s WHERE s.participant_id IN (h.id, a.id))
               ) AS last_updated_at,
+              -- When this match's fixture list was last answered, changed or
+              -- not (T-1371, D-189): the whole season, or a window holding its
+              -- kick-off date. Recorded once per season per poll, not per match.
+              (SELECT max(GREATEST(
+                        sp.season_polled_at,
+                        CASE WHEN (f.kickoff_at AT TIME ZONE 'UTC')::date
+                                  BETWEEN sp.window_from AND sp.window_to
+                             THEN sp.window_polled_at END))
+                 FROM season_fixture_poll sp WHERE sp.season_id = f.season_id) AS last_checked_at,
               (f.status = 'finished' AND NOT EXISTS (
                  SELECT 1 FROM fixture_detail_fetch d WHERE d.fixture_id = f.id)) AS detail_owed
          FROM fixture f
@@ -220,6 +230,7 @@ export class PostgresMatchCentreStore {
         })),
         last_updated_at: r.last_updated_at.toISOString(),
         freshness: freshnessOf(r.status, r.last_updated_at, new Date()),
+        last_checked_at: r.last_checked_at?.toISOString() ?? null,
       },
     };
   }

@@ -340,7 +340,7 @@ export function parseArgs(argv) {
   return { command: 'map', provider, type, externalId, to, by };
 }
 
-function connectionString() {
+export function connectionString() {
   const file = process.env.DATABASE_URL_FILE;
   if (file !== undefined && file !== '') return readFileSync(file, 'utf8').trim();
   const url = process.env.DATABASE_URL;
@@ -378,7 +378,7 @@ async function audit(client, by, action, targetType, targetId, next, why = {}) {
   return true;
 }
 
-function sayIfUnaudited(audited, by) {
+export function sayIfUnaudited(audited, by) {
   if (by === undefined) {
     console.log('  (no --by, so no audit row: an audit record must name an actor.)');
   } else if (!audited) {
@@ -982,6 +982,45 @@ async function addStage(client, options) {
   return 0;
 }
 
+/**
+ * Places one external id on an entity that already exists: the mapping row,
+ * the queued sighting closed with who placed it, and the audit row when `--by`
+ * names an administrator. The caller holds the transaction. This is the one
+ * write path for a mapping placed by a person -- `--map` here, and the
+ * confirmed pairs of `highlightly-pairs.mjs --apply` (T-1370) -- so both leave
+ * the same rows behind. Returns whether an audit row was written.
+ */
+export async function placeMapping(client, mapping) {
+  await client.query(
+    `INSERT INTO provider_mapping (provider, entity_type, external_id, internal_id)
+     VALUES ($1, $2, $3, $4)`,
+    [mapping.provider, mapping.type, mapping.externalId, mapping.to],
+  );
+  await client.query(
+    `UPDATE unresolved_entity
+        SET status = 'resolved', resolved_internal_id = $4, resolved_by = $5,
+            resolved_at = now(), resolution_note = $6
+      WHERE provider = $1 AND entity_type = $2 AND external_id = $3 AND status = 'pending'`,
+    [
+      mapping.provider,
+      mapping.type,
+      mapping.externalId,
+      mapping.to,
+      mapping.by ?? 'catalog.mjs',
+      mapping.note ?? 'placed by hand',
+    ],
+  );
+  return audit(
+    client,
+    mapping.by,
+    'catalog.mapped',
+    mapping.type,
+    mapping.to,
+    { provider: mapping.provider, external_id: mapping.externalId, ...mapping.evidence },
+    mapping.reason === undefined ? {} : { reason: mapping.reason },
+  );
+}
+
 async function map(client, options) {
   const existing = await client.query(
     `SELECT internal_id FROM provider_mapping
@@ -994,22 +1033,7 @@ async function map(client, options) {
   }
   await client.query('BEGIN');
   try {
-    await client.query(
-      `INSERT INTO provider_mapping (provider, entity_type, external_id, internal_id)
-       VALUES ($1, $2, $3, $4)`,
-      [options.provider, options.type, options.externalId, options.to],
-    );
-    await client.query(
-      `UPDATE unresolved_entity
-          SET status = 'resolved', resolved_internal_id = $4, resolved_by = $5,
-              resolved_at = now(), resolution_note = 'placed by hand'
-        WHERE provider = $1 AND entity_type = $2 AND external_id = $3 AND status = 'pending'`,
-      [options.provider, options.type, options.externalId, options.to, options.by ?? 'catalog.mjs'],
-    );
-    const audited = await audit(client, options.by, 'catalog.mapped', options.type, options.to, {
-      provider: options.provider,
-      external_id: options.externalId,
-    });
+    const audited = await placeMapping(client, options);
     await client.query('COMMIT');
     console.log(`${options.provider} ${options.type} ${options.externalId} -> ${options.to}.`);
     sayIfUnaudited(audited, options.by);
