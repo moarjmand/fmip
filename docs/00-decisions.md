@@ -8532,3 +8532,107 @@ straddles) per fixtures run: a few dozen small writes an hour, whatever
 the number of matches. Before the first run after deployment no check is
 recorded and the header says the last change, as before. A new freshness
 surface uses `freshnessStamp`, not `formatTime`.
+
+---
+
+## D-190 — Candidate 0.6.0: tuned constants for the Persian Gulf Pro League, in shadow beside 0.5.0
+**Status:** Accepted · 2026-10-09 · **Task:** T-1372 · **Follows:** D-016, D-031, D-082, D-139, D-140, D-150, D-186
+
+**Context.** The Persian Gulf Pro League (division IR1) is the one league the
+model reads from our own records, not football-data.co.uk, and no tuning
+had covered it: the published `dixon-coles-elo@0.1.0` and the shadow 0.5.0
+both fitted it with the published decay and ridge (`xi` 0.0065, a 107-day
+half-life; ridge 0.01). 0.5.0 already reads 1,100 days and our own Elo
+there (26 of 26 fits in the backtest below had the prior); 0.1.0 reads 400
+days and no prior, since Club Elo is retired (D-162). With a short memory and
+almost no shrinkage, a few early-season clean sheets made two defences look
+nearly impassable: for Tractor v Esteghlal on 2026-10-08 (fit date
+2026-09-30) 0.1.0 published a 55.8% draw (expected goals 0.51 v 0.30, about
+45% on 0-0 alone, where IR1's 0-0 rate is about 19%), and 0.5.0 said 48.8%;
+for Persepolis v Sanat Naft 0.1.0 said 91.5% for Persepolis.
+
+**Decision.** `dixon-coles-elo@0.6.0`
+(`apps/model/fmip_model/model/candidates/dixon-coles-elo-0.6.0.json`) is
+0.5.0 with one addition: `per_division.IR1` = **`xi` 0.002 (a 347-day
+half-life), ridge 3**. Every other division, the 1,100-day window, our own
+Elo as the prior with weight 0.5, and the cross-league fit are 0.5.0's, so
+in every other league its forecasts are 0.5.0's. The window is one number
+for all leagues (`history_days`), so it was not tuned per league. 0.6.0
+enters shadow by its file (D-140) beside 0.5.0, and is promoted only on its
+own pre-kick-off record (D-082).
+
+- **How the constants were chosen** (T-532's method, D-186's rule "do not
+  tune on the window you test on"). `python -m fmip_model.backtest.tune
+  --candidate dixon-coles-elo-0.5.0.json --divisions IR1` walked every pair
+  forward over 2024/25 with 0.5.0's window and prior, on production's
+  training store (709 IR1 matches, 2023-08-09 to 2026-09-13, awarded and
+  postponed matches excluded), read-only, inside the model container,
+  2026-10-08. The grid: `xi` 0.0005, 0.001, 0.002, 0.003, 0.004, 0.0065 by
+  ridge 0.01, 0.1, 0.3, 1; then, because ridge 1 was the best edge, `xi`
+  0.0005 to 0.004 by ridge 1, 2, 3, 5, 10. Best on 2024/25: `xi` 0.002,
+  ridge 3, log loss 1.0476 against 0.5.0's 1.0588; ridge 2 and 3 with `xi`
+  0.002 or 0.003 are within 0.0002, ridge 10 is worse everywhere, so the
+  optimum is inside the grid. Walked once over the unseen
+  2025-07-01..2026-10-08 (234 forecasts): 1.0502 against 0.5.0's 1.0688,
+  which `tune` adopts (gain at least 0.002). On that unseen window the
+  longest memories did slightly better still (`xi` 0.0005, ridge 2: 1.0474);
+  that was not used to choose, and is a lead for a later version.
+- **The comparison** (`python -m fmip_model.backtest.compare`, same window,
+  same store, `reports/dixon-coles-elo-0.6.0/compare_2025-07-01..2026-10-08.{md,json}`),
+  on the 229 matches every version forecast (84 draws, 36.7%):
+
+  | Forecaster | Log loss | Brier | RPS | Accuracy | Calibration error | Draw mean / highest / above 45% |
+  |---|---|---|---|---|---|---|
+  | published 0.1.0 | 1.0852 | 0.6527 | 0.2086 | 42.8% | 0.0675 | 36.4% / 61.3% / 19 |
+  | candidate 0.5.0 | 1.0653 | 0.6417 | 0.2040 | 42.4% | 0.0478 | 36.4% / 55.4% / 14 |
+  | candidate 0.6.0 | 1.0490 | 0.6336 | 0.2000 | 45.0% | 0.0459 | 33.6% / 40.4% / 0 |
+  | uniform | 1.0986 | 0.6667 | 0.2166 | 33.3% | 0.0563 | 33.3% / 33.3% / 0 |
+
+  IR1 has no closing odds, so there is no market line and D-016's
+  publishability margin cannot be read; the yardsticks are uniform and the
+  two other versions. Paired bootstrap (D-139's, 2,000 resamples): 0.6.0
+  minus 0.5.0 −0.0163, 95% interval [−0.0378, +0.0041]; 0.6.0 minus 0.1.0
+  −0.0361 [−0.0721, −0.0024]; calibration not demonstrably worse against
+  either.
+- **D-139's bar against 0.5.0 says `insufficient`**: 229 matches where it
+  asks for 300, and the interval still reaches above zero. No backtest of
+  IR1 can do better yet: our records start in 2023/24, the tuning season
+  must come first, and the two seasons after it hold 229 matches until about
+  nine more rounds are played. 0.6.0 enters shadow on the strength of the
+  rest: it changes one league only, it is better than 0.5.0 on every
+  measure in the table, better than the published version by an interval
+  below zero, and no longer gives any match a draw above 45%. Shadow
+  forecasts are never shown (D-082), so the cost of being wrong is a
+  candidate that loses on its own record. This is the narrow case D-186 did
+  not foresee (a division whose whole out-of-sample history is under 300
+  matches), not a lower bar for other proposals.
+- **The two fixtures, under 0.6.0** (fitted in memory on the same store at
+  fit date 2026-09-30): Tractor v Esteghlal home 46.0%, draw 34.4%, away
+  19.6%, expected goals 1.19 v 0.70, 17.1% on 0-0 (the match ended 1-1);
+  Persepolis v Sanat Naft 68.0%, 23.5%, 8.5%.
+- **The tools** (T-1372): `backtest.tune --candidate <file>` tunes on top of
+  a candidate (its window, Elo weight and prior) against its own constants
+  for the division, and `--test-grid` walks every pair over the test window
+  too; `backtest.compare` keeps our records' matches, which have no closing
+  odds, and scores them without the market; both reports now give the RPS
+  (the API's formula, D-187) and the draw probability's mean, highest and
+  count above 45%.
+
+**Proposed exception, for the maintainer to decide.** D-082 promotes a
+candidate only after 300 of its own pre-kick-off forecasts are evaluated.
+0.6.0's shadow record will reach 300 in IR1 alone only late in the season.
+The numbers above (log loss 1.0490 against the published 1.0852, −0.0361
+with a 95% interval of [−0.0721, −0.0024] on 229 unseen matches; no draw
+above 40.4% against 19 published forecasts above 45%, one at 61.3%) could
+justify publishing 0.6.0 for IR1 only, before that floor. Whether to do so
+is the maintainer's decision and is not implemented: there is no mechanism
+for a version to be published for one league, and nothing here promotes
+anything.
+
+**Rejected.** *Choosing the pair on the 2025/26 window*, where `xi` 0.0005
+did best: the comparison on that window would then measure the choice, not
+the model. *Pooling 2024/25 and 2025/26 for the choice*: the same problem
+for half the matches. *A per-league window*: `history_days` is one number
+per version, and 0.5.0's 1,100 days already reach back to the start of our
+IR1 records. *Waiting for 300 backtest matches before shadow*: the shadow
+record is the evidence D-082 relies on, and waiting only delays it.

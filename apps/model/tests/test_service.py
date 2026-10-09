@@ -12,7 +12,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from fmip_model.model.dixon_coles import MatchObservation
-from fmip_model.model.version import BASELINE, load_candidate, load_candidates
+from fmip_model.model.version import BASELINE, CANDIDATES_DIR, load_candidate, load_candidates
 from fmip_model.service.app import create_app
 from fmip_model.service.contract import ForecastRequest
 from fmip_model.service.forecaster import Forecaster, TrainingSource
@@ -316,12 +316,20 @@ def test_the_candidate_file_names_its_prior_and_refuses_an_unknown_one(tmp_path:
         load_candidate(wrong)
 
 
-def test_the_committed_candidate_is_0_5_0_with_our_own_elo() -> None:
+def test_the_newest_committed_candidate_is_0_6_0_which_is_0_5_0_plus_ir1() -> None:
     candidate = load_candidate()
     assert candidate is not None
-    assert candidate.id == "dixon-coles-elo@0.5.0"
+    assert candidate.id == "dixon-coles-elo@0.6.0"
     assert candidate.elo_prior == "own"
     assert candidate.cross_league is not None  # 0.4.0's cup fit, carried unchanged
+    # T-1372, D-190: the Persian Gulf Pro League's tuned constants are the only change.
+    previous = load_candidates()["dixon-coles-elo-0.5.0"]
+    assert candidate.constants_for("IR1") == (0.002, 3.0)
+    assert previous.constants_for("IR1") == (previous.xi, previous.ridge)
+    assert dict(candidate.per_division) == {**previous.per_division, "IR1": (0.002, 3.0)}
+    assert replace(candidate, version=previous.version, per_division={}) == replace(
+        previous, per_division={}
+    )
 
 
 def test_several_candidates_answer_each_under_its_own_name_and_version() -> None:
@@ -363,4 +371,8 @@ def test_0_5_0_keeps_its_version_in_the_directory_so_its_record_continues() -> N
     file into candidates/ must not rename it."""
     committed = load_candidates()
     assert committed["dixon-coles-elo-0.5.0"].id == "dixon-coles-elo@0.5.0"
-    assert committed["dixon-coles-elo-0.5.0"] == load_candidate()
+    # 0.6.0 (T-1372) is newer and runs beside it; 0.5.0's record goes on.
+    assert committed["dixon-coles-elo-0.5.0"] == load_candidate(
+        CANDIDATES_DIR / "dixon-coles-elo-0.5.0.json"
+    )
+    assert load_candidate() == committed["dixon-coles-elo-0.6.0"]

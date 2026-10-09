@@ -106,6 +106,25 @@ def test_a_match_without_odds_is_left_out_and_counted() -> None:
     assert all(r.match != bare for r in result.rows)
 
 
+def test_a_division_without_odds_keeps_its_matches_and_scores_no_market() -> None:
+    # Our records (IR1) have no closing odds (T-1372).
+    bare = [replace(m, odds_home=None, odds_draw=None, odds_away=None) for m in season(3)]
+    result = run_division(
+        "IR9", bare, WINDOW, proposed=GOOD, reference=POOR, refit_every_days=21,
+        require_odds=False,
+    )  # fmt: skip
+    assert result.rows and result.without_odds == len(result.rows)
+    body = report_body(GOOD, POOR, WINDOW, START, [result], {"IR9": "our_records"}, "")
+    pooled = body["pooled"]
+    assert isinstance(pooled, dict)
+    assert "market" not in pooled and body["market_gap"] is None
+    assert pooled["uniform"]["draw_mean"] == pytest.approx(1 / 3, abs=1e-5)
+    assert pooled["proposed"]["rps"] < pooled["uniform"]["rps"]
+    text = render(body)
+    assert "market (closing odds)" not in text and "Draw probability" in text
+    assert body["verdict"] == "passed"
+
+
 def test_a_fit_reads_only_the_versions_history_days() -> None:
     matches = season(1)
     fit_date = START + timedelta(days=200)

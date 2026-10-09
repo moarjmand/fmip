@@ -56,6 +56,24 @@ def brier(forecasts: Sequence[Forecast], results: Sequence[Result]) -> float:
     return total / len(forecasts)
 
 
+def rps(forecasts: Sequence[Forecast], results: Sequence[Result]) -> float:
+    """Mean ranked probability score over the ordered outcomes home, draw, away.
+
+    Half the summed squared gaps of the two cumulative probabilities, so it
+    knows a draw is closer to a home win than an away win is. Lower is better;
+    uniform scores 1/9 on a draw and 5/18 otherwise. The same definition as
+    the API's ``rps`` (T-1369, ``apps/api/src/modules/forecast/internal/scoring.ts``).
+    """
+    if len(forecasts) != len(results) or not forecasts:
+        raise ValueError("need the same non-zero number of forecasts and results")
+    total = 0.0
+    for f, r in zip(forecasts, results, strict=True):
+        hit_home = 1.0 if r == "H" else 0.0
+        hit_draw_or_better = 0.0 if r == "A" else 1.0
+        total += ((f.home - hit_home) ** 2 + (f.home + f.draw - hit_draw_or_better) ** 2) / 2
+    return total / len(forecasts)
+
+
 @dataclass(frozen=True)
 class ReliabilityBin:
     lower: float
