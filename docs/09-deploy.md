@@ -519,6 +519,7 @@ removed with `docker volume rm fmip_wal-spool`.
 
 | Date | Where | Result |
 |---|---|---|
+| 2026-10-09 | Production (`fmip-prod`), `PITR_KEEP_DAYS=3` (D-157 amended 2026-10-08) | Measured over 9 days: 5,106 MB of WAL a day, gzip keeps 5%, projected 6,732 MB of the 10 GB budget: FITS. Archiving switched on at about 06:00 UTC, `fmip-wal-ship.timer` enabled (first ship 06:05, 3 segments), first base `base-20261009T060250Z-…` (306 MB, verified on the remote). `restore-drill.sh --scheduled --pitr '2026-10-09 09:30'`: **DRILL PASSED** -- constraints and migrations as live, forecast 516/516, fixture 12,544/12,544. |
 | 2026-09-30 | Maintainer's laptop, production compose file under `COMPOSE_PROJECT_NAME=fmip-pitr`, `PG_ARCHIVE_MODE=on`, `PG_ARCHIVE_TIMEOUT=60`, a `type = local` rclone remote | See `07-backups.md`, "Rehearsed on 2026-09-30": a row written before the stated minute present after the replay, a row written after it absent. |
 
 ## Uptime check (from outside, T-806)
