@@ -164,6 +164,7 @@ export class ForecastTriggersService {
       kinds: string[] | null;
       newest_model: string | null;
       newest_kind: string | null;
+      newest_reason: string | null;
     }>(
       `SELECT f.id, f.kickoff_at, f.status,
               EXISTS (
@@ -177,13 +178,14 @@ export class ForecastTriggersService {
                  FROM forecast fc
                  JOIN input_snapshot s ON s.id = fc.input_snapshot_id
                 WHERE fc.fixture_id = f.id AND fc.role = 'published') AS kinds,
-              newest.model_id AS newest_model, newest.kind AS newest_kind
+              newest.model_id AS newest_model, newest.kind AS newest_kind,
+              newest.unavailable_reason AS newest_reason
          FROM fixture f
          -- The newest published version: which model made it, and its kind
          -- (T-1373, D-191). Published numbering has no gap, so the highest
          -- number is the newest.
          LEFT JOIN LATERAL (
-           SELECT m.model_id, s.kind
+           SELECT m.model_id, s.kind, fc.unavailable_reason
              FROM forecast fc
              JOIN model_version m ON m.id = fc.model_version_id
              JOIN input_snapshot s ON s.id = fc.input_snapshot_id
@@ -204,7 +206,11 @@ export class ForecastTriggersService {
       newestPublished:
         row.newest_model === null || row.newest_kind === null
           ? null
-          : { modelVersion: row.newest_model, kind: row.newest_kind as ForecastKind },
+          : {
+              modelVersion: row.newest_model,
+              kind: row.newest_kind as ForecastKind,
+              reason: row.newest_reason,
+            },
     }));
   }
 }

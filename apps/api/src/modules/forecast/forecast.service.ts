@@ -42,7 +42,8 @@ export type ComputeOutcome =
  */
 /**
  * The model's name for a match between clubs of different leagues (D-085):
- * not a competition's division but the scale the candidate puts them on.
+ * not a competition's division but the scale a version with `cross_league`
+ * puts them on (the published 0.6.0 since D-191).
  */
 export const CROSS_LEAGUE_DIVISION = 'XL';
 
@@ -63,15 +64,22 @@ export class ForecastService {
     const fixture = await this.store.fixtureForModel(fixtureId);
     if (fixture === null) return { kind: 'unknown_fixture' };
 
+    // A match between clubs of different leagues is asked on the scale across
+    // leagues (T-533, D-085), of the published version as of every candidate
+    // (D-191): a version with that scale answers it, one without says why
+    // not in its own words, and either answer is stored like a league's. The
+    // published version answered `cross_competition` without being asked
+    // until D-191; those rows stay as they were (rule 5).
+    const division = fixture.division ?? (fixture.mixesLeagues ? CROSS_LEAGUE_DIVISION : null);
     const request: ModelForecastRequest = {
       fixture_id: fixture.id,
       home_team_id: fixture.homeTeamId,
       away_team_id: fixture.awayTeamId,
-      division: fixture.division ?? '',
+      division: division ?? '',
       kickoff_at: fixture.kickoffAt.toISOString(),
     };
 
-    if (fixture.division === null) {
+    if (division === null) {
       const version = await this.store.record({
         fixtureId,
         kind,
@@ -79,25 +87,11 @@ export class ForecastService {
         request,
         computedAt: new Date(),
         available: null,
-        // A cup's clubs come from different leagues and the model rates within
-        // one, which is a different sentence from a league whose history is
-        // not loaded (T-503).
-        unavailable: fixture.mixesLeagues
-          ? {
-              reason: 'cross_competition',
-              detail: `competition ${fixture.competitionId} matches clubs of different leagues`,
-            }
-          : {
-              reason: 'competition_not_mapped',
-              detail: `competition ${fixture.competitionId} has no football-data division`,
-            },
+        unavailable: {
+          reason: 'competition_not_mapped',
+          detail: `competition ${fixture.competitionId} has no football-data division`,
+        },
       });
-      // A cup's match goes to the candidate on the scale across leagues
-      // (T-533, D-085): stored in shadow and shown nowhere, while the
-      // published version keeps saying why it has no answer.
-      if (fixture.mixesLeagues) {
-        await this.shadow(fixtureId, kind, { ...request, division: CROSS_LEAGUE_DIVISION });
-      }
       return { kind: 'recorded', version };
     }
 

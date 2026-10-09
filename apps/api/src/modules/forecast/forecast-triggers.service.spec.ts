@@ -228,6 +228,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
     const fixture = randomUUID();
     const home = randomUUID();
     const away = randomUUID();
+    // A European cup's match (D-191): before it, published as
+    // `cross_competition` without the model being asked.
+    const cup = randomUUID();
+    const cupSeason = randomUUID();
+    const cupFixture = randomUUID();
     let pool: Pool;
     let triggers: ForecastTriggersService;
     let close: () => Promise<void>;
@@ -256,6 +261,25 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         `INSERT INTO fixture_participant (fixture_id, team_id, side)
          VALUES ($1, $2, 'home'), ($1, $3, 'away')`,
         [fixture, home, away],
+      );
+      await pool.query(
+        `INSERT INTO competition (id, name, kind, scope, gender)
+         VALUES ($1, 'Promotion Test Cup', 'cup', 'continental', 'men')`,
+        [cup],
+      );
+      await pool.query(
+        `INSERT INTO season (id, competition_id, label, start_date, end_date, is_current)
+         VALUES ($1, $2, '2030/31', '2030-08-01', '2031-05-30', false)`,
+        [cupSeason, cup],
+      );
+      await pool.query(
+        `INSERT INTO fixture (id, season_id, kickoff_at, status) VALUES ($1, $2, $3, 'scheduled')`,
+        [cupFixture, cupSeason, PROMOTION_KICKOFF],
+      );
+      await pool.query(
+        `INSERT INTO fixture_participant (fixture_id, team_id, side)
+         VALUES ($1, $2, 'home'), ($1, $3, 'away')`,
+        [cupFixture, away, home],
       );
 
       const moduleRef = await Test.createTestingModule({
@@ -303,43 +327,69 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         },
         unavailable: null,
       });
+      await moduleRef.get(PostgresForecastStore).record({
+        fixtureId: cupFixture,
+        kind: 'early',
+        modelId: 'none@0.0.0',
+        request: {
+          fixture_id: cupFixture,
+          home_team_id: away,
+          away_team_id: home,
+          division: '',
+          kickoff_at: PROMOTION_KICKOFF.toISOString(),
+        },
+        computedAt: new Date(PROMOTION_NOW.getTime() - 24 * 60 * 60 * 1000),
+        available: null,
+        unavailable: { reason: 'cross_competition', detail: 'clubs of different leagues' },
+      });
     });
 
     afterAll(async () => {
       if (pool === undefined) return;
       await withTriggersOff(pool, async (client) => {
+        const both = [[fixture, cupFixture]];
         await client.query(
           `DELETE FROM power_index WHERE participant_id IN
-             (SELECT id FROM fixture_participant WHERE fixture_id = $1)`,
-          [fixture],
+             (SELECT id FROM fixture_participant WHERE fixture_id = ANY($1::uuid[]))`,
+          both,
         );
-        await client.query(`DELETE FROM forecast WHERE fixture_id = $1`, [fixture]);
-        await client.query(`DELETE FROM input_snapshot WHERE fixture_id = $1`, [fixture]);
+        await client.query(`DELETE FROM forecast WHERE fixture_id = ANY($1::uuid[])`, both);
+        await client.query(`DELETE FROM input_snapshot WHERE fixture_id = ANY($1::uuid[])`, both);
       });
-      await pool.query(`DELETE FROM fixture WHERE id = $1`, [fixture]);
-      await pool.query(`DELETE FROM season WHERE id = $1`, [season]);
-      await pool.query(`DELETE FROM competition WHERE id = $1`, [competition]);
+      await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [[fixture, cupFixture]]);
+      await pool.query(`DELETE FROM season WHERE id = ANY($1::uuid[])`, [[season, cupSeason]]);
+      await pool.query(`DELETE FROM competition WHERE id = ANY($1::uuid[])`, [[competition, cup]]);
       await pool.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [[home, away]]);
       await pool.end();
       await close?.();
     });
 
-    async function published(): Promise<
-      { version_number: number; kind: string; model_id: string; p_draw: string | null }[]
+    async function published(id = fixture): Promise<
+      {
+        version_number: number;
+        kind: string;
+        model_id: string;
+        p_draw: string | null;
+        division: string;
+        reason: string | null;
+      }[]
     > {
       const { rows } = await pool.query<{
         version_number: number;
         kind: string;
         model_id: string;
         p_draw: string | null;
+        division: string;
+        reason: string | null;
       }>(
-        `SELECT f.version_number, s.kind, m.model_id, f.p_draw::text AS p_draw
+        `SELECT f.version_number, s.kind, m.model_id, f.p_draw::text AS p_draw,
+                s.request->>'division' AS division, f.unavailable_reason AS reason
            FROM forecast f
            JOIN input_snapshot s ON s.id = f.input_snapshot_id
            JOIN model_version m ON m.id = f.model_version_id
           WHERE f.fixture_id = $1 AND f.role = 'published'
           ORDER BY f.version_number`,
-        [fixture],
+        [id],
       );
       return rows;
     }
@@ -347,8 +397,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
     it('writes one new early version from the new model and keeps the old one as it was', async () => {
       const report = await triggers.runDue(PROMOTION_NOW);
       expect(report.published_model).toBe(PUBLISHED);
-      expect(report.computed.early).toBe(1);
-      expect(report.replaced).toEqual({ [REPLACED]: 1 });
+      expect(report.computed.early).toBe(2);
+      expect(report.replaced).toEqual({ [REPLACED]: 1, 'none@0.0.0': 1 });
 
       const rows = await published();
       expect(rows.map((r) => [r.version_number, r.kind, r.model_id])).toEqual([
@@ -358,11 +408,20 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect(Number(rows[0]?.p_draw)).toBeCloseTo(0.55, 4);
     });
 
+    it('asks the published version about the cup match on the scale across leagues, once', async () => {
+      const rows = await published(cupFixture);
+      expect(rows.map((r) => [r.version_number, r.model_id, r.division, r.reason])).toEqual([
+        [1, 'none@0.0.0', '', 'cross_competition'],
+        [2, PUBLISHED, 'XL', null],
+      ]);
+    });
+
     it('writes nothing on the next pass: the newest version is the published one', async () => {
       const again = await triggers.runDue(PROMOTION_NOW);
       expect(again.computed.early ?? 0).toBe(0);
       expect(again.replaced).toEqual({});
       expect((await published()).length).toBe(2);
+      expect((await published(cupFixture)).length).toBe(2);
     });
   },
 );

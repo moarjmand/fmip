@@ -8695,15 +8695,34 @@ change to publish: it stores whatever version the service answers with.
 - **Club Elo is no longer read** by any served version, so the service stops
   asking it and reports the source retired; the watchdog drops the condition
   (D-162, T-947 built this for "the promotion that replaces 0.1.0").
-- **Cup matches between leagues stay unpublished.** 0.6.0 carries 0.4.0's
-  cross-league fit (D-085), but the API never asked the published version
-  about such a match: it stores `cross_competition` with no model, and asked
-  only the candidates. With no candidate, those matches are now forecast by
-  nothing, in shadow or published. D-085 made publishing them conditional on
-  the cups' own pre-kick-off record, which this decision does not address;
-  asking the published version on `XL` is a separate decision for the
-  maintainer (evidence so far: the cup backtest of T-533, 0.9727 on 929
-  unseen 2025/26 cup matches against uniform's 1.0986).
+- **Cup matches between leagues are published too (the maintainer, 2026-10-09,
+  a second decision the same day).** 0.6.0 carries 0.4.0's cross-league fit
+  (D-085). Until now the API never asked the published version about such a
+  match: it stored `cross_competition` with no model and asked only the
+  candidates. The maintainer decided to publish 0.6.0's answers for the
+  European cups (Champions League, Europa League, Conference League), on the
+  cup backtest of T-533 (log loss 0.9727 on 929 unseen 2025/26 cup matches,
+  against 1.0986 for uniform and 1.0402 for base rates), instead of waiting
+  for the cups' own pre-kick-off record that D-085 asked for. This is a second
+  exception of the same kind. `ForecastService.compute` now asks the
+  published version (and any candidate) with division `XL` about every
+  fixture of a competition whose clubs come from different leagues
+  (`mixesLeagues`: anything but a domestic league, national teams excepted).
+  A version with the scale answers. A version without it says why in its own
+  words (`division_not_loaded`). Either answer is stored like a league's, so
+  `cross_competition` is no longer written. Its old rows stay as they are
+  (rule 5). **Scope, stated:** `mixesLeagues` cannot tell a European cup from
+  another continental cup or a domestic cup. The competition table has no
+  confederation, and a name is never a key (rule 1). So any such competition
+  in the catalogue is now published the same way. The backtest covered the
+  same set: every stored cup match, 0.9292 between clubs of held leagues and
+  0.9868 with a club from elsewhere. Narrowing it to UEFA's three would need
+  a stated competition attribute, which is a schema change for the
+  maintainer to ask for. Cup accuracy appears on the public accuracy page as
+  each cup's own competition rows, as it already groups by competition. Each
+  forecast is scored, like a league's, against the stored `full_time` score
+  (`fixture_score.kind = 'full_time'`). The model does not learn from extra
+  time or penalties either (D-085).
 
 **A fresh forecast for the fixtures already in the window.** The triggers
 (T-120) write `early` once, seven days out, and then only
@@ -8720,7 +8739,11 @@ which names no version and is never retried. A model service that cannot be
 asked leaves the rule for a later tick; a line-up that is due comes first;
 nothing is written after kick-off or outside the window; and
 `lineups_predicted`, an operator's kind, is never written by this rule. Every
-later promotion gets the same refresh with no further change.
+later promotion gets the same refresh with no further change. The one
+`none@0.0.0` it replaces, once, is a `cross_competition` row. That is a cup
+match the published version was never asked about. The answer to that
+question is never `cross_competition` again, so an upcoming cup match in the
+window also gets exactly one new forecast.
 
 **What the public accuracy page shows across the change** (T-1369, D-187).
 It reads every published pre-kick-off evaluation together, by month and

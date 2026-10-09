@@ -250,22 +250,44 @@ describe('ForecastService.compute', () => {
     expect(store.written[0]?.unavailable?.reason).toBe('competition_not_mapped');
   });
 
-  it('says a cup match mixes leagues rather than that it is not mapped (T-503)', async () => {
+  it('asks the published version about a cup match on the scale across leagues (D-191)', async () => {
     const store = new FakeStore({ ...FIXTURE, division: null, mixesLeagues: true });
-    const asked: string[] = [];
+    const asked: { url: string; division?: string }[] = [];
+    const cup = { ...AVAILABLE, inputs: { ...AVAILABLE.inputs, model_version: 'm@0.6.0' } };
     const model = new ModelClient({
       baseUrl: 'http://model.test',
-      fetchImpl: async (url) => {
-        asked.push(String(url));
-        return new Response(JSON.stringify({ detail: 'no candidate' }), { status: 404 });
+      fetchImpl: async (url, init) => {
+        const body = init?.body === undefined ? {} : (JSON.parse(String(init.body)) as object);
+        asked.push({ url: String(url), ...body });
+        return String(url).endsWith('/candidates')
+          ? new Response(JSON.stringify({ candidates: [] }))
+          : new Response(JSON.stringify(cup));
       },
     });
     await service(store, model).compute(FIXTURE.id, 'early');
 
-    // The published version is never asked; only the candidates are (T-533).
-    expect(asked).toEqual(['http://model.test/candidates']);
-    expect(store.published[0]?.unavailable).toMatchObject({ reason: 'cross_competition' });
+    expect(asked[0]).toMatchObject({ url: 'http://model.test/forecast', division: 'XL' });
+    expect(store.published).toHaveLength(1);
+    expect(store.published[0]?.modelId).toBe('m@0.6.0');
+    expect(store.published[0]?.available?.probabilities).toBeDefined();
+    expect(store.published[0]?.request.division).toBe(CROSS_LEAGUE_DIVISION);
     expect(store.shadows).toHaveLength(0);
+  });
+
+  it('stores a version without the scale saying why, in its own words (D-191)', async () => {
+    const store = new FakeStore({ ...FIXTURE, division: null, mixesLeagues: true });
+    const refusal = {
+      fixture_id: FIXTURE.id,
+      status: 'unavailable',
+      computed_at: '2025-01-04T12:00:00Z',
+      reason: 'division_not_loaded',
+      detail: 'dixon-coles-elo@0.1.0 rates clubs within one league',
+    };
+    await service(store, modelAnswering(refusal)).compute(FIXTURE.id, 'early');
+
+    expect(store.published[0]?.modelId).toBe('none@0.0.0');
+    expect(store.published[0]?.unavailable).toMatchObject({ reason: 'division_not_loaded' });
+    expect(store.published[0]?.request.division).toBe(CROSS_LEAGUE_DIVISION);
   });
 
   it('reports an unknown fixture instead of writing anything', async () => {
@@ -419,12 +441,12 @@ describe('shadow forecasts (T-531, T-1102)', () => {
     ]);
   });
 
-  it('asks the candidates about a cup match on the scale across leagues, in shadow (T-533)', async () => {
+  it('asks the candidates about a cup match on the same scale, in shadow (T-533)', async () => {
     const store = new FakeStore({ ...FIXTURE, division: null, mixesLeagues: true });
     await service(store, answering([V05, V06])).compute(FIXTURE.id, 'early');
 
     expect(store.published).toHaveLength(1);
-    expect(store.published[0]?.unavailable).toMatchObject({ reason: 'cross_competition' });
+    expect(store.published[0]?.request.division).toBe(CROSS_LEAGUE_DIVISION);
     expect(store.shadows).toHaveLength(2);
     expect(store.shadows.every((s) => s.request.division === CROSS_LEAGUE_DIVISION)).toBe(true);
   });

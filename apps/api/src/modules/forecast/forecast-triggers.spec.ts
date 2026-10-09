@@ -88,7 +88,7 @@ describe('which version is due', () => {
   describe('when the published model version changes (T-1373, D-191)', () => {
     const earlyByOld = fixture({
       existingKinds: ['early'],
-      newestPublished: { modelVersion: OLD, kind: 'early' },
+      newestPublished: { modelVersion: OLD, kind: 'early', reason: null },
     });
 
     it('is the newest kind once more, from the new version, naming the one it replaces', () => {
@@ -96,7 +96,7 @@ describe('which version is due', () => {
       const confirmedByOld = fixture({
         hasLineup: true,
         existingKinds: ['early', 'lineups_confirmed'],
-        newestPublished: { modelVersion: OLD, kind: 'lineups_confirmed' },
+        newestPublished: { modelVersion: OLD, kind: 'lineups_confirmed', reason: null },
       });
       expect(dueKind(confirmedByOld, NOW, NEW)).toEqual({
         kind: 'lineups_confirmed',
@@ -107,7 +107,7 @@ describe('which version is due', () => {
     it('is due once: nothing more once the newest is the new version', () => {
       const earlyByNew = fixture({
         existingKinds: ['early'],
-        newestPublished: { modelVersion: NEW, kind: 'early' },
+        newestPublished: { modelVersion: NEW, kind: 'early', reason: null },
       });
       expect(dueKind(earlyByNew, NOW, NEW)).toEqual({
         skip: 'the early version is recorded and no line-up has arrived yet',
@@ -119,15 +119,43 @@ describe('which version is due', () => {
       // retrying it every tick would write a row a tick until it answered.
       const unanswered = fixture({
         existingKinds: ['early'],
-        newestPublished: { modelVersion: NO_MODEL_VERSION, kind: 'early' },
+        newestPublished: {
+          modelVersion: NO_MODEL_VERSION,
+          kind: 'early',
+          reason: 'model_unreachable',
+        },
       });
       expect('skip' in dueKind(unanswered, NOW, NEW)).toBe(true);
+    });
+
+    it('asks once about a cup match the published version was never asked about', () => {
+      // Before D-191 a cup match's published version was `cross_competition`
+      // with no model asked; the answer to the question is never that again.
+      const neverAsked = fixture({
+        existingKinds: ['early'],
+        newestPublished: {
+          modelVersion: NO_MODEL_VERSION,
+          kind: 'early',
+          reason: 'cross_competition',
+        },
+      });
+      expect(dueKind(neverAsked, NOW, NEW)).toEqual({ kind: 'early', replaces: NO_MODEL_VERSION });
+      expect('skip' in dueKind(neverAsked, NOW, null)).toBe(true);
+      const askedAndRefused = fixture({
+        existingKinds: ['early'],
+        newestPublished: {
+          modelVersion: NO_MODEL_VERSION,
+          kind: 'early',
+          reason: 'division_not_loaded',
+        },
+      });
+      expect('skip' in dueKind(askedAndRefused, NOW, NEW)).toBe(true);
     });
 
     it('never writes `lineups_predicted` itself, even to replace an operator’s', () => {
       const predicted = fixture({
         existingKinds: ['early', 'lineups_predicted'],
-        newestPublished: { modelVersion: OLD, kind: 'lineups_predicted' },
+        newestPublished: { modelVersion: OLD, kind: 'lineups_predicted', reason: null },
       });
       expect(dueKind(predicted, NOW, NEW)).toEqual({
         skip: 'the newest version is an operator’s; the new model waits for the next kind',

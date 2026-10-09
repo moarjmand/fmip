@@ -28,10 +28,10 @@ export interface FixtureState {
   /** The kinds already recorded for this fixture. */
   existingKinds: readonly ForecastKind[];
   /**
-   * The newest published version's model and kind (T-1373, D-191), or null
-   * when the fixture has none.
+   * The newest published version's model, kind and `unavailable` reason
+   * (T-1373, D-191), or null when the fixture has none.
    */
-  newestPublished: { modelVersion: string; kind: ForecastKind } | null;
+  newestPublished: { modelVersion: string; kind: ForecastKind; reason: string | null } | null;
 }
 
 /**
@@ -40,6 +40,9 @@ export interface FixtureState {
  * `unavailable` (T-064). It names no published version.
  */
 export const NO_MODEL_VERSION = 'none@0.0.0';
+
+/** What a cup match's published version said before D-191 asked the model about it. */
+const NEVER_ASKED = 'cross_competition';
 
 /**
  * `replaces`: the model version whose newest forecast this one supersedes,
@@ -71,7 +74,10 @@ export type Due = { kind: ForecastKind; replaces?: string } | { skip: string };
  * the replaced one until its line-ups arrive. The old versions stay as they
  * are (rule 5). It is due once: afterwards the newest forecast is the new
  * version's, or `none@0.0.0` when the model could not answer, which names no
- * version and is never retried.
+ * version and is never retried. The one `none@0.0.0` it does replace, once,
+ * is `cross_competition`: a cup match the published version was never asked
+ * about before D-191 put such matches to it; the answer to that question is
+ * never `cross_competition` again, so it too is due once.
  */
 export function dueKind(state: FixtureState, now: Date, publishedModel: string | null = null): Due {
   if (state.status !== 'scheduled') {
@@ -97,8 +103,8 @@ export function dueKind(state: FixtureState, now: Date, publishedModel: string |
   if (
     publishedModel !== null &&
     newest !== null &&
-    newest.modelVersion !== NO_MODEL_VERSION &&
-    newest.modelVersion !== publishedModel
+    newest.modelVersion !== publishedModel &&
+    (newest.modelVersion !== NO_MODEL_VERSION || newest.reason === NEVER_ASKED)
   ) {
     // `lineups_predicted` is an operator's judgement, never this function's.
     if (newest.kind === 'lineups_predicted') {

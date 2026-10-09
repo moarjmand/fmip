@@ -37,7 +37,7 @@ The pieces, all in `fmip_model/model/dixon_coles.py` unless named otherwise:
 | **Elo prior and its weight** | Elo is a long-run strength rating. The fit pulls each club's *net* strength (attack minus defence) toward what its Elo implies (`(Elo − league mean) / 400`), with strength `elo_weight`. 0 ignores Elo; large values make the model mostly Elo. 0.1.0 read Club Elo, now retired (D-162); the published 0.6.0 reads our own Elo, computed from the stored results with the World Football Elo rules (K 20, home 60, start 1500; `fmip_model/model/own_elo.py`, D-111). |
 | **History window** | How many days back a fit reads (`history_days`). Long enough that the decay, not the window, forgets old matches. |
 | **Per-division constants** | `xi` and `ridge` can differ by league, where tuning on one season and testing on the next showed it helps (T-532). |
-| **Cross-league fit** | For cup matches between clubs of different leagues: one joint fit over every league, where a club's strength is its league's plus its own (`fmip_model/model/cross_league.py`, D-085). 0.6.0 carries it, but the site does not yet publish a match between leagues (D-191). |
+| **Cross-league fit** | For cup matches between clubs of different leagues: one joint fit over every league, where a club's strength is its league's plus its own (`fmip_model/model/cross_league.py`, D-085). The published 0.6.0 carries it, and the site publishes its answers for cup matches (D-191). |
 | **Line-up term** | Optional: moves expected goals by the difference in the two starting XIs' ratings (`lineup_beta`, T-534). No version uses it yet. |
 
 **How often it is fitted.** The service fits once per league per day, on
