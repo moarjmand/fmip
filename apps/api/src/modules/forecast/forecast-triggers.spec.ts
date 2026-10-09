@@ -3,6 +3,7 @@ import type { ForecastKind } from '@fmip/contracts';
 import {
   EARLY_WINDOW_DAYS,
   MILLISECONDS_PER_DAY,
+  NO_MODEL_VERSION,
   dueKind,
   type FixtureState,
 } from './internal/forecast-triggers';
@@ -20,9 +21,13 @@ function fixture(over: Partial<FixtureState> = {}): FixtureState {
     status: 'scheduled',
     hasLineup: false,
     existingKinds: [],
+    newestPublished: null,
     ...over,
   };
 }
+
+const OLD = 'dixon-coles-elo@0.1.0';
+const NEW = 'dixon-coles-elo@0.6.0';
 
 describe('which version is due', () => {
   it('is the early one, once, for a match inside the window', () => {
@@ -78,6 +83,70 @@ describe('which version is due', () => {
         skip: `status is ${status}, and a pre-match version is only due before kick-off`,
       });
     }
+  });
+
+  describe('when the published model version changes (T-1373, D-191)', () => {
+    const earlyByOld = fixture({
+      existingKinds: ['early'],
+      newestPublished: { modelVersion: OLD, kind: 'early' },
+    });
+
+    it('is the newest kind once more, from the new version, naming the one it replaces', () => {
+      expect(dueKind(earlyByOld, NOW, NEW)).toEqual({ kind: 'early', replaces: OLD });
+      const confirmedByOld = fixture({
+        hasLineup: true,
+        existingKinds: ['early', 'lineups_confirmed'],
+        newestPublished: { modelVersion: OLD, kind: 'lineups_confirmed' },
+      });
+      expect(dueKind(confirmedByOld, NOW, NEW)).toEqual({
+        kind: 'lineups_confirmed',
+        replaces: OLD,
+      });
+    });
+
+    it('is due once: nothing more once the newest is the new version', () => {
+      const earlyByNew = fixture({
+        existingKinds: ['early'],
+        newestPublished: { modelVersion: NEW, kind: 'early' },
+      });
+      expect(dueKind(earlyByNew, NOW, NEW)).toEqual({
+        skip: 'the early version is recorded and no line-up has arrived yet',
+      });
+    });
+
+    it('never retries an answer no model version gave', () => {
+      // An outage or the model's own `unavailable` is stored as none@0.0.0:
+      // retrying it every tick would write a row a tick until it answered.
+      const unanswered = fixture({
+        existingKinds: ['early'],
+        newestPublished: { modelVersion: NO_MODEL_VERSION, kind: 'early' },
+      });
+      expect('skip' in dueKind(unanswered, NOW, NEW)).toBe(true);
+    });
+
+    it('waits when the published version cannot be asked', () => {
+      expect('skip' in dueKind(earlyByOld, NOW, null)).toBe(true);
+      expect('skip' in dueKind(earlyByOld, NOW)).toBe(true);
+    });
+
+    it('comes after a line-up that is due, and never after kick-off or outside the window', () => {
+      expect(dueKind({ ...earlyByOld, hasLineup: true }, NOW, NEW)).toEqual({
+        kind: 'lineups_confirmed',
+      });
+      expect(dueKind({ ...earlyByOld, kickoffAt: new Date(NOW.getTime() - 1) }, NOW, NEW)).toEqual({
+        skip: 'kick-off has passed',
+      });
+      expect(
+        dueKind(
+          {
+            ...earlyByOld,
+            kickoffAt: new Date(NOW.getTime() + (EARLY_WINDOW_DAYS + 3) * MILLISECONDS_PER_DAY),
+          },
+          NOW,
+          NEW,
+        ),
+      ).toEqual({ skip: 'kick-off is 10 days away' });
+    });
   });
 
   it('names a reason every time it produces nothing', () => {

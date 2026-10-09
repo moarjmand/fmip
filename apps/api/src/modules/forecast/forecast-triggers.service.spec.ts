@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { Test } from '@nestjs/testing';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -168,6 +170,199 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       const report = await triggers.runDue(afterKickoff);
       expect(Object.values(report.computed).reduce((sum, n) => sum + n, 0)).toBe(0);
       expect(await kinds()).toEqual(['early', 'lineups_confirmed']);
+    });
+  },
+);
+
+// T-1373, D-191: a new published model version. A fixture inside the window
+// whose early version was made by the replaced version gets one more, from the
+// new one, as a new row; the old row is untouched (rule 5), and a second pass
+// writes nothing. A date of its own, far from every other spec's fixtures, so
+// the answering model below forecasts nothing else.
+const PROMOTION_NOW = new Date('2031-03-10T12:00:00Z');
+const PROMOTION_KICKOFF = new Date('2031-03-12T15:00:00Z');
+const REPLACED = 'dixon-coles-elo@0.1.0';
+const PUBLISHED = 'dixon-coles-elo@0.6.0';
+const ANSWER = JSON.parse(
+  readFileSync(
+    join(__dirname, '..', '..', '..', '..', 'model', 'contract', 'forecast-response.example.json'),
+    'utf8',
+  ),
+) as { inputs: Record<string, unknown> } & Record<string, unknown>;
+
+/** A model service that publishes `published` and answers every question with it. */
+function answering(published: string): ModelClient {
+  return new ModelClient({
+    baseUrl: 'http://model.test',
+    fetchImpl: (input, init) => {
+      const url = String(input);
+      if (url.endsWith('/health')) {
+        return Promise.resolve(
+          Response.json({
+            status: 'ok',
+            service: 'model',
+            model_version: published,
+            checked_at: PROMOTION_NOW.toISOString(),
+          }),
+        );
+      }
+      if (url.endsWith('/candidates')) return Promise.resolve(Response.json({ candidates: [] }));
+      const asked = JSON.parse(String(init?.body)) as { fixture_id: string };
+      return Promise.resolve(
+        Response.json({
+          ...ANSWER,
+          fixture_id: asked.fixture_id,
+          computed_at: PROMOTION_NOW.toISOString(),
+          inputs: { ...ANSWER.inputs, model_version: published },
+        }),
+      );
+    },
+  });
+}
+
+describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
+  'a new published model version (T-1373)',
+  () => {
+    const competition = randomUUID();
+    const season = randomUUID();
+    const fixture = randomUUID();
+    const home = randomUUID();
+    const away = randomUUID();
+    let pool: Pool;
+    let triggers: ForecastTriggersService;
+    let close: () => Promise<void>;
+
+    beforeAll(async () => {
+      pool = new Pool({ connectionString: DATABASE_URL });
+      await pool.query(
+        `INSERT INTO competition (id, country_id, name, kind, scope, gender, football_data_division)
+         VALUES ($1, $2, 'Promotion Test League', 'league', 'domestic', 'men', 'Y8')`,
+        [competition, COUNTRY],
+      );
+      await pool.query(
+        `INSERT INTO season (id, competition_id, label, start_date, end_date, is_current)
+         VALUES ($1, $2, '2030/31', '2030-08-01', '2031-05-30', false)`,
+        [season, competition],
+      );
+      await pool.query(
+        `INSERT INTO team (id, name, kind, gender) VALUES ($1, 'Lambda', 'club', 'men'), ($2, 'Mu', 'club', 'men')`,
+        [home, away],
+      );
+      await pool.query(
+        `INSERT INTO fixture (id, season_id, kickoff_at, status) VALUES ($1, $2, $3, 'scheduled')`,
+        [fixture, season, PROMOTION_KICKOFF],
+      );
+      await pool.query(
+        `INSERT INTO fixture_participant (fixture_id, team_id, side)
+         VALUES ($1, $2, 'home'), ($1, $3, 'away')`,
+        [fixture, home, away],
+      );
+
+      const moduleRef = await Test.createTestingModule({
+        imports: [DatabaseModule],
+        providers: [
+          ForecastTriggersService,
+          ForecastService,
+          PostgresForecastStore,
+          PowerIndexService,
+          EvaluationService,
+          PostgresEvaluationStore,
+          { provide: MODEL_CLIENT, useValue: answering(PUBLISHED) },
+        ],
+      }).compile();
+      await moduleRef.init();
+      triggers = moduleRef.get(ForecastTriggersService);
+      close = () => moduleRef.close();
+
+      // The early version the replaced model made a day before the promotion.
+      await moduleRef.get(PostgresForecastStore).record({
+        fixtureId: fixture,
+        kind: 'early',
+        modelId: REPLACED,
+        request: {
+          fixture_id: fixture,
+          home_team_id: home,
+          away_team_id: away,
+          division: 'Y8',
+          kickoff_at: PROMOTION_KICKOFF.toISOString(),
+        },
+        computedAt: new Date(PROMOTION_NOW.getTime() - 24 * 60 * 60 * 1000),
+        available: {
+          probabilities: { home: 0.25, draw: 0.55, away: 0.2 },
+          expectedGoals: { home: 0.5, away: 0.3 },
+          mostLikely: [{ home: 0, away: 0, probability: 0.45 }],
+          leadingFactors: [],
+          inputs: {
+            model_version: REPLACED,
+            fit_date: '2031-03-08',
+            matches_used: 200,
+            elo_used: false,
+            history_from: '2030-02-01',
+            data_completeness: 'limited',
+          },
+        },
+        unavailable: null,
+      });
+    });
+
+    afterAll(async () => {
+      if (pool === undefined) return;
+      await withTriggersOff(pool, async (client) => {
+        await client.query(
+          `DELETE FROM power_index WHERE participant_id IN
+             (SELECT id FROM fixture_participant WHERE fixture_id = $1)`,
+          [fixture],
+        );
+        await client.query(`DELETE FROM forecast WHERE fixture_id = $1`, [fixture]);
+        await client.query(`DELETE FROM input_snapshot WHERE fixture_id = $1`, [fixture]);
+      });
+      await pool.query(`DELETE FROM fixture WHERE id = $1`, [fixture]);
+      await pool.query(`DELETE FROM season WHERE id = $1`, [season]);
+      await pool.query(`DELETE FROM competition WHERE id = $1`, [competition]);
+      await pool.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [[home, away]]);
+      await pool.end();
+      await close?.();
+    });
+
+    async function published(): Promise<
+      { version_number: number; kind: string; model_id: string; p_draw: string | null }[]
+    > {
+      const { rows } = await pool.query<{
+        version_number: number;
+        kind: string;
+        model_id: string;
+        p_draw: string | null;
+      }>(
+        `SELECT f.version_number, s.kind, m.model_id, f.p_draw::text AS p_draw
+           FROM forecast f
+           JOIN input_snapshot s ON s.id = f.input_snapshot_id
+           JOIN model_version m ON m.id = f.model_version_id
+          WHERE f.fixture_id = $1 AND f.role = 'published'
+          ORDER BY f.version_number`,
+        [fixture],
+      );
+      return rows;
+    }
+
+    it('writes one new early version from the new model and keeps the old one as it was', async () => {
+      const report = await triggers.runDue(PROMOTION_NOW);
+      expect(report.published_model).toBe(PUBLISHED);
+      expect(report.computed.early).toBe(1);
+      expect(report.replaced).toEqual({ [REPLACED]: 1 });
+
+      const rows = await published();
+      expect(rows.map((r) => [r.version_number, r.kind, r.model_id])).toEqual([
+        [1, 'early', REPLACED],
+        [2, 'early', PUBLISHED],
+      ]);
+      expect(Number(rows[0]?.p_draw)).toBeCloseTo(0.55, 4);
+    });
+
+    it('writes nothing on the next pass: the newest version is the published one', async () => {
+      const again = await triggers.runDue(PROMOTION_NOW);
+      expect(again.computed.early ?? 0).toBe(0);
+      expect(again.replaced).toEqual({});
+      expect((await published()).length).toBe(2);
     });
   },
 );
