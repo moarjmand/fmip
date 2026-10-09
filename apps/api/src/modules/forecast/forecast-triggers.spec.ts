@@ -124,6 +124,16 @@ describe('which version is due', () => {
       expect('skip' in dueKind(unanswered, NOW, NEW)).toBe(true);
     });
 
+    it('never writes `lineups_predicted` itself, even to replace an operator’s', () => {
+      const predicted = fixture({
+        existingKinds: ['early', 'lineups_predicted'],
+        newestPublished: { modelVersion: OLD, kind: 'lineups_predicted' },
+      });
+      expect(dueKind(predicted, NOW, NEW)).toEqual({
+        skip: 'the newest version is an operator’s; the new model waits for the next kind',
+      });
+    });
+
     it('waits when the published version cannot be asked', () => {
       expect('skip' in dueKind(earlyByOld, NOW, null)).toBe(true);
       expect('skip' in dueKind(earlyByOld, NOW)).toBe(true);

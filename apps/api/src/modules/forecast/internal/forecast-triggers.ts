@@ -100,6 +100,10 @@ export function dueKind(state: FixtureState, now: Date, publishedModel: string |
     newest.modelVersion !== NO_MODEL_VERSION &&
     newest.modelVersion !== publishedModel
   ) {
+    // `lineups_predicted` is an operator's judgement, never this function's.
+    if (newest.kind === 'lineups_predicted') {
+      return { skip: 'the newest version is an operator’s; the new model waits for the next kind' };
+    }
     return { kind: newest.kind, replaces: newest.modelVersion };
   }
 
