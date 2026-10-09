@@ -12,6 +12,9 @@ export default [
       globals: {
         process: 'readonly',
         console: 'readonly',
+        // `highlightly-pairs.mjs` (T-1370) asks a provider over Node's own fetch.
+        fetch: 'readonly',
+        AbortSignal: 'readonly',
       },
     },
     rules: {

@@ -466,7 +466,7 @@ sudo systemctl enable --now fmip-wal-ship.timer
 systemctl list-timers fmip-wal-ship.timer          # NEXT within five minutes
 ```
 
-**4. The first base backup, now** (afterwards `backup.sh` takes one a week
+**4. The first base backup, now** (afterwards `backup.sh` takes one every `PITR_KEEP_DAYS` days, at most weekly,
 by itself):
 
 ```bash

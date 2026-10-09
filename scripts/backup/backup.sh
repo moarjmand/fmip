@@ -154,7 +154,7 @@ fi
 # newest base on the remote, so a missed Sunday is made up the next day; a
 # failure fails this run, and the watchdog's `backup` condition says so.
 if [ "${PG_ARCHIVE_MODE:-off}" = 'on' ]; then
-  STEP='weekly base backup (pitr.sh base --if-due)'
+  STEP='base backup when due (pitr.sh base --if-due)'
   echo "==> point-in-time recovery: weekly base backup"
   BASE_LOG="$(mktemp)"
   bash scripts/backup/pitr.sh base --if-due | tee "$BASE_LOG"
