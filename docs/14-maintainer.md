@@ -978,14 +978,53 @@ catalog --map --provider highlightly --type competition --external-id <Highlight
         --to <our competition uuid> --by you@your-domain
 ```
 
-**3. The teams, as they arrive.** Each run puts the Highlightly teams it saw
-in a mapped competition into the queue with their names. Place each one on
-the team we already hold (the id at the end of its team page's address).
-Do **not** use `--adopt-teams` for Highlightly: that would create a second
-copy of a club we already have.
+**3. The teams: let the kick-offs suggest them, then confirm** (T-1370,
+D-188). Highlightly's teams have to be placed on the clubs we already hold,
+some 400 of them. Rather than looking each one up, one command asks
+Highlightly for the mapped leagues' matches of the last and next seven days
+and lays them beside ours: where exactly one of our matches in the same
+competition kicks off within 15 minutes of theirs, their home side is a vote
+for our home side, and away for away. Nothing is written by this step.
 
 ```bash
-catalog --list --type team --provider highlightly          # who is waiting, with Highlightly's ids and names
+cd /opt/fmip
+pairs() { docker compose run --rm -T -v /tmp:/tmp migrate node scripts/highlightly-pairs.mjs "$@"; }
+pairs                                  # the list, and /tmp/highlightly-pairs.json; nothing written
+less /tmp/highlightly-pairs.json       # or read the table it printed
+```
+
+Each line is one Highlightly team: their id and name, the club of ours the
+kick-offs point at (id and name), the votes for it, the votes for any other
+club, and how alike the two names look (0 to 1, for your eye only -- the name
+never decides anything). **strong** means two or more matches agree and none
+disagrees; **weak** means one match only, or votes that disagree, or two of
+their teams pointing at one of ours; **refused** means that club of ours is
+already mapped to another Highlightly id. Teams already mapped are left out.
+Read the strong lines (a strong pair whose names look nothing alike deserves
+a second look; delete its line from the file if it is wrong), then write
+them:
+
+```bash
+pairs --apply strong --from /tmp/highlightly-pairs.json --by you@your-domain
+```
+
+Only the strong lines are written, each as `catalog --map` would write it and
+audited under your name; an id already mapped is never written over. Useful
+flags: `--competition <our competition uuid>` for one league, `--days-back`
+/ `--days-ahead` (0-14, default 7 each), `--max-requests` (default 500: the
+command says how many requests it needs and refuses to start above it; one
+per league and day, within the plan beside the feed's 5,000). Without
+`HIGHLIGHTLY_KEY` it stops and says so. Run it again after a week or two:
+teams with one match become strong as more matches are played.
+
+**4. The leftovers, by hand.** The weak and refused lines, and any team the
+kick-offs did not reach, are placed one at a time on the team we already
+hold (the id at the end of its team page's address). Do **not** use
+`--adopt-teams` for Highlightly: that would create a second copy of a club
+we already have.
+
+```bash
+catalog --list --type team --provider highlightly          # who is still waiting, with Highlightly's ids and names
 catalog --map --provider highlightly --type team --external-id <Highlightly team id> \
         --to <our team uuid> --by you@your-domain
 ```

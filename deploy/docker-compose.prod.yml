@@ -114,6 +114,8 @@ services:
     profiles: ['tools']
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      # T-1370: `scripts/highlightly-pairs.mjs` asks Highlightly for matching kick-offs.
+      HIGHLIGHTLY_KEY: ${HIGHLIGHTLY_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy

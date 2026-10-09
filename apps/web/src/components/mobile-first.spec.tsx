@@ -422,3 +422,76 @@ describe('why the line-ups and the absences are empty (T-1364)', () => {
     expect(fa).toContain('غایبان را گزارش نمی‌کند');
   });
 });
+
+// T-1371: «آخرین به‌روزرسانی داده‌ها ۱۶:۱۵» on 8 October, for a time on 26
+// September, read as this afternoon. Every freshness time says its day.
+describe('the freshness times on the match centre (T-1371)', () => {
+  const NOW = Date.parse('2026-10-08T12:00:00.000Z');
+  const header = (html: string) => {
+    const from = html.indexOf('data-testid="last-update"');
+    return html.slice(from, html.indexOf('</li>', from));
+  };
+  const page = (
+    fixture: Partial<MatchCentre['fixture']>,
+    over: Partial<MatchCentre> = {},
+    locale = 'en',
+  ) =>
+    renderToStaticMarkup(
+      <MatchCentreView
+        words={matchWords(locale)}
+        centre={{ ...centre, fixture: { ...centre.fixture, ...fixture }, ...over }}
+        timeZone="Asia/Tehran"
+        locale={locale}
+        now={NOW}
+      />,
+    );
+  const old = { status: 'scheduled' as const, last_updated_at: '2026-09-26T16:15:00.000Z' };
+
+  it('dates a last update from another day in the viewer zone', () => {
+    // 16:15 UTC is 19:45 in Tehran, twelve days before.
+    expect(header(page(old))).toContain('Last data update');
+    expect(header(page(old))).toContain('12 days ago (26 Sept 2026, 19:45)');
+  });
+
+  it('keeps the clock reading alone for today', () => {
+    const today = header(page({ ...old, last_updated_at: '2026-10-08T09:00:00.000Z' }));
+    expect(today).toMatch(/Last data update <time[^>]*>12:30</);
+  });
+
+  it('shows the last check when it is newer than the last change, and keeps the change', () => {
+    const checked = header(page({ ...old, last_checked_at: '2026-10-08T11:00:00.000Z' }));
+    expect(checked).toContain('Data last checked');
+    expect(checked).toContain('14:30');
+    expect(checked).toContain('unchanged since');
+    expect(checked).toContain('12 days ago (26 Sept 2026, 19:45)');
+    // A check older than the change says nothing new: the change stands.
+    const stale = header(page({ ...old, last_checked_at: '2026-09-20T11:00:00.000Z' }));
+    expect(stale).toContain('Last data update');
+    expect(stale).not.toContain('checked');
+  });
+
+  it('says the check in Persian', () => {
+    const fa = header(page({ ...old, last_checked_at: '2026-10-08T11:00:00.000Z' }, {}, 'fa'));
+    expect(fa).toContain('آخرین بررسی داده‌ها');
+    expect(fa).toContain('روز پیش');
+  });
+
+  it('dates an absence answer, and says past six hours before kick-off it may have changed', () => {
+    const asked = (at: string, status: MatchCentre['fixture']['status']) => {
+      const html = page(
+        { status },
+        { availability: { coverage: 'available', last_updated_at: at, data: [] } },
+      );
+      const from = html.indexOf('data-testid="no-absences"');
+      return html.slice(from, html.indexOf('</p>', from));
+    };
+    const fresh = asked('2026-10-08T09:00:00.000Z', 'scheduled');
+    expect(fresh).toContain('(asked 12:30)');
+    expect(fresh).not.toContain('may have changed');
+    const older = asked('2026-10-05T16:30:00.000Z', 'scheduled');
+    expect(older).toContain('3 days ago (5 Oct 2026, 20:00)');
+    expect(older).toContain('more than six hours old and may have changed');
+    // After kick-off the answer is history, not a forecast: no stale words.
+    expect(asked('2026-10-05T16:30:00.000Z', 'finished')).not.toContain('may have changed');
+  });
+});

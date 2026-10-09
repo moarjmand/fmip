@@ -7555,6 +7555,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "matchCentre.lastChecked": {
+    "source": "Data last checked {time}; unchanged since {changed}",
+    "text": "آخرین بررسی داده‌ها {time}؛ بدون تغییر از {changed}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "matchCentre.onThisPage": {
     "source": "On this page",
     "text": "در این صفحه",
@@ -8230,6 +8236,18 @@
   "matchCentre.keyPlayers.notAsked": {
     "source": "Availability: the provider has not been asked about this match, so none is claimed.",
     "text": "وضعیت بازیکنان: درباره‌ی این بازی از ارائه‌دهنده‌ی داده پرسیده نشده است، پس چیزی ادعا نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.keyPlayers.notCovered": {
+    "source": "Availability: our data provider does not report this competition's absences, so none is claimed.",
+    "text": "وضعیت بازیکنان: ارائه‌دهنده‌ی داده غایبان این رقابت را گزارش نمی‌کند، پس چیزی ادعا نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.keyPlayers.notYet": {
+    "source": "Availability: absences are published from about three days before kick-off, so none is claimed yet.",
+    "text": "وضعیت بازیکنان: غایبان از حدود سه روز پیش از شروع بازی اعلام می‌شوند، پس هنوز چیزی ادعا نمی‌شود.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

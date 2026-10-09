@@ -5,6 +5,7 @@ import type {
   PlayerSeasonRecord,
   PlayerSpell,
 } from '@fmip/contracts';
+import { AVAILABILITY_STALE_AFTER_MS } from '@fmip/contracts';
 import { formatDate, formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE } from '@/i18n/locales';
 import { type MessageKey, plural } from '@/i18n/messages';
@@ -144,7 +145,7 @@ export function roleLabel(locale: string, match: Pick<PlayerMatch, 'role' | 'cam
  * before kick-off (T-103). An answer older than twice that has missed a
  * re-ask, so the page says it may have changed (rule 4, T-1007, D-127).
  */
-export const AVAILABILITY_STALE_AFTER_HOURS = 6;
+export const AVAILABILITY_STALE_AFTER_HOURS = AVAILABILITY_STALE_AFTER_MS / 3_600_000;
 
 /** Whether the feed's last answer about a match is old enough to say so. */
 export function availabilityStale(askedAt: string, now: Date): boolean {

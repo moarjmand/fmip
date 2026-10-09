@@ -436,11 +436,21 @@ export class IngestionJobsService {
         continue;
       }
       seen += result.data.length;
+      // The seasons this answer speaks for: the one asked about, and any a
+      // listed match belongs to (a list can straddle two editions).
+      const answered = new Set<string>([target.seasonId]);
       for (const fixture of result.data) {
         const write = await this.store.saveFixture(source.provider, target, fixture, 'fixtures');
         written += write.changed;
-        if (write.seasonId !== undefined) seasons.add(write.seasonId);
+        if (write.seasonId !== undefined) {
+          seasons.add(write.seasonId);
+          answered.add(write.seasonId);
+        }
         for (const id of write.unresolved) unresolved.add(id);
+      }
+      // The list was answered: once per season per run, never per match (T-1371).
+      for (const seasonId of answered) {
+        await this.store.notePolled(source.provider, seasonId, { from, to, wholeSeason });
       }
     }
     // What arrived decides what the season's modules may claim (T-027).

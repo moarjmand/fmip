@@ -112,3 +112,12 @@ export function formatGregorianMonth(locale: Locale | string, yearMonth: string)
 export function formatNumber(locale: Locale | string, value: number): string {
   return new Intl.NumberFormat(intlLocale(locale)).format(value);
 }
+
+/**
+ * Whole calendar days before today, in the reader's words: "yesterday",
+ * "12 days ago", «۱۲ روز پیش» (T-1371). `numeric: 'auto'` is what turns one
+ * day into "yesterday"; the date and time beside it are the caller's.
+ */
+export function formatDaysAgo(locale: Locale | string, days: number): string {
+  return new Intl.RelativeTimeFormat(intlLocale(locale), { numeric: 'auto' }).format(-days, 'day');
+}

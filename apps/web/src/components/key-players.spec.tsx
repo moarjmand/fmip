@@ -1,7 +1,13 @@
 import type { KeyPlayer, KeyPlayers } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { availabilityLine, coverageLine, figuresLine, ruleNote } from '@/lib/key-players';
+import {
+  absenceState,
+  availabilityLine,
+  coverageLine,
+  figuresLine,
+  ruleNote,
+} from '@/lib/key-players';
 import { KeyPlayersPanel } from './key-players';
 
 /**
@@ -147,10 +153,82 @@ describe('the key players panel', () => {
     expect(never).toContain('has not been asked about this match, so none is claimed');
   });
 
+  it('dates the ask when it was not today (T-1371)', () => {
+    const later = renderToStaticMarkup(
+      <KeyPlayersPanel
+        players={base}
+        home="Home"
+        away="Away"
+        locale="en"
+        timeZone="UTC"
+        now={Date.parse('2025-01-16T12:00:00.000Z')}
+      />,
+    );
+    expect(later).toContain('12 days ago (4 Jan 2025, 09:00)');
+    expect(later).toContain('data-state="asked"');
+  });
+
+  it('says what the Availability module says, in English and Persian (T-1371)', () => {
+    const render = (gap: 'not_covered' | 'not_yet', locale: string) =>
+      renderToStaticMarkup(
+        <KeyPlayersPanel
+          players={{ ...base, availability_asked_at: null, availability_gap: gap }}
+          home="Home"
+          away="Away"
+          locale={locale}
+          timeZone="UTC"
+        />,
+      );
+    const notCovered = render('not_covered', 'en');
+    expect(notCovered).toContain('data-state="not_covered"');
+    expect(notCovered).toContain('our data provider does not report this competition');
+    expect(notCovered).not.toContain('has not been asked');
+    expect(render('not_yet', 'en')).toContain(
+      'absences are published from about three days before kick-off',
+    );
+    expect(render('not_covered', 'fa')).toContain('غایبان این رقابت را گزارش نمی‌کند');
+    expect(render('not_yet', 'fa')).toContain('از حدود سه روز پیش از شروع بازی');
+    // Another locale falls back to English rather than showing a key.
+    expect(render('not_covered', 'de')).toContain('does not report this competition');
+  });
+
   it('says so when the API cannot be reached', () => {
     const down = renderToStaticMarkup(
       <KeyPlayersPanel players={null} home="Home" away="Away" locale="en" timeZone="UTC" />,
     );
     expect(down).toContain('data-state="unreachable"');
+  });
+});
+
+describe('the key players absence state (T-1371)', () => {
+  const asked = '2025-01-04T09:00:00.000Z';
+
+  it('is the time asked once there is an answer', () => {
+    expect(absenceState({ availability_asked_at: asked, availability_gap: null })).toEqual({
+      kind: 'asked',
+      at: asked,
+    });
+    // An API from before T-1371 sends no gap: the ask still stands.
+    expect(absenceState({ availability_asked_at: asked })).toEqual({ kind: 'asked', at: asked });
+  });
+
+  it('is the gap the match centre serves, never "not asked" for a competition not covered', () => {
+    expect(absenceState({ availability_asked_at: null, availability_gap: 'not_covered' })).toEqual({
+      kind: 'not_covered',
+    });
+    // A gap wins over a stray ask time.
+    expect(absenceState({ availability_asked_at: asked, availability_gap: 'not_covered' })).toEqual(
+      { kind: 'not_covered' },
+    );
+    expect(absenceState({ availability_asked_at: null, availability_gap: 'not_yet' })).toEqual({
+      kind: 'not_yet',
+    });
+  });
+
+  it('is not asked only when nothing else is known', () => {
+    expect(absenceState({ availability_asked_at: null, availability_gap: 'not_asked' })).toEqual({
+      kind: 'not_asked',
+    });
+    expect(absenceState({ availability_asked_at: null })).toEqual({ kind: 'not_asked' });
   });
 });

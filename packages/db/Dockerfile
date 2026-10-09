@@ -23,11 +23,21 @@ FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc turbo.json ./
 COPY packages/config/package.json ./packages/config/
 COPY packages/db/package.json ./packages/db/
+# `highlightly-pairs.mjs` (T-1370) asks Highlightly through the adapter in
+# `@fmip/ingestion`, a workspace dependency of this package since then.
+COPY packages/ingestion/package.json ./packages/ingestion/
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile
 
+# The adapter, compiled: the only part of `@fmip/ingestion` the image carries.
+FROM deps AS ingestion
+COPY packages/config ./packages/config
+COPY packages/ingestion ./packages/ingestion
+RUN pnpm --filter @fmip/ingestion build
+
 FROM deps AS runtime
 ENV NODE_ENV=production
+COPY --from=ingestion /app/packages/ingestion/dist ./packages/ingestion/dist
 COPY packages/db/migrations ./packages/db/migrations
 # The operator's tools that need the database and nothing else (T-076), run as
 #     docker compose run --rm migrate node scripts/grant-role.mjs ...

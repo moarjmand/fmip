@@ -398,6 +398,7 @@ export default async function MatchPage({
                   away={result.data.fixture.away.name}
                   locale={locale}
                   timeZone={timeZone}
+                  now={new Date().getTime()}
                 />
               ),
             }}

@@ -57,6 +57,16 @@ export interface MatchHeader {
   last_updated_at: string;
   /** `stale` when live and unchanged for `STALE_LIVE_AFTER_MS` (T-083); `null` when not live. */
   freshness: Freshness | null;
+  /**
+   * When this match's fixture list was last answered, changed or not
+   * (T-1371, D-189): the season's last whole-season ask, or its last window
+   * ask when the window held the kick-off date. The fixture lists are asked
+   * hourly, so a scheduled match whose row has not changed for days was still
+   * checked an hour ago. Null when no such ask is recorded. `last_updated_at`
+   * stays the time of the last change, which is what the freshness rule
+   * measures.
+   */
+  last_checked_at?: string | null;
 }
 
 export interface MatchPeriod {
@@ -176,6 +186,14 @@ export interface MatchAbsence {
  * - `not_asked`: the provider was not asked about this match.
  */
 export type MatchAbsenceGap = 'not_covered' | 'not_yet' | 'not_asked';
+
+/**
+ * How old an absence answer may be before a match page says it may have
+ * changed (rule 4, D-127): the feed is re-asked every three hours before
+ * kick-off, so six hours means at least one re-ask was missed. Shared by the
+ * player page and the match centre (T-1371).
+ */
+export const AVAILABILITY_STALE_AFTER_MS = 6 * 60 * 60 * 1000;
 
 export interface MatchLineupPlayer {
   id: string;

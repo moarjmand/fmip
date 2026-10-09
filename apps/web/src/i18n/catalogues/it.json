@@ -6232,6 +6232,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "matchCentre.lastChecked": {
+    "source": "Data last checked {time}; unchanged since {changed}",
+    "text": "",
+    "status": "untranslated"
+  },
   "matchCentre.onThisPage": {
     "source": "On this page",
     "text": "",
@@ -6790,6 +6795,16 @@
   },
   "matchCentre.keyPlayers.notAsked": {
     "source": "Availability: the provider has not been asked about this match, so none is claimed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.keyPlayers.notCovered": {
+    "source": "Availability: our data provider does not report this competition's absences, so none is claimed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.keyPlayers.notYet": {
+    "source": "Availability: absences are published from about three days before kick-off, so none is claimed yet.",
     "text": "",
     "status": "untranslated"
   },
