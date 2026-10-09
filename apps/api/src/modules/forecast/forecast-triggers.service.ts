@@ -24,6 +24,13 @@ export interface TriggerReport {
   indexes: number;
   /** Fixtures skipped, by reason, so "nothing happened" is explicable. */
   skipped: Record<string, number>;
+  /**
+   * Of the versions written, those due only because the published model
+   * version changed (T-1373, D-191), by the model version they supersede.
+   */
+  replaced: Record<string, number>;
+  /** The version the model service publishes, or null when it could not be asked. */
+  published_model: string | null;
 }
 
 /**
@@ -86,18 +93,29 @@ export class ForecastTriggersService {
     return { fixtures: rows.length, added };
   }
 
-  /** Computes whatever is due across the window. Safe to run as often as you like. */
+  /**
+   * Computes whatever is due across the window. Safe to run as often as you like.
+   *
+   * The model service is asked once which version it publishes (T-1373,
+   * D-191), so a fixture whose newest forecast is another version's gets one
+   * from the new one; when it cannot be asked, that rule waits for a later
+   * tick and every other kind is due as before.
+   */
   async runDue(now: Date = new Date()): Promise<TriggerReport> {
     const states = await this.candidates(now);
+    const health = await this.forecasts.modelHealth();
+    const publishedModel = health.ok ? health.modelVersion : null;
     const report: TriggerReport = {
       considered: states.length,
       computed: {},
       indexes: 0,
       skipped: {},
+      replaced: {},
+      published_model: publishedModel,
     };
 
     for (const state of states) {
-      const due = dueKind(state, now);
+      const due = dueKind(state, now, publishedModel);
       if ('skip' in due) {
         report.skipped[due.skip] = (report.skipped[due.skip] ?? 0) + 1;
         continue;
@@ -111,6 +129,9 @@ export class ForecastTriggersService {
         continue;
       }
       report.computed[due.kind] = (report.computed[due.kind] ?? 0) + 1;
+      if (due.replaces !== undefined) {
+        report.replaced[due.replaces] = (report.replaced[due.replaces] ?? 0) + 1;
+      }
 
       const index = await this.indexes.compute(state.fixtureId, now);
       if (index.kind === 'computed') report.indexes += 2;
@@ -119,6 +140,7 @@ export class ForecastTriggersService {
         event: 'forecast.version_computed',
         fixture_id: state.fixtureId,
         kind: due.kind,
+        replaces: due.replaces ?? null,
         power_index: index.kind,
       });
     }
@@ -140,6 +162,9 @@ export class ForecastTriggersService {
       status: string;
       has_lineup: boolean;
       kinds: string[] | null;
+      newest_model: string | null;
+      newest_kind: string | null;
+      newest_reason: string | null;
     }>(
       `SELECT f.id, f.kickoff_at, f.status,
               EXISTS (
@@ -152,8 +177,22 @@ export class ForecastTriggersService {
               (SELECT array_agg(DISTINCT s.kind)
                  FROM forecast fc
                  JOIN input_snapshot s ON s.id = fc.input_snapshot_id
-                WHERE fc.fixture_id = f.id AND fc.role = 'published') AS kinds
+                WHERE fc.fixture_id = f.id AND fc.role = 'published') AS kinds,
+              newest.model_id AS newest_model, newest.kind AS newest_kind,
+              newest.unavailable_reason AS newest_reason
          FROM fixture f
+         -- The newest published version: which model made it, and its kind
+         -- (T-1373, D-191). Published numbering has no gap, so the highest
+         -- number is the newest.
+         LEFT JOIN LATERAL (
+           SELECT m.model_id, s.kind, fc.unavailable_reason
+             FROM forecast fc
+             JOIN model_version m ON m.id = fc.model_version_id
+             JOIN input_snapshot s ON s.id = fc.input_snapshot_id
+            WHERE fc.fixture_id = f.id AND fc.role = 'published'
+            ORDER BY fc.version_number DESC
+            LIMIT 1
+         ) newest ON true
         WHERE f.status = 'scheduled' AND f.kickoff_at > $1 AND f.kickoff_at <= $2
         ORDER BY f.kickoff_at`,
       [now, until],
@@ -164,6 +203,14 @@ export class ForecastTriggersService {
       status: row.status,
       hasLineup: row.has_lineup,
       existingKinds: (row.kinds ?? []) as ForecastKind[],
+      newestPublished:
+        row.newest_model === null || row.newest_kind === null
+          ? null
+          : {
+              modelVersion: row.newest_model,
+              kind: row.newest_kind as ForecastKind,
+              reason: row.newest_reason,
+            },
     }));
   }
 }

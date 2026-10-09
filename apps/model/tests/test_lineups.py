@@ -25,7 +25,7 @@ from fmip_model.model.lineups import (
     fit_beta,
     xi_before_kickoff,
 )
-from fmip_model.model.version import BASELINE
+from fmip_model.model.version import PUBLISHED
 from fmip_model.service.contract import Forecast, ForecastRequest, XiStrength
 from fmip_model.service.forecaster import Forecaster, TrainingSource
 
@@ -259,7 +259,7 @@ def test_only_a_version_with_the_term_reads_the_xis_and_only_when_both_are_sent(
     assert ask(published, stronger_home).probabilities == ask(published, None).probabilities
 
     candidate = Forecaster(
-        OneLeague(), version=replace(BASELINE, version="0.9.1", lineup_beta=0.4), clock=lambda: NOW
+        OneLeague(), version=replace(PUBLISHED, version="0.9.1", lineup_beta=0.4), clock=lambda: NOW
     )
     without = ask(candidate, None)
     with_xis = ask(candidate, stronger_home)

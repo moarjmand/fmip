@@ -197,8 +197,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect(first.version_number).toBe(before + 1);
       expect(first.kind).toBe('early');
       expect(first.status).toBe('available');
-      expect(first.model_version).toBe('dixon-coles-elo@0.1.0');
-      expect(first.probabilities).toEqual({ home: 0.4637, draw: 0.2622, away: 0.2741 });
+      expect(first.model_version).toBe('dixon-coles-elo@0.6.0');
+      expect(first.probabilities).toEqual({ home: 0.4947, draw: 0.2485, away: 0.2568 });
       expect(first.data_completeness).toBe('available');
       expect(first.unavailable_reason).toBeNull();
 

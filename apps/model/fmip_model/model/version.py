@@ -4,12 +4,23 @@ A forecast is immutable and records which model version produced it (rule 5
 in CLAUDE.md, T-064). Changing any constant here is a new version string, so
 two forecasts that disagree can always be traced to what changed.
 
-``BASELINE`` is the published version. The candidates the service offers for
-shadow forecasts (T-531, D-082) are the files of ``candidates/`` beside this
-file, one per candidate, named ``<name>-<version>.json`` (T-1102, D-140);
-``load_candidates`` reads them all, ``load_candidate`` reads one file, or the
-newest version when given none. With no file, or a file that changes nothing,
-there is no candidate and the service says so.
+Three directories beside this file hold the versions as files, each named
+``<name>-<version>.json`` (T-1102, D-140, D-191):
+
+- ``published/``: exactly one file, the version the site shows. ``PUBLISHED``
+  is read from it; the service answers ``/forecast`` with it.
+- ``candidates/``: the versions in shadow (T-531, D-082). ``load_candidates``
+  reads them all, ``load_candidate`` reads one file, or the newest version
+  when given none. With no file there is no candidate and the service says so.
+- ``retired/``: versions that once forecast and no longer do, kept so their
+  stored forecasts can still be traced to their constants (rule 5).
+
+Promotion (D-191) is moving a file: the candidate's from ``candidates/`` to
+``published/``, the old published one's to ``retired/``. Stored forecasts keep
+the version that made them.
+
+``BASELINE`` is ``dixon-coles-elo@0.1.0``, the first published version, kept
+in code: a version file names only what differs from its constants.
 """
 
 from __future__ import annotations
@@ -47,6 +58,8 @@ CLUB_ELO_PRIORS: frozenset[EloPrior] = frozenset({"clubelo", "clubelo_then_own"}
 #: How far back the service fits from, unless a version says otherwise.
 DEFAULT_HISTORY_DAYS = 400
 CANDIDATES_DIR = Path(__file__).with_name("candidates")
+PUBLISHED_DIR = Path(__file__).with_name("published")
+RETIRED_DIR = Path(__file__).with_name("retired")
 
 
 @dataclass(frozen=True)
@@ -72,7 +85,7 @@ class ModelVersion:
     #: Whether, and with which constants, this version answers a match between
     #: clubs of different leagues (T-533). ``None``: it rates within one league.
     cross_league: CrossLeague | None = None
-    #: Where the Elo prior comes from (T-922). The published version reads Club Elo.
+    #: Where the Elo prior comes from (T-922). 0.1.0 reads Club Elo.
     elo_prior: EloPrior = "clubelo"
 
     @property
@@ -109,6 +122,22 @@ def _version_key(version: ModelVersion) -> tuple[int, ...]:
     return tuple(int(part) for part in version.version.split("."))
 
 
+def load_published(directory: Path = PUBLISHED_DIR) -> ModelVersion:
+    """The published version: the one file of ``directory`` (D-191).
+
+    No file, several files, a file that changes nothing from ``BASELINE`` or
+    one not named after its version is an error, so the service never starts
+    unsure which version it publishes.
+    """
+    files = sorted(directory.glob("*.json")) if directory.is_dir() else []
+    if len(files) != 1:
+        raise ValueError(f"{directory} must hold exactly one version file, not {len(files)}")
+    published = load_candidates(directory)
+    if not published:
+        raise ValueError(f"{files[0].name} changes nothing from {BASELINE.id}")
+    return next(iter(published.values()))
+
+
 def load_candidates(directory: Path = CANDIDATES_DIR) -> dict[str, ModelVersion]:
     """Every candidate in ``directory``, by name: the file's stem, which must be
     ``<name>-<version>`` so that a name always means one version (D-140)."""
@@ -133,10 +162,10 @@ def load_candidate(path: Path | None = None) -> ModelVersion | None:
     means by "the current candidate" unless told another.
 
     The file names a version and, per division, the constants tuning adopted;
-    everything it does not name is the published version's. ``xi``, ``ridge``
-    and ``elo_weight`` at the top level (T-1368, D-186) replace the published
-    version's defaults: ``xi`` and ``ridge`` for every division the file does
-    not list under ``per_division``, ``elo_weight`` everywhere.
+    everything it does not name is ``BASELINE``'s (0.1.0's). ``xi``, ``ridge``
+    and ``elo_weight`` at the top level (T-1368, D-186) replace 0.1.0's
+    defaults: ``xi`` and ``ridge`` for every division the file does not list
+    under ``per_division``, ``elo_weight`` everywhere.
     """
     if path is None:
         candidates = load_candidates()
@@ -193,3 +222,7 @@ def load_candidate(path: Path | None = None) -> ModelVersion | None:
         cross_league=cross_league,
         elo_prior=elo_prior,
     )
+
+
+#: The version the site shows (D-191): ``published/``'s one file.
+PUBLISHED = load_published()

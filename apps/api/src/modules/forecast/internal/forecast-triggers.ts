@@ -27,9 +27,28 @@ export interface FixtureState {
   hasLineup: boolean;
   /** The kinds already recorded for this fixture. */
   existingKinds: readonly ForecastKind[];
+  /**
+   * The newest published version's model, kind and `unavailable` reason
+   * (T-1373, D-191), or null when the fixture has none.
+   */
+  newestPublished: { modelVersion: string; kind: ForecastKind; reason: string | null } | null;
 }
 
-export type Due = { kind: ForecastKind } | { skip: string };
+/**
+ * The model id the API stores when no model version answered: an outage, a
+ * contract violation, an unmapped competition, or the model's own
+ * `unavailable` (T-064). It names no published version.
+ */
+export const NO_MODEL_VERSION = 'none@0.0.0';
+
+/** What a cup match's published version said before D-191 asked the model about it. */
+const NEVER_ASKED = 'cross_competition';
+
+/**
+ * `replaces`: the model version whose newest forecast this one supersedes,
+ * when it is due only because the published version changed (D-191).
+ */
+export type Due = { kind: ForecastKind; replaces?: string } | { skip: string };
 
 /**
  * The kind due for this fixture now, or why none is.
@@ -46,8 +65,21 @@ export type Due = { kind: ForecastKind } | { skip: string };
  * line-up as a predicted one, or computing a version from nothing new. It stays
  * available to an operator over HTTP, which is the honest place for a judgement
  * nobody's data can make.
+ *
+ * **A new published version** (T-1373, D-191) is the one exception to "once
+ * each": when `publishedModel` -- the version the model service publishes
+ * now, null when it cannot be asked -- differs from the model version of the
+ * fixture's newest published forecast, that kind is due once more, so a
+ * match inside the window shows the new version before kick-off rather than
+ * the replaced one until its line-ups arrive. The old versions stay as they
+ * are (rule 5). It is due once: afterwards the newest forecast is the new
+ * version's, or `none@0.0.0` when the model could not answer, which names no
+ * version and is never retried. The one `none@0.0.0` it does replace, once,
+ * is `cross_competition`: a cup match the published version was never asked
+ * about before D-191 put such matches to it; the answer to that question is
+ * never `cross_competition` again, so it too is due once.
  */
-export function dueKind(state: FixtureState, now: Date): Due {
+export function dueKind(state: FixtureState, now: Date, publishedModel: string | null = null): Due {
   if (state.status !== 'scheduled') {
     return {
       skip: `status is ${state.status}, and a pre-match version is only due before kick-off`,
@@ -66,6 +98,20 @@ export function dueKind(state: FixtureState, now: Date): Due {
     return { skip: `kick-off is ${Math.floor(daysAway)} days away` };
   }
   if (!has('early')) return { kind: 'early' };
+
+  const newest = state.newestPublished;
+  if (
+    publishedModel !== null &&
+    newest !== null &&
+    newest.modelVersion !== publishedModel &&
+    (newest.modelVersion !== NO_MODEL_VERSION || newest.reason === NEVER_ASKED)
+  ) {
+    // `lineups_predicted` is an operator's judgement, never this function's.
+    if (newest.kind === 'lineups_predicted') {
+      return { skip: 'the newest version is an operator’s; the new model waits for the next kind' };
+    }
+    return { kind: newest.kind, replaces: newest.modelVersion };
+  }
 
   return {
     skip: state.hasLineup

@@ -9,8 +9,8 @@ model's Docker image (docs/15-model.md). Per division, one walk-forward with
 the fit dates of ``backtest.inputs`` (fit the day before, refit at most weekly,
 60 matches of history first) forecasts the same matches three times:
 
-- ``published``: the published version (``BASELINE``) with its Club Elo prior
-  as last cached (none on a store that holds no Club Elo snapshot);
+- ``published``: the published version (``PUBLISHED``, D-191) with its own
+  prior;
 - ``reference``: what the proposal must beat -- by default the newest other
   candidate in ``fmip_model/model/candidates/``, else the published version;
 - ``proposed``: the file's version, with its own constants and prior.
@@ -54,7 +54,7 @@ from pathlib import Path
 import psycopg
 
 from ..model.dixon_coles import FittedModel, MatchObservation
-from ..model.version import BASELINE, ModelVersion, load_candidate, load_candidates
+from ..model.version import PUBLISHED, ModelVersion, load_candidate, load_candidates
 from ..training.own_elo import read_matches
 from ..training.sources import FOOTBALL_DATA, season_label
 from .__main__ import load_matches
@@ -164,7 +164,7 @@ def run_division(
     *,
     proposed: ModelVersion,
     reference: ModelVersion,
-    published: ModelVersion = BASELINE,
+    published: ModelVersion = PUBLISHED,
     elo_for: Callable[[ModelVersion], EloOn | None] = lambda _version: None,
     min_history: int = 60,
     refit_every_days: int = 7,
@@ -377,7 +377,7 @@ def report_body(
     return {
         "proposed": proposed.id,
         "reference": reference.id,
-        "published": BASELINE.id,
+        "published": PUBLISHED.id,
         "window": [window[0].isoformat(), window[1].isoformat()],
         "history_from": history_from.isoformat(),
         "note": note,
@@ -400,7 +400,7 @@ def report_body(
         ],
         "not_exercised": not_exercised(proposed, reference),
         "versions": {
-            "published": BASELINE.as_dict(),
+            "published": PUBLISHED.as_dict(),
             "reference": reference.as_dict(),
             "proposed": proposed.as_dict(),
         },
@@ -647,13 +647,13 @@ def choose_reference(proposed: ModelVersion, against: str | None) -> ModelVersio
     """``--against``: a candidate's name, ``published``, or by default the newest
     candidate in shadow other than the proposal, else the published version."""
     if against == "published":
-        return BASELINE
+        return PUBLISHED
     candidates = load_candidates()
     if against:
         return candidates.get(against)
     others = [c for c in candidates.values() if c.id != proposed.id]
     if not others:
-        return BASELINE
+        return PUBLISHED
     return max(others, key=lambda v: tuple(int(p) for p in v.version.split(".")))
 
 

@@ -3,67 +3,67 @@
   "status": "available",
   "computed_at": "2025-03-01T12:00:00Z",
   "probabilities": {
-    "home": 0.4637,
-    "draw": 0.2622,
-    "away": 0.2741
+    "home": 0.4947,
+    "draw": 0.2485,
+    "away": 0.2568
   },
   "expected_goals": {
-    "home": 1.49,
-    "away": 1.084
+    "home": 1.552,
+    "away": 1.039
   },
   "most_likely_scorelines": [
     {
       "home": 1,
-      "away": 1,
-      "probability": 0.1247
+      "away": 0,
+      "probability": 0.1192
     },
     {
       "home": 1,
-      "away": 0,
-      "probability": 0.112
+      "away": 1,
+      "probability": 0.118
     },
     {
       "home": 2,
       "away": 1,
-      "probability": 0.0917
+      "probability": 0.0938
     },
     {
       "home": 2,
       "away": 0,
-      "probability": 0.0846
+      "probability": 0.0902
     },
     {
       "home": 0,
       "away": 1,
-      "probability": 0.0811
+      "probability": 0.0807
     }
   ],
   "leading_factors": [
     {
       "factor": "team_strength",
       "favours": "home",
-      "magnitude": 0.263,
+      "magnitude": 0.285,
       "note": "net strength (attack minus defence) from recent results and the Elo prior"
     },
     {
       "factor": "attack_vs_defence",
       "favours": "home",
-      "magnitude": 0.263,
+      "magnitude": 0.285,
       "note": "how the sides' attacks match up against the opposing defences"
     },
     {
       "factor": "home_advantage",
       "favours": "home",
-      "magnitude": 0.056,
+      "magnitude": 0.116,
       "note": "league-wide home advantage learned from the training window"
     }
   ],
   "inputs": {
-    "model_version": "dixon-coles-elo@0.1.0",
+    "model_version": "dixon-coles-elo@0.6.0",
     "fit_date": "2025-02-28",
-    "matches_used": 100,
+    "matches_used": 145,
     "elo_used": true,
-    "history_from": "2024-01-25",
+    "history_from": "2022-02-24",
     "data_completeness": "available"
   }
 }

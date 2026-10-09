@@ -10,7 +10,7 @@ from ..model.cross_league import CROSS_LEAGUE, fit_joint, groups_for
 from ..model.dixon_coles import FittedModel, MatchObservation, fit
 from ..model.lineups import adjusted
 from ..model.poisson import outcome_from_matrix, score_matrix
-from ..model.version import BASELINE, ModelVersion
+from ..model.version import PUBLISHED, ModelVersion
 from .contract import (
     EloSourceState,
     ExpectedGoals,
@@ -75,7 +75,7 @@ class Forecaster:
     def __init__(
         self,
         source: TrainingSource,
-        version: ModelVersion = BASELINE,
+        version: ModelVersion = PUBLISHED,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         self.source = source

@@ -33,7 +33,7 @@ from pathlib import Path
 import psycopg
 
 from ..model.own_elo import RULES, EloMatch, compute, for_division
-from ..model.version import ModelVersion, load_candidate
+from ..model.version import PUBLISHED, ModelVersion, load_candidate
 from ..training.own_elo import read_matches
 from .__main__ import load_matches
 from .walk_forward import BacktestMatch, BacktestResult, ScoredForecast, scorecard, walk_forward
@@ -238,10 +238,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not database_url:
         print("DATABASE_URL is not set", file=sys.stderr)
         return 2
-    version = load_candidate()
-    if version is None:
-        print("no candidate version to backtest", file=sys.stderr)
-        return 2
+    version = load_candidate() or PUBLISHED
     divisions = args.divisions or sorted(version.per_division)
     window = (args.window_from, args.window_to)
 

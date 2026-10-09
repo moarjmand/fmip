@@ -33,7 +33,7 @@ from typing import Literal
 from ..model.dixon_coles import FittedModel, MatchObservation, fit
 from ..model.lineups import LineupSample, RecordedXi, adjusted, fit_beta
 from ..model.poisson import outcome_from_matrix, score_matrix
-from ..model.version import BASELINE, ModelVersion, load_candidate
+from ..model.version import PUBLISHED, ModelVersion, load_candidate
 from .inputs import BAR, Bar, paired_bootstrap
 from .metrics import Forecast, Result, log_loss
 
@@ -183,7 +183,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     from ..model.data import every_match_before
     from ..model.lineups import xi_before_kickoff
 
-    version = load_candidate() or BASELINE
+    version = load_candidate() or PUBLISHED
     with psycopg.connect(database_url) as conn:
         xis = xi_before_kickoff(conn, args.divisions)
         if args.from_ is not None:

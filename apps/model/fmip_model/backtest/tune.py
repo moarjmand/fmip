@@ -7,16 +7,18 @@
 
 For each division every (xi, ridge) pair on the grid is walked forward over
 the tuning window, and the pair with the lowest log loss there is then walked
-over the test window -- a season the search never saw -- beside the published
-constants. A tuned pair is adopted only where it also beats them on the test
-window by at least ``MIN_GAIN``: a pair that wins only where it was chosen has
-found noise, and the answer "keep the published constants" is allowed and
-expected for most divisions.
+over the test window -- a season the search never saw -- beside the
+constants of ``BASELINE`` (0.1.0, the first published version). A tuned pair
+is adopted only where it also beats them on the test window by at least
+``MIN_GAIN``: a pair that wins only where it was chosen has found noise, and
+the answer "keep the base constants" is allowed and expected for most
+divisions.
 
-``--candidate <file>`` tunes on top of a candidate instead of the published
-version (T-1372): every pair is fitted with the candidate's history window,
-Elo weight and prior, reading only its ``history_days`` before each fit date,
-and is judged against the candidate's own constants for the division.
+``--candidate <file>`` tunes on top of a version file instead (T-1372): a
+candidate, or ``published/``'s since 0.1.0 was replaced (D-191). Every pair
+is fitted with that version's history window, Elo weight and prior, reading
+only its ``history_days`` before each fit date, and is judged against that
+version's own constants for the division.
 ``--test-grid`` also walks every pair over the test window, so the report
 shows whether the chosen pair's neighbours agree. The report goes to
 ``--out`` (``/tmp`` when run on the production server, which keeps no file).
