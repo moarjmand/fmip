@@ -1,4 +1,4 @@
-import type { KeyPlayer, KeyPlayersSide } from '@fmip/contracts';
+import type { KeyPlayer, KeyPlayers, KeyPlayersSide } from '@fmip/contracts';
 import { KEY_PLAYERS_PER_SIDE } from '@fmip/contracts';
 import { formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
@@ -61,6 +61,37 @@ export function availabilityLine(player: KeyPlayer, locale = 'en'): string | nul
   const status = t(l, a.status === 'out' ? 'matchCentre.out' : 'matchCentre.doubtful');
   return a.reason === null ? status : `${status} · ${a.reason}`;
 }
+
+/**
+ * What the key players' footer says about absences (T-1371): the match
+ * centre's own state for the match, served by the API as
+ * `availability_gap`, so the footer and the Availability module on the same
+ * page never disagree. A gap wins over an ask: an ask in a competition the
+ * provider has no absences for is no answer.
+ */
+export type KeyPlayersAbsenceState =
+  | { kind: 'asked'; at: string }
+  | { kind: 'not_covered' }
+  | { kind: 'not_yet' }
+  | { kind: 'not_asked' };
+
+export function absenceState(
+  players: Pick<KeyPlayers, 'availability_asked_at' | 'availability_gap'>,
+): KeyPlayersAbsenceState {
+  const gap = players.availability_gap ?? null;
+  if (gap === 'not_covered' || gap === 'not_yet') return { kind: gap };
+  if (gap === null && players.availability_asked_at !== null) {
+    return { kind: 'asked', at: players.availability_asked_at };
+  }
+  return { kind: 'not_asked' };
+}
+
+/** The footer's words for a state that has no time in it. */
+export const ABSENCE_STATE_KEY = {
+  not_covered: 'matchCentre.keyPlayers.notCovered',
+  not_yet: 'matchCentre.keyPlayers.notYet',
+  not_asked: 'matchCentre.keyPlayers.notAsked',
+} as const satisfies Record<Exclude<KeyPlayersAbsenceState['kind'], 'asked'>, string>;
 
 /** How much of the team's season the figures cover. */
 export function coverageLine(side: KeyPlayersSide, locale = 'en'): string {

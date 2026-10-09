@@ -8466,3 +8466,69 @@ a wrong pair puts one club's highlights on another club's page, so a person
 signs each batch. *Name similarity as a tie-breaker*: the first time it is
 wrong it is invisible (D-077). *A provider-shaped fetch inside the script*:
 it would be a fourth reader of Highlightly's fields outside the adapter.
+
+## D-189 — A freshness time says its day; the match header says when the match was last checked
+**Status:** Accepted · 2026-10-09 · **Task:** T-1371 · **Follows:** D-045, D-127, rule 4
+
+**Context.** A read-only production audit on 2026-10-08 found the match
+page saying «آخرین به‌روزرسانی داده‌ها ۱۶:۱۵» for Tractor v Esteghlal: the
+fixture row's last change, 2026-09-26 16:15 UTC, printed as a clock reading
+with no date, so twelve days ago read as this afternoon. The value was also
+the wrong one to show: the fixture lists are asked every hour, and a
+scheduled match whose row has not changed since the 26th was confirmed by
+the provider an hour ago. Nothing recorded that confirmation.
+
+**Decision.**
+- **Every freshness time says its day unless it is today** in the viewer's
+  zone (`freshnessStamp` in `apps/web/src/lib/scores.ts`): today is the
+  clock reading ("16:15"); another day is "yesterday" or "12 days ago",
+  from `Intl.RelativeTimeFormat` in the reader's language, with the date
+  and time beside it. Days are calendar days in the viewer's zone, not
+  24-hour spans. A render with no clock says the full date and time. The
+  match header, the Availability module's "asked", the key players' footer,
+  the score card's "Updated" and "behind" lines and the scores block's
+  "Updated" all use it.
+- **`MatchHeader.last_checked_at`** comes from `season_fixture_poll`
+  (migration `1765847000000`), written once per season and provider per
+  fixtures run, never per match: when a season's list was answered, the
+  window of days it covered and when, and when the whole season was last
+  answered (the daily sweep, a backfill). A match was checked at the window
+  ask when its kick-off date (UTC) is inside the window, and at the
+  whole-season ask in any case; the newest across providers counts. A
+  refused ask writes nothing, so the last answer stands. The header shows
+  "Data last checked {time}; unchanged since {changed}" when the check is
+  newer than the last change, otherwise "Last data update {time}" as
+  before.
+  `last_updated_at` stays the last change: D-045's "behind" rule measures
+  change, not polling, and is unchanged.
+- **Stale wording where a rule sets a threshold.** D-045 (a live match
+  unchanged for two minutes) already shows "behind" on the header and the
+  card. D-127's six hours now also applies to the match centre's absence
+  answer before kick-off ("may have changed"), with the threshold shared as
+  `AVAILABILITY_STALE_AFTER_MS` in `@fmip/contracts`. After kick-off the
+  answer is history and carries no stale words. A scheduled match's fixture
+  data has no threshold of its own: no rule sets one, and the dated label
+  is the honest answer.
+
+**Rejected.** *A timestamp per fixture* (moving
+`provider_mapping.last_seen_at` on every fixture write): one more row write
+per match per poll, thousands an hour with whole-season lists, on a
+database that already writes about 5.2 GB of WAL a day for 909 MB of data,
+which is what set the three-day PITR window (D-157). A throttle to once an
+hour saves nothing against an hourly poll. *Deriving "checked" from
+`ingest_run`*: runs are global, a `partial` run does not say which
+competition failed, and the window a run asked for is not stored, so the
+claim could not be made per match. *The live and line-up jobs as checks*:
+they ask about matches by id, and a live match's freshness is D-045's,
+measured by change; the fixtures job's hourly answer is enough for the
+header.
+*Showing the newer of the two times under "Last data update"*: a check is
+not an update, and the reader would lose when the data last changed.
+*Absolute dates only*: "26 Sept 2026, 16:15" is honest but makes the reader
+do the arithmetic the page can do.
+
+**Consequences.** One upsert per season (and per other season a list
+straddles) per fixtures run: a few dozen small writes an hour, whatever
+the number of matches. Before the first run after deployment no check is
+recorded and the header says the last change, as before. A new freshness
+surface uses `freshnessStamp`, not `formatTime`.

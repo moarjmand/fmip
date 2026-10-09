@@ -8,12 +8,13 @@ import type {
   MatchPlayerStats,
   PlayerMatchMetric,
 } from '@fmip/contracts';
+import { AVAILABILITY_STALE_AFTER_MS } from '@fmip/contracts';
 import { formatNumber } from '@/i18n/format';
 import type { Message } from '@/i18n/messages';
 import Link from 'next/link';
 import { INCIDENT_KEY, NOT_YET, STAT_KEY, statValue } from '@/lib/match';
 import { isBehind } from '@/lib/live';
-import { formatKickoff, statusLabel } from '@/lib/scores';
+import { formatStamp, freshnessStamp, statusLabel } from '@/lib/scores';
 import { fill, filled, formatFixed, formatMinute } from '@/lib/words';
 import { stageAndRound, stageLabel } from '@/lib/stage-label';
 import type { MatchWords } from '@/lib/words-server';
@@ -152,7 +153,30 @@ export function MatchCentreView({
     f.status === 'finished' ? (f.scores.full_time ?? f.scores.current) : f.scores.current;
   const behind = now !== undefined && isBehind(f, now);
   const status = statusLabel(f, locale, timeZone, now, m);
-  const at = (iso: string) => <time dateTime={iso}>{formatKickoff(locale, iso, timeZone)}</time>;
+  // Every freshness time on the page says its day when it is not today (T-1371).
+  // No clock (a pure render without one) says the full date and time.
+  const clock = now;
+  const at = (iso: string) => (
+    <time dateTime={iso}>{formatStamp(locale, iso, timeZone, clock)}</time>
+  );
+  // The fixture lists re-ask hourly; a check after the last change is the
+  // newer truth about the match, and the change keeps its own time (D-189).
+  const checked =
+    f.last_checked_at != null && Date.parse(f.last_checked_at) > Date.parse(f.last_updated_at)
+      ? f.last_checked_at
+      : null;
+  const asked = centre.availability.last_updated_at;
+  // An absence answer before kick-off is re-asked every three hours (D-127).
+  const askedStamp =
+    asked === null
+      ? null
+      : freshnessStamp(
+          locale,
+          asked,
+          timeZone,
+          clock,
+          f.status === 'scheduled' ? AVAILABILITY_STALE_AFTER_MS : undefined,
+        );
   const venue =
     f.venue === null ? null : `${f.venue.name}${f.venue.city !== null ? `, ${f.venue.city}` : ''}`;
   const moduleState = (coverage: Covered<unknown>['coverage']): Message =>
@@ -325,11 +349,18 @@ export function MatchCentreView({
               />
             </li>
           )}
-          <li>
-            <FilledMessage
-              message={m['matchCentre.lastUpdate']}
-              params={{ time: at(f.last_updated_at) }}
-            />
+          <li data-testid="last-update">
+            {checked === null ? (
+              <FilledMessage
+                message={m['matchCentre.lastUpdate']}
+                params={{ time: at(f.last_updated_at) }}
+              />
+            ) : (
+              <FilledMessage
+                message={m['matchCentre.lastChecked']}
+                params={{ time: at(checked), changed: at(f.last_updated_at) }}
+              />
+            )}
           </li>
         </ul>
       </header>
@@ -615,15 +646,23 @@ export function MatchCentreView({
         >
           {(absences) =>
             absences.length === 0 ? (
-              <p className="text-sm">
-                {centre.availability.last_updated_at === null ? (
+              <p className="text-sm" data-testid="no-absences">
+                {askedStamp === null ? (
                   <MessageText message={m['matchCentre.noAbsences']} />
                 ) : (
-                  <MessageText
-                    message={filled(m['matchCentre.noAbsencesAsked'], {
-                      time: formatKickoff(locale, centre.availability.last_updated_at, timeZone),
-                    })}
-                  />
+                  <>
+                    <MessageText
+                      message={filled(m['matchCentre.noAbsencesAsked'], {
+                        time: askedStamp.text,
+                      })}
+                    />
+                    {askedStamp.stale && (
+                      <>
+                        {' '}
+                        <MessageText message={m['player.availability.stale']} />
+                      </>
+                    )}
+                  </>
                 )}
               </p>
             ) : (
