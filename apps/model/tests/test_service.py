@@ -12,7 +12,15 @@ import pytest
 from fastapi.testclient import TestClient
 
 from fmip_model.model.dixon_coles import MatchObservation
-from fmip_model.model.version import BASELINE, CANDIDATES_DIR, load_candidate, load_candidates
+from fmip_model.model.version import (
+    BASELINE,
+    PUBLISHED,
+    PUBLISHED_DIR,
+    RETIRED_DIR,
+    load_candidate,
+    load_candidates,
+    load_published,
+)
 from fmip_model.service.app import create_app
 from fmip_model.service.contract import ForecastRequest
 from fmip_model.service.forecaster import Forecaster, TrainingSource
@@ -98,7 +106,7 @@ def test_health_names_the_model_version() -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "ok" and body["service"] == "model"
-    assert body["model_version"] == BASELINE.id
+    assert body["model_version"] == PUBLISHED.id == "dixon-coles-elo@0.6.0"
     # A source that keeps no loads reports no Elo state, rather than a made-up one.
     assert body["elo_source"] is None
 
@@ -123,7 +131,7 @@ def test_forecast_is_a_complete_probability_statement() -> None:
         "neither",
     }
     inputs = body["inputs"]
-    assert inputs["model_version"] == BASELINE.id
+    assert inputs["model_version"] == PUBLISHED.id
     assert inputs["fit_date"] == "2025-03-01"  # the day before kick-off
     assert inputs["elo_used"] is False
     assert inputs["data_completeness"] == "limited"  # no Elo prior in this fake
@@ -132,7 +140,7 @@ def test_forecast_is_a_complete_probability_statement() -> None:
 
 
 def test_completeness_is_available_only_with_elo_and_enough_history() -> None:
-    response = client(FakeSource(seasons=12, with_elo=True)).post("/forecast", json=request())
+    response = client(FakeSource(seasons=12, with_own_elo=True)).post("/forecast", json=request())
     inputs = response.json()["inputs"]
     assert inputs["elo_used"] is True
     assert inputs["matches_used"] >= 60
@@ -148,7 +156,7 @@ def test_completeness_is_available_only_with_elo_and_enough_history() -> None:
                 m for m in rows if "Man United" in (m.home, m.away)
             ][:3]
 
-    thin = client(ThinHistory(seasons=12, with_elo=True)).post("/forecast", json=request())
+    thin = client(ThinHistory(seasons=12, with_own_elo=True)).post("/forecast", json=request())
     assert thin.json()["inputs"]["data_completeness"] == "limited"
 
 
@@ -204,7 +212,7 @@ def test_never_fits_past_today() -> None:
 def test_writes_the_contract_examples_apps_api_reads() -> None:
     """Golden request and response, deterministic, so the TypeScript side can
     validate its types against what this service really emits."""
-    forecaster = Forecaster(FakeSource(seasons=12, with_elo=True), clock=lambda: FROZEN_NOW)
+    forecaster = Forecaster(FakeSource(seasons=12, with_own_elo=True), clock=lambda: FROZEN_NOW)
     req = ForecastRequest.model_validate(request())
     available = forecaster.forecast(req)
     unavailable = forecaster.forecast(
@@ -244,7 +252,7 @@ def test_a_candidate_answers_under_its_own_version_with_its_own_constants() -> N
 
     published = app.post("/forecast", json=request()).json()
     shadow = app.post("/forecast/candidate/dixon-coles-elo-0.2.0", json=request()).json()
-    assert published["inputs"]["model_version"] == BASELINE.id
+    assert published["inputs"]["model_version"] == PUBLISHED.id
     assert shadow["inputs"]["model_version"] == "dixon-coles-elo@0.2.0"
     # Different constants for this division: a different answer to the same question.
     assert shadow["probabilities"] != published["probabilities"]
@@ -272,11 +280,11 @@ def test_the_candidate_file_names_only_what_changes(tmp_path: Path) -> None:
     assert version.history_days == 1100
 
 
-def test_the_published_version_reads_club_elo_only_and_a_candidate_reads_ours() -> None:
+def test_0_1_0_published_read_club_elo_only_and_a_candidate_reads_ours() -> None:
     """T-922, D-111: the prior a version fits with is the version's, never a fallback of its own."""
     own = replace(BASELINE, version="0.5.0", elo_prior="own")
     source = FakeSource(with_elo=False, with_own_elo=True)
-    app = TestClient(create_app(source, {"dixon-coles-elo-0.5.0": own}))
+    app = TestClient(create_app(source, {"dixon-coles-elo-0.5.0": own}, published=BASELINE))
 
     published = app.post("/forecast", json=request()).json()
     shadow = app.post("/forecast/candidate/dixon-coles-elo-0.5.0", json=request()).json()
@@ -316,14 +324,14 @@ def test_the_candidate_file_names_its_prior_and_refuses_an_unknown_one(tmp_path:
         load_candidate(wrong)
 
 
-def test_the_newest_committed_candidate_is_0_6_0_which_is_0_5_0_plus_ir1() -> None:
-    candidate = load_candidate()
-    assert candidate is not None
+def test_the_published_version_is_0_6_0_which_is_0_5_0_plus_ir1() -> None:
+    """D-191: 0.6.0 replaced 0.1.0 on the site; its constants are D-190's, unchanged."""
+    candidate = PUBLISHED
     assert candidate.id == "dixon-coles-elo@0.6.0"
     assert candidate.elo_prior == "own"
     assert candidate.cross_league is not None  # 0.4.0's cup fit, carried unchanged
     # T-1372, D-190: the Persian Gulf Pro League's tuned constants are the only change.
-    previous = load_candidates()["dixon-coles-elo-0.5.0"]
+    previous = load_candidates(RETIRED_DIR)["dixon-coles-elo-0.5.0"]
     assert candidate.constants_for("IR1") == (0.002, 3.0)
     assert previous.constants_for("IR1") == (previous.xi, previous.ridge)
     assert dict(candidate.per_division) == {**previous.per_division, "IR1": (0.002, 3.0)}
@@ -366,13 +374,33 @@ def test_a_candidate_file_is_named_after_its_version(tmp_path: Path) -> None:
         load_candidates(tmp_path)
 
 
-def test_0_5_0_keeps_its_version_in_the_directory_so_its_record_continues() -> None:
-    """T-535 counts 0.5.0's pre-kick-off forecasts by its model version: moving the
-    file into candidates/ must not rename it."""
-    committed = load_candidates()
-    assert committed["dixon-coles-elo-0.5.0"].id == "dixon-coles-elo@0.5.0"
-    # 0.6.0 (T-1372) is newer and runs beside it; 0.5.0's record goes on.
-    assert committed["dixon-coles-elo-0.5.0"] == load_candidate(
-        CANDIDATES_DIR / "dixon-coles-elo-0.5.0.json"
+def test_the_promotion_moved_files_and_renamed_no_version() -> None:
+    """D-191: 0.6.0's file went from candidates/ to published/ and 0.5.0's to retired/,
+    each under the version its stored forecasts carry; nothing is left in shadow."""
+    assert load_candidates() == {}
+    assert load_candidate() is None
+    assert (
+        load_published()
+        == PUBLISHED
+        == load_candidate(PUBLISHED_DIR / "dixon-coles-elo-0.6.0.json")
     )
-    assert load_candidate() == committed["dixon-coles-elo-0.6.0"]
+    retired = load_candidates(RETIRED_DIR)
+    assert list(retired) == ["dixon-coles-elo-0.5.0"]
+    assert retired["dixon-coles-elo-0.5.0"].id == "dixon-coles-elo@0.5.0"
+    app = TestClient(create_app(FakeSource()))
+    assert app.get("/candidates").json() == {"candidates": []}
+    assert app.get("/health").json()["model_version"] == "dixon-coles-elo@0.6.0"
+
+
+def test_the_published_directory_holds_exactly_one_version(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="exactly one"):
+        load_published(tmp_path)
+    (tmp_path / "dixon-coles-elo-0.7.0.json").write_text(
+        json.dumps({"version": "0.7.0", "elo_prior": "own"})
+    )
+    assert load_published(tmp_path).id == "dixon-coles-elo@0.7.0"
+    (tmp_path / "dixon-coles-elo-0.8.0.json").write_text(
+        json.dumps({"version": "0.8.0", "elo_prior": "own"})
+    )
+    with pytest.raises(ValueError, match="exactly one"):
+        load_published(tmp_path)

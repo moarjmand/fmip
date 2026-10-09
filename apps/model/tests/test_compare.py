@@ -10,6 +10,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from fmip_model.backtest import compare
 from fmip_model.backtest.compare import (
     DivisionResult,
     _within_history,
@@ -23,7 +24,7 @@ from fmip_model.backtest.compare import (
 )
 from fmip_model.backtest.metrics import Forecast
 from fmip_model.backtest.walk_forward import BacktestMatch
-from fmip_model.model.version import BASELINE, load_candidate, load_candidates
+from fmip_model.model.version import BASELINE, PUBLISHED, load_candidate, load_candidates
 
 TEAMS = [f"C{i}" for i in range(10)]
 START = date(2024, 8, 1)
@@ -184,11 +185,20 @@ def test_a_candidate_file_can_set_the_default_constants_and_the_elo_weight(
         load_candidate(negative)
 
 
-def test_the_reference_is_the_newest_other_candidate_else_published() -> None:
-    committed = load_candidates()
-    newest = max(committed.values(), key=lambda v: tuple(map(int, v.version.split("."))))
-    proposal = replace(newest, version="99.0.0")
-    assert choose_reference(proposal, None) == newest
-    assert choose_reference(newest, None) in (*committed.values(), BASELINE)
-    assert choose_reference(proposal, "published") == BASELINE
+def test_the_reference_is_the_newest_other_candidate_else_published(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # None in shadow since 0.6.0 was published (D-191): the reference is the published version.
+    assert load_candidates() == {}
+    proposal = replace(PUBLISHED, version="99.0.0")
+    assert choose_reference(proposal, None) == PUBLISHED
+    assert choose_reference(proposal, "published") == PUBLISHED
     assert choose_reference(proposal, "no-such-name") is None
+
+    older = replace(PUBLISHED, version="0.7.0")
+    newer = replace(PUBLISHED, version="0.8.0")
+    shadow = {"dixon-coles-elo-0.7.0": older, "dixon-coles-elo-0.8.0": newer}
+    monkeypatch.setattr(compare, "load_candidates", lambda: shadow)
+    assert choose_reference(proposal, None) == newer
+    assert choose_reference(newer, None) == older
+    assert choose_reference(proposal, "dixon-coles-elo-0.7.0") == older

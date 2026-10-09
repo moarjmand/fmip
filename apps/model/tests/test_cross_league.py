@@ -23,7 +23,7 @@ from fmip_model.model.cross_league import (
     joint_problem,
 )
 from fmip_model.model.dixon_coles import MatchObservation, fit
-from fmip_model.model.version import BASELINE, CrossLeague, load_candidate
+from fmip_model.model.version import BASELINE, PUBLISHED, CrossLeague, load_candidate
 from fmip_model.service.contract import ForecastRequest
 from fmip_model.service.forecaster import Forecaster, TrainingSource
 
@@ -215,11 +215,17 @@ def ask(forecaster: Forecaster, home: str = HOME, away: str = AWAY) -> object:
     )
 
 
-def test_the_published_version_says_it_rates_within_one_league() -> None:
-    answer = ask(Forecaster(TwoLeagues(), clock=lambda: NOW))
+def test_a_version_without_the_scale_says_it_rates_within_one_league() -> None:
+    answer = ask(Forecaster(TwoLeagues(), version=BASELINE, clock=lambda: NOW))
     assert answer.status == "unavailable"  # type: ignore[attr-defined]
     assert answer.reason == "division_not_loaded"  # type: ignore[attr-defined]
     assert "within one league" in answer.detail  # type: ignore[attr-defined]
+
+
+def test_the_published_version_carries_the_scale() -> None:
+    """0.6.0 (D-191) carries 0.4.0's cup fit; the API still asks it nothing about a
+    match between leagues, which keeps saying why it has none (D-085, D-191)."""
+    assert PUBLISHED.cross_league is not None
 
 
 def test_a_version_with_the_scale_answers_under_its_own_name() -> None:

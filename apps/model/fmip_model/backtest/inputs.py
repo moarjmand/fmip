@@ -7,9 +7,10 @@ Per division, one walk-forward with the fit dates of ``backtest.elo_prior``
 (fit the day before, refit at most weekly, 60 matches of history first)
 scores three forecasters on the same matches:
 
-- ``published``: the published version (``BASELINE``) with its Club Elo prior
-  (the newest rating cached on or before each fit date);
-- ``candidate``: the current candidate with its own constants and prior;
+- ``published``: the published version (``PUBLISHED``, D-191) with its own
+  prior;
+- ``candidate``: the current candidate (else the published version) with its
+  own constants and prior;
 - ``with_input``: the candidate's very fits, with the input's term fitted on
   the same history and applied to the match.
 
@@ -42,7 +43,7 @@ from numpy.typing import NDArray
 from ..inputs import InputContext, ModelInput, Term, available, before, load
 from ..model.dixon_coles import FittedModel, MatchObservation
 from ..model.poisson import outcome_from_matrix, score_matrix
-from ..model.version import BASELINE, ModelVersion, load_candidate, load_candidates
+from ..model.version import PUBLISHED, ModelVersion, load_candidate, load_candidates
 from ..training.own_elo import read_matches
 from .__main__ import load_matches
 from .elo_prior import OwnEloByDay, last_cached_clubelo
@@ -133,7 +134,7 @@ def run_division(
     *,
     candidate: ModelVersion,
     model_input: ModelInput,
-    published: ModelVersion = BASELINE,
+    published: ModelVersion = PUBLISHED,
     published_elo: EloOn | None = None,
     candidate_elo: EloOn | None = None,
     min_history: int = 60,
@@ -459,7 +460,7 @@ def report_body(
     return {
         "input": name,
         "description": description,
-        "published": BASELINE.id,
+        "published": PUBLISHED.id,
         "candidate": candidate.id,
         "window": [window[0].isoformat(), window[1].isoformat()],
         "note": note,
@@ -583,7 +584,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not database_url:
         print("DATABASE_URL is not set", file=sys.stderr)
         return 2
-    candidate = load_candidates().get(args.candidate) if args.candidate else load_candidate()
+    candidate = (
+        load_candidates().get(args.candidate) if args.candidate else load_candidate() or PUBLISHED
+    )
     if candidate is None:
         print(f"no candidate {args.candidate} to add an input to", file=sys.stderr)
         return 2
@@ -629,7 +632,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 window,
                 candidate=candidate,
                 model_input=model_input,
-                published_elo=prior_for(BASELINE, clubelo_on, own_on),
+                published_elo=prior_for(PUBLISHED, clubelo_on, own_on),
                 candidate_elo=prior_for(candidate, clubelo_on, own_on),
             )
         except ValueError as error:  # no match in the window could be forecast
