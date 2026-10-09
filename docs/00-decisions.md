@@ -8501,3 +8501,111 @@ for half the matches. *A per-league window*: `history_days` is one number
 per version, and 0.5.0's 1,100 days already reach back to the start of our
 IR1 records. *Waiting for 300 backtest matches before shadow*: the shadow
 record is the evidence D-082 relies on, and waiting only delays it.
+
+---
+
+## D-191 — dixon-coles-elo@0.6.0 replaces 0.1.0 on the site, as a recorded exception to D-082's floor of 300
+**Status:** Accepted · 2026-10-09 (decided by the maintainer) · **Task:** T-1373 · **Follows:** D-031, D-082, D-085, D-139, D-140, D-162, D-186, D-187, D-190
+
+**Context.** D-082 promotes a candidate only on its own record: at least
+300 of its pre-kick-off forecasts evaluated, then a decision entry with the
+numbers (T-535, T-1151). `dixon-coles-elo@0.1.0` has been the published
+version since Phase 1; since Club Elo stopped answering (D-162) it fits with
+no prior, and in the Persian Gulf Pro League its forecasts are visibly wrong
+(D-190: Tractor v Esteghlal published at 55.8% draw, on 0.51 v 0.30 expected
+goals; the match ended 1-1, where 0.6.0 says home 46.0%, draw 34.4%, away
+19.6%). Neither candidate in shadow is near 300 of its own: 0.6.0 entered
+shadow with T-1372 and IR1 alone reaches 300 only late in the season.
+
+**Decision (the maintainer, 2026-10-09).** Publish `dixon-coles-elo@0.6.0`
+now, replacing 0.1.0, on the offline evidence:
+
+- **The eleven football-data.co.uk divisions**, 2025/26 walked forward, 3,724
+  matches (`reports/dixon-coles-elo-0.5.0/compare_2025-08-01..2026-06-30.md`;
+  0.6.0 is 0.5.0 there, `reports/dixon-coles-elo-0.6.0/compare_2025-08-01..2026-06-30.md`):
+  log loss 1.0055 against 0.1.0's 1.0255, difference −0.0201, 95% paired
+  bootstrap interval [−0.0281, −0.0124]; better in all eleven; 0.0204 behind
+  the closing odds (0.9850).
+- **IR1**, our own records, 2025-07-01..2026-10-08, the 229 matches every
+  version forecast, constants chosen on 2024/25 only (D-190): 0.6.0 1.0490
+  against 0.1.0's 1.0852, difference −0.0361 [−0.0721, −0.0024]. No 0.6.0
+  forecast gives a draw above 45% (highest 40.4%); 19 of 0.1.0's do (highest
+  61.3%).
+
+**Scope of the exception.** This promotion only. D-082 stands for every
+future one: a candidate reaches the site on at least 300 of its own
+pre-kick-off forecasts and a decision entry, and a backtest alone is the gate
+into shadow, not onto the site (D-139, D-186). Nothing here lowers that bar.
+
+**How a version is published (the mechanism, kept for future promotions).**
+`apps/model/fmip_model/model/` has three directories of version files, each
+named `<name>-<version>.json` (D-140): `published/` (exactly one file; the
+service refuses to start otherwise, and serves it at `/forecast` and as
+`model_version` on `/health`), `candidates/` (shadow) and `retired/`
+(versions that once forecast and no longer do, kept so a stored forecast can
+be traced to its constants). Promotion is moving files: here 0.6.0's from
+`candidates/` to `published/`. `BASELINE`, 0.1.0, stays in code as the
+defaults every file starts from; it is no longer served. The API needs no
+change to publish: it stores whatever version the service answers with.
+
+- **0.1.0 stops being written** from the deploy on. **Its stored forecasts and
+  their evaluations keep their version** (rule 5): nothing is updated or
+  deleted, and published numbering continues on each fixture without a gap.
+- **0.5.0 leaves shadow and is retired**, not promoted: 0.6.0 is 0.5.0 in
+  every league but IR1, so a shadow 0.5.0 beside a published 0.6.0 would
+  measure one league's constants on a record that grows by a few matches a
+  week. Its file moves to `retired/` under the same version, so its stored
+  shadow rows stay traceable. No candidate is in shadow until the next one
+  is merged; T-535 and T-1151 (D-120, D-151) wait for it.
+- **Club Elo is no longer read** by any served version, so the service stops
+  asking it and reports the source retired; the watchdog drops the condition
+  (D-162, T-947 built this for "the promotion that replaces 0.1.0").
+- **Cup matches between leagues stay unpublished.** 0.6.0 carries 0.4.0's
+  cross-league fit (D-085), but the API never asked the published version
+  about such a match: it stores `cross_competition` with no model, and asked
+  only the candidates. With no candidate, those matches are now forecast by
+  nothing, in shadow or published. D-085 made publishing them conditional on
+  the cups' own pre-kick-off record, which this decision does not address;
+  asking the published version on `XL` is a separate decision for the
+  maintainer (evidence so far: the cup backtest of T-533, 0.9727 on 929
+  unseen 2025/26 cup matches against uniform's 1.0986).
+
+**A fresh forecast for the fixtures already in the window.** The triggers
+(T-120) write `early` once, seven days out, and then only
+`lineups_confirmed`; a fixture that already had its early version from 0.1.0
+would have shown 0.1.0 until its line-ups arrived. `runDue` now asks the
+model service once per tick which version it publishes
+(`ForecastService.modelHealth`), and `dueKind` adds one rule after the
+others: when the fixture's newest published forecast was made by a model
+version other than the published one, that kind is due once more, from the
+new version, as a new row, and the report counts it under `replaced` by the
+version it supersedes. It is due once: afterwards the newest forecast is the
+new version's, or `none@0.0.0` (an outage or the model's own `unavailable`),
+which names no version and is never retried. A model service that cannot be
+asked leaves the rule for a later tick; a line-up that is due comes first;
+nothing is written after kick-off or outside the window; and
+`lineups_predicted`, an operator's kind, is never written by this rule. Every
+later promotion gets the same refresh with no further change.
+
+**What the public accuracy page shows across the change** (T-1369, D-187).
+It reads every published pre-kick-off evaluation together, by month and
+competition, and names the model versions behind each series. Months before
+the deploy are 0.1.0's; the deploy month holds both, including, for the
+fixtures in the window, both an early 0.1.0 forecast and the new 0.6.0 one
+(each a forecast, the match counted once); months after are 0.6.0's. The
+versions line under each series names both, so the change is stated rather
+than hidden, and nothing is re-scored. The administrators' accuracy console
+(`/admin/model-accuracy`) keeps every version in each role apart, so 0.6.0's
+published record from the deploy on can be read on its own, beside its
+shadow record from before.
+
+**Rejected.** *Waiting for 300 of 0.6.0's own forecasts*: months of visibly
+wrong IR1 forecasts on the site, against an interval that already excludes
+zero in both comparisons. *Publishing 0.6.0 for IR1 only*: no mechanism
+publishes a version per league, and one site with two published versions is
+the blending rule 6 forbids. *Keeping 0.5.0 in shadow*: see above. *A
+`role` column, environment variable or API setting naming the published
+version*: the model service already decides which version answers, and a
+second place to say it could disagree with the first. *Re-forecasting every
+upcoming fixture, or rewriting the old rows*: the first adds rows nobody
+would see before the early window, the second breaks rule 5.
