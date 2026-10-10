@@ -12,7 +12,7 @@ import {
 } from '@/components/home-member';
 import { LinkedSentence } from '@/components/linked-sentence';
 import { NewsImageCredit, NewsThumb, drawableNewsImage } from '@/components/news-image';
-import { LtrNumeric } from '@/components/score';
+import { Score } from '@/components/score';
 import { CardViewingLine } from '@/components/score-card';
 import { Translated } from '@/components/translated';
 import { formatNumber } from '@/i18n/format';
@@ -246,8 +246,9 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                     : statusLabel(card, locale, timeZone, undefined, scoreWords.m)}
                 </span>
                 <span className="flex min-w-0 flex-col">
+                  {/* Names isolated, the score in the page's direction (T-1375). */}
                   <Link href={`/${locale}/match/${card.id}`} className={ROW_LINK}>
-                    {card.home.name}{' '}
+                    <bdi>{card.home.name}</bdi>{' '}
                     <EntityImage
                       media={card.home.crest}
                       kind="crest"
@@ -256,9 +257,11 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                       className="inline-flex align-middle"
                     />{' '}
                     {card.scores.current !== null ? (
-                      <LtrNumeric>
-                        {num(card.scores.current.home)}–{num(card.scores.current.away)}
-                      </LtrNumeric>
+                      <Score
+                        home={card.scores.current.home}
+                        away={card.scores.current.away}
+                        locale={lang}
+                      />
                     ) : (
                       <Translated locale={lang} message="home.versus" />
                     )}{' '}
@@ -269,7 +272,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                       size={20}
                       className="inline-flex align-middle"
                     />{' '}
-                    {card.away.name}
+                    <bdi>{card.away.name}</bdi>
                   </Link>
                   <span className="text-xs text-muted">
                     {card.competition.short_name ?? card.competition.name}

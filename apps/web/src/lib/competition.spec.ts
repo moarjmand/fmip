@@ -80,10 +80,15 @@ describe('labels', () => {
     );
   });
 
-  it('writes a fixture in Persian with Persian digits, the score kept left to right (T-1304)', () => {
-    expect(fixtureLine('fa', fixture())).toBe('ALP \u2066۳–۱\u2069 Test Beta');
+  it('writes a fixture in Persian with Persian digits, each part isolated (T-1304, T-1375)', () => {
+    // The names are their own runs and the score one right-to-left run, so the
+    // home goals sit on the right, beside the home side, even when English
+    // names stand in a Persian line.
+    expect(fixtureLine('fa', fixture())).toBe(
+      '\u2068ALP\u2069 \u2067۳–۱\u2069 \u2068Test Beta\u2069',
+    );
     expect(fixtureLine('fa', fixture({ score: null, status: 'scheduled' }))).toBe(
-      'ALP - Test Beta',
+      '⁨ALP⁩ - ⁨Test Beta⁩',
     );
     expect(formLine('fa', ['W', 'D', 'L'])).toBe('ب م ش');
   });

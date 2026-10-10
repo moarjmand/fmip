@@ -10,7 +10,7 @@ import type { ScoresWords } from '@/lib/words-server';
 import { EntityImage } from '@/components/entity-image';
 import { FilledMessage } from '@/components/filled-message';
 import { MessageText } from '@/components/message-text';
-import { LtrNumeric, ltrIsolate } from '@/components/score';
+import { ScorePair, pairIsolate } from '@/components/score';
 import { CardCommunityTotals } from '@/components/score-card-community';
 import { CardForecastSummary } from '@/components/score-card-forecast';
 
@@ -108,7 +108,10 @@ export function ScoreCard({
     card.scores.aggregate === null
       ? null
       : fill(m['scores.card.aggregate'].text, {
-          score: ltrIsolate(`${n(card.scores.aggregate.home)}–${n(card.scores.aggregate.away)}`),
+          score: pairIsolate(
+            locale,
+            `${n(card.scores.aggregate.home)}–${n(card.scores.aggregate.away)}`,
+          ),
         });
   const stageBits = [
     ...stageAndRound(card.stage?.name, card.round).map((text) =>
@@ -155,12 +158,14 @@ export function ScoreCard({
             {/* The crest on the inner side, beside the score, in either direction (T-1321). */}
             <EntityImage media={card.home.crest} kind="crest" name={card.home.name} size={22} />
           </span>
-          <LtrNumeric
+          {/* Home goals on the home side, in either direction (T-1375). */}
+          <ScorePair
+            locale={locale}
             className={`shrink-0 px-1 text-center font-semibold whitespace-nowrap tabular-nums ${live ? 'text-live' : ''}`}
             testId="score"
           >
             {scoreLabel(card, locale)}
-          </LtrNumeric>
+          </ScorePair>
           <span className="flex min-w-0 flex-1 items-center gap-1" data-testid="away-team">
             <EntityImage media={card.away.crest} kind="crest" name={card.away.name} size={22} />
             {sentOff(card.red_cards.away)}

@@ -30,6 +30,51 @@ async function leftEdge(page: Page, testId: string): Promise<number> {
   return box.x;
 }
 
+/**
+ * Where the first and the last digit of a score landed. Walks the text nodes
+ * rather than assuming one: the score is rendered as separate nodes, and a
+ * test that depends on that shape would break the next time somebody changes
+ * the markup for a reason unrelated to bidi.
+ */
+async function digitOrder(
+  page: Page,
+  scope?: string,
+): Promise<{ firstX: number; lastX: number } | null> {
+  const root = scope === undefined ? page : page.getByTestId(scope).first();
+  return root
+    .getByTestId('score')
+    .first()
+    .evaluate((element) => {
+      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+      const nodes: Text[] = [];
+      for (let n = walker.nextNode(); n !== null; n = walker.nextNode()) {
+        if ((n.textContent ?? '').trim() !== '') nodes.push(n as Text);
+      }
+      const digit = /[0-9\u0660-\u0669\u06F0-\u06F9]/;
+      const digitAt = (node: Text, fromStart: boolean): DOMRect | null => {
+        const text = node.textContent ?? '';
+        const chars = [...text];
+        const index = fromStart
+          ? chars.findIndex((c) => digit.test(c))
+          : chars.length - 1 - [...chars].reverse().findIndex((c) => digit.test(c));
+        if (index < 0 || index >= chars.length || !digit.test(chars[index] ?? '')) return null;
+        // Digits are one UTF-16 unit each, so the index is the offset.
+        const range = document.createRange();
+        range.setStart(node, index);
+        range.setEnd(node, index + 1);
+        return range.getBoundingClientRect();
+      };
+      const firstNode = nodes.find((n) => digit.test(n.textContent ?? ''));
+      const lastNode = [...nodes].reverse().find((n) => digit.test(n.textContent ?? ''));
+      if (firstNode === undefined || lastNode === undefined) return null;
+      const firstBox = digitAt(firstNode, true);
+      const lastBox = digitAt(lastNode, false);
+      return firstBox === null || lastBox === null
+        ? null
+        : { firstX: firstBox.x, lastX: lastBox.x };
+    });
+}
+
 test.describe('the match centre under right-to-left', () => {
   test('is an Arabic right-to-left document, and is not indexed while it is untranslated', async ({
     page,
@@ -60,62 +105,35 @@ test.describe('the match centre under right-to-left', () => {
     expect(rtlHome).toBeGreaterThan(rtlAway);
   });
 
-  test('never reverses the score, which is the bug that would matter most', async ({ page }) => {
+  test('puts the home goals beside the home side, which is the bug that would matter most', async ({
+    page,
+  }) => {
     const ltr = await page.goto(`/en/match/${PLAYED_MATCH}`).then(async () => {
       await expect(page.getByTestId('score')).toBeVisible();
       return (await page.getByTestId('score').first().textContent()) ?? '';
     });
+    const ltrOrder = await digitOrder(page);
 
     await page.goto(`/ar/match/${PLAYED_MATCH}`);
     await expect(page.getByTestId('score')).toBeVisible();
     const rtl = (await page.getByTestId('score').first().textContent()) ?? '';
 
-    // Same characters in the same order in the DOM...
+    // Same characters in the same order in the DOM: home first, for a screen
+    // reader and for a copy, in either direction...
     expect(rtl).toBe(ltr);
-
-    // ...and the same order on screen. `Intl.Segmenter` is not the check here;
-    // the check is that the browser's own bidi resolution did not flip it,
-    // which is what the bounding boxes of the two digits say.
     const digits = ltr.match(/\d+/g) ?? [];
     expect(digits.length).toBeGreaterThanOrEqual(2);
 
-    const order = await page
-      .getByTestId('score')
-      .first()
-      .evaluate((element) => {
-        // Walk the text nodes rather than assuming one: the score is rendered as
-        // separate nodes, and a test that depends on that shape would break the
-        // next time somebody changes the markup for a reason unrelated to bidi.
-        const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
-        const nodes: Text[] = [];
-        for (let n = walker.nextNode(); n !== null; n = walker.nextNode()) {
-          if ((n.textContent ?? '').trim() !== '') nodes.push(n as Text);
-        }
-        const digitAt = (node: Text, fromStart: boolean): DOMRect | null => {
-          const text = node.textContent ?? '';
-          const index = fromStart
-            ? text.search(/\d/)
-            : text.length - 1 - [...text].reverse().findIndex((c) => /\d/.test(c));
-          if (index < 0 || index >= text.length || !/\d/.test(text[index] ?? '')) return null;
-          const range = document.createRange();
-          range.setStart(node, index);
-          range.setEnd(node, index + 1);
-          return range.getBoundingClientRect();
-        };
-        const firstNode = nodes.find((n) => /\d/.test(n.textContent ?? ''));
-        const lastNode = [...nodes].reverse().find((n) => /\d/.test(n.textContent ?? ''));
-        if (firstNode === undefined || lastNode === undefined) return null;
-        const firstBox = digitAt(firstNode, true);
-        const lastBox = digitAt(lastNode, false);
-        return firstBox === null || lastBox === null
-          ? null
-          : { firstX: firstBox.x, lastX: lastBox.x };
-      });
-
-    // A score is a number, and a number reads left to right in every script.
-    // If bidi had reversed it the first digit would have ended up on the right.
-    expect(order).not.toBeNull();
-    if (order !== null) expect(order.firstX).toBeLessThan(order.lastX);
+    // ...and on screen the home goals sit on the home side: on the left in
+    // English, on the right in Arabic, where the mirrored header puts the home
+    // team (T-1375). A pair isolated left to right (T-153's first answer) put
+    // them on the left of a right-to-left header, beside the away team; one
+    // left to the paragraph can come apart. Both fail here.
+    const rtlOrder = await digitOrder(page);
+    expect(ltrOrder).not.toBeNull();
+    expect(rtlOrder).not.toBeNull();
+    if (ltrOrder !== null) expect(ltrOrder.firstX).toBeLessThan(ltrOrder.lastX);
+    if (rtlOrder !== null) expect(rtlOrder.firstX).toBeGreaterThan(rtlOrder.lastX);
   });
 
   test('keeps the clock and the status readable on a match that has not started', async ({
@@ -148,5 +166,25 @@ test.describe('the scores page under right-to-left', () => {
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
     expect(overflow).toBeLessThanOrEqual(1);
+  });
+
+  test('puts every row’s home goals beside its home team (T-1375)', async ({ page }) => {
+    await page.goto('/ar/scores?from=2025-01-05&to=2025-01-05&tz=UTC');
+    const played = page
+      .getByTestId('score-card')
+      .filter({ has: page.getByTestId('score').filter({ hasText: /[0-9\u0660-\u0669]/ }) });
+    await expect(played.first()).toBeVisible();
+    const card = played.first();
+    const home = await card.getByTestId('home-team').boundingBox();
+    const away = await card.getByTestId('away-team').boundingBox();
+    expect(home).not.toBeNull();
+    expect(away).not.toBeNull();
+    // The row mirrors: home on the right...
+    if (home !== null && away !== null) expect(home.x).toBeGreaterThan(away.x);
+    // ...and its goals with it, the first digit to the right of the last.
+    await card.evaluate((element) => element.setAttribute('data-testid', 'card-under-test'));
+    const order = await digitOrder(page, 'card-under-test');
+    expect(order).not.toBeNull();
+    if (order !== null) expect(order.firstX).toBeGreaterThan(order.lastX);
   });
 });

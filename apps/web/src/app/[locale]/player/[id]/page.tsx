@@ -28,7 +28,7 @@ import { sessionCookieHeader } from '@/lib/session';
 import { JsonLd } from '@/components/json-ld';
 import { PlayerAvailabilitySection } from '@/components/player-availability';
 import { EntityNews } from '@/components/related-news';
-import { ltrIsolate } from '@/components/score';
+import { Score } from '@/components/score';
 import { Button, Notice, controlClasses, inlineTargetClasses } from '@/components/ui';
 import { Stamp } from '@/components/stamp';
 
@@ -398,11 +398,21 @@ export default async function PlayerPage({
                   href={`/${locale}/match/${m.fixture.id}`}
                   className={inlineTargetClasses('font-medium underline')}
                 >
-                  {m.fixture.home.short_name ?? m.fixture.home.name}
-                  {m.fixture.score === null
-                    ? ` ${say(locale, 'competitionPage.v')} `
-                    : ` ${ltrIsolate(`${formatNumber(locale, m.fixture.score.home)}–${formatNumber(locale, m.fixture.score.away)}`)} `}
-                  {m.fixture.away.short_name ?? m.fixture.away.name}
+                  {/* Names isolated, the score in the page's direction (T-1375). */}
+                  <bdi>{m.fixture.home.short_name ?? m.fixture.home.name}</bdi>
+                  {m.fixture.score === null ? (
+                    ` ${say(locale, 'competitionPage.v')} `
+                  ) : (
+                    <>
+                      {' '}
+                      <Score
+                        home={m.fixture.score.home}
+                        away={m.fixture.score.away}
+                        locale={locale}
+                      />{' '}
+                    </>
+                  )}
+                  <bdi>{m.fixture.away.short_name ?? m.fixture.away.name}</bdi>
                 </Link>
                 {/* After extra time, and a shoot-out from the player's side (T-822). */}
                 {afterTimeNote(locale, m.fixture, m.team.id) !== null && (
