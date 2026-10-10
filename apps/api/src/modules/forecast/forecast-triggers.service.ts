@@ -9,11 +9,12 @@ import {
   EARLY_WINDOW_DAYS,
   MILLISECONDS_PER_DAY,
   dueKind,
+  utcDay,
   type FixtureState,
 } from './internal/forecast-triggers';
 
 // The module's public surface for the triggers.
-export { EARLY_WINDOW_DAYS, dueKind } from './internal/forecast-triggers';
+export { EARLY_WINDOW_DAYS, REFRESH_MIN_HOURS, dueKind } from './internal/forecast-triggers';
 
 export interface TriggerReport {
   /** Fixtures inside the window that were considered. */
@@ -29,6 +30,11 @@ export interface TriggerReport {
    * version changed (T-1373, D-191), by the model version they supersede.
    */
   replaced: Record<string, number>;
+  /**
+   * Of the versions written, those due only because results their fit did
+   * not read have been stored since the newest one (T-1377, D-195).
+   */
+  refreshed: number;
   /** The version the model service publishes, or null when it could not be asked. */
   published_model: string | null;
 }
@@ -100,6 +106,10 @@ export class ForecastTriggersService {
    * D-191), so a fixture whose newest forecast is another version's gets one
    * from the new one; when it cannot be asked, that rule waits for a later
    * tick and every other kind is due as before.
+   *
+   * The same query finds, per fixture, whether results its newest forecast's
+   * fit did not read have been stored since (T-1377, D-195); a fixture with
+   * nothing due writes nothing, so a quiet tick is one read.
    */
   async runDue(now: Date = new Date()): Promise<TriggerReport> {
     const states = await this.candidates(now);
@@ -111,6 +121,7 @@ export class ForecastTriggersService {
       indexes: 0,
       skipped: {},
       replaced: {},
+      refreshed: 0,
       published_model: publishedModel,
     };
 
@@ -132,6 +143,7 @@ export class ForecastTriggersService {
       if (due.replaces !== undefined) {
         report.replaced[due.replaces] = (report.replaced[due.replaces] ?? 0) + 1;
       }
+      if (due.refreshes !== undefined) report.refreshed += 1;
 
       const index = await this.indexes.compute(state.fixtureId, now);
       if (index.kind === 'computed') report.indexes += 2;
@@ -141,6 +153,7 @@ export class ForecastTriggersService {
         fixture_id: state.fixtureId,
         kind: due.kind,
         replaces: due.replaces ?? null,
+        refreshes: due.refreshes ?? null,
         power_index: index.kind,
       });
     }
@@ -156,6 +169,8 @@ export class ForecastTriggersService {
    */
   private async candidates(now: Date): Promise<FixtureState[]> {
     const until = new Date(now.getTime() + EARLY_WINDOW_DAYS * MILLISECONDS_PER_DAY);
+    // Midnight UTC today: a fit made now reads results played before it.
+    const today = new Date(`${utcDay(now)}T00:00:00Z`);
     const { rows } = await this.pool.query<{
       id: string;
       kickoff_at: Date;
@@ -165,6 +180,9 @@ export class ForecastTriggersService {
       newest_model: string | null;
       newest_kind: string | null;
       newest_reason: string | null;
+      newest_computed_at: Date | null;
+      newest_fit_date: string | null;
+      newest_result_on: string | null;
     }>(
       `SELECT f.id, f.kickoff_at, f.status,
               EXISTS (
@@ -179,13 +197,44 @@ export class ForecastTriggersService {
                  JOIN input_snapshot s ON s.id = fc.input_snapshot_id
                 WHERE fc.fixture_id = f.id AND fc.role = 'published') AS kinds,
               newest.model_id AS newest_model, newest.kind AS newest_kind,
-              newest.unavailable_reason AS newest_reason
+              newest.unavailable_reason AS newest_reason,
+              newest.computed_at AS newest_computed_at, newest.fit_date AS newest_fit_date,
+              -- T-1377 (D-195): the newest day either side finished a match the
+              -- newest version's fit did not read and a fit made now would: in
+              -- the fixture's division, or, for a match between leagues, any
+              -- the cross-league fit reads (the model's own-records loader's
+              -- scope). Read only, so a tick with nothing to refresh writes
+              -- nothing.
+              (SELECT to_char(max(g.kickoff_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD')
+                 FROM fixture_participant mine
+                 JOIN fixture_participant theirs
+                   ON theirs.team_id = mine.team_id AND theirs.fixture_id <> f.id
+                 JOIN fixture g ON g.id = theirs.fixture_id
+                 JOIN season gs ON gs.id = g.season_id
+                 JOIN competition gc ON gc.id = gs.competition_id
+                WHERE mine.fixture_id = f.id
+                  AND newest.fit_date IS NOT NULL
+                  AND g.status = 'finished'
+                  AND g.kickoff_at >= (newest.fit_date::date + 1)::timestamp AT TIME ZONE 'UTC'
+                  AND g.kickoff_at < $3
+                  AND EXISTS (SELECT 1 FROM fixture_score sc
+                               WHERE sc.fixture_id = g.id AND sc.kind = 'full_time')
+                  AND CASE WHEN c.football_data_division IS NOT NULL
+                           THEN gc.football_data_division = c.football_data_division
+                           ELSE gc.football_data_division IS NOT NULL
+                                OR gc.kind <> 'league' OR gc.scope <> 'domestic' END
+              ) AS newest_result_on
          FROM fixture f
+         JOIN season se ON se.id = f.season_id
+         JOIN competition c ON c.id = se.competition_id
          -- The newest published version: which model made it, and its kind
          -- (T-1373, D-191). Published numbering has no gap, so the highest
          -- number is the newest.
          LEFT JOIN LATERAL (
-           SELECT m.model_id, s.kind, fc.unavailable_reason
+           SELECT m.model_id, s.kind, fc.unavailable_reason, fc.computed_at,
+                  -- A malformed date would fail the whole tick; it refreshes nothing.
+                  CASE WHEN s.model_inputs->>'fit_date' ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+                       THEN s.model_inputs->>'fit_date' END AS fit_date
              FROM forecast fc
              JOIN model_version m ON m.id = fc.model_version_id
              JOIN input_snapshot s ON s.id = fc.input_snapshot_id
@@ -195,7 +244,7 @@ export class ForecastTriggersService {
          ) newest ON true
         WHERE f.status = 'scheduled' AND f.kickoff_at > $1 AND f.kickoff_at <= $2
         ORDER BY f.kickoff_at`,
-      [now, until],
+      [now, until, today],
     );
     return rows.map((row) => ({
       fixtureId: row.id,
@@ -204,13 +253,16 @@ export class ForecastTriggersService {
       hasLineup: row.has_lineup,
       existingKinds: (row.kinds ?? []) as ForecastKind[],
       newestPublished:
-        row.newest_model === null || row.newest_kind === null
+        row.newest_model === null || row.newest_kind === null || row.newest_computed_at === null
           ? null
           : {
               modelVersion: row.newest_model,
               kind: row.newest_kind as ForecastKind,
               reason: row.newest_reason,
+              computedAt: row.newest_computed_at,
+              fitDate: row.newest_fit_date,
             },
+      newestResultOn: row.newest_result_on,
     }));
   }
 }
