@@ -145,7 +145,20 @@ cmd_measure() {
         c=$(gzip -6 -c "$f" | wc -c); t=$((t + c)); n=$((n + 1))
       done
       [ "$n" -gt 0 ] && echo $((t * 1000 / (n * 16777216))) || echo 0' | tr -d '\r')"
-  [ "${ratio_pm:-0}" -gt 0 ] || ratio_pm=500 # no finished segment to read: assume half
+  # With archiving on, pg_wal keeps no finished segment: the archive itself
+  # says what a gzipped segment weighs, over its newest day (288 segments at
+  # one switch per PG_ARCHIVE_TIMEOUT) (T-1374, D-192).
+  local ratio_from='the newest finished segments in pg_wal'
+  if [ "${ratio_pm:-0}" -le 0 ] && [ -n "$REMOTE" ] && [ -f "$BACKUP_RCLONE_CONFIG" ]; then
+    ratio_pm="$(rclone_x lsf --files-only --format sp "$WAL_REMOTE" 2> /dev/null | tr -d '\r' |
+      grep -E ';[0-9A-F]{24}\.gz$' | sort -t';' -k2 | tail -n 288 |
+      awk -F';' -v seg="$SEGMENT_BYTES" '{ t += $1; n++ } END { if (n) printf "%d\n", t * 1000 / (n * seg); else print 0 }')"
+    ratio_from='the newest archived segments'
+  fi
+  if [ "${ratio_pm:-0}" -le 0 ]; then
+    ratio_pm=500 # no finished segment to read: assume half
+    ratio_from='nothing to read, assumed'
+  fi
 
   local remote_now=0
   if [ -n "$REMOTE" ] && [ -f "$BACKUP_RCLONE_CONFIG" ]; then
@@ -167,7 +180,8 @@ cmd_measure() {
   echo "    database size:          $(mb "$size")"
   echo "    WAL written per day:    $(mb "$per_day") ($basis)"
   echo "    WAL per week:           $(mb $((per_day * 7)))"
-  echo "    gzip keeps:             $((ratio_pm / 10))% of a segment"
+  echo "    gzip keeps:             $((ratio_pm / 10)).$((ratio_pm % 10))% of a segment (from $ratio_from)"
+  echo "    archived per day:       $(mb $((per_day * ratio_pm / 1000))) (gzipped; what the window costs per day)"
   echo "    remote in use now:      $(mb "$remote_now")${REMOTE:+ ($REMOTE)}"
   echo "    PITR would add at most: $(mb $((wal_kept + bases))) (WAL $(mb "$wal_kept") + three bases $(mb "$bases"); a base every $PITR_BASE_EVERY_DAYS day(s), $PITR_KEEP_DAYS-day window)"
   echo "    projected remote total: $(mb "$projected") of the ${PITR_REMOTE_BUDGET_GB} GB budget (PITR_REMOTE_BUDGET_GB)"
