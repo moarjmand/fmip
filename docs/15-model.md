@@ -45,6 +45,14 @@ every match before that day (`fmip_model/service/forecaster.py`); the
 backtest refits at most weekly. A club the fit has never seen is answered
 `unavailable`, never guessed.
 
+**When a match gets a forecast.** Seven days before kick-off (`early`), again
+when a line-up is confirmed (`lineups_confirmed`), and in between at most once
+a day whenever either side has a result the last forecast's fit did not read
+(a refresh, D-195): the previous round, a midweek match, a score that arrived
+late. A refresh is the same kind again, a new row on the newer results; the
+match page's "what changed since" names its later fit date and the extra
+matches it used.
+
 ## 2. What is stored, and how it is measured
 
 **Every forecast is kept, unchanged, forever** (rule 5). A forecast row
@@ -314,4 +322,4 @@ constants (D-190, candidate 0.6.0).
 | The comparison behind the one command | `apps/model/fmip_model/backtest/compare.py`, `scripts/model-backtest.sh` |
 | Other backtests | `apps/model/fmip_model/backtest/` (`__main__`, `tune`, `elo_prior`, `inputs`, `cross_league`, `lineups`) |
 | Reports | `apps/model/reports/<version>/` |
-| The rules | `docs/00-decisions.md`: D-016, D-031, D-082, D-085, D-139, D-140, D-150, D-162, D-186, D-190, D-191 |
+| The rules | `docs/00-decisions.md`: D-016, D-031, D-082, D-085, D-139, D-140, D-150, D-162, D-186, D-190, D-191, D-195 |
