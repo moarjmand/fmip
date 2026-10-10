@@ -19,6 +19,7 @@ import { PostgresPointsStore } from './internal/points-store';
 import { PostgresRatingStore } from './internal/rating-store';
 import { ReputationController } from './reputation.controller';
 import { ReputationService } from './reputation.service';
+import { SettlementSchedulerService } from './settlement-scheduler.service';
 
 /**
  * The reputation boundary (02-architecture.md): Performance Rating (T-053),
@@ -63,6 +64,8 @@ import { ReputationService } from './reputation.service';
     ContributorFlagService,
     PostgresContributorFlagStore,
     ContributorFlagSchedulerService,
+    // Settles final fixtures and recomputes their predictors (T-1380).
+    SettlementSchedulerService,
   ],
   exports: [ReputationService, CareerPointsService, ContributorService],
 })

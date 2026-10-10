@@ -21,8 +21,8 @@ const NO_FIXTURE: ApiError = { error: 'not_found', message: 'No such fixture.' }
 
 /**
  * Settlement over HTTP (T-052): the aggregate per fixture is public (how the
- * crowd did); running settlement is an operator action until the job runner
- * (T-026) calls the service directly.
+ * crowd did); the settlement tick (T-1380) settles on its own, and these
+ * endpoints stay for an operator who wants a run now.
  */
 @Controller()
 export class SettlementController {
