@@ -2,7 +2,7 @@
 # Point-in-time recovery (T-845, D-157): Postgres's own WAL archiving, shipped
 # through the same rclone crypt remote as the daily dumps. No new component.
 #
-#     bash scripts/backup/pitr.sh measure           # will it fit? (before switching on)
+#     bash scripts/backup/pitr.sh measure [--days N] # will it fit? (before switching on, or a longer window)
 #     bash scripts/backup/pitr.sh ship              # spool -> remote (fmip-wal-ship.timer, every 5 min)
 #     bash scripts/backup/pitr.sh base [--if-due]   # pg_basebackup -> remote, prune (backup.sh, every PITR_KEEP_DAYS days, at most weekly)
 #     bash scripts/backup/pitr.sh restore --to '2026-10-01 14:05' [--keep] [--name NAME]
@@ -105,6 +105,13 @@ remote_bases() {
 
 # ---------------------------------------------------------------------------
 cmd_measure() {
+  # --days N asks about another window than .env's PITR_KEEP_DAYS, without
+  # changing it (T-1374, D-192): the question before raising the window.
+  if [ "${1:-}" = '--days' ]; then
+    [[ "${2:-}" =~ ^[1-9][0-9]*$ ]] || die "--days needs a whole number of days"
+    PITR_KEEP_DAYS="$2"
+    PITR_BASE_EVERY_DAYS=$((PITR_KEEP_DAYS < 7 ? PITR_KEEP_DAYS : 7))
+  fi
   echo "==> how much WAL this database writes (T-845's gate, D-157)"
   local now size lsn wal_bytes reset born
   now="$(date -u +%s)"
@@ -445,7 +452,10 @@ cleanup() {
 trap cleanup EXIT
 
 case "${1:-}" in
-  measure) cmd_measure ;;
+  measure)
+    shift
+    cmd_measure "$@"
+    ;;
   ship) cmd_ship ;;
   base)
     shift
