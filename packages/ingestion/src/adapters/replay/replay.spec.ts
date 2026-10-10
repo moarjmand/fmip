@@ -46,16 +46,6 @@ describe('the replay source', () => {
     expect(live.ok && live.data.length).toBe(0);
   });
 
-  it('tells a line-up not announced yet from a refusal (T-1376)', async () => {
-    const waiting = await adapter.getLineup('9013760');
-    expect(waiting.ok).toBe(false);
-    expect(!waiting.ok && waiting.error).toMatchObject({ kind: 'unsupported', unpublished: true });
-
-    // A request the provider did not answer is not "not announced yet".
-    const refused = await adapter.getLineup('1');
-    expect(!refused.ok && refused.error.unpublished).toBeUndefined();
-  });
-
   it('is deterministic: the same call twice gives the same answer', async () => {
     const once = await adapter.getFixtureDetail(REPLAY_FIXTURE);
     const twice = await adapter.getFixtureDetail(REPLAY_FIXTURE);

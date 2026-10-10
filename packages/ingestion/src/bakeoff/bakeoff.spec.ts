@@ -118,9 +118,8 @@ describe('recorded run over the three providers', () => {
       'highlightly',
     ]);
     for (const s of result.summaries) {
-      // Six scenarios each; API-Football has a seventh since availability (T-103)
-      // and an eighth, a line-up not announced yet (T-1376).
-      expect(s.calls).toBe(s.provider === 'api_football' ? 8 : 6);
+      // Six scenarios each; API-Football has a seventh since availability (T-103).
+      expect(s.calls).toBe(s.provider === 'api_football' ? 7 : 6);
       expect(s.ok).toBeGreaterThanOrEqual(4);
       expect(s.requests).toBeGreaterThanOrEqual(6);
       expect(s.completeness.fixture).not.toBeNull();

@@ -1,12 +1,19 @@
 import { randomUUID } from 'node:crypto';
 import { Test } from '@nestjs/testing';
 import { Pool } from 'pg';
+import {
+  ReplayTransport,
+  createApiFootballAdapter,
+  loadScenarios,
+  recordingsDir,
+} from '@fmip/ingestion';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
 import { CoverageService } from './coverage.service';
 import { IngestionJobsService } from './ingestion-jobs.service';
 import { IngestionModule } from './ingestion.module';
 import { IngestStore, type RefResolver } from './internal/ingest-store';
+import { INGESTION_SOURCES, type IngestionSources } from './internal/sources';
 
 // The scheduled jobs against the real schema, on the replay source (D-049):
 // the real API-Football adapter, its committed recordings, the real entity
@@ -56,6 +63,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
   let pool: Pool;
   let jobs: IngestionJobsService;
   let coverage: CoverageService;
+  let sources: IngestionSources;
   let close: () => Promise<void>;
   let competitionId: string;
   const mappings: string[] = [];
@@ -178,6 +186,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
     await moduleRef.init();
     jobs = moduleRef.get(IngestionJobsService);
     coverage = moduleRef.get(CoverageService);
+    sources = moduleRef.get<IngestionSources>(INGESTION_SOURCES);
     close = () => moduleRef.close();
   });
 
@@ -781,14 +790,35 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
 
   /**
    * T-1376. Twenty minutes before kick-off the provider answers with the
-   * fixture and no line-up yet (the `lineup-not-yet-published` recording).
-   * That is its answer: the run succeeds and counts the match as waiting,
-   * nothing is written, and the next run asks again.
+   * fixture and no line-up yet. The replay is the committed recordings plus
+   * that answer, which is the recorded line-up answer with its line-ups taken
+   * out, for a fixture no recording names (recordings are never hand-written).
+   * It is the provider's answer: the run succeeds and counts the match as
+   * waiting, nothing is written, and the next run asks again.
    */
   it('counts a line-up not announced yet as waiting, and does not call the run partial', async () => {
     const fixtureId = randomUUID();
+    const externalId = '9013760';
     const kickoff = '2024-01-31T19:30:00Z';
     const beforeKickoff = new Date('2024-01-31T19:10:00Z');
+    const scenarios = loadScenarios(recordingsDir('api_football'));
+    const recorded = scenarios.find((s) => s.name === 'lineup-burnley-man-city')?.requests[0];
+    const body = structuredClone(recorded?.body) as { response: { lineups: unknown[] }[] };
+    for (const element of body.response) element.lineups = [];
+    const transport = new ReplayTransport(
+      [
+        ...scenarios.flatMap((s) => s.requests),
+        {
+          method: 'GET',
+          url: `https://v3.football.api-sports.io/fixtures?id=${externalId}`,
+          status: 200,
+          body,
+        },
+      ],
+      scenarios.map((s) => s.recordedAt).sort()[0] ?? '',
+    );
+    const adapter = createApiFootballAdapter(transport, { apiKey: null });
+    const forJob = sources.forJob;
     const unused: RefResolver = {
       resolve: () => Promise.reject(new Error('not used')),
       link: () => Promise.reject(new Error('not used')),
@@ -806,9 +836,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
     );
     await pool.query(
       `INSERT INTO provider_mapping (provider, entity_type, external_id, internal_id)
-       VALUES ('api_football', 'fixture', '9013760', $1)`,
-      [fixtureId],
+       VALUES ('api_football', 'fixture', $1, $2)`,
+      [externalId, fixtureId],
     );
+    sources.forJob = () => ({ provider: 'api_football', adapter });
     try {
       // Absences are T-103's question, not this one's: the season says it has none.
       await store.saveSeasonFeedCoverage('api_football', SEASON, false, '2024-01-31T19:00:00Z');
@@ -834,7 +865,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
 
       // Asked again on the next run, and still an answer.
       expect((await jobs.lineups(beforeKickoff)).waiting).toBe(1);
+      expect(transport.served).toContain(
+        `GET https://v3.football.api-sports.io/fixtures?id=${externalId}`,
+      );
     } finally {
+      sources.forJob = forJob;
       await pool.query(`DELETE FROM season_feed_coverage WHERE season_id = $1`, [SEASON]);
       await pool.query(
         `DELETE FROM provider_mapping WHERE provider = 'api_football' AND internal_id = $1`,
