@@ -8799,9 +8799,12 @@ result the fit reads that it did not.
 - **That it did not read**: played after the forecast's `fit_date`, or with
   its full-time score stored on or after the UTC day the forecast was made.
   The second clause catches a score that arrived after the model's daily
-  reload of our records (its first read of the division that day) and a
-  corrected score; at worst it costs one refresh more, whose fit has then
-  read it.
+  reload of our records (its first read of the division that day), a
+  corrected score, and an earlier season's result loaded later (the fit reads
+  it if it falls inside the history window); at worst it costs one refresh
+  more, whose fit has then read it. While a past season is being loaded, the
+  division's fixtures may therefore be refreshed daily, still at most once a
+  day each.
 - **The kind** is the newest automatic statement made again on the newer
   results: `lineups_confirmed` once one is recorded, `early` before. No new
   kind. A `refreshed` kind would need a migration of the input snapshot's
