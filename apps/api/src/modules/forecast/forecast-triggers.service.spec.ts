@@ -190,8 +190,12 @@ const ANSWER = JSON.parse(
   ),
 ) as { inputs: Record<string, unknown> } & Record<string, unknown>;
 
-/** A model service that publishes `published` and answers every question with it. */
-function answering(published: string): ModelClient {
+/**
+ * A model service that publishes `published` and answers every question with
+ * it, at `clock()`, fitted on the results up to the day before (as the model
+ * service does for a match after today).
+ */
+function answering(published: string, clock: () => Date = () => PROMOTION_NOW): ModelClient {
   return new ModelClient({
     baseUrl: 'http://model.test',
     fetchImpl: (input, init) => {
@@ -208,12 +212,14 @@ function answering(published: string): ModelClient {
       }
       if (url.endsWith('/candidates')) return Promise.resolve(Response.json({ candidates: [] }));
       const asked = JSON.parse(String(init?.body)) as { fixture_id: string };
+      const at = clock();
+      const fitDate = new Date(at.getTime() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
       return Promise.resolve(
         Response.json({
           ...ANSWER,
           fixture_id: asked.fixture_id,
-          computed_at: PROMOTION_NOW.toISOString(),
-          inputs: { ...ANSWER.inputs, model_version: published },
+          computed_at: at.toISOString(),
+          inputs: { ...ANSWER.inputs, model_version: published, fit_date: fitDate },
         }),
       );
     },
@@ -422,6 +428,267 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect(again.replaced).toEqual({});
       expect((await published()).length).toBe(2);
       expect((await published(cupFixture)).length).toBe(2);
+    });
+  },
+);
+
+// T-1377, D-195: newer results. A fixture whose early version was fitted
+// before results either side has since finished gets one new version on the
+// newer results, at most once a day, and a tick with nothing to refresh
+// writes nothing. Dates of their own, far from every other spec's fixtures.
+const REFRESH_KICKOFF = new Date('2032-04-10T15:00:00Z');
+const HOUR = 60 * 60 * 1000;
+
+describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
+  'refreshing a forecast once its inputs have moved on (T-1377)',
+  () => {
+    const league = randomUUID();
+    const leagueSeason = randomUUID();
+    const cup = randomUUID();
+    const cupSeason = randomUUID();
+    const fixture = randomUUID();
+    const home = randomUUID();
+    const away = randomUUID();
+    const other = randomUUID();
+    const results: string[] = [];
+    let clock = new Date('2032-04-08T12:00:00Z');
+    let pool: Pool;
+    let triggers: ForecastTriggersService;
+    let close: () => Promise<void>;
+
+    /** A finished match of `team` against `other`, with a full-time score unless told not. */
+    async function finished(
+      season: string,
+      team: string,
+      kickoff: string,
+      withScore = true,
+    ): Promise<void> {
+      const id = randomUUID();
+      results.push(id);
+      await pool.query(
+        `INSERT INTO fixture (id, season_id, kickoff_at, status) VALUES ($1, $2, $3, 'finished')`,
+        [id, season, new Date(kickoff)],
+      );
+      await pool.query(
+        `INSERT INTO fixture_participant (fixture_id, team_id, side)
+         VALUES ($1, $2, 'home'), ($1, $3, 'away')`,
+        [id, team, other],
+      );
+      if (withScore) {
+        await pool.query(
+          `INSERT INTO fixture_score (fixture_id, kind, home, away) VALUES ($1, 'full_time', 2, 1)`,
+          [id],
+        );
+      }
+    }
+
+    async function rows(): Promise<
+      { version_number: number; kind: string; p_draw: string; fit_date: string; at: Date }[]
+    > {
+      const { rows: found } = await pool.query<{
+        version_number: number;
+        kind: string;
+        p_draw: string;
+        fit_date: string;
+        at: Date;
+      }>(
+        `SELECT f.version_number, s.kind, f.p_draw::text AS p_draw,
+                s.model_inputs->>'fit_date' AS fit_date, f.computed_at AS at
+           FROM forecast f
+           JOIN input_snapshot s ON s.id = f.input_snapshot_id
+          WHERE f.fixture_id = $1 AND f.role = 'published'
+          ORDER BY f.version_number`,
+        [fixture],
+      );
+      return found;
+    }
+
+    /** Every row a tick could write for the fixture, so "writes nothing" is a count. */
+    async function written(): Promise<number> {
+      const { rows: counted } = await pool.query<{ n: string }>(
+        `SELECT (SELECT COUNT(*) FROM forecast WHERE fixture_id = $1)
+              + (SELECT COUNT(*) FROM input_snapshot WHERE fixture_id = $1)
+              + (SELECT COUNT(*) FROM power_index WHERE participant_id IN
+                   (SELECT id FROM fixture_participant WHERE fixture_id = $1)) AS n`,
+        [fixture],
+      );
+      return Number(counted[0]?.n);
+    }
+
+    beforeAll(async () => {
+      pool = new Pool({ connectionString: DATABASE_URL });
+      await pool.query(
+        `INSERT INTO competition (id, country_id, name, kind, scope, gender, football_data_division)
+         VALUES ($1, $2, 'Refresh Test League', 'league', 'domestic', 'men', 'Y7')`,
+        [league, COUNTRY],
+      );
+      // A domestic cup: the league's fit does not read it.
+      await pool.query(
+        `INSERT INTO competition (id, country_id, name, kind, scope, gender)
+         VALUES ($1, $2, 'Refresh Test Cup', 'cup', 'domestic', 'men')`,
+        [cup, COUNTRY],
+      );
+      await pool.query(
+        `INSERT INTO season (id, competition_id, label, start_date, end_date, is_current)
+         VALUES ($1, $2, '2031/32', '2031-08-01', '2032-05-30', false),
+                ($3, $4, '2031/32', '2031-08-01', '2032-05-30', false)`,
+        [leagueSeason, league, cupSeason, cup],
+      );
+      await pool.query(
+        `INSERT INTO team (id, name, kind, gender)
+         VALUES ($1, 'Nu', 'club', 'men'), ($2, 'Xi', 'club', 'men'), ($3, 'Omicron', 'club', 'men')`,
+        [home, away, other],
+      );
+      await pool.query(
+        `INSERT INTO fixture (id, season_id, kickoff_at, status) VALUES ($1, $2, $3, 'scheduled')`,
+        [fixture, leagueSeason, REFRESH_KICKOFF],
+      );
+      await pool.query(
+        `INSERT INTO fixture_participant (fixture_id, team_id, side)
+         VALUES ($1, $2, 'home'), ($1, $3, 'away')`,
+        [fixture, home, away],
+      );
+
+      const moduleRef = await Test.createTestingModule({
+        imports: [DatabaseModule],
+        providers: [
+          ForecastTriggersService,
+          ForecastService,
+          PostgresForecastStore,
+          PowerIndexService,
+          EvaluationService,
+          PostgresEvaluationStore,
+          { provide: MODEL_CLIENT, useValue: answering(PUBLISHED, () => clock) },
+        ],
+      }).compile();
+      await moduleRef.init();
+      triggers = moduleRef.get(ForecastTriggersService);
+      close = () => moduleRef.close();
+
+      // The early version, made on 6 April: its fit read results up to the 5th.
+      await moduleRef.get(PostgresForecastStore).record({
+        fixtureId: fixture,
+        kind: 'early',
+        modelId: PUBLISHED,
+        request: {
+          fixture_id: fixture,
+          home_team_id: home,
+          away_team_id: away,
+          division: 'Y7',
+          kickoff_at: REFRESH_KICKOFF.toISOString(),
+        },
+        computedAt: new Date('2032-04-06T12:00:00Z'),
+        available: {
+          probabilities: { home: 0.25, draw: 0.55, away: 0.2 },
+          expectedGoals: { home: 0.5, away: 0.3 },
+          mostLikely: [{ home: 0, away: 0, probability: 0.45 }],
+          leadingFactors: [],
+          inputs: {
+            model_version: PUBLISHED,
+            fit_date: '2032-04-05',
+            matches_used: 200,
+            elo_used: true,
+            history_from: '2029-04-01',
+            data_completeness: 'available',
+          },
+        },
+        unavailable: null,
+      });
+    });
+
+    afterAll(async () => {
+      if (pool === undefined) return;
+      await withTriggersOff(pool, async (client) => {
+        await client.query(
+          `DELETE FROM power_index WHERE participant_id IN
+             (SELECT id FROM fixture_participant WHERE fixture_id = $1)`,
+          [fixture],
+        );
+        await client.query(`DELETE FROM forecast WHERE fixture_id = $1`, [fixture]);
+        await client.query(`DELETE FROM input_snapshot WHERE fixture_id = $1`, [fixture]);
+      });
+      await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [[fixture, ...results]]);
+      await pool.query(`DELETE FROM season WHERE id = ANY($1::uuid[])`, [
+        [leagueSeason, cupSeason],
+      ]);
+      await pool.query(`DELETE FROM competition WHERE id = ANY($1::uuid[])`, [[league, cup]]);
+      await pool.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [[home, away, other]]);
+      await pool.end();
+      await close?.();
+    });
+
+    it('writes nothing while no result the fit did not read is stored', async () => {
+      const before = await written();
+      // A league result today (a fit made now would not read it yet), a cup
+      // result (the league's fit never reads it), and a league result with
+      // no full-time score: none of them moves the inputs.
+      await finished(leagueSeason, home, '2032-04-08T10:00:00Z');
+      await finished(cupSeason, away, '2032-04-07T18:00:00Z');
+      await finished(leagueSeason, away, '2032-04-06T18:00:00Z', false);
+
+      const report = await triggers.runDue(clock);
+      expect(report.refreshed).toBe(0);
+      expect(report.computed).toEqual({});
+      expect(Object.keys(report.skipped)).toContain(
+        'the early version is recorded and no line-up has arrived yet',
+      );
+      expect(await written()).toBe(before);
+    });
+
+    it('writes one new version once either side has a result the fit did not read', async () => {
+      await finished(leagueSeason, away, '2032-04-07T18:00:00Z');
+
+      const report = await triggers.runDue(clock);
+      expect(report.refreshed).toBe(1);
+      expect(report.computed).toEqual({ early: 1 });
+
+      const found = await rows();
+      expect(found.map((r) => [r.version_number, r.kind, r.fit_date])).toEqual([
+        [1, 'early', '2032-04-05'],
+        [2, 'early', '2032-04-07'],
+      ]);
+      // The first version is as it was (rule 5).
+      expect(Number(found[0]?.p_draw)).toBeCloseTo(0.55, 4);
+      expect(found[1]?.at.toISOString()).toBe(clock.toISOString());
+    });
+
+    it('writes nothing on the next pass: the new version read every result before today', async () => {
+      const before = await written();
+      const report = await triggers.runDue(clock);
+      expect(report.refreshed).toBe(0);
+      expect(await written()).toBe(before);
+    });
+
+    it('waits a day after the newest version, then refreshes once more', async () => {
+      // The next morning, the 8th's league result is one a fit would read,
+      // but the newest version is 18 hours old.
+      clock = new Date(clock.getTime() + 18 * HOUR);
+      const before = await written();
+      const early = await triggers.runDue(clock);
+      expect(early.refreshed).toBe(0);
+      expect(
+        early.skipped['newer results are stored, and the newest version is less than 24 hours old'],
+      ).toBe(1);
+      expect(await written()).toBe(before);
+
+      clock = new Date(clock.getTime() + 6 * HOUR);
+      const due = await triggers.runDue(clock);
+      expect(due.refreshed).toBe(1);
+      expect((await rows()).map((r) => r.fit_date)).toEqual([
+        '2032-04-05',
+        '2032-04-07',
+        '2032-04-08',
+      ]);
+    });
+
+    it('never refreshes after kick-off', async () => {
+      await finished(leagueSeason, home, '2032-04-09T18:00:00Z');
+      clock = new Date(REFRESH_KICKOFF.getTime() + 60 * 1000);
+      const before = await written();
+      const report = await triggers.runDue(clock);
+      expect(report.refreshed).toBe(0);
+      expect(await written()).toBe(before);
+      expect((await rows()).length).toBe(3);
     });
   },
 );
