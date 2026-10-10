@@ -26,6 +26,7 @@ function fixture(over: Partial<FixtureState> = {}): FixtureState {
     existingKinds: [],
     newestPublished: null,
     newestResultOn: null,
+    newestScoreStoredAt: null,
     ...over,
   };
 }
@@ -233,6 +234,31 @@ describe('which version is due', () => {
         expect(at('2026-01-03', null)).toBe(false);
         expect(at(null, '2026-01-04')).toBe(false);
         expect(inputsMovedOn(fixture({ newestResultOn: '2026-01-04' }), NOW)).toBe(false);
+      });
+
+      it('is stale when a score inside the fit’s dates was stored on or after the day it was made', () => {
+        // Made 2026-01-04 12:00; the model loaded our records at its first
+        // read that day, which may have preceded a score stored after midnight.
+        const late = (storedAt: string): boolean =>
+          inputsMovedOn(
+            fixture({
+              newestPublished: newest(NEW, 'early', null),
+              newestScoreStoredAt: new Date(storedAt),
+            }),
+            NOW,
+          );
+        expect(late('2026-01-04T00:30:00Z')).toBe(true);
+        expect(late('2026-01-05T09:00:00Z')).toBe(true);
+        expect(late('2026-01-03T22:00:00Z')).toBe(false);
+        expect(
+          inputsMovedOn(
+            fixture({
+              newestPublished: newest(NO_MODEL_VERSION, 'early', 'model_unreachable'),
+              newestScoreStoredAt: new Date('2026-01-05T09:00:00Z'),
+            }),
+            NOW,
+          ),
+        ).toBe(false);
       });
     });
 

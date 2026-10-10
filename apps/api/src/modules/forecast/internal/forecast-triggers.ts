@@ -42,13 +42,20 @@ export interface FixtureState {
     fitDate: string | null;
   } | null;
   /**
-   * The newest UTC day before today on which either side finished a match
-   * with a stored full-time score in a competition the fit reads (the
-   * fixture's division, or every match the cross-league fit reads), on or
-   * after the day after the newest version's fit date; null when there is
-   * none (T-1377). `YYYY-MM-DD`.
+   * Of the results the fit reads (T-1377): a finished match of either side
+   * with a full-time score, in the fixture's division (or, for a match
+   * between leagues, any the cross-league fit reads), played inside the
+   * newest version's history window and before today (UTC).
+   *
+   * `newestResultOn`: the newest UTC day, `YYYY-MM-DD`, of such a result
+   * played after the newest version's fit date; null when there is none.
    */
   newestResultOn: string | null;
+  /**
+   * The newest time a full-time score was stored for such a result played on
+   * or before the fit date (a late score or a correction); null when none.
+   */
+  newestScoreStoredAt: Date | null;
 }
 
 /**
@@ -87,14 +94,24 @@ export function utcDay(at: Date): string {
  * The model fits on every result up to the day before the forecast is made
  * (`fit_date`, `apps/model/fmip_model/service/forecaster.py`), so a result is
  * missing from it when it was played after `fit_date`, and a fit made now
- * reads it when it was played before today (UTC). Pure, so the rule is
- * tested without a database; the query supplies `newestResultOn`.
+ * reads it when it was played before today (UTC).
+ *
+ * A result inside the fit's dates is missing too when its score arrived
+ * late: the model reloads our records once a day, at its first read of the
+ * division (`store_source.py`), so a score stored on the day the forecast
+ * was made may postdate that load. Such a score counts as unread; at worst
+ * that is one refresh more, whose fit has then read it.
+ *
+ * Pure, so the rule is tested without a database; the query supplies the
+ * days and times.
  */
 export function inputsMovedOn(state: FixtureState, now: Date): boolean {
-  const fitDate = state.newestPublished?.fitDate ?? null;
-  const result = state.newestResultOn;
-  if (fitDate === null || result === null) return false;
-  return result > fitDate && result < utcDay(now);
+  const newest = state.newestPublished;
+  if (newest === null || newest.fitDate === null) return false;
+  const played = state.newestResultOn;
+  if (played !== null && played > newest.fitDate && played < utcDay(now)) return true;
+  const stored = state.newestScoreStoredAt;
+  return stored !== null && utcDay(stored) >= utcDay(newest.computedAt);
 }
 
 /**
@@ -128,8 +145,9 @@ export function inputsMovedOn(state: FixtureState, now: Date): boolean {
  *
  * **Newer results** (T-1377, D-195) are the other exception: when the newest
  * published forecast is the published version's own, available, and its fit
- * has been overtaken -- either side has since finished a match the fit reads,
- * played after its fit date and before today (`inputsMovedOn`) -- the newest
+ * has been overtaken -- either side has a result the fit reads that it did
+ * not: played after its fit date and before today, or scored late
+ * (`inputsMovedOn`) -- the newest
  * automatic kind is due once more, as a new row on the newer results. At most
  * one a day: nothing is refreshed until the newest version is
  * `REFRESH_MIN_HOURS` old. Never when the model service cannot be asked

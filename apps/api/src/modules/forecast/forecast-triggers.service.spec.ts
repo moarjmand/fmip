@@ -456,12 +456,15 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
     let triggers: ForecastTriggersService;
     let close: () => Promise<void>;
 
-    /** A finished match of `team` against `other`, with a full-time score unless told not. */
+    /**
+     * A finished match of `team` against `other`, with a full-time score
+     * (stored now, or at `storedAt`) unless `storedAt` is null.
+     */
     async function finished(
       season: string,
       team: string,
       kickoff: string,
-      withScore = true,
+      storedAt: string | null | undefined = undefined,
     ): Promise<void> {
       const id = randomUUID();
       results.push(id);
@@ -474,10 +477,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
          VALUES ($1, $2, 'home'), ($1, $3, 'away')`,
         [id, team, other],
       );
-      if (withScore) {
+      if (storedAt !== null) {
         await pool.query(
-          `INSERT INTO fixture_score (fixture_id, kind, home, away) VALUES ($1, 'full_time', 2, 1)`,
-          [id],
+          `INSERT INTO fixture_score (fixture_id, kind, home, away, created_at, updated_at)
+           VALUES ($1, 'full_time', 2, 1, COALESCE($2::timestamptz, now()), COALESCE($2::timestamptz, now()))`,
+          [id, storedAt ?? null],
         );
       }
     }
@@ -624,7 +628,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       // no full-time score: none of them moves the inputs.
       await finished(leagueSeason, home, '2032-04-08T10:00:00Z');
       await finished(cupSeason, away, '2032-04-07T18:00:00Z');
-      await finished(leagueSeason, away, '2032-04-06T18:00:00Z', false);
+      await finished(leagueSeason, away, '2032-04-06T18:00:00Z', null);
 
       const report = await triggers.runDue(clock);
       expect(report.refreshed).toBe(0);
@@ -681,6 +685,27 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       ]);
     });
 
+    it('refreshes once more for a score inside the fit’s dates stored on the day it was made', async () => {
+      // The newest version was made on the 9th at noon, fitted to the 8th.
+      // A result of the 8th scored that evening was in the 9th's load.
+      clock = new Date(clock.getTime() + 24 * HOUR);
+      await finished(leagueSeason, home, '2032-04-08T18:00:00Z', '2032-04-08T20:00:00Z');
+      const before = await written();
+      expect((await triggers.runDue(clock)).refreshed).toBe(0);
+      expect(await written()).toBe(before);
+
+      // One scored after midnight may not have been.
+      await finished(leagueSeason, home, '2032-04-08T22:30:00Z', '2032-04-09T00:30:00Z');
+      const due = await triggers.runDue(clock);
+      expect(due.refreshed).toBe(1);
+      expect((await rows()).map((r) => r.fit_date)).toEqual([
+        '2032-04-05',
+        '2032-04-07',
+        '2032-04-08',
+        '2032-04-09',
+      ]);
+    });
+
     it('never refreshes after kick-off', async () => {
       await finished(leagueSeason, home, '2032-04-09T18:00:00Z');
       clock = new Date(REFRESH_KICKOFF.getTime() + 60 * 1000);
@@ -688,7 +713,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       const report = await triggers.runDue(clock);
       expect(report.refreshed).toBe(0);
       expect(await written()).toBe(before);
-      expect((await rows()).length).toBe(3);
+      expect((await rows()).length).toBe(4);
     });
   },
 );

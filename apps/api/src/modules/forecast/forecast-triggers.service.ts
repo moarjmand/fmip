@@ -183,6 +183,7 @@ export class ForecastTriggersService {
       newest_computed_at: Date | null;
       newest_fit_date: string | null;
       newest_result_on: string | null;
+      newest_score_stored_at: Date | null;
     }>(
       `SELECT f.id, f.kickoff_at, f.status,
               EXISTS (
@@ -199,31 +200,7 @@ export class ForecastTriggersService {
               newest.model_id AS newest_model, newest.kind AS newest_kind,
               newest.unavailable_reason AS newest_reason,
               newest.computed_at AS newest_computed_at, newest.fit_date AS newest_fit_date,
-              -- T-1377 (D-195): the newest day either side finished a match the
-              -- newest version's fit did not read and a fit made now would: in
-              -- the fixture's division, or, for a match between leagues, any
-              -- the cross-league fit reads (the model's own-records loader's
-              -- scope). Read only, so a tick with nothing to refresh writes
-              -- nothing.
-              (SELECT to_char(max(g.kickoff_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD')
-                 FROM fixture_participant mine
-                 JOIN fixture_participant theirs
-                   ON theirs.team_id = mine.team_id AND theirs.fixture_id <> f.id
-                 JOIN fixture g ON g.id = theirs.fixture_id
-                 JOIN season gs ON gs.id = g.season_id
-                 JOIN competition gc ON gc.id = gs.competition_id
-                WHERE mine.fixture_id = f.id
-                  AND newest.fit_date IS NOT NULL
-                  AND g.status = 'finished'
-                  AND g.kickoff_at >= (newest.fit_date::date + 1)::timestamp AT TIME ZONE 'UTC'
-                  AND g.kickoff_at < $3
-                  AND EXISTS (SELECT 1 FROM fixture_score sc
-                               WHERE sc.fixture_id = g.id AND sc.kind = 'full_time')
-                  AND CASE WHEN c.football_data_division IS NOT NULL
-                           THEN gc.football_data_division = c.football_data_division
-                           ELSE gc.football_data_division IS NOT NULL
-                                OR gc.kind <> 'league' OR gc.scope <> 'domestic' END
-              ) AS newest_result_on
+              results.newest_result_on, results.newest_score_stored_at
          FROM fixture f
          JOIN season se ON se.id = f.season_id
          JOIN competition c ON c.id = se.competition_id
@@ -234,7 +211,9 @@ export class ForecastTriggersService {
            SELECT m.model_id, s.kind, fc.unavailable_reason, fc.computed_at,
                   -- A malformed date would fail the whole tick; it refreshes nothing.
                   CASE WHEN s.model_inputs->>'fit_date' ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
-                       THEN s.model_inputs->>'fit_date' END AS fit_date
+                       THEN s.model_inputs->>'fit_date' END AS fit_date,
+                  CASE WHEN s.model_inputs->>'history_from' ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+                       THEN s.model_inputs->>'history_from' END AS history_from
              FROM forecast fc
              JOIN model_version m ON m.id = fc.model_version_id
              JOIN input_snapshot s ON s.id = fc.input_snapshot_id
@@ -242,6 +221,39 @@ export class ForecastTriggersService {
             ORDER BY fc.version_number DESC
             LIMIT 1
          ) newest ON true
+         -- T-1377 (D-195): the results the newest version's fit reads -- a
+         -- finished match of either side with a full-time score, inside its
+         -- history window and before today, in the fixture's division or, for
+         -- a match between leagues, any the cross-league fit reads (the
+         -- model's own-records loader's scope) -- and of those, the newest
+         -- day played after its fit date, and the newest score stored for one
+         -- on or before it. Read only: a tick with nothing due writes nothing.
+         LEFT JOIN LATERAL (
+           SELECT to_char(max(g.kickoff_at AT TIME ZONE 'UTC')
+                            FILTER (WHERE (g.kickoff_at AT TIME ZONE 'UTC')::date
+                                          > newest.fit_date::date),
+                          'YYYY-MM-DD') AS newest_result_on,
+                  max(sc.updated_at)
+                    FILTER (WHERE (g.kickoff_at AT TIME ZONE 'UTC')::date
+                                  <= newest.fit_date::date) AS newest_score_stored_at
+             FROM fixture_participant mine
+             JOIN fixture_participant theirs
+               ON theirs.team_id = mine.team_id AND theirs.fixture_id <> f.id
+             JOIN fixture g ON g.id = theirs.fixture_id
+             JOIN fixture_score sc ON sc.fixture_id = g.id AND sc.kind = 'full_time'
+             JOIN season gs ON gs.id = g.season_id
+             JOIN competition gc ON gc.id = gs.competition_id
+            WHERE mine.fixture_id = f.id
+              AND newest.fit_date IS NOT NULL
+              AND g.status = 'finished'
+              AND g.kickoff_at < $3
+              AND (newest.history_from IS NULL
+                   OR g.kickoff_at >= (newest.history_from::date + 1)::timestamp AT TIME ZONE 'UTC')
+              AND CASE WHEN c.football_data_division IS NOT NULL
+                       THEN gc.football_data_division = c.football_data_division
+                       ELSE gc.football_data_division IS NOT NULL
+                            OR gc.kind <> 'league' OR gc.scope <> 'domestic' END
+         ) results ON true
         WHERE f.status = 'scheduled' AND f.kickoff_at > $1 AND f.kickoff_at <= $2
         ORDER BY f.kickoff_at`,
       [now, until, today],
@@ -263,6 +275,7 @@ export class ForecastTriggersService {
               fitDate: row.newest_fit_date,
             },
       newestResultOn: row.newest_result_on,
+      newestScoreStoredAt: row.newest_score_stored_at,
     }));
   }
 }
