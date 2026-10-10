@@ -160,9 +160,17 @@ cmd_measure() {
     ratio_from='nothing to read, assumed'
   fi
 
-  local remote_now=0
+  # What the remote holds besides point-in-time recovery: once archiving is
+  # on, the WAL and bases already there are what the lines below project, and
+  # counting them twice would shrink any window asked about (T-1374).
+  local remote_now=0 remote_pitr=0
   if [ -n "$REMOTE" ] && [ -f "$BACKUP_RCLONE_CONFIG" ]; then
     remote_now="$(rclone_x size --json "$REMOTE/" | sed -E 's/.*"bytes":([0-9]+).*/\1/')"
+    local held
+    for held in "$WAL_REMOTE/" "$BASE_REMOTE/"; do
+      remote_pitr=$((remote_pitr + $(rclone_x size --json "$held" 2> /dev/null | sed -nE 's/.*"bytes":([0-9]+).*/\1/p' | grep . || echo 0)))
+    done
+    remote_now=$((remote_now - remote_pitr))
   fi
 
   # Worst case held at once, just after a base is taken: the new base, the
@@ -182,7 +190,7 @@ cmd_measure() {
   echo "    WAL per week:           $(mb $((per_day * 7)))"
   echo "    gzip keeps:             $((ratio_pm / 10)).$((ratio_pm % 10))% of a segment (from $ratio_from)"
   echo "    archived per day:       $(mb $((per_day * ratio_pm / 1000))) (gzipped; what the window costs per day)"
-  echo "    remote in use now:      $(mb "$remote_now")${REMOTE:+ ($REMOTE)}"
+  echo "    remote in use now:      $(mb "$remote_now")${REMOTE:+ ($REMOTE)}, besides the $(mb "$remote_pitr") of WAL and bases already archived"
   echo "    PITR would add at most: $(mb $((wal_kept + bases))) (WAL $(mb "$wal_kept") + three bases $(mb "$bases"); a base every $PITR_BASE_EVERY_DAYS day(s), $PITR_KEEP_DAYS-day window)"
   echo "    projected remote total: $(mb "$projected") of the ${PITR_REMOTE_BUDGET_GB} GB budget (PITR_REMOTE_BUDGET_GB)"
   if [ "$projected" -le "$budget" ]; then
