@@ -13,6 +13,14 @@
  * the `fixture_change` trigger (T-032, D-034) quiet: re-polling an unchanged
  * match wakes no stream client.
  *
+ * The per-row upserts also leave an unchanged row out before the conflict is
+ * reached (`INSERT ... SELECT ... WHERE NOT EXISTS` the identical row; T-1374,
+ * D-192): `ON CONFLICT ... DO UPDATE` locks the existing row even when its
+ * WHERE is false, and that lock is a WAL record, a full-page image on the
+ * page's first change after a checkpoint, and a hint-bit image when it is
+ * next read. The conflict clause stays for a row another writer changed or
+ * inserted in between, so the counts are what they were.
+ *
  * **Nothing is invented.** Competitions, seasons, teams, people and venues are
  * never created here. They are resolved through the entity resolver, and an
  * unknown provider id is queued for review (T-013) and the row it would have
@@ -511,7 +519,10 @@ export class IngestStore implements SquadStore {
   ): Promise<number> {
     const { rowCount } = await client.query(
       `INSERT INTO fixture_participant (fixture_id, team_id, side)
-       VALUES ($1, $2, $3)
+       SELECT $1::uuid, $2::uuid, $3::text
+        WHERE NOT EXISTS (
+                SELECT 1 FROM fixture_participant
+                 WHERE fixture_id = $1::uuid AND side = $3::text AND team_id = $2::uuid)
        ON CONFLICT (fixture_id, side) DO UPDATE SET team_id = EXCLUDED.team_id
         WHERE fixture_participant.team_id IS DISTINCT FROM EXCLUDED.team_id`,
       [fixtureId, teamId, side],
@@ -537,7 +548,11 @@ export class IngestStore implements SquadStore {
       if (score === null) continue;
       const { rowCount } = await client.query(
         `INSERT INTO fixture_score (fixture_id, kind, home, away)
-         VALUES ($1, $2, $3, $4)
+         SELECT $1::uuid, $2::text, $3::smallint, $4::smallint
+          WHERE NOT EXISTS (
+                  SELECT 1 FROM fixture_score
+                   WHERE fixture_id = $1::uuid AND kind = $2::text
+                     AND (home, away) IS NOT DISTINCT FROM ($3::smallint, $4::smallint))
          ON CONFLICT (fixture_id, kind) DO UPDATE SET home = EXCLUDED.home, away = EXCLUDED.away
           WHERE (fixture_score.home, fixture_score.away)
                 IS DISTINCT FROM (EXCLUDED.home, EXCLUDED.away)`,
@@ -635,7 +650,12 @@ export class IngestStore implements SquadStore {
       const sequence = PERIOD_KINDS.indexOf(period.kind) + 1;
       const { rowCount } = await this.pool.query(
         `INSERT INTO fixture_period (fixture_id, kind, sequence, started_at, ended_at, added_minutes)
-         VALUES ($1, $2, $3, $4, $5, $6)
+         SELECT $1::uuid, $2::text, $3::smallint, $4::timestamptz, $5::timestamptz, $6::smallint
+          WHERE NOT EXISTS (
+                  SELECT 1 FROM fixture_period
+                   WHERE fixture_id = $1::uuid AND kind = $2::text
+                     AND (started_at, ended_at, added_minutes)
+                         IS NOT DISTINCT FROM ($4::timestamptz, $5::timestamptz, $6::smallint))
          ON CONFLICT (fixture_id, kind) DO UPDATE
             SET started_at = EXCLUDED.started_at,
                 ended_at = EXCLUDED.ended_at,
@@ -708,7 +728,16 @@ export class IngestStore implements SquadStore {
         `INSERT INTO incident
            (fixture_id, participant_id, person_id, related_person_id, kind, minute,
             added_time, sequence, detail)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         SELECT $1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::text, $6::smallint, $7::smallint,
+                $8::smallint, $9::text
+          WHERE NOT EXISTS (
+                  SELECT 1 FROM incident
+                   WHERE fixture_id = $1::uuid AND sequence = $8::smallint
+                     AND (participant_id, person_id, related_person_id, kind, minute,
+                          added_time, detail)
+                         IS NOT DISTINCT FROM
+                         ($2::uuid, $3::uuid, $4::uuid, $5::text, $6::smallint, $7::smallint,
+                          $9::text))
          ON CONFLICT (fixture_id, sequence) DO UPDATE
             SET participant_id = EXCLUDED.participant_id,
                 person_id = EXCLUDED.person_id,
@@ -807,7 +836,12 @@ export class IngestStore implements SquadStore {
       }
       const { rowCount: written } = await this.pool.query(
         `INSERT INTO lineup (participant_id, person_id, role, shirt_number, position, is_captain)
-         VALUES ($1, $2, $3, $4, $5, $6)
+         SELECT $1::uuid, $2::uuid, $3::text, $4::smallint, $5::text, $6::boolean
+          WHERE NOT EXISTS (
+                  SELECT 1 FROM lineup
+                   WHERE participant_id = $1::uuid AND person_id = $2::uuid
+                     AND (role, shirt_number, position, is_captain)
+                         IS NOT DISTINCT FROM ($3::text, $4::smallint, $5::text, $6::boolean))
          ON CONFLICT (participant_id, person_id) DO UPDATE
             SET role = EXCLUDED.role,
                 shirt_number = EXCLUDED.shirt_number,
@@ -842,7 +876,11 @@ export class IngestStore implements SquadStore {
       if (participantId === null) continue;
       const { rowCount } = await this.pool.query(
         `INSERT INTO fixture_stat (participant_id, metric, value)
-         VALUES ($1, $2, $3)
+         SELECT $1::uuid, $2::text, $3::numeric
+          WHERE NOT EXISTS (
+                  SELECT 1 FROM fixture_stat
+                   WHERE participant_id = $1::uuid AND metric = $2::text
+                     AND value IS NOT DISTINCT FROM $3::numeric)
          ON CONFLICT (participant_id, metric) DO UPDATE SET value = EXCLUDED.value
           WHERE fixture_stat.value IS DISTINCT FROM EXCLUDED.value`,
         [participantId, stat.metric, stat.value],
@@ -887,7 +925,11 @@ export class IngestStore implements SquadStore {
       }
       const { rowCount } = await this.pool.query(
         `INSERT INTO fixture_player_stat (participant_id, person_id, metric, value)
-         VALUES ($1, $2, $3, $4)
+         SELECT $1::uuid, $2::uuid, $3::text, $4::numeric
+          WHERE NOT EXISTS (
+                  SELECT 1 FROM fixture_player_stat
+                   WHERE participant_id = $1::uuid AND person_id = $2::uuid
+                     AND metric = $3::text AND value IS NOT DISTINCT FROM $4::numeric)
          ON CONFLICT (participant_id, person_id, metric) DO UPDATE SET value = EXCLUDED.value
           WHERE fixture_player_stat.value IS DISTINCT FROM EXCLUDED.value`,
         [participantId, personId, stat.metric, stat.value],
@@ -1026,7 +1068,12 @@ export class IngestStore implements SquadStore {
       listed.push(personId);
       const { rowCount } = await this.pool.query(
         `INSERT INTO fixture_absence (fixture_id, participant_id, person_id, status, kind, reason)
-         VALUES ($1, $2, $3, $4, $5, $6)
+         SELECT $1::uuid, $2::uuid, $3::uuid, $4::text, $5::text, $6::text
+          WHERE NOT EXISTS (
+                  SELECT 1 FROM fixture_absence
+                   WHERE fixture_id = $1::uuid AND person_id = $3::uuid
+                     AND (participant_id, status, kind, reason)
+                         IS NOT DISTINCT FROM ($2::uuid, $4::text, $5::text, $6::text))
          ON CONFLICT (fixture_id, person_id) DO UPDATE
            SET participant_id = EXCLUDED.participant_id, status = EXCLUDED.status,
                kind = EXCLUDED.kind, reason = EXCLUDED.reason, reported_at = now()
