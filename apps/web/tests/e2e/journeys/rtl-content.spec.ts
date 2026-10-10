@@ -169,7 +169,8 @@ test.describe('the scores page under right-to-left', () => {
   });
 
   test('puts every row’s home goals beside its home team (T-1375)', async ({ page }) => {
-    await page.goto('/ar/scores?from=2025-01-05&to=2025-01-05&tz=UTC');
+    // The seed's played day, as the other journeys open it.
+    await page.goto('/ar/scores?date=2025-01-05&tz=UTC');
     const played = page
       .getByTestId('score-card')
       .filter({ has: page.getByTestId('score').filter({ hasText: /[0-9\u0660-\u0669]/ }) });
