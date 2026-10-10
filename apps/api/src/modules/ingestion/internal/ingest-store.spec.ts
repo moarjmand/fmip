@@ -1,4 +1,4 @@
-import type { NormalisedFixture, NormalisedLineup } from '@fmip/ingestion';
+import type { NormalisedFixture, NormalisedIncident, NormalisedLineup } from '@fmip/ingestion';
 import type { Pool } from 'pg';
 import { describe, expect, it } from 'vitest';
 import type { PollTarget, RefResolver } from './ingest-store';
@@ -171,5 +171,54 @@ describe('the ingest store and ids set aside (T-1338)', () => {
     await store.saveLineup('api_football', 'fixture', lineup);
 
     expect(statements.some((sql) => sql.includes('DELETE FROM lineup'))).toBe(false);
+  });
+});
+
+describe('the incident list is the whole truth for its fixture (T-1382)', () => {
+  function paramsPool(): { pool: Pool; calls: { sql: string; params: unknown[] }[] } {
+    const calls: { sql: string; params: unknown[] }[] = [];
+    const query = (sql: string, params: unknown[] = []) => {
+      calls.push({ sql, params });
+      return Promise.resolve({ rows: [{ id: 'participant' }], rowCount: 0 });
+    };
+    return { pool: { query } as never, calls };
+  }
+  const goal = (sequence: number, player: string): NormalisedIncident =>
+    ({
+      fixtureExternalId: '900',
+      sequence,
+      minute: sequence * 10,
+      addedTime: null,
+      kind: 'goal',
+      side: 'home',
+      player: { externalId: player, name: `Player ${player}` },
+      relatedPlayer: null,
+      detail: 'Normal Goal',
+    }) as NormalisedIncident;
+
+  it('deletes every row at a place this answer did not write, a skipped one included', async () => {
+    const { pool, calls } = paramsPool();
+    // Player 2 is waiting for review, so place 2 is skipped; whatever row
+    // stood there, and any row past place 3, is an older incident.
+    const store = new IngestStore(
+      pool,
+      resolverOf({ 'person:1': 'p0000000-0000-4000-8000-000000000001', 'person:3': 'p3' }),
+    );
+    const write = await store.saveIncidents('api_football', 'fixture', [
+      goal(1, '1'),
+      goal(2, '2'),
+      goal(3, '3'),
+    ]);
+    expect(write.unresolved).toEqual(['person:2']);
+    const deletes = calls.filter((c) => c.sql.includes('DELETE FROM incident'));
+    expect(deletes).toHaveLength(1);
+    expect(deletes[0]?.params).toEqual(['fixture', [1, 3]]);
+  });
+
+  it('deletes nothing on an empty answer', async () => {
+    const { pool, calls } = paramsPool();
+    const store = new IngestStore(pool, resolverOf({}));
+    await store.saveIncidents('api_football', 'fixture', []);
+    expect(calls.some((c) => c.sql.includes('DELETE FROM incident'))).toBe(false);
   });
 });
