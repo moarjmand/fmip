@@ -185,6 +185,12 @@ did.
 |---|---|---|---|
 | `[x]` T-1380 | The settlement tick: `SettlementSchedulerService` (reputation module, queue `settlement`, `2-59/5 * * * *` UTC, only where `INGESTION_SCHEDULE=on`) runs `SettlementService.settleDue` up to `SETTLEMENT_PASSES` times, stopping after a pass that wrote nothing, then `ReputationService.recomputeForFixture` for exactly the fixtures it settled (rating snapshot and Career Points); `settleDue` also returns the `fixtureIds` it settled. Failures are counted like every job (T-803) | T-052, T-053, T-026 | `- [x]` `settlement-scheduler.spec.ts`: a tick settles and recomputes the members of exactly those fixtures; nothing due writes and recomputes nothing; a pass that wrote nothing ends the tick; a backlog drains over at most `SETTLEMENT_PASSES` passes. `- [x]` `settlement.http.spec.ts`: against the schema, `settleDue` names the fixture it settled and a second pass no longer finds it. `- [x]` Both steps are idempotent (rule 8), so a tick beside a manual `POST /settlements/run` writes nothing twice. `- [x]` The API's typecheck and lint |
 
+## A timeline the provider's list can shrink
+
+| ID | Task | Deps | Acceptance |
+|---|---|---|---|
+| `[x]` T-1382 | An incident list is the whole truth for its fixture: `IngestStore.saveIncidents` deletes the fixture's rows at every `sequence` a non-empty answer did not write (past the end of a list that shrank, or a place now holding an incident it skips), and an empty answer deletes nothing. Migration `1765848000000` removes the detail-fetch mark of every fixture holding the same incident twice, so the backlog asks again. Found on the D-071 walk of 2026-10-10: provider fixture 1639651 showed two 60th and two 90th minute substitutions, and a Sanat Naft goal was hidden under a stale row | T-030, T-102, T-1374 | `- [x]` `ingest-store.spec.ts`: a skipped place and the tail are deleted with exactly the written places kept; an empty answer deletes nothing. `- [x]` `ingestion-jobs.spec.ts`, against the schema: a row at place 999 is deleted on the next post-match ask, and every other row keeps its version (no rewrite, no lock, T-1374). `- [x]` No FK references `incident`; its triggers (`updated_at`, change notify) are unaffected. `- [x]` The API's typecheck and lint |
+
 ## Forecast freshness
 
 The 2026-10-08 investigation: an `early` forecast is written once, seven days

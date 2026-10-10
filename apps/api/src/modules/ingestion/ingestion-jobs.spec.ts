@@ -578,6 +578,25 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
       [fixtureId, HAALAND],
     );
     expect(Number(restored.rows[0]?.value)).toBe(2);
+
+    // A row at a place the answer no longer fills -- what a list that shrank
+    // leaves behind -- is deleted on the next ask, and nothing else moves
+    // (T-1382; production fixture 1639651 showed a substitution twice).
+    const kept = await versions();
+    await pool.query(
+      `INSERT INTO incident (fixture_id, person_id, kind, minute, sequence)
+       VALUES ($1, $2, 'goal', 1, 999)`,
+      [fixtureId, HAALAND],
+    );
+    const fourth = await jobs.postMatch(AFTER_KICKOFF);
+    expect(fourth.itemsWritten).toBe(1);
+    expect(
+      await count(
+        `SELECT count(*)::text AS n FROM incident WHERE fixture_id = $1 AND sequence = 999`,
+        [fixtureId],
+      ),
+    ).toBe(0);
+    expect(await versions()).toEqual(kept);
   });
 
   /**
