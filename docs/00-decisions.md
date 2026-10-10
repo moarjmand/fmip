@@ -8767,3 +8767,106 @@ version*: the model service already decides which version answers, and a
 second place to say it could disagree with the first. *Re-forecasting every
 upcoming fixture, or rewriting the old rows*: the first adds rows nobody
 would see before the early window, the second breaks rule 5.
+
+---
+
+## D-195 — A forecast is refreshed, at most once a day, when results its fit did not read are stored
+**Status:** Accepted · 2026-10-10 · **Task:** T-1377 · **Follows:** D-030, D-031, D-082, D-083, D-187, D-191
+
+**Context.** The triggers (T-120, blueprint 6.4) write `early` once, seven
+days before kick-off, and then only `lineups_confirmed`, about an hour
+before it. The model fits on every result up to the day before a forecast is
+made (`fit_date`), so for most of a week the page showed a forecast fitted
+before the previous round of the league and before any midweek match: the
+2026-10-08 investigation found weekend fixtures whose early forecast had
+read none of the round played the same weekend it was made. D-191 added one
+re-forecast when the published version changes; nothing re-forecast when
+only the results did.
+
+**Decision.** `dueKind` (`apps/api/src/modules/forecast/internal/forecast-triggers.ts`)
+adds one rule after the others. A fixture inside the window whose newest
+published forecast is the published version's own and `available` is due a
+**refresh** when its inputs have moved on (`inputsMovedOn`): either side has a
+result the fit reads that it did not.
+
+- **A result the fit reads**: a finished match of either side with a
+  full-time score, in a competition with the fixture's division (for a match
+  between leagues, any competition the cross-league fit reads: one with a
+  division, or anything but a domestic league), played inside the forecast's
+  history window (`history_from`) and before today, UTC. This is the scope of
+  the model's own-records loader (D-083). A cup match does not refresh a
+  league fixture, because the league's fit never reads it.
+- **That it did not read**: played after the forecast's `fit_date`, or with
+  its full-time score stored on or after the UTC day the forecast was made.
+  The second clause catches a score that arrived after the model's daily
+  reload of our records (its first read of the division that day) and a
+  corrected score; at worst it costs one refresh more, whose fit has then
+  read it.
+- **The kind** is the newest automatic statement made again on the newer
+  results: `lineups_confirmed` once one is recorded, `early` before. No new
+  kind. A `refreshed` kind would need a migration of the input snapshot's
+  CHECK, a contract change, and the web's label in every locale, and would
+  say nothing the inputs do not: the page's "what changed since" view
+  (`apps/web/src/lib/forecast-diff.ts`) compares the two versions' inputs,
+  and for a refresh it names the moved fit date and matches used. D-191
+  already writes a second row of one kind. `lineups_predicted` and `manual`,
+  the operator's kinds, are never written by this rule.
+- **Immutable** (rule 5): a new row with its own input snapshot, numbered
+  next; nothing is updated or deleted. The Power Index is computed on the
+  same pass, as for every version.
+
+**Limits.**
+
+- **At most one refresh a day per fixture**: nothing is refreshed until the
+  newest published version is `REFRESH_MIN_HOURS` (24) old; the tick reports
+  the fixtures that wait under their own skip reason.
+- **Never after kick-off** and never outside the seven-day window, like every
+  kind (D-031: only pre-kick-off forecasts count).
+- **Never when the model service cannot be asked** this tick (`/health`, as
+  D-191): an outage would be stored as an `unavailable` version over an
+  answer. An `unavailable` newest version is never refreshed.
+- **Order**: a due line-up, an unwritten early version and a new published
+  version all come first.
+- **Write volume**: the rule is a `LEFT JOIN LATERAL` in the tick's one
+  candidates query (`ForecastTriggersService.candidates`, through
+  `fixture_participant_team_id_idx`); a fixture with nothing due writes
+  nothing, so a quiet tick is one read. A refresh writes what any version
+  writes (an input snapshot, a forecast, one shadow per candidate, two Power
+  Index rows). A league side plays about once a week, so a fixture typically
+  gets one to three refreshes in its window.
+
+**Effect on evaluation and the public accuracy page.** Nothing in the
+evaluation code changes, and every refresh is scored like any version.
+
+- Each refresh is an `available` forecast computed before kick-off, so T-066
+  evaluates it at full time with `pre_kickoff = true` and it counts (D-031).
+  D-031 chose to score every pre-kick-off version and rejected keeping only
+  the latest per fixture; this decision keeps that.
+- **Model performance per competition** groups by model version and kind: a
+  refreshed `early` adds to the `early` row's versions evaluated, and the
+  match is counted once in its fixtures evaluated.
+- **The public accuracy page** (D-187) counts each published pre-kick-off
+  forecast as a forecast and the match once, and averages per forecast; a
+  match with refreshes weighs more in a month's averages, as one with a
+  confirmed line-up version already did. The minimum behind each row
+  (`ACCURACY_MINIMUM_MATCHES`) counts matches, so coverage reads as before.
+  The later forecasts read more results, so the averages are expected to
+  improve slightly; that is the forecasts the site showed, not a re-scoring.
+- **Lists and summaries** (T-940, `preKickoffFor`) show the latest published
+  pre-kick-off version, now the refreshed one when there is one.
+- **Candidates** (D-082): `ForecastService.compute` stores each candidate's
+  shadow beside every published version, so a refresh refreshes them too, and
+  `candidatePairs` still pairs the latest of each per fixture and kind. The
+  count toward promotion (`candidateCounts`, 300) counts forecasts, not
+  matches, so refreshes bring it closer in fewer matches. The next promotion
+  entry should state its matches beside its forecasts. This decision does not
+  change D-082's floor.
+
+**Rejected.** *A `refreshed` kind*: see above. *Refreshing on any result in
+the division*: other clubs' results move the fit too, but a side plays every
+week and the refresh after its own match reads them all; refreshing on every
+result would write a row a day for every fixture. *Re-forecasting every day*:
+rows with no new input. *Reading the training store for staleness*: our
+records reach it only when the model next reads the division, so it would
+lag the very forecast that loads them. *Updating the early row*: rule 5.
+*Scoring only the latest pre-kick-off forecast*: rejected by D-031.
