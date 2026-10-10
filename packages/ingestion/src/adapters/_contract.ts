@@ -68,6 +68,13 @@ export interface AdapterError {
   kind: AdapterErrorKind;
   message: string;
   status?: number;
+  /**
+   * Set on an `unsupported` result whose request the provider answered, with
+   * nothing in it yet: a line-up before it is announced (T-1376). That is the
+   * provider's answer, not a refusal, and a job asks again later. Absent on a
+   * refusal of the request itself (a status code, a plan that cannot ask).
+   */
+  unpublished?: true;
 }
 
 /**
