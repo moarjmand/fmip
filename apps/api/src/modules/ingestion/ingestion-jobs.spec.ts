@@ -476,9 +476,108 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
       ),
     ).toBe(PERSON_IDS.length);
 
+    // Every row the detail wrote, by version: a replay neither rewrites (xmin)
+    // nor locks (xmax) any of them (T-1374, D-192).
+    const versions = async () => {
+      const { rows } = await pool.query<{ row: string; xmin: string; xmax: string }>(
+        `SELECT 'fixture ' || f.id AS row, f.xmin::text, f.xmax::text
+           FROM fixture f WHERE f.id = $1
+         UNION ALL
+         SELECT 'participant ' || p.side, p.xmin::text, p.xmax::text
+           FROM fixture_participant p WHERE p.fixture_id = $1
+         UNION ALL
+         SELECT 'score ' || s.kind, s.xmin::text, s.xmax::text
+           FROM fixture_score s WHERE s.fixture_id = $1
+         UNION ALL
+         SELECT 'period ' || pe.kind, pe.xmin::text, pe.xmax::text
+           FROM fixture_period pe WHERE pe.fixture_id = $1
+         UNION ALL
+         SELECT 'incident ' || i.sequence, i.xmin::text, i.xmax::text
+           FROM incident i WHERE i.fixture_id = $1
+         UNION ALL
+         SELECT 'stat ' || p.side || ' ' || st.metric, st.xmin::text, st.xmax::text
+           FROM fixture_stat st JOIN fixture_participant p ON p.id = st.participant_id
+          WHERE p.fixture_id = $1
+         UNION ALL
+         SELECT 'lineup ' || l.person_id, l.xmin::text, l.xmax::text
+           FROM lineup l JOIN fixture_participant p ON p.id = l.participant_id
+          WHERE p.fixture_id = $1
+         UNION ALL
+         SELECT 'player ' || ps.person_id || ' ' || ps.metric, ps.xmin::text, ps.xmax::text
+           FROM fixture_player_stat ps JOIN fixture_participant p ON p.id = ps.participant_id
+          WHERE p.fixture_id = $1
+         ORDER BY 1`,
+        [fixtureId],
+      );
+      return rows;
+    };
+    const written = await versions();
+
     const second = await jobs.postMatch(AFTER_KICKOFF);
     expect(second.itemsSeen).toBe(1);
     expect(second.itemsWritten).toBe(0);
+    expect(await versions()).toEqual(written);
+
+    // One stored value changed in each table: the next ask puts back exactly
+    // those rows and leaves every other row as it was.
+    const tampered = await pool.query<{ row: string }>(
+      `WITH score AS (
+         UPDATE fixture_score SET home = home + 5
+          WHERE fixture_id = $1 AND kind = 'full_time' RETURNING 'score ' || kind AS row
+       ), period AS (
+         UPDATE fixture_period SET added_minutes = coalesce(added_minutes, 0) + 7
+          WHERE fixture_id = $1 AND kind = 'first_half' RETURNING 'period ' || kind AS row
+       ), incident_row AS (
+         UPDATE incident SET minute = minute + 1
+          WHERE fixture_id = $1 AND person_id = $2 AND kind = 'goal'
+            AND sequence = (SELECT min(sequence) FROM incident
+                             WHERE fixture_id = $1 AND person_id = $2 AND kind = 'goal')
+         RETURNING 'incident ' || sequence AS row
+       ), stat AS (
+         UPDATE fixture_stat st SET value = st.value + 100
+           FROM fixture_participant p
+          WHERE p.id = st.participant_id AND p.fixture_id = $1 AND p.side = 'home'
+            AND st.metric = (SELECT min(s2.metric) FROM fixture_stat s2
+                              WHERE s2.participant_id = p.id)
+         RETURNING 'stat ' || p.side || ' ' || st.metric AS row
+       ), lineup_row AS (
+         UPDATE lineup l
+            SET shirt_number = CASE WHEN l.shirt_number IS NULL THEN 77 ELSE l.shirt_number + 50 END
+           FROM fixture_participant p
+          WHERE p.id = l.participant_id AND p.fixture_id = $1 AND l.person_id = $2
+         RETURNING 'lineup ' || l.person_id AS row
+       ), player AS (
+         UPDATE fixture_player_stat ps SET value = 0
+           FROM fixture_participant p
+          WHERE p.id = ps.participant_id AND p.fixture_id = $1 AND ps.person_id = $2
+            AND ps.metric = 'goals'
+         RETURNING 'player ' || ps.person_id || ' ' || ps.metric AS row
+       )
+       SELECT row FROM score UNION ALL SELECT row FROM period
+       UNION ALL SELECT row FROM incident_row UNION ALL SELECT row FROM stat
+       UNION ALL SELECT row FROM lineup_row UNION ALL SELECT row FROM player`,
+      [fixtureId, HAALAND],
+    );
+    const changedRows = tampered.rows.map((r) => r.row).sort();
+    expect(changedRows).toHaveLength(6);
+    const beforeThird = await versions();
+
+    const third = await jobs.postMatch(AFTER_KICKOFF);
+    expect(third.itemsWritten).toBe(6);
+    const afterThird = await versions();
+    expect(afterThird.map((r) => r.row)).toEqual(beforeThird.map((r) => r.row));
+    for (const [i, row] of afterThird.entries()) {
+      const was = beforeThird[i]!;
+      if (changedRows.includes(row.row)) expect(row.xmin, row.row).not.toBe(was.xmin);
+      else expect(row, row.row).toEqual(was);
+    }
+    const restored = await pool.query<{ value: string }>(
+      `SELECT ps.value::text FROM fixture_player_stat ps
+         JOIN fixture_participant p ON p.id = ps.participant_id
+        WHERE p.fixture_id = $1 AND ps.person_id = $2 AND ps.metric = 'goals'`,
+      [fixtureId, HAALAND],
+    );
+    expect(Number(restored.rows[0]?.value)).toBe(2);
   });
 
   /**

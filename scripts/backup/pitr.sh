@@ -2,7 +2,7 @@
 # Point-in-time recovery (T-845, D-157): Postgres's own WAL archiving, shipped
 # through the same rclone crypt remote as the daily dumps. No new component.
 #
-#     bash scripts/backup/pitr.sh measure           # will it fit? (before switching on)
+#     bash scripts/backup/pitr.sh measure [--days N] # will it fit? (before switching on, or a longer window)
 #     bash scripts/backup/pitr.sh ship              # spool -> remote (fmip-wal-ship.timer, every 5 min)
 #     bash scripts/backup/pitr.sh base [--if-due]   # pg_basebackup -> remote, prune (backup.sh, every PITR_KEEP_DAYS days, at most weekly)
 #     bash scripts/backup/pitr.sh restore --to '2026-10-01 14:05' [--keep] [--name NAME]
@@ -105,6 +105,13 @@ remote_bases() {
 
 # ---------------------------------------------------------------------------
 cmd_measure() {
+  # --days N asks about another window than .env's PITR_KEEP_DAYS, without
+  # changing it (T-1374, D-192): the question before raising the window.
+  if [ "${1:-}" = '--days' ]; then
+    [[ "${2:-}" =~ ^[1-9][0-9]*$ ]] || die "--days needs a whole number of days"
+    PITR_KEEP_DAYS="$2"
+    PITR_BASE_EVERY_DAYS=$((PITR_KEEP_DAYS < 7 ? PITR_KEEP_DAYS : 7))
+  fi
   echo "==> how much WAL this database writes (T-845's gate, D-157)"
   local now size lsn wal_bytes reset born
   now="$(date -u +%s)"
@@ -145,11 +152,32 @@ cmd_measure() {
         c=$(gzip -6 -c "$f" | wc -c); t=$((t + c)); n=$((n + 1))
       done
       [ "$n" -gt 0 ] && echo $((t * 1000 / (n * 16777216))) || echo 0' | tr -d '\r')"
-  [ "${ratio_pm:-0}" -gt 0 ] || ratio_pm=500 # no finished segment to read: assume half
+  # With archiving on, pg_wal keeps no finished segment: the archive itself
+  # says what a gzipped segment weighs, over its newest day (288 segments at
+  # one switch per PG_ARCHIVE_TIMEOUT) (T-1374, D-192).
+  local ratio_from='the newest finished segments in pg_wal'
+  if [ "${ratio_pm:-0}" -le 0 ] && [ -n "$REMOTE" ] && [ -f "$BACKUP_RCLONE_CONFIG" ]; then
+    ratio_pm="$(rclone_x lsf --files-only --format sp "$WAL_REMOTE" 2> /dev/null | tr -d '\r' |
+      grep -E ';[0-9A-F]{24}\.gz$' | sort -t';' -k2 | tail -n 288 |
+      awk -F';' -v seg="$SEGMENT_BYTES" '{ t += $1; n++ } END { if (n) printf "%d\n", t * 1000 / (n * seg); else print 0 }')"
+    ratio_from='the newest archived segments'
+  fi
+  if [ "${ratio_pm:-0}" -le 0 ]; then
+    ratio_pm=500 # no finished segment to read: assume half
+    ratio_from='nothing to read, assumed'
+  fi
 
-  local remote_now=0
+  # What the remote holds besides point-in-time recovery: once archiving is
+  # on, the WAL and bases already there are what the lines below project, and
+  # counting them twice would shrink any window asked about (T-1374).
+  local remote_now=0 remote_pitr=0
   if [ -n "$REMOTE" ] && [ -f "$BACKUP_RCLONE_CONFIG" ]; then
     remote_now="$(rclone_x size --json "$REMOTE/" | sed -E 's/.*"bytes":([0-9]+).*/\1/')"
+    local held
+    for held in "$WAL_REMOTE/" "$BASE_REMOTE/"; do
+      remote_pitr=$((remote_pitr + $(rclone_x size --json "$held" 2> /dev/null | sed -nE 's/.*"bytes":([0-9]+).*/\1/p' | grep . || echo 0)))
+    done
+    remote_now=$((remote_now - remote_pitr))
   fi
 
   # Worst case held at once, just after a base is taken: the new base, the
@@ -167,8 +195,9 @@ cmd_measure() {
   echo "    database size:          $(mb "$size")"
   echo "    WAL written per day:    $(mb "$per_day") ($basis)"
   echo "    WAL per week:           $(mb $((per_day * 7)))"
-  echo "    gzip keeps:             $((ratio_pm / 10))% of a segment"
-  echo "    remote in use now:      $(mb "$remote_now")${REMOTE:+ ($REMOTE)}"
+  echo "    gzip keeps:             $((ratio_pm / 10)).$((ratio_pm % 10))% of a segment (from $ratio_from)"
+  echo "    archived per day:       $(mb $((per_day * ratio_pm / 1000))) (gzipped; what the window costs per day)"
+  echo "    remote in use now:      $(mb "$remote_now")${REMOTE:+ ($REMOTE)}, besides the $(mb "$remote_pitr") of WAL and bases already archived"
   echo "    PITR would add at most: $(mb $((wal_kept + bases))) (WAL $(mb "$wal_kept") + three bases $(mb "$bases"); a base every $PITR_BASE_EVERY_DAYS day(s), $PITR_KEEP_DAYS-day window)"
   echo "    projected remote total: $(mb "$projected") of the ${PITR_REMOTE_BUDGET_GB} GB budget (PITR_REMOTE_BUDGET_GB)"
   if [ "$projected" -le "$budget" ]; then
@@ -423,7 +452,10 @@ cleanup() {
 trap cleanup EXIT
 
 case "${1:-}" in
-  measure) cmd_measure ;;
+  measure)
+    shift
+    cmd_measure "$@"
+    ;;
   ship) cmd_ship ;;
   base)
     shift

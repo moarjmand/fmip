@@ -189,7 +189,25 @@ restore-drill.sh --pitr --pitr.sh restore--> throwaway postgres, replayed to a m
   `archive_timeout` = `PG_ARCHIVE_TIMEOUT`, 300 s, and `wal_recycle=off`).
   Changing it restarts Postgres. `wal-archive.sh` gzips each finished segment
   into the spool; a segment closed early by the timeout is mostly zeros and
-  gzips to about 16 KB, so a quiet day costs about 5 MB.
+  gzips to about 16 KB, so a quiet day costs about 5 MB. Because of that
+  timeout the WAL *position* moves at least one 16 MB segment every five
+  minutes whenever anything is written (about 4.6 GB a day of position on
+  production), while the records themselves were about 1.75 GB a day before
+  T-1374; what the window costs is the gzipped archive, which `measure` now
+  prints as "archived per day".
+- **Fewer full-page images (T-1374, D-192).** The same `command:` sets
+  `checkpoint_timeout=15min` (from 5), `max_wal_size=2GB` and
+  `wal_compression=lz4`. About 90% of this database's WAL bytes were
+  full-page images: the first change to a page after each checkpoint, and,
+  with data checksums on, the first hint bit set on it. A page touched every
+  five minutes is imaged once per quarter hour instead of three times; lz4
+  roughly halves the images as written, though the archive's gzip already
+  got most of that, so it is a small saving off-provider. Crash recovery
+  replays only the WAL since the last checkpoint, at most about 20 minutes
+  of it: seconds at this volume. A replay to a minute starts from a base
+  backup, so its time does not depend on the checkpoint interval. They take
+  effect at the next `docker compose up -d postgres` (`09-deploy.md` §9,
+  "Applying T-1374's settings"), never through `rollout.sh`.
 - **Back-pressure.** If a spooled segment has waited 30 minutes, the shipper
   has stopped, and `wal-archive.sh` refuses the next one. Postgres keeps it in
   `pg_wal` and retries every minute, and the watchdog raises `backup`. The
@@ -239,6 +257,17 @@ six or more days later measures the real week. **If it does not fit, stop:
 a bigger storage plan is the maintainer's purchase, and nothing here is
 switched on.** The projection counts two base backups at the database's full
 size and two weeks of WAL, so it errs high.
+
+**Running it again with archiving on** (to grow `PITR_KEEP_DAYS`, D-192):
+pg_wal then keeps no finished segment, so the gzip ratio is read from the
+newest day of segments already on the remote (the line says which source
+it used), and the WAL and bases already archived are taken out of "remote in
+use now", since the projection counts them itself. Name the window you are
+asking about with `--days` (`bash scripts/backup/pitr.sh measure --days 7`;
+`.env` is not changed); if it says `FITS`
+on a week of samples taken after T-1374 was deployed and its settings
+applied, write the same value in `.env`. Nothing restarts: only the scripts
+read it, and the next base is taken by the new interval.
 
 ### The drill
 

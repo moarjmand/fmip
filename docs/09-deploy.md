@@ -517,6 +517,36 @@ alone again. What is on the remote stays, and can still be replayed from, until
 and `docker compose up -d postgres`. The `wal-spool` volume can then be
 removed with `docker volume rm fmip_wal-spool`.
 
+**Applying T-1374's settings** (once, after the release that carries T-1374
+is deployed; D-192). The release's code needs nothing: its writers stop
+rewriting unchanged rows as soon as the API is rolled out. The three
+Postgres settings in `deploy/docker-compose.prod.yml` (`checkpoint_timeout`
+15 min, `max_wal_size` 2 GB, `wal_compression` lz4) apply only when
+Postgres is recreated, which `rollout.sh` never does. Postgres restarts
+once: a few seconds in which the API's queries fail and are retried.
+
+```bash
+git log -1 --oneline                              # the release with T-1374
+docker compose up -d postgres
+docker compose exec postgres psql -U fmip -d fmip -tAc \
+  "SELECT name, setting FROM pg_settings WHERE name IN ('checkpoint_timeout','max_wal_size','wal_compression') ORDER BY 1"
+# checkpoint_timeout|900   max_wal_size|2048   wal_compression|lz4
+```
+
+Archiving carries on through the restart (the segment open at the time is
+closed and archived as usual). Crash recovery after this replays at most
+about 20 minutes of WAL: seconds. A week later, ask whether the window can
+grow back towards D-157's seven days:
+
+```bash
+bash scripts/backup/pitr.sh measure --days 7      # FITS -> PITR_KEEP_DAYS=7 in .env
+```
+
+If it says `FITS`, set `PITR_KEEP_DAYS=7` in `.env` (no restart: only the
+backup scripts read it; the next base follows the new interval). Rollback:
+take the three lines out of the `command:` and `docker compose up -d
+postgres` again.
+
 | Date | Where | Result |
 |---|---|---|
 | 2026-10-09 | Production (`fmip-prod`), `PITR_KEEP_DAYS=3` (D-157 amended 2026-10-08) | Measured over 9 days: 5,106 MB of WAL a day, gzip keeps 5%, projected 6,732 MB of the 10 GB budget: FITS. Archiving switched on at about 06:00 UTC, `fmip-wal-ship.timer` enabled (first ship 06:05, 3 segments), first base `base-20261009T060250Z-…` (306 MB, verified on the remote). `restore-drill.sh --scheduled --pitr '2026-10-09 09:30'`: **DRILL PASSED** -- constraints and migrations as live, forecast 516/516, fixture 12,544/12,544. |

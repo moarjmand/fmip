@@ -65,8 +65,14 @@ export class MediaStore {
     sourceUrl: string,
   ): Promise<boolean> {
     const { rowCount } = await this.pool.query(
+      // An address already held is left out before the conflict, which would
+      // lock the row even when nothing changes (T-1374, D-192).
       `INSERT INTO entity_media (entity_type, entity_id, kind, source_provider, source_url)
-       VALUES ($1, $2, $3, $4, $5)
+       SELECT $1::text, $2::uuid, $3::text, $4::text, $5::text
+        WHERE NOT EXISTS (
+                SELECT 1 FROM entity_media
+                 WHERE entity_type = $1::text AND entity_id = $2::uuid AND kind = $3::text
+                   AND (source_url, source_provider) IS NOT DISTINCT FROM ($5::text, $4::text))
        ON CONFLICT (entity_type, entity_id, kind) DO UPDATE
          SET source_provider = EXCLUDED.source_provider,
              source_url = EXCLUDED.source_url,

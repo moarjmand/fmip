@@ -11,6 +11,7 @@ import { DatabaseModule } from '../../database/database.module';
 import { FixturesModule } from '../fixtures/fixtures.module';
 import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
 import { MediaFiles } from './internal/media-files';
+import { MediaStore } from './internal/media-store';
 import { sha256Of, versionOf } from './internal/image-check';
 import { IMMUTABLE, SHORT } from './media.controller';
 import {
@@ -144,8 +145,20 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the entity m
   it('fetches a noted crest once, stores it, and serves it from our own route', async () => {
     answer(`${SOURCE}/teams/541.png`, CREST);
     await media.note('api_football', 'team', REAL_MADRID, `${SOURCE}/teams/541.png`);
-    // Noting the same address again changes nothing.
-    await media.note('api_football', 'team', REAL_MADRID, `${SOURCE}/teams/541.png`);
+    // Noting the same address again changes nothing: the same row version,
+    // not even locked (T-1374).
+    const rowVersion = async () =>
+      (
+        await pool.query<{ xmin: string; xmax: string }>(
+          `SELECT xmin::text, xmax::text FROM entity_media WHERE entity_id = $1`,
+          [REAL_MADRID],
+        )
+      ).rows[0];
+    const noted = await rowVersion();
+    await expect(
+      new MediaStore(pool).note('api_football', 'team', REAL_MADRID, `${SOURCE}/teams/541.png`),
+    ).resolves.toBe(false);
+    expect(await rowVersion()).toEqual(noted);
     await fetcher.runDue(new Date());
     expect(asked.filter((u) => u.endsWith('/teams/541.png'))).toHaveLength(1);
     expect(await state(REAL_MADRID)).toMatchObject({ state: 'available', sha256: sha256Of(CREST) });
@@ -230,4 +243,39 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the entity m
     expect(response.body).not.toContain('api-sports.io');
     // The match centre's first read is slow on a cold pool.
   }, 30_000);
+
+  it('rewrites a held image only when the provider gives it a new address (T-1374)', async () => {
+    const team = randomUUID();
+    const store = new MediaStore(pool);
+    const row = async () =>
+      (
+        await pool.query<{ xmin: string; xmax: string; source_url: string; state: string }>(
+          `SELECT xmin::text, xmax::text, source_url, state FROM entity_media WHERE entity_id = $1`,
+          [team],
+        )
+      ).rows[0];
+    try {
+      await expect(
+        store.note('api_football', 'team', team, `${SOURCE}/teams/9001.png`),
+      ).resolves.toBe(true);
+      await pool.query(
+        `UPDATE entity_media SET state = 'failed', attempts = 3 WHERE entity_id = $1`,
+        [team],
+      );
+      const held = await row();
+      await expect(
+        store.note('api_football', 'team', team, `${SOURCE}/teams/9001.png`),
+      ).resolves.toBe(false);
+      expect(await row()).toEqual(held);
+
+      await expect(
+        store.note('api_football', 'team', team, `${SOURCE}/teams/9002.png`),
+      ).resolves.toBe(true);
+      const moved = await row();
+      expect(moved?.xmin).not.toBe(held?.xmin);
+      expect(moved).toMatchObject({ source_url: `${SOURCE}/teams/9002.png`, state: 'pending' });
+    } finally {
+      await pool.query(`DELETE FROM entity_media WHERE entity_id = $1`, [team]);
+    }
+  });
 });

@@ -632,6 +632,17 @@ export class DataQualityStore {
          SELECT c, k, fx, rf, tm, se, co, d, $9::timestamptz, $9::timestamptz
            FROM unnest($1::text[], $2::text[], $3::uuid[], $4::uuid[], $5::uuid[], $6::uuid[],
                        $7::uuid[], $8::text[]) AS u(c, k, fx, rf, tm, se, co, d)
+          -- The rows the WHERE below would leave alone are left out here
+          -- (T-1374, D-192): ON CONFLICT ... DO UPDATE locks the existing row
+          -- even when its WHERE is false, and that lock is itself a WAL
+          -- record and, on a page's first change after a checkpoint, a full
+          -- page image -- thousands every five minutes. The WHERE stays for a
+          -- row another writer opened meanwhile.
+          WHERE NOT EXISTS (
+                  SELECT 1 FROM data_quality_finding f
+                   WHERE f.check_kind = u.c AND f.subject_key = u.k AND f.resolved_at IS NULL
+                     AND f.detail IS NOT DISTINCT FROM u.d
+                     AND f.last_seen_at > $9::timestamptz - make_interval(secs => $10::int))
          ON CONFLICT (check_kind, subject_key) WHERE resolved_at IS NULL
          DO UPDATE SET last_seen_at = GREATEST(data_quality_finding.last_seen_at, EXCLUDED.last_seen_at),
                        detail = EXCLUDED.detail
