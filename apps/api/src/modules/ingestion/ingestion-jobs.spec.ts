@@ -778,4 +778,69 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
       await pool.query(`UPDATE fixture SET status = 'finished' WHERE id = $1`, [fixtureId]);
     }
   });
+
+  /**
+   * T-1376. Twenty minutes before kick-off the provider answers with the
+   * fixture and no line-up yet (the `lineup-not-yet-published` recording).
+   * That is its answer: the run succeeds and counts the match as waiting,
+   * nothing is written, and the next run asks again.
+   */
+  it('counts a line-up not announced yet as waiting, and does not call the run partial', async () => {
+    const fixtureId = randomUUID();
+    const kickoff = '2024-01-31T19:30:00Z';
+    const beforeKickoff = new Date('2024-01-31T19:10:00Z');
+    const unused: RefResolver = {
+      resolve: () => Promise.reject(new Error('not used')),
+      link: () => Promise.reject(new Error('not used')),
+    };
+    const store = new IngestStore(pool, unused);
+    await pool.query(
+      `INSERT INTO fixture (id, season_id, stage_id, round, kickoff_at, status)
+       VALUES ($1, $2, $3, 'Regular Season - 22', $4, 'scheduled')`,
+      [fixtureId, SEASON, STAGE, kickoff],
+    );
+    await pool.query(
+      `INSERT INTO fixture_participant (fixture_id, team_id, side)
+       VALUES ($1, $2, 'home'), ($1, $3, 'away')`,
+      [fixtureId, CITY, BURNLEY],
+    );
+    await pool.query(
+      `INSERT INTO provider_mapping (provider, entity_type, external_id, internal_id)
+       VALUES ('api_football', 'fixture', '9013760', $1)`,
+      [fixtureId],
+    );
+    try {
+      // Absences are T-103's question, not this one's: the season says it has none.
+      await store.saveSeasonFeedCoverage('api_football', SEASON, false, '2024-01-31T19:00:00Z');
+
+      const report = await jobs.lineups(beforeKickoff);
+      expect(report.partial).toBeUndefined();
+      expect(report.waiting).toBe(1);
+      expect(report.itemsSeen).toBe(0);
+      const { rows } = await pool.query<{ status: string; error: string | null }>(
+        `SELECT status, error FROM ingest_run
+          WHERE provider = 'api_football' AND job = 'lineups'
+          ORDER BY started_at DESC LIMIT 1`,
+      );
+      expect(rows[0]).toEqual({ status: 'succeeded', error: null });
+      expect(
+        await count(
+          `SELECT count(*)::text AS n FROM lineup l
+             JOIN fixture_participant p ON p.id = l.participant_id
+            WHERE p.fixture_id = $1`,
+          [fixtureId],
+        ),
+      ).toBe(0);
+
+      // Asked again on the next run, and still an answer.
+      expect((await jobs.lineups(beforeKickoff)).waiting).toBe(1);
+    } finally {
+      await pool.query(`DELETE FROM season_feed_coverage WHERE season_id = $1`, [SEASON]);
+      await pool.query(
+        `DELETE FROM provider_mapping WHERE provider = 'api_football' AND internal_id = $1`,
+        [fixtureId],
+      );
+      await pool.query(`DELETE FROM fixture WHERE id = $1`, [fixtureId]);
+    }
+  });
 });

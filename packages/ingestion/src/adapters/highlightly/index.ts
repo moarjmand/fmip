@@ -221,7 +221,16 @@ class HighlightlyAdapter implements ProviderAdapter {
     if (!result.ok) return { ok: false, error: result.error, requests: 1 };
     const lineup = mapLineup(result.body, fixtureExternalId);
     if (lineup === null) {
-      return this.unsupported(`no lineup for match ${fixtureExternalId}`, 1);
+      // The match came back; its line-up is not announced yet (T-1376).
+      return {
+        ok: false,
+        error: {
+          kind: 'unsupported',
+          message: `no lineup for match ${fixtureExternalId}`,
+          unpublished: true,
+        },
+        requests: 1,
+      };
     }
     return { ok: true, data: lineup, requests: 1, fetchedAt: result.receivedAt };
   }
