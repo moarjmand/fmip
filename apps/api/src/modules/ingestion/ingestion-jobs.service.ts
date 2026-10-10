@@ -150,6 +150,12 @@ export interface JobReport {
   itemsWritten: number;
   /** Set when the run was partial: the reason, in words. */
   partial?: string;
+  /**
+   * The line-ups job only: fixtures whose provider answered with no line-up
+   * yet (T-1376). An answer, not a failure, so it never makes a run partial;
+   * the same count is logged as `ingest.lineups_waiting`.
+   */
+  waiting?: number;
 }
 
 function dayIso(now: Date, offsetDays: number): string {
@@ -185,6 +191,28 @@ export function fixtureWindow(
 
 function describe(error: { kind: string; message: string }): string {
   return `${error.kind}: ${error.message}`;
+}
+
+/**
+ * What one line-up ask came back with (T-1376).
+ *
+ * A provider that answered and has no line-up yet has answered: the official
+ * line-up is announced 20 to 40 minutes before kick-off, and a minor friendly
+ * may never have one. That fixture is `waiting` -- asked again on the next run
+ * for as long as the detail window holds it (from LIVE_WINDOW_BEFORE_MINUTES
+ * before kick-off to LIVE_WINDOW_AFTER_MINUTES after it, or full time), which
+ * already ends, so no cap of its own -- and the match page keeps saying
+ * `not_supplied`, because nothing is written. Anything else that is not a
+ * line-up (a status code, a quota, a plan that cannot ask, a body that does not
+ * parse) is `refused`, and the run is partial as before.
+ */
+export type LineupAnswer = 'lineup' | 'waiting' | 'refused';
+
+export function lineupAnswer(result: AdapterResult<unknown>): LineupAnswer {
+  if (result.ok) return 'lineup';
+  return result.error.kind === 'unsupported' && result.error.unpublished === true
+    ? 'waiting'
+    : 'refused';
 }
 
 /**
@@ -581,10 +609,15 @@ export class IngestionJobsService {
       // This run's team news (T-832): handed to the alerts queue at its end (T-835).
       const raised = new Set<string>();
 
+      // Fixtures whose line-up is not announced yet: the provider's answer,
+      // asked again next run while the window holds them (T-1376).
+      const waiting: string[] = [];
+
       for (const candidate of candidates) {
         const result = await source.adapter.getLineup(candidate.externalId);
         if (!result.ok) {
-          refused.push(`${candidate.externalId}: ${describe(result.error)}`);
+          if (lineupAnswer(result) === 'waiting') waiting.push(candidate.externalId);
+          else refused.push(`${candidate.externalId}: ${describe(result.error)}`);
           continue;
         }
         seen += 1;
@@ -629,7 +662,18 @@ export class IngestionJobsService {
       );
       // One push per member for the run's team news (T-832, D-098's batch).
       await this.alerts.dispatch([...raised]);
-      return this.report('lineups', source.provider, seen, written, refused, unresolved);
+      if (waiting.length > 0) {
+        this.log.log('line-ups not announced yet', {
+          event: 'ingest.lineups_waiting',
+          provider: source.provider,
+          waiting: waiting.length,
+          fixtures: waiting,
+        });
+      }
+      return {
+        ...this.report('lineups', source.provider, seen, written, refused, unresolved),
+        waiting: waiting.length,
+      };
     });
   }
 

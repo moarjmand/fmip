@@ -245,7 +245,12 @@ class ApiFootballAdapter implements ProviderAdapter {
     if (lineup === null) {
       return {
         ok: false,
-        error: { kind: 'unsupported', message: `no lineup for fixture ${fixtureExternalId}` },
+        error: {
+          kind: 'unsupported',
+          message: `no lineup for fixture ${fixtureExternalId}`,
+          // The fixture came back; its line-up is not announced yet (T-1376).
+          unpublished: true,
+        },
         requests: 1,
       };
     }

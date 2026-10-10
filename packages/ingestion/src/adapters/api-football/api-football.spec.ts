@@ -40,6 +40,37 @@ describe('API-Football adapter against its recordings', () => {
     expect(names).toContainEqual(['list-fixtures-opening-weekend', true, undefined]);
     expect(names).toContainEqual(['list-fixtures-season-not-on-plan', false, 'unsupported']);
   });
+
+  /**
+   * T-1376. Before a line-up is announced, `/fixtures?id=` answers with the
+   * fixture and an empty `lineups`. That is the recorded line-up answer with
+   * its line-ups taken out, so no hand-written recording is needed.
+   */
+  it('tells a line-up not announced yet from a refusal', async () => {
+    const recorded = loadScenarios(FIXTURES_DIR).find((s) => s.name === 'lineup-burnley-man-city');
+    const body = structuredClone(recorded?.requests[0]?.body) as {
+      response: { lineups: unknown[] }[];
+    };
+    for (const element of body.response) element.lineups = [];
+    const answering = (answer: unknown) =>
+      createApiFootballAdapter(
+        {
+          request: async () => ({ status: 200, body: answer, receivedAt: '2026-10-10T00:00:00Z' }),
+        },
+        { apiKey: 'test-key' },
+      );
+
+    const waiting = await answering(body).getLineup('1035037');
+    expect(!waiting.ok && waiting.error).toMatchObject({ kind: 'unsupported', unpublished: true });
+
+    // A plan that cannot ask is unsupported too, but it is not an answer.
+    const refused = await answering({
+      errors: { plan: 'Free plans do not have access to this season' },
+      response: [],
+    }).getLineup('1035037');
+    expect(!refused.ok && refused.error.kind).toBe('unsupported');
+    expect(!refused.ok && refused.error.unpublished).toBeUndefined();
+  });
 });
 
 describe('the whole season in one request (T-505)', () => {
