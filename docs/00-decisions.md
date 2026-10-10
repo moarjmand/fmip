@@ -8767,3 +8767,47 @@ version*: the model service already decides which version answers, and a
 second place to say it could disagree with the first. *Re-forecasting every
 upcoming fixture, or rewriting the old rows*: the first adds rows nobody
 would see before the early window, the second breaks rule 5.
+
+## D-193 — A score reads in the page's direction, and a provider label we cannot name is left out
+**Status:** Accepted · 2026-10-10 · **Task:** T-1375 · **Follows:** D-175, T-153, T-1339
+
+**Context.** T-153 isolated every score left to right ("a score is a number
+pair and reads left to right in every script"). A score row, though, is
+home, score, away from the inline start, so on `/fa` the home team stands on
+the right while a left-to-right pair puts the home goals on the left, beside
+the away team. The live site on 2026-10-10 showed it on every finished row of
+`/fa/scores` and on the match centre header: Sepahan 6 Fajr Sepasi 1 was
+drawn with the six beside Fajr Sepasi. Built strings had a second form of
+the fault: an English name in a Persian fixture line ("Arsenal 2–1 Leeds")
+turned the whole line left to right. Separately, T-1339 returned a stage or
+round label it did not know exactly as the provider spelled it; 83 cards on
+`/fa/scores` in September and October 2026 said "Friendly International".
+
+**Decision.** (1) A home–away pair is one isolated run in the page's own
+direction (`Score`, `ScorePair`, `pairIsolate` in
+`apps/web/src/components/score.tsx`): on a right-to-left page its first
+number, the home goals, sits on the right, beside the home team, and a
+Persian reader reads "home – away". The DOM keeps home first in every
+locale. Names inside built strings are isolated as first-strong runs
+(`nameIsolate`, `<bdi>` in markup), so a Latin name cannot turn a Persian line
+around. `LtrNumeric` and `ltrIsolate` stay for figures that are not pairs
+(percentages, signed gaps, minutes). (2) `stageLabel` answers `null` for a
+text it cannot name, in every locale; the page leaves the label out or says
+its own word ("Groups" over a group table, "Knockout round" in the
+competition context). An unknown stage's round number still reads "Round n".
+The forms the live site shows or the provider is known to send (friendlies,
+qualifying, championship and relegation rounds, "Round of n", numbered
+rounds and matchdays) are in the catalogue.
+
+**Not changed here.** Predicted scorelines (the member's prediction, the
+founder's analysis, the community's and the model's most likely scorelines)
+still render left to right through `LtrNumeric`/`ltrIsolate`; moving them to
+the same rule is a follow-up, so a page may briefly show both. The label
+mapping stays in the web layer, over the contract's `round` string: moving it
+into the adapter as a stored matchday number and stage kind needs a
+migration with a backfill (CLAUDE.md §7), left to the maintainer.
+
+**Rejected.** *Keeping the pair left to right and swapping the two numbers on
+RTL pages*: the DOM, a screen reader and a copy would then say away first.
+*Laying the row out left to right on RTL pages*: the page mirrors everywhere
+else (rule 7). *Printing an unknown provider label in English*: rule 2.
