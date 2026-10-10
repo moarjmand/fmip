@@ -11,6 +11,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
 import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
 import { PredictionsModule } from './predictions.module';
+import { SettlementService } from './settlement.service';
 import { withTriggersOff } from '../../testing/cleanup';
 
 // Settlement is decided by rows in the database and must be safe to re-run:
@@ -306,5 +307,20 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('settlement',
     expect((run.json() as { fixtures: number; void: number }).void).toBeGreaterThanOrEqual(1);
     const mine = (await own(id, users[1]!.cookie)).json() as PredictionResponse;
     expect(mine.prediction.settlement).toMatchObject({ status: 'void', void_reason: 'abandoned' });
+  });
+
+  it('settleDue names the fixtures it settled, and a second pass no longer finds them (T-1380)', async () => {
+    const id = await openFixture();
+    await put(id, users[0]!.cookie, { outcome: 'home', confidence: 2 });
+    await finish(id, 'finished', { home: 1, away: 0 });
+    const service = app.get(SettlementService);
+    let first = await service.settleDue();
+    // Other specs' fixtures may be due too; drain until this one is reached.
+    while (!first.fixtureIds.includes(id) && first.fixtures > 0) first = await service.settleDue();
+    expect(first.fixtureIds).toContain(id);
+    const second = await service.settleDue();
+    expect(second.fixtureIds).not.toContain(id);
+    const mine = (await own(id, users[0]!.cookie)).json() as PredictionResponse;
+    expect(mine.prediction.settlement).toMatchObject({ status: 'settled', outcome_correct: true });
   });
 });

@@ -21,7 +21,7 @@ export type SettleOutcome =
   | { kind: 'not_final'; status: string }
   | { kind: 'unknown_fixture' };
 
-/** How many fixtures one `settleDue` pass takes; the job runner (T-026) calls it repeatedly. */
+/** How many fixtures one `settleDue` pass takes; the settlement tick (T-1380) calls it repeatedly. */
 export const DUE_BATCH = 50;
 
 /**
@@ -55,15 +55,25 @@ export class SettlementService {
     };
   }
 
-  /** The job's pass: settle every fixture that is final and still owes a settlement. */
-  async settleDue(): Promise<{ fixtures: number; settled: number; voided: number }> {
-    const totals = { fixtures: 0, settled: 0, voided: 0 };
+  /**
+   * The job's pass: settle every fixture that is final and still owes a
+   * settlement. `fixtureIds` names the fixtures it settled, so the caller can
+   * recompute the ratings of exactly the members who predicted them (T-1380).
+   */
+  async settleDue(): Promise<{
+    fixtures: number;
+    settled: number;
+    voided: number;
+    fixtureIds: string[];
+  }> {
+    const totals = { fixtures: 0, settled: 0, voided: 0, fixtureIds: [] as string[] };
     for (const fixtureId of await this.store.due(DUE_BATCH)) {
       const outcome = await this.settleFixture(fixtureId);
       if (outcome.kind === 'settled') {
         totals.fixtures += 1;
         totals.settled += outcome.settled;
         totals.voided += outcome.voided;
+        totals.fixtureIds.push(fixtureId);
       }
     }
     return totals;
