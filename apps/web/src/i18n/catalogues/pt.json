@@ -10417,6 +10417,41 @@
     "text": "",
     "status": "untranslated"
   },
+  "stage.name.qualifying": {
+    "source": "Qualifying Round",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.name.friendly": {
+    "source": "Friendly",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.name.championshipRound": {
+    "source": "Championship Round",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.name.relegationRound": {
+    "source": "Relegation Round",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.roundNumber": {
+    "source": "Round {round}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.roundOf": {
+    "source": "Round of {count}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.qualifyingNumber": {
+    "source": "Qualifying round {round}",
+    "text": "",
+    "status": "untranslated"
+  },
   "bracket.leg.match": {
     "source": "Match",
     "text": "",

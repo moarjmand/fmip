@@ -186,7 +186,13 @@ export function GroupTables({ groups, locale }: { groups: GroupTable[]; locale: 
   for (const g of groups) {
     const last = stages[stages.length - 1];
     if (last !== undefined && last.id === g.stage.id) last.groups.push(g);
-    else stages.push({ id: g.stage.id, name: stageName(locale, g.stage.name), groups: [g] });
+    else
+      stages.push({
+        id: g.stage.id,
+        // A stage we cannot name is headed by what it holds: groups (T-1375).
+        name: stageName(locale, g.stage.name) ?? say(locale, 'stage.name.groups'),
+        groups: [g],
+      });
   }
   const several = stages.length > 1;
   return (

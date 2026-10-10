@@ -4,7 +4,7 @@ import { formatNumber } from '@/i18n/format';
 import { isBehind } from '@/lib/live';
 import { formatKickoff, formatStamp, scoreLabel, statusLabel } from '@/lib/scores';
 import type { CardCommunity, CardForecast, CardViewing } from '@/lib/score-card-products';
-import { stageAndRound, stageLabel } from '@/lib/stage-label';
+import { stageAndRoundLabels } from '@/lib/stage-label';
 import { fill, filled, formatMinute, pickPlural } from '@/lib/words';
 import type { ScoresWords } from '@/lib/words-server';
 import { EntityImage } from '@/components/entity-image';
@@ -114,9 +114,7 @@ export function ScoreCard({
           ),
         });
   const stageBits = [
-    ...stageAndRound(card.stage?.name, card.round).map((text) =>
-      stageLabel(text, (key) => m[key].text, locale),
-    ),
+    ...stageAndRoundLabels(card.stage?.name, card.round, (key) => m[key].text, locale),
     leg,
     aggregate,
   ].filter((bit): bit is string => typeof bit === 'string' && bit !== '');

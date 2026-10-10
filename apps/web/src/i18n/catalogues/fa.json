@@ -12685,6 +12685,48 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "stage.name.qualifying": {
+    "source": "Qualifying Round",
+    "text": "مرحله‌ی مقدماتی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.name.friendly": {
+    "source": "Friendly",
+    "text": "دوستانه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.name.championshipRound": {
+    "source": "Championship Round",
+    "text": "مرحله‌ی قهرمانی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.name.relegationRound": {
+    "source": "Relegation Round",
+    "text": "مرحله‌ی سقوط",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.roundNumber": {
+    "source": "Round {round}",
+    "text": "دور {round}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.roundOf": {
+    "source": "Round of {count}",
+    "text": "مرحله‌ی {count} تیمی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.qualifyingNumber": {
+    "source": "Qualifying round {round}",
+    "text": "دور {round} مقدماتی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "bracket.leg.match": {
     "source": "Match",
     "text": "بازی",
