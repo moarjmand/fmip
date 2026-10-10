@@ -287,10 +287,22 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('data-quality
 
   it('a second sweep writes no second row, and moves last_seen_at on at most hourly', async () => {
     const before = await mine();
+    // The row versions: an unchanged finding is neither rewritten (xmin) nor
+    // locked (xmax) by a sweep within the hour (T-1374, D-192).
+    const versions = async () => {
+      const { rows } = await pool.query<{ id: string; xmin: string; xmax: string }>(
+        `SELECT id, xmin::text, xmax::text FROM data_quality_finding
+          WHERE id = ANY($1::bigint[]) ORDER BY id`,
+        [before.map((r) => r.id)],
+      );
+      return rows;
+    };
+    const unswept = await versions();
     await dataQuality.sweep(new Date(Date.now() + 5 * 60_000), SEASON);
     const soon = await mine();
     expect(soon.map((r) => r.subject_key)).toEqual(before.map((r) => r.subject_key));
     expect(soon.map((r) => r.last_seen_at)).toEqual(before.map((r) => r.last_seen_at));
+    expect(await versions()).toEqual(unswept);
 
     await dataQuality.sweep(new Date(Date.now() + 61 * 60_000), SEASON);
     const after = await mine();

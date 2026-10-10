@@ -69,6 +69,13 @@ services:
     # wal_recycle=off makes such a half-empty segment zeros after its last
     # record, so it compresses to almost nothing. Changing archive_mode
     # restarts Postgres (`docker compose up -d postgres`, a few seconds).
+    # Fewer full-page images (T-1374, D-192): a checkpoint every 15 minutes
+    # rather than 5, so a page changed every few minutes is imaged once per
+    # quarter hour; max_wal_size raised so a backfill does not force
+    # checkpoints sooner; lz4 compresses each image as it is written. Crash
+    # recovery replays at most the WAL since the last checkpoint: seconds.
+    # Like archive_mode, these apply at the next `docker compose up -d
+    # postgres`, which rollout.sh never runs (docs/09-deploy.md).
     command:
       - postgres
       - -c
@@ -79,6 +86,12 @@ services:
       - archive_timeout=${PG_ARCHIVE_TIMEOUT:-300}
       - -c
       - wal_recycle=off
+      - -c
+      - checkpoint_timeout=15min
+      - -c
+      - max_wal_size=2GB
+      - -c
+      - wal_compression=lz4
     ports:
       - '127.0.0.1:${POSTGRES_PORT:-5432}:5432'
     volumes:

@@ -7,6 +7,14 @@ import type {
   UnresolvedStatus,
 } from './resolver';
 
+/**
+ * How stale `provider_mapping.last_seen_at` may be while a mapping keeps being
+ * resolved: a sighting moves it on only once this long has passed (T-1374,
+ * D-192). A day is far finer than "the provider stopped sending this id"
+ * needs, and nothing else reads the column.
+ */
+export const MAPPING_SEEN_RESOLUTION_SECONDS = 24 * 60 * 60;
+
 /** The one method of `pg.Pool` this store uses. Tests may pass a `Client` or a fake. */
 export type Queryable = Pick<Pool, 'query'>;
 
@@ -36,15 +44,25 @@ export class PostgresMappingStore implements MappingStore {
   constructor(private readonly db: Queryable) {}
 
   async findMapping(ref: ExternalRef): Promise<string | null> {
-    // An UPDATE rather than a SELECT so that every successful resolution
-    // refreshes last_seen_at; that is how "provider stopped sending id X" can
-    // be noticed later.
+    // A successful resolution also refreshes last_seen_at, which is how
+    // "provider stopped sending id X" can be noticed later -- but at most once
+    // per MAPPING_SEEN_RESOLUTION_SECONDS (T-1374, D-192). Every poll resolves
+    // the same teams, players and fixtures again, and moving the stamp each
+    // time was the database's largest source of WAL. A plain UPDATE whose
+    // WHERE leaves the row out neither writes nor locks it; the data-modifying
+    // CTE runs whether or not the outer query reads it.
     const { rows } = await this.db.query<{ internal_id: string }>(
-      `UPDATE provider_mapping
-          SET last_seen_at = now()
-        WHERE provider = $1 AND entity_type = $2 AND external_id = $3
-        RETURNING internal_id`,
-      [ref.provider, ref.entityType, ref.externalId],
+      `WITH hit AS (
+         SELECT internal_id FROM provider_mapping
+          WHERE provider = $1 AND entity_type = $2 AND external_id = $3
+       ), touched AS (
+         UPDATE provider_mapping
+            SET last_seen_at = now()
+          WHERE provider = $1 AND entity_type = $2 AND external_id = $3
+            AND last_seen_at < now() - make_interval(secs => $4::int)
+       )
+       SELECT internal_id FROM hit`,
+      [ref.provider, ref.entityType, ref.externalId, MAPPING_SEEN_RESOLUTION_SECONDS],
     );
 
     return rows[0]?.internal_id ?? null;

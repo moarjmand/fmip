@@ -8873,3 +8873,110 @@ rows with no new input. *Reading the training store for staleness*: our
 records reach it only when the model next reads the division, so it would
 lag the very forecast that loads them. *Updating the early row*: rule 5.
 *Scoring only the latest pre-kick-off forecast*: rejected by D-031.
+
+## D-192 — A row is written only when it changes and locked only when it will be; fewer full-page images
+**Status:** Accepted · 2026-10-10 (under the maintainer's standing delegation) · **Task:** T-1374 · **Follows:** D-157, D-189, D-097
+
+**Context.** D-157's amendment of 2026-10-08 set point-in-time recovery to a
+3-day window because a 909 MB database seemed to write about 5.2 GB of WAL a
+day. Measured read-only on production on 2026-10-10 (`pg_stat_wal`,
+`pg_stat_user_tables` and `pg_stat_checkpointer` sampled an hour apart,
+`pg_waldump` of every segment archived between 07:00 and 08:05 UTC, and the
+remote's `wal/` listing):
+
+| What | Measured |
+|---|---|
+| Database | 918 MB |
+| WAL records (`pg_stat_wal.wal_bytes`) | 1.75 GB/day over 14.6 days; 1.02 GB/day in the sampled (quiet, match-free) hour |
+| WAL position (`pg_current_wal_lsn`) | 4.6–5.8 GB/day: `archive_timeout` closes a segment every 5 minutes whenever anything was written, and the position jumps to the next 16 MB boundary. This, not the records, is the "5.2 GB a day" `measure` reported |
+| Archived (gzipped) WAL on the remote | 431 MB in 25 h, **about 413 MB/day**; gzip keeps 9% of a segment |
+| Full-page images | about 90% of WAL bytes; 3.15 M images in 14.6 days; with data checksums on, the first hint bit set on a page after a checkpoint is an image too (`FPI_FOR_HINT`) |
+| Checkpoints | every 5 minutes (`checkpoint_timeout` default), 288 a day |
+| `provider_mapping` | 205,000 row versions a day (119,000 in the sampled hour's rate) for 37,439 rows, of which 8,493 were resolved in the last 24 h: `findMapping` moved `last_seen_at` on every resolution |
+| `data_quality_finding` | 314 open findings, locked by every five-minute sweep through `ON CONFLICT ... DO UPDATE ... WHERE` (false, yet the row is locked), then re-imaged when read |
+| Detail, fixture and image rows | 21,362 lock records in the hour from the same `ON CONFLICT` pattern (`fixture_player_stat` alone 7,628 in one post-match run re-asking a match after `catalog.mjs` reset `fixture_detail_fetch`) |
+
+Where the sampled hour's 40 MB of WAL went: data-quality locks and the
+images they caused 23.8%; real detail, fixture and image writes 23.9%;
+`provider_mapping` stamps 15.6%; `ON CONFLICT` locks on detail rows 9.9%,
+and their hint images up to 4.3%; `unresolved_entity` sightings 3.5%;
+commit records 2.2%; news, `person`, statistics and the rest 16.6%.
+
+**Decision.**
+
+1. `findMapping` moves `provider_mapping.last_seen_at` at most once a day
+   per mapping (`MAPPING_SEEN_RESOLUTION_SECONDS`). Nothing reads the
+   column but "the provider stopped sending this id", which a day answers.
+   A resolution inside the day is a plain read: no row version, no lock,
+   no transaction id, no commit record.
+2. The data-quality upsert leaves out, before the conflict is reached, every
+   finding its `WHERE` would leave alone (same detail, written within the
+   hour). The hourly move of `last_seen_at` (D-097) is unchanged.
+3. Every per-row upsert of the ingestion writers (participants, scores,
+   periods, incidents, line-ups, team and player statistics, absences) and
+   `entity_media` is `INSERT ... SELECT ... WHERE NOT EXISTS` the identical
+   row, with the existing `ON CONFLICT ... DO UPDATE ... WHERE ... IS DISTINCT
+   FROM` kept for a row another writer inserted or changed in between. The
+   counts each writer returns, and so "a replay changes nothing", are what
+   they were; freshness stamps that the product reads (`reported_at`,
+   `fetched_at` on the fetch tables, `season_fixture_poll`, `checked_at`)
+   move exactly as before.
+4. Postgres: `checkpoint_timeout` 15 min (from 5), `max_wal_size` 2 GB (so a
+   backfill does not force earlier checkpoints), `wal_compression` lz4. They
+   are set in `deploy/docker-compose.prod.yml` and take effect when an
+   operator recreates Postgres (`09-deploy.md` §9); `rollout.sh` never does.
+   Crash recovery replays at most the WAL since the last checkpoint, about
+   20 minutes of it: seconds. A replay to a minute starts from a base backup
+   and is not slowed.
+5. `pitr.sh measure` works with archiving on: the gzip ratio is read from the
+   newest day of archived segments (pg_wal keeps none), the WAL and bases
+   already archived are not counted twice, it prints "archived per day", and
+   `--days N` asks about another window without editing `.env`.
+
+**Expected saving** (from the sampled hour's attribution; a match evening
+was not sampled). Data-quality locks and their images: about 22% of WAL
+(eleven sweeps in twelve now write nothing). Mapping stamps: about 14.5%
+(at most 8,500 a day against 119,000–205,000). Detail locks: about 10%,
+plus part of their 4.3% of hint images and of the commit records: about
+3%. Together **about half of the WAL**. The 15-minute checkpoint saves
+about 4% of the remaining images in a quiet hour (pages are mostly touched
+hourly), more on match evenings when the live job touches the same pages
+every minute. lz4 makes the images about 40% smaller as written, but the
+archive's gzip already got most of that: in a throwaway Postgres 18 with
+data checksums, rows shaped like `provider_mapping` and
+`data_quality_finding`, the gzipped WAL was 1.78 MB with compression off,
+1.70 MB with lz4, 1.86 MB with zstd (gzip cannot shrink zstd's output) —
+about 5% off-provider, which is why lz4 and not zstd. Estimated archive:
+**about 200–230 MB/day, from 413**.
+
+**The window.** With (5), the remote holds 2.51 GiB besides PITR (dumps and
+media); `measure` counts three bases at full size (2.75 GiB) against
+`PITR_REMOTE_BUDGET_GB` 10, leaving about 4.9 GiB for WAL, which at
+`2 × PITR_KEEP_DAYS` days held (the window plus one base interval) is
+`4.9 GiB / (2 × days)` a day. At 7 days that is about 355 MiB/day. Today's
+413 MiB/day would allow 6 days; at the estimated 200–230, 7 days fits with
+about 1.5 GiB to spare for the dumps' growth. `measure`'s own daily figure
+multiplies the position rate since its first sample by the newest day's
+ratio, so it errs a little high. The path back to D-157's seven days: deploy,
+apply (4), let a week of archive accumulate, run `pitr.sh measure --days 7`,
+and on `FITS` set `PITR_KEEP_DAYS=7` (`09-deploy.md` §9). That last step is
+an operator's, on that measurement, not this decision's.
+
+**Rejected.**
+- *Counting `unresolved_entity` sightings less often.* 309 ignored ids are
+  seen about 80 times a day each (3.5% of WAL), but `seen_count` is how
+  `catalog.mjs --list` ranks the review queue; counting differently is a
+  product change, left for the maintainer.
+- *Touching `article.fetched_at` only when the article changed* (news, about
+  4% with `article_category`'s `FOR UPDATE`): `fetched_at` orders and dates
+  the news; the same reasoning. `training.match` (the model's store) rewrites
+  every row per load because `source_load_id` changes, which is its
+  provenance.
+- *A longer hourly resolution for data-quality findings*: D-097's tested
+  behaviour, and after (2) it is under 1% of WAL.
+- *A longer `archive_timeout`*: it is the recovery point (about ten minutes
+  at worst, D-157), and a closed half-empty segment gzips to about 16 KB.
+- *`full_page_writes=off`, or a cluster without data checksums*: the first
+  risks torn pages after a crash, the second gives up detecting corruption;
+  neither is worth the bytes.
+- *zstd*: see above; smaller WAL as written, larger archive.

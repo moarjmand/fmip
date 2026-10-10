@@ -328,6 +328,56 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       ).resolves.toEqual({ kind: 'resolved', internalId: LIVERPOOL });
     });
 
+    it('moves a mapping last seen a day ago on, then writes nothing for the rest of the day (T-1374)', async () => {
+      const seen: ExternalRef = {
+        provider: 'highlightly',
+        entityType: 'team',
+        externalId: `seen-${Date.now()}-${process.pid}`,
+      };
+      const key = [seen.provider, seen.entityType, seen.externalId];
+      const version = async () => {
+        const { rows } = await pool.query<{ xmin: string; xmax: string; last_seen_at: Date }>(
+          `SELECT xmin::text, xmax::text, last_seen_at FROM provider_mapping
+            WHERE provider = $1 AND entity_type = $2 AND external_id = $3`,
+          key,
+        );
+        return rows[0]!;
+      };
+      await pool.query(
+        `INSERT INTO provider_mapping
+           (provider, entity_type, external_id, internal_id, first_seen_at, last_seen_at)
+         VALUES ($1, $2, $3, $4, now() - interval '25 hours', now() - interval '25 hours')`,
+        [...key, MAN_UNITED],
+      );
+      try {
+        const stale = await version();
+        await expect(resolver.resolve(seen)).resolves.toEqual({
+          kind: 'resolved',
+          internalId: MAN_UNITED,
+        });
+        const moved = await version();
+        // A changed field still updates: the day-old stamp is moved on.
+        expect(moved.xmin).not.toBe(stale.xmin);
+        expect(moved.last_seen_at.getTime() - stale.last_seen_at.getTime()).toBeGreaterThan(
+          24 * 60 * 60_000,
+        );
+
+        // Resolved again within the day: the same row version, not even locked.
+        for (let i = 0; i < 3; i += 1) {
+          await expect(resolver.resolve(seen)).resolves.toEqual({
+            kind: 'resolved',
+            internalId: MAN_UNITED,
+          });
+        }
+        expect(await version()).toEqual(moved);
+      } finally {
+        await pool.query(
+          'DELETE FROM provider_mapping WHERE provider = $1 AND entity_type = $2 AND external_id = $3',
+          key,
+        );
+      }
+    });
+
     it('queues an unknown id exactly once and counts sightings', async () => {
       const first = await resolver.resolve(ref, { name: 'Integration FC' });
       const second = await resolver.resolve(ref);
