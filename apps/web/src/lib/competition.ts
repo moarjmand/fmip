@@ -12,8 +12,8 @@ import { LEADERS_MINUTES_MAX } from '@fmip/contracts';
 import { formatDate, formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE, type Locale, directionOf, isLocale } from '@/i18n/locales';
 import { type MessageKey, interpolate, t } from '@/i18n/messages';
-import { ltrIsolate } from '@/components/score';
-import { stageLabel } from '@/lib/stage-label';
+import { nameIsolate, pairIsolate } from '@/components/score';
+import { stageAndRoundLabels, stageLabel } from '@/lib/stage-label';
 
 /**
  * The competition page's pure helpers (T-035): the season the URL selects,
@@ -94,9 +94,21 @@ export function say(locale: string, key: MessageKey, params?: Record<string, str
   return params === undefined ? text : interpolate(text, params);
 }
 
-/** A provider's stage name or round ("League A - 1") in the reader's words (T-1339). */
-export function stageName(locale: string, text: string): string {
+/**
+ * A provider's stage name or round ("League A - 1") in the reader's words
+ * (T-1339); `null` for one we cannot name, which is left out (T-1375).
+ */
+export function stageName(locale: string, text: string): string | null {
   return stageLabel(text, (key) => say(locale, key), locale);
+}
+
+/** A fixture's stage and round, each once and each in the reader's words (T-1375). */
+export function stageNames(
+  locale: string,
+  stage: string | null | undefined,
+  round: string | null | undefined,
+): string[] {
+  return stageAndRoundLabels(stage, round, (key) => say(locale, key), locale);
 }
 
 /**
@@ -113,19 +125,26 @@ export function listText(locale: string, items: readonly string[]): string {
 
 /**
  * Two numbers joined by an en dash, "3–1", in the locale's digits. On a
- * right-to-left page the pair is isolated left to right, or the bidi
- * algorithm would lay it out as "1–3" (T-153); an English string is left
- * exactly as it was.
+ * right-to-left page the pair is one run isolated right to left, so its first
+ * number sits on the right, beside the home side of a mirrored line (T-153,
+ * T-1375); an English string is left exactly as it was.
  */
 export function pairText(locale: string, a: number, b: number): string {
   const text = `${formatNumber(locale, a)}–${formatNumber(locale, b)}`;
-  return directionOf(locale) === 'rtl' ? ltrIsolate(text) : text;
+  return directionOf(locale) === 'rtl' ? pairIsolate(locale, text) : text;
 }
 
-/** "ALP 3–1 BET" after the match, "ALP v BET" before; short names when there are any. */
+/**
+ * "ALP 3–1 BET" after the match, "ALP v BET" before; short names when there
+ * are any. On a right-to-left page each name is isolated too (T-1375), or an
+ * English name would turn the line left to right and put the home goals
+ * beside the away side.
+ */
 export function fixtureLine(locale: string, fixture: SeasonFixture): string {
-  const home = fixture.home.short_name ?? fixture.home.name;
-  const away = fixture.away.short_name ?? fixture.away.name;
+  const rtl = directionOf(locale) === 'rtl';
+  const side = (name: string): string => (rtl ? nameIsolate(name) : name);
+  const home = side(fixture.home.short_name ?? fixture.home.name);
+  const away = side(fixture.away.short_name ?? fixture.away.name);
   return fixture.score === null
     ? say(locale, 'competitionPage.versus', { home, away })
     : say(locale, 'competitionPage.scoreLine', {

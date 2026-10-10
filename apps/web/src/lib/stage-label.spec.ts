@@ -7,8 +7,8 @@ const sayIn =
   (locale: 'en' | 'fa') =>
   (key: StageKey): string =>
     t(locale, key);
-const fa = (text: string): string => stageLabel(text, sayIn('fa'), 'fa');
-const en = (text: string): string => stageLabel(text, sayIn('en'), 'en');
+const fa = (text: string): string | null => stageLabel(text, sayIn('fa'), 'fa');
+const en = (text: string): string | null => stageLabel(text, sayIn('en'), 'en');
 
 /** Every form the provider sends that the helper knows (T-1339). */
 const KNOWN = [
@@ -64,19 +64,42 @@ describe('stage and round labels (T-1339)', () => {
     expect(fa('Group 2')).toBe('گروه ۲');
   });
 
-  it('returns what it does not know unchanged, never a guess', () => {
+  it('leaves out what it does not know, in every locale, never the provider’s text (T-1375)', () => {
     for (const text of [
       'Semi-finals Qualifying',
-      'Relegation Round',
-      'Unknown Stage - 3',
       'Regular Season - 03',
       'League AB',
       'Group Stage - ',
+      'Round of 016',
       '',
     ]) {
-      expect(fa(text)).toBe(text);
-      expect(en(text)).toBe(text);
+      expect(fa(text)).toBeNull();
+      expect(en(text)).toBeNull();
     }
+  });
+
+  it('names the forms the live site showed raw or could (T-1375)', () => {
+    // 83 national-team friendlies on /fa/scores in September and October 2026.
+    expect(fa('Friendly International')).toBe('دوستانه');
+    expect(en('Friendly International')).toBe('Friendly');
+    expect(fa('Club Friendlies')).toBe('دوستانه');
+    expect(fa('Relegation Round')).toBe('مرحله‌ی سقوط');
+    expect(fa('Championship Round')).toBe('مرحله‌ی قهرمانی');
+    expect(fa('Qualifying Round')).toBe('مرحله‌ی مقدماتی');
+    expect(fa('Round of 64')).toBe('مرحله‌ی ۶۴ تیمی');
+    expect(en('Round of 64')).toBe('Round of 64');
+    expect(fa('4th Qualifying Round')).toBe('دور ۴ مقدماتی');
+    expect(fa('3rd Round')).toBe('دور ۳');
+    expect(fa('Round 5')).toBe('دور ۵');
+    expect(fa('Matchweek 20')).toBe('دور ۲۰');
+    expect(en('Matchday 4')).toBe('Round 4');
+    expect(fa('Group A - 2')).toBe('گروه A، هفته‌ی ۲');
+    expect(fa('Relegation Round - 3')).toBe('مرحله‌ی سقوط، هفته‌ی ۳');
+  });
+
+  it('keeps the round number of a stage it cannot name, and nothing of the stage', () => {
+    expect(fa('Unknown Stage - 3')).toBe('دور ۳');
+    expect(en('Unknown Stage - 3')).toBe('Round 3');
   });
 
   it('has a Persian text for every key it uses', () => {

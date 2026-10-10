@@ -339,7 +339,8 @@ describe('the scores card and the match centre in Persian (T-1303)', () => {
 
   it('says the card in Persian, with the minute and the score in Persian digits, isolated', () => {
     expect(card_).toMatch(/data-testid="score-status"[^>]*>۶۷′</);
-    expect(card_).toMatch(/<span dir="ltr"[^>]*data-testid="score">۲ – ۱</);
+    // Isolated right to left (T-1375): the home goals on the home side.
+    expect(card_).toMatch(/<span dir="rtl"[^>]*data-testid="score">۲ – ۱</);
     expect(card_).toContain('aria-label="یک کارت قرمز"');
     expect(card_).toContain('شروع بازی');
     expect(card_).toContain('نتایج: موجود');

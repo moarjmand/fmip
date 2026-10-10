@@ -112,7 +112,8 @@ export function roundName(tie: CompetitionContextTie, locale = 'en'): string {
   return tie.round_key !== null
     ? roundLabel(tie.round_key, locale)
     : tie.round !== null
-      ? stageLabel(tie.round, (key) => t(asLocale(locale), key), locale)
+      ? (stageLabel(tie.round, (key) => t(asLocale(locale), key), locale) ??
+        t(asLocale(locale), 'matchCentre.context.knockoutRound'))
       : t(asLocale(locale), 'matchCentre.context.knockoutRound');
 }
 

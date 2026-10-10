@@ -75,6 +75,19 @@ describe('a score card names the stage and round in the reader’s words', () =>
     expect(html).toContain(`<span>${t('fa', 'stage.name.groupStage')}</span>`);
   });
 
+  it('never prints a provider label it cannot name (T-1375)', () => {
+    const friendly = { stage: null, round: 'Friendly International' };
+    expect(render('fa', friendly)).toContain(`<span>${t('fa', 'stage.name.friendly')}</span>`);
+    expect(render('fa', friendly)).not.toContain('Friendly International');
+    expect(render('en', friendly)).not.toContain('Friendly International');
+    const unknown = { stage: null, round: 'Mystery Phase' };
+    expect(render('fa', unknown)).not.toContain('Mystery Phase');
+    expect(render('en', unknown)).not.toContain('Mystery Phase');
+    const numbered = { stage: null, round: 'Mystery Phase - 3' };
+    expect(render('fa', numbered)).toContain('<span>دور ۳</span>');
+    expect(render('fa', numbered)).not.toContain('Mystery');
+  });
+
   it('keeps the provider’s English on /en', () => {
     const html = render('en');
     expect(html).toContain('<span>League A - 1</span>');
