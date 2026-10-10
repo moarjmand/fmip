@@ -44,6 +44,24 @@ export const INCIDENT_KINDS = [
 ] as const;
 export type IncidentKind = (typeof INCIDENT_KINDS)[number];
 
+/**
+ * What an incident adds to its kind, in our words (T-1378, D-196): what a VAR
+ * review decided. A provider detail that only repeats the kind ("Normal Goal",
+ * "Yellow Card", "Substitution 1") is no detail, and one we cannot name is
+ * none; the provider's own text never leaves the adapter (rule 2). Mapped by
+ * `incidentDetail` (`adapters/incident-detail.ts`).
+ */
+export const INCIDENT_DETAILS = [
+  'goal_cancelled',
+  'goal_confirmed',
+  'penalty_awarded',
+  'penalty_cancelled',
+  'penalty_confirmed',
+  'card_upgraded',
+  'card_cancelled',
+] as const;
+export type IncidentDetail = (typeof INCIDENT_DETAILS)[number];
+
 export const POSITIONS = ['goalkeeper', 'defender', 'midfielder', 'forward'] as const;
 export type Position = (typeof POSITIONS)[number];
 
@@ -190,7 +208,8 @@ export interface NormalisedIncident {
   player: EntityRef | null;
   /** The assist provider, or the player coming on. */
   relatedPlayer: EntityRef | null;
-  detail: string | null;
+  /** What it adds to its kind, in our words; never the provider's text (T-1378). */
+  detail: IncidentDetail | null;
 }
 
 export interface NormalisedLineupPlayer extends EntityRef {

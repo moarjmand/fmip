@@ -6382,6 +6382,41 @@
     "text": "",
     "status": "untranslated"
   },
+  "matchCentre.incidentDetail.goalCancelled": {
+    "source": "Goal disallowed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.incidentDetail.goalConfirmed": {
+    "source": "Goal stands",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.incidentDetail.penaltyAwarded": {
+    "source": "Penalty awarded",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.incidentDetail.penaltyCancelled": {
+    "source": "Penalty cancelled",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.incidentDetail.penaltyConfirmed": {
+    "source": "Penalty confirmed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.incidentDetail.cardUpgraded": {
+    "source": "Card upgraded to red",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.incidentDetail.cardCancelled": {
+    "source": "Card cancelled",
+    "text": "",
+    "status": "untranslated"
+  },
   "matchCentre.stat.possession": {
     "source": "Possession",
     "text": "",

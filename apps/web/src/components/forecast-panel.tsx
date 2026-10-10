@@ -21,7 +21,7 @@ import { formatKickoff } from '@/lib/scores';
 import { formatFixed, formatPercent } from '@/lib/words';
 import { FilledMessage } from '@/components/filled-message';
 import { COVERAGE_KEY } from '@/components/score-card';
-import { Score, ltrIsolate } from '@/components/score';
+import { Score, pairIsolate } from '@/components/score';
 import { Translated } from '@/components/translated';
 import { Notice } from '@/components/ui';
 
@@ -224,7 +224,8 @@ function Latest({
                 .slice(0, 3)
                 .map((s) =>
                   interpolate(t(locale, 'forecast.scoreline'), {
-                    score: ltrIsolate(
+                    score: pairIsolate(
+                      locale,
                       `${formatFixed(locale, s.home, 0)}–${formatFixed(locale, s.away, 0)}`,
                     ),
                     probability: formatPercent(locale, s.probability * 100),

@@ -9024,3 +9024,44 @@ migration with a backfill (CLAUDE.md §7), left to the maintainer.
 RTL pages*: the DOM, a screen reader and a copy would then say away first.
 *Laying the row out left to right on RTL pages*: the page mirrors everywhere
 else (rule 7). *Printing an unknown provider label in English*: rule 2.
+
+## D-196 — An incident's detail is ours: what a VAR review decided, or nothing
+**Status:** Accepted · 2026-10-10 · **Task:** T-1378 · **Follows:** D-193, T-034, T-1030
+
+**Context.** The adapters stored the provider's detail beside each incident
+as it was spelled (API-Football's `detail`, else its `comments`; Highlightly's
+event `type`), and the match centre printed it after the player: "Normal
+Goal", "Penalty", "Own Goal", "Missed Penalty", "Yellow Card", "Red card",
+"Second Yellow card", "Substitution 1", "Goal cancelled", in English on `/fa`
+as on `/en`. That is a provider string reaching the page unmapped (rule 2),
+and most of it repeated the incident's kind, which the page already names in
+the reader's language.
+
+**Decision.** (1) `IncidentDetail` (`INCIDENT_DETAILS` in `normalised.ts`,
+`MatchIncidentDetail` in the contract) is what a VAR review decided:
+`goal_cancelled`, `goal_confirmed`, `penalty_awarded`, `penalty_cancelled`,
+`penalty_confirmed`, `card_upgraded`, `card_cancelled`. Only a `var` incident
+carries one. A detail that repeats the kind is none; a detail the mapping
+cannot name is none, so the page shows the kind ("Goal", "VAR") alone and
+never the provider's text. (2) `incidentDetail(kind, raw)`
+(`packages/ingestion/src/adapters/_incident-detail.ts`) is the one mapping:
+the adapters call it, `validate.ts` refuses any other value, and it maps one
+of our codes to itself. (3) Rows stored before this hold the provider's text.
+They are not backfilled (CLAUDE.md §7): the API maps the stored detail at read
+time (`match-centre-store.ts`; `panel-link.ts`, which also compares a linked
+incident's detail in our words, so a link made over the provider's text is not
+reported as changed when the row later holds our code). A fixture's rows take
+our codes the next time its detail is ingested, as an ordinary changed-row
+write (D-192's writers rewrite only a row that differs). (4) The web says the
+code from the catalogue (`matchCentre.incidentDetail.*`, English and Persian;
+other locales fall back) in the timeline and on a panel card.
+
+**Not changed here.** The `incident.detail` column stays `text`; a check
+constraint on it would need the backfill. The AI match facts read the match
+centre and so get the code, or nothing.
+
+**Rejected.** *A detail per kind* (normal goal, penalty, own goal; card
+colours; substitution numbers): each repeats the kind or orders nothing the
+sequence does not. *Keeping the provider's text for an unknown detail*: rule
+2. *A backfill migration*: left to the maintainer, and unnecessary once the
+API maps at read time.

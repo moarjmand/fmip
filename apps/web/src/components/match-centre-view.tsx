@@ -4,6 +4,7 @@ import type {
   FormEntry,
   MatchAbsenceGap,
   MatchCentre,
+  MatchIncident,
   MatchLineupPlayer,
   MatchPlayerStats,
   PlayerMatchMetric,
@@ -12,7 +13,7 @@ import { AVAILABILITY_STALE_AFTER_MS } from '@fmip/contracts';
 import { formatNumber } from '@/i18n/format';
 import type { Message } from '@/i18n/messages';
 import Link from 'next/link';
-import { INCIDENT_KEY, NOT_YET, STAT_KEY, statValue } from '@/lib/match';
+import { INCIDENT_KEY, NOT_YET, STAT_KEY, incidentDetailKey, statValue } from '@/lib/match';
 import { isBehind } from '@/lib/live';
 import { formatStamp, freshnessStamp, statusLabel } from '@/lib/scores';
 import { fill, filled, formatFixed, formatMinute } from '@/lib/words';
@@ -439,7 +440,7 @@ export function MatchCentreView({
                         </>
                       ))}
                     {i.side !== null ? ` · ${i.side === 'home' ? f.home.name : f.away.name}` : ''}
-                    {i.detail !== null ? ` · ${i.detail}` : ''}
+                    <IncidentDetail detail={i.detail} words={words} />
                   </span>
                 </li>
               ))}
@@ -959,5 +960,21 @@ function Form({
         </ul>
       )}
     </div>
+  );
+}
+
+/**
+ * What an incident adds to its kind (a VAR review's decision), in the
+ * reader's words (T-1378). Nothing when there is none or the page does not
+ * know the code: the kind's own label stands, never the provider's text.
+ */
+function IncidentDetail({ detail, words }: { detail: MatchIncident['detail']; words: MatchWords }) {
+  const key = incidentDetailKey(detail);
+  if (key === null) return null;
+  return (
+    <span data-testid="incident-detail">
+      {' · '}
+      <MessageText message={words.m[key]} />
+    </span>
   );
 }

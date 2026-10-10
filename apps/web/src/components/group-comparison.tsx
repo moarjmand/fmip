@@ -3,7 +3,7 @@ import { MemberName } from '@/components/member-name';
 import { MessageText } from '@/components/message-text';
 import { Translated } from '@/components/translated';
 import { Said, said } from '@/components/community-text';
-import { LtrNumeric } from '@/components/score';
+import { ScorePair } from '@/components/score';
 import { formatNumber } from '@/i18n/format';
 import type { Message, MessageKey } from '@/i18n/messages';
 
@@ -81,10 +81,10 @@ export function GroupComparison({
                 )}
               </span>
               {call.version.score !== null && (
-                <LtrNumeric className="text-muted">
+                <ScorePair locale={locale} className="text-muted">
                   {formatNumber(locale, call.version.score.home)}–
                   {formatNumber(locale, call.version.score.away)}
-                </LtrNumeric>
+                </ScorePair>
               )}
               <span className="text-muted">
                 <Said

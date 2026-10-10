@@ -5,10 +5,10 @@ import type {
   PanelLinkRequest,
   PanelLinkedPrediction,
 } from '@fmip/contracts';
-import { INCIDENT_KEY, STAT_KEY, minuteLabel, statValue } from '@/lib/match';
+import { INCIDENT_KEY, STAT_KEY, incidentDetailKey, minuteLabel, statValue } from '@/lib/match';
 import { formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE, directionOf, isLocale } from '@/i18n/locales';
-import { ltrIsolate } from '@/components/score';
+import { pairIsolate } from '@/components/score';
 import { type MessageKey, interpolate, t } from '@/i18n/messages';
 
 /** A catalogue sentence with its values in, in `locale` (T-1308). */
@@ -144,9 +144,10 @@ export function predictionLine(
     return say(locale, 'panel.link.predictionLine', { author, outcome, confidence, max });
   }
   const bare = `${formatNumber(locale, prediction.home_goals)}-${formatNumber(locale, prediction.away_goals)}`;
-  // On a right-to-left page the score is isolated so it still reads home first (rule 7).
-  const score =
-    directionOf(isLocale(locale) ? locale : DEFAULT_LOCALE) === 'rtl' ? ltrIsolate(bare) : bare;
+  // On a right-to-left page the pair is isolated in the page's direction, so
+  // the home goals stay first and on the home side (rule 7, D-193, T-1378).
+  const page = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  const score = directionOf(page) === 'rtl' ? pairIsolate(page, bare) : bare;
   return say(locale, 'panel.link.predictionLineScore', { author, outcome, score, confidence, max });
 }
 
@@ -176,6 +177,7 @@ export function linkCard(
       }
       const i = link.incident;
       const side = i.side === null ? null : names[i.side];
+      const detailKey = incidentDetailKey(i.detail);
       return {
         heading: say(locale, 'panel.link.incident'),
         lines: [
@@ -189,7 +191,8 @@ export function linkCard(
               .join(' '),
             side,
           ),
-          ...(i.detail === null ? [] : [i.detail]),
+          // A VAR review's decision in the reader's words, never the provider's (T-1378).
+          ...(detailKey === null ? [] : [say(locale, detailKey)]),
         ],
         note: link.state === 'changed' ? say(locale, 'panel.link.incidentChanged') : null,
       };

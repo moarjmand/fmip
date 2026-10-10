@@ -81,6 +81,8 @@ export {
 } from './harness/validate';
 
 // Adapters. One directory each; verified by their recordings, not their authors.
+// A provider's incident detail in our words, also for a row stored before T-1378.
+export { incidentDetail } from './adapters/_incident-detail';
 export { API_FOOTBALL_MANIFEST, createApiFootballAdapter } from './adapters/api-football';
 export {
   FOOTBALL_DATA_ORG_MANIFEST,

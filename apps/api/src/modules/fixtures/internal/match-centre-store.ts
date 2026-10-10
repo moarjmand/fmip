@@ -18,6 +18,7 @@ import type {
   PlayerMatchMetric,
   ScoreLine,
 } from '@fmip/contracts';
+import { incidentDetail } from '@fmip/ingestion';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 
@@ -294,7 +295,9 @@ export class PostgresMatchCentreStore {
               : 'away',
         player: ref(r.person_id, r.person_name),
         related_player: ref(r.related_id, r.related_name),
-        detail: r.detail,
+        // The provider's text in a row stored before T-1378 is mapped to our
+        // words here and never passed on (rule 2, D-196); our code maps to itself.
+        detail: incidentDetail(r.kind, r.detail),
       })),
       lastUpdatedAt: newest(rows.map((r) => r.updated_at)),
     };

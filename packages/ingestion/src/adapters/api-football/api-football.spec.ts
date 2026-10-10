@@ -364,6 +364,8 @@ describe('mapping rules', () => {
       [4, 'var', 'away', null],
     ]);
     expect(incidents[2]?.relatedPlayer).toEqual({ externalId: '5', name: 'On' });
+    // Our words or none, never "Normal Goal" or "Substitution 1" (T-1378).
+    expect(incidents.map((i) => i.detail)).toEqual([null, null, null, 'goal_cancelled']);
   });
 
   it('keeps a long shoot-out inside the contract: a kick past 120+30 has no added time (T-538)', () => {
