@@ -10,7 +10,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { PredictionForm, type PredictionFormWords } from '@/components/prediction-form';
 import { Translated } from '@/components/translated';
-import { LtrNumeric } from '@/components/score';
+import { ScorePair } from '@/components/score';
 import { type Locale } from '@/i18n/locales';
 import { attribute, interpolate, message, t } from '@/i18n/messages';
 import { canonicalUrl } from '@/lib/seo';
@@ -192,7 +192,9 @@ function Final({
         {v.score !== null ? (
           <>
             {' · '}
-            <LtrNumeric>{scoreText(locale, v.score.home, v.score.away)}</LtrNumeric>
+            <ScorePair locale={locale} testId="prediction-score">
+              {scoreText(locale, v.score.home, v.score.away)}
+            </ScorePair>
           </>
         ) : (
           ''

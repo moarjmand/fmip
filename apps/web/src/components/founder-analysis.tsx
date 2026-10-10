@@ -6,7 +6,7 @@ import type {
   FounderOutcome,
 } from '@fmip/contracts';
 import { formatKickoff } from '@/lib/scores';
-import { LtrNumeric } from '@/components/score';
+import { ScorePair } from '@/components/score';
 import { Translated } from '@/components/translated';
 import { interpolate, message, t } from '@/i18n/messages';
 import {
@@ -139,9 +139,9 @@ export function FounderAnalysisPanel({
         {current.predicted_score !== null ? (
           <>
             {' — '}
-            <LtrNumeric>
+            <ScorePair locale={l} testId="founder-score">
               {scoreText(l, current.predicted_score.home, current.predicted_score.away)}
-            </LtrNumeric>
+            </ScorePair>
           </>
         ) : null}{' '}
         <span className="text-muted">· {confidenceText(l, current.confidence)}</span>
@@ -248,9 +248,9 @@ export function FounderAnalysisFeed({
               {entry.predicted_score !== null ? (
                 <>
                   {' — '}
-                  <LtrNumeric>
+                  <ScorePair locale={l}>
                     {scoreText(l, entry.predicted_score.home, entry.predicted_score.away)}
-                  </LtrNumeric>
+                  </ScorePair>
                 </>
               ) : null}{' '}
               <span className="text-muted">· {confidenceText(l, entry.confidence)}</span>

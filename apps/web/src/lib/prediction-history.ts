@@ -7,7 +7,7 @@ import type {
 import { formatDate } from '@/i18n/format';
 import { DEFAULT_LOCALE } from '@/i18n/locales';
 import { interpolate, t } from '@/i18n/messages';
-import { ltrIsolate } from '@/components/score';
+import { nameIsolate, pairIsolate } from '@/components/score';
 import {
   VOID_REASON_KEY,
   asLocale,
@@ -57,11 +57,18 @@ export function versionLabel(version: PredictionVersion, locale = 'en'): string 
 }
 
 /**
- * A score inside a sentence, isolated left to right where the page is not
- * English (the English string is left exactly as it always read).
+ * A home–away pair inside a sentence, isolated in the page's direction where
+ * the page is not English (D-193, T-1378): on `/fa` the home goals come first
+ * and stand on the right. The English string is left exactly as it always read.
  */
 function isolated(locale: string, score: string): string {
-  return asLocale(locale) === DEFAULT_LOCALE ? score : ltrIsolate(score);
+  const l = asLocale(locale);
+  return l === DEFAULT_LOCALE ? score : pairIsolate(l, score);
+}
+
+/** A team name inside a sentence, its own isolate where the page is not English. */
+function named(locale: string, name: string): string {
+  return asLocale(locale) === DEFAULT_LOCALE ? name : nameIsolate(name);
 }
 
 /** Date and time in the viewer's zone, e.g. "05 Jan 2025, 16:28". */
@@ -119,8 +126,8 @@ export function fixtureLabel(fixture: PredictionHistoryFixture, locale = 'en'): 
   return fixture.score === null
     ? matchTitle(locale, home, away)
     : interpolate(t(asLocale(locale), 'history.fixtureScore'), {
-        home,
-        away,
+        home: named(locale, home),
+        away: named(locale, away),
         score: isolated(locale, scoreText(locale, fixture.score.home, fixture.score.away)),
       });
 }

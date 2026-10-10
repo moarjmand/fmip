@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { CommunitySubmission } from '@fmip/contracts';
 import { reviewAnalysisAction } from '@/lib/analysis-actions';
 import { Button, Card, FormStatus, Notice, TextArea } from '@/components/ui';
+import { ScorePair } from '@/components/score';
 
 /**
  * The editorial review queue (blueprint 10.3, T-262).
@@ -132,9 +133,9 @@ export function AnalysisQueue({
           <p className="text-sm">
             <span className="font-medium">{submission.predicted_outcome}</span>
             {submission.predicted_home !== null && submission.predicted_away !== null && (
-              <span className="ms-2">
+              <ScorePair locale={locale} className="ms-2">
                 {submission.predicted_home}–{submission.predicted_away}
-              </span>
+              </ScorePair>
             )}
             <span className="ms-2 text-muted">confidence {submission.confidence}/5</span>
           </p>
