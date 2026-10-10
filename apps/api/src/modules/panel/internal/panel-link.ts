@@ -5,7 +5,19 @@ import type {
   PanelLinkRequest,
   PanelLinkedPrediction,
 } from '@fmip/contracts';
+import { INCIDENT_KINDS, type IncidentKind, incidentDetail } from '@fmip/ingestion';
 import type { PanelLinkRow } from './panel-store';
+
+/**
+ * A stored incident detail in our words (T-1378, D-196): a row written before
+ * the adapters named it holds the provider's text, which is mapped here and
+ * never passed on.
+ */
+function detailOf(kind: unknown, stored: unknown) {
+  return (INCIDENT_KINDS as readonly unknown[]).includes(kind)
+    ? incidentDetail(kind as IncidentKind, stored)
+    : null;
+}
 
 /**
  * A panel post's link as a reader sees it (T-1030, D-136). Pure: the store
@@ -100,7 +112,13 @@ export function incidentState(row: PanelLinkRow): 'as_linked' | 'changed' | 'rem
   if (row.incident_id === null) return 'removed';
   const was = row.link_snapshot ?? {};
   for (const [stored, now] of COMPARED) {
-    if ((was[stored] ?? null) !== (row[now] ?? null)) return 'changed';
+    // A detail is compared in our words, so the provider's text stored when
+    // the link was made and our code stored since are the same detail (T-1378).
+    const same =
+      stored === 'detail'
+        ? detailOf(row.incident_kind, was[stored]) === detailOf(row.incident_kind, row[now])
+        : (was[stored] ?? null) === (row[now] ?? null);
+    if (!same) return 'changed';
   }
   return 'as_linked';
 }
@@ -150,7 +168,7 @@ export function linkOf(
             row.incident_related_id === null
               ? null
               : { id: row.incident_related_id, name: row.incident_related_name ?? '' },
-          detail: row.incident_detail,
+          detail: detailOf(row.incident_kind, row.incident_detail),
         },
       };
     }

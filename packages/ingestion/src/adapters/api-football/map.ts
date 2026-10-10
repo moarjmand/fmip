@@ -32,6 +32,7 @@ import type {
   StatMetric,
 } from '../../normalised';
 import { groupOfLabel } from '../_group';
+import { incidentDetail } from '../_incident-detail';
 
 // ---------------------------------------------------------------------------
 // Narrowing helpers
@@ -322,7 +323,10 @@ export function mapIncidents(
       player,
       // For a substitution API-Football's `assist` is the player coming on.
       relatedPlayer: related,
-      detail: str(e.detail) ?? str(e.comments),
+      // In our words: what a VAR review decided, else none. Neither `detail`
+      // ("Normal Goal", "Substitution 1") nor `comments` ("Foul") reaches a
+      // page as the provider wrote it (rule 2, T-1378).
+      detail: incidentDetail(kind, e.detail),
     });
   }
   return out;

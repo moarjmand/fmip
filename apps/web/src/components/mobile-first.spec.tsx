@@ -496,3 +496,62 @@ describe('the freshness times on the match centre (T-1371)', () => {
     expect(asked('2026-10-05T16:30:00.000Z', 'finished')).not.toContain('may have changed');
   });
 });
+
+// T-1378: the timeline said "Normal Goal", "Substitution 1" and "Goal
+// cancelled" as the provider wrote them, in English on /fa (rule 2).
+describe('an incident in our words, never the provider’s (T-1378)', () => {
+  type Incident = NonNullable<MatchCentre['timeline']['data']>[number];
+  const incident = (kind: Incident['kind'], detail: unknown): Incident => ({
+    id: `${kind}-${String(detail)}`,
+    sequence: 1,
+    minute: 70,
+    added_time: null,
+    kind,
+    side: 'home',
+    player: kind === 'var' ? null : { id: 'p', name: 'Salah' },
+    related_player: null,
+    detail: detail as Incident['detail'],
+  });
+  const timeline = (incidents: Incident[], locale = 'en') => {
+    const html = renderToStaticMarkup(
+      <MatchCentreView
+        words={matchWords(locale)}
+        centre={{ ...centre, timeline: covered(incidents) }}
+        timeZone="UTC"
+        locale={locale}
+      />,
+    );
+    const from = html.indexOf('data-testid="timeline"');
+    return html.slice(from, html.indexOf('</section>', from));
+  };
+
+  it('says what a VAR review decided after its kind', () => {
+    const html = timeline([incident('var', 'goal_cancelled')]);
+    expect(html).toContain('VAR');
+    expect(html).toContain('<span data-testid="incident-detail"> · Goal disallowed</span>');
+  });
+
+  it('says it in Persian on /fa', () => {
+    const html = timeline(
+      [incident('var', 'goal_cancelled'), incident('var', 'penalty_confirmed')],
+      'fa',
+    );
+    expect(html).toContain('گل مردود شد');
+    expect(html).toContain('پنالتی تأیید شد');
+    expect(html).not.toMatch(/Goal disallowed|Penalty confirmed|goal_cancelled/);
+  });
+
+  it('shows only the kind for none, and never a text it does not know', () => {
+    const html = timeline([
+      incident('goal', null),
+      // An older API, or a row that slipped past the mapping: never printed.
+      incident('goal', 'Normal Goal'),
+      incident('substitution', 'Substitution 1'),
+      incident('var', 'Goal cancelled'),
+    ]);
+    expect(html).not.toContain('data-testid="incident-detail"');
+    expect(html).not.toMatch(/Normal Goal|Substitution 1|Goal cancelled/);
+    expect(html).toContain('Goal');
+    expect(html).toContain('VAR');
+  });
+});

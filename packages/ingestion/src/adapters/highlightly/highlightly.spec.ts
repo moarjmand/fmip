@@ -143,6 +143,8 @@ describe('mapping rules', () => {
     expect(incidents[0]?.relatedPlayer).toEqual({ externalId: '7238', name: 'Rodri' });
     expect(incidents[1]?.player).toEqual({ externalId: '101423', name: 'K. De Bruyne' });
     expect(incidents[1]?.relatedPlayer).toEqual({ externalId: '369005', name: 'M. Kovačić' });
+    // The event's type text is never carried as a detail (T-1378).
+    expect(incidents.map((i) => i.detail)).toEqual([null, null, null]);
   });
 
   it('turns a possession fraction into a percentage and skips unknown metrics', () => {

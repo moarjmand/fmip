@@ -27,6 +27,30 @@ export const INCIDENT_KEY = {
   var: 'matchCentre.incident.var',
 } as const satisfies Record<MatchIncident['kind'], MessageKey>;
 
+/**
+ * What an incident adds to its kind, as a catalogue key (T-1378). The API
+ * carries our code, never the provider's text; a value this page does not
+ * know (a newer API) has no key and is left out, so the kind alone is shown.
+ */
+export const INCIDENT_DETAIL_KEY = {
+  goal_cancelled: 'matchCentre.incidentDetail.goalCancelled',
+  goal_confirmed: 'matchCentre.incidentDetail.goalConfirmed',
+  penalty_awarded: 'matchCentre.incidentDetail.penaltyAwarded',
+  penalty_cancelled: 'matchCentre.incidentDetail.penaltyCancelled',
+  penalty_confirmed: 'matchCentre.incidentDetail.penaltyConfirmed',
+  card_upgraded: 'matchCentre.incidentDetail.cardUpgraded',
+  card_cancelled: 'matchCentre.incidentDetail.cardCancelled',
+} as const satisfies Record<NonNullable<MatchIncident['detail']>, MessageKey>;
+
+/** The catalogue key for an incident's detail, or `null` for none or one we do not know. */
+export function incidentDetailKey(
+  detail: MatchIncident['detail'],
+): (typeof INCIDENT_DETAIL_KEY)[keyof typeof INCIDENT_DETAIL_KEY] | null {
+  return detail !== null && Object.hasOwn(INCIDENT_DETAIL_KEY, detail)
+    ? INCIDENT_DETAIL_KEY[detail]
+    : null;
+}
+
 /** A team statistic's name, as a catalogue key. */
 export const STAT_KEY = {
   possession_pct: 'matchCentre.stat.possession',

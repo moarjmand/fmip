@@ -200,4 +200,31 @@ describe('linkCard (T-1030)', () => {
       ).note,
     ).toMatch(/no longer lists this player/);
   });
+
+  it("says a VAR review's decision in the reader's words, never the provider's (T-1378)", () => {
+    const card = (detail: unknown, locale: string) =>
+      linkCard(
+        {
+          kind: 'incident',
+          state: 'as_linked',
+          incident: {
+            kind: 'var',
+            minute: 70,
+            added_time: null,
+            side: 'home',
+            player: null,
+            related_player: null,
+            detail: detail as 'goal_cancelled',
+          },
+        },
+        'Cara',
+        names,
+        null,
+        locale,
+      );
+    expect(card('goal_cancelled', 'en').lines).toEqual(['70′ VAR (Home FC)', 'Goal disallowed']);
+    expect(card('goal_cancelled', 'fa').lines[1]).toBe('گل مردود شد');
+    expect(card(null, 'en').lines).toHaveLength(1);
+    expect(card('Goal cancelled', 'en').lines).toHaveLength(1);
+  });
 });

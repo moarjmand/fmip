@@ -16,7 +16,7 @@
  * `PanelAuthor` has no shape in which the tier is absent.
  */
 
-import type { MatchIncidentKind, MatchStatMetric } from './match-centre';
+import type { MatchIncidentDetail, MatchIncidentKind, MatchStatMetric } from './match-centre';
 import type { MyPostReactions, PanelReactionTally } from './panel-social';
 import type { RatingTier } from './reputation';
 
@@ -96,7 +96,8 @@ export interface PanelLinkedIncident {
   side: 'home' | 'away' | null;
   player: { id: string; name: string } | null;
   related_player: { id: string; name: string } | null;
-  detail: string | null;
+  /** In our words, never the provider's (T-1378). */
+  detail: MatchIncidentDetail | null;
 }
 
 /** The author's own call, as the card shows it. */

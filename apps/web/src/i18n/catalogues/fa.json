@@ -7735,6 +7735,48 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "matchCentre.incidentDetail.goalCancelled": {
+    "source": "Goal disallowed",
+    "text": "گل مردود شد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.incidentDetail.goalConfirmed": {
+    "source": "Goal stands",
+    "text": "گل تأیید شد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.incidentDetail.penaltyAwarded": {
+    "source": "Penalty awarded",
+    "text": "پنالتی اعلام شد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.incidentDetail.penaltyCancelled": {
+    "source": "Penalty cancelled",
+    "text": "پنالتی لغو شد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.incidentDetail.penaltyConfirmed": {
+    "source": "Penalty confirmed",
+    "text": "پنالتی تأیید شد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.incidentDetail.cardUpgraded": {
+    "source": "Card upgraded to red",
+    "text": "کارت به قرمز تبدیل شد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.incidentDetail.cardCancelled": {
+    "source": "Card cancelled",
+    "text": "کارت لغو شد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "matchCentre.stat.possession": {
     "source": "Possession",
     "text": "مالکیت توپ",
