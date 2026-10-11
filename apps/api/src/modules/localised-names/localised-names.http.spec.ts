@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { Test } from '@nestjs/testing';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import type { CompetitionPage, ScoresResponse } from '@fmip/contracts';
@@ -27,6 +29,7 @@ const BETA = randomUUID();
 const FIXTURE = randomUUID();
 const ALPHA_FA = `آلفا ${RUN}`;
 const LEAGUE_FA = `لیگ آزمایشی ${RUN}`;
+const MIGRATION = '1765853000000_english-club-names.sql';
 
 describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
   '?locale= on every surface',
@@ -192,6 +195,80 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         await pool.query(`DELETE FROM entity_alias WHERE entity_id = $1`, [team]);
         await pool.query(`DELETE FROM team WHERE id = $1`, [team]);
         await pool.query(`DELETE FROM country WHERE id = $1`, [country]);
+      }
+    });
+
+    it("names a club in English from its 'en' name row, and nowhere else (T-1395)", async () => {
+      await pool.query(
+        `INSERT INTO entity_alias (entity_type, entity_id, alias, language, kind, source)
+         VALUES ('team', $1, $2, 'en', 'name', 'test')`,
+        [BETA, `Beta English ${RUN}`],
+      );
+      try {
+        const { card } = ours(await scores('en'));
+        expect(card.away).toMatchObject({ id: BETA, name: `Beta English ${RUN}` });
+        // No English row for the other club: its own name, short form kept.
+        expect(card.home).toMatchObject({ name: `Test Alpha ${RUN}`, short_name: 'ALP' });
+        // Persian and a caller without a locale never see the English row.
+        expect(ours(await scores('fa')).card.away.name).toBe(`Test Beta ${RUN}`);
+        expect(ours(await scores('')).card.away.name).toBe(`Test Beta ${RUN}`);
+      } finally {
+        await pool.query(
+          `DELETE FROM entity_alias WHERE entity_id = $1 AND language = 'en' AND source = 'test'`,
+          [BETA],
+        );
+      }
+    });
+
+    it("writes the English club names by the provider's id, never by the name (D-210)", async () => {
+      // The migration's own up section, run again inside a transaction that is
+      // rolled back, against a club stored under the feed's name and mapped to
+      // the provider's id for Bayern Munich. A database that already maps that
+      // id to a real club has nothing to prove here and is left alone.
+      const sql = readFileSync(
+        join(__dirname, '..', '..', '..', '..', '..', 'packages', 'db', 'migrations', MIGRATION),
+        'utf8',
+      );
+      const up = sql.slice(0, sql.indexOf('-- Down Migration'));
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        const { rowCount } = await client.query(
+          `SELECT 1 FROM provider_mapping
+            WHERE provider = 'api_football' AND entity_type = 'team' AND external_id IN ('157', '505')`,
+        );
+        if (rowCount !== 0) return;
+        const bayern = randomUUID();
+        const namesake = randomUUID();
+        await client.query(
+          `INSERT INTO team (id, name, kind, gender) VALUES
+           ($1, 'Bayern München', 'club', 'men'), ($2, 'Bayern Munich', 'club', 'men')`,
+          [bayern, namesake],
+        );
+        await client.query(
+          `INSERT INTO provider_mapping (provider, entity_type, external_id, internal_id) VALUES
+           ('api_football', 'team', '157', $1), ('api_football', 'team', '505', $2)`,
+          [bayern, namesake],
+        );
+        await client.query(up);
+        const { rows } = await client.query<{ entity_id: string; alias: string }>(
+          `SELECT entity_id::text, alias FROM entity_alias
+            WHERE entity_id = ANY($1::uuid[]) AND kind = 'name' AND language = 'en'`,
+          [[bayern, namesake]],
+        );
+        // Found by id 157; the other club carries the same stored name as the
+        // English one but a different id, and gets nothing.
+        expect(rows).toEqual([{ entity_id: bayern, alias: 'Bayern Munich' }]);
+        // Running it twice writes nothing more.
+        await client.query(up);
+        const again = await client.query(
+          `SELECT 1 FROM entity_alias WHERE entity_id = $1 AND kind = 'name' AND language = 'en'`,
+          [bayern],
+        );
+        expect(again.rowCount).toBe(1);
+      } finally {
+        await client.query('ROLLBACK');
+        client.release();
       }
     });
 
