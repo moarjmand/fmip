@@ -214,6 +214,76 @@ export function FounderAnalysisPanel({
 }
 
 /**
+ * The founder's lane on the homepage's "three forecasts" (T-1382, D-200):
+ * the call, the score and the confidence, the start of the reasoning in the
+ * founder's voice, the signature, and the way to the whole analysis on the
+ * match centre. Published before kick-off and shown as published (blueprint
+ * 6.5): nothing here is sealed. With none written, it says so.
+ */
+export function FounderAnalysisBrief({
+  analysis,
+  home,
+  away,
+  href,
+  timeZone,
+  locale,
+}: {
+  analysis: FounderAnalysisResponse | null;
+  home: string;
+  away: string;
+  /** The match centre's analysis, where the rest of it is. */
+  href: string;
+  timeZone: string;
+  locale: string;
+}) {
+  const l = asLocale(locale);
+  const current = analysis?.analysis?.versions[0] ?? null;
+  if (analysis === null || analysis.analysis === null || current === null) {
+    return (
+      <FounderLane locale={l}>
+        <p className="text-sm text-muted" data-testid="founder-brief" data-state="none">
+          <Translated locale={l} message="analysis.founder.none" />
+        </p>
+      </FounderLane>
+    );
+  }
+  return (
+    <FounderLane locale={l}>
+      <div className="flex flex-col gap-2" data-testid="founder-brief" data-state="available">
+        <p className="text-sm">
+          <strong>{outcomeLabel(l, current.predicted_outcome, home, away)}</strong>
+          {current.predicted_score !== null ? (
+            <>
+              {' — '}
+              <ScorePair locale={l}>
+                {scoreText(l, current.predicted_score.home, current.predicted_score.away)}
+              </ScorePair>
+            </>
+          ) : null}{' '}
+          <span className="text-muted">· {confidenceText(l, current.confidence)}</span>
+        </p>
+        <p
+          className="line-clamp-4 font-article text-base whitespace-pre-line italic [:root:is(:lang(fa),:lang(ar))_&]:not-italic"
+          data-testid="founder-voice"
+        >
+          {current.reasoning}
+        </p>
+        <Signature
+          author={analysis.analysis.author.display_name}
+          publishedAt={current.published_at}
+          version={current.version_number}
+          timeZone={timeZone}
+          locale={locale}
+        />
+        <Link href={href} className="text-sm font-bold text-founder underline">
+          <Translated locale={l} message="analysis.founder.read" />
+        </Link>
+      </div>
+    </FounderLane>
+  );
+}
+
+/**
  * The feed entry, for the homepage and the team and competition pages.
  *
  * Deliberately an excerpt with a link: a feed that reprinted the whole analysis
