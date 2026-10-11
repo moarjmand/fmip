@@ -277,14 +277,15 @@ body {
 
 /*
  * The header's Menu (T-605, `components/site-header.tsx`). On a phone it is
- * a disclosure whose panel drops below the bar. From `sm` it is no box at
+ * a disclosure whose panel drops below the bar. From 768px (`md`, T-1381:
+ * where the bottom tab bar gives way to the header's nav) it is no box at
  * all: the <details>, its content slot and the panel are `display: contents`,
  * so every link and control inside lays out in the bar itself, and the
  * summary is hidden. Only where the browser can style the content slot of a
  * closed <details> (`::details-content`); a browser that cannot keeps the
  * Menu, which still works, rather than hiding links it could not show.
  */
-@media (width >= 40rem) {
+@media (width >= 48rem) {
   @supports selector(::details-content) {
     .site-menu,
     .site-menu::details-content,
@@ -315,6 +316,43 @@ body {
 
 :root[data-text-size='larger'] {
   font-size: 125%;
+}
+
+/*
+ * A live chip's dot (T-1381, `components/live-strip.tsx`) pulses in the live
+ * colour: a ring of the token itself that grows and fades. Only where motion
+ * is welcome: neither the device nor the member (`data-motion="reduce"`)
+ * asked for less, so the dot is still otherwise.
+ */
+@keyframes live-pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--token-live);
+    opacity: 0.5;
+  }
+
+  70% {
+    box-shadow: 0 0 0 7px var(--token-live);
+    opacity: 0;
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 var(--token-live);
+    opacity: 0;
+  }
+}
+
+.live-dot {
+  position: relative;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='reduce']) .live-dot::after {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    content: '';
+    animation: live-pulse 1.8s infinite;
+  }
 }
 
 /*

@@ -1,0 +1,241 @@
+import type { ScoreCard, ScoresResponse } from '@fmip/contracts';
+import { STALE_LIVE_AFTER_MS } from '@fmip/contracts';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  type KeptAnswer,
+  STRIP_ANSWER_MS,
+  STRIP_FAILURE_MS,
+  chipState,
+  sharedAnswer,
+  stripBehindAt,
+  stripGroup,
+  stripIsBehind,
+} from './live-strip';
+import { scoresWords } from './words-server';
+
+/** The live strip's rules (T-1381, D-199). */
+
+const NOW = Date.parse('2026-10-11T15:00:00.000Z');
+
+function stripCard(over: Partial<ScoreCard> = {}): ScoreCard {
+  return {
+    id: '00000000-0000-4000-8000-000000001381',
+    kickoff_at: '2026-10-11T13:30:00.000Z',
+    status: 'scheduled',
+    minute: null,
+    competition: { id: 'c', name: 'Persian Gulf Pro League', short_name: null, country_id: null },
+    season: { id: 's', label: '2026/27' },
+    stage: null,
+    round: null,
+    leg: null,
+    home: { id: 'h', name: 'Tractor', short_name: null, code: 'TRA' },
+    away: { id: 'a', name: 'Esteghlal', short_name: null, code: 'EST' },
+    scores: {
+      current: null,
+      half_time: null,
+      full_time: null,
+      extra_time: null,
+      penalties: null,
+      aggregate: null,
+    },
+    red_cards: { home: 0, away: 0 },
+    incidents: [],
+    venue: null,
+    coverage: 'available',
+    last_updated_at: '2026-10-11T14:59:30.000Z',
+    freshness: null,
+    pinned: false,
+    ...over,
+  };
+}
+
+const words = scoresWords('en').m;
+const faWords = scoresWords('fa').m;
+
+describe('the competition the strip shows', () => {
+  const group = (id: string, fixtures: ScoreCard[]) => ({
+    country: null,
+    competition: { id, name: id, short_name: null },
+    fixtures,
+  });
+  const answer = (groups: ReturnType<typeof group>[]): ScoresResponse => ({
+    filters: {
+      from: '2026-10-11',
+      to: '2026-10-11',
+      timezone: 'UTC',
+      live: false,
+      favourites: false,
+      country_id: null,
+      competition_id: null,
+      stage_id: null,
+      gender: null,
+      age: null,
+    },
+    generated_at: '2026-10-11T15:00:00.000Z',
+    total: 1,
+    pinned: [],
+    groups,
+  });
+
+  it('is the first in the answer’s order that has a match today', () => {
+    const shown = stripGroup(
+      answer([group('pro-league', []), group('ucl', [stripCard()]), group('epl', [stripCard()])]),
+    );
+    expect(shown?.competition.id).toBe('ucl');
+  });
+
+  it('is none on a day with no match, so no empty strip is drawn', () => {
+    expect(stripGroup(answer([]))).toBeNull();
+    expect(stripGroup(answer([group('pro-league', [])]))).toBeNull();
+  });
+});
+
+describe('a chip’s state', () => {
+  it('before kick-off: the time, no score', () => {
+    expect(chipState(stripCard(), 'en', 'UTC', NOW, words)).toEqual({
+      kind: 'before',
+      status: '13:30',
+      score: null,
+    });
+  });
+
+  it('before kick-off in Persian: the time in Persian digits', () => {
+    expect(chipState(stripCard(), 'fa', 'Asia/Tehran', NOW, faWords).status).toBe('۱۷:۰۰');
+  });
+
+  it('live: the minute and the score', () => {
+    const live = stripCard({ status: 'live', minute: 78, scores: score(1, 1) });
+    expect(chipState(live, 'en', 'UTC', NOW, words)).toEqual({
+      kind: 'live',
+      status: '78′',
+      score: { home: 1, away: 1 },
+    });
+    expect(chipState(live, 'fa', 'UTC', NOW, faWords).status).toBe('۷۸′');
+  });
+
+  it('live but the data stopped: "Behind" in place of the minute (D-045)', () => {
+    const stuck = stripCard({
+      status: 'live',
+      minute: 78,
+      scores: score(1, 1),
+      last_updated_at: new Date(NOW - STALE_LIVE_AFTER_MS - 1).toISOString(),
+    });
+    expect(chipState(stuck, 'en', 'UTC', NOW, words)).toMatchObject({
+      kind: 'behind',
+      status: 'Behind',
+    });
+  });
+
+  it('live with no score yet: no invented 0–0', () => {
+    expect(chipState(stripCard({ status: 'live', minute: 2 }), 'en', 'UTC', NOW, words).score).toBe(
+      null,
+    );
+  });
+
+  it('full time: FT and the full-time score; پایان in Persian', () => {
+    const done = stripCard({ status: 'finished', scores: score(6, 1) });
+    expect(chipState(done, 'en', 'UTC', NOW, words)).toEqual({
+      kind: 'final',
+      status: 'FT',
+      score: { home: 6, away: 1 },
+    });
+    expect(chipState(done, 'fa', 'UTC', NOW, faWords).status).toBe('پایان');
+  });
+
+  it('postponed: the word, no score', () => {
+    expect(chipState(stripCard({ status: 'postponed' }), 'en', 'UTC', NOW, words)).toEqual({
+      kind: 'off',
+      status: 'Postponed',
+      score: null,
+    });
+  });
+});
+
+describe('when the strip may be behind (rule 4)', () => {
+  const generated = '2026-10-11T15:00:00.000Z';
+
+  it('never, when every match is over', () => {
+    const over = [stripCard({ status: 'finished', scores: score(1, 0) })];
+    expect(stripBehindAt(over, generated)).toBeNull();
+    expect(stripIsBehind(over, generated, NOW + 86_400_000)).toBe(false);
+  });
+
+  it('from the answer’s time when a match is live', () => {
+    const live = [
+      stripCard({ status: 'live', minute: 10, scores: score(0, 0), last_updated_at: generated }),
+    ];
+    expect(stripBehindAt(live, generated)).toBe(NOW + STALE_LIVE_AFTER_MS);
+    expect(stripIsBehind(live, generated, NOW + STALE_LIVE_AFTER_MS - 1)).toBe(false);
+    expect(stripIsBehind(live, generated, NOW + STALE_LIVE_AFTER_MS)).toBe(true);
+  });
+
+  it('from the kick-off when the next match has not started', () => {
+    const later = [stripCard({ kickoff_at: '2026-10-11T17:00:00.000Z' })];
+    expect(stripBehindAt(later, generated)).toBe(
+      Date.parse('2026-10-11T17:00:00.000Z') + STALE_LIVE_AFTER_MS,
+    );
+  });
+
+  it('at once when a chip is already behind', () => {
+    const stuck = [
+      stripCard({
+        status: 'live',
+        minute: 78,
+        scores: score(1, 1),
+        last_updated_at: new Date(NOW - STALE_LIVE_AFTER_MS - 1).toISOString(),
+      }),
+    ];
+    expect(stripIsBehind(stuck, generated, NOW)).toBe(true);
+  });
+});
+
+describe('the shared answer', () => {
+  type Answer = { ok: boolean; n: number };
+
+  it('is asked once for a key within its life, and again after', async () => {
+    const kept = new Map<string, KeptAnswer<Answer>>();
+    let n = 0;
+    const ask = vi.fn(async () => ({ ok: true, n: ++n }));
+    expect((await sharedAnswer(kept, 'k', 0, ask)).n).toBe(1);
+    expect((await sharedAnswer(kept, 'k', STRIP_ANSWER_MS - 1, ask)).n).toBe(1);
+    expect((await sharedAnswer(kept, 'k', STRIP_ANSWER_MS, ask)).n).toBe(2);
+    expect(ask).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps one key per day, zone and language apart', async () => {
+    const kept = new Map<string, KeptAnswer<Answer>>();
+    let n = 0;
+    const ask = async () => ({ ok: true, n: ++n });
+    await sharedAnswer(kept, '2026-10-11|UTC|en', 0, ask);
+    expect((await sharedAnswer(kept, '2026-10-11|UTC|fa', 0, ask)).n).toBe(2);
+  });
+
+  it('keeps a failure for less, so an API that is back is asked soon', async () => {
+    const kept = new Map<string, KeptAnswer<Answer>>();
+    let n = 0;
+    const ask = async () => ({ ok: n++ > 0, n });
+    expect((await sharedAnswer(kept, 'k', 0, ask)).ok).toBe(false);
+    expect((await sharedAnswer(kept, 'k', STRIP_FAILURE_MS - 1, ask)).ok).toBe(false);
+    expect((await sharedAnswer(kept, 'k', STRIP_FAILURE_MS, ask)).ok).toBe(true);
+  });
+
+  it('holds a bounded number of keys, dropping the oldest', async () => {
+    const kept = new Map<string, KeptAnswer<Answer>>();
+    const ask = async () => ({ ok: true, n: 0 });
+    for (let i = 0; i < 40; i += 1) await sharedAnswer(kept, `k${i}`, 0, ask);
+    expect(kept.size).toBe(32);
+    expect(kept.has('k0')).toBe(false);
+    expect(kept.has('k39')).toBe(true);
+  });
+});
+
+function score(home: number, away: number): ScoreCard['scores'] {
+  return {
+    current: { home, away },
+    half_time: null,
+    full_time: { home, away },
+    extra_time: null,
+    penalties: null,
+    aggregate: null,
+  };
+}

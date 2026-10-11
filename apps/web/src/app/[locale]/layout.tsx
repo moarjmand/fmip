@@ -5,7 +5,7 @@ import { DemonstrationBanner } from '@/components/demonstration-banner';
 import { ERROR_PAGE_KEYS } from '@/components/error-page';
 import { ServiceWorker } from '@/components/service-worker';
 import { Translated } from '@/components/translated';
-import { SiteHeader } from '@/components/site-header';
+import { SiteHeader, SiteTabBar } from '@/components/site-header';
 import { DEFAULT_LOCALE, LOCALES, directionOf, isLocale } from '@/i18n/locales';
 import { resolveMessages, t } from '@/i18n/messages';
 import {
@@ -153,6 +153,8 @@ export default async function LocaleLayout({
             {children}
           </ClientMessagesProvider>
         </div>
+        {/* The phone's five main sections (T-1381, D-199); not drawn from 768px. */}
+        <SiteTabBar locale={locale} />
         <ServiceWorker />
       </body>
     </html>
