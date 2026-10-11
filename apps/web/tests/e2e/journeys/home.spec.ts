@@ -23,7 +23,8 @@ test.describe.configure({ mode: 'serial' });
 test.describe("the member's homepage", () => {
   test('a guest sees no member section, and is not told one is empty', async ({ page }) => {
     await page.goto('/en');
-    await expect(page.getByTestId('title')).toHaveText('FMIP');
+    // "Today": the homepage's heading since T-1382 (D-200).
+    await expect(page.getByTestId('title')).toHaveText('Today');
     for (const id of MEMBER_SECTIONS) await expect(page.getByTestId(id)).toHaveCount(0);
     await expect(page.getByTestId('home-viewing-ask')).toHaveCount(0);
   });

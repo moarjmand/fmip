@@ -12,6 +12,8 @@ const PAGE = readFileSync(
 );
 const ADMIN = readFileSync(join(HERE, '..', 'app', '[locale]', 'admin', 'page.tsx'), 'utf8');
 const HOME = readFileSync(join(HERE, '..', 'app', '[locale]', 'page.tsx'), 'utf8');
+// Since T-1382 (D-200) the homepage hands the notes to its front column, which draws them.
+const FRONT = readFileSync(join(HERE, 'home-front.tsx'), 'utf8');
 
 describe('the homepage features page', () => {
   it('features with a note and a window, and clears with a reason', () => {
@@ -40,7 +42,9 @@ describe('the homepage features page', () => {
   it('is linked from the administration area, and read by the homepage at render', () => {
     expect(ADMIN).toContain('/admin/homepage`');
     expect(HOME).toContain('fetchFeaturedMatches()');
-    expect(HOME).toContain('data-testid="home-featured-note"');
+    expect(HOME).toContain('notes={notes}');
+    expect(HOME).toContain('note={notes.get(lead.id) ?? null}');
+    expect(FRONT).toContain('data-testid="home-featured-note"');
   });
 
   it('uses no physical side', () => {
