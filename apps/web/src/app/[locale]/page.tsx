@@ -68,6 +68,7 @@ import {
   tableRowOf,
   todayFixtureIds,
 } from '@/lib/home';
+import { stageName } from '@/lib/competition';
 import { rootTitle } from '@/lib/demonstration';
 import { readGuestChoices } from '@/lib/first-run-cookie';
 import { feedsStale } from '@/lib/news';
@@ -260,7 +261,10 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const context =
     lead === null
       ? null
-      : [lead.competition.short_name ?? lead.competition.name, lead.round]
+      : [
+          lead.competition.short_name ?? lead.competition.name,
+          lead.round === null ? null : stageName(locale, lead.round),
+        ]
           .filter((part) => part !== null)
           .join(' · ');
 

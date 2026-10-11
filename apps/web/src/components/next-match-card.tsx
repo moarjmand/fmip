@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { formatDate } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
 import { interpolate, message, t } from '@/i18n/messages';
+import { stageName } from '@/lib/competition';
 import type { CardForecast } from '@/lib/score-card-products';
 import { formatKickoff } from '@/lib/scores';
 import { territoryName } from '@/lib/territory';
@@ -55,6 +56,8 @@ export function NextMatchCard({
           zone: timeZone.split('/').at(-1)?.replace(/_/g, ' ') ?? timeZone,
         });
   const competition = fixture.competition.short_name ?? fixture.competition.name;
+  // A provider's round in the reader's words, or left out (D-193).
+  const round = fixture.round === null ? null : stageName(locale, fixture.round);
   // From the match's own status, not the clock: a render stays pure.
   const started = fixture.status !== 'scheduled';
   return (
@@ -69,10 +72,10 @@ export function NextMatchCard({
         </span>
         <span className="text-sm text-caption">
           <bdi>{competition}</bdi>
-          {fixture.round !== null && (
+          {round !== null && (
             <>
               {' · '}
-              <bdi>{fixture.round}</bdi>
+              <bdi>{round}</bdi>
             </>
           )}
         </span>
