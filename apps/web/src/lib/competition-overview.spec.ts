@@ -126,7 +126,7 @@ describe('the Overview’s round (T-1385)', () => {
       fixtures: [next, later],
     });
     expect(week?.state).toBe('next');
-    expect(week?.label).toBe('Regular Season - 8');
+    expect(week?.label).toBe('Matchweek 8');
     expect(week?.fixtures.map((f) => f.id)).toEqual([played.id, next.id, later.id]);
   });
 
@@ -138,10 +138,10 @@ describe('the Overview’s round (T-1385)', () => {
     });
     const live = fx({ status: 'live', round: 'Regular Season - 9' });
     expect(currentMatchweek('en', { results: [], fixtures: [postponed, live] })?.label).toBe(
-      'Regular Season - 9',
+      'Matchweek 9',
     );
     expect(currentMatchweek('en', { results: [], fixtures: [postponed, fx()] })?.label).toBe(
-      'Regular Season - 8',
+      'Matchweek 8',
     );
   });
 
@@ -184,13 +184,13 @@ describe('the Overview’s round (T-1385)', () => {
 });
 
 describe('fixtures by round (T-1385)', () => {
-  // English reads the provider's known forms as they are (D-193); Persian is tested below.
+  // English says a round in its own words (T-1391, D-207); Persian is tested below.
   it('groups each round once, in the list’s order, headed in our words', () => {
     const a = fx({ round: 'Regular Season - 9' });
     const b = fx({ round: 'Regular Season - 8' });
     const c = fx({ round: 'Regular Season - 9' });
     const groups = roundGroups('en', [a, b, c]);
-    expect(groups.map((g) => g.label)).toEqual(['Regular Season - 9', 'Regular Season - 8']);
+    expect(groups.map((g) => g.label)).toEqual(['Matchweek 9', 'Matchweek 8']);
     expect(groups[0]?.fixtures.map((f) => f.id)).toEqual([a.id, c.id]);
   });
 
@@ -200,7 +200,7 @@ describe('fixtures by round (T-1385)', () => {
       fx({ round: 'Round of 16', stage: { id: 'ko', name: 'Round of 16' } }),
       fx({ round: 'Something New', stage: { id: 'x', name: 'Something New' } }),
     ]);
-    expect(groups.map((g) => g.label)).toEqual(['League Stage - 2', 'Round of 16', null]);
+    expect(groups.map((g) => g.label)).toEqual(['League phase, matchday 2', 'Round of 16', null]);
     expect(JSON.stringify(groups.map((g) => g.label))).not.toContain('Something New');
   });
 });

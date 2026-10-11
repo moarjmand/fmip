@@ -59,7 +59,7 @@ test.describe('blueprint journeys', () => {
     const form = page.getByTestId('register-form');
     await form.getByLabel('Username').fill(USERNAME);
     await form.getByLabel('Display name').fill('Journey Tester');
-    await form.getByLabel('E-mail').fill(EMAIL);
+    await form.getByLabel('Email').fill(EMAIL);
     await form.getByLabel('Password').fill(PASSWORD);
     await form.getByLabel('Country or territory').selectOption({ label: 'England' });
     await form.getByLabel('I accept the platform rules.').check();
@@ -76,7 +76,7 @@ test.describe('blueprint journeys', () => {
     // Signed in but not verified: the form is there, the requirement is named.
     await page.goto(`/en/match/${OPEN_MATCH}`);
     await expect(page.getByTestId('prediction-form')).toBeVisible();
-    await expect(page.getByText('Verify your e-mail address before predicting')).toBeVisible();
+    await expect(page.getByText('Verify your email address before predicting')).toBeVisible();
 
     await page.goto(verifyLink(EMAIL));
     await expect(page.getByTestId('verify-result')).toBeVisible();
@@ -98,7 +98,7 @@ test.describe('blueprint journeys', () => {
     await prediction.getByRole('button', { name: 'Submit prediction' }).click();
     await expect(page.getByTestId('prediction-state')).toHaveAttribute('role', 'status');
     await expect(page.getByTestId('prediction-versions')).toContainText('Version 1');
-    await expect(page.getByTestId('prediction')).toContainText('open until kick-off');
+    await expect(page.getByTestId('prediction')).toContainText(/open until kick-off/i);
 
     // 18.2: the match centre is kept current over the stream.
     await expect(page.getByTestId('live-state')).toHaveAttribute('data-state', 'live', {

@@ -39,8 +39,16 @@ const KNOWN = [
 ];
 
 describe('stage and round labels (T-1339)', () => {
-  it('reads every known form in English exactly as the provider wrote it', () => {
-    for (const text of KNOWN) expect(en(text)).toBe(text);
+  it('reads every known form in English, the rounds in our words (T-1391, D-207)', () => {
+    // A round is said the English way, never as the feed writes it.
+    const ROUNDS: Record<string, string> = {
+      'Regular Season - 12': 'Matchweek 12',
+      'League A - 1': 'League A, matchday 1',
+      'League Stage - 8': 'League phase, matchday 8',
+      'Group Stage - 2': 'Group Stage, matchday 2',
+      'League Stage': 'League phase',
+    };
+    for (const text of KNOWN) expect(en(text)).toBe(ROUNDS[text] ?? text);
   });
 
   it('names stages in Persian', () => {
@@ -108,7 +116,7 @@ describe('stage and round labels (T-1339)', () => {
 
   it('serves server pages through stageName', () => {
     expect(stageName('fa', 'League A - 1')).toBe('لیگ A، هفته‌ی ۱');
-    expect(stageName('en', 'League A - 1')).toBe('League A - 1');
+    expect(stageName('en', 'League A - 1')).toBe('League A, matchday 1');
   });
 });
 

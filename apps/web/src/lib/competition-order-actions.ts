@@ -10,9 +10,12 @@ import { sessionCookieHeader } from './session';
  * The competitions' order from the console (T-1162, D-154): one audited
  * `PUT /admin/competitions/:id/order` with a reason. An empty place clears
  * it. Whether the place is valid is the API's to say, field by field.
+ * `orderLocale` sets that language's own order instead of the default one
+ * (T-1391, D-207).
  */
 export async function setCompetitionOrderAction(
   locale: string,
+  orderLocale: string | null,
   competitionId: string,
   _previous: ActionState,
   formData: FormData,
@@ -30,8 +33,9 @@ export async function setCompetitionOrderAction(
     order: place === '' ? null : Number(place),
     reason,
   };
+  const path = `/admin/competitions/${encodeURIComponent(competitionId)}/order`;
   const result = await apiRequest<SetCompetitionOrderResponse>(
-    `/admin/competitions/${encodeURIComponent(competitionId)}/order`,
+    orderLocale === null ? path : `${path}?locale=${encodeURIComponent(orderLocale)}`,
     { method: 'PUT', body, cookie: await sessionCookieHeader() },
   );
   if (!result.ok) {
@@ -47,6 +51,10 @@ export async function setCompetitionOrderAction(
   revalidatePath(`/${locale}/admin/competitions`);
   revalidatePath(`/${locale}/scores`);
   revalidatePath(`/${locale}`);
+  if (orderLocale !== null && orderLocale !== locale) {
+    revalidatePath(`/${orderLocale}/scores`);
+    revalidatePath(`/${orderLocale}`);
+  }
   const { next } = result.data;
   return {
     ok: true,

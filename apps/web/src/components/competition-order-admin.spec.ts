@@ -34,6 +34,14 @@ describe('the competition order page', () => {
     expect(PAGE).not.toMatch(/hasRole|'admin'/);
   });
 
+  it('sets the English site’s own order beside the default one (T-1391, D-207)', () => {
+    expect(PAGE).toContain("locale: 'en'");
+    expect(PAGE).toContain('?order=${l.locale}');
+    expect(PAGE).toContain('fetchAdminCompetitions(cookie, orderLocale)');
+    expect(ACTIONS).toContain('?locale=${encodeURIComponent(orderLocale)}');
+    expect(VIEW).toContain('orderLocale');
+  });
+
   it('is linked from the administration area', () => {
     expect(ADMIN).toContain('/admin/competitions`');
   });

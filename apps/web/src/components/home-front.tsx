@@ -28,6 +28,7 @@ import { storyHref } from '@/lib/news';
 import type { CardForecast } from '@/lib/score-card-products';
 import { dateIn, formatKickoff, statusLabel } from '@/lib/scores';
 import { formatPercent } from '@/lib/words';
+import { zoneWords } from '@/lib/reader-time-zone';
 import { forecastBarWords, scoresWords } from '@/lib/words-server';
 
 /**
@@ -42,13 +43,9 @@ import { forecastBarWords, scoresWords } from '@/lib/words-server';
 
 const asLocale = (locale: string): Locale => (isLocale(locale) ? locale : DEFAULT_LOCALE);
 
-/** "Tehran time", or "<city> time" for any other zone (the next-match card's words). */
+/** "UK time", "Tehran time", "UTC" or "<city> time" (D-207): one wording on every page. */
 export function zoneName(locale: Locale, timeZone: string): string {
-  return timeZone === 'Asia/Tehran'
-    ? t(locale, 'nextMatch.tehranTime')
-    : interpolate(t(locale, 'nextMatch.zoneTime'), {
-        zone: timeZone.split('/').at(-1)?.replace(/_/g, ' ') ?? timeZone,
-      });
+  return zoneWords(locale, timeZone);
 }
 
 /** A section's heading on the ink rule: the serif title, and a quiet note at the end. */

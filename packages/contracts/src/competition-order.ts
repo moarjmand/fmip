@@ -21,12 +21,22 @@ export interface AdminCompetition {
   is_active: boolean;
 }
 
-/** `GET /admin/competitions`: every competition, stated places first, then by country and name. */
+/**
+ * `GET /admin/competitions[?locale=en]`: every competition, stated places
+ * first, then by country and name. With `locale`, `display_order` is that
+ * language's own place (T-1391, D-207), not the default one.
+ */
 export interface AdminCompetitionsResponse {
   competitions: AdminCompetition[];
+  /** The language whose order is listed; `null`: the default order, read by every language without one. */
+  locale: string | null;
 }
 
-/** `PUT /admin/competitions/:id/order`: `order` 1 first, `null` to clear it; audited with the reason. */
+/**
+ * `PUT /admin/competitions/:id/order[?locale=en]`: `order` 1 first, `null` to
+ * clear it; audited with the reason. With `locale`, the place is that
+ * language's own (T-1391, D-207).
+ */
 export interface SetCompetitionOrderRequest {
   order: number | null;
   reason: string;

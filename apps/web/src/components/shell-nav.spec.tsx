@@ -132,7 +132,8 @@ describe('the bottom tab bar', () => {
       'me',
     ]);
     expect(html.match(/<svg/g)).toHaveLength(5);
-    for (const word of ['Today', 'Results', 'Predictions', 'News', 'Me']) {
+    // "Scores", as the desktop nav says it (T-1391).
+    for (const word of ['Today', 'Scores', 'Predictions', 'News', 'Me']) {
       expect(html).toContain(`>${word}<`);
     }
   });

@@ -18,6 +18,8 @@ import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { readTerritoryQuery, watchHref, withTerritory } from '@/lib/viewing';
 import { Notice, inlineTargetClasses } from '@/components/ui';
+import { pageTimeZone } from '@/lib/reader-time-zone-server';
+import { zoneWords } from '@/lib/reader-time-zone';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,7 +57,7 @@ export default async function WatchPage({
   const [{ locale }, query] = await Promise.all([params, searchParams]);
   const cookie = await sessionCookieHeader();
   const me = await fetchMe(cookie);
-  const q = readScoresQuery(query, me?.timezone ?? null);
+  const q = readScoresQuery(query, (await pageTimeZone(locale, me)).timeZone);
   const territory = readTerritoryQuery(query);
   const [scores, territories] = await Promise.all([
     fetchScores(apiQuery(q), cookie),
@@ -124,7 +126,10 @@ export default async function WatchPage({
           </Link>
         ))}
         <span className="ms-auto text-muted" data-testid="timezone">
-          {say(locale, 'watch.timesIn', { zone: q.timezone })}
+          {say(locale, 'watch.timesIn', {
+            zone: q.timezone,
+            zoneName: zoneWords(locale, q.timezone),
+          })}
         </span>
       </nav>
 

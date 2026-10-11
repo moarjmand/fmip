@@ -10,11 +10,20 @@ import { Button, Card, FormStatus, Notice, TextField } from '@/components/ui';
  * scores page and the homepage after a member's favourites, in the order
  * readers meet them now. Each change takes a reason and is recorded, as
  * `catalog.mjs --set-order` records it; an empty place clears it.
+ * `orderLocale` edits that language's own order (T-1391, D-207).
  */
 
-function OrderForm({ locale, competition }: { locale: string; competition: AdminCompetition }) {
+function OrderForm({
+  locale,
+  orderLocale,
+  competition,
+}: {
+  locale: string;
+  orderLocale: string | null;
+  competition: AdminCompetition;
+}) {
   const [state, formAction, pending] = useActionState(
-    setCompetitionOrderAction.bind(null, locale, competition.id),
+    setCompetitionOrderAction.bind(null, locale, orderLocale, competition.id),
     null,
   );
   const fields = state !== null && !state.ok ? state.fields : undefined;
@@ -62,10 +71,12 @@ function OrderForm({ locale, competition }: { locale: string; competition: Admin
 
 export function CompetitionOrderAdmin({
   locale,
+  orderLocale = null,
   competitions,
   reachable,
 }: {
   locale: string;
+  orderLocale?: string | null;
   competitions: AdminCompetition[];
   reachable: boolean;
 }) {
@@ -100,7 +111,12 @@ export function CompetitionOrderAdmin({
               {competition.is_active ? '' : ' · not carried'}
             </span>
           </p>
-          <OrderForm locale={locale} competition={competition} />
+          <OrderForm
+            key={orderLocale ?? 'default'}
+            locale={locale}
+            orderLocale={orderLocale}
+            competition={competition}
+          />
         </Card>
       ))}
     </ol>

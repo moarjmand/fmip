@@ -31,6 +31,9 @@ const DATABASE_URL = process.env.DATABASE_URL;
 const RUN = `${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
 const ENGLAND = '00000000-0000-4000-8000-000000000101';
 const TEAM = randomUUID();
+// The English site's own rules (T-1391, D-207), on a team of their own so the
+// lists above are unchanged.
+const OTHER_TEAM = randomUUID();
 
 function cookieValue(setCookie: string | string[] | undefined): string {
   const header = Array.isArray(setCookie) ? setCookie[0] : setCookie;
@@ -46,6 +49,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
     let english: string;
     let persianOnly: string;
     let mixed: string;
+    let german: string;
+    let germanStory: string;
+    let futureStory: string;
+    let englishOther: string;
     const stories: string[] = [];
     const cookies = new Map<string, string>();
     const admin = `lv_${RUN}a`;
@@ -110,6 +117,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       language: string,
       headline: string,
       fetchedAt: string,
+      team = TEAM,
     ): Promise<string> {
       const { rows } = await pool.query<{ id: string }>(
         `INSERT INTO article (source_id, story_id, external_id, url, fetched_at)
@@ -130,7 +138,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       );
       await pool.query(
         `INSERT INTO article_entity (article_id, entity_type, entity_id) VALUES ($1, 'team', $2)`,
-        [id, TEAM],
+        [id, team],
       );
       return id;
     }
@@ -146,8 +154,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       return id;
     }
 
-    async function latest(locale: string | null) {
-      const query = new URLSearchParams({ section: 'latest', team: TEAM });
+    async function latest(locale: string | null, team = TEAM) {
+      const query = new URLSearchParams({ section: 'latest', team });
       if (locale !== null) query.set('locale', locale);
       const response = await call('GET', `/news?${query.toString()}`);
       expect(response.statusCode).toBe(200);
@@ -175,6 +183,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         `INSERT INTO team (id, country_id, name, kind, gender) VALUES ($1, $2, $3, 'club', 'men')`,
         [TEAM, ENGLAND, `Langford ${RUN}`],
       );
+      await pool.query(
+        `INSERT INTO team (id, country_id, name, kind, gender) VALUES ($1, $2, $3, 'club', 'men')`,
+        [OTHER_TEAM, ENGLAND, `Otterbury ${RUN}`],
+      );
       persian = await source('persian', 'fa', true);
       english = await source('english', 'en', false);
       persianOnly = await story((id) =>
@@ -184,6 +196,20 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         await article(id, english, 'en', `English report ${RUN}`, '2026-09-21T08:00:00Z');
         return article(id, persian, 'fa', `گزارش فارسی ${RUN}`, '2026-09-21T09:00:00Z');
       });
+      // A German source every reader was shown (D-178's default).
+      german = await source('german', 'de', false);
+      germanStory = await story((id) =>
+        article(id, german, 'de', `Deutscher Bericht ${RUN}`, '2026-09-19T09:00:00Z', OTHER_TEAM),
+      );
+      // A page the publisher dates two weeks ahead: a scheduled live broadcast.
+      // Beside it, an English story from the same source, dated in the past.
+      const fortnight = new Date(Date.now() + 14 * 86_400_000).toISOString();
+      futureStory = await story((id) =>
+        article(id, english, 'en', `Listen live in a fortnight ${RUN}`, fortnight, OTHER_TEAM),
+      );
+      englishOther = await story((id) =>
+        article(id, english, 'en', `Last week ${RUN}`, '2026-09-22T09:00:00Z', OTHER_TEAM),
+      );
 
       const adminId = await register(admin);
       const editorId = await register(editor);
@@ -200,13 +226,15 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       await withTriggersOff(pool, async (client) => {
         await client.query(
           `DELETE FROM audit_log WHERE target_type = 'news_source' AND target_id = ANY($1::text[])`,
-          [[persian, english]],
+          [[persian, english, german]],
         );
       });
       await pool.query(`DELETE FROM user_account WHERE username LIKE $1`, [`lv_${RUN}%`]);
-      await pool.query(`DELETE FROM news_source WHERE id = ANY($1::uuid[])`, [[persian, english]]);
+      await pool.query(`DELETE FROM news_source WHERE id = ANY($1::uuid[])`, [
+        [persian, english, german],
+      ]);
       await pool.query(`DELETE FROM story WHERE id = ANY($1::uuid[])`, [stories]);
-      await pool.query(`DELETE FROM team WHERE id = $1`, [TEAM]);
+      await pool.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [[TEAM, OTHER_TEAM]]);
       await pool.end();
       await app.close();
     });
@@ -309,11 +337,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         next: { same_language_only: false },
       });
 
-      // Off: every reader is shown it.
-      expect((await latest('en')).map((c) => c.story_id)).toEqual([mixed, persianOnly]);
-      expect((await call('GET', `/news/stories/${persianOnly}?locale=en`)).statusCode).toBe(200);
+      // Off: a reader in any other language is shown it. An English reader
+      // is shown English-language sources only, whatever the setting (D-207).
+      expect((await latest('ar')).map((c) => c.story_id)).toEqual([mixed, persianOnly]);
+      expect((await call('GET', `/news/stories/${persianOnly}?locale=ar`)).statusCode).toBe(200);
+      expect((await latest('en')).map((c) => c.story_id)).toEqual([mixed]);
+      expect((await call('GET', `/news/stories/${persianOnly}?locale=en`)).statusCode).toBe(404);
       const saved = (
-        await call('GET', '/me/saved-articles?locale=en', reader)
+        await call('GET', '/me/saved-articles?locale=ar', reader)
       ).json<SavedArticlesResponse>();
       expect(saved.saved.find((s) => s.story_id === persianOnly)?.state).toBe('available');
 
@@ -324,6 +355,26 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       });
       expect(on.statusCode).toBe(200);
       expect((await latest('en')).map((c) => c.story_id)).toEqual([mixed]);
+    });
+
+    it('shows an English reader English-language sources only (T-1391, D-207)', async () => {
+      // A German source every reader used to be shown: not on the English site,
+      // still shown to a Persian reader, as before.
+      expect((await latest('en', OTHER_TEAM)).map((c) => c.story_id)).not.toContain(germanStory);
+      expect((await latest('en-GB', OTHER_TEAM)).map((c) => c.story_id)).not.toContain(germanStory);
+      expect((await call('GET', `/news/stories/${germanStory}?locale=en`)).statusCode).toBe(404);
+      expect((await latest('fa', OTHER_TEAM)).map((c) => c.story_id)).toContain(germanStory);
+      expect((await latest('de', OTHER_TEAM)).map((c) => c.story_id)).toContain(germanStory);
+    });
+
+    it('never lists a story its publisher dates in the future (T-1391, D-207)', async () => {
+      for (const locale of ['en', 'fa', null]) {
+        expect((await latest(locale, OTHER_TEAM)).map((c) => c.story_id)).not.toContain(
+          futureStory,
+        );
+      }
+      // The source's other story, dated in the past, is listed.
+      expect((await latest('en', OTHER_TEAM)).map((c) => c.story_id)).toEqual([englishOther]);
     });
   },
 );

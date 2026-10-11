@@ -86,6 +86,7 @@ const VALUED = [
   'order',
   'legs',
   'reason',
+  'locale',
 ];
 
 const USAGE = `Usage (one verb per call):
@@ -105,7 +106,8 @@ const USAGE = `Usage (one verb per call):
               [--label <season, default the current one>] [--by <address>]
   --map --type <kind> --external-id <id> --to <internal uuid> [--by <address>]
   --set-division --competition <external id> --division <E0|SP1|...> [--by <address>]
-  --set-order --competition <external id> --order <N, 1 first; 0 to clear> [--by <address>]
+  --set-order --competition <external id> --order <N, 1 first; 0 to clear>
+              [--locale <language, e.g. en: that language's own order>] [--by <address>]
   --alias-training [--file <csv>] [--by <address>]
   --ignore --type <${IGNORABLE.join('|')}> --file <csv, or - for standard input>
            --by <address> --reason "<why>" [--dry-run]
@@ -206,7 +208,19 @@ export function parseArgs(argv) {
         error: '--order is the competition’s place on the scores page, 1 first; 0 clears it.',
       };
     }
-    return { command: 'set-order', provider, by, competition, order: order === 0 ? null : order };
+    // T-1391 (D-207): a language's own order, kept under its language subtag.
+    const locale = text('locale');
+    if (locale !== '' && !/^[a-z]{2,3}$/.test(locale)) {
+      return { error: '--locale is a language subtag in lower case: en, fa, ar.' };
+    }
+    return {
+      command: 'set-order',
+      provider,
+      by,
+      competition,
+      order: order === 0 ? null : order,
+      locale: locale === '' ? null : locale,
+    };
   }
   if (verb === 'alias-training') {
     return {
@@ -1081,6 +1095,9 @@ async function setDivision(client, options) {
  * the name then decide, as they do for every competition with none.
  */
 async function setOrder(client, options) {
+  if (options.locale !== null && options.locale !== undefined) {
+    return setLocaleOrder(client, options);
+  }
   const { rows } = await client.query(
     `UPDATE competition c SET display_order = $3
        FROM provider_mapping pm
@@ -1103,6 +1120,61 @@ async function setOrder(client, options) {
   );
   console.log(
     `${rows[0].name} -> ${options.order === null ? 'no stated place' : `place ${options.order}`} on the scores page.`,
+  );
+  sayIfUnaudited(audited, options.by);
+  return 0;
+}
+
+/**
+ * A language's own place for a competition (T-1391, D-207): a row in
+ * `competition_display_order`, or none when `--order 0` clears it. A reader
+ * in a language with any rows reads that order, unplaced competitions after;
+ * a language with none reads the default (`display_order`). Audited as the
+ * default order is, with the language and the place it had before (rule 10).
+ */
+async function setLocaleOrder(client, options) {
+  const { rows } = await client.query(
+    `SELECT c.id, c.name,
+            (SELECT position FROM competition_display_order o
+              WHERE o.competition_id = c.id AND o.locale = $3) AS previous
+       FROM competition c
+       JOIN provider_mapping pm ON pm.internal_id = c.id AND pm.entity_type = 'competition'
+      WHERE pm.provider = $1 AND pm.external_id = $2`,
+    [options.provider, options.competition, options.locale],
+  );
+  const found = rows[0];
+  if (found === undefined) {
+    console.error(`No competition is mapped to ${options.provider} ${options.competition}.`);
+    return 1;
+  }
+  if (options.order === null) {
+    await client.query(
+      `DELETE FROM competition_display_order WHERE competition_id = $1 AND locale = $2`,
+      [found.id, options.locale],
+    );
+  } else {
+    await client.query(
+      `INSERT INTO competition_display_order (competition_id, locale, position)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (competition_id, locale)
+       DO UPDATE SET position = EXCLUDED.position, updated_at = now()`,
+      [found.id, options.locale, options.order],
+    );
+  }
+  const audited = await audit(
+    client,
+    options.by,
+    'catalog.competition_order_set',
+    'competition',
+    found.id,
+    { locale: options.locale, display_order: options.order },
+    {
+      reason: `the competitions' order for ${options.locale} readers`,
+      previous: { locale: options.locale, display_order: found.previous },
+    },
+  );
+  console.log(
+    `${found.name} -> ${options.order === null ? 'no stated place' : `place ${options.order}`} on the scores page for ${options.locale} readers.`,
   );
   sayIfUnaudited(audited, options.by);
   return 0;

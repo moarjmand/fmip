@@ -27,7 +27,7 @@ test('a friend who registers through an invite link is offered, not signed up fo
   const form = guest.getByTestId('register-form');
   await form.getByLabel('Username').fill(GUEST.username);
   await form.getByLabel('Display name').fill(GUEST.displayName);
-  await form.getByLabel('E-mail').fill(GUEST.email);
+  await form.getByLabel('Email').fill(GUEST.email);
   await form.getByLabel('Password').fill(GUEST.password);
   await form.getByLabel('Country or territory').selectOption({ label: 'England' });
   await form.getByLabel('I accept the platform rules.').check();

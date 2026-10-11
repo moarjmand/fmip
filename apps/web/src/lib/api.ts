@@ -142,9 +142,11 @@ export function fetchAdminOverview(cookie: string | undefined): Promise<ApiResul
 /** `GET /admin/competitions` (T-1162): every competition in the order readers meet them. Administrators only. */
 export function fetchAdminCompetitions(
   cookie: string | undefined,
+  /** A language's own order (T-1391, D-207); `null`: the default one. */
+  orderLocale: string | null = null,
 ): Promise<ApiResult<AdminCompetitionsResponse>> {
   return apiRequest<AdminCompetitionsResponse>(
-    '/admin/competitions',
+    withLocale('/admin/competitions', orderLocale ?? undefined),
     cookie === undefined ? {} : { cookie },
   );
 }

@@ -140,7 +140,7 @@
     "status": "untranslated"
   },
   "shell.tab.results": {
-    "source": "Results",
+    "source": "Scores",
     "text": "",
     "status": "untranslated"
   },
@@ -806,7 +806,7 @@
     "status": "untranslated"
   },
   "about.account": {
-    "source": "Predicting needs an account with a verified e-mail address.",
+    "source": "Predicting needs an account with a verified email address.",
     "text": "",
     "status": "untranslated"
   },
@@ -976,7 +976,7 @@
     "status": "untranslated"
   },
   "account.delete.removed": {
-    "source": "Deleting your account signs you out on every device and removes your e-mail address, password, display name, biography, preferences, follows, friendships, blocks, group memberships and invitations, and your push subscriptions.",
+    "source": "Deleting your account signs you out on every device and removes your email address, password, display name, biography, preferences, follows, friendships, blocks, group memberships and invitations, and your push subscriptions.",
     "text": "",
     "status": "untranslated"
   },
@@ -1046,7 +1046,7 @@
     "status": "untranslated"
   },
   "account.export.once": {
-    "source": "One file a day. It downloads here, in this browser, and is never sent by e-mail.",
+    "source": "One file a day. It downloads here, in this browser, and is never sent by email.",
     "text": "",
     "status": "untranslated"
   },
@@ -1116,7 +1116,7 @@
     "status": "untranslated"
   },
   "auth.email": {
-    "source": "E-mail",
+    "source": "Email",
     "text": "",
     "status": "untranslated"
   },
@@ -1131,7 +1131,7 @@
     "status": "untranslated"
   },
   "auth.needsLink": {
-    "source": "This page needs the link from your e-mail.",
+    "source": "This page needs the link from your email.",
     "text": "",
     "status": "untranslated"
   },
@@ -1141,7 +1141,7 @@
     "status": "untranslated"
   },
   "auth.login.identifier": {
-    "source": "Username or e-mail",
+    "source": "Username or email",
     "text": "",
     "status": "untranslated"
   },
@@ -1211,17 +1211,17 @@
     "status": "untranslated"
   },
   "auth.verify.metaTitle": {
-    "source": "Verify e-mail",
+    "source": "Verify email",
     "text": "",
     "status": "untranslated"
   },
   "auth.verify.title": {
-    "source": "E-mail verification",
+    "source": "Email verification",
     "text": "",
     "status": "untranslated"
   },
   "auth.verify.done": {
-    "source": "Your e-mail address is verified. You can now submit predictions.",
+    "source": "Your email address is verified. You can now submit predictions.",
     "text": "",
     "status": "untranslated"
   },
@@ -1246,7 +1246,7 @@
     "status": "untranslated"
   },
   "auth.forgot.lead": {
-    "source": "Enter the e-mail address of your account. If it is known, a one-time reset link will be sent to it.",
+    "source": "Enter the email address of your account. If it is known, a one-time reset link will be sent to it.",
     "text": "",
     "status": "untranslated"
   },
@@ -2973,7 +2973,7 @@
     "status": "untranslated"
   },
   "notificationsPage.inProductOnly": {
-    "source": "Notifications appear here only. E-mail and push are not set up on this deployment, so nothing is on its way to your inbox or your phone.",
+    "source": "Notifications appear here only. Email and push are not set up on this deployment, so nothing is on its way to your inbox or your phone.",
     "text": "",
     "status": "untranslated"
   },
@@ -3324,7 +3324,7 @@
     "status": "untranslated"
   },
   "alerts.push.absentEmail": {
-    "source": "This deployment has no push channel, so nothing reaches a device; notifications stay in your inbox and your e-mail.",
+    "source": "This deployment has no push channel, so nothing reaches a device; notifications stay in your inbox and your email.",
     "text": "",
     "status": "untranslated"
   },
@@ -5629,7 +5629,7 @@
     "status": "untranslated"
   },
   "groupSettings.links.hint": {
-    "source": "Anyone holding a live link can follow it until it expires, is used up or is revoked. Blocks, sanctions and the e-mail check apply to them as to an invitation.",
+    "source": "Anyone holding a live link can follow it until it expires, is used up or is revoked. Blocks, sanctions and the email check apply to them as to an invitation.",
     "text": "",
     "status": "untranslated"
   },
@@ -6208,12 +6208,12 @@
     "status": "untranslated"
   },
   "scores.timesIn": {
-    "source": "Times in {zone}",
+    "source": "Times: {zoneName}",
     "text": "",
     "status": "untranslated"
   },
   "scores.timesInGuest": {
-    "source": "Times in {zone} (sign in for your own zone)",
+    "source": "Times: {zoneName} (sign in for your own zone)",
     "text": "",
     "status": "untranslated"
   },
@@ -7084,6 +7084,11 @@
   },
   "matchCentre.context.leaderClear": {
     "source": "First, {points} clear of second",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.leaderLevel": {
+    "source": "First, level on points with second",
     "text": "",
     "status": "untranslated"
   },
@@ -8446,12 +8451,12 @@
     "status": "untranslated"
   },
   "predictions.section.locked": {
-    "source": "locked at kick-off",
+    "source": "Locked at kick-off",
     "text": "",
     "status": "untranslated"
   },
   "predictions.section.open": {
-    "source": "open until kick-off",
+    "source": "Open until kick-off",
     "text": "",
     "status": "untranslated"
   },
@@ -8471,7 +8476,7 @@
     "status": "untranslated"
   },
   "predictions.section.verify": {
-    "source": "Verify your e-mail address before predicting; the link is in your inbox.",
+    "source": "Verify your email address before predicting; the link is in your inbox.",
     "text": "",
     "status": "untranslated"
   },
@@ -8579,7 +8584,7 @@
     "status": "untranslated"
   },
   "predictions.page.zone": {
-    "source": "Times in {timezone}",
+    "source": "Times: {zoneName}",
     "text": "",
     "status": "untranslated"
   },
@@ -11077,7 +11082,7 @@
     "status": "untranslated"
   },
   "watch.timesIn": {
-    "source": "Times in {zone}",
+    "source": "Times: {zoneName}",
     "text": "",
     "status": "untranslated"
   },
@@ -11182,7 +11187,7 @@
     "status": "untranslated"
   },
   "stage.name.leagueStage": {
-    "source": "League Stage",
+    "source": "League phase",
     "text": "",
     "status": "untranslated"
   },
@@ -11267,12 +11272,12 @@
     "status": "untranslated"
   },
   "stage.round": {
-    "source": "{stage} - {round}",
+    "source": "{stage}, matchday {round}",
     "text": "",
     "status": "untranslated"
   },
   "stage.matchday": {
-    "source": "Regular Season - {round}",
+    "source": "Matchweek {round}",
     "text": "",
     "status": "untranslated"
   },
@@ -11582,6 +11587,16 @@
   },
   "nextMatch.zoneTime": {
     "source": "{zone} time",
+    "text": "",
+    "status": "untranslated"
+  },
+  "nextMatch.ukTime": {
+    "source": "UK time",
+    "text": "",
+    "status": "untranslated"
+  },
+  "nextMatch.utc": {
+    "source": "UTC",
     "text": "",
     "status": "untranslated"
   },

@@ -36,6 +36,7 @@ import {
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { Button, Notice, controlClasses } from '@/components/ui';
+import { pageTimeZone } from '@/lib/reader-time-zone-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -88,7 +89,7 @@ export default async function NewsPage({
   const newsPromise = (
     q.from === null && q.to === null
       ? Promise.resolve('UTC')
-      : mePromise.then((m) => m?.timezone ?? 'UTC')
+      : mePromise.then(async (m) => (await pageTimeZone(locale, m)).timeZone)
   ).then((zone) => fetchNewsSection(apiQuery(q, zone), locale, cookie));
   const [me, result, countries, competitions, teams, savedList, player] = await Promise.all([
     mePromise,
@@ -113,7 +114,7 @@ export default async function NewsPage({
       : null;
   // The session carries no roles; an editor is whoever the editor's list answers.
   const editor = me !== null && (await fetchDebates(cookie)).ok;
-  const timeZone = me?.timezone ?? 'UTC';
+  const { timeZone } = await pageTimeZone(locale, me);
   const filtered = isFiltered(q);
   const linkClass = (active: boolean): string =>
     `rounded px-2 py-1 ${active ? 'bg-surface-raised font-semibold' : 'underline'}`;

@@ -96,10 +96,10 @@ export class StreamController {
     await this.serve(request, reply, {
       // The same filters for the same viewer in the same language are the same
       // snapshot: the viewer is in the key because favourites are pinned per
-      // member, the locale because the names are the reader's.
+      // member, the locale because the names and the order are the reader’s (D-207).
       key: `scores:${viewerId ?? ''}:${locale ?? ''}:${JSON.stringify(parsed.filters)}`,
       snapshot: async () => {
-        const outcome = await this.fixtures.scores(parsed.filters, viewerId);
+        const outcome = await this.fixtures.scores(parsed.filters, viewerId, locale);
         return outcome.kind === 'ok' ? this.names.localise(outcome.response, locale) : null;
       },
       // Every change may move a fixture into or out of the day, so all count.

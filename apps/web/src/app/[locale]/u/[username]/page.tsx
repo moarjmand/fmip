@@ -30,6 +30,7 @@ import { historyQuery, readHistoryPage } from '@/lib/prediction-history';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { Notice } from '@/components/ui';
+import { pageTimeZone } from '@/lib/reader-time-zone-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -139,7 +140,7 @@ export default async function ProfilePage({
     fetchRatingHistory(profile.username, cookie),
     fetchAchievements(profile.username, cookie),
   ]);
-  const timeZone = me?.timezone ?? 'UTC';
+  const { timeZone } = await pageTimeZone(locale, me);
   // English has always shown these instants as the API gives them; every
   // other language reads them in its own calendar and digits (T-1306).
   const shownDay = (iso: string): string =>

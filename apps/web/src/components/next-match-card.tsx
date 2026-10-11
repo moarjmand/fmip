@@ -8,6 +8,7 @@ import type { CardForecast } from '@/lib/score-card-products';
 import { formatKickoff } from '@/lib/scores';
 import { territoryName } from '@/lib/territory';
 import { optionsState } from '@/lib/viewing';
+import { zoneWords } from '@/lib/reader-time-zone';
 import { forecastBarWords } from '@/lib/words-server';
 import { ForecastBar } from '@/components/forecast-bar';
 import { MessageText } from '@/components/message-text';
@@ -49,12 +50,7 @@ export function NextMatchCard({
     day: 'numeric',
     month: 'short',
   });
-  const zone =
-    timeZone === 'Asia/Tehran'
-      ? t(l, 'nextMatch.tehranTime')
-      : interpolate(t(l, 'nextMatch.zoneTime'), {
-          zone: timeZone.split('/').at(-1)?.replace(/_/g, ' ') ?? timeZone,
-        });
+  const zone = zoneWords(l, timeZone);
   const competition = fixture.competition.short_name ?? fixture.competition.name;
   // The stage and round in our words (D-193), never the feed's text (T-1386).
   const round = stageNames(l, fixture.stage?.name, fixture.round);

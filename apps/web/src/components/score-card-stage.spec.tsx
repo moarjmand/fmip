@@ -88,9 +88,10 @@ describe('a score card names the stage and round in the reader’s words', () =>
     expect(render('fa', numbered)).not.toContain('Mystery');
   });
 
-  it('keeps the provider’s English on /en', () => {
+  it('says the round in English words on /en, never the feed’s (T-1391, D-207)', () => {
     const html = render('en');
-    expect(html).toContain('<span>League A - 1</span>');
+    expect(html).toContain('<span>League A, matchday 1</span>');
+    expect(html).not.toContain('League A - 1');
     expect(html).not.toContain('<span>League A</span>');
   });
 });

@@ -37,6 +37,7 @@ import {
 import { canonicalUrl, pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { LinkOut, Notice } from '@/components/ui';
+import { pageTimeZone } from '@/lib/reader-time-zone-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -110,7 +111,7 @@ export default async function StoryPage({
     fetchFollowing(cookie),
   ]);
   if (!result.ok && result.status === 404) notFound();
-  const timeZone = me?.timezone ?? 'UTC';
+  const { timeZone } = await pageTimeZone(locale, me);
 
   if (!result.ok) {
     return (

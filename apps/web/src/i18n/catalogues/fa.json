@@ -168,7 +168,7 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "shell.tab.results": {
-    "source": "Results",
+    "source": "Scores",
     "text": "نتایج",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -984,7 +984,7 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "about.account": {
-    "source": "Predicting needs an account with a verified e-mail address.",
+    "source": "Predicting needs an account with a verified email address.",
     "text": "برای پیش‌بینی به حساب کاربری با ایمیل تأییدشده نیاز دارید.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -1188,7 +1188,7 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "account.delete.removed": {
-    "source": "Deleting your account signs you out on every device and removes your e-mail address, password, display name, biography, preferences, follows, friendships, blocks, group memberships and invitations, and your push subscriptions.",
+    "source": "Deleting your account signs you out on every device and removes your email address, password, display name, biography, preferences, follows, friendships, blocks, group memberships and invitations, and your push subscriptions.",
     "text": "با حذف حساب کاربری، از همه‌ی دستگاه‌ها خارج می‌شوید و نشانی ایمیل، گذرواژه، نام نمایشی، زندگی‌نامه، ترجیحات، دنبال‌شده‌ها، دوستی‌ها، مسدودسازی‌ها، عضویت‌ها و دعوت‌های گروه، و اشتراک‌های اعلان پوش شما پاک می‌شود.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -1272,7 +1272,7 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "account.export.once": {
-    "source": "One file a day. It downloads here, in this browser, and is never sent by e-mail.",
+    "source": "One file a day. It downloads here, in this browser, and is never sent by email.",
     "text": "روزی یک فایل. فایل همین‌جا، در همین مرورگر، دانلود می‌شود و هرگز با ایمیل فرستاده نمی‌شود.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -1356,7 +1356,7 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "auth.email": {
-    "source": "E-mail",
+    "source": "Email",
     "text": "ایمیل",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -1374,7 +1374,7 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "auth.needsLink": {
-    "source": "This page needs the link from your e-mail.",
+    "source": "This page needs the link from your email.",
     "text": "این صفحه به پیوندی نیاز دارد که به ایمیل شما فرستاده شده است.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -1386,7 +1386,7 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "auth.login.identifier": {
-    "source": "Username or e-mail",
+    "source": "Username or email",
     "text": "نام کاربری یا ایمیل",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -1470,19 +1470,19 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "auth.verify.metaTitle": {
-    "source": "Verify e-mail",
+    "source": "Verify email",
     "text": "تأیید ایمیل",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "auth.verify.title": {
-    "source": "E-mail verification",
+    "source": "Email verification",
     "text": "تأیید ایمیل",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "auth.verify.done": {
-    "source": "Your e-mail address is verified. You can now submit predictions.",
+    "source": "Your email address is verified. You can now submit predictions.",
     "text": "نشانی ایمیل شما تأیید شد. اکنون می‌توانید پیش‌بینی ثبت کنید.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -1512,7 +1512,7 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "auth.forgot.lead": {
-    "source": "Enter the e-mail address of your account. If it is known, a one-time reset link will be sent to it.",
+    "source": "Enter the email address of your account. If it is known, a one-time reset link will be sent to it.",
     "text": "نشانی ایمیل حساب کاربری خود را وارد کنید. اگر این نشانی شناخته‌شده باشد، یک پیوند یک‌بارمصرف برای بازنشانی گذرواژه به آن فرستاده می‌شود.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -3620,7 +3620,7 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "notificationsPage.inProductOnly": {
-    "source": "Notifications appear here only. E-mail and push are not set up on this deployment, so nothing is on its way to your inbox or your phone.",
+    "source": "Notifications appear here only. Email and push are not set up on this deployment, so nothing is on its way to your inbox or your phone.",
     "text": "اعلان‌ها فقط همین‌جا نمایش داده می‌شوند. ایمیل و اعلان مرورگر روی این نسخه راه‌اندازی نشده‌اند، بنابراین چیزی به صندوق ایمیل یا تلفن شما فرستاده نمی‌شود.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -4046,7 +4046,7 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "alerts.push.absentEmail": {
-    "source": "This deployment has no push channel, so nothing reaches a device; notifications stay in your inbox and your e-mail.",
+    "source": "This deployment has no push channel, so nothing reaches a device; notifications stay in your inbox and your email.",
     "text": "این نسخه کانال اعلان مرورگر ندارد، بنابراین چیزی به هیچ دستگاهی نمی‌رسد؛ اعلان‌ها در صندوق اعلان‌ها و ایمیل شما می‌مانند.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -6824,7 +6824,7 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "groupSettings.links.hint": {
-    "source": "Anyone holding a live link can follow it until it expires, is used up or is revoked. Blocks, sanctions and the e-mail check apply to them as to an invitation.",
+    "source": "Anyone holding a live link can follow it until it expires, is used up or is revoked. Blocks, sanctions and the email check apply to them as to an invitation.",
     "text": "هر کسی که پیوند فعالی در دست دارد، تا وقتی پیوند منقضی نشده، ظرفیتش تمام نشده یا لغو نشده است، می‌تواند از آن استفاده کند. مسدودسازی‌ها، محرومیت‌ها و بررسی ایمیل درست مانند دعوت‌نامه برای آن‌ها هم اعمال می‌شود.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -7526,13 +7526,13 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "scores.timesIn": {
-    "source": "Times in {zone}",
+    "source": "Times: {zoneName}",
     "text": "ساعت‌ها به وقت {zone}",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "scores.timesInGuest": {
-    "source": "Times in {zone} (sign in for your own zone)",
+    "source": "Times: {zoneName} (sign in for your own zone)",
     "text": "ساعت‌ها به وقت {zone} (برای منطقه‌ی زمانی خودتان وارد شوید)",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -8592,6 +8592,12 @@
     "text": "صدرنشین، {points} جلوتر از تیم دوم",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.context.leaderLevel": {
+    "source": "First, level on points with second",
+    "text": "صدرنشین، هم‌امتیاز با تیم دوم",
+    "status": "translated",
+    "note": "Written by the agent (T-1391, D-207), in the words of leaderClear and levelBelow."
   },
   "matchCentre.context.behindFirst": {
     "source": "{points} behind first",
@@ -10274,13 +10280,13 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "predictions.section.locked": {
-    "source": "locked at kick-off",
+    "source": "Locked at kick-off",
     "text": "با شروع بازی قفل شد",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "predictions.section.open": {
-    "source": "open until kick-off",
+    "source": "Open until kick-off",
     "text": "تا شروع بازی باز است",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -10304,7 +10310,7 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "predictions.section.verify": {
-    "source": "Verify your e-mail address before predicting; the link is in your inbox.",
+    "source": "Verify your email address before predicting; the link is in your inbox.",
     "text": "پیش از پیش‌بینی، نشانی ایمیل خود را تأیید کنید؛ پیوند تأیید در صندوق ورودی شماست.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -10436,7 +10442,7 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "predictions.page.zone": {
-    "source": "Times in {timezone}",
+    "source": "Times: {zoneName}",
     "text": "ساعت‌ها به وقت {timezone}",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -13508,7 +13514,7 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "watch.timesIn": {
-    "source": "Times in {zone}",
+    "source": "Times: {zoneName}",
     "text": "ساعت‌ها به وقت {zone}",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -13634,7 +13640,7 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "stage.name.leagueStage": {
-    "source": "League Stage",
+    "source": "League phase",
     "text": "مرحله‌ی لیگ",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -13736,13 +13742,13 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "stage.round": {
-    "source": "{stage} - {round}",
+    "source": "{stage}, matchday {round}",
     "text": "{stage}، هفته‌ی {round}",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "stage.matchday": {
-    "source": "Regular Season - {round}",
+    "source": "Matchweek {round}",
     "text": "هفته‌ی {round}",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -14124,6 +14130,18 @@
     "text": "به وقت {zone}",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "nextMatch.ukTime": {
+    "source": "UK time",
+    "text": "به وقت London",
+    "status": "translated",
+    "note": "Today's Persian words for this zone, unchanged (T-1391, D-207)."
+  },
+  "nextMatch.utc": {
+    "source": "UTC",
+    "text": "به وقت UTC",
+    "status": "translated",
+    "note": "Today's Persian words for this zone, unchanged (T-1391, D-207)."
   },
   "matchCentre.tab.summary": {
     "source": "Summary",

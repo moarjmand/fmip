@@ -121,7 +121,9 @@ describe('the lead match card', () => {
   it('says the competition, kick-off, venue, places, the model with its version, and coverage', () => {
     const html = lead({});
     expect(html).toContain('Persian Gulf Pro League');
-    expect(html).toContain('Regular Season - 8');
+    // The round in English words (T-1391, D-207), never the feed's.
+    expect(html).toContain('Matchweek 8');
+    expect(html).not.toContain('Regular Season');
     expect(html).toContain('Today 17:00 · Tehran time');
     expect(html).toContain('Yadegar-e-Emam Stadium');
     expect(html).toContain('1st of 16 · 16 pts');

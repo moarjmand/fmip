@@ -181,4 +181,51 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
       [omega, null],
     ]);
   });
+
+  it('keeps a language’s own order apart from the default one (T-1391, D-207)', async () => {
+    // A language subtag no other suite uses.
+    const url = (id: string) => `/admin/competitions/${id}/order?locale=xq`;
+    const set = await inject('PUT', url(omega), admin.cookie, {
+      order: 1,
+      reason: 'The cup first for xq readers.',
+    });
+    expect(set.statusCode).toBe(200);
+    const body = set.json<SetCompetitionOrderResponse>();
+    expect(body).toMatchObject({ previous: null, next: 1 });
+
+    const inXq = (
+      await inject('GET', '/admin/competitions?locale=xq', admin.cookie)
+    ).json<AdminCompetitionsResponse>();
+    expect(inXq.locale).toBe('xq');
+    expect(inXq.competitions[0]).toMatchObject({ id: omega, display_order: 1 });
+    expect(inXq.competitions.find((c) => c.id === alpha)?.display_order).toBeNull();
+    // The default order is untouched.
+    expect((await listed()).map((c) => [c.id, c.display_order])).toEqual([
+      [alpha, SECOND],
+      [omega, null],
+    ]);
+
+    const { rows } = await pool.query<{ previous: unknown; next: unknown }>(
+      `SELECT previous, next FROM audit_log WHERE id = $1`,
+      [body.audit_id],
+    );
+    expect(rows[0]).toEqual({
+      previous: { locale: 'xq', display_order: null },
+      next: { locale: 'xq', display_order: 1 },
+    });
+
+    const cleared = await inject('PUT', url(omega), admin.cookie, {
+      order: null,
+      reason: 'Back again.',
+    });
+    expect(cleared.json<SetCompetitionOrderResponse>()).toMatchObject({ previous: 1, next: null });
+    const { rows: left } = await pool.query(
+      `SELECT 1 FROM competition_display_order WHERE locale = 'xq'`,
+    );
+    expect(left).toEqual([]);
+
+    const bad = await inject('GET', '/admin/competitions?locale=en-GB', admin.cookie);
+    expect(bad.statusCode).toBe(400);
+    expect((bad.json() as ApiError).fields?.locale).toBeDefined();
+  });
 });

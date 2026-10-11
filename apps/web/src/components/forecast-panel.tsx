@@ -31,6 +31,7 @@ import { type CardForecast, cardForecast } from '@/lib/score-card-products';
 import { formatKickoff } from '@/lib/scores';
 import { formatFixed, formatPercent } from '@/lib/words';
 import { forecastBarWords } from '@/lib/words-server';
+import { zoneWords } from '@/lib/reader-time-zone';
 import { FilledMessage } from '@/components/filled-message';
 import { ForecastBar } from '@/components/forecast-bar';
 import { ModelLane } from '@/components/product-lanes';
@@ -576,7 +577,10 @@ export function ForecastList({
           <Translated locale={l} message="forecast.list.title" />
         </h2>
         <span className="text-sm text-caption" data-testid="predictions-zone">
-          {interpolate(t(l, 'predictions.page.zone'), { timezone: timeZone })}
+          {interpolate(t(l, 'predictions.page.zone'), {
+            timezone: timeZone,
+            zoneName: zoneWords(l, timeZone),
+          })}
         </span>
       </div>
       <p className="text-sm text-muted">

@@ -63,11 +63,20 @@ export class FixturesService {
     }));
   }
 
-  async scores(filters: ScoresFilters, viewerId: string | null): Promise<ScoresOutcome> {
+  /**
+   * The scores list. `locale` is the reader's (`?locale=`): it picks the
+   * competitions' order, that language's own when it states one (T-1391,
+   * D-207); `null` reads the default order.
+   */
+  async scores(
+    filters: ScoresFilters,
+    viewerId: string | null,
+    locale: string | null = null,
+  ): Promise<ScoresOutcome> {
     if (filters.favourites && viewerId === null) return { kind: 'needs_session' };
 
     const prefs = viewerId === null ? null : await this.profiles.favouriteIds(viewerId);
-    let rows = await this.store.list(filters);
+    let rows = await this.store.list(filters, locale);
     if (filters.favourites && prefs !== null) rows = onlyFollowed(rows, prefs);
     rows = await this.withMedia(rows);
 

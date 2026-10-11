@@ -60,7 +60,10 @@ export function gapLines(side: ContextStanding, locale = 'en'): string[] {
     lines.push(
       side.points_clear_of_place_below === null
         ? say('matchCentre.context.leader')
-        : say('matchCentre.context.leaderClear', side.points_clear_of_place_below),
+        : side.points_clear_of_place_below === 0
+          ? // Not "0 pts clear" (T-1391): level with second.
+            say('matchCentre.context.leaderLevel')
+          : say('matchCentre.context.leaderClear', side.points_clear_of_place_below),
     );
     return lines;
   }

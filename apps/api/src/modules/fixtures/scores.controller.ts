@@ -9,6 +9,7 @@ import {
 import type { ApiError, ScoresResponse } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
+import { localeOf } from '../localised-names/localised-names.service';
 import { FixturesService, parseScoresQuery } from './fixtures.service';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -17,7 +18,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /**
  * `GET /scores?from=&to=&tz=&live=&favourites=&country=&competition=&stage=&gender=&age=`.
- * Public; a session adds pinning and enables `favourites`.
+ * Public; a session adds pinning and enables `favourites`. `?locale=` (the
+ * reader's, which the web sends on every read) also picks the competitions'
+ * order: that language's own when it states one (T-1391, D-207).
  */
 @Controller()
 export class ScoresController {
@@ -41,7 +44,8 @@ export class ScoresController {
     const viewer = await this.identity.authenticate(
       parseCookies(request.headers.cookie)[SESSION_COOKIE],
     );
-    const outcome = await this.fixtures.scores(parsed.filters, viewer?.id ?? null);
+    const locale = localeOf(isRecord(query) ? query.locale : undefined);
+    const outcome = await this.fixtures.scores(parsed.filters, viewer?.id ?? null, locale);
     if (outcome.kind === 'needs_session') {
       const error: ApiError = {
         error: 'unauthenticated',

@@ -15,8 +15,22 @@ import { freshnessOf } from './freshness';
 export interface ScoredRow {
   card: ScoreCard;
   country: { id: string; name: string; code: string } | null;
-  /** The competition's stated place on the page (T-504), or `null` for none. */
+  /**
+   * The competition's stated place on the page (T-504), or `null` for none:
+   * the reader's language's own order when it has one (T-1391, D-207), else
+   * the default `competition.display_order`.
+   */
   competitionOrder: number | null;
+}
+
+/**
+ * The language subtag a stated order is kept under (D-207): `en-GB` reads
+ * the `en` order. `null` (no locale) reads the default order.
+ */
+export function orderLanguage(locale: string | null): string | null {
+  if (locale === null) return null;
+  const language = locale.split('-')[0]?.toLowerCase() ?? '';
+  return /^[a-z]{2,3}$/.test(language) ? language : null;
 }
 
 interface Row {
@@ -136,13 +150,23 @@ function toRow(row: Row): ScoredRow {
 export class PostgresScoresStore {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
 
-  async list(filters: ScoresFilters): Promise<ScoredRow[]> {
+  /**
+   * `locale` picks the competitions' order (D-207): a language with an order
+   * of its own in `competition_display_order` reads it, and a competition it
+   * does not place has none (it sorts after every placed one); a language
+   * with no rows there, or no locale, reads `competition.display_order`.
+   */
+  async list(filters: ScoresFilters, locale: string | null = null): Promise<ScoredRow[]> {
     const { rows } = await this.pool.query<Row>(
       `WITH scope AS (
          SELECT f.id, f.kickoff_at, f.status, f.minute, f.round, f.leg, f.updated_at,
                 se.id AS season_id, se.label AS season_label,
                 c.id AS competition_id, c.name AS competition_name,
-                c.short_name AS competition_short_name, c.display_order AS competition_order,
+                c.short_name AS competition_short_name,
+                CASE WHEN EXISTS (SELECT 1 FROM competition_display_order lo WHERE lo.locale = $10)
+                     THEN (SELECT lo.position FROM competition_display_order lo
+                            WHERE lo.competition_id = c.id AND lo.locale = $10)
+                     ELSE c.display_order END AS competition_order,
                 c.country_id, co.name AS country_name, co.code AS country_code,
                 f.stage_id, st.name AS stage_name, st.kind AS stage_kind,
                 f.venue_id, v.name AS venue_name, v.city AS venue_city,
@@ -206,6 +230,7 @@ export class PostgresScoresStore {
         filters.stage_id,
         filters.gender,
         filters.age,
+        orderLanguage(locale),
       ],
     );
     return rows.map(toRow);

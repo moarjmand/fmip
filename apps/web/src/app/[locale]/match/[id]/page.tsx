@@ -61,6 +61,8 @@ import { matchWords } from '@/lib/words-server';
 import { FilledMessage } from '@/components/filled-message';
 import { Translated } from '@/components/translated';
 import { Notice } from '@/components/ui';
+import { pageTimeZone } from '@/lib/reader-time-zone-server';
+import { zoneWords } from '@/lib/reader-time-zone';
 
 export const dynamic = 'force-dynamic';
 
@@ -118,12 +120,12 @@ export default async function MatchPage({
   const me = await fetchMe(cookie);
   const tzParam = typeof query.tz === 'string' ? query.tz : undefined;
   const territory = readTerritoryQuery(query);
+  // The reader's zone (D-207): a `tz` on the link, else the member's or a
+  // guest's choice, else the locale's default (UK time on /en).
   const timeZone =
     tzParam !== undefined && isTimeZone(tzParam)
       ? tzParam
-      : me !== null && isTimeZone(me.timezone)
-        ? me.timezone
-        : 'UTC';
+      : (await pageTimeZone(locale, me)).timeZone;
 
   // The editorial desk answers an editor and nobody else (T-313): its list is
   // both the probe for the role and the services a listing can name.
@@ -212,7 +214,7 @@ export default async function MatchPage({
           <span className="text-muted" data-testid="timezone">
             <FilledMessage
               message={message(resolved, 'scores.timesIn')}
-              params={{ zone: timeZone }}
+              params={{ zone: timeZone, zoneName: zoneWords(locale, timeZone) }}
             />
           </span>
           {result.ok && (

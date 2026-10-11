@@ -158,6 +158,31 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /scores'
     expect(body.groups[1]?.fixtures.map((f) => f.id)).toEqual([LATE_NIGHT, LIVE_NOW]);
   });
 
+  it('orders the groups by the reader’s language when it states an order (T-1391, D-207)', async () => {
+    // A language subtag no other suite uses, so its rows are this test's alone.
+    await pool.query(
+      `INSERT INTO competition_display_order (competition_id, locale, position) VALUES ($1, 'xq', 1)`,
+      [PREMIER_LEAGUE],
+    );
+    try {
+      const order = async (locale: string | null): Promise<string[]> => {
+        const query = `from=2087-01-04&to=2087-01-10&tz=UTC${locale === null ? '' : `&locale=${locale}`}`;
+        const body = (await get(query)).json() as ScoresResponse;
+        return body.groups.map((g) => g.competition.id);
+      };
+      // The language's own order: the Premier League first; the continental
+      // competition it does not place comes after.
+      expect(await order('xq')).toEqual([PREMIER_LEAGUE, CONTINENTAL_COMPETITION]);
+      // A region tag reads its language's order.
+      expect(await order('xq-GB')).toEqual([PREMIER_LEAGUE, CONTINENTAL_COMPETITION]);
+      // No locale, or a language without an order of its own: the default.
+      expect(await order(null)).toEqual([CONTINENTAL_COMPETITION, PREMIER_LEAGUE]);
+      expect(await order('xr')).toEqual([CONTINENTAL_COMPETITION, PREMIER_LEAGUE]);
+    } finally {
+      await pool.query(`DELETE FROM competition_display_order WHERE locale = 'xq'`);
+    }
+  });
+
   it('shows the card fields of blueprint 4.1 honestly', async () => {
     const body = (await get('from=2087-01-05&to=2087-01-06&tz=UTC')).json() as ScoresResponse;
     const finished = body.groups[0]?.fixtures.find((f) => f.id === LATE_NIGHT);

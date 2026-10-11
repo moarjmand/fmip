@@ -16,9 +16,9 @@ import { readGuestChoices } from '@/lib/first-run-cookie';
 import { HELD_NOTICE_COOKIE, currentHolds, heldNotice, offeredGiven } from '@/lib/language-hold';
 import { offeredLanguages } from '@/lib/language-picker';
 import { logoutAction } from '@/lib/auth-actions';
-import { isTimeZone } from '@/lib/scores';
 import { sessionCookieHeader } from '@/lib/session';
 import type { ThemePreference } from '@/lib/theme';
+import { readerTimeZone } from '@/lib/reader-time-zone';
 
 /**
  * The site shell (T-1381, D-199): the header, the live strip under it and
@@ -131,9 +131,8 @@ export async function SiteHeader({
   // The search icon leads to the search page; its name says what it searches.
   const search = attribute(lang, 'nav.searchLabel');
   // The strip's "today" is the reader's: the member's zone, else the one a
-  // guest chose, else UTC, as the homepage counts it.
-  const zone = me?.timezone ?? guest?.timezone;
-  const timeZone = zone !== undefined && isTimeZone(zone) ? zone : 'UTC';
+  // guest chose, else the locale's default, as every page counts it (D-207).
+  const timeZone = readerTimeZone(locale, me, guest);
   // A thumb-sized row in the phone's Menu.
   const item = 'flex min-h-touch items-center px-3';
 

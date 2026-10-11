@@ -21,6 +21,11 @@ import { Icon, type IconName } from './icons';
  * safe on the server and in a client bundle alike. `dir="auto"` because a
  * fallback English word in a right-to-left heading must keep its own order
  * (T-605).
+ *
+ * Sentence case (T-1391, D-207): "Available", not "AVAILABLE" beside
+ * sentence-case text. The words stay lower case in the catalogue, where they
+ * are also used mid-sentence, so only the badge's first letter is raised
+ * (`::first-letter` needs a block box, hence the inline-block).
  */
 const LOOK: Record<CoverageState, { icon: IconName; className: string }> = {
   available: { icon: 'check', className: 'border border-success text-success' },
@@ -44,13 +49,13 @@ export function CoverageBadge({
       dir="auto"
       data-coverage-badge={state}
       className={cx(
-        'inline-flex min-h-6 items-center gap-1 rounded-md px-2 text-xs font-bold tracking-wide whitespace-nowrap uppercase',
+        'inline-flex min-h-6 items-center gap-1 rounded-md px-2 text-xs font-bold whitespace-nowrap',
         look.className,
         className,
       )}
     >
       <Icon name={look.icon} size={12} />
-      {label}
+      <span className="inline-block first-letter:uppercase">{label}</span>
     </span>
   );
 }
