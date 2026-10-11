@@ -9276,3 +9276,96 @@ in-process map keeps that path. *Streaming the strip behind `Suspense`*: it
 would arrive after the first paint and push the page down. *A chip
 `aria-current` for the open match*: that is the match centre's strip, its
 own task.
+
+## D-206 — The Hybrid data atoms: one bar per product, a stamp that ages, badges that never rest on hue, a pick that hides the spread
+**Status:** Accepted · 2026-10-11 · **Task:** T-1388 · **Follows:** D-198, D-045, D-052, D-114, D-014
+
+**Context.** T-1380 (D-198) laid down the Hybrid tokens, fonts and modes. The
+pages to be converted next (T-1382 and on) all draw the same few data atoms:
+the model's forecast, how fresh a live surface is, a module's coverage, the
+three prediction products side by side, buttons and links out, the member's
+pick, and a club's next match. This task restyles the components that
+already do those jobs rather than adding second copies, and adds the two
+that did not exist (the next-match card, the link-out).
+
+**Decision.**
+1. **The forecast bar** (`components/forecast-bar.tsx`, `ForecastBar`) is the
+   model's only: the `model` token in three steps (full, 55%, 25% through
+   Tailwind's opacity modifier, so no new colour value exists), home
+   strongest, the outcomes labelled with their percentages below, and always
+   the model id (`dir="ltr"`, Geist Mono) and the computation time under it.
+   It takes the scores card's `CardForecast` (`cardForecast` reduces both a
+   full version and a pre-kick-off summary to it), so every state that is not
+   three numbers is a sentence: not computed yet, none before kick-off, a
+   version with no probabilities and why, the service not answering (rule 3).
+   Percentages keep one decimal, so they total 100.0 (blueprint 6.2), not the
+   board's whole numbers. The segments follow the reading direction, so
+   Persian puts home on the right with Persian digits. `size="compact"` for
+   cards and lanes. The words are resolved on the server
+   (`forecastBarWords`), so the bar also works in a client bundle.
+2. **The freshness stamp** (`FreshnessStamp`): "Last checked 8 sec ago" with a
+   ring that empties as the check ages; past the surface's **existing**
+   threshold it turns to the warning colour and adds "may be behind". The live
+   stream's line on the scores page and the match centre uses it with
+   `STALE_AFTER_MS` (no new threshold); `behind` forces the state when the
+   stream itself broke. Connecting and unavailable keep their own words.
+   Pure: with no clock it renders nothing.
+3. **Coverage badges** (`ui/coverage-badge.tsx`): each of the four states has
+   its own icon and its own edge as well as a colour (available: green, a
+   tick; limited: warning, a half circle; not supplied: caption, a dash, a
+   dashed edge; delayed: warning, a clock), so none rests on hue. The match
+   centre's module headings and its coverage list use them; the other pages
+   switch as they are converted.
+4. **Three lanes** (`components/product-lanes.tsx`): `ModelLane`,
+   `FounderLane`, `CommunityLane`, written out three times on purpose -- a
+   single `Lane` with a product prop is the component rule 6 forbids. Each
+   has its own colour (the lane tokens, used for these three only), icon and
+   name; each product's panel keeps its own source line (`lanes.model.origin`
+   is new for the model; the founder's and the community's were already
+   there). `ThreeProductsNote` says once, where they meet, that they are
+   three separate products. The founder's reasoning is set in the founder's
+   voice: `font-article`, italic where the script has one (not in Persian).
+5. **The community spread opens only after the reader's own pick.** On the
+   match centre the consensus panel (`revealed`) says how many members have
+   picked and nothing about what, until the reader has picked or kick-off has
+   locked every pick; the split under the pick (`CommunitySplit`) appears
+   only in the picked state. Below D-052's floor nothing changes: there is no
+   spread to hide. A guest therefore sees the count before kick-off and the
+   spread after it.
+6. **Make your pick** (`PredictionForm`): three states, `before` (one control,
+   "Make your pick"), `choosing` (the three outcomes as pressable choices over
+   native radios, then the existing details) and `picked` (the saved choice
+   filled with a tick, the split revealed, changeable until kick-off); after
+   kick-off the locked pick is shown filled with a lock. All in the community
+   colour, never the brand green: the pick feeds the community product only.
+   Same server action and API; no new endpoint.
+7. **Buttons**: the control radius (10px), the primary filled in the green with
+   the deeper green when pressed, the secondary an outline; `md` is a 44px
+   touch target and is what a reader presses. **Link-out**
+   (`ui/link-out.tsx`, `LinkOut`): `host` is required, so the destination's
+   host is always named, with the external-link mark; `button` (on the ink)
+   or `inline` (the 24px inline floor). Same window and `noopener noreferrer`,
+   as every external link on the site.
+8. **The next-match card** (`NextMatchCard`): competition and round, both
+   teams, kick-off and the date with the zone named ("Tehran time"), the
+   model's bar in its compact size (or its sentence), and "Watch:" with each
+   listed broadcaster as a link-out, or the card's existing sentence for no
+   territory, no schedule, nothing listed or no answer. Fed by the team
+   page's `next_match`, `cardForecast` and the match's viewing listing; not
+   placed on a page yet.
+
+**Not built: the founder's "sealed" note.** The board shows the founder's
+lane as "Sealed [time] · opens at kick-off". Nothing in the product seals an
+analysis: the blueprint (6.5) publishes it before kick-off with updates
+recorded until then, and the API returns its text. Hiding it on the page
+would not seal it (the words would be in the response) and would change
+what the blueprint says the analysis is for. The lane shows the published
+analysis, signed, as before; a real seal is a product decision and an API
+change for the maintainer.
+
+**Rejected.** *One `Lane` or `PredictionBar` with a product prop*: rule 6.
+*New lane tints as tokens*: an opacity modifier on the lane token is the
+same colour, and a second value would be a second thing to keep in step.
+*Whole-number percentages on the bar*: they do not always total 100.
+*A `target="_blank"` link-out*: no other external link on the site opens a
+window, and an unasked window is hostile on a phone.

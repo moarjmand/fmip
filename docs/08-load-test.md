@@ -180,8 +180,8 @@ made per row, a timeout -- does.
 | Route | First-load JS measured / budget (gzip kB) | Server response median, CI / laptop / budget (ms) |
 | --- | --- | --- |
 | home `/en` | 149.8 / 158 (lowered 2026-09-29, T-1040) | 38 / 50 / 200 |
-| scores `/en/scores` | 162.4 / 171 (lowered 2026-09-29, T-1040) | 21 / 31 / 150 |
-| match centre `/en/match/…0901` | 171.1 / 180 (lowered 2026-09-29, T-1040) | 77 / 76 / 300 |
+| scores `/en/scores` | 172.7 / 173 (raised 2026-10-11, T-1388) | 21 / 31 / 150 |
+| match centre `/en/match/…0901` | 183.0 / 184 (raised 2026-10-11, T-1388) | 77 / 76 / 300 |
 | competition `/en/competition/…0201` | 149.8 / 158 (lowered 2026-09-29, T-1040) | 29 / 39 / 150 |
 
 **The raises of 2026-09-29, and the fix that undid them (T-1040, D-138).**
@@ -202,6 +202,17 @@ to 171.1, competition 222.4 to 149.8), and the four budgets were lowered to
 the new measurement plus about 5 % -- a smaller margin than the original 10 %,
 so that the next library a page gains is noticed, and no longer eaten by
 strings.
+
+**The raise of 2026-10-11 (T-1388, D-206).** The Hybrid data atoms reach
+the two live pages' client bundles: the freshness stamp on both live lines
+(scores 171 to 173), and on the match centre also the coverage badges with
+their icons in the live view and the three-state pick (180 to 184). Both
+routes had grown since T-1040, as every route has
+(home and competition measure 153.0 against their 149.8 then); with the atoms
+the build was 0.4 kB gzip over on scores and 1.8 kB over on the match centre;
+the figures in the table are after T-1381's shell merged too (home and
+competition 154.4). No library was added. The margins are thin on purpose:
+the next addition to either page is a decision, not a drift.
 
 **Running them locally.** After `pnpm exec turbo run build --filter=@fmip/web`:
 `pnpm --filter @fmip/web perf:bundle`. For the response budgets, start the
