@@ -336,7 +336,7 @@ export default async function NewsPage({
           )}
 
           {result.data.stories.data !== null && result.data.stories.data.length > 0 && (
-            <ol className="flex flex-col gap-5" data-testid="stories">
+            <ol className="flex flex-col gap-5 lite:gap-3" data-testid="stories">
               {result.data.stories.data.map((card) => (
                 <li key={card.story_id}>
                   <Story card={card} locale={locale} timeZone={timeZone} />

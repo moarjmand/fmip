@@ -7,7 +7,9 @@ import { type MatchHero, MatchCentreView, type MatchSlots } from '@/components/m
 import { matchAnnouncements } from '@/lib/announce';
 import { withLocale } from '@/lib/locale-query';
 import { FreshnessStamp } from '@/components/freshness-stamp';
-import { INITIAL_CLOCK, type LiveClock, STALE_AFTER_MS, liveLabel, liveState } from '@/lib/live';
+import { useLite } from '@/components/lite-mode';
+import { INITIAL_CLOCK, type LiveClock, liveLabel, liveState, staleAfterMs } from '@/lib/live';
+import { openLiveSource } from '@/lib/live-source';
 import type { MatchWords } from '@/lib/words-server';
 
 /**
@@ -54,9 +56,10 @@ export function LiveMatch({
   const id = initial.fixture.id;
   const router = useRouter();
 
+  // Lite mode (T-1387): a snapshot a minute rather than an open stream.
+  const { on: lite } = useLite();
+
   useEffect(() => {
-    // The reader's names in every snapshot, as on the server-rendered page (T-1312).
-    const source = new EventSource(withLocale(`/api/fixtures/${id}/stream`, locale));
     let panelRefresh: ReturnType<typeof setTimeout> | null = null;
     const stamp = (snapshot: boolean): void =>
       setClock((c) => ({
@@ -64,36 +67,45 @@ export function LiveMatch({
         lastSnapshotAt: snapshot ? Date.now() : c.lastSnapshotAt,
         broken: false,
       }));
-    source.addEventListener('snapshot', (event) => {
-      const next = JSON.parse((event as MessageEvent<string>).data) as MatchCentre;
-      setCentre((previous) => {
-        const said = matchAnnouncements(previous, next, words);
-        if (said.length > 0) setAnnouncement(said.join(' '));
-        return next;
-      });
-      stamp(true);
-    });
-    source.addEventListener('heartbeat', () => stamp(false));
-    source.addEventListener('panel', () => {
-      stamp(false);
-      if (panelRefresh !== null) return;
-      panelRefresh = setTimeout(() => {
-        panelRefresh = null;
-        router.refresh();
-      }, PANEL_REFRESH_MS);
-    });
-    source.addEventListener('stale', () => setClock((c) => ({ ...c, broken: true })));
-    source.onerror = () => setClock((c) => ({ ...c, broken: true }));
-    source.onopen = () => setClock((c) => ({ ...c, broken: false }));
+    // The reader's names in every snapshot, as on the server-rendered page (T-1312).
+    const stop = openLiveSource(
+      withLocale(`/api/fixtures/${id}/stream`, locale),
+      lite,
+      (source) => {
+        source.addEventListener('snapshot', (event) => {
+          const next = JSON.parse((event as MessageEvent<string>).data) as MatchCentre;
+          setCentre((previous) => {
+            const said = matchAnnouncements(previous, next, words);
+            if (said.length > 0) setAnnouncement(said.join(' '));
+            return next;
+          });
+          stamp(true);
+        });
+        source.addEventListener('heartbeat', () => stamp(false));
+        source.addEventListener('panel', () => {
+          stamp(false);
+          if (panelRefresh !== null) return;
+          panelRefresh = setTimeout(() => {
+            panelRefresh = null;
+            router.refresh();
+          }, PANEL_REFRESH_MS);
+        });
+        source.addEventListener('stale', () => setClock((c) => ({ ...c, broken: true })));
+        source.onerror = () => setClock((c) => ({ ...c, broken: true }));
+        source.onopen = () => setClock((c) => ({ ...c, broken: false }));
+      },
+    );
     const tick = setInterval(() => setNow(Date.now()), 5_000);
     return () => {
       clearInterval(tick);
       if (panelRefresh !== null) clearTimeout(panelRefresh);
-      source.close();
+      stop();
     };
-  }, [id, router, words, locale]);
+  }, [id, router, words, locale, lite]);
 
-  const state = liveState(clock, now);
+  // In lite mode the threshold is a missed poll plus the usual slack (T-1387).
+  const staleAfter = staleAfterMs(lite);
+  const state = liveState(clock, now, staleAfter);
   // The stream's line sits in the score band, under the status (T-1384).
   const live = (
     <p
@@ -114,7 +126,7 @@ export function LiveMatch({
         <FreshnessStamp
           checkedAt={clock.lastEventAt}
           now={now}
-          staleAfterMs={STALE_AFTER_MS}
+          staleAfterMs={staleAfter}
           behind={state === 'stale'}
           locale={locale}
           words={words.m}

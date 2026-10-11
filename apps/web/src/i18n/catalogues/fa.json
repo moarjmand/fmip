@@ -1127,6 +1127,60 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "lite.label": {
+    "source": "Lite mode",
+    "text": "حالت سبک",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "lite.auto": {
+    "source": "Auto",
+    "text": "خودکار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "lite.on": {
+    "source": "On",
+    "text": "روشن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "lite.off": {
+    "source": "Off",
+    "text": "خاموش",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "lite.hint": {
+    "source": "Lite mode is for slow connections: no images or club crests, your device's own fonts, compact lists, and live scores checked once a minute instead of streamed. Auto turns it on when your browser reports a slow connection. This choice is kept in this browser only.",
+    "text": "حالت سبک برای اینترنت کند است: بدون تصویر و نشان باشگاه، با فونت‌های خود دستگاه، فهرست‌های فشرده، و نتایج زنده‌ای که به‌جای پخش پیوسته، هر یک دقیقه یک بار بررسی می‌شوند. «خودکار» وقتی مرورگرتان اینترنت کند را گزارش کند آن را روشن می‌کند. این انتخاب فقط در همین مرورگر نگه داشته می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "lite.banner.slow": {
+    "source": "Lite mode on · slow connection detected",
+    "text": "حالت سبک فعال است · اینترنت کند تشخیص داده شد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "lite.banner.chosen": {
+    "source": "Lite mode on",
+    "text": "حالت سبک فعال است",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "lite.switch": {
+    "source": "Lite mode",
+    "text": "حالت سبک",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "lite.footnote": {
+    "source": "No images or club crests · device fonts only",
+    "text": "بدون تصویر و نشان باشگاه · فقط فونت‌های دستگاه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "account.delete.heading": {
     "source": "Delete my account",
     "text": "حذف حساب کاربری من",

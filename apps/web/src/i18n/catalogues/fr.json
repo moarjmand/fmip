@@ -925,6 +925,51 @@
     "text": "",
     "status": "untranslated"
   },
+  "lite.label": {
+    "source": "Lite mode",
+    "text": "",
+    "status": "untranslated"
+  },
+  "lite.auto": {
+    "source": "Auto",
+    "text": "",
+    "status": "untranslated"
+  },
+  "lite.on": {
+    "source": "On",
+    "text": "",
+    "status": "untranslated"
+  },
+  "lite.off": {
+    "source": "Off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "lite.hint": {
+    "source": "Lite mode is for slow connections: no images or club crests, your device's own fonts, compact lists, and live scores checked once a minute instead of streamed. Auto turns it on when your browser reports a slow connection. This choice is kept in this browser only.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "lite.banner.slow": {
+    "source": "Lite mode on · slow connection detected",
+    "text": "",
+    "status": "untranslated"
+  },
+  "lite.banner.chosen": {
+    "source": "Lite mode on",
+    "text": "",
+    "status": "untranslated"
+  },
+  "lite.switch": {
+    "source": "Lite mode",
+    "text": "",
+    "status": "untranslated"
+  },
+  "lite.footnote": {
+    "source": "No images or club crests · device fonts only",
+    "text": "",
+    "status": "untranslated"
+  },
   "account.delete.heading": {
     "source": "Delete my account",
     "text": "",

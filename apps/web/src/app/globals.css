@@ -150,6 +150,36 @@
 }
 
 /*
+ * Lite mode (T-1387, D-205): `data-lite="on"` on <html> points every font
+ * role at the device's own faces. A browser fetches a web font only when a
+ * family that names it is used for some text, so with no role naming one,
+ * no woff2 is requested at all -- the @font-face rules stay, unused. The
+ * Persian roles keep their script's split (display and body both in the
+ * device's sans, as the lite board draws them). More specific than the
+ * script switch above, so it wins on every page.
+ *
+ * `lite:` is the variant for anything a component draws differently in lite
+ * mode -- the compact lists.
+ */
+@custom-variant lite (&:where([data-lite='on'] *));
+
+@layer base {
+  html:root[data-lite='on'] {
+    --font-sans:
+      system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', 'Noto Sans Arabic', Tahoma, Arial,
+      sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
+    --font-latin: var(--font-sans);
+    --font-serif: 'Iowan Old Style', Georgia, 'Times New Roman', 'Noto Naskh Arabic', serif;
+    --font-naskh: var(--font-sans);
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  }
+
+  html:root[data-lite='on']:is(:lang(fa), :lang(ar)) {
+    --font-serif: var(--font-naskh);
+  }
+}
+
+/*
  * Layout CSS uses logical properties only — `margin-inline-start`, never
  * `margin-left` (CLAUDE.md rule 7). Stylelint enforces this; see
  * stylelint.config.mjs.

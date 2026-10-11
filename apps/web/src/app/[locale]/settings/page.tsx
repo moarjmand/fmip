@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { PRIVACY_VISIBILITIES } from '@fmip/contracts';
 import { ActionForm, type FieldOption } from '@/components/action-form';
 import { AppearanceSwitch } from '@/components/appearance-switch';
+import { LiteSetting } from '@/components/lite-setting';
 import { FollowingSection } from '@/components/following-section';
 import { ThemeSwitch } from '@/components/theme-switch';
 import { Translated } from '@/components/translated';
@@ -25,7 +26,7 @@ import { type Message, type MessageKey, interpolate, message, t } from '@/i18n/m
 import { sessionCookieHeader } from '@/lib/session';
 import type { Appearance } from '@/lib/appearance';
 import type { ThemePreference } from '@/lib/theme';
-import { readAppearance, readTheme } from '@/lib/theme-cookie';
+import { readAppearance, readLite, readTheme } from '@/lib/theme-cookie';
 import { Button, Notice, TextField } from '@/components/ui';
 import { type DataExportRefusal, REFUSAL_MESSAGES, refusalFromQuery } from '@/lib/data-export';
 
@@ -368,9 +369,10 @@ function DeleteAccountSection({ locale, username }: { locale: string; username: 
  * Settings -> Appearance, for a member and a guest alike: the theme (T-602)
  * and text size, contrast and motion (blueprint 2.2, T-621). Every choice is
  * this browser's cookie, rendered on <html> by the layout, and a member's is
- * kept on the account as well.
+ * kept on the account as well. Lite mode (T-1387, D-205) last: this browser's
+ * alone, never the account's, since a connection belongs to a device.
  */
-function AppearanceSection({
+async function AppearanceSection({
   locale,
   theme,
   appearance,
@@ -379,6 +381,7 @@ function AppearanceSection({
   theme: ThemePreference;
   appearance: Appearance;
 }) {
+  const lite = await readLite();
   return (
     <section id="appearance" className="flex flex-col gap-4" data-testid="appearance-section">
       <h2 className="text-xl font-semibold">
@@ -395,6 +398,7 @@ function AppearanceSection({
       <AppearanceSwitch locale={locale} preference="text_size" current={appearance.text_size} />
       <AppearanceSwitch locale={locale} preference="contrast" current={appearance.contrast} />
       <AppearanceSwitch locale={locale} preference="motion" current={appearance.motion} />
+      <LiteSetting locale={locale} current={lite.preference} />
     </section>
   );
 }

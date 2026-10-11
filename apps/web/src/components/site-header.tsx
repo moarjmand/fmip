@@ -93,8 +93,19 @@ function Icon({ children }: { children: React.ReactNode }) {
  *
  * Every label goes through `Translated` or a resolved `Message` (T-151): on
  * an unfinished locale the English stands in, marked `lang="en"`.
+ *
+ * `banner` is drawn right under the header, above the live strip: lite
+ * mode's indicator (T-1387), which renders nothing when lite mode is off.
  */
-export async function SiteHeader({ locale, theme }: { locale: string; theme: ThemePreference }) {
+export async function SiteHeader({
+  locale,
+  theme,
+  banner,
+}: {
+  locale: string;
+  theme: ThemePreference;
+  banner?: React.ReactNode;
+}) {
   const [{ session, guest }, holds, jar] = await Promise.all([
     shellReader(),
     currentHolds(),
@@ -251,6 +262,7 @@ export async function SiteHeader({ locale, theme }: { locale: string; theme: The
           <HeldLanguageNotice locale={locale} held={stored} value={notice} />
         )}
       </header>
+      {banner}
       {/* Today's matches, on every page; nothing at all when there are none or the API cannot say. */}
       <LiveStrip locale={locale} timeZone={timeZone} />
     </>

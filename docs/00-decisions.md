@@ -9908,3 +9908,92 @@ fights the green follow button). *Client-side tabs*: every tab's data in
 every response. *Summing a player's season across competitions in the
 tiles*: a friendly and a league are not one record; the other competitions
 are named and the record table has each.
+
+## D-205 — Lite mode for slow connections: a browser's choice, on by itself when the browser says the connection is slow
+**Status:** Accepted · 2026-10-11 · **Task:** T-1387 · **Follows:** D-089, D-090, D-092, D-198, D-199, D-206
+
+**Context.** The Hybrid boards h11 and h0 ("Lite-mode indicator") draw a
+lite page for slow connections: no images or club crests, the device's own
+fonts, compact lists, and a thin banner under the header saying "Lite mode
+on · slow connection detected" with a switch. The maintainer decided that
+lite mode drops images and the extra web fonts and makes fewer live
+updates; that it turns on by itself when the browser reports a slow
+connection and says so; that the switch turns it off; and that the choice
+is remembered.
+
+**Decision.**
+1. **The preference** is `auto` (default), `on` or `off`, kept the way the
+   appearance preferences are (D-090, D-092): the cookie `fmip_lite` (a
+   year, server-read), rendered by the locale layout as `data-lite="on"` /
+   `"off"` on `<html>`, so the first paint is already lite and nothing is
+   requested that a script would have to stop. It is set by
+   `setLiteAction`, a plain form post, from Settings -> Appearance (Auto /
+   On / Off) and from the banner's switch.
+2. **Cookie only, no migration.** Unlike theme, text size, contrast and
+   motion, lite mode is not stored on the account: a connection belongs to
+   a device, not a member (the same reader is on a train's 3G with one and
+   on fibre with another), a guest keeps it in a cookie anyway, and storing
+   it would need a column, a contract field and the sign-in reconciliation
+   for a setting that should not follow the member between devices.
+3. **"Slow" is what the browser reports, never a guess.** The server sees
+   `Save-Data: on`. A script sees the Network Information API: `saveData`,
+   or an `effectiveType` of `slow-2g`, `2g` or `3g`; where the API is
+   missing (Safari, Firefox) nothing is assumed. Because the server cannot
+   see the second on the first request, `LiteProvider` (in the layout)
+   turns lite mode on after hydration when it finds one -- images not yet
+   drawn are not drawn, the fonts fall back, the live surfaces poll -- and
+   writes the hint cookie `fmip_slow=1` (a week, readable by the script,
+   nothing personal), so the next page is lite from the server. A fast
+   connection clears the hint for the next page and leaves the current one
+   as rendered: the page never flips back under the reader. `off` wins
+   over both signals.
+4. **No web fonts.** Under `data-lite="on"` every font role (`--font-sans`,
+   `-latin`, `-serif`, `-naskh`, `-mono`) is a system stack. A browser
+   fetches a face only when a family naming it is used, so no woff2 is
+   requested; the @font-face rules stay. The Persian roles keep their split
+   (display and body in the device's sans, as the board draws them).
+5. **No images.** `Pictured` (a small client component reading the mode)
+   renders its children only when lite mode is off: `EntityImage` renders no
+   `<img>` and keeps its lettered mark, marked `data-coverage="available"
+   data-omitted="lite"` (the image exists and was left out, rule 3);
+   `NewsPhoto` (with its credit), `NewsCardImage`, `NewsThumb`, a member's
+   avatar and a highlights player (`iframe`; the link to the clip stays)
+   render nothing.
+6. **Compact lists** through a `lite:` Tailwind variant
+   (`&:where([data-lite='on'] *)`): the score card's row, the news list and
+   related stories close up; the 44px row target stays.
+7. **Fewer live updates** (`openLiveSource`): the scores page and the match
+   centre do not hold their stream open in lite mode. The stream's first
+   event is always a full snapshot (D-027), so the source closes on it and
+   opens again a minute later (`LITE_POLL_MS`). The freshness line keeps
+   saying when it last checked, and calls itself behind only after a missed
+   poll plus the usual slack (`LITE_STALE_AFTER_MS`, 105 s), so rule 4 holds
+   without a false alarm between polls. No manual refresh button: the
+   page's own freshness line already says how old it is.
+8. **The indicator**: a thin banner under the header (above the live
+   strip), never a modal, `role="status"`, in the accent's 10 % tint with
+   the bolt icon. "Lite mode on · slow connection detected" / «حالت سبک
+   فعال است · اینترنت کند تشخیص داده شد» when `auto` turned it on; plain
+   "Lite mode on" when chosen. Its switch is a 52x44px submit button,
+   `role="switch"`, `aria-checked`, named "Lite mode", posting `lite=off`
+   (works before the script loads; while the post is on its way it already
+   shows off).
+9. **The footnote** at the foot of a lite page: "No images or club crests ·
+   device fonts only". The board's "page weight [n] KB" is left out: the
+   server does not know what the browser will have fetched, and a number
+   it cannot measure would be invented.
+
+**Budget.** The provider, the banner and the poll are on every page's first
+load: home and competition 154.4 to 154.8 kB gzip (within 158), the match
+centre 183.0 (within 184), scores 172.7 to 173.4, over its 173 budget by
+0.4 kB; raised to 174 (docs/08-load-test.md).
+
+**Rejected.** *Account-stored preference*: see 2. *A guess from timing
+(navigation timing, a probe download)*: it costs the slow reader bytes and
+is wrong on a busy minute; the browser's own report is honest. *Hiding
+images with CSS*: an `<img>` with `display: none` is still fetched in most
+browsers, and the page would still hold it. *A manual refresh in place of
+the stream*: the poll keeps the page current with the same freshness line
+and no new control. *Not registering the service worker in lite mode*: its
+precache is a one-off of three small files, and it is what makes the
+offline page work on exactly these connections.

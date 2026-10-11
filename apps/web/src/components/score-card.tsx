@@ -135,7 +135,7 @@ export function ScoreCard({
     >
       <Link
         href={`/${locale}/match/${card.id}`}
-        className="flex min-h-11 min-w-0 flex-col justify-center gap-0.5 py-2 ps-2 pe-11 hover:bg-surface-raised"
+        className="flex min-h-11 min-w-0 flex-col justify-center gap-0.5 py-2 ps-2 pe-11 hover:bg-surface-raised lite:gap-0 lite:py-1"
         data-testid="match-link"
       >
         <span className="flex min-w-0 items-center gap-2">

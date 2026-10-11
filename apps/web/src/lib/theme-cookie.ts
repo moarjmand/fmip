@@ -1,7 +1,17 @@
 // Server-side only, like `first-run-cookie.ts`: `next/headers` has no client build.
 import type { OwnProfile, UpdatePreferencesRequest } from '@fmip/contracts';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { apiRequest } from './api';
+import {
+  LITE_COOKIE,
+  type LiteMode,
+  type LitePreference,
+  SLOW_COOKIE,
+  liteMode,
+  litePreferenceOf,
+  saveDataRequested,
+  slowHint,
+} from './lite';
 import {
   APPEARANCE,
   APPEARANCE_KEYS,
@@ -40,6 +50,26 @@ export async function readAppearance(): Promise<Appearance> {
     contrast: jar.get(APPEARANCE.contrast.cookie)?.value,
     motion: jar.get(APPEARANCE.motion.cookie)?.value,
   });
+}
+
+/**
+ * Lite mode as this request is rendered (T-1387, D-205): the reader's choice
+ * (`auto` when none), whether the server can already tell the connection is
+ * slow -- the browser sent `Save-Data: on`, or a script on an earlier page
+ * saw a slow connection and left the hint cookie -- and the mode those make.
+ */
+export async function readLite(): Promise<
+  LiteMode & { preference: LitePreference; slow: boolean }
+> {
+  const [jar, sent] = await Promise.all([cookies(), headers()]);
+  const preference = litePreferenceOf(jar.get(LITE_COOKIE)?.value);
+  const slow = saveDataRequested(sent.get('save-data')) || slowHint(jar.get(SLOW_COOKIE)?.value);
+  return { preference, slow, ...liteMode(preference, slow) };
+}
+
+/** Lite mode's choice (T-1387), from a server action like `writeTheme`; this browser only. */
+export async function writeLite(value: LitePreference): Promise<void> {
+  await writePreferenceCookie(LITE_COOKIE, value);
 }
 
 /**

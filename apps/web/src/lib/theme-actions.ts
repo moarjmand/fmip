@@ -3,8 +3,9 @@
 import { apiRequest } from './api';
 import { sessionCookieHeader } from './session';
 import { APPEARANCE_KEYS, type Appearance, parseAppearance } from './appearance';
+import { parseLite } from './lite';
 import { parseTheme } from './theme';
-import { writeAppearance, writeTheme } from './theme-cookie';
+import { writeAppearance, writeLite, writeTheme } from './theme-cookie';
 
 /**
  * The theme switch (T-602): a plain form post, so it works before any script
@@ -47,4 +48,16 @@ export async function setAppearanceAction(formData: FormData): Promise<void> {
   if (cookie !== undefined) {
     await apiRequest('/me/preferences', { method: 'PATCH', body, cookie });
   }
+}
+
+/**
+ * Lite mode (T-1387, D-205): Auto, On or Off, from Settings or from the
+ * banner's switch, as a plain form post like the rest. The choice is this
+ * browser's cookie alone and never the account's -- a connection belongs to
+ * a device, not a member. A value that is not one of the three changes nothing.
+ */
+export async function setLiteAction(formData: FormData): Promise<void> {
+  const value = parseLite(formData.get('lite'));
+  if (value === undefined) return;
+  await writeLite(value);
 }
