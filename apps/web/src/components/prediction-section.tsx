@@ -115,6 +115,79 @@ export function PredictionSection({
   );
 }
 
+/**
+ * "Make your pick" in a Predictions page row (T-1383, D-201): the same form,
+ * the same server action and the same three states as the match centre's
+ * section, without its heading. A guest's "Make your pick" leads to sign in;
+ * after kick-off the locked pick is shown with the split, or that there was
+ * none. The split is the community's (`CommunitySplit`), shown only once the
+ * reader has picked or kick-off has locked every pick (D-206).
+ */
+export function InlinePick({
+  locale,
+  fixture,
+  me,
+  current,
+  split,
+}: {
+  locale: string;
+  fixture: { id: string; kickoff_at: string; home: string; away: string };
+  me: AuthUser | null;
+  current: Prediction | null;
+  split: ReactNode;
+}) {
+  const l = asLocale(locale);
+  const locked = current?.locked ?? isLocked(fixture.kickoff_at);
+  const { home, away } = fixture;
+
+  if (locked) {
+    return (
+      <div className="flex flex-col gap-2" data-testid="inline-pick" data-pick="locked">
+        {current !== null ? (
+          <Final locale={l} prediction={current} home={home} away={away} />
+        ) : me !== null ? (
+          <p className="text-sm text-muted" data-testid="prediction-none">
+            <Translated locale={l} message="predictions.section.none" />
+          </p>
+        ) : null}
+        {split}
+      </div>
+    );
+  }
+  if (me === null) {
+    return (
+      <div data-testid="inline-pick" data-pick="guest">
+        <Link
+          href={`/${locale}/login`}
+          className="inline-flex min-h-touch items-center gap-2 rounded-control border border-community bg-surface px-4 font-bold text-community"
+          data-testid="make-pick"
+        >
+          <Icon name="pick" />
+          <Translated locale={l} message="pick.make" />
+        </Link>
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-2" data-testid="inline-pick" data-pick="open">
+      {!me.email_verified && (
+        <p className="text-sm" role="status">
+          <Translated locale={l} message="predictions.section.verify" />
+        </p>
+      )}
+      <PredictionForm
+        action={submitPredictionAction.bind(null, locale, fixture.id)}
+        current={current}
+        home={home}
+        away={away}
+        shareUrl={canonicalUrl(locale, `/match/${fixture.id}`)}
+        split={split}
+        words={formWords(l, home, away, current)}
+      />
+    </div>
+  );
+}
+
 /** The form's words, resolved here so the catalogues stay on the server (T-1040). */
 function formWords(
   locale: Locale,

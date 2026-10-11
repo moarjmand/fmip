@@ -119,7 +119,13 @@ describe('the three prediction products on a match story (T-941, rule 6)', () =>
     expect(STORY).toContain('<ShareLink');
     expect(STORY).not.toContain('story.notYet');
     expect(STORY).not.toMatch(/save and share are not built/i);
-    // Links only: the page fetches none of the three products.
-    expect(STORY).not.toMatch(/fetchForecast|fetchConsensus|fetchFounderAnalysis/);
+    // Links only for the founder and the community: the page fetches neither.
+    expect(STORY).not.toMatch(/fetchConsensus|fetchFounderAnalysis/);
+    // The model alone, and only for a match report (T-1383, D-201): its
+    // pre-match version and that version's evaluation, in its own lane.
+    expect(STORY).not.toMatch(/fetchForecastList|fetchForecasts\(/);
+    expect(STORY).toContain("story.type.data?.type === 'match_report'");
+    expect(STORY).toContain('fetchForecastSummaries([fixtureId])');
+    expect(STORY).toContain('<ModelExpected');
   });
 });

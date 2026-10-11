@@ -1,12 +1,18 @@
 import type {
   FixtureEvaluationsResponse,
+  ForecastEvaluation,
   ForecastListEntry,
+  ForecastSummary,
+  ForecastVersion,
   ForecastVersionsResponse,
   MatchOutcome,
+  ScoreCard,
 } from '@fmip/contracts';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
-import { interpolate, message, plural, t } from '@/i18n/messages';
+import { formatDate } from '@/i18n/format';
+import { interpolate, message, t } from '@/i18n/messages';
 import {
   describeChange,
   factorLabel,
@@ -18,7 +24,10 @@ import {
   versionChanges,
 } from '@/lib/forecast';
 import { attribute } from '@/lib/forecast-diff';
-import { cardForecast } from '@/lib/score-card-products';
+import { isLocked } from '@/lib/prediction-form';
+import { matchTitle } from '@/lib/prediction-text';
+import { type PredictionDay, dayKind } from '@/lib/predictions-days';
+import { type CardForecast, cardForecast } from '@/lib/score-card-products';
 import { formatKickoff } from '@/lib/scores';
 import { formatFixed, formatPercent } from '@/lib/words';
 import { forecastBarWords } from '@/lib/words-server';
@@ -28,7 +37,7 @@ import { ModelLane } from '@/components/product-lanes';
 import { COVERAGE_KEY } from '@/components/score-card';
 import { Score, nameIsolate, pairIsolate } from '@/components/score';
 import { Translated } from '@/components/translated';
-import { CoverageBadge, Notice } from '@/components/ui';
+import { CoverageBadge, Icon, Notice } from '@/components/ui';
 
 /**
  * The model forecast on the match centre (T-065, blueprint 6.1–6.4): the
@@ -512,84 +521,513 @@ export function ModelVerdict({
 }
 
 /**
- * The model's forecasts across several matches, for the Predictions page
- * (T-137, blueprint 2.1).
+ * The model's forecasts on the Predictions page, by day (T-137; T-1383,
+ * D-201): today first, then the next days, each grouped by competition. Every
+ * listed match has the model's bar in its compact size, or the bar's sentence
+ * when there is no forecast (rule 3), and a disclosure -- `<details>`, no
+ * script -- with the version's expected goals, its likeliest scorelines and
+ * every stored version (rule 5: a new version is a new row).
  *
  * In this file rather than a shared list component, for the same reason the
  * community's list is in its own: one file per product means nothing in the
  * codebase renders "a prediction", and there is nowhere for a `source` prop to
- * appear (rule 6).
- *
- * A fixture the model has no answer for is left out of the list rather than
- * shown as a row of blanks — but the count of those is stated, because a
- * shorter list with no explanation is how missing coverage starts looking like
- * coverage that does not exist (rule 3).
+ * appear (rule 6). The member's pick sits in each row as `picks[id]`, a node
+ * the page builds from the community's own component; this list never sees
+ * what it holds.
  */
 export function ForecastList({
+  days,
   entries,
-  fixtures,
+  histories,
+  picks,
+  filter,
+  omitted,
+  today,
+  timeZone,
   locale,
 }: {
-  entries: ForecastListEntry[];
-  /** Names for the fixtures, by id, so a row can say who is playing. */
-  fixtures: Map<string, { home: string; away: string }>;
+  days: PredictionDay[];
+  /** The latest version per listed match; `null` when the forecast service did not answer. */
+  entries: ForecastListEntry[] | null;
+  /**
+   * Each match's stored versions, oldest first, where they were read; `null`
+   * where the request failed. A match absent here was not asked about.
+   */
+  histories: Record<string, ForecastVersion[] | null>;
+  /** The community's pick control for each match, rendered by its own component. */
+  picks: Record<string, ReactNode>;
+  /** The competition filter, above the days. */
+  filter?: ReactNode;
+  /** Matches in the window left out by the cap. */
+  omitted: number;
+  /** Today in the reader's zone, YYYY-MM-DD. */
+  today: string;
+  timeZone: string;
   locale: string;
 }) {
   const l: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
-  const withForecast = entries.filter(
-    (entry) => entry.latest !== null && entry.latest.probabilities !== null,
-  );
-  const without = entries.length - withForecast.length;
+  const latest = new Map((entries ?? []).map((entry) => [entry.fixture_id, entry.latest]));
+  const words = forecastBarWords(l);
 
   return (
-    <section className="flex flex-col gap-2" data-testid="predictions-model">
-      <h2 className="text-lg font-semibold">
-        <Translated locale={locale} message="forecast.list.title" />
-      </h2>
-      <p className="text-xs text-muted">
-        <Translated locale={locale} message="forecast.list.intro" />
+    <section id="model" className="flex scroll-mt-4 flex-col gap-4" data-testid="predictions-model">
+      <div className="flex flex-wrap items-baseline justify-between gap-3 border-t-2 border-fg pt-2.5">
+        <h2 className="font-serif text-display-1 font-semibold">
+          <Translated locale={l} message="forecast.list.title" />
+        </h2>
+        <span className="text-sm text-caption" data-testid="predictions-zone">
+          {interpolate(t(l, 'predictions.page.zone'), { timezone: timeZone })}
+        </span>
+      </div>
+      <p className="text-sm text-muted">
+        <Translated locale={l} message="forecast.list.intro" />
       </p>
-      {withForecast.length === 0 ? (
-        <p className="text-sm text-muted">
-          <Translated locale={locale} message="forecast.list.none" />
+      {filter}
+
+      {days.map((day) => {
+        const kind = dayKind(day.date, today);
+        const noon = `${day.date}T12:00:00Z`;
+        const weekday = formatDate(l, noon, 'UTC', { weekday: 'long' });
+        const date = formatDate(l, noon, 'UTC', { day: 'numeric', month: 'long' });
+        return (
+          <section
+            key={day.date}
+            className="flex flex-col"
+            data-testid="predictions-day"
+            data-date={day.date}
+          >
+            <h3 className="mt-4 flex flex-wrap items-baseline gap-x-2.5 font-serif text-2xl font-semibold">
+              {kind === 'today' ? (
+                <Translated locale={l} message="predictions.day.today" />
+              ) : kind === 'tomorrow' ? (
+                <Translated locale={l} message="predictions.day.tomorrow" />
+              ) : (
+                weekday
+              )}
+              <span className="font-sans text-sm font-medium text-caption">
+                {kind === 'other' ? date : `${weekday} ${date}`}
+                {' · '}
+                <Translated locale={l} message="predictions.day.matches" count={day.count} />
+              </span>
+            </h3>
+            {day.competitions.map((group) => (
+              <div key={group.id} className="mt-3 flex flex-col" data-competition={group.id}>
+                <h4 className="border-b border-default bg-surface-raised px-3 py-2 text-xs font-extrabold tracking-wide text-muted uppercase">
+                  {group.name}
+                </h4>
+                <ul className="flex flex-col">
+                  {group.fixtures.map((card) => (
+                    <ModelMatchRow
+                      key={card.id}
+                      card={card}
+                      reachable={entries !== null}
+                      latest={latest.get(card.id) ?? null}
+                      history={histories[card.id]}
+                      pick={picks[card.id]}
+                      words={words}
+                      timeZone={timeZone}
+                      locale={l}
+                    />
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </section>
+        );
+      })}
+
+      {omitted > 0 && (
+        <p className="text-sm text-muted" data-testid="predictions-omitted">
+          <Translated locale={l} message="predictions.page.omitted" count={omitted} />
         </p>
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {withForecast.map((entry) => {
-            const probabilities = entry.latest?.probabilities;
-            if (probabilities === undefined || probabilities === null) return null;
-            const teams = fixtures.get(entry.fixture_id);
-            const pct = percentages(probabilities);
-            return (
-              <li key={entry.fixture_id} className="flex flex-col gap-1">
-                <Link href={`/${locale}/match/${entry.fixture_id}`} className="text-sm underline">
-                  {teams === undefined
-                    ? t(l, 'matchCentre.title')
-                    : interpolate(t(l, 'matchCentre.fixtureTitle'), teams)}
-                </Link>
-                <p className="text-sm">
-                  {interpolate(t(l, 'forecast.list.line'), {
-                    home: teams?.home ?? t(l, 'matchCentre.home'),
-                    homePct: formatPercent(l, pct.home),
-                    drawPct: formatPercent(l, pct.draw),
-                    away: teams?.away ?? t(l, 'matchCentre.away'),
-                    awayPct: formatPercent(l, pct.away),
-                  })}
-                </p>
-              </li>
-            );
-          })}
-        </ul>
       )}
-      {without > 0 && (
-        <p className="text-xs text-muted" data-testid="model-missing">
-          {
-            plural(l, 'forecast.list.missing', without, {
-              total: formatFixed(l, entries.length, 0),
-            }).text
-          }
-        </p>
-      )}
+      <p className="text-xs text-caption">
+        <Translated locale={l} message="predictions.page.pickNote" />
+      </p>
     </section>
+  );
+}
+
+/** One match: kick-off, the teams, the model's bar, the pick slot and the disclosure. */
+function ModelMatchRow({
+  card,
+  reachable,
+  latest,
+  history,
+  pick,
+  words,
+  timeZone,
+  locale,
+}: {
+  card: ScoreCard;
+  reachable: boolean;
+  latest: ForecastVersion | null;
+  history: ForecastVersion[] | null | undefined;
+  pick: ReactNode;
+  words: ReturnType<typeof forecastBarWords>;
+  timeZone: string;
+  locale: Locale;
+}) {
+  const home = card.home.name;
+  const away = card.away.name;
+  const forecast: CardForecast = !reachable ? { state: 'unreachable' } : cardForecast(latest);
+  return (
+    <li
+      className="flex flex-col gap-3 border-b border-default py-4"
+      data-testid="model-row"
+      data-fixture={card.id}
+    >
+      <div className="grid gap-x-6 gap-y-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] md:items-start">
+        <p className="flex items-baseline gap-3">
+          <time dateTime={card.kickoff_at} className="w-12 shrink-0 font-mono text-sm text-caption">
+            {formatKickoff(locale, card.kickoff_at, timeZone)}
+          </time>
+          <Link
+            href={`/${locale}/match/${card.id}`}
+            className="font-semibold underline-offset-4 hover:underline"
+          >
+            {matchTitle(locale, home, away)}
+          </Link>
+        </p>
+        <ForecastBar
+          forecast={forecast}
+          home={home}
+          away={away}
+          started={isLocked(card.kickoff_at)}
+          locale={locale}
+          timeZone={timeZone}
+          words={words}
+          size="compact"
+        />
+      </div>
+      {pick !== undefined && <div className="md:ps-15">{pick}</div>}
+      {latest !== null && (
+        <ModelDetails
+          fixtureId={card.id}
+          latest={latest}
+          history={history}
+          home={home}
+          away={away}
+          timeZone={timeZone}
+          locale={locale}
+        />
+      )}
+    </li>
+  );
+}
+
+/** A stored moment as the bar writes it: "11 Oct, 09:30", in the reader's zone, "UTC" said. */
+function computedStamp(locale: Locale, iso: string, timeZone: string): ReactNode {
+  return (
+    <time dateTime={iso}>
+      {formatDate(locale, iso, timeZone, {
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+      })}
+      {timeZone === 'UTC' ? ' UTC' : ''}
+    </time>
+  );
+}
+
+const DETAIL_KICKER = 'mb-2 text-xs font-extrabold tracking-wide text-model uppercase';
+
+/**
+ * The disclosure under a row (T-1383): the latest version's expected goals
+ * and likeliest scorelines, and the version history. A match whose only
+ * version is the latest needs no request; one whose history was not read
+ * says where it is kept rather than showing one row as if it were all.
+ */
+function ModelDetails({
+  fixtureId,
+  latest,
+  history,
+  home,
+  away,
+  timeZone,
+  locale,
+}: {
+  fixtureId: string;
+  latest: ForecastVersion;
+  history: ForecastVersion[] | null | undefined;
+  home: string;
+  away: string;
+  timeZone: string;
+  locale: Locale;
+}) {
+  const versions =
+    history !== undefined && history !== null && history.length > 0
+      ? history
+      : latest.version_number === 1
+        ? [latest]
+        : null;
+  const scorelines = (latest.most_likely_scorelines ?? []).slice(0, 3);
+  const top = Math.max(...scorelines.map((s) => s.probability), 0);
+  const xg = latest.expected_goals;
+  return (
+    <details className="group min-w-0" data-testid="model-details">
+      <summary className="inline-flex min-h-touch cursor-pointer list-none items-center gap-1.5 text-sm font-semibold text-model">
+        <Icon name="model" size={16} />
+        <Translated locale={locale} message="forecast.list.more" />
+      </summary>
+      <div className="mt-2 grid grid-cols-[minmax(0,1fr)] gap-6 border-t-3 border-model bg-surface p-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,2fr)]">
+        <div data-testid="model-xg">
+          <p className={DETAIL_KICKER}>
+            <Translated locale={locale} message="forecast.list.xg" />
+          </p>
+          {xg === null ? (
+            <p className="text-sm text-muted">
+              <Translated locale={locale} message="forecast.list.xgNone" />
+            </p>
+          ) : (
+            <>
+              <dl className="flex flex-col gap-1">
+                {(
+                  [
+                    ['home', home, xg.home],
+                    ['away', away, xg.away],
+                  ] as const
+                ).map(([side, team, value]) => (
+                  <div key={side} className="flex items-baseline justify-between gap-3">
+                    <dt className="text-sm font-semibold">
+                      <bdi>{team}</bdi>
+                    </dt>
+                    <dd
+                      className="font-sans text-display-1 font-black font-stretch-condensed tabular-nums"
+                      dir="ltr"
+                    >
+                      {formatFixed(locale, value, 2)}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="mt-1 text-xs text-caption">
+                <Translated locale={locale} message="forecast.list.xgNote" />
+              </p>
+            </>
+          )}
+        </div>
+
+        <div data-testid="model-scorelines">
+          <p className={DETAIL_KICKER}>
+            <Translated locale={locale} message="forecast.list.scorelines" />
+          </p>
+          {scorelines.length === 0 ? (
+            <p className="text-sm text-muted">
+              <Translated locale={locale} message="forecast.list.scorelinesNone" />
+            </p>
+          ) : (
+            <ol className="flex flex-col">
+              {scorelines.map((s) => (
+                <li
+                  key={`${s.home}-${s.away}`}
+                  className="grid grid-cols-[3.5rem_minmax(0,1fr)_3.5rem] items-center gap-2 border-b border-default py-1.5 text-sm"
+                >
+                  <Score
+                    home={s.home}
+                    away={s.away}
+                    locale={locale}
+                    className="font-sans text-xl font-black font-stretch-condensed"
+                  />
+                  <span aria-hidden="true" className="block h-2 rounded-sm bg-model/25">
+                    <span
+                      className="block h-2 rounded-sm bg-model/55"
+                      style={{ inlineSize: `${top > 0 ? (s.probability / top) * 100 : 0}%` }}
+                    />
+                  </span>
+                  <span className="text-end text-muted tabular-nums" dir="ltr">
+                    {formatPercent(locale, s.probability * 100)}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+
+        <div data-testid="model-history">
+          <p className={DETAIL_KICKER}>
+            <Translated locale={locale} message="forecast.list.history" />
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-fg text-xs text-caption">
+                  <th scope="col" className="py-1.5 pe-3 text-start font-semibold">
+                    <Translated locale={locale} message="forecast.list.version" />
+                  </th>
+                  <th scope="col" className="py-1.5 pe-3 text-start font-semibold">
+                    <Translated locale={locale} message="forecast.list.computed" />
+                  </th>
+                  <th scope="col" className="py-1.5 pe-3 text-start font-semibold">
+                    <bdi>{home}</bdi>
+                  </th>
+                  <th scope="col" className="py-1.5 pe-3 text-start font-semibold">
+                    <Translated locale={locale} message="forecast.draw" />
+                  </th>
+                  <th scope="col" className="py-1.5 pe-3 text-start font-semibold">
+                    <bdi>{away}</bdi>
+                  </th>
+                  <th scope="col" className="py-1.5 text-start font-semibold">
+                    <Translated locale={locale} message="forecast.list.status" />
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {(versions ?? [latest])
+                  .slice()
+                  .reverse()
+                  .map((version) => {
+                    const current = version.id === latest.id;
+                    const pct =
+                      version.probabilities === null ? null : percentages(version.probabilities);
+                    return (
+                      <tr
+                        key={version.id}
+                        className="border-b border-default align-top"
+                        data-testid="model-version"
+                        data-current={current ? 'true' : 'false'}
+                      >
+                        <td className="py-2 pe-3 font-mono text-xs">
+                          {formatFixed(locale, version.version_number, 0)}
+                          {' · '}
+                          <span dir="ltr" className="text-model">
+                            {version.model_version}
+                          </span>
+                        </td>
+                        <td className="py-2 pe-3 font-mono text-xs text-caption">
+                          {computedStamp(locale, version.computed_at, timeZone)}
+                        </td>
+                        {pct === null ? (
+                          <td colSpan={3} className="py-2 pe-3 text-muted">
+                            {version.unavailable_reason !== null ? (
+                              unavailableLabel(version.unavailable_reason, locale)
+                            ) : (
+                              <Translated locale={locale} message="forecast.couldNotProduce" />
+                            )}
+                          </td>
+                        ) : (
+                          (['home', 'draw', 'away'] as const).map((key) => (
+                            <td key={key} className="py-2 pe-3 font-bold tabular-nums" dir="ltr">
+                              {formatPercent(locale, pct[key])}
+                            </td>
+                          ))
+                        )}
+                        <td className="py-2 text-muted">
+                          <Translated
+                            locale={locale}
+                            message={current ? 'forecast.list.current' : 'forecast.list.superseded'}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-2 text-xs text-caption">
+            {versions === null ? (
+              <span data-testid="model-history-elsewhere">
+                <Translated
+                  locale={locale}
+                  message="forecast.list.historyElsewhere"
+                  count={latest.version_number - 1}
+                />
+              </span>
+            ) : (
+              <Translated locale={locale} message="forecast.list.historyNote" />
+            )}{' '}
+            <Link href={`/${locale}/match/${fixtureId}#forecast`} className="underline">
+              <Translated locale={locale} message="forecast.list.matchPage" />
+            </Link>
+          </p>
+        </div>
+      </div>
+    </details>
+  );
+}
+
+/**
+ * "What the model expected" in a match report (T-1383, D-201): the model's
+ * forecast as it stood before kick-off -- its version and computation time
+ * always on screen -- beside the result and how that forecast scored. The
+ * model only, in its own lane (rule 6); a story about the match never gets a
+ * forecast written into its words. Every gap is a sentence (rule 3): no
+ * forecast before kick-off, the service not answering, no result yet, a
+ * result not yet scored.
+ */
+export function ModelExpected({
+  summary,
+  evaluation,
+  result,
+  home,
+  away,
+  timeZone,
+  locale,
+}: {
+  /** The latest version computed before kick-off; `null` none; `'unreachable'` no answer. */
+  summary: ForecastSummary | null | 'unreachable';
+  /** That version scored against the result, when it has been. */
+  evaluation: ForecastEvaluation | null;
+  /** The full-time score, when there is one. */
+  result: { home: number; away: number } | null;
+  home: string;
+  away: string;
+  timeZone: string;
+  locale: string;
+}) {
+  const l: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  const forecast: CardForecast =
+    summary === 'unreachable' ? { state: 'unreachable' } : cardForecast(summary);
+  const score = result ?? evaluation?.actual ?? null;
+  return (
+    <ModelLane locale={l}>
+      <section className="flex flex-col gap-3" data-testid="story-model-expected">
+        <h2 className="font-serif text-2xl font-semibold">
+          <Translated locale={l} message="story.expected.title" />
+        </h2>
+        <p className="text-sm text-muted">
+          <Translated locale={l} message="story.expected.intro" />
+        </p>
+        <ForecastBar
+          forecast={forecast}
+          home={home}
+          away={away}
+          started
+          locale={l}
+          timeZone={timeZone}
+          words={forecastBarWords(l)}
+        />
+        <p className="text-sm" data-testid="story-model-result">
+          {score === null ? (
+            <Translated locale={l} message="story.expected.noResult" />
+          ) : (
+            <FilledMessage
+              message={message(l, 'story.expected.result')}
+              params={{
+                home: <bdi>{home}</bdi>,
+                score: (
+                  <Score home={score.home} away={score.away} locale={l} className="font-bold" />
+                ),
+                away: <bdi>{away}</bdi>,
+              }}
+            />
+          )}{' '}
+          {evaluation !== null ? (
+            <span data-testid="story-model-rps">
+              {interpolate(t(l, 'story.expected.rps'), { rps: formatFixed(l, evaluation.rps, 3) })}
+            </span>
+          ) : score !== null && forecast.state === 'available' ? (
+            <Translated locale={l} message="story.expected.notScored" />
+          ) : null}
+        </p>
+        <p className="text-sm">
+          <Link href={`/${l}/model-accuracy`} className="underline">
+            <Translated locale={l} message="forecast.accuracyLink" />
+          </Link>
+        </p>
+      </section>
+    </ModelLane>
   );
 }
