@@ -11,7 +11,7 @@ import type {
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
-import { formatDate } from '@/i18n/format';
+import { formatDate, formatVersionStamp } from '@/i18n/format';
 import { interpolate, message, t } from '@/i18n/messages';
 import {
   describeChange,
@@ -67,11 +67,7 @@ export function ForecastPanel({
   locale: string;
 }) {
   const l: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
-  const stamp = (iso: string) => (
-    <time dateTime={iso}>
-      {iso.slice(0, 10)} {formatKickoff(locale, iso, timeZone)}
-    </time>
-  );
+  const stamp = (iso: string) => computedStamp(locale, iso, timeZone);
 
   if (forecasts === null) {
     return (
@@ -270,6 +266,7 @@ function Latest({
           away={away}
           locale={locale}
           timeZone={timeZone}
+          zone={zoneWords(locale, timeZone)}
           words={forecastBarWords(locale)}
         />
       </div>
@@ -480,6 +477,7 @@ export function ModelVerdict({
           started
           locale={l}
           timeZone={timeZone}
+          zone={zoneWords(l, timeZone)}
           words={forecastBarWords(l)}
           size="compact"
         />
@@ -700,6 +698,7 @@ function ModelMatchRow({
           started={isLocked(card.kickoff_at)}
           locale={locale}
           timeZone={timeZone}
+          zone={zoneWords(locale, timeZone)}
           words={words}
           size="compact"
         />
@@ -720,18 +719,15 @@ function ModelMatchRow({
   );
 }
 
-/** A stored moment as the bar writes it: "11 Oct, 09:30", in the reader's zone, "UTC" said. */
-function computedStamp(locale: Locale, iso: string, timeZone: string): ReactNode {
+/**
+ * A stored moment as the bar writes it (T-1395): "11 Oct, 09:30 UK time", in
+ * the page's zone and named, the one format for every forecast and version
+ * stamp on the page.
+ */
+function computedStamp(locale: string, iso: string, timeZone: string): ReactNode {
   return (
     <time dateTime={iso}>
-      {formatDate(locale, iso, timeZone, {
-        day: '2-digit',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-        hourCycle: 'h23',
-      })}
-      {timeZone === 'UTC' ? ' UTC' : ''}
+      {formatVersionStamp(locale, iso, timeZone)} {zoneWords(locale, timeZone)}
     </time>
   );
 }
@@ -1001,6 +997,7 @@ export function ModelExpected({
           started
           locale={l}
           timeZone={timeZone}
+          zone={zoneWords(l, timeZone)}
           words={forecastBarWords(l)}
         />
         <p className="text-sm" data-testid="story-model-result">

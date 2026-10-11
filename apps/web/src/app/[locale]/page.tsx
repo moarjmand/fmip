@@ -306,6 +306,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                   ownPick != null || lead.status !== 'scheduled' || isLocked(lead.kickoff_at)
                 }
                 locale={lang}
+                timeZone={timeZone}
               />
             )}
             {!scores.ok || day === null ? (

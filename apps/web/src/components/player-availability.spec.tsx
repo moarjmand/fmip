@@ -33,7 +33,7 @@ describe('PlayerAvailabilitySection (T-1007)', () => {
       'No scheduled match ahead',
     );
     const unasked = render({ team, fixture, listing: none, reason: 'not_asked' });
-    expect(unasked).toContain('has not yet been asked');
+    expect(unasked).toContain('has not been checked yet');
     expect(unasked).toContain('Home FC – Away FC');
     expect(unasked).not.toContain('Feed asked');
   });
@@ -68,7 +68,7 @@ describe('PlayerAvailabilitySection (T-1007)', () => {
       },
       reason: null,
     });
-    expect(absent).toContain('Not on the feed');
+    expect(absent).toContain('Not on the list of players');
     expect(absent).toContain('never confirms that a player is fit');
     expect(absent).toContain('may have changed');
   });

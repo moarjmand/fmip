@@ -12,6 +12,7 @@ import {
 } from '@/lib/key-players';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { message } from '@/i18n/messages';
+import { listName } from '@/lib/person-name';
 import { formatStamp } from '@/lib/scores';
 import { FilledMessage } from '@/components/filled-message';
 import { COVERAGE_KEY } from '@/components/score-card';
@@ -141,7 +142,7 @@ function Side({
                   <li key={p.id} className="flex flex-col" data-testid="key-player">
                     <span className="break-words">
                       <Link href={`/${locale}/player/${p.id}`} className="underline">
-                        {p.name}
+                        {listName(locale, p.name)}
                       </Link>
                       {position !== null && <span className="text-muted"> · {position}</span>}
                     </span>

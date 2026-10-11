@@ -156,7 +156,7 @@ describe('the line-ups on a pitch', () => {
     expect(html).toContain('data-testid="lineup-list-away"');
     expect(html).toContain('data-reason="lines_unknown"');
     expect(html).toContain(
-      'The feed does not say which midfielder played in which line of the ⁦4-2-3-1⁩, so this line-up is a list.',
+      'The line-up does not say which midfielder played in which line of the ⁦4-2-3-1⁩, so it is shown as a list.',
     );
     const both = render(null, null);
     expect(both).not.toContain('data-testid="lineup-pitch"');
@@ -166,7 +166,8 @@ describe('the line-ups on a pitch', () => {
   it('keeps the bench and the coach for each side, and says when a coach is not supplied', () => {
     const html = render('4-3-3', '4-5-1');
     const benches = html.slice(html.indexOf('data-testid="lineup-benches"'));
-    expect(benches).toContain('Sub Home');
+    // A full name in the same style as the feed's short ones (T-1395).
+    expect(benches).toContain('S. Home');
     expect(benches).toContain('Coach: Dragan Skočić');
     expect(benches).toContain('Coach: not supplied');
   });

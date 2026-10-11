@@ -5,6 +5,7 @@ import { EntityImage } from '@/components/entity-image';
 import { MessageText } from '@/components/message-text';
 import { ltrIsolate } from '@/components/score';
 import { type PitchLines, pitchLines } from '@/lib/formation';
+import { listName } from '@/lib/person-name';
 import { fill, filled } from '@/lib/words';
 import type { MatchWords } from '@/lib/words-server';
 
@@ -209,7 +210,7 @@ function ListPlayer({
         ) : null}
         {/* Every line-up name links to the player page (blueprint 5.3, T-037). */}
         <Link href={`/${locale}/player/${p.id}`} className="underline">
-          {p.name}
+          {listName(locale, p.name)}
         </Link>
         {p.is_captain ? ` ${words.m['matchCentre.captain'].text}` : ''}
       </span>
@@ -241,7 +242,7 @@ function PitchPlayer({
           className="ring-2 ring-muted"
         />
         <span dir="auto" className="block max-w-18 truncate text-xs font-semibold text-fg">
-          {p.name}
+          {listName(locale, p.name)}
           {p.is_captain ? ` ${words.m['matchCentre.captain'].text}` : ''}
         </span>
       </Link>

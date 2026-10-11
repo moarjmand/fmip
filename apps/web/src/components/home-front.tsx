@@ -19,7 +19,7 @@ import { COVERAGE_KEY } from '@/components/score-card';
 import { Translated } from '@/components/translated';
 import { ButtonLink, CoverageBadge, Icon } from '@/components/ui';
 import { cx } from '@/components/ui/cx';
-import { formatDate, formatNumber } from '@/i18n/format';
+import { formatDate, formatNumber, formatVersionStamp } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
 import { interpolate, message, plural, t } from '@/i18n/messages';
 import type { KeyGroup } from '@/lib/home';
@@ -339,7 +339,8 @@ export function LeadMatchCard({
         away={card.away.name}
         started={started}
         locale={l}
-        timeZone="UTC"
+        timeZone={timeZone}
+        zone={zoneName(l, timeZone)}
         words={forecastBarWords(l)}
       />
       <p className="flex flex-wrap items-center gap-2 text-xs text-caption">
@@ -376,6 +377,7 @@ export function ThreeForecasts({
   consensus,
   revealed,
   locale,
+  timeZone,
 }: {
   card: ScoreCard;
   forecast: CardForecast;
@@ -383,6 +385,8 @@ export function ThreeForecasts({
   consensus: CommunityConsensusResponse | null;
   revealed: boolean;
   locale: string;
+  /** The page's zone (T-1395): the forecast's and the analysis' stamps read on it. */
+  timeZone: string;
 }) {
   const l = asLocale(locale);
   const match = `/${locale}/match/${card.id}`;
@@ -406,7 +410,8 @@ export function ThreeForecasts({
             away={card.away.name}
             started={card.status !== 'scheduled'}
             locale={l}
-            timeZone="UTC"
+            timeZone={timeZone}
+            zone={zoneName(l, timeZone)}
             words={forecastBarWords(l)}
             size="compact"
           />
@@ -416,7 +421,7 @@ export function ThreeForecasts({
           home={card.home.name}
           away={card.away.name}
           href={`${match}#analysis`}
-          timeZone="UTC"
+          timeZone={timeZone}
           locale={l}
         />
         <CommunityLane locale={l}>
@@ -668,13 +673,7 @@ export function KeyMatches({
               message={{
                 ...message(l, 'forecastBar.computed'),
                 text: interpolate(t(l, 'forecastBar.computed'), {
-                  time: `${formatDate(l, latest.computed_at, 'UTC', {
-                    day: '2-digit',
-                    month: 'short',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hourCycle: 'h23',
-                  })} UTC`,
+                  time: `${formatVersionStamp(l, latest.computed_at, timeZone)} ${zoneName(l, timeZone)}`,
                 }),
               }}
             />

@@ -110,6 +110,7 @@ export function NextMatchCard({
         started={started}
         locale={l}
         timeZone={timeZone}
+        zone={zone}
         words={forecastBarWords(l)}
         size="compact"
       />

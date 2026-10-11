@@ -212,6 +212,7 @@ describe('three forecasts, kept apart', () => {
         consensus={consensus(20)}
         revealed={false}
         locale="en"
+        timeZone="Europe/London"
         {...over}
       />,
     );

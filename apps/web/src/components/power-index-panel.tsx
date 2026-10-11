@@ -1,7 +1,8 @@
 import type { PowerIndex, PowerIndexResponse } from '@fmip/contracts';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
 import { interpolate, message, t } from '@/i18n/messages';
-import { formatKickoff } from '@/lib/scores';
+import { formatVersionStamp } from '@/i18n/format';
+import { zoneWords } from '@/lib/reader-time-zone';
 import {
   barWidth,
   completenessSentence,
@@ -67,7 +68,8 @@ export function PowerIndexPanel({
   }
 
   const { home, away } = power.index;
-  const stamp = `${home.computed_at.slice(0, 10)} ${formatKickoff(locale, home.computed_at, timeZone)}`;
+  // One stamp format on every page, in the page's zone and named (T-1395).
+  const stamp = `${formatVersionStamp(locale, home.computed_at, timeZone)} ${zoneWords(locale, timeZone)}`;
 
   return (
     <section className="flex flex-col gap-3" data-testid="power-index" data-state="available">

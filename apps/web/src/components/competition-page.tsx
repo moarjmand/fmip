@@ -623,6 +623,7 @@ export function FixtureRow({
               started={fixture.status !== 'scheduled'}
               locale={locale}
               timeZone={timeZone}
+              zone={zoneWords(locale, timeZone)}
               words={forecastWords}
               size="row"
             />

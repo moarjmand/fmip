@@ -90,7 +90,7 @@ describe('the key players words', () => {
       availabilityLine(
         player({ availability: { status: 'not_listed', kind: null, reason: null } }),
       ),
-    ).toBe('Not on the provider’s absence list');
+    ).toBe('Not on the absence list');
   });
 
   it('says how much of the season the figures cover', () => {
@@ -134,9 +134,11 @@ describe('the key players panel', () => {
     expect(html).toContain('No per-match player figures for this side this season.');
   });
 
-  it('carries the rule and when the provider was asked', () => {
+  it('carries the rule and when availability was last checked', () => {
     expect(html).toContain('data-testid="key-players-rule"');
-    expect(html).toContain('Availability as the provider gave it');
+    expect(html).toContain('Availability as last checked');
+    // Reader language: no provider or feed in what a reader is shown (T-1395).
+    expect(html).not.toMatch(/provider|the feed/i);
     expect(html).not.toMatch(/rating [0-9]/i);
   });
 
@@ -150,7 +152,7 @@ describe('the key players panel', () => {
         timeZone="UTC"
       />,
     );
-    expect(never).toContain('has not been asked about this match, so none is claimed');
+    expect(never).toContain('not checked for this match yet, so none is claimed');
   });
 
   it('dates the ask when it was not today (T-1371)', () => {
@@ -181,15 +183,15 @@ describe('the key players panel', () => {
       );
     const notCovered = render('not_covered', 'en');
     expect(notCovered).toContain('data-state="not_covered"');
-    expect(notCovered).toContain('our data provider does not report this competition');
-    expect(notCovered).not.toContain('has not been asked');
+    expect(notCovered).toContain('absences are not recorded for this competition');
+    expect(notCovered).not.toContain('not checked for this match');
     expect(render('not_yet', 'en')).toContain(
       'absences are published from about three days before kick-off',
     );
-    expect(render('not_covered', 'fa')).toContain('غایبان این رقابت را گزارش نمی‌کند');
+    expect(render('not_covered', 'fa')).toContain('غایبان این رقابت ثبت نمی‌شوند');
     expect(render('not_yet', 'fa')).toContain('از حدود سه روز پیش از شروع بازی');
     // Another locale falls back to English rather than showing a key.
-    expect(render('not_covered', 'de')).toContain('does not report this competition');
+    expect(render('not_covered', 'de')).toContain('absences are not recorded for this competition');
   });
 
   it('says so when the API cannot be reached', () => {

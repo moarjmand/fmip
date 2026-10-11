@@ -475,7 +475,7 @@ describe('why the line-ups and the absences are empty (T-1364)', () => {
       />,
     );
     expect(fa).toContain('ترکیب رسمی معمولاً');
-    expect(fa).toContain('غایبان را گزارش نمی‌کند');
+    expect(fa).toContain('غایبان این رقابت ثبت نمی‌شوند');
   });
 });
 

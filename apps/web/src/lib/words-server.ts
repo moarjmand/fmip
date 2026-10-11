@@ -234,6 +234,8 @@ export const MATCH_KEYS = [
   'matchCentre.stat.expectedGoals',
   'matchCentre.xgNotSupplied',
   'matchCentre.playerColumn',
+  'matchCentre.playerStatistics.scroll',
+  'matchCentre.playerStatistics.region',
   'matchCentre.player.minutes',
   'matchCentre.player.rating',
   'matchCentre.player.goals',

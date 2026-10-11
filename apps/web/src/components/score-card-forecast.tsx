@@ -1,5 +1,5 @@
 import type { CardForecast } from '@/lib/score-card-products';
-import { formatDate, formatNumber } from '@/i18n/format';
+import { formatNumber, formatVersionStamp } from '@/i18n/format';
 import { FORECAST_REASON_KEY, filled, formatPercent } from '@/lib/words';
 import type { ScoresWords } from '@/lib/words-server';
 import { FilledMessage } from '@/components/filled-message';
@@ -60,13 +60,7 @@ export function CardForecastSummary({
               version: f.version,
               time: (
                 <time dateTime={f.computed_at}>
-                  {formatDate(locale, f.computed_at, timeZone, {
-                    day: '2-digit',
-                    month: 'short',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hourCycle: 'h23',
-                  })}
+                  {formatVersionStamp(locale, f.computed_at, timeZone)}
                 </time>
               ),
             }}

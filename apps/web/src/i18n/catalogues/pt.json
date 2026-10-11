@@ -2546,7 +2546,7 @@
     "status": "untranslated"
   },
   "player.availability.notAsked": {
-    "source": "The feed has not yet been asked who will miss this match. It is asked in the three days before kick-off.",
+    "source": "Who will miss this match has not been checked yet. It is checked in the three days before kick-off.",
     "text": "",
     "status": "untranslated"
   },
@@ -2561,12 +2561,12 @@
     "status": "untranslated"
   },
   "player.availability.notListed": {
-    "source": "Not on the feed's list of players who will or may miss this match. The feed never confirms that a player is fit.",
+    "source": "Not on the list of players who will or may miss this match. That list never confirms that a player is fit.",
     "text": "",
     "status": "untranslated"
   },
   "player.availability.asked": {
-    "source": "Feed asked",
+    "source": "Last checked",
     "text": "",
     "status": "untranslated"
   },
@@ -2689,17 +2689,17 @@
     "status": "untranslated"
   },
   "news.updated": {
-    "source": "Feeds last read",
+    "source": "News sources last checked",
     "text": "",
     "status": "untranslated"
   },
   "news.neverRead": {
-    "source": "The feeds have not been read yet.",
+    "source": "The news sources have not been checked yet.",
     "text": "",
     "status": "untranslated"
   },
   "news.stale": {
-    "source": "The feeds have not been read for a while, so this list may be behind.",
+    "source": "The news sources have not been checked for a while, so this list may be behind.",
     "text": "",
     "status": "untranslated"
   },
@@ -2744,7 +2744,7 @@
     "status": "untranslated"
   },
   "news.readAt": {
-    "source": "Read at",
+    "source": "From",
     "text": "",
     "status": "untranslated"
   },
@@ -3392,7 +3392,7 @@
     "status": "untranslated"
   },
   "story.bodyAtSource": {
-    "source": "This publisher grants the headline and summary here; the article itself is on their site.",
+    "source": "Only the headline and summary appear here; the full article is on the publisher's site.",
     "text": "",
     "status": "untranslated"
   },
@@ -3402,7 +3402,7 @@
     "status": "untranslated"
   },
   "story.updated": {
-    "source": "These words were last updated",
+    "source": "Last updated",
     "text": "",
     "status": "untranslated"
   },
@@ -3412,7 +3412,7 @@
     "status": "untranslated"
   },
   "story.translationStatus": {
-    "source": "Each language is either the publisher’s own version or a translation a fluent speaker wrote and a second one reviewed. Nothing here is machine-translated.",
+    "source": "Each version is either the publisher’s own or a translation by a fluent speaker, and says whether a second fluent speaker has reviewed it. Nothing here is machine-translated.",
     "text": "",
     "status": "untranslated"
   },
@@ -3447,7 +3447,7 @@
     "status": "untranslated"
   },
   "story.noOtherReports": {
-    "source": "No other publisher has reported this story.",
+    "source": "We hold no other report of this story.",
     "text": "",
     "status": "untranslated"
   },
@@ -3492,7 +3492,7 @@
     "status": "untranslated"
   },
   "story.sources.words": {
-    "source": "Words: {source}, the publisher",
+    "source": "Text: {source} (publisher)",
     "text": "",
     "status": "untranslated"
   },
@@ -3502,7 +3502,7 @@
     "status": "untranslated"
   },
   "story.follow.title": {
-    "source": "Follow what this story is about",
+    "source": "Follow the teams and competitions in this story",
     "text": "",
     "status": "untranslated"
   },
@@ -3567,7 +3567,7 @@
     "status": "untranslated"
   },
   "story.predictions.communityNote": {
-    "source": "what members predicted, published from five predictors",
+    "source": "what members predicted, shown once five have predicted",
     "text": "",
     "status": "untranslated"
   },
@@ -3587,7 +3587,7 @@
     "status": "untranslated"
   },
   "story.type.none": {
-    "source": "No type: neither the publisher's category nor an editor gave this story one.",
+    "source": "Not categorised",
     "text": "",
     "status": "untranslated"
   },
@@ -5419,12 +5419,12 @@
     "status": "untranslated"
   },
   "panel.link.incidentGone": {
-    "source": "The data feed has since removed this incident.",
+    "source": "This incident has since been removed from the match record.",
     "text": "",
     "status": "untranslated"
   },
   "panel.link.incidentChanged": {
-    "source": "The data feed changed this incident after it was linked. This is how it stands now.",
+    "source": "This incident changed after it was linked. This is how it stands now.",
     "text": "",
     "status": "untranslated"
   },
@@ -5439,7 +5439,7 @@
     "status": "untranslated"
   },
   "panel.link.playerGone": {
-    "source": "The data feed no longer lists this player in either line-up.",
+    "source": "This player is no longer listed in either line-up.",
     "text": "",
     "status": "untranslated"
   },
@@ -5454,7 +5454,7 @@
     "status": "untranslated"
   },
   "panel.link.statisticGone": {
-    "source": "The data feed no longer supplies this statistic.",
+    "source": "This statistic is no longer available for this match.",
     "text": "",
     "status": "untranslated"
   },
@@ -6278,12 +6278,12 @@
     "status": "untranslated"
   },
   "scores.feed.failure": {
-    "source": "The live data feed reported a failure at {time}. Scores may be behind; every card shows when its data last changed.",
+    "source": "Live updates failed at {time}. Scores may be behind; every card shows when its data last changed.",
     "text": "",
     "status": "untranslated"
   },
   "scores.feed.partial": {
-    "source": "The live data feed reported a partial update at {time}. Scores may be behind; every card shows when its data last changed.",
+    "source": "Only part of the live update arrived at {time}. Scores may be behind; every card shows when its data last changed.",
     "text": "",
     "status": "untranslated"
   },
@@ -6860,12 +6860,22 @@
     "status": "untranslated"
   },
   "matchCentre.xgNotSupplied": {
-    "source": "Expected goals (xG): the provider did not supply them for this match.",
+    "source": "Expected goals (xG): not available for this match.",
     "text": "",
     "status": "untranslated"
   },
   "matchCentre.playerColumn": {
     "source": "Player",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.playerStatistics.scroll": {
+    "source": "Scroll sideways to see every column.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.playerStatistics.region": {
+    "source": "{team}: player statistics, scrolls sideways",
     "text": "",
     "status": "untranslated"
   },
@@ -6905,7 +6915,7 @@
     "status": "untranslated"
   },
   "matchCentre.playerXgNotSupplied": {
-    "source": "Expected goals per player: not supplied by the provider for any match.",
+    "source": "Expected goals per player: not available for any match.",
     "text": "",
     "status": "untranslated"
   },
@@ -6920,7 +6930,7 @@
     "status": "untranslated"
   },
   "matchCentre.absencesNotCovered": {
-    "source": "The data provider does not report absences for this competition, so none are shown.",
+    "source": "Absences are not recorded for this competition, so none are shown.",
     "text": "",
     "status": "untranslated"
   },
@@ -7201,12 +7211,12 @@
     "status": "untranslated"
   },
   "matchCentre.keyPlayers.notAsked": {
-    "source": "Availability: the provider has not been asked about this match, so none is claimed.",
+    "source": "Availability: not checked for this match yet, so none is claimed.",
     "text": "",
     "status": "untranslated"
   },
   "matchCentre.keyPlayers.notCovered": {
-    "source": "Availability: our data provider does not report this competition's absences, so none is claimed.",
+    "source": "Availability: absences are not recorded for this competition, so none is claimed.",
     "text": "",
     "status": "untranslated"
   },
@@ -7216,7 +7226,7 @@
     "status": "untranslated"
   },
   "matchCentre.keyPlayers.asked": {
-    "source": "Availability as the provider gave it, {time}.",
+    "source": "Availability as last checked, {time}.",
     "text": "",
     "status": "untranslated"
   },
@@ -7232,8 +7242,8 @@
   },
   "matchCentre.keyPlayers.rule": {
     "source": {
-      "one": "Key players are each side's {count} with the most minutes in {competition} {season} before this match, counted from the feed's per-match player figures; a tie on minutes goes to more goals plus assists, then the name. Goals and assists are summed from the same figures. This is a count, not a judgement of quality, and no rating is used.",
-      "other": "Key players are each side's {count} with the most minutes in {competition} {season} before this match, counted from the feed's per-match player figures; a tie on minutes goes to more goals plus assists, then the name. Goals and assists are summed from the same figures. This is a count, not a judgement of quality, and no rating is used."
+      "one": "Key players are each side's {count} with the most minutes in {competition} {season} before this match, counted from each match's player figures; a tie on minutes goes to more goals plus assists, then the name. Goals and assists are summed from the same figures. This is a count, not a judgement of quality, and no rating is used.",
+      "other": "Key players are each side's {count} with the most minutes in {competition} {season} before this match, counted from each match's player figures; a tie on minutes goes to more goals plus assists, then the name. Goals and assists are summed from the same figures. This is a count, not a judgement of quality, and no rating is used."
     },
     "forms": {},
     "status": "untranslated"
@@ -7288,7 +7298,7 @@
     "status": "untranslated"
   },
   "matchCentre.keyPlayers.notListed": {
-    "source": "Not on the provider’s absence list",
+    "source": "Not on the absence list",
     "text": "",
     "status": "untranslated"
   },
@@ -8234,8 +8244,8 @@
   },
   "competition.leaders.unproven": {
     "source": {
-      "one": "{count} scorer is left out because the feed did not send minutes for every match they played, so the record cannot show they reached it.",
-      "other": "{count} scorers are left out because the feed did not send minutes for every match they played, so the record cannot show they reached it."
+      "one": "{count} scorer is left out because their minutes were not recorded for every match they played, so the record cannot show they reached it.",
+      "other": "{count} scorers are left out because their minutes were not recorded for every match they played, so the record cannot show they reached it."
     },
     "forms": {},
     "status": "untranslated"
@@ -8266,7 +8276,7 @@
     "status": "untranslated"
   },
   "team.squad.minutes": {
-    "source": "Minutes are for this team in the competitions above, from the feed's per-player figures: \"at least\" where some matches have none.",
+    "source": "Minutes are for this team in the competitions above, from each match's player figures: \"at least\" where some matches have none.",
     "text": "",
     "status": "untranslated"
   },
@@ -9534,8 +9544,8 @@
   },
   "competition.boards.unproven": {
     "source": {
-      "one": "{count} player is left out because the feed did not send minutes for every match they played, so the record cannot show they reached the floor.",
-      "other": "{count} players are left out because the feed did not send minutes for every match they played, so the record cannot show they reached the floor."
+      "one": "{count} player is left out because their minutes were not recorded for every match they played, so the record cannot show they reached the floor.",
+      "other": "{count} players are left out because their minutes were not recorded for every match they played, so the record cannot show they reached the floor."
     },
     "forms": {},
     "status": "untranslated"
@@ -10712,7 +10722,7 @@
     "status": "untranslated"
   },
   "playerPage.minutesNote": {
-    "source": "Minutes are the feed’s own, per match: “at least” marks a season where some matches came without them, “not supplied” one where none did. Advanced statistics and availability are not held for this player and are not shown.",
+    "source": "Minutes are recorded per match: “at least” marks a season where some matches have none, “not supplied” one where none do. Advanced statistics and availability are not held for this player and are not shown.",
     "text": "",
     "status": "untranslated"
   },
@@ -10971,7 +10981,7 @@
     "status": "untranslated"
   },
   "compare.reason.minutes": {
-    "source": "No minutes from the feed",
+    "source": "No minutes recorded",
     "text": "",
     "status": "untranslated"
   },
@@ -10999,7 +11009,7 @@
     "status": "untranslated"
   },
   "compare.footnote": {
-    "source": "Figures come from our line-ups and incidents, minutes from the feed’s own match statistics. Player ratings and advanced statistics are not held for these players and are not shown.",
+    "source": "Figures come from our line-ups and incidents, minutes from each match’s own statistics. Player ratings and advanced statistics are not held for these players and are not shown.",
     "text": "",
     "status": "untranslated"
   },
@@ -11621,7 +11631,7 @@
     "status": "untranslated"
   },
   "matchCentre.latestFirst": {
-    "source": "Latest first. Names and minutes come from the match feed.",
+    "source": "Latest first. Names and minutes are as recorded for the match.",
     "text": "",
     "status": "untranslated"
   },
@@ -11631,7 +11641,7 @@
     "status": "untranslated"
   },
   "matchCentre.lineups.pitchNote": {
-    "source": "Home side at the bottom. Players are placed by the formation and the role the feed gives each of them; along each line they are in shirt-number order, because the feed does not say who played on which side.",
+    "source": "Home side at the bottom. Players are placed by the formation and the role each was given; along each line they are in shirt-number order, because the line-up does not say who played on which side.",
     "text": "",
     "status": "untranslated"
   },
@@ -11646,7 +11656,7 @@
     "status": "untranslated"
   },
   "matchCentre.lineups.linesUnknown": {
-    "source": "The feed does not say which midfielder played in which line of the {formation}, so this line-up is a list.",
+    "source": "The line-up does not say which midfielder played in which line of the {formation}, so it is shown as a list.",
     "text": "",
     "status": "untranslated"
   },
