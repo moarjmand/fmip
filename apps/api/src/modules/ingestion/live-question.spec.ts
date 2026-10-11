@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PollTarget } from './internal/ingest-store';
-import { liveQuestion } from './ingestion-jobs.service';
+import { clockStopped, liveQuestion } from './ingestion-jobs.service';
 
 /**
  * T-501: the live job asks the provider once a tick, not once per competition,
@@ -32,5 +32,24 @@ describe('the live question', () => {
     const question = liveQuestion([{ target: target('pl', '2026/27'), externalIds: [] }]);
     expect(question.externalIds).toEqual([]);
     expect(question.seasonLabels).toEqual([]);
+  });
+});
+
+/**
+ * T-1394 (D-209): the matches the live list answered about without a change
+ * are told to the open pages only where the stored clock stands still.
+ */
+describe('a stopped clock', () => {
+  it('is half-time, added time, a break or a suspension', () => {
+    for (const minute of [45, 90, 105, 120]) {
+      expect(clockStopped({ status: 'live', minute })).toBe(true);
+    }
+    expect(clockStopped({ status: 'suspended', minute: null })).toBe(true);
+  });
+
+  it('is not play in progress, a match with no minute, or a match over', () => {
+    expect(clockStopped({ status: 'live', minute: 63 })).toBe(false);
+    expect(clockStopped({ status: 'live', minute: null })).toBe(false);
+    expect(clockStopped({ status: 'finished', minute: null })).toBe(false);
   });
 });

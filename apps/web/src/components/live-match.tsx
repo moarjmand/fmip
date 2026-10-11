@@ -8,7 +8,14 @@ import { matchAnnouncements } from '@/lib/announce';
 import { withLocale } from '@/lib/locale-query';
 import { FreshnessStamp } from '@/components/freshness-stamp';
 import { useLite } from '@/components/lite-mode';
-import { INITIAL_CLOCK, type LiveClock, liveLabel, liveState, staleAfterMs } from '@/lib/live';
+import {
+  INITIAL_CLOCK,
+  type LiveClock,
+  liveLabel,
+  liveState,
+  showsLiveLine,
+  staleAfterMs,
+} from '@/lib/live';
 import { openLiveSource } from '@/lib/live-source';
 import type { MatchWords } from '@/lib/words-server';
 
@@ -106,8 +113,9 @@ export function LiveMatch({
   // In lite mode the threshold is a missed poll plus the usual slack (T-1387).
   const staleAfter = staleAfterMs(lite);
   const state = liveState(clock, now, staleAfter);
-  // The stream's line sits in the score band, under the status (T-1384).
-  const live = (
+  // The stream's line sits in the score band, under the status (T-1384);
+  // none once the match is over (T-1394): a result is not a live connection.
+  const live = showsLiveLine(centre.fixture.status) ? (
     <p
       className={`text-xs ${
         state === 'live'
@@ -135,7 +143,7 @@ export function LiveMatch({
         liveLabel(state, clock, locale, timeZone, words.m)
       )}
     </p>
-  );
+  ) : undefined;
   return (
     <>
       <div

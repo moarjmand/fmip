@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { StoredAbsences } from './covered';
 import { freshnessOf } from './freshness';
+import { liveAnsweredAtSql } from './live-answer';
 import type {
   CoverageModule,
   CoverageState,
@@ -92,6 +93,7 @@ interface RawHeader {
     | null;
   last_updated_at: Date;
   last_checked_at: Date | null;
+  live_answered_at: Date | null;
   detail_owed: boolean;
 }
 
@@ -153,6 +155,7 @@ export class PostgresMatchCentreStore {
                                   BETWEEN sp.window_from AND sp.window_to
                              THEN sp.window_polled_at END))
                  FROM season_fixture_poll sp WHERE sp.season_id = f.season_id) AS last_checked_at,
+              ${liveAnsweredAtSql('f.id', 'f.status')} AS live_answered_at,
               (f.status = 'finished' AND NOT EXISTS (
                  SELECT 1 FROM fixture_detail_fetch d WHERE d.fixture_id = f.id)) AS detail_owed
          FROM fixture f
@@ -230,7 +233,11 @@ export class PostgresMatchCentreStore {
           added_minutes: p.added_minutes,
         })),
         last_updated_at: r.last_updated_at.toISOString(),
-        freshness: freshnessOf(r.status, r.last_updated_at, new Date()),
+        live_answered_at: r.live_answered_at?.toISOString() ?? null,
+        freshness: freshnessOf(r.status, r.last_updated_at, new Date(), undefined, {
+          minute: r.status === 'live' ? r.minute : null,
+          liveAnsweredAt: r.live_answered_at,
+        }),
         last_checked_at: r.last_checked_at?.toISOString() ?? null,
       },
     };

@@ -1,6 +1,13 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Pool } from 'pg';
-import type { AdapterResult, NormalisedStanding, Provider, ProviderAdapter } from '@fmip/ingestion';
+import { STOPPED_CLOCK_MINUTES } from '@fmip/contracts';
+import type {
+  AdapterResult,
+  NormalisedFixture,
+  NormalisedStanding,
+  Provider,
+  ProviderAdapter,
+} from '@fmip/ingestion';
 import { PG_POOL } from '../../database/database.module';
 import { DataQualityService, type TableComparison } from '../data-quality/data-quality.service';
 import { MatchAlertsService } from '../match-alerts/match-alerts.service';
@@ -491,8 +498,11 @@ export class IngestionJobsService {
    * provider that answers "everything live right now" is filtered to ours and a
    * match nobody here follows costs nothing.
    */
-  live(now: Date = new Date()): Promise<JobReport> {
-    return this.track('live', async (source, targets) => {
+  async live(now: Date = new Date()): Promise<JobReport> {
+    // Matches the list answered about without a change, where no clock moves
+    // the row: told to the open pages once the run is recorded (T-1394).
+    const unchanged: string[] = [];
+    const report = await this.track('live', async (source, targets) => {
       const from = new Date(now.getTime() - LIVE_WINDOW_AFTER_MINUTES * 60 * 1000).toISOString();
       const to = new Date(now.getTime() + LIVE_WINDOW_BEFORE_MINUTES * 60 * 1000).toISOString();
       let seen = 0;
@@ -535,6 +545,9 @@ export class IngestionJobsService {
             written += write.changed;
             if (write.seasonId !== undefined) seasons.add(write.seasonId);
             for (const id of write.unresolved) unresolved.add(id);
+            if (write.changed === 0 && write.fixtureId !== undefined && clockStopped(fixture)) {
+              unchanged.push(write.fixtureId);
+            }
             // The live list's own events, where it carries them (T-830): a
             // scorer or a red card within the minute, not the half hour.
             if (fixture.incidents !== undefined && write.fixtureId !== undefined) {
@@ -590,6 +603,12 @@ export class IngestionJobsService {
       await this.alerts.dispatch([...raised]);
       return this.report('live', source.provider, seen, written, refused, unresolved);
     });
+    // After `track` has recorded the run: the snapshot each page is sent
+    // reads this run as the live list's latest answer (D-209).
+    if (unchanged.length > 0 && report.itemsSeen > 0) {
+      await this.store.noteLiveAnswered(unchanged);
+    }
+    return report;
   }
 
   /**
@@ -1217,4 +1236,18 @@ export class IngestionJobsService {
       };
     });
   }
+}
+
+/**
+ * Whether the stored clock of a match the live list answered about stands
+ * still (T-1394, D-209): suspended, or live at a minute the feed holds while
+ * it counts added time apart -- half-time and the other breaks among them.
+ */
+export function clockStopped(fixture: Pick<NormalisedFixture, 'status' | 'minute'>): boolean {
+  if (fixture.status === 'suspended') return true;
+  return (
+    fixture.status === 'live' &&
+    fixture.minute !== null &&
+    STOPPED_CLOCK_MINUTES.includes(fixture.minute)
+  );
 }

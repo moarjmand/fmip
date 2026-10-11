@@ -311,7 +311,7 @@ export {
   CANDIDATE_FAILURE_LOOKBACK_DAYS,
   PROMOTION_MINIMUM,
 } from './forecast';
-export { STALE_LIVE_AFTER_MS } from './scores';
+export { STALE_LIVE_AFTER_MS, STOPPED_CLOCK_MINUTES, liveFreshnessFrom } from './scores';
 export { AVAILABILITY_STALE_AFTER_MS } from './match-centre';
 export type {
   FixtureStatus,

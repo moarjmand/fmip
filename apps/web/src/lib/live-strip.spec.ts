@@ -126,6 +126,38 @@ describe('a chip’s state', () => {
     });
   });
 
+  it('half-time the provider still answers about: the minute, not "Behind" (T-1394, D-209)', () => {
+    // Unchanged since the whistle ten minutes ago; the live list answered a
+    // minute ago, as it does every minute through the interval.
+    const halfTime = stripCard({
+      status: 'live',
+      minute: 45,
+      scores: score(1, 0),
+      last_updated_at: new Date(NOW - 600_000).toISOString(),
+      live_answered_at: new Date(NOW - 60_000).toISOString(),
+    });
+    expect(chipState(halfTime, 'en', 'UTC', NOW, words)).toEqual({
+      kind: 'live',
+      status: '45′',
+      score: { home: 1, away: 0 },
+    });
+    expect(stripIsBehind([halfTime], new Date(NOW).toISOString(), NOW)).toBe(false);
+    // The provider fell silent: behind again, as rule 4 asks.
+    const silent = { ...halfTime, live_answered_at: new Date(NOW - 300_000).toISOString() };
+    expect(chipState(silent, 'en', 'UTC', NOW, words).kind).toBe('behind');
+  });
+
+  it('full time is final however old the row is, never "Behind" (T-1394)', () => {
+    const over = stripCard({
+      status: 'finished',
+      scores: { ...score(0, 3), full_time: { home: 0, away: 3 } },
+      last_updated_at: new Date(NOW - 3 * 3_600_000).toISOString(),
+      freshness: 'stale',
+    });
+    expect(chipState(over, 'en', 'UTC', NOW, words)).toMatchObject({ kind: 'final', status: 'FT' });
+    expect(stripIsBehind([over], new Date(NOW - 3 * 3_600_000).toISOString(), NOW)).toBe(false);
+  });
+
   it('live with no score yet: no invented 0–0', () => {
     expect(chipState(stripCard({ status: 'live', minute: 2 }), 'en', 'UTC', NOW, words).score).toBe(
       null,

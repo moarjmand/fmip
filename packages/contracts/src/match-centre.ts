@@ -55,7 +55,13 @@ export interface MatchHeader {
   periods: MatchPeriod[];
   /** When anything on this fixture last changed (rule 4). */
   last_updated_at: string;
-  /** `stale` when live and unchanged for `STALE_LIVE_AFTER_MS` (T-083); `null` when not live. */
+  /**
+   * When the provider's live list last answered while this match was live
+   * or suspended, changed or not (T-1394, D-209); null otherwise, or when no
+   * answer is recorded. `liveFreshnessFrom` reads it where no clock moves.
+   */
+  live_answered_at?: string | null;
+  /** `stale` when live and unchanged for `STALE_LIVE_AFTER_MS` (T-083, see `liveFreshnessFrom`); `null` when not live. */
   freshness: Freshness | null;
   /**
    * When this match's fixture list was last answered, changed or not

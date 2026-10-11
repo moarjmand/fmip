@@ -10,6 +10,7 @@ import type {
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 import { freshnessOf } from './freshness';
+import { liveAnsweredAtSql } from './live-answer';
 
 /** A card plus the country its competition belongs to, for grouping. */
 export interface ScoredRow {
@@ -67,6 +68,7 @@ interface Row {
   scores: Record<string, ScoreLine> | null;
   incidents: ScoreCardIncident[] | null;
   last_updated_at: Date;
+  live_answered_at: Date | null;
 }
 
 const SCORE_KINDS = [
@@ -130,7 +132,11 @@ function toRow(row: Row): ScoredRow {
       // unknown, which is what `limited` says. Never `available` by default.
       coverage: row.scores_coverage ?? 'limited',
       last_updated_at: row.last_updated_at.toISOString(),
-      freshness: freshnessOf(row.status, row.last_updated_at, new Date()),
+      live_answered_at: row.live_answered_at?.toISOString() ?? null,
+      freshness: freshnessOf(row.status, row.last_updated_at, new Date(), undefined, {
+        minute: row.minute,
+        liveAnsweredAt: row.live_answered_at,
+      }),
       pinned: false,
     },
     country:
@@ -213,7 +219,8 @@ export class PostgresScoresStore {
                 s.updated_at,
                 (SELECT max(sc.updated_at) FROM fixture_score sc WHERE sc.fixture_id = s.id),
                 (SELECT max(i.updated_at) FROM incident i WHERE i.fixture_id = s.id)
-              ) AS last_updated_at
+              ) AS last_updated_at,
+              ${liveAnsweredAtSql('s.id', 's.status')} AS live_answered_at
          FROM scope s
          JOIN fixture_participant h ON h.fixture_id = s.id AND h.side = 'home'
          JOIN team th ON th.id = h.team_id
