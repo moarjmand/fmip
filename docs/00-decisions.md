@@ -9440,7 +9440,8 @@ the news. The shell (D-199) and the atoms (D-206) were already merged.
    table's competition is the first group's, so the Pro League's on any day
    it plays in the fortnight.
 7. **The side column** (beside the main one from about 1100px, stacked under
-   it below, in the same order): the league's top five with the season,
+   it below, in the same order): the league's top five with the season
+   (in the page's digits: `localDigits` in `i18n/format.ts`, «۲۰۲۶/۲۷»),
    its coverage badge and "Full table and fixtures"; **the model's
    accuracy**: the public endpoint (D-187) is by calendar month only, so the
    card shows the newest month with a scored match -- RPS, "lower is

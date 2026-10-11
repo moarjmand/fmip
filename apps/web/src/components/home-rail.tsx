@@ -19,7 +19,7 @@ import { Score } from '@/components/score';
 import { COVERAGE_KEY } from '@/components/score-card';
 import { Translated } from '@/components/translated';
 import { ButtonLink, CoverageBadge, Icon, LinkOut } from '@/components/ui';
-import { formatDate, formatGregorianMonth, formatNumber } from '@/i18n/format';
+import { formatDate, formatGregorianMonth, formatNumber, localDigits } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
 import { interpolate, message, t } from '@/i18n/messages';
 import type { AccuracyFigure, HomeBroadcasts } from '@/lib/home';
@@ -61,7 +61,7 @@ export function TableTopFive({ page, locale }: { page: CompetitionPage; locale: 
         }
       />
       <p className="-mt-1.5 mb-2 flex flex-wrap items-center gap-2 text-sm text-caption">
-        <bdi>{page.season.label}</bdi>
+        <bdi>{localDigits(l, page.season.label)}</bdi>
         <CoverageBadge
           state={state}
           label={<Translated locale={l} message={COVERAGE_KEY[state]} />}

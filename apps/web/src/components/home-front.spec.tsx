@@ -1,5 +1,6 @@
 import type {
   CommunityConsensusResponse,
+  CompetitionPage,
   FounderAnalysisResponse,
   ScoreCard,
   TableRow,
@@ -11,7 +12,7 @@ import { describe, expect, it } from 'vitest';
 import type { AccuracyFigure, KeyGroup } from '@/lib/home';
 import type { CardForecast } from '@/lib/score-card-products';
 import { HomeDateline, KeyMatches, LeadMatchCard, ThreeForecasts } from './home-front';
-import { AccuracyCard, Broadcasts, MyTeams } from './home-rail';
+import { AccuracyCard, Broadcasts, MyTeams, TableTopFive } from './home-rail';
 
 /**
  * The Hybrid homepage's blocks (T-1382, D-200), in their states: with data
@@ -323,6 +324,25 @@ describe('today’s key matches', () => {
 });
 
 describe('the side column', () => {
+  it('gives the table its season in the page’s digits: Persian on /fa', () => {
+    const page = {
+      competition: {
+        id: 'pgpl',
+        name: 'Persian Gulf Pro League',
+        localised_name: 'لیگ برتر خلیج فارس',
+        short_name: 'Pro League',
+      },
+      season: { id: 's', label: '2026/27' },
+      table: { coverage: 'available', last_updated_at: null, data: [row('tractor', 1, 16)] },
+    } as unknown as CompetitionPage;
+    const fa = renderToStaticMarkup(<TableTopFive page={page} locale="fa" />);
+    expect(fa).toContain('<bdi>۲۰۲۶/۲۷</bdi>');
+    expect(fa).not.toContain('2026/27');
+    expect(renderToStaticMarkup(<TableTopFive page={page} locale="en" />)).toContain(
+      '<bdi>2026/27</bdi>',
+    );
+  });
+
   it('shows the newest month’s accuracy with its sample, baseline and versions', () => {
     const figure: AccuracyFigure = {
       period: '2026-10',
