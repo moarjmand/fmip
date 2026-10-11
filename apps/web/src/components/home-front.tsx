@@ -23,6 +23,7 @@ import { formatDate, formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
 import { interpolate, message, plural, t } from '@/i18n/messages';
 import type { KeyGroup } from '@/lib/home';
+import { stageName } from '@/lib/competition';
 import { storyHref } from '@/lib/news';
 import type { CardForecast } from '@/lib/score-card-products';
 import { dateIn, formatKickoff, statusLabel } from '@/lib/scores';
@@ -236,6 +237,8 @@ export function LeadMatchCard({
           month: 'short',
         });
   const competition = card.competition.short_name ?? card.competition.name;
+  // A provider's round in the reader's words, or left out (D-193).
+  const round = card.round === null ? null : stageName(locale, card.round);
   const started = card.status !== 'scheduled';
   const side = (
     name: string,
@@ -270,10 +273,10 @@ export function LeadMatchCard({
           className="font-mono [:root:is(:lang(fa),:lang(ar))_&]:font-sans text-sm text-caption uppercase"
         >
           <bdi>{competition}</bdi>
-          {card.round !== null && (
+          {round !== null && (
             <>
               {' · '}
-              <bdi>{card.round}</bdi>
+              <bdi>{round}</bdi>
             </>
           )}
           {' · '}
