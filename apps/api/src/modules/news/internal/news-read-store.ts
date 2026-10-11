@@ -649,6 +649,12 @@ export class PostgresNewsReadStore {
   }
 }
 
+/**
+ * How far ahead of the database's clock a publisher may date a story and
+ * still be listed (T-1391, D-207): clock skew, not a scheduled page.
+ */
+export const FUTURE_GRACE = '10 minutes';
+
 /** No filter at all: the match page's related news reads every story. */
 export const NO_FILTERS: NewsFilters = {
   country: null,
@@ -726,7 +732,16 @@ class Query {
   }
 
   storyCard(): string {
-    const where = this.where.length === 0 ? '' : `WHERE ${this.where.join(' AND ')}`;
+    // T-1391 (D-207): a story whose publisher dates it in the future is not
+    // listed until that time comes -- a scheduled page ("listen live on the
+    // 24th") is not news yet, and dated ahead it would sit on top of every
+    // newest-first list. FUTURE_GRACE allows a publisher's clock a little skew.
+    const notFuture = [
+      `COALESCE((SELECT min(published_at) FROM article_version WHERE article_id = a.id), a.fetched_at)
+         <= now() + interval '${FUTURE_GRACE}'`,
+      `(v.published_at IS NULL OR v.published_at <= now() + interval '${FUTURE_GRACE}')`,
+    ];
+    const where = `WHERE ${[...this.where, ...notFuture].join(' AND ')}`;
     return `WITH story_card AS (
       SELECT s.id AS story_id, a.id AS article_id, a.url, a.fetched_at,
              src.id AS source_id, src.name AS source_name, src.homepage_url, src.rights,
