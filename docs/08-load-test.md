@@ -180,7 +180,7 @@ made per row, a timeout -- does.
 | Route | First-load JS measured / budget (gzip kB) | Server response median, CI / laptop / budget (ms) |
 | --- | --- | --- |
 | home `/en` | 149.8 / 158 (lowered 2026-09-29, T-1040) | 38 / 50 / 200 |
-| scores `/en/scores` | 173.4 / 174 (raised 2026-10-11, T-1387) | 21 / 31 / 150 |
+| scores `/en/scores` | 173.3 / 174 (raised 2026-10-11, T-1387) | 21 / 31 / 150 |
 | match centre `/en/match/…0901` | 183.0 / 184 (raised 2026-10-11, T-1388) | 77 / 76 / 300 |
 | competition `/en/competition/…0201` | 149.8 / 158 (lowered 2026-09-29, T-1040) | 29 / 39 / 150 |
 
@@ -221,8 +221,9 @@ provider that reads the Network Information API and hands the mode to the
 images, the banner with its switch, and the footnote (home and competition
 154.4 to 154.8 kB, within 158). The scores page also gains the poll that
 replaces its open stream in lite mode (`openLiveSource`): 172.7 to 173.4,
-0.4 kB over, so its budget goes from 173 to 174. The match centre measured
-183.0, within its 184. No library was added. What lite mode saves a reader
+0.4 kB over, so its budget goes from 173 to 174 (173.3 after T-1384's match
+centre merged). The match centre measured 182.5 with T-1384 and lite mode
+together, within its 184, so its budget is unchanged. No library was added. What lite mode saves a reader
 on a slow connection is larger than what it costs everyone: every web font
 (four woff2 files on `/en/scores`, six on `/fa/scores`; Mona Sans's Latin
 file alone is 98 kB) and every crest and photo.
