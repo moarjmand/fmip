@@ -42,3 +42,6 @@ deploy/certs/*
 # recreates them locally whenever it wants them.
 apps/web/AGENTS.md
 apps/web/CLAUDE.md
+
+# Claude Code local settings and their temp copies (T-1393)
+.claude/settings.local.json*
