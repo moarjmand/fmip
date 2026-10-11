@@ -42,6 +42,8 @@ const SUNDAY = '2031-03-02T23:30:00.000Z';
 const MONDAY = '2031-03-03T00:30:00.000Z';
 
 const P_SUNDAY = { home: 0.5, draw: 0.3, away: 0.2 }; // the home side won 2-1
+// An earlier version of Sunday's forecast, wrong, superseded before kick-off.
+const P_SUNDAY_EARLY = { home: 0.2, draw: 0.3, away: 0.5 };
 const P_SHADOW = { home: 0.6, draw: 0.25, away: 0.15 };
 const P_MONDAY = { home: 0.1, draw: 0.3, away: 0.6 }; // a 1-1 draw
 
@@ -164,6 +166,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('model accura
     }
     const store = new PostgresForecastStore(pool);
     await store.record(
+      version(sunday, SUNDAY, 'published', PUBLISHED, '2031-03-01T10:00:00Z', P_SUNDAY_EARLY),
+    );
+    await store.record(
       version(sunday, SUNDAY, 'published', PUBLISHED, '2031-03-02T10:00:00Z', P_SUNDAY),
     );
     await store.record(version(sunday, SUNDAY, 'shadow', SHADOW, '2031-03-02T10:00:00Z', P_SHADOW));
@@ -219,8 +224,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('model accura
     const body = (
       await get(`/fixtures/${sunday}/evaluations`)
     ).json() as FixtureEvaluationsResponse;
-    expect(body.evaluations).toHaveLength(1); // the shadow version is never served
-    expect(body.evaluations[0]?.rps).toBe(rps(P_SUNDAY, 'home'));
+    // Both published versions, each scored; the shadow version is never served.
+    expect(body.evaluations).toHaveLength(2);
+    expect(body.evaluations.map((e) => e.rps).sort()).toEqual(
+      [rps(P_SUNDAY, 'home'), rps(P_SUNDAY_EARLY, 'home')].sort(),
+    );
   });
 
   it('sums RPS in SQL as rps() does, and splits the weeks at Monday 00:00 UTC', async () => {
@@ -229,9 +237,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('model accura
       (r) => r.modelVersion === PUBLISHED,
     );
     expect(rows.map((r) => [r.periodStart, r.forecasts, r.matches])).toEqual([
-      ['2031-02-24', 1, 1],
+      ['2031-02-24', 2, 1], // two versions of Sunday, the match counted once
       ['2031-03-03', 1, 1], // the post-kick-off version is not here
     ]);
+    // Every sum is the last version before kick-off's alone (D-209).
+    expect(rows[0]?.brier).toBeCloseTo(
+      (P_SUNDAY.home - 1) ** 2 + P_SUNDAY.draw ** 2 + P_SUNDAY.away ** 2,
+      5,
+    );
     expect(rows[0]?.rps).toBeCloseTo(rps(P_SUNDAY, 'home'), 6);
     expect(rows[1]?.rps).toBeCloseTo(rps(P_MONDAY, 'draw'), 6);
     expect(rows[0]?.uniformRps).toBeCloseTo(uniformRps('home'), 6);
@@ -243,8 +256,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('model accura
       (r) => r.modelVersion === PUBLISHED,
     );
     expect(months.map((r) => [r.periodStart, r.forecasts, r.matches])).toEqual([
-      ['2031-03-01', 2, 2],
+      ['2031-03-01', 3, 2],
     ]);
+    // One right of two matches, whatever the superseded version said.
+    expect(months.map((r) => r.correct)).toEqual([1]);
   });
 
   it('refuses the console series to a guest and a member, and an unknown period', async () => {
@@ -262,7 +277,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('model accura
       (s) => s.model_version === PUBLISHED && s.role === 'published' && s.competition === null,
     );
     expect(published?.points.map((p) => p.period)).toEqual(['2031-W09', '2031-W10']);
-    expect(published?.total).toMatchObject({ forecasts: 2, matches: 2, coverage: 'limited' });
+    expect(published?.total).toMatchObject({
+      forecasts: 3,
+      matches: 2,
+      coverage: 'limited',
+      accuracy: 0.5,
+    });
     expect(published?.total.rps).toBeCloseTo(
       (rps(P_SUNDAY, 'home') + rps(P_MONDAY, 'draw')) / 2,
       6,
@@ -286,7 +306,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('model accura
     const league = body.competitions.find((c) => c.competition?.id === COMPETITION);
     expect(league?.model_versions).not.toContain(SHADOW);
     const march = league?.points.find((p) => p.period === '2031-03');
-    expect(march).toMatchObject({ forecasts: 2, matches: 2, coverage: 'limited' });
+    expect(march).toMatchObject({ forecasts: 3, matches: 2, coverage: 'limited' });
+    // The share and the count are over the same two matches: 1 of 2.
     expect(march?.accuracy).toBe(0.5);
+    expect(march?.rps).toBeCloseTo((rps(P_SUNDAY, 'home') + rps(P_MONDAY, 'draw')) / 2, 6);
   });
 });

@@ -194,8 +194,10 @@ export function ModelAccuracyReport({
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted">
         Pre-kick-off forecasts only (D-031), by the {period === 'week' ? 'ISO week' : 'month'} of
-        kick-off in UTC. For log loss, Brier and RPS lower is better; a forecast of one third each
-        scores {reference.uniform_log_loss.toFixed(4)}, {reference.uniform_brier.toFixed(4)} and the
+        kick-off in UTC. Each match counts once, by this version&rsquo;s last forecast before its
+        kick-off (D-209): every figure is over the Matches column, and Forecasts counts the versions
+        scored. For log loss, Brier and RPS lower is better; a forecast of one third each scores{' '}
+        {reference.uniform_log_loss.toFixed(4)}, {reference.uniform_brier.toFixed(4)} and the
         &ldquo;RPS, uniform&rdquo; column, and gets {percent(reference.uniform_accuracy)} right.
         Below {minimum} matches a row is limited: a record, not a verdict.
       </p>

@@ -432,23 +432,31 @@ export const ACCURACY_PERIODS: readonly AccuracyPeriod[] = ['week', 'month'];
  */
 export const ACCURACY_MINIMUM_MATCHES = 30;
 
-/** Means over a set of evaluated pre-kick-off forecasts. */
+/**
+ * Means over a set of evaluated matches (T-1394, D-209): each match counted
+ * once, by the last forecast computed before its kick-off -- the one the
+ * match page shows as frozen at kick-off -- so `matches` is the sample every
+ * figure is over and a share of 7 matches is a multiple of 1/7.
+ */
 export interface AccuracyMetrics {
-  /** Pre-kick-off forecast versions evaluated: what the means are over. */
+  /**
+   * Pre-kick-off forecast versions evaluated for those matches, every one of
+   * them (D-031). Shown for what it is; no figure is averaged over it.
+   */
   forecasts: number;
-  /** Distinct matches among them: the sample size the coverage state reads. */
+  /** Distinct matches: the sample every figure and the coverage state read. */
   matches: number;
   /** `not_supplied` with no match, `limited` below `ACCURACY_MINIMUM_MATCHES`. */
   coverage: CoverageState;
-  /** Null when `forecasts` is 0: nothing is averaged out of nothing. */
+  /** Null when `matches` is 0: nothing is averaged out of nothing. */
   log_loss: number | null;
   brier: number | null;
   rps: number | null;
-  /** Share of forecasts whose most probable outcome happened. */
+  /** Share of the matches whose most probable outcome happened. */
   accuracy: number | null;
   /**
-   * The RPS a uniform forecast (1/3 each) scores on the same forecasts. It
-   * depends on how many were draws, so it is per row; null with no forecast.
+   * The RPS a uniform forecast (1/3 each) scores on the same matches. It
+   * depends on how many were draws, so it is per row; null with no match.
    */
   uniform_rps: number | null;
 }

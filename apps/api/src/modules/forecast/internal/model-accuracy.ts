@@ -21,7 +21,11 @@ import { UNIFORM_ACCURACY, UNIFORM_BRIER, UNIFORM_LOG_LOSS } from './scoring';
  * says which model is better: the console decides nothing (D-082).
  */
 
-/** One group of pre-kick-off evaluations, summed (not averaged). */
+/**
+ * One group of pre-kick-off evaluations, summed (not averaged): every sum is
+ * over each match's own forecast (one per match), `forecasts` counts every
+ * version (D-209).
+ */
 export interface AccuracySumRow {
   /** Null on the public read, which takes every published version together. */
   role: 'published' | 'shadow' | null;
@@ -82,14 +86,18 @@ export function accuracyCoverage(matches: number): CoverageState {
   return matches < ACCURACY_MINIMUM_MATCHES ? 'limited' : 'available';
 }
 
-/** The means, divided once; null figures when there is nothing to average. */
+/**
+ * The means, divided once by the matches; null figures when there is nothing
+ * to average. The sums are each match's own forecast only (D-209), so the
+ * sample a figure is over is the count shown beside it.
+ */
 export function accuracyMetrics(sums: Sums): AccuracyMetrics {
-  const n = sums.forecasts;
+  const n = sums.matches;
   const mean = (total: number, digits: number) => (n === 0 ? null : round(total / n, digits));
   return {
-    forecasts: n,
-    matches: sums.matches,
-    coverage: accuracyCoverage(n === 0 ? 0 : sums.matches),
+    forecasts: sums.forecasts,
+    matches: n,
+    coverage: accuracyCoverage(n),
     log_loss: mean(sums.logLoss, 6),
     brier: mean(sums.brier, 6),
     rps: mean(sums.rps, 6),
