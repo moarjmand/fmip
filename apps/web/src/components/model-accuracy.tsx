@@ -3,7 +3,9 @@ import type {
   PublicAccuracySeries,
   PublicModelAccuracyResponse,
 } from '@fmip/contracts';
+import Link from 'next/link';
 import { MessageText } from '@/components/message-text';
+import { Icon } from '@/components/ui';
 import { COVERAGE_KEY } from '@/components/score-card';
 import { Translated } from '@/components/translated';
 import { formatDate, formatGregorianMonth, formatNumber } from '@/i18n/format';
@@ -182,7 +184,7 @@ export function ModelAccuracy({
   return (
     <div className="flex flex-col gap-6" data-testid="model-accuracy">
       <section className="flex flex-col gap-2" data-testid="accuracy-overall">
-        <h2 className="text-lg font-semibold">
+        <h2 className="border-t-2 border-fg pt-2.5 font-serif text-2xl font-semibold">
           <Translated locale={lang} message="modelAccuracy.overall.title" />
         </h2>
         <SeriesBlock lang={lang} series={report.overall} minimum={minimum} />
@@ -203,7 +205,7 @@ export function ModelAccuracy({
 
       {report.competitions.length > 0 && (
         <section className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold">
+          <h2 className="border-t-2 border-fg pt-2.5 font-serif text-2xl font-semibold">
             <Translated locale={lang} message="modelAccuracy.competitions.title" />
           </h2>
           {report.competitions.map((series) => (
@@ -212,7 +214,7 @@ export function ModelAccuracy({
               className="flex flex-col gap-2"
               data-testid="accuracy-competition"
             >
-              <h3 className="font-semibold">{series.competition?.name}</h3>
+              <h3 className="font-serif text-xl font-semibold">{series.competition?.name}</h3>
               <SeriesBlock lang={lang} series={series} minimum={minimum} />
             </section>
           ))}
@@ -220,7 +222,7 @@ export function ModelAccuracy({
       )}
 
       <section className="flex flex-col gap-2" data-testid="accuracy-explained">
-        <h2 className="text-lg font-semibold">
+        <h2 className="border-t-2 border-fg pt-2.5 font-serif text-2xl font-semibold">
           <Translated locale={lang} message="modelAccuracy.explain.title" />
         </h2>
         <ul className="flex list-disc flex-col gap-2 ps-6 text-sm">
@@ -261,5 +263,103 @@ export function ModelAccuracy({
         </ul>
       </section>
     </div>
+  );
+}
+
+/** How many of the latest months the Predictions page shows. */
+const RECENT_MONTHS = 3;
+
+/**
+ * "How accurate is our model?" on the Predictions page (T-1383, D-201): the
+ * latest months of the overall series -- matches scored, the model's RPS and
+ * what a forecast of one third each scored on the same matches -- with the
+ * way to the full report. The model only (rule 6). Nothing scored is said,
+ * never shown as an empty table (rule 3).
+ */
+export function ModelAccuracyRecent({
+  locale,
+  report,
+}: {
+  locale: string;
+  report: PublicModelAccuracyResponse | null;
+}) {
+  const lang: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  const points = report === null ? [] : report.overall.points.slice(-RECENT_MONTHS).reverse();
+  const fixed = (value: number | null) => (value === null ? '—' : formatFixed(lang, value, 3));
+  const head = 'py-1.5 pe-3 text-end font-semibold';
+  return (
+    <section className="flex flex-col gap-3" data-testid="predictions-accuracy">
+      <h2 className="font-serif text-2xl font-semibold">
+        <Translated locale={lang} message="modelAccuracy.meta.title" />
+      </h2>
+      <p className="text-sm text-muted">
+        <Translated locale={lang} message="modelAccuracy.recent.intro" />
+      </p>
+      {report === null ? (
+        <p className="text-sm text-muted" data-testid="accuracy-unreachable">
+          <Translated locale={lang} message="modelAccuracy.unreachable" />
+        </p>
+      ) : points.length === 0 ? (
+        <p className="text-sm text-muted" data-testid="accuracy-not-supplied">
+          <Translated locale={lang} message="modelAccuracy.notSupplied" />
+        </p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm" data-testid="accuracy-recent">
+            <thead>
+              <tr className="border-b border-fg text-xs text-caption">
+                <th scope="col" className="py-1.5 pe-3 text-start font-semibold">
+                  <Translated locale={lang} message="modelAccuracy.table.month" />
+                </th>
+                <th scope="col" className={head}>
+                  <Translated locale={lang} message="modelAccuracy.table.matches" />
+                </th>
+                <th scope="col" className={head}>
+                  <Translated locale={lang} message="modelAccuracy.table.rps" />
+                </th>
+                <th scope="col" className={head}>
+                  <Translated locale={lang} message="modelAccuracy.table.rpsGuess" />
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {points.map((point) => (
+                <tr
+                  key={point.period}
+                  className="border-b border-default"
+                  data-coverage={point.coverage}
+                >
+                  <th scope="row" className="py-2 pe-3 text-start font-normal">
+                    <time dateTime={point.period}>{formatGregorianMonth(lang, point.period)}</time>
+                    {point.coverage === 'limited' && (
+                      <span className="ms-1.5 text-xs text-warning">
+                        <Translated locale={lang} message={COVERAGE_KEY.limited} />
+                      </span>
+                    )}
+                  </th>
+                  <td className="py-2 pe-3 text-end tabular-nums">
+                    {formatNumber(lang, point.matches)}
+                  </td>
+                  <td className="py-2 pe-3 text-end font-bold tabular-nums">{fixed(point.rps)}</td>
+                  <td className="py-2 pe-3 text-end text-muted tabular-nums">
+                    {fixed(point.uniform_rps)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p>
+        <Link
+          href={`/${lang}/model-accuracy`}
+          className="inline-flex min-h-touch items-center gap-1.5 font-bold text-accent"
+          data-testid="predictions-accuracy-link"
+        >
+          <Translated locale={lang} message="modelAccuracy.recent.full" />
+          <Icon name="forward" size={16} />
+        </Link>
+      </p>
+    </section>
   );
 }
