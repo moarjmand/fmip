@@ -284,6 +284,98 @@ export function FounderAnalysisBrief({
 }
 
 /**
+ * The founder's lane in "What was forecast, and what happened" (T-1384,
+ * D-202): after full time, the published call (its latest version, which
+ * was published before kick-off) against the result -- right or not, and
+ * whether the score was exact -- with the opening of the reasoning in the
+ * founder's voice and the signature. Settled on the founder's own record,
+ * never with the model's or the community's (rule 6). Most matches have no
+ * analysis, which is said once.
+ */
+export function FounderVerdict({
+  analysis,
+  result,
+  home,
+  away,
+  timeZone,
+  locale,
+}: {
+  analysis: FounderAnalysisResponse | null;
+  /** The full-time score. */
+  result: { home: number; away: number };
+  home: string;
+  away: string;
+  timeZone: string;
+  locale: string;
+}) {
+  const l = asLocale(locale);
+  const current = analysis?.analysis?.versions[0] ?? null;
+  if (analysis === null || analysis.analysis === null || current === null) {
+    return (
+      <FounderLane locale={l}>
+        <p className="text-sm text-muted" data-testid="founder-verdict" data-state="none">
+          <Translated locale={l} message="analysis.founder.none" />
+        </p>
+      </FounderLane>
+    );
+  }
+  const actual: FounderOutcome =
+    result.home > result.away ? 'home' : result.home < result.away ? 'away' : 'draw';
+  const right = current.predicted_outcome === actual;
+  const exact =
+    current.predicted_score !== null &&
+    current.predicted_score.home === result.home &&
+    current.predicted_score.away === result.away;
+  return (
+    <FounderLane locale={l}>
+      <div
+        className="flex flex-col gap-2"
+        data-testid="founder-verdict"
+        data-state={right ? 'right' : 'wrong'}
+      >
+        <p
+          className="line-clamp-4 font-article text-lg whitespace-pre-line italic [:root:is(:lang(fa),:lang(ar))_&]:not-italic"
+          data-testid="founder-voice"
+        >
+          {current.reasoning}
+        </p>
+        <p className="text-sm font-semibold">
+          <Translated locale={l} message="analysis.founder.verdict.pick" />{' '}
+          {outcomeLabel(l, current.predicted_outcome, home, away)}
+          {current.predicted_score !== null ? (
+            <>
+              {' — '}
+              <ScorePair locale={l}>
+                {scoreText(l, current.predicted_score.home, current.predicted_score.away)}
+              </ScorePair>
+            </>
+          ) : null}
+        </p>
+        <p className="text-sm" data-testid="founder-verdict-settled">
+          <Translated
+            locale={l}
+            message={right ? 'analysis.founder.verdict.right' : 'analysis.founder.verdict.wrong'}
+          />
+          {exact && (
+            <>
+              {' '}
+              <Translated locale={l} message="analysis.founder.verdict.exact" />
+            </>
+          )}
+        </p>
+        <Signature
+          author={analysis.analysis.author.display_name}
+          publishedAt={current.published_at}
+          version={current.version_number}
+          timeZone={timeZone}
+          locale={locale}
+        />
+      </div>
+    </FounderLane>
+  );
+}
+
+/**
  * The feed entry, for the homepage and the team and competition pages.
  *
  * Deliberately an excerpt with a link: a feed that reprinted the whole analysis

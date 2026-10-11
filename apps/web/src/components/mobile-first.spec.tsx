@@ -1,7 +1,8 @@
 import type { MatchCentre, ScoreCard as ScoreCardData } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { MatchCentreView, SECTIONS } from './match-centre-view';
+import { MatchCentreView, SECTIONS, TABS } from './match-centre-view';
+import { Coverage, HeadToHead, MatchForm } from './match-record';
 import { ScoreCard } from './score-card';
 import { EN } from '@/i18n/messages';
 import { matchWords, scoresWords } from '@/lib/words-server';
@@ -173,6 +174,28 @@ describe('a match on the scores list', () => {
   });
 });
 
+/**
+ * The view as the page renders it (T-1384): the parts that do not move in
+ * play -- form, head-to-head, absences, coverage -- are drawn on the server
+ * and handed in as slots, so they are rendered here the same way.
+ */
+function FullView(props: React.ComponentProps<typeof MatchCentreView>) {
+  const { centre, timeZone, locale, words, slots = {} } = props;
+  return (
+    <MatchCentreView
+      {...props}
+      slots={{
+        form: <MatchForm centre={centre} timeZone={timeZone} locale={locale} words={words} />,
+        headToHead: (
+          <HeadToHead centre={centre} timeZone={timeZone} locale={locale} words={words} />
+        ),
+        coverage: <Coverage centre={centre} words={words} />,
+        ...slots,
+      }}
+    />
+  );
+}
+
 const covered = <T,>(data: T) => ({
   coverage: 'available' as const,
   last_updated_at: '2025-01-05T17:40:00.000Z',
@@ -246,7 +269,7 @@ const centre: MatchCentre = {
 
 describe('the match centre', () => {
   const html = renderToStaticMarkup(
-    <MatchCentreView
+    <FullView
       words={MATCH_EN}
       centre={centre}
       timeZone="Asia/Tehran"
@@ -264,24 +287,46 @@ describe('the match centre', () => {
     />,
   );
 
-  it('opens with a compact header: teams, score, minute, kick-off in the viewer’s zone', () => {
+  it('opens with the score band: teams, score, minute, kick-off in the viewer’s zone', () => {
     const header = html.slice(0, html.indexOf('</header>'));
     expect(header).toContain('data-testid="match-header"');
     expect(header).toMatch(/data-testid="match-status">67′</);
-    expect(header).toContain('<bdi>Liverpool</bdi>');
+    expect(header).toMatch(/<bdi class="[^"]*">Liverpool<\/bdi>/);
+    // The live minute in red, with the word and the pulsing dot (T-1384).
+    expect(header).toMatch(/bg-live\/15 text-live"><span aria-hidden="true" class="live-dot/);
+    // The score large and condensed, home first in the page's direction (D-193).
+    expect(header).toMatch(/<span dir="ltr" class="[^"]*font-black[^"]*" data-testid="score">2</);
     // 16:30 UTC is 20:00 in Tehran.
     expect(header).toMatch(/Kick-off <time dateTime="2025-01-05T16:30:00.000Z">[^<]*20:00/);
     expect(header).toContain('Last data update');
   });
 
-  it('has a section nav of plain anchors, each to a section that exists', () => {
-    const nav = html.slice(html.indexOf('data-testid="section-nav"'), html.indexOf('</nav>'));
-    for (const [key, label] of SECTIONS) {
-      expect(nav).toContain(`href="#${key}"`);
+  it('has a phone tab bar of plain anchors, each to a section that exists (T-1384)', () => {
+    const nav = html.slice(html.indexOf('<nav'), html.indexOf('</nav>'));
+    expect(nav).toContain('md:hidden');
+    for (const [tab, label] of TABS) {
+      expect(nav).toContain(`href="#${tab}"`);
+      expect(nav).toContain(`data-tab-link="${tab}"`);
       expect(nav).toContain(EN[label].replace("'", '&#x27;'));
-      expect(html).toContain(`id="${key}"`);
+      expect(html).toContain(`id="${tab}"`);
     }
     expect(nav).not.toContain('<button');
+    // Every anchor another page links to is still on the page, in its tab.
+    for (const [id, tab] of Object.entries(SECTIONS)) {
+      if (id === 'verdict') continue; // after full time only
+      const at = html.indexOf(`id="${id}"`);
+      expect(at).toBeGreaterThan(-1);
+      const panel = html.lastIndexOf(`data-tab="${tab}"`, at + `id="${id}"`.length + 200);
+      expect(panel).toBeGreaterThan(-1);
+    }
+  });
+
+  it('lays the sections out in three columns from 768px and as tabs below it', () => {
+    expect(html).toContain('data-match-tabs=""');
+    for (const column of ['events', 'teams', 'forecasts']) {
+      expect(html).toContain(`data-column="${column}"`);
+    }
+    expect(html).toMatch(/max-md:contents[^"]*" data-column="events"/);
   });
 
   it('keeps the model, the founder and the community in three sections, in that order', () => {
@@ -293,21 +338,29 @@ describe('the match centre', () => {
     expect(section('forecast', 'analysis')).not.toMatch(/FOUNDER|CROWD/);
     expect(section('analysis', 'community')).toContain('FOUNDER');
     expect(section('analysis', 'community')).not.toMatch(/MODEL|CROWD/);
-    expect(section('community', 'discussion')).toContain('CROWD');
+    expect(section('community', 'watch')).toContain('CROWD');
+    expect(section('community', 'watch')).not.toMatch(/MODEL|FOUNDER/);
+    // All three inside the one Predictions tab, never merged into one section.
+    expect(at('predictions')).toBeLessThan(at('forecast'));
   });
 
-  it('scrolls the statistics table inside its own box and stacks the line-ups on a phone', () => {
-    expect(html).toMatch(/<div class="overflow-x-auto"><table/);
-    const lineups = html.slice(html.indexOf('data-testid="lineups"'));
-    expect(lineups).toContain('grid-cols-1');
-    expect(lineups).toContain('sm:grid-cols-2');
+  it('draws the statistics as a grid of tiles with their bars, in the brand green only', () => {
+    const stats = html.slice(html.indexOf('data-testid="statistics"'));
+    expect(stats).toContain('data-testid="stat-grid"');
+    expect(stats).toContain('@md:grid-cols-2');
+    expect(stats).toMatch(/data-metric="shots"/);
+    // 10 of 14 shots: the home bar 71.4% of its half, the away 28.6%.
+    expect(stats).toMatch(/bg-accent" style="inline-size:71\.42\d*%"/);
+    expect(stats).toMatch(/bg-muted" style="inline-size:28\.57\d*%"/);
+    // Never a club colour: the brand green and the neutral token only.
+    expect(stats.slice(0, stats.indexOf('</section>'))).not.toMatch(/bg-(model|founder|community)/);
   });
 
-  it('gives a coverage tag its own gap and direction, and an empty module its own sentence', () => {
+  it('gives a coverage badge its own gap and direction, and an empty module its own sentence', () => {
     // A flex gap, not a margin: beside an English title in a right-to-left
     // paragraph the margin landed on the far side and the two words touched.
     expect(html).toMatch(
-      /<h2 class="flex flex-wrap items-baseline gap-x-2[^"]*"><span>Player statistics<\/span><span dir="auto"/,
+      /<h2 class="flex flex-wrap items-center justify-between gap-x-2[^"]*"><span class="[^"]*">Player statistics<\/span><span dir="auto"/,
     );
     expect(html).toContain(
       '<p dir="auto" class="text-sm text-muted">Not supplied for this match.</p>',
@@ -317,13 +370,15 @@ describe('the match centre', () => {
     );
   });
 
-  it('leaves a section out of the nav when the page has nothing for it', () => {
+  it('leaves a tab out when the page has nothing for it', () => {
     const bare = renderToStaticMarkup(
-      <MatchCentreView words={MATCH_EN} centre={centre} timeZone="UTC" locale="en" />,
+      <FullView words={MATCH_EN} centre={centre} timeZone="UTC" locale="en" />,
     );
-    expect(bare).toContain('href="#timeline"');
-    expect(bare).not.toContain('href="#forecast"');
+    expect(bare).toContain('href="#summary"');
+    expect(bare).toContain('id="timeline"');
+    expect(bare).not.toContain('href="#predictions"');
     expect(bare).not.toContain('id="forecast"');
+    expect(bare).not.toContain('href="#watch"');
   });
 });
 
@@ -334,7 +389,7 @@ describe('the scores card and the match centre in Persian (T-1303)', () => {
     </ul>,
   );
   const view = renderToStaticMarkup(
-    <MatchCentreView words={matchWords('fa')} centre={centre} timeZone="Asia/Tehran" locale="fa" />,
+    <FullView words={matchWords('fa')} centre={centre} timeZone="Asia/Tehran" locale="fa" />,
   );
 
   it('says the card in Persian, with the minute and the score in Persian digits, isolated', () => {
@@ -360,7 +415,7 @@ describe('why the line-ups and the absences are empty (T-1364)', () => {
   const empty = { coverage: 'not_supplied' as const, last_updated_at: null, data: null };
   const page = (over: Partial<MatchCentre>, status: MatchCentre['fixture']['status'] = 'live') =>
     renderToStaticMarkup(
-      <MatchCentreView
+      <FullView
         words={MATCH_EN}
         centre={{ ...centre, fixture: { ...centre.fixture, status }, ...over }}
         timeZone="UTC"
@@ -407,7 +462,7 @@ describe('why the line-ups and the absences are empty (T-1364)', () => {
 
   it('has each sentence in Persian', () => {
     const fa = renderToStaticMarkup(
-      <MatchCentreView
+      <FullView
         words={matchWords('fa')}
         centre={{
           ...centre,
@@ -438,7 +493,7 @@ describe('the freshness times on the match centre (T-1371)', () => {
     locale = 'en',
   ) =>
     renderToStaticMarkup(
-      <MatchCentreView
+      <FullView
         words={matchWords(locale)}
         centre={{ ...centre, fixture: { ...centre.fixture, ...fixture }, ...over }}
         timeZone="Asia/Tehran"
@@ -514,7 +569,7 @@ describe('an incident in our words, never the provider’s (T-1378)', () => {
   });
   const timeline = (incidents: Incident[], locale = 'en') => {
     const html = renderToStaticMarkup(
-      <MatchCentreView
+      <FullView
         words={matchWords(locale)}
         centre={{ ...centre, timeline: covered(incidents) }}
         timeZone="UTC"
