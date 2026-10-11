@@ -680,6 +680,15 @@ export class IngestStore implements SquadStore {
   /**
    * Incidents in provider order. A player we cannot resolve means the incident
    * cannot be shown honestly, so it is skipped and named, not written blank.
+   *
+   * `sequence` is the incident's place in the provider's list, so the list is
+   * the whole truth for the fixture (T-1382): a row at a place this answer did
+   * not write -- past the end of a list that shrank, or where the answer now
+   * holds an incident we skipped -- is a different, older incident, and is
+   * deleted. Left behind, it showed the same substitution twice and hid the
+   * goal that had taken its place. An empty answer deletes nothing: a
+   * provider's momentary empty list must not wipe a timeline that post-match
+   * will not ask for again.
    */
   async saveIncidents(
     provider: Provider,
@@ -692,6 +701,7 @@ export class IngestStore implements SquadStore {
       ['away', await this.participantId(fixtureId, 'away')],
     ]);
     let changed = 0;
+    const written: number[] = [];
 
     for (const incident of incidents) {
       const person = await this.resolveRef(
@@ -762,6 +772,14 @@ export class IngestStore implements SquadStore {
           incident.sequence,
           incident.detail,
         ],
+      );
+      changed += rowCount ?? 0;
+      written.push(incident.sequence);
+    }
+    if (incidents.length > 0) {
+      const { rowCount } = await this.pool.query(
+        `DELETE FROM incident WHERE fixture_id = $1 AND NOT (sequence = ANY($2::smallint[]))`,
+        [fixtureId, written],
       );
       changed += rowCount ?? 0;
     }
