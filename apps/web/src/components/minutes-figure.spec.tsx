@@ -78,7 +78,10 @@ describe('where the minutes are shown (T-824)', () => {
 
   it('shows minutes beside each squad member on the team page', () => {
     const page = read('team', '[id]', 'page.tsx');
-    expect(page).toContain('minutes={player.minutes}');
-    expect(page).toContain('"team.squad.minutes"');
+    // T-1386: the Squad tab is the page's; its cards are drawn by the club components.
+    expect(page).toContain("tab === 'squad' && <SquadPanel");
+    const squad = readFileSync(join(HERE, 'club-page.tsx'), 'utf8');
+    expect(squad).toContain('minutes={player.minutes}');
+    expect(squad).toContain('"team.squad.minutes"');
   });
 });

@@ -9805,3 +9805,106 @@ migration for a layout; worth its own task if the maintainer wants it.
 name and "Next" fixtures in the band*: not asked for, and the first two need
 data the match payload does not carry. *A white crest tile*: no white token
 exists (D-198); the crest sits on the surface token in both themes.
+
+## D-204 — The player and club pages in data mode: a brand band because no club colour exists, a next-match card first, tabs over what the pages had
+**Status:** Accepted · 2026-10-11 · **Task:** T-1386 · **Follows:** D-198, D-199, D-203, D-206, D-193
+
+**Context.** The Hybrid boards h7 (player) and h8 (club) draw both pages in
+the Front Row look: a band filled with the club's colour, tabs, and modules
+on the stage. The maintainer decided (2026-10-10 and 2026-10-11) that both
+are data pages (the stage, Day and Night); that a club's colour may appear
+on the top band of a club page, and of a player page in his club's colour,
+and nowhere else, with text on it reaching WCAG AA 4.5:1 with white or ink
+(a colour that cannot is darkened until it does, computed); that the colour
+must come from our data and never be invented or taken from a provider
+field (rule 2); that the club page starts with a "Next match" card with the
+model's forecast and its version and the broadcaster; and that the player
+page shows a profile header, the season in dense tiles, recent matches and
+career, every module with a `CoverageBadge`.
+
+**Decision.**
+1. **No club colour exists, so the band is the brand's.** Neither
+   `@fmip/contracts` (`TeamPage.team`, `PlayerSpell.team`, `TableRow.team`)
+   nor the schema (no colour or kit column in any migration) carries a club
+   or kit colour; the only colour field in the contracts is the member's
+   theme. Inventing one, or reading one from the feed, is what the
+   maintainer ruled out. Both bands are therefore D-203's: the theme's
+   surface with a 4px brand-green rule along the top and the green bar under
+   the open tab (`EntityBand`, `LinkTabs`), following Day and Night; the
+   follow button is the green primary. When a licensed colour field exists
+   (a canonical team attribute, set by an editor or a licensed source, never
+   a provider field passed through), `EntityBand` is the one place it goes:
+   fill the band, put white or ink on it, and darken it in steps until the
+   chosen text reaches 4.5:1, computed in a spec. For reference, white on the
+   brand green #0b6b3a is 6.61:1; white on the board's red #c41f17 is 5.91:1
+   (ink on it only 3.01:1). Below the band everything stays brand green.
+2. **Data mode.** `<main data-mode="data">`, modules are D-203's surface
+   cards (`Panel`, which now takes an `id` so several panels of a kind on
+   one page keep unique ids), each with its coverage badge beside its name.
+3. **Tabs are links** (`?tab=`), server-rendered, each fetching only what
+   it shows. Club: Overview, Fixtures, Results, Squad, Stats; the board's
+   History tab is not built (no head-to-head or history data). A guest's
+   `?territory=` is kept on the tab links. Player: Overview, Matches,
+   Career, Stats; `?season=` belongs to Matches and Stats only.
+4. **The club Overview** opens on `NextMatchCard` (D-206) fed by the team
+   page's `next_match`, one `GET /forecasts/pre-kickoff` for that match and
+   one viewing request for it; with no next match, a "No match scheduled"
+   panel. Then, per current competition, the season in tiles: place and
+   points from the table context (its coverage on the badge), won-drawn-lost,
+   goals for and against and clean sheets from the API's own home/away/total
+   figures for the same season; a figure not counted is a sentence, never a
+   zero; a pair reads from the start of the line (`ScorePair`), so on `/fa`
+   the wins are on the right. Then the next three fixtures and last three
+   results as rows (the score between its teams in the page's direction, the
+   result from the club's side as D-203's letter tile), the first twelve of
+   the squad (the whole squad a tab away), where the club stands, the news
+   and the founder's analysis in its own card (rule 6). The Fixtures tab
+   keeps every fixture's "where to watch" line (T-314) in one batch request.
+   The board's head-to-head is not built: no endpoint serves it.
+5. **The squad** is a grid of cards (photo or initials, name, position and
+   shirt number). A sentence says when positions or shirt numbers are
+   missing for some players rather than leaving a gap; the initials are on
+   the neutral mark, not the board's "initial in club colour" (point 1).
+6. **The player band**: photo, "Goalkeeper · No. 1" from the open spell,
+   the name, the canonical and full names, the identity line (club with
+   "since", nationality, age and birth date or "Date of birth" with a
+   not-supplied badge, height, foot), follow (a person follow, the same
+   form) and "Compare with…" (T-631's search, unchanged). The board's large
+   licensed action photo with its credit is not built: `EntityMedia` has no
+   credit and the page has one photo, the 96px one.
+7. **The player Overview**: the newest season's first record row in dense
+   tiles (appearances, starts, goals, assists, yellow / red, minutes); the
+   other competitions of that season are named, not added in. Minutes the
+   feed never sent are a dashed tile with a "not supplied" badge; "at least"
+   where only some matches carried them (T-823). The board's "clean sheets"
+   for a goalkeeper is not on the record and is left out. Then the record by
+   season (the main columns; minutes and reds on the Stats tab), the latest
+   five matches with his line, the availability panel (T-1007, now with the
+   listing's coverage badge) and the news. The board's "his line from the
+   feed" is our line: started, came on or unused, goals, assists, cards.
+8. **Coverage**: `CoverageBadge` everywhere on both pages; the uppercase
+   `coverageText` words are gone from them. The spells, which the API
+   declares no coverage for, are `not_supplied` when there are none and
+   `available` otherwise, the rule the API itself applies to the squad.
+9. **Persian**: digits everywhere, season labels through `localDigits`
+   (D-200), each score a `Score` pair isolated in the page's direction
+   between its teams, so the home goals sit beside the home team; the old
+   team page's scores without a locale (Latin digits on `/fa`) are fixed.
+10. **The next-match card's round** is now D-193's label
+    (`stageNames`), or nothing when the round cannot be named; T-1388 had it
+    print the feed's round text, which this page would have been the first
+    to show.
+
+**Not built.** The board's "Alerts" button (following is the alert switch,
+as on the competition page), History and head-to-head, the club's
+"provisional after matchweek 8" note (not knowable with games in hand), the
+action photo and credit, a goalkeeper's clean sheets. No API, contract or
+schema change; no migration.
+
+**Rejected.** *Deriving a club colour from the crest image*: a guess
+dressed as data, and two clubs with the same dominant hue would look alike.
+*A green-filled band for clubs*: D-203's reasons (a mint panel at night that
+fights the green follow button). *Client-side tabs*: every tab's data in
+every response. *Summing a player's season across competitions in the
+tiles*: a friendly and a league are not one record; the other competitions
+are named and the record table has each.
