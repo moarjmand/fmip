@@ -371,7 +371,7 @@ function Hero({
   const venue =
     f.venue === null ? null : `${f.venue.name}${f.venue.city !== null ? `, ${f.venue.city}` : ''}`;
   const name = cx(
-    'block font-black leading-[0.95] break-words hyphens-auto',
+    'block max-w-full font-black leading-[0.95] break-words hyphens-auto',
     naskh
       ? 'text-lg md:text-display-1'
       : 'text-lg uppercase font-stretch-condensed md:text-display-1 lg:text-display-2',
@@ -478,8 +478,6 @@ function Hero({
               <span data-testid="match-status">{status}</span>
             </span>
           )}
-          {hero.live}
-          {hero.watch}
         </div>
         <h1 data-testid="away-team" className="min-w-0">
           <Link
@@ -491,6 +489,15 @@ function Hero({
           </Link>
         </h1>
       </div>
+
+      {/* Under the score, full width so the names keep their columns on a phone:
+          the stream's freshness stamp, then where to watch. */}
+      {(hero.live !== undefined || hero.watch !== undefined) && (
+        <div className="-mt-2 flex flex-col items-center gap-2 text-center">
+          {hero.live}
+          {hero.watch}
+        </div>
+      )}
 
       {behind && (
         <p
@@ -621,6 +628,12 @@ function Timeline({
     >
       {(incidents) => (
         <>
+          {/* Nothing recorded is said, never an empty card (rule 3). */}
+          {incidents.length === 0 && (
+            <p dir="auto" className="text-sm text-muted" data-testid="no-events">
+              <MessageText message={m['matchCentre.noEventsYet']} />
+            </p>
+          )}
           <ol className="flex flex-col text-sm">
             {[...incidents].reverse().map((i) => (
               <li

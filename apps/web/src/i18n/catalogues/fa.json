@@ -13602,5 +13602,11 @@
     "text": "{share} برد {team} را انتخاب کردند",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.noEventsYet": {
+    "source": "No events recorded yet.",
+    "text": "هنوز رویدادی ثبت نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
   }
 }

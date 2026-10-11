@@ -2440,5 +2440,6 @@
   "analysis.founder.verdict.wrong": "The result did not match the pick.",
   "analysis.founder.verdict.exact": "The score was exact too.",
   "matchCentre.community.verdict.draw": "{share} picked a draw",
-  "matchCentre.community.verdict.win": "{share} picked {team} to win"
+  "matchCentre.community.verdict.win": "{share} picked {team} to win",
+  "matchCentre.noEventsYet": "No events recorded yet."
 }

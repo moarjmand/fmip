@@ -240,7 +240,7 @@ function PitchPlayer({
           size={40}
           className="ring-2 ring-muted"
         />
-        <span className="block max-w-18 truncate text-xs font-semibold text-fg">
+        <span dir="auto" className="block max-w-18 truncate text-xs font-semibold text-fg">
           {p.name}
           {p.is_captain ? ` ${words.m['matchCentre.captain'].text}` : ''}
         </span>

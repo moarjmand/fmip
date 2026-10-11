@@ -270,6 +270,7 @@ export const MATCH_KEYS = [
   'matchCentre.keyEvents',
   'matchCentre.kickedOff',
   'matchCentre.latestFirst',
+  'matchCentre.noEventsYet',
   'matchCentre.lineups.pitchLabel',
   'matchCentre.lineups.pitchNote',
   'matchCentre.lineups.noFormation',

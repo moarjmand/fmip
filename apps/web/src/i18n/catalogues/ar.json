@@ -11165,5 +11165,10 @@
     "source": "{share} picked {team} to win",
     "text": "",
     "status": "untranslated"
+  },
+  "matchCentre.noEventsYet": {
+    "source": "No events recorded yet.",
+    "text": "",
+    "status": "untranslated"
   }
 }

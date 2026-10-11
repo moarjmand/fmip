@@ -315,6 +315,31 @@ describe('the score band', () => {
     expect(html).toContain('۷۸′');
   });
 
+  it('says that no event is recorded yet rather than drawing an empty list', () => {
+    const html = renderToStaticMarkup(
+      <MatchCentreView
+        words={matchWords('en')}
+        centre={{
+          ...centre({}),
+          timeline: { coverage: 'available', last_updated_at: null, data: [] },
+        }}
+        timeZone="UTC"
+        locale="en"
+      />,
+    );
+    expect(html).toContain('data-testid="no-events"');
+    expect(html).toContain('No events recorded yet.');
+  });
+
+  it('puts the stamp and the watch line under the score, full width, so the names keep their room', () => {
+    const html = band(centre({}), 'en', {
+      live: <p>STAMP</p>,
+      watch: <p>WATCH</p>,
+    });
+    expect(html.indexOf('data-testid="away-team"')).toBeLessThan(html.indexOf('STAMP'));
+    expect(html.indexOf('STAMP')).toBeLessThan(html.indexOf('WATCH'));
+  });
+
   it('never paints a club colour or a lane colour on the band', () => {
     const html = band(centre({}));
     expect(html).not.toMatch(/bg-(model|founder|community)|text-(model|founder|community)/);
