@@ -2,6 +2,7 @@ import type {
   FixtureEvaluationsResponse,
   ForecastListEntry,
   ForecastVersionsResponse,
+  MatchOutcome,
 } from '@fmip/contracts';
 import Link from 'next/link';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
@@ -25,7 +26,7 @@ import { FilledMessage } from '@/components/filled-message';
 import { ForecastBar } from '@/components/forecast-bar';
 import { ModelLane } from '@/components/product-lanes';
 import { COVERAGE_KEY } from '@/components/score-card';
-import { Score, pairIsolate } from '@/components/score';
+import { Score, nameIsolate, pairIsolate } from '@/components/score';
 import { Translated } from '@/components/translated';
 import { CoverageBadge, Notice } from '@/components/ui';
 
@@ -400,6 +401,113 @@ function Evaluation({
         />
       </p>
     </div>
+  );
+}
+
+/**
+ * The model's lane in "What was forecast, and what happened" (T-1384, D-202):
+ * after full time, the version the model published before kick-off -- the
+ * one its evaluation scored, else the last computed before kick-off --
+ * against the result, and the ranked probability score of that one match
+ * when the evaluation exists (T-1369's RPS, computed when read). The model
+ * only: this takes the model's versions and evaluations and nothing else
+ * (rule 6); the founder's and the community's lanes are their own files'.
+ * No version before kick-off is a sentence, never an empty bar (rule 3).
+ */
+export function ModelVerdict({
+  forecasts,
+  evaluations,
+  kickoffAt,
+  result,
+  home,
+  away,
+  timeZone,
+  locale,
+}: {
+  forecasts: ForecastVersionsResponse | null;
+  evaluations: FixtureEvaluationsResponse | null;
+  kickoffAt: string;
+  /** The full-time score. */
+  result: { home: number; away: number };
+  home: string;
+  away: string;
+  timeZone: string;
+  locale: string;
+}) {
+  const l: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  const scored =
+    evaluations?.evaluations.filter((evaluation) => evaluation.pre_kickoff).at(-1) ?? null;
+  const kickoff = Date.parse(kickoffAt);
+  const version =
+    forecasts === null
+      ? null
+      : scored !== null
+        ? (forecasts.versions.find((v) => v.version_number === scored.version_number) ?? null)
+        : (forecasts.versions.filter((v) => Date.parse(v.computed_at) <= kickoff).at(-1) ?? null);
+  const outcome: MatchOutcome =
+    result.home > result.away ? 'home' : result.home < result.away ? 'away' : 'draw';
+  const outcomeName =
+    outcome === 'draw'
+      ? t(l, 'forecast.aDraw')
+      : interpolate(t(l, 'predictions.outcome.teamWin'), {
+          team: nameIsolate(outcome === 'home' ? home : away),
+        });
+  const p = version?.probabilities ?? null;
+  return (
+    <ModelLane locale={l}>
+      <div className="flex flex-col gap-3" data-testid="model-verdict">
+        <p className="text-sm text-muted">
+          <Translated locale={l} message="forecast.verdict.frozen" />
+        </p>
+        <ForecastBar
+          forecast={
+            forecasts === null
+              ? { state: 'unreachable' }
+              : cardForecast(version === null ? null : version)
+          }
+          home={home}
+          away={away}
+          started
+          locale={l}
+          timeZone={timeZone}
+          words={forecastBarWords(l)}
+          size="compact"
+        />
+        {p !== null && (
+          <p className="text-sm font-semibold" data-testid="model-verdict-result">
+            {interpolate(t(l, 'forecast.verdict.result'), {
+              outcome: outcomeName,
+              probability: formatPercent(l, percentages(p)[outcome]),
+            })}
+          </p>
+        )}
+        {scored !== null ? (
+          <p
+            className="flex items-baseline gap-2.5 border-t border-default pt-3"
+            data-testid="model-verdict-rps"
+          >
+            <b className="font-sans text-display-2 leading-none font-black font-stretch-condensed tabular-nums">
+              <span dir="ltr">{formatFixed(l, scored.rps, 3)}</span>
+            </b>
+            <span className="text-sm text-muted">
+              <Translated locale={l} message="forecast.verdict.rps" />
+            </span>
+          </p>
+        ) : (
+          version !== null && (
+            <p className="text-sm text-muted" data-testid="model-verdict-unscored">
+              <Translated locale={l} message="forecast.verdict.unscored" />
+            </p>
+          )
+        )}
+        <Link
+          href={`/${l}/model-accuracy`}
+          className="inline-flex min-h-touch items-center text-sm font-bold text-model underline"
+        >
+          <Translated locale={l} message="forecast.verdict.accuracy" />
+        </Link>
+      </div>
+    </ModelLane>
   );
 }
 

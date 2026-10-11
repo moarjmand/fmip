@@ -13170,5 +13170,155 @@
     "text": "به وقت {zone}",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.tab.summary": {
+    "source": "Summary",
+    "text": "خلاصه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.tab.predictions": {
+    "source": "Predictions",
+    "text": "پیش‌بینی‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.keyEvents": {
+    "source": "Key events",
+    "text": "رویدادهای کلیدی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.kickedOff": {
+    "source": "Kick-off",
+    "text": "شروع بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.latestFirst": {
+    "source": "Latest first. Names and minutes come from the match feed.",
+    "text": "تازه‌ترین در بالا. نام‌ها و دقیقه‌ها از داده‌های بازی می‌آیند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.lineups.pitchLabel": {
+    "source": "Line-ups on the pitch: {away} in the top half, {home} in the bottom half",
+    "text": "ترکیب‌ها در زمین: {away} در نیمه‌ی بالا، {home} در نیمه‌ی پایین",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.lineups.pitchNote": {
+    "source": "Home side at the bottom. Players are placed by the formation and the role the feed gives each of them; along each line they are in shirt-number order, because the feed does not say who played on which side.",
+    "text": "میزبان در پایین. بازیکنان بر پایه‌ی آرایش تیم و نقشی که داده‌ها برای هر کدام می‌دهند چیده شده‌اند؛ در هر خط به ترتیب شماره‌ی پیراهن، چون داده‌ها نمی‌گویند چه کسی در کدام سمت بازی کرد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.lineups.noFormation": {
+    "source": "No formation supplied, so this line-up is a list.",
+    "text": "آرایش تیم ارائه نشده است؛ برای همین این ترکیب به‌صورت فهرست آمده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.lineups.noRoles": {
+    "source": "Not every starter's role is supplied, so this line-up is a list.",
+    "text": "نقش همه‌ی بازیکنان اصلی ارائه نشده است؛ برای همین این ترکیب به‌صورت فهرست آمده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.lineups.linesUnknown": {
+    "source": "The feed does not say which midfielder played in which line of the {formation}, so this line-up is a list.",
+    "text": "داده‌ها نمی‌گویند هر هافبک در کدام خطِ آرایش {formation} بازی کرد؛ برای همین این ترکیب به‌صورت فهرست آمده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.lineups.mismatch": {
+    "source": "The roles supplied do not fit the {formation}, so this line-up is a list.",
+    "text": "نقش‌های ارائه‌شده با آرایش {formation} جور نیست؛ برای همین این ترکیب به‌صورت فهرست آمده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.hero.watch": {
+    "source": "Watch:",
+    "text": "تماشا:",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.hero.highlightsNote": {
+    "source": "Highlights open on {host}'s site. We don't host video.",
+    "text": "خلاصه‌ی بازی در سایت {host} باز می‌شود. ما ویدیو میزبانی نمی‌کنیم.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.verdict.title": {
+    "source": "What was forecast, and what happened",
+    "text": "پیش‌بینی‌ها و آنچه رخ داد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "forecast.verdict.frozen": {
+    "source": "Pre-match forecast, frozen at kick-off. It does not update during the match.",
+    "text": "پیش‌بینی پیش از بازی، ثابت از سوت شروع؛ در طول بازی به‌روز نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "forecast.verdict.result": {
+    "source": "Result: {outcome}. The model gave it {probability}.",
+    "text": "نتیجه: {outcome}. مدل به آن {probability} داده بود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "forecast.verdict.rps": {
+    "source": "ranked probability score for this match · 0 is perfect",
+    "text": "امتیاز احتمال رتبه‌ای (RPS) این بازی · صفر یعنی بی‌خطا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "forecast.verdict.unscored": {
+    "source": "Not scored yet: the evaluation runs once the result is confirmed.",
+    "text": "هنوز ارزیابی نشده است: ارزیابی پس از قطعی شدن نتیجه انجام می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "forecast.verdict.accuracy": {
+    "source": "One match says little: the model's record",
+    "text": "یک بازی چیز زیادی نمی‌گوید: کارنامه‌ی مدل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "analysis.founder.verdict.pick": {
+    "source": "Pick:",
+    "text": "انتخاب:",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "analysis.founder.verdict.right": {
+    "source": "The result matched the pick.",
+    "text": "نتیجه با این انتخاب یکی بود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "analysis.founder.verdict.wrong": {
+    "source": "The result did not match the pick.",
+    "text": "نتیجه با این انتخاب یکی نبود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "analysis.founder.verdict.exact": {
+    "source": "The score was exact too.",
+    "text": "نتیجه‌ی دقیق هم درست بود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.community.verdict.draw": {
+    "source": "{share} picked a draw",
+    "text": "{share} مساوی را انتخاب کردند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.community.verdict.win": {
+    "source": "{share} picked {team} to win",
+    "text": "{share} برد {team} را انتخاب کردند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
   }
 }

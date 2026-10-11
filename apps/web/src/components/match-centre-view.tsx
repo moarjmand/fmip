@@ -1,35 +1,38 @@
 import type {
-  CoverageModule,
-  Covered,
-  FormEntry,
   MatchAbsenceGap,
   MatchCentre,
   MatchIncident,
-  MatchLineupPlayer,
   MatchPlayerStats,
+  MatchStatRow,
   PlayerMatchMetric,
 } from '@fmip/contracts';
 import { AVAILABILITY_STALE_AFTER_MS } from '@fmip/contracts';
 import { formatNumber } from '@/i18n/format';
-import type { Message } from '@/i18n/messages';
 import Link from 'next/link';
-import { INCIDENT_KEY, NOT_YET, STAT_KEY, incidentDetailKey, statValue } from '@/lib/match';
+import { INCIDENT_KEY, STAT_KEY, incidentDetailKey, statValue } from '@/lib/match';
 import { isBehind } from '@/lib/live';
-import { formatStamp, freshnessStamp, statusLabel } from '@/lib/scores';
+import { formatKickoff, formatStamp, freshnessStamp, statusLabel } from '@/lib/scores';
 import { fill, filled, formatFixed, formatMinute } from '@/lib/words';
 import { stageAndRoundLabels } from '@/lib/stage-label';
 import type { MatchWords } from '@/lib/words-server';
 import { formatDate, formatDateTime } from '@/i18n/format';
 import { EntityImage } from '@/components/entity-image';
 import { FilledMessage } from '@/components/filled-message';
+import { Module } from '@/components/match-centre-cards';
+import { MatchLineupsView } from '@/components/match-lineups';
 import { MessageText } from '@/components/message-text';
-import { COVERAGE_KEY } from '@/components/score-card';
-import { Score } from '@/components/score';
+import { Score, ScorePair } from '@/components/score';
 import { CoverageBadge } from '@/components/ui/coverage-badge';
+import { cx } from '@/components/ui/cx';
 
 /** The server-rendered panels the page slots between the live modules (T-605). */
 export type MatchSlot =
   | 'summary'
+  | 'verdict'
+  // What does not move in play, rendered on the server (`match-record.tsx`).
+  | 'form'
+  | 'headToHead'
+  | 'coverage'
   | 'context'
   | 'players'
   | 'forecast'
@@ -40,32 +43,59 @@ export type MatchSlot =
   | 'news';
 export type MatchSlots = Partial<Record<MatchSlot, React.ReactNode>>;
 
+/**
+ * What the page adds to the score band (T-1384): the live line (the stream's
+ * freshness stamp, from `LiveMatch`), where to watch, and after full time the
+ * official highlight. Server-rendered where they need the viewing answer.
+ */
+export interface MatchHero {
+  live?: React.ReactNode;
+  watch?: React.ReactNode;
+  highlights?: React.ReactNode;
+}
+
 type Key = keyof MatchWords['m'];
 
-/** The sections this view always has, whatever the page passes. */
-const BUILT_IN = { timeline: true, stats: true, lineups: true } as const;
+/**
+ * The phone's tabs (T-1384, D-202), in their order, each with its label and
+ * the anchor its link opens. On a phone one tab's sections show at a time;
+ * from 768px every section is open in columns and the tabs are not drawn.
+ * The tabs are plain anchors: `globals.css` shows the tab that holds the
+ * page's `:target` (the Summary when there is none), so a tab, a deep link
+ * (`#lineups`, `#forecast`) and a page with no script all work alike. The
+ * statistical model, the founder's analysis and the community stay three
+ * sections inside Predictions (rule 6).
+ */
+export const TABS = [
+  ['summary', 'matchCentre.tab.summary'],
+  ['lineups', 'matchCentre.lineups'],
+  ['stats', 'matchCentre.nav.stats'],
+  ['predictions', 'matchCentre.tab.predictions'],
+  ['watch', 'nav.watch'],
+  ['discussion', 'matchCentre.nav.discussion'],
+] as const satisfies readonly (readonly [string, Key])[];
+
+export type MatchTab = (typeof TABS)[number][0];
 
 /**
- * The in-page nav, in page order, each with its label's catalogue key
- * (T-1303). The statistical model, the founder's analysis and the community
- * are three entries with three names (rule 6).
+ * Every section anchor the page has, and the tab that holds it. Other pages
+ * link to these (`story-links.tsx`: `#forecast`, `#analysis`, `#community`;
+ * the discussion's links to `#lineups`, `#stats`, `#timeline`), so they stay.
  */
-export const SECTIONS: readonly [
-  key: keyof typeof BUILT_IN | Exclude<MatchSlot, 'summary'>,
-  label: Key,
-][] = [
-  ['timeline', 'matchCentre.nav.timeline'],
-  ['stats', 'matchCentre.nav.stats'],
-  ['context', 'matchCentre.nav.context'],
-  ['lineups', 'matchCentre.lineups'],
-  ['players', 'matchCentre.keyPlayers.title'],
-  ['forecast', 'forecast.title'],
-  ['analysis', 'matchCentre.nav.analysis'],
-  ['community', 'matchCentre.nav.community'],
-  ['discussion', 'matchCentre.nav.discussion'],
-  ['watch', 'nav.watch'],
-  ['news', 'nav.news'],
-];
+export const SECTIONS = {
+  timeline: 'summary',
+  verdict: 'summary',
+  context: 'summary',
+  news: 'summary',
+  stats: 'stats',
+  lineups: 'lineups',
+  players: 'lineups',
+  forecast: 'predictions',
+  analysis: 'predictions',
+  community: 'predictions',
+  watch: 'watch',
+  discussion: 'discussion',
+} as const satisfies Record<string, MatchTab>;
 
 /** The per-player columns the match centre shows (T-101), in reading order. */
 const PLAYER_COLUMNS: readonly [PlayerMatchMetric, Key][] = [
@@ -78,16 +108,6 @@ const PLAYER_COLUMNS: readonly [PlayerMatchMetric, Key][] = [
   ['tackles', 'matchCentre.player.tackles'],
 ];
 
-const MODULE_KEY = {
-  scores: 'matchCentre.module.scores',
-  incidents: 'matchCentre.module.incidents',
-  lineups: 'matchCentre.module.lineups',
-  statistics: 'matchCentre.module.statistics',
-  standings: 'matchCentre.module.standings',
-  availability: 'matchCentre.module.availability',
-  advanced_statistics: 'matchCentre.module.advancedStatistics',
-} as const satisfies Record<CoverageModule, Key>;
-
 /** Why the absence list is empty (T-1364): each reason its own sentence. */
 const ABSENCE_GAP_KEY = {
   not_covered: 'matchCentre.absencesNotCovered',
@@ -95,11 +115,8 @@ const ABSENCE_GAP_KEY = {
   not_asked: 'matchCentre.moduleNotSupplied',
 } as const satisfies Record<MatchAbsenceGap, Key>;
 
-const RESULT_KEY = {
-  W: 'matchCentre.form.won',
-  D: 'matchCentre.form.drawn',
-  L: 'matchCentre.form.lost',
-} as const satisfies Record<FormEntry['result'], Key>;
+/** Locales whose numerals and names are set in Vazirmatn: no condensed width, a smaller score (D-198). */
+const ARABIC_SCRIPT = new Set(['fa', 'ar']);
 
 /** One player cell: the provider's rating to one decimal, a count as it is, `–` when not supplied. */
 function playerCell(locale: string, player: MatchPlayerStats, metric: PlayerMatchMetric): string {
@@ -109,25 +126,42 @@ function playerCell(locale: string, player: MatchPlayerStats, metric: PlayerMatc
 }
 
 /**
- * One section of the page, the target of a nav anchor. Its top clears the
- * sticky nav when jumped to; with nothing in it, it is not rendered.
+ * One section of the page, the target of an anchor. Its top clears the
+ * sticky tabs when jumped to; with nothing in it, it is not rendered. `tab`
+ * makes it a tab's whole panel (Stats, Watch, Discussion).
  */
-function Region({ id, children }: { id: string; children?: React.ReactNode }) {
+function Region({ id, tab, children }: { id: string; tab?: MatchTab; children?: React.ReactNode }) {
   if (children === undefined || children === null || children === false) return null;
   return (
-    <div id={id} className="flex scroll-mt-14 flex-col gap-6" data-testid={`section-${id}`}>
+    <div
+      id={id}
+      className="flex min-w-0 scroll-mt-16 flex-col gap-5"
+      data-testid={`section-${id}`}
+      data-tab={tab}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** A tab's panel that holds several sections (Summary, Line-ups, Predictions). */
+function Panel({ tab, id, children }: { tab: MatchTab; id?: string; children: React.ReactNode }) {
+  return (
+    <div id={id} className="flex min-w-0 scroll-mt-16 flex-col gap-5" data-tab={tab}>
       {children}
     </div>
   );
 }
 
 /**
- * The match centre as blueprint 4.2 lays it out, from one `MatchCentre`
- * payload (T-034). Every module renders its coverage state beside its name;
- * a module without data says so; modules the platform does not have yet are
- * named at the end rather than left as empty boxes (rule 3). Pure rendering:
- * the server page and the live client component both use it, which is why
- * its words arrive resolved (`words`, T-1303) rather than from the catalogue.
+ * The match centre from one `MatchCentre` payload (T-034), in the Hybrid
+ * "Front Row" data mode (T-1384, D-202): a score band on the stage, then
+ * every section as a card, side by side in columns from 768px and one tab at
+ * a time on a phone. Every module renders its coverage state beside its name;
+ * a module without data says so (rule 3). Pure rendering: the server page and
+ * the live client component both use it, which is why its words arrive
+ * resolved (`words`, T-1303) rather than from the catalogue. Brand green and
+ * the three lane colours only: no club colour on this page.
  */
 export function MatchCentreView({
   centre,
@@ -135,6 +169,7 @@ export function MatchCentreView({
   locale,
   now,
   slots = {},
+  hero = {},
   words,
 }: {
   centre: MatchCentre;
@@ -144,241 +179,125 @@ export function MatchCentreView({
   now?: number;
   /** Server-rendered panels, each placed in its own section. */
   slots?: MatchSlots;
+  /** What the page adds to the score band. */
+  hero?: MatchHero;
   /** The reader's words, resolved by the page on the server (T-1303). */
   words: MatchWords;
 }) {
   const m = words.m;
-  const n = (value: number): string => formatNumber(locale, value);
   const f = centre.fixture;
-  const headline =
-    f.status === 'finished' ? (f.scores.full_time ?? f.scores.current) : f.scores.current;
-  const behind = now !== undefined && isBehind(f, now);
-  const status = statusLabel(f, locale, timeZone, now, m);
-  // Every freshness time on the page says its day when it is not today (T-1371).
-  // No clock (a pure render without one) says the full date and time.
-  const clock = now;
-  const at = (iso: string) => (
-    <time dateTime={iso}>{formatStamp(locale, iso, timeZone, clock)}</time>
-  );
-  // The fixture lists re-ask hourly; a check after the last change is the
-  // newer truth about the match, and the change keeps its own time (D-189).
-  const checked =
-    f.last_checked_at != null && Date.parse(f.last_checked_at) > Date.parse(f.last_updated_at)
-      ? f.last_checked_at
-      : null;
-  const asked = centre.availability.last_updated_at;
-  // An absence answer before kick-off is re-asked every three hours (D-127).
-  const askedStamp =
-    asked === null
-      ? null
-      : freshnessStamp(
-          locale,
-          asked,
-          timeZone,
-          clock,
-          f.status === 'scheduled' ? AVAILABILITY_STALE_AFTER_MS : undefined,
-        );
-  const venue =
-    f.venue === null ? null : `${f.venue.name}${f.venue.city !== null ? `, ${f.venue.city}` : ''}`;
-  const moduleState = (coverage: Covered<unknown>['coverage']): Message =>
-    m[COVERAGE_KEY[coverage]];
+  const has = (slot: MatchSlot) => (slots[slot] ?? null) !== null;
 
-  // The in-page sections (T-605): plain anchors, so the nav works with no
-  // script, and only for what this page holds. The model, the founder and the
-  // community are three entries, never one (rule 6).
-  const nav = SECTIONS.filter(
-    ([key]) => key in BUILT_IN || (slots[key as MatchSlot] ?? null) !== null,
-  );
+  // Which tabs this page has: a tab with nothing in it is not offered.
+  const present: Record<MatchTab, boolean> = {
+    summary: true,
+    lineups: true,
+    stats: true,
+    predictions: has('forecast') || has('analysis') || has('community'),
+    watch: has('watch'),
+    discussion: has('discussion'),
+  };
+  const tabs = TABS.filter(([tab]) => present[tab]);
+
+  const panels: Record<MatchTab, React.ReactNode> = {
+    summary: (
+      <Panel tab="summary" id="summary">
+        <Region id="timeline">
+          <Timeline centre={centre} locale={locale} timeZone={timeZone} words={words} />
+        </Region>
+        {/* After full time: what each product forecast, against the result. */}
+        <Region id="verdict">{slots.verdict}</Region>
+        {slots.summary}
+        <Region id="context">{slots.context}</Region>
+        <Region id="news">{slots.news}</Region>
+      </Panel>
+    ),
+    stats: (
+      <Region id="stats" tab="stats">
+        <Statistics centre={centre} locale={locale} words={words} />
+        <PlayerStatistics centre={centre} locale={locale} words={words} />
+        {slots.form}
+        {slots.headToHead}
+      </Region>
+    ),
+    lineups: (
+      <Panel tab="lineups">
+        <Region id="lineups">
+          <Module
+            title={m['matchCentre.lineups']}
+            module={centre.lineups}
+            testId="lineups"
+            words={words}
+            empty={f.status === 'scheduled' ? 'matchCentre.lineupsNotYet' : null}
+          >
+            {(lineups) => (
+              <MatchLineupsView
+                home={f.home}
+                away={f.away}
+                lineups={lineups}
+                locale={locale}
+                words={words}
+              />
+            )}
+          </Module>
+          <Availability
+            centre={centre}
+            locale={locale}
+            timeZone={timeZone}
+            now={now}
+            words={words}
+          />
+        </Region>
+        <Region id="players">{slots.players}</Region>
+      </Panel>
+    ),
+    predictions: present.predictions ? (
+      // Three sections with three names, never one panel (rule 6, T-605).
+      <Panel tab="predictions" id="predictions">
+        <Region id="forecast">{slots.forecast}</Region>
+        <Region id="analysis">{slots.analysis}</Region>
+        <Region id="community">{slots.community}</Region>
+      </Panel>
+    ) : null,
+    watch: (
+      <Region id="watch" tab="watch">
+        {slots.watch}
+      </Region>
+    ),
+    discussion: (
+      <Region id="discussion" tab="discussion">
+        {slots.discussion}
+      </Region>
+    ),
+  };
+
+  // The columns from 768px: what happened, who played, what was forecast.
+  // On a phone the columns are no box at all and the tabs choose.
+  const COLUMN = 'flex min-w-0 grow flex-col gap-5 max-md:contents [&:not(:has(>*))]:hidden';
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2" data-testid="match-header">
-        <p className="text-xs text-muted sm:text-sm">
-          <Link
-            href={`/${locale}/competition/${f.competition.id}?season=${f.season.id}`}
-            className="inline-flex items-center gap-1.5 align-middle underline"
-            data-testid="competition-link"
-          >
-            <EntityImage
-              media={f.competition.logo}
-              kind="logo"
-              name={f.competition.name}
-              size={20}
-              aboveFold
-            />
-            {f.competition.name}
-          </Link>{' '}
-          · {f.season.label}
-          {stageAndRoundLabels(f.stage?.name, f.round, (key) => m[key].text, locale).map(
-            (label) => ` · ${label}`,
-          )}
-          {f.group_name !== null
-            ? ` · ${fill(m['matchCentre.group'].text, { group: f.group_name })}`
-            : ''}
-          {f.leg !== null ? ` · ${fill(m['scores.card.leg'].text, { leg: n(f.leg) })}` : ''}
-        </p>
-        {/* Names wrap rather than push the score off a phone's screen. */}
-        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
-          <h1
-            className="text-end text-base font-semibold hyphens-auto [overflow-wrap:anywhere] sm:text-2xl"
-            data-testid="home-team"
-          >
-            <Link
-              href={`/${locale}/team/${f.home.id}`}
-              className="inline-flex flex-col items-end gap-1"
-            >
-              <EntityImage
-                media={f.home.crest}
-                kind="crest"
-                name={f.home.name}
-                size={48}
-                aboveFold
-              />
-              <bdi>{f.home.name}</bdi>
-            </Link>
-          </h1>
-          <div className="flex flex-col items-center">
-            {headline === null ? (
-              <span className="text-2xl font-semibold tabular-nums sm:text-3xl" data-testid="score">
-                –
-              </span>
-            ) : (
-              <Score
-                home={headline.home}
-                away={headline.away}
-                separator=" – "
-                className="text-2xl font-semibold whitespace-nowrap tabular-nums sm:text-3xl"
-                testId="score"
-                locale={locale}
-              />
-            )}
-            <span
-              className={`text-sm ${f.status === 'live' && !behind ? 'font-semibold text-live' : ''}`}
-              data-testid="match-status"
-            >
-              {status}
-            </span>
-          </div>
-          <h1
-            className="text-base font-semibold hyphens-auto [overflow-wrap:anywhere] sm:text-2xl"
-            data-testid="away-team"
-          >
-            <Link
-              href={`/${locale}/team/${f.away.id}`}
-              className="inline-flex flex-col items-start gap-1"
-            >
-              <EntityImage
-                media={f.away.crest}
-                kind="crest"
-                name={f.away.name}
-                size={48}
-                aboveFold
-              />
-              <bdi>{f.away.name}</bdi>
-            </Link>
-          </h1>
-        </div>
-        {behind && (
-          <p role="status" className="text-sm font-medium" data-testid="feed-behind">
-            <FilledMessage
-              message={m['matchCentre.behind']}
-              params={{ time: at(f.last_updated_at) }}
-            />
-          </p>
-        )}
-        <ul className="flex flex-wrap gap-x-4 text-xs text-muted">
-          {f.scores.half_time !== null && (
-            <li>
-              <MessageText message={m['status.halfTime']} />{' '}
-              <Score
-                home={f.scores.half_time.home}
-                away={f.scores.half_time.away}
-                locale={locale}
-              />
-            </li>
-          )}
-          {f.scores.aggregate !== null && (
-            <li>
-              <MessageText message={m['status.aggregate']} />{' '}
-              <Score
-                home={f.scores.aggregate.home}
-                away={f.scores.aggregate.away}
-                locale={locale}
-              />
-            </li>
-          )}
-          {f.scores.penalties !== null && (
-            <li>
-              <MessageText message={m['status.penalties']} />{' '}
-              <Score
-                home={f.scores.penalties.home}
-                away={f.scores.penalties.away}
-                locale={locale}
-              />
-            </li>
-          )}
-          <li>
-            <FilledMessage
-              message={m['scores.card.kickoff']}
-              params={{
-                time: (
-                  <time dateTime={f.kickoff_at}>
-                    {formatDateTime(locale, f.kickoff_at, timeZone)}
-                  </time>
-                ),
-              }}
-            />
-          </li>
-          {venue !== null && (
-            <li>
-              {f.is_neutral_venue ? (
-                <MessageText message={filled(m['matchCentre.neutralVenue'], { venue })} />
-              ) : (
-                venue
-              )}
-            </li>
-          )}
-          <li>
-            <MessageText
-              message={filled(m['matchCentre.referee'], {
-                name: f.referee === null ? m['status.coverage.notSupplied'].text : f.referee.name,
-              })}
-            />
-          </li>
-          {f.attendance !== null && (
-            <li>
-              <MessageText
-                message={filled(m['matchCentre.attendance'], { count: n(f.attendance) })}
-              />
-            </li>
-          )}
-          <li data-testid="last-update">
-            {checked === null ? (
-              <FilledMessage
-                message={m['matchCentre.lastUpdate']}
-                params={{ time: at(f.last_updated_at) }}
-              />
-            ) : (
-              <FilledMessage
-                message={m['matchCentre.lastChecked']}
-                params={{ time: at(checked), changed: at(f.last_updated_at) }}
-              />
-            )}
-          </li>
-        </ul>
-      </header>
+    <div className="flex flex-col gap-5" data-match-root="">
+      <Hero
+        centre={centre}
+        locale={locale}
+        timeZone={timeZone}
+        now={now}
+        hero={hero}
+        words={words}
+      />
 
       <nav
         aria-label={m['matchCentre.onThisPage'].text}
-        className="sticky top-0 z-20 -mx-4 overflow-x-auto border-b border-default bg-canvas px-4 sm:mx-0 sm:px-0"
+        className="sticky top-0 z-20 -mx-4 overflow-x-auto border-b border-default bg-stage px-2 md:hidden"
         data-testid="section-nav"
       >
-        <ul className="flex gap-1 text-sm">
-          {nav.map(([key, label]) => (
-            <li key={key} className="shrink-0">
+        <ul className="flex">
+          {tabs.map(([tab, label]) => (
+            <li key={tab} className="shrink-0">
               <a
-                href={`#${key}`}
-                className="inline-flex min-h-11 items-center px-3 whitespace-nowrap underline"
+                href={`#${tab}`}
+                data-tab-link={tab}
+                className="inline-flex min-h-touch items-center px-2.5 text-sm font-medium whitespace-nowrap text-muted"
               >
                 <MessageText message={m[label]} />
               </a>
@@ -387,25 +306,343 @@ export function MatchCentreView({
         </ul>
       </nav>
 
-      <Region id="timeline">
-        {slots.summary}
-        <Module
-          title={m['matchCentre.timeline']}
-          module={centre.timeline}
-          testId="timeline"
-          words={words}
+      <div
+        className="flex flex-col gap-5 md:flex-row md:flex-wrap md:items-start"
+        data-match-tabs=""
+      >
+        <div className={cx(COLUMN, 'md:basis-90')} data-column="events">
+          {panels.summary}
+          {panels.stats}
+        </div>
+        <div className={cx(COLUMN, 'md:basis-100')} data-column="teams">
+          {panels.lineups}
+          {panels.discussion}
+        </div>
+        <div className={cx(COLUMN, 'md:basis-90')} data-column="forecasts">
+          {panels.predictions}
+          {panels.watch}
+        </div>
+      </div>
+
+      {slots.coverage}
+    </div>
+  );
+}
+
+/**
+ * The score band (boards h4, h5, h10): competition and round, both sides with
+ * their crests, the score large and condensed between them -- each side's
+ * goals beside that side in either direction (D-193, `ScorePair`) -- the
+ * status (the live minute in red), the stream's freshness stamp (rule 4),
+ * where to watch, then the match's facts; after full time the official
+ * highlight first.
+ */
+function Hero({
+  centre,
+  locale,
+  timeZone,
+  now,
+  hero,
+  words,
+}: {
+  centre: MatchCentre;
+  locale: string;
+  timeZone: string;
+  now: number | undefined;
+  hero: MatchHero;
+  words: MatchWords;
+}) {
+  const m = words.m;
+  const n = (value: number): string => formatNumber(locale, value);
+  const f = centre.fixture;
+  const naskh = ARABIC_SCRIPT.has(locale);
+  const headline =
+    f.status === 'finished' ? (f.scores.full_time ?? f.scores.current) : f.scores.current;
+  const behind = now !== undefined && isBehind(f, now);
+  const status = statusLabel(f, locale, timeZone, now, m);
+  // Every freshness time on the page says its day when it is not today (T-1371).
+  const at = (iso: string) => <time dateTime={iso}>{formatStamp(locale, iso, timeZone, now)}</time>;
+  // The fixture lists re-ask hourly; a check after the last change is the
+  // newer truth about the match, and the change keeps its own time (D-189).
+  const checked =
+    f.last_checked_at != null && Date.parse(f.last_checked_at) > Date.parse(f.last_updated_at)
+      ? f.last_checked_at
+      : null;
+  const venue =
+    f.venue === null ? null : `${f.venue.name}${f.venue.city !== null ? `, ${f.venue.city}` : ''}`;
+  const name = cx(
+    'block font-black leading-[0.95] break-words hyphens-auto',
+    naskh
+      ? 'text-lg md:text-display-1'
+      : 'text-lg uppercase font-stretch-condensed md:text-display-1 lg:text-display-2',
+  );
+  const figure = cx(
+    'font-sans font-black tabular-nums whitespace-nowrap',
+    naskh
+      ? 'text-display-4 leading-[1.1] md:text-display-5'
+      : 'text-display-4 leading-[0.85] font-stretch-condensed md:text-display-6',
+  );
+  const live = f.status === 'live' && !behind;
+  return (
+    <header
+      className="flex flex-col gap-4 border-b border-default pb-4 md:pb-6"
+      data-testid="match-header"
+    >
+      <p className="flex flex-wrap items-center gap-x-2 text-sm font-semibold text-muted">
+        <Link
+          href={`/${locale}/competition/${f.competition.id}?season=${f.season.id}`}
+          className="inline-flex min-h-touch items-center gap-2 underline md:min-h-0"
+          data-testid="competition-link"
         >
-          {(incidents) => (
-            <ol className="flex flex-col gap-1 text-sm">
-              {incidents.map((i) => (
-                <li key={i.id} className="flex gap-3">
-                  <span className="w-12 shrink-0 tabular-nums text-muted">
-                    <span dir="ltr">{formatMinute(locale, i.minute, i.added_time)}</span>
-                  </span>
-                  <span className="w-24 shrink-0 max-sm:w-auto max-sm:font-medium">
+          <EntityImage
+            media={f.competition.logo}
+            kind="logo"
+            name={f.competition.name}
+            size={22}
+            aboveFold
+          />
+          {f.competition.name}
+        </Link>
+        <span>
+          · {f.season.label}
+          {stageAndRoundLabels(f.stage?.name, f.round, (key) => m[key].text, locale).map(
+            (label) => ` · ${label}`,
+          )}
+          {f.group_name !== null
+            ? ` · ${fill(m['matchCentre.group'].text, { group: f.group_name })}`
+            : ''}
+          {f.leg !== null ? ` · ${fill(m['scores.card.leg'].text, { leg: n(f.leg) })}` : ''}
+        </span>
+      </p>
+
+      {/* Home, score, away from the inline start: the whole band mirrors on /fa. */}
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-2 md:items-center md:gap-10">
+        <h1 data-testid="home-team" className="min-w-0">
+          <Link
+            href={`/${locale}/team/${f.home.id}`}
+            className="flex flex-col items-center gap-2 text-center md:flex-row md:justify-end md:gap-5 md:text-end"
+          >
+            <bdi className={name}>{f.home.name}</bdi>
+            <Crest team={f.home} className="max-md:order-first" />
+          </Link>
+        </h1>
+        <div className="flex flex-col items-center gap-2.5">
+          {f.status === 'scheduled' ? (
+            // Before kick-off the band's figure is the kick-off time, never a 0-0.
+            <span className={figure} data-testid="match-status">
+              {status}
+            </span>
+          ) : headline === null ? (
+            // Live with no score supplied: none, rather than a 0-0 (rule 3).
+            <span className={figure} data-testid="score">
+              –
+            </span>
+          ) : (
+            <ScorePair locale={locale} className={figure} testId="score">
+              {n(headline.home)}
+              <span className="mx-[0.12em] align-[0.12em] text-[0.45em] text-caption">–</span>
+              {n(headline.away)}
+            </ScorePair>
+          )}
+          {f.status === 'scheduled' ? (
+            <span className="text-sm font-semibold text-muted">
+              <time dateTime={f.kickoff_at}>
+                {formatDate(locale, f.kickoff_at, timeZone, {
+                  weekday: 'short',
+                  day: 'numeric',
+                  month: 'short',
+                })}
+              </time>
+            </span>
+          ) : (
+            <span
+              className={cx(
+                'inline-flex min-h-7.5 items-center gap-2 rounded-pill px-3 text-sm font-extrabold',
+                live
+                  ? 'bg-live/15 text-live'
+                  : behind
+                    ? 'bg-warning/15 text-warning'
+                    : 'bg-surface-raised text-fg',
+              )}
+            >
+              {live && (
+                <>
+                  <span aria-hidden="true" className="live-dot size-2 rounded-full bg-live" />
+                  {status !== m['status.live'].text && (
+                    <span>
+                      <MessageText message={m['status.live']} />{' '}
+                    </span>
+                  )}
+                </>
+              )}
+              <span data-testid="match-status">{status}</span>
+            </span>
+          )}
+          {hero.live}
+          {hero.watch}
+        </div>
+        <h1 data-testid="away-team" className="min-w-0">
+          <Link
+            href={`/${locale}/team/${f.away.id}`}
+            className="flex flex-col items-center gap-2 text-center md:flex-row md:justify-start md:gap-5 md:text-start"
+          >
+            <Crest team={f.away} />
+            <bdi className={name}>{f.away.name}</bdi>
+          </Link>
+        </h1>
+      </div>
+
+      {behind && (
+        <p
+          role="status"
+          className="text-center text-sm font-medium text-warning"
+          data-testid="feed-behind"
+        >
+          <FilledMessage
+            message={m['matchCentre.behind']}
+            params={{ time: at(f.last_updated_at) }}
+          />
+        </p>
+      )}
+
+      {hero.highlights}
+
+      <ul className="flex flex-wrap justify-center gap-x-5 gap-y-1 text-sm text-muted">
+        {f.scores.half_time !== null && (
+          <li>
+            <MessageText message={m['status.halfTime']} />{' '}
+            <Score home={f.scores.half_time.home} away={f.scores.half_time.away} locale={locale} />
+          </li>
+        )}
+        {f.scores.aggregate !== null && (
+          <li>
+            <MessageText message={m['status.aggregate']} />{' '}
+            <Score home={f.scores.aggregate.home} away={f.scores.aggregate.away} locale={locale} />
+          </li>
+        )}
+        {f.scores.penalties !== null && (
+          <li>
+            <MessageText message={m['status.penalties']} />{' '}
+            <Score home={f.scores.penalties.home} away={f.scores.penalties.away} locale={locale} />
+          </li>
+        )}
+        {venue !== null && (
+          <li>
+            {f.is_neutral_venue ? (
+              <MessageText message={filled(m['matchCentre.neutralVenue'], { venue })} />
+            ) : (
+              venue
+            )}
+          </li>
+        )}
+        <li>
+          <FilledMessage
+            message={m['scores.card.kickoff']}
+            params={{
+              time: (
+                <time dateTime={f.kickoff_at}>
+                  {formatDateTime(locale, f.kickoff_at, timeZone)}
+                </time>
+              ),
+            }}
+          />
+        </li>
+        <li>
+          <MessageText
+            message={filled(m['matchCentre.referee'], {
+              name: f.referee === null ? m['status.coverage.notSupplied'].text : f.referee.name,
+            })}
+          />
+        </li>
+        {f.attendance !== null && (
+          <li>
+            <MessageText
+              message={filled(m['matchCentre.attendance'], { count: n(f.attendance) })}
+            />
+          </li>
+        )}
+        <li data-testid="last-update">
+          {checked === null ? (
+            <FilledMessage
+              message={m['matchCentre.lastUpdate']}
+              params={{ time: at(f.last_updated_at) }}
+            />
+          ) : (
+            <FilledMessage
+              message={m['matchCentre.lastChecked']}
+              params={{ time: at(checked), changed: at(f.last_updated_at) }}
+            />
+          )}
+        </li>
+      </ul>
+    </header>
+  );
+}
+
+/** A side's crest on a white tile, so a dark crest reads on the Night stage. */
+function Crest({ team, className }: { team: MatchCentre['fixture']['home']; className?: string }) {
+  return (
+    <span
+      className={cx(
+        'inline-grid size-14 shrink-0 place-items-center rounded-tile border border-default bg-surface md:size-21 md:rounded-card',
+        className,
+      )}
+    >
+      <EntityImage media={team.crest} kind="crest" name={team.name} size={40} aboveFold />
+    </span>
+  );
+}
+
+/**
+ * The key events (boards h4, h5): latest first, each with its minute, a
+ * mark for its kind and the side, then the players. Kick-off closes the list
+ * once the match has started.
+ */
+function Timeline({
+  centre,
+  locale,
+  timeZone,
+  words,
+}: {
+  centre: MatchCentre;
+  locale: string;
+  timeZone: string;
+  words: MatchWords;
+}) {
+  const m = words.m;
+  const f = centre.fixture;
+  const started = f.status !== 'scheduled';
+  return (
+    <Module
+      title={m[f.status === 'finished' ? 'matchCentre.keyEvents' : 'matchCentre.timeline']}
+      module={centre.timeline}
+      testId="timeline"
+      words={words}
+    >
+      {(incidents) => (
+        <>
+          <ol className="flex flex-col text-sm">
+            {[...incidents].reverse().map((i) => (
+              <li
+                key={i.id}
+                className="grid grid-cols-[3.5rem_2.25rem_minmax(0,1fr)] items-center gap-3 border-b border-default py-2.5"
+              >
+                <span className="font-mono text-muted tabular-nums">
+                  <span dir="ltr">{formatMinute(locale, i.minute, i.added_time)}</span>
+                </span>
+                <IncidentMark kind={i.kind} />
+                <span className="min-w-0 [overflow-wrap:anywhere]">
+                  <b className="block font-bold text-fg">
                     <MessageText message={m[INCIDENT_KEY[i.kind]]} />
-                  </span>
-                  <span className="min-w-0 [overflow-wrap:anywhere]">
+                    {i.side !== null ? (
+                      <>
+                        {' · '}
+                        <bdi>{i.side === 'home' ? f.home.name : f.away.name}</bdi>
+                      </>
+                    ) : null}
+                    <IncidentDetail detail={i.detail} words={words} />
+                  </b>
+                  <span className="text-muted">
                     {i.player !== null && (
                       <Link href={`/${locale}/player/${i.player.id}`} className="underline">
                         {i.player.name}
@@ -424,7 +661,7 @@ export function MatchCentreView({
                         </>
                       ) : (
                         <>
-                          {' '}
+                          {' · '}
                           <FilledMessage
                             message={m['matchCentre.assist']}
                             params={{
@@ -440,544 +677,322 @@ export function MatchCentreView({
                           />
                         </>
                       ))}
-                    {i.side !== null ? ` · ${i.side === 'home' ? f.home.name : f.away.name}` : ''}
-                    <IncidentDetail detail={i.detail} words={words} />
                   </span>
-                </li>
-              ))}
-            </ol>
-          )}
-        </Module>
-      </Region>
-
-      <Region id="stats">
-        <Module
-          title={m['matchCentre.statistics']}
-          module={centre.statistics}
-          testId="statistics"
-          words={words}
-        >
-          {(rows) => (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <tbody>
-                  {rows.map((row) => (
-                    <tr key={row.metric} className="border-t border-default">
-                      <td className="py-1 text-end tabular-nums">
-                        <span dir="ltr">{statValue(row.metric, row.home, locale)}</span>
-                      </td>
-                      <th scope="row" className="px-3 py-1 text-center font-normal text-muted">
-                        <MessageText message={m[STAT_KEY[row.metric]]} />
-                      </th>
-                      <td className="py-1 tabular-nums">
-                        <span dir="ltr">{statValue(row.metric, row.away, locale)}</span>
-                      </td>
-                    </tr>
-                  ))}
-                  {rows.some((row) => row.metric === 'expected_goals') ? null : (
-                    <tr className="border-t border-default" data-testid="xg-not-supplied">
-                      <td colSpan={3} className="py-1 text-center text-muted">
-                        <MessageText message={m['matchCentre.xgNotSupplied']} />
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Module>
-
-        <Module
-          title={m['matchCentre.playerStatistics']}
-          module={centre.player_statistics}
-          testId="player-statistics"
-          words={words}
-        >
-          {(players) => (
-            <div className="flex flex-col gap-3 text-sm">
-              {(
-                [
-                  ['home', f.home.name],
-                  ['away', f.away.name],
-                ] as const
-              ).map(([side, team]) => {
-                const rows = players.filter((p) => p.side === side);
-                if (rows.length === 0) return null;
-                return (
-                  <div key={side} className="overflow-x-auto">
-                    <table className="w-full">
-                      <caption className="text-start font-medium">{team}</caption>
-                      <thead>
-                        <tr>
-                          <th scope="col" className="py-1 text-start font-normal text-muted">
-                            <MessageText message={m['matchCentre.playerColumn']} />
-                          </th>
-                          {PLAYER_COLUMNS.map(([metric, label]) => (
-                            <th
-                              key={metric}
-                              scope="col"
-                              className="px-2 py-1 text-end font-normal text-muted"
-                            >
-                              <MessageText message={m[label]} />
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {rows.map((player) => (
-                          <tr key={player.id} className="border-t border-default">
-                            <th scope="row" className="py-1 text-start font-normal">
-                              <Link href={`/${locale}/player/${player.id}`}>{player.name}</Link>
-                            </th>
-                            {PLAYER_COLUMNS.map(([metric]) => (
-                              <td key={metric} className="px-2 py-1 text-end tabular-nums">
-                                {playerCell(locale, player, metric)}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                );
-              })}
-              <p className="text-muted">
-                <MessageText message={m['matchCentre.playerXgNotSupplied']} />
-              </p>
-            </div>
-          )}
-        </Module>
-
-        <section className="flex flex-col gap-2" data-testid="form">
-          <h2 className="text-lg font-semibold">
-            <MessageText message={m['matchCentre.recentForm']} />
-          </h2>
-          <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
-            <Form
-              name={f.home.name}
-              module={centre.form.home}
-              timeZone={timeZone}
-              locale={locale}
-              words={words}
-            />
-            <Form
-              name={f.away.name}
-              module={centre.form.away}
-              timeZone={timeZone}
-              locale={locale}
-              words={words}
-            />
-          </div>
-        </section>
-
-        <Module
-          title={m['matchCentre.headToHead']}
-          module={centre.head_to_head}
-          testId="head-to-head"
-          words={words}
-        >
-          {(meetings) => (
-            <ul className="flex flex-col divide-y divide-default text-sm">
-              {meetings.map((meeting) => (
-                <li
-                  key={meeting.fixture_id}
-                  className="grid grid-cols-[6.5rem_1fr] items-start gap-x-3 py-1.5"
-                >
-                  <time dateTime={meeting.kickoff_at} className="text-xs text-muted tabular-nums">
-                    {formatShortDate(locale, meeting.kickoff_at, timeZone)}
-                  </time>
-                  <span className="flex min-w-0 flex-col">
-                    <span>
-                      <bdi>{meeting.home.name}</bdi>{' '}
-                      <Score
-                        home={meeting.full_time.home}
-                        away={meeting.full_time.away}
-                        locale={locale}
-                      />{' '}
-                      <bdi>{meeting.away.name}</bdi>
-                    </span>
-                    <span className="text-xs text-muted">
-                      {meeting.competition.name}
-                      {meeting.venue !== null ? ` · ${meeting.venue}` : ''}
-                    </span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Module>
-      </Region>
-
-      <Region id="context">{slots.context}</Region>
-
-      <Region id="lineups">
-        <Module
-          title={m['matchCentre.lineups']}
-          module={centre.lineups}
-          testId="lineups"
-          words={words}
-          empty={f.status === 'scheduled' ? 'matchCentre.lineupsNotYet' : null}
-        >
-          {(lineups) => (
-            <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
-              <Side
-                name={f.home.name}
-                formation={f.home.formation}
-                coach={f.home.coach?.name ?? null}
-                players={lineups.home}
-                locale={locale}
-                words={words}
-              />
-              <Side
-                name={f.away.name}
-                formation={f.away.formation}
-                coach={f.away.coach?.name ?? null}
-                players={lineups.away}
-                locale={locale}
-                words={words}
-              />
-            </div>
-          )}
-        </Module>
-
-        <Module
-          title={m['player.availability.title']}
-          module={centre.availability}
-          testId="availability"
-          words={words}
-          empty={ABSENCE_GAP_KEY[centre.availability.gap ?? 'not_asked']}
-        >
-          {(absences) =>
-            absences.length === 0 ? (
-              <p className="text-sm" data-testid="no-absences">
-                {askedStamp === null ? (
-                  <MessageText message={m['matchCentre.noAbsences']} />
-                ) : (
-                  <>
-                    <MessageText
-                      message={filled(m['matchCentre.noAbsencesAsked'], {
-                        time: askedStamp.text,
-                      })}
-                    />
-                    {askedStamp.stale && (
-                      <>
-                        {' '}
-                        <MessageText message={m['player.availability.stale']} />
-                      </>
-                    )}
-                  </>
-                )}
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
-                {(
-                  [
-                    ['home', f.home.name],
-                    ['away', f.away.name],
-                  ] as const
-                ).map(([side, team]) => (
-                  <div key={side} className="flex flex-col gap-1">
-                    <h3 className="font-medium">{team}</h3>
-                    <ul className="flex flex-col gap-1">
-                      {absences
-                        .filter((a) => a.side === side)
-                        .map((a) => (
-                          <li key={a.id}>
-                            <Link href={`/${locale}/player/${a.id}`}>{a.name}</Link>{' '}
-                            <span className="text-muted">
-                              <MessageText
-                                message={
-                                  m[a.status === 'out' ? 'matchCentre.out' : 'matchCentre.doubtful']
-                                }
-                              />
-                              {a.reason === null ? '' : ` · ${a.reason}`}
-                            </span>
-                          </li>
-                        ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            )
-          }
-        </Module>
-      </Region>
-
-      <Region id="players">{slots.players}</Region>
-
-      <Region id="forecast">{slots.forecast}</Region>
-      <Region id="analysis">{slots.analysis}</Region>
-      <Region id="community">{slots.community}</Region>
-      <Region id="discussion">{slots.discussion}</Region>
-      <Region id="watch">{slots.watch}</Region>
-      <Region id="news">{slots.news}</Region>
-
-      <section className="flex flex-col gap-2" data-testid="coverage">
-        <h2 className="text-lg font-semibold">
-          <MessageText message={m['matchCentre.coverage']} />
-        </h2>
-        <ul className="flex flex-wrap gap-2 text-xs">
-          {(
-            Object.entries(centre.coverage) as [CoverageModule, Covered<unknown>['coverage']][]
-          ).map(([module, state]) => (
-            <li
-              key={module}
-              dir="auto"
-              className="inline-flex items-center gap-2 rounded-control border border-default px-2 py-1"
-              data-coverage={state}
-            >
-              {/* The sentence for a screen reader and a search; the badge for the eye (T-1388). */}
-              <span className="sr-only">
-                <MessageText
-                  message={filled(m['matchCentre.moduleCoverage'], {
-                    module: m[MODULE_KEY[module]].text,
-                    state: moduleState(state).text,
-                  })}
-                />
-              </span>
-              <span aria-hidden="true">
-                <MessageText message={m[MODULE_KEY[module]]} />
-              </span>
-              <span aria-hidden="true">
-                <CoverageBadge state={state} label={<MessageText message={moduleState(state)} />} />
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {NOT_YET.length > 0 && (
-        <section className="flex flex-col gap-2" data-testid="not-yet">
-          <h2 className="text-lg font-semibold">
-            <MessageText message={m['matchCentre.notYet']} />
-          </h2>
-          <ul className="flex flex-wrap gap-2 text-xs text-muted">
-            {NOT_YET.map(([name, why]) => (
-              <li key={name} dir="auto" className="rounded border border-default px-2 py-1">
-                {name}: {why}
+                </span>
               </li>
             ))}
-          </ul>
-        </section>
-      )}
-    </div>
-  );
-}
-
-/** A module's title and its coverage tag, a gap between them in either direction. */
-const MODULE_HEADING = 'flex flex-wrap items-baseline gap-x-2 gap-y-1 text-lg font-semibold';
-
-/**
- * A coverage state beside a heading, and every sentence that says why a
- * module is empty, carry `dir="auto"` (T-605): a fallback English sentence in
- * a right-to-left paragraph has its full stop resolved by the paragraph, so it
- * rendered as ".Data for this module is delayed". With its own direction it
- * reads as the sentence it is.
- */
-function CoverageTag({
-  state,
-  children,
-}: {
-  state: Covered<unknown>['coverage'];
-  children: React.ReactNode;
-}) {
-  // The Hybrid badge (T-1388): an icon and an edge as well as a colour.
-  return <CoverageBadge state={state} label={children} className="self-center font-bold" />;
-}
-
-function Module<T>({
-  title,
-  module,
-  testId,
-  words,
-  empty,
-  children,
-}: {
-  title: Message;
-  module: Covered<T>;
-  testId: string;
-  words: MatchWords;
-  /** Says why a `not_supplied` module is empty, where more is known (T-1364). */
-  empty?: Key | null;
-  children: (data: T) => React.ReactNode;
-}) {
-  const m = words.m;
-  const why: Key =
-    module.coverage === 'delayed'
-      ? 'matchCentre.moduleDelayed'
-      : (empty ?? 'matchCentre.moduleNotSupplied');
-  return (
-    <section className="flex flex-col gap-2" data-testid={testId} data-coverage={module.coverage}>
-      <h2 className={MODULE_HEADING}>
-        <span>
-          <MessageText message={title} />
-        </span>
-        <CoverageTag state={module.coverage}>
-          <MessageText message={m[COVERAGE_KEY[module.coverage]]} />
-        </CoverageTag>
-      </h2>
-      {module.data === null ? (
-        <p dir="auto" className="text-sm text-muted">
-          <MessageText message={m[why]} />
-        </p>
-      ) : (
-        children(module.data)
-      )}
-    </section>
-  );
-}
-
-function Side({
-  name,
-  formation,
-  coach,
-  players,
-  locale,
-  words,
-}: {
-  name: string;
-  formation: string | null;
-  coach: string | null;
-  players: MatchLineupPlayer[];
-  locale: string;
-  words: MatchWords;
-}) {
-  const m = words.m;
-  const starters = players.filter((p) => p.role === 'starter');
-  const bench = players.filter((p) => p.role === 'bench');
-  // Every line-up name links to the player page (blueprint 5.3, T-037).
-  const line = (p: MatchLineupPlayer): React.ReactNode => (
-    <>
-      <EntityImage media={p.photo} kind="photo" name={p.name} size={40} />
-      <span className="min-w-0">
-        {p.shirt_number !== null ? `${formatNumber(locale, p.shirt_number)} ` : ''}
-        <Link href={`/${locale}/player/${p.id}`} className="underline">
-          {p.name}
-        </Link>
-        {p.is_captain ? ` ${m['matchCentre.captain'].text}` : ''}
-      </span>
-    </>
-  );
-  return (
-    <div className="flex flex-col gap-1">
-      <h3 className="flex flex-wrap items-baseline gap-x-2 font-medium">
-        <bdi>{name}</bdi>
-        {formation !== null ? (
-          <span dir="ltr" className="text-muted">
-            {formation}
-          </span>
-        ) : null}
-      </h3>
-      <p className="text-xs text-muted">
-        <MessageText
-          message={filled(m['matchCentre.coach'], {
-            name: coach ?? m['status.coverage.notSupplied'].text,
-          })}
-        />
-      </p>
-      <ul>
-        {starters.map((p) => (
-          <li key={p.id} className={LINEUP_ROW}>
-            {line(p)}
-          </li>
-        ))}
-      </ul>
-      {bench.length > 0 && (
-        <>
-          <p className="mt-1 text-xs uppercase text-muted">
-            <MessageText message={m['matchCentre.bench']} />
-          </p>
-          <ul className="text-muted">
-            {bench.map((p) => (
-              <li key={p.id} className={LINEUP_ROW}>
-                {line(p)}
+            {started && (
+              <li className="grid grid-cols-[3.5rem_2.25rem_minmax(0,1fr)] items-center gap-3 py-2.5">
+                <span className="font-mono text-muted tabular-nums">
+                  {formatKickoff(locale, f.kickoff_at, timeZone)}
+                </span>
+                <IncidentMark kind="kickoff" />
+                <b className="font-bold text-fg">
+                  <MessageText message={m['matchCentre.kickedOff']} />
+                </b>
               </li>
-            ))}
-          </ul>
+            )}
+          </ol>
+          {incidents.length > 0 && (
+            <p className="text-xs text-caption">
+              <MessageText message={m['matchCentre.latestFirst']} />
+            </p>
+          )}
         </>
       )}
-    </div>
+    </Module>
   );
 }
 
-/** A line-up row: the photo, then the shirt number and the name on one line (T-1321). */
-const LINEUP_ROW = 'flex items-center gap-2 py-0.5';
-
-/** A form letter's badge: won, drawn, lost in the theme's own tones (T-1204). */
-const RESULT_TONE: Record<FormEntry['result'], string> = {
-  W: 'bg-success text-canvas',
-  D: 'bg-surface-raised text-fg',
-  L: 'bg-danger text-canvas',
-};
-
-/** "13 Sept 2026" in the viewer's zone. */
-function formatShortDate(locale: string, iso: string, timeZone: string): string {
-  return formatDate(locale, iso, timeZone, { day: 'numeric', month: 'short', year: 'numeric' });
+/** A small mark for an incident's kind, in tokens: a ball, a card's colour, an arrow. */
+function IncidentMark({ kind }: { kind: MatchIncident['kind'] | 'kickoff' }) {
+  const shape =
+    kind === 'yellow_card' ? (
+      <span className="h-4 w-3 rounded-xs bg-warning" />
+    ) : kind === 'red_card' || kind === 'second_yellow_card' ? (
+      <span className="h-4 w-3 rounded-xs bg-danger" />
+    ) : kind === 'substitution' ? (
+      <span className="text-base leading-none">⇄</span>
+    ) : kind === 'var' ? (
+      <span className="text-xs font-extrabold">VAR</span>
+    ) : kind === 'kickoff' ? (
+      <span className="size-2.5 rounded-full border-2 border-fg" />
+    ) : kind === 'penalty_missed' ? (
+      <span className="size-3 rounded-full border-2 border-dashed border-fg" />
+    ) : (
+      <span className="size-3 rounded-full bg-accent" />
+    );
+  return (
+    <span
+      aria-hidden="true"
+      className="grid size-9 place-items-center rounded-control bg-surface-raised text-fg"
+    >
+      {shape}
+    </span>
+  );
 }
 
-function Form({
-  name,
-  module,
-  timeZone,
+/**
+ * The team statistics as a dense grid of tiles (T-1384): each metric's two
+ * figures large and condensed, its name between them, and the two shares as
+ * bars from the middle out -- the home side's in the brand green, the away
+ * side's neutral; never a club colour. A side the provider left out is "–"
+ * and there is no bar for that row.
+ */
+function Statistics({
+  centre,
   locale,
   words,
 }: {
-  name: string;
-  module: Covered<FormEntry[]>;
-  timeZone: string;
+  centre: MatchCentre;
   locale: string;
   words: MatchWords;
 }) {
   const m = words.m;
   return (
-    <div className="flex flex-col gap-1" data-coverage={module.coverage}>
-      <h3 className="flex flex-wrap items-baseline gap-x-2 font-medium">
-        <bdi>{name}</bdi>
-        <CoverageTag state={module.coverage}>
-          <MessageText message={m[COVERAGE_KEY[module.coverage]]} />
-        </CoverageTag>
-      </h3>
-      {module.data === null ? (
-        <p dir="auto" className="text-xs text-muted">
-          <MessageText message={m['matchCentre.noForm']} />
-        </p>
-      ) : (
-        // Result, match and date in fixed columns, the competition under the
-        // match, so the rows line up whatever the opponent's name (T-1204).
-        <ul className="flex flex-col divide-y divide-default">
-          {module.data.map((e) => (
-            <li
-              key={e.fixture_id}
-              className="grid grid-cols-[1.75rem_1fr_auto] items-start gap-x-2 py-1.5"
+    <Module
+      title={m['matchCentre.statistics']}
+      module={centre.statistics}
+      testId="statistics"
+      words={words}
+    >
+      {(rows) => (
+        <>
+          <ul className="grid grid-cols-1 gap-2 @md:grid-cols-2" data-testid="stat-grid">
+            {rows.map((row) => (
+              <StatTile key={row.metric} row={row} locale={locale} words={words} />
+            ))}
+          </ul>
+          {rows.some((row) => row.metric === 'expected_goals') ? null : (
+            <p
+              className="flex flex-wrap items-center justify-between gap-2 border-t border-default pt-3 text-sm text-muted"
+              data-testid="xg-not-supplied"
             >
-              <span
-                className={`flex size-6 items-center justify-center rounded text-xs font-semibold ${RESULT_TONE[e.result]}`}
-              >
-                <MessageText message={m[RESULT_KEY[e.result]]} />
+              <span dir="auto">
+                <MessageText message={m['matchCentre.xgNotSupplied']} />
               </span>
-              <span className="flex min-w-0 flex-col">
-                <span>
-                  <Score
-                    home={e.goals_for}
-                    away={e.goals_against}
-                    className="font-semibold tabular-nums"
-                    locale={locale}
-                  />{' '}
-                  <FilledMessage
-                    message={m[e.home ? 'matchCentre.form.versus' : 'matchCentre.form.at']}
-                    params={{ opponent: <bdi>{e.opponent.name}</bdi> }}
-                  />
-                </span>
-                <span className="text-xs text-muted">{e.competition.name}</span>
-              </span>
-              <time dateTime={e.kickoff_at} className="text-xs text-muted tabular-nums">
-                {formatShortDate(locale, e.kickoff_at, timeZone)}
-              </time>
-            </li>
-          ))}
-        </ul>
+              <CoverageBadge
+                state="not_supplied"
+                label={<MessageText message={m['status.coverage.notSupplied']} />}
+              />
+            </p>
+          )}
+        </>
       )}
-    </div>
+    </Module>
+  );
+}
+
+function StatTile({
+  row,
+  locale,
+  words,
+}: {
+  row: MatchStatRow;
+  locale: string;
+  words: MatchWords;
+}) {
+  const total = (row.home ?? 0) + (row.away ?? 0);
+  const bars = row.home !== null && row.away !== null && total > 0;
+  const figure = 'text-2xl leading-none font-black font-stretch-condensed tabular-nums';
+  return (
+    <li
+      className="flex flex-col gap-2 rounded-tile bg-surface-raised px-3 py-2.5"
+      data-metric={row.metric}
+    >
+      <div className="grid grid-cols-[minmax(3rem,auto)_minmax(0,1fr)_minmax(3rem,auto)] items-center gap-2">
+        <b className={figure}>
+          <span dir="ltr">{statValue(row.metric, row.home, locale)}</span>
+        </b>
+        <span className="text-center text-xs text-muted">
+          <MessageText message={words.m[STAT_KEY[row.metric]]} />
+        </span>
+        <b className={cx(figure, 'text-end')}>
+          <span dir="ltr">{statValue(row.metric, row.away, locale)}</span>
+        </b>
+      </div>
+      {bars && (
+        <div aria-hidden="true" className="flex h-1.5 gap-1">
+          <span className="flex flex-1 justify-end overflow-hidden rounded-xs bg-canvas">
+            <span
+              className="rounded-xs bg-accent"
+              style={{ inlineSize: `${((row.home ?? 0) / total) * 100}%` }}
+            />
+          </span>
+          <span className="flex flex-1 overflow-hidden rounded-xs bg-canvas">
+            <span
+              className="rounded-xs bg-muted"
+              style={{ inlineSize: `${((row.away ?? 0) / total) * 100}%` }}
+            />
+          </span>
+        </div>
+      )}
+    </li>
+  );
+}
+
+function PlayerStatistics({
+  centre,
+  locale,
+  words,
+}: {
+  centre: MatchCentre;
+  locale: string;
+  words: MatchWords;
+}) {
+  const m = words.m;
+  const f = centre.fixture;
+  return (
+    <Module
+      title={m['matchCentre.playerStatistics']}
+      module={centre.player_statistics}
+      testId="player-statistics"
+      words={words}
+    >
+      {(players) => (
+        <div className="flex flex-col gap-3 text-sm">
+          {(
+            [
+              ['home', f.home.name],
+              ['away', f.away.name],
+            ] as const
+          ).map(([side, team]) => {
+            const rows = players.filter((p) => p.side === side);
+            if (rows.length === 0) return null;
+            return (
+              <div key={side} className="overflow-x-auto">
+                <table className="w-full">
+                  <caption className="text-start font-bold">{team}</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col" className="py-1 text-start font-normal text-muted">
+                        <MessageText message={m['matchCentre.playerColumn']} />
+                      </th>
+                      {PLAYER_COLUMNS.map(([metric, label]) => (
+                        <th
+                          key={metric}
+                          scope="col"
+                          className="px-2 py-1 text-end font-normal text-muted"
+                        >
+                          <MessageText message={m[label]} />
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((player) => (
+                      <tr key={player.id} className="border-t border-default">
+                        <th scope="row" className="py-1 text-start font-normal">
+                          <Link href={`/${locale}/player/${player.id}`}>{player.name}</Link>
+                        </th>
+                        {PLAYER_COLUMNS.map(([metric]) => (
+                          <td key={metric} className="px-2 py-1 text-end tabular-nums">
+                            {playerCell(locale, player, metric)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })}
+          <p className="text-muted">
+            <MessageText message={m['matchCentre.playerXgNotSupplied']} />
+          </p>
+        </div>
+      )}
+    </Module>
+  );
+}
+
+function Availability({
+  centre,
+  locale,
+  timeZone,
+  now,
+  words,
+}: {
+  centre: MatchCentre;
+  locale: string;
+  timeZone: string;
+  now: number | undefined;
+  words: MatchWords;
+}) {
+  const m = words.m;
+  const f = centre.fixture;
+  const asked = centre.availability.last_updated_at;
+  // An absence answer before kick-off is re-asked every three hours (D-127).
+  const askedStamp =
+    asked === null
+      ? null
+      : freshnessStamp(
+          locale,
+          asked,
+          timeZone,
+          now,
+          f.status === 'scheduled' ? AVAILABILITY_STALE_AFTER_MS : undefined,
+        );
+  return (
+    <Module
+      title={m['player.availability.title']}
+      module={centre.availability}
+      testId="availability"
+      words={words}
+      empty={ABSENCE_GAP_KEY[centre.availability.gap ?? 'not_asked']}
+    >
+      {(absences) =>
+        absences.length === 0 ? (
+          <p className="text-sm" data-testid="no-absences">
+            {askedStamp === null ? (
+              <MessageText message={m['matchCentre.noAbsences']} />
+            ) : (
+              <>
+                <MessageText
+                  message={filled(m['matchCentre.noAbsencesAsked'], { time: askedStamp.text })}
+                />
+                {askedStamp.stale && (
+                  <>
+                    {' '}
+                    <MessageText message={m['player.availability.stale']} />
+                  </>
+                )}
+              </>
+            )}
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 text-sm @md:grid-cols-2">
+            {(
+              [
+                ['home', f.home.name],
+                ['away', f.away.name],
+              ] as const
+            ).map(([side, team]) => (
+              <div key={side} className="flex flex-col gap-1">
+                <h3 className="font-bold">{team}</h3>
+                <ul className="flex flex-col gap-1">
+                  {absences
+                    .filter((a) => a.side === side)
+                    .map((a) => (
+                      <li key={a.id}>
+                        <Link href={`/${locale}/player/${a.id}`}>{a.name}</Link>{' '}
+                        <span className="text-muted">
+                          <MessageText
+                            message={
+                              m[a.status === 'out' ? 'matchCentre.out' : 'matchCentre.doubtful']
+                            }
+                          />
+                          {a.reason === null ? '' : ` · ${a.reason}`}
+                        </span>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )
+      }
+    </Module>
   );
 }
 

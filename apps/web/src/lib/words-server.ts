@@ -263,6 +263,19 @@ export const MATCH_KEYS = [
   'matchCentre.module.standings',
   'matchCentre.module.availability',
   'matchCentre.module.advancedStatistics',
+  // The Hybrid match centre (T-1384): the phone's tabs, the key events and
+  // the line-ups on a pitch.
+  'matchCentre.tab.summary',
+  'matchCentre.tab.predictions',
+  'matchCentre.keyEvents',
+  'matchCentre.kickedOff',
+  'matchCentre.latestFirst',
+  'matchCentre.lineups.pitchLabel',
+  'matchCentre.lineups.pitchNote',
+  'matchCentre.lineups.noFormation',
+  'matchCentre.lineups.noRoles',
+  'matchCentre.lineups.linesUnknown',
+  'matchCentre.lineups.mismatch',
 ] as const;
 
 export type MatchWords = ClientWords<(typeof MATCH_KEYS)[number]>;
