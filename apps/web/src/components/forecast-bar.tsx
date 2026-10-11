@@ -1,5 +1,5 @@
 import { DEFAULT_LOCALE } from '@/i18n/locales';
-import { formatDate, formatNumber } from '@/i18n/format';
+import { formatNumber, formatVersionStamp } from '@/i18n/format';
 import type { Message } from '@/i18n/messages';
 import type { CardForecast } from '@/lib/score-card-products';
 import { FORECAST_REASON_KEY, fill, filled, formatPercent } from '@/lib/words';
@@ -53,6 +53,7 @@ export function ForecastBar({
   started = false,
   locale,
   timeZone,
+  zone,
   words,
   size = 'default',
   className,
@@ -64,6 +65,12 @@ export function ForecastBar({
   started?: boolean;
   locale: string;
   timeZone: string;
+  /**
+   * The zone in words (`zoneWords`), said after the time (T-1395): the page's
+   * own zone, so the stamp reads on the same clock as the kick-off. Without it
+   * only UTC is named.
+   */
+  zone?: string;
   words: ForecastBarWords;
   /**
    * `compact` for a card or a lane (an 8px bar); `default` for a section's
@@ -128,14 +135,8 @@ export function ForecastBar({
         params={{
           time: (
             <time dateTime={forecast.computed_at}>
-              {formatDate(locale, forecast.computed_at, timeZone, {
-                day: '2-digit',
-                month: 'short',
-                hour: '2-digit',
-                minute: '2-digit',
-                hourCycle: 'h23',
-              })}
-              {timeZone === 'UTC' ? ' UTC' : ''}
+              {formatVersionStamp(locale, forecast.computed_at, timeZone)}
+              {zone !== undefined ? ` ${zone}` : timeZone === 'UTC' ? ' UTC' : ''}
             </time>
           ),
         }}

@@ -123,6 +123,26 @@
 }
 
 /*
+ * A box that scrolls sideways shows it (T-1395): a soft shade on each edge
+ * that still hides columns, gone once that edge is reached. Scroll shadows:
+ * the surface-coloured covers move with the content (`local`) and hide the
+ * shades (`scroll`) at an end, so nothing shows when the table fits. Both
+ * edges are drawn the same, so it reads the same right to left. For a box
+ * on `bg-surface` (a match centre card).
+ */
+@utility scroll-cue {
+  background:
+    linear-gradient(to right, var(--color-surface) 40%, transparent) left center / 2.5rem 100%
+      no-repeat local,
+    linear-gradient(to left, var(--color-surface) 40%, transparent) right center / 2.5rem 100%
+      no-repeat local,
+    radial-gradient(farthest-side at 0 50%, var(--color-caption), transparent) left center / 0.75rem
+      100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, var(--color-caption), transparent) right center /
+      0.75rem 100% no-repeat scroll;
+}
+
+/*
  * The font roles follow the page's script (D-198): Latin-script pages draw
  * the interface in Mona Sans; Arabic-script pages keep Vazirmatn for it and
  * for an article's body, take Markazi Text for editorial display, and open

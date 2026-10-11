@@ -28,7 +28,7 @@ describe('StoryTypeTag', () => {
     expect(renderToStaticMarkup(<StoryTypeTag locale="en" type={none} />)).toBe('');
     const page = renderToStaticMarkup(<StoryTypeTag locale="en" type={none} sayNone />);
     expect(page).toContain('data-testid="story-type-none"');
-    expect(page).toContain('No type');
+    expect(page).toContain('Not categorised');
   });
 
   it('has an English name for every type and every origin', () => {

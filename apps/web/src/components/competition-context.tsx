@@ -19,10 +19,10 @@ import {
   tieLine,
 } from '@/lib/competition-context';
 import { legLabel, legLine } from '@/lib/bracket';
-import { formatNumber } from '@/i18n/format';
+import { formatNumber, formatVersionStamp } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { message } from '@/i18n/messages';
-import { formatKickoff } from '@/lib/scores';
+import { zoneWords } from '@/lib/reader-time-zone';
 import { FilledMessage } from '@/components/filled-message';
 import { COVERAGE_KEY } from '@/components/score-card';
 import { Translated } from '@/components/translated';
@@ -172,7 +172,7 @@ function Table({
               params={{
                 time: (
                   <time dateTime={updatedAt}>
-                    {updatedAt.slice(0, 10)} {formatKickoff(locale, updatedAt, timeZone)}
+                    {formatVersionStamp(locale, updatedAt, timeZone)} {zoneWords(locale, timeZone)}
                   </time>
                 ),
               }}

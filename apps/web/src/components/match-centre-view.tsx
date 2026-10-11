@@ -13,6 +13,7 @@ import { INCIDENT_KEY, STAT_KEY, incidentDetailKey, statValue } from '@/lib/matc
 import { isBehind } from '@/lib/live';
 import { formatKickoff, formatStamp, freshnessStamp, statusLabel } from '@/lib/scores';
 import { fill, filled, formatFixed, formatMinute } from '@/lib/words';
+import { listName } from '@/lib/person-name';
 import { stageAndRoundLabels } from '@/lib/stage-label';
 import type { MatchWords } from '@/lib/words-server';
 import { formatDate, formatDateTime } from '@/i18n/format';
@@ -658,7 +659,7 @@ function Timeline({
                   <span className="text-muted">
                     {i.player !== null && (
                       <Link href={`/${locale}/player/${i.player.id}`} className="underline">
-                        {i.player.name}
+                        {listName(locale, i.player.name)}
                       </Link>
                     )}
                     {i.related_player !== null &&
@@ -669,7 +670,7 @@ function Timeline({
                             href={`/${locale}/player/${i.related_player.id}`}
                             className="underline"
                           >
-                            {i.related_player.name}
+                            {listName(locale, i.related_player.name)}
                           </Link>
                         </>
                       ) : (
@@ -683,7 +684,7 @@ function Timeline({
                                   href={`/${locale}/player/${i.related_player.id}`}
                                   className="underline"
                                 >
-                                  {i.related_player.name}
+                                  {listName(locale, i.related_player.name)}
                                 </Link>
                               ),
                             }}
@@ -864,6 +865,11 @@ function PlayerStatistics({
     >
       {(players) => (
         <div className="flex flex-col gap-3 text-sm">
+          {/* A phone cannot fit every column (T-1395): say so, and shade the edge that hides more. */}
+          <p className="text-xs text-caption md:hidden" data-testid="player-statistics-scroll-hint">
+            <span aria-hidden="true">↔ </span>
+            <MessageText message={m['matchCentre.playerStatistics.scroll']} />
+          </p>
           {(
             [
               ['home', f.home.name],
@@ -873,7 +879,15 @@ function PlayerStatistics({
             const rows = players.filter((p) => p.side === side);
             if (rows.length === 0) return null;
             return (
-              <div key={side} className="overflow-x-auto">
+              // A named region a keyboard can reach and scroll with the arrow keys.
+              <div
+                key={side}
+                role="region"
+                aria-label={fill(m['matchCentre.playerStatistics.region'].text, { team })}
+                tabIndex={0}
+                className="scroll-cue overflow-x-auto rounded-control"
+                data-testid="player-statistics-scroll"
+              >
                 <table className="w-full">
                   <caption className="text-start font-bold">{team}</caption>
                   <thead>
@@ -896,7 +910,9 @@ function PlayerStatistics({
                     {rows.map((player) => (
                       <tr key={player.id} className="border-t border-default">
                         <th scope="row" className="py-1 text-start font-normal">
-                          <Link href={`/${locale}/player/${player.id}`}>{player.name}</Link>
+                          <Link href={`/${locale}/player/${player.id}`}>
+                            {listName(locale, player.name)}
+                          </Link>
                         </th>
                         {PLAYER_COLUMNS.map(([metric]) => (
                           <td key={metric} className="px-2 py-1 text-end tabular-nums">
@@ -988,7 +1004,7 @@ function Availability({
                     .filter((a) => a.side === side)
                     .map((a) => (
                       <li key={a.id}>
-                        <Link href={`/${locale}/player/${a.id}`}>{a.name}</Link>{' '}
+                        <Link href={`/${locale}/player/${a.id}`}>{listName(locale, a.name)}</Link>{' '}
                         <span className="text-muted">
                           <MessageText
                             message={

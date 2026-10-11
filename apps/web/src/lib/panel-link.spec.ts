@@ -114,7 +114,7 @@ describe('linkCard (T-1030)', () => {
       'en',
     );
     expect(card.lines).toEqual([]);
-    expect(card.note).toBe('The data feed has since removed this incident.');
+    expect(card.note).toBe('This incident has since been removed from the match record.');
   });
 
   it('says an incident changed and shows it as it stands now', () => {
@@ -138,7 +138,7 @@ describe('linkCard (T-1030)', () => {
       'en',
     );
     expect(card.lines[0]).toContain('Hothead (Away FC)');
-    expect(card.note).toMatch(/changed this incident after it was linked/);
+    expect(card.note).toMatch(/This incident changed after it was linked/);
   });
 
   it('labels a prediction as the member’s own, never the model’s', () => {
@@ -198,7 +198,7 @@ describe('linkCard (T-1030)', () => {
         null,
         'en',
       ).note,
-    ).toMatch(/no longer lists this player/);
+    ).toMatch(/no longer listed in either line-up/);
   });
 
   it("says a VAR review's decision in the reader's words, never the provider's (T-1378)", () => {

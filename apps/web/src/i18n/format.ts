@@ -94,6 +94,22 @@ export function formatDate(
 }
 
 /**
+ * When a stored version was made -- a forecast's computation, a rating's
+ * version -- in one format on every page (T-1395): "11 Oct, 09:30" in the
+ * page's zone, never the UTC date beside a local clock. The caller names the
+ * zone beside it (`zoneWords`), so the reader knows whose clock it is.
+ */
+export function formatVersionStamp(locale: Locale | string, iso: string, timeZone: string): string {
+  return formatDate(locale, iso, timeZone, {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  });
+}
+
+/**
  * A calendar month named in the reader's language: "October 2026", «اکتبر
  * ۲۰۲۶». Always the Gregorian month, whatever the locale's own calendar:
  * the figures it labels are bucketed by Gregorian month (T-1369), and a

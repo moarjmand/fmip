@@ -3098,10 +3098,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "player.availability.notAsked": {
-    "source": "The feed has not yet been asked who will miss this match. It is asked in the three days before kick-off.",
-    "text": "هنوز از منبع داده پرسیده نشده است که چه کسانی این بازی را از دست می‌دهند. این پرسش در سه روز پیش از شروع بازی انجام می‌شود.",
+    "source": "Who will miss this match has not been checked yet. It is checked in the three days before kick-off.",
+    "text": "هنوز بررسی نشده است که چه کسانی این بازی را از دست می‌دهند. این بررسی در سه روز پیش از شروع بازی انجام می‌شود.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "player.availability.out": {
     "source": "Listed out",
@@ -3116,16 +3116,16 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "player.availability.notListed": {
-    "source": "Not on the feed's list of players who will or may miss this match. The feed never confirms that a player is fit.",
-    "text": "در فهرست منبع داده از بازیکنانی که این بازی را از دست می‌دهند یا ممکن است از دست بدهند، نیست. منبع داده هرگز آماده بودن یک بازیکن را تأیید نمی‌کند.",
+    "source": "Not on the list of players who will or may miss this match. That list never confirms that a player is fit.",
+    "text": "در فهرست بازیکنانی که این بازی را از دست می‌دهند یا ممکن است از دست بدهند، نیست. این فهرست هرگز آماده بودن یک بازیکن را تأیید نمی‌کند.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "player.availability.asked": {
-    "source": "Feed asked",
-    "text": "زمان پرسش از منبع داده",
+    "source": "Last checked",
+    "text": "آخرین بررسی",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "player.availability.stale": {
     "source": "This answer is more than six hours old and may have changed.",
@@ -3272,19 +3272,19 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "news.updated": {
-    "source": "Feeds last read",
+    "source": "News sources last checked",
     "text": "آخرین خواندن منابع خبری",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "news.neverRead": {
-    "source": "The feeds have not been read yet.",
+    "source": "The news sources have not been checked yet.",
     "text": "منابع خبری هنوز خوانده نشده‌اند.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "news.stale": {
-    "source": "The feeds have not been read for a while, so this list may be behind.",
+    "source": "The news sources have not been checked for a while, so this list may be behind.",
     "text": "مدتی است منابع خبری خوانده نشده‌اند، بنابراین ممکن است این فهرست به‌روز نباشد.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -3338,7 +3338,7 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "news.readAt": {
-    "source": "Read at",
+    "source": "From",
     "text": "بخوانید در",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -4130,10 +4130,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "story.bodyAtSource": {
-    "source": "This publisher grants the headline and summary here; the article itself is on their site.",
-    "text": "این منبع اجازه‌ی نمایش تیتر و خلاصه را در اینجا داده است؛ متن کامل خبر در سایت خود منبع است.",
+    "source": "Only the headline and summary appear here; the full article is on the publisher's site.",
+    "text": "تنها تیتر و خلاصه در اینجا آمده است؛ متن کامل خبر در سایت ناشر است.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "story.readOriginal": {
     "source": "Read the original",
@@ -4142,10 +4142,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "story.updated": {
-    "source": "These words were last updated",
-    "text": "آخرین به‌روزرسانی این متن",
+    "source": "Last updated",
+    "text": "آخرین به‌روزرسانی",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "story.languages": {
     "source": "Languages",
@@ -4154,10 +4154,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "story.translationStatus": {
-    "source": "Each language is either the publisher’s own version or a translation a fluent speaker wrote and a second one reviewed. Nothing here is machine-translated.",
-    "text": "هر زبان یا نسخه‌ی خود منبع است یا ترجمه‌ای که فردی مسلط به آن زبان نوشته و فرد مسلط دیگری بازبینی کرده است. هیچ متنی در اینجا ترجمه‌ی ماشینی نیست.",
+    "source": "Each version is either the publisher’s own or a translation by a fluent speaker, and says whether a second fluent speaker has reviewed it. Nothing here is machine-translated.",
+    "text": "هر نسخه یا نسخه‌ی خود ناشر است یا ترجمه‌ی فردی مسلط به آن زبان، و کنار هر کدام آمده است که آیا فرد مسلط دیگری آن را بازبینی کرده یا نه. هیچ متنی در اینجا ترجمه‌ی ماشینی نیست.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "story.corrections": {
     "source": "Corrections",
@@ -4196,10 +4196,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "story.noOtherReports": {
-    "source": "No other publisher has reported this story.",
-    "text": "هیچ منبع دیگری این خبر را گزارش نکرده است.",
+    "source": "We hold no other report of this story.",
+    "text": "گزارش دیگری از این خبر در اختیار ما نیست.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "story.share": {
     "source": "Share this story",
@@ -4250,10 +4250,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "story.sources.words": {
-    "source": "Words: {source}, the publisher",
-    "text": "متن: {source}، ناشر",
+    "source": "Text: {source} (publisher)",
+    "text": "متن: {source} (ناشر)",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "story.sources.forecast": {
     "source": "Forecast: FMIP’s statistical model, stored version {version}",
@@ -4262,10 +4262,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "story.follow.title": {
-    "source": "Follow what this story is about",
-    "text": "دنبال کردن موضوعات این خبر",
+    "source": "Follow the teams and competitions in this story",
+    "text": "دنبال کردن تیم‌ها و رقابت‌های این خبر",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "story.follow.follow": {
     "source": "Follow",
@@ -4340,7 +4340,7 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "story.predictions.communityNote": {
-    "source": "what members predicted, published from five predictors",
+    "source": "what members predicted, shown once five have predicted",
     "text": "آنچه اعضا پیش‌بینی کرده‌اند؛ از پنج پیش‌بینی‌کننده به بالا منتشر می‌شود",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -4364,10 +4364,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "story.type.none": {
-    "source": "No type: neither the publisher's category nor an editor gave this story one.",
-    "text": "بدون نوع: نه دسته‌بندی منبع و نه ویراستار، نوعی برای این خبر تعیین نکرده است.",
+    "source": "Not categorised",
+    "text": "بدون دسته‌بندی",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "story.type.origin.publisher": {
     "source": "from the publisher's own category",
@@ -6572,16 +6572,16 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "panel.link.incidentGone": {
-    "source": "The data feed has since removed this incident.",
-    "text": "منبع داده از آن پس این رویداد را حذف کرده است.",
+    "source": "This incident has since been removed from the match record.",
+    "text": "این رویداد از آن پس از گزارش بازی حذف شده است.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "panel.link.incidentChanged": {
-    "source": "The data feed changed this incident after it was linked. This is how it stands now.",
-    "text": "منبع داده پس از پیوند خوردن، این رویداد را تغییر داده است. وضعیت کنونی آن این است.",
+    "source": "This incident changed after it was linked. This is how it stands now.",
+    "text": "این رویداد پس از پیوند خوردن تغییر کرده است. وضعیت کنونی آن این است.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "panel.link.withSide": {
     "source": "{name} ({side})",
@@ -6596,10 +6596,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "panel.link.playerGone": {
-    "source": "The data feed no longer lists this player in either line-up.",
-    "text": "منبع داده دیگر این بازیکن را در ترکیب هیچ‌یک از دو تیم نشان نمی‌دهد.",
+    "source": "This player is no longer listed in either line-up.",
+    "text": "این بازیکن دیگر در ترکیب هیچ‌یک از دو تیم نیست.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "panel.link.statistic": {
     "source": "Linked statistic",
@@ -6614,10 +6614,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "panel.link.statisticGone": {
-    "source": "The data feed no longer supplies this statistic.",
-    "text": "منبع داده دیگر این آمار را ارائه نمی‌کند.",
+    "source": "This statistic is no longer available for this match.",
+    "text": "این آمار دیگر برای این بازی در دسترس نیست.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "panel.link.statisticNow": {
     "source": "Now {value}.",
@@ -7610,16 +7610,16 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "scores.feed.failure": {
-    "source": "The live data feed reported a failure at {time}. Scores may be behind; every card shows when its data last changed.",
-    "text": "منبع داده‌های زنده در ساعت {time} از خطا خبر داد. ممکن است نتایج عقب باشند؛ هر کارت نشان می‌دهد داده‌هایش آخرین بار کی تغییر کرده است.",
+    "source": "Live updates failed at {time}. Scores may be behind; every card shows when its data last changed.",
+    "text": "به‌روزرسانی زنده در ساعت {time} با خطا روبه‌رو شد. ممکن است نتایج عقب باشند؛ هر کارت نشان می‌دهد داده‌هایش آخرین بار کی تغییر کرده است.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "scores.feed.partial": {
-    "source": "The live data feed reported a partial update at {time}. Scores may be behind; every card shows when its data last changed.",
-    "text": "منبع داده‌های زنده در ساعت {time} از به‌روزرسانی ناقص خبر داد. ممکن است نتایج عقب باشند؛ هر کارت نشان می‌دهد داده‌هایش آخرین بار کی تغییر کرده است.",
+    "source": "Only part of the live update arrived at {time}. Scores may be behind; every card shows when its data last changed.",
+    "text": "در ساعت {time} تنها بخشی از به‌روزرسانی زنده رسید. ممکن است نتایج عقب باشند؛ هر کارت نشان می‌دهد داده‌هایش آخرین بار کی تغییر کرده است.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "scores.live.connecting": {
     "source": "Connecting to live updates…",
@@ -8318,16 +8318,28 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "matchCentre.xgNotSupplied": {
-    "source": "Expected goals (xG): the provider did not supply them for this match.",
-    "text": "گل مورد انتظار (xG): ارائه‌دهنده‌ی داده آن را برای این بازی ارائه نکرده است.",
+    "source": "Expected goals (xG): not available for this match.",
+    "text": "گل مورد انتظار (xG): برای این بازی در دسترس نیست.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "matchCentre.playerColumn": {
     "source": "Player",
     "text": "بازیکن",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.playerStatistics.scroll": {
+    "source": "Scroll sideways to see every column.",
+    "text": "برای دیدن همه‌ی ستون‌ها، جدول را به پهلو بکشید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), T-1395."
+  },
+  "matchCentre.playerStatistics.region": {
+    "source": "{team}: player statistics, scrolls sideways",
+    "text": "{team}: آمار بازیکنان، با کشیدن به پهلو",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), T-1395."
   },
   "matchCentre.player.minutes": {
     "source": "Min",
@@ -8372,10 +8384,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "matchCentre.playerXgNotSupplied": {
-    "source": "Expected goals per player: not supplied by the provider for any match.",
-    "text": "گل مورد انتظار هر بازیکن: ارائه‌دهنده‌ی داده آن را برای هیچ بازی‌ای ارائه نمی‌کند.",
+    "source": "Expected goals per player: not available for any match.",
+    "text": "گل مورد انتظار هر بازیکن: برای هیچ بازی‌ای در دسترس نیست.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "matchCentre.noAbsences": {
     "source": "Nobody is reported missing or doubtful.",
@@ -8390,10 +8402,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "matchCentre.absencesNotCovered": {
-    "source": "The data provider does not report absences for this competition, so none are shown.",
-    "text": "ارائه‌دهنده‌ی داده برای این رقابت غایبان را گزارش نمی‌کند، پس چیزی نشان داده نمی‌شود.",
+    "source": "Absences are not recorded for this competition, so none are shown.",
+    "text": "غایبان این رقابت ثبت نمی‌شوند، پس چیزی نشان داده نمی‌شود.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "matchCentre.absencesNotYet": {
     "source": "Not asked yet: absences are published from about three days before kick-off.",
@@ -8732,16 +8744,16 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "matchCentre.keyPlayers.notAsked": {
-    "source": "Availability: the provider has not been asked about this match, so none is claimed.",
-    "text": "وضعیت بازیکنان: درباره‌ی این بازی از ارائه‌دهنده‌ی داده پرسیده نشده است، پس چیزی ادعا نمی‌شود.",
+    "source": "Availability: not checked for this match yet, so none is claimed.",
+    "text": "وضعیت بازیکنان: برای این بازی هنوز بررسی نشده است، پس چیزی ادعا نمی‌شود.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "matchCentre.keyPlayers.notCovered": {
-    "source": "Availability: our data provider does not report this competition's absences, so none is claimed.",
-    "text": "وضعیت بازیکنان: ارائه‌دهنده‌ی داده غایبان این رقابت را گزارش نمی‌کند، پس چیزی ادعا نمی‌شود.",
+    "source": "Availability: absences are not recorded for this competition, so none is claimed.",
+    "text": "وضعیت بازیکنان: غایبان این رقابت ثبت نمی‌شوند، پس چیزی ادعا نمی‌شود.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "matchCentre.keyPlayers.notYet": {
     "source": "Availability: absences are published from about three days before kick-off, so none is claimed yet.",
@@ -8750,10 +8762,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "matchCentre.keyPlayers.asked": {
-    "source": "Availability as the provider gave it, {time}.",
-    "text": "وضعیت بازیکنان به گزارش ارائه‌دهنده‌ی داده، {time}.",
+    "source": "Availability as last checked, {time}.",
+    "text": "وضعیت بازیکنان در آخرین بررسی، {time}.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "matchCentre.keyPlayers.delayed": {
     "source": "Player figures for this side are delayed.",
@@ -8769,15 +8781,15 @@
   },
   "matchCentre.keyPlayers.rule": {
     "source": {
-      "one": "Key players are each side's {count} with the most minutes in {competition} {season} before this match, counted from the feed's per-match player figures; a tie on minutes goes to more goals plus assists, then the name. Goals and assists are summed from the same figures. This is a count, not a judgement of quality, and no rating is used.",
-      "other": "Key players are each side's {count} with the most minutes in {competition} {season} before this match, counted from the feed's per-match player figures; a tie on minutes goes to more goals plus assists, then the name. Goals and assists are summed from the same figures. This is a count, not a judgement of quality, and no rating is used."
+      "one": "Key players are each side's {count} with the most minutes in {competition} {season} before this match, counted from each match's player figures; a tie on minutes goes to more goals plus assists, then the name. Goals and assists are summed from the same figures. This is a count, not a judgement of quality, and no rating is used.",
+      "other": "Key players are each side's {count} with the most minutes in {competition} {season} before this match, counted from each match's player figures; a tie on minutes goes to more goals plus assists, then the name. Goals and assists are summed from the same figures. This is a count, not a judgement of quality, and no rating is used."
     },
     "forms": {
-      "one": "بازیکنان کلیدی، {count} بازیکن هر تیم با بیشترین دقیقه‌ی بازی در {competition} {season} پیش از این بازی هستند که از آمار بازی‌به‌بازی منبع داده شمرده شده‌اند؛ در تساوی دقیقه، مجموع گل و پاس گل بیشتر و سپس نام تعیین‌کننده است. گل‌ها و پاس گل‌ها از همین آمار جمع زده می‌شوند. این یک شمارش است، نه داوری درباره‌ی کیفیت، و هیچ نمره‌ای به کار نمی‌رود.",
-      "other": "بازیکنان کلیدی، {count} بازیکن هر تیم با بیشترین دقیقه‌ی بازی در {competition} {season} پیش از این بازی هستند که از آمار بازی‌به‌بازی منبع داده شمرده شده‌اند؛ در تساوی دقیقه، مجموع گل و پاس گل بیشتر و سپس نام تعیین‌کننده است. گل‌ها و پاس گل‌ها از همین آمار جمع زده می‌شوند. این یک شمارش است، نه داوری درباره‌ی کیفیت، و هیچ نمره‌ای به کار نمی‌رود."
+      "one": "بازیکنان کلیدی، {count} بازیکن هر تیم با بیشترین دقیقه‌ی بازی در {competition} {season} پیش از این بازی هستند که از آمار بازیکنان در هر بازی شمرده شده‌اند؛ در تساوی دقیقه، مجموع گل و پاس گل بیشتر و سپس نام تعیین‌کننده است. گل‌ها و پاس گل‌ها از همین آمار جمع زده می‌شوند. این یک شمارش است، نه داوری درباره‌ی کیفیت، و هیچ نمره‌ای به کار نمی‌رود.",
+      "other": "بازیکنان کلیدی، {count} بازیکن هر تیم با بیشترین دقیقه‌ی بازی در {competition} {season} پیش از این بازی هستند که از آمار بازیکنان در هر بازی شمرده شده‌اند؛ در تساوی دقیقه، مجموع گل و پاس گل بیشتر و سپس نام تعیین‌کننده است. گل‌ها و پاس گل‌ها از همین آمار جمع زده می‌شوند. این یک شمارش است، نه داوری درباره‌ی کیفیت، و هیچ نمره‌ای به کار نمی‌رود."
     },
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "matchCentre.keyPlayers.position.goalkeeper": {
     "source": "Goalkeeper",
@@ -8846,10 +8858,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "matchCentre.keyPlayers.notListed": {
-    "source": "Not on the provider’s absence list",
-    "text": "در فهرست غایبان ارائه‌دهنده‌ی داده نیست",
+    "source": "Not on the absence list",
+    "text": "در فهرست غایبان نیست",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "matchCentre.keyPlayers.noneYet": {
     "source": "No match of this competition played before this one, so no minutes to count yet.",
@@ -10017,15 +10029,15 @@
   },
   "competition.leaders.unproven": {
     "source": {
-      "one": "{count} scorer is left out because the feed did not send minutes for every match they played, so the record cannot show they reached it.",
-      "other": "{count} scorers are left out because the feed did not send minutes for every match they played, so the record cannot show they reached it."
+      "one": "{count} scorer is left out because their minutes were not recorded for every match they played, so the record cannot show they reached it.",
+      "other": "{count} scorers are left out because their minutes were not recorded for every match they played, so the record cannot show they reached it."
     },
     "forms": {
-      "one": "{count} گلزن کنار گذاشته شده است، چون منبع داده دقیقه‌های همه‌ی بازی‌هایش را نفرستاده و سوابق نمی‌تواند نشان دهد که به این حد رسیده است.",
-      "other": "{count} گلزن کنار گذاشته شده‌اند، چون منبع داده دقیقه‌های همه‌ی بازی‌هایشان را نفرستاده و سوابق نمی‌تواند نشان دهد که به این حد رسیده‌اند."
+      "one": "{count} گلزن کنار گذاشته شده است، چون دقیقه‌های همه‌ی بازی‌هایش ثبت نشده و سوابق نمی‌تواند نشان دهد که به این حد رسیده است.",
+      "other": "{count} گلزن کنار گذاشته شده‌اند، چون دقیقه‌های همه‌ی بازی‌هایشان ثبت نشده و سوابق نمی‌تواند نشان دهد که به این حد رسیده‌اند."
     },
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "competition.leaders.noneReach": {
     "source": "No scorer's recorded minutes reach this floor.",
@@ -10058,10 +10070,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "team.squad.minutes": {
-    "source": "Minutes are for this team in the competitions above, from the feed's per-player figures: \"at least\" where some matches have none.",
-    "text": "دقیقه‌ها مربوط به این تیم در رقابت‌های بالا است و از آمار تک‌تک بازیکنان در منبع داده گرفته شده است؛ جایی که برای برخی بازی‌ها رقمی نیامده، «دست‌کم» نوشته شده است.",
+    "source": "Minutes are for this team in the competitions above, from each match's player figures: \"at least\" where some matches have none.",
+    "text": "دقیقه‌ها مربوط به این تیم در رقابت‌های بالا است و از آمار تک‌تک بازیکنان در هر بازی گرفته شده است؛ جایی که برای برخی بازی‌ها رقمی نیامده، «دست‌کم» نوشته شده است.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "saved.title": {
     "source": "Saved",
@@ -11613,15 +11625,15 @@
   },
   "competition.boards.unproven": {
     "source": {
-      "one": "{count} player is left out because the feed did not send minutes for every match they played, so the record cannot show they reached the floor.",
-      "other": "{count} players are left out because the feed did not send minutes for every match they played, so the record cannot show they reached the floor."
+      "one": "{count} player is left out because their minutes were not recorded for every match they played, so the record cannot show they reached the floor.",
+      "other": "{count} players are left out because their minutes were not recorded for every match they played, so the record cannot show they reached the floor."
     },
     "forms": {
-      "one": "{count} بازیکن کنار گذاشته شده است، چون منبع داده دقیقه‌های همه‌ی بازی‌هایش را نفرستاده و سوابق نمی‌تواند نشان دهد که به این حد رسیده است.",
-      "other": "{count} بازیکن کنار گذاشته شده‌اند، چون منبع داده دقیقه‌های همه‌ی بازی‌هایشان را نفرستاده و سوابق نمی‌تواند نشان دهد که به این حد رسیده‌اند."
+      "one": "{count} بازیکن کنار گذاشته شده است، چون دقیقه‌های همه‌ی بازی‌هایش ثبت نشده و سوابق نمی‌تواند نشان دهد که به این حد رسیده است.",
+      "other": "{count} بازیکن کنار گذاشته شده‌اند، چون دقیقه‌های همه‌ی بازی‌هایشان ثبت نشده و سوابق نمی‌تواند نشان دهد که به این حد رسیده‌اند."
     },
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "competition.boards.startsInGoal": {
     "source": {
@@ -13058,10 +13070,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "playerPage.minutesNote": {
-    "source": "Minutes are the feed’s own, per match: “at least” marks a season where some matches came without them, “not supplied” one where none did. Advanced statistics and availability are not held for this player and are not shown.",
-    "text": "دقیقه‌ها همان ارقام منبع داده برای هر بازی است: «دست‌کم» یعنی فصلی که برخی بازی‌هایش بی‌دقیقه آمده‌اند، و «ارائه نشده» یعنی فصلی که هیچ بازی‌اش دقیقه نداشته است. آمار پیشرفته و وضعیت حضور این بازیکن در اختیار ما نیست و نشان داده نمی‌شود.",
+    "source": "Minutes are recorded per match: “at least” marks a season where some matches have none, “not supplied” one where none do. Advanced statistics and availability are not held for this player and are not shown.",
+    "text": "دقیقه‌ها برای هر بازی جداگانه ثبت می‌شوند: «دست‌کم» یعنی فصلی که برخی بازی‌هایش بی‌دقیقه آمده‌اند، و «ارائه نشده» یعنی فصلی که هیچ بازی‌اش دقیقه نداشته است. آمار پیشرفته و وضعیت حضور این بازیکن در اختیار ما نیست و نشان داده نمی‌شود.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "playerPage.minutesAtLeast": {
     "source": "at least {minutes}",
@@ -13376,10 +13388,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "compare.reason.minutes": {
-    "source": "No minutes from the feed",
-    "text": "منبع داده دقیقه‌ای نفرستاده",
+    "source": "No minutes recorded",
+    "text": "دقیقه‌ای ثبت نشده",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "compare.note.both": {
     "source": "{reason} for either player.",
@@ -13412,10 +13424,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "compare.footnote": {
-    "source": "Figures come from our line-ups and incidents, minutes from the feed’s own match statistics. Player ratings and advanced statistics are not held for these players and are not shown.",
-    "text": "ارقام از ترکیب‌ها و رویدادهای ثبت‌شده‌ی ما می‌آیند و دقیقه‌ها از آمار خودِ منبع داده برای هر بازی. نمره‌ی بازیکنان و آمار پیشرفته برای این بازیکنان در اختیار ما نیست و نشان داده نمی‌شود.",
+    "source": "Figures come from our line-ups and incidents, minutes from each match’s own statistics. Player ratings and advanced statistics are not held for these players and are not shown.",
+    "text": "ارقام از ترکیب‌ها و رویدادهای ثبت‌شده‌ی ما می‌آیند و دقیقه‌ها از آمار خودِ هر بازی. نمره‌ی بازیکنان و آمار پیشرفته برای این بازیکنان در اختیار ما نیست و نشان داده نمی‌شود.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "compare.noData": {
     "source": "no match data stored yet",
@@ -14168,7 +14180,7 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "matchCentre.latestFirst": {
-    "source": "Latest first. Names and minutes come from the match feed.",
+    "source": "Latest first. Names and minutes are as recorded for the match.",
     "text": "تازه‌ترین در بالا. نام‌ها و دقیقه‌ها از داده‌های بازی می‌آیند.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -14180,7 +14192,7 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "matchCentre.lineups.pitchNote": {
-    "source": "Home side at the bottom. Players are placed by the formation and the role the feed gives each of them; along each line they are in shirt-number order, because the feed does not say who played on which side.",
+    "source": "Home side at the bottom. Players are placed by the formation and the role each was given; along each line they are in shirt-number order, because the line-up does not say who played on which side.",
     "text": "میزبان در پایین. بازیکنان بر پایه‌ی آرایش تیم و نقشی که داده‌ها برای هر کدام می‌دهند چیده شده‌اند؛ در هر خط به ترتیب شماره‌ی پیراهن، چون داده‌ها نمی‌گویند چه کسی در کدام سمت بازی کرد.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -14198,7 +14210,7 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "matchCentre.lineups.linesUnknown": {
-    "source": "The feed does not say which midfielder played in which line of the {formation}, so this line-up is a list.",
+    "source": "The line-up does not say which midfielder played in which line of the {formation}, so it is shown as a list.",
     "text": "داده‌ها نمی‌گویند هر هافبک در کدام خطِ آرایش {formation} بازی کرد؛ برای همین این ترکیب به‌صورت فهرست آمده است.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."

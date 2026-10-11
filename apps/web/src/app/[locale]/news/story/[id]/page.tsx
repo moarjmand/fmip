@@ -5,7 +5,8 @@ import type { NewsEntity, NewsReport, StoryPage as StoryPageData } from '@fmip/c
 import { StoryTypeTag } from '@/components/story-type';
 import { FilledMessage } from '@/components/filled-message';
 import { Translated } from '@/components/translated';
-import { formatDateTime } from '@/i18n/format';
+import { formatDateTime, intlLocale } from '@/i18n/format';
+import { languageName } from '@/lib/group-about';
 import { DEFAULT_LOCALE, type Locale, isLocale } from '@/i18n/locales';
 import { interpolate, message, t } from '@/i18n/messages';
 import {
@@ -286,11 +287,13 @@ export default async function StoryPage({
                       href={storyHref(locale, id, v.language)}
                       aria-current={v.language === story.language ? 'true' : undefined}
                       className={`rounded px-2 py-1 ${v.language === story.language ? 'bg-surface-raised font-semibold' : 'underline'}`}
-                      lang={v.language}
+                      hrefLang={v.language}
+                      data-language={v.language}
                       data-origin={v.origin}
                       data-review-state={v.review_state ?? ''}
                     >
-                      {v.language}
+                      {/* The language's name in the reader's words ("American English"), not its tag (T-1395). */}
+                      {languageName(intlLocale(locale), v.language)}
                       {' · '}
                       <Translated locale={locale} message={VERSION_STATUS_KEY[versionStatus(v)]} />
                     </Link>

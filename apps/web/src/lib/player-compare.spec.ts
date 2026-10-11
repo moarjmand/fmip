@@ -185,10 +185,10 @@ describe('compareRows', () => {
     const one = compareRows(a, none, null).find((r) => r.key === 'minutes');
     expect(one).toMatchObject({ a: { value: 300 }, b: { value: null }, lacking: 'b' });
     expect(rowNote('en', one!, 'Ann', 'Bea')).toBe(
-      'Bea: no minutes from the feed, so this is not a comparison.',
+      'Bea: no minutes recorded, so this is not a comparison.',
     );
     const both = compareRows(none, none, null).find((r) => r.key === 'minutes');
-    expect(rowNote('en', both!, 'Ann', 'Bea')).toBe('No minutes from the feed for either player.');
+    expect(rowNote('en', both!, 'Ann', 'Bea')).toBe('No minutes recorded for either player.');
   });
 
   it('marks a partial season "at least", limited, never a smaller number as whole', () => {
