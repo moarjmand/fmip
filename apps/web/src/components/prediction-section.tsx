@@ -58,8 +58,8 @@ export function PredictionSection({
   return (
     <section className="flex flex-col gap-2" data-testid="prediction">
       <h2 className="text-lg font-semibold">
-        <Translated locale={l} message="predictions.section.title" />
-        <span className="ms-2 text-xs font-normal uppercase text-muted">
+        <Translated locale={l} message="predictions.section.title" />{' '}
+        <span className="ms-1 text-xs font-normal text-muted">
           <Translated
             locale={l}
             message={locked ? 'predictions.section.locked' : 'predictions.section.open'}

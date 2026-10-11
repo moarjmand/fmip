@@ -59,6 +59,7 @@ import { type CardForecast, cardForecast } from '@/lib/score-card-products';
 import { competitionJsonLd, pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { forecastBarWords } from '@/lib/words-server';
+import { pageTimeZone } from '@/lib/reader-time-zone-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -165,7 +166,7 @@ export default async function CompetitionPage({
     );
   }
   const page = result.data;
-  const timeZone = me?.timezone ?? 'UTC';
+  const { timeZone } = await pageTimeZone(locale, me);
   const tabs = availableTabs(page);
   const tab: CompetitionTab = tabs.includes(requested) ? requested : 'overview';
   const matchweek = currentMatchweek(locale, page);

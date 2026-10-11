@@ -38,6 +38,8 @@ import { scoresWords } from '@/lib/words-server';
 import { FilledMessage } from '@/components/filled-message';
 import { Translated } from '@/components/translated';
 import { Button, ButtonLink, Notice, controlClasses } from '@/components/ui';
+import { pageTimeZone } from '@/lib/reader-time-zone-server';
+import { zoneWords } from '@/lib/reader-time-zone';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,7 +83,8 @@ export default async function ScoresPage({
   const say = (key: MessageKey): string => t(resolved, key);
   const cookie = await sessionCookieHeader();
   const me = await fetchMe(cookie);
-  const q = readScoresQuery(query, me?.timezone ?? null);
+  const zone = await pageTimeZone(locale, me);
+  const q = readScoresQuery(query, zone.timeZone);
   const [result, ingestion] = await Promise.all([
     fetchScores(apiQuery(q), cookie),
     fetchIngestionHealth(),
@@ -265,9 +268,9 @@ export default async function ScoresPage({
           <FilledMessage
             message={message(
               resolved,
-              me === null && !q.explicitTimezone ? 'scores.timesInGuest' : 'scores.timesIn',
+              !zone.chosen && !q.explicitTimezone ? 'scores.timesInGuest' : 'scores.timesIn',
             )}
-            params={{ zone: q.timezone }}
+            params={{ zone: q.timezone, zoneName: zoneWords(locale, q.timezone) }}
           />
         </span>
       </div>

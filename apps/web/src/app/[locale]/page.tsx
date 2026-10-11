@@ -78,6 +78,7 @@ import { dateIn, shiftDate } from '@/lib/scores';
 import { pageMetadata, websiteJsonLd } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { territoryName } from '@/lib/territory';
+import { readerTimeZone } from '@/lib/reader-time-zone';
 
 // The API is queried per request, so a build never depends on it being up.
 export const dynamic = 'force-dynamic';
@@ -172,8 +173,9 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       ? guest.done !== true && guest.dismissed !== true
       : firstRun?.state === 'pending';
 
-  // Times are the member's zone, else the zone a guest chose, else UTC, and say which.
-  const timeZone = me?.timezone ?? guest?.timezone ?? 'UTC';
+  // Times are the member's zone, else the zone a guest chose, else the
+  // locale's default (UK time on /en, D-207), and say which.
+  const timeZone = readerTimeZone(locale, me, guest);
   const now = new Date();
   const today = dateIn(timeZone, now);
 

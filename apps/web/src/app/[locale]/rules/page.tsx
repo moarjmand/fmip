@@ -9,6 +9,7 @@ import { rulesBlocks, rulesVersionNumber } from '@/lib/platform-rules';
 import { acceptRulesAction } from '@/lib/rules-actions';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { pageTimeZone } from '@/lib/reader-time-zone-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,7 +55,7 @@ export default async function RulesPage({
     fetchSession(await sessionCookieHeader()),
   ]);
   const said = outcome === undefined ? undefined : OUTCOMES[outcome];
-  const timeZone = session?.user.timezone ?? 'UTC';
+  const { timeZone } = await pageTimeZone(locale, session?.user ?? null);
   const day = (iso: string) =>
     formatDate(locale, iso, timeZone, { day: 'numeric', month: 'long', year: 'numeric' });
 

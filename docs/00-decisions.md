@@ -9997,3 +9997,91 @@ the stream*: the poll keeps the page current with the same freshness line
 and no new control. *Not registering the service worker in lite mode*: its
 precache is a one-off of three small files, and it is what makes the
 offline page work on exactly these connections.
+
+## D-207 — The English site for readers abroad: its own competition order, UK time, English stories only, English club names
+**Status:** Accepted · 2026-10-11 (the maintainer, in chat: the English site now comes first; its audience is abroad, e.g. the UK; only development happens in Iran) · **Task:** T-1391 · **Follows:** D-154, D-175, D-178, D-193, D-200, rules 1-4
+
+**Context.** `/en` was the Persian site in English words: the Pro League
+first (D-200's order, `competition.display_order`), times in UTC ("16:22
+UTC time"), German stories from kicker and Sportschau (shown to every
+reader because only Persian sources are `same_language_only`, D-178), a
+publisher's scheduled page dated two weeks ahead on top of the news, the
+feed's round ("Regular Season - 6"), and "Tractor Sazi", "Persepolis FC".
+
+**Decision.**
+
+1. **A language may state its own competition order.** A new table,
+   `competition_display_order (competition_id, locale, position)`, keyed by
+   the language subtag (`en`, never `en-GB`). The scores answer orders its
+   groups by the reader's language's order when that language has *any*
+   row, and a competition it does not place comes after every placed one
+   (by country and name, as an unplaced competition always has). A language
+   with no rows (Persian, today) reads `competition.display_order`
+   unchanged. The order is whole per language, not per competition: mixing
+   an English place with a Persian one for the competitions English left
+   out would give an order nobody stated. `GET /scores` already receives the
+   reader's `?locale=` (T-1312: the web sends it on every read), so no
+   contract field is added; the scores stream's snapshot key already holds
+   the locale. Set with `catalog.mjs --set-order --locale en` and from
+   `/admin/competitions?order=en` (`GET`/`PUT /admin/competitions…?locale=en`),
+   both audited as `catalog.competition_order_set` with the language and the
+   place before (rule 10). The home's side table takes the first group
+   (`tableCompetition`), so on `/en` it is the Premier League once the order
+   is set, and on `/fa` still the Pro League.
+   *Rejected:* a second column (`display_order_en`): a language in the
+   schema's name, and the next audience would need another migration; a
+   per-competition fallback to the default order: see above.
+2. **One reader zone, UK time by default on `/en`.** `readerTimeZone(locale,
+   me, guest)` (`lib/reader-time-zone.ts`; `pageTimeZone` reads the guest's
+   cookie on the server): the member's zone, else the one a guest chose in
+   the first run, else `Europe/London` on `/en` and UTC everywhere else
+   (`/fa` as before). Every page that shows a time uses it: home, the
+   header's live strip (whose shared cache key already has the zone),
+   scores, match, predictions, watch, competition, team, player, news, a
+   story, a profile, the rules. Before, most of those used the member's
+   zone only, so a guest who had chosen a zone saw it on the home page and
+   UTC elsewhere. The zone is said in words, one way everywhere
+   (`zoneWords`): "UK time", "Tehran time", "UTC" (never "UTC time"),
+   "<city> time"; the scores, match, watch and predictions lines read
+   "Times: UK time". Persian keeps today's words for every zone.
+3. **The feed's rounds in English words.** `stage.matchday` "Matchweek
+   {round}" (the boards' word), `stage.round` "{stage}, matchday {round}",
+   and "League phase" (UEFA's name) for the provider's "League Stage".
+4. **English readers are shown English-language sources only.**
+   `news_visible_to()` now answers, for a reader whose language subtag is
+   `en`, whether the source's language is English; for every other reader
+   the console's per-source setting (D-178) decides as before, so a Persian
+   reader is shown exactly what they were. `news_source.language` is NOT
+   NULL, so no source is without a language. The source's language, not the
+   version's: D-178 already rejected the version's (a translation is not an
+   English publisher). The console's `same_language_only` therefore no
+   longer changes what an English reader sees; it says so here rather than
+   in the console. Every reader path inherits it (sections, team and match
+   news, the story page answers 404, saved stories say `other_language`,
+   alerts).
+5. **No story dated in the future.** The story card (every list) leaves out
+   a story whose first publication, or whose shown version, is more than
+   ten minutes (`FUTURE_GRACE`, clock skew) after the database's `now()`. A
+   publisher's scheduled page ("listen live on the 24th") is not news yet
+   and, newest first, would sit on top of every list; it is listed once its
+   time comes. Dropped rather than clamped to the fetch time: a clamped
+   date would be a date the publisher never gave, and the card would need a
+   second date to say so.
+6. **English names for the Pro League's clubs**, as D-175 wrote the
+   Persian ones: `entity_alias` rows, kind `name`, language `en`, source
+   `d207`, which `localised_name()` and the names on every surface (T-1312)
+   already read. Matched by the club's stored name and the league (its
+   provider id, 290), a name the club already carries not written again:
+   Tractor, Persepolis, Esteghlal, Sepahan, Zob Ahan, Foolad, Chadormalu,
+   Nassaji, Shams Azar (the others' stored names are already their English
+   short form). Migration `1765850000000_english-focus.sql` holds 1, 4 and 6.
+7. **Copy found by the read-only audit of production's English pages**:
+   the coverage badge in sentence case ("Available", the catalogue's words
+   raised by `::first-letter`, as they also appear mid-sentence), "email"
+   for "e-mail", the phone tab bar's "Scores" as the desktop nav says it,
+   "First, level on points with second" instead of "First, 0 pts clear",
+   and the prediction heading's "Locked at kick-off" with a real space.
+   The audit's bigger findings are listed in the PR, not fixed here.
+
+**Production.** The order is data, set after the deploy by the operator
+(the PR lists the commands); until then `/en` reads the default order.

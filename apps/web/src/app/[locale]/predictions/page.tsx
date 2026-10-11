@@ -45,6 +45,7 @@ import { Icon, Notice } from '@/components/ui';
 import { Translated } from '@/components/translated';
 import { interpolate, t } from '@/i18n/messages';
 import { asLocale, plainNumber, ratingText } from '@/lib/prediction-text';
+import { pageTimeZone } from '@/lib/reader-time-zone-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -97,7 +98,7 @@ export default async function PredictionsPage({
   const l = asLocale(locale);
   const cookie = await sessionCookieHeader();
   const me = await fetchMe(cookie);
-  const q = readScoresQuery(query, me?.timezone ?? null);
+  const q = readScoresQuery(query, (await pageTimeZone(locale, me)).timeZone);
   const competition = q.filters?.competition ?? null;
 
   const to = shiftDate(q.date, PREDICTION_DAYS - 1);

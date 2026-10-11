@@ -349,6 +349,19 @@ n=1; for id in 2 39 140 135 78 61 290 3 848 40 88 94 203 144 179; do
 done
 ```
 
+**The English site's own order (T-1391, D-207).** `/en` readers are abroad,
+so their order starts with the Premier League. It is kept apart from the
+default one above (which `/fa` and every other language read): once any
+competition has an English place, `/en` reads only the English places, and a
+competition without one comes after them. Set it in the console under
+**English site (/en)** on `/en/admin/competitions`, or all at once:
+
+```bash
+n=1; for id in 39 2 140 135 78 61 3 848 290 40 88 94 203 144 179 17; do
+  catalog --set-order --locale en --competition $id --order $n --by you@your-domain; n=$((n+1))
+done
+```
+
 The provider's coverage flags on that day: all eight have events, line-ups,
 match and player statistics and a table; availability (injuries) is missing
 for Primeira Liga, the Belgian Pro League, the Scottish Premiership and the

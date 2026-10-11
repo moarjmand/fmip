@@ -59,7 +59,7 @@ test.describe('blueprint journeys', () => {
     const form = page.getByTestId('register-form');
     await form.getByLabel('Username').fill(USERNAME);
     await form.getByLabel('Display name').fill('Journey Tester');
-    await form.getByLabel('E-mail').fill(EMAIL);
+    await form.getByLabel('Email').fill(EMAIL);
     await form.getByLabel('Password').fill(PASSWORD);
     await form.getByLabel('Country or territory').selectOption({ label: 'England' });
     await form.getByLabel('I accept the platform rules.').check();

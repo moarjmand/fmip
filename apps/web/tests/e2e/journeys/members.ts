@@ -88,7 +88,7 @@ export async function registerAndVerify(page: Page, who: Member): Promise<void> 
   const form = page.getByTestId('register-form');
   await form.getByLabel('Username').fill(who.username);
   await form.getByLabel('Display name').fill(who.displayName);
-  await form.getByLabel('E-mail').fill(who.email);
+  await form.getByLabel('Email').fill(who.email);
   await form.getByLabel('Password').fill(who.password);
   await form.getByLabel('Country or territory').selectOption({ label: 'England' });
   await form.getByLabel('I accept the platform rules.').check();

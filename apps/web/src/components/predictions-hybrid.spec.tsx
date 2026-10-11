@@ -101,7 +101,8 @@ describe('ForecastList by day', () => {
     expect(html).toMatch(/Today<span[^>]*>Thursday 8 October · 2 matches/);
     expect(html).toContain('Persian Gulf Pro League');
     expect(html.match(/data-testid="model-row"/g)).toHaveLength(2);
-    expect(html).toContain('Times in UTC');
+    // The zone in words (T-1391, D-207): "UTC", never "UTC time" or "Times in UTC".
+    expect(html).toContain('Times: UTC');
     // The serif display for the editorial heading.
     expect(html).toMatch(/<h2 class="font-serif text-display-1/);
   });

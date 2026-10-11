@@ -37,6 +37,7 @@ import { pageMetadata, teamJsonLd } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { OVERVIEW_MATCHES, type TeamTab, readTeamTab, seasonFigures } from '@/lib/team';
 import { readTerritoryQuery } from '@/lib/viewing';
+import { pageTimeZone } from '@/lib/reader-time-zone-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -121,7 +122,7 @@ export default async function TeamPage({
   }
   const page = result.data;
   const t = page.team;
-  const timeZone = me?.timezone ?? 'UTC';
+  const { timeZone } = await pageTimeZone(locale, me);
   // Where each match can be watched (T-314): in the member's stored territory
   // or the one a guest carried here on the link. The Overview asks for the
   // next match only (its card); the Fixtures tab for the whole list, at once.

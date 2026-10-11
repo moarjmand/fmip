@@ -50,6 +50,7 @@ import {
   tabHref,
 } from '@/lib/competition-overview';
 import type { CardForecast } from '@/lib/score-card-products';
+import { zoneWords } from '@/lib/reader-time-zone';
 
 /**
  * The competition page in the Hybrid design, data mode (T-1385, D-203): the
@@ -522,13 +523,8 @@ export function EntityFollow({
 // Matches
 // ---------------------------------------------------------------------------
 
-/** "Tehran time" or "London time": the zone every kick-off on the page is in. */
-export function zoneWords(locale: string, timeZone: string): string {
-  if (timeZone === 'Asia/Tehran') return say(locale, 'nextMatch.tehranTime');
-  return say(locale, 'nextMatch.zoneTime', {
-    zone: timeZone.split('/').at(-1)?.replace(/_/g, ' ') ?? timeZone,
-  });
-}
+/** "UK time" or "Tehran time": the zone every kick-off on the page is in (D-207). */
+export { zoneWords };
 
 /** When, or what happened instead: the day and time, "live", "postponed". */
 export function When({

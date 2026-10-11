@@ -29,6 +29,7 @@ import {
 } from '@/lib/player';
 import { pageMetadata, playerJsonLd } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import { pageTimeZone } from '@/lib/reader-time-zone-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -102,7 +103,7 @@ export default async function PlayerPage({
   }
   const page = result.data;
   const p = page.person;
-  const timeZone = me?.timezone ?? 'UTC';
+  const { timeZone } = await pageTimeZone(locale, me);
   const record = page.record.data ?? [];
   const seasons = seasonsOf(record);
   // The season filter belongs to Matches and Stats; elsewhere every season shows.

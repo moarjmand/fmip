@@ -17,7 +17,10 @@ test.describe('scores page', () => {
     await expect(days.nth(1)).toHaveText('Today');
     await expect(days.nth(1)).toHaveAttribute('aria-current', 'date');
     await expect(page.getByTestId('filters').getByRole('link', { name: 'Live' })).toBeVisible();
-    await expect(page.getByTestId('timezone')).toContainText('Times in UTC');
+    // A guest on /en with no zone of their own reads UK time (T-1391, D-207).
+    await expect(page.getByTestId('timezone')).toContainText(
+      'Times: UK time (sign in for your own zone)',
+    );
 
     await expect(page.getByTestId('scores-unreachable')).toBeVisible();
     await expect(page.getByTestId('score-card')).toHaveCount(0);
@@ -35,7 +38,7 @@ test.describe('scores page', () => {
   test('keeps the chosen day and zone in the strip links', async ({ page }) => {
     await page.goto('/en/scores?date=2087-01-07&tz=Asia/Tehran');
 
-    await expect(page.getByTestId('timezone')).toContainText('Times in Asia/Tehran');
+    await expect(page.getByTestId('timezone')).toContainText('Times: Tehran time');
     const live = page.getByTestId('filters').getByRole('link', { name: 'Live' });
     await expect(live).toHaveAttribute('href', /date=2087-01-07/);
     await expect(live).toHaveAttribute('href', /tz=Asia%2FTehran/);

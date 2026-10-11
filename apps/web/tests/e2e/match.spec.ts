@@ -15,7 +15,7 @@ test.describe('match centre page', () => {
     await page.goto('/en/match/00000000-0000-4000-8000-000000000901?tz=Asia/Tehran');
 
     await expect(page.getByTestId('match-unreachable')).toBeVisible();
-    await expect(page.getByTestId('timezone')).toContainText('Times in Asia/Tehran');
+    await expect(page.getByTestId('timezone')).toContainText('Times: Tehran time');
     await expect(page.getByTestId('match-header')).toHaveCount(0);
 
     const stream = await page.request.get(
