@@ -62,8 +62,10 @@ export async function SiteHeader({ locale, theme }: { locale: string; theme: The
   // A thumb-sized row in the phone menu; inline text again from `sm`.
   const item = 'flex min-h-11 items-center sm:min-h-0';
 
+  // Editorial mode (D-198): the header is on paper whatever the theme, while
+  // a data page below it follows the theme.
   return (
-    <header className="border-b border-default">
+    <header data-mode="editorial" className="border-b border-default">
       <nav
         aria-label={primary.text}
         lang={primary.lang}

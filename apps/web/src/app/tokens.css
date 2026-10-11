@@ -1,26 +1,47 @@
 /*
- * The colour tokens (T-602, D-089). Every colour the web app paints comes
- * from one of these, through the Tailwind classes `globals.css` maps them to
- * (`bg-surface`, `text-muted`, `border-default` and the rest); no component
- * names a colour of its own. This file is the only place a colour value is
- * written, apart from `src/lib/brand-colours.ts`, which mirrors the light
- * values for the image renderers that cannot read a CSS variable (the share
- * cards, the manifest) -- `src/app/tokens.spec.ts` holds the two together.
+ * The colour tokens (T-602, D-089; the Hybrid palette, T-1380, D-198). Every
+ * colour the web app paints comes from one of these, through the Tailwind
+ * classes `globals.css` maps them to (`bg-surface`, `text-muted`,
+ * `border-default` and the rest); no component names a colour of its own.
+ * This file is the only place a colour value is written, apart from
+ * `src/lib/brand-colours.ts`, which mirrors the light values for the image
+ * renderers that cannot read a CSS variable (the share cards, the manifest)
+ * -- `src/app/tokens.spec.ts` holds the two together.
+ *
+ * One brand colour, the FMIP green, and two grounds (D-198):
+ *   - light is paper and Day: the paper ground of the editorial pages and
+ *     the header, white surfaces, and the sunk Day ground of a data page;
+ *   - dark is Night, the match stage, where the same green lifts so it
+ *     still reads (the mark itself stays the D-089 green).
+ * The model, founder and community colours belong to the three prediction
+ * products and to nothing else (CLAUDE.md rule 6).
  *
  * Three ways to reach dark, one set of values:
  *   - `:root` alone is light;
  *   - with `data-theme="system"` (or none) on <html>, the device decides,
- *     through `prefers-color-scheme`;
- *   - `data-theme="light"` or `"dark"` is a member's or guest's choice and
- *     wins over the device. The attribute is rendered on the server from the
- *     theme cookie, so the first paint is already the right one.
+ *     through `prefers-color-scheme` (the toggle's Auto);
+ *   - `data-theme="light"` or `"dark"` is a member's or guest's choice (Day,
+ *     Night) and wins over the device. The attribute is rendered on the
+ *     server from the theme cookie, so the first paint is already the right
+ *     one.
  * The two dark blocks carry the same declarations; the spec refuses a drift.
+ *
+ * Editorial mode (D-198): an element marked `data-mode="editorial"` -- the
+ * header, and the editorial pages as they move to the Hybrid layouts -- is
+ * always on paper, whatever the theme. The last blocks of this file give it
+ * the light values (and light with more contrast, when that applies); custom
+ * properties set on an element win over the ones it would inherit from
+ * <html>, so no specificity contest is involved. Data pages carry no mark, or
+ * `data-mode="data"`, and follow the theme.
  *
  * Contrast is WCAG 2 (AA: 4.5:1 for text, 3:1 for large text, UI component
  * boundaries and focus indicators). Each figure below is measured against
  * canvas / surface / surface-raised, in that order, and the spec recomputes
  * every one of them from the values here, so a figure that goes stale fails.
- * Muted text keeps AA on every background (D-041).
+ * The stage, a data page's ground, is the sunk Day ground on light and the
+ * Night canvas on dark, so it repeats one of the three and adds no figure of
+ * its own; the spec checks every role on it too. Muted text and captions
+ * keep AA on every background (D-041).
  *
  * More contrast (T-621, blueprint 2.2) is a second set of values for each
  * theme, in which every text role is WCAG AAA (7:1) on the page and both
@@ -34,7 +55,9 @@
  *   2. light and more, specificity 0-2-0, which beats 1 and nothing else;
  *   3. the two ways to dark, 0-2-0 and later, so they beat 2;
  *   4. dark and more, 0-3-0, four ways (chosen or device dark, times chosen
- *      or device contrast), which beat 3.
+ *      or device contrast), which beat 3;
+ *   5. editorial mode, set on the marked element itself: light, then light
+ *      and more (0-3-0, beating the plain mark).
  * Blocks of one kind carry the same declarations; the spec refuses a drift,
  * and recomputes the figures written against the first of each kind.
  */
@@ -42,179 +65,233 @@
 :root {
   color-scheme: light;
 
-  /* The page. */
-  --token-canvas: #ffffff;
-  /* Panels and cards, a step off the page. */
-  --token-surface: #f9fafb;
-  /* Chips, highlighted rows, hover and the skip link: a step further. */
-  --token-surface-raised: #f3f4f6;
+  /* The page: paper. */
+  --token-canvas: #fafaf7;
+  /* Cards, the live strip, chips: white, a step off the paper. */
+  --token-surface: #ffffff;
+  /* Sunk: highlighted rows, hover, the skip link, and the Day ground. */
+  --token-surface-raised: #f1f2ee;
+  /* A data page's ground (Day): the sunk value. */
+  --token-stage: #f1f2ee;
 
-  /* Body text: 17.74 / 16.98 / 16.12. */
-  --token-text: #111827;
-  /* Secondary text: 7.56 / 7.23 / 6.87. */
-  --token-text-muted: #4b5563;
+  /* Body text, ink: 17.01 / 17.79 / 15.82. */
+  --token-text: #15181d;
+  /* Secondary text, ink-2: 9.13 / 9.55 / 8.49. */
+  --token-text-muted: #3e4651;
+  /* Captions, the quietest text: 5.07 / 5.31 / 4.72. */
+  --token-caption: #646c78;
 
-  /* Hairlines between things; decorative, so no minimum (1.47:1 on canvas). */
-  --token-border: #d1d5db;
-  /* The edge of a field or control, which must be seen: 4.83 / 4.63 / 4.39. */
-  --token-border-strong: #6b7280;
+  /* Hairlines, the rule; decorative, so no minimum (1.30:1 on paper). */
+  --token-border: #dadde2;
+  /* The edge of a field or control, which must be seen: 3.97 / 4.15 / 3.69. */
+  --token-border-strong: #767d88;
 
-  /* The green (D-089 `green-700`): 6.61 / 6.32 / 6.00. */
+  /* The green (D-089 `green-700`): 6.32 / 6.61 / 5.88. */
   --token-accent: #0b6b3a;
-  /* Pressed or hover on the green (`green-900`): 12.53 / 11.99 / 11.39. */
+  /* Pressed or hover on the green (`green-900`): 11.98 / 12.53 / 11.14. */
   --token-accent-strong: #063c21;
   /* Text on the green: 6.61 on accent, 12.53 on accent-strong. */
   --token-on-accent: #ffffff;
 
-  /* The keyboard focus ring: 17.74 / 16.98 / 16.12. */
-  --token-focus: #111827;
+  /* The keyboard focus ring: 17.01 / 17.79 / 15.82. */
+  --token-focus: #15181d;
 
-  /* An error, a refusal: 6.47 / 6.19 / 5.88. */
+  /* An error, a refusal: 6.19 / 6.47 / 5.75. */
   --token-danger: #b91c1c;
-  /* A caution, a stale figure: 7.09 / 6.78 / 6.44. */
-  --token-warning: #92400e;
-  /* Done, saved: the green, 6.61 / 6.32 / 6.00. */
+  /* Delayed, limited, stale: 5.67 / 5.93 / 5.27. */
+  --token-warning: #8a5a00;
+  /* Done, saved: the green, 6.32 / 6.61 / 5.88. */
   --token-success: #0b6b3a;
-  /* A match in play: 6.57 / 6.29 / 5.97. */
-  --token-live: #b42318;
+  /* A match in play, the live minute: 5.52 / 5.77 / 5.13. */
+  --token-live: #c42335;
+
+  /* The statistical model's lane, and nothing else: 5.76 / 6.02 / 5.36. */
+  --token-model: #1d5fc4;
+  /* The founder's analysis lane, and nothing else: 5.50 / 5.75 / 5.11. */
+  --token-founder: #a84a12;
+  /* The community picks lane, and nothing else: 6.14 / 6.42 / 5.71. */
+  --token-community: #6a4bb3;
 }
 
 /* More contrast on light (T-621): every text role 7:1 or better. Chosen... */
 :root[data-contrast='more'] {
   color-scheme: light;
-  --token-canvas: #ffffff;
-  --token-surface: #f9fafb;
-  --token-surface-raised: #f3f4f6;
-  /* Body text: 20.13 / 19.27 / 18.30. */
-  --token-text: #030712;
-  /* Secondary text, close to body text: 10.31 / 9.86 / 9.37. */
-  --token-text-muted: #374151;
-  /* The hairline, now an edge you can see: 4.83 / 4.63 / 4.39. */
-  --token-border: #6b7280;
-  /* A field's edge: 14.68 / 14.05 / 13.34. */
-  --token-border-strong: #1f2937;
-  /* The green: 9.22 / 8.82 / 8.37. */
+  --token-canvas: #fafaf7;
+  --token-surface: #ffffff;
+  --token-surface-raised: #f1f2ee;
+  --token-stage: #f1f2ee;
+  /* Body text: 19.38 / 20.27 / 18.03. */
+  --token-text: #050608;
+  /* Secondary text, close to body text: 12.53 / 13.10 / 11.65. */
+  --token-text-muted: #2b313a;
+  /* Captions, now ink-2: 9.13 / 9.55 / 8.49. */
+  --token-caption: #3e4651;
+  /* The hairline, now an edge you can see: 3.56 / 3.72 / 3.31. */
+  --token-border: #7f858e;
+  /* A field's edge: 7.08 / 7.40 / 6.58. */
+  --token-border-strong: #4f5661;
+  /* The green: 8.81 / 9.22 / 8.20. */
   --token-accent: #05532b;
-  /* Pressed or hover on the green: 15.59 / 14.92 / 14.17. */
+  /* Pressed or hover on the green: 14.91 / 15.59 / 13.87. */
   --token-accent-strong: #032a16;
   /* Text on the green: 9.22 on accent, 15.59 on accent-strong. */
   --token-on-accent: #ffffff;
-  /* The focus ring: 20.13 / 19.27 / 18.30. */
-  --token-focus: #030712;
-  /* An error: 8.31 / 7.95 / 7.55. */
+  /* The focus ring: 19.38 / 20.27 / 18.03. */
+  --token-focus: #050608;
+  /* An error: 7.95 / 8.31 / 7.39. */
   --token-danger: #991b1b;
-  /* A caution: 9.07 / 8.68 / 8.24. */
-  --token-warning: #78350f;
-  /* Done, saved: 9.22 / 8.82 / 8.37. */
+  /* Delayed, limited, stale: 8.03 / 8.40 / 7.47. */
+  --token-warning: #6b4600;
+  /* Done, saved: 8.81 / 9.22 / 8.20. */
   --token-success: #05532b;
-  /* A match in play: 8.96 / 8.58 / 8.14. */
-  --token-live: #8f1c13;
+  /* A match in play: 7.99 / 8.35 / 7.43. */
+  --token-live: #981a29;
+  /* The model's lane: 8.11 / 8.48 / 7.54. */
+  --token-model: #174a99;
+  /* The founder's lane: 8.00 / 8.37 / 7.44. */
+  --token-founder: #80390d;
+  /* The community lane: 7.89 / 8.26 / 7.34. */
+  --token-community: #573f94;
 }
 
 /* ...or not chosen, and the device asks for it: the same values. */
 @media (prefers-contrast: more) {
   :root:not([data-contrast='standard']) {
     color-scheme: light;
-    --token-canvas: #ffffff;
-    --token-surface: #f9fafb;
-    --token-surface-raised: #f3f4f6;
-    --token-text: #030712;
-    --token-text-muted: #374151;
-    --token-border: #6b7280;
-    --token-border-strong: #1f2937;
+    --token-canvas: #fafaf7;
+    --token-surface: #ffffff;
+    --token-surface-raised: #f1f2ee;
+    --token-stage: #f1f2ee;
+    --token-text: #050608;
+    --token-text-muted: #2b313a;
+    --token-caption: #3e4651;
+    --token-border: #7f858e;
+    --token-border-strong: #4f5661;
     --token-accent: #05532b;
     --token-accent-strong: #032a16;
     --token-on-accent: #ffffff;
-    --token-focus: #030712;
+    --token-focus: #050608;
     --token-danger: #991b1b;
-    --token-warning: #78350f;
+    --token-warning: #6b4600;
     --token-success: #05532b;
-    --token-live: #8f1c13;
+    --token-live: #981a29;
+    --token-model: #174a99;
+    --token-founder: #80390d;
+    --token-community: #573f94;
   }
 }
 
+/* Night: the device is dark and nothing was chosen (Auto)... */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     color-scheme: dark;
-    --token-canvas: #121212;
-    --token-surface: #1a1a1d;
-    --token-surface-raised: #26262b;
-    /* 16.00 / 14.83 / 12.86. */
-    --token-text: #ededed;
-    /* 7.46 / 6.91 / 6.00. */
-    --token-text-muted: #a3a3a8;
-    /* 1.66:1 on canvas, decorative. */
-    --token-border: #3a3a40;
-    /* 5.54 / 5.14 / 4.45. */
-    --token-border-strong: #8b8b93;
-    /* D-089 `green-300`: 8.86 / 8.22 / 7.12. */
-    --token-accent: #4cc88a;
-    /* 10.99 / 10.19 / 8.83. */
-    --token-accent-strong: #7ad9a8;
-    /* 8.86 on accent, 10.99 on accent-strong. */
-    --token-on-accent: #121212;
-    /* 16.00 / 14.83 / 12.86. */
-    --token-focus: #ededed;
-    /* 6.77 / 6.28 / 5.44. */
+    /* The Night canvas, the match stage. */
+    --token-canvas: #06080c;
+    /* Cards on the stage. */
+    --token-surface: #0f141c;
+    /* Raised: rows, tiles. */
+    --token-surface-raised: #151c27;
+    /* A data page's ground (Night): the canvas. */
+    --token-stage: #06080c;
+    /* 18.50 / 17.05 / 15.79. */
+    --token-text: #f4f6f8;
+    /* 9.24 / 8.52 / 7.89. */
+    --token-text-muted: #a7b1bf;
+    /* 6.62 / 6.10 / 5.65. */
+    --token-caption: #8b95a5;
+    /* The line, a tenth of white over a card; decorative (1.43:1 on the canvas). */
+    --token-border: #272c33;
+    /* 4.24 / 3.91 / 3.62. */
+    --token-border-strong: #6b7482;
+    /* The green lifted for Night: 10.25 / 9.44 / 8.75. */
+    --token-accent: #1ed38a;
+    /* 12.58 / 11.59 / 10.74. */
+    --token-accent-strong: #6de2b3;
+    /* 10.25 on accent, 12.58 on accent-strong. */
+    --token-on-accent: #06080c;
+    /* 18.50 / 17.05 / 15.79. */
+    --token-focus: #f4f6f8;
+    /* 7.25 / 6.68 / 6.19. */
     --token-danger: #f87171;
-    /* 11.22 / 10.40 / 9.02. */
-    --token-warning: #fbbf24;
-    /* 8.86 / 8.22 / 7.12. */
-    --token-success: #4cc88a;
-    /* 7.36 / 6.82 / 5.91. */
-    --token-live: #ff7a6b;
+    /* 12.31 / 11.34 / 10.51. */
+    --token-warning: #f5c451;
+    /* 10.25 / 9.44 / 8.75. */
+    --token-success: #1ed38a;
+    /* 6.18 / 5.69 / 5.28. */
+    --token-live: #ff4d5e;
+    /* 8.26 / 7.61 / 7.05. */
+    --token-model: #6aa8ff;
+    /* 9.62 / 8.86 / 8.21. */
+    --token-founder: #ff9b57;
+    /* 8.79 / 8.10 / 7.51. */
+    --token-community: #b79cff;
   }
 }
 
+/* ...or Night chosen. */
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --token-canvas: #121212;
-  --token-surface: #1a1a1d;
-  --token-surface-raised: #26262b;
-  --token-text: #ededed;
-  --token-text-muted: #a3a3a8;
-  --token-border: #3a3a40;
-  --token-border-strong: #8b8b93;
-  --token-accent: #4cc88a;
-  --token-accent-strong: #7ad9a8;
-  --token-on-accent: #121212;
-  --token-focus: #ededed;
+  --token-canvas: #06080c;
+  --token-surface: #0f141c;
+  --token-surface-raised: #151c27;
+  --token-stage: #06080c;
+  --token-text: #f4f6f8;
+  --token-text-muted: #a7b1bf;
+  --token-caption: #8b95a5;
+  --token-border: #272c33;
+  --token-border-strong: #6b7482;
+  --token-accent: #1ed38a;
+  --token-accent-strong: #6de2b3;
+  --token-on-accent: #06080c;
+  --token-focus: #f4f6f8;
   --token-danger: #f87171;
-  --token-warning: #fbbf24;
-  --token-success: #4cc88a;
-  --token-live: #ff7a6b;
+  --token-warning: #f5c451;
+  --token-success: #1ed38a;
+  --token-live: #ff4d5e;
+  --token-model: #6aa8ff;
+  --token-founder: #ff9b57;
+  --token-community: #b79cff;
 }
 
 /* More contrast on dark (T-621): dark chosen, more chosen. */
 :root[data-theme='dark'][data-contrast='more'] {
   color-scheme: dark;
   --token-canvas: #000000;
-  --token-surface: #0f0f11;
-  --token-surface-raised: #1a1a1d;
-  /* Body text: 20.12 / 18.34 / 16.64. */
-  --token-text: #fafafa;
-  /* Secondary text, close to body text: 14.21 / 12.96 / 11.75. */
-  --token-text-muted: #d4d4d8;
-  /* The hairline, now an edge you can see: 3.98 / 3.63 / 3.29. */
-  --token-border: #6b6b73;
-  /* A field's edge: 10.19 / 9.29 / 8.42. */
-  --token-border-strong: #b4b4bb;
-  /* The green: 12.32 / 11.23 / 10.19. */
-  --token-accent: #7ad9a8;
-  /* Pressed or hover on the green: 15.59 / 14.22 / 12.89. */
-  --token-accent-strong: #b0ebcb;
-  /* Text on the green: 12.32 on accent, 15.59 on accent-strong. */
+  --token-surface: #0a0d12;
+  --token-surface-raised: #10151d;
+  --token-stage: #000000;
+  /* Body text: 20.27 / 18.78 / 17.67. */
+  --token-text: #fafbfc;
+  /* Secondary text, close to body text: 13.64 / 12.64 / 11.89. */
+  --token-text-muted: #cad1da;
+  /* Captions: 9.81 / 9.09 / 8.55. */
+  --token-caption: #a9b2bf;
+  /* The hairline, now an edge you can see: 3.62 / 3.36 / 3.16. */
+  --token-border: #5f6670;
+  /* A field's edge: 8.06 / 7.47 / 7.03. */
+  --token-border-strong: #9aa1ab;
+  /* The green: 13.18 / 12.21 / 11.49. */
+  --token-accent: #6de2b3;
+  /* Pressed or hover on the green: 15.84 / 14.68 / 13.81. */
+  --token-accent-strong: #a9eed1;
+  /* Text on the green: 13.18 on accent, 15.84 on accent-strong. */
   --token-on-accent: #000000;
-  /* The focus ring: 20.12 / 18.34 / 16.64. */
-  --token-focus: #fafafa;
-  /* An error: 11.06 / 10.09 / 9.15. */
+  /* The focus ring: 20.27 / 18.78 / 17.67. */
+  --token-focus: #fafbfc;
+  /* An error: 11.06 / 10.25 / 9.65. */
   --token-danger: #fca5a5;
-  /* A caution: 14.56 / 13.28 / 12.04. */
-  --token-warning: #fcd34d;
-  /* Done, saved: 12.32 / 11.23 / 10.19. */
-  --token-success: #7ad9a8;
-  /* A match in play: 11.59 / 10.57 / 9.58. */
-  --token-live: #ffaba1;
+  /* Delayed, limited, stale: 14.49 / 13.43 / 12.63. */
+  --token-warning: #f8d27a;
+  /* Done, saved: 13.18 / 12.21 / 11.49. */
+  --token-success: #6de2b3;
+  /* A match in play: 9.32 / 8.64 / 8.13. */
+  --token-live: #ff8a95;
+  /* The model's lane: 11.75 / 10.89 / 10.25. */
+  --token-model: #9cc4ff;
+  /* The founder's lane: 12.56 / 11.64 / 10.95. */
+  --token-founder: #ffb98a;
+  /* The community lane: 11.98 / 11.10 / 10.44. */
+  --token-community: #cdb9ff;
 }
 
 /* The device's dark, more chosen. */
@@ -222,20 +299,25 @@
   :root:not([data-theme='light'])[data-contrast='more'] {
     color-scheme: dark;
     --token-canvas: #000000;
-    --token-surface: #0f0f11;
-    --token-surface-raised: #1a1a1d;
-    --token-text: #fafafa;
-    --token-text-muted: #d4d4d8;
-    --token-border: #6b6b73;
-    --token-border-strong: #b4b4bb;
-    --token-accent: #7ad9a8;
-    --token-accent-strong: #b0ebcb;
+    --token-surface: #0a0d12;
+    --token-surface-raised: #10151d;
+    --token-stage: #000000;
+    --token-text: #fafbfc;
+    --token-text-muted: #cad1da;
+    --token-caption: #a9b2bf;
+    --token-border: #5f6670;
+    --token-border-strong: #9aa1ab;
+    --token-accent: #6de2b3;
+    --token-accent-strong: #a9eed1;
     --token-on-accent: #000000;
-    --token-focus: #fafafa;
+    --token-focus: #fafbfc;
     --token-danger: #fca5a5;
-    --token-warning: #fcd34d;
-    --token-success: #7ad9a8;
-    --token-live: #ffaba1;
+    --token-warning: #f8d27a;
+    --token-success: #6de2b3;
+    --token-live: #ff8a95;
+    --token-model: #9cc4ff;
+    --token-founder: #ffb98a;
+    --token-community: #cdb9ff;
   }
 }
 
@@ -244,20 +326,25 @@
   :root[data-theme='dark']:not([data-contrast='standard']) {
     color-scheme: dark;
     --token-canvas: #000000;
-    --token-surface: #0f0f11;
-    --token-surface-raised: #1a1a1d;
-    --token-text: #fafafa;
-    --token-text-muted: #d4d4d8;
-    --token-border: #6b6b73;
-    --token-border-strong: #b4b4bb;
-    --token-accent: #7ad9a8;
-    --token-accent-strong: #b0ebcb;
+    --token-surface: #0a0d12;
+    --token-surface-raised: #10151d;
+    --token-stage: #000000;
+    --token-text: #fafbfc;
+    --token-text-muted: #cad1da;
+    --token-caption: #a9b2bf;
+    --token-border: #5f6670;
+    --token-border-strong: #9aa1ab;
+    --token-accent: #6de2b3;
+    --token-accent-strong: #a9eed1;
     --token-on-accent: #000000;
-    --token-focus: #fafafa;
+    --token-focus: #fafbfc;
     --token-danger: #fca5a5;
-    --token-warning: #fcd34d;
-    --token-success: #7ad9a8;
-    --token-live: #ffaba1;
+    --token-warning: #f8d27a;
+    --token-success: #6de2b3;
+    --token-live: #ff8a95;
+    --token-model: #9cc4ff;
+    --token-founder: #ffb98a;
+    --token-community: #cdb9ff;
   }
 }
 
@@ -266,19 +353,104 @@
   :root:not([data-theme='light']):not([data-contrast='standard']) {
     color-scheme: dark;
     --token-canvas: #000000;
-    --token-surface: #0f0f11;
-    --token-surface-raised: #1a1a1d;
-    --token-text: #fafafa;
-    --token-text-muted: #d4d4d8;
-    --token-border: #6b6b73;
-    --token-border-strong: #b4b4bb;
-    --token-accent: #7ad9a8;
-    --token-accent-strong: #b0ebcb;
+    --token-surface: #0a0d12;
+    --token-surface-raised: #10151d;
+    --token-stage: #000000;
+    --token-text: #fafbfc;
+    --token-text-muted: #cad1da;
+    --token-caption: #a9b2bf;
+    --token-border: #5f6670;
+    --token-border-strong: #9aa1ab;
+    --token-accent: #6de2b3;
+    --token-accent-strong: #a9eed1;
     --token-on-accent: #000000;
-    --token-focus: #fafafa;
+    --token-focus: #fafbfc;
     --token-danger: #fca5a5;
-    --token-warning: #fcd34d;
-    --token-success: #7ad9a8;
-    --token-live: #ffaba1;
+    --token-warning: #f8d27a;
+    --token-success: #6de2b3;
+    --token-live: #ff8a95;
+    --token-model: #9cc4ff;
+    --token-founder: #ffb98a;
+    --token-community: #cdb9ff;
+  }
+}
+
+/*
+ * Editorial mode (D-198): the header and the editorial pages stay on paper
+ * whatever the theme. The light values, set on the marked element...
+ */
+[data-mode='editorial'] {
+  color-scheme: light;
+  --token-canvas: #fafaf7;
+  --token-surface: #ffffff;
+  --token-surface-raised: #f1f2ee;
+  --token-stage: #f1f2ee;
+  --token-text: #15181d;
+  --token-text-muted: #3e4651;
+  --token-caption: #646c78;
+  --token-border: #dadde2;
+  --token-border-strong: #767d88;
+  --token-accent: #0b6b3a;
+  --token-accent-strong: #063c21;
+  --token-on-accent: #ffffff;
+  --token-focus: #15181d;
+  --token-danger: #b91c1c;
+  --token-warning: #8a5a00;
+  --token-success: #0b6b3a;
+  --token-live: #c42335;
+  --token-model: #1d5fc4;
+  --token-founder: #a84a12;
+  --token-community: #6a4bb3;
+}
+
+/* ...and light with more contrast, chosen... */
+:root[data-contrast='more'] [data-mode='editorial'] {
+  color-scheme: light;
+  --token-canvas: #fafaf7;
+  --token-surface: #ffffff;
+  --token-surface-raised: #f1f2ee;
+  --token-stage: #f1f2ee;
+  --token-text: #050608;
+  --token-text-muted: #2b313a;
+  --token-caption: #3e4651;
+  --token-border: #7f858e;
+  --token-border-strong: #4f5661;
+  --token-accent: #05532b;
+  --token-accent-strong: #032a16;
+  --token-on-accent: #ffffff;
+  --token-focus: #050608;
+  --token-danger: #991b1b;
+  --token-warning: #6b4600;
+  --token-success: #05532b;
+  --token-live: #981a29;
+  --token-model: #174a99;
+  --token-founder: #80390d;
+  --token-community: #573f94;
+}
+
+/* ...or asked for by the device. */
+@media (prefers-contrast: more) {
+  :root:not([data-contrast='standard']) [data-mode='editorial'] {
+    color-scheme: light;
+    --token-canvas: #fafaf7;
+    --token-surface: #ffffff;
+    --token-surface-raised: #f1f2ee;
+    --token-stage: #f1f2ee;
+    --token-text: #050608;
+    --token-text-muted: #2b313a;
+    --token-caption: #3e4651;
+    --token-border: #7f858e;
+    --token-border-strong: #4f5661;
+    --token-accent: #05532b;
+    --token-accent-strong: #032a16;
+    --token-on-accent: #ffffff;
+    --token-focus: #050608;
+    --token-danger: #991b1b;
+    --token-warning: #6b4600;
+    --token-success: #05532b;
+    --token-live: #981a29;
+    --token-model: #174a99;
+    --token-founder: #80390d;
+    --token-community: #573f94;
   }
 }

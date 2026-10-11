@@ -68,10 +68,10 @@ test('a guest sets each in Settings, it says which is on, and it lasts', async (
   // 0.01ms transition, and a read inside that frame sees the old size).
   await expect.poll(() => page.evaluate(ROOT_FONT_SIZE)).toBe('20px');
 
-  expect(await page.evaluate(MUTED)).toBe('#4b5563');
+  expect(await page.evaluate(MUTED)).toBe('#3e4651');
   await page.getByTestId('appearance-contrast-more').click();
   await expect(html).toHaveAttribute('data-contrast', 'more');
-  expect(await page.evaluate(MUTED)).toBe('#374151');
+  expect(await page.evaluate(MUTED)).toBe('#2b313a');
 
   await page.getByTestId('appearance-motion-reduce').click();
   await expect(html).toHaveAttribute('data-motion', 'reduce');
@@ -98,7 +98,7 @@ test.describe('contrast nobody chose follows the device', () => {
   test('more when the device asks, in light and dark', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'light', contrast: 'more' });
     await page.goto('/en/scores');
-    expect(await page.evaluate(MUTED)).toBe('#374151');
+    expect(await page.evaluate(MUTED)).toBe('#2b313a');
     await page.emulateMedia({ colorScheme: 'dark', contrast: 'more' });
     expect(await page.evaluate(MUTED)).toBe('#d4d4d8');
     await page.emulateMedia({ colorScheme: 'dark', contrast: 'no-preference' });

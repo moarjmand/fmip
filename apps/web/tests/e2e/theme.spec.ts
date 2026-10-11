@@ -13,8 +13,8 @@ const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 const PAGES = ['/en/scores', '/en/login', '/en/match/00000000-0000-4000-8000-000000000901'];
 
 for (const [theme, device, canvas] of [
-  ['dark', 'light', 'rgb(18, 18, 18)'],
-  ['light', 'dark', 'rgb(255, 255, 255)'],
+  ['dark', 'light', 'rgb(6, 8, 12)'],
+  ['light', 'dark', 'rgb(250, 250, 247)'],
 ] as const) {
   test.describe(`a chosen ${theme} theme on a ${device} device`, () => {
     test.beforeEach(async ({ context, page, baseURL }) => {
@@ -35,6 +35,13 @@ for (const [theme, device, canvas] of [
       expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe(
         canvas,
       );
+      // The header is in editorial mode (D-198): on paper whatever the theme.
+      expect(
+        await page
+          .locator('header')
+          .first()
+          .evaluate((element) => getComputedStyle(element).backgroundColor),
+      ).toBe('rgb(250, 250, 247)');
     });
 
     for (const path of PAGES) {
@@ -64,12 +71,12 @@ test('the header switch sets the theme, says which is on, and it lasts', async (
   await page.reload();
   await expect(html).toHaveAttribute('data-theme', 'dark');
   expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe(
-    'rgb(18, 18, 18)',
+    'rgb(6, 8, 12)',
   );
 
   await page.getByTestId('theme-switch-compact').getByTestId('theme-system').click();
   await expect(html).toHaveAttribute('data-theme', 'system');
   expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe(
-    'rgb(255, 255, 255)',
+    'rgb(250, 250, 247)',
   );
 });
