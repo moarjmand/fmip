@@ -205,6 +205,15 @@ describe('the club band', () => {
     );
   });
 
+  it('groups the capacity and the followers with the Persian separator (U+066C), never a Latin comma', () => {
+    const html = band(page({ followers: 1243 }), 'fa');
+    expect(html).toContain('۶۶٬۸۳۳');
+    expect(html).toContain('۱٬۲۴۳');
+    // No Latin comma (or Arabic comma) between two Persian digits anywhere in the band.
+    expect(html).not.toMatch(/[۰-۹][,،][۰-۹]/);
+    expect(band(page({ followers: 1243 }))).toContain('1,243 followers');
+  });
+
   it('writes the founding year and the capacity in Persian digits on /fa', () => {
     const html = band(page({ team: { ...page().team, localised_name: 'تراکتور' } }), 'fa');
     expect(html).toContain('۱۹۷۰');

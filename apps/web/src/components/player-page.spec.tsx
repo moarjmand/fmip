@@ -216,6 +216,26 @@ describe('the season in tiles', () => {
     expect(html).toContain('۲۰۲۶/۲۷');
     expect(html).toMatch(/data-testid="tile-apps".*>۷</);
   });
+
+  it('groups a large figure with the Persian separator (U+066C), never a Latin comma', () => {
+    const full = row({
+      minutes: {
+        coverage: 'available',
+        total: 2250,
+        matches: 25,
+        matches_with_minutes: 25,
+        supplied_minutes: 2250,
+      },
+    });
+    const p = page({ record: { coverage: 'available', last_updated_at: null, data: [full] } });
+    const tiles = renderToStaticMarkup(<SeasonTilesPanel page={p} locale="fa" />);
+    expect(tiles).toContain('۲٬۲۵۰');
+    const table = renderToStaticMarkup(
+      <RecordPanel page={p} rows={[full]} locale="fa" full testId="record" />,
+    );
+    expect(table).toContain('۲٬۲۵۰');
+    expect(tiles + table).not.toMatch(/[۰-۹][,،][۰-۹]/);
+  });
 });
 
 describe('the record', () => {
