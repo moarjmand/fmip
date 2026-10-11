@@ -103,6 +103,18 @@ describe('the three products stay three on the page', () => {
     // And nothing that takes whichever it is handed.
     expect(page).not.toMatch(/<PredictionList|<ProductList|<PredictionRow/);
     expect(page).not.toMatch(/source:\s*'(model|founder|community)'/);
+
+    // T-1383 (D-201): each match row holds the model's bar and the member's
+    // pick side by side. The pick is the community's own component, handed to
+    // the model's list as an opaque slot; the list never reads what it holds.
+    expect(page).toContain('<InlinePick');
+    expect(page).toContain('<CommunitySplit');
+    const forecast = source('forecast-panel.tsx');
+    expect(forecast).not.toMatch(/CommunitySplit|Consensus|InlinePick|PredictionForm|Prediction\b/);
+    // The founder's and the community's sections stand in their own lanes.
+    expect(page).toContain('<FounderLane');
+    expect(page).toContain('<CommunityLane');
+    expect(page).toContain('<ThreeProductsNote');
   });
 
   it('keeps the scores card two lines from two components (T-940)', () => {
