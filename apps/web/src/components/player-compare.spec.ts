@@ -11,13 +11,14 @@ import { describe, expect, it } from 'vitest';
 const HERE = __dirname;
 const PLAYER = join(HERE, '..', 'app', '[locale]', 'player', '[id]');
 const COMPARE = readFileSync(join(PLAYER, 'compare', 'page.tsx'), 'utf8');
-const PLAYER_PAGE = readFileSync(join(PLAYER, 'page.tsx'), 'utf8');
+// T-1386: the search sits in the player's band, drawn by the player page's components.
+const PLAYER_PAGE = readFileSync(join(HERE, 'player-page.tsx'), 'utf8');
 
 describe('the way in', () => {
   it('puts a "Compare with…" search on the player page that lands on the compare page', () => {
     expect(PLAYER_PAGE).toContain('data-testid="compare-with"');
     expect(PLAYER_PAGE).toContain('playerPage.compareWith');
-    expect(PLAYER_PAGE).toMatch(/action=\{`\$\{base\}\/compare`\}/);
+    expect(PLAYER_PAGE).toMatch(/action=\{`\/\$\{locale\}\/player\/\$\{personId\}\/compare`\}/);
     expect(PLAYER_PAGE).toContain('name="q"');
   });
 

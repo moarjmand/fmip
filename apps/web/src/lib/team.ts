@@ -3,6 +3,7 @@ import type {
   SquadPosition,
   TableContext,
   TeamAverageMetric,
+  TeamCompetition,
   TeamCompetitionSplits,
   TeamPageFixture,
   TeamSplitRecord,
@@ -212,4 +213,63 @@ export function splitNotes(locale: string, splits: TeamCompetitionSplits): strin
   const unscored = splits.finished_without_score;
   if (unscored > 0) notes.push(plural(resolved, 'teamPage.unscoredNote', unscored).text);
   return notes;
+}
+
+// ---------------------------------------------------------------------------
+// The Hybrid club page (T-1386, D-204): its tabs, the Overview's short lists
+// and the season's figures beside the table position. Nothing here asks the API.
+// ---------------------------------------------------------------------------
+
+type SearchParams = Record<string, string | string[] | undefined>;
+
+/** The club page's sections, in the order the tab bar shows them. */
+export const TEAM_TABS = ['overview', 'fixtures', 'results', 'squad', 'stats'] as const;
+export type TeamTab = (typeof TEAM_TABS)[number];
+
+/** `?tab=`: one of the page's sections; anything else (or nothing) is the Overview. */
+export function readTeamTab(params: SearchParams): TeamTab {
+  const raw = Array.isArray(params.tab) ? params.tab[0] : params.tab;
+  return (TEAM_TABS as readonly string[]).includes(raw ?? '') ? (raw as TeamTab) : 'overview';
+}
+
+/** One tab's address; the Overview needs no `tab`. A guest's territory is the caller's to add. */
+export function teamTabHref(locale: string, teamId: string, tab: TeamTab): string {
+  const base = `/${locale}/team/${encodeURIComponent(teamId)}`;
+  return tab === 'overview' ? base : `${base}?tab=${tab}`;
+}
+
+/** Matches to come and results on the Overview's short list, each; the tabs have them all. */
+export const OVERVIEW_MATCHES = 3;
+
+/** Players on the Overview's squad grid; the Squad tab has everyone, by position. */
+export const OVERVIEW_SQUAD = 12;
+
+/**
+ * The squad in the Squad tab's order (goalkeepers first, shirt numbers
+ * ascending), flat: the Overview's grid takes the first `OVERVIEW_SQUAD`.
+ */
+export function squadInOrder(locale: string, players: readonly SquadPlayer[]): SquadPlayer[] {
+  return groupSquad(locale, players).flatMap((group) => group.players);
+}
+
+/** Whether any player's position or shirt number is missing, so the grid says so (rule 3). */
+export function squadIncomplete(players: readonly SquadPlayer[]): boolean {
+  return players.some((p) => p.position === null || p.shirt_number === null);
+}
+
+/** One current competition with the figures the API counted for it in the same season, or none. */
+export interface SeasonFigures {
+  entry: TeamCompetition;
+  splits: TeamCompetitionSplits | null;
+}
+
+/** Each current competition beside its home / away / total figures, matched by season. */
+export function seasonFigures(
+  competitions: readonly TeamCompetition[],
+  splits: readonly TeamCompetitionSplits[],
+): SeasonFigures[] {
+  return competitions.map((entry) => ({
+    entry,
+    splits: splits.find((s) => s.season.id === entry.season.id) ?? null,
+  }));
 }

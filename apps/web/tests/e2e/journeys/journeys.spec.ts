@@ -227,8 +227,9 @@ test.describe('blueprint journeys', () => {
     await guest.close();
 
     // The team fixture list carries the same line, for the same member, in the
-    // same words: not supplied, never not available.
-    await page.goto(`/en/team/${LIVERPOOL}`);
+    // same words: not supplied, never not available. The list is the club
+    // page's Fixtures tab since T-1386; the Overview's card names the next one.
+    await page.goto(`/en/team/${LIVERPOOL}?tab=fixtures`);
     const line = page.getByTestId('fixtures').getByTestId('viewing-line').first();
     await expect(line).toHaveAttribute('data-state', 'not_supplied');
     await expect(line).toContainText('United Kingdom');
