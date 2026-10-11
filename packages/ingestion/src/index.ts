@@ -43,6 +43,13 @@ export {
   readGNews,
   siteHost,
 } from './news/gnews';
+// Items whose own headline says they are not articles (T-1396, D-211).
+export {
+  NON_ARTICLE_RULES,
+  type NonArticleKind,
+  type NonArticleRule,
+  nonArticleKind,
+} from './news/non-article';
 export {
   type ProvenanceInput,
   type ProvenanceVerdict,

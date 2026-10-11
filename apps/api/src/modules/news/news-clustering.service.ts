@@ -1,5 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PostgresNewsStore, type PersonCandidate } from './internal/news-store';
+import {
+  type PersonCandidate,
+  PostgresNewsStore,
+  type SameHeadlineRule,
+} from './internal/news-store';
 
 /**
  * A name or alias shorter than this after folding ("roma", "ajax", "psg")
@@ -7,6 +11,7 @@ import { PostgresNewsStore, type PersonCandidate } from './internal/news-store';
  * is linked, and the alias table is where a longer form belongs.
  */
 export const MINIMUM_NAME_LENGTH = 5;
+// Migration 1765855000000 re-checked the stored links with this same 5.
 /** A report published within two days of kick-off, naming both teams, is about that match. */
 export const FIXTURE_WINDOW = '48 hours';
 /** Two publishers' reports of one event arrive within two days of each other. */
@@ -23,6 +28,21 @@ export const DUPLICATE_WINDOW = '48 hours';
  * the last pair scored 0.52.
  */
 export const DUPLICATE_THRESHOLD = 0.4;
+
+/**
+ * Two reports with the same headline (folded as the linker folds names) are
+ * one report when they fall within the window and their summaries agree --
+ * either has none, or they reach this trigram similarity (T-1396, D-211).
+ * Calibrated on 2026-10-12 with summaries from production's English page:
+ * a syndicated copy carries the summary word for word (1.0) or cut short
+ * (0.90 at about 85% of its length; 0.49 at under half, which stays apart --
+ * the conservative side); two pieces one publisher gave one generic headline
+ * ("Offense, defense, coaching report card", Duke's and North Carolina's,
+ * 2026-10-10) score 0.11, and even two written to one template score 0.58.
+ * From the same publisher the second is not written; from another, it joins
+ * the first one's story; at read time the later one is not listed.
+ */
+export const SAME_HEADLINE: SameHeadlineRule = { window: DUPLICATE_WINDOW, summaryAgreement: 0.6 };
 
 /**
  * Whether the clustering links persons (T-1006, D-126): `NEWS_PERSON_LINKS=on`,
@@ -52,11 +72,15 @@ export interface Placement {
  * and whether it is another publisher's telling of a story already here.
  *
  * Linking is by the entity's own name or a recorded alias, whole words only,
- * never a guess (rules 1 and 3). A person is linked only behind
+ * never a guess (rules 1 and 3), and only where the headline writes it as a
+ * name: capitalised where the headline has case, and not inside a longer
+ * catalogued name written at the same place (T-1396, D-211,
+ * `news_named_entities`). A person is linked only behind
  * `NEWS_PERSON_LINKS` and only by the narrower rule of D-126. Clustering is narrower
  * than it could be on purpose: two reports become one story only when they
- * link exactly the same teams, come from different publishers, fall within
- * the window and still read alike once the names are taken out. A duplicate
+ * come from different publishers, fall within the window, and either carry
+ * the same headline with summaries that agree (T-1396), or link exactly the
+ * same teams and still read alike once the names are taken out. A duplicate
  * left apart costs a reader one repeated headline; a story wrongly merged
  * hides a report behind another publisher's original.
  */
@@ -93,10 +117,17 @@ export class NewsClusteringService {
     if (!firstSeen) {
       return { linked, story: 'kept', storyId: await this.store.storyOf(articleId) };
     }
-    const duplicate = await this.store.duplicateOf(articleId, {
-      window: DUPLICATE_WINDOW,
-      threshold: DUPLICATE_THRESHOLD,
-    });
+    // The same headline from another publisher is the same report (T-1396):
+    // a syndicated copy, whatever it names; then the narrower rule over the
+    // linked teams for reports of one event told in different words.
+    const sameHeadline = await this.store.sameHeadlineStory(articleId, SAME_HEADLINE);
+    const duplicate =
+      sameHeadline !== null
+        ? { storyId: sameHeadline, score: 1 }
+        : await this.store.duplicateOf(articleId, {
+            window: DUPLICATE_WINDOW,
+            threshold: DUPLICATE_THRESHOLD,
+          });
     if (duplicate === null) {
       const storyId = await this.store.storyOf(articleId);
       await this.store.promoteOriginal(storyId);

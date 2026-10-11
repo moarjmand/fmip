@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { TRENDING_WEIGHTS } from '@fmip/contracts';
+import { nonArticleKind } from '@fmip/ingestion';
 import type {
   NewsEntity,
   NewsFilters,
@@ -16,6 +17,7 @@ import type {
 } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
+import { SAME_HEADLINE } from '../news-clustering.service';
 import { shownImageJoin } from './news-image-store';
 
 /** The shown photo's columns, as every card query selects them (T-1322). */
@@ -164,8 +166,9 @@ export class PostgresNewsReadStore {
          FROM story_card sc
         WHERE TRUE ${cursor}
         ORDER BY sc.at DESC, sc.story_id
-        LIMIT ${q.param(limit + 1)}`,
+        LIMIT ${q.fetch(limit)}`,
       limit,
+      true,
     );
   }
 
@@ -227,8 +230,9 @@ export class PostgresNewsReadStore {
          JOIN signal sg ON sg.story_id = sc.story_id
         ORDER BY sg.participants * ${discussionWeight}::int + sg.savers * ${saveWeight}::int DESC,
                  sc.at DESC, sc.story_id
-        LIMIT ${q.param(limit)}`,
+        LIMIT ${q.fetch(limit)}`,
       limit,
+      false,
     );
   }
 
@@ -245,8 +249,9 @@ export class PostgresNewsReadStore {
          FROM story_card sc
         WHERE sc.breaking_ends_at IS NOT NULL
         ORDER BY sc.breaking_marked_at DESC, sc.story_id
-        LIMIT ${q.param(limit)}`,
+        LIMIT ${q.fetch(limit)}`,
       limit,
+      false,
     );
   }
 
@@ -259,8 +264,9 @@ export class PostgresNewsReadStore {
          FROM story_card sc
          JOIN story_debate d ON d.story_id = sc.story_id AND d.cleared_at IS NULL
         ORDER BY d.selected_at DESC, sc.story_id
-        LIMIT ${q.param(limit)}`,
+        LIMIT ${q.fetch(limit)}`,
       limit,
+      false,
     );
   }
 
@@ -291,8 +297,9 @@ export class PostgresNewsReadStore {
                      OR (e.entity_type = 'person' AND e.entity_id = ANY(${persons}::uuid[]))))
           ${cursor}
         ORDER BY sc.at DESC, sc.story_id
-        LIMIT ${q.param(limit + 1)}`,
+        LIMIT ${q.fetch(limit)}`,
       limit,
+      true,
     );
   }
 
@@ -492,8 +499,9 @@ export class PostgresNewsReadStore {
                          AND ((e.entity_type = 'fixture' AND e.entity_id = ${match}::uuid)
                            OR (e.entity_type = 'team' AND e.entity_id = ANY(${teams}::uuid[]))))
         ORDER BY about_match DESC, sc.at DESC, sc.story_id
-        LIMIT ${q.param(limit + 1)}`,
+        LIMIT ${q.fetch(limit)}`,
       limit,
+      true,
     );
     return { window: { since, until }, page };
   }
@@ -538,22 +546,79 @@ export class PostgresNewsReadStore {
                        WHERE m.story_id = sc.story_id
                          AND e.entity_type = 'person' AND e.entity_id = ${q.param(personId)}::uuid)
         ORDER BY sc.at DESC, sc.story_id
-        LIMIT ${q.param(limit + 1)}`,
+        LIMIT ${q.fetch(limit)}`,
       limit,
+      true,
     );
   }
 
-  private async page(q: Query, select: string, limit: number): Promise<StoryPage_> {
+  /**
+   * One section's page. The section read more rows than it shows (`fetch`);
+   * those that are not to be listed go first (T-1396, D-211): an item whose
+   * own headline says it is not an article (`nonArticleKind`, the job's rule,
+   * for what was stored before the job applied it), and a story whose report
+   * an earlier story already carries (`copies`). `paged` sections say where
+   * the next page begins: after the last card shown, or, when every row past
+   * it was left out, after the last row read.
+   */
+  private async page(q: Query, select: string, limit: number, paged: boolean): Promise<StoryPage_> {
     const { rows } = await this.pool.query<CardRow>(`${q.storyCard()} ${select}`, q.params);
-    const more = rows.length > limit;
-    const shown = more ? rows.slice(0, limit) : rows;
+    const copies = await this.copies(rows, q.locale);
+    const listed = rows.filter(
+      (r) => nonArticleKind(r.headline) === null && !copies.has(r.story_id),
+    );
+    const shown = listed.slice(0, limit);
+    const read = rows.length === fetchSize(limit);
     const entities = await this.entities(
       shown.map((r) => r.story_id),
       q.locale,
     );
     const cards = shown.map((r) => this.card(r, entities.get(r.story_id) ?? [], q.windowHours));
-    const last = shown[shown.length - 1];
+    const more = paged && (listed.length > limit || read);
+    const last = listed.length > limit ? shown[shown.length - 1] : rows[rows.length - 1];
     return { cards, nextBefore: more && last !== undefined ? last.at.toISOString() : null };
+  }
+
+  /**
+   * The stories among `rows` whose report an earlier story already carries
+   * (T-1396, D-211, `SAME_HEADLINE`): a version with the same headline,
+   * folded, from a carried source this reader is shown, first published
+   * before it within the window, with a summary that agrees. A syndicated
+   * copy, or a page stored twice before the job compared them, is listed
+   * once: the earlier report stays.
+   */
+  private async copies(rows: CardRow[], locale: string | null): Promise<Set<string>> {
+    if (rows.length === 0) return new Set();
+    const { rows: hit } = await this.pool.query<{ story_id: string }>(
+      `SELECT c.story_id
+         FROM unnest($1::uuid[], $2::text[], $3::text[], $4::timestamptz[]) AS c(story_id, headline, summary, at)
+        WHERE news_text_key(c.headline) <> ''
+          AND EXISTS (
+                SELECT 1
+                  FROM article_version tv
+                  JOIN article ta ON ta.id = tv.article_id
+                  JOIN news_source ts ON ts.id = ta.source_id AND ts.dropped_at IS NULL
+                 WHERE news_text_key(tv.headline) = news_text_key(c.headline)
+                   AND ta.story_id <> c.story_id
+                   AND news_visible_to(ts.same_language_only, ts.language, $5::text)
+                   AND (tv.summary IS NULL OR c.summary IS NULL
+                        OR similarity(news_text_key(tv.summary), news_text_key(c.summary)) >= $6::float8)
+                   AND (COALESCE((SELECT min(published_at) FROM article_version WHERE article_id = ta.id),
+                                 ta.fetched_at), ta.story_id)
+                       < (c.at, c.story_id)
+                   AND COALESCE((SELECT min(published_at) FROM article_version WHERE article_id = ta.id),
+                                ta.fetched_at) >= c.at - $7::interval)`,
+      [
+        rows.map((r) => r.story_id),
+        rows.map((r) => r.headline),
+        rows.map((r) => r.summary),
+        rows.map((r) => r.at.toISOString()),
+        locale,
+        SAME_HEADLINE.summaryAgreement,
+        SAME_HEADLINE.window,
+      ],
+    );
+    return new Set(hit.map((r) => r.story_id));
   }
 
   private card(r: CardRow, entities: NewsEntity[], windowHours: number | null): NewsStoryCard {
@@ -655,6 +720,9 @@ export class PostgresNewsReadStore {
  */
 export const FUTURE_GRACE = '10 minutes';
 
+/** How many rows a section reads for a page of `limit` cards (`Query.fetch`). */
+const fetchSize = (limit: number): number => limit * 2 + 10;
+
 /** No filter at all: the match page's related news reads every story. */
 export const NO_FILTERS: NewsFilters = {
   country: null,
@@ -723,6 +791,16 @@ class Query {
          LEFT JOIN competition c ON e.entity_type = 'competition' AND c.id = e.entity_id
          WHERE m.story_id = s.id AND (t.country_id = ${country}::uuid OR c.country_id = ${country}::uuid))`);
     }
+  }
+
+  /**
+   * The LIMIT a section asks for: more than it shows, because `page` then
+   * leaves out what is not an article and a report an earlier card already
+   * shows (T-1396, D-211). Deciding that on the few rows read, rather than in
+   * the card's WHERE over every story, keeps the section's cost where it was.
+   */
+  fetch(limit: number): string {
+    return this.param(fetchSize(limit));
   }
 
   /** Adds a parameter and returns its placeholder. */
