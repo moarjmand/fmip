@@ -311,6 +311,44 @@ describe('scenario files', () => {
 });
 
 describe('validators', () => {
+  it('refuses a grid outside 1 to 11, on the bench, or shared by two starters (T-1397)', () => {
+    const p = (externalId: string, role: 'starter' | 'bench', grid: unknown) => ({
+      externalId,
+      name: externalId,
+      role,
+      shirtNumber: null,
+      position: null,
+      isCaptain: false,
+      grid,
+    });
+    const problems = validateLineup({
+      fixtureExternalId: 'm-1',
+      home: {
+        formation: null,
+        coach: null,
+        players: [
+          p('p1', 'starter', { row: 1, col: 1 }),
+          p('p2', 'starter', { row: 1, col: 1 }),
+          p('p3', 'starter', { row: 0, col: 12 }),
+          p('p4', 'bench', { row: 2, col: 1 }),
+          p('p5', 'starter', '2:1'),
+          p('p6', 'starter', null),
+        ],
+      },
+      away: { formation: null, coach: null, players: [] },
+    });
+    expect(problems.map((q) => `${q.path} ${q.message}`)).toEqual(
+      expect.arrayContaining([
+        'lineup.home.players[1] duplicate grid place {"row":1,"col":1}',
+        'lineup.home.players[2].grid.row must be >= 1',
+        'lineup.home.players[2].grid.col must be <= 11',
+        'lineup.home.players[3].grid only a starter has a place',
+        'lineup.home.players[4].grid must be an object',
+      ]),
+    );
+    expect(problems.some((q) => q.path.startsWith('lineup.home.players[5]'))).toBe(false);
+  });
+
   it('rejects two captains and a duplicate shirt number on one side', () => {
     const problems = validateLineup({
       fixtureExternalId: 'm-1',
