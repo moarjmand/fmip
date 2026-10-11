@@ -149,12 +149,12 @@ describe('the client', () => {
     expect(result.ok && result.data.highlights.map((h) => h.externalId)).toEqual(['41001']);
     expect(result.requests).toBe(2);
     expect(transport.urls[0]).toBe(
-      'https://sports.highlightly.net/football/highlights?leagueId=119924&date=2026-10-03&timezone=Etc%2FUTC&limit=40&offset=0',
+      'https://soccer.highlightly.net/highlights?leagueId=119924&date=2026-10-03&timezone=Etc%2FUTC&limit=40&offset=0',
     );
     expect(transport.urls[1]).toContain('offset=40');
     expect(transport.urls.join(' ')).not.toContain('secret-key');
     expect(transport.headers[0]).toEqual({
-      'x-rapidapi-host': 'sports.highlightly.net',
+      'x-rapidapi-host': 'soccer.highlightly.net',
       'x-rapidapi-key': 'secret-key',
     });
   });
@@ -204,7 +204,7 @@ describe('the client', () => {
     const geo = await client.geo('41001');
     expect(geo.ok && geo.data).toEqual({ state: 'known', allowed: [], blocked: ['IR'] });
     expect(transport.urls).toEqual([
-      'https://sports.highlightly.net/football/highlights/geo-restrictions/41001',
+      'https://soccer.highlightly.net/highlights/geo-restrictions/41001',
     ]);
     expect((await client.geo('../matches')).requests).toBe(0);
   });

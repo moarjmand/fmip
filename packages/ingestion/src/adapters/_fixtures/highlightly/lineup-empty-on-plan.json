@@ -10,7 +10,7 @@
   "requests": [
     {
       "method": "GET",
-      "url": "https://sports.highlightly.net/football/lineups/880817271",
+      "url": "https://soccer.highlightly.net/lineups/880817271",
       "status": 200,
       "body": {
         "homeTeam": {

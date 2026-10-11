@@ -2498,6 +2498,32 @@ last clause records nothing about the others. *Signing without the
 condition*: it would claim a public deployment with real fixtures that does
 not exist.
 
+**Re-checked on the real deployment (2026-10-11).** The four parts were walked
+on https://traveltohormuz.ir with ingestion on, after the first club weekend
+since the international break (91 finished fixtures on 2026-10-10). *Public
+read and live:* **passed** -- the scores page, a finished match (Crystal Palace
+3-1 Nottingham Forest: timeline, statistics, line-ups, player statistics,
+availability, the forecast against the result), the Premier League table, a
+team page, search, news and watch all answer, and every absence is a
+sentence; 475 live runs wrote 19,978 items in that Saturday's match window.
+*Predictions and reputation:* **passed** -- every finished fixture of the
+competitions the model covers had a forecast computed before kick-off (53
+that day), `power_index` rows carry `power-index@1.1.0`, and members'
+predictions were settled by the scheduler (9 settlements, a
+`performance-rating@1.0.0` snapshot). *Model and operations:* **passed** --
+the model service answers with `dixon-coles-elo@0.6.0` published,
+`check-setup.sh` passes with the nightly backup two hours old and the restore
+drill passed. *Delivery:* **passed** -- the site answers and the PWA manifest
+is served. The condition is met; the decision stands unamended.
+An earlier walk, on 2026-10-09, failed the second part: no job had ever
+settled a prediction (`settlement_run` was empty with nine predictions
+stored), because settlement and the rating recompute had only operator
+endpoints. The settlement tick (T-1380) was deployed on 2026-10-10 and settled
+those nine at 16:02 UTC; the walk above is after it. The same walk found a
+match timeline showing two substitutions twice and hiding a goal, rows the
+provider's shortened list had left behind; that is T-1382, a defect within the
+first part's surfaces rather than a part that does not answer.
+
 ---
 
 ## D-072 — A second adapter behind the intelligence port: the chat-completions shape, Mistral as a named preset, and any compatible endpoint by URL
@@ -9997,6 +10023,31 @@ the stream*: the poll keeps the page current with the same freshness line
 and no new control. *Not registering the service worker in lite mode*: its
 precache is a one-off of three small files, and it is what makes the
 offline page work on exactly these connections.
+
+## D-208 — Highlightly through its Football API product
+**Status:** Accepted · 2026-10-11 · **Task:** T-1392 · **Follows:** D-184, T-023, T-1366
+
+**Context.** Highlightly sells the same football data as two products: the
+Football API (`soccer.highlightly.net`) and the All Sports API, which reaches
+football at `sports.highlightly.net/football`. Its documentation says that
+paths, parameters, responses and refresh intervals are the same on both, and
+that accounts and keys do not carry from one to the other. The adapter and the
+highlights feed (D-184) were written against the All Sports route on the free
+plan. The maintainer is buying the Football API **Pro** plan ($9.49 a month,
+7,500 requests a day, 12 a second), because:
+- the free plan hides some highlights and has no geo-restriction check, which
+  D-184 requires before a link is shown;
+- Ultra and Mega add requests, not data, and the feed needs a few hundred a
+  day.
+
+**Decision.** The adapter and the highlights client call
+`https://soccer.highlightly.net` with `x-rapidapi-host: soccer.highlightly.net`.
+The recorded fixtures follow, because the replay transport keys on the URL.
+Nothing else changes: `HIGHLIGHTLY_KEY` turns the feed on, and
+`HIGHLIGHTS_DAILY_BUDGET` (empty = 5,000) keeps it under the Pro plan's 7,500.
+
+**Rejected.** *A setting that chooses the host.* There is one product to pay
+for, and a second route would be a second thing to test.
 
 ## D-207 — The English site for readers abroad: its own competition order, UK time, English stories only, English club names
 **Status:** Accepted · 2026-10-11 (the maintainer, in chat: the English site now comes first; its audience is abroad, e.g. the UK; only development happens in Iran) · **Task:** T-1391 · **Follows:** D-154, D-175, D-178, D-193, D-200, rules 1-4

@@ -1,7 +1,9 @@
 /**
- * Highlightly adapter (T-023): sports.highlightly.net/football on the BASIC
- * (free) plan, 100 requests/day. The direct API wants RapidAPI-style headers
- * (`x-rapidapi-key` and `x-rapidapi-host`), verified live on 2026-09-10.
+ * Highlightly adapter (T-023): the Football API product at
+ * soccer.highlightly.net (T-1392, D-208; it was the All Sports route
+ * sports.highlightly.net/football until the maintainer chose the Football API
+ * Pro plan). Both routes take the same paths, parameters and RapidAPI-style
+ * headers (`x-rapidapi-key` and `x-rapidapi-host`).
  *
  * Request cost differs from the other two providers and is reported
  * honestly: a fixture list is one request per day in the range, and the live
@@ -39,8 +41,8 @@ import {
   seasonYear,
 } from './map';
 
-export const HIGHLIGHTLY_BASE_URL = 'https://sports.highlightly.net/football';
-export const HIGHLIGHTLY_HOST = 'sports.highlightly.net';
+export const HIGHLIGHTLY_BASE_URL = 'https://soccer.highlightly.net';
+export const HIGHLIGHTLY_HOST = 'soccer.highlightly.net';
 
 /** A fixture list is one request per day; longer ranges are refused, not paid for silently. */
 export const MAX_RANGE_DAYS = 14;

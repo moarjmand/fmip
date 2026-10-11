@@ -1,5 +1,5 @@
 /**
- * Highlightly (sports.highlightly.net/football) → the normalised model. Pure
+ * Highlightly (soccer.highlightly.net) → the normalised model. Pure
  * functions over `unknown`; anything not supplied becomes `null` (rule 3).
  * Field names below are Highlightly's and stay in this directory.
  *

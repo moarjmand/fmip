@@ -38,7 +38,7 @@ really wants:
 |---|---|---|---|
 | API-Football | `https://v3.football.api-sports.io` | `x-apisports-key` | `/status`: plan `Free`, active, `limit_day: 100`, no errors. |
 | football-data.org | `https://api.football-data.org/v4` | `X-Auth-Token` | `/competitions` and `/competitions/PL`: 200; `x-requests-available-minute: 9` after one call, so the 10/min figure holds. |
-| Highlightly | `https://sports.highlightly.net/football` (`soccer.highlightly.net` also answers) | `x-rapidapi-key` **and** `x-rapidapi-host: sports.highlightly.net` | `/leagues?limit=1`: 200, `plan.tier: BASIC`. `x-api-key` or `Authorization: Bearer` alone → 403 "Missing mandatory HTTP Headers", even off RapidAPI. |
+| Highlightly | `https://soccer.highlightly.net`, the Football API product (T-1392, D-208; until then the All Sports route `sports.highlightly.net/football`) | `x-rapidapi-key` **and** `x-rapidapi-host: soccer.highlightly.net` | `/leagues?limit=1`: 200, `plan.tier: BASIC`. `x-api-key` or `Authorization: Bearer` alone → 403 "Missing mandatory HTTP Headers", even off RapidAPI. |
 
 The adapters (T-021..T-023) must send exactly these headers; the harness
 records real responses with the key redacted.
@@ -442,6 +442,25 @@ own. It now asks once a tick with every id we hold and sends each fixture back
 to its competition (`liveQuestion`). The first match day after the break will
 be measured from `ingest_run.requests` and recorded here beside the
 projection.
+
+**Measured on Saturday 2026-10-10** (the first full club Saturday after the
+break: 19 competitions in season, 91 fixtures that UTC day, the backlog at the
+default 20 a run), summed from `ingest_run.requests` by job:
+
+| Job | Runs | Requests measured | Projected |
+|---|---|---|---|
+| fixtures | 24 | 456 | 360 |
+| standings | 24 | 456 | 360 |
+| live | 1,307 | 713 | up to 720 |
+| lineups (with availability) | 265 | 1,339 | up to 1,520 |
+| post-match (with the backlog) | 48 | 1,158 | 70, up to 960 more |
+| squads | 1 | 0 | at most 60 |
+| **total** | | **4,122** | **about 4,000** |
+
+The day came in on the projection: fixtures and standings scale with the 19
+competitions (19 x 24 = 456), the live job held one request a tick, and the
+day used 55% of the Pro plan's 7,500. On the Ultra plan (D-197, 75,000 a day)
+the same day leaves ample room for the backlog at 200 a run.
 
 **Past seasons, and what they cost (2026-09-26).** A past season is one
 request per competition for its whole fixture list (`backfill.js --season`),
