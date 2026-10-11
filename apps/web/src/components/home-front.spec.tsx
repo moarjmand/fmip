@@ -34,7 +34,7 @@ const card = (over: Partial<ScoreCard> = {}): ScoreCard =>
     },
     season: { id: 's', label: '2026/27' },
     stage: null,
-    round: 'Matchweek 8',
+    round: 'Regular Season - 8',
     leg: null,
     home: { id: 'tractor', name: 'Tractor', short_name: null, code: null },
     away: { id: 'esteghlal', name: 'Esteghlal', short_name: null, code: null },
@@ -121,7 +121,7 @@ describe('the lead match card', () => {
   it('says the competition, kick-off, venue, places, the model with its version, and coverage', () => {
     const html = lead({});
     expect(html).toContain('Persian Gulf Pro League');
-    expect(html).toContain('Matchweek 8');
+    expect(html).toContain('Regular Season - 8');
     expect(html).toContain('Today 17:00 · Tehran time');
     expect(html).toContain('Yadegar-e-Emam Stadium');
     expect(html).toContain('1st of 16 · 16 pts');
@@ -168,6 +168,12 @@ describe('the lead match card', () => {
       /<span dir="rtl" class="\[unicode-bidi:isolate\][^"]*" data-testid="home-lead-score">۲–۱<\/span>/,
     );
     expect(html).toContain('۴۶٫۴٪');
+  });
+
+  it('says the provider’s round in the reader’s words on /fa, never the provider’s text (D-193)', () => {
+    const html = lead({ locale: 'fa' });
+    expect(html).toContain('هفته‌ی ۸');
+    expect(html).not.toContain('Regular Season');
   });
 
   it('carries the editor’s note when the match is featured (D-153)', () => {

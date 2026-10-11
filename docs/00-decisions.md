@@ -9713,6 +9713,99 @@ session*: favourites would reorder the competitions away from D-154.
 *Whole-number cells as on the board*: D-206 keeps one decimal so the three
 total 100.0.
 
+## D-202 — The Hybrid match centre: a score band on the stage, tabs that need no script, a pitch only where the feed places every player, three lanes against the result
+**Status:** Accepted · 2026-10-11 · **Task:** T-1384 · **Follows:** D-198, D-199, D-206, D-193, D-187, D-014
+
+**Context.** The maintainer chose the Front Row look for the match centre
+(boards h4 live, h5 full time, h10 Persian phone) and decided: the page on
+the stage following Day and Night under the unchanged header and live strip;
+a big condensed score with the live minute in red and a freshness stamp; the
+broadcasters under the score as links; tabs on a phone, every section side by
+side on a desktop; the line-ups on a pitch with formation, bench and coach,
+falling back to a list where positions are missing; after full time the
+highlight first, then the key events, then what each product forecast against
+what happened; statistics as dense grids; no team colours.
+
+**Decision.**
+1. **The ground and the band.** The page is a data page (`bg-stage`, every
+   section a `rounded-card` surface, tiles `rounded-tile`). The score band
+   carries the competition and round, both crests, the score (Mona Sans 900
+   condensed in Latin script; Vazirmatn 900 with Persian digits on `/fa` and
+   `/ar`, smaller per D-198's scale; `ScorePair` keeps each side's goals
+   beside it), the status pill (the live minute in red with the live dot,
+   amber when the feed is behind, FT/AET/Pens at full time), the stream's
+   `FreshnessStamp` (moved from above the page into the band), the "Watch:"
+   line and the match's facts. Before kick-off the band's figure is the
+   kick-off time: no 0–0 (rule 3). Brand green and the three lane colours
+   only; no club colour anywhere on the page.
+2. **Watch under the score.** Each service listed for the reader's territory
+   is one `LinkOut` naming it (a service listed twice is named once). Any
+   other state -- no territory, nothing declared, nothing listed -- is a link
+   to the Watch section, which keeps the full list and its four sentences
+   (T-314). An unreachable viewing service adds nothing to the band; the
+   Watch section says it.
+3. **Highlights first after full time** when the highlights module lists a
+   clip for the territory -- a licensed feed's (T-1366) or the editorial
+   desk's official page, both checked sources -- as a `LinkOut` button naming
+   the publisher, or the site's host when the desk's page names none, with
+   "We don't host video" (D-014). No clip, no button.
+4. **Tabs without script.** Below 768px six tabs (Summary, Line-ups, Stats,
+   Predictions, Watch, Discussion), plain anchors in a sticky bar; CSS in
+   `globals.css` shows the tab that holds the page's `:target`, or Summary
+   when nothing in the tabs is targeted, and marks its link. A tab, a deep
+   link from a story (`#forecast`, `#analysis`, `#community`), the
+   discussion's links (`#lineups`, `#stats`, `#timeline`) and a page with no
+   script all behave alike, and every existing anchor and test id stays.
+   From 768px there are no tabs: three columns (what happened; who played;
+   what was forecast) of 360, 400 and 360px that wrap as the board's do.
+   Summary holds the key events (latest first, kick-off last), after full
+   time the verdict and the machine-written summary, the competition context
+   and related news; Predictions holds the model, the founder and the
+   community as three sections (rule 6).
+5. **The pitch places nobody the feed did not.** No grid position is stored
+   (the feed's grid never reached our tables), so a side is drawn on the
+   pitch only when its formation (three to five lines adding to ten) and its
+   eleven starters' roles fill the lines exactly: one goalkeeper, the
+   defenders the first line, the forwards the last, the midfielders the one
+   middle line. A formation with two midfield lines (4-2-3-1) would need to
+   know which midfielder stood in which, so that side is a list that says
+   so; a missing formation, a missing role or counts that do not fit the
+   formation are each their own sentence. Along a line the order is the shirt
+   number's, which the note under the pitch says. Away in the top half, home
+   at the bottom, each goalkeeper at its own goal; bench and coach per side.
+6. **What was forecast, and what happened** (full time only): three lanes
+   from three components in the three products' own files -- `ModelVerdict`
+   (the pre-match version the evaluation scored, else the last before
+   kick-off; what it gave the result; the match's RPS from T-1369 when the
+   evaluation exists, else "not scored yet"), `FounderVerdict` (the published
+   pick settled right or wrong, the score exact or not, signed) and
+   `CommunityVerdict` (the share of members who picked the result, over the
+   spread and the sample; below D-052's floor, no consensus) -- with
+   `ThreeProductsNote`. Never one figure. The founder's analysis is not
+   sealed (D-206); the lane shows what was published.
+7. **Statistics** are tiles with both figures large and condensed and the
+   two shares as bars from the middle, the home side's in the brand green and
+   the away side's in a neutral token; a side not supplied is "–" with no bar.
+8. **What does not move in play** -- recent form, head-to-head and the
+   season's coverage -- is rendered by the page on the server
+   (`match-record.tsx`) and handed in as slots; the score, events,
+   statistics, line-ups and absences stay in the live view and follow the
+   stream. The live view also stops importing the whole scores card for its
+   four coverage words (`COVERAGE_KEY` now lives in `match-centre-cards.tsx`
+   as well). The route's first load is 182.5 kB of its 184 kB budget; no
+   budget changed.
+
+**Rejected.** *Client-side tabs with state*: they would show nothing but the
+Summary until the script ran, break deep links before hydration and add
+bundle weight; `:target` does the same job in CSS. *Placing a 4-2-3-1's
+midfielders by shirt number*: an invented position (rule 3). *Storing the
+feed's grid positions* to draw every formation: an ingestion change and a
+migration for a layout; worth its own task if the maintainer wants it.
+*The board's standings ("1st · 16 pts at kick-off"), scorers under each
+name and "Next" fixtures in the band*: not asked for, and the first two need
+data the match payload does not carry. *A white crest tile*: no white token
+exists (D-198); the crest sits on the surface token in both themes.
+
 ## D-205 — Lite mode for slow connections: a browser's choice, on by itself when the browser says the connection is slow
 **Status:** Accepted · 2026-10-11 · **Task:** T-1387 · **Follows:** D-089, D-090, D-092, D-198, D-199, D-206
 
