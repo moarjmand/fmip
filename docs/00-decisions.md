@@ -9065,3 +9065,46 @@ colours; substitution numbers): each repeats the kind or orders nothing the
 sequence does not. *Keeping the provider's text for an unknown detail*: rule
 2. *A backfill migration*: left to the maintainer, and unnecessary once the
 API maps at read time.
+
+## D-197 — API-Football Ultra: 20 more competitions, two more past seasons, a larger budget
+**Status:** Accepted · 2026-10-11 · **Task:** T-1379 · **Follows:** D-076, D-183, D-179
+
+**Context.** The teammate's review of 2026-10-04 found about 33 requested
+competitions missing, and a busy day needing 8-9k requests against the Pro
+plan's 7,500. The maintainer decided to buy the higher plan and, once bought,
+to add every requested competition that has a current season, add the
+tournaments when their edition starts, and backfill two more past seasons
+(2023/24, 2024/25) of the 11 domestic leagues so head-to-head and form have
+history. The maintainer bought Ultra on 2026-10-11: `/status` reads plan
+Ultra, 75,000 requests a day, active to 2026-11-21.
+
+**Decision.** (1) `API_FOOTBALL_DAILY_BUDGET=70000` (about 93 % of the plan,
+D-183's rule) and `INGESTION_BACKLOG_BATCH=200` (`MAX_BACKLOG_BATCH`) in the
+server's `.env`, with the maintainer's OK; D-183's tiers scale with it, so
+bulk work stops at 49,000 a day. (2) Twenty competitions with a current
+season, by the provider's ids: the domestic cups FA Cup 45, Copa del Rey 143,
+Coppa Italia 137, DFB-Pokal 81; the leagues Saudi Pro League 307, MLS 253,
+Brasileirão Série A 71, Liga Profesional Argentina 128, UAE Pro League 301,
+Qatar Stars League 305, Ekstraklasa 106, Serbian SuperLiga 286, HNL 210,
+Austrian Bundesliga 218, Swiss Super League 207, Danish Superliga 119, Super
+League Greece 197, Czech First League 345; the continental cups CONMEBOL
+Libertadores 13 and AFC Champions League Elite 17. Each season is labelled
+`2026/27` from the provider's year, as D-179 labels the calendar-year
+national competitions, because the adapter's fixtures carry that form; its
+end is the competition's real end, not the provider's last published date.
+The cups' stages are the provider's round names known today; later rounds
+are added when drawn (`14-maintainer.md`). (3) Seasons 2023/24 and 2024/25
+for the 11 domestic leagues with the provider's dates, backfilled; the detail
+backlog fills them at the larger batch. (4) Persian names for the twenty
+(migration `1765848000000_persian-names-ultra.sql`, by provider id, D-175).
+
+**Not added, and when.** Coupe de France 66: the provider's current season is
+still 2025; add 2026/27 when it appears. World Cup 1, EURO 4, Copa América 9,
+AFCON 6 and the Club World Cup 15 are between editions; the World Cup
+qualifiers (29-34, 37) finished their 2026 cycle. Each is added when its next
+edition starts. No model division is set for the new leagues: the model has
+no training data for them, so their forecasts stay `not_supplied` (rule 3).
+
+**Rejected.** *A scores-only tier for the new leagues*: the plan now covers
+full detail. *Labelling calendar-year seasons `2026`*: the adapter's fixtures
+carry `2026/27` and would not match.
