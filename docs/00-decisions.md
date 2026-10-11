@@ -9108,3 +9108,97 @@ no training data for them, so their forecasts stay `not_supplied` (rule 3).
 **Rejected.** *A scores-only tier for the new leagues*: the plan now covers
 full detail. *Labelling calendar-year seasons `2026`*: the adapter's fixtures
 carry `2026/27` and would not match.
+
+## D-198 — The Hybrid design system: one green, editorial and data modes, five families, a named display scale
+**Status:** Accepted · 2026-10-11 · **Task:** T-1380 · **Follows:** D-089, D-041, D-092, D-193
+
+**Context.** The maintainer chose the «Hybrid» direction from the design
+canvas on 2026-10-10: the Analyst's editorial pages and the Front Row's data
+pages under one header, with confirmed answers on colour, modes, fonts and
+the theme toggle. Later tasks build shared components (T-1381) and convert
+pages (T-1382 and on) on what this one lays down: tokens, fonts, scales and
+the mode mechanism. No page changes layout here.
+
+**Decision.**
+1. **One brand colour.** The FMIP green #0b6b3a (D-089) stays the only
+   accent; on Night it lifts to #1ed38a, and the mark is drawn in #0b6b3a in
+   both themes (`brand-colours.ts`). D-089's dark green (#4cc88a) is
+   retired. The model (#1d5fc4 / #6aa8ff), founder (#a84a12 / #ff9b57) and
+   community (#6a4bb3 / #b79cff) colours are tokens of their own and belong
+   to the three prediction products only (CLAUDE.md rule 6).
+2. **The palette.** The existing tokens are re-valued, so every page picks
+   it up: light is paper #fafaf7 (canvas), white surfaces, sunk #f1f2ee
+   (surface-raised), ink #15181d, ink-2 #3e4651 (muted), rule #dadde2, live
+   #c42335, warning #8a5a00; dark is Night: canvas #06080c, surface #0f141c,
+   raised #151c27, text #f4f6f8 / #a7b1bf, live #ff4d5e, warning #f5c451.
+   New tokens: `caption` (#646c78 / #8b95a5), `stage` (a data page's ground:
+   the sunk Day ground on light, the Night canvas on dark) and the three
+   lanes: 20 tokens per block.
+3. **Two modes.** `data-mode="editorial"` on an element (the header now;
+   home, stories, predictions, model accuracy and the founder's analysis as
+   they are converted) gives it the light values, light-more when contrast
+   asks for it, whatever the theme, and it paints its own paper ground: the
+   custom properties are set on the element itself, so nothing depends on
+   specificity against `<html>`. Data pages (live match, full time,
+   competition, player, club) follow the theme and stand on the stage
+   (`data-mode="data"` or `bg-stage`). Modes do not nest. A page opts in
+   when it is converted; until then it follows the theme as before.
+4. **The toggle** reads Auto / Day / Night (خودکار · روز · شب), Auto
+   first. The values (`system` / `light` / `dark`), the cookie and the
+   account preference are unchanged; other locales show the English, marked,
+   until translated.
+5. **Fonts**, all SIL OFL and self-hosted from `@fontsource-variable/*`:
+   Mona Sans (`wdth.css`, so 900 condensed is the same file) for the
+   interface on a Latin-script page; Newsreader upright and italic for
+   English editorial display, article body and the founder's voice; Geist
+   Mono for versions and timestamps; Markazi Text for Persian editorial
+   display; Vazirmatn stays for the Persian (and Arabic) interface, body and
+   scores. The classes are roles, not families: `font-sans`, `font-serif`,
+   `font-article`, `font-mono`, switched on `<html>` by `:lang(fa)` /
+   `:lang(ar)` in the base layer; `font-latin` and `font-naskh` name a
+   script's stack for a fragment that must not follow the page. Every locale
+   other than fa and ar is Latin-script and gets Mona Sans.
+6. **Subsets.** The packages' own stylesheets are imported unchanged: every
+   face is split by script with `unicode-range`, so a browser downloads only
+   the subsets a page draws, from this site, with `font-display: swap`
+   (measured on the production build: an English page fetches only Mona Sans
+   latin; a Persian one only Vazirmatn arabic and latin). Latin-extended is
+   kept on purpose: player names (Çalhanoğlu, Szczęsny, Đorđević) need it.
+   The Vietnamese, Cyrillic and symbol faces cost a few hundred bytes of CSS
+   each and are fetched only if such a character appears, which they then
+   render correctly. Writing our own @font-face rules to drop them would copy
+   the packages' ranges by hand and save no download.
+7. **Scales.** The seven interface sizes stay the only interface sizes. A
+   second, named scale is added and fixed in `fonts.spec.ts`: `text-article`
+   (19px / 1.65; Persian 17px / 2.0) and `text-display-1`..`7` at 28, 36,
+   44, 60, 84, 120 and 168px, covering editorial display (en 44-60, fa
+   36-44), data stats (28-44), data titles (44-84; fa 28-36) and the score
+   (en 120-168, fa 84-120). Display line heights are tight for Latin and
+   opened to 1.5 (1.3 at 84px) for Arabic script. Spacing is Tailwind's
+   4-point scale; radii `rounded-editorial` 0, `-control` 10, `-tile` 16,
+   `-card` 20, `-pill`; `max-w-page` 1280px, `max-w-measure` 680px, the
+   `page-frame` utility (16px gutters, 32px from 768px); `*-touch` 44px.
+
+**Contrast.** Every design value meets WCAG AA for its role on paper, white,
+sunk and the stage, and on the three Night grounds; none needed adjusting.
+The figures are in `tokens.css` and recomputed by `tokens.spec.ts`; e.g.
+caption 4.72 on sunk, live 5.13 on sunk, the Night caption 5.65 on raised
+(the board's "5.9 on surface" computes to 6.10). Values the board did not
+give were chosen here: the control edge (`border-strong`) #767d88 (3.69 on
+sunk) and #6b7482 on Night (3.62 on raised); the Night hairline is the
+board's tenth of white flattened over a card, #272c33, because a token is a
+plain hex; Night's pressed green #6de2b3 and text on the green #06080c;
+`danger` keeps #b91c1c / #f87171. More contrast (D-092) is recomputed for
+the new grounds: every text role, the captions and the three lanes at 7:1
+or better on light and dark (e.g. live #981a29 7.43 on sunk, model #174a99
+7.54), the light grounds unchanged and the dark ones black.
+
+**Rejected.** *A second accent* (the maintainer: one green). *Editorial
+pages in Night*: they and the header stay on paper. *Families as classes*
+(`font-mona`, `font-vazir`): a page would have to know its locale; roles
+switch by `lang` instead. *Fluid `clamp()` display sizes*: a viewport term
+ignores the reader's text-size setting (T-621); fixed steps chosen per
+breakpoint keep it. *`next/font/local`*: the site already self-hosts through
+fontsource packages and the spec checks that path. *Re-ordering
+`THEME_PREFERENCES` in the contracts* for Auto-first: only the switch's
+display order changes.
