@@ -12,14 +12,14 @@
       "name": "scores",
       "appRoute": "/[locale]/scores",
       "path": "/en/scores",
-      "firstLoadJsGzipKB": 171,
+      "firstLoadJsGzipKB": 173,
       "serverResponseMedianMs": 150
     },
     {
       "name": "match centre",
       "appRoute": "/[locale]/match/[id]",
       "path": "/en/match/00000000-0000-4000-8000-000000000901",
-      "firstLoadJsGzipKB": 180,
+      "firstLoadJsGzipKB": 184,
       "serverResponseMedianMs": 300
     },
     {

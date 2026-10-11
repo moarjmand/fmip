@@ -83,7 +83,15 @@ test.describe('blueprint journeys', () => {
 
     await page.goto(`/en/match/${OPEN_MATCH}`);
     const prediction = page.getByTestId('prediction-form');
-    await prediction.getByLabel('Liverpool', { exact: true }).check();
+    // "Make your pick" (T-1388): one control first, then the three choices,
+    // each a pressable label over a native radio, in the community colour.
+    // Before any pick the members' spread is not on the page.
+    await expect(prediction).toHaveAttribute('data-pick', 'before');
+    await expect(page.getByTestId('consensus-crowd')).toHaveCount(0);
+    await prediction.getByRole('button', { name: 'Make your pick' }).click();
+    await expect(prediction).toHaveAttribute('data-pick', 'choosing');
+    await prediction.locator('label[data-outcome="home"]').click();
+    await expect(prediction.getByLabel('Liverpool', { exact: true })).toBeChecked();
     await prediction.getByLabel('Liverpool goals').fill('2');
     await prediction.getByLabel('Manchester United goals').fill('1');
     await prediction.getByLabel('Confidence').selectOption('4');

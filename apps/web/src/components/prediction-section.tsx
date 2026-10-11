@@ -11,6 +11,7 @@ import type { ReactNode } from 'react';
 import { PredictionForm, type PredictionFormWords } from '@/components/prediction-form';
 import { Translated } from '@/components/translated';
 import { ScorePair } from '@/components/score';
+import { Icon } from '@/components/ui';
 import { type Locale } from '@/i18n/locales';
 import { attribute, interpolate, message, t } from '@/i18n/messages';
 import { canonicalUrl } from '@/lib/seo';
@@ -39,11 +40,17 @@ export function PredictionSection({
   fixture,
   me,
   current,
+  split,
 }: {
   locale: string;
   fixture: MatchHeader;
   me: AuthUser | null;
   current: Prediction | null;
+  /**
+   * The community split, shown under the pick once the reader has made one
+   * (T-1388, `CommunitySplit`); a page that has no consensus to hand omits it.
+   */
+  split?: ReactNode;
 }) {
   const l = asLocale(locale);
   const locked = current?.locked ?? isLocked(fixture.kickoff_at);
@@ -96,6 +103,7 @@ export function PredictionSection({
             home={fixture.home.name}
             away={fixture.away.name}
             shareUrl={canonicalUrl(locale, `/match/${fixture.id}`)}
+            split={split}
             words={formWords(l, fixture.home.name, fixture.away.name, current)}
           />
         </>
@@ -157,6 +165,11 @@ function formWords(
             },
           ),
     share: <Translated locale={locale} message="predictions.form.share" />,
+    makePick: <Translated locale={locale} message="pick.make" />,
+    group: (() => {
+      const { text, lang } = attribute(locale, 'pick.group');
+      return { text: interpolate(text, { home, away }), ...(lang === undefined ? {} : { lang }) };
+    })(),
     shareTitle: matchTitle(locale, home, away),
     shareMessages: {
       copied: message(locale, 'share.copied'),
@@ -178,13 +191,16 @@ function Final({
 }) {
   const v = prediction.latest;
   return (
-    <div className="flex flex-col gap-1 text-sm" data-testid="prediction-final">
-      <p>
-        <span className="font-medium">
+    <div className="flex flex-col gap-1 text-sm" data-testid="prediction-final" data-pick="locked">
+      <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+        {/* The pick as it was locked (T-1388): the community lane's filled
+            choice, with a lock rather than a tick, because it can no longer change. */}
+        <span className="inline-flex min-h-touch items-center gap-1.5 rounded-control border border-community bg-community px-3.5 font-semibold text-canvas">
+          <Icon name="lock" />
           {v.outcome === 'home' ? (
-            home
+            <bdi>{home}</bdi>
           ) : v.outcome === 'away' ? (
-            away
+            <bdi>{away}</bdi>
           ) : (
             <Translated locale={locale} message="predictions.outcome.draw" />
           )}

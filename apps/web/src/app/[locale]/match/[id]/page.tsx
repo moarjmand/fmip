@@ -6,7 +6,9 @@ import { interpolate, message, t } from '@/i18n/messages';
 import { ForecastPanel } from '@/components/forecast-panel';
 import { CommunityAnalysisPanel } from '@/components/community-analysis-panel';
 import { CompetitionContextPanel } from '@/components/competition-context';
-import { CommunityForecastPanel } from '@/components/community-consensus';
+import { CommunityForecastPanel, CommunitySplit } from '@/components/community-consensus';
+import { CommunityLane, ThreeProductsNote } from '@/components/product-lanes';
+import { isLocked } from '@/lib/prediction-form';
 import { FounderAnalysisPanel } from '@/components/founder-analysis';
 import { JsonLd } from '@/components/json-ld';
 import { KeyPlayersPanel } from '@/components/key-players';
@@ -285,28 +287,44 @@ export default async function MatchPage({
               ),
               community: (
                 <>
-                  <PredictionSection
-                    locale={locale}
-                    fixture={result.data.fixture}
-                    me={me}
-                    current={prediction}
-                  />
-                  <CommunityForecastPanel
-                    consensus={consensus !== null && consensus.ok ? consensus.data : null}
-                    home={result.data.fixture.home.name}
-                    away={result.data.fixture.away.name}
-                    timeZone={timeZone}
-                    locale={locale}
-                    // Three numbers, pulled out here so the community panel never
-                    // holds a forecast (rule 6). The comparison blueprint 4.2 asks
-                    // for is a difference between two labelled answers, never a
-                    // blend of them.
-                    model={
-                      forecasts !== null && forecasts.ok
-                        ? (forecasts.data.latest?.probabilities ?? null)
-                        : null
-                    }
-                  />
+                  {/* The community picks lane (T-1388): the reader's own pick and
+                    the members' spread, which opens only once they have picked or
+                    kick-off has locked every pick, so it cannot anchor a pick. */}
+                  <CommunityLane locale={locale}>
+                    <PredictionSection
+                      locale={locale}
+                      fixture={result.data.fixture}
+                      me={me}
+                      current={prediction}
+                      split={
+                        <CommunitySplit
+                          consensus={consensus !== null && consensus.ok ? consensus.data : null}
+                          home={result.data.fixture.home.name}
+                          away={result.data.fixture.away.name}
+                          locale={locale}
+                        />
+                      }
+                    />
+                    <CommunityForecastPanel
+                      consensus={consensus !== null && consensus.ok ? consensus.data : null}
+                      home={result.data.fixture.home.name}
+                      away={result.data.fixture.away.name}
+                      timeZone={timeZone}
+                      locale={locale}
+                      revealed={prediction !== null || isLocked(result.data.fixture.kickoff_at)}
+                      // Three numbers, pulled out here so the community panel never
+                      // holds a forecast (rule 6). The comparison blueprint 4.2 asks
+                      // for is a difference between two labelled answers, never a
+                      // blend of them.
+                      model={
+                        forecasts !== null && forecasts.ok
+                          ? (forecasts.data.latest?.probabilities ?? null)
+                          : null
+                      }
+                    />
+                  </CommunityLane>
+                  {/* Where the three meet on one page, said once (T-1388). */}
+                  <ThreeProductsNote locale={locale} />
                   {/* Below the founder's analysis and visibly not it: a fourth
                     signed opinion, named as one (rule 6, T-263). */}
                   <CommunityAnalysisPanel

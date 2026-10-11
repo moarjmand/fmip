@@ -6,7 +6,8 @@ import { useEffect, useState } from 'react';
 import { EntityImage } from '@/components/entity-image';
 import { ScoreCard } from '@/components/score-card';
 import { scoresAnnouncements } from '@/lib/announce';
-import { INITIAL_CLOCK, type LiveClock, liveLabel, liveState } from '@/lib/live';
+import { FreshnessStamp } from '@/components/freshness-stamp';
+import { INITIAL_CLOCK, type LiveClock, STALE_AFTER_MS, liveLabel, liveState } from '@/lib/live';
 import type { ScoreCardProducts } from '@/lib/score-card-products';
 import { blockUpdatedLabel, formatKickoff } from '@/lib/scores';
 import { applyFilters, isFiltered, type ScoresFilterSelection } from '@/lib/scores-filters';
@@ -142,7 +143,19 @@ export function LiveScores({
         data-state={state}
         role={state === 'stale' || state === 'unavailable' ? 'status' : undefined}
       >
-        {liveLabel(state, clock, locale, timeZone, words.m)}
+        {(state === 'live' || state === 'stale') && clock.lastEventAt !== null ? (
+          // The freshness stamp (T-1388), the same one the match centre shows.
+          <FreshnessStamp
+            checkedAt={clock.lastEventAt}
+            now={now}
+            staleAfterMs={STALE_AFTER_MS}
+            behind={state === 'stale'}
+            locale={locale}
+            words={words.m}
+          />
+        ) : (
+          liveLabel(state, clock, locale, timeZone, words.m)
+        )}
       </p>
       <div
         aria-live="polite"

@@ -22,9 +22,21 @@ describe('Button', () => {
       </Button>,
     );
     expect(html).toContain('type="submit"');
-    expect(html).toContain('bg-accent font-medium text-on-accent');
+    expect(html).toContain('bg-accent font-semibold text-on-accent');
     expect(html).toContain('px-4 py-2');
     expect(html).not.toContain('border-strong');
+  });
+
+  it('draws the Hybrid control: the 10px radius, and a 44px target at the reader’s size', () => {
+    // T-1388, D-206: `md` is what a reader presses on a phone; the dense
+    // sizes stay for rows of admin actions, where 24px is the floor (target.ts).
+    expect(buttonClasses({ size: 'md' })).toContain('min-h-touch');
+    expect(buttonClasses({ size: 'sm' })).not.toContain('min-h-touch');
+    for (const size of ['xs', 'sm', 'md'] as const) {
+      expect(buttonClasses({ size })).toMatch(/\brounded-control\b/);
+    }
+    // The pressed primary is the deeper green, never a fade.
+    expect(buttonClasses({ variant: 'primary' })).toContain('hover:bg-accent-strong');
   });
 
   it('draws a danger action in the danger token and a ghost one as a link', () => {
