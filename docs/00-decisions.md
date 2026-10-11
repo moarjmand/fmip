@@ -10136,3 +10136,91 @@ feed's round ("Regular Season - 6"), and "Tractor Sazi", "Persepolis FC".
 
 **Production.** The order is data, set after the deploy by the operator
 (the PR lists the commands); until then `/en` reads the default order.
+
+## D-210 — English names and reader-facing copy on the English site
+**Status:** Accepted · 2026-10-11 (agent, from a read-only audit of production's `/en` pages, at the maintainer's request) · **Task:** T-1395 · **Follows:** D-175, D-207, rules 1-4
+
+**Context.** After D-207, `/en` still read like the feed: "Bayern München",
+"Paris Saint Germain", "Bodo/Glimt", "FK Crvena Zvezda"; "M. Salah" beside
+"Mohamed Salah" on one match page; sentences such as "the provider did not
+supply them" and "The data feed has since removed this incident"; the
+forecast's "computed" stamp printed the UTC date beside a UK-time clock in
+one place and "11 Oct, 09:30" in another; the player statistics table
+scrolled inside its box on a phone with nothing to say so; and the story
+page said "No type: neither the publisher's category nor an editor gave
+this story one" and listed its language as "en-US".
+
+**Decision.**
+
+1. **English names for the big foreign clubs**, as D-207 wrote the Pro
+   League's: `entity_alias` rows (kind `name`, language `en`, source
+   `d210`), read by `localised_name()`, every surface's names (T-1312) and
+   search. Matched by the provider's team id through `provider_mapping`,
+   never by the stored name (rule 1), for the current season's clubs of the
+   five big leagues, the Eredivisie, the Primeira Liga, the Süper Lig and
+   the Champions, Europa and Conference League league phases, read from
+   production on 2026-10-11 (read-only). 59 rows, each listed with the
+   feed's name in `1765853000000_english-club-names.sql`; only a club whose
+   English form differs is listed, and a club already called that is
+   skipped. The form is the one an English reader knows: the English city
+   where English uses one (Bayern Munich, Cologne, Red Star Belgrade,
+   Slavia/Sparta Prague), the club's diacritics restored (Bodø/Glimt,
+   Atlético Madrid, Famalicão), and the legal prefixes and suffixes dropped
+   (Freiburg, Schalke 04, Porto, Club Brugge, Hearts). Names an English
+   reader already uses as stored stay (Athletic Club, Sporting CP, PSV
+   Eindhoven, FC Copenhagen, Inter). A club the feed names afresh later is
+   unaffected: the row is keyed by our id.
+2. **One player-name style per match page.** The short form is the feed's
+   own: line-ups, events and player statistics all carry one `name` per
+   player, mostly "M. Salah", sometimes "Mohamed Salah"; squads are fetched
+   for photos only (T-1324) and never rename anyone, and no stored full
+   form exists for the short names. Writing every name in full would need
+   the provider's player records for some 16,000 people (a backfill, so not
+   done here, CLAUDE.md §7). What the data does allow is done: on the match
+   page's dense lists (line-ups, incidents, player statistics, absences,
+   key players) a full Latin-script name is written in the same style
+   (`listName`, `lib/person-name.ts`): "M. Salah" beside "V. van Dijk".
+   Conservative: a name in another script, one already in that style, a
+   lower-case particle, a word that is not a word ("Player 7"), or a
+   generational second name ("Vinícius Júnior") is left alone, and a
+   Persian page keeps every name as stored. The player's own page, link
+   titles and image text keep the stored name.
+3. **Reader language, not the pipeline's.** Every reader-facing sentence
+   that named "the provider", "the feed" or "the data feed" now says what
+   the reader can rely on: "not available for this match", "not recorded
+   for this competition", "not checked for this match yet", "Last checked",
+   "This incident has since been removed from the match record", "Live
+   updates failed at {time}", "News sources last checked". The coverage
+   states stay as honest as before (rule 3): "not available" where nothing
+   was supplied, "not recorded" where the competition has no such data,
+   "not checked yet" where nobody has asked. Persian is rewritten for the
+   same keys where the Persian also said «منبع داده» or «ارائه‌دهنده‌ی
+   داده»; other locales are refreshed untranslated. The member's own
+   "Your feed" (Following) is a product word and stays. A spec fails if an
+   English catalogue sentence names a provider or a feed again.
+4. **The player statistics table on a phone** is a named region a
+   keyboard reaches (`tabindex="0"`, "{team}: player statistics, scrolls
+   sideways"), with an edge shade (`scroll-cue`, CSS scroll shadows in the
+   surface and caption tokens, the same on both edges so it reads right to
+   left) that shows only while columns are hidden, and a "Scroll sideways
+   to see every column" line below 768px.
+5. **One stamp format, on the page's clock.** `formatVersionStamp`
+   (`i18n/format.ts`): "12 Oct, 00:30", in the page's zone from
+   `readerTimeZone`/`pageTimeZone`, followed by the zone in words
+   (`zoneWords`: "UK time", "UTC") wherever a forecast or version stamp is
+   shown: the forecast bar, the match centre's forecast and its versions,
+   the predictions list, the home's lead forecast and three products (which
+   were pinned to UTC), the key matches, the power index and the table's
+   last change. The ISO date beside a local clock ("2026-10-11 00:30") is
+   gone. A score card's line keeps the format without the zone, which its
+   page's "Times:" line names.
+6. **The story page's copy**: "From {publisher}" for "Read at", "Not
+   categorised", "Only the headline and summary appear here; the full
+   article is on the publisher's site", "Text: {source} (publisher)",
+   "Last updated", the language by its name ("American English") with
+   `hreflang`, a translation note that matches the states shown (a version
+   says whether a second speaker reviewed it), "Follow the teams and
+   competitions in this story", and "We hold no other report of this
+   story" (not a claim about every publisher).
+
+**Production.** The names arrive with the migration; nothing to set.
