@@ -76,7 +76,7 @@ test.describe('blueprint journeys', () => {
     // Signed in but not verified: the form is there, the requirement is named.
     await page.goto(`/en/match/${OPEN_MATCH}`);
     await expect(page.getByTestId('prediction-form')).toBeVisible();
-    await expect(page.getByText('Verify your e-mail address before predicting')).toBeVisible();
+    await expect(page.getByText('Verify your email address before predicting')).toBeVisible();
 
     await page.goto(verifyLink(EMAIL));
     await expect(page.getByTestId('verify-result')).toBeVisible();
