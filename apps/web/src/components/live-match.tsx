@@ -3,7 +3,7 @@
 import type { MatchCentre } from '@fmip/contracts';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { MatchCentreView, type MatchSlots } from '@/components/match-centre-view';
+import { type MatchHero, MatchCentreView, type MatchSlots } from '@/components/match-centre-view';
 import { matchAnnouncements } from '@/lib/announce';
 import { withLocale } from '@/lib/locale-query';
 import { FreshnessStamp } from '@/components/freshness-stamp';
@@ -30,6 +30,7 @@ export function LiveMatch({
   timeZone,
   locale,
   slots,
+  hero = {},
   words,
 }: {
   initial: MatchCentre;
@@ -40,6 +41,8 @@ export function LiveMatch({
    * rest -- each placed by the view in its own section of the page (T-605).
    */
   slots: MatchSlots;
+  /** Where to watch and the highlight, for the score band (T-1384). */
+  hero?: Omit<MatchHero, 'live'>;
   /** The reader's words, resolved by the page on the server (T-1303). */
   words: MatchWords;
 }) {
@@ -91,35 +94,38 @@ export function LiveMatch({
   }, [id, router, words, locale]);
 
   const state = liveState(clock, now);
+  // The stream's line sits in the score band, under the status (T-1384).
+  const live = (
+    <p
+      className={`text-xs ${
+        state === 'live'
+          ? 'text-muted'
+          : state === 'connecting'
+            ? 'font-medium'
+            : 'font-medium text-warning'
+      }`}
+      data-testid="live-state"
+      data-state={state}
+      role={state === 'stale' || state === 'unavailable' ? 'status' : undefined}
+    >
+      {(state === 'live' || state === 'stale') && clock.lastEventAt !== null ? (
+        // "Last checked 8 sec ago", amber with "may be behind" past the
+        // stream's own threshold (T-1388); the other states keep their words.
+        <FreshnessStamp
+          checkedAt={clock.lastEventAt}
+          now={now}
+          staleAfterMs={STALE_AFTER_MS}
+          behind={state === 'stale'}
+          locale={locale}
+          words={words.m}
+        />
+      ) : (
+        liveLabel(state, clock, locale, timeZone, words.m)
+      )}
+    </p>
+  );
   return (
     <>
-      <p
-        className={`text-xs ${
-          state === 'live'
-            ? 'text-muted'
-            : state === 'connecting'
-              ? 'font-medium'
-              : 'font-medium text-warning'
-        }`}
-        data-testid="live-state"
-        data-state={state}
-        role={state === 'stale' || state === 'unavailable' ? 'status' : undefined}
-      >
-        {(state === 'live' || state === 'stale') && clock.lastEventAt !== null ? (
-          // "Last checked 8 sec ago", amber with "may be behind" past the
-          // stream's own threshold (T-1388); the other states keep their words.
-          <FreshnessStamp
-            checkedAt={clock.lastEventAt}
-            now={now}
-            staleAfterMs={STALE_AFTER_MS}
-            behind={state === 'stale'}
-            locale={locale}
-            words={words.m}
-          />
-        ) : (
-          liveLabel(state, clock, locale, timeZone, words.m)
-        )}
-      </p>
       <div
         aria-live="polite"
         aria-atomic="true"
@@ -134,6 +140,7 @@ export function LiveMatch({
         locale={locale}
         now={now}
         slots={slots}
+        hero={{ ...hero, live }}
         words={words}
       />
     </>

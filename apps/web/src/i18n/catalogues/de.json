@@ -11539,5 +11539,135 @@
     "source": "{zone} time",
     "text": "",
     "status": "untranslated"
+  },
+  "matchCentre.tab.summary": {
+    "source": "Summary",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.tab.predictions": {
+    "source": "Predictions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.keyEvents": {
+    "source": "Key events",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.kickedOff": {
+    "source": "Kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.latestFirst": {
+    "source": "Latest first. Names and minutes come from the match feed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.lineups.pitchLabel": {
+    "source": "Line-ups on the pitch: {away} in the top half, {home} in the bottom half",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.lineups.pitchNote": {
+    "source": "Home side at the bottom. Players are placed by the formation and the role the feed gives each of them; along each line they are in shirt-number order, because the feed does not say who played on which side.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.lineups.noFormation": {
+    "source": "No formation supplied, so this line-up is a list.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.lineups.noRoles": {
+    "source": "Not every starter's role is supplied, so this line-up is a list.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.lineups.linesUnknown": {
+    "source": "The feed does not say which midfielder played in which line of the {formation}, so this line-up is a list.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.lineups.mismatch": {
+    "source": "The roles supplied do not fit the {formation}, so this line-up is a list.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.hero.watch": {
+    "source": "Watch:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.hero.highlightsNote": {
+    "source": "Highlights open on {host}'s site. We don't host video.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.verdict.title": {
+    "source": "What was forecast, and what happened",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.verdict.frozen": {
+    "source": "Pre-match forecast, frozen at kick-off. It does not update during the match.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.verdict.result": {
+    "source": "Result: {outcome}. The model gave it {probability}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.verdict.rps": {
+    "source": "ranked probability score for this match · 0 is perfect",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.verdict.unscored": {
+    "source": "Not scored yet: the evaluation runs once the result is confirmed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.verdict.accuracy": {
+    "source": "One match says little: the model's record",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.founder.verdict.pick": {
+    "source": "Pick:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.founder.verdict.right": {
+    "source": "The result matched the pick.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.founder.verdict.wrong": {
+    "source": "The result did not match the pick.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.founder.verdict.exact": {
+    "source": "The score was exact too.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.community.verdict.draw": {
+    "source": "{share} picked a draw",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.community.verdict.win": {
+    "source": "{share} picked {team} to win",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.noEventsYet": {
+    "source": "No events recorded yet.",
+    "text": "",
+    "status": "untranslated"
   }
 }
