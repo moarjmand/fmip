@@ -54,7 +54,8 @@ test.describe('blueprint journeys', () => {
     await page.getByTestId('prediction-guest').getByRole('link', { name: 'Sign in' }).click();
     await expect(page).toHaveURL(/\/en\/login/);
 
-    await page.getByRole('link', { name: 'Register' }).click();
+    // The header offers Sign in alone from 768px (T-1381); the way to register is on the login page.
+    await page.getByRole('link', { name: 'Create an account' }).click();
     const form = page.getByTestId('register-form');
     await form.getByLabel('Username').fill(USERNAME);
     await form.getByLabel('Display name').fill('Journey Tester');
