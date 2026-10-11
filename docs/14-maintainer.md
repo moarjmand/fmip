@@ -131,6 +131,13 @@ header.
 **Bought on 2026-09-21 (D-076): API-Football Pro, 7,500 requests a day.**
 What is below is what you do with it.
 
+**Upgraded on 2026-10-11 (D-197): API-Football Ultra, 75,000 requests a
+day.** The budget is 70,000 and the backlog batch 200; 20 more competitions
+and two more past seasons of the domestic leagues were added the same day.
+Still to add when their edition starts: Coupe de France 2026/27, the World
+Cup, EURO, Copa América, AFCON, the Club World Cup and the 2030 World Cup
+qualifiers (D-197 lists their ids).
+
 **The day it is bought (T-028, 2026-09-20).** In the server's `.env`:
 `API_FOOTBALL_KEY` = the key, `INGESTION_SOURCE=api_football`,
 `INGESTION_SCHEDULE=on`, and optionally `API_FOOTBALL_DAILY_BUDGET` = the
