@@ -684,22 +684,22 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "theme.light": {
-    "source": "Light",
-    "text": "روشن",
+    "source": "Day",
+    "text": "روز",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "The maintainer's wording for the Hybrid design (D-198)."
   },
   "theme.dark": {
-    "source": "Dark",
-    "text": "تیره",
+    "source": "Night",
+    "text": "شب",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "The maintainer's wording for the Hybrid design (D-198)."
   },
   "theme.system": {
-    "source": "Device",
-    "text": "مطابق دستگاه",
+    "source": "Auto",
+    "text": "خودکار",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "The maintainer's wording for the Hybrid design (D-198)."
   },
   "theme.heading": {
     "source": "Appearance",
@@ -708,8 +708,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "theme.hint": {
-    "source": "Device follows the light or dark setting of your phone or computer. Your choice is kept in this browser and on your account, so signing in elsewhere brings it with you.",
-    "text": "«مطابق دستگاه» از تنظیم روشن یا تیره‌ی گوشی یا رایانه‌ی شما پیروی می‌کند. انتخاب شما در این مرورگر و در حساب کاربری‌تان ذخیره می‌شود، پس اگر جای دیگری وارد شوید، همراهتان می‌آید.",
+    "source": "Auto follows the light or dark setting of your phone or computer: Night when it is dark, Day when it is light. Your choice is kept in this browser and on your account, so signing in elsewhere brings it with you.",
+    "text": "«خودکار» از تنظیم روشن یا تیره‌ی گوشی یا رایانه‌ی شما پیروی می‌کند: وقتی تیره است «شب» و وقتی روشن است «روز». انتخاب شما در این مرورگر و در حساب کاربری‌تان ذخیره می‌شود، پس اگر جای دیگری وارد شوید، همراهتان می‌آید.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

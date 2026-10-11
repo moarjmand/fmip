@@ -10,7 +10,16 @@ const LABELS: Record<ThemePreference, MessageKey> = {
 };
 
 /**
- * Light, dark or the device's own (T-602, D-089). Three submit buttons in one
+ * Shown as Auto, Day, Night (D-198): the default first. Only the order on
+ * screen; the values and what each does are unchanged.
+ */
+const POSITION: Record<ThemePreference, number> = { system: 0, light: 1, dark: 2 };
+const SHOWN = [...THEME_PREFERENCES].sort((a, b) => POSITION[a] - POSITION[b]);
+
+/**
+ * Auto (the device's own), Day or Night (T-602, D-089; named for the Hybrid
+ * design, D-198). Data pages follow it; editorial pages and the header stay on
+ * paper whatever it says. Three submit buttons in one
  * form, the pressed one marked with `aria-pressed`: it works before any script
  * has loaded, a screen reader hears which is on, and the choice is one press.
  * `compact` sits in the site header on every page; `full` is the one in
@@ -38,7 +47,7 @@ export function ThemeSwitch({
         <span id={labelId} className={compact ? 'sr-only' : 'me-2 font-medium'}>
           <Translated locale={locale} message="theme.label" />
         </span>
-        {THEME_PREFERENCES.map((theme) => (
+        {SHOWN.map((theme) => (
           <button
             key={theme}
             type="submit"

@@ -94,7 +94,10 @@ describe('the switch', () => {
   it('is a named group, with its labels from the catalogue', () => {
     expect(html).toMatch(/role="group" aria-labelledby="theme-switch-compact-label"/);
     expect(html).toContain('id="theme-switch-compact-label"');
-    for (const label of ['Theme', 'Light', 'Dark', 'Device']) expect(html).toContain(label);
+    for (const label of ['Theme', 'Auto', 'Day', 'Night']) expect(html).toContain(label);
+    // Auto first, then Day and Night (D-198).
+    expect(html.indexOf('value="system"')).toBeLessThan(html.indexOf('value="light"'));
+    expect(html.indexOf('value="light"')).toBeLessThan(html.indexOf('value="dark"'));
   });
 
   it('marks an untranslated label as English on a locale nobody has finished', () => {
