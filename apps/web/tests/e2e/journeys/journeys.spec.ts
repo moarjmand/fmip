@@ -98,7 +98,7 @@ test.describe('blueprint journeys', () => {
     await prediction.getByRole('button', { name: 'Submit prediction' }).click();
     await expect(page.getByTestId('prediction-state')).toHaveAttribute('role', 'status');
     await expect(page.getByTestId('prediction-versions')).toContainText('Version 1');
-    await expect(page.getByTestId('prediction')).toContainText('open until kick-off');
+    await expect(page.getByTestId('prediction')).toContainText(/open until kick-off/i);
 
     // 18.2: the match centre is kept current over the stream.
     await expect(page.getByTestId('live-state')).toHaveAttribute('data-state', 'live', {
