@@ -85,6 +85,20 @@ describe('the three products stay three on the page', () => {
     expect(page).not.toMatch(/<PredictionPanel/);
   });
 
+  it('keeps the homepage’s "three forecasts" three lanes from three files (T-1382)', () => {
+    // The front page shows the three side by side for the day's biggest match,
+    // which is the second place a single "prediction" box would be tempting.
+    const front = source('home-front.tsx');
+    expect(front).toContain('<ModelLane');
+    expect(front).toContain('<FounderAnalysisBrief');
+    expect(front).toContain('<CommunityPicksBrief');
+    expect(front).toContain('<ThreeProductsNote');
+    expect(front).not.toMatch(/'model'\s*\|\s*'founder'|'founder'\s*\|\s*'community'/);
+    // Each brief lives with its own product's components, so the guards above cover it.
+    expect(source('founder-analysis.tsx')).toContain('export function FounderAnalysisBrief');
+    expect(source('community-consensus.tsx')).toContain('export function CommunityPicksBrief');
+  });
+
   it('keeps the Predictions page four sections rather than one feed', () => {
     // This is the page rule 6 was written for: blueprint 2.1 puts all three
     // products and the leaderboard under one heading, which makes "today's
