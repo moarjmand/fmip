@@ -9997,3 +9997,28 @@ the stream*: the poll keeps the page current with the same freshness line
 and no new control. *Not registering the service worker in lite mode*: its
 precache is a one-off of three small files, and it is what makes the
 offline page work on exactly these connections.
+
+## D-208 — Highlightly through its Football API product
+**Status:** Accepted · 2026-10-11 · **Task:** T-1392 · **Follows:** D-184, T-023, T-1366
+
+**Context.** Highlightly sells the same football data as two products: the
+Football API (`soccer.highlightly.net`) and the All Sports API, which reaches
+football at `sports.highlightly.net/football`. Its documentation says that
+paths, parameters, responses and refresh intervals are the same on both, and
+that accounts and keys do not carry from one to the other. The adapter and the
+highlights feed (D-184) were written against the All Sports route on the free
+plan. The maintainer is buying the Football API **Pro** plan ($9.49 a month,
+7,500 requests a day, 12 a second), because:
+- the free plan hides some highlights and has no geo-restriction check, which
+  D-184 requires before a link is shown;
+- Ultra and Mega add requests, not data, and the feed needs a few hundred a
+  day.
+
+**Decision.** The adapter and the highlights client call
+`https://soccer.highlightly.net` with `x-rapidapi-host: soccer.highlightly.net`.
+The recorded fixtures follow, because the replay transport keys on the URL.
+Nothing else changes: `HIGHLIGHTLY_KEY` turns the feed on, and
+`HIGHLIGHTS_DAILY_BUDGET` (empty = 5,000) keeps it under the Pro plan's 7,500.
+
+**Rejected.** *A setting that chooses the host.* There is one product to pay
+for, and a second route would be a second thing to test.

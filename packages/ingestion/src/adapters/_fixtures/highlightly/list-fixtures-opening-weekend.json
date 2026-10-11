@@ -17,7 +17,7 @@
   "requests": [
     {
       "method": "GET",
-      "url": "https://sports.highlightly.net/football/matches?leagueId=33973&season=2023&date=2023-08-11&limit=100",
+      "url": "https://soccer.highlightly.net/matches?leagueId=33973&season=2023&date=2023-08-11&limit=100",
       "status": 200,
       "body": {
         "data": [
@@ -69,7 +69,7 @@
     },
     {
       "method": "GET",
-      "url": "https://sports.highlightly.net/football/matches?leagueId=33973&season=2023&date=2023-08-12&limit=100",
+      "url": "https://soccer.highlightly.net/matches?leagueId=33973&season=2023&date=2023-08-12&limit=100",
       "status": 200,
       "body": {
         "data": [
@@ -291,7 +291,7 @@
     },
     {
       "method": "GET",
-      "url": "https://sports.highlightly.net/football/matches?leagueId=33973&season=2023&date=2023-08-13&limit=100",
+      "url": "https://soccer.highlightly.net/matches?leagueId=33973&season=2023&date=2023-08-13&limit=100",
       "status": 200,
       "body": {
         "data": [
@@ -377,7 +377,7 @@
     },
     {
       "method": "GET",
-      "url": "https://sports.highlightly.net/football/matches?leagueId=33973&season=2023&date=2023-08-14&limit=100",
+      "url": "https://soccer.highlightly.net/matches?leagueId=33973&season=2023&date=2023-08-14&limit=100",
       "status": 200,
       "body": {
         "data": [

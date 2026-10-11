@@ -38,7 +38,7 @@ really wants:
 |---|---|---|---|
 | API-Football | `https://v3.football.api-sports.io` | `x-apisports-key` | `/status`: plan `Free`, active, `limit_day: 100`, no errors. |
 | football-data.org | `https://api.football-data.org/v4` | `X-Auth-Token` | `/competitions` and `/competitions/PL`: 200; `x-requests-available-minute: 9` after one call, so the 10/min figure holds. |
-| Highlightly | `https://sports.highlightly.net/football` (`soccer.highlightly.net` also answers) | `x-rapidapi-key` **and** `x-rapidapi-host: sports.highlightly.net` | `/leagues?limit=1`: 200, `plan.tier: BASIC`. `x-api-key` or `Authorization: Bearer` alone → 403 "Missing mandatory HTTP Headers", even off RapidAPI. |
+| Highlightly | `https://soccer.highlightly.net`, the Football API product (T-1392, D-208; until then the All Sports route `sports.highlightly.net/football`) | `x-rapidapi-key` **and** `x-rapidapi-host: soccer.highlightly.net` | `/leagues?limit=1`: 200, `plan.tier: BASIC`. `x-api-key` or `Authorization: Bearer` alone → 403 "Missing mandatory HTTP Headers", even off RapidAPI. |
 
 The adapters (T-021..T-023) must send exactly these headers; the harness
 records real responses with the key redacted.
