@@ -1,7 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { formatDate, formatDateTime, formatNumber, formatTime, intlLocale } from './format';
+import {
+  formatDate,
+  formatDateTime,
+  formatNumber,
+  formatTime,
+  intlLocale,
+  localDigits,
+} from './format';
 import { UNFINISHED_LOCALES } from './locales';
 
 const ISO = '2025-01-05T16:28:00Z';
@@ -65,6 +72,12 @@ describe('what the other seven see', () => {
     expect(formatDateTime('de', ISO, ZONE)).toMatch(/^05\.01\.2025/);
     expect(formatDate('fr', ISO, ZONE, { weekday: 'long' })).toBe('dimanche');
     expect(formatDate('tr', ISO, ZONE, { month: 'long' })).toBe('Ocak');
+  });
+
+  it('writes a season label in the language’s digits, leaving its slash and zeros alone (T-1382)', () => {
+    expect(localDigits('fa', '2026/27')).toBe('۲۰۲۶/۲۷');
+    expect(localDigits('fa', '2009/10')).toBe('۲۰۰۹/۱۰');
+    expect(localDigits('en', '2026/27')).toBe('2026/27');
   });
 
   it('groups a count the way the language does', () => {

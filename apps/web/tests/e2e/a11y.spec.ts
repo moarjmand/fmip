@@ -15,6 +15,9 @@ const PAGES = [
   '/en',
   '/en/scores',
   '/en/leaderboard',
+  // The editorial pages of T-1383 (D-201), in their no-API states.
+  '/en/predictions',
+  '/en/model-accuracy',
   '/en/search',
   '/en/search?q=real',
   '/en/login',
@@ -30,6 +33,7 @@ const PAGES = [
   '/en/welcome?step=teams',
   '/x-rtl/scores',
   '/x-rtl/rules',
+  '/x-rtl/predictions',
   '/x-rtl/welcome?step=territory',
 ];
 

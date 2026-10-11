@@ -85,6 +85,20 @@ describe('the three products stay three on the page', () => {
     expect(page).not.toMatch(/<PredictionPanel/);
   });
 
+  it('keeps the homepage’s "three forecasts" three lanes from three files (T-1382)', () => {
+    // The front page shows the three side by side for the day's biggest match,
+    // which is the second place a single "prediction" box would be tempting.
+    const front = source('home-front.tsx');
+    expect(front).toContain('<ModelLane');
+    expect(front).toContain('<FounderAnalysisBrief');
+    expect(front).toContain('<CommunityPicksBrief');
+    expect(front).toContain('<ThreeProductsNote');
+    expect(front).not.toMatch(/'model'\s*\|\s*'founder'|'founder'\s*\|\s*'community'/);
+    // Each brief lives with its own product's components, so the guards above cover it.
+    expect(source('founder-analysis.tsx')).toContain('export function FounderAnalysisBrief');
+    expect(source('community-consensus.tsx')).toContain('export function CommunityPicksBrief');
+  });
+
   it('keeps the Predictions page four sections rather than one feed', () => {
     // This is the page rule 6 was written for: blueprint 2.1 puts all three
     // products and the leaderboard under one heading, which makes "today's
@@ -103,6 +117,18 @@ describe('the three products stay three on the page', () => {
     // And nothing that takes whichever it is handed.
     expect(page).not.toMatch(/<PredictionList|<ProductList|<PredictionRow/);
     expect(page).not.toMatch(/source:\s*'(model|founder|community)'/);
+
+    // T-1383 (D-201): each match row holds the model's bar and the member's
+    // pick side by side. The pick is the community's own component, handed to
+    // the model's list as an opaque slot; the list never reads what it holds.
+    expect(page).toContain('<InlinePick');
+    expect(page).toContain('<CommunitySplit');
+    const forecast = source('forecast-panel.tsx');
+    expect(forecast).not.toMatch(/CommunitySplit|Consensus|InlinePick|PredictionForm|Prediction\b/);
+    // The founder's and the community's sections stand in their own lanes.
+    expect(page).toContain('<FounderLane');
+    expect(page).toContain('<CommunityLane');
+    expect(page).toContain('<ThreeProductsNote');
   });
 
   it('keeps the scores card two lines from two components (T-940)', () => {

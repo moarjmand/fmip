@@ -1,19 +1,25 @@
 import { describe, expect, it } from 'vitest';
 import type {
-  ForecastListEntry,
   MatchViewing,
+  NewsStoryCard,
   PanelLatest,
+  PublicModelAccuracyResponse,
   ScoreCard,
   ScoresResponse,
 } from '@fmip/contracts';
 import {
+  accuracyFigure,
+  competitionsOn,
   featuredNotes,
-  homeForecasts,
-  homeMatches,
+  homeBroadcasts,
   homePanels,
-  homeViewing,
+  keyDay,
+  keyMatchGroups,
+  leadMatch,
+  leadStory,
   shortDay,
   tableCompetition,
+  tableRowOf,
   todayFixtureIds,
 } from './home';
 
@@ -44,55 +50,6 @@ const scores = (pinned: ScoreCard[], groups: ScoreCard[][]): ScoresResponse =>
   }) as unknown as ScoresResponse;
 
 describe('the homepage', () => {
-  it('lists favourites, then live matches, then the soonest upcoming, and nothing finished', () => {
-    const fav = card('fav', 'scheduled', '2026-10-05T12:00:00Z');
-    const later = card('later', 'scheduled', '2026-10-04T18:00:00Z', 'll');
-    const soon = card('soon', 'scheduled', '2026-10-04T12:00:00Z');
-    const live = card('live', 'live', '2026-10-03T12:00:00Z', 'll');
-    const done = card('done', 'finished', '2026-10-03T10:00:00Z');
-    const picked = homeMatches(
-      scores(
-        [fav],
-        [
-          [soon, done],
-          [later, live],
-        ],
-      ),
-    );
-    expect(picked.map((c) => c.id)).toEqual(['fav', 'live', 'soon', 'later']);
-    expect(homeMatches(scores([], [[soon, later]]), 1).map((c) => c.id)).toEqual(['soon']);
-  });
-
-  it('lists featured matches after the favourites and before the rest (T-1161)', () => {
-    const fav = card('fav', 'scheduled', '2026-10-05T12:00:00Z');
-    const soon = card('soon', 'scheduled', '2026-10-03T12:00:00Z');
-    const later = card('later', 'scheduled', '2026-10-04T12:00:00Z');
-    const live = card('live', 'live', '2026-10-03T12:00:00Z');
-    const done = card('done', 'finished', '2026-10-03T10:00:00Z');
-    const list = scores([fav], [[soon, later, live, done]]);
-    const ids = (featured: string[]) => homeMatches(list, 8, new Set(featured)).map((c) => c.id);
-    expect(ids(['later'])).toEqual(['fav', 'later', 'live', 'soon']);
-    // A favourite stays where it is; a finished or absent match is not listed.
-    expect(ids(['fav', 'done', 'elsewhere'])).toEqual(['fav', 'live', 'soon', 'later']);
-    expect(ids(['later', 'live'])).toEqual(['fav', 'live', 'later', 'soon']);
-    // Nothing featured: the list is exactly as before.
-    expect(ids([])).toEqual(homeMatches(list).map((c) => c.id));
-    // The model's view follows the same order.
-    const entry = (id: string) => ({
-      fixture_id: id,
-      latest: {
-        status: 'available',
-        model_version: 'dixon-coles-elo@0.1.0',
-        probabilities: { home: 0.4, draw: 0.3, away: 0.3 },
-      },
-    });
-    const forecasts = homeForecasts(
-      homeMatches(list, 8, new Set(['later'])),
-      ['soon', 'later', 'fav'].map(entry) as unknown as ForecastListEntry[],
-    );
-    expect(forecasts.map((f) => f.card.id)).toEqual(['fav', 'later', 'soon']);
-  });
-
   it('reads the editor’s notes, and an unreachable answer as nothing featured', () => {
     expect(featuredNotes([{ fixture_id: 'a', note: 'Derby.' }]).get('a')).toBe('Derby.');
     expect(featuredNotes(null).size).toBe(0);
@@ -104,26 +61,6 @@ describe('the homepage', () => {
     expect(tableCompetition(scores([], [[a], [b]]))).toBe('ucl');
     expect(tableCompetition(scores([b], [[a]]))).toBe('pl');
     expect(tableCompetition(scores([], []))).toBeNull();
-  });
-
-  it('shows the model’s view only for upcoming matches that have an available forecast', () => {
-    const one = card('one', 'scheduled', '2026-10-04T12:00:00Z');
-    const two = card('two', 'scheduled', '2026-10-04T14:00:00Z');
-    const entries = [
-      {
-        fixture_id: 'one',
-        latest: {
-          status: 'available',
-          model_version: 'dixon-coles-elo@0.1.0',
-          probabilities: { home: 0.4547, draw: 0.2913, away: 0.254 },
-        },
-      },
-      { fixture_id: 'two', latest: { status: 'unavailable', probabilities: null } },
-    ] as unknown as ForecastListEntry[];
-    const view = homeForecasts([one, two], entries);
-    expect(view.map((v) => v.card.id)).toEqual(['one']);
-    expect(view[0]!.percent).toEqual({ home: 45.5, draw: 29.1, away: 25.4 });
-    expect(view[0]!.modelVersion).toBe('dixon-coles-elo@0.1.0');
   });
 
   it('writes a kick-off day in the reader’s zone, not in UTC', () => {
@@ -160,29 +97,221 @@ describe("the member's homepage (T-942)", () => {
     ]);
     expect(chosen.map((p) => p.fixture_id)).toEqual(['newer', 'older']);
   });
+});
 
-  it('asks for a territory once, not on every line', () => {
-    const cards = [
-      card('a', 'scheduled', '2026-10-04T12:00:00Z'),
-      card('b', 'live', '2026-10-04T10:00:00Z'),
+describe('the Hybrid front page (T-1382, D-200)', () => {
+  // Groups in the answer's order, which without the session is D-154's:
+  // the Pro League first, then the Champions League, then the Premier League.
+  const pgpl = (id: string, status: ScoreCard['status'], kickoff: string) =>
+    card(id, status, kickoff, 'pgpl');
+  const ucl = (id: string, status: ScoreCard['status'], kickoff: string) =>
+    card(id, status, kickoff, 'ucl');
+  const epl = (id: string, status: ScoreCard['status'], kickoff: string) =>
+    card(id, status, kickoff, 'epl');
+
+  it('takes today as the key day when anything is played, else the next day with a match', () => {
+    const data = scores([], [[pgpl('a', 'finished', '2026-10-08T12:00:00Z')]]);
+    expect(keyDay(data, '2026-10-08', 'UTC')).toBe('2026-10-08');
+    const later = scores([], [[pgpl('b', 'scheduled', '2026-10-10T12:00:00Z')]]);
+    expect(keyDay(later, '2026-10-08', 'UTC')).toBe('2026-10-10');
+    expect(keyDay(scores([], []), '2026-10-08', 'UTC')).toBeNull();
+  });
+
+  it('leads with the biggest open match: the competitions’ order, then the earliest', () => {
+    const data = scores(
+      [],
+      [
+        [
+          pgpl('late', 'scheduled', '2026-10-08T15:00:00Z'),
+          pgpl('early', 'scheduled', '2026-10-08T13:30:00Z'),
+        ],
+        [ucl('cup', 'scheduled', '2026-10-08T11:00:00Z')],
+      ],
+    );
+    expect(leadMatch(data, '2026-10-08', 'UTC')?.id).toBe('early');
+  });
+
+  it('puts a member’s own team first, then an editor’s feature, and never a finished match', () => {
+    const data = scores(
+      [],
+      [
+        [
+          pgpl('done', 'finished', '2026-10-08T10:00:00Z'),
+          pgpl('pro', 'scheduled', '2026-10-08T13:30:00Z'),
+        ],
+        [ucl('cup', 'scheduled', '2026-10-08T19:00:00Z')],
+        [epl('mine', 'scheduled', '2026-10-08T20:00:00Z')],
+      ],
+    );
+    expect(leadMatch(data, '2026-10-08', 'UTC', new Set(), new Set(['cup']))?.id).toBe('cup');
+    expect(leadMatch(data, '2026-10-08', 'UTC', new Set(['mineh']), new Set(['cup']))?.id).toBe(
+      'mine',
+    );
+    // A followed team's finished match does not lead.
+    expect(leadMatch(data, '2026-10-08', 'UTC', new Set(['doneh']))?.id).toBe('pro');
+  });
+
+  it('leads with the next day’s match once today’s are played, and with none when nothing is open', () => {
+    const data = scores(
+      [],
+      [
+        [
+          pgpl('today', 'finished', '2026-10-08T10:00:00Z'),
+          pgpl('tomorrow', 'scheduled', '2026-10-09T13:00:00Z'),
+        ],
+      ],
+    );
+    expect(leadMatch(data, '2026-10-08', 'UTC')?.id).toBe('tomorrow');
+    const over = scores([], [[pgpl('today', 'finished', '2026-10-08T10:00:00Z')]]);
+    expect(leadMatch(over, '2026-10-08', 'UTC')).toBeNull();
+  });
+
+  it('groups the key day by competition in order, the member’s teams first and each match once', () => {
+    const data = scores(
+      [],
+      [
+        [
+          pgpl('p2', 'scheduled', '2026-10-08T15:00:00Z'),
+          pgpl('p1', 'live', '2026-10-08T13:00:00Z'),
+        ],
+        [ucl('u1', 'scheduled', '2026-10-08T19:00:00Z')],
+        [epl('e1', 'scheduled', '2026-10-09T19:00:00Z')],
+      ],
+    );
+    const shape = (groups: ReturnType<typeof keyMatchGroups>) =>
+      groups.map((g) => [g.kind, g.competition?.id ?? null, g.cards.map((c) => c.id)]);
+    expect(shape(keyMatchGroups(data, '2026-10-08', 'UTC'))).toEqual([
+      ['competition', 'pgpl', ['p1', 'p2']],
+      ['competition', 'ucl', ['u1']],
+    ]);
+    expect(shape(keyMatchGroups(data, '2026-10-08', 'UTC', new Set(['u1h'])))).toEqual([
+      ['yours', null, ['u1']],
+      ['competition', 'pgpl', ['p1', 'p2']],
+    ]);
+    expect(competitionsOn(data, '2026-10-08', 'UTC')).toBe(2);
+  });
+
+  it('cuts a long day and counts what it left for the scores page', () => {
+    const data = scores(
+      [],
+      [
+        ['a', 'b', 'c'].map((id, i) => pgpl(id, 'scheduled', `2026-10-08T1${i}:00:00Z`)),
+        [ucl('u', 'scheduled', '2026-10-08T19:00:00Z')],
+      ],
+    );
+    const cut = keyMatchGroups(data, '2026-10-08', 'UTC', new Set(), { groups: 1, rows: 2 });
+    expect(cut).toHaveLength(1);
+    expect(cut[0]!.cards.map((c) => c.id)).toEqual(['a', 'b']);
+    expect(cut[0]!.more).toBe(1);
+  });
+
+  it('finds a team’s row in the table, or nothing', () => {
+    const rows = [{ position: 1, points: 16, team: { id: 't' } }] as never;
+    expect(tableRowOf(rows, 't')?.points).toBe(16);
+    expect(tableRowOf(rows, 'x')).toBeNull();
+    expect(tableRowOf(null, 't')).toBeNull();
+  });
+
+  it('leads with the newest story an editor marked breaking, the rest left to the strip', () => {
+    const story = (id: string, marked: string | null) =>
+      ({
+        story_id: id,
+        breaking: marked === null ? null : { note: 'n', marked_at: marked, ends_at: marked },
+      }) as unknown as NewsStoryCard;
+    const { lead, rest } = leadStory([
+      story('old', '2026-10-08T08:00:00Z'),
+      story('new', '2026-10-08T09:00:00Z'),
+      story('plain', null),
+    ]);
+    expect(lead?.story_id).toBe('new');
+    expect(rest.map((s) => s.story_id)).toEqual(['old']);
+    expect(leadStory(null)).toEqual({ lead: null, rest: [] });
+  });
+
+  it('shows the newest month with a scored match, and nothing when none is scored', () => {
+    const point = (period: string, matches: number, rps: number | null) => ({
+      period,
+      period_start: `${period}-01`,
+      forecasts: matches,
+      matches,
+      coverage: matches === 0 ? 'not_supplied' : matches < 30 ? 'limited' : 'available',
+      log_loss: null,
+      brier: null,
+      rps,
+      accuracy: null,
+      uniform_rps: rps === null ? null : 0.23,
+    });
+    const answer = (points: ReturnType<typeof point>[]) =>
+      ({
+        overall: { competition: null, model_versions: ['dixon-coles-elo@0.6.0'], points },
+        last_updated_at: '2026-10-08T03:00:00Z',
+      }) as unknown as PublicModelAccuracyResponse;
+    const figure = accuracyFigure(
+      answer([point('2026-09', 40, 0.201), point('2026-10', 12, 0.19)]),
+    );
+    expect(figure?.period).toBe('2026-10');
+    expect(figure?.metrics.coverage).toBe('limited');
+    expect(figure?.modelVersions).toEqual(['dixon-coles-elo@0.6.0']);
+    expect(accuracyFigure(answer([point('2026-10', 0, null)]))).toBeNull();
+  });
+
+  it('lists today’s broadcasts only where a source lists one, and says why when none', () => {
+    const today = [
+      pgpl('a', 'scheduled', '2026-10-08T17:00:00Z'),
+      pgpl('b', 'scheduled', '2026-10-08T15:00:00Z'),
+      pgpl('done', 'finished', '2026-10-08T10:00:00Z'),
     ];
-    const unchosen = (id: string) =>
-      ({ fixture_id: id, territory: { state: 'not_chosen' } }) as unknown as MatchViewing;
-    expect(homeViewing(cards, [unchosen('a'), unchosen('b')])).toEqual({ state: 'ask' });
-    expect(homeViewing(cards, null)).toEqual({ state: 'unreachable' });
+    const chosen = { state: 'chosen', territory: { code: 'IR', name: 'Iran' } };
+    const option = (id: string, at: string) => ({
+      id,
+      broadcaster: { id: `${id}b`, name: `TV ${id}`, homepage_url: null, kind: 'tv' },
+      url: `https://example.org/${id}`,
+      source: { id: 's', name: 'Desk', rights: 'link' },
+      last_updated_at: at,
+    });
+    const listed = (id: string, options: unknown[] | null) =>
+      ({
+        fixture_id: id,
+        territory: chosen,
+        options: {
+          coverage: options === null ? 'not_supplied' : 'available',
+          data: options,
+          last_updated_at: null,
+        },
+        highlights: { coverage: 'not_supplied', data: null, last_updated_at: null },
+      }) as unknown as MatchViewing;
+    const name = (t: { name: string }) => t.name;
 
-    const listed = {
-      fixture_id: 'a',
-      territory: { state: 'chosen', territory: { code: 'GB', name: 'United Kingdom' } },
-      options: { coverage: 'available', data: [{}], last_updated_at: null },
-      highlights: { coverage: 'not_supplied', data: null, last_updated_at: null },
-    } as unknown as MatchViewing;
-    const lines = homeViewing(cards, [listed]);
-    expect(lines.state).toBe('lines');
-    if (lines.state === 'lines') {
-      expect(lines.byFixture.get('a')).toMatchObject({ state: 'listed', count: 1 });
-      // A match the answer left out is said to be unreachable, not guessed.
-      expect(lines.byFixture.get('b')).toEqual({ state: 'unreachable' });
+    expect(homeBroadcasts(today, null, name)).toEqual({ state: 'unreachable' });
+    const unchosen = { fixture_id: 'a', territory: { state: 'not_chosen' } } as never;
+    expect(homeBroadcasts(today, [unchosen], name)).toEqual({ state: 'ask' });
+
+    const result = homeBroadcasts(
+      today,
+      [
+        listed('a', [option('x', '2026-10-08T09:00:00Z')]),
+        listed('b', [option('y', '2026-10-08T11:00:00Z')]),
+        listed('done', [option('z', '2026-10-08T12:00:00Z')]),
+      ],
+      name,
+    );
+    expect(result.state).toBe('listed');
+    if (result.state === 'listed') {
+      // By kick-off; a finished match is not a live broadcast any more.
+      expect(result.rows.map((r) => r.card.id)).toEqual(['b', 'a']);
+      expect(result.sources).toEqual(['Desk']);
+      expect(result.checkedAt).toBe('2026-10-08T11:00:00Z');
+      expect(result.territory).toBe('Iran');
     }
+    expect(homeBroadcasts(today, [listed('a', [])], name)).toEqual({
+      state: 'none',
+      territory: 'Iran',
+      supplied: true,
+    });
+    expect(homeBroadcasts(today, [listed('a', null)], name)).toEqual({
+      state: 'none',
+      territory: 'Iran',
+      supplied: false,
+    });
   });
 });

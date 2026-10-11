@@ -9473,6 +9473,246 @@ into a bright mint panel at night and fights the green follow button; the
 maintainer asked for no club colour, which this keeps. *A new endpoint for
 the round's forecasts*: the scores card's batch route already answers it.
 
+## D-200 — The Hybrid homepage: a lead story or the day's biggest match, three forecasts apart, every competition of the day
+**Status:** Accepted · 2026-10-11 · **Task:** T-1382 · **Follows:** D-198, D-199, D-206, D-153, D-154, D-125, D-115, D-187
+
+**Context.** The maintainer's answers for the home board (h1, and h9 for the
+Persian phone): an editorial page; an editorial lead story at the top, or,
+with none, the day's biggest match; the three forecasts kept apart; today's
+key matches for every competition; a side column with the Pro League's top
+five, the model's accuracy, today's broadcasts and the member's teams; then
+the news. The shell (D-199) and the atoms (D-206) were already merged.
+
+**Decision.**
+1. **Editorial.** `<main data-mode="editorial">`: paper in Day and in
+   Night. The page's `<h1>` is "Today" (امروز) in the dateline, with the
+   inline-start accent bar the RTL check has always measured; the wordmark
+   is the header's, so the old "FMIP" heading went. The dateline gives the
+   weekday and date (the Persian calendar on `/fa`), the time of the render
+   and the zone, and the lead match's competition and round.
+2. **The lead story** is the newest story an editor has marked breaking
+   (D-125). The API has no "lead" or "featured" story; the breaking mark is
+   the one editorial act that puts a story at the top, and it ends by
+   itself, after which the slot returns to the match. Other marked stories
+   stay in the breaking strip. The story is the publisher's (D-061): its
+   headline and summary in its language, the source and time, the photo
+   with its credit where the licence covers it, and the way to the story
+   page. The board's "By [author] · n min read" is not shown: we do not
+   have the author for every source, nor the length.
+3. **The day's biggest match** is drawn whenever there is one, under the
+   story or in its place: the first day from today with a match still to be
+   played or in play; on it the teams a member follows, then a match an
+   editor features (D-153 put features "first after a member's
+   favourites"; keeping that is keeping what the home did), then the
+   competitions' order (D-154), then the earliest. A finished or called-off
+   match never leads. The card: competition, round, day, kick-off and zone,
+   the venue, each team's place and points from the league table when the
+   match's competition has one (the table already asked for, else that
+   competition's page), the score and status once started, "Behind" when
+   the live data is stale (rule 4), the model's bar with its version and
+   time (the pre-kick-off summary, D-114), the scores coverage as a badge,
+   "Open match centre" and "How the model works" (the About page's model
+   entry, `/about#model`). The board's "unbeaten" is not shown: it would be
+   a new fact computed for one line.
+4. **Three forecasts, kept apart** for that match (rule 6, D-206): the
+   model's lane with its bar; the founder's lane with the published analysis
+   (call, score, confidence, the start of the reasoning in the founder's
+   voice, the signature, the way to the whole) or "has not written an
+   analysis"; the community's lane with how many have picked and nothing
+   about what until the reader has picked or kick-off has locked every pick,
+   then the split. Each lane's content is that product's own component, in
+   its own file (`FounderAnalysisBrief`, `CommunityPicksBrief`);
+   `three-products.spec.ts` holds the page to that. Nothing is sealed (the
+   maintainer, 2026-10-11).
+5. **Today's key matches**: every match of the day (or, on a day with none,
+   of the next day with a match, said in the heading), grouped by
+   competition in the answer's order, the member's teams first in a group of
+   their own, each match once. Per row the model's three percentages from the
+   pre-kick-off summary, the favourite's cell shaded deeper; a match without
+   a forecast gets blank cells (named "No model forecast" for a screen
+   reader), counted under the table with the coverage badge "limited" (all
+   present: "available"). The model version(s) and the newest computation
+   time are said under it, and "All N competitions on the scores page" is
+   the way on. At most ten competitions of six matches each; what is left
+   out is counted per group.
+6. **The scores are asked without the session.** With it, the answer pins a
+   member's favourite teams *and competitions* and lifts followed
+   competitions, which is not the maintainer's order. Without it the groups
+   come in the stated order (D-154, as the live strip already asks), and the
+   member's own teams are lifted on the page from `GET /me/following`. The
+   table's competition is the first group's, so the Pro League's on any day
+   it plays in the fortnight.
+7. **The side column** (beside the main one from about 1100px, stacked under
+   it below, in the same order): the league's top five with the season
+   (in the page's digits: `localDigits` in `i18n/format.ts`, «۲۰۲۶/۲۷»),
+   its coverage badge and "Full table and fixtures"; **the model's
+   accuracy**: the public endpoint (D-187) is by calendar month only, so the
+   card shows the newest month with a scored match -- RPS, "lower is
+   better", the sample in matches with its coverage, what a uniform guess
+   scores on the same matches, the versions and the last update -- and says
+   which month instead of the board's "last week" (a weekly figure exists
+   for administrators only, and an API change for one label was not worth
+   it); **today's broadcasts**, one viewing request for today's matches in
+   the member's stored territory or a guest's first-run territory: each
+   match still to come or in play with a listing, each broadcaster a
+   `LinkOut` naming itself, then "Listings for <territory> from <sources> ·
+   last checked <time>"; nothing listed and no source are two sentences; no
+   territory is one "choose your territory" for a member. A guest without a
+   territory is not asked (D-115: the first-run offer asks), and nothing is
+   drawn; **My teams** for a member: up to four followed teams, each team
+   page's next match and last result (W/D/L, the score from the team's side,
+   the opponent, the date, the match centre), and "Follow or remove teams".
+   A guest gets the two lines that were at the top (what FMIP is, what an
+   account adds).
+8. **Kept from the old home**, placed: the first-run offer and the rest of
+   the breaking strip at the top; friends' predictions, group discussions
+   and today's panels in the main column under the key matches; the
+   founder's feed of coming analyses in its lane beside the community's call
+   to pick (the board's founder and community cards); "Your feed" under My
+   teams; JSON-LD and the metadata unchanged. **Removed**: the tagline
+   ("Start with the scores": the key matches' link replaces it), "Live and
+   upcoming" and "The model's view" (both are the key matches now), and the
+   per-line viewing for members (the broadcasts block replaces it); their
+   catalogue keys went with them.
+9. **The news**: the latest stories other than the lead, up to six, each with
+   its photo and credit where licensed, its type when one is known, the
+   publisher's headline in its language, the source and date, whose words a
+   translated version is, and "may be behind" when the feeds are stale
+   (rule 4).
+10. **Cost.** Three rounds of parallel requests: what does not depend on the
+    zone (eleven, the member ones only with a session); the scores; then
+    what the scores choose (the forecasts in batches of 50, one or two
+    tables, three for the lead, panels, viewing, at most four team pages).
+    Everything is a server component: the first-load JavaScript is
+    unchanged at 154.4 kB against the 158 kB budget, and the response
+    budget (200 ms median) is not raised. The team pages are the heaviest
+    new reads and are asked for members only.
+
+**Not verified here.** The 200 ms response budget is measured by the
+`budgets` project against the API and the seed, which do not run on this
+machine; the page was exercised against a stand-in API (screenshots) and,
+with no API at all, by the chromium E2E project.
+
+**Rejected.** *A new `lead` flag on stories*: an API and migration for what
+the breaking mark already says, with a window. *A weekly figure on the
+public accuracy endpoint*: a contract change for one word on one card.
+*Asking the scores with the session and re-sorting*: the page cannot recover
+D-154's order from a follow-ranked answer. *`NextMatchCard` per followed
+team*: each carries a bar and broadcasters; four of them would push the
+column far down. The rows say next and last, and the match centre has the
+rest. *Two renderings of the three lanes (compact on a phone, as h9 draws
+them)*: the lanes stack at full width instead, so one markup carries each
+product.
+## D-201 — The Hybrid editorial pages: Predictions by day with a pick in each row, the story at the measure with what the model expected
+**Status:** Accepted · 2026-10-11 · **Task:** T-1383 · **Follows:** D-198, D-199, D-206, D-154, D-061, D-187
+
+**Context.** The Hybrid boards h2 (predictions) and h3 (story) set the
+Predictions page and the story page in The Analyst's editorial look. The
+maintainer's answers: both editorial (paper whatever the theme, serif
+display, rules not boxes, the 680px measure); Predictions ordered by day and
+grouped by competition with a filter, simple three-way probabilities that open
+to expected goals, top scorelines and version history, an inline "Make your
+pick" with the community split only after the reader's pick, the founder's
+analysis at `#analysis` and published (never sealed), the leaderboard kept in
+reach; the story keeps "What the model expected" in match reports, its photo
+and source credits and the link out naming the host; `/model-accuracy` gets
+the treatment if it is small.
+
+**Decision.**
+1. **Editorial mode** on all three pages: `<main data-mode="editorial">` on
+   `bg-canvas`, the content in `page-frame`, the heading in `font-serif` at
+   `text-display-2` on a phone and `text-display-4` (Predictions, model
+   accuracy) or `-3` (a story's headline) from 768px, the introduction in
+   `font-article text-article` at `max-w-measure`, sections under a 2px ink
+   rule. `/model-accuracy` is a 53-line page, so it is converted here; its
+   tables keep their width.
+2. **Predictions by day.** One `GET /scores?from=&to=` for the start day
+   (`?date=`, default today in the reader's zone) and the two days after it,
+   asked **without the session**, so the competitions keep D-154's
+   `display_order` (as the live strip asks, D-199); a member's favourites do
+   not reorder this page. `lib/predictions-days.ts` buckets it by the reader's
+   day, then competition, kick-off order inside; an empty day is left out. The
+   list endpoints take at most fifty ids (`MAX_CONSENSUS_FIXTURES`), so the
+   list stops at fifty in page order and says how many it left out, pointing
+   to the filter (rule 3). The filter is links (`?competition=<id>#model`), no
+   script; it lists the window's competitions in the same order.
+3. **Each row** is the model's `ForecastBar` in its compact size (or its
+   sentence: none, unavailable, unreachable), then the pick, then a
+   `<details>` disclosure, no script, for any match with a version: the latest
+   version's expected goals ("before kick-off, not live xG"), its three
+   likeliest scorelines, and the version history newest first, "Current" and
+   "Superseded · kept" (rule 5). The bar replaces the board's three shaded
+   cells: D-206 made the bar the model's one drawing.
+4. **The history costs at most `HISTORY_LOOKUPS` (16) requests.** The list
+   endpoint returns the latest version only (T-136). A match whose latest is
+   version 1 needs no request; for the first sixteen matches in page order
+   with more than one version the page reads `GET /fixtures/:id/forecasts`
+   in parallel; any other says "N earlier versions are kept on the match
+   page" with the link, rather than showing one row as the whole history. No
+   new endpoint: a batch history endpoint is the next step if the page grows
+   busier.
+5. **The pick in the row** is `InlinePick` (`prediction-section.tsx`): the
+   match centre's `PredictionForm`, server action and three states, without
+   the section heading; a guest's "Make your pick" leads to sign in; after
+   kick-off the locked pick (or, for a member, that there was none). The
+   member's own predictions come from one page of `GET /me/predictions`
+   (`limit=50`, newest kick-off first); a listed match is asked about on its
+   own (`GET /fixtures/:id/prediction`) only when that page was full and ends
+   later than the match. The model's list takes the pick as an opaque slot
+   (`picks[id]`), so `forecast-panel.tsx` never imports the community's
+   components (rule 6, `three-products.spec.ts`).
+6. **The community spread waits for the pick** (D-206, on this page too):
+   `CommunitySplit` is handed to the pick, which shows it only once picked;
+   the community section (`CommunityConsensusList`, `revealed`) says "N
+   members have picked. Make your pick to see how they split." for a match
+   the reader has not picked and that has not kicked off, and the spread
+   otherwise. Below D-052's floor nothing is listed, as before.
+7. **The founder** stays at `#analysis` in `FounderLane`, published as
+   blueprint 6.5 has it; no sealed state (D-206). The community section is
+   in `CommunityLane` at `#community`; `ThreeProductsNote` under the two. A
+   three-link jump nav at the top names each product in its own colour. The
+   leaderboard stays on the page, with "The full leaderboard" link at the top
+   and at its foot.
+8. **"How accurate is our model?"** on Predictions is `ModelAccuracyRecent`
+   in the model lane: the latest three months of `GET /model/accuracy`'s
+   overall series, newest first: matches scored, the model's RPS and "RPS if
+   guessing" (one third each, the board's "baseline"), a `limited` month
+   marked, the full report linked; nothing scored, or no answer, is a
+   sentence.
+9. **The story page**: the type, headline, dek, byline and the words at the
+   measure; languages, corrections, entities, the three product links,
+   follow, other reports, save, share and freshness in an aside (below on a
+   phone). Where the publisher grants no body the link out is a `LinkOut`
+   button naming the publisher ("Read the original (Tehran Times)"). A
+   **Sources** list names the publisher (linked), the photo's credit and
+   licence when a photo is shown, and the forecast's stored model version
+   when the box is shown.
+10. **What the model expected** (`ModelExpected`, in `forecast-panel.tsx`, in
+    `ModelLane`): only when the story's type is `match_report` and it links a
+    match. Three reads, only then: `GET /fixtures/:id` (names, full-time
+    score), `GET /forecasts/pre-kickoff` (the version the match was played
+    against) and `GET /fixtures/:id/evaluations` (that version's RPS). The
+    bar with the version and computation time, "Result: Tractor 1–1
+    Esteghlal.", the RPS, the link to the accuracy page; no forecast, no
+    result, not yet scored and no answer are each a sentence (rule 3). The
+    publisher's words are never rewritten around it.
+
+**Not built.** The board's "featured match" block on Predictions (the same
+bar and history as a row's disclosure, a second time). On the story: a
+writer's byline beyond the publisher's own, "[n] min read", the goals and
+quote paragraphs, the "top two" table and the "more from matchweek" links: a
+licensed feed gives a headline and a summary (D-061), and the page does not
+write match copy around a publisher's story. A round label beside the
+competition ("matchweek 8"): `round` is the provider's free text. The
+founder's season record line: no endpoint gives it.
+
+**Rejected.** *One row component taking the model and the pick*: rule 6; the
+row is the model's, the pick a slot. *Fetching every listed match's
+history*: up to fifty requests per view. *Asking `/scores` with the
+session*: favourites would reorder the competitions away from D-154.
+*Whole-number cells as on the board*: D-206 keeps one decimal so the three
+total 100.0.
+
 ## D-205 — Lite mode for slow connections: a browser's choice, on by itself when the browser says the connection is slow
 **Status:** Accepted · 2026-10-11 · **Task:** T-1387 · **Follows:** D-089, D-090, D-092, D-198, D-199, D-206
 

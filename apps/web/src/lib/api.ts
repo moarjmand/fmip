@@ -815,6 +815,18 @@ export function fetchPredictionHistory(
   );
 }
 
+/**
+ * `GET /me/predictions?limit=` (T-056): the member's own predictions, newest
+ * kick-off first. The Predictions page reads one page of it for its inline
+ * picks (T-1383) rather than asking once per match.
+ */
+export function fetchMyPredictions(
+  cookie: string,
+  limit: number,
+): Promise<ApiResult<PredictionHistoryResponse>> {
+  return apiRequest<PredictionHistoryResponse>(`/me/predictions?limit=${limit}`, { cookie });
+}
+
 /** `GET /users/:username/rating` (T-053): the current rating, null before the first settlement. Public. */
 export function fetchRating(username: string): Promise<ApiResult<RatingResponse>> {
   return apiRequest<RatingResponse>(`/users/${encodeURIComponent(username)}/rating`);

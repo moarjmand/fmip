@@ -22,7 +22,9 @@ test.describe('locale routing', () => {
 
     await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-    await expect(page.getByTestId('title')).toHaveText('FMIP');
+    // The homepage's own heading is "Today" since the Hybrid front page
+    // (T-1382, D-200): the wordmark is the header's.
+    await expect(page.getByTestId('title')).toHaveText('Today');
   });
 
   test('/x-rtl renders right-to-left', async ({ page }) => {
@@ -31,7 +33,7 @@ test.describe('locale routing', () => {
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     await expect(page.locator('html')).toHaveAttribute('lang', 'x-rtl');
     // Same English content: the pseudo-locale changes direction, not language.
-    await expect(page.getByTestId('title')).toHaveText('FMIP');
+    await expect(page.getByTestId('title')).toHaveText('Today');
   });
 
   test('a path without a locale redirects to the default one', async ({ page }) => {
@@ -127,18 +129,39 @@ test.describe('layout mirrors under rtl', () => {
   });
 
   // T-1369: the model accuracy page mirrors, its figures' table included.
-  test('/x-rtl/model-accuracy is right-to-left, its accent on the right', async ({ page }) => {
-    await page.goto('/x-rtl/model-accuracy');
+  // T-1383 (D-201) set it in editorial mode, whose heading has no accent bar:
+  // the canary is now the heading's 680px measure, which sits at the inline
+  // start -- the right edge in `x-rtl`, the left in `en`. A `ml-auto` or a
+  // `left-0` where `ms-`/`start-0` belongs puts it on the wrong side.
+  for (const [locale, dir] of [
+    ['x-rtl', 'rtl'],
+    ['en', 'ltr'],
+  ] as const) {
+    test(`/${locale}/model-accuracy is ${dir}, its measure at the inline start`, async ({
+      page,
+    }) => {
+      await page.goto(`/${locale}/model-accuracy`);
+
+      await expect(page.locator('html')).toHaveAttribute('dir', dir);
+      const width = page.viewportSize()?.width ?? 1280;
+      const box = await page.getByTestId('title').boundingBox();
+      expect(box).not.toBeNull();
+      if (box === null) return;
+      if (dir === 'rtl') expect(box.x + box.width).toBeGreaterThan(width * 0.75);
+      else expect(box.x).toBeLessThan(width * 0.25);
+    });
+  }
+
+  // T-1383: the Predictions page and its model rows mirror too.
+  test('/x-rtl/predictions is right-to-left, its measure on the right', async ({ page }) => {
+    await page.goto('/x-rtl/predictions');
 
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-    const style = await page.getByTestId('title').evaluate((el) => {
-      const computed = getComputedStyle(el);
-      return {
-        borderLeftWidth: computed.borderLeftWidth,
-        borderRightWidth: computed.borderRightWidth,
-      };
-    });
-    expect(style).toEqual({ borderLeftWidth: '0px', borderRightWidth: ACCENT_WIDTH });
+    await expect(page.locator('main')).toHaveAttribute('data-mode', 'editorial');
+    const width = page.viewportSize()?.width ?? 1280;
+    const box = await page.getByTestId('title').boundingBox();
+    expect(box).not.toBeNull();
+    if (box !== null) expect(box.x + box.width).toBeGreaterThan(width * 0.75);
   });
 
   // T-1387: lite mode's banner -- the words at the inline start, the switch at
