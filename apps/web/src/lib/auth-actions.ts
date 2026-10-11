@@ -305,6 +305,8 @@ export async function followAction(locale: string, formData: FormData): Promise<
   revalidatePath(`/${locale}/following`);
   // The match centre offers one for the match itself (T-945).
   if (type === 'fixture') revalidatePath(`/${locale}/match/${id}`);
+  // The competition page's band offers one for the competition (T-1385).
+  if (type === 'competition') revalidatePath(`/${locale}/competition/${id}`);
 }
 
 export async function unfollowAction(locale: string, formData: FormData): Promise<void> {
@@ -317,4 +319,5 @@ export async function unfollowAction(locale: string, formData: FormData): Promis
   );
   revalidatePath(`/${locale}/settings`);
   if (type === 'fixture') revalidatePath(`/${locale}/match/${id}`);
+  if (type === 'competition') revalidatePath(`/${locale}/competition/${id}`);
 }
